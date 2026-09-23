@@ -7,6 +7,7 @@
 // external monitor can wire it with just the URL.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
@@ -14,6 +15,8 @@ import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
+import { replayHeld } from '../_shared/think.ts';
+import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -372,6 +375,28 @@ async function renderPdfAndAttach(t: any, folder: string, fallbackName: string, 
 // had run since. One RPC: the sales engineer's ladder steps, customer_support's watch for replies, and
 // the CEO's review loop (overdue tasks, held charges). The findings stay in the database; this
 // endpoint is public, so only counts come back.
+// THE CASE MEMORY'S EMBED QUEUE (23 Sep 2026, it_engineer). seat_case_memory rows whose situation
+// changed carry no vector until this tick gives them one: claimed with a lease (fn_case_embed_claim),
+// embedded HERE with the in-runtime gte-small session — free, in-region, not OpenRouter, no pg_net —
+// and written back only if the text is still the one embedded (fn_case_embed_write). Eight per tick
+// keeps the CPU bounded (an edge function's CPU cap is not bounded by its deadline); a backlog is
+// drained by scripts/kb/embed_seat_case_memory.mjs.
+async function caseMemoryEmbedTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_case_embed_claim', { p_limit: 8 });
+    if (error) return { ok: false, error: error.message };
+    let embedded = 0, failed = 0;
+    for (const row of (data || []) as Array<{ id: number; text: string; hash: string }>) {
+      const v = await embedLine(row.text);
+      if (!v) { failed++; continue; }
+      const { data: ok } = await admin.rpc('fn_case_embed_write', { p_id: row.id, p_embedding: '[' + v.join(',') + ']', p_hash: row.hash });
+      if (ok === true) embedded++;
+    }
+    // A claim that could not embed anything is a failure, never a quiet zero.
+    return { ok: failed === 0 || embedded > 0, claimed: (data || []).length, embedded, failed };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function refundLadderTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_refund_ladder_sweep');
@@ -1013,6 +1038,20 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
   // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).
   await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
+  // Questions a seat could not reason about under the hold are reasoned the moment it lifts
+  // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
+  // returns nothing and no model is asked, so this step costs one gate read.
+  await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
+  // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
+  // row stays held and is still replayed above the moment the hold lifts.
+  await step('reasoning_escalate', async () => {
+    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
+    const io = liveDeliveryIO(admin);
+    const told = [];
+    for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
+    return { escalated: (rows ?? []).length, told };
+  });
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');
@@ -1259,6 +1298,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   ceoPlan: { run: ceoPlanTick },
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
+  caseMemory: { run: caseMemoryEmbedTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },

@@ -62,6 +62,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
+import { recallCases } from '../_shared/case_recall.ts';
 import { confirmRefundOutcome, refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
 import { isDemoEmail } from '../_shared/demo_identity.ts';
 // 14 Sep 2026 — the duties (founder: "yea add them all", "yea add them"). Nothing is re-implemented:
@@ -557,6 +558,9 @@ Deno.serve(observe('accountant', async (req) => {
       if (!question) return J({ error: 'question_required' }, 400);
 
       const vec = await embed(question);
+      // Past cases before the answer (23 Sep 2026): refunds, classifications, and what other seats
+      // finalised on the same subject. Returned as evidence beside the knowledge.
+      const memory = await recallCases(admin, { seat: 'accountant', path: 'assist', situation: question, embedding: vec });
       const { data, error } = await admin.rpc('fn_accountant_assist', {
         p_text: question,
         p_embedding: vec,
@@ -595,6 +599,7 @@ Deno.serve(observe('accountant', async (req) => {
         seat: 'accountant',
         answered: r.answered === true,
         reply,
+        precedent: memory,
         cited: r.cited ?? [],
         refusal: r.refusal ?? null,
         basis: 'Retrieved from accountant_knowledge and assembled from the cited records. No model generated this text, and the corpus deliberately holds no tax rate, threshold or deadline — those are read from the Federal Tax Authority for the period concerned.',
@@ -1031,10 +1036,19 @@ Deno.serve(observe('accountant', async (req) => {
           }
         }
 
+        // HOW WAS A RECEIPT LIKE THIS CLASSIFIED BEFORE? (23 Sep 2026.) By meaning, this seat's own
+        // finalised classifications only. A precedent that was CORRECTED (re-classified by hand) wins
+        // over the default rule, and the entry says which case it followed.
+        const situation = `vendor ${vendor} | ${currency} ${amount} | ${subject}`;
+        const memory = await recallCases(admin, { seat: 'accountant', path: 'expense_classification', caseKind: 'expense_classification',
+          otherSeats: false, situation, embedding: await embed(situation) });
+        const precedentCase = memory.cases.find((c) => c.finalised && c.correction && c.outcome);
+        const category = precedentCase?.outcome ?? (recurring ? 'Subscription' : 'Usage');
         const { data: insRow } = await admin.from('expense_entries')
           .upsert({
-            vendor, category: recurring ? 'Subscription' : 'Usage', amount, currency, charged_on: charged,
-            note: ('accountant historical sweep of the expenses mailbox: ' + subject + ' [' + det.basis + (docText ? ' src=pdf_text' : '') + ']').slice(0, 300),
+            vendor, category, amount, currency, charged_on: charged,
+            note: ('accountant historical sweep of the expenses mailbox: ' + subject + ' [' + det.basis + (docText ? ' src=pdf_text' : '')
+              + (precedentCase ? ' precedent=#' + precedentCase.case_id : '') + ']').slice(0, 300),
             source: 'receipt', doc_path: docPath, doc_name: docName.slice(0, 180), doc_content_type: docType,
             doc_kind: docPath ? docKind : null, doc_note: docPath ? docNote : null,
             source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn,

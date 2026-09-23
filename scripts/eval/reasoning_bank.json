@@ -1,0 +1,2065 @@
+{
+ "about": "The reasoning question bank for scripts/eval/reasoning_eval.mjs. Built 23 Sep 2026 from the seat and trade knowledge packs' eval questions (verified packs, two per trade; five per seat), the founder's pool example and multi-step cases (founder_instruction 903), the handoff phrasings the old regex list held, and founder-command cases. expect.entry_ids are knowledge record ids a correct answer should cite.",
+ "cases": [
+  {
+   "id": "c001",
+   "seat": "customer_support",
+   "audience": "customer",
+   "kind": "answer",
+   "q": "I want to build a pool at my villa — what depth, what is legal?",
+   "expect": {
+    "asked_back": true,
+    "decision_changing": [
+     "emirate"
+    ],
+    "stakes": "high"
+   },
+   "note": "founder's example, 903"
+  },
+  {
+   "id": "c002",
+   "seat": "customer_support",
+   "audience": "customer",
+   "kind": "answer",
+   "q": "I want to build a pool at my villa in Arabian Ranches, Dubai — what depth and what is legal?",
+   "expect": {
+    "asked_back": false,
+    "stakes": "high"
+   },
+   "note": "the same question with the emirate and community given: no question back"
+  },
+  {
+   "id": "c003",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "q": "Can I install a glass balustrade on my balcony and how high must it be?",
+   "expect": {
+    "asked_back": true,
+    "decision_changing": [
+     "emirate"
+    ],
+    "stakes": "high"
+   }
+  },
+  {
+   "id": "c004",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "q": "I need a fire alarm system for a 3-floor warehouse in Jebel Ali — what approvals and what system?",
+   "expect": {
+    "asked_back": false,
+    "stakes": "high"
+   }
+  },
+  {
+   "id": "c005",
+   "seat": "sales_engineer",
+   "audience": "supplier",
+   "kind": "answer",
+   "q": "Do I need a Civil Defence approval to supply fire extinguishers to a building in Sharjah?",
+   "expect": {
+    "asked_back": false,
+    "stakes": "high"
+   }
+  },
+  {
+   "id": "c006",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "We paid a Meta ad invoice in USD from the AED account — how is the FX difference booked?",
+   "expect": {
+    "asked_back": false,
+    "stakes": "high"
+   }
+  },
+  {
+   "id": "c007",
+   "seat": "customer_support",
+   "audience": "customer",
+   "kind": "answer",
+   "q": "How much does it cost to replace my kitchen cabinets?",
+   "expect": {
+    "asked_back": true,
+    "decision_changing": [
+     "size",
+     "material"
+    ]
+   },
+   "note": "unpublished price: reason from what is known, never refuse"
+  },
+  {
+   "id": "c008",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "aluminium",
+   "q": "Is FR aluminium composite panel the same as A2? Which one can I use on a 20-storey tower in Dubai?",
+   "q_ar": "هل ألواح ACP المقاومة للحريق FR هي نفسها A2؟ وأيهما يمكنني استخدامه في برج من 20 طابقاً في دبي؟",
+   "expect": {
+    "entry_ids": [
+     "aluminium:acp-core-pe-fr-a2",
+     "aluminium:uae-fls-code-facade-rules"
+    ]
+   }
+  },
+  {
+   "id": "c009",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "aluminium",
+   "q": "What's the difference between Qualicoat Class 2 and AAMA 2605? The consultant wrote one and the supplier quoted the other.",
+   "q_ar": "ما الفرق بين Qualicoat الفئة 2 وAAMA 2605؟ الاستشاري كتب واحداً والمورد سعّر الآخر.",
+   "expect": {
+    "entry_ids": [
+     "aluminium:coating-standards-qualicoat-aama"
+    ]
+   }
+  },
+  {
+   "id": "c010",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "av_it",
+   "q": "What pixel pitch do I need for a 5 m wide LED wall in a boardroom viewed from 3 m?",
+   "q_ar": "ما المسافة بين البكسلات المناسبة لشاشة LED بعرض 5 أمتار في قاعة اجتماعات تُشاهد من 3 أمتار؟",
+   "expect": {
+    "entry_ids": [
+     "av_it:led-wall-pixel-pitch",
+     "av_it:spec-led-wall"
+    ]
+   }
+  },
+  {
+   "id": "c011",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "av_it",
+   "q": "Should I choose an LCD video wall or an LED wall for our control room?",
+   "q_ar": "هل نختار جدار فيديو LCD أم شاشة LED لغرفة التحكم؟",
+   "expect": {
+    "entry_ids": [
+     "av_it:led-vs-lcd-videowall"
+    ]
+   }
+  },
+  {
+   "id": "c012",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "building_materials",
+   "q": "OPC or SRC for foundations in Dubai Marina?",
+   "q_ar": "أسمنت عادي أم مقاوم للكبريتات لأساسات في دبي مارينا؟",
+   "expect": {
+    "entry_ids": [
+     "building_materials:opc-vs-src",
+     "building_materials:cement-types-overview"
+    ]
+   }
+  },
+  {
+   "id": "c013",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "building_materials",
+   "q": "Is ASTM A615 Grade 60 the same as B500B?",
+   "q_ar": "هل حديد ASTM A615 درجة 60 نفس B500B؟",
+   "expect": {
+    "entry_ids": [
+     "building_materials:rebar-grades"
+    ]
+   }
+  },
+  {
+   "id": "c014",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "chemicals",
+   "q": "PCE or SNF superplasticiser for ready-mix in July, which should we use?",
+   "q_ar": "أي ملدن فائق نستخدم للخرسانة الجاهزة في يوليو: PCE أم SNF؟",
+   "expect": {
+    "entry_ids": [
+     "chemicals:pce-vs-snf",
+     "chemicals:admixture-types",
+     "chemicals:curing-compounds"
+    ]
+   }
+  },
+  {
+   "id": "c015",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "chemicals",
+   "q": "Should my villa roof use polyurethane liquid membrane or bitumen membrane?",
+   "q_ar": "هل أستخدم لسطح فيلتي غشاء بولي يوريثان سائلاً أم غشاءً بيتومينياً؟",
+   "expect": {
+    "entry_ids": [
+     "chemicals:pu-vs-bitumen-roof",
+     "chemicals:waterproofing-systems"
+    ]
+   }
+  },
+  {
+   "id": "c016",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "civil_works",
+   "q": "Secant piles or sheet piles for a 2-basement building in Business Bay?",
+   "q_ar": "خوازيق متقاطعة أم ستائر لوحية لمبنى بقبوين في الخليج التجاري؟",
+   "expect": {
+    "entry_ids": [
+     "civil_works:excavation-shoring",
+     "civil_works:dewatering"
+    ]
+   }
+  },
+  {
+   "id": "c017",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "civil_works",
+   "q": "CFA or bored piles for a G+6 building?",
+   "q_ar": "خوازيق بريمة مستمرة أم محفورة لمبنى أرضي وستة؟",
+   "expect": {
+    "entry_ids": [
+     "civil_works:piling-types",
+     "civil_works:pile-testing"
+    ]
+   }
+  },
+  {
+   "id": "c018",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "cleaning",
+   "q": "Is it better to pay per cleaner or per result for a 20-floor office tower?",
+   "q_ar": "هل الأفضل الدفع لكل عامل أم حسب النتيجة لبرج مكاتب من 20 طابقاً؟",
+   "expect": {
+    "entry_ids": [
+     "cleaning:input-vs-output",
+     "cleaning:sla-kpi"
+    ]
+   }
+  },
+  {
+   "id": "c019",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "cleaning",
+   "q": "Can my regular cleaning company also clean the restaurant kitchen hood ducts?",
+   "q_ar": "هل يمكن لشركة التنظيف المعتادة لدي تنظيف مجاري شفاطات مطبخ المطعم؟",
+   "expect": {
+    "entry_ids": [
+     "cleaning:kitchen-exhaust",
+     "cleaning:red-flags"
+    ]
+   }
+  },
+  {
+   "id": "c020",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "doors",
+   "q": "The consultant wants EI60 doors but the supplier offered FD60 to BS 476. Is that the same?",
+   "q_ar": "الاستشاري يطلب أبواب EI60 والمورد عرض FD60 وفق BS 476، هل هما نفس الشيء؟",
+   "expect": {
+    "entry_ids": [
+     "doors:fire-door-ratings-fd-vs-ei",
+     "doors:test-standards-ul10c-bs476-en1634"
+    ]
+   }
+  },
+  {
+   "id": "c021",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "doors",
+   "q": "We need 120-minute doors for the generator room. Timber or steel?",
+   "q_ar": "نحتاج أبواب 120 دقيقة لغرفة المولد، خشب أم حديد؟",
+   "expect": {
+    "entry_ids": [
+     "doors:timber-vs-steel-fire-doors"
+    ]
+   }
+  },
+  {
+   "id": "c022",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "electrical",
+   "q": "What's the difference between an MCB and an MCCB, and which do I need for a 250 A sub-main?",
+   "q_ar": "ما الفرق بين قاطع MCB وMCCB، وأيهما أحتاج لمغذٍّ فرعي 250 أمبير؟",
+   "expect": {
+    "entry_ids": [
+     "electrical:mcb-mccb-acb",
+     "electrical:fault-level-breaking-capacity"
+    ]
+   }
+  },
+  {
+   "id": "c023",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "electrical",
+   "q": "The consultant specified LSZH cable for the fire alarm. Is LSZH enough?",
+   "q_ar": "حدد الاستشاري كابل LSZH لإنذار الحريق، هل يكفي LSZH؟",
+   "expect": {
+    "entry_ids": [
+     "electrical:lszh-cables",
+     "electrical:fire-resistant-cables",
+     "electrical:civil-defence-electrical"
+    ]
+   }
+  },
+  {
+   "id": "c024",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "elevators",
+   "q": "Should I choose an MRL or a hydraulic lift for a 4-storey residential building?",
+   "q_ar": "هل أختار مصعداً بدون غرفة ماكينة أم هيدروليكياً لمبنى سكني من 4 طوابق؟",
+   "expect": {
+    "entry_ids": [
+     "elevators:traction-mrl-vs-machine-room-vs-hydraulic"
+    ]
+   }
+  },
+  {
+   "id": "c025",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "elevators",
+   "q": "What is the minimum car size for a lift that must take a wheelchair and a companion?",
+   "q_ar": "ما أقل مقاس كابينة لمصعد يجب أن يستوعب كرسياً متحركاً ومرافقاً؟",
+   "expect": {
+    "entry_ids": [
+     "elevators:en-81-70-accessibility"
+    ]
+   }
+  },
+  {
+   "id": "c026",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "engineering_consultancy",
+   "q": "My plot is in Jumeirah Village Circle, do I apply to Dubai Municipality or Trakhees?",
+   "q_ar": "قطعتي في قرية جميرا الدائرية، هل أقدّم لبلدية دبي أم تراخيص؟",
+   "expect": {
+    "entry_ids": [
+     "engineering_consultancy:authority-map",
+     "engineering_consultancy:master-developer-noc"
+    ]
+   }
+  },
+  {
+   "id": "c027",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "engineering_consultancy",
+   "q": "What approvals do I need to open a restaurant in a mall?",
+   "q_ar": "ما الموافقات التي أحتاجها لافتتاح مطعم في مول؟",
+   "expect": {
+    "entry_ids": [
+     "engineering_consultancy:fitout-permits",
+     "engineering_consultancy:civil-defence-approval"
+    ]
+   }
+  },
+  {
+   "id": "c028",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "fire_fighting",
+   "q": "Should I choose conventional or addressable fire alarm for a 6-storey residential building?",
+   "q_ar": "هل أختار نظام إنذار حريق تقليدي أم معنون لمبنى سكني من ست طوابق؟",
+   "expect": {
+    "entry_ids": [
+     "fire_fighting:conventional-vs-addressable",
+     "fire_fighting:fire-alarm-spec-checklist"
+    ]
+   }
+  },
+  {
+   "id": "c029",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "fire_fighting",
+   "q": "Is a dry pipe or pre-action sprinkler better for our server room?",
+   "q_ar": "هل الرشاشات الجافة أم سابقة الفعل أفضل لغرفة الخوادم لدينا؟",
+   "expect": {
+    "entry_ids": [
+     "fire_fighting:wet-dry-preaction-deluge",
+     "fire_fighting:clean-agent-comparison"
+    ]
+   }
+  },
+  {
+   "id": "c030",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "flooring",
+   "q": "For a restaurant kitchen floor, should I use epoxy or PU and what slip rating?",
+   "q_ar": "لأرضية مطبخ مطعم، هل أستخدم إيبوكسي أم بولي يوريثان، وما درجة مقاومة الانزلاق المطلوبة؟",
+   "expect": {
+    "entry_ids": [
+     "flooring:epoxy-vs-pu-resin",
+     "flooring:slip-resistance-ratings",
+     "flooring:resin-floor-spec-checklist"
+    ]
+   }
+  },
+  {
+   "id": "c031",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "flooring",
+   "q": "Is porcelain really better than ceramic, and how do I check the supplier is not selling ceramic as porcelain?",
+   "q_ar": "هل البورسلين أفضل فعلاً من السيراميك، وكيف أتأكد أن المورد لا يبيع سيراميك على أنه بورسلين؟",
+   "expect": {
+    "entry_ids": [
+     "flooring:porcelain-vs-ceramic"
+    ]
+   }
+  },
+  {
+   "id": "c032",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "glazing",
+   "q": "What is the difference between tempered and heat-strengthened glass for a tower facade?",
+   "q_ar": "ما الفرق بين الزجاج المقسّى والمقوّى حرارياً لواجهة برج؟",
+   "expect": {
+    "entry_ids": [
+     "glazing:tempered-vs-heat-strengthened-vs-annealed",
+     "glazing:nis-heat-soak"
+    ]
+   }
+  },
+  {
+   "id": "c033",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "glazing",
+   "q": "Should my frameless balcony balustrade use PVB or SGP?",
+   "q_ar": "هل أستخدم PVB أم SGP لدرابزين شرفة بدون إطار؟",
+   "expect": {
+    "entry_ids": [
+     "glazing:pvb-vs-sgp",
+     "glazing:balustrades"
+    ]
+   }
+  },
+  {
+   "id": "c034",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "gypsum",
+   "q": "Is green moisture-resistant gypsum board enough inside a shower?",
+   "q_ar": "هل لوح الجبس الأخضر المقاوم للرطوبة كافٍ داخل الدُّش؟",
+   "expect": {
+    "entry_ids": [
+     "gypsum:standard-vs-mr-vs-fire-vs-impact",
+     "gypsum:gypsum-vs-cement-board",
+     "gypsum:wet-area-backer-rules"
+    ]
+   }
+  },
+  {
+   "id": "c035",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "gypsum",
+   "q": "The contractor says he will use fire-rated board, so the wall is 2-hour rated — is that right?",
+   "q_ar": "يقول المقاول إنه سيستخدم ألواحاً مقاومة للحريق لذا فالجدار مصنف لساعتين، هل هذا صحيح؟",
+   "expect": {
+    "entry_ids": [
+     "gypsum:fire-rated-partitions",
+     "gypsum:civil-defence-approval",
+     "gypsum:fire-stopping"
+    ]
+   }
+  },
+  {
+   "id": "c036",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "heavy_equipment",
+   "q": "Is the excavator rate with operator also including diesel?",
+   "q_ar": "هل سعر الحفار مع المشغل يشمل الديزل أيضاً؟",
+   "expect": {
+    "entry_ids": [
+     "heavy_equipment:wet-vs-dry-hire",
+     "heavy_equipment:rate-structures"
+    ]
+   }
+  },
+  {
+   "id": "c037",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "heavy_equipment",
+   "q": "I need a crane to lift a 6 ton AC unit to a villa roof, what do you need from me?",
+   "q_ar": "أحتاج رافعة لرفع وحدة تكييف وزنها 6 أطنان إلى سطح فيلا، ماذا تحتاجون مني؟",
+   "expect": {
+    "entry_ids": [
+     "heavy_equipment:crane-spec-checklist",
+     "heavy_equipment:mobile-cranes"
+    ]
+   }
+  },
+  {
+   "id": "c038",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "home_automation",
+   "q": "Should I use KNX wired or KNX wireless for my new villa in Dubai?",
+   "q_ar": "هل أستخدم KNX السلكي أم اللاسلكي لفيلتي الجديدة في دبي؟",
+   "expect": {
+    "entry_ids": [
+     "home_automation:knx-wired-vs-wireless",
+     "home_automation:home-automation-villa-spec"
+    ]
+   }
+  },
+  {
+   "id": "c039",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "home_automation",
+   "q": "What is the difference between BACnet IP and MS/TP for our office tower BMS?",
+   "q_ar": "ما الفرق بين BACnet IP وMS/TP لنظام إدارة برجنا المكتبي؟",
+   "expect": {
+    "entry_ids": [
+     "home_automation:bacnet-ip-vs-mstp"
+    ]
+   }
+  },
+  {
+   "id": "c040",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "hvac",
+   "q": "What's the difference between a ducted split and VRF for a 5-bedroom villa, and which should I choose?",
+   "q_ar": "ما الفرق بين السبليت المخفي ونظام VRF لفيلا من خمس غرف، وأيهما أختار؟",
+   "expect": {
+    "entry_ids": [
+     "hvac:split-vs-ducted-vs-vrf",
+     "hvac:spec-vrf",
+     "hvac:dx-vs-chilled-water"
+    ]
+   }
+  },
+  {
+   "id": "c041",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "hvac",
+   "q": "Supplier quoted a chiller as 300 TR but didn't say at what conditions — is that a problem?",
+   "q_ar": "المورد عرض تشلر بسعة 300 طن دون ذكر الظروف، هل هذه مشكلة؟",
+   "expect": {
+    "entry_ids": [
+     "hvac:red-flags-quote",
+     "hvac:spec-chiller",
+     "hvac:chiller-air-vs-water-cooled"
+    ]
+   }
+  },
+  {
+   "id": "c042",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "interior_fitout",
+   "q": "What is the difference between Cat A and Cat B fit-out, and which do I need for a shell and core unit?",
+   "q_ar": "ما الفرق بين تشطيب الفئة A والفئة B، وأيهما أحتاج لوحدة هيكل ونواة؟",
+   "expect": {
+    "entry_ids": [
+     "interior_fitout:shell-core-cat-a-cat-b"
+    ]
+   }
+  },
+  {
+   "id": "c043",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "interior_fitout",
+   "q": "Should I go design & build or hire a consultant first for a 400 m² office?",
+   "q_ar": "هل أختار التصميم والتنفيذ أم أعين استشارياً أولاً لمكتب مساحته 400 م²؟",
+   "expect": {
+    "entry_ids": [
+     "interior_fitout:design-build-vs-build-only",
+     "interior_fitout:contractor-selection"
+    ]
+   }
+  },
+  {
+   "id": "c044",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "it_services",
+   "q": "Should we use Cat6 or Cat6A for our new office, and is Cat8 better?",
+   "q_ar": "هل نستخدم Cat6 أم Cat6A لمكتبنا الجديد، وهل Cat8 أفضل؟",
+   "expect": {
+    "entry_ids": [
+     "it_services:cat6-vs-cat6a-vs-cat7-vs-cat8"
+    ]
+   }
+  },
+  {
+   "id": "c045",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "it_services",
+   "q": "The supplier offered Cat7 with RJ45 jacks, is that real Cat7?",
+   "q_ar": "عرض المورد Cat7 بمقابس RJ45، هل هذا Cat7 حقيقي؟",
+   "expect": {
+    "entry_ids": [
+     "it_services:cat6-vs-cat6a-vs-cat7-vs-cat8",
+     "it_services:tia-568-iso-11801-standards"
+    ]
+   }
+  },
+  {
+   "id": "c046",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "joinery",
+   "q": "A customer wants a painted kitchen and asks whether MDF or solid wood is better for the doors, and what to use for the sink base. What do you advise?",
+   "q_ar": "عميل يريد مطبخاً مدهوناً ويسأل هل الـ MDF أفضل أم الخشب الطبيعي للأبواب، وماذا يستخدم لخزانة أسفل المغسلة؟ بماذا تنصحه؟",
+   "expect": {
+    "entry_ids": [
+     "joinery:mdf-vs-solid-wood",
+     "joinery:mr-mdf",
+     "joinery:mdf-vs-plywood"
+    ]
+   }
+  },
+  {
+   "id": "c047",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "joinery",
+   "q": "Is green MR MDF waterproof? Can I use it in the bathroom vanity?",
+   "q_ar": "هل الـ MDF الأخضر المقاوم للرطوبة مضاد للماء؟ هل أستخدمه لوحدة مغسلة الحمّام؟",
+   "expect": {
+    "entry_ids": [
+     "joinery:mr-mdf",
+     "joinery:vanity-bathroom-joinery",
+     "joinery:mdf-types-en622"
+    ]
+   }
+  },
+  {
+   "id": "c048",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "labour_supply",
+   "q": "Can I hire 15 helpers from a company that only has a general contracting licence?",
+   "q_ar": "هل يمكنني استئجار 15 عاملاً مساعداً من شركة لديها رخصة مقاولات عامة فقط؟",
+   "expect": {
+    "entry_ids": [
+     "labour_supply:licence-types",
+     "labour_supply:penalties-illegal-employment"
+    ]
+   }
+  },
+  {
+   "id": "c049",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "labour_supply",
+   "q": "What should a monthly rate for a steel fixer include, and should ILOE be on my invoice?",
+   "q_ar": "ماذا يجب أن يشمل السعر الشهري لحداد التسليح، وهل يجب أن يظهر التأمين ضد التعطل في فاتورتي؟",
+   "expect": {
+    "entry_ids": [
+     "labour_supply:rate-build-up",
+     "labour_supply:health-insurance-iloe"
+    ]
+   }
+  },
+  {
+   "id": "c050",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "landscaping",
+   "q": "Should I put natural grass or artificial turf in my garden in Arabian Ranches?",
+   "q_ar": "هل أضع عشباً طبيعياً أم صناعياً في حديقتي في المرابع العربية؟",
+   "expect": {
+    "entry_ids": [
+     "landscaping:natural-vs-artificial-grass",
+     "landscaping:paspalum-vs-bermuda"
+    ]
+   }
+  },
+  {
+   "id": "c051",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "landscaping",
+   "q": "Salt pool or normal chlorine, which is better for kids?",
+   "q_ar": "مسبح ملحي أم كلور عادي، أيهما أفضل للأطفال؟",
+   "expect": {
+    "entry_ids": [
+     "landscaping:chlorine-vs-salt"
+    ]
+   }
+  },
+  {
+   "id": "c052",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "logistics_moving",
+   "q": "Why did the mover ask for a video survey instead of just giving a price?",
+   "q_ar": "لماذا طلب الناقل معاينة بالفيديو بدلاً من إعطاء السعر مباشرة؟",
+   "expect": {
+    "entry_ids": [
+     "logistics_moving:survey-volume-vs-weight"
+    ]
+   }
+  },
+  {
+   "id": "c053",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "logistics_moving",
+   "q": "Is the mover responsible if my TV breaks, or do I need insurance?",
+   "q_ar": "هل الناقل مسؤول إذا انكسر تلفازي أم أحتاج تأميناً؟",
+   "expect": {
+    "entry_ids": [
+     "logistics_moving:insurance-transit",
+     "logistics_moving:claims-damage"
+    ]
+   }
+  },
+  {
+   "id": "c054",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "marine",
+   "q": "HMPE or polyester mooring ropes for our tanker, and do we need tails?",
+   "q_ar": "حبال إرساء HMPE أم بوليستر لناقلتنا، وهل نحتاج ذيولاً؟",
+   "expect": {
+    "entry_ids": [
+     "marine:mooring-rope-fibres"
+    ]
+   }
+  },
+  {
+   "id": "c055",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "marine",
+   "q": "Can we supply Civil Defence approved extinguishers to a Panama-flag ship?",
+   "q_ar": "هل يمكننا توريد طفايات معتمدة من الدفاع المدني لسفينة ترفع علم بنما؟",
+   "expect": {
+    "entry_ids": [
+     "marine:marine-fire",
+     "marine:red-flags"
+    ]
+   }
+  },
+  {
+   "id": "c056",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "mep_general",
+   "q": "Two MEP quotes for my office fit-out differ by 40%, how do I compare them?",
+   "q_ar": "عرضان لأعمال MEP لتشطيب مكتبي يختلفان بنسبة 40%، كيف أقارن بينهما؟",
+   "expect": {
+    "entry_ids": [
+     "mep_general:price-drivers",
+     "mep_general:red-flags",
+     "mep_general:boq-vs-lumpsum"
+    ]
+   }
+  },
+  {
+   "id": "c057",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "mep_general",
+   "q": "Should I go design-and-build or have a consultant design the MEP first?",
+   "q_ar": "هل أختار التصميم والتنفيذ أم يصمم استشاري أعمال MEP أولاً؟",
+   "expect": {
+    "entry_ids": [
+     "mep_general:design-vs-dnb"
+    ]
+   }
+  },
+  {
+   "id": "c058",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "office_equipment",
+   "q": "Should we buy a laser or an inkjet for an office printing 3,000 text pages a month?",
+   "q_ar": "هل نشتري طابعة ليزر أم نافثة للحبر لمكتب يطبع 3,000 صفحة نصية شهرياً؟",
+   "expect": {
+    "entry_ids": [
+     "office_equipment:laser-vs-inkjet",
+     "office_equipment:cost-per-page",
+     "office_equipment:ppm-duty-cycle"
+    ]
+   }
+  },
+  {
+   "id": "c059",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "office_equipment",
+   "q": "The printer says 50,000 pages duty cycle, so can we print 40,000 a month on it?",
+   "q_ar": "دورة تشغيل الطابعة 50,000 صفحة، فهل يمكن طباعة 40,000 صفحة شهرياً عليها؟",
+   "expect": {
+    "entry_ids": [
+     "office_equipment:ppm-duty-cycle"
+    ]
+   }
+  },
+  {
+   "id": "c060",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "oilfield",
+   "q": "What is the difference between API 5L PSL1 and PSL2, and which does ADNOC need?",
+   "q_ar": "ما الفرق بين API 5L PSL1 وPSL2، وأيهما تحتاج أدنوك؟",
+   "expect": {
+    "entry_ids": [
+     "oilfield:line-pipe-api5l",
+     "oilfield:adnoc-vendor-icv"
+    ]
+   }
+  },
+  {
+   "id": "c061",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "oilfield",
+   "q": "Can we use P110 casing in a sour well?",
+   "q_ar": "هل يمكن استخدام أنابيب تغليف P110 في بئر حامضي؟",
+   "expect": {
+    "entry_ids": [
+     "oilfield:octg-api5ct",
+     "oilfield:sour-service"
+    ]
+   }
+  },
+  {
+   "id": "c062",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "packaging",
+   "q": "What is the difference between a 3-ply and 5-ply carton and which do I need for 15 kg?",
+   "q_ar": "ما الفرق بين الكرتون 3 طبقات و5 طبقات وأيهما أحتاج لوزن 15 كغم؟",
+   "expect": {
+    "entry_ids": [
+     "packaging:flute-types",
+     "packaging:box-strength-tests"
+    ]
+   }
+  },
+  {
+   "id": "c063",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "packaging",
+   "q": "Can I still buy plastic takeaway cups and Styrofoam boxes for my café in 2026?",
+   "q_ar": "هل ما زال بإمكاني شراء أكواب بلاستيكية وعلب ستايروفوم لمقهاي في 2026؟",
+   "expect": {
+    "entry_ids": [
+     "packaging:plastic-ban-2026"
+    ]
+   }
+  },
+  {
+   "id": "c064",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "painting",
+   "q": "What's the difference between emulsion and enamel, and which should I use for my kitchen walls and doors?",
+   "q_ar": "ما الفرق بين الإيمولشن والإينامل، وأيهما أستخدم لجدران المطبخ والأبواب؟",
+   "expect": {
+    "entry_ids": [
+     "painting:emulsion-vs-enamel",
+     "painting:sheen-levels"
+    ]
+   }
+  },
+  {
+   "id": "c065",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "painting",
+   "q": "I need anti-rust paint for steel railings on a beachfront villa in Jumeirah. What should I specify?",
+   "q_ar": "أحتاج دهاناً ضد الصدأ لدرابزين حديد في فيلا على البحر في جميرا، ماذا أحدد في الطلب؟",
+   "expect": {
+    "entry_ids": [
+     "painting:protective-steel-spec",
+     "painting:iso-12944-corrosivity",
+     "painting:surface-prep-steel"
+    ]
+   }
+  },
+  {
+   "id": "c066",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "plastics_pipes",
+   "q": "Which pipe should I use for hot water in a villa, PPR or CPVC?",
+   "q_ar": "أي أنبوب أستخدم للماء الساخن في فيلا: PPR أم CPVC؟",
+   "expect": {
+    "entry_ids": [
+     "plastics_pipes:pvc-cpvc-ppr-hdpe-grp",
+     "plastics_pipes:ppr-pipes",
+     "plastics_pipes:cpvc"
+    ]
+   }
+  },
+  {
+   "id": "c067",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "plastics_pipes",
+   "q": "What does SDR11 mean and what pressure can it take?",
+   "q_ar": "ماذا يعني SDR11 وكم ضغطاً يتحمل؟",
+   "expect": {
+    "entry_ids": [
+     "plastics_pipes:pn-sdr-ratings"
+    ]
+   }
+  },
+  {
+   "id": "c068",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "plumbing",
+   "q": "Should I use PPR or CPVC for the hot water in my villa?",
+   "q_ar": "هل أستخدم PPR أم CPVC لتمديدات المياه الساخنة في الفيلا؟",
+   "expect": {
+    "entry_ids": [
+     "plumbing:ppr-vs-cpvc",
+     "plumbing:ppr-pn-classes"
+    ]
+   }
+  },
+  {
+   "id": "c069",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "plumbing",
+   "q": "Supplier A quoted PN16 PPR and supplier B PN20 for hot water lines. Why is A cheaper?",
+   "q_ar": "المورد الأول عرض PPR فئة PN16 والثاني PN20 لخطوط المياه الساخنة، لماذا الأول أرخص؟",
+   "expect": {
+    "entry_ids": [
+     "plumbing:ppr-pn-classes",
+     "plumbing:quote-red-flags"
+    ]
+   }
+  },
+  {
+   "id": "c070",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "pos_retail",
+   "q": "Do I need a 2D scanner or is a laser scanner enough for my supermarket?",
+   "q_ar": "هل أحتاج ماسحاً ثنائي البعد أم يكفي ماسح الليزر لسوبرماركت؟",
+   "expect": {
+    "entry_ids": [
+     "pos_retail:barcode-scanner-1d-vs-2d"
+    ]
+   }
+  },
+  {
+   "id": "c071",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "pos_retail",
+   "q": "Which anti-theft system is better for a pharmacy with lots of foil packs, RF or AM?",
+   "q_ar": "أي نظام حماية من السرقة أفضل لصيدلية فيها عبوات ألمنيوم كثيرة، RF أم AM؟",
+   "expect": {
+    "entry_ids": [
+     "pos_retail:eas-rf-vs-am"
+    ]
+   }
+  },
+  {
+   "id": "c072",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "power_generators",
+   "q": "Is a 500 kVA standby generator enough to run my labour camp 24/7 with no grid?",
+   "q_ar": "هل يكفي مولد 500 كيلوفولت أمبير احتياطي لتشغيل سكن العمال على مدار الساعة دون شبكة؟",
+   "expect": {
+    "entry_ids": [
+     "power_generators:iso8528-ratings",
+     "power_generators:sizing"
+    ]
+   }
+  },
+  {
+   "id": "c073",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "power_generators",
+   "q": "The supplier says 400 kW, another says 500 kVA — which is bigger?",
+   "q_ar": "مورد يقول 400 كيلوواط وآخر 500 كيلوفولت أمبير، أيهما أكبر؟",
+   "expect": {
+    "entry_ids": [
+     "power_generators:kva-vs-kw"
+    ]
+   }
+  },
+  {
+   "id": "c074",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "safety_equipment",
+   "q": "What is the difference between S1P and S3 safety shoes, and which do I need on a construction site?",
+   "q_ar": "ما الفرق بين أحذية السلامة S1P وS3، وأيهما أحتاج في موقع بناء؟",
+   "expect": {
+    "entry_ids": [
+     "safety_equipment:footwear-classes"
+    ]
+   }
+  },
+  {
+   "id": "c075",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "safety_equipment",
+   "q": "Is FFP2 the same as N95? Our client wants NIOSH but the supplier offers KN95.",
+   "q_ar": "هل FFP2 هي نفسها N95؟ العميل يريد NIOSH والمورد يعرض KN95.",
+   "expect": {
+    "entry_ids": [
+     "safety_equipment:respirators",
+     "safety_equipment:red-flags",
+     "safety_equipment:en-vs-ansi"
+    ]
+   }
+  },
+  {
+   "id": "c076",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "scaffolding",
+   "q": "Should I use cuplock or ringlock for a round water tank?",
+   "q_ar": "هل أستخدم الكَبلوك أم الرينغلوك لخزان مياه دائري؟",
+   "expect": {
+    "entry_ids": [
+     "scaffolding:cuplock-vs-ringlock",
+     "scaffolding:system-overview"
+    ]
+   }
+  },
+  {
+   "id": "c077",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "scaffolding",
+   "q": "The supplier quoted AED per square metre, is that enough to compare?",
+   "q_ar": "المورّد أعطاني سعراً بالمتر المربع، هل هذا كافٍ للمقارنة؟",
+   "expect": {
+    "entry_ids": [
+     "scaffolding:quote-red-flags",
+     "scaffolding:price-drivers"
+    ]
+   }
+  },
+  {
+   "id": "c078",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "security_systems",
+   "q": "Should I buy an NVR or a DVR for my new office in Dubai?",
+   "q_ar": "هل أشتري جهاز NVR أم DVR لمكتبي الجديد في دبي؟",
+   "expect": {
+    "entry_ids": [
+     "security_systems:nvr-vs-dvr",
+     "security_systems:sira-overview"
+    ]
+   }
+  },
+  {
+   "id": "c079",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "security_systems",
+   "q": "I have an old Hikvision TVI DVR; can I add AHD cameras to it?",
+   "q_ar": "عندي مسجل هيكفيجن TVI قديم، هل أستطيع إضافة كاميرات AHD إليه؟",
+   "expect": {
+    "entry_ids": [
+     "security_systems:hd-analog-tvi-ahd-cvi",
+     "security_systems:nvr-vs-dvr"
+    ]
+   }
+  },
+  {
+   "id": "c080",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "signage",
+   "q": "Should my shop letters be acrylic or stainless steel if the shop faces the sea in JBR?",
+   "q_ar": "هل تكون حروف محلي أكريليك أم ستانلس إذا كان المحل مطلاً على البحر في جي بي آر؟",
+   "expect": {
+    "entry_ids": [
+     "signage:letters-materials",
+     "signage:wind-structural"
+    ]
+   }
+  },
+  {
+   "id": "c081",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "signage",
+   "q": "What is the difference between halo-lit and face-lit letters?",
+   "q_ar": "ما الفرق بين الحروف ذات الإضاءة الخلفية والمضاءة من الأمام؟",
+   "expect": {
+    "entry_ids": [
+     "signage:lighting-methods"
+    ]
+   }
+  },
+  {
+   "id": "c082",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "solar",
+   "q": "Should I buy mono or poly panels for my villa in Dubai?",
+   "q_ar": "هل أشتري ألواح مونو أم بولي لفيلتي في دبي؟",
+   "expect": {
+    "entry_ids": [
+     "solar:mono-vs-poly",
+     "solar:temp-coefficient"
+    ]
+   }
+  },
+  {
+   "id": "c083",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "solar",
+   "q": "What is the difference between on-grid and hybrid solar, and will my house run during a power cut?",
+   "q_ar": "ما الفرق بين النظام المتصل بالشبكة والهجين، وهل سيعمل منزلي أثناء انقطاع الكهرباء؟",
+   "expect": {
+    "entry_ids": [
+     "solar:on-off-hybrid",
+     "solar:battery-storage"
+    ]
+   }
+  },
+  {
+   "id": "c084",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "steel",
+   "q": "A supplier offered me SS 201 handrails for my Dubai Marina balcony because it is cheaper than 304. Is that OK?",
+   "q_ar": "عرض علي مورد درابزين ستانلس 201 لشرفتي في دبي مارينا لأنه أرخص من 304. هل هذا مقبول؟",
+   "expect": {
+    "entry_ids": [
+     "steel:ss-201-vs-304",
+     "steel:ss-grade-selection-uae"
+    ]
+   }
+  },
+  {
+   "id": "c085",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "steel",
+   "q": "The magnet sticks to the bends of my new 304 railing. Did they cheat me?",
+   "q_ar": "المغناطيس يلتصق بثنيات درابزين 304 الجديد عندي. هل غشوني؟",
+   "expect": {
+    "entry_ids": [
+     "steel:magnet-test-myth"
+    ]
+   }
+  },
+  {
+   "id": "c086",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "upholstery",
+   "q": "Is a Martindale of 20,000 enough for hotel lobby chairs?",
+   "q_ar": "هل 20,000 دورة مارتنديل كافية لكراسي ردهة فندق؟",
+   "expect": {
+    "entry_ids": [
+     "upholstery:rub-tests",
+     "upholstery:cushions-bedding-hospitality"
+    ]
+   }
+  },
+  {
+   "id": "c087",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "upholstery",
+   "q": "PU leather or PVC leather for restaurant booths?",
+   "q_ar": "جلد PU أم جلد PVC لجلسات المطعم؟",
+   "expect": {
+    "entry_ids": [
+     "upholstery:leather-pu-pvc"
+    ]
+   }
+  },
+  {
+   "id": "c088",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "wallpaper",
+   "q": "Vinyl or non-woven wallpaper for a hotel corridor in Dubai?",
+   "q_ar": "فينيل أم ورق غير منسوج لممر فندق في دبي؟",
+   "expect": {
+    "entry_ids": [
+     "wallpaper:wallcovering-types",
+     "wallpaper:commercial-vinyl-types",
+     "wallpaper:fire-classification-wallcoverings"
+    ]
+   }
+  },
+  {
+   "id": "c089",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "wallpaper",
+   "q": "Why is there mould behind the vinyl on our exterior walls?",
+   "q_ar": "لماذا يظهر العفن خلف الفينيل على جدراننا الخارجية؟",
+   "expect": {
+    "entry_ids": [
+     "wallpaper:humidity-mould-uae"
+    ]
+   }
+  },
+  {
+   "id": "c090",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "waterproofing",
+   "q": "For an exposed villa roof in Dubai, should I choose an SBS or APP torch-on membrane?",
+   "q_ar": "لسطح فيلا مكشوف في دبي، هل أختار غشاء SBS أم APP الملحوم باللهب؟",
+   "expect": {
+    "entry_ids": [
+     "waterproofing:sbs-vs-app-torch-on"
+    ]
+   }
+  },
+  {
+   "id": "c091",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "kind": "answer",
+   "trade": "waterproofing",
+   "q": "What is the maximum roof U-value required by Al Sa'fat Silver, and can the insulation supplier guarantee it?",
+   "q_ar": "ما أقصى قيمة U للسطح يشترطها المستوى الفضي في السعفات، وهل يستطيع مورد العزل ضمانها؟",
+   "expect": {
+    "entry_ids": [
+     "waterproofing:dubai-al-safat-u-values",
+     "waterproofing:thermal-conductivity-r-u-value"
+    ]
+   }
+  },
+  {
+   "id": "c092",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Our revenue is under AED 3 million. Do we still need to register for corporate tax and file a return?",
+   "q_ar": "إيراداتنا أقل من 3 ملايين درهم، هل ما زلنا ملزمين بالتسجيل في ضريبة الشركات وتقديم إقرار؟",
+   "expect": {
+    "entry_ids": [
+     "accountant:ct-registration-duty",
+     "accountant:ct-small-business-relief",
+     "accountant:ct-return-and-payment-deadline"
+    ]
+   }
+  },
+  {
+   "id": "c093",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Our year ends 31 December 2026. When is the corporate tax return due?",
+   "q_ar": "تنتهي سنتنا المالية في 31 ديسمبر 2026، متى يستحق إقرار ضريبة الشركات؟",
+   "expect": {
+    "entry_ids": [
+     "accountant:ct-return-and-payment-deadline",
+     "accountant:tax-calendar"
+    ]
+   }
+  },
+  {
+   "id": "c094",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Until when can we claim Small Business Relief?",
+   "q_ar": "حتى متى يمكننا طلب إعفاء الأعمال الصغيرة؟",
+   "expect": {
+    "entry_ids": [
+     "accountant:ct-small-business-relief"
+    ]
+   }
+  },
+  {
+   "id": "c095",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "When must QuotesDone register for VAT?",
+   "q_ar": "متى يجب على كوتس دن التسجيل في ضريبة القيمة المضافة؟",
+   "expect": {
+    "entry_ids": [
+     "accountant:vat-registration-thresholds",
+     "accountant:vat-threshold-monitor-method"
+    ]
+   }
+  },
+  {
+   "id": "c096",
+   "seat": "accountant",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Should the VAT on our Google and hosting invoices go to a VAT receivable account?",
+   "q_ar": "هل تُقيَّد ضريبة القيمة المضافة على فواتير جوجل والاستضافة في حساب ضريبة مستردة؟",
+   "expect": {
+    "entry_ids": [
+     "accountant:vat-unregistered-input-tax"
+    ]
+   }
+  },
+  {
+   "id": "c097",
+   "seat": "ceo",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Are we on track for AED 1M by August 2027, and how do you know?",
+   "q_ar": "هل نحن على المسار لبلوغ مليون درهم بحلول أغسطس 2027، وكيف تعرف ذلك؟",
+   "expect": {
+    "entry_ids": [
+     "ceo:forecast-aed-1m",
+     "ceo:required-run-rate",
+     "ceo:growth-rate-discipline"
+    ]
+   }
+  },
+  {
+   "id": "c098",
+   "seat": "ceo",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "How much revealed quote value do we need to earn AED 1M in fees?",
+   "q_ar": "كم نحتاج من قيمة العروض المكشوفة لتحقيق مليون درهم من الرسوم؟",
+   "expect": {
+    "entry_ids": [
+     "ceo:forecast-aed-1m",
+     "ceo:driver-tree"
+    ]
+   }
+  },
+  {
+   "id": "c099",
+   "seat": "ceo",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "The forecast has been below target for three months. What do you do?",
+   "q_ar": "التوقع أقل من الهدف منذ ثلاثة أشهر. ماذا تفعل؟",
+   "expect": {
+    "entry_ids": [
+     "ceo:target-revision",
+     "ceo:forecast-accuracy"
+    ]
+   }
+  },
+  {
+   "id": "c100",
+   "seat": "ceo",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Which funnel stage should we fix first this month?",
+   "q_ar": "أي مرحلة من المسار يجب إصلاحها أولاً هذا الشهر؟",
+   "expect": {
+    "entry_ids": [
+     "ceo:binding-constraint",
+     "ceo:driver-tree"
+    ]
+   }
+  },
+  {
+   "id": "c101",
+   "seat": "ceo",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "How many months of runway do we have and how is it calculated?",
+   "q_ar": "كم شهراً من مدة التشغيل المتبقية لدينا وكيف تُحسب؟",
+   "expect": {
+    "entry_ids": [
+     "ceo:cash-runway-burn"
+    ]
+   }
+  },
+  {
+   "id": "c102",
+   "seat": "customer_support",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "A supplier asks us to delete all his data. What do we do and by when?",
+   "q_ar": "طلب مورد حذف جميع بياناته، ماذا نفعل وخلال أي مدة؟",
+   "expect": {
+    "entry_ids": [
+     "customer_support:pdpl-data-subject-rights",
+     "customer_support:pdpl-request-timelines",
+     "customer_support:pdpl-identity-verification",
+     "customer_support:records-retention-support"
+    ]
+   }
+  },
+  {
+   "id": "c103",
+   "seat": "customer_support",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Someone on WhatsApp says he is the account owner and wants the email changed. Can we do it?",
+   "q_ar": "شخص على واتساب يقول إنه مالك الحساب ويريد تغيير البريد، هل ننفذ؟",
+   "expect": {
+    "entry_ids": [
+     "customer_support:pdpl-identity-verification",
+     "customer_support:fraud-phishing-impersonation"
+    ]
+   }
+  },
+  {
+   "id": "c104",
+   "seat": "customer_support",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "A buyer received a PDF that shows another company's quotation. What happens in the first hour?",
+   "q_ar": "استلم مشترٍ ملف PDF يظهر عرض شركة أخرى، ماذا نفعل في الساعة الأولى؟",
+   "expect": {
+    "entry_ids": [
+     "customer_support:pdpl-breach-and-support",
+     "customer_support:confidentiality-before-reveal"
+    ]
+   }
+  },
+  {
+   "id": "c105",
+   "seat": "customer_support",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Does the Consumer Protection Law apply to a company buying fit-out works through us?",
+   "q_ar": "هل ينطبق قانون حماية المستهلك على شركة تشتري أعمال تشطيب عبرنا؟",
+   "expect": {
+    "entry_ids": [
+     "customer_support:consumer-protection-law-applicability"
+    ]
+   }
+  },
+  {
+   "id": "c106",
+   "seat": "customer_support",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "The customer's last message was 30 hours ago and the case is still open. How do we update them on WhatsApp?",
+   "q_ar": "آخر رسالة من العميل قبل 30 ساعة والقضية مفتوحة، كيف نحدّثه عبر واتساب؟",
+   "expect": {
+    "entry_ids": [
+     "customer_support:whatsapp-24h-window-templates",
+     "customer_support:proactive-support"
+    ]
+   }
+  },
+  {
+   "id": "c107",
+   "seat": "it_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "The nightly backup failed; how do I restore one table from the export and prove it worked?",
+   "q_ar": "فشل النسخ الاحتياطي الليلي؛ كيف أستعيد جدولاً واحداً من التصدير وأثبت نجاح ذلك؟",
+   "expect": {
+    "entry_ids": [
+     "it_engineer:restore-drill",
+     "it_engineer:supabase-backups"
+    ]
+   }
+  },
+  {
+   "id": "c108",
+   "seat": "it_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "An edge function exceeded its CPU limit and the job hung without recording an error. Why, and how do I prevent it?",
+   "q_ar": "تجاوزت دالة طرفية حد المعالج وتعلقت المهمة دون تسجيل خطأ. لماذا، وكيف أمنع ذلك؟",
+   "expect": {
+    "entry_ids": [
+     "it_engineer:edge-function-limits"
+    ]
+   }
+  },
+  {
+   "id": "c109",
+   "seat": "it_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Our emails are landing in spam. What SPF, DKIM and DMARC settings should we check?",
+   "q_ar": "رسائلنا تصل إلى البريد المزعج. ما إعدادات SPF وDKIM وDMARC التي يجب فحصها؟",
+   "expect": {
+    "entry_ids": [
+     "it_engineer:spf",
+     "it_engineer:dkim",
+     "it_engineer:dmarc",
+     "it_engineer:gmail-bulk-sender"
+    ]
+   }
+  },
+  {
+   "id": "c110",
+   "seat": "it_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Requests fail with too many connections on Postgres. What do I do?",
+   "q_ar": "تفشل الطلبات برسالة اتصالات كثيرة جداً في Postgres. ماذا أفعل؟",
+   "expect": {
+    "entry_ids": [
+     "it_engineer:connection-pool-exhaustion",
+     "it_engineer:idle-in-transaction"
+    ]
+   }
+  },
+  {
+   "id": "c111",
+   "seat": "it_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "An API key leaked in a commit. How do I rotate it safely?",
+   "q_ar": "تسرب مفتاح واجهة برمجية في إيداع. كيف أدوّره بأمان؟",
+   "expect": {
+    "entry_ids": [
+     "it_engineer:prove-rotation",
+     "it_engineer:supabase-api-keys",
+     "it_engineer:secret-scanning"
+    ]
+   }
+  },
+  {
+   "id": "c112",
+   "seat": "marketing",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Does a paid creator promoting QuotesDone on Instagram need a Media Council permit?",
+   "q_ar": "هل يحتاج صانع محتوى مدفوع يروّج لـ QuotesDone على Instagram إلى تصريح من مجلس الإعلام؟",
+   "expect": {
+    "entry_ids": [
+     "marketing:uae-media-council-advertiser-permit",
+     "marketing:influencer-creator-rules"
+    ]
+   }
+  },
+  {
+   "id": "c113",
+   "seat": "marketing",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "How do we get ChatGPT and Perplexity to cite QuotesDone when someone asks for the best RFQ platform in the UAE?",
+   "q_ar": "كيف نجعل ChatGPT وPerplexity يستشهدان بـ QuotesDone عند السؤال عن أفضل منصة لطلب عروض الأسعار في الإمارات؟",
+   "expect": {
+    "entry_ids": [
+     "marketing:geo-definition",
+     "marketing:geo-authoritative-citations",
+     "marketing:geo-comparison-and-alternatives-pages"
+    ]
+   }
+  },
+  {
+   "id": "c114",
+   "seat": "marketing",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Should we block GPTBot and OAI-SearchBot in robots.txt?",
+   "q_ar": "هل يجب حظر GPTBot وOAI-SearchBot في ملف robots.txt؟",
+   "expect": {
+    "entry_ids": [
+     "marketing:geo-engine-retrieval-map"
+    ]
+   }
+  },
+  {
+   "id": "c115",
+   "seat": "marketing",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Is llms.txt worth building and what should it contain?",
+   "q_ar": "هل يستحق ملف llms.txt الإنشاء، وماذا يجب أن يتضمن؟",
+   "expect": {
+    "entry_ids": [
+     "marketing:geo-llms-txt"
+    ]
+   }
+  },
+  {
+   "id": "c116",
+   "seat": "marketing",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "Which schema.org types should the homepage and FAQ use?",
+   "q_ar": "ما أنواع schema.org التي يجب استخدامها في الصفحة الرئيسية والأسئلة الشائعة؟",
+   "expect": {
+    "entry_ids": [
+     "marketing:geo-structured-data"
+    ]
+   }
+  },
+  {
+   "id": "c117",
+   "seat": "sales_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "A customer wants AC replacement in a villa but gives no quantities or location. Do we match it?",
+   "q_ar": "عميل يريد استبدال مكيفات فيلا دون كميات أو موقع. هل نطابقه؟",
+   "expect": {
+    "entry_ids": [
+     "sales_engineer:hold-or-ask-rule",
+     "sales_engineer:rfq-qualification-framework",
+     "sales_engineer:rfq-completeness-checklist"
+    ]
+   }
+  },
+  {
+   "id": "c118",
+   "seat": "sales_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "One quote is 25% below the other two. Should I recommend it?",
+   "q_ar": "أحد العروض أقل بـ٢٥٪ من العرضين الآخرين. هل أوصي به؟",
+   "expect": {
+    "entry_ids": [
+     "sales_engineer:low-outlier-quote",
+     "sales_engineer:quote-levelling-method"
+    ]
+   }
+  },
+  {
+   "id": "c119",
+   "seat": "sales_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "How do I compare a quote that excludes delivery and testing with one that includes them?",
+   "q_ar": "كيف أقارن عرضاً يستثني التوصيل والفحص بعرض يشملهما؟",
+   "expect": {
+    "entry_ids": [
+     "sales_engineer:quote-levelling-method",
+     "sales_engineer:exclusions-qualifications-clarifications",
+     "sales_engineer:like-for-like-basis"
+    ]
+   }
+  },
+  {
+   "id": "c120",
+   "seat": "sales_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "The supplier asks for 50% advance before starting. Is that normal in the UAE?",
+   "q_ar": "المورد يطلب ٥٠٪ مقدماً قبل البدء. هل هذا معتاد في الإمارات؟",
+   "expect": {
+    "entry_ids": [
+     "sales_engineer:advance-payment-and-apg",
+     "sales_engineer:negotiable-levers"
+    ]
+   }
+  },
+  {
+   "id": "c121",
+   "seat": "sales_engineer",
+   "audience": "internal",
+   "kind": "answer",
+   "q": "What does 10% retention mean and when is it released?",
+   "q_ar": "ماذا تعني محتجزات ١٠٪ ومتى يُفرج عنها؟",
+   "expect": {
+    "entry_ids": [
+     "sales_engineer:retention",
+     "sales_engineer:defects-liability-and-warranty"
+    ]
+   }
+  },
+  {
+   "id": "c122",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "I want to speak with an agent",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c123",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "Can I talk to a real person?",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c124",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "speak to a human please",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c125",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "agent",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c126",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "I need a human",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c127",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "connect me to a representative",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c128",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "I would like to speak to your manager",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c129",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "is anyone actually there?",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c130",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "third time I ask, stop the bot",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c131",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "you took my money and vanished",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c132",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "I will take this to court",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c133",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "أريد التحدث مع موظف",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c134",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "ابي اكلم احد",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c135",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "حولني لموظف",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c136",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "بدي احكي مع انسان",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c137",
+   "seat": "marketing",
+   "surface": "marketing_social.needs_a_person",
+   "kind": "decision",
+   "q": "نصبتوا علي",
+   "expect": {
+    "choice": "needs_a_person"
+   }
+  },
+  {
+   "id": "c138",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "How much is the fee?",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c139",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "I am a real estate agent looking for quotes",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c140",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "connect me with a supplier for gypsum work",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c141",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "can i talk to you about pricing",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c142",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "is it legal to build a pool in my garden?",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c143",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "what is your refund policy?",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c144",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "كم رسوم الخدمة؟",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c145",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "ممكن اتواصل مع مورد جبس",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c146",
+   "seat": "customer_support",
+   "surface": "wa_inbound.needs_a_person",
+   "kind": "decision",
+   "q": "السلام عليكم",
+   "expect": {
+    "choice": "no_person"
+   }
+  },
+  {
+   "id": "c147",
+   "seat": "ceo",
+   "surface": "ceo.command_intent",
+   "kind": "decision",
+   "q": "check why the refund failed",
+   "expect": {
+    "choice": "fix"
+   }
+  },
+  {
+   "id": "c148",
+   "seat": "ceo",
+   "surface": "ceo.command_intent",
+   "kind": "decision",
+   "q": "don't build anything yet, just tell me how many suppliers registered",
+   "expect": {
+    "choice": "ask"
+   }
+  },
+  {
+   "id": "c149",
+   "seat": "ceo",
+   "surface": "ceo.command_intent",
+   "kind": "decision",
+   "q": "from now on every quote goes out in Arabic too",
+   "expect": {
+    "choice": "inform"
+   }
+  },
+  {
+   "id": "c150",
+   "seat": "ceo",
+   "surface": "ceo.command_intent",
+   "kind": "decision",
+   "q": "stop the LinkedIn campaign",
+   "expect": {
+    "choice": "stop"
+   }
+  },
+  {
+   "id": "c151",
+   "seat": "ceo",
+   "surface": "ceo.command_intent",
+   "kind": "decision",
+   "q": "set up a weekly supplier report",
+   "expect": {
+    "choice": "build"
+   }
+  }
+ ]
+}

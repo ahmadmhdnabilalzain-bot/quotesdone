@@ -104,6 +104,18 @@ const CATALOGUE: Record<string, Catalogue> = {
     sample1_en: 'your trade licence expires on 2026-08-01', sample1_ar: 'تنتهي رخصتكم التجارية في 2026-08-01',
     url: 'https://quotesdone.com/portal',
   },
+  // 23 SEP 2026 — a reasoned answer that could not be sent inside the 24-hour window. Under the model hold a
+  // question waits in the seat's queue (_shared/think.ts); when it is answered after the customer's window
+  // has closed, WhatsApp allows only an approved template. UTILITY: the reply to the customer's own question.
+  // {{1}} is their question (shortened), {{2}} the answer; both literal-bounded. Needs submitting to Meta.
+  support_reply: {
+    en: 'QuotesDone support, about your question "{{1}}": {{2}}. You can reply here with anything else you need.',
+    ar: 'فريق دعم QuotesDone، بخصوص سؤالكم «{{1}}»: {{2}}. يمكنكم الرد هنا بأي استفسار آخر.',
+    sample1_en: 'what depth can my villa pool be', sample1_ar: 'ما العمق المسموح لمسبح الفيلا',
+    sample2_en: 'in Dubai a private pool needs a Dubai Municipality permit and a fence of at least 1.2 m',
+    sample2_ar: 'في دبي يحتاج المسبح الخاص إلى تصريح من بلدية دبي وسياج لا يقل ارتفاعه عن 1.2 متر',
+    url: 'https://quotesdone.com',
+  },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
     en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',

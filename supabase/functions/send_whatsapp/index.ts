@@ -146,6 +146,9 @@ function tmplKey(type:string):string|null{
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.
   if(t==='founder_alert') return 'founder_alert';
+  // 23 Sep 2026: a reasoned answer to the customer's own question, due after their 24-hour window closed
+  // (_shared/reasoned_delivery.ts). Held queued until the support_reply template is approved.
+  if(t==='support_reply') return 'support_reply';
   return null;
 }
 // 18 SEP 2026: the founder authorised the submission and supplier_account_notice now HAS a template
@@ -163,6 +166,8 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
     const lines = String(n.body||'').split('\n'); const head = lines.shift()||''; const rest = lines.join(' ').trim();
     return {'1': waVar(shortSummary(head||n.subject||'') , 120), '2': waVar(rest || 'see the founder console at quotesdone.com/os', 500)};
   }
+  // support_reply: {{1}} their question (the subject), {{2}} the answer (the body), each one line.
+  if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
   const summary = shortSummary(n.subject||n.body||'');
   const url = key==='supplier_new_inquiry' ? SUP_URL
             : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice') ? PORTAL_URL

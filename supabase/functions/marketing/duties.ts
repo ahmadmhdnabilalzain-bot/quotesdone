@@ -1,5 +1,5 @@
 // THE MARKETING SEAT'S DUTY LIST (post_results and scorecard since 23 Sep 2026, instruction 865): the 'duties' action runs every entry on every
-// call (resilience_ping step 'marketing', every 30 minutes) before fn_marketing_tick.
+// call (resilience_ping step 'marketing', every 30 minutes) before fn_marketing_tick. Owner of every entry: the marketing seat.
 //
 // The builds that fill it (founder instruction 721, 22 Sep 2026):
 //   * publishing / analytics / ad spend — schedule the approved posts through Postiz, read each channel's
@@ -13,12 +13,17 @@
 // The Meta and Postiz credentials may be read ONLY under supabase/functions/marketing/ (rule 641,
 // scripts/checks/meta_and_social_are_held_for_the_marketing_seat.test.mjs). Email and WhatsApp go through
 // customer_support (_shared/deliver.ts); replies on the company's own social channels are this seat's.
+import { makeLlmRich } from '../_shared/llm.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
+import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { call, linkedinComments, processComment, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
 import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
 import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
-import { wantsHuman } from '../marketing_social_inbox/reply.ts';
+import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Admin = any;
@@ -75,7 +80,11 @@ export const socialComments: Duty = {
     const answer = async (events: CommentEvent[]) => {
       const counts: Record<string, number> = { read: events.length };
       for (const ev of events) {
-        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, wantsHuman(ev.text))
+        // A person check is REASONED (think()) and lazy, as in retry_unfinished below; held, it is queued.
+        const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+          message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
+          subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
           .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
         counts[o] = (counts[o] || 0) + 1;
       }
@@ -94,7 +103,11 @@ export const socialComments: Duty = {
         for (const r of data || []) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
-          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, wantsHuman(ev.text))
+          // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.
+          const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+            message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
+            subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
             .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
           counts[o] = (counts[o] || 0) + 1;
         }
@@ -177,6 +190,43 @@ const platformSpecFreshness: Duty = {
   },
 };
 
+
+// ── THE JUDGEMENT DUTIES (marketing, 23 Sep 2026; founder instructions 865, 866, 867) ─────────────────────────
+// scripts/sql/the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql.
+// Owner of every entry below: the marketing seat. Cadence: resilience_step 'marketing' (every 30 minutes); each
+// duty bounds itself (fn_marketing_steps_due caps per day; at most 1 model step per beat, so the 55 s heartbeat call is never outrun; research weekly).
+// While the founder's hold stands every model step records "held, not run" once a day and writes nothing else.
+
+// THE GRAPH API VERSION IS ONE CONFIG VALUE: app_secrets.meta_graph_version, defaulting to the version the seat's
+// other Meta callers use today. Moving versions is one row, not a code search.
+const DEFAULT_GRAPH_VERSION = 'v21.0';
+async function graphBase(ctx: DutyContext): Promise<string> {
+  const v = String((await ctx.sec('meta_graph_version')) || DEFAULT_GRAPH_VERSION).trim();
+  return 'https://graph.facebook.com/' + (/^v\d+\.\d+$/.test(v) ? v : DEFAULT_GRAPH_VERSION);
+}
+
+/** The seat's model client: its own class per step, charged to the marketing ceiling. */
+function marketingDeps(ctx: DutyContext): Deps {
+  return {
+    admin: ctx.admin,
+    held: () => modelHeld(ctx.admin),
+    callModel: async (taskClass, max, messages, requireCaps) => {
+      const llm = makeLlmRich(undefined, { fn: 'marketing', taskClass, dept: 'marketing', agent: 'marketing', max, timeoutMs: 45000, temperature: 0.2 });
+      const r = await llm('', '', max, '', { messages, requireCaps });
+      return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null };
+    },
+    download: async (bucket, path) => {
+      const { data, error } = await ctx.admin.storage.from(bucket).download(path);
+      if (error || !data) throw new Error('download ' + path + ': ' + (error?.message || 'nothing'));
+      return new Uint8Array(await data.arrayBuffer());
+    },
+    signedUrl: async (bucket, path) => {
+      const { data } = await ctx.admin.storage.from(bucket).createSignedUrl(path, 3600);
+      return data?.signedUrl ?? null;
+    },
+  };
+}
+
 // post_results: ties each published post to its platform ids and reads its results at +1d/+3d/+7d/+28d.
 // scorecard:    fn_marketing_scorecard stored weekly (Monday, Asia/Dubai) and at month end (the 1st).
 // platform_spec_freshness: the cited platform pages re-read monthly (above).
@@ -215,4 +265,84 @@ export const profileText: Duty = {
   },
 };
 
-export const DUTIES: Duty[] = [POST_RESULTS, SCORECARD, platformSpecFreshness, socialComments, profileText];
+
+// competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above); profile_text (920).
+export const DUTIES: Duty[] = [
+  POST_RESULTS, SCORECARD, platformSpecFreshness, socialComments,
+  {
+    // Item 7, the fetch. SOURCE: Instagram Graph API business_discovery — official and free, and it returns a
+    // competitor business account's ORGANIC posts (caption, type, permalink, time, likes, comments). The Meta Ad
+    // Library API was rejected for this: outside the EU/UK it returns only political and issue ads, so it has
+    // nothing on a UAE supplier's commercial or organic content, and the plan is organic only (866). Needs
+    // meta_access_token and meta_ig_user_id (the company's own IG business account); until both are set the duty
+    // says so and is not due. Weekly; competitors are the rows of public.competitor with social_handles.instagram.
+    name: 'competitor_study',
+    owner_seat: 'marketing',
+    run: async (ctx) => {
+      const token = await ctx.sec('meta_access_token');
+      const igUser = await ctx.sec('meta_ig_user_id');
+      if (!token || !igUser) return { due: false, reason: 'meta_access_token and meta_ig_user_id are not both set' };
+      const { data: last } = await ctx.admin.from('market_intel').select('fetched_at').eq('platform', 'instagram')
+        .order('fetched_at', { ascending: false }).limit(1).maybeSingle();
+      if (last?.fetched_at && ctx.now.getTime() - new Date(last.fetched_at).getTime() < 7 * 86400_000) return { due: false, reason: 'fetched this week' };
+      // A DATED FAILURE MARKER: a fetch that failed today is not retried, and not raised again, until tomorrow.
+      const today = new Date(ctx.now.getTime() + 4 * 3600_000).toISOString().slice(0, 10);   // Dubai day
+      const { data: failedToday } = await ctx.admin.from('marketing_model_run').select('id').eq('step', 'competitor_fetch')
+        .eq('outcome', 'failed').eq('run_day', today).limit(1);
+      if (failedToday && failedToday.length) return { due: false, reason: 'the fetch failed today; next try tomorrow' };
+      const base = await graphBase(ctx);
+      const { data: comps } = await ctx.admin.from('competitor').select('id,name,social_handles').not('social_handles->>instagram', 'is', null).limit(25);
+      const rows: Record<string, unknown>[] = []; const errors: string[] = [];
+      for (const c of (comps || []) as Array<{ id: number; social_handles: Record<string, string> }>) {
+        const handle = String(c.social_handles.instagram).replace(/^@/, '');
+        const fields = `business_discovery.username(${handle}){media.limit(25){id,caption,media_type,permalink,timestamp,like_count,comments_count}}`;
+        const r = await fetch(`${base}/${igUser}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(token)}`,
+          { signal: AbortSignal.timeout(15000) });
+        // deno-lint-ignore no-explicit-any
+        const j = await r.json().catch(() => null) as any;
+        if (!r.ok) { errors.push(handle + ': ' + String(j?.error?.message || r.status).slice(0, 120)); continue; }
+        for (const m of j?.business_discovery?.media?.data || []) {
+          rows.push({ platform: 'instagram', source: 'business_discovery', external_id: m.id, competitor_id: c.id,
+            source_url: m.permalink, posted_at: m.timestamp, caption: m.caption ?? null, media_type: m.media_type,
+            metrics: { likes: m.like_count ?? null, comments: m.comments_count ?? null } });
+        }
+      }
+      const { data, error } = await ctx.admin.rpc('fn_marketing_intel_upsert', { p_rows: rows });
+      if (error) throw new Error('fn_marketing_intel_upsert: ' + error.message);
+      if (errors.length && !rows.length) {
+        // recorded once for the day, then raised once (the runtime turns this throw into marketing's IT finding)
+        await ctx.admin.from('marketing_model_run').insert({ step: 'competitor_fetch', subject: today, seat: 'marketing',
+          task_class: 'deterministic', outcome: 'failed', reason: ('every competitor fetch failed: ' + errors.join('; ')).slice(0, 1000), run_day: today });
+        throw new Error('every competitor fetch failed: ' + errors.join('; '));
+      }
+      return { due: true, competitors: (comps || []).length, posts: rows.length, stored: data, errors };
+    },
+  },
+  {
+    // Items 6 (perception), 7 (synthesis), 8 (quality review), 9 (verdict, plan, defence): whatever is due, at
+    // most 1 per beat. The CEO's review is never run here: it is a seat_deliberation (founder_instruction 873),
+    // advanced by resilience_ping on another model family, and 'plan_loop' below reads its verdict back.
+    name: 'judgement',
+    owner_seat: 'marketing',
+    run: async (ctx) => {
+      const { data, error } = await ctx.admin.rpc('fn_marketing_steps_due', { p_at: ctx.now.toISOString() });
+      if (error) throw new Error('fn_marketing_steps_due: ' + error.message);
+      const due = (data || []) as Array<{ step: Step; subject: string }>;
+      const ran = [];
+      for (const d of due.slice(0, 1)) ran.push(await runStep(marketingDeps(ctx), 'marketing', d.step, d.subject));
+      return { due: due.length, ran };
+    },
+  },
+  {
+    // Item 9, the author's side: send a waiting plan into the CEO's review (seat_deliberation), take each CEO
+    // verdict back into marketing_plan_review_turn, close the deliberation once agreed, send the brief once.
+    name: 'plan_loop',
+    owner_seat: 'marketing',
+    run: async (ctx) => {
+      const { data, error } = await ctx.admin.rpc('fn_marketing_plan_loop_tick');
+      if (error) throw new Error('fn_marketing_plan_loop_tick: ' + error.message);
+      return data as Record<string, unknown>;
+    },
+  },
+  profileText,
+];

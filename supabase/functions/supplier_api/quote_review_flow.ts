@@ -79,6 +79,8 @@ export interface ReviewRepo {
   storeFile(path: string, bytes: Uint8Array, mime: string): Promise<boolean>;
   signFile(bucket: string, path: string): Promise<string | null>;
   log(counts: Record<string, unknown>, note: string): Promise<void>;
+  /** Which reader wrote this supplier's quotation for this inquiry (quote_extraction_model); quote_compare names it. */
+  recordReader?(inquiryId: string, supplierId: number, model: string): Promise<void>;
 }
 export type Scanned = { ok: true; bytes: Uint8Array; mime: string; name: string } | { ok: false; status: number; code: string; message: string };
 export type FileRead = { proposal: Proposal | null; text: string; kind: string };
@@ -471,6 +473,9 @@ async function doSubmit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeI
 }
 async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: SafeInquiry, r: ReviewRow, rv: Review, prior: ReviewState, again: (notice?: ThreadView['notice']) => Promise<ThreadView>): Promise<ThreadView> {
   const generated = r.choice === 'generate';
+  // This flow reads the file with code (doc_read + quote_from_document), never a model: say so, so the comparison is
+  // routed normally instead of failing closed on 'unknown' (#880 review, item 3).
+  await repo.recordReader?.(inq.id, ctx.supplierId, 'deterministic');
   const res = await deps.submit(submitPayload(inq, r, r.working!, rv));
   const j = res.json || {};
   const opts: Json[] = Array.isArray(j.options) ? j.options : [];
@@ -562,6 +567,10 @@ export function supabaseReviewRepo(admin: any): ReviewRepo {
     async closeRequests(ids, state, messageId) { if (ids.length) must(await admin.from('quote_review_request').update({ state, answered_message_id: messageId, answered_at: new Date().toISOString() }).in('id', ids).eq('state', 'open')); },
     async storeFile(path, bytes, mime) { const up = await admin.storage.from('quote-files').upload(path, bytes, { contentType: mime, upsert: false }); return !up.error; },
     async signFile(bucket, path) { try { const { data } = await admin.storage.from(bucket).createSignedUrl(path, 3600); return data?.signedUrl || null; } catch (_e) { return null; } },
+    async recordReader(inquiryId, supplierId, model) {
+      const { error } = await admin.from('quote_extraction_model').upsert({ subject_key: `${supplierId}:${inquiryId}`, model, extracted_at: new Date().toISOString() });
+      if (error) console.error('quote_extraction_model: ' + error.message);
+    },
     async log(counts, note) { try { await admin.from('agent_runs').insert({ agent: SEAT, status: 'ok', started_at: new Date().toISOString(), finished_at: new Date().toISOString(), counts, note: note.slice(0, 500) }); } catch (_e) { /* the trail never blocks the conversation */ } },
   };
 }

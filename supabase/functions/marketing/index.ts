@@ -13,12 +13,14 @@
 //             report to the CEO and the ad-spend loops). A failing duty is an IT finding owned by marketing.
 //   assist  — company knowledge for a question (fn_marketing_assist, gte-small in-region, no paid model).
 //
-// NO MODEL CALL. Deterministic first; the founder sets the model per seat later.
+// MODEL CALLS: only through ./duties.ts -> _shared/marketing_judgement.ts (one class per step, dept 'marketing',
+// asked of the founder's hold first; while it stands each step records "held, not run"). Deterministic first.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { signedInUser } from '../_shared/signed_in_user.ts';
 import { DUTIES } from './duties.ts';
+import { recallCases } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -35,7 +37,7 @@ async function sec(k: string): Promise<string | undefined> {
 }
 
 // The credentials held for this seat alone (rule 641). Read here for presence only.
-const HELD_KEYS = ['meta_access_token', 'meta_ad_account_id', 'postiz_api_key', 'postiz_publish_key', 'postiz_integrations'];
+const HELD_KEYS = ['meta_access_token', 'meta_ad_account_id', 'postiz_api_key', 'postiz_publish_key', 'postiz_integrations', 'meta_ig_user_id'];
 
 type Caller = { kind: 'marketing' | 'founder' } | null;
 async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {
@@ -128,9 +130,12 @@ Deno.serve(observe('marketing', async (req) => {
 
   if (action === 'assist') {
     const q = String(body.question || body.text || '').slice(0, 2000);
-    const { data, error } = await admin.rpc('fn_marketing_assist', { p_text: q, p_embedding: q ? await embed(q) : null });
+    const vec = q ? await embed(q) : null;
+    const { data, error } = await admin.rpc('fn_marketing_assist', { p_text: q, p_embedding: vec });
+    // Past cases before the answer (23 Sep 2026): the plans he approved, the replies that worked.
+    const memory = await recallCases(admin, { seat: 'marketing', path: 'assist', situation: q, embedding: vec });
     await run('assist', error ? 'error' : 'ok', { answered: (data as { answered?: boolean })?.answered ?? null }, error?.message);
-    return error ? J({ error: error.message }, 500) : J(data);
+    return error ? J({ error: error.message }, 500) : J({ ...(data as Record<string, unknown>), precedent: memory });
   }
 
   return J({ error: 'unknown action', actions: ['health', 'duties', 'assist'] }, 400);
