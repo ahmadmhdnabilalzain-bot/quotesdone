@@ -59,6 +59,11 @@
 --        (ai_cost_log.seat, ok, a real model), or 'deterministic'. Conservative on purpose: the CEO's
 --        judgement input carries the marketing report and every open directive reply, and a log row does
 --        not say which of them it produced, so the CEO avoids every family any seat used.
+--   6. NEVER UNREVIEWED (coordinator ruling on #880). When the authors span both judgement families (Sol and Opus),
+--      the router's last resort is a third family: google/gemini-3.8-flash, then z-ai/glm-5.3-flash, returned with
+--      reviewer_tier 'third_family_fallback' and kept on ai_cost_log.reviewer_tier. If no third family is healthy
+--      either, the gateway HOLDS the call (review_hold) and fn_it_review_independence_watch raises a CEO-owned
+--      finding (duty:review_independence:*, sent to the founder's report). Same rule for every review class.
 --
 -- COST: no new model call anywhere. Only which model answers changes. Opus reviewing a Sol author costs
 --   USD 4/20 per Mtok against Sol's 2/10: a ceo_judgement (~6k in / 1.5k out) USD 0.039 -> 0.054;
@@ -117,7 +122,7 @@ declare
   v_n text; v_f text;
   v_base jsonb;
   v_rej  jsonb := '[]'::jsonb;
-  v_pick text; v_pick_fam text; v_fb text;
+  v_pick text; v_pick_fam text; v_fb text; v_tier text;
   c record;
 begin
   select coalesce(array_agg(distinct btrim(x)) filter (where btrim(x) <> ''), '{}') into v_names
@@ -151,8 +156,12 @@ begin
     cand as (
       select pol.model_primary model_id, 0 ord from pol
       union all select p.model_id, p.rank from public.review_pool p where p.active
-      union all select pol.model_fallback, 1000000 from pol)
-    select d.model_id, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
+      union all select pol.model_fallback, 1000000 from pol
+      -- LAST RESORT, THIRD FAMILY (coordinator ruling on #880): when every candidate above shares an author's
+      -- family (authors on both Sol and Opus), a review goes to a third family rather than unreviewed.
+      union all select 'google/gemini-3.8-flash', 2000000
+      union all select 'z-ai/glm-5.3-flash', 2000001)
+    select d.model_id, d.ord, lower(btrim(r.provider)) provider, coalesce(r.active and r.approved, false) reg_ok,
            h.model_id is not null measured,
            coalesce(h.open_until > now() and h.opened_class is not null, false) tripped
       from (select model_id, min(ord) ord from cand where model_id is not null and model_id <> 'none' group by model_id) d
@@ -172,7 +181,9 @@ begin
       v_rej := v_rej || jsonb_build_object('model', c.model_id, 'why', 'breaker tripped by real failures');
     elsif v_pick is null then
       v_pick := c.model_id; v_pick_fam := c.provider;
-    elsif v_fb is null then
+      v_tier := case when c.ord >= 2000000 then 'third_family_fallback' else 'standard' end;
+    elsif v_fb is null and (c.ord < 2000000 or v_tier = 'third_family_fallback') then
+      -- the third family is a last resort for the PICK, not a routine fallback behind a healthy reviewer
       v_fb := c.model_id;
     end if;
   end loop;
@@ -189,7 +200,7 @@ begin
     'model', v_pick, 'fallback', v_fb,
     'in_per_mtok_usd', (select in_per_mtok_usd from public.model_registry where model_id = v_pick),
     'out_per_mtok_usd', (select out_per_mtok_usd from public.model_registry where model_id = v_pick),
-    'reviewer_family', v_pick_fam, 'author_model', p_counterpart_model, 'author_family', to_jsonb(v_fams),
+    'reviewer_family', v_pick_fam, 'reviewer_tier', v_tier, 'author_model', p_counterpart_model, 'author_family', to_jsonb(v_fams),
     'independent', true, 'pool_rejected', v_rej,
     'why', coalesce(v_base->>'why', '') || ' | INDEPENDENT REVIEW: author wrote on ' || p_counterpart_model
            || ' (' || array_to_string(v_fams, '/') || '), reviewer routed to ' || v_pick || ' (' || v_pick_fam || ')'
@@ -262,6 +273,114 @@ returns text language sql stable security definer set search_path to 'public', '
      and l.occurred_at > now() - interval '7 days';
 $fn$;
 revoke execute on function public.fn_ceo_judgement_counterparts() from public, anon, authenticated;
+
+-- ── 6. NEVER UNREVIEWED: THE THIRD-FAMILY RECORD, THE HOLD, AND THE CEO'S FINDING ───────────────
+-- Coordinator ruling on #880: a judgement must never go unreviewed nor be reviewed on an author's family.
+-- The router's last resort is a third family (gemini-3.8-flash, then glm-5.3-flash), returned with
+-- reviewer_tier 'third_family_fallback'; the gateway writes it into the log line and this column keeps it.
+-- When no third family is healthy either, the gateway HOLDS the call (no model runs) and records a
+-- review_hold; fn_it_review_independence_watch turns open holds into a CEO-owned finding, and reports every
+-- third-family review of the last 7 days so the agreement monitor and the founder's brief can see it.
+alter table public.ai_cost_log add column if not exists reviewer_tier text;
+
+create or replace function public.trg_ai_cost_log_reviewer_tier()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if new.reviewer_tier is null then
+    new.reviewer_tier := substring(coalesce(new.model_selected_because, '') from 'reviewer_tier=([a-z_]+)');
+  end if;
+  return new;
+end $fn$;
+revoke execute on function public.trg_ai_cost_log_reviewer_tier() from public, anon, authenticated;
+drop trigger if exists trg_ai_cost_log_reviewer_tier on public.ai_cost_log;
+create trigger trg_ai_cost_log_reviewer_tier before insert on public.ai_cost_log
+  for each row execute function public.trg_ai_cost_log_reviewer_tier();
+
+create table if not exists public.review_hold (
+  id                bigserial primary key,
+  task_class        text not null,
+  fn                text,
+  agent_key         text,
+  counterpart_model text not null,
+  why               text not null,
+  held_at           timestamptz not null default now(),
+  last_held_at      timestamptz not null default now(),
+  times_held        integer not null default 1,
+  closed_at         timestamptz,
+  close_note        text
+);
+create unique index if not exists review_hold_one_open
+  on public.review_hold (task_class, coalesce(fn, ''), counterpart_model) where closed_at is null;
+alter table public.review_hold enable row level security;
+drop policy if exists review_hold_service_role_only on public.review_hold;
+create policy review_hold_service_role_only on public.review_hold as permissive for all to public using (false) with check (false);
+revoke all on public.review_hold from anon, authenticated;
+
+create or replace function public.fn_review_hold_record(p_task_class text, p_fn text, p_agent_key text,
+  p_counterpart_model text, p_why text)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_id bigint;
+begin
+  insert into public.review_hold (task_class, fn, agent_key, counterpart_model, why)
+  values (coalesce(p_task_class, '(unresolved)'), p_fn, p_agent_key, coalesce(nullif(btrim(p_counterpart_model), ''), '(none)'),
+          left(coalesce(p_why, 'no independent reviewer'), 2000))
+  on conflict (task_class, coalesce(fn, ''), counterpart_model) where closed_at is null
+  do update set last_held_at = now(), times_held = review_hold.times_held + 1, why = excluded.why
+  returning id into v_id;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_review_hold_record(text, text, text, text, text) from public, anon, authenticated;
+
+create or replace function public.fn_it_review_independence_items()
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  with held as (
+    select jsonb_build_object(
+             'item', 'review_held:' || task_class, 'owner_seat', 'ceo', 'subject', 'review_independence',
+             'title', count(*) || ' ' || task_class || ' review(s) HELD: no healthy reviewer outside the authors'' families, '
+                      || 'not even a third family. Nothing ran unreviewed or same-family; restore a reviewer or decide the held work.',
+             'blast', 'agent_facing', 'affected', sum(times_held),
+             'evidence', jsonb_build_object('review_hold_ids', jsonb_agg(id order by id), 'authors', jsonb_agg(distinct counterpart_model))) x
+      from public.review_hold where closed_at is null group by task_class
+  ), third as (
+    select jsonb_build_object(
+             'item', 'third_family_review:' || task_class, 'owner_seat', 'ceo', 'subject', 'review_independence',
+             'title', count(*) || ' ' || task_class || ' review(s) in 7 days ran on the THIRD-FAMILY last resort ('
+                      || string_agg(distinct model_used, ', ') || ') because the authors spanned both judgement families.',
+             'blast', 'agent_facing', 'affected', count(*),
+             'evidence', jsonb_build_object('ai_cost_log_ids', jsonb_agg(id order by id))) x
+      from public.ai_cost_log
+     where reviewer_tier = 'third_family_fallback' and occurred_at > now() - interval '7 days'
+     group by task_class
+  )
+  select coalesce((select jsonb_agg(x) from held), '[]'::jsonb) || coalesce((select jsonb_agg(x) from third), '[]'::jsonb);
+$fn$;
+revoke execute on function public.fn_it_review_independence_items() from public, anon, authenticated;
+
+create or replace function public.fn_it_review_independence_watch()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_closed int; v_items jsonb;
+begin
+  -- a hold closes itself once the same class, over the same authors, has since been reviewed independently
+  update public.review_hold h set closed_at = now(), close_note = 'reviewed independently after the hold: ai_cost_log '
+         || (select min(l.id) from public.ai_cost_log l
+              where l.task_class = h.task_class and l.counterpart_model = h.counterpart_model and l.ok
+                and l.review_violation is null and l.occurred_at > h.last_held_at)
+   where h.closed_at is null
+     and exists (select 1 from public.ai_cost_log l
+                  where l.task_class = h.task_class and l.counterpart_model = h.counterpart_model and l.ok
+                    and l.review_violation is null and l.occurred_at > h.last_held_at);
+  get diagnostics v_closed = row_count;
+  v_items := public.fn_it_review_independence_items();
+  return jsonb_build_object('closed_holds', v_closed, 'items', jsonb_array_length(v_items),
+                            'settle', public.fn_it_duty_settle('review_independence', v_items));
+end $fn$;
+revoke execute on function public.fn_it_review_independence_watch() from public, anon, authenticated;
+
+insert into public.it_founder_decision_class (issue_key_like, to_founder, why) values
+  ('duty:review_independence:%', true,
+   'Coordinator ruling on #880 (founder instruction ~891): a review held for want of an independent model, or run on the '
+   || 'third-family last resort, is his to see in the regular report.')
+on conflict (issue_key_like) do nothing;
 
 -- ── PROBE: returns a verdict row; cleans up nothing because it writes nothing ───────────────────
 select case

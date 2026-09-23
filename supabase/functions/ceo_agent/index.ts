@@ -343,7 +343,10 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // deno-lint-ignore no-explicit-any
       let out: any = null;
       try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
-      const why = r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
+      // No independent reviewer, not even a third family: the gateway HELD the call (review_hold, CEO-owned finding).
+      // It is recorded as held, never accepted, never re-run on an author's family.
+      const why = r.used_llm === false && !r.content ? 'held: no reviewer outside the seats\' model families (review_hold)'
+        : r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
       const { data: acc, error: aerr } = await admin.rpc('fn_ceo_judgement_accept', { p_plan_id: planId, p_output: out, p_error: why });
       if (aerr) return J({ ok: false, error: 'judgement accept: ' + aerr.message }, 500);
       return J({ ok: true, seat: 'ceo', accepted: acc });

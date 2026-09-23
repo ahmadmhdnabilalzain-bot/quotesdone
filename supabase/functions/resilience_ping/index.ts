@@ -1011,6 +1011,8 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // >= 90% of >= 10 proposals, or a review with no independent model, is a finding for the CEO.
   await step('deliberations', async () => advanceOpenDeliberations(admin, 3));
   await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
+  // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).
+  await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');
