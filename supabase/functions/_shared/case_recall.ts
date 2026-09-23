@@ -61,6 +61,7 @@ export async function recallCases(admin: Rpc, o: {
   seat: string; path: string; situation: string; trade?: string | null; k?: number;
   caseKind?: string | null; otherSeats?: boolean; exclude?: { table: string; id: string } | null;
   embedding?: number[] | string | null;
+  embeddingMl?: number[] | null;              // a multilingual vector the caller already has: recalled in the ml space
   subject?: Record<string, unknown> | null;   // what the judgement is about; defaults to `exclude`
   record?: boolean;                           // default true: every recall opens its judgement row
 }): Promise<CaseMemory> {
@@ -86,7 +87,7 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
   try {
     // A caller that already embedded (or tried to) passes `embedding`, even null: a second gte-small
     // session in the same worker is memory the edge runtime does not have to spare.
-    const ml = (await readSpace(admin)) === 'ml' ? await embedQueryMlRemote(admin, text, 'case_recall:' + o.seat, RECALL_EMBED_ML_MS) : null;
+    const ml = o.embeddingMl ?? ((await readSpace(admin)) === 'ml' ? await embedQueryMlRemote(admin, text, 'case_recall:' + o.seat, RECALL_EMBED_ML_MS) : null);
     const vec = ml ?? ('embedding' in o ? o.embedding : await Promise.race([embedLine(text), new Promise<null>((r) => setTimeout(() => r(null), RECALL_EMBED_MS))]));
     if (!vec) return { ...base, available: false, reason: 'embedding_unavailable' };
     const { data, error } = await admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {

@@ -350,7 +350,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
   // public.seat_judgement carrying what was recalled — the recall record the outcome is later written onto.
-  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.gte ? { embedding: qVec } : {}), subject: req.subject ?? null });
+  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.ml ? { embeddingMl: qVec } : { embedding: qVec }), subject: req.subject ?? null });
   judgementId = memory.judgement_id ?? null;
   for (const c of memory.cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome, c.correction && 'CORRECTED: ' + c.correction].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
   steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: memory.cases.length, recall: memory.available ? 'ok' : memory.reason, judgement_id: judgementId, space: q0.r === ROUTINES.ml ? 'ml' : 'gte' } });
