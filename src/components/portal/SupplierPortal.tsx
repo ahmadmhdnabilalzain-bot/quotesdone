@@ -7,6 +7,7 @@ import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
+import { readFirstTouch } from '@/lib/firstTouch';
 // 14 Sep 2026: the row-#5 intelligence panels are no longer top-level tabs; ./supplier/Insights loads
 // the ones whose routine has something to show, each on demand.
 import SupplierSettings from './supplier/SupplierSettings';
@@ -1660,7 +1661,7 @@ const TRADE_OTHER = '__other';
 function NewCompany({ token, onReady, lang }) {
   const [cname, setCname] = useState(''); const [trade, setTrade] = useState(''); const [other, setOther] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const category = trade === TRADE_OTHER ? (other.trim().slice(0, 60) || null) : (trade || null);
-  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
+  const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
   const codes = [...TRADE_CODES].sort((a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang));
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>

@@ -5,6 +5,7 @@ import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '@/i18n/routing';
 import { CookieConsent } from '@/components/CookieConsent';
+import { FirstTouch } from '@/components/FirstTouch';
 import { ChatWidget } from '@/components/ChatWidget';
 import { RouteProgress } from '@/components/ui/route-progress';
 import { NodeField } from '@/components/NodeField';
@@ -73,7 +74,7 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
         <NodeField />
         {/* The top bar for route changes — the one loading system, see src/components/ui/busy.tsx. */}
         <RouteProgress label={lang === 'ar' ? 'جارٍ التحميل' : 'Loading'} />
-        <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><ChatWidget /></NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}>{children}<CookieConsent /><FirstTouch /><ChatWidget /></NextIntlClientProvider>
       </body>
     </html>
   );
