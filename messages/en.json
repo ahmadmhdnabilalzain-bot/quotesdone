@@ -419,7 +419,7 @@
       }
     ],
     "ruleTitle": "The non-response rule",
-    "ruleBody": "When a customer pays to reveal you, reply within 5 working days — we remind you after 3. If you stay silent, everything the customer paid is refunded and you owe the exact amount refunded (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date. New matches pause until it is settled.",
+    "ruleBody": "When a customer pays to reveal you, reply within 5 working days — we remind you after 3. If you stay silent, everything the customer paid is refunded and you owe the exact amount refunded (the 3% reveal fee plus the card processing fee charged on it), an AED 500 administrative fee (AED 250 until you accept Supplier Agreement v13), and simple interest at 9% a year on that total from the due date, never compounded. New matches pause until it is settled.",
     "honest": "QuotesDone is new. There are no completed jobs on the platform yet, so nothing here promises you a pipeline — only that when work arrives, it is matched on fit.",
     "finalTitle": "Ready when your licence is",
     "finalSub": "Registration takes a few minutes. Have your trade licence and company profile to hand."

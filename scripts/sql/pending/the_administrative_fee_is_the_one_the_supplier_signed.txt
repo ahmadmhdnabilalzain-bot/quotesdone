@@ -1,0 +1,4 @@
+Committed, not applied (the founder's instruction for this PR: open it, do not apply or merge). Seat: ceo.
+Apply AFTER the_terms_of_23_september_2026_reach_every_place.sql, which writes the policy key this routine reads
+(until then it falls back to AED 250, so applying it alone never charges more than a supplier signed). When
+applied: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
