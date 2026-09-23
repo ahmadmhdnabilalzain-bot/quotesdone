@@ -15,7 +15,7 @@ alter table public.founder_instruction add constraint founder_instruction_status
 -- fn_founder_instruction_needs_evidence sets closed_at for any non-open status.
 update public.founder_instruction f
    set status = 'standing',
-       evidence = coalesce(nullif(btrim(f.evidence), ''), '') || v.ev
+       evidence = concat_ws(' | ', nullif(btrim(f.evidence), ''), v.ev)
   from (values
     (717, 'Standing rule: memory agent-worktrees-fill-the-founders-disk.md (remove finished worktrees).'),
     (720, 'Standing rule: memory agent-worktrees-fill-the-founders-disk.md (delete folders once on GitHub/Supabase).'),
