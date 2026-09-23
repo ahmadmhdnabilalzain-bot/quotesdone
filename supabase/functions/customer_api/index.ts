@@ -7,7 +7,8 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
-import { KW, detect } from './keywords.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
@@ -24,7 +25,8 @@ import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requ
 import { portalLink } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
@@ -65,7 +67,8 @@ async function signedDoc(bucket: string | null | undefined, path: string | null 
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function b64ToBytes(b64: string): Uint8Array { const raw = atob(String(b64).replace(/^data:[^;]+;base64,/, '')); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return arr; }
 
-// KW and detect() live in ./keywords.ts (21 Sep 2026) — see its header for the create_inquiry 500.
+// The keyword map (./keywords.ts, KW + detect()) is DELETED (23 Sep 2026, founder_instruction 886-903): a trade is
+// reasoned among the real options (_shared/reasoned_trades.ts), never read off words.
 // The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
 // passed through to drawing_boq, which validates every field. Bounded here only by size.
 function drawingOcr(body: any): Record<string, unknown> {
@@ -544,7 +547,12 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   items = done.items;
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
-  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames: partyName ? [] : await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
+  const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
+  // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
+  // translated HOLDS the Arabic document — it is never printed half-translated.
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts }), { subject: { quote_id: q.id } });
+  if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
+  const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
@@ -633,11 +641,18 @@ async function fetchCompareAnalysis(iid: string, lang: 'en' | 'ar'): Promise<{ a
   return { error: jd?.note || jd?.error || (r.ok ? 'comparison_unavailable' : 'comparison_unavailable_http_' + r.status) };
 }
 
+/** An Arabic document with a line not yet translated by reasoning (under the founder's model hold). */
+const ARABIC_HELD = { ok: false, held: true, error: 'arabic_held' } as const;
+const heldReply = () => J({ ok: false, held: true, code: 'arabic_held',
+  message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
+  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' }, 202);
 async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
   const portalUrl = portalLink(lang, inq.id);
-  const { body, ref } = compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid) });
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id } });
+  if (!doc.doc) return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...body, __secret: secret }) });
@@ -1070,7 +1085,18 @@ Deno.serve(observe('customer_api', async (req) => {
       let summary = String(body.summary || '').slice(0, 500);
       if (!summary && briefObj?.summary) summary = String(briefObj.summary).slice(0, 500);
       if (!summary && boqObj?.summary) summary = String(boqObj.summary).slice(0, 500);
-      if (!category) { const dd = detect(raw + ' ' + summary); category = dd.category || 'general'; }
+      // THE TRADE IS THE INTAKE'S, ALREADY REASONED (23 Sep 2026, decision point customer_api.keywords). The keyword
+      // fallback (./keywords.ts detect()) is deleted and NOTHING here reads the words for a trade: a request only
+      // posts from a 'ready' intake (above), and inquiry_intake always saves a trade on it — the model's, the one
+      // tradeOf reasoned (held: the intake itself is held and never reaches 'ready', point 18), or 'general' when
+      // no listed trade is exactly the job. 'general' here is only that same no-trade answer, never a guess.
+      // A category the body or the drawing names is data from outside: only an exact category_specs key is kept;
+      // anything else is ignored and the intake's reasoned trade decides (never a nearest match).
+      if (category && category !== 'general') {
+        const { data: known } = await admin.from('category_specs').select('category').eq('category', category).maybeSingle();
+        if (!known) category = intake?.category ? String(intake.category).trim() : '';
+      }
+      if (!category) category = 'general';
       const emirate = body.emirate || (briefObj?.emirate || null) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
@@ -1095,9 +1121,8 @@ Deno.serve(observe('customer_api', async (req) => {
       spec.customer_requirements = reqStored;
       const scope_type = ['single','multi','turnkey'].includes(String(body.scope_type)) ? String(body.scope_type) : 'single';
       const tradesIn = Array.isArray(body.trades) ? body.trades.map((t: any) => String(t).toLowerCase()).filter(Boolean) : [];
-      const d = detect(raw + ' ' + summary + ' ' + Object.values(spec).join(' '));
-      const base = d.keywords.length ? d.keywords : (KW[category] || []);
-      let keywords = Array.from(new Set([...base, category, ...tradesIn]));
+      // inquiries.keywords: the stated trade codes and the drawing's own keywords — nothing read off the brief's words.
+      let keywords = Array.from(new Set([category, ...tradesIn]));
       if (Array.isArray(boqObj?.keywords)) keywords = Array.from(new Set([...keywords, ...boqObj.keywords.map((s: any) => String(s).toLowerCase())]));
       keywords = keywords.slice(0, 30);
       const drawingPath = drawing?.drawing_file_path ? String(drawing.drawing_file_path) : null;
@@ -1209,7 +1234,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // supplier is invited to a partial request and no parent lists a trade that never went out.
         // Suppliers are matched and notified only once every child exists.
         const childSummary = (tr: string) => ((summary ? summary + ' — ' : '') + labelize(tr) + ' works (part of a combined project)').slice(0, 500);
-        const childKw = (tr: string) => Array.from(new Set([...(KW[tr] || []), tr])).slice(0, 30);
+        const childKw = (tr: string) => [tr];
         const parentIdRef = { id: '' };
         const res = await splitInquiry(distinctTrades, {
           insertParent: async () => {
@@ -1509,7 +1534,8 @@ Deno.serve(observe('customer_api', async (req) => {
         const { data: c } = await admin.from('customers').select('email,locale').eq('id', cust.id).maybeSingle();
         const { data: inqRow } = await admin.from('inquiries').select('rfq_no').eq('id', String(res.inquiry_id)).maybeSingle();
         const lang = asLocale(c?.locale ?? cust.locale);
-        const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
+        const arTexts = res.state === 'accepted' && o ? await arabicTextsFor(defaultDeps(admin, 'customer_api'), lang, offerTexts(o as OfferForText), { fileOnly: true }) : undefined;
+        const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no, arTexts }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
         const kind = res.state === 'accepted' ? 'accepted' : 'apology_declined';
         // customer_support asks and answers the alternatives question (finding SP-F-08, 22 Sep 2026;
         // the same change in sales_engineer/index.ts carries the reasoning). The `type` is unchanged.
@@ -1519,9 +1545,26 @@ Deno.serve(observe('customer_api', async (req) => {
         // WhatsApp consent is the confirmed WhatsApp number, nothing else (#322): the row names the customer by
         // email and the a03 trigger addresses it to their confirmed number, or records why it was not sent.
         if (c?.email) rows.push({ ...base, channel: 'whatsapp', to_email: c.email, dedupe_key: `spec_offer:${offerId}:${kind}:whatsapp` });
+        // An Arabic confirmation with a line not yet reasoned is PARKED with its placeholders and sent by
+        // fn_arabic_outbound_flush the moment the Arabic exists — never sent with English in it.
+        if (msg.untranslated?.length && rows.length) {
+          const { error: pErr } = await admin.rpc('fn_arabic_outbound_park', { p_texts: msg.untranslated, p_rows: rows });
+          // A failed park is an error, never a send: the message has placeholders in it.
+          if (pErr) throw new Error('the Arabic confirmation could not be parked: ' + pErr.message);
+          rows.length = 0;
+        }
         const { data: sent } = rows.length ? await requestDelivery(admin, rows) : { data: [] };
         await admin.rpc('fn_spec_offer_mark', { p_offer: offerId, p_action: 'answered', p_notification_ids: (sent || []).map((d) => d.notification_id).filter((x) => typeof x === 'number') });
-      } catch (e) { console.error('spec_offer_reply: confirmation not queued —', String((e as Error)?.message || e)); }
+      } catch (e) {
+        const why = String((e as Error)?.message || e);
+        console.error('spec_offer_reply: confirmation not queued —', why);
+        // The answer is recorded; the confirmation is not. It is never silent: customer_support's CEO report names it.
+        try {
+          await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: 'spec_offer_confirmation_failed:' + offerId, p_severity: 'routine',
+            p_subject: 'A customer\'s choice was recorded but its confirmation could not be queued', p_evidence: { offer_id: offerId, error: why.slice(0, 500) },
+            p_attempted: ['recorded the answer', 'queued or parked the confirmation'], p_requested: 'Send the confirmation by hand or re-queue it.' });
+        } catch (_e) { /* the console line above still stands */ }
+      }
       return J({ ok: true, state: res.state, inquiry_closed: !!res.inquiry_closed });
     }
 
@@ -1550,6 +1593,7 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
         const { j, ref } = await buildComparePdf(analysis, inq, lang);
+        if ((j as any)?.held) return heldReply();
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
@@ -1571,7 +1615,12 @@ Deno.serve(observe('customer_api', async (req) => {
         const got = await fetchCompareAnalysis(iid, lang);
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
-      const side = compareTable(analysis, lang === 'ar');
+      let side = compareTable(analysis, lang === 'ar');
+      if (side && side.untranslated.length) {
+        const ar = await arabicOf(defaultDeps(admin, 'customer_api'), { texts: side.untranslated, subject: { inquiry_id: iid } });
+        side = ar.complete ? compareTable(analysis, true, ar.map) : null;
+        if (!side || side.untranslated.length) return heldReply();
+      }
       if (!side) return J({ ok: false, error: 'comparison_unavailable', code: 'comparison_unavailable', message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + jobNoOf(inq) + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
@@ -1624,6 +1673,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       try {
         const { j, ref } = await buildQuotePdf(q, inq, lang);
+        if ((j as any)?.held) return heldReply();
         if (j?.ok && j.url) {
           try { await admin.from('quote_pdf_cache').upsert({ quote_id: qid, lang, customer_id: cust.id, bucket: j.bucket || 'agent-docs', path: j.path, created_at: new Date().toISOString() }, { onConflict: 'quote_id,lang' }); } catch (_e) { /* */ }
           return J({ ok: true, url: j.url, ref, lang });
@@ -1895,20 +1945,32 @@ Deno.serve(observe('customer_api', async (req) => {
       // route_inquiry has resolved customer words through taxonomy_trade.aliases since it was
       // written; discovery never did. Same lexicon, same three steps — code, alias, then label —
       // and whatever still does not resolve is REPORTED rather than searched for and lost.
-      const { data: taxo } = await admin.from('taxonomy_trade').select('code,label,aliases').eq('active', true);
-      const resolveTrade = (w: string): string | null => {
-        for (const t of (taxo || [])) if (String(t.code).toLowerCase() === w) return t.code;
-        for (const t of (taxo || [])) if ((t.aliases || []).some((a: string) => String(a).toLowerCase() === w)) return t.code;
-        for (const t of (taxo || [])) if (String(t.label || '').toLowerCase().includes(w) && w.length >= 4) return t.code;
-        return null;
-      };
-      const resolved: string[] = []; const unresolved: string[] = [];
-      for (const w of typed) { const c = resolveTrade(w); if (c && !resolved.includes(c)) resolved.push(c); else if (!c) unresolved.push(w); }
+      //
+      // 23 Sep 2026 (founder_instruction 886-903): the alias list and the label substring decided what a typed word
+      // MEANT — gone. A word that IS a code (picked from trades_known) is that code; any other word is REASONED
+      // among the taxonomy (decision point customer_api.resolve_trade): exactly one trade, or none. Held, the word
+      // is reported back as still being confirmed and is not searched; nothing is queued, because the answer is
+      // this live search, which the customer runs again.
+      const { data: taxo } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
+      const codes = (taxo || []).map((t: { code: string }) => String(t.code));
+      const resolved: string[] = []; const unresolved: string[] = []; const confirming: string[] = [];
+      for (const w of typed) {
+        let c: string | null = codes.find((x: string) => x.toLowerCase() === w) ?? null;
+        if (!c) {
+          const t = await tradeOfText(defaultDeps(admin, 'customer_api'), {
+            surface: 'customer_api.resolve_trade', text: w, audience: 'customer', queueWhenHeld: false,
+            options: (taxo || []).map((r: { code: string; label: string }) => ({ slug: String(r.code), label: String(r.label || r.code) })),
+          });
+          if (t.value === null) { confirming.push(w); continue; }
+          c = t.value !== NONE && codes.includes(t.value) ? t.value : null;
+        }
+        if (c && !resolved.includes(c)) resolved.push(c); else if (!c) unresolved.push(w);
+      }
       if (!resolved.length) {
         return J({ ok: true, found: 0, matches: [], anonymous: true,
           filters: { trades: [], emirate: body.emirate ? String(body.emirate).slice(0, 40) : null },
-          unresolved,
-          why_empty: { suppliers_holding_trade: 0, confirmed_total: 0, reason: 'not_a_trade_we_know' },
+          unresolved, confirming: confirming.length ? confirming : undefined,
+          why_empty: { suppliers_holding_trade: 0, confirmed_total: 0, reason: confirming.length && !unresolved.length ? 'trade_being_confirmed' : 'not_a_trade_we_know' },
           trades_known: (taxo || []).map((t: Record<string, unknown>) => ({ code: t.code, label: t.label })),
           note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
       }
@@ -1971,7 +2033,7 @@ Deno.serve(observe('customer_api', async (req) => {
         };
       }
       return J({ ok: true, found: matches.length, filters, matches, anonymous: true, why_empty,
-        unresolved: unresolved.length ? unresolved : undefined,
+        unresolved: unresolved.length ? unresolved : undefined, confirming: confirming.length ? confirming : undefined,
         note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
     }
 

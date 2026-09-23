@@ -29,6 +29,11 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
+   *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
+  arabicFinishReady?(): Promise<Sent>;
+  /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
+  socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'none'; detail?: string };
 
@@ -80,6 +85,31 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
   if (books) return books;
   const outreach = await deliverOutreach(row, r, io);
   if (outreach) return outreach;
+  // A held Arabic translation: fn_reason_apply_sales_engineer__document_arabic has stored the Arabic and flushed any
+  // parked message; what is left is a regenerated quotation, which needs a render (a PDF) before its approval request.
+  // The waiting quotations are found by the QUOTE (arabic_document_waiter), not by this row's subject: the same lines
+  // may have been filed first by another document, and a held row keeps its first subject.
+  if (row.surface === 'sales_engineer.document_arabic') {
+    if (!io.arabicFinishReady) return { delivered: false, via: 'none', detail: 'stored; no renderer wired' };
+    const s = await io.arabicFinishReady();
+    return { delivered: s.ok, via: 'none', detail: s.ok ? 'every quotation whose Arabic is complete was rendered and asked for approval' : s.err };
+  }
+
+  if (row.surface === 'marketing_social.comment_classify') {
+    // Nothing was hidden, said or handed off while the class was held; the policy runs now, once.
+    if (!choice) return { delivered: false, via: 'none', detail: 'no class on the reasoned result' };
+    const s = await io.socialCommentClassified(subject, choice);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  if (row.surface === 'site_assistant.person') {
+    // The visitor already has the public contact in the reply (the assistant gives it whenever a person is asked
+    // for); what was owed is the CEO's visibility report, filed only when the reasoning says a person was asked for.
+    if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person was asked for' };
+    await io.reportToCeo('widget:person:held:' + row.id, 'A website visitor asked to speak to a person and was given the public contact',
+      { surface: 'website_widget', held_id: row.id, path: subject.path ?? null, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500) });
+    return { delivered: true, via: 'none', detail: 'reported to the CEO for visibility' };
+  }
 
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
   if (!row.request?.decision && subject.channel === 'whatsapp' && subject.phone && r.answer) {
@@ -130,6 +160,22 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });
     },
+    arabicFinishReady: async () => {
+      const { data: ids, error } = await admin.rpc('fn_arabic_waiters_ready', { p_limit: 10 });
+      if (error) return { ok: false, err: error.message };
+      const errs: string[] = [];
+      for (const quoteId of (Array.isArray(ids) ? ids : []) as string[]) {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: String(quoteId) }),
+      }, 60_000);
+      const j = await r.json().catch(() => ({}));
+      if (!(r.ok && j?.ok)) errs.push(quoteId + ': ' + String(j?.code ?? j?.error ?? r.status));
+      }
+      return errs.length ? { ok: false, err: errs.join('; ') } : { ok: true };
+    },
     socialHandoff: async (subject) => {
       const { timedFetch } = await import('./timed_fetch.ts');
       const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_inbox', {
@@ -138,6 +184,27 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    socialCommentClassified: async (subject, cls) => {
+      const { data: m } = await admin.from('social_message')
+        .select('id,meta_message_id,platform,body,parent_id,occurred_at,outcome,conversation:social_conversation(user_id,handle,account_id)')
+        .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
+      if (!m) return { ok: false, err: 'comment_not_found' };
+      if (m.outcome !== 'held_classify') return { ok: true, err: 'already_processed:' + String(m.outcome) };
+      // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
+      const { processComment } = await import('./marketing_social_comments.ts');
+      const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // deno-lint-ignore no-explicit-any
+      const tokenFor = (ev: any) => ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
+      try {
+        const out = await processComment(adminStore(admin, timedFetch, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), {
+          platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
+          handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
+        // deno-lint-ignore no-explicit-any
+        }, cls as any);
+        return { ok: true, err: out };
+      } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
     },
     socialCommentHandoff: async (subject) => {
       const { data: m } = await admin.from('social_message')

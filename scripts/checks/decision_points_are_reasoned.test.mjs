@@ -543,6 +543,345 @@ test('production: no eligible support or ceo record is without its gte-small vec
   assert.deepEqual(r, { s: 0, c: 0 }, 'run node scripts/kb/embed_sales_knowledge.mjs --table=support_knowledge and --table=ceo_knowledge');
 });
 
+// Batch B7 (seat ceo): governance reads keys and reasons. scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql
+test('production, aborted: B7 — demand, challenge, what-if, founder mail, digest, governance, knowledge jurisdiction and Arabic read no words for meaning',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; v_id bigint; v_n bigint; v_h bigint;
+begin
+  -- 55 demand: an exact key, and the spelling of an unregistered one decides nothing
+  o := o || jsonb_build_object('demand_invite', public.fn_task_is_demand('invite'), 'demand_analysis', public.fn_task_is_demand('analysis'),
+                               'demand_spelled', public.fn_task_is_demand('zz_invite_customer_quote'));
+  -- 56 challenge: held (no stance from the words), then applied by its surface
+  v := public.fn_challenge('ZZ DEMO raise the reveal fee and skip the review', 'founder', 'zz_demo');
+  o := o || jsonb_build_object('challenge_stance', v->>'stance');
+  v_id := (v->>'held_id')::bigint;
+  select jsonb_build_object('challenge_surface', surface, 'challenge_has_none', exists (select 1 from jsonb_array_elements(request->'decision'->'options') x where x->>'id' = 'none'),
+                            'challenge_has_rank1', exists (select 1 from jsonb_array_elements(request->'decision'->'options') x where x->>'id' = 'h' || (select min(id) from public.challenge_heuristic where active and rank_touched = 1)))
+    into v from public.reasoning_held_question where id = v_id;
+  o := o || v;
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO reasoned',
+         'decision', jsonb_build_object('choice', 'h' || (select min(id) from public.challenge_heuristic where active and rank_touched = 1))));
+  o := o || jsonb_build_object('challenge_applied', v->>'status', 'challenge_reasoned_stance', v->'effect'->>'stance',
+                               'challenge_record', (select stance from public.challenge_record where id = (v->'effect'->>'challenge_record_id')::bigint));
+  v := public.fn_board_review('ZZ DEMO expand to a new market', null);
+  o := o || jsonb_build_object('board_verdict', v->>'board_verdict', 'board_proceed', (v->>'proceed')::int);
+  -- 57 what-if: held, then the reasoned scenario key runs the simulation
+  v := public.fn_what_if('ZZ DEMO what if we lower the reveal fee', '{}'::jsonb);
+  o := o || jsonb_build_object('what_if_status', v->>'status');
+  v := public.fn_reason_held_resolve((v->>'held_id')::bigint, '{"status":"answered","answer":"ZZ","decision":{"choice":"reveal_fee_discount"}}'::jsonb);
+  o := o || jsonb_build_object('what_if_applied', v->>'status',
+    'what_if_scenario', (select result->>'scenario' from public.simulations where id = (v->'effect'->>'simulation_id')::bigint));
+  -- 58 founder mail: the level is the stated severity; a CRITICAL subject decides nothing
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('zz_demo_signal', 'zz_demo_unregistered', 'founder', 'CRITICAL URGENT system down', 'ZZ DEMO', 'queued', 'email');
+  o := o || jsonb_build_object('mail_queued_to_founder', exists (select 1 from public.notifications where kind = 'zz_demo_unregistered'),
+    'mail_task_level', (select result->'founder_mail'->>'level' from public.org_tasks where result->'founder_mail'->>'kind' = 'zz_demo_unregistered' order by id desc limit 1));
+  -- 58/59 THROUGH THE REAL PRODUCER: fn_notify_founder (the uptime / platform_down / outbox-heartbeat path) states
+  -- severity from its p_level, so a real outage goes at once. Inside this aborted transaction nothing commits, so
+  -- send_outbox can never see these rows: incapable of reaching the founder, not merely careful.
+  v := public.fn_notify_founder('ZZ DEMO probe outage', 'ZZ DEMO', 'critical', 'uptime_alert', 'zz-demo-b7-probe', null);
+  select jsonb_build_object('producer_severity', min(severity), 'producer_status', min(status), 'producer_rows', count(*))
+    into v from public.notifications where subject = '[Attention] ZZ DEMO probe outage' and channel = 'email';
+  o := o || v;
+  -- A producer that inserts directly and states nothing: its TYPE's registered severity decides (an outage type
+  -- goes at once, a routine type folds), never its subject. No address at all (a demo address is captured to
+  -- 'suppressed' after the digest runs); uptime_alert / ai_quality_alert are both listed digest types.
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('uptime_alert', 'uptime_alert', 'founder', 'routine words', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  o := o || jsonb_build_object('type_outage', (select status || ':' || severity from public.notifications where id = v_n));
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('ai_quality_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  o := o || jsonb_build_object('type_routine', (select status || ':' || severity from public.notifications where id = v_n));
+  -- the lifecycle: a failed held question filed again is REOPENED (held, attempts 0, not escalated)
+  v_id := public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
+  update public.reasoning_held_question set status = 'failed', attempts = 5, escalated_at = now() where id = v_id;
+  perform public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction', 'ZZ DEMO', '{"seat":"ceo"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-b7-reopen');
+  o := o || jsonb_build_object('reopened', (select status || ':' || attempts || ':' || (escalated_at is null) || ':' || (expires_at is null) || ':' || (created_at >= now()) from public.reasoning_held_question where id = v_id));
+  -- a line that is only a code is kept as written (else its document would be held for ever); a waiting quotation is
+  -- found by its own id once its lines are in, whoever filed them
+  perform public.fn_arabic_document_wait('zz-demo-b7-quote', array['ZZ DEMO IP65', 'ZZ DEMO waiter line']);
+  perform public.fn_arabic_translation_store('{"ZZ DEMO IP65":"ZZ DEMO IP65","Zz Demo Wardrobe":"Zz Demo Wardrobe"}'::jsonb, null);
+  o := o || jsonb_build_object('prose_echo_rejected', not (public.fn_arabic_translations(array['Zz Demo Wardrobe']) ? 'Zz Demo Wardrobe'));
+  o := o || jsonb_build_object('kept_code', public.fn_arabic_translations(array['ZZ DEMO IP65'])->>'ZZ DEMO IP65',
+    'waiter_early', (select public.fn_arabic_waiters_ready(100) ? 'zz-demo-b7-quote'));
+  perform public.fn_arabic_translation_store('{"ZZ DEMO waiter line":"سطر"}'::jsonb, null);
+  o := o || jsonb_build_object('waiter_ready', (select public.fn_arabic_waiters_ready(100) ? 'zz-demo-b7-quote'));
+  -- 60 governance: a registered kind escalates; a kind merely SPELLED like one does not
+  insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'finance_alert', 'ZZ DEMO', 0.9) returning id into v_n;
+  o := o || jsonb_build_object('gov_registered', (select escalated from public.agent_actions where id = v_n));
+  insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'zz_legal_refund_payment', 'ZZ DEMO', 0.9) returning id into v_n;
+  o := o || jsonb_build_object('gov_spelled', (select escalated from public.agent_actions where id = v_n));
+  -- 61 knowledge: undecided is kept; a reasoned 'us' is deleted; the citation regex is gone
+  o := o || jsonb_build_object('kb_null', public.fn_kb_purge_clause('standard', 'x', null), 'kb_us', public.fn_kb_purge_clause('standard', 'x', 'us'),
+    'kb_uae', public.fn_kb_purge_clause('standard', 'x', 'uae'), 'kb_ours', public.fn_kb_purge_clause('standard', 'x', 'quotesdone'),
+    'kb_citation_text', public.fn_kb_purge_clause('standard', 'x', 'NFPA 13 United States Code'),
+    'kb_is_us_code_gone', to_regprocedure('public.fn_kb_is_us_code(text)') is null);
+  -- the paid backfill: nothing without the founder's 'go', and never past the daily cap
+  delete from public.app_secrets where key = 'kb_jurisdiction_backfill';
+  o := o || jsonb_build_object('kb_no_go', public.fn_kb_jurisdiction_file(5));
+  insert into public.app_secrets (key, value) values ('kb_jurisdiction_backfill', 'go');
+  update public.decision_policy set value = to_jsonb((select count(*) from public.reasoning_held_question
+      where surface = 'ceo.kb_jurisdiction' and created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc')::int + 1)
+   where key = 'kb_jurisdiction_daily_cap';
+  o := o || jsonb_build_object('kb_filed', public.fn_kb_jurisdiction_file(5), 'kb_at_cap', public.fn_kb_jurisdiction_file(5));
+  select id into v_h from public.reasoning_held_question where surface = 'ceo.kb_jurisdiction' order by id desc limit 1;
+  v := public.fn_reason_held_resolve(v_h, '{"status":"answered","answer":"ZZ","decision":{"choice":"us"}}'::jsonb);
+  o := o || jsonb_build_object('kb_applied', v->>'status',
+    'kb_row', (select jurisdiction from public.kb_citation_jurisdiction where held_id = v_h));
+  -- 62 Arabic: the replay stores only Arabic-script lines against the filed sources
+  v_id := public.fn_reason_hold('sales_engineer', 'sales_engineer.document_arabic', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            '{"sources":["ZZ DEMO wardrobe carcass","ZZ DEMO second line"]}'::jsonb, 'model_hold', 'zz-demo-arabic-1');
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', '{"1":"هيكل خزانة","2":"still English"}'));
+  o := o || jsonb_build_object('ar_applied', v->>'status', 'ar_stored', v->'effect'->'stored',
+    'ar_lookup', public.fn_arabic_translations(array['ZZ DEMO wardrobe carcass', 'ZZ DEMO second line']));
+  -- an Arabic MESSAGE is parked until its line is reasoned, then sent whole (never with English or a placeholder)
+  v_n := public.fn_arabic_outbound_park(array['ZZ DEMO parked line'],
+    jsonb_build_array(jsonb_build_object('type', 'spec_offer_accepted', 'kind', 'customer_support_spec_offer_accepted', 'to_role', 'customer',
+      'channel', 'email', 'to_email', 'zz-demo-b7@example.invalid', 'subject', 'ZZ', 'body', 'سنمضي باعتماد ⟦ZZ DEMO parked line⟧', 'status', 'queued',
+      'lang', 'ar', 'requested_by', 'customer_support', 'sender', 'customer_support', 'dedupe_key', 'zz-demo-b7-parked')));
+  o := o || jsonb_build_object('parked_before', (select status from public.arabic_outbound_hold where id = v_n));
+  perform public.fn_arabic_translation_store('{"ZZ DEMO parked line":"سطر مترجم"}'::jsonb, null);
+  o := o || jsonb_build_object('parked_after', (select status from public.arabic_outbound_hold where id = v_n),
+    'parked_body', (select body from public.notifications where to_email = 'zz-demo-b7@example.invalid' order by id desc limit 1));
+  -- grants: service_role only on every new routine
+  o := o || jsonb_build_object('anon_any', (select bool_or(has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute'))
+      from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_kb_jurisdiction_file(integer)',
+                        'public.fn_reason_apply_ceo__challenge(bigint,jsonb)', 'public.fn_reason_apply_ceo__what_if(bigint,jsonb)',
+                        'public.fn_reason_apply_ceo__kb_jurisdiction(bigint,jsonb)', 'public.fn_reason_apply_sales_engineer__document_arabic(bigint,jsonb)',
+                        'public.fn_arabic_translations(text[])', 'public.fn_arabic_translation_store(jsonb,bigint)', 'public.fn_kb_purge_clause(text,text,text)',
+                        'public.fn_arabic_outbound_park(text[],jsonb)', 'public.fn_arabic_outbound_flush(integer)', 'public.fn_notification_severity(text,text)',
+                        'public.fn_notify_founder(text,text,text,text,text,text)', 'public.fn_arabic_document_wait(text,text[])',
+                        'public.fn_arabic_waiters_ready(integer)', 'public.fn_spec_offer_restart_clock(bigint)', 'public.fn_reason_hold(text,text,text,jsonb,jsonb,jsonb,text,text)']) f),
+    'service_all', (select bool_and(has_function_privilege('service_role', f, 'execute'))
+      from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_arabic_translations(text[])']) f),
+    'old_overloads', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and ((p.proname = 'fn_challenge' and pronargs = 3) or (p.proname = 'fn_what_if' and pronargs = 2))));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  assert.deepEqual([out.demand_invite, out.demand_analysis, out.demand_spelled], [true, false, false], 'the revenue path is a key, not a spelling');
+  assert.equal(out.challenge_stance, 'held', 'no stance is taken from the words');
+  assert.equal(out.challenge_surface, 'ceo.challenge');
+  assert.ok(out.challenge_has_none && out.challenge_has_rank1);
+  assert.equal(out.challenge_applied, 'applied');
+  assert.equal(out.challenge_reasoned_stance, 'recommend_against');
+  assert.equal(out.challenge_record, 'recommend_against');
+  assert.match(out.board_verdict, /^HELD/);
+  assert.equal(out.board_proceed, 0, 'no advisor proceeds on a guessed stance');
+  assert.equal(out.what_if_status, 'held');
+  assert.equal(out.what_if_applied, 'applied');
+  assert.equal(out.what_if_scenario, 'reveal_fee_discount');
+  assert.equal(out.mail_queued_to_founder, false, 'an unregistered kind is never mailed to the founder');
+  assert.equal(out.mail_task_level, 'warn', '"CRITICAL URGENT" in the subject sets nothing; the unstated level is the normal one');
+  assert.equal(out.producer_severity, 'critical', 'fn_notify_founder states the severity of what it queues');
+  assert.equal(out.producer_status, 'queued', 'a real outage from the real producer is sent at once, not digested');
+  assert.equal(out.type_outage, 'queued:critical', 'an outage type goes at once whatever its subject says');
+  assert.equal(out.type_routine, 'digest:warn', 'a routine type folds whatever its subject says');
+  assert.equal(out.reopened, 'held:0:true:true:true', 'a failed question filed again is reopened (its 48-hour clock restarts), never left dead or expiring');
+  assert.equal(out.kept_code, 'ZZ DEMO IP65');
+  assert.equal(out.prose_echo_rejected, true, 'title-case English echoed back is not stored as its Arabic');
+  assert.equal(out.waiter_early, false);
+  assert.equal(out.waiter_ready, true);
+  assert.equal(out.parked_before, 'held');
+  assert.equal(out.parked_after, 'sent');
+  assert.equal(out.parked_body, 'سنمضي باعتماد سطر مترجم', 'the parked message goes out whole, in Arabic');
+  assert.equal(out.gov_registered, true);
+  assert.equal(out.gov_spelled, false, 'a kind spelled "legal/refund/payment" is not sensitive unless registered');
+  assert.deepEqual([out.kb_null, out.kb_us, out.kb_uae, out.kb_ours, out.kb_citation_text], [4, 5, 3, 1, 4], 'undecided knowledge is kept; citation text decides nothing');
+  assert.equal(out.kb_is_us_code_gone, true);
+  assert.equal(out.kb_no_go, 0, 'no paid backfill without app_secrets.kb_jurisdiction_backfill = go');
+  assert.equal(out.kb_filed, 1, 'with go, it files up to the daily cap (5 asked, cap leaves 1)');
+  assert.equal(out.kb_at_cap, 0, 'at the daily cap it files nothing more');
+  assert.equal(out.kb_applied, 'applied');
+  assert.equal(out.kb_row, 'us');
+  assert.equal(out.ar_applied, 'applied');
+  assert.equal(out.ar_stored, 1, 'a line the answer left in English is not stored');
+  assert.deepEqual(out.ar_lookup, { 'ZZ DEMO wardrobe carcass': 'هيكل خزانة' });
+  assert.equal(out.anon_any, false);
+  assert.equal(out.service_all, true);
+  assert.equal(out.old_overloads, 0);
+});
+
+// ── Batch B5 (sales_engineer): prices, supplier profiles and quote quality ─────────────────────────────
+// scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql. Every routine it replaced
+// read free text for meaning; after the replay none does, the meaning arrives as a reasoned reading, and each
+// surface's replay effect lands through fn_reason_held_resolve. ZZ DEMO text only; nothing commits.
+test('production, aborted: B5 — price by reasoned trade, quote quality held until read, twin and own words read by reasoning, grants',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; v_due jsonb; v_q uuid; v_id bigint; v_lead bigint; v_sup bigint; v_key text; v_name text; v_catkey text; v_trade text; v_fields jsonb;
+begin
+  -- 40. fn_price_guidance reads no question: a sentence is not a trade; a reasoned trade is.
+  v := public.fn_price_guidance(null, 6);
+  o := o || jsonb_build_object('price_null', v->>'reason', 'price_trades', jsonb_array_length(v->'trades'),
+    'price_sentence', public.fn_price_guidance('ZZ DEMO what does a gypsum false ceiling cost per sqm', 6)->>'reason',
+    'price_old_overload', to_regprocedure('public.fn_price_guidance(text,integer)') is not null);
+  select category into v_trade from public.price_benchmark group by category having bool_and(source_kind <> 'gap') order by category limit 1;
+  v := public.fn_price_guidance(v_trade, 3, 'ZZ DEMO item');
+  o := o || jsonb_build_object('price_ok', v->>'ok', 'price_item', v->>'asked_item', 'price_capped', jsonb_array_length(v->'bands') between 1 and 3);
+
+  -- 45. A quote's category verdict is held until reasoned, then applied by the replay.
+  select q.id into v_q from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+   where exists (select 1 from public.category_quote_specs c where c.spec_group = public.fn_quote_spec_group(coalesce(i.category, ''))) order by q.id limit 1;
+  update public.quotes set quality = quality where id = v_q;
+  select quality into v from public.quotes where id = v_q;
+  o := o || jsonb_build_object('q_before', v->'category'->>'status', 'q_pass_before', v->>'pass');
+  v_due := public.fn_quote_aspects_due(v_q);
+  o := o || jsonb_build_object('q_due_aspects', jsonb_array_length(v_due->'aspects'));
+  perform public.fn_quote_aspect_reading_record(v_q, v_due->>'content_md5', null, null);
+  o := o || jsonb_build_object('q_due_after_held', public.fn_quote_aspects_due(v_q) is null);
+  select jsonb_object_agg(c.aspect, jsonb_build_object('value', 'ZZ', 'evidence', 'ZZ DEMO words')) into v_fields
+    from public.category_quote_specs c where c.spec_group = v_due->>'spec_group';
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote');
+  o := o || jsonb_build_object('q_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ',
+            'decision', jsonb_build_object('choice', null, 'fields', v_fields)))->>'status');
+  select quality into v from public.quotes where id = v_q;
+  o := o || jsonb_build_object('q_after', v->'category'->>'status', 'q_cat_pass_after', v->'category'->>'pass', 'q_missing_after', v->'category'->>'mandatory_missing');
+
+  -- 42. The twin: installation from the reasoned reading of the current summary only.
+  select id into v_lead from public.leads where nullif(btrim(coalesce(capability_summary, '')), '') is not null
+     and coalesce(engineers_count, 0) = 0 and jsonb_typeof(machinery) is distinct from 'array'
+     and not exists (select 1 from public.supplier_capability_reading r where r.lead_id = leads.id) order by id limit 1;
+  v := public.fn_supplier_twin(v_lead);
+  o := o || jsonb_build_object('twin_before', v->>'capability_reading', 'twin_install_before', v->'capabilities'->1->>'has');
+  v_due := public.fn_supplier_readings_due(v_lead);
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead, 'summary_md5', v_due->'capability'->>'summary_md5'), 'model_hold', 'zz-b5-twin');
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{"installation":{"value":"ZZ","evidence":"ZZ DEMO"}}}}'::jsonb);
+  -- a late replay of an OLD summary (another md5) must not replace the reading of the current one
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead, 'summary_md5', repeat('f', 32)), 'model_hold', 'zz-b5-twin-stale');
+  o := o || jsonb_build_object('twin_stale', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{}}}'::jsonb)->'effect'->>'skipped');
+  v := public.fn_supplier_twin(v_lead);
+  o := o || jsonb_build_object('twin_after', v->>'capability_reading', 'twin_install_after', v->'capabilities'->1->>'has',
+    'twin_design_after', v->'capabilities'->3->>'has', 'twin_due_after', jsonb_typeof(public.fn_supplier_readings_due(v_lead)->'capability'));
+
+  -- 43. An own word names a service only by a reasoned reading.
+  select supplier_id, trades[1] into v_sup, v_trade from public.supplier_capabilities
+   where confirmed_at is not null and coalesce(cardinality(trades), 0) > 0 order by supplier_id limit 1;
+  update public.supplier_capabilities set services = coalesce(services, '{}'::text[]) || array['ZZ DEMO own words'] where supplier_id = v_sup;
+  o := o || jsonb_build_object('gaps_before', (select jsonb_agg(x->>'code') from jsonb_array_elements(public.fn_supplier_portfolio_gaps(v_sup)) x),
+    'gaps_due', public.fn_supplier_readings_due(v_sup)->'own_words');
+  select s.trade_code || '.' || s.code into v_key from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade order by s.sort, s.code limit 1;
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word');
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
+  v := public.fn_supplier_portfolio_gaps(v_sup);
+  o := o || jsonb_build_object('gaps_after', (select jsonb_agg(x->>'code') from jsonb_array_elements(v) x),
+    'gaps_named', (select x->'services'->>0 from jsonb_array_elements(v) x where x->>'code' = 'own_word_is_a_service') = v_key);
+  begin perform public.fn_supplier_own_word_reading_record(v_sup, 'ZZ DEMO x', 'not.a_service', true, null); o := o || '{"bad_key":"accepted"}';
+  exception when others then o := o || jsonb_build_object('bad_key', sqlstate); end;
+
+  -- 46. A catalogue name in a task's words names no category; a key in its own format does.
+  select c.name, i.category_key into v_name, v_catkey from public.catalog_supplier_categories c
+    join public.org_category_identity i on i.catalog_num = c.num order by c.num limit 1;
+  o := o || jsonb_build_object('cat_by_name', public.fn_category_key_from_text('ZZ DEMO a task about ' || v_name),
+                               'cat_by_key', public.fn_category_key_from_text('ZZ DEMO key ' || v_catkey) = v_catkey);
+
+  -- 41, 44 and every body: no free text read for meaning.
+  o := o || jsonb_build_object('bodies', (select jsonb_object_agg(p.proname, case p.proname
+      when 'fn_supplier_opportunities' then p.prosrc !~ 'position\(|capability_summary'
+      when 'fn_rfq_short_of_quotes_tick' then p.prosrc !~* 'ilike|~\*'
+      when 'fn_supplier_twin' then p.prosrc !~ 'capability_summary ilike'
+      when 'fn_supplier_portfolio_gaps' then p.prosrc !~ 'aliases'
+      when 'trg_quote_quality' then p.prosrc !~ 'match_regex'
+      when 'fn_price_guidance' then p.prosrc !~* 'like|~'
+      when 'fn_category_key_from_text' then p.prosrc !~* 'like' end)
+    from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_supplier_opportunities', 'fn_rfq_short_of_quotes_tick',
+      'fn_supplier_twin', 'fn_supplier_portfolio_gaps', 'trg_quote_quality', 'fn_price_guidance', 'fn_category_key_from_text')));
+
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_price_guidance', 'fn_supplier_opportunities', 'fn_supplier_twin',
+              'fn_supplier_portfolio_gaps', 'fn_rfq_short_of_quotes_tick', 'trg_quote_quality', 'fn_category_key_from_text', 'fn_supplier_readings_due',
+              'fn_supplier_capability_reading_record', 'fn_supplier_own_word_reading_record', 'fn_quote_aspect_text', 'fn_quote_aspects_due',
+              'fn_quote_aspect_reading_record', 'fn_reason_field_stated', 'fn_reason_apply_sql__fn_supplier_twin',
+              'fn_reason_apply_sql__fn_supplier_portfolio_gaps', 'fn_reason_apply_sql__trg_quote_quality')),
+    'service_can', has_function_privilege('service_role', 'public.fn_quote_aspect_reading_record(uuid,text,text[],bigint)', 'execute'),
+    'rls', (select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.supplier_capability_reading'::regclass,
+              'public.supplier_own_word_reading'::regclass, 'public.quote_aspect_reading'::regclass)));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.price_null, 'needs_reasoning');
+  assert.ok(out.price_trades >= 1);
+  assert.equal(out.price_sentence, 'no_trade_matched', 'a sentence is never read for its trade');
+  assert.equal(out.price_old_overload, false);
+  assert.equal(out.price_ok, 'true'); assert.equal(out.price_item, 'ZZ DEMO item'); assert.equal(out.price_capped, true);
+
+  assert.equal(out.q_before, 'needs_reasoning', 'an unread quote is not scored by a regex');
+  assert.equal(out.q_pass_before, 'false', 'held, never passed on a guess');
+  assert.ok(out.q_due_aspects >= 1);
+  assert.equal(out.q_due_after_held, true, 'a queued reading is not re-asked on every write');
+  assert.equal(out.q_resolve, 'applied');
+  assert.equal(out.q_after, 'reasoned'); assert.equal(out.q_cat_pass_after, 'true'); assert.equal(out.q_missing_after, '0');
+
+  assert.equal(out.twin_before, 'needs_reasoning'); assert.equal(out.twin_install_before, 'false');
+  assert.equal(out.twin_after, 'reasoned'); assert.equal(out.twin_install_after, 'true'); assert.equal(out.twin_design_after, 'false');
+  assert.equal(out.twin_due_after, 'null', 'a read summary is not read again');
+  assert.equal(out.twin_stale, 'stale', 'a replay of an edited summary does not overwrite the current reading');
+
+  assert.ok(out.gaps_before.includes('own_words') && !out.gaps_before.includes('own_word_is_a_service'), JSON.stringify(out.gaps_before));
+  assert.ok(out.gaps_due.includes('ZZ DEMO own words'));
+  assert.ok(out.gaps_after.includes('own_word_is_a_service'), JSON.stringify(out.gaps_after));
+  assert.equal(out.gaps_named, true);
+  assert.equal(out.bad_key, '22023');
+
+  assert.equal(out.cat_by_name, null, 'a catalogue name in the words decides nothing');
+  assert.equal(out.cat_by_key, true);
+  for (const [fn, clean] of Object.entries(out.bodies)) assert.equal(clean, true, `${fn} reads free text for meaning again`);
+  assert.equal(Object.keys(out.bodies).length, 7);
+  assert.equal(out.anon_can, false); assert.equal(out.service_can, true); assert.equal(out.rls, true);
+});
+
+// ── batch B2 (menus, comments, trades): the replay writes the reasoned trade on the row it was held for ─────────────
+test('production, aborted: a held lead sector is set by its own routine — exact slug or nothing, empty sectors only',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v_slug text; v_lead bigint; v_lead2 bigint; v_id bigint;
+begin
+  select category into v_slug from public.category_specs order by category limit 1;
+  insert into public.leads (company_name, email, source, business_role) values ('ZZ DEMO probe lead', 'zz-b2-probe@example.invalid', 'email_inbound', 'supplier')
+    returning id into v_lead;
+  insert into public.leads (company_name, email, source, business_role, sector) values ('ZZ DEMO probe lead 2', 'zz-b2-probe3@example.invalid', 'email_inbound', 'supplier', 'zz-set-by-a-person')
+    returning id into v_lead2;
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-1');
+  o := o || jsonb_build_object('sector_status', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)))->>'status');
+  o := o || jsonb_build_object('sector_row', (select sector = v_slug from public.leads where id = v_lead));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead2), 'model_hold', 'zz-b2-sector-2');
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)));
+  o := o || jsonb_build_object('sector_kept', (select sector from public.leads where id = v_lead2));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-3');
+  update public.leads set sector = null where id = v_lead;
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb);
+  o := o || jsonb_build_object('sector_none', (select sector from public.leads where id = v_lead));
+
+  -- the routines read no free text, and only service_role executes them
+  o := o || jsonb_build_object('reads_text', (select bool_or(p.prosrc ~ '(raw_input|summary|~\*|ilike)') from pg_proc p
+            where p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
+    'anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
+    'keywords_routine', to_regprocedure('public.fn_reason_apply_customer_api__keywords(bigint,jsonb)') is not null,
+    'service_can', has_function_privilege('service_role', 'public.fn_reason_apply_inbound_email__infer_sector(bigint,jsonb)', 'execute'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out));
+  assert.equal(out.sector_status, 'applied');
+  assert.equal(out.sector_row, true);
+  assert.equal(out.sector_kept, 'zz-set-by-a-person', 'a sector already set is never overwritten');
+  assert.equal(out.sector_none, null, "'none' writes no sector");
+  assert.equal(out.reads_text, false);
+  assert.equal(out.anon_can, false);
+  assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
+  assert.equal(out.service_can, true);
+});
+
 // BATCH B3 (sales_engineer, points 23-27 + 77): trades, catalogue categories, product matches and spec groups read no
 // free text for meaning. Aborted transaction; the batch file replays first while pending; nothing reaches a person.
 test('production, aborted: batch B3 routines read no words for meaning, route only a reasoned category, and are service_role only',

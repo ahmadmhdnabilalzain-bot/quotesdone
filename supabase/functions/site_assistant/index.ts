@@ -25,6 +25,9 @@ import { observe } from '../_shared/observe.ts';
 import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
+import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -326,14 +329,15 @@ Deno.serve(observe('site_assistant', async (req) => {
     // a published company cost guide at AED 35-70/sqm dated 28 June 2026. Exactly one routine and
     // one edge function read that table, and neither was the seat a customer actually talks to.
     //
-    // fn_price_guidance refuses rather than reaching for a nearest neighbour: a substantive word
-    // from the visitor's own question must appear in the trade or the item, the four trades with a
-    // deliberate `gap` row return that gap instead of a substituted trade, and any word it found
-    // nothing for comes back in unmatched_terms so the answer can say so out loud.
+    // fn_price_guidance refuses rather than reaching for a nearest neighbour: it is given the trade the
+    // reasoning chose (never a word match), the four trades with a deliberate `gap` row return that gap
+    // instead of a substituted trade, and a question about no published trade gets no band at all.
     let priceCtx = '';
     let priceBands: any = null;
     try {
-      const { data: pg } = await admin.rpc('fn_price_guidance', { p_question: message, p_limit: 6 });
+      // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
+      // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
+      const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
       priceBands = pg || null;
       if (pg && pg.ok) {
         priceCtx = 'PRICE GUIDANCE (published UAE ranges held by QuotesDone, for the trade "'
@@ -620,19 +624,32 @@ Deno.serve(observe('site_assistant', async (req) => {
     // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
     // published number we gave them is real and answered — it is printed on /contact/. The
     // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
-    if (/(speak|talk|chat)\s+(to|with)\s+(a\s+)?(real\s+)?(person|human|human being|agent|someone)|real person|customer service (agent|rep)|أريد التحدث (إلى|مع)|شخص حقيقي|موظف حقيقي/i.test(message)) {
-      try {
-        await admin.rpc('fn_support_report_to_ceo', {
-          p_idempotency_key: 'widget:person:' + ip + ':' + new Date().toISOString().slice(0, 13),
-          p_severity: 'routine',
-          p_subject: 'A website visitor asked to speak to a person and was given the public contact',
-          p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
-          p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
-          p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
-          p_source_agent: 'customer_support',
-        });
-      } catch (_e) { /* the visitor already has their answer; visibility must not block it */ }
-    }
+    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
+    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
+    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
+    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
+    const hour = new Date().toISOString().slice(0, 13);
+    const personWork = (async () => {
+      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
+      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
+      const person = await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
+        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
+      });
+      if (person.value !== true) return;
+      await admin.rpc('fn_support_report_to_ceo', {
+        p_idempotency_key: 'widget:person:' + ip + ':' + hour,
+        p_severity: 'routine',
+        p_subject: 'A website visitor asked to speak to a person and was given the public contact',
+        p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
+        p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
+        p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
+        p_source_agent: 'customer_support',
+      });
+    })().catch(() => { /* the visitor already has their answer; visibility must not block it */ });
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(personWork);
 
     try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     // scope lets the portal say "answering from your account" instead of leaving the customer to

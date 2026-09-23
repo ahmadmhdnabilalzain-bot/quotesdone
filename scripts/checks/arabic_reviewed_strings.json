@@ -776,8 +776,23 @@
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
  ],
+ "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql": [
+  "82d439166a51",
+  "a1899880347c"
+ ],
  "scripts/sql/one_job_number_on_every_portal_document_and_notice.sql": [
   "2e6cf0d056d2"
+ ],
+ "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql": [
+  "033fce7adb9c",
+  "042af7f8749c",
+  "56539f4a7e5a",
+  "8760d617ca2f",
+  "c3e7c335e0b6",
+  "c68bcbcc02ec",
+  "d0c6f4df064e",
+  "d44c56ce79b0",
+  "e0c574ae3528"
  ],
  "scripts/sql/row4_negotiation_guidance.sql": [
   "193f67031596",
@@ -4482,6 +4497,7 @@
  "supabase/functions/_shared/line_specs/no_exact_spec.ts": [
   "0560a71ce764",
   "05f513042f34",
+  "093c9779288c",
   "186390b401e3",
   "30d30ecdbc95",
   "3271d599b027",
@@ -4493,10 +4509,12 @@
   "6514164e63d4",
   "7100845457c6",
   "864e1ff9eaee",
+  "c6f0d43e239e",
   "d43179e65707",
   "e2dc39cba497",
   "e573aa3f63d9",
-  "e66497e30b78"
+  "e66497e30b78",
+  "fec53ae6df03"
  ],
  "supabase/functions/_shared/marketing_calendar_doc.ts": [
   "a817fa1cebe5"
@@ -4534,6 +4552,12 @@
   "579dd4d95c6e",
   "c2fe022839a2",
   "fa2a92814d32"
+ ],
+ "supabase/functions/_shared/reasoned_governance.ts": [
+  "6e566e574b3e"
+ ],
+ "supabase/functions/_shared/reasoned_suppliers.ts": [
+  "6d600e059646"
  ],
  "supabase/functions/_shared/reveal_guard.ts": [
   "605a93533c3b",
@@ -4699,6 +4723,7 @@
   "355bbb0379e7",
   "3adbf5a1b22e",
   "470f6f6cd807",
+  "4bf1c6f5529f",
   "4e23e528e11c",
   "53276351b81f",
   "56f2c4228b44",
@@ -4756,6 +4781,7 @@
   "60f44ec8b539",
   "71dbe8bed9af",
   "752abaf110f3",
+  "869b5bbae5d0",
   "9621cf0393b6",
   "a30bf6242239",
   "c73b02e4b5e8",
@@ -4987,6 +5013,7 @@
   "94956e39f7f1",
   "a2d8778c01cf",
   "b950c9daf1bf",
+  "bfca58024b1a",
   "d8840a7d8b95"
  ],
  "supabase/functions/supplier_api/quote_review.ts": [
@@ -5162,6 +5189,7 @@
  ],
  "supabase/functions/wa_inbound/index.ts": [
   "0c779ad88625",
+  "4061420fc991",
   "5cbb277245b5",
   "6c8d4e17edaa",
   "c09183a62789",

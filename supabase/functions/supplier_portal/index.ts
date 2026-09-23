@@ -6,6 +6,9 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 // the scanner refused it.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { readSupplierProfile } from '../_shared/reasoned_suppliers.ts';
+import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { REQUIRED_DOC_KEYS } from '../_shared/supplier_registration.ts';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, supplierCard, type Supplier } from './overview.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
@@ -19,7 +22,6 @@ import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
-import { defaultDeps } from '../_shared/think.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
 async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
@@ -194,6 +196,11 @@ Deno.serve(observe('supplier_portal', async (req) => {
     // The whole payload comes from ONE routine, fn_supplier_twin, so the numbers a supplier sees
     // are the numbers the database computed rather than a second derivation that can drift from it.
     if (action === 'twin') {
+      // What the capability summary and the supplier's own service words MEAN is reasoned (think(),
+      // _shared/reasoned_suppliers.ts; founder_instruction 886-903), once per text, AFTER this response:
+      // the page never waits on a model, and under the hold the reading is queued and the twin shows the
+      // capabilities from keyed data with capability_reading 'needs_reasoning'.
+      runtimeWaitUntil()?.(readSupplierProfile(defaultDeps(admin, 'supplier_portal'), supId).catch((e) => console.error('supplier reading failed:', String(e))));
       const { data: twin, error } = await admin.rpc('fn_supplier_twin', { p_lead_id: supId });
       if (error) return loadFailed(String(action), error);
       // A demo fixture must never be presentable as a live account. fn_supplier_twin sets is_demo
