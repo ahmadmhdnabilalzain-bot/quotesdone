@@ -29,6 +29,7 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey',
+import { emirateAndUrgency } from '../_shared/reasoned_intake.ts';
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 const J = (o: unknown, s = 200, extra: Record<string, string> = {}) =>

@@ -127,7 +127,8 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "found"
 // So the old sentence "the FIND pass stays cheap on purpose: a miss there is caught here" is retired:
 // the find pass is not cheap any more, and what makes a find miss survivable is that the verify runs a
 // DIFFERENT and stronger model, not a cheaper one. Cost of the difference, measured: 28 verify calls a
-// month, AED 1.77 more than Qwen.
+// See scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql §4 and
+// scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql.
 //
 // ON THE FALLBACK PATH the verify falls to qwen3.8-max, which is the find model, and the independence
 // is gone. What remains is this function's own fail-closed handling below — truncated, unparseable and

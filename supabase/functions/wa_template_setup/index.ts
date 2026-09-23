@@ -110,7 +110,7 @@ const CATALOGUE: Record<string, Catalogue> = {
     // 22 Sep 2026 (DL-05): the active verb سدّد, not "قام … بالدفع", and the formal plural throughout.
     ar: 'QuotesDone: سدّد أحد العملاء رسوم الاطلاع على عرض سعركم لـ {{1}}. يُرجى الرد خلال 5 أيام عمل عبر بوابتكم: {{2}} وشكرًا لكم.',
     sample1_en: 'supply and install aluminium windows for a villa in Dubai', sample1_ar: 'توريد وتركيب نوافذ ألمنيوم لفيلا في دبي',
-    url: 'https://quotesdone.com/portal',
+    ar: 'فريق دعم QuotesDone، بخصوص استفساركم «{{1}}»: {{2}}. ويسعدنا الرد على أي استفسار آخر عبر هذه المحادثة.',
   },
 };
 
