@@ -397,6 +397,23 @@ async function caseMemoryEmbedTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE MULTILINGUAL SPACE'S TRICKLE (23 Sep 2026, it_engineer). knowledge_vector_ml rows that are new or whose
+// text changed are embedded by ai_gateway (embed_ml_tick), not here: the model is ~118 MB and loads only in the
+// gateway worker that serves that action. Eight rows a tick; the backlog is drained by
+// .github/workflows/ml-embed-backfill.yml. The gate and the daily cap are fn_ml_embed_claim's.
+async function mlEmbedTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_ai');
+    if (!secret) return { ok: false, error: 'cred_fn_ai is not in app_secrets' };
+    const r = await fetch(FN + '/ai_gateway', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'embed_ml_tick', limit: 8 }), signal: AbortSignal.timeout(50000),
+    });
+    const j = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function refundLadderTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_refund_ladder_sweep');
@@ -1299,6 +1316,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
+  mlEmbed: { run: mlEmbedTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },

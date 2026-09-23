@@ -162,7 +162,7 @@ interface Body {
   rate_key?: string; rate_limit?: number; rate_window_s?: number;
   stream?: boolean; dry_run?: boolean; escalate?: boolean;
   client_timeout_ms?: number;             // how long the caller will actually wait; the gateway finishes inside it
-  action?: string; text?: string;
+  action?: string; text?: string; limit?: number;   // limit: embed_ml_tick rows per call
   // --- modalities, added 29 Jul 2026 ---
   // deno-lint-ignore no-explicit-any
   plugins?: any[];                        // OpenRouter plugins: web search, file-parser
@@ -219,6 +219,22 @@ Deno.serve(observe('ai_gateway', async (req) => {
       const text = String(body.text || '');
       const a = embedAnswer((await embed(text)) ?? (await embed(text)));
       return J(a.body, a.status);
+    }
+
+    // THE MULTILINGUAL SPACE (23 Sep 2026, it_engineer; _shared/ml_embed.ts). The model loads only in a
+    // worker that serves one of these two actions, never on the LLM path.
+    //   embed_ml       one question -> its multilingual-e5-small vector (503 embed_failed when there is none)
+    //   embed_ml_tick  one pass of the knowledge_vector_ml queue, up to 16 rows (resilience_ping's mlEmbed
+    //                  step and .github/workflows/ml-embed-backfill.yml are the clocks; the gate and the daily
+    //                  cap live in fn_ml_embed_claim). 16 rows keeps one call inside the edge CPU cap.
+    if (body.action === 'embed_ml' || body.action === 'embed_ml_tick') {
+      const ml = await import('../_shared/ml_embed.ts');
+      if (body.action === 'embed_ml') {
+        const v = await ml.embedQueryMl(String(body.text || ''));
+        return v ? J({ ok: true, space: 'ml', embedding: '[' + v.join(',') + ']' }) : J({ ok: false, error: 'embed_failed' }, 503);
+      }
+      const r = await ml.embedQueueOnce(admin, Math.max(1, Math.min(Number(body.limit) || 8, 16)));
+      return J(r, r.ok ? 200 : 503);
     }
 
     const fnName = String(body.fn || 'unknown');

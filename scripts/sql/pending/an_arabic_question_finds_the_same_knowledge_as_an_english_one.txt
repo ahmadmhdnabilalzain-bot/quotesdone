@@ -1,0 +1,8 @@
+Committed, not applied: the release operator applies it. Seat: it_engineer. 23 Sep 2026.
+Order: apply this file (it sets ml_embed_golive=true and ml_embed_daily_cap=25000 itself: the founder approved
+finishing this); deploy ai_gateway and resilience_ping, then every function importing _shared/think.ts or
+_shared/case_recall.ts; run .github/workflows/ml-embed-backfill.yml once by hand; then
+node scripts/kb/probe_multilingual_space.mjs is no longer needed (it replays this file) and fn_ml_read_space()
+turns 'ml' by itself once every source except kb_chunks is embedded (the first run: about 15,000 rows).
+To move it: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the commit that
+records the apply.

@@ -18,7 +18,14 @@
 // pretends there was nothing to remember.
 //
 // scripts/checks/every_seat_recalls_before_it_decides.test.mjs fails if a decision path loses its call.
+//
+// TWO SPACES (23 Sep 2026). When fn_ml_read_space answers 'ml', the situation is embedded with
+// multilingual-e5-small by ai_gateway (ml_embed_client.ts: the model never loads in this worker) and put to fn_case_recall_ml, so an Arabic situation meets its English
+// precedent. A vector a caller passes in `embedding` is a gte-small vector (every caller computes it with
+// embedLine for its own gte knowledge search), so it is used only on the gte path. If the multilingual
+// embedder cannot answer, the call falls back to gte-small and fn_case_recall.
 import { embedLine } from './gte_embed.ts';
+import { embedQueryMlRemote, readSpace } from './ml_embed_client.ts';
 
 export type RecalledCase = {
   case_id: number; seat: string; case_kind: string; trade: string | null; situation: string;
@@ -32,6 +39,8 @@ export type CaseMemory = {
 };
 
 export const RECALL_EMBED_MS = 1500;
+// The gateway may be loading the multilingual model on a cold worker; past this the call takes the gte path.
+export const RECALL_EMBED_ML_MS = 8000;
 
 export function precedentRule(cases: RecalledCase[]): string | null {
   const fin = cases.filter((c) => c.finalised);
@@ -58,9 +67,10 @@ export async function recallCases(admin: Rpc, o: {
   try {
     // A caller that already embedded (or tried to) passes `embedding`, even null: a second gte-small
     // session in the same worker is memory the edge runtime does not have to spare.
-    const vec = 'embedding' in o ? o.embedding : await Promise.race([embedLine(text), new Promise<null>((r) => setTimeout(() => r(null), RECALL_EMBED_MS))]);
+    const ml = (await readSpace(admin)) === 'ml' ? await embedQueryMlRemote(admin, text, 'case_recall:' + o.seat, RECALL_EMBED_ML_MS) : null;
+    const vec = ml ?? ('embedding' in o ? o.embedding : await Promise.race([embedLine(text), new Promise<null>((r) => setTimeout(() => r(null), RECALL_EMBED_MS))]));
     if (!vec) return { ...base, available: false, reason: 'embedding_unavailable' };
-    const { data, error } = await admin.rpc('fn_case_recall', {
+    const { data, error } = await admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {
       p_seat: o.seat, p_embedding: typeof vec === 'string' ? vec : '[' + vec.join(',') + ']',
       p_trade: o.trade ?? null, p_k: o.k ?? 5, p_case_kind: o.caseKind ?? null,
       p_other_seats: o.otherSeats ?? true,
