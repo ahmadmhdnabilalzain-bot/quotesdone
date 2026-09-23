@@ -2060,6 +2060,740 @@
    "expect": {
     "choice": "build"
    }
+  },
+  {
+   "id": "c900",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how many quotes will I get?",
+   "expect": {
+    "choice": "count",
+    "faq_id": 13
+   }
+  },
+  {
+   "id": "c901",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what does it cost?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c902",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long until I receive quotes?",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 26
+   }
+  },
+  {
+   "id": "c903",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم عدد عروض الأسعار التي سأحصل عليها؟",
+   "expect": {
+    "choice": "count",
+    "faq_id": 604
+   }
+  },
+  {
+   "id": "c904",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تكلفة الخدمة؟",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 609
+   }
+  },
+  {
+   "id": "c905",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم يستغرق الحصول على عروض الأسعار؟",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 903
+   }
+  },
+  {
+   "id": "c906",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what should a gypsum false ceiling cost per sqm in Dubai",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c907",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تكلفة السقف الجبسي للمتر المربع في دبي",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c908",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "does a Dubai supplier cover Abu Dhabi as well",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c909",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what is the parking fee at Dubai Mall",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c910",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long is a football match",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c911",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم رسوم ركن السيارة في دبي مول؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c912",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم يستغرق مباراة كرة القدم؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c913",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم تستغرق مباراة كرة القدم؟",
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c914",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "what are your fees?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c915",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "is the service free?",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 30
+   }
+  },
+  {
+   "id": "c916",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how long does a supplier take to quote?",
+   "expect": {
+    "choice": "timeline",
+    "faq_id": 26
+   }
+  },
+  {
+   "id": "c917",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "هل المنصة مجانية؟",
+   "expect": {
+    "choice": "cost",
+    "faq_id": 609
+   }
+  },
+  {
+   "id": "c918",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "how many suppliers do you have",
+   "expect": {
+    "choice": "size"
+   }
+  },
+  {
+   "id": "c919",
+   "kind": "decision",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "q": "كم عدد الموردين لديكم",
+   "expect": {
+    "choice": "size"
+   }
+  },
+  {
+   "id": "c920",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "The quote excludes scaffolding above 4 m, but my ceilings are only 3.2 m — does that exclusion affect me?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:exclusions:does_not_apply"
+   }
+  },
+  {
+   "id": "c921",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "عرض السعر يستثني السقالات فوق 4 متر لكن ارتفاع الأسقف عندي 3.2 متر فقط، هل يؤثر هذا الاستثناء عليّ؟",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:exclusions:does_not_apply"
+   }
+  },
+  {
+   "id": "c922",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "what warranty does the quote give?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "q:0:warranty"
+   }
+  },
+  {
+   "id": "c923",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "shared.quote_answer",
+   "q": "does a Dubai supplier cover Abu Dhabi as well?",
+   "options": [
+    {
+     "id": "q:0:exclusions:applies",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line APPLIES to the case they describe"
+    },
+    {
+     "id": "q:0:exclusions:does_not_apply",
+     "meaning": "they ask about the exclusions of the quote (\"False ceilings and gypsum cornice for a private villa in Khawaneej\") from Supplier A, which reads: \"electrical fittings painting of walls scaffolding above 4m\" — and as written that line does NOT apply to the case they describe"
+    },
+    {
+     "id": "q:0:warranty",
+     "meaning": "they ask about the warranty of the quote from Supplier A (the supplier left it blank)"
+    },
+    {
+     "id": "none",
+     "meaning": "the question is not about any of these quotes"
+    }
+   ],
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c924",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "the quote excludes scaffolding above 4 m but my ceilings are 3.2 m, does that exclusion matter",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"Does a Dubai supplier cover Abu Dhabi as well? It depends on the supplier, and you do not have to guess.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "c925",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "the quote excludes scaffolding above 4 m but my ceilings are 3.2 m, does that exclusion matter",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"Does a Dubai supplier cover Abu Dhabi as well? It depends on the supplier, and you do not have to guess.\""
+    },
+    {
+     "id": "kb:1",
+     "meaning": "this passage answers what they asked: \"Exclusions are the items a supplier leaves out of a quotation, such as scaffolding.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "kb:1"
+   }
+  },
+  {
+   "id": "c926",
+   "kind": "decision",
+   "seat": "sales_engineer",
+   "audience": "customer",
+   "surface": "sales_engineer.on_topic",
+   "q": "كم عدد الموردين",
+   "options": [
+    {
+     "id": "kb:0",
+     "meaning": "this passage answers what they asked: \"عدد الموردين الذين يستلمون طلبك محدود\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of these passages answers what they asked"
+    }
+   ],
+   "expect": {
+    "choice": "kb:0"
+   }
+  },
+  {
+   "id": "cw1",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "kind": "decision",
+   "q": "we install chillers — what are your fees for suppliers?",
+   "options": [
+    {
+     "id": "size|supplier",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "size|customer",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "size|unknown",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "cost|supplier",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "cost|customer",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "cost|unknown",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "count|supplier",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "count|customer",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "count|unknown",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "timeline|supplier",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "timeline|customer",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "timeline|unknown",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "none|supplier",
+     "meaning": "none of the above: anything else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "none|customer",
+     "meaning": "none of the above: anything else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "none|unknown",
+     "meaning": "none of the above: anything else — and it does not say which side of the marketplace they are on"
+    }
+   ],
+   "expect": {
+    "choice": "cost|supplier"
+   }
+  },
+  {
+   "id": "cw2",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "kind": "decision",
+   "q": "I need quotes for my villa ceiling, how many will I get?",
+   "options": [
+    {
+     "id": "size|supplier",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "size|customer",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "size|unknown",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "cost|supplier",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "cost|customer",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "cost|unknown",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "count|supplier",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "count|customer",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "count|unknown",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "timeline|supplier",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "timeline|customer",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "timeline|unknown",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "none|supplier",
+     "meaning": "none of the above: anything else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "none|customer",
+     "meaning": "none of the above: anything else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "none|unknown",
+     "meaning": "none of the above: anything else — and it does not say which side of the marketplace they are on"
+    }
+   ],
+   "expect": {
+    "choice": "count|customer"
+   }
+  },
+  {
+   "id": "cw3",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "kind": "decision",
+   "q": "who decides the warranty terms?",
+   "options": [
+    {
+     "id": "size",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive"
+    },
+    {
+     "id": "cost",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else"
+    },
+    {
+     "id": "count",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it"
+    },
+    {
+     "id": "timeline",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes"
+    },
+    {
+     "id": "kb:0",
+     "meaning": "this passage of company knowledge answers what they asked: \"Warranty terms are set by each supplier in their quotation; compare them side by side before you reveal.\""
+    },
+    {
+     "id": "kb:1",
+     "meaning": "this passage of company knowledge answers what they asked: \"Every document is backed up to Dropbox nightly.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of the above: anything else"
+    }
+   ],
+   "expect": {
+    "choice": "kb:0"
+   }
+  },
+  {
+   "id": "cw4",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "kind": "decision",
+   "q": "who decides the warranty terms?",
+   "options": [
+    {
+     "id": "size",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive"
+    },
+    {
+     "id": "cost",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else"
+    },
+    {
+     "id": "count",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it"
+    },
+    {
+     "id": "timeline",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes"
+    },
+    {
+     "id": "kb:0",
+     "meaning": "this passage of company knowledge answers what they asked: \"Every document is backed up to Dropbox nightly.\""
+    },
+    {
+     "id": "none",
+     "meaning": "none of the above: anything else"
+    }
+   ],
+   "expect": {
+    "choice": "none"
+   }
+  },
+  {
+   "id": "cw5",
+   "seat": "customer_support",
+   "audience": "visitor",
+   "surface": "shared.route_question",
+   "kind": "decision",
+   "q": "how many suppliers do you have?",
+   "options": [
+    {
+     "id": "size|supplier",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "size|customer",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "size|unknown",
+     "meaning": "they ask how big QuotesDone is or how much it does — how many suppliers, customers, requests, quotes or deals we have or have handled, or our revenue, volumes or figures — however it is worded, in any language. NOT a question about how many quotes THEIR request will receive — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "cost|supplier",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "cost|customer",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "cost|unknown",
+     "meaning": "they ask what USING QuotesDone costs them — its fees, charges or commission, or whether it is free. NOT what a job, a material or a trade costs, and not a fee charged by anyone else — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "count|supplier",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "count|customer",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "count|unknown",
+     "meaning": "they ask how many quotes their own request will receive, or how many suppliers receive it — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "timeline|supplier",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "timeline|customer",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "timeline|unknown",
+     "meaning": "they ask how long the QuotesDone process takes — until quotes arrive, or until a supplier is verified. NOT how long anything else takes — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "kb:0|supplier",
+     "meaning": "this passage of company knowledge answers what they asked: \"Warranty terms are set by each supplier in their quotation; compare them side by side before you reveal.\" — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "kb:0|customer",
+     "meaning": "this passage of company knowledge answers what they asked: \"Warranty terms are set by each supplier in their quotation; compare them side by side before you reveal.\" — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "kb:0|unknown",
+     "meaning": "this passage of company knowledge answers what they asked: \"Warranty terms are set by each supplier in their quotation; compare them side by side before you reveal.\" — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "kb:1|supplier",
+     "meaning": "this passage of company knowledge answers what they asked: \"Every document is backed up to Dropbox nightly.\" — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "kb:1|customer",
+     "meaning": "this passage of company knowledge answers what they asked: \"Every document is backed up to Dropbox nightly.\" — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "kb:1|unknown",
+     "meaning": "this passage of company knowledge answers what they asked: \"Every document is backed up to Dropbox nightly.\" — and it does not say which side of the marketplace they are on"
+    },
+    {
+     "id": "none|supplier",
+     "meaning": "none of the above: anything else — and they write as a business that wants to SELL or quote through QuotesDone (registering as a supplier, a trade licence, receiving jobs or leads)"
+    },
+    {
+     "id": "none|customer",
+     "meaning": "none of the above: anything else — and they write as someone who wants to BUY (a job done, products priced, quotes for their project)"
+    },
+    {
+     "id": "none|unknown",
+     "meaning": "none of the above: anything else — and it does not say which side of the marketplace they are on"
+    }
+   ],
+   "expect": {
+    "choice": "size|unknown"
+   }
   }
  ]
 }

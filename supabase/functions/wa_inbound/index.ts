@@ -29,6 +29,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -586,7 +587,29 @@ async function handleInbound(req: Request): Promise<Response> {
     // Twilio. It runs after the no-exact-spec answer (a "2" there is an answer to that offer) and before
     // the founder's command channel, and it never takes a document (the media branch below owns those).
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
+    // WHAT THE MESSAGE ASKS, reasoned ONCE (23 Sep 2026, founder_instruction 886-903): which intent row, our
+    // size, the trade list or one trade (_shared/reasoned_channels.ts). It replaces fn_wa_answer's
+    // match_patterns, coverage.ts's regexes and isSizeQuestion's. Held (the model hold) it is null: nothing is
+    // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
+    // The reason it was not answered (the hold, a failed reasoning, or a throw) rides with it, so the queue files
+    // the question WITHOUT reasoning again: one think() per message, never a second model call.
+    let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
+    const meaningIn = async (): Promise<WaMeaningInput> => {
+      const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
+      return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+    };
     const menuDeps: MenuDeps = {
+      intent: (_text: string) => (meaningP ??= (async () => {
+        if (!Body.trim()) return null;
+        const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
+        meaningWhy = r.result.reason ?? r.result.status;
+        return r.value;
+      })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
+      queueIntent: async (_text: string) => {
+        try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
+        catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
+      },
       meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
         (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
           // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
@@ -1021,7 +1044,10 @@ async function handleInbound(req: Request): Promise<Response> {
       } catch (_e) { /* visibility must not block the reply */ }
     }
     try {
-      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson });
+      // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
+      const meaning = await menuDeps.intent(Body);
+      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
 
