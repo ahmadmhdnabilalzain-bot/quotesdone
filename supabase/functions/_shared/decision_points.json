@@ -537,8 +537,8 @@
     },
     {
      "file": "supabase/functions/inquiry_intake/index.ts",
-     "must_contain": [
-      "catalogueCategoryOf(defaultDeps(admin, 'inquiry_intake')"
+     "must_not_contain": [
+      "admin.rpc('fn_kb_route_decide'"
      ]
     },
     {
