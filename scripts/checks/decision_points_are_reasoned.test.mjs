@@ -364,16 +364,18 @@ begin
   o := o || jsonb_build_object('mail_queued_to_founder', exists (select 1 from public.notifications where kind = 'zz_demo_unregistered'),
     'mail_task_level', (select result->'founder_mail'->>'level' from public.org_tasks where result->'founder_mail'->>'kind' = 'zz_demo_unregistered' order by id desc limit 1));
   -- 59 digest: an allowlisted type folds even with an alarming subject; a stated severity goes at once
-  insert into public.notifications (type, to_email, to_role, subject, body, status, channel)
-  values ('health_alert', 'zz-demo-digest@example.invalid', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  -- (no address at all: a demo address is captured to 'suppressed' after the digest runs, and a real one is not
+  -- a probe's to use; uptime_alert is both an allowed founder kind and a listed digest type)
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('uptime_alert', 'uptime_alert', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
   o := o || jsonb_build_object('digest_words', (select status from public.notifications where id = v_n));
-  insert into public.notifications (type, to_email, to_role, subject, body, status, channel, severity)
-  values ('health_alert', 'zz-demo-digest@example.invalid', 'founder', 'routine', 'ZZ DEMO', 'queued', 'email', 'critical') returning id into v_n;
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel, severity)
+  values ('uptime_alert', 'uptime_alert', 'founder', 'routine', 'ZZ DEMO', 'queued', 'email', 'critical') returning id into v_n;
   o := o || jsonb_build_object('digest_severity', (select status from public.notifications where id = v_n));
   -- 60 governance: a registered kind escalates; a kind merely SPELLED like one does not
   insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'finance_alert', 'ZZ DEMO', 0.9) returning id into v_n;
   o := o || jsonb_build_object('gov_registered', (select escalated from public.agent_actions where id = v_n));
-  insert into public.agent_actions (agent, kind, title, confidence) values ('zz_legal_finance_security', 'zz_legal_refund_payment', 'ZZ DEMO', 0.9) returning id into v_n;
+  insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'zz_legal_refund_payment', 'ZZ DEMO', 0.9) returning id into v_n;
   o := o || jsonb_build_object('gov_spelled', (select escalated from public.agent_actions where id = v_n));
   -- 61 knowledge: undecided is kept; a reasoned 'us' is deleted; the citation regex is gone
   o := o || jsonb_build_object('kb_null', public.fn_kb_purge_clause('standard', 'x', null), 'kb_us', public.fn_kb_purge_clause('standard', 'x', 'us'),

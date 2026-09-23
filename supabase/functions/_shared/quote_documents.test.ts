@@ -6,8 +6,9 @@
 // renderer. Each document must: render to a PDF that loads back; carry its sections, its legal
 // footer and its document-control line; carry NO supplier identity before the reveal; carry no VAT
 // detail and no TRN; never say "AI" or "assistant"; and — in Arabic — carry no English word in its
-// primary text except brands, standards and codes (the supplier's original wording may sit only on
-// the secondary line labelled "النص الأصلي من المورد"). The comparison report must list every quote,
+// primary text except brands, standards and codes. A person's words reach an Arabic page only as their
+// REASONED Arabic (mocked here by F.reasoned; decision point trade_glossary_ar), never substituted and never
+// half-translated: a page built without it reports them in `untranslated`. The comparison report must list every quote,
 // show a held quote as on hold with none of its details, and never make it a technical column.
 //
 // No permissions are granted by run.mjs, so the brand fonts cannot be fetched here and the renderer
@@ -28,7 +29,7 @@ import { technicalComparison, rendererView } from './line_specs/compare.ts';
 
 // FIXED LABELS ARE ARABIC. A fixed label is what the page itself names: a table's column heads, each
 // row's first cell, a key in a key-value block, a section or sub-heading. Supplier free text is not a
-// fixed label; it stays on the secondary line labelled as the supplier's original wording, by design.
+// fixed label; it is printed as its reasoned Arabic.
 // Measured 14 Sep 2026: a request whose material carried only its key ({component:'glass'}) printed
 // "المادة — glass" as a row label in the Arabic comparison.
 const cellStr = (c: unknown) => typeof c === 'string' ? c : (c && typeof c === 'object' && 'text' in c) ? String((c as { text: unknown }).text ?? '') : '';
