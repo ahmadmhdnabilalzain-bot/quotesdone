@@ -23,10 +23,11 @@ export const CLASSES: { id: Class; meaning: string }[] = [
 ];
 
 /** The comment policy class of one public comment (surface marketing_social.comment_classify). */
-export async function commentClass(deps: ThinkDeps, o: { platform: Platform; commentId: string; authorId: string; text: string }): Promise<Reasoned<Class>> {
+/** `retry`: a re-run of a comment whose first held question is already closed (a replay that died): a fresh dedupe key. */
+export async function commentClass(deps: ThinkDeps, o: { platform: Platform; commentId: string; authorId: string; text: string; retry?: string }): Promise<Reasoned<Class>> {
   const result = await think(deps, {
     seat: 'marketing', surface: 'marketing_social.comment_classify', question: o.text.slice(0, 4000),
-    dedupeKey: 'social_comment_class:' + o.platform + ':' + o.commentId,
+    dedupeKey: 'social_comment_class:' + o.platform + ':' + o.commentId + (o.retry ? ':' + o.retry : ''),
     subject: { platform: o.platform, message_id: o.commentId, user_id: o.authorId },
     context: { audience: 'visitor' },
     decision: { name: 'comment_class', options: CLASSES },

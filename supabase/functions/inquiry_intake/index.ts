@@ -423,7 +423,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const score = step && step.readiness.required ? Math.round(100 * step.readiness.filled / step.readiness.required) : 10;
       const provenanceStated = step ? Object.fromEntries(Object.keys(step.details).map((k) => [k, 'stated'])) : {};
       if (!allText.trim() || allText.trim().length < 8 || !category) {
-        // No trade recognised yet: the router's own disambiguation question if it had one, else ask
+        // No trade recognised yet: the plain question, else ask
         // for the job in their own words. Nothing to interview against until a category exists.
         out = { category, status: 'needs_info', assistant_message: plainAsk, questions: [plainAsk], readiness: 10, missing: [], brief: null };
       } else if (step && !step.complete && step.next) {

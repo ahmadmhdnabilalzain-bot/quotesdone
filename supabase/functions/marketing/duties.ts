@@ -89,20 +89,29 @@ export const socialComments: Duty = {
           .gt('created_at', new Date(now.getTime() - 24 * 3600_000).toISOString()).limit(50);
         if (error) throw new Error('unfinished comments: ' + error.message);
         // A replay of a held comment that died mid-way leaves outcome 'replaying:<when>'. After 10 minutes it is
-        // taken back (compare-and-set, so a live replay is never overtaken) and processed here like any unfinished
-        // comment, whatever its age: the held question itself is already closed, so this sweep is its only retry.
-        const { data: stale } = await admin.from('social_message')
+        // handed back to 'held_classify' (compare-and-set, so a live replay is never overtaken; never emptied, so a
+        // failed run cannot delete it — release() returns it to 'held_classify' again) and re-run here with a FRESH
+        // reasoning (a new dedupe key, since its first held question is already closed): answered, the policy runs;
+        // held again, it is queued anew and waits for its own replay.
+        const { data: stale, error: staleErr } = await admin.from('social_message')
           .select('id,outcome,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
           .eq('direction', 'in').eq('channel', 'comment').like('outcome', 'replaying:%').limit(50);
-        const revived = [];
+        if (staleErr) throw new Error('stale comment replays: ' + staleErr.message);
+        const counts: Record<string, number> = {};
         for (const r of stale || []) {
           const at = Date.parse(String(r.outcome).slice('replaying:'.length));
           if (!(at < now.getTime() - 10 * 60_000)) continue;
-          const { data: won } = await admin.from('social_message').update({ outcome: null }).eq('id', r.id).eq('outcome', r.outcome).select('id');
-          if (won?.length) revived.push(r);
+          const { data: won } = await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', r.id).eq('outcome', r.outcome).select('id');
+          if (!won?.length) continue;
+          const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
+            authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
+          const cls = (await commentClass(defaultDeps(admin, 'marketing'), { platform: ev.platform, commentId: ev.commentId, authorId: ev.authorId,
+            text: String(ev.text || ''), retry: String(r.outcome) })).value;
+          const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, cls)
+            .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+          counts['revived:' + o] = (counts['revived:' + o] || 0) + 1;
         }
-        const counts: Record<string, number> = {};
-        for (const r of [...(data || []), ...revived]) {
+        for (const r of data || []) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
           // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.

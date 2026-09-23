@@ -21,6 +21,12 @@ Deno.test('held: null (nothing is hidden or said), queued under social_comment_c
   assertEquals(hold.p_subject, { platform: 'instagram', message_id: 'c1', user_id: 'ZZDEMO1' });
 });
 
+Deno.test('a revived replay is queued under a FRESH key (its first held question is closed)', async () => {
+  const m = mockDeps({ hold: true });
+  await commentClass(m.deps, { ...EV, retry: 'replaying:2026-09-23T10:00:00Z' });
+  assertEquals(m.rpcs.find(([f]) => f === 'fn_reason_hold')![1].p_dedupe_key, 'social_comment_class:instagram:c1:replaying:2026-09-23T10:00:00Z');
+});
+
 Deno.test('a class that is not one of the eight is never used', async () => {
   assertEquals((await commentClass(mockDeps({ choice: 'hate' }).deps, EV)).value, null);
 });
