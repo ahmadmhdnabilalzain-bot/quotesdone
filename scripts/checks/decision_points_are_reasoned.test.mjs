@@ -349,6 +349,52 @@ end $p$;`);
   assert.equal(out.without, 'reasoned');
 });
 
+// ── batch B2 (menus, comments, trades): the replay writes the reasoned trade on the row it was held for ─────────────
+test('production, aborted: a held lead sector is set by its own routine — exact slug or nothing, empty sectors only',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v_slug text; v_lead bigint; v_lead2 bigint; v_id bigint;
+begin
+  select category into v_slug from public.category_specs order by category limit 1;
+  insert into public.leads (company_name, email, source, business_role) values ('ZZ DEMO probe lead', 'zz-b2-probe@example.invalid', 'email_inbound', 'supplier')
+    returning id into v_lead;
+  insert into public.leads (company_name, email, source, business_role, sector) values ('ZZ DEMO probe lead 2', 'zz-b2-probe3@example.invalid', 'email_inbound', 'supplier', 'zz-set-by-a-person')
+    returning id into v_lead2;
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-1');
+  o := o || jsonb_build_object('sector_status', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)))->>'status');
+  o := o || jsonb_build_object('sector_row', (select sector = v_slug from public.leads where id = v_lead));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead2), 'model_hold', 'zz-b2-sector-2');
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)));
+  o := o || jsonb_build_object('sector_kept', (select sector from public.leads where id = v_lead2));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-3');
+  update public.leads set sector = null where id = v_lead;
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb);
+  o := o || jsonb_build_object('sector_none', (select sector from public.leads where id = v_lead));
+
+  -- the routines read no free text, and only service_role executes them
+  o := o || jsonb_build_object('reads_text', (select bool_or(p.prosrc ~ '(raw_input|summary|~\*|ilike)') from pg_proc p
+            where p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
+    'anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname = 'fn_reason_apply_inbound_email__infer_sector'),
+    'keywords_routine', to_regprocedure('public.fn_reason_apply_customer_api__keywords(bigint,jsonb)') is not null,
+    'service_can', has_function_privilege('service_role', 'public.fn_reason_apply_inbound_email__infer_sector(bigint,jsonb)', 'execute'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out));
+  assert.equal(out.sector_status, 'applied');
+  assert.equal(out.sector_row, true);
+  assert.equal(out.sector_kept, 'zz-set-by-a-person', 'a sector already set is never overwritten');
+  assert.equal(out.sector_none, null, "'none' writes no sector");
+  assert.equal(out.reads_text, false);
+  assert.equal(out.anon_can, false);
+  assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
+  assert.equal(out.service_can, true);
+});
+
 // BATCH B3 (sales_engineer, points 23-27 + 77): trades, catalogue categories, product matches and spec groups read no
 // free text for meaning. Aborted transaction; the batch file replays first while pending; nothing reaches a person.
 test('production, aborted: batch B3 routines read no words for meaning, route only a reasoned category, and are service_role only',

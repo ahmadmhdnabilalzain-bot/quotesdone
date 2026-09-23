@@ -25,6 +25,8 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
+  socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
 
@@ -70,6 +72,22 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the comment was already answered' };
     const s = await io.socialCommentHandoff(subject);
     return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  if (row.surface === 'marketing_social.comment_classify') {
+    // Nothing was hidden, said or handed off while the class was held; the policy runs now, once.
+    if (!choice) return { delivered: false, via: 'none', detail: 'no class on the reasoned result' };
+    const s = await io.socialCommentClassified(subject, choice);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  if (row.surface === 'site_assistant.person') {
+    // The visitor already has the public contact in the reply (the assistant gives it whenever a person is asked
+    // for); what was owed is the CEO's visibility report, filed only when the reasoning says a person was asked for.
+    if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person was asked for' };
+    await io.reportToCeo('widget:person:held:' + row.id, 'A website visitor asked to speak to a person and was given the public contact',
+      { surface: 'website_widget', held_id: row.id, path: subject.path ?? null, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500) });
+    return { delivered: true, via: 'none', detail: 'reported to the CEO for visibility' };
   }
 
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
@@ -127,6 +145,27 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    socialCommentClassified: async (subject, cls) => {
+      const { data: m } = await admin.from('social_message')
+        .select('id,meta_message_id,platform,body,parent_id,occurred_at,outcome,conversation:social_conversation(user_id,handle,account_id)')
+        .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
+      if (!m) return { ok: false, err: 'comment_not_found' };
+      if (m.outcome !== 'held_classify') return { ok: true, err: 'already_processed:' + String(m.outcome) };
+      // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
+      const { processComment } = await import('./marketing_social_comments.ts');
+      const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
+      const { timedFetch } = await import('./timed_fetch.ts');
+      // deno-lint-ignore no-explicit-any
+      const tokenFor = (ev: any) => ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
+      try {
+        const out = await processComment(adminStore(admin, timedFetch, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), {
+          platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
+          handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
+        // deno-lint-ignore no-explicit-any
+        }, cls as any);
+        return { ok: true, err: out };
+      } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
     },
     socialCommentHandoff: async (subject) => {
       const { data: m } = await admin.from('social_message')
