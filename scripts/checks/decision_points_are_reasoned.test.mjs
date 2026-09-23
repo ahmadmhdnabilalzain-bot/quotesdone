@@ -337,3 +337,64 @@ end $p$;`);
   assert.equal(out.with.effect.choice, 'yes');
   assert.equal(out.without, 'reasoned');
 });
+
+// ── Batch B4 (sales_engineer, orders 31-38): the replay's SQL effects, in one aborted transaction ────────────
+// ZZ DEMO rows only, created inside the transaction; nothing commits, nothing can reach a person.
+test('production, aborted: B4 — service install queued per trade and applied; brief trades land only on an empty inquiry; a quote review gets its match, a reply and an answer; grants are service_role only',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v_id bigint; v_trade text; v_code text; v_lead bigint; v_inq uuid; v_rev uuid; v jsonb;
+begin
+  -- 38: the backlog is queued, one row per trade, and not escalated as a person's pending item
+  o := o || jsonb_build_object('trades_needing', (select count(distinct trade_code) from public.taxonomy_trade_service where active and install_work is null),
+    'queued', (select count(*) from public.reasoning_held_question where surface = 'service_rewrite.install'),
+    'queued_escalated', (select bool_and(escalated_at is not null) from public.reasoning_held_question where surface = 'service_rewrite.install'));
+  select id, subject->>'trade_code' into v_id, v_trade from public.reasoning_held_question where surface = 'service_rewrite.install' order by id limit 1;
+  select f->>'key' into v_code from public.reasoning_held_question h, jsonb_array_elements(h.request->'decision'->'fields') f where h.id = v_id limit 1;
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('fields', jsonb_build_object(v_code, jsonb_build_object('value', 'x', 'evidence', 'x')))));
+  o := o || jsonb_build_object('install_resolve', v->>'status',
+    'install_set', (select install_work from public.taxonomy_trade_service where trade_code = v_trade and code = v_code),
+    'others_supply', (select coalesce(bool_and(install_work = false), true) from public.taxonomy_trade_service where trade_code = v_trade and code <> v_code and active));
+  insert into public.taxonomy_trade_service (trade_code, code, label_en, label_ar, sort) values (v_trade, 'zz_demo_probe', 'ZZ DEMO probe service', 'خدمة تجريبية', 999);
+  o := o || jsonb_build_object('trigger_queued', exists (select 1 from public.reasoning_held_question where surface = 'service_rewrite.install'
+    and subject->>'trade_code' = v_trade and request->'decision'->'fields' @> '[{"key":"zz_demo_probe"}]'::jsonb));
+
+  -- 35: reasoned codes land on an inquiry with no trade, never over stored trades, and only taxonomy codes
+  insert into public.inquiries (summary, raw_input, trades) values ('ZZ DEMO probe', 'ZZ DEMO probe', '{}') returning id into v_inq;
+  v_id := public.fn_reason_hold('sales_engineer', 'sales_engineer.brief_trades', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb, jsonb_build_object('inquiry_id', v_inq), 'model_hold', 'zz-b4-trades');
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('fields',
+         jsonb_build_object(v_trade, jsonb_build_object('value', 'x', 'evidence', 'x'), 'zz_not_a_code', jsonb_build_object('value', 'x', 'evidence', 'x')))));
+  o := o || jsonb_build_object('trades_written', (select trades from public.inquiries where id = v_inq) = array[v_trade]);
+
+  -- 31: the match, a reply, an answer — on a ZZ DEMO review
+  insert into public.leads (company_name) values ('ZZ DEMO probe supplier') returning id into v_lead;
+  insert into public.quote_reviews (inquiry_id, supplier_id, status, working) values (v_inq, v_lead, 'changes_requested', '{"lines":[],"boq_match_for":"k1"}'::jsonb) returning id into v_rev;
+  v_id := public.fn_reason_hold('sales_engineer', 'supplier_api.quote_review_match', 'ZZ', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb, jsonb_build_object('review_id', v_rev, 'key', 'k1'), 'model_hold', 'zz-b4-match');
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"fields":{"boq_1":{"value":"Line 2","evidence":"Line 2: x"},"boq_2":{"value":"Line 2","evidence":"Line 2: x"}}}}'::jsonb);
+  o := o || jsonb_build_object('match', (select working->'boq_match' from public.quote_reviews where id = v_rev), 'rereview', (select working->>'pending_rereview' from public.quote_reviews where id = v_rev));
+  v_id := public.fn_reason_hold('sales_engineer', 'supplier_api.quote_review_reply', 'ZZ', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb, jsonb_build_object('review_id', v_rev, 'message_id', 'm1'), 'model_hold', 'zz-b4-reply');
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"fields":{"validity":{"value":"30 days","evidence":"validity 30 days"}}}}'::jsonb);
+  o := o || jsonb_build_object('pending', (select working->'pending_reasoned'->0->'fields'->'validity'->>'value' from public.quote_reviews where id = v_rev));
+  v_id := public.fn_reason_hold('sales_engineer', 'supplier_api.quote_review_question', 'ZZ', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb, jsonb_build_object('review_id', v_rev, 'message_id', 'm2'), 'model_hold', 'zz-b4-question');
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ DEMO reasoned answer"}'::jsonb);
+  o := o || jsonb_build_object('answer_posted', (select count(*) from public.quote_review_messages where review_id = v_rev and role = 'sales_engineer' and body = 'ZZ DEMO reasoned answer'));
+
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+      from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_service_install_queue', 'fn_reason_apply_service_rewrite__install',
+        'fn_reason_apply_sales_engineer__brief_trades', 'fn_reason_apply_supplier_api__quote_review_match', 'fn_reason_apply_supplier_api__quote_review_reply', 'fn_reason_apply_supplier_api__quote_review_question')));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  assert.ok(out.queued >= out.trades_needing && out.trades_needing > 0, 'one queued reasoning per trade with an unreasoned service');
+  assert.equal(out.queued_escalated, true, 'a catalogue reasoning never becomes a pending item for a person');
+  assert.equal(out.install_resolve, 'applied');
+  assert.equal(out.install_set, true);
+  assert.equal(out.others_supply, true, 'a service the reasoning left out is supply');
+  assert.equal(out.trigger_queued, true, 'a new service queues its trade');
+  assert.equal(out.trades_written, true, 'only the taxonomy code lands, on an inquiry with no trade');
+  assert.deepEqual(out.match, { 1: 2 }, 'a quotation line prices one BOQ line');
+  assert.equal(out.rereview, 'true');
+  assert.equal(out.pending, '30 days');
+  assert.equal(out.answer_posted, 1);
+  assert.equal(out.anon_can, false);
+});

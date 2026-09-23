@@ -394,74 +394,366 @@
   {
    "id": "supplier_api.quote_review_match",
    "order": 31,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/supplier_api/quote_review.ts",
-   "decides": "matchBoq token overlap; readReply RE_VALIDITY/RE_LEAD/RE_EXVAT/RE_PRICE_CLAUSE...; RE_GENERATE/RE_SUBMIT topic lists"
+   "decides": "matchBoq token overlap; readReply RE_VALIDITY/RE_LEAD/RE_EXVAT/RE_PRICE_CLAUSE...; RE_GENERATE/RE_SUBMIT topic lists",
+   "held": "Held: the BOQ match is not guessed — each BOQ line is raised as a clarification (price it here, exclude it, or say which line it is) and the quotation is not approved, at every door; a typed reply is recorded and answered with the open points and the buttons (generate / upload / submit need no reading); a question is answered with the open points. When the hold lifts the match lands on quote_reviews.working (fn_reason_apply_supplier_api__quote_review_match), a reply's reading is applied at the supplier's next step (…_reply), and the reasoned answer is posted in the thread (…_question).",
+   "proof": [
+    {
+     "file": "supabase/functions/supplier_api/quote_review.ts",
+     "must_contain": [
+      "const match = matchOf(w);",
+      "export function replyFrom(",
+      "export function replyPoints("
+     ],
+     "must_not_contain": [
+      "const STOP = new Set(",
+      "RE_VALIDITY",
+      "RE_GENERATE",
+      "RE_PRICE_CLAUSE",
+      "export function matchBoq(",
+      "export function readReply(",
+      "OPTION_HEAD.test(l.description)"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/quote_review_flow.ts",
+     "must_contain": [
+      "await deps.reason.reply(",
+      "await ensureReasoned(",
+      "boqMatch(td, {",
+      "supplierQuestion(td, {"
+     ],
+     "must_not_contain": [
+      "readReply("
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "await withReasonedMatch(",
+      "reason: liveQuoteReasoner(defaultDeps(admin, 'supplier_api'))"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'supplier_api.quote_review_match'",
+      "surface: 'supplier_api.quote_review_reply'",
+      "surface: 'supplier_api.quote_review_question'"
+     ]
+    },
+    {
+     "file": "scripts/sql/the_sales_engineer_reasons_intake_and_quotations_instead_of_matching_words.sql",
+     "must_contain": [
+      "create or replace function public.fn_reason_apply_supplier_api__quote_review_match(p_id bigint, p_result jsonb)",
+      "create or replace function public.fn_reason_apply_supplier_api__quote_review_reply(p_id bigint, p_result jsonb)",
+      "create or replace function public.fn_reason_apply_supplier_api__quote_review_question(p_id bigint, p_result jsonb)"
+     ]
+    }
+   ]
   },
   {
    "id": "intake_requirements.parse",
    "order": 32,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/_shared/intake_requirements.ts",
-   "decides": "NOPREF_RE, NOT_NEEDED_RE, parseRequirementAnswer, statedAnswers, supply-only reading"
+   "decides": "NOPREF_RE, NOT_NEEDED_RE, parseRequirementAnswer, statedAnswers, supply-only reading",
+   "held": "Held: a typed answer is not read — the question stays open with its options and the customer is asked to tap one (a tapped option is the answer with no reading at all); nothing already said is filled on a guess. The queued question (intake_req:<intake>:<key>) needs no replay effect: the whole conversation is re-reasoned on the customer's next turn.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/intake_requirements.ts",
+     "must_contain": [
+      "export function answerFromReasoned(",
+      "reason ? await reason(q, true)"
+     ],
+     "must_not_contain": [
+      "NOPREF_RE",
+      "NOT_NEEDED_RE",
+      "export function statedAnswers(",
+      "parseWhen(",
+      "parseYesNo(",
+      "isUnknown("
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "await requirementAnswer(reqDeps",
+      "const tapped = choice && choice.key === asked"
+     ],
+     "must_not_contain": [
+      "statedAnswers("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'intake_requirements.parse'"
+     ]
+    }
+   ]
   },
   {
    "id": "interview.answers",
    "order": 33,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/inquiry_intake/interview.ts",
-   "decides": "parseYesNo, isUnknown, AR_GLOSS, glossEnglish, matchOptions, parseWhen"
+   "decides": "parseYesNo, isUnknown, AR_GLOSS, glossEnglish, matchOptions, parseWhen",
+   "held": "Held: nothing is read from the conversation — a tapped option answers the question it was offered with; a typed reply to an OPEN question (no options) is kept verbatim as that answer; a typed reply to an option question leaves it open and the customer is asked to tap. Re-reasoned every turn (dedupe intake_interview:<intake>); no replay effect.",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/interview.ts",
+     "must_contain": [
+      "input.stated[o.key]",
+      "opts(asked.f).includes(c.option)"
+     ],
+     "must_not_contain": [
+      "export function parseYesNo(",
+      "export const isUnknown",
+      "const AR_GLOSS",
+      "function glossEnglish(",
+      "export function matchOptions(",
+      "export function parseWhen(",
+      "const EMIRATE_PATTERNS",
+      "export function parseAnswer("
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "await interviewAnswers(defaultDeps(admin, 'inquiry_intake')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'interview.answers'"
+     ]
+    }
+   ]
   },
   {
    "id": "classify.urgency_emirate",
    "order": 34,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/inquiry_intake/classify.ts",
-   "decides": "detectUrgency regex, detectEmirate substring"
+   "decides": "detectUrgency regex, detectEmirate substring",
+   "held": "Held: the emirate is unknown (the brief carries none, the utility stays \"the relevant emirate authority\", the supplier count is not narrowed by emirate) and the urgency is not set (null) — never read off a place name or an \"urgent\"/\"today\" word. Reasoned again when the brief is next built; no replay effect.",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/classify.ts",
+     "must_not_contain": [
+      "export function detectEmirate(",
+      "export function detectUrgency("
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "await emirateOf(defaultDeps(admin, 'inquiry_intake')",
+      "await urgencyOf(defaultDeps(admin, 'inquiry_intake')"
+     ],
+     "must_not_contain": [
+      "detectEmirate(",
+      "detectUrgency("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'classify.urgency_emirate'"
+     ]
+    }
+   ]
   },
   {
    "id": "sales_engineer.brief_trades",
    "order": 35,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/sales_engineer/index.ts",
-   "decides": "fn_norm_trades(brief) and the product/service split"
+   "decides": "fn_norm_trades(brief) and the product/service split",
+   "held": "Held: an inquiry with no stored trade is matched to nobody on a guess — the match answers gap trade_reasoning_held with the held id; when the hold lifts fn_reason_apply_sales_engineer__brief_trades writes the reasoned taxonomy codes onto inquiries.trades (only while still empty) for its next match. scope_type / role_needed are compared as exact codes, never searched for a word.",
+   "proof": [
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "await briefTrades(defaultDeps(admin, 'sales_engineer')",
+      "gap: { reason: 'trade_reasoning_held'"
+     ],
+     "must_not_contain": [
+      "admin.rpc('fn_norm_trades'",
+      "/supply|material|product/i.test(",
+      ".toLowerCase().includes('turnkey')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'sales_engineer.brief_trades'"
+     ]
+    },
+    {
+     "file": "scripts/sql/the_sales_engineer_reasons_intake_and_quotations_instead_of_matching_words.sql",
+     "must_contain": [
+      "create or replace function public.fn_reason_apply_sales_engineer__brief_trades(p_id bigint, p_result jsonb)"
+     ]
+    }
+   ]
   },
   {
    "id": "line_specs.options_derive_vat",
    "order": 36,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/line_specs/options.ts",
-   "decides": "OPTION_HEAD, derive.ts, vat.ts readVat"
+   "decides": "OPTION_HEAD, derive.ts, vat.ts readVat",
+   "held": "Held: the VAT basis is \"not stated\" unless the supplier chose it on the portal's VAT select (the review then asks for it), nothing is derived from the quote form's text (the hold gate asks for brand, exclusions or installation as missing details, filled in their own fields), and options split only by the structured option key. OPTION_HEAD / optionNumber stay exported ONLY for quote_extract.document (39) and line_specs.assess (30); nothing in options.ts reads them.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/vat.ts",
+     "must_contain": [
+      "if (i.stated === 'exclusive')"
+     ],
+     "must_not_contain": [
+      "const NOT_REG",
+      "const INCL",
+      "NOT_REG.test(",
+      "EXCL.test(",
+      "INCL.test(",
+      "RATE)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/options.ts",
+     "must_not_contain": [
+      "OPTION_HEAD.test(String(l.description",
+      "optionNumber(l.description"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "await vatBasis(defaultDeps(admin, 'supplier_api')",
+      "await quoteTextFacts(defaultDeps(admin, 'supplier_api')"
+     ],
+     "must_not_contain": [
+      "deriveLineFields(",
+      "deriveTermsFromScope("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'line_specs.options_derive_vat'"
+     ]
+    }
+   ]
   },
   {
    "id": "drawing_boq.vocabulary",
    "order": 37,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/drawing_boq/legend_vocabulary.ts",
-   "decides": "DEVICE_TYPES/deviceTypeOf, SCOPE_NOTE/NOT_SCOPE, typeFromTitle, ROOM_WORDS"
+   "decides": "DEVICE_TYPES/deviceTypeOf, SCOPE_NOTE/NOT_SCOPE, typeFromTitle, ROOM_WORDS",
+   "held": "Held: the vocabulary is empty — no legend line or CAD block is taken for a device (a block stays its own counted line), the drawing type and the rooms are unknown, no keyed note becomes a line, and the browser counts no symbols; the BOQ says what was not read. No replay effect (the drawing is read again on its next upload).",
+   "proof": [
+    {
+     "file": "supabase/functions/drawing_boq/legend_vocabulary.ts",
+     "must_contain": [
+      "export function deviceTypeIn("
+     ],
+     "must_not_contain": [
+      "export function deviceTypeOf(",
+      "d.re.test("
+     ]
+    },
+    {
+     "file": "supabase/functions/drawing_boq/drawing_from_ocr.ts",
+     "must_not_contain": [
+      "function typeFromTitle(",
+      "const ROOM_WORDS",
+      "deviceTypeOf("
+     ]
+    },
+    {
+     "file": "supabase/functions/drawing_boq/drawing_set.ts",
+     "must_contain": [
+      "reading.scope.has(nk)"
+     ],
+     "must_not_contain": [
+      "const SCOPE_NOTE",
+      "const NOT_SCOPE"
+     ]
+    },
+    {
+     "file": "supabase/functions/drawing_boq/index.ts",
+     "must_contain": [
+      "await drawingVocabulary(defaultDeps(admin, 'drawing_boq')",
+      "await scopeNotes(defaultDeps(admin, 'drawing_boq')"
+     ]
+    },
+    {
+     "file": "src/components/me/ocrClient.ts",
+     "must_not_contain": [
+      "lv.deviceTypeOf"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'drawing_boq.vocabulary'"
+     ]
+    }
+   ]
   },
   {
    "id": "service_rewrite.install",
    "order": 38,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
    "where": "supabase/functions/_shared/service_rewrite.ts",
-   "decides": "isInstallWork"
+   "decides": "isInstallWork",
+   "held": "Held: install_work stays null and the service is NOT withheld from a supply-only company (a proposal is only ever confirmed by the supplier); one reasoning per trade is queued (at apply for the backlog of 195 trades, by trigger for a new service) and fn_reason_apply_service_rewrite__install writes the column when the hold lifts.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/service_rewrite.ts",
+     "must_contain": [
+      "t.install_work === true"
+     ],
+     "must_not_contain": [
+      "const INSTALL_WORK",
+      "const SUPPLY_WORD"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_intake.ts",
+     "must_contain": [
+      "surface: 'service_rewrite.install'"
+     ]
+    },
+    {
+     "file": "scripts/sql/the_sales_engineer_reasons_intake_and_quotations_instead_of_matching_words.sql",
+     "must_contain": [
+      "create or replace function public.fn_reason_apply_service_rewrite__install(p_id bigint, p_result jsonb)",
+      "create or replace function public.fn_service_install_queue(p_trade text)"
+     ]
+    }
+   ]
   },
   {
    "id": "quote_extract.document",

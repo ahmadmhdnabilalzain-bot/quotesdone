@@ -1,0 +1,11 @@
+Committed, not applied. Apply AFTER a_reasoned_answer_is_applied_by_its_own_surface.sql and
+a_held_question_never_expires_it_is_escalated_at_48_hours.sql (it calls fn_reason_hold, sets escalated_at, and defines
+the fn_reason_apply_* routines fn_reason_held_resolve calls). Adds taxonomy_trade_service.install_work and queues one
+held reasoning per trade with an unreasoned service (195 trades, 975 active services, measured 23 Sep 2026).
+Deploy IN THE SAME STEP, apply first: inquiry_intake, sales_engineer, supplier_api, supplier_catalog_ingest and
+supplier_portal select taxonomy_trade_service.install_work through _shared/service_vocabulary.ts, supplier_doc_trades.ts
+or supplier_services.ts — deployed before the apply, that select errors and the service vocabulary reads as empty.
+Deploy customer_api and drawing_boq with them (the drawing vocabulary action and the reasoned drawing read), and the
+portal (NewRequest.tsx / ocrClient.ts send body.choice and call customer_api drawing_vocabulary).
+Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe at its end).
+Seat: sales_engineer.
