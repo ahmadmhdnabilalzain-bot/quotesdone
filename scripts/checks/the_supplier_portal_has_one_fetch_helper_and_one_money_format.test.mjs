@@ -96,3 +96,47 @@ test('every toLocaleString in the supplier portal names its locale', () => {
     'toLocaleString() with no locale argument follows the browser, not the page — a supplier reading '
     + '/ar in a de-DE browser saw "1.200" where the invoice says "1,200". Pass an explicit locale.');
 });
+
+// ONE ARABIC COUNTING RULE FOR THE WHOLE REPOSITORY (re-review of #858, 23 Sep 2026).
+//
+// WHAT WAS MEASURED. src/lib/countedNoun.ts has owned the rule since CP-I18N-05 (22 Sep) and says so
+// in its header: "a new counted noun is a line in AR_NOUN and never a second implementation". #858
+// nevertheless exported a second `arCount` from src/lib/durationLabel.ts with the same name and a
+// different shape, and six files declared their own four-form arrays against it. The copy had no
+// zero branch, so an empty list printed the 3-10 plural where Arabic takes the accusative singular:
+// three live screens read "0 <plural>" — the supplier's own workspace population, the product count
+// and the quote line count. Two arrays for one noun had already drifted (the dual of "inquiry" was
+// spelled two ways in two files) before anything shipped.
+//
+// This fails on the copy, not on the wrong Arabic, because the wrong Arabic is what a reviewer
+// reading one diff cannot see.
+const COUNT_OWNER = 'src/lib/countedNoun.ts';
+const EXPORTS_ARCOUNT = /export\s+(?:function|const|let)\s+arCount\b|export\s+\{[^}]*\barCount\b/;
+
+test('only src/lib/countedNoun.ts exports the Arabic counting rule', () => {
+  const offenders = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(path.join(REPO, dir), { withFileTypes: true })) {
+      const rel = dir + '/' + e.name;
+      if (e.isDirectory()) { if (e.name !== 'node_modules') walk(rel); }
+      else if (/\.(ts|tsx)$/.test(e.name) && !/\.test\./.test(e.name)) {
+        if (rel !== COUNT_OWNER && EXPORTS_ARCOUNT.test(strip(fs.readFileSync(path.join(REPO, rel), 'utf8')))) offenders.push(rel);
+      }
+    }
+  };
+  walk('src');
+  assert.deepEqual(offenders, [],
+    'these files export a second Arabic counting rule — it belongs to ' + COUNT_OWNER + ', which alone '
+    + 'carries the zero branch and the oblique dual; a copy is how one of them goes stale');
+});
+
+// workspaceCopy.ts cannot import the owner: its own parity check loads it straight into node, where
+// the "@/" alias does not resolve (measured 22 Sep 2026, documented in that file). So it keeps the
+// forms as data and selects with the same indices — including zero, which is the branch the copy in
+// #858 was missing. This asserts that branch is present rather than trusting the comment.
+test('the workspace copy selector keeps the zero branch the owner has', () => {
+  const ws = strip(fs.readFileSync(path.join(REPO, 'src/components/portal/supplier/workspaceCopy.ts'), 'utf8'));
+  assert.match(ws, /if \(k === 0\) return `0 \$\{forms\[3\]\}`;/,
+    'workspaceCopy.ts selects a counted Arabic noun by index and must take forms[3] at zero, as '
+    + 'countedNoun.arCount does — forms[2] prints "0 <plural>", which Arabic does not say');
+});

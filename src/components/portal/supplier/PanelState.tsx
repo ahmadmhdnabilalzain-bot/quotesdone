@@ -13,6 +13,7 @@
 // "could not load" sentence rather than to the server's English — a code this table does not know
 // is still not something to show a supplier.
 import { Button } from '@/components/ui/button';
+import { srvText } from './serverCopy';
 
 export type Lang = 'en' | 'ar';
 
@@ -37,21 +38,6 @@ const COPY: Record<string, { en: string; ar: string }> = {
     en: 'Your session has ended. Please sign in again to continue.',
     ar: 'انتهت جلستكم. يُرجى تسجيل الدخول مرة أخرى للمتابعة.',
   },
-  // submit_quote answers 200/ok:true with accepted:false and one of these three codes. They are
-  // refusals with a reason, not load failures, so the generic sentence would lose the reason
-  // (SupplierQuoteBuilder, merge of #858 with main's SP-C-04 fix).
-  spec_hold: {
-    en: 'Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.',
-    ar: 'عرضكم معلّق حتى تُذكر التفاصيل المطلوبة بدقة. أكملوها هنا أو ارفعوا عرضًا مُعدّلًا.',
-  },
-  quote_review_changes: {
-    en: 'Your quote needs the changes listed in the review before we can send it to the customer.',
-    ar: 'يحتاج عرضكم إلى التعديلات الواردة في المراجعة قبل إرساله إلى العميل.',
-  },
-  draft_saved: {
-    en: 'Your quote was saved as a draft. Add the missing details so we can send it to the customer.',
-    ar: 'حُفِظ عرضكم كمسودة. أضيفوا التفاصيل الناقصة لنرسله إلى العميل.',
-  },
   no_company: {
     en: 'Your company profile is not complete yet, so there is nothing to show here. Please finish the checklist on the Documents tab.',
     ar: 'لم يكتمل ملف شركتكم بعد، فلا يوجد ما يُعرض هنا. يُرجى إكمال القائمة في تبويب المستندات.',
@@ -64,8 +50,18 @@ const LOADING = { en: 'Loading…', ar: 'جارٍ التحميل…' };
 /** The sentence alone, for a panel that already owns its own card and button. */
 export function panelErrorText(lang: Lang, code: unknown): string {
   const k = String(code || 'load_failed');
-  const e = COPY[k] || COPY.load_failed;
-  return lang === 'ar' ? e.ar : e.en;
+  const e = COPY[k];
+  if (e) return lang === 'ar' ? e.ar : e.en;
+  // A CODE THIS TABLE DOES NOT OWN IS NOT AUTOMATICALLY UNKNOWN (review of #858, 23 Sep 2026).
+  // serverCopy.ts already carries EN+AR for every stable code the edge functions return — spec_hold,
+  // draft_saved, options_split and ~50 more. The first draft of this merge added spec_hold /
+  // draft_saved HERE, a second Arabic sentence for a subject that already had an owner, which is how
+  // two wordings for one refusal start. Ask that file first; only then fall back to the generic
+  // sentence, which is still what an unknown code gets, never the server's raw English.
+  const srv = srvText(lang, k, undefined, '');
+  if (srv) return srv;
+  const g = COPY.load_failed;
+  return lang === 'ar' ? g.ar : g.en;
 }
 
 /** True when this failure means the token is gone, not that the read failed. */

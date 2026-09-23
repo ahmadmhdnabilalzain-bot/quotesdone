@@ -23,15 +23,14 @@ import { call } from './api';
 import { PanelError, PanelLoading, panelErrorCode, panelErrorText } from './PanelState';
 // SP-I-04: a counted noun in Arabic takes four forms, not one. The population line reads
 // "{n} طلبًا" for every n without this, which is right only from eleven upwards.
-import { arCount, type ArForms } from '@/lib/durationLabel';
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
 
 // «استفسار», not «طلب»: PR #858 settled on one Arabic word for an RFQ across the whole supplier
 // surface (workspaceCopy.ts says الاستفسارات everywhere), and two words for one thing on one screen
 // reads as two different objects. Nominative dual — nothing governs the count in «{n} على المنصة».
-const INQUIRY: ArForms = ['استفسار واحد', 'استفساران', 'استفسارات', 'استفسارًا'];
+
 // The adjective agrees with the noun it follows, so "matched" cannot be a suffix bolted onto the
 // line above — a dual noun needs a dual adjective and a plural needs a plural.
-const MATCHED: ArForms = ['استفسار واحد مطابق لكم', 'استفساران مطابقان لكم', 'استفسارات مطابقة لكم', 'استفسارًا مطابقًا لكم'];
 
 type FileRow = { name?: string | null; kind?: string | null; category?: string; created_at?: string };
 type Workspace = {
@@ -77,7 +76,7 @@ const T = {
     send: 'إرسال', sending: 'جارٍ الإرسال…', sendFailed: 'تعذّر الإرسال. يُرجى المحاولة مرة أخرى.',
     composerPlaceholder: 'اكتبوا ردّكم على هذا العميل…',
     composerBlocked: 'تُفتح المراسلة بعد إنشاء سجل المورّد لهذه العلاقة.',
-    popInquiries: (n: number) => arCount(n, INQUIRY) + ' على المنصة', popMatched: (n: number) => arCount(n, MATCHED),
+    popInquiries: (n: number) => arCount(n, AR_NOUN.inquiry) + ' على المنصة', popMatched: (n: number) => arCount(n, AR_NOUN.matchedInquiry),
   },
 };
 // Two entries of T are functions of a count, so `t` must not offer them: it returns a string.

@@ -32,7 +32,12 @@ export const num = (n: number | null | undefined, decimals = 0): string =>
  * currency is whatever the routine returned, since a quotation may be priced in USD.
  */
 export const price = (lang: Lang | string, n: number | null | undefined, currency = 'AED'): string => {
-  if (n === null || n === undefined) return '—';
-  if (currency === 'AED') return aed(lang, Math.round(n));
-  return currency + ' ' + num(Math.round(n));
+  // NOT JUST null/undefined (review of #858, 23 Sep 2026). The guard used to name those two, and an
+  // NaN fell past it into `aed`, where `Number(n || 0)` turns NaN into 0 — so a price the routine
+  // could not compute printed "AED 0", the exact sentence this function exists to avoid. A market
+  // median arrives as NaN whenever the payload's figure is a string the JSON carried unparsed.
+  const v = Number(n);
+  if (!Number.isFinite(v)) return '—';
+  if (currency === 'AED') return aed(lang, Math.round(v));
+  return currency + ' ' + num(Math.round(v));
 };

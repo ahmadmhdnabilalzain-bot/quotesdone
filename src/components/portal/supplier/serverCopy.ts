@@ -9,6 +9,7 @@
 // reads correctly — `srvText` never returns an empty string when the server sent a sentence.
 
 import { arDays } from '@/lib/durationLabel';
+import { price } from './money';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
@@ -202,7 +203,11 @@ const COPY: Record<string, Entry> = {
   // "Subscription Fee — the annual supplier subscription fee described in clause 6" / «رسوم الاشتراك». This entry
   // said "yearly registration", the tax documents said a third thing again. scripts/checks/one_fee_has_one_name.test.mjs
   // reads the name out of the agreement itself and refuses any other one here.
-  registration_due: s((p) => `Your ${p.currency || 'AED'} ${p.fee} annual Subscription Fee is due. Pay it in Billing to send quotes.`, (p) => `رسوم الاشتراك السنوية (${p.fee} ${p.currency === 'AED' || !p.currency ? 'درهم' : p.currency}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
+  // THE FEE AMOUNT GOES THROUGH THE ONE FORMATTER TOO (review of #858, 23 Sep 2026). This line built
+  // its own: `${p.fee}` with no grouping printed "AED 1000" where the invoice says "AED 1,000", and
+  // درهم where every other Arabic amount in the portal reads د.إ. `price` keeps the currency the
+  // server named, so a fee quoted in another currency still reads correctly.
+  registration_due: s((p) => `Your ${price('en', Number(p.fee), String(p.currency || 'AED'))} annual Subscription Fee is due. Pay it in Billing to send quotes.`, (p) => `رسوم الاشتراك السنوية (${price('ar', Number(p.fee), String(p.currency || 'AED'))}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
   invalid_amount: s('Enter a valid amount.', 'أدخلوا مبلغًا صحيحًا.'),
@@ -221,6 +226,7 @@ const COPY: Record<string, Entry> = {
   reg_paid: s((p) => `Your registration is paid${p.until ? ' until ' + p.until : ''}.`, (p) => `رسوم تسجيلكم مدفوعة${p.until ? ' حتى ' + p.until : ''}.`),
   // ── The sales engineer's hold desk (14 Sep 2026) ────────────────────────────────────────────────
   spec_hold: s('Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.', 'عرضكم معلّق إلى حين ذكر التفاصيل الدقيقة المبيّنة. أكملوها هنا أو ارفعوا عرضًا معدّلًا.'),
+  quote_review_changes: s('Your quote needs the changes listed in the review before we can send it to the customer.', '\u064a\u062d\u062a\u0627\u062c \u0639\u0631\u0636\u0643\u0645 \u0625\u0644\u0649 \u0627\u0644\u062a\u0639\u062f\u064a\u0644\u0627\u062a \u0627\u0644\u0648\u0627\u0631\u062f\u0629 \u0641\u064a \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644\u0647 \u0625\u0644\u0649 \u0627\u0644\u0639\u0645\u064a\u0644.'),
   options_split: s((p) => `Your submission carried ${p.count} options; each is now its own quotation.`, (p) => `تضمّن عرضكم ${p.count} خيارات، وأصبح كل خيار منها عرضًا مستقلًا.`),
   option_total_missing: s((p) => `Enter the total for option ${p.option}.`, (p) => `أدخلوا الإجمالي للخيار ${p.option}.`),
   too_many_options: s('A quote can carry at most 20 options.', 'يمكن أن يتضمن العرض 20 خيارًا كحدّ أقصى.'),

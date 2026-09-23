@@ -2,7 +2,8 @@
 'use client';
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
-import { arCount, arDays } from '@/lib/durationLabel';
+import { arDays } from '@/lib/durationLabel';
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
@@ -75,8 +76,7 @@ function arDaysLeft(n) {
 }
 // "We read your quotation — N line items". The Arabic said "{n} بند" for every n (audit 22 Sep 2026,
 // SP-I-04); arCount is the one rule the whole estate counts by.
-const QUOTE_LINE = ['بند واحد', 'بندان', 'بنود', 'بندًا'];
-const lineCount = (lang, n) => (lang === 'ar' ? arCount(n, QUOTE_LINE) : `${n} line item${n === 1 ? '' : 's'}`);
+const lineCount = (lang, n) => (lang === 'ar' ? arCount(n, AR_NOUN.line) : `${n} line item${n === 1 ? '' : 's'}`);
 
 function Need({ lang, req = false }) {
   return <span className={cn('ms-1.5 align-middle text-[11px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
@@ -597,7 +597,11 @@ export function SupplierPortal() {
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  // HOW MANY TIMES A 401 HAS COME BACK WITHOUT A USABLE REFRESH, AND THE ONE REFRESH IN FLIGHT.
+  // Both are read by onExpired below, and declared here because onAuth resets the counter.
+  const expiredRuns = useRef(0);
+  const refreshing = useRef<Promise<void> | null>(null);
+  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
   // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
   //
@@ -615,24 +619,46 @@ export function SupplierPortal() {
   //   - anything else (network, 5xx, 429, no detail) — that is an outage, not an expiry. Leave the
   //     session alone and let the panel show its retry. Only a SECOND consecutive such 401 signs
   //     out, so a single blip costs a retry press and not the supplier's half-filled registration.
-  // A successful read resets the counter (`onAuth` -> `expiredRuns.current = 0`).
+  // A successful refresh resets the counter, through `onAuth` — see the three notes below it.
   //
   // The proper fix is upstream: #854 moves supplier_pay to `signedInUser`, which answers a genuine
   // expiry and a GoTrue outage differently. supplier_api and kyc still need the same move, and when
   // all three are done the counter below can go.
-  const expiredRuns = useRef(0);
-  const onExpired = async () => {
-    let refusedOutright = false;
-    try {
-      const { data, error } = await SB().auth.refreshSession();
-      const ss = data && data.session;
-      if (ss && ss.access_token) { expiredRuns.current = 0; onAuth(ss.access_token, ss.refresh_token); return; }
-      const msg = String((error && (error.message || error.code)) || '');
-      const st = Number((error && error.status) || 0);
-      refusedOutright = /invalid[_ ]?(grant|refresh)|refresh[_ ]?token[_ ]?not[_ ]?found|already used/i.test(msg) || st === 400 || st === 403;
-    } catch (_e) { refusedOutright = false; }
-    expiredRuns.current += 1;
-    if (refusedOutright || expiredRuns.current >= 2) { expiredRuns.current = 0; doSignOut(); }
+  // THE COUNTER ONLY MEANS "CONSECUTIVE" IF ONE OUTAGE INSTANT INCREMENTS IT ONCE (re-review of
+  // #858, 23 Sep 2026 — three defects in the mitigation above, all of which SIGNED A WORKING
+  // SUPPLIER OUT, the very thing it was written to stop):
+  //
+  //   1. The comment above claimed onAuth resets the counter. It did not touch it, so the count was
+  //      monotonic for the whole session: a blip at 09:00 left it at 1, an unrelated blip at 15:00
+  //      made it 2, and the supplier was signed out mid-form. onAuth resets it now, so "consecutive"
+  //      is true of the code and not only of the comment.
+  //   2. ONE dead leg produces SEVERAL 401s, not one. The dashboard alone fires two reads on mount
+  //      (`me` through wentExpired, and fetchDashboard's own _http === 401) and every open tab adds
+  //      more; each called refreshSession separately and each added 1, so a SINGLE blip reached 2 and
+  //      signed out. `refreshing` makes the refresh one shared promise, so concurrent 401s from the
+  //      same instant are one attempt and one increment.
+  //   3. "already used" was read as an explicit rejection. Under refresh-token rotation it is what
+  //      the SECOND concurrent refresh is told while the first one SUCCEEDS — the signature of a race,
+  //      not of a dead token. It signed the supplier out while a live token was being handed back.
+  //      Removed; invalid_grant / Invalid Refresh Token / refresh_token_not_found still sign out at
+  //      once, and with the dedupe above the race cannot happen from this component anyway.
+  const onExpired = async (): Promise<void> => {
+    if (refreshing.current) return refreshing.current;
+    const attempt = (async () => {
+      let refusedOutright = false;
+      try {
+        const { data, error } = await SB().auth.refreshSession();
+        const ss = data && data.session;
+        if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; }
+        const msg = String((error && (error.message || error.code)) || '');
+        const st = Number((error && error.status) || 0);
+        refusedOutright = /invalid[_ ]?(grant|refresh)|refresh[_ ]?token[_ ]?not[_ ]?found/i.test(msg) || st === 400 || st === 403;
+      } catch (_e) { refusedOutright = false; }
+      expiredRuns.current += 1;
+      if (refusedOutright || expiredRuns.current >= 2) { expiredRuns.current = 0; doSignOut(); }
+    })().finally(() => { refreshing.current = null; });
+    refreshing.current = attempt;
+    return attempt;
   };
   const rtl = lang === 'ar';
   if (!mounted) return null;

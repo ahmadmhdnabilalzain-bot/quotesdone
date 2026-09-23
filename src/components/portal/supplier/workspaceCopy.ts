@@ -48,6 +48,12 @@ const AR_COUNTED: Record<string, Record<string, Forms>> = {
 const arCounted = (forms: Forms, v: string | number): string => {
   const k = Math.abs(Math.trunc(Number(v)));
   if (!Number.isFinite(k)) return String(v);
+  // ZERO TAKES THE ACCUSATIVE SINGULAR, AS AT 11+ — never the 3-10 plural (re-review of #858,
+  // 23 Sep 2026). Without this line '0' fell through to forms[2] and printed '0 ايام'. The rule and
+  // its reason belong to src/lib/countedNoun.ts, which this file cannot import (see above); the four
+  // indices and this branch are kept identical to arCount there, and the check named below fails if
+  // this branch is removed.
+  if (k === 0) return `0 ${forms[3]}`;
   if (k === 1) return forms[0];
   if (k === 2) return forms[1];
   return `${k} ${k <= 10 ? forms[2] : forms[3]}`;

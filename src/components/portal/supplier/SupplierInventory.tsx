@@ -15,9 +15,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { call } from './api';
 import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 // SP-I-04: "{n} منتج" is right for no value of n on its own; Arabic counts in four forms.
-import { arCount, type ArForms } from '@/lib/durationLabel';
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
 
-const PRODUCT: ArForms = ['منتج واحد', 'منتجان', 'منتجات', 'منتجًا'];
 
 type Lang = 'en' | 'ar';
 type Attrs = Record<string, unknown>;
@@ -45,7 +44,7 @@ const T = {
     stated: 'بحالة مخزون محددة', gap: 'بحاجة إلى تحديد',
     gapHelp: 'يطّلع العملاء في عروضكم على مدى التزامكم بالتسليم، أما المنتجات غير المحددة فتُسعَّر دون معرفة حالة توفرها.',
     goProducts: 'فتح ذكاء المنتجات',
-    all: 'الكل', search: 'البحث بالاسم أو العلامة التجارية أو الطراز', productsWord: (n: number) => arCount(n, PRODUCT),
+    all: 'الكل', search: 'البحث بالاسم أو العلامة التجارية أو الطراز', productsWord: (n: number) => arCount(n, AR_NOUN.product),
   },
 };
 // `productsWord` is a function of a count, so `t` must not offer it: it returns a string.
