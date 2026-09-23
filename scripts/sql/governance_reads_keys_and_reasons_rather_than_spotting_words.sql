@@ -109,8 +109,9 @@ insert into public.action_class_demand (action_class, on_revenue_path, reason) v
   ('change_deploy_promote',     false, 'platform change control')
 on conflict (action_class) do nothing;
 
--- STABLE (it reads a table now) and SECURITY DEFINER so the workspace's authenticated read of
--- fn_cos_work_gate keeps working while the registry itself stays service-role only.
+-- STABLE (it reads a table now) and SECURITY DEFINER so its callers (fn_workflow_step_claim and
+-- fn_workflow_step_sweep, both SECURITY DEFINER) read the registry, which stays service-role only.
+-- Service role only: no authenticated caller exists (fn_cos_work_gate is gone), measured 23 Sep 2026.
 create or replace function public.fn_task_is_demand(p_action_class text)
 returns boolean
 language sql stable security definer
@@ -118,8 +119,8 @@ set search_path to 'public', 'pg_temp'
 as $fn$
   select coalesce((select d.on_revenue_path from public.action_class_demand d where d.action_class = p_action_class), false)
 $fn$;
-revoke execute on function public.fn_task_is_demand(text) from public, anon;
-grant execute on function public.fn_task_is_demand(text) to service_role, authenticated;
+revoke execute on function public.fn_task_is_demand(text) from public, anon, authenticated;
+grant execute on function public.fn_task_is_demand(text) to service_role;
 comment on function public.fn_task_is_demand(text) is
   'TRUE when the action_class is registered in action_class_demand as on the revenue path. Exact key, no pattern.';
 
