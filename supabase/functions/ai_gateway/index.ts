@@ -362,7 +362,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
       });
       return J({ ok: true, used_llm: false,
-                 outcome: route.no_independent_reviewer ? 'review_held_no_independent_reviewer'
+                 outcome: route.unknown_author ? 'review_author_unknown' : route.no_independent_reviewer ? 'review_held_no_independent_reviewer'
                         : route.halted ? 'budget_halted' : 'refused_deterministic',
                  why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
                  caps, cost_usd: 0 });
