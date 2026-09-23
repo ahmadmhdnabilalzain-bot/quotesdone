@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T08:22:31.174Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T09:44:23.207Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -194,7 +194,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (547) =====
+-- ===== TABLES (549) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4466,6 +4466,31 @@ CREATE TABLE IF NOT EXISTS public.marketing_outreach_message (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_platform_spec (
+  platform text NOT NULL,
+  surface text NOT NULL,
+  attribute text NOT NULL,
+  value_num numeric,
+  value_text text,
+  unit text,
+  counted_as text,
+  source_kind text NOT NULL,
+  source_url text NOT NULL,
+  read_on date NOT NULL,
+  confidence text NOT NULL,
+  note text
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_platform_spec_source (
+  source_url text NOT NULL,
+  seen_hash text,
+  verified_hash text,
+  checked_at timestamp with time zone,
+  verified_at timestamp with time zone,
+  last_status integer,
+  last_error text
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_post (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   ingest_key text NOT NULL,
@@ -7974,6 +7999,8 @@ ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pk
 ALTER TABLE public.marketing_library ADD CONSTRAINT marketing_library_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey PRIMARY KEY (page_id);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_pkey PRIMARY KEY (platform, surface, attribute);
+ALTER TABLE public.marketing_platform_spec_source ADD CONSTRAINT marketing_platform_spec_source_pkey PRIMARY KEY (source_url);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
@@ -8567,6 +8594,14 @@ ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_is_kept CHECK (((status <> 'replied'::text) OR (reply_text IS NOT NULL)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_text_check CHECK (((reply_text IS NULL) OR (length(reply_text) <= 4000)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_confidence_check CHECK ((confidence = ANY (ARRAY['high'::text, 'medium'::text, 'low'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_counted_as_check CHECK ((counted_as = ANY (ARRAY['codepoints'::text, 'utf16_units'::text, 'x_weighted'::text, 'utf8_bytes'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_platform_check CHECK ((platform = ANY (ARRAY['instagram'::text, 'facebook'::text, 'x'::text, 'youtube'::text, 'linkedin'::text, 'tiktok'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_source_kind_check CHECK ((source_kind = ANY (ARRAY['official'::text, 'postiz'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_source_url_check CHECK ((source_url ~ '^https://'::text));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_surface_check CHECK ((surface = ANY (ARRAY['feed_image'::text, 'carousel'::text, 'reel'::text, 'feed_post'::text, 'post'::text, 'video'::text, 'short'::text, 'page_post'::text, 'photo'::text])));
+ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_value_or_silence CHECK (((value_num IS NOT NULL) OR (value_text IS NOT NULL) OR (btrim(COALESCE(note, ''::text)) <> ''::text)));
+ALTER TABLE public.marketing_platform_spec_source ADD CONSTRAINT marketing_platform_spec_source_source_url_check CHECK ((source_url ~ '^https://'::text));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_channels_check CHECK (((cardinality(channels) > 0) AND (channels <@ ARRAY['facebook'::text, 'instagram'::text, 'linkedin'::text, 'x'::text])));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_demo_is_marked CHECK (((NOT is_demo) OR (text_en ~~ 'ZZ DEMO%'::text)));
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_failed_says_why CHECK (((status <> 'failed'::text) OR (error IS NOT NULL)));
@@ -9159,7 +9194,6 @@ CREATE INDEX ceo_knowledge_search_idx ON public.ceo_knowledge USING gin (search)
 CREATE INDEX ceo_task_open_idx ON public.ceo_task USING btree (state, created_at) WHERE (state = ANY (ARRAY['open'::text, 'working'::text, 'blocked'::text]));
 CREATE INDEX channel_directive_actor_idx ON public.channel_directive USING btree (actor_type, actor_id, created_at DESC);
 CREATE UNIQUE INDEX company_charter_one_active ON public.company_charter USING btree (active) WHERE active;
-CREATE INDEX company_faq_emb_idx ON public.company_faq USING ivfflat (embedding_gte vector_cosine_ops) WITH (lists='20');
 CREATE INDEX complaint_tickets_open_idx ON public.complaint_tickets USING btree (respond_due) WHERE (status <> 'final_response'::text);
 CREATE INDEX content_drafts_status_idx ON public.content_drafts USING btree (status, id DESC);
 CREATE INDEX control_mode_active_idx ON public.control_mode_session USING btree (actor_email, expires_at DESC) WHERE (closed_at IS NULL);
@@ -18576,16 +18610,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -18611,6 +18635,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -26689,6 +26723,20 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_company_faq_text_change_clears_embedding()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if (new.question is distinct from old.question or new.answer is distinct from old.answer)
+     and new.embedding_gte is not distinct from old.embedding_gte then
+    new.embedding_gte := null;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_company_hard_rules()
  RETURNS text
  LANGUAGE plpgsql
@@ -32969,6 +33017,10 @@ begin
               from company_faq f
              where f.public and f.status = 'approved' and f.embedding_gte is not null
                and f.language = case when v_ar then 'ar' else 'en' end
+               -- 23 Sep 2026: the five nearest are taken among records whose QUESTION shares a concept with
+               -- the asker's. gte-small is an English model: for "كم رسومكم" the fee FAQ 609 (0.8816) ranked
+               -- sixth behind five unrelated Arabic records, and the window of five dropped it.
+               and public.fn_faq_concepts(f.question, v_ar) && v_qc
              order by f.embedding_gte <=> p_embedding limit 5) c
      where c.sim >= p_min_similarity
        -- A SUPPLIER-SIDE record answers only a question that names the supplier side (22 Sep 2026):
@@ -33019,7 +33071,9 @@ AS $function$
       ('مجا','fee'),('دفع','fee'),('اشتر','fee'),
       ('supplier','supplier'),('vendor','supplier'),('contractor','supplier'),('مورد','supplier'),('موردين','supplier'))
   select coalesce(array_agg(distinct coalesce(f.concept, l)), '{}')
-    from unnest(tsvector_to_array(case when p_ar then to_tsvector('arabic', public.fn_ar_norm(coalesce(p_text, '')))
+    from unnest(tsvector_to_array(case when p_ar then to_tsvector('arabic',
+                    -- عرض سعر / عروض الأسعار is a quotation: its price word is not a fee.
+                    regexp_replace(public.fn_ar_norm(coalesce(p_text, '')), '(عرض|عروض)\s+(ال)?(سعر|اسعار)', '\1', 'g'))
                                        else to_tsvector('english', coalesce(p_text, '')) end)) l
     left join fold f on f.lexeme = l
    where not (p_ar and l = any (array['كم','هل','ما','هي','هو','كيف','مع','في','من','على','عن','الي','او','لا','متي','ماذا','لماذا','اين','انا','نحن','انتم','لكم','لي']))
@@ -41575,6 +41629,49 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_caption_length(p_text text, p_counted_as text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v text := coalesce(p_text, ''); n int := 0; cp int; ch text; v_urls int;
+begin
+  if p_counted_as = 'utf8_bytes' then return octet_length(v); end if;
+  if p_counted_as = 'codepoints' then return char_length(v); end if;
+  if p_counted_as = 'utf16_units' then
+    return char_length(v) + (select count(*) from regexp_split_to_table(v, '') c where ascii(c) > 65535)::int;
+  end if;
+  if p_counted_as is distinct from 'x_weighted' then
+    raise exception 'fn_marketing_caption_length: unknown counting rule %', p_counted_as;
+  end if;
+  v := normalize(v, NFC);
+  -- A URL is ASCII only ([!-~]) and never ends in trailing punctuation, so "(https://quotesdone.ae)" keeps its
+  -- brackets outside, an Arabic comma after a link is not swallowed, and Arabic glued to a domain stays text.
+  select count(*) into v_urls from regexp_matches(v,
+    '(https?://[!-~]*[A-Za-z0-9/#=_&%+~-]|www\.[!-~]*[A-Za-z0-9/#=_&%+~-]|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[!-~]*[A-Za-z0-9/#=_&%+~-])?)', 'gi');
+  v := regexp_replace(v,
+    '(https?://[!-~]*[A-Za-z0-9/#=_&%+~-]|www\.[!-~]*[A-Za-z0-9/#=_&%+~-]|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[!-~]*[A-Za-z0-9/#=_&%+~-])?)', '', 'gi');
+  -- A keycap (digit, optional VS16, U+20E3) and any character shown as emoji (followed by VS16, e.g. ©️) are
+  -- emoji and weigh 2: replace each with one astral stand-in before the folding below.
+  v := regexp_replace(v, '.' || chr(65039) || '?' || chr(8419), chr(128512), 'g');
+  v := regexp_replace(v, '.' || chr(65039), chr(128512), 'g');
+  -- fold each emoji sequence to its first code point: drop text selectors, skin tones, and every ZWJ with the
+  -- code point it joins; a flag (two regional indicators) keeps one.
+  v := regexp_replace(v, '[' || chr(65038) || chr(127995) || '-' || chr(127999) || ']', '', 'g');
+  v := regexp_replace(v, chr(8205) || '.', '', 'g');
+  v := regexp_replace(v, '([' || chr(127462) || '-' || chr(127487) || '])[' || chr(127462) || '-' || chr(127487) || ']', '\1', 'g');
+  -- regexp_split_to_table('', '') yields one empty row, which the loop would weigh as 1.
+  if v = '' then return 23 * v_urls; end if;
+  for ch in select c from regexp_split_to_table(v, '') c loop
+    cp := ascii(ch);
+    n := n + case when cp <= 4351 or cp between 8192 and 8205 or cp between 8208 and 8223 or cp between 8242 and 8247
+                  then 1 else 2 end;
+  end loop;
+  return n + 23 * v_urls;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_closes_ad_spend_loops()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -41819,6 +41916,158 @@ begin
     into v_out from ins;
   return v_out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_freshness()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb;
+begin
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'item', md5(source_url),
+           'title', case when seen_hash is distinct from verified_hash
+                         then 'platform spec source changed since it was verified: ' || source_url
+                         else 'platform spec source could not be read (' || coalesce(last_status::text, 'no status') || '): ' || source_url end,
+           'owner_seat', 'marketing', 'subject', 'marketing', 'blast', 'agent_facing',
+           'affected', (select count(*) from public.marketing_platform_spec p where p.source_url = s.source_url),
+           'evidence', jsonb_build_object('url', source_url, 'checked_at', checked_at, 'verified_at', verified_at,
+                                          'status', last_status, 'error', last_error,
+                                          'remedy', 'Re-read the page, correct marketing_platform_spec, then call fn_marketing_platform_spec_source_verified(url, who).'))), '[]'::jsonb)
+    into v_items
+    from public.marketing_platform_spec_source s
+   where (seen_hash is distinct from verified_hash)
+      -- a timeout or network error leaves status 0; an HTTP error leaves its code. Both are reported.
+      or (checked_at is not null and (coalesce(last_status, 0) = 0 or last_status >= 400));
+  return public.fn_it_duty_settle('marketing_platform_spec_freshness', v_items);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_knowledge_sync()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare p text; v_body text; v_n int := 0;
+begin
+  for p in select distinct platform from public.marketing_platform_spec order by 1 loop
+    select format(E'Posting limits for %s (organic), read from the official pages on the dates shown. '
+                  'A limit marked "silent" is one the platform does not publish: do not state a number for it.\n\n', initcap(p))
+        || string_agg(format('- %s / %s: %s%s%s. Source: %s (read %s, confidence %s)%s',
+                        surface, replace(attribute, '_', ' '),
+                        coalesce(value_text, value_num::text, 'silent'),
+                        case when value_num is not null and value_text is not null then ' = ' || value_num::text else '' end,
+                        case when counted_as is not null then ' ' || coalesce(unit, '') || ', counted as ' || counted_as
+                             when unit is not null and value_num is not null then ' ' || unit else '' end,
+                        source_url, read_on, confidence, coalesce('. ' || note, '')),
+                      E'\n' order by surface, attribute)
+      into v_body
+      from public.marketing_platform_spec where platform = p;
+    insert into public.ops_knowledge(
+      record_id, scope_type, scope_key, role_key, layer, module, record_type, title, content, structured_data,
+      source_ids, implementation_status, validation_status, authority_tier, risk_level, version, keywords,
+      jurisdiction, source_freshness, confidentiality, runtime_eligible, deterministic, supersession_state,
+      embedding_status, effective_date)
+    values (
+      'qd-marketing:platform-spec:' || p, 'role', 'marketing', 'marketing', 'source_reference', 'marketing_platform_spec',
+      'md', initcap(p) || ' posting limits: caption length, hashtags, aspect ratio, duration, file size', v_body,
+      jsonb_build_object('table', 'marketing_platform_spec', 'platform', p),
+      array['marketing_platform_spec'], 'active', 'validated', 'autonomous', 'low', '1',
+      array[p, 'caption limit', 'character limit', 'hashtags', 'aspect ratio', 'video length', 'duration', 'file size',
+            'resolution', 'thumbnail', 'safe zone', 'reels', 'shorts'],
+      'international', 'monthly', 'internal', true, true, 'current', 'pending', current_date)
+    on conflict (record_id) do update set
+      title = excluded.title, content = excluded.content, structured_data = excluded.structured_data,
+      keywords = excluded.keywords, effective_date = excluded.effective_date,
+      supersession_state = 'current', embedding_status = 'pending';
+    v_n := v_n + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'records', v_n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_problems(p_platform text, p_post_type text, p_body text, p_hashtags text[], p_title text, p_alt_text text, p_first_comment text)
+ RETURNS text[]
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pf text := lower(btrim(coalesce(p_platform, '')));
+  v_pt text := lower(btrim(coalesce(p_post_type, '')));
+  v_sf text; v_tags text;
+begin
+  v_sf := case
+    when v_pf = 'instagram' then case v_pt when 'reel' then 'reel' else 'feed_image' end
+    when v_pf = 'facebook'  then case v_pt when 'reel' then 'reel' else 'feed_post' end
+    when v_pf = 'youtube'   then case v_pt when 'short' then 'short' else 'video' end
+    when v_pf = 'x'         then 'post'
+    when v_pf = 'linkedin'  then 'page_post'
+    when v_pf = 'tiktok'    then 'video'
+    else v_pt end;
+  select string_agg('#' || ltrim(btrim(t), '#'), ' ') into v_tags
+    from unnest(coalesce(p_hashtags, '{}'::text[])) t where btrim(t) <> '';
+  return coalesce((
+    select array_agg(e->>'message')
+      from jsonb_array_elements(public.fn_marketing_variant_violations(
+             jsonb_build_object('platform', v_pf, 'surface', v_sf,
+                                'caption', concat_ws(' ', nullif(btrim(coalesce(p_body, '')), ''), v_tags))
+             || case when p_title is not null then jsonb_build_object('title', p_title) else '{}'::jsonb end)) e), '{}'::text[]);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_source_seen(p_url text, p_hash text, p_status integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.marketing_platform_spec_source;
+begin
+  update public.marketing_platform_spec_source
+     set checked_at = now(), last_status = p_status, last_error = left(p_error, 300),
+         seen_hash = coalesce(p_hash, seen_hash),
+         verified_hash = coalesce(verified_hash, p_hash),
+         verified_at = case when verified_hash is null and p_hash is not null then now() else verified_at end
+   where source_url = p_url
+  returning * into r;
+  if not found then raise exception 'fn_marketing_platform_spec_source_seen: % is not a cited source', p_url; end if;
+  return jsonb_build_object('url', r.source_url, 'changed', r.seen_hash is distinct from r.verified_hash, 'status', r.last_status);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_source_verified(p_url text, p_by text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if coalesce(btrim(p_by), '') = '' then raise exception 'fn_marketing_platform_spec_source_verified: say who re-read the page'; end if;
+  update public.marketing_platform_spec_source set verified_hash = seen_hash, verified_at = now() where source_url = p_url;
+  if not found then raise exception 'fn_marketing_platform_spec_source_verified: % is not a cited source', p_url; end if;
+  update public.marketing_platform_spec set read_on = current_date where source_url = p_url;
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('marketing', 'ok', now(), now(), jsonb_build_object('action', 'platform_spec_verified', 'url', p_url), 'verified by ' || p_by);
+  perform public.fn_marketing_platform_spec_knowledge_sync();
+  return jsonb_build_object('ok', true, 'url', p_url);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_platform_spec_sources_due(p_limit integer DEFAULT 3)
+ RETURNS SETOF text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select source_url from public.marketing_platform_spec_source
+   where checked_at is null or checked_at < now() - interval '30 days'
+   order by checked_at nulls first, source_url
+   limit greatest(1, least(coalesce(p_limit, 3), 20))
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_policy_int(p_key text, p_default integer)
@@ -42158,6 +42407,67 @@ begin
   exception when others then v_ads := jsonb_build_object('ok', false, 'error', left(sqlerrm, 300)); end;
   return jsonb_build_object('ok', coalesce((v_rep->>'ok')::boolean, false) and coalesce((v_ads->>'ok')::boolean, false),
                             'report', v_rep, 'ad_spend_loops', v_ads);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_variant_violations(p_variant jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_pf text := lower(btrim(coalesce(p_variant->>'platform', '')));
+  v_sf text := lower(btrim(coalesce(p_variant->>'surface', '')));
+  v_cap text := coalesce(p_variant->>'caption', p_variant->>'text', '');
+  v_media jsonb := coalesce(p_variant->'media', '{}'::jsonb);
+  v_out jsonb := '[]'::jsonb; s record; v_actual numeric; v_bad boolean;
+begin
+  if not exists (select 1 from public.marketing_platform_spec where platform = v_pf and surface = v_sf) then
+    return jsonb_build_array(jsonb_build_object('attribute', 'platform_surface', 'actual', v_pf || '/' || v_sf,
+      'message', 'No spec rows for ' || v_pf || '/' || v_sf || '; nothing may be posted to a surface the seat has no limits for.'));
+  end if;
+  for s in select * from public.marketing_platform_spec
+            where platform = v_pf and surface = v_sf and value_num is not null
+              and attribute in ('caption_max', 'title_max', 'hashtag_max', 'mention_max', 'items_max', 'min_duration_s',
+                                'max_duration_s', 'max_file_bytes', 'aspect_min', 'aspect_max', 'min_width', 'min_height',
+                                'fps_min', 'fps_max') loop
+    v_actual := case s.attribute
+      when 'caption_max' then public.fn_marketing_caption_length(v_cap, s.counted_as)
+      when 'title_max'   then case when p_variant ? 'title' then public.fn_marketing_caption_length(p_variant->>'title', coalesce(s.counted_as, 'codepoints')) end
+      when 'hashtag_max' then (select count(*) from regexp_matches(v_cap, '#[^[:space:]#]+', 'g'))
+      when 'mention_max' then (select count(*) from regexp_matches(v_cap, '(^|[^[:alnum:]_.])@[[:alnum:]_.]+', 'g'))
+      when 'items_max'   then (v_media->>'items')::numeric
+      when 'min_duration_s' then (v_media->>'duration_s')::numeric
+      when 'max_duration_s' then (v_media->>'duration_s')::numeric
+      when 'max_file_bytes' then (v_media->>'bytes')::numeric
+      when 'aspect_min' then (v_media->>'width')::numeric / nullif((v_media->>'height')::numeric, 0)
+      when 'aspect_max' then (v_media->>'width')::numeric / nullif((v_media->>'height')::numeric, 0)
+      when 'min_width'  then (v_media->>'width')::numeric
+      when 'min_height' then (v_media->>'height')::numeric
+      when 'fps_min' then (v_media->>'fps')::numeric
+      when 'fps_max' then (v_media->>'fps')::numeric
+    end;
+    continue when v_actual is null;
+    v_bad := case when s.attribute in ('min_duration_s', 'aspect_min', 'min_width', 'min_height', 'fps_min')
+                  then v_actual < s.value_num else v_actual > s.value_num end;
+    if v_bad then
+      v_out := v_out || jsonb_build_object('attribute', s.attribute, 'limit', s.value_num, 'actual', round(v_actual, 4),
+        'counted_as', s.counted_as, 'unit', s.unit, 'source_url', s.source_url, 'read_on', s.read_on,
+        'message', format('%s/%s %s: %s against a limit of %s %s (%s)', v_pf, v_sf, s.attribute, round(v_actual, 4),
+                          s.value_num, coalesce(s.unit, ''), s.source_url));
+    end if;
+  end loop;
+  -- YouTube: < and > are refused by the API in the title and the description regardless of length.
+  if v_pf = 'youtube' and coalesce(p_variant->>'title', '') ~ '[<>]' then
+    v_out := v_out || jsonb_build_object('attribute', 'title_characters', 'actual', p_variant->>'title',
+      'source_url', 'https://developers.google.com/youtube/v3/docs/videos', 'message', 'A YouTube title may not contain < or >.');
+  end if;
+  if v_pf = 'youtube' and v_cap ~ '[<>]' then
+    v_out := v_out || jsonb_build_object('attribute', 'caption_characters', 'actual', left(v_cap, 200),
+      'source_url', 'https://developers.google.com/youtube/v3/docs/videos', 'message', 'A YouTube description may not contain < or >.');
+  end if;
+  return v_out;
 end $function$
 
 
@@ -47614,16 +47924,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -47794,6 +48094,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -60029,6 +60339,7 @@ AS $function$
     ('marketing_post','marketing'), ('marketing_connection_check','marketing'), ('marketing_insight_day','marketing'),
     ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'),
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
+    ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
 $function$
@@ -68498,15 +68809,16 @@ CREATE TRIGGER a05_ceo_refund_approval_checks_the_process BEFORE INSERT ON publi
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
+CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
-CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
+CREATE TRIGGER trg_company_faq_text_change_clears_embedding BEFORE UPDATE OF question, answer ON public.company_faq FOR EACH ROW EXECUTE FUNCTION fn_company_faq_text_change_clears_embedding();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
+CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
+CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
@@ -69015,6 +69327,8 @@ ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_library ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_outreach_message ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_platform_spec ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_platform_spec_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
@@ -69305,6 +69619,8 @@ CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run 
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_page AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_outreach_message_service_role_only ON public.marketing_outreach_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_platform_spec_service_role_only ON public.marketing_platform_spec AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_platform_spec_source_service_role_only ON public.marketing_platform_spec_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_service_role_only ON public.marketing_post AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
