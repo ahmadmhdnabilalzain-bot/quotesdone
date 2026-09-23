@@ -27,7 +27,7 @@
 -- ── 1. THE TIE: OUR POST ON A PLATFORM ───────────────────────────────────────────────────────────────
 create table if not exists public.marketing_post_platform (
   post_id          bigint not null references public.marketing_post(id) on delete cascade,
-  platform         text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x')),
+  platform         text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok')),
   postiz_post_id   text,
   platform_post_id text,
   permalink        text,
@@ -46,7 +46,7 @@ revoke all on public.marketing_post_platform from anon, authenticated;
 create table if not exists public.marketing_post_metric (
   id                 bigint generated always as identity primary key,
   post_id            bigint not null references public.marketing_post(id) on delete cascade,
-  platform           text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x')),
+  platform           text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok')),
   platform_post_id   text,
   checkpoint         text not null check (checkpoint in ('1d', '3d', '7d', '28d')),
   metric             text not null check (metric ~ '^[a-z0-9_*]+$'),
@@ -89,7 +89,7 @@ revoke all on public.marketing_first_touch from anon, authenticated;
 -- ── 4. GOALS, EACH WITH ITS SOURCE ───────────────────────────────────────────────────────────────────
 create table if not exists public.marketing_goal (
   month            text not null check (month ~ '^\d{4}-(0[1-9]|1[0-2])$'),
-  platform         text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x')),
+  platform         text not null check (platform in ('facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok')),
   metric           text not null check (metric ~ '^[a-z0-9_]+$'),
   target           numeric not null check (target >= 0),
   benchmark_source text not null check (length(btrim(benchmark_source)) >= 20),

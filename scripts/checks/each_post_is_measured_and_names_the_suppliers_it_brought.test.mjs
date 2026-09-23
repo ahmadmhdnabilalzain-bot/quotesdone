@@ -60,6 +60,9 @@ test('the SQL: every routine pinned and revoked, every table with a policy, goal
     assert.match(SQL, new RegExp(`create policy ${t}_service_role_only on public\\.${t}`), `${t}: no policy`);
     assert.match(SQL, new RegExp(`revoke all on public\\.${t} from anon, authenticated`), `${t}: not revoked`);
   }
+  // youtube and tiktok are post channels since #870: every platform check admits all six
+  assert.equal((SQL.match(/check \(platform in \('facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'\)\)/g) || []).length, 3, 'a platform check omits youtube or tiktok');
+  assert.match(R('supabase/functions/marketing/post_results.ts'), /d\.platform === 'youtube' \|\| d\.platform === 'tiktok'/, 'youtube/tiktok have no direct fallback');
   assert.match(SQL, /benchmark_source text not null check \(length\(btrim\(benchmark_source\)\) >= 20\)/, 'a goal may be seeded without a source');
   // committed, not applied: a pending note and no MANIFEST line (the operator applies and swaps them)
   const pendingNote = R('scripts/sql/pending/each_post_is_measured_and_names_the_suppliers_it_brought.txt').trim();

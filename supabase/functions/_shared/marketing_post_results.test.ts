@@ -5,7 +5,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
   campaignOf, channelOf, facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, viaPostiz, withUtm,
-  IG_FEED, IG_REELS, type Fetch, type GraphEnv,
+  tiktokVideo, youtubeVideo, IG_FEED, IG_REELS, YT_METRICS, type Fetch, type GraphEnv,
 } from './marketing_post_results.ts';
 import { buildPostizPayload, type PublishInput } from './marketing_channels.ts';
 import { captureFirstTouch, readFirstTouch, touchFromUrl, FIRST_TOUCH_KEY } from '../../../src/lib/firstTouch.ts';
@@ -116,18 +116,56 @@ Deno.test('linkedin / x: Postiz post analytics, latest point per label; {missing
   onlyGets(calls);
 });
 
+// ── YouTube and TikTok ───────────────────────────────────────────────────────────────────────────────
+Deno.test('youtube / tiktok via Postiz: the same post analytics route', async () => {
+  const { f } = mock([[/\/analytics\/post\/pz-yt\?date=3/, [{ label: 'Views', data: [{ total: 57, date: '2026-10-01' }] }, { label: 'Likes', data: [{ total: 4, date: '2026-10-01' }] }]]]);
+  assertEquals((await viaPostiz(f, P, 'k', 'pz-yt', 3)).values, { views: 57, likes: 4 });
+});
+
+Deno.test('youtube direct: Analytics API v2 report for one video, columns by name, no completion invented', async () => {
+  const { f, calls } = mock([[/youtubeanalytics\.googleapis\.com\/v2\/reports\?ids=channel%3D%3DMINE&startDate=2026-09-28&endDate=2026-10-05&metrics=views,likes,comments,shares,averageViewDuration,averageViewPercentage,estimatedMinutesWatched,subscribersGained&filters=video%3D%3DdQw4w9WgXcQ/,
+    { kind: 'youtubeAnalytics#resultTable', columnHeaders: YT_METRICS.map((name) => ({ name, columnType: 'METRIC', dataType: 'INTEGER' })),
+      rows: [[1200, 80, 9, 14, 41, 63.5, 820, 6]] }]]);
+  const r = await youtubeVideo(f, 'ya29.ZZDEMO', 'dQw4w9WgXcQ', '2026-09-28', '2026-10-05');
+  assertEquals(r.values, { views: 1200, likes: 80, comments: 9, shares: 14, average_view_duration: 41, average_view_percentage: 63.5, estimated_minutes_watched: 820, subscribers_gained: 6 });
+  assert(r.unavailable.completion_rate); onlyGets(calls);
+  const refused = await youtubeVideo(mock([[/youtubeanalytics/, { error: { code: 403, message: 'Forbidden' } }, 403]]).f, 't', 'v', '2026-09-28', '2026-10-05');
+  assertEquals(refused.values, {}); assert(refused.unavailable['*'].includes('Forbidden'));
+});
+
+Deno.test('tiktok direct: Display API video query (a read with a POST body): four counts, watch time and completion named unavailable', async () => {
+  const { f, calls } = mock([[/open\.tiktokapis\.com\/v2\/video\/query\/\?fields=id,view_count,like_count,comment_count,share_count/,
+    { data: { videos: [{ id: '7321456789012345678', view_count: 3400, like_count: 210, comment_count: 12, share_count: 30 }], cursor: 0, has_more: false }, error: { code: 'ok', message: '' } }]]);
+  const r = await tiktokVideo(f, 'act.ZZDEMO', '7321456789012345678');
+  assertEquals(r.values, { view_count: 3400, like_count: 210, comment_count: 12, share_count: 30 });
+  assert(r.unavailable.avg_watch_time && r.unavailable.completion_rate);
+  assertEquals(calls.map((c) => c.method), ['POST']);
+  assert(calls.every((c) => c.url.startsWith('https://open.tiktokapis.com/v2/video/query/')), 'TikTok was called on anything but the read query');
+  const bad = await tiktokVideo(mock([[/tiktokapis/, { data: {}, error: { code: 'access_token_invalid', message: 'The access token is invalid' } }, 401]]).f, 't', 'v');
+  assertEquals(bad.values, {}); assert(bad.unavailable['*'].includes('invalid'));
+});
+
+Deno.test('the month-1 calendar link keeps its tags and gains the post (utm_content)', () => {
+  const cal = 'Register your business: https://quotesdone.com/supplier?utm_source=tiktok&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment';
+  assertEquals(withUtm(cal, 'tiktok', '2026-10', '2026m1-09-tiktok'),
+    'Register your business: https://quotesdone.com/supplier?utm_source=tiktok&utm_medium=social&utm_campaign=2026_m1_supplier_recruitment&utm_content=2026m1-09-tiktok');
+  const done = cal + '&utm_content=kept';
+  assertEquals(withUtm(done, 'tiktok', '2026-10', 'other'), done);
+});
+
 // ── the tie ──────────────────────────────────────────────────────────────────────────────────────────
 Deno.test('the tie: Postiz post id -> platform and the platform\'s own id', async () => {
   const { f } = mock([[/\/posts\?startDate=/, { posts: [
     { id: 'pz-ig', integration: { providerIdentifier: 'instagram-standalone' }, releaseId: '17900001', releaseURL: 'https://www.instagram.com/reel/AAA/' },
     { id: 'pz-fb', integration: { providerIdentifier: 'facebook' }, releaseId: '555', releaseURL: 'https://facebook.com/555' },
-    { id: 'pz-tt', integration: { providerIdentifier: 'tiktok' }, releaseId: 'x' },
+    { id: 'pz-tt', integration: { providerIdentifier: 'tiktok' }, releaseId: '7321456789012345678' },
+    { id: 'pz-md', integration: { providerIdentifier: 'mastodon' }, releaseId: 'm' },
     { id: 'pz-x', integration: { providerIdentifier: 'x' }, releaseId: 'missing', releaseURL: null },
   ] }]]);
   const r = await postizReleases(f, P, 'k', new Date(0), new Date());
-  assertEquals(r.map((x) => [x.postiz_post_id, x.platform, x.platform_post_id]), [['pz-ig', 'instagram', '17900001'], ['pz-fb', 'facebook', '555'], ['pz-x', 'x', null]]);
+  assertEquals(r.map((x) => [x.postiz_post_id, x.platform, x.platform_post_id]), [['pz-ig', 'instagram', '17900001'], ['pz-fb', 'facebook', '555'], ['pz-tt', 'tiktok', '7321456789012345678'], ['pz-x', 'x', null]]);
   assertEquals(postizIdsOf({ postiz: [{ postId: 'pz-ig', integration: 'i' }, { id: 'pz-fb' }] }), ['pz-ig', 'pz-fb']);
-  assertEquals([channelOf('linkedin-page'), channelOf('twitter'), channelOf('youtube')], ['linkedin', 'x', null]);
+  assertEquals([channelOf('linkedin-page'), channelOf('twitter'), channelOf('youtube'), channelOf('mastodon')], ['linkedin', 'x', 'youtube', null]);
 });
 
 // ── attribution, end to end ──────────────────────────────────────────────────────────────────────────
@@ -136,7 +174,7 @@ Deno.test('UTM: our links carry platform, month and post; other sites and hand-m
   const out = withUtm(t, 'linkedin', '2026-09', 'zz-demo-week1');
   assert(out.includes('https://www.quotesdone.ae/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026-09&utm_content=zz-demo-week1.'), out);
   assert(out.includes('https://example.com/x '), 'another site was tagged');
-  assert(out.includes('https://quotesdone.ae/?utm_source=manual'), 'a hand-made UTM was overwritten');
+  assert(out.includes('https://quotesdone.ae/?utm_source=manual&utm_content=zz-demo-week1'), 'a hand-made link lost its tags or gained no utm_content');
   assertEquals(campaignOf('2026-09-30T21:00:00Z'), '2026-10');   // Dubai is UTC+4
 });
 

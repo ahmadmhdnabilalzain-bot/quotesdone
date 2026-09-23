@@ -1,14 +1,15 @@
 // The marketing seat's two measuring duties (marketing, 23 Sep 2026; founder instruction 865). Owner: marketing.
 //   post_results  ties each published post to Postiz's post id and the platform's media id
 //                 (marketing_post_platform), then reads every due checkpoint (+1d/+3d/+7d/+28d) into
-//                 marketing_post_metric. READ-ONLY toward every platform. The calls and what each platform can
+//                 marketing_post_metric. READ-ONLY toward every platform (TikTok's video query is a read that
+//                 takes a POST body). The calls and what each platform can
 //                 and cannot give: ../_shared/marketing_post_results.ts.
 //   scorecard     stores fn_marketing_scorecard weekly (Monday, Asia/Dubai: the month so far) and at month end
 //                 (the 1st: the whole previous month) in marketing_scorecard_report. Plain SQL, no model.
 import type { Duty, DutyContext } from './duties.ts';
 import { metaPage } from '../_shared/marketing_channels.ts';
 import {
-  facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, viaPostiz,
+  facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, tiktokVideo, viaPostiz, youtubeVideo,
   CHECKPOINTS, type Checkpoint, type Fetch, type GraphEnv, type MetricsResult, type Platform,
 } from '../_shared/marketing_post_results.ts';
 
@@ -68,7 +69,7 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
     }
   }
   let written = 0;
-  for (const d of due as Array<{ post_id: number; platform: Platform; platform_post_id: string | null; postiz_post_id: string | null; checkpoint: Checkpoint }>) {
+  for (const d of due as Array<{ post_id: number; platform: Platform; platform_post_id: string | null; postiz_post_id: string | null; checkpoint: Checkpoint; published_at: string }>) {
     let res: MetricsResult;
     if (d.platform === 'instagram') {
       res = !genv ? { values: {}, unavailable: { '*': 'meta_access_token is not in app_secrets' } }
@@ -81,6 +82,7 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
     } else {
       res = !postizKey || !d.postiz_post_id ? { values: {}, unavailable: { '*': 'no Postiz key or Postiz post id' } }
         : await viaPostiz(f, postizBase, postizKey, d.postiz_post_id, CHECKPOINTS[d.checkpoint]);
+      if (!Object.keys(res.values).length && (d.platform === 'youtube' || d.platform === 'tiktok')) res = await direct(ctx, f, d, res);
     }
     const base = { post_id: d.post_id, platform: d.platform, platform_post_id: d.platform_post_id, checkpoint: d.checkpoint };
     const rows = [
@@ -93,6 +95,18 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
     written += rows.length;
   }
   return { due: true, tied: newlyTied, checkpoints: due.length, rows: written };
+}
+
+/** YouTube / TikTok straight from the platform, when Postiz gave nothing and the seat holds a token. */
+async function direct(ctx: DutyContext, f: Fetch, d: { platform: Platform; platform_post_id: string | null; published_at: string }, viaPostizRes: MetricsResult): Promise<MetricsResult> {
+  const key = d.platform === 'youtube' ? 'youtube_analytics_token' : 'tiktok_access_token';
+  const why = viaPostizRes.unavailable['*'] || 'Postiz returned no metric';
+  const token = await ctx.sec(key);
+  if (!token) return { values: {}, unavailable: { '*': `${why}; app_secrets.${key} is not set, so ${d.platform} cannot be read directly` } };
+  if (!d.platform_post_id) return { values: {}, unavailable: { '*': `${why}; no ${d.platform} video id tied to this post` } };
+  if (d.platform === 'tiktok') return tiktokVideo(f, token, d.platform_post_id);
+  const day = (t: Date) => new Date(t.getTime() + 4 * 3600_000).toISOString().slice(0, 10);
+  return youtubeVideo(f, token, d.platform_post_id, day(new Date(d.published_at)), day(ctx.now));
 }
 
 /** The scorecards due at `now` (Asia/Dubai): Monday -> this week's, the 1st -> last month's month-end. */

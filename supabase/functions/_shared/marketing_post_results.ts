@@ -24,14 +24,23 @@
 //   LinkedIn   through Postiz GET /public/v1/analytics/post/{postiz id}: the series Postiz returns, stored
 //   and X      under Postiz's own label (slugged), value = the latest point. {"missing": true} means Postiz
 //              has no release id yet; that is recorded as unavailable, never guessed.
-//   YouTube    NOT READ: youtube is not one of marketing_post.channels, so nothing is published there. To add
-//              it: a youtube channel in Postiz and in the channels check; its numbers then come through the
-//              same Postiz post analytics.
+//   YouTube    Postiz post analytics first. When Postiz gives nothing and app_secrets.youtube_analytics_token
+//              is set (none measured 23 Sep 2026), YouTube Analytics API v2 GET /v2/reports (scope
+//              yt-analytics.readonly), filters=video==<id>: views, likes, comments, shares,
+//              averageViewDuration, averageViewPercentage, estimatedMinutesWatched, subscribersGained.
+//              NOT AVAILABLE: a completion rate (no such metric; averageViewPercentage is the average share
+//              of the video watched, stored under its own name, not as completion).
+//   TikTok     Postiz post analytics first. When Postiz gives nothing and app_secrets.tiktok_access_token is
+//              set (none measured 23 Sep 2026), Display API v2 POST /v2/video/query/ (a READ query that
+//              takes its filter in a POST body; scope video.list): view_count, like_count, comment_count,
+//              share_count. NOT AVAILABLE through it: average watch time and completion (not video fields
+//              of the Display API).
+//   Either with neither route: a row marked unavailable with the reason.
 //   Followers  per day are already in marketing_insight_day (instagram followers, facebook page_follows,
 //              linkedin via Postiz); the scorecard reads the change from there.
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
-export type Platform = 'facebook' | 'instagram' | 'linkedin' | 'x';
+export type Platform = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'youtube' | 'tiktok';
 export const CHECKPOINTS = { '1d': 1, '3d': 3, '7d': 7, '28d': 28 } as const;
 export type Checkpoint = keyof typeof CHECKPOINTS;
 
@@ -45,7 +54,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(
 export function channelOf(identifier: string): Platform | null {
   const head = identifier.toLowerCase().split('-')[0];
   if (head === 'twitter' || head === 'x') return 'x';
-  return (['facebook', 'instagram', 'linkedin'] as const).find((c) => c === head) ?? null;
+  return (['facebook', 'instagram', 'linkedin', 'youtube', 'tiktok'] as const).find((c) => c === head) ?? null;
 }
 
 // ── attribution: every link we publish names the post ─────────────────────────────────────────────────
@@ -60,9 +69,12 @@ export function withUtm(text: string, platform: Platform, campaign: string, inge
   return text.replace(OUR_LINK, (url) => {
     const trail = url.match(/[.,;:!?]+$/)?.[0] ?? '';
     const bare = trail ? url.slice(0, -trail.length) : url;
-    if (/[?&]utm_/i.test(bare)) return url;
+    if (/[?&]utm_content=/i.test(bare)) return url;
     const [base, hash] = bare.split('#');
-    const q = `utm_source=${platform}&utm_medium=social&utm_campaign=${encodeURIComponent(campaign)}&utm_content=${encodeURIComponent(ingestKey)}`;
+    // A hand-made campaign link (the month-1 calendar, #870, carries source/medium/campaign) keeps its tags
+    // and gains only utm_content, so the registration still names the post.
+    const q = /[?&]utm_/i.test(base) ? `utm_content=${encodeURIComponent(ingestKey)}`
+      : `utm_source=${platform}&utm_medium=social&utm_campaign=${encodeURIComponent(campaign)}&utm_content=${encodeURIComponent(ingestKey)}`;
     return base + (base.includes('?') ? '&' : '?') + q + (hash !== undefined ? '#' + hash : '') + trail;
   });
 }
@@ -182,4 +194,38 @@ export async function viaPostiz(f: Fetch, base: string, key: string, postizPostI
     if (last && Number.isFinite(Number(last.total))) values[slug(String(s.label || 'metric'))] = Number(last.total);
   }
   return { values, unavailable: {} };
+}
+
+// ── YouTube and TikTok, directly (only when Postiz gave nothing and a token exists) ───────────────────
+export const YT_METRICS = ['views', 'likes', 'comments', 'shares', 'averageViewDuration', 'averageViewPercentage', 'estimatedMinutesWatched', 'subscribersGained'];
+
+/** YouTube Analytics API v2, one video, published day .. today. */
+export async function youtubeVideo(f: Fetch, token: string, videoId: string, publishedDay: string, today: string): Promise<MetricsResult> {
+  const url = `https://youtubeanalytics.googleapis.com/v2/reports?ids=channel%3D%3DMINE&startDate=${publishedDay}&endDate=${today}`
+    + `&metrics=${YT_METRICS.join(',')}&filters=video%3D%3D${encodeURIComponent(videoId)}`;
+  const r = await f(url, { headers: { Authorization: 'Bearer ' + token } });
+  const j = await readJson(r);
+  const unavailable: Record<string, string> = { completion_rate: 'YouTube Analytics has no completion metric (averageViewPercentage is stored under its own name)' };
+  if (!r.ok || j?.error) return { values: {}, unavailable: { ...unavailable, '*': 'youtube analytics: ' + String(j?.error?.message || 'HTTP ' + r.status).slice(0, 160) } };
+  const cols: string[] = (j.columnHeaders || []).map((c: any) => String(c.name));
+  const row: unknown[] = Array.isArray(j.rows) && j.rows[0] ? j.rows[0] : [];
+  const values: Record<string, number> = {};
+  cols.forEach((c, i) => { const v = Number(row[i]); if (row[i] != null && Number.isFinite(v)) values[slug(c.replace(/([A-Z])/g, '_$1'))] = v; });
+  return { values, unavailable };
+}
+
+/** TikTok Display API v2 video query: a READ that takes its filter in a POST body (scope video.list). */
+export async function tiktokVideo(f: Fetch, token: string, videoId: string): Promise<MetricsResult> {
+  const unavailable: Record<string, string> = { avg_watch_time: 'not a Display API video field', completion_rate: 'not a Display API video field' };
+  const r = await f('https://open.tiktokapis.com/v2/video/query/?fields=id,view_count,like_count,comment_count,share_count', {
+    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ filters: { video_ids: [videoId] } }),
+  });
+  const j = await readJson(r);
+  const v = j?.data?.videos?.[0];
+  if (!r.ok || (j?.error?.code && j.error.code !== 'ok') || !v) {
+    return { values: {}, unavailable: { ...unavailable, '*': 'tiktok video query: ' + String(j?.error?.message || (v ? 'HTTP ' + r.status : 'video not found')).slice(0, 160) } };
+  }
+  const values: Record<string, number> = {};
+  for (const k of ['view_count', 'like_count', 'comment_count', 'share_count']) if (Number.isFinite(Number(v[k]))) values[k] = Number(v[k]);
+  return { values, unavailable };
 }
