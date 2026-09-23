@@ -130,7 +130,10 @@ export type DrawingOcr = {
   ms: number;
 };
 
-export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: number) => void; lite?: boolean }): Promise<DrawingOcr> {
+// vocab: what the drawing's printed lines NAME, reasoned on the server (customer_api drawing_vocabulary, decision point
+// drawing_boq.vocabulary) — [printed text, device type] pairs. Without it (held, or offline) no legend row is taken as a
+// device and no symbol is counted: nothing is decided here by reading a word.
+export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: number) => void; lite?: boolean; vocab?: (texts: string[]) => Promise<[string, string][] | null> }): Promise<DrawingOcr> {
   const t0 = Date.now();
   const plan = await import('./ocrPlan');
   const bmp = await createImageBitmap(await (await fetch(`data:${img.mime};base64,${img.data}`)).blob());
@@ -176,7 +179,9 @@ export async function ocrDrawing(img: PageImage, opts?: { onProgress?: (p: numbe
   try {
     const sc = await import('../../../supabase/functions/drawing_boq/symbol_count');
     const lv = await import('../../../supabase/functions/drawing_boq/legend_vocabulary');
-    const rows = sc.legendRows(lines, W0, lv.deviceTypeOf);
+    const pairs = opts?.vocab ? await opts.vocab([...new Set(lines.map((l) => l.text))].slice(0, 200)).catch(() => null) : null;
+    const vocab = { ...lv.EMPTY_VOCAB, device: (pairs || []).map(([text, type]) => [text, lv.DEVICE_TYPES.find((d) => d.type === type)]).filter((e): e is [string, (typeof lv.DEVICE_TYPES)[number]] => !!e[1]) };
+    const rows = vocab.device.length ? sc.legendRows(lines, W0, (t: string) => lv.deviceTypeIn(t, vocab)) : [];
     if (rows.length && pixels) { const r = sc.countSymbols({ w: W0, h: H0, px: pixels, channels: 4 }, rows); symbols = { counts: r.counts, matches: r.matches.map((m) => ({ type: m.type, box: m.box })) }; }
   } catch (_e) { symbols = null; }
   return { text: plan.linesToText(lines), lines, width: W0, height: H0, symbols, ms: Date.now() - t0 };

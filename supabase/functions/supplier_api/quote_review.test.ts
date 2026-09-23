@@ -1,16 +1,19 @@
 // supplier_api/quote_review.test.ts — the sales engineer's quotation review, proved in memory.
 //
 // Table-driven: the approved case, then each failure reason on its own, each with its English AND its
-// Arabic words; the supplier's replies read by rule; and the whole conversation — incomplete file,
+// Arabic words; the supplier's replies as REASONED fields (decision point supplier_api.quote_review_match: the
+// reasoning is a fake here — a table of what think() would return — so what is proved is what the review DOES
+// with a reasoned reading, and that it guesses nothing while the reading is held); and the whole conversation — incomplete file,
 // points raised, answered in text, approved, "generate", submitted through submit_quote — run on the
 // in-memory repository with the REAL doc_read and quote_from_document readers. No database, no network.
 import { assert, assertEquals, assertMatch, assertStringIncludes } from 'jsr:@std/assert@1';
 import { sanitizeUpload, SAFE_DOCS } from '../_shared/attachment.ts';
 import {
-  applyCorrections, fromMissing, generatedSaid, issueKey, jobNo, matchBoq, normUnit, readReply, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
-  type IssueCode, type SafeInquiry, type Working,
+  applyCorrections, boqKey, figure, fromMissing, generatedSaid, issueKey, jobNo, matchOf, normUnit, replyFrom, replyPoints, reviewQuotation, reviewSaid, sanitizeSpec, sanitizeTermsSpec, tookSaid, workingFromProposal,
+  type Issue, type IssueCode, type SafeInquiry, type Working,
 } from './quote_review.ts';
-import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import { choose, message, readQuotationFile, start, submit, submitPayload, thread, typed, upload, type QuoteReasoner, type ReviewDeps, type ThreadView } from './quote_review_flow.ts';
+import type { Stated } from '../_shared/reasoned_intake.ts';
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
@@ -27,8 +30,11 @@ const good = (over: Partial<Working> = {}): Working => ({
   amount: 9000, subtotal: null, vat_amount: null, vat_treatment: 'exclusive', price_ex_vat: 9000, trn: null,
   lead_time: '3 weeks', validity: '30 days', payment_terms: '50% advance', warranty: '2 years, materials and workmanship',
   scope: 'Supply and apply two coats to all internal walls', conditions: '', exclusions: '', notes: 'Prices exclude VAT',
-  terms_spec: {}, masked_terms: [], option_totals: {}, foreign_currency: null, boq_excluded: {}, qty_explained: {}, corrections: [], ...over,
+  terms_spec: {}, masked_terms: [], option_totals: {}, foreign_currency: null, boq_excluded: {}, qty_explained: {}, corrections: [],
+  boq_match: { '1': 1 }, ...over,
 });
+/** Fields as think() returns them: each value the supplier's words, copied (evidence = value here). */
+const F = (o: Record<string, string>): Stated => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, { value: v, evidence: v }]));
 const ARABIC = /[؀-ۿ]/;
 
 Deno.test('a quotation that meets every rule is approved, in both languages', () => {
@@ -73,7 +79,8 @@ for (const c of CASES) {
 }
 
 Deno.test('a TRN is never asked for, and "not VAT registered" is a complete VAT basis', () => {
-  const r = reviewQuotation(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: 'We are not VAT registered' }));
+  // 'not_registered' as the supplier's words are REASONED to say it (vatBasis); the review reads the treatment, not the words.
+  const r = reviewQuotation(inquiry(), good({ vat_treatment: 'not_registered', price_ex_vat: null, notes: 'We are not VAT registered' }));
   assert(r.approved, JSON.stringify(r.issues));
   const all = reviewQuotation(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: '', validity: '', lead_time: '' }));
   assert(!all.issues.some((i) => /\bTRN\b/.test(i.en) && !/needs no TRN/.test(i.en)), 'a TRN must never be requested');
@@ -84,47 +91,54 @@ Deno.test('a withheld BOQ is not held against the supplier', () => {
   assert(r.approved, JSON.stringify(r.issues));
 });
 
-Deno.test('units agree across spellings, and BOQ lines match by their words', () => {
+Deno.test('units agree across spellings; which line prices which BOQ line is the REASONED match, never shared words', () => {
   assertEquals(normUnit('sqm'), 'm2'); assertEquals(normUnit('m²'), 'm2'); assertEquals(normUnit('Nos'), 'nr'); assertEquals(normUnit('L.S'), 'ls');
-  const m = matchBoq([{ description: 'Internal wall painting emulsion' }, { description: 'Ceiling painting' }], [{ description: 'Ceiling emulsion painting', qty: '1', unit: 'ls', unit_price: null, amount: 10 }, ...good().lines]);
-  assertEquals(m.get(0), 1); assertEquals(m.get(1), 0);
+  const w = good({ lines: [{ description: 'Ceiling emulsion painting', qty: '1', unit: 'ls', unit_price: null, amount: 10 }, ...good().lines], boq_match: { '1': 2, '2': 1 } });
+  const m = matchOf(w)!; assertEquals(m.get(0), 1); assertEquals(m.get(1), 0);
+  assertEquals(matchOf(good({ boq_match: { '1': 9 } }))!.size, 0, 'a line that does not exist is no match');
+  assertEquals(matchOf(good({ boq_match: null })), null);
+  assert(boqKey([{ description: 'a' }], good().lines) !== boqKey([{ description: 'a' }], [...good().lines, good().lines[0]]), 'the key follows the lines');
 });
 
-// The supplier's replies, read by rule.
-const REPLIES: { text: string; field?: string; value?: unknown; choice?: 'generate' | 'reupload'; topic?: string }[] = [
-  { text: 'validity 30 days', field: 'validity', value: '30 days' },
-  { text: 'Lead time: 3 weeks from approval', field: 'lead_time', value: '3 weeks' },
-  { text: 'prices exclude VAT', field: 'vat_treatment', value: 'exclusive' },
-  { text: 'We are not VAT registered', field: 'vat_treatment', value: 'not_registered' },
-  { text: 'price excluding VAT 10,500', field: 'price_ex_vat', value: 10500 },
-  { text: 'الصلاحية 30 يومًا', field: 'validity' },
-  { text: 'مدة التسليم 3 أسابيع', field: 'lead_time' },
-  { text: 'please generate it for me', choice: 'generate' },
-  { text: 'I will upload a new version', choice: 'reupload' },
-  { text: 'أعدّه لي من فضلك', choice: 'generate' },
-  { text: 'what is still missing?', topic: 'missing' },
-  { text: 'Do I need a TRN?', topic: 'vat' },
-  { text: 'who is the customer?', topic: 'customer' },
-];
-for (const c of REPLIES) {
-  Deno.test(`the reply "${c.text}" is read`, () => {
-    const r = readReply(c.text, []);
-    if (c.field) {
-      const hit = r.corrections.find((x) => x.field === c.field) as { value?: unknown } | undefined;
-      assert(hit, `expected ${c.field} from ${JSON.stringify(r)}`);
-      if (c.value !== undefined) assertEquals(hit.value, c.value);
-    }
-    if (c.choice) assertEquals(r.choice, c.choice);
-    if (c.topic) assertEquals(r.topic, c.topic);
-  });
-}
+Deno.test('the match HELD (not reasoned): every BOQ line is a clarification — never priced, never unpriced, by a guess', () => {
+  const r = reviewQuotation(inquiry(), good({ boq_match: null }));
+  assert(!r.approved);
+  const b = r.issues.filter((i) => i.code === 'boq_line_not_priced');
+  assertEquals(b.map((i) => [i.kind, i.boq_line]), [['clarification', 1]]);
+  assertMatch(b[0].en, /still matching your lines/); assert(ARABIC.test(b[0].ar));
+  assert(!r.issues.some((i) => i.code === 'qty_mismatch' || i.code === 'unit_mismatch'), 'nothing is compared against a line nobody matched');
+  // an exclusion the supplier stated still closes it
+  assert(reviewQuotation(inquiry(), good({ boq_match: null, boq_excluded: { '1': 'by others' }, lines: [], amount: null, price_ex_vat: null, vat_treatment: 'not_registered' })).issues.every((i) => i.code !== 'boq_line_not_priced'));
+});
+
+// The supplier's replies: what the REASONED fields become. Only a figure's digits are parsed here.
+Deno.test('reasoned fields become corrections: validity, lead time, VAT, choice, question', () => {
+  const r = replyFrom(F({ validity: '30 days', lead_time: '3 weeks from approval', vat_excluded: 'prices exclude VAT' }), []);
+  assertEquals(r.corrections, [{ field: 'validity', value: '30 days' }, { field: 'lead_time', value: '3 weeks from approval' }, { field: 'vat_treatment', value: 'exclusive' }]);
+  assertEquals(replyFrom(F({ not_vat_registered: 'We are not VAT registered' }), []).corrections, [{ field: 'vat_treatment', value: 'not_registered' }]);
+  assertEquals(replyFrom(F({ price_ex_vat: 'price excluding VAT 10,500', vat_included: 'incl VAT' }), []).corrections, [{ field: 'price_ex_vat', value: 10500 }], 'a stated ex-VAT figure wins');
+  assertEquals(replyFrom(F({ validity: 'الصلاحية 30 يومًا' }), []).corrections[0].field, 'validity');
+  assertEquals(replyFrom(F({ wants_generated: 'أعدّه لي من فضلك' }), []).choice, 'generate');
+  assertEquals(replyFrom(F({ wants_upload: 'I will upload a new version' }), []).choice, 'reupload');
+  assertEquals(replyFrom(F({ question: 'Do I need a TRN?' }), []).question, 'Do I need a TRN?');
+  assertEquals(replyFrom({}, []), { corrections: [], choice: null, submit: false, question: null }, 'nothing reasoned, nothing done');
+  assertEquals([figure('AED 30,400'), figure('٩٥ درهم'), figure('no figure')], [30400, 95, null]);
+});
+
+Deno.test('what think() is asked follows the open points (a BOQ line, a spec, a component) and always the terms', () => {
+  const open = reviewQuotation(inquiry({ boq_rows: [...inquiry().boq_rows, { description: 'Ceiling gypsum board painting', qty: 120, unit: 'm2' }] }), good({ lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] })).issues;
+  const keys = replyPoints(open).map((x) => x.key);
+  for (const k of ['boq_2_rate', 'boq_2_amount', 'boq_2_excluded', 'validity', 'vat_excluded', 'wants_generated', 'question']) assert(keys.includes(k), k);
+  assert(keys.some((k) => k.startsWith('spec_1_')), JSON.stringify(keys));
+});
 
 Deno.test('an excluded BOQ line and a stated specification close their points', () => {
   const inq = inquiry({ boq_rows: [...inquiry().boq_rows, { description: 'Ceiling gypsum board painting', qty: 120, unit: 'm2' }] });
   const w0 = good({ lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] });
   const r0 = reviewQuotation(inq, w0);
   assertEquals(r0.issues.map((i) => i.code).sort(), ['boq_line_not_priced', 'spec']);
-  const rr = readReply('BOQ line 2 excluded — by others. Line 1 number of coats: 2', r0.issues);
+  const spec = r0.issues.find((i) => i.code === 'spec')!;
+  const rr = replyFrom(F({ boq_2_excluded: 'by others', [`spec_1_${spec.attr}`]: '2' }), r0.issues);
   const w1 = applyCorrections(w0, rr.corrections);
   const r1 = reviewQuotation(inq, w1);
   assert(r1.approved, JSON.stringify({ corrections: rr.corrections, issues: r1.issues }));
@@ -158,13 +172,39 @@ function harness(inq = inquiry()) {
     submit(p) { submitted.push(p); return Promise.resolve({ status: 200, json: { ok: true, accepted: true, quote: { id: 'q-1', option_no: 1, status: 'submitted' } } }); },
     quotePdf: () => Promise.resolve({ url: 'https://example.invalid/q.pdf', ref: 'QD-3F2A9C1E-S' }),
     now: () => new Date('2026-09-15T10:00:00Z'),
+    reason: fakeReasoner(),
   };
   return { mem, deps, submitted, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
+}
+/**
+ * What think() would return, as a table: a reply's fields by its exact text; the BOQ match as line n = BOQ line n
+ * (the fixtures list their lines in BOQ order); the VAT basis of the fixtures' notes. A text not in the table is
+ * reasoned to state nothing. Nothing here reads words: the table IS the reasoning's answer.
+ */
+const REPLY: Record<string, Stated> = {
+  'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship':
+    F({ validity: '30 days', lead_time: '3 weeks', vat_excluded: 'prices exclude VAT', warranty_period: '2 years', warranty_coverage: 'materials and workmanship' }),
+  "I'll upload a new version": F({ wants_upload: "I'll upload a new version" }),
+  'Installation included, 4 weeks on site. Warranty 2 years parts and labour. line 1 thickness: 12.5mm':
+    F({ installation_included: 'Installation included', installation_detail: '4 weeks on site', warranty_period: '2 years', warranty_coverage: 'parts and labour', spec_1_thickness_mm: '12.5mm' }),
+  'line 3 board type: standard gypsum board': F({ spec_3_board_type: 'standard gypsum board' }),
+  'Installation included, 4 weeks on site. Warranty 2 years parts and labour. line 1 thickness: 12.5mm. line 3 board type: standard gypsum board':
+    F({ installation_included: 'Installation included', installation_detail: '4 weeks on site', warranty_period: '2 years', warranty_coverage: 'parts and labour', spec_1_thickness_mm: '12.5mm', spec_3_board_type: 'standard gypsum board' }),
+  'what is still missing?': F({ question: 'what is still missing?' }),
+};
+function fakeReasoner(o: { held?: boolean; vat?: 'exclusive' | 'not_stated' } = {}): QuoteReasoner {
+  return {
+    boqMatch: ({ boq, lines }) => Promise.resolve(o.held ? null : Object.fromEntries(boq.map((_, i) => [String(i + 1), i + 1]).filter(([, j]) => Number(j) <= lines.length))),
+    vatBasis: () => Promise.resolve(o.held ? null : (o.vat ?? 'exclusive')),
+    reply: ({ text }) => Promise.resolve(o.held ? null : (REPLY[text] ?? {})),
+    question: ({ question }) => Promise.resolve(o.held ? null : `Reasoned answer to: ${question}`),
+  };
 }
 const ok = (v: unknown): ThreadView => { assert((v as ThreadView).ok, JSON.stringify(v)); return v as ThreadView; };
 
 Deno.test('the conversation: incomplete file → points raised → answered in text → approved → generate → submitted', async () => {
   const { mem, deps, submitted, ctx } = harness();
+  deps.reason = fakeReasoner({ vat: 'not_stated' });   // the incomplete file states no VAT basis
   const t0 = ok(await start(mem.repo, deps, ctx, INQ_ID));
   assertEquals(t0.state, 'open'); assertEquals(t0.messages.length, 1); assert(ARABIC.test(t0.messages[0].body_ar || ''));
 
@@ -307,7 +347,7 @@ Deno.test('an explained quantity does not silence a unit that differs on the sam
   const r = reviewQuotation(inquiry(), w);
   assert(r.issues.some((i) => i.code === 'unit_mismatch') && !r.issues.some((i) => i.code === 'qty_mismatch'), JSON.stringify(r.issues.map((i) => i.code)));
   const open = r.issues.filter((i) => i.code === 'unit_mismatch');
-  const rr = readReply('BOQ line 1 unit: we measure paint by the litre, 1 litre covers 1 m2', open);
+  const rr = replyFrom(F({ boq_1_unit_reason: 'we measure paint by the litre, 1 litre covers 1 m2' }), open);
   assertEquals(rr.corrections.map((c) => (c as { what?: string }).what), ['unit']);
   assert(reviewQuotation(inquiry(), applyCorrections(w, rr.corrections)).approved);
 });
@@ -346,7 +386,7 @@ Deno.test('a double submission submits once', async () => {
 });
 
 Deno.test('submitPayload carries the chat-confirmed details the hold gate reads', () => {
-  const w = applyCorrections(good(), readReply('installation included, 5 working days on site', []).corrections);
+  const w = applyCorrections(good(), replyFrom(F({ installation_included: 'installation included', installation_detail: '5 working days on site' }), []).corrections);
   const p = submitPayload(inquiry(), { original_file_path: 'review/7/x/q.csv', original_file_name: 'q.csv' }, w, reviewQuotation(inquiry(), w));
   assertEquals((p.terms_spec as { installation?: { included: string } }).installation?.included, 'yes');
   assertEquals((p.items as { qty: number }[])[0].qty, 450);
@@ -392,6 +432,8 @@ const gypsumInquiry = (): SafeInquiry => ({
     { section: 'Ceilings', description: 'Gypsum bulkhead, 300mm drop, painted finish', qty: 64, unit: 'm' },
   ], boq_withheld: false, concluded: false, revealed: false,
 });
+/** The reasoned match for the gypsum fixtures: each quotation line prices the BOQ line of the same number. */
+const SAME_ORDER = { '1': 1, '2': 2, '3': 3 };
 const gypsumHarness = () => { const h = harness(gypsumInquiry()); h.deps.read = (b, n, m) => readQuotationFile(b, n, m, ['ZZ DEMO Interiors gypsum founderdemo']); return h; };
 
 Deno.test('finding 1: the auditor\'s text PDF is read — every line priced, VAT, validity and lead time seen; only what it does not say is asked', async () => {
@@ -402,7 +444,8 @@ Deno.test('finding 1: the auditor\'s text PDF is read — every line priced, VAT
   assertEquals(read.proposal.price_ex_vat, 65960); assertEquals(read.proposal.vat_treatment, 'exclusive'); assertEquals(read.proposal.vat_amount, 3298);
   assertEquals(read.proposal.validity, '30 days'); assertEquals(read.proposal.lead_time, '4 weeks from LPO');
   assert(read.proposal.masked_terms.includes('ZZ DEMO Interiors gypsum founderdemo'), 'the letterhead name is withheld from the customer');
-  const rv = reviewQuotation(gypsumInquiry(), workingFromProposal(read.proposal, read.text));
+  // The BOQ match as reasoned (the PDF lists its lines in BOQ order); the review's rules then run on it.
+  const rv = reviewQuotation(gypsumInquiry(), { ...workingFromProposal(read.proposal, read.text), boq_match: SAME_ORDER });
   const keys = rv.issues.map(issueKey).sort();
   // Genuinely absent from the PDF: no installation statement, no warranty, the partition board's
   // thickness (100mm is the stud, not the board) and the bulkhead's board type. Nothing else.
@@ -418,14 +461,16 @@ Deno.test('finding 2: prices typed in the chat — the auditor\'s grammar, the r
   const w0: Working = { ...good(), lines: [], amount: null, subtotal: null, vat_amount: null, price_ex_vat: null, vat_treatment: 'exclusive', validity: '30 days', lead_time: '4 weeks' };
   const open = reviewQuotation(inq, w0).issues;
   assertEquals(open.filter((i) => i.code === 'boq_line_not_priced').length, 3);
-  const cases: [string, number, number | null, number][] = [
-    ['BOQ line 1: AED 95.00 per m2 × 320 m2 = AED 30,400', 1, 95, 30400],
-    ['BOQ line 2 AED 27,880 (600x600 mineral fibre)', 2, 68, 27880],
-    ['البند 3: 120 درهم لكل متر = 7680 درهم', 3, 120, 7680],
-    ['line 3 @ AED 120 per m', 3, 120, 7680],
+  // The reasoned fields for the auditor's grammar, the review's own grammar, and Arabic (each value copied from the reply).
+  const cases: [Stated, number, number | null, number][] = [
+    [F({ boq_1_rate: 'AED 95.00 per m2', boq_1_amount: 'AED 30,400' }), 1, 95, 30400],
+    [F({ boq_2_amount: 'AED 27,880' }), 2, 68, 27880],
+    [F({ boq_3_rate: '120 درهم لكل متر', boq_3_amount: '7680 درهم' }), 3, 120, 7680],
+    [F({ boq_3_rate: 'AED 120 per m' }), 3, 120, 7680],
   ];
-  for (const [text, n, rate, amount] of cases) {
-    const rr = readReply(text, open);
+  for (const [fields, n, rate, amount] of cases) {
+    const text = JSON.stringify(fields);
+    const rr = replyFrom(fields, open);
     const c = rr.corrections.find((x) => x.field === 'boq_price') as { boq_line: number; unit_price: number | null; amount: number | null } | undefined;
     assert(c, `no price read from "${text}": ${JSON.stringify(rr.corrections)}`);
     assertEquals(c.boq_line, n);
@@ -436,15 +481,15 @@ Deno.test('finding 2: prices typed in the chat — the auditor\'s grammar, the r
     const said = tookSaid(rr.corrections)!; assertMatch(said.en, new RegExp(`BOQ line ${n} priced`)); assert(ARABIC.test(said.ar));
   }
   // all three in one message, and the total follows the lines
-  const rr = readReply('BOQ line 1 AED 30,400; BOQ line 2 AED 27,880; BOQ line 3 AED 7,680', open);
+  const rr = replyFrom(F({ boq_1_amount: 'AED 30,400', boq_2_amount: 'AED 27,880', boq_3_amount: 'AED 7,680' }), open);
   assertEquals(rr.corrections.filter((x) => x.field === 'boq_price').length, 3);
   const w3 = applyCorrections(w0, rr.corrections, inq.boq_rows);
   assertEquals(w3.amount, 65960);
   assert(!reviewQuotation(inq, w3).issues.some((i) => i.code === 'boq_line_not_priced' || i.code === 'total_mismatch'));
   // a priced line is no longer an excluded one
-  const wx = applyCorrections(w0, readReply('BOQ line 3 excluded — by others', open).corrections, inq.boq_rows);
+  const wx = applyCorrections(w0, replyFrom(F({ boq_3_excluded: 'by others' }), open).corrections, inq.boq_rows);
   assertEquals(Object.keys(wx.boq_excluded), ['3']);
-  const wp = applyCorrections(wx, readReply('BOQ line 3 AED 7,680', open).corrections, inq.boq_rows);
+  const wp = applyCorrections(wx, replyFrom(F({ boq_3_amount: 'AED 7,680' }), open).corrections, inq.boq_rows);
   assertEquals(wp.boq_excluded, {}); assert(!/BOQ line 3 excluded/.test(wp.exclusions));
 });
 
@@ -454,16 +499,16 @@ Deno.test('finding 14: several answers in one message all match, and the acknowl
     { description: 'Gypsum board partition 100mm metal stud, both faces', qty: '320', unit: 'm2', unit_price: 95, amount: 30400 },
     { description: 'Suspended false ceiling 600x600 mineral fibre', qty: '410', unit: 'm2', unit_price: 68, amount: 27880 },
     { description: 'Gypsum bulkhead 300mm drop, painted finish', qty: '64', unit: 'm', unit_price: 120, amount: 7680 },
-  ], amount: 65960, price_ex_vat: 65960, warranty: '', scope: '', notes: 'Prices exclude VAT', lead_time: '4 weeks' });
+  ], amount: 65960, price_ex_vat: 65960, warranty: '', scope: '', notes: 'Prices exclude VAT', lead_time: '4 weeks', boq_match: SAME_ORDER });
   const open = reviewQuotation(inq, w0).issues;
   assertEquals(open.map(issueKey).sort(), ['installation_included|||installation_included', 'spec|1||thickness_mm', 'spec|3||board_type', 'warranty_coverage|||warranty_coverage', 'warranty_period|||warranty_period'].sort());
-  const rr = readReply('line 1 thickness: 12.5mm. line 3 board type: standard gypsum board. Installation included, 4 weeks on site. Warranty 2 years parts and labour.', open);
+  const rr = replyFrom(F({ spec_1_thickness_mm: '12.5mm', spec_3_board_type: 'standard gypsum board', installation_included: 'Installation included', installation_detail: '4 weeks on site', warranty_period: '2 years', warranty_coverage: 'parts and labour' }), open);
   const fields = rr.corrections.map((c) => c.field).sort();
   assertEquals(fields, ['installation', 'line_spec', 'line_spec', 'warranty_terms']);
   const specs = rr.corrections.filter((c) => c.field === 'line_spec') as { line_no: number; attr: string; value: string }[];
   assertEquals(specs.map((s) => [s.line_no, s.attr, s.value]), [[1, 'thickness_mm', '12.5mm'], [3, 'board_type', 'standard gypsum board']]);
   const wt = rr.corrections.find((c) => c.field === 'warranty_terms') as { period: string | null; coverage: string | null };
-  assertEquals(wt.period, '2 years'); assertEquals(wt.coverage, 'parts, labour');   // finding 4: not "installation, on site, parts, labour"
+  assertEquals(wt.period, '2 years'); assertEquals(wt.coverage, 'parts and labour');   // finding 4: the warranty's own words, not the installation's
   const said = tookSaid(rr.corrections)!;
   assertMatch(said.en, /line 1: 12\.5mm; line 3: standard gypsum board/); assert(!/Installation included, 4 weeks on site\. Warranty/.test(said.en), 'no echoed run-on');
   const r1 = reviewQuotation(inq, applyCorrections(w0, rr.corrections, inq.boq_rows));
@@ -508,7 +553,7 @@ Deno.test('finding 2: every open point closes from the chat — the supplier\'s 
   ], amount: 70000, price_ex_vat: 70000, warranty: '2 years parts and labour', scope: 'Supply and install, installation included, 4 weeks on site', notes: 'Prices exclude VAT', lead_time: '4 weeks' });
   const open = reviewQuotation(inq, w0).issues;
   assert(open.some((i) => i.code === 'line_unpriced' && i.line_no === 4), JSON.stringify(open.map(issueKey)));
-  const rr = readReply('line 4 AED 150 each', open);
+  const rr = replyFrom(F({ line_4_rate: 'AED 150 each' }), open);
   assertEquals(rr.corrections, [{ field: 'line_price', line_no: 4, unit_price: 150, amount: null }]);
   const w1 = applyCorrections(w0, rr.corrections, inq.boq_rows);
   assertEquals(w1.lines[3].amount, 600); assertEquals(w1.amount, 66560);
@@ -516,15 +561,15 @@ Deno.test('finding 2: every open point closes from the chat — the supplier\'s 
   // a total that does not add up: re-stated, or explained by a discount
   const w2 = good({ ...w1, amount: 70000, price_ex_vat: 70000 });
   const open2 = reviewQuotation(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
-  assert(!reviewQuotation(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
-  const wd = applyCorrections(w2, readReply('We give a discount of AED 3,440.', open2).corrections);
+  assert(!reviewQuotation(inq, applyCorrections(w2, replyFrom(F({ total: 'AED 66,560' }), open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
+  const wd = applyCorrections(w2, replyFrom(F({ total_reason: 'We give a discount of AED 3,440.' }), open2).corrections);
   assert(!reviewQuotation(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
   // a material the customer named
   const withGlass: SafeInquiry = { ...inq, category: 'glass', boq_rows: [], spec: { customer_requirements: { version: 1, materials: [{ component: 'glass', label_en: 'Glass', label_ar: 'الزجاج' }] } } };
   const wg = good({ lines: [{ description: 'Shower screen, 8mm clear tempered, chrome hinges', qty: '1', unit: 'nos', unit_price: 9000, amount: 9000 }] });
   const og = reviewQuotation(withGlass, wg).issues.filter((i) => i.code === 'component');
   assertEquals(og.map(issueKey), ['component|||component:glass']); {
-    const rg = readReply('glass: 8mm clear tempered, polished edges', og);
+    const rg = replyFrom(F({ component_glass: '8mm clear tempered, polished edges' }), og);
     const c = rg.corrections.find((x) => x.field === 'component') as { key: string; value: string } | undefined;
     assert(c, JSON.stringify({ og, rg })); assertEquals(c.key, 'glass');
     const after = reviewQuotation(withGlass, applyCorrections(wg, rg.corrections)).issues;
@@ -561,9 +606,9 @@ Deno.test('finding 4 + 28: the generated quotation says what the approval said �
 Deno.test('finding 4: a BOQ line excluded in the chat leaves the quotation and the total — never "excluded" and priced at once', async () => {
   const inq = gypsumInquiry();
   const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo']);
-  const w0 = workingFromProposal(read.proposal!, read.text);
+  const w0 = { ...workingFromProposal(read.proposal!, read.text), boq_match: SAME_ORDER };
   const open = reviewQuotation(inq, w0).issues;
-  const w1 = applyCorrections(w0, readReply('BOQ line 3 excluded — by others. line 1 thickness: 12.5mm', open).corrections, inq.boq_rows);
+  const w1 = applyCorrections(w0, replyFrom(F({ boq_3_excluded: 'by others', spec_1_thickness_mm: '12.5mm' }), open, inq.boq_rows.length).corrections, inq.boq_rows);
   assertEquals(w1.lines.map((l) => l.amount), [30400, 27880]);
   assertEquals(w1.amount, 58280); assertEquals(w1.price_ex_vat, 58280); assertEquals(Object.keys(w1.boq_excluded), ['3']);
   assertEquals(w1.lines[0].spec?.thickness_mm, '12.5mm');   // the spec in the same message still names line 1
@@ -584,3 +629,68 @@ Deno.test('Arabic acknowledgement: a stated period is read back in Arabic ("ال
   assertStringIncludes(said.en, 'validity 30 days');
 });
 
+
+// ── THE HOLD (23 Sep 2026, decision point supplier_api.quote_review_match) ──────────────────────────
+// Nothing the supplier writes is read by a word list. Held, the review guesses nothing — the match, the
+// VAT basis and a reply all wait — the supplier is answered from data (the open points, the buttons),
+// and what the replay reasons is applied at the supplier's next step.
+Deno.test('held: the match, the VAT basis and a typed reply are not guessed; the supplier is answered with the open points', async () => {
+  const { mem, deps, ctx, submitted } = harness();
+  deps.reason = fakeReasoner({ held: true });
+  await start(mem.repo, deps, ctx, INQ_ID);
+  const t1 = ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(COMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+  assertEquals(t1.state, 'changes_requested');
+  const codes = t1.open_requests.map((q) => q.code);
+  assert(codes.includes('boq_line_not_priced') && codes.includes('vat_basis'), JSON.stringify(codes));
+  assertEquals(t1.open_requests.find((q) => q.code === 'boq_line_not_priced')!.kind, 'clarification');
+  const t2 = ok(await message(mem.repo, deps, ctx, INQ_ID, 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship'));
+  const last = t2.messages.at(-1)!;
+  assertMatch(last.body_en || '', /your message is recorded/); assertMatch(last.body_en || '', /Still open for Job/); assert(ARABIC.test(last.body_ar || ''));
+  assertEquals(t2.open_requests.length, t1.open_requests.length, 'nothing was applied on a guess');
+  assertEquals(submitted.length, 0);
+});
+
+Deno.test('held, then the hold lifts: the replayed reading is applied at the next step, and the review re-runs', async () => {
+  const { mem, deps, ctx } = harness();
+  deps.reason = fakeReasoner({ held: true, vat: 'not_stated' });
+  await start(mem.repo, deps, ctx, INQ_ID);
+  ok(await upload(mem.repo, deps, ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+  const msgText = 'validity 30 days. lead time 3 weeks. prices exclude VAT. warranty 2 years covering materials and workmanship';
+  const held = ok(await message(mem.repo, deps, ctx, INQ_ID, msgText));
+  assertEquals(held.state, 'changes_requested');
+  // What fn_reason_apply_supplier_api__quote_review_reply and ..._match write when the hold lifts:
+  const row = mem.reviews[0];
+  row.working = { ...row.working!, boq_match: { '1': 1 }, pending_rereview: true, pending_reasoned: [{ message_id: held.messages.at(-2)!.id, fields: REPLY[msgText] }] };
+  deps.reason = fakeReasoner({ vat: 'not_stated' });
+  const t = ok(await thread(mem.repo, deps, ctx, INQ_ID));
+  assertEquals(t.state, 'awaiting_choice', JSON.stringify(t.open_requests));
+  assert(t.messages.some((m) => /^Thank you — noted: validity 30 days/.test(m.body_en || '')), 'the reading is acknowledged in the thread');
+  assertEquals(mem.reviews[0].working!.pending_reasoned, [], 'applied once');
+  const again = ok(await thread(mem.repo, deps, ctx, INQ_ID));
+  assertEquals(again.messages.length, t.messages.length, 'a second view applies nothing twice');
+});
+
+Deno.test('a question is answered: reasoned when it can be, the open points when the reasoning is held', async () => {
+  const live = harness();
+  await start(live.mem.repo, live.deps, live.ctx, INQ_ID);
+  ok(await upload(live.mem.repo, live.deps, live.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+  const a = ok(await message(live.mem.repo, live.deps, live.ctx, INQ_ID, 'what is still missing?'));
+  assertEquals(a.messages.at(-1)!.body_en, 'Reasoned answer to: what is still missing?');
+  const held = harness();
+  held.deps.reason = { ...fakeReasoner(), question: () => Promise.resolve(null) };
+  await start(held.mem.repo, held.deps, held.ctx, INQ_ID);
+  ok(await upload(held.mem.repo, held.deps, held.ctx, INQ_ID, { b64: b64(INCOMPLETE_CSV), filename: 'q.csv', mime: 'text/csv' }));
+  const b = ok(await message(held.mem.repo, held.deps, held.ctx, INQ_ID, 'what is still missing?'));
+  assertMatch(b.messages.at(-1)!.body_en || '', /Still open for Job/);
+});
+
+Deno.test('a BOQ line added or dropped in the chat keeps the reasoned match on its lines', () => {
+  const inq = gypsumInquiry();
+  const w0: Working = { ...good(), lines: [], amount: null, subtotal: null, vat_amount: null, price_ex_vat: null, vat_treatment: 'exclusive', validity: '30 days', lead_time: '4 weeks', boq_match: {} };
+  const open = reviewQuotation(inq, w0).issues;
+  const w1 = applyCorrections(w0, replyFrom(F({ boq_2_amount: 'AED 27,880', boq_1_amount: 'AED 30,400' }), open).corrections, inq.boq_rows);
+  assertEquals(w1.boq_match, { '1': 1, '2': 2 }, 'each new line is the BOQ line it was priced for');
+  assertEquals(w1.boq_match_for, boqKey(inq.boq_rows, w1.lines));
+  const w2 = applyCorrections(w1, replyFrom(F({ boq_1_excluded: 'by others' }), [], inq.boq_rows.length).corrections, inq.boq_rows);
+  assertEquals(w2.boq_match, { '2': 1 }, 'the dropped line leaves the match; the other is renumbered');
+});

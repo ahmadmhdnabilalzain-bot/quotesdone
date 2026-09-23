@@ -116,10 +116,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   useEffect(() => { try { endRef.current && endRef.current.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'end' }); } catch (_e) {} }, [messages, thinking, analyzing, ready, editor]);
 
   // drawingNow: the drawing just adopted, passed directly because setDrawing has not landed yet.
-  const runIntake = async (message, drawingNow = null) => {
+  // choice: the option tapped, {key, option} — the server takes it as the answer without reading the words.
+  const runIntake = async (message, drawingNow = null, choice = null) => {
     setThinking(true); setMsg('');
     const dr = drawingNow || drawing;
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang }, token).catch(() => null);
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, ...(choice ? { choice } : {}) }, token).catch(() => null);
     setThinking(false);
     if (!r || r.error) { push({ role: 'assistant', text: errText(r, lang, 'nr_err_generic') }); return; }
     if (r.intake_id) setIntakeId(r.intake_id);
@@ -132,10 +133,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     setMeta({ agent_name: r.agent_name || null, urgency: r.urgency || null, override: r.classifier_override || null, readiness: readinessPct(r.readiness ?? r.readiness_score), category: r.category || null });
     // suggested is highlighted and labelled, never pre-selected: the customer still taps it to confirm.
     const suggested = r.next_question && r.next_question.suggested ? String(r.next_question.suggested) : null;
-    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, options, suggested, left: r.status === 'ready' ? 0 : questions.length });
+    push({ role: 'assistant', text: r.assistant_message || '', questions: next ? [next, ...questions.filter((q) => q !== next)] : questions, next, nextKey: (r.next_question && r.next_question.key) || null, options, suggested, left: r.status === 'ready' ? 0 : questions.length });
     if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); setEdits({}); } else setReady(false);
   };
-  const sendText = async (text) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
+  const sendText = async (text, choice = null) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v, null, choice); };
   const send = () => sendText(input);
   // THE HOMEPAGE HANDOFF. The draft is sent as the first message exactly once; the parent deletes the
   // localStorage key before mounting this, so a reload cannot send it twice.
@@ -173,7 +174,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   // A DRAWING photo is read with the drawing plan (ocrPlan.ts) and its symbols counted, in the
   // browser. Falls back to the plain read on any failure, so a drawing never gets less than before.
-  const ocrDraw = async (img) => { try { const { ocrDrawing } = await import('./ocrClient'); return await ocrDrawing(img, { lite: typeof window !== 'undefined' && window.innerWidth < 700 }); } catch (_e) { return null; } };
+  const ocrDraw = async (img) => { try { const { ocrDrawing } = await import('./ocrClient'); return await ocrDrawing(img, { lite: typeof window !== 'undefined' && window.innerWidth < 700,
+    // The legend's words are read by the sales engineer's reasoning on the server, never matched here.
+    vocab: (texts) => call('customer_api', { action: 'drawing_vocabulary', texts }, token).then((r) => (r && r.ok && Array.isArray(r.device) ? r.device : null)).catch(() => null) }); } catch (_e) { return null; } };
   // FREE OCR (14 Sep 2026). The vision model is held and an edge function has ~2 s of CPU, so a photo's
   // or a scan's words are read HERE, by tesseract.js in the customer's browser (ocrClient.ts). The text
   // is untrusted input: the server parses it, strips prices, and scrubs identity like any other text.
@@ -449,7 +452,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
             {m === lastAssistant && Array.isArray(m.options) && m.options.length > 0 && !thinking && (
               <div className="mt-1.5 flex flex-wrap gap-1.5 ps-1" role="group" aria-label={m.next || t(lang, 'nr_chips_hint')}>
                 {m.options.map((o) => (
-                  <button key={o} type="button" onClick={() => sendText(o)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', o === m.suggested ? 'border-primary bg-primary/20 ring-1 ring-primary/40' : 'border-primary/45 bg-primary/10')}>{o}{o === m.suggested ? <span className="ms-1.5 text-[10.5px] font-normal uppercase tracking-wide opacity-80">{t(lang, 'nr_suggested')}</span> : null}</button>
+                  <button key={o} type="button" onClick={() => sendText(o, m.nextKey ? { key: m.nextKey, option: o } : null)} className={cn('rounded-full border px-3 py-1.5 text-[12.5px] font-semibold text-primary hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring', o === m.suggested ? 'border-primary bg-primary/20 ring-1 ring-primary/40' : 'border-primary/45 bg-primary/10')}>{o}{o === m.suggested ? <span className="ms-1.5 text-[10.5px] font-normal uppercase tracking-wide opacity-80">{t(lang, 'nr_suggested')}</span> : null}</button>
                 ))}
               </div>
             )}

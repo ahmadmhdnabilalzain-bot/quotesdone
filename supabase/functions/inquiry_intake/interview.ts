@@ -1,25 +1,25 @@
-// interview — the deterministic intake interview (14 Sep 2026). No model, no network, no env.
+// interview — the intake interview's state machine (14 Sep 2026; answers REASONED since 23 Sep 2026).
+// No model, no network, no env IN THIS FILE: what the customer's words mean arrives as an argument.
 //
-// WHY THIS EXISTS. Every model route in llm_route_health is held under the founder's OpenRouter
-// hold, so inquiry_intake's keyword fallback is the path every real customer takes. That fallback
-// derived its "missing" list from category_specs required fields and NEVER READ THE ANSWERS: the
-// customer answered, the next turn asked the same three trade-language questions again, status
-// stayed needs_info, brief stayed null, and create_inquiry (which needs a 'ready' intake row) was
-// unreachable for every category with a required field — 47 of 56 categories, 252 of 396 fields
-// (measured on production category_specs, 14 Sep 2026). Posting a job has to work with no model.
+// WHY THIS EXISTS. inquiry_intake's fallback derived its "missing" list from category_specs required fields
+// and NEVER READ THE ANSWERS: the customer answered, the next turn asked the same questions again, and
+// create_inquiry was unreachable for every category with a required field — 47 of 56 categories, 252 of
+// 396 fields (measured on production category_specs, 14 Sep 2026). Posting a job has to work.
 //
-// WHAT IT DOES. One question at a time, in the category's own order. The answer to the question
-// last asked is parsed into that field's canonical key (category_specs.fields[].key — the same
-// keys fn_rfq_required_check scores and the model path is told to use), and the first message is
-// read opportunistically for anything it already states (an emirate, "120 sqm", an option named
-// outright). When every required field is filled the brief is built in the exact shape the model
-// path returns, so create_inquiry and customer_api take it unchanged.
-//
-// WHAT IT DOES NOT DO. It does not judge whether an answer is sensible for the trade. A vague or
-// unparseable answer to the question just asked is KEPT IN THE CUSTOMER'S OWN WORDS rather than
-// re-asked — the intake prompt's own rule is that an approximate answer beats an abandoned inquiry,
-// and a supplier can quote against a stated assumption. Structured parsing (numbers + units,
-// emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
+// WHAT IT DOES. One question at a time, in the category's own order, state kept in brief.details under
+// the canonical keys (category_specs.fields[].key — the keys fn_rfq_required_check scores). A field is
+// filled from exactly two sources, and nothing else:
+//   1. the option the customer TAPPED for the question just asked (a structured choice the portal sends
+//      as body.choice {key, option}; accepted only when it is one of that field's own options);
+//   2. what think() reasoned the customer has already stated, with their own words as evidence
+//      (_shared/reasoned_intake.ts interviewAnswers — decision point interview.answers).
+// WHY NOT WORDS (founder_instruction 886-903, no word matching anywhere). The yes/no, "not sure", option,
+// emirate and date readers that stood here decided meaning by spotting words: "Not sure" once read as Yes
+// ("sure"), and an Arabic answer could only name an option through a 40-term glossary. They are gone.
+// UNDER THE HOLD (stated === null). A typed reply to a question with no options is kept VERBATIM as the
+// answer to the question just asked — the customer's own words, nothing inferred (a supplier quotes against
+// them); a typed reply to a question WITH options is not guessed into one: the question stays open with
+// its options to tap. Numbers and money stay format-parsed (parseMeasures / parseBudget) for the brief.
 
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
@@ -37,22 +37,6 @@ export const fieldKey = (f: SpecField, i: number) => (f.key && String(f.key)) ||
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
 export function normDigits(s: string): string {
   return String(s || '').replace(/[٠-٩]/g, (d) => String(AR_DIGITS.indexOf(d))).replace(/[٫]/g, '.').replace(/[٬،](?=\d{3}\b)/g, ',');
-}
-
-// ── EMIRATES, English and Arabic ────────────────────────────────────────────────────────────────
-const EMIRATE_PATTERNS: [string, RegExp][] = [
-  ['Abu Dhabi', /abu\s*dhabi|أبو\s*ظبي|ابو\s*ظبي|أبوظبي|ابوظبي/i],
-  ['Al Ain', /\bal\s*ain\b|العين/i],
-  ['Dubai', /dubai|دبي/i],
-  ['Sharjah', /sharjah|الشارقة|شارقة/i],
-  ['Ajman', /ajman|عجمان/i],
-  ['Ras Al Khaimah', /ras\s*al\s*khaimah|\brak\b|رأس\s*الخيمة|راس\s*الخيمة/i],
-  ['Fujairah', /fujairah|الفجيرة|فجيرة/i],
-  ['Umm Al Quwain', /umm\s*al\s*quwain|\buaq\b|أم\s*القيوين|ام\s*القيوين/i],
-];
-export function parseEmirate(text: string): string | null {
-  for (const [name, re] of EMIRATE_PATTERNS) if (re.test(text)) return name;
-  return null;
 }
 
 // ── NUMBERS WITH UNITS ──────────────────────────────────────────────────────────────────────────
@@ -100,45 +84,6 @@ export function parseMeasures(text: string): Measure[] {
   return out;
 }
 
-// ── DATES, DURATIONS, "ASAP" ────────────────────────────────────────────────────────────────────
-export type When = { days: number | null; text: string; flexible?: boolean };
-const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
-export function parseWhen(text: string, now = new Date()): When | null {
-  const t = normDigits(text).toLowerCase();
-  if (/\b(asap|urgent(?:ly)?|immediately|right away|today|now|emergency)\b|فور[اًا]?|عاجل|بأسرع وقت|في أسرع وقت|اليوم|حالا|حالاً/.test(t)) return { days: 0, text: 'ASAP' };
-  if (/\b(flexible|any ?time|no rush|not urgent|whenever)\b|مرن|غير مستعجل|أي وقت|اي وقت/.test(t)) return { days: null, text: 'Flexible', flexible: true };
-  if (/\btomorrow\b|غد[اًا]?|بكرة|بكره/.test(t)) return { days: 1, text: 'Tomorrow' };
-  if (/\bnext week\b|الأسبوع القادم|الاسبوع القادم|الأسبوع الجاي/.test(t)) return { days: 7, text: 'Next week' };
-  if (/\bnext month\b|الشهر القادم|الشهر الجاي/.test(t)) return { days: 30, text: 'Next month' };
-  const dur = t.match(/(\d+(?:\.\d+)?)\s*(?:-|to|–)?\s*(\d+)?\s*(days?|weeks?|months?|يوم|أيام|ايام|أسبوع|اسبوع|أسابيع|اسابيع|شهر|أشهر|اشهر|شهور)/);
-  if (dur) {
-    const n = Number(dur[2] || dur[1]);
-    const u = dur[3];
-    const mult = /week|أسبوع|اسبوع|أسابيع|اسابيع/.test(u) ? 7 : (/month|شهر|أشهر|اشهر|شهور/.test(u) ? 30 : 1);
-    return { days: Math.round(n * mult), text: dur[0].trim() };
-  }
-  const arDur = t.match(/(أسبوعين|اسبوعين|شهرين|يومين)/);
-  if (arDur) return { days: /شهرين/.test(arDur[1]) ? 60 : (/يومين/.test(arDur[1]) ? 2 : 14), text: arDur[1] };
-  const dmy = t.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/);
-  if (dmy) {
-    const y = Number(dmy[3].length === 2 ? '20' + dmy[3] : dmy[3]);
-    const d = new Date(Date.UTC(y, Number(dmy[2]) - 1, Number(dmy[1])));
-    if (!isNaN(d.getTime())) return { days: Math.max(0, Math.round((d.getTime() - now.getTime()) / 86400000)), text: d.toISOString().slice(0, 10) };
-  }
-  for (let i = 0; i < 12; i++) {
-    const re = new RegExp(`(?:(\\d{1,2})\\s*)?\\b${MONTHS[i]}|\\b${MONTHS[i].slice(0, 3)}\\b`);
-    const mm = t.match(re);
-    if (mm) {
-      let y = now.getUTCFullYear();
-      const day = mm[1] ? Number(mm[1]) : 1;
-      let d = new Date(Date.UTC(y, i, day));
-      if (d.getTime() < now.getTime() - 86400000) { y++; d = new Date(Date.UTC(y, i, day)); }
-      return { days: Math.round((d.getTime() - now.getTime()) / 86400000), text: mm[1] ? d.toISOString().slice(0, 10) : `${MONTHS[i][0].toUpperCase()}${MONTHS[i].slice(1)} ${y}` };
-    }
-  }
-  return null;
-}
-
 // ── MONEY ───────────────────────────────────────────────────────────────────────────────────────
 export function parseBudget(text: string): string | null {
   const t = normDigits(text);
@@ -170,203 +115,6 @@ export function parseBudget(text: string): string | null {
   return null;
 }
 
-// ── YES / NO / DON'T KNOW ───────────────────────────────────────────────────────────────────────
-export function parseYesNo(text: string): 'Yes' | 'No' | null {
-  // "Not sure" is not a yes. The yes pattern below contains `sure`, so without this line "not sure,
-  // advise" read as Yes (found 14 Sep 2026 replaying the founder's generators request: his "Not sure"
-  // about the power rating answered "should it switch on by itself?" with Yes, unasked).
-  if (isUnknown(text)) return null;
-  const t = ' ' + String(text || '').toLowerCase().trim() + ' ';
-  if (/\b(no|nope|not needed|none|don't need|do not need)\b|^\s*لا\s|لا نحتاج|لا أحتاج|غير مطلوب/.test(t)) return 'No';
-  if (/\b(yes|yeah|yep|yup|sure|please|of course|definitely|needed|required)\b|نعم|أيوه|ايوه|اي نعم|أكيد|اكيد|طبعا|طبعاً|مطلوب/.test(t)) return 'Yes';
-  return null;
-}
-export const isUnknown = (text: string) =>
-  /\b(not sure|don'?t know|do not know|no idea|unsure|you (?:tell|advise|recommend)|recommend|advise)\b|لا أعرف|لا اعرف|مش عارف|ما أعرف|ما اعرف|غير متأكد|غير متاكد|انصحني|اقترح/i.test(String(text || ''));
-
-// ── OPTIONS ─────────────────────────────────────────────────────────────────────────────────────
-const tokens = (s: string) => String(s || '').toLowerCase().replace(/\(.*?\)/g, ' ').split(/[^a-z0-9؀-ۿ+]+/).filter((w) => w.length > 2);
-function optionForDays(options: string[], w: When): string | null {
-  if (w.flexible) return options.find((o) => /flexib/i.test(o)) || null;
-  if (w.days === null) return null;
-  let best: string | null = null;
-  for (const o of options) {
-    const lo = o.toLowerCase();
-    if (/urgent|asap|immediate/.test(lo) && w.days <= 14) return o;
-    const nums = (lo.match(/\d+/g) || []).map(Number);
-    if (!nums.length) continue;
-    const mult = /month/.test(lo) ? 30 : (/week/.test(lo) ? 7 : 1);
-    const max = Math.max(...nums) * mult;
-    if (w.days <= max) { best = o; break; }
-  }
-  return best;
-}
-// Every option in category_specs is written in English (all 396 fields, measured 14 Sep 2026), so
-// an Arabic answer can never name one. Common Arabic trade words are glossed to the English an
-// option uses before matching.
-// ponytail: a fixed glossary of ~40 terms; the upgrade is an options_ar sibling on category_specs.
-const AR_GLOSS: [RegExp, string][] = [
-  [/نوافذ|نافذة|شبابيك|شباك/, 'windows'], [/أبواب|ابواب|باب/, 'doors'], [/درابزين/, 'railing handrails'],
-  [/تكسية|كلادينج/, 'cladding'], [/برجولة|مظلة|مظلات/, 'pergola shade'], [/قواطع|فواصل|بارتشن/, 'partitions'],
-  [/منزلق|سحاب/, 'sliding'], [/توريد\s*و\s*تركيب|توريد\s*وتركيب/, 'supply and install supply + installation'],
-  [/توريد\s*فقط/, 'supply only'], [/تركيب\s*فقط/, 'install only installation only'],
-  [/فيلا|فلة|فيلّا/, 'villa'], [/شقة/, 'apartment'], [/مكتب/, 'office'], [/محل|متجر/, 'retail shop'],
-  [/مستودع|مخزن/, 'warehouse'], [/مطعم|مقهى/, 'restaurant cafe'], [/عيادة/, 'clinic'], [/مبنى|بناية|عمارة/, 'building'],
-  [/داخلي/, 'indoor interior'], [/خارجي/, 'outdoor exterior'], [/كلاهما|الاثنين|الإثنين/, 'both'],
-  [/زجاج\s*مزدوج|دبل/, 'double glazed'], [/زجاج\s*مفرد|سنجل/, 'single glazed'], [/مصنفر/, 'frosted'],
-  [/مرة\s*واحدة/, 'one-time'], [/أسبوعي|اسبوعي/, 'weekly'], [/شهري/, 'monthly'], [/سنوي|عقد\s*سنوي/, 'annual contract'],
-  [/إيجار|ايجار|استئجار/, 'rental'], [/شراء/, 'buy'], [/جديد/, 'new installation new build'], [/استبدال/, 'replacement'],
-  [/صيانة/, 'maintenance'], [/إصلاح|اصلاح|تصليح/, 'repair'], [/سيراميك/, 'ceramic'], [/بورسلان/, 'porcelain'],
-  [/رخام/, 'marble'], [/جرانيت|غرانيت/, 'granite'], [/باركيه/, 'parquet'], [/فينيل/, 'vinyl'], [/إيبوكسي|ايبوكسي/, 'epoxy'],
-  [/سجاد|موكيت/, 'carpet'], [/أسقف\s*معلقة|سقف\s*معلق|جبس/, 'false ceiling'], [/كاميرات|كاميرا|مراقبة/, 'cctv cameras'],
-  [/سطح/, 'roof'], [/حمام/, 'bathroom'], [/مطبخ/, 'kitchen'], [/حديقة/, 'garden softscape'],
-];
-function glossArabic(text: string): string {
-  let add = '';
-  for (const [re, en] of AR_GLOSS) if (re.test(text)) add += ' ' + en;
-  return add;
-}
-
-/** Every option named in the text. A select field takes the first; a multiselect takes all. */
-// English says the same option several ways. Measured on harness journey a (14 Sep 2026): "supplied
-// and installed" never matched the option "Supply and install", so scope was asked again and the next
-// sentence the customer typed was stored as the answer.
-function glossEnglish(text: string): string {
-  const t = String(text || '').toLowerCase();
-  let add = '';
-  if (/\bsuppl(?:y|ied)\s+(?:and|&|\+)\s+install(?:ed|ation)?\b|\bsupply[\s-]+(?:and|&)[\s-]+fix\b|\binstalled\b/.test(t)) add += ' supply and install';
-  if (/\b(?:supply|deliver(?:y)?)\s+only\b|\bno installation\b|\bwithout installation\b/.test(t)) add += ' supply only';
-  return add;
-}
-
-// Words that name no work on their own, so a multiselect option is never picked on one of them.
-const GENERIC_TOKENS = new Set(['not', 'sure', 'other', 'only', 'and', 'the', 'with', 'new', 'supply', 'install', 'points', 'works', 'work', 'system', 'systems', 'services', 'service', 'general', 'type', 'unit', 'units', 'connection', 'standard']);
-/**
- * `multi` = a multiselect field: a list of works, where every option the customer names is wanted.
- * Then an option is also matched by its parenthetical ("New wiring (first fix)" ← "first fix") or by
- * its last specific noun ("Power sockets" ← "60 double sockets"). Measured 21 Sep 2026 (customer
- * audit, finding 8): "Supply and install 500 m of ... cable ... 3 x 12-way DB boards ... 60 double
- * sockets" kept only "DB board supply & install"; the cable and the sockets were dropped from scope.
- */
-export function matchOptions(options: string[], text: string, multi = false): string[] {
-  const t = ' ' + String(text || '').toLowerCase() + glossArabic(String(text || '')) + glossEnglish(String(text || '')) + ' ';
-  const hits: string[] = [];
-  const word = (w: string) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(t);
-  for (const o of options) {
-    const lo = o.toLowerCase();
-    if (/^(yes|no)\b/.test(lo) && lo.length < 5) continue; // yes/no handled by parseYesNo
-    const whole = lo.replace(/\s*\(.*?\)\s*/g, ' ').trim();
-    if (whole.length > 2 && t.includes(whole)) { hits.push(o); continue; }
-    const alts = lo.split(/\s*[\/+]\s*|\s+or\s+/).map((s) => s.replace(/\(.*?\)/g, '').trim()).filter((s) => s.length > 2);
-    if (alts.some(word)) { hits.push(o); continue; }
-    const tk = tokens(o).filter((w) => !GENERIC_TOKENS.has(w));
-    if (tk.length && tk.length <= 3 && tk.every((w) => t.includes(w))) { hits.push(o); continue; }
-    if (!multi) continue;
-    const paren = (lo.match(/\(([^)]{4,})\)/) || [])[1];
-    if (paren && t.includes(paren.trim())) { hits.push(o); continue; }
-    const last = tk[tk.length - 1];
-    if (last && last.length >= 6 && word(last)) hits.push(o);
-  }
-  return hits;
-}
-
-// ── WHAT KIND OF ANSWER A FIELD WANTS ───────────────────────────────────────────────────────────
-type Kind = 'emirate' | 'when' | 'budget' | 'measure' | 'text';
-export function kindOf(f: SpecField): Kind {
-  const s = `${f.key || ''} ${f.question || ''}`.toLowerCase();
-  if (/budget/.test(s)) return 'budget';
-  if (/timeline|timing|deadline|\bdate\b|start|when |completion|duration/.test(s)) return 'when';
-  if (/emirate|location/.test(s)) return 'emirate';
-  if (f.type === 'number' || /area|sqm|size|quantity|how many|dimensions|capacity|qty|stops|count|m²|length|height/.test(s)) return 'measure';
-  return 'text';
-}
-
-/**
- * Parse `text` as the answer to field `f`.
- * `targeted` = this was the question just asked, so an answer that cannot be normalised is still
- * the customer's answer and is kept verbatim. Untargeted (reading the first message for facts it
- * already states) only fills a field on a clear structured hit, never on free text.
- */
-export function parseAnswer(f: SpecField, text: string, targeted: boolean): string | null {
-  const raw = String(text || '').trim();
-  if (!raw) return null;
-  const opts = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
-  const kind = kindOf(f);
-  if (opts.length) {
-    // Only the question just asked can be answered by a bare yes or no. Reading the whole
-    // conversation for one let any "yes" or "no" the customer said about something else fill every
-    // unanswered yes/no field at once.
-    if (targeted && opts.length <= 3 && opts.some((o) => /^yes\b/i.test(o)) && opts.some((o) => /^no\b/i.test(o))) {
-      const yn = parseYesNo(raw);
-      if (yn) return opts.find((o) => o.toLowerCase().startsWith(yn.toLowerCase())) || yn;
-    }
-    if (kind === 'when') { const w = parseWhen(raw); const o = w ? optionForDays(opts, w) : null; if (o) return o; }
-    if (kind === 'emirate') {
-      const e = parseEmirate(raw);
-      if (e) return opts.find((o) => o.toLowerCase().includes(e.toLowerCase()))
-        || (['Ajman', 'Ras Al Khaimah', 'Umm Al Quwain', 'Fujairah'].includes(e) ? opts.find((o) => /northern/i.test(o)) : undefined)
-        || (targeted ? e : null);
-    }
-    // A "not sure" is only ever the answer to the question it was said to. Read untargeted, one "not
-    // sure" anywhere in the conversation filled every field that offers a Not sure / Recommend option
-    // (the generators replay, 14 Sep 2026: "Not sure - advise" about power also answered the
-    // automatic-switch question, which was then never asked).
-    const hits = matchOptions(opts, raw, f.type === 'multiselect').filter((o) => targeted || !/not sure|recommend|advise|unknown|unsure/i.test(o));
-    if (hits.length) return f.type === 'multiselect' ? hits.join(', ') : hits[0];
-    if (targeted && isUnknown(raw)) return opts.find((o) => /not sure|recommend|advise|unknown|unsure/i.test(o)) || 'Not sure';
-    // A tap question answered with a paragraph that names none of its options is a STATEMENT about
-    // something else, not this answer (measured, journey a: "Materials: thermal break aluminium
-    // frames, ..." was stored as the answer to "install or deliver only?"). Its facts are still read
-    // for the fields they fit; this question stays open.
-    return targeted && raw.length <= 80 && !/[.!?؟]\s+\S/.test(raw) ? raw.slice(0, 300) : null;
-  }
-  if (targeted && isUnknown(raw)) return 'Not sure';
-  if (kind === 'emirate') {
-    const e = parseEmirate(raw);
-    if (!targeted) return e;
-    // Keep the customer's area words ("Dubai Marina, 12th floor") — the emirate is also lifted
-    // onto brief.emirate separately, so nothing is lost by not reducing this to one word.
-    return raw.slice(0, 300);
-  }
-  if (kind === 'budget') return parseBudget(raw) || (targeted ? raw.slice(0, 120) : null);
-  if (kind === 'when') { const w = parseWhen(raw); return w ? w.text : (targeted ? raw.slice(0, 120) : null); }
-  if (kind === 'measure') {
-    const ms = parseMeasures(raw);
-    const q0 = `${f.key || ''} ${f.question || ''}`.toLowerCase();
-    // "40 aluminium windows ... Sizes 1200 x 1500 mm": a count of things and a size, however far
-    // apart, answer a "how many and how big" field outright (measured: journey a stated both in its
-    // first message and was asked for them anyway).
-    // Read from what was already said only (untargeted): a direct answer keeps the customer's own
-    // words, and a unit they did not write is never added.
-    if (!targeted && /quantity|how many|pieces|qty|dimensions/.test(q0)) {
-      const t = normDigits(raw);
-      const cnt = t.match(/\b(\d{1,4})\s+(?:[a-z\-]+\s+){0,2}?(windows?|doors?|units?|pieces?|pcs|panels?|shutters?|railings?|sets?|nos)\b/i);
-      const dim = t.match(/\b(\d{2,5})\s*[x×*]\s*(\d{2,5})(?:\s*[x×*]\s*\d{2,5})?\s*(mm|cm|m)?\b/i);
-      if (cnt) return `${cnt[1]} ${cnt[2].toLowerCase()}${dim ? `, ${dim[1]} x ${dim[2]}${dim[3] ? ' ' + dim[3].toLowerCase() : ''}` : ''}`;
-    }
-    // A "how many / how big" question answered with no number at all did not answer it.
-    if (targeted && !/\d/.test(normDigits(raw))) return null;
-    if (targeted) {
-      // A targeted multi-part answer ("3 windows, 1200x1500 each") is kept whole; a single bare
-      // measure is normalised to "<n> <unit>".
-      if (ms.length === 1 && raw.replace(/[\d.,\s]/g, '').length <= 20) return ms[0].text;
-      // A paragraph answers a "how big" question with ONE of its sentences: the first that carries a
-      // number. Measured 21 Sep 2026 (customer audit, finding 8): "It is a 4-bedroom villa, about 450
-      // m2 built-up, 9 rooms. Three-phase supply. As I said: MK Logic or Legrand ... finished by 30
-      // November 2026." was stored whole as property_area and printed as the Quantity.
-      const sentences = raw.split(/(?<=[.!?؟])\s+(?=\S)/);
-      const first = sentences.length > 1 ? sentences.find((s) => /\d/.test(normDigits(s))) || sentences[0] : raw;
-      return first.slice(0, 300);
-    }
-    // Opportunistic read: only a measure whose unit this field is plainly about.
-    const q = `${f.key || ''} ${f.question || ''}`.toLowerCase();
-    const want = /sq\.?\s*ft|sqft/.test(q) ? ['sqft', 'sqm'] : (/area|sqm|m²|m2/.test(q) ? ['sqm', 'sqft'] : (/room|bedroom/.test(q) ? ['rooms'] : (/floor|stops/.test(q) ? ['floors'] : (/camera/.test(q) ? ['cameras'] : (/window/.test(q) ? ['windows'] : [])))));
-    const hit = ms.find((m) => m.unit && want.includes(m.unit));
-    return hit ? hit.text : null;
-  }
-  return targeted ? raw.slice(0, 300) : null;
-}
-
 /** Required first, then fn_category_questions' ask_order where the key matches, then spec order. */
 export function orderFields(fields: SpecField[], askOrder: Record<string, number> = {}) {
   return fields
@@ -391,38 +139,47 @@ export type InterviewStep = {
   complete: boolean;
 };
 
+export type Choice = { key: string; option: string } | null;
+export type Stated = Record<string, { value: string; evidence: string }>;
 /**
- * One turn. `answer` is this turn's message; `firstText` is everything the customer has said so
- * far (read only for clear structured facts). The field last asked receives `answer`.
+ * One turn. `choice` is the option the customer tapped; `stated` is the reasoned reading of the whole
+ * conversation (null = held); `answer` is this turn's typed message, used only under the hold, verbatim.
  */
-export function interviewStep(fields: SpecField[], state: InterviewState, answer: string, allText: string, lang: Lang, askOrder: Record<string, number> = {}): InterviewStep {
+export function interviewStep(fields: SpecField[], state: InterviewState, input: { choice?: Choice; stated: Stated | null; answer?: string }, lang: Lang, askOrder: Record<string, number> = {}): InterviewStep & { held: boolean } {
   const details: Record<string, string> = { ...(state.details || {}) };
   const ordered = orderFields(fields, askOrder);
   const filledNow: string[] = [];
   const has = (k: string) => details[k] !== undefined && String(details[k]).trim() !== '';
-  if (state.asked_key && answer && !has(state.asked_key)) {
-    const hit = ordered.find((o) => o.key === state.asked_key);
-    if (hit) { const v = parseAnswer(hit.f, answer, true); if (v) { details[hit.key] = v; filledNow.push(hit.key); } }
-  }
-  for (const o of ordered) {
-    if (has(o.key)) continue;
-    const v = parseAnswer(o.f, allText, false);
-    if (v) { details[o.key] = v; filledNow.push(o.key); }
+  const asked = state.asked_key ? ordered.find((o) => o.key === state.asked_key) : undefined;
+  const opts = (f: SpecField) => (Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : []);
+  // 1. A tapped option, for the question it was offered with: exact, or nothing.
+  const c = input.choice;
+  if (c && asked && c.key === asked.key && !has(asked.key) && opts(asked.f).includes(c.option)) { details[asked.key] = c.option; filledNow.push(asked.key); }
+  // 2. What the customer has stated, reasoned, in their own words.
+  if (input.stated) {
+    for (const o of ordered) {
+      const v = input.stated[o.key];
+      if (!has(o.key) && v && String(v.value).trim()) { details[o.key] = String(v.value).trim().slice(0, 300); filledNow.push(o.key); }
+    }
+  } else if (asked && !has(asked.key) && !opts(asked.f).length && String(input.answer || '').trim()) {
+    // Held: the reply to an open question, kept in the customer's own words.
+    details[asked.key] = String(input.answer).trim().slice(0, 300); filledNow.push(asked.key);
   }
   const req = ordered.filter((o) => o.f.required);
   const filled = req.filter((o) => has(o.key)).length;
   const nextField = req.find((o) => !has(o.key));
   const next = nextField
-    ? { key: nextField.key, text: questionText(nextField.f, lang), options: Array.isArray(nextField.f.options) && nextField.f.options.length ? nextField.f.options : null }
+    ? { key: nextField.key, text: questionText(nextField.f, lang), options: opts(nextField.f).length ? opts(nextField.f) : null }
     : null;
-  return { details, filled_now: filledNow, next, readiness: { filled, required: req.length }, complete: !nextField };
+  return { details, filled_now: filledNow, next, readiness: { filled, required: req.length }, complete: !nextField, held: input.stated === null };
 }
 
 /** The brief, in the shape the model path returns (inquiry_intake sys prompt, "brief"). */
 export function buildBrief(category: string, details: Record<string, string>, allText: string, emirate: string | null, firstUserText: string) {
   const pick = (re: RegExp) => { const k = Object.keys(details).find((x) => re.test(x)); return k ? String(details[k]) : ''; };
   const location = pick(/location|emirate/);
-  const em = emirate || parseEmirate(location) || '';
+  // The emirate is REASONED by the caller (classify.urgency_emirate); the location stays in their words.
+  const em = emirate || '';
   // Quantity is a measure ("450 sqm", "40 windows, 1200 x 1500 mm") or empty; the customer's prose
   // stays in details under its own key and in the summary. Measured 21 Sep 2026 (customer audit,
   // finding 8): a whole reply about brands and warranty was printed as "Quantity: It is a 4-bedroom

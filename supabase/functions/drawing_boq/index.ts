@@ -11,9 +11,13 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromPages } from './boq_from_text.ts';
-import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } from './drawing_set.ts';
+import { boqFromDrawingSet, drawingSetNotes, lengthsForSet, mergeLengths, type NoteReading, type ScheduleTable } from './drawing_set.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
-import { boqFromExtracted } from './boq_from_document.ts';
+import { boqFromExtracted, vocabTexts } from './boq_from_document.ts';
+import { DEVICE_TYPES, vocabFrom, type Vocab } from './legend_vocabulary.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { drawingVocabulary, scopeNotes } from '../_shared/reasoned_intake.ts';
+import type { Extracted } from '../_shared/doc_read/types.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { cadSupplierBoq } from '../_shared/cad_identity.ts';
 import { empty } from '../_shared/doc_read/types.ts';
@@ -21,6 +25,24 @@ import { drawingInput } from './drawing_input.ts';
 import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
 import { lineKey } from '../_shared/boq_open_lines.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// WHAT A DRAWING'S WORDS NAME IS REASONED (23 Sep 2026, founder_instruction 886-903; decision point
+// drawing_boq.vocabulary): which legend entry or CAD block is which device, what the title says the drawing is,
+// which labels are rooms (drawingVocabulary), and which keyed notes are work (scopeNotes). Held (the model hold):
+// an empty vocabulary / no reading — the BOQ lists what the drawing COUNTS and says what it did not read.
+const fingerprint = (t: string) => { let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+async function vocabFor(ex: Extracted, ocrText: string, drawing: Parameters<typeof vocabTexts>[2]): Promise<Vocab> {
+  const c = vocabTexts(ex, ocrText, drawing);
+  if (!c.texts.length) return vocabFrom(null);
+  const r = await drawingVocabulary(defaultDeps(admin, 'drawing_boq'), { texts: c.texts, title: c.title, types: DEVICE_TYPES.map((d) => ({ type: d.type, en: d.en })),
+    dedupeKey: 'drawing_vocab:' + fingerprint(c.texts.join('\n')) });
+  return vocabFrom(r.value);
+}
+async function readingFor(pages: Parameters<typeof drawingSetNotes>[0]): Promise<NoteReading> {
+  const notes = drawingSetNotes(pages);
+  if (!notes.length) return null;
+  const r = await scopeNotes(defaultDeps(admin, 'drawing_boq'), { notes, dedupeKey: 'drawing_notes:' + fingerprint(notes.map((n) => n.key + n.text).join('\n')) });
+  return r.value ? { scope: new Set(r.value.scope), demolish: new Set(r.value.demolish) } : null;
+}
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
@@ -133,7 +155,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
-      const boq = boqFromExtracted(r, hint, ocrText, drawing);
+      const boq = boqFromExtracted(r, hint, ocrText, drawing, await vocabFor(r, ocrText, drawing));
       return J({ ok: true, boq: withCodeAuthor(r.dxf_text !== undefined ? cadSupplierBoq(boq, r.dxf_text) : boq), kind: r.kind, needs: r.needs });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
@@ -154,7 +176,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
       if (!pdfB64) {
         if (!ocrText && !drawing.lines?.length) return null;
         // No confirm here: it runs only as mode 'confirm', after redaction (see below).
-        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing), fallback_reason: why, author_model: 'deterministic' } });
+        return J({ ok: true, boq: { ...boqFromExtracted(empty('image'), hint, ocrText, drawing, await vocabFor(empty('image'), ocrText, drawing)), fallback_reason: why, author_model: 'deterministic' } });
       }
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
@@ -165,7 +187,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
         // by customer_api) naming make and model. Only when nothing on it is countable does the older
         // "<qty> <unit>" text reader run.
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
-        const set = boqFromDrawingSet(pages, hint, sched);
+        const set = boqFromDrawingSet(pages, hint, sched, await readingFor(pages));
         if (set) return J({ ok: true, boq: { ...set, fallback_reason: why, author_model: 'deterministic' } });
         const out = boqFromPages(pages, hint);
         return J({ ok: true, boq: { ...out, fallback_reason: why, author_model: 'deterministic' } });

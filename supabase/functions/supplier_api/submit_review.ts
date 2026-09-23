@@ -16,19 +16,20 @@
 // never read off the request body: otherwise a supplier posting straight to the endpoint could declare
 // every BOQ line excluded and walk past the whole review.
 import type { MissingItem, TermsSpec } from '../_shared/line_specs/assess.ts';
-import { foreignCurrency, parseQty, type Issue, type WLine, type Working } from './quote_review.ts';
+import { boqKey, foreignCurrency, parseQty, type BoqRow, type Issue, type WLine, type Working } from './quote_review.ts';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null; };
 const str = (v: unknown): string => (v == null ? '' : String(v));
 
 /** The supplier's explanations, as the engineer recorded them. Never the caller's. */
-export type Resolved = { boq_excluded: Record<string, string>; qty_explained: Record<string, string> };
+export type Resolved = { boq_excluded: Record<string, string>; qty_explained: Record<string, string>; boq_match?: Record<string, number> | null; boq_match_for?: string | null };
 export const NOTHING_EXPLAINED: Resolved = { boq_excluded: {}, qty_explained: {} };
 /** Whatever carries the explanations (a quote_reviews row's `working`), read defensively. */
 // deno-lint-ignore no-explicit-any
 export function resolvedFrom(working: any): Resolved {
   const o = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, string> : {});
-  return { boq_excluded: o(working?.boq_excluded), qty_explained: o(working?.qty_explained) };
+  const m = working?.boq_match && typeof working.boq_match === 'object' && !Array.isArray(working.boq_match) ? working.boq_match as Record<string, number> : null;
+  return { boq_excluded: o(working?.boq_excluded), qty_explained: o(working?.qty_explained), boq_match: m, boq_match_for: typeof working?.boq_match_for === 'string' ? working.boq_match_for : null };
 }
 
 // deno-lint-ignore no-explicit-any
@@ -93,9 +94,13 @@ export function workingFromStoredQuote(q: any, rows: any[]): Working {
   };
 }
 
-/** Apply the engineer's recorded explanations to a working quote. */
-export function withResolved(w: Working, r: Resolved): Working {
-  return { ...w, boq_excluded: r.boq_excluded, qty_explained: r.qty_explained };
+/**
+ * Apply the engineer's recorded explanations to a working quote, and the REASONED BOQ match the review recorded —
+ * only when it was reasoned for exactly these lines against this BOQ (boqKey); otherwise the caller reasons it.
+ */
+export function withResolved(w: Working, r: Resolved, boq: BoqRow[] = []): Working {
+  const same = !!r.boq_match && !!r.boq_match_for && boq.length > 0 && r.boq_match_for === boqKey(boq, w.lines);
+  return { ...w, boq_excluded: r.boq_excluded, qty_explained: r.qty_explained, ...(same ? { boq_match: r.boq_match, boq_match_for: r.boq_match_for } : {}) };
 }
 
 /**

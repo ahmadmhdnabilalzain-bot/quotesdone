@@ -296,7 +296,7 @@ async function latestCatalogueText(admin: Admin, supplierId: number): Promise<{ 
 async function meaningFor(admin: Admin, lines: string[], stated: string[], supplyOnly: boolean) {
   if (!lines.some((l) => l.trim().length >= 3)) return { state: 'nothing_to_read', proposals: [] as MeaningProposal[] };
   const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true);
+    .select('trade_code,code,label_en,label_ar,aliases,install_work,embedding_gte').eq('active', true);
   const services = error ? [] : (data || []).map((s: Record<string, unknown>) => ({ ...s, vec: parseVec(s.embedding_gte) })) as MeaningService[];
   if (!services.some((s) => s.vec)) return { state: 'service_vectors_missing', proposals: [] as MeaningProposal[] };
   const todo = meaningCandidates(lines, services);

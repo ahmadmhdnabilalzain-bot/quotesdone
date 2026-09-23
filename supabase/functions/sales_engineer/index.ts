@@ -34,6 +34,8 @@ import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '..
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { briefTrades } from '../_shared/reasoned_intake.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -641,9 +643,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const products = inq ? [] : arr(body.products);
       const brands = inq ? [] : arr(body.brands);
 
-      // TRADES. The customer's own words resolved through taxonomy_trade.aliases by
-      // public.fn_norm_trades — the estate's normaliser, word-START anchored so 'sign' matches
-      // "signage" and not "design". Reused, not re-written.
+      // TRADES. The stored trades when the inquiry has them; otherwise REASONED from the brief (below).
       let trades = arr(src.trades);
       // STORED TRADES ARE INTAKE SLUGS, THE MATCHER SPEAKS TAXONOMY CODES (14 Sep 2026). 39 of the 56
       // intake slugs are not taxonomy codes ('glass' is 'glazing', 'fitout' is 'interior_fitout' ...),
@@ -660,18 +660,30 @@ Deno.serve(observe('sales_engineer', async (req) => {
       }
       const brief = [src.summary, src.raw_input, src.category, arr(src.keywords).join(' ')]
         .map((x) => String(x ?? '')).filter(Boolean).join(' ').slice(0, 4000);
+      // A BRIEF WITH NO STORED TRADE IS REASONED, NOT ALIAS-MATCHED (23 Sep 2026, founder_instruction 886-903;
+      // decision point sales_engineer.brief_trades). fn_norm_trades read the brief for taxonomy aliases by word
+      // start ('sign' in "signage"); think() now reads which trades the brief asks for, each with the brief's own
+      // words as evidence (_shared/reasoned_intake.ts briefTrades). HELD (the model hold): nobody is matched on a
+      // guess — the answer below says the trade is being reasoned (gap trade_reasoning_held), and when the hold
+      // lifts fn_reason_apply_sales_engineer__brief_trades writes the reasoned set onto the inquiry (still
+      // empty only), so the next match of it has its trades.
+      let tradeHeld: number | null | undefined;
       if (!trades.length && brief) {
-        const { data: nt } = await admin.rpc('fn_norm_trades', { p_text: brief });
-        trades = arr(nt);
+        const { data: tt } = await admin.from('taxonomy_trade').select('code,label').eq('active', true).order('sort');
+        const bt = await briefTrades(defaultDeps(admin, 'sales_engineer'), {
+          brief, trades: ((tt || []) as { code: string; label: string }[]).map((t) => ({ code: String(t.code), label: String(t.label) })),
+          dedupeKey: 'brief_trades:' + (inquiryId || brief.slice(0, 120)), subject: inquiryId ? { inquiry_id: inquiryId } : undefined,
+        });
+        if (bt.value) trades = arr(bt.value); else tradeHeld = bt.result.held_id ?? null;
       }
 
       // WHAT THE CUSTOMER NEEDS DONE, not what a supplier would like to sell. taxonomy_role
       // decides which roles can serve each; this only picks the column.
       const needAsked = inq ? '' : body.need;
+      // STRUCTURED CODES, READ AS CODES (23 Sep 2026): scope_type is one of single | multi | turnkey (customer_api
+      // create_inquiry) and role_needed is a role code, so they are compared exactly, never searched for a word.
       const need = String(needAsked ?? '').trim() ||
-        (String(src.scope_type || '').toLowerCase().includes('turnkey')
-          ? 'whole_scope'
-          : (/supply|material|product/i.test(String(src.scope_type || src.role_needed || '')) ? 'supplies' : 'executes'));
+        (String(src.scope_type ?? '') === 'turnkey' ? 'whole_scope' : String(src.role_needed ?? '') === 'supplies' ? 'supplies' : 'executes');
 
       // VALUE. Only a number that is actually a number gates the size band; a budget we cannot read
       // stays null, because an unreadable budget parsed as 0 would exclude every supplier with a
@@ -716,6 +728,15 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // should not have to diff the body against the inquiry to know which decided.
       const criteriaFrom = inq ? 'stored_inquiry' : 'request_body_no_inquiry_named';
 
+      if (!trades.length && tradeHeld !== undefined) {
+        await run('match', 'ok', { inquiry_id: inquiryId || null, trades: 0, matched: 0, gap: 'trade_reasoning_held' });
+        return J({
+          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, criteria_from: criteriaFrom, policy, precedent: memory,
+          candidates: 0, above_floor: 0, matched: [], persisted: 0,
+          gap: { reason: 'trade_reasoning_held', held_id: tradeHeld,
+            note: 'The inquiry has no stored trade and the brief\'s trades are being reasoned (the model hold). Nobody is matched on a guess; the reasoned trades are written onto the inquiry when the hold lifts.' },
+        });
+      }
       if (!trades.length) {
         // NOT A FAILURE AND NOT A COVERAGE GAP. Nobody was asked, because there was no question:
         // the brief names no trade this taxonomy recognises. Widening it to "everything" to produce

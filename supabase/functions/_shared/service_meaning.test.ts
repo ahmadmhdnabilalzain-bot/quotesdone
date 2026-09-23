@@ -11,7 +11,8 @@ const svc = (trade_code: string, code: string, label_en: string, vec: number[], 
   ({ trade_code, code, label_en, label_ar: 'خدمة', aliases, vec });
 const COPIERS = svc('office_equipment', 'photocopiers', 'Photocopiers & copiers', [1, 0, 0, 0], ['photocopier', 'copier']);
 const TRAYS = svc('electrical', 'cable_tray', 'Cable trays & containment', [1, 0, 0, 0], ['cable tray']);
-const SERVICING = svc('office_equipment', 'printer_service', 'Printer & copier servicing', [1, 0, 0, 0]);
+// install_work as reasoned for this service (service_rewrite.install); the label's words decide nothing.
+const SERVICING = { ...svc('office_equipment', 'printer_service', 'Printer & copier servicing', [1, 0, 0, 0]), install_work: true };
 
 Deno.test('head words are what the service IS', () => {
   assertEquals(headWords('Photocopiers & copiers'), ['photocopier', 'copier']);

@@ -27,7 +27,8 @@
 // engineer maps it.
 import { arNorm, foldForMatch, termPattern, tradesFromText, type TradeTerm } from './trade_words.ts';
 
-export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null };
+/** install_work: reasoned (service_rewrite.install), null until then. */
+export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null; install_work?: boolean | null };
 export type RewriteItem =
   | { kind: 'service'; key: string; trade: string; label_en: string; label_ar: string; from: string }
   | { kind: 'trade'; trades: string[]; text: string; from: string }
@@ -158,17 +159,16 @@ export function servicePattern(alias: string): RegExp | null {
 }
 
 // WHAT A SUPPLY-ONLY COMPANY IS NOT PROPOSED (21 Sep 2026). An importer, wholesaler or stockist sells
-// the goods; it does not install them. A service whose standard name is installation, contracting or
-// after-sales work is not proposed to such a company, whatever word in its catalogue happened to name
-// it ("Cat 6 Cable" is goods; "Structured cabling" is a service). Read from the service's own English
-// label, so a service added next year is classified the day it is added. A label that also says
-// supply ("Lighting supply & installation") carries the supply half too and stays.
-const INSTALL_WORK = /install|cabling|wiring|contract|fit[-_ ]?out|erection|\bworks?\b|commissioning|construction|maintenance|servic(?:e|es|ing)\b|repair|refurbish|moderni[sz]ation|programming|integration|drawings|approvals|supervision|design/i;
-const SUPPLY_WORD = /supply|sales|\bsale\b/i;
-export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolean => {
-  const s = `${t.label_en} ${String(t.code ?? '').replace(/_/g, ' ')}`;
-  return INSTALL_WORK.test(s) && !SUPPLY_WORD.test(s);
-};
+// the goods; it does not install them. A service that is installation, contracting or after-sales work
+// is not proposed to such a company ("Cat 6 Cable" is goods; "Structured cabling" is a service).
+// REASONED, NOT READ OFF THE LABEL (23 Sep 2026, founder_instruction 886-903; decision point
+// service_rewrite.install). A word list over the label decided this; it is now the column
+// taxonomy_trade_service.install_work, written by think() (_shared/reasoned_intake.ts serviceIsInstallWork)
+// through fn_reason_apply_service_rewrite__install — every row is queued the moment it exists
+// (scripts/sql/the_sales_engineer_reasons_intake_and_quotations_instead_of_matching_words.sql).
+// null = not reasoned yet (the model hold): the service is NOT withheld, because a proposal is only ever
+// confirmed by the supplier, and hiding a real supply service on a guess would lose a match.
+export const isInstallWork = (t: Pick<ServiceTerm, 'install_work'>): boolean => t.install_work === true;
 
 /** The alias index, compiled once per request. A term is an alias; labels are not terms (a label such
  *  as "Maintenance contracts" is too general to be exact). */

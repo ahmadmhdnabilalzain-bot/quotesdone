@@ -13,6 +13,8 @@ import { boqFromDrawingSet, lengthsForSet, mergeLengths, takeoff } from './drawi
 import { layeredSetPdf } from './drawing_lengths.fixtures.ts';
 
 const pages = await pdfPages(layeredSetPdf());
+// The reasoned reading of the fixture's keyed notes (decision point drawing_boq.vocabulary): all three are work.
+const READING = { scope: new Set(['P-1.01:1', 'P-1.01:2', 'P-1.01:3']), demolish: new Set<string>() };
 const [plumb, mech] = pages;
 
 Deno.test('scales parse to real inches per paper point, and never guess', () => {
@@ -98,7 +100,7 @@ Deno.test('the lengths are a second call: the first read carries no layers, the 
   const bytes = layeredSetPdf();
   const cheap = await pdfPages(bytes, undefined, { layers: false });
   assert(cheap.every((p) => !p.layers), 'the first call reads no layer geometry');
-  const first = boqFromDrawingSet(cheap)!;
+  const first = boqFromDrawingSet(cheap, '', [], READING)!;
   assert(first.boq.some((l) => l.type === 'duct:rectangular' && l.qty === null), 'without layers the duct line asks for its length');
   assert(first.boq.some((l) => l.type === 'pipe:3" SS' && l.qty === null));
   const merged = mergeLengths(first, lengthsForSet(await pdfPages(bytes)));
@@ -114,7 +116,7 @@ Deno.test('the lengths are a second call: the first read carries no layers, the 
 });
 
 Deno.test('take-off: lengths become lines; bubbles count only inside an outline; different notes stay apart', () => {
-  const { lines } = takeoff(pages);
+  const { lines } = takeoff(pages, [], READING);
   const q = (type: string) => lines.find((l) => l.type === type);
   assertEquals(q('pipe:3" SS')?.qty, 6); assertEquals(q('pipe:3" SS')?.qty_status, 'read'); assertEquals(q('pipe:3" SS')?.unit, 'm');
   assertEquals(q('pipe:2" V')?.qty, 1.5);

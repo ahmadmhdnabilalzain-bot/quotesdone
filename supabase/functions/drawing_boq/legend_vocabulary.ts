@@ -1,58 +1,64 @@
-// legend_vocabulary — what a drawing's legend entry, a CAD block name or a BOQ line CALLS a device,
-// mapped to one line type the BOQ uses. English and Arabic. No model.
+// legend_vocabulary — the device types a drawing's BOQ uses, and what the drawing's own words were
+// REASONED to name. English and Arabic labels. Seat: sales_engineer.
 //
 // WHY (14 Sep 2026). A fire alarm drawing read through the free path produced one junk BOQ line
 // because nothing knew that "SMOKE DETECTOR c/w SOUNDER" is a thing a supplier prices. The legend is
-// the drawing's own statement of what is on it; this turns its words into line types.
+// the drawing's own statement of what is on it; it becomes line types.
 //
-// ORDER MATTERS: a combined device ("smoke detector c/w sounder") is tested before its parts, or it
-// would be read as a plain smoke detector. OCR-tolerant: "¢/w", "c/w", "c w", "complete with" and
-// "with" are the same thing, and common OCR confusions (0/O, 1/l/I, rn/m) are folded before matching.
+// REASONED, NOT PATTERN-MATCHED (23 Sep 2026, founder_instruction 886-903; decision point
+// drawing_boq.vocabulary). A regex per device type decided which printed text named which device, a
+// title regex decided the drawing type and a room-word list decided which labels were rooms. think()
+// now reads the drawing's texts (_shared/reasoned_intake.ts drawingVocabulary) and returns, for each
+// device type, the text that names it — copied from the drawing — so the parsers look it up EXACTLY and
+// read nothing into it. Held (the model hold): the vocabulary is empty, the legend yields no lines, and
+// the BOQ says the legend was not read, rather than guessing from a word.
 //
 // WHAT IT DOES NOT DO. It does not count. A legend entry says a device TYPE exists; how many there
 // are comes from the counters (symbol_count.ts, a CAD block count) or from the customer.
+import type { Stated } from '../_shared/reasoned_intake.ts';
 
-export type DeviceType = {
-  type: string; en: string; ar: string; unit: 'nos' | 'm';
-  /** Tested against folded text; the first type whose pattern matches wins. */
-  re: RegExp;
-};
+export type DeviceType = { type: string; en: string; ar: string; unit: 'nos' | 'm' };
 
-const CW = String.raw`(?:c\s*/?\s*w|complete\s+with|with|w/)`;
 export const DEVICE_TYPES: DeviceType[] = [
-  { type: 'fire_alarm_control_panel', en: 'Fire alarm control panel', ar: 'لوحة تحكم إنذار الحريق', unit: 'nos',
-    re: new RegExp(String.raw`fire\s*alarm\s*(?:control\s*)?panel|\bf\.?a\.?c\.?p\b|\bfap\b|لوح[هة]\s*(?:تحكم\s*)?انذار`, 'i') },
-  { type: 'repeater_panel', en: 'Repeater panel', ar: 'لوحة مكررة', unit: 'nos', re: /repeater\s*panel|\bmimic\s*panel/i },
-  { type: 'manual_call_point', en: 'Manual call point (break glass)', ar: 'نقطة نداء يدوية (كسر الزجاج)', unit: 'nos',
-    re: /manual\s*call\s*-?\s*point|\bmcp\b|break\s*glass|نقط[هة]\s*نداء|كسر\s*الزجاج/i },
-  { type: 'smoke_detector_sounder', en: 'Smoke detector c/w sounder', ar: 'كاشف دخان مع صفارة', unit: 'nos',
-    re: new RegExp(String.raw`smoke\s*detector\s*${CW}\s*(?:base\s*)?sounder|كاشف\s*دخان\s*مع\s*صفار`, 'i') },
-  { type: 'heat_detector_sounder', en: 'Heat detector c/w sounder', ar: 'كاشف حرارة مع صفارة', unit: 'nos',
-    re: new RegExp(String.raw`heat\s*detector\s*${CW}\s*(?:base\s*)?sounder|كاشف\s*حرار[هة]\s*مع\s*صفار`, 'i') },
-  { type: 'multi_sensor_detector', en: 'Multi-sensor detector', ar: 'كاشف متعدد الحساسات', unit: 'nos', re: /multi[\s-]*sensor|optical\s*heat|كاشف\s*متعدد/i },
-  { type: 'beam_detector', en: 'Beam detector', ar: 'كاشف شعاعي', unit: 'nos', re: /beam\s*detector|كاشف\s*شعاع/i },
-  { type: 'smoke_detector', en: 'Smoke detector', ar: 'كاشف دخان', unit: 'nos', re: /smoke\s*detector|optical\s*detector|كاشف\s*دخان|كواشف\s*دخان/i },
-  { type: 'heat_detector', en: 'Heat detector', ar: 'كاشف حرارة', unit: 'nos', re: /heat\s*detector|كاشف\s*حرار/i },
-  { type: 'wall_sounder_beacon', en: 'Wall-mounted sounder beacon', ar: 'صفارة مع ضوء وامض جدارية', unit: 'nos',
-    re: /(?:wall\s*mounted\s*)?sounder\s*[/&+]?\s*(?:visual\s*)?beacon|\bvad\b|صفار[هة]\s*(?:مع\s*)?(?:ضوء|وامض)/i },
-  { type: 'sounder', en: 'Sounder', ar: 'صفارة إنذار', unit: 'nos', re: /\bsounder\b|\bbell\b|صفار[هة]\s*انذار/i },
-  { type: 'beacon', en: 'Beacon', ar: 'ضوء وامض', unit: 'nos', re: /\bbeacon\b|\bstrobe\b|ضوء\s*وامض/i },
-  { type: 'interface_module', en: 'Interface / input-output module', ar: 'وحدة ربط', unit: 'nos', re: /interface\s*(?:unit|module)|\bi\/o\s*module|وحد[هة]\s*ربط/i },
-  { type: 'loop_isolator', en: 'Loop isolator', ar: 'عازل الحلقة', unit: 'nos', re: /loop\s*isolator|\bisolator\s*module|عازل\s*(?:ال)?حلق/i },
-  { type: 'fire_rated_cable', en: 'Fire-rated cable', ar: 'كابل مقاوم للحريق', unit: 'm', re: /fp\s*200|fire\s*(?:rated|resistant)\s*cable|\bmicc\b|كابل\s*مقاوم/i },
+  { type: 'fire_alarm_control_panel', en: 'Fire alarm control panel', ar: 'لوحة تحكم إنذار الحريق', unit: 'nos' },
+  { type: 'repeater_panel', en: 'Repeater panel', ar: 'لوحة مكررة', unit: 'nos' },
+  { type: 'manual_call_point', en: 'Manual call point (break glass)', ar: 'نقطة نداء يدوية (كسر الزجاج)', unit: 'nos' },
+  { type: 'smoke_detector_sounder', en: 'Smoke detector c/w sounder', ar: 'كاشف دخان مع صفارة', unit: 'nos' },
+  { type: 'heat_detector_sounder', en: 'Heat detector c/w sounder', ar: 'كاشف حرارة مع صفارة', unit: 'nos' },
+  { type: 'multi_sensor_detector', en: 'Multi-sensor detector', ar: 'كاشف متعدد الحساسات', unit: 'nos' },
+  { type: 'beam_detector', en: 'Beam detector', ar: 'كاشف شعاعي', unit: 'nos' },
+  { type: 'smoke_detector', en: 'Smoke detector', ar: 'كاشف دخان', unit: 'nos' },
+  { type: 'heat_detector', en: 'Heat detector', ar: 'كاشف حرارة', unit: 'nos' },
+  { type: 'wall_sounder_beacon', en: 'Wall-mounted sounder beacon', ar: 'صفارة مع ضوء وامض جدارية', unit: 'nos' },
+  { type: 'sounder', en: 'Sounder', ar: 'صفارة إنذار', unit: 'nos' },
+  { type: 'beacon', en: 'Beacon', ar: 'ضوء وامض', unit: 'nos' },
+  { type: 'interface_module', en: 'Interface / input-output module', ar: 'وحدة ربط', unit: 'nos' },
+  { type: 'loop_isolator', en: 'Loop isolator', ar: 'عازل الحلقة', unit: 'nos' },
+  { type: 'fire_rated_cable', en: 'Fire-rated cable', ar: 'كابل مقاوم للحريق', unit: 'm' },
 ];
 
-/** Lower-case, fold OCR look-alikes that turn up in drawing text, keep Arabic. */
-export function foldOcr(s: string): string {
-  return String(s || '').toLowerCase()
-    .replace(/[¢©]/g, 'c').replace(/[|]/g, 'l').replace(/[‘’`´]/g, "'")
-    .replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه')
-    .replace(/(?<=[a-z])0(?=[a-z])/g, 'o').replace(/(?<=[a-z])1(?=[a-z])/g, 'l').replace(/rn(?=[a-z])/g, 'm')
-    .replace(/\s+/g, ' ').trim();
+/** What think() read the drawing's texts to name. Every text is copied from the drawing. */
+export type Vocab = { device: [string, DeviceType][]; drawingType: string | null; rooms: string[] };
+export const EMPTY_VOCAB: Vocab = { device: [], drawingType: null, rooms: [] };
+
+/** The reasoned fields (drawingVocabulary) as a vocabulary the parsers look up. null (held) = empty. */
+export function vocabFrom(stated: Stated | null): Vocab {
+  if (!stated) return EMPTY_VOCAB;
+  const device: [string, DeviceType][] = [];
+  for (const d of DEVICE_TYPES) { const t = String(stated[`device:${d.type}`]?.value ?? '').trim(); if (t) device.push([t, d]); }
+  const rooms = Object.entries(stated).filter(([k]) => k.startsWith('room:')).map(([, v]) => String(v.value).trim()).filter(Boolean);
+  return { device, drawingType: String(stated.drawing_type?.value ?? '').trim() || null, rooms: [...new Set(rooms)] };
 }
 
-export function deviceTypeOf(text: string): DeviceType | null {
-  const t = foldOcr(text);
-  for (const d of DEVICE_TYPES) if (d.re.test(t)) return d;
-  return null;
+/**
+ * The device type a printed text names, per the reasoning: the text itself, or a printed line that CONTAINS
+ * the text the reasoning copied (locating the reasoned words in their own line, never reading a word). The
+ * longest reasoned text wins, so "smoke detector c/w sounder" is not read as its shorter part.
+ */
+export function deviceTypeIn(text: string, vocab: Vocab): DeviceType | null {
+  const t = String(text || '').trim().toLowerCase();
+  if (!t) return null;
+  let best: [string, DeviceType] | null = null;
+  for (const e of vocab.device) if (t.includes(e[0].toLowerCase()) && (!best || e[0].length > best[0].length)) best = e;
+  return best ? best[1] : null;
 }

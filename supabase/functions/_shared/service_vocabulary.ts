@@ -19,7 +19,7 @@ type Admin = any;
 /** The alias vocabulary the rewriter matches with: every active service and the phrases that name it. */
 export async function serviceVocab(admin: Admin): Promise<ServiceTerm[]> {
   const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases').eq('active', true).order('trade_code').order('sort');
+    .select('trade_code,code,label_en,label_ar,aliases,install_work').eq('active', true).order('trade_code').order('sort');
   return error ? [] : (data || []);
 }
 

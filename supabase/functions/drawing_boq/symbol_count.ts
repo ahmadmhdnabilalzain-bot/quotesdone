@@ -152,8 +152,8 @@ export function legendRows(lines: { text: string; bbox: Rect }[], sheetW: number
   const best = new Map<string, LegendRow>();
   for (const l of printedLines(lines.filter((x) => x.bbox.x >= sheetW * 0.75))) {
     const d = typeOf(l.text); if (!d || /isolator|cable/.test(d.type)) continue;
-    // "¢/w" is how OCR prints c/w; a line naming a combined device it did not resolve to is dropped.
-    if (/c\s*\/?\s*w\b/i.test(l.text.replace(/[¢©]/g, 'c')) && !/_sounder$/.test(d.type)) continue;
+    // (Which device a line names is the caller's typeOf — the REASONED vocabulary, legend_vocabulary.ts
+    // deviceTypeIn; no word in the line is read here.)
     const cur = best.get(d.type);
     if (!cur || l.text.length > (cur.text || '').length) best.set(d.type, { type: d.type, bbox: l.bbox, text: l.text });
   }

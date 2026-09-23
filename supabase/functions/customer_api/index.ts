@@ -803,6 +803,20 @@ Deno.serve(observe('customer_api', async (req) => {
     // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, IFC, GAEB,
     // zip and PDF are read by drawing_boq mode 'document' with no model; a photo arrives with the
     // customer's browser OCR as ocr_text. The same 20 MB ceiling as doc_read; stored only if accepted.
+    // WHAT A PHOTOGRAPHED DRAWING'S LEGEND NAMES (23 Sep 2026; decision point drawing_boq.vocabulary). The browser OCRs the
+    // drawing and counts its symbols against the legend rows; which printed row is which device is REASONED here
+    // (_shared/reasoned_intake.ts drawingVocabulary) and returned as [printed text, device type] pairs, each text copied
+    // from what was sent. Held (the model hold): no pairs — the browser counts nothing, and the drawing is still read.
+    if (action === 'drawing_vocabulary') {
+      const texts = (Array.isArray(body.texts) ? body.texts : []).map((x: unknown) => String(x ?? '').slice(0, 200)).filter((x: string) => x.trim()).slice(0, 200);
+      if (!texts.length) return J({ ok: true, held: false, device: [] });
+      const { DEVICE_TYPES, vocabFrom } = await import('../drawing_boq/legend_vocabulary.ts');
+      const { drawingVocabulary } = await import('../_shared/reasoned_intake.ts');
+      const { defaultDeps } = await import('../_shared/think.ts');
+      const r = await drawingVocabulary(defaultDeps(admin, 'customer_api'), { texts, types: DEVICE_TYPES.map((d) => ({ type: d.type, en: d.en })) });
+      if (!r.value) return J({ ok: true, held: true, device: [] });
+      return J({ ok: true, held: false, device: vocabFrom(r.value).device.map(([t, d]) => [t, d.type]) });
+    }
     if (action === 'analyze_document') {
       const name = String(body.file_name || 'document').slice(0, 180);
       const mime = String(body.mime || '');

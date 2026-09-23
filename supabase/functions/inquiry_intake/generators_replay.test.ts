@@ -1,4 +1,5 @@
-// The founder's own request, replayed to a postable request with no model.
+// The founder's own request, replayed to a postable request with no model — by TAPS (23 Sep 2026: typed words are
+// reasoned, never matched; under the hold a tapped option is how an answer is recorded).
 // deno test supabase/functions/inquiry_intake/generators_replay.test.ts
 //
 // 14 Sep 2026, 08:42 and 08:43 UTC: "I need Generators work (generators)" in the portal. The model
@@ -26,20 +27,24 @@ const GENERATORS: SpecField[] = [
 ];
 const NOW = new Date('2026-09-14T08:43:59Z');
 
-/** index.ts's deterministic order: the category interview first, then the sales engineer's questions. */
-function replay(turns: string[], lang: 'en' | 'ar') {
+/**
+ * index.ts's order, UNDER THE MODEL HOLD: the category interview first, then the sales engineer's questions.
+ * `first` is typed (nothing is read from it — the reasoning is held); every later turn is the option the
+ * customer TAPPED for the question on screen, sent as a structured choice exactly as the portal sends it.
+ */
+async function replay(first: string, taps: string[], lang: 'en' | 'ar') {
   let st: InterviewState = { details: {}, asked_key: null };
   let req: Answers = {};
   let reqAsked: string | null = null;
-  const said: string[] = [];
   const asked: string[] = [];
   let postable = false;
-  for (const t of turns) {
-    said.push(t);
-    const step = interviewStep(GENERATORS, st, t, said.join(' \n '), lang);
+  for (const [i, t] of [first, ...taps].entries()) {
+    const choice = i === 0 || !st.asked_key ? null : { key: st.asked_key, option: t };
+    const step = interviewStep(GENERATORS, st, { choice, stated: null, answer: t }, lang);
+    const wasAsked = st.asked_key;
     st = { details: step.details, asked_key: step.next ? step.next.key : null };
     if (!step.complete) { asked.push(step.next!.text); continue; }
-    const rs = requirementsStep('generators', req, reqAsked, t, step.details, lang, NOW);
+    const rs = await requirementsStep('generators', req, reqAsked, wasAsked ? '' : t, step.details, lang, NOW);
     req = rs.answers;
     reqAsked = rs.next ? rs.next.key : null;
     if (rs.next) { assert(rs.next.options.length > 0, 'every sales-engineer question is answerable by a tap'); asked.push(rs.next.text); }
@@ -55,9 +60,8 @@ Deno.test('"I need Generators work (generators)" is the generators trade — Eng
   assertEquals(detectCat('diesel genset for a warehouse'), 'generators');
 });
 
-Deno.test('replay: the founder\'s request reaches a postable request, with a next question on every turn before that', () => {
-  const r = replay([
-    'I need Generators work (generators)',
+Deno.test('replay: the founder\'s request reaches a postable request, with a next question on every turn before that', async () => {
+  const r = await replay('I need Generators work (generators)', [
     'Standby / backup power', 'Not sure - advise', 'Soundproof canopy', 'Yes',
     'No preference', 'Stamford', 'Yes, install it', 'Yes, at least 2 years', 'Within 1 month',
   ], 'en');
@@ -82,11 +86,11 @@ Deno.test('replay: the founder\'s request reaches a postable request, with a nex
   assertEquals(r.details.application, 'Standby / backup power');
 });
 
-Deno.test('replay in Arabic: every question comes back in Arabic and the request becomes postable', () => {
-  const r = replay([
-    'أحتاج مولد كهرباء',
-    'احتياطي عند انقطاع الكهرباء', 'لا أعرف', 'غطاء عازل للصوت', 'نعم',
-    'لا تفضيل لدي', 'لا تفضيل لدي', 'لا، توريد فقط', 'لست متأكداً', 'مرن، لا يوجد موعد محدد',
+Deno.test('replay in Arabic: every question comes back in Arabic and the request becomes postable', async () => {
+  // category_specs options are English labels: the portal shows and sends them as they are.
+  const r = await replay('أحتاج مولد كهرباء', [
+    'Standby / backup power', 'Not sure - advise', 'Soundproof canopy', 'Yes',
+    'لا تفضيل لدي', 'لا تفضيل لدي', 'توريد فقط، بدون تركيب', 'لست متأكداً', 'مرن، لا يوجد موعد محدد',
   ], 'ar');
   for (const t of r.asked) assert(/[؀-ۿ]/.test(t), 'asked in Arabic: ' + t);
   assert(r.postable);

@@ -13,8 +13,13 @@
 // fire alarm drawing filed as flooring because of "ground floor" — is written there.
 export { KW, detectCat, detectTrades, tradeHits, tradePhrases } from '../_shared/trade_classify.ts';
 
-export const EMIRATES = ['Dubai', 'Abu Dhabi', 'Sharjah', 'Ajman', 'Ras Al Khaimah', 'Fujairah', 'Umm Al Quwain', 'Al Ain'];
-export function detectEmirate(text: string): string | null { const t = String(text || '').toLowerCase(); for (const e of EMIRATES) if (t.includes(e.toLowerCase())) return e; if (t.includes('rak')) return 'Ras Al Khaimah'; return null; }
+// WHICH EMIRATE, AND HOW URGENT, ARE REASONED (23 Sep 2026, founder_instruction 886-903; decision point
+// classify.urgency_emirate). A substring scan for an emirate's name and a word list for urgency decided
+// both (by the code itself, any text containing the letters "rak" — "a crack in the wall" — was Ras Al
+// Khaimah, and "today" anywhere made a job urgent). inquiry_intake now asks
+// think() (_shared/reasoned_intake.ts emirateOf / urgencyOf); held, the emirate is unknown and the urgency
+// is not set — never guessed.
+export { EMIRATES } from '../_shared/reasoned_intake.ts';
 // The electricity and water utility of each emirate, for the approvals list a request shows. The
 // compliance checklists in category_specs are written "DEWA / the relevant emirate authority"; measured
 // 21 Sep 2026 (customer audit, finding 8) an Abu Dhabi job printed DEWA. Al Ain is served by AADC, the
@@ -38,5 +43,4 @@ export function utilityText(text: string | null, emirate: string | null, lang: '
     .replace(/DEWA(?:\s*(?:\/|or)\s*the relevant emirate (?:authority|utility))?/g, name)
     .replace(/هيئة كهرباء ومياه دبي(?:\s*(?:\/|أو)\s*(?:السلطة|هيئة الكهرباء) المختصة في الإمارة)?/g, name);
 }
-export function detectUrgency(text: string): string { const t = ' ' + String(text || '').toLowerCase() + ' '; if (/(emergency|urgent|asap|immediately|today|right now|flooding|burst|no power|sparking|gas leak|leaking badly)/.test(t)) return 'urgent'; return 'normal'; }
 export function isArabic(text: string): boolean { return /[؀-ۿ]/.test(String(text || '')); }

@@ -9,12 +9,13 @@ import { observe } from '../_shared/observe.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } from './classify.ts';
+import { detectCat, detectTrades, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
-import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
+import { ACTOR, requirementsStep, requirementQuestions, questionIn, toStored, forCard, askFor, answerFromReasoned, type Answers, type Reasoner } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
+import { emirateOf, interviewAnswers, NOT_STATED, requirementAnswer, urgencyOf } from '../_shared/reasoned_intake.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -28,7 +29,8 @@ const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 
-// KW, detectCat, detectTrades, detectEmirate, detectUrgency and isArabic live in ./classify.ts (tested there).
+// KW, detectCat, detectTrades and isArabic live in ./classify.ts (tested there). The emirate and the urgency are
+// REASONED (decision point classify.urgency_emirate, _shared/reasoned_intake.ts), never read off the words.
 function sanitizeInput(text: string): string { return String(text || '').replace(/\bignore (all |any |previous )?(above|prior|earlier)?\s*(instructions|prompts?|rules?)\b/gi, '[removed]').replace(/\b(system|assistant|developer)\s*:/gi, '$1 -').slice(0, 4000); }
 
 // `subject` is the verified session email: ai_gateway answers our own ZZ DEMO / @example.invalid harness
@@ -83,6 +85,10 @@ Deno.serve(observe('inquiry_intake', async (req) => {
       cust = made || null;
     }
     const text = sanitizeInput(String(b.text || '').trim()).slice(0, 4000);
+    // AN OPTION THE CUSTOMER TAPPED (23 Sep 2026): structured, so nothing has to read the words to know which
+    // answer it is. It is only ever accepted for the question it was offered with (interview.ts / intake_requirements.ts).
+    const choice = b.choice && typeof b.choice === 'object' && typeof b.choice.key === 'string' && typeof b.choice.option === 'string'
+      ? { key: String(b.choice.key).slice(0, 80), option: String(b.choice.option).slice(0, 200) } : null;
     const drawingBoq = b.drawing_boq || null;
 
     const { data: allSpecs, error: specsErr } = await admin.from('category_specs').select('category');
@@ -151,7 +157,17 @@ Deno.serve(observe('inquiry_intake', async (req) => {
         }
       } catch (_e) { /* routing is a fallback and must never block intake */ }
     }
-    const emirate = detectEmirate(allText);
+    // THE EMIRATE IS REASONED, ONCE, WHEN A BRIEF NEEDS IT (decision point classify.urgency_emirate). Held (the
+    // model hold): unknown — the brief carries no emirate, the utility stays "the relevant emirate authority" and
+    // the supplier count is not narrowed by emirate. Nothing is guessed from a place name.
+    let emirate: string | null = null; let emirateAsked = false;
+    const reasonEmirate = async (): Promise<string | null> => {
+      if (emirateAsked || !allText.trim()) return emirate;
+      emirateAsked = true;
+      const e = await emirateOf(defaultDeps(admin, 'inquiry_intake'), { conversation: allText, dedupeKey: 'intake_emirate:' + draft.id, subject: { intake_id: draft.id } });
+      emirate = e.value && e.value !== NOT_STATED ? e.value : null;
+      return emirate;
+    };
     let kwTrades = detectTrades(allText).filter((c) => validSlugs.includes(c));
     // De-noise facet over-detection: 'tiling' is the same job as 'flooring' for floor tiles — don't split it out.
     if (kwTrades.includes('flooring') && kwTrades.includes('tiling')) kwTrades = kwTrades.filter((c) => c !== 'tiling');
@@ -447,7 +463,20 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       const prevState = (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object')
         ? { details: draft.brief.details as Record<string, string>, asked_key: (draft.brief.asked_key as string) || null }
         : { details: {}, asked_key: null };
-      const step = category && checklist.length ? interviewStep(checklist, prevState, text, allText, lang, askOrder) : null;
+      // WHAT THE CUSTOMER HAS ALREADY STATED IS REASONED (decision point interview.answers), with their own words
+      // as evidence; a tapped option is taken as it is. Held: see interview.ts (their typed words are kept for an
+      // open question; an option question stays open to tap). One held row per intake (dedupe), refreshed each turn.
+      let step: ReturnType<typeof interviewStep> | null = null;
+      if (category && checklist.length) {
+        const open = orderFields(checklist, askOrder).filter((o) => !(prevState.details[o.key] ?? '').toString().trim());
+        const stated = open.length && allText.trim()
+          ? (await interviewAnswers(defaultDeps(admin, 'inquiry_intake'), {
+              conversation: allText, category: String(category), dedupeKey: 'intake_interview:' + draft.id, subject: { intake_id: draft.id },
+              fields: open.map((o) => ({ key: o.key, question: String(o.f.question || o.f.question_plain_en || o.key), options: Array.isArray(o.f.options) ? o.f.options : null })),
+            })).value
+          : {};
+        step = interviewStep(checklist, prevState, { choice, stated, answer: text }, lang, askOrder);
+      }
       interview = step ? { details: step.details, asked_key: step.next ? step.next.key : null } : null;
       nextQuestion = step?.next ? { key: step.next.key, text: step.next.text, options: step.next.options } : null;
       readinessFields = step ? step.readiness : null;
@@ -468,13 +497,14 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         const firstTurn = !prevState.asked_key && turns.filter((t: any) => t.role === 'user').length <= 1;
         const ack = firstTurn
           ? (multi ? multiMsg + ' ' : (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `))
-          : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') : '');
+          : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ')
+            : step.held && step.next.options && text ? (ar ? 'اختر أحد الخيارات أدناه لأسجّل إجابتك بدقة. ' : 'Please tap one of the options below so I record your answer exactly. ') : '');
         out = { category, status: 'needs_info', assistant_message: ack + step.next.text, questions: [step.next.text], readiness: Math.min(score, 95), missing: remaining, brief: null, provenance: provenanceStated };
       } else if (step && step.complete) {
-        out = { category, status: 'ready', assistant_message: ar ? 'شكرًا لك، اكتمل كل ما يحتاجه المورّدون. راجع الملخص أدناه، ثم اضغط «أرسل إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, emirate, firstUser) };
+        out = { category, status: 'ready', assistant_message: ar ? 'شكرًا لك، اكتمل كل ما يحتاجه المورّدون. راجع الملخص أدناه، ثم اضغط «أرسل إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, await reasonEmirate(), firstUser) };
       } else {
         // A category with no checklist rows at all: nothing to ask, so the description is the brief.
-        out = { category, status: 'ready', assistant_message: ar ? 'ممتاز، راجع الملخص أدناه، ثم أرسله إلى المورّدين المطابقين.' : "Great — check the summary below and send it to matching suppliers.", questions: [], readiness: 75, missing: [], brief: buildBrief(String(category), {}, allText, emirate, firstUser) };
+        out = { category, status: 'ready', assistant_message: ar ? 'ممتاز، راجع الملخص أدناه، ثم أرسله إلى المورّدين المطابقين.' : "Great — check the summary below and send it to matching suppliers.", questions: [], readiness: 75, missing: [], brief: buildBrief(String(category), {}, allText, await reasonEmirate(), firstUser) };
       }
     }
 
@@ -550,7 +580,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
     trades = Array.from(new Set(trades)).slice(0, 6);
-    const urgency = ['emergency', 'urgent', 'normal'].includes(out.urgency) ? out.urgency : detectUrgency(allText);
+    // URGENCY: the model's reading when it gave one; otherwise REASONED once the brief is ready (decision point
+    // classify.urgency_emirate). Held: not set (null) — a job is never marked urgent, or not, on a word.
+    let urgency: string | null = ['emergency', 'urgent', 'normal'].includes(out.urgency) ? out.urgency : null;
     const plausibility = (out.plausibility && typeof out.plausibility === 'object') ? out.plausibility : null;
     let provenance = (out.provenance && typeof out.provenance === 'object') ? out.provenance : null;
 
@@ -617,18 +649,28 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     const prevBrief: any = (draft.brief && typeof draft.brief === 'object') ? draft.brief : {};
     let reqAnswers: Answers = (prevBrief.req_answers && typeof prevBrief.req_answers === 'object') ? prevBrief.req_answers : {};
     let reqAsked: string | null = null;
-    // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
-    // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
-    // finding 8). What they said outright is read here too, so the count is honest before 'ready'.
-    const stated = category ? statedAnswers(category, allText) : {};
-    let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key] && !stated[q.key]).map((q) => questionIn(q, reqLang)) : [];
+    // Before 'ready' the count lists every question not yet ANSWERED; what the customer already said is read
+    // (reasoned) when the questions are reached, below, and counted from then on.
+    let reqRemaining: string[] = category ? requirementQuestions(category).filter((q) => !reqAnswers[q.key]).map((q) => questionIn(q, reqLang)) : [];
     let reqProgress: { filled: number; total: number } | null = null;
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText);
+      // A tapped option is the answer as it is; typed words are REASONED (decision point intake_requirements.parse).
+      // Held: the question stays open and the customer is asked to tap one of its options (never a guess).
+      const reqDeps = defaultDeps(admin, 'inquiry_intake');
+      const reason: Reasoner = async (q, justAsked) => {
+        const r = await requirementAnswer(reqDeps, { ask: askFor(q), conversation: allText, justAsked,
+          dedupeKey: 'intake_req:' + draft.id + ':' + q.key, subject: { intake_id: draft.id, key: q.key } });
+        return r.value ? answerFromReasoned(q, r.value.choice, r.value.fields, new Date()) : undefined;
+      };
+      const asked = prevBrief.req_asked || null;
+      const tapped = choice && choice.key === asked ? choice.option : null;
+      const rs = await requirementsStep(category, reqAnswers, asked, tapped ?? text, known, reqLang, new Date(), reason);
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
-        const lead = rs.retry
+        const lead = rs.held
+          ? (ar ? 'شكرًا. اختر أحد الخيارات أدناه لأسجّل إجابتك بدقة، أو «لست متأكداً». ' : 'Thank you. Tap one of the options below so I record your answer exactly, or Not sure. ')
+          : rs.retry
           ? (ar ? 'لم أتمكن من مطابقة إجابتك مع أيٍّ من الخيارات. اختر أحد الخيارات أدناه، أو «لست متأكداً». ' : "I couldn't match that to one of the answers. Tap an option below, or Not sure. ")
           : !prevBrief.req_asked
             ? (ar ? 'شكرًا، دوّنت ذلك. بقيت أسئلة قصيرة عن المواد والتركيب والضمان والموعد، ليأتي كل عرض مطابقًا لما تريده تمامًا. ' : 'Thanks, noted. A few quick questions about materials, installation, warranty and timing, so every quote matches exactly what you want. ')
@@ -683,7 +725,11 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (brief) {
       if (boqCheck) brief.boq_check = boqCheck;
       brief.category = category;
-      if (!brief.emirate && emirate) { brief.emirate = emirate; if (!brief.location) brief.location = emirate; }
+      if (!brief.emirate) { const em = await reasonEmirate(); if (em) { brief.emirate = em; if (!brief.location) brief.location = em; } }
+      if (!urgency) {
+        const u = await urgencyOf(defaultDeps(admin, 'inquiry_intake'), { conversation: allText, dedupeKey: 'intake_urgency:' + draft.id, subject: { intake_id: draft.id } });
+        urgency = u.value;
+      }
       brief.trades = trades;
       brief.urgency = urgency;
       if (plausibility) brief.plausibility = plausibility;

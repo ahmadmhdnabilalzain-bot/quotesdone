@@ -1,4 +1,6 @@
-// Harness journey a (scripts/e2e/journeys.mjs), replayed through the deterministic intake with no model.
+// Harness journey a (scripts/e2e/journeys.mjs) and the 21 Sep audit request, replayed through the intake's state
+// machine. Since 23 Sep 2026 typed words are REASONED (interview.answers, intake_requirements.parse): these replays
+// run the reasoning HELD (what a customer meets under the model hold) and with a reasoned reading supplied.
 // deno test supabase/functions/inquiry_intake/journey_a_replay.test.ts
 //
 // Harness run 6 (14 Sep 2026) reported: with the paid model on hold the request "stays at needs_info
@@ -10,7 +12,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { detectCat, utilityText } from './classify.ts';
 import { interviewStep, type SpecField, type InterviewState } from './interview.ts';
-import { requirementsStep, statedAnswers, toStored, validateStored, type Answers } from '../_shared/intake_requirements.ts';
+import { requirementsStep, toStored, validateStored, type Answers, type Reasoner } from '../_shared/intake_requirements.ts';
 
 const ALUMINIUM: SpecField[] = [
   { key: 'element', type: 'multiselect', options: ['Windows (sliding/casement)', 'Doors', 'Kitchen / wardrobe shutters', 'Cladding / composite panel (ACP)', 'Handrails / railing', 'Pergola / shade', 'Partitions'], question: 'What aluminium work?', required: true, question_plain_en: 'What do you need in aluminium — windows, doors, railings, cladding or something else?' },
@@ -31,88 +33,70 @@ const JOURNEY_A = [
   'Please proceed with these details.', 'Yes, that is correct.',
 ];
 
-function replay(turns: string[]) {
-  let st: InterviewState = { details: {}, asked_key: null };
-  let req: Answers = {}; let reqAsked: string | null = null;
-  const said: string[] = []; const log: string[] = [];
-  let readyAt = 0;
-  for (const [i, t] of turns.entries()) {
-    said.push(t);
-    const step = interviewStep(ALUMINIUM, st, t, said.join(' \n '), 'en');
-    st = { details: step.details, asked_key: step.next ? step.next.key : null };
-    if (!step.complete) { log.push(`turn ${i + 1}: filled [${step.filled_now.join(', ')}] -> asks "${step.next!.text}"`); continue; }
-    const rs = requirementsStep('aluminium', req, reqAsked, t, step.details, 'en', NOW, said.join(' \n '));
-    req = rs.answers; reqAsked = rs.next ? rs.next.key : null;
-    if (rs.next) { log.push(`turn ${i + 1}: category done; sales engineer asks "${rs.next.text}" (${rs.filled}/${rs.total})`); continue; }
-    log.push(`turn ${i + 1}: READY`); if (!readyAt) readyAt = i + 1;
-  }
-  return { log, readyAt, stored: toStored('aluminium', req, NOW), details: st.details };
-}
-
-Deno.test('journey a: the harness\'s own messages reach a postable request with no model', () => {
+Deno.test('journey a UNDER THE HOLD: the prose fills nothing by its words; open questions keep the reply, option questions are tapped', async () => {
   assertEquals(detectCat(JOURNEY_A[0]), 'aluminium');
-  const r = replay(JOURNEY_A);
-  console.log(r.log.join('\n'));
-  console.log('details:', JSON.stringify(r.details));
-  console.log('requirements:', JSON.stringify(r.stored));
-  assert(r.readyAt > 0 && r.readyAt <= JOURNEY_A.length, `not ready after ${JOURNEY_A.length} turns`);
-  assertEquals(validateStored('aluminium', r.stored).ok, true);
-  // Measured 14 Sep 2026 before the fix: never ready in six turns, with the warranty sentence stored as
-  // the quantity and "Please proceed with these details." as the glass. Every answer below is the
-  // customer's own statement, read where they said it.
-  assertEquals(r.readyAt, 3);
-  assertEquals(r.details.dimensions_qty, '40 windows, 1200 x 1500 mm');
-  assertEquals(r.details.scope, 'Supply and install');
-  assertEquals(r.stored.installation, { required: 'yes' });
-  assertEquals(r.stored.warranty, { required: 'yes', min_months: 24 });
-  assertEquals(r.stored.required_by.date, '2026-11-30');
-  assertEquals(r.stored.materials.map((m) => [m.component, m.choice]), [['profile', 'thermal_break'], ['glass', 'double']]);
+  let st: InterviewState = { details: {}, asked_key: null };
+  // Turn 1: the whole paragraph. Held: not one field is read off it (it once set scope from "supplied and installed").
+  let step = interviewStep(ALUMINIUM, st, { stated: null, answer: JOURNEY_A[0] }, 'en');
+  assertEquals(step.details, {});
+  assertEquals(step.next!.key, 'element');
+  // The customer taps "Windows" — the answer, as it is.
+  st = { details: step.details, asked_key: 'element' };
+  step = interviewStep(ALUMINIUM, st, { choice: { key: 'element', option: 'Windows (sliding/casement)' }, stated: null }, 'en');
+  assertEquals(step.next!.key, 'dimensions_qty');
+  // An open question: the typed reply is kept in the customer's own words.
+  st = { details: step.details, asked_key: 'dimensions_qty' };
+  step = interviewStep(ALUMINIUM, st, { stated: null, answer: '40 windows, 1200 x 1500 mm' }, 'en');
+  assertEquals(step.details.dimensions_qty, '40 windows, 1200 x 1500 mm');
+  st = { details: step.details, asked_key: step.next!.key };
+  step = interviewStep(ALUMINIUM, st, { choice: { key: 'scope', option: 'Supply and install' }, stated: null }, 'en');
+  st = { details: step.details, asked_key: step.next!.key };
+  step = interviewStep(ALUMINIUM, st, { stated: null, answer: 'Private villa, Dubai Marina, ground and first floor' }, 'en');
+  assert(step.complete);
+  // The sales engineer's four, by taps (a typed "yes" is not read while held).
+  let req: Answers = {}; let asked: string | null = null;
+  const held: Reasoner = () => Promise.resolve(undefined);
+  const typedYes = await requirementsStep('aluminium', {}, 'installation', 'yes please', step.details, 'en', NOW, held);
+  assert(typedYes.held && !typedYes.answers.installation);
+  for (const tap of [null, 'Thermal-break (insulated)', 'Double glazed', 'Yes, install it', 'Yes, at least 2 years', 'Within 3 months']) {
+    const rs = await requirementsStep('aluminium', req, asked, tap ?? '', step.details, 'en', NOW, held);
+    req = rs.answers; asked = rs.next ? rs.next.key : null;
+  }
+  const stored = toStored('aluminium', req, NOW);
+  assertEquals(validateStored('aluminium', stored).ok, true);
+  assertEquals(stored.materials.map((m) => [m.component, m.choice]), [['profile', 'thermal_break'], ['glass', 'double']]);
 });
 
 // ── Customer audit 21 Sep 2026, finding 8a / 8f ──────────────────────────────────────────────────
-// The auditor's own two messages (inquiry_intake c99beee8, 21 Sep 2026), replayed through the same
-// pieces. Measured before the fix: after the category questions the sales engineer asked all four
-// requirement questions again ("6 LEFT") and the brand question twice more; DEWA was named for an
-// Abu Dhabi job. ELECTRICAL is production's category_specs row for `electrical` (required fields).
+// The auditor's own two messages (inquiry_intake c99beee8, 21 Sep 2026). Measured before the fix: after the
+// category questions the sales engineer asked all four requirement questions again ("6 LEFT"). With the
+// reasoning LIVE (here: the reading the reasoning returns, supplied), what was stated is never asked again.
 const ELECTRICAL: SpecField[] = [
   { key: 'scope', type: 'multiselect', required: true, options: ['New wiring (first fix)', 'Rewiring', 'DB board supply & install', 'Lighting', 'Power sockets', 'Data & TV points', 'AC power points', 'DEWA new connection', 'DEWA load upgrade', 'Testing & certification only'], question: 'What electrical work?', question_plain_en: 'What electrical work do you need?' },
   { key: 'property_area', type: 'text', required: true, options: [], question: 'Property type, built-up area (m²) and number of rooms/zones?', question_plain_en: 'What kind of property is it, roughly how big, and how many rooms?' },
   { key: 'supply_phase', type: 'select', required: true, options: ['Single-phase', 'Three-phase', 'Not sure', 'Utility supply not yet available'], question: 'Supply type?', question_plain_en: 'Single-phase or three-phase?' },
   { key: 'location', type: 'text', required: true, options: [], question: 'Which emirate/area?', question_plain_en: 'Which emirate and area?' },
 ];
-const AUDIT = [
-  'Electrical works for a ZZ DEMO 4-bedroom villa in Khalifa City A, Abu Dhabi. Supply and install 500 m of 4 mm2 copper cable (BS EN 50525, LSZH) and 3 x 12-way DB boards with MCBs (IEC 61439, Schneider or ABB), plus 60 double sockets and 24 switches (MK Logic or Legrand). Installation and 2-year warranty required. Site is ready for first fix; work must finish by 30 November 2026.',
-  'It is a 4-bedroom villa, about 450 m2 built-up, 9 rooms. Three-phase supply. As I said: MK Logic or Legrand for switches and sockets, Schneider or ABB DBs, supplier to install, 2-year warranty minimum, finished by 30 November 2026.',
-];
+const AUDIT = 'Electrical works for a ZZ DEMO 4-bedroom villa in Khalifa City A, Abu Dhabi. Supply and install 500 m of 4 mm2 copper cable (BS EN 50525, LSZH) and 3 x 12-way DB boards with MCBs (IEC 61439, Schneider or ABB), plus 60 double sockets and 24 switches (MK Logic or Legrand). Installation and 2-year warranty required. Site is ready for first fix; work must finish by 30 November 2026.';
 
-Deno.test('finding 8a: the auditor\'s electrical request is never asked what it already stated', () => {
-  assertEquals(detectCat(AUDIT[0]), 'electrical');
+Deno.test('finding 8a, reasoning live: what the auditor stated is filled from the reasoned reading and never asked again', async () => {
+  const q = (value: string) => ({ value, evidence: value });
+  const step = interviewStep(ELECTRICAL, { details: {}, asked_key: null }, { stated: {
+    scope: q('Supply and install 500 m of 4 mm2 copper cable'), location: q('Khalifa City A, Abu Dhabi'),
+  } }, 'en');
+  assertEquals(step.next!.key, 'property_area', 'exactly the one thing not stated is asked');
   const NOW21 = new Date('2026-09-21T09:00:00Z');
-  let st: InterviewState = { details: {}, asked_key: null };
-  let req: Answers = {}; let reqAsked: string | null = null;
-  const said: string[] = []; const asked: string[] = [];
-  for (const t of AUDIT) {
-    said.push(t);
-    const step = interviewStep(ELECTRICAL, st, t, said.join(' \n '), 'en');
-    st = { details: step.details, asked_key: step.next ? step.next.key : null };
-    if (!step.complete) { asked.push(step.next!.key); continue; }
-    const rs = requirementsStep('electrical', req, reqAsked, t, step.details, 'en', NOW21, said.join(' \n '));
-    req = rs.answers; reqAsked = rs.next ? rs.next.key : null;
-    if (rs.next) asked.push(rs.next.key);
-  }
-  // Turn 1 states everything but the property size, so exactly one question is asked; turn 2 answers it.
-  assertEquals(asked, ['property_area']);
-  assertEquals(st.details.scope, 'New wiring (first fix), DB board supply & install, Power sockets');
-  assertEquals(st.details.property_area, 'It is a 4-bedroom villa, about 450 m2 built-up, 9 rooms.');
-  assertEquals(st.details.supply_phase, 'Three-phase');
-  const stored = toStored('electrical', req, NOW21);
-  assertEquals(validateStored('electrical', stored).ok, true);
-  assertEquals(stored.installation, { required: 'yes' });
-  assertEquals(stored.warranty, { required: 'yes', min_months: 24 });
-  assertEquals(stored.required_by.date, '2026-11-30');
-  assertEquals(stored.materials.map((m) => [m.component, m.choice, m.note]), [['cables_devices', 'other', 'Schneider or ABB; MK Logic or Legrand']]);
-  // The first message alone already answers all four, so the "left" count never includes them.
-  assertEquals(Object.keys(statedAnswers('electrical', AUDIT[0], NOW21)).sort(), ['installation', 'material.cables_devices', 'required_by', 'warranty']);
+  const reading: Record<string, { v: string; min_months?: number; date?: string; text?: string; note?: string }> = {
+    'material.cables_devices': { v: 'other', note: 'Schneider or ABB; MK Logic or Legrand' }, installation: { v: 'yes' },
+    warranty: { v: 'yes', min_months: 24 }, required_by: { v: 'date', date: '2026-11-30', text: '30 November 2026' },
+  };
+  const asked: string[] = [];
+  const reason: Reasoner = (x) => { asked.push(x.key); return Promise.resolve(reading[x.key] ?? null); };
+  const rs = await requirementsStep('electrical', {}, null, '', {}, 'en', NOW21, reason);
+  assert(rs.complete, 'all four were stated in the first message: nothing is asked');
+  assertEquals(asked, ['material.cables_devices', 'installation', 'warranty', 'required_by']);
+  assertEquals(validateStored('electrical', toStored('electrical', rs.answers, NOW21)).ok, true);
+  assert(AUDIT.includes('Schneider or ABB'));
 });
 
 Deno.test('finding 8f: the utility is the emirate\'s own: ADDC in Abu Dhabi, never DEWA', () => {

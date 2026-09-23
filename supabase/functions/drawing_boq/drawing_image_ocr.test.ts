@@ -20,7 +20,17 @@ import { createWorker } from 'npm:tesseract.js@7.0.0';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { empty } from '../_shared/doc_read/types.ts';
 import { readDrawing, type DrawingRead, type OcrLine } from './drawing_from_ocr.ts';
-import { deviceTypeOf } from './legend_vocabulary.ts';
+import { deviceTypeIn, DEVICE_TYPES, type Vocab } from './legend_vocabulary.ts';
+
+// The drawing's words are REASONED (decision point drawing_boq.vocabulary); here the reasoning is given as the person's
+// answer key — each legend text with the device type it names, the title's type and the rooms — so what is scored is
+// the READER given a correct reading, and the reading itself is proved elsewhere (reasoned_intake.test.ts).
+const KEY_TYPES: Record<string, string> = { 'FIRE ALARM CONTROL PANEL': 'fire_alarm_control_panel', 'MANUAL CALLPOINT': 'manual_call_point', 'SMOKE DETECTOR': 'smoke_detector',
+  'SMOKE DETECTOR c/w SOUNDER': 'smoke_detector_sounder', 'HEAT DETECTOR': 'heat_detector', 'HEAT DETECTOR c/w SOUNDER': 'heat_detector_sounder', 'WALL MOUNTED SOUNDER BEACON': 'wall_sounder_beacon' };
+const vocabOfKey = (key: Record<string, Field>): Vocab => ({
+  device: (key.legend_device_types.value as string[]).map((t) => [t, DEVICE_TYPES.find((d) => d.type === KEY_TYPES[t])!] as [string, typeof DEVICE_TYPES[number]]),
+  drawingType: String(key.drawing_type.value), rooms: key.rooms.value as string[],
+});
 import { countSymbols, crossCheck, legendRows } from './symbol_count.ts';
 import { drawingInput } from './drawing_input.ts';
 import { OCR_PASSES, binarize, mergeLines, scaleFor, tiles } from '../../../src/components/me/ocrPlan.ts';
@@ -56,7 +66,7 @@ export function scoreRead(key: Record<string, Field>, r: DrawingRead) {
   const tb = r.title_block; const lp = r.loops.find((l) => l.loop === 'L1');
   const eq = (a: unknown, b: unknown) => (norm(String(a ?? '')) === norm(String(b ?? '')) ? 'RIGHT' : `WRONG (${a ?? '—'})`);
   const list = (got: string[], want: string[]) => { const g = new Set(got.map(norm)); const hit = want.filter((w) => g.has(norm(w))).length; return hit === want.length ? 'RIGHT' : hit ? `PARTIAL ${hit}/${want.length}` : 'WRONG'; };
-  const legendTypes = (key.legend_device_types.value as string[]).map((t) => deviceTypeOf(t)!.type);
+  const legendTypes = (key.legend_device_types.value as string[]).map((t) => KEY_TYPES[t]);
   const db = r.sound_levels_dba; const dbk = key.sound_levels_dba.value as { min: number; max: number };
   return {
     drawing_type: eq(tb.drawing_type, key.drawing_type.value),
@@ -136,9 +146,10 @@ Deno.test({ name: 'drawing image: before/after per field vs the answer key, symb
   const { lines, width, height } = await ocrPlan(bytes);
   const ocrMs = Date.now() - t0;
   const { data, info } = await sharp(bytes).flatten({ background: '#ffffff' }).removeAlpha().raw().toBuffer({ resolveWithObject: true });
-  const rows = legendRows(lines, width, deviceTypeOf);
+  const vocab = vocabOfKey(key);
+  const rows = legendRows(lines, width, (t) => deviceTypeIn(t, vocab));
   const sym = countSymbols({ w: info.width, h: info.height, px: new Uint8Array(data), channels: 3 }, rows);
-  const read0 = readDrawing(lines, {}, width);
+  const read0 = readDrawing(lines, {}, width, vocab);
   const addr = read0.loops.find((l) => l.loop === 'L1')?.highest ?? null;
   const check = crossCheck(sym.counts, addr);
   const after = scoreRead(key, read0);
@@ -151,7 +162,7 @@ Deno.test({ name: 'drawing image: before/after per field vs the answer key, symb
 
   // The drawing's BOQ as drawing_boq builds it from what the portal sends (drawingInput redoes the
   // cross-check server-side and writes its result into each count's basis).
-  const out = boqFromExtracted(empty('image'), '', '', drawingInput(lines, width, { counts: sym.counts }, ''));
+  const out = boqFromExtracted(empty('image'), '', '', drawingInput(lines, width, { counts: sym.counts }, ''), vocab);
   console.log(`BOQ: ${out.boq.length} lines, category ${out.category}`);
   console.table(out.boq.map((b) => ({ description: b.description, qty: b.qty, estimate: (b as { estimate?: number }).estimate ?? null, unit: b.unit, status: (b as { qty_status?: string }).qty_status ?? '' })));
 

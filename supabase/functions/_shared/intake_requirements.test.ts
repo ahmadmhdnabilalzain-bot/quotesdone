@@ -1,4 +1,5 @@
-// intake_requirements: every trade asks all four, nothing is assumed, and the post gate.
+// intake_requirements: every trade asks all four, nothing is assumed, and the post gate. A TAPPED option is
+// the answer; typed words are REASONED (decision point intake_requirements.parse) — here a mocked reasoner.
 // deno test supabase/functions/_shared/intake_requirements.test.ts
 //
 // The founder, 14 Sep 2026: "for installation for example, we need to ask, cause maybe the customer
@@ -8,7 +9,8 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
   ACTOR, VERSION, PROFILES, NO_PREFERENCE, requirementQuestions, parseRequirementAnswer, requirementsStep,
-  toStored, toAnswers, validateStored, applyEdits, suggestions, forCard, supplierLine, type Answers,
+  toStored, toAnswers, validateStored, applyEdits, suggestions, forCard, supplierLine, askFor, answerFromReasoned, dateOf, monthsOf,
+  type Answers, type Ans, type Reasoner, type ReqQuestion,
 } from './intake_requirements.ts';
 
 const NOW = new Date('2026-09-14T10:00:00Z');
@@ -72,73 +74,106 @@ Deno.test('a request cannot post with ANY of the four unanswered, in any trade',
   assertEquals(validateStored('flooring', noPeriod).missing, ['warranty']);
 });
 
-Deno.test('a trade suggestion is shown, never recorded: the customer confirms it', () => {
-  const st = requirementsStep('cleaning', { 'material.products': { v: 'eco' } }, null, '', {}, 'en', NOW);
+/** A reasoner that answers from a table (question key -> answer), records what it was asked, and can be held. */
+function reasoner(table: Record<string, Ans | null>, o: { held?: boolean } = {}) {
+  const asked: [string, boolean][] = [];
+  const fn: Reasoner = (x: ReqQuestion, justAsked: boolean) => { asked.push([x.key, justAsked]); return Promise.resolve(o.held ? undefined : (x.key in table ? table[x.key] : null)); };
+  return { fn, asked };
+}
+
+Deno.test('a trade suggestion is shown, never recorded: the customer confirms it with a tap', async () => {
+  const st = await requirementsStep('cleaning', { 'material.products': { v: 'eco' } }, null, '', {}, 'en', NOW);
   assertEquals(st.next!.key, 'installation');
   assertEquals(st.next!.suggested, 'Not needed for this job');
   assert(st.next!.text.includes('Suggested for this job: Not needed for this job. Tap it to confirm'));
   assertEquals(st.answers.installation, undefined, 'the suggestion is not an answer');
-  assert(!st.complete);
-  const done = requirementsStep('cleaning', st.answers, 'installation', 'Not needed for this job', {}, 'en', NOW);
+  const done = await requirementsStep('cleaning', st.answers, 'installation', 'Not needed for this job', {}, 'en', NOW);
   assertEquals(done.answers.installation, { v: 'not_needed' });
-  assertEquals(done.next!.key, 'warranty');
   assertEquals(done.next!.suggested, 'Not needed');
-  const ar = requirementsStep('cleaning', done.answers, null, '', {}, 'ar', NOW);
+  const ar = await requirementsStep('cleaning', done.answers, null, '', {}, 'ar', NOW);
   assert(ar.next!.text.includes('المقترح لهذا العمل: غير مطلوب'));
 });
 
-Deno.test('what the category checklist heard is a suggestion too, not a silent answer', () => {
-  const sug = suggestions('carpentry', { material_finish: 'Laminate', supply_install: 'Supply + installation', timeline: '2-4 weeks' }, NOW);
-  assertEquals(sug['material.finish'], { v: 'laminate' });
-  assertEquals(sug.installation, { v: 'yes' });
-  assertEquals(sug.required_by!.date, '2026-10-12');
-  assertEquals(suggestions('custom-furniture', { installation: 'Supply only / delivery only' }, NOW).installation, { v: 'supply_only' });
-  const st = requirementsStep('carpentry', { 'material.board': { v: 'plywood' } }, null, '', { material_finish: 'Laminate' }, 'en', NOW);
-  assertEquals(st.next!.key, 'material.finish', 'still asked');
-  assertEquals(st.next!.suggested, 'Laminate');
-  const dateStep = requirementsStep('carpentry', { ...answerAll('carpentry'), required_by: undefined as never }, null, '', { timeline: '2-4 weeks' }, 'en', NOW);
-  assertEquals(dateStep.next!.suggested, 'By 2026-10-12');
-  assert(dateStep.next!.options.includes('By 2026-10-12'), 'the suggestion can be tapped');
-  assertEquals(parseRequirementAnswer(q('carpentry', 'required_by'), 'By 2026-10-12', NOW)!.date, '2026-10-12');
+Deno.test('the checklist suggests only what it recorded AS ONE OF THE OPTIONS; its free text is never read for a suggestion', () => {
+  assertEquals(suggestions('carpentry', { material_finish: 'Laminate' }, NOW)['material.finish'], { v: 'laminate' });
+  // "Supply + installation" and "2-4 weeks" are words; a suggestion is not worth reading them, so none is made.
+  const sug = suggestions('carpentry', { supply_install: 'Supply + installation', timeline: '2-4 weeks', material_finish: 'shiny white' }, NOW);
+  assertEquals([sug.installation, sug.required_by, sug['material.finish']], [undefined, undefined, undefined]);
 });
 
-Deno.test('answers: chips in both languages, own words, and a bare "no" to installation is asked again', () => {
+Deno.test('a tapped option, in either language, is the answer without asking anyone; an ISO date is a date', () => {
   const legs = q('custom-furniture', 'material.legs_base');
   assertEquals(parseRequirementAnswer(legs, 'Steel', NOW), { v: 'steel' });
   assertEquals(parseRequirementAnswer(legs, 'حديد (ستيل)', NOW), { v: 'steel' });
-  assertEquals(parseRequirementAnswer(legs, "I don't care", NOW), { v: 'no_preference' });
-  assertEquals(parseRequirementAnswer(legs, 'brushed brass', NOW), { v: 'other', note: 'brushed brass' });
-  assertEquals(parseRequirementAnswer(legs, 'Other: brushed brass', NOW), { v: 'other', note: 'brushed brass' });
-
-  const inst = q('custom-furniture', 'installation');
-  assertEquals(parseRequirementAnswer(inst, 'Supply only, no installation', NOW), { v: 'supply_only' });
-  assertEquals(parseRequirementAnswer(inst, 'توريد فقط، بدون تركيب', NOW), { v: 'supply_only' });
-  assertEquals(parseRequirementAnswer(inst, 'not needed', NOW), { v: 'not_needed' });
-  assertEquals(parseRequirementAnswer(inst, 'غير مطلوب لهذا العمل', NOW), { v: 'not_needed' });
-  assertEquals(parseRequirementAnswer(inst, 'yes please', NOW), { v: 'yes' });
-  assertEquals(parseRequirementAnswer(inst, 'not sure', NOW), { v: 'not_sure' });
-  assertEquals(parseRequirementAnswer(inst, 'no', NOW), null, '"no" could be supply only or not needed: asked again');
-
-  const war = q('custom-furniture', 'warranty');
-  assertEquals(parseRequirementAnswer(war, 'Yes, at least 2 years', NOW), { v: 'yes', min_months: 24 });
-  assertEquals(parseRequirementAnswer(war, 'yes, 3 years minimum', NOW), { v: 'yes', min_months: 36 });
-  assertEquals(parseRequirementAnswer(war, 'Not needed', NOW), { v: 'not_needed', min_months: null });
-  assertEquals(parseRequirementAnswer(war, 'غير مطلوب', NOW), { v: 'not_needed', min_months: null });
-  assertEquals(parseRequirementAnswer(war, 'yes', NOW), null, 'yes with no minimum period is asked again');
-
-  const when = q('custom-furniture', 'required_by');
-  assertEquals(parseRequirementAnswer(when, 'Within 1 month', NOW), { v: 'date', date: '2026-10-14', text: 'Within 1 month' });
-  assertEquals(parseRequirementAnswer(when, '15/11/2026', NOW)!.date, '2026-11-15');
-  assertEquals(parseRequirementAnswer(when, 'hmm', NOW), null);
+  assertEquals(parseRequirementAnswer(q('custom-furniture', 'installation'), 'توريد فقط، بدون تركيب', NOW), { v: 'supply_only' });
+  assertEquals(parseRequirementAnswer(q('custom-furniture', 'warranty'), 'Yes, at least 2 years', NOW), { v: 'yes', min_months: 24 });
+  assertEquals(parseRequirementAnswer(q('custom-furniture', 'required_by'), 'Within 1 month', NOW), { v: 'date', date: '2026-10-14', text: 'Within 1 month' });
+  assertEquals(parseRequirementAnswer(q('carpentry', 'required_by'), 'By 2026-10-12', NOW)!.date, '2026-10-12');
+  // Typed words are NOT read here — each of these once decided an answer by a word list.
+  for (const [key, text] of [['material.legs_base', "I don't care"], ['material.legs_base', 'brushed brass'], ['installation', 'yes please'], ['installation', 'not needed'],
+    ['warranty', 'yes, 3 years minimum'], ['warranty', 'مش محتاج'], ['required_by', 'asap']] as const) {
+    assertEquals(parseRequirementAnswer(q('custom-furniture', key), text, NOW), null, `${key}: "${text}" is reasoned, not matched`);
+  }
 });
 
-Deno.test('an earlier answer that is no longer valid (version 1 "no") is asked again', () => {
-  const st = requirementsStep('flooring', { ...answerAll('flooring'), installation: { v: 'no' } }, null, '', {}, 'en', NOW);
+Deno.test('typed words are reasoned: the asked question first, then what the customer already said, stopping at the first unanswered', async () => {
+  const r = reasoner({ 'material.top_body': { v: 'glass' }, 'material.legs_base': { v: 'other', note: 'brushed brass' }, 'material.hardware': null });
+  const st = await requirementsStep('custom-furniture', {}, 'material.top_body', 'a glass top please', {}, 'en', NOW, r.fn);
+  assertEquals(st.answers['material.top_body'], { v: 'glass' });
+  assertEquals(st.answers['material.legs_base'], { v: 'other', note: 'brushed brass' });
+  assertEquals(st.next!.key, 'material.hardware');
+  assertEquals(r.asked, [['material.top_body', true], ['material.legs_base', false], ['material.hardware', false]], 'stops at the first question not answered');
+  // a reasoned "not answered" to the question just asked: asked again, never guessed
+  const again = await requirementsStep('custom-furniture', {}, 'installation', 'the kitchen is on the first floor', {}, 'en', NOW, reasoner({ installation: null }).fn);
+  assert(again.retry && !again.held);
+  assertEquals(again.answers.installation, undefined);
+});
+
+Deno.test('held: nothing is filled from typed words, the question stays open to tap, and nothing else is asked of the model', async () => {
+  const r = reasoner({}, { held: true });
+  const st = await requirementsStep('custom-furniture', {}, 'installation', 'yes please install it', {}, 'en', NOW, r.fn);
+  assert(st.held && st.retry);
+  assertEquals(st.answers, {});
+  assertEquals(st.next!.key, 'material.top_body');
+  assertEquals(r.asked, [['installation', true]], 'held once: the rest is not asked');
+  // a tap still works under the hold — no model is needed for it
+  const tap = await requirementsStep('custom-furniture', {}, 'installation', 'Yes, install it', {}, 'en', NOW, r.fn);
+  assertEquals(tap.answers.installation, { v: 'yes' });
+});
+
+Deno.test('the reasoned choice becomes an answer: options, own words, a period, a date — and "not answered" is nothing', () => {
+  const legs = q('custom-furniture', 'material.legs_base');
+  assertEquals(answerFromReasoned(legs, 'no_preference', {}, NOW), { v: 'no_preference' });
+  assertEquals(answerFromReasoned(legs, 'other', { note: { value: 'brushed brass', evidence: 'legs in brushed brass' } }, NOW), { v: 'other', note: 'brushed brass' });
+  assertEquals(answerFromReasoned(legs, 'other', {}, NOW), null, 'own words with no words is not an answer');
+  const war = q('custom-furniture', 'warranty');
+  assertEquals(answerFromReasoned(war, 'yes_period', { period: { value: '3 years', evidence: 'a 3 years warranty' } }, NOW), { v: 'yes', min_months: 36 });
+  assertEquals(answerFromReasoned(war, 'yes_period', { period: { value: 'a long time', evidence: 'for a long time' } }, NOW), null);
+  const when = q('custom-furniture', 'required_by');
+  assertEquals(answerFromReasoned(when, 'date', { date: { value: '30 November 2026', evidence: 'finish by 30 November 2026' } }, NOW)!.date, '2026-11-30');
+  assertEquals(answerFromReasoned(when, 'date', { date: { value: '15/11/2026', evidence: 'by 15/11/2026' } }, NOW)!.date, '2026-11-15');
+  assertEquals(answerFromReasoned(when, 'flexible', {}, NOW), { v: 'flexible', date: null, text: 'Flexible, no fixed date' });
+  assertEquals(answerFromReasoned(q('custom-furniture', 'installation'), 'not_answered', {}, NOW), null);
+  assertEquals([dateOf('2020-01-01', NOW), monthsOf('18 months'), monthsOf('two years')], [null, 18, null], 'a past date is not a deadline; a number word is not parsed');
+});
+
+Deno.test('the question as think() is asked it: every option, "not answered", and the free part only where an option needs one', () => {
+  const inst = askFor(q('custom-furniture', 'installation'));
+  assertEquals(inst.options.map((o) => o.id), ['yes', 'supply_only', 'not_needed', 'not_sure']);
+  assertEquals(inst.fields, undefined);
+  const legs = askFor(q('custom-furniture', 'material.legs_base'));
+  assert(legs.options.some((o) => o.id === 'other' && o.meaning.includes('decision.fields.note')));
+  assertEquals(legs.fields?.map((f) => f.key), ['note']);
+  assertEquals(askFor(q('custom-furniture', 'required_by')).fields?.map((f) => f.key), ['date']);
+});
+
+Deno.test('an earlier answer that is no longer valid (version 1 "no") is asked again', async () => {
+  const st = await requirementsStep('flooring', { ...answerAll('flooring'), installation: { v: 'no' } }, null, '', {}, 'en', NOW);
   assertEquals(st.next!.key, 'installation');
   assertEquals(st.answers.installation, undefined);
 });
 
-Deno.test('summary-card edits are re-read and validated; the supplier line never carries a private note', () => {
+Deno.test('summary-card edits are taps, re-read and validated; the supplier line never carries a private note', () => {
   const base = toStored('custom-furniture', { ...answerAll('custom-furniture'), 'material.legs_base': { v: 'other', note: 'brass like my neighbour Ahmed has' } }, NOW);
   const { stored, invalid } = applyEdits('custom-furniture', base, { 'material.legs_base': 'Acrylic', installation: 'no', nope: 'x' }, NOW);
   assertEquals(invalid, ['installation', 'nope']);

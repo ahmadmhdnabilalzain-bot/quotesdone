@@ -3,12 +3,17 @@
 // Founder, 14 Sep 2026: "if a supplier wanted to share 2 options on his quote, they will be considered
 // two different quotations, they cant be merged in one. so each will have its own ID in the system."
 //
-// A submission is split when its lines carry an option heading ("Option 1", "Option B", "Alternative
-// 2", "الخيار 2", "البديل الثاني") or an explicit `option` key set by the document reader. Lines above
-// the first heading are common to every option and are carried into each; the commercial terms
-// (lead time, validity, payment, warranty, exclusions) are the submission's and are copied onto each
-// option by the caller. A total stated for an option wins over the sum of its lines. Deterministic:
-// no heading, no split.
+// A submission is split by STRUCTURE only: each line's `option` key (set by the document reader, or by the portal's
+// "another option" — option_no / new_option on submit_quote). Lines with no key are common to every option and are
+// carried into each; the commercial terms are the submission's and are copied onto each option by the caller. A
+// total stated for an option wins over the sum of its lines. A keyed line with neither a quantity nor a price is
+// the option's heading row and is not a line of it. No key, no split.
+// WHY NOT THE HEADING'S WORDS (23 Sep 2026, founder_instruction 886-903; decision point line_specs.options_derive_vat):
+// splitOptions used to read "Option 1" / "Alternative B" / "الخيار الثاني" out of a line's description with a word
+// list to decide that a line opened an option. It no longer reads any description.
+// OPTION_HEAD and optionNumber below are RETAINED ONLY for the two readers not yet migrated off them —
+// quote_extract/quote_from_document.ts (decision point quote_extract.document) and line_specs/assess.ts
+// (line_specs.assess, batch B3). Nothing in this file calls them; delete them with those points.
 export const OPTION_HEAD = /^\s*(?:(?:option|alternative|alt\.?|choice|offer)\s*(?:no\.?|#)?\s*(\d{1,2}|[a-e]\b|one|two|three|four|five)|(?:البديل|الخيار|العرض البديل|خيار|بديل)\s*(?:رقم\s*)?([0-9٠-٩]{1,2}|الأول|الاول|الثاني|الثالث|الرابع|أ|ب|ج|د)?)\s*[:\-–.)]?/i;
 
 const WORD: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, 'الأول': 1, 'الاول': 1, 'الثاني': 2, 'الثالث': 3, 'الرابع': 4, 'أ': 1, 'ب': 2, 'ج': 3, 'د': 4 };
@@ -24,30 +29,22 @@ export function optionNumber(heading: string, fallback: number): number {
 export type OptionLine = { description: string; amount?: number | null; unit_price?: number | null; option?: string | number | null; [k: string]: unknown };
 export type SplitOption<L> = { option_no: number; heading: string | null; lines: L[]; total: number | null };
 
-const isHeading = (l: OptionLine) => OPTION_HEAD.test(String(l.description || '')) && !(Number(l.amount) > 0) && !(Number(l.unit_price) > 0);
+/** A keyed line with no quantity and no price: the heading row the document reader wrote for its option. */
+const isHeading = (l: OptionLine) => l.option != null && String(l.option) !== '' && !(Number(l.amount) > 0) && !(Number(l.unit_price) > 0) && !(Number((l as { qty?: unknown }).qty) > 0);
 
 /** Split lines into options. One option (option_no 1, every line) when nothing marks a second. */
 export function splitOptions<L extends OptionLine>(lines: L[], totals: Record<string, number> = {}): SplitOption<L>[] {
   const keyed = lines.some((l) => l.option != null && String(l.option) !== '');
-  const heads = lines.filter(isHeading);
-  if (!keyed && heads.length < 2) return [{ option_no: 1, heading: null, lines: lines.filter((l) => !isHeading(l)), total: null }];
+  if (!keyed) return [{ option_no: 1, heading: null, lines, total: null }];
   const shared: L[] = [];
   const byNo = new Map<number, SplitOption<L>>();
-  let cur: SplitOption<L> | null = null;
   for (const l of lines) {
-    if (keyed) {
-      if (l.option == null || String(l.option) === '') { shared.push(l); continue; }
-      const n = /^\d+$/.test(String(l.option)) ? Number(l.option) : optionNumber('option ' + String(l.option), byNo.size + 1);
-      if (!byNo.has(n)) byNo.set(n, { option_no: n, heading: 'Option ' + n, lines: [], total: null });
-      if (!isHeading(l)) byNo.get(n)!.lines.push(l);
-      continue;
-    }
-    if (isHeading(l)) {
-      const n = optionNumber(l.description, byNo.size + 1);
-      cur = byNo.get(n) ?? { option_no: n, heading: String(l.description).trim().slice(0, 60), lines: [], total: null };
-      byNo.set(n, cur); continue;
-    }
-    (cur ? cur.lines : shared).push(l);
+    if (l.option == null || String(l.option) === '') { shared.push(l); continue; }
+    // The key is a number, or a letter a-e (a FORMAT: option A is 1); anything else is the next option.
+    const k = String(l.option).trim();
+    const n = /^\d+$/.test(k) ? Number(k) : /^[a-e]$/i.test(k) ? k.toLowerCase().charCodeAt(0) - 96 : byNo.size + 1;
+    if (!byNo.has(n)) byNo.set(n, { option_no: n, heading: 'Option ' + n, lines: [], total: null });
+    if (!isHeading(l)) byNo.get(n)!.lines.push(l);
   }
   const out = [...byNo.values()].sort((a, b) => a.option_no - b.option_no);
   for (const o of out) {

@@ -37,10 +37,12 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, type Proposal } from '../quote_extract/quote_from_document.ts';
 import type { MissingItem } from '../_shared/line_specs/assess.ts';
 import {
-  answerSaid, applyCorrections, awaitingUploadSaid, carryOver, choiceSaid, closedSaid, fromMissing, generatedSaid, greeting, issueKey, notUnderstoodSaid,
-  parseQty, readReply, readyToSubmitSaid, reviewQuotation, reviewSaid, SEAT, submittedSaid, tookSaid, typedUnreadableSaid, unreadableSaid, workingFromProposal,
-  type Issue, type Lang, type Review, type SafeInquiry, type Said, type Working,
+  answerSaid, applyCorrections, awaitingUploadSaid, boqKey, boqOf, carryOver, choiceSaid, closedSaid, fromMissing, generatedSaid, greeting, issueKey, notUnderstoodSaid,
+  parseQty, readyToSubmitSaid, replyFrom, replyPoints, reviewQuotation, reviewSaid, SEAT, submittedSaid, tookSaid, typedUnreadableSaid, unreadableSaid, workingFromProposal,
+  type BoqRow, type Issue, type Lang, type Review, type SafeInquiry, type Said, type WLine, type Working,
 } from './quote_review.ts';
+import type { ThinkDeps } from '../_shared/think.ts';
+import { boqMatch, supplierQuestion, supplierReply, vatBasis, type Stated, type VatBasis } from '../_shared/reasoned_intake.ts';
 
 export type ReviewState = 'open' | 'reviewing' | 'changes_requested' | 'awaiting_choice' | 'awaiting_upload' | 'ready_to_submit' | 'submitted' | 'closed';
 export type Choice = 'generate' | 'reupload';
@@ -97,7 +99,60 @@ export interface ReviewDeps {
   /** supplier_api quote_pdf: the standardised quotation the customer receives, for this supplier's own quote. */
   quotePdf(quoteId: string, lang: Lang): Promise<{ url: string | null; ref: string | null }>;
   now(): Date;
+  /** The sales engineer's reasoning (think()); absent, every reasoned decision is HELD — nothing is guessed. */
+  reason?: QuoteReasoner;
 }
+/**
+ * WHAT THE SUPPLIER'S WORDS MEAN, REASONED (23 Sep 2026, founder_instruction 886-903; decision point
+ * supplier_api.quote_review_match). Each answer is null while it is HELD (the model hold): the flow then does
+ * the safe thing — asks, lists the open points, offers the buttons — and the replay applies the answer when
+ * the hold lifts (scripts/sql/the_sales_engineer_reasons_intake_and_quotations_instead_of_matching_words.sql:
+ * the match onto working.boq_match, a reply into working.pending_reasoned, an answer into the thread).
+ */
+export interface QuoteReasoner {
+  boqMatch(o: { reviewId: string; key: string; boq: BoqRow[]; lines: WLine[] }): Promise<Record<string, number> | null>;
+  vatBasis(o: { reviewId: string; text: string }): Promise<VatBasis | 'not_stated' | null>;
+  reply(o: { reviewId: string; messageId: string; text: string; points: { key: string; question: string }[] }): Promise<Stated | null>;
+  question(o: { reviewId: string; messageId: string; question: string; open: string[]; job: string; lang: Lang }): Promise<string | null>;
+}
+export function liveQuoteReasoner(td: ThinkDeps): QuoteReasoner {
+  return {
+    boqMatch: async (o) => (await boqMatch(td, {
+      boq: o.boq.map((b, i) => ({ n: i + 1, description: String(b.description ?? ''), qty: b.qty == null ? undefined : String(b.qty), unit: b.unit ?? undefined })),
+      lines: o.lines.map((l, j) => ({ n: j + 1, description: l.description })), dedupeKey: 'qr_match:' + o.reviewId + ':' + o.key, subject: { review_id: o.reviewId, key: o.key },
+    })).value,
+    vatBasis: async (o) => (await vatBasis(td, { text: o.text, dedupeKey: 'qr_vat:' + o.reviewId, subject: { review_id: o.reviewId } })).value,
+    reply: async (o) => (await supplierReply(td, { text: o.text, points: o.points, dedupeKey: 'qr_reply:' + o.messageId, subject: { review_id: o.reviewId, message_id: o.messageId } })).value,
+    question: async (o) => {
+      const r = await supplierQuestion(td, { question: o.question, open: o.open, job: o.job, language: o.lang, dedupeKey: 'qr_question:' + o.messageId, subject: { review_id: o.reviewId, message_id: o.messageId } });
+      return r.status === 'answered' && r.answer ? r.answer : null;
+    },
+  };
+}
+/** The match and the VAT basis for THIS working, reasoned once per set of lines (boqKey); held stays null. */
+async function ensureReasoned(deps: ReviewDeps, reviewId: string, inq: SafeInquiry, w: Working, fileText = ''): Promise<Working> {
+  if (!deps.reason) return w;
+  const out: Working = { ...w };
+  const boq = boqOf(inq);
+  if (boq.length) {
+    const key = boqKey(boq, out.lines);
+    if (out.boq_match_for !== key || !out.boq_match) { out.boq_match_for = key; out.boq_match = await deps.reason.boqMatch({ reviewId, key, boq, lines: out.lines }); }
+  }
+  if (!(out.vat_treatment && out.vat_treatment !== 'not_stated') && !(Number(out.price_ex_vat) > 0)) {
+    // The file's whole text when there is one (a note such as "Prices exclude VAT" is often a line of its own).
+    const text = (fileText || [out.notes, out.scope, out.conditions, out.exclusions, out.payment_terms].filter(Boolean).join('\n')).slice(0, 6000);
+    if (text.trim()) { const b = await deps.reason.vatBasis({ reviewId, text }); if (b && b !== 'not_stated') out.vat_treatment = b; }
+  }
+  return out;
+}
+/** A reply that has no reasoning yet (the hold): answered from data — the open points and the buttons. */
+export const heldReplySaid = (job: string, open: Issue[]): Said => {
+  const a = answerSaid('missing', job, open, 0);
+  return {
+    en: `Thank you — your message is recorded on Job ${job}, and what it states is applied to the open points below as soon as it is read; the review then updates here by itself. You can also attach a revised file, or use the buttons. ${a.en}`,
+    ar: `شكرًا لكم — سُجّلت رسالتكم على الطلب ${job}، ويُطبَّق ما ورد فيها على النقاط المفتوحة أدناه فور قراءتها، ثم تتحدّث المراجعة هنا تلقائيًا. ويمكنكم كذلك إرفاق ملف معدّل، أو استخدام الأزرار. ${a.ar}`,
+  };
+};
 export type Ctx = { supplierId: number; email: string; lang: Lang; companyName?: string | null };
 
 // ---------------------------------------------------------------------------------------------
@@ -194,6 +249,16 @@ async function load(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: str
   }
   // The address the supplier's own-row policy reads follows whoever owns the company now.
   if (r && r.owner_email !== ctx.email) { await repo.updateReview(r.id, { owner_email: ctx.email }); r = { ...r, owner_email: ctx.email }; }
+  // WHAT THE REPLAY REASONED IS APPLIED HERE, at the supplier's next step (the replay writes it onto the working;
+  // nothing is applied while the review is running, submitted or closed).
+  if (r && r.working && ((r.working.pending_reasoned ?? []).length || r.working.pending_rereview) && WRITABLE.includes(effectiveState(r, deps.now())) && !(inq.concluded || inq.revealed)) {
+    const open = await openIssuesOf(repo, r);
+    const cs = (r.working.pending_reasoned ?? []).flatMap((x) => replyFrom(x.fields, open, boqOf(inq).length).corrections);
+    const w0: Working = { ...r.working, pending_reasoned: [], pending_rereview: false };
+    if (cs.length) { const took = tookSaid(cs); if (took) await say(repo, r.id, 'text', took); }
+    await runReview(repo, deps, inq, r, cs.length ? applyCorrections(w0, cs, inq.boq_rows) : w0, null);
+    r = await repo.review(inquiryId, ctx.supplierId);
+  }
   return { inq, r };
 }
 const isFail = (x: unknown): x is Fail => !!x && (x as Fail).ok === false;
@@ -215,7 +280,8 @@ function writableOr(l: Loaded, r: ReviewRow | null, now: Date): Fail | null {
 // ---------------------------------------------------------------------------------------------
 // The review, and the requests it opens and closes.
 // ---------------------------------------------------------------------------------------------
-async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: ReviewRow, w: Working, trigger: string | null) {
+async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: ReviewRow, w0: Working, trigger: string | null) {
+  const w = await ensureReasoned(deps, r.id, inq, w0);
   const rv = reviewQuotation(inq, w);
   const open = await repo.requests(r.id, true);
   const openIssues = open.filter((x) => x.kind !== 'choice');
@@ -291,8 +357,13 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   }
   // A new version replaces what the last file said, and keeps what the CHAT settled (carryOver: the
   // audit of 21 Sep 2026 saw a revised CSV re-open validity, installation and warranty answered in text).
-  let w = carryOver(r.working, workingFromProposal(read.proposal, read.text), l.inq.boq_rows);
-  if (note) w = applyCorrections(w, readReply(note, await openIssuesOf(repo, r)).corrections, l.inq.boq_rows);
+  let w = carryOver(r.working, await ensureReasoned(deps, r.id, l.inq, workingFromProposal(read.proposal, read.text), read.text), l.inq.boq_rows);
+  // A note typed with the file is a reply like any other: reasoned; held, it is kept in the thread and applied by the replay.
+  if (note && deps.reason) {
+    const open = await openIssuesOf(repo, r);
+    const fields = await deps.reason.reply({ reviewId: r.id, messageId: fm.id, text: note, points: replyPoints(open, boqOf(l.inq).length) });
+    if (fields) w = applyCorrections(w, replyFrom(fields, open, boqOf(l.inq).length).corrections, l.inq.boq_rows);
+  }
   await repo.updateReview(r.id, { extracted: read.proposal });
   await runReview(repo, deps, l.inq, r, w, fm.id);
   } catch (e) {
@@ -356,7 +427,7 @@ async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded
       await repo.updateReview(r.id, { status: prior, reviewing_since: null });
       return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
     }
-    const w = carryOver(r.working, workingFromProposal(read.proposal, t), l.inq.boq_rows);
+    const w = carryOver(r.working, await ensureReasoned(deps, r.id, l.inq, workingFromProposal(read.proposal, t), t), l.inq.boq_rows);
     await repo.updateReview(r.id, { extracted: read.proposal });
     await runReview(repo, deps, l.inq, r, w, trigger);
   } catch (e) {
@@ -375,20 +446,28 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   const sm = await supplierSays(repo, r.id, 'text', t);
   const st = effectiveState(r, deps.now());
   const open = await openIssuesOf(repo, r);
-  const rr = readReply(t, open);
+  // Nothing read yet, and priced lines typed: the TYPED READER (a parser of the lines' format), before any reasoning.
+  if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) return readTyped(repo, deps, ctx, l, r, t, sm.id);
+  // WHAT THE MESSAGE STATES, CHOOSES OR ASKS IS REASONED (replyPoints / replyFrom). Held: answered from data.
+  const fields = deps.reason ? await deps.reason.reply({ reviewId: r.id, messageId: sm.id, text: t, points: replyPoints(open, boqOf(l.inq).length) }) : null;
+  if (!fields) {
+    if (st === 'awaiting_choice') await say(repo, r.id, 'choice_prompt', choiceSaid());
+    else if (st === 'ready_to_submit') await say(repo, r.id, 'text', readyToSubmitSaid(l.inq.job_no));
+    else if (!r.working || st === 'awaiting_upload') await say(repo, r.id, 'text', awaitingUploadSaid());
+    else await say(repo, r.id, 'text', heldReplySaid(l.inq.job_no, open));
+    return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
+  }
+  const rr = replyFrom(fields, open, boqOf(l.inq).length);
   if (st === 'awaiting_choice' && rr.choice) return decide(repo, deps, ctx, l, r, rr.choice, sm.id);
   if (st === 'ready_to_submit' && rr.submit) return doSubmit(repo, deps, ctx, l.inq, r, sm.id);
   if (rr.corrections.length && r.working) {
     const took = tookSaid(rr.corrections); if (took) await say(repo, r.id, 'text', took);
     await runReview(repo, deps, l.inq, r, applyCorrections(r.working, rr.corrections, l.inq.boq_rows), sm.id);
-  } else if (rr.topic) {
-    await say(repo, r.id, 'text', answerSaid(rr.topic, l.inq.job_no, open, r.last_review?.boq_lines ?? l.inq.boq_rows.length));
-  } else if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) {
-    // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03). A supplier who answers "type it here"
-    // by doing exactly that is using this action, not review_typed, and being told "attach the new
-    // version" for the third time is what sent them to the form outside the conversation. The same
-    // reader, the same review; a sentence still falls through to the answer below.
-    return readTyped(repo, deps, ctx, l, r, t, sm.id);
+  } else if (rr.question) {
+    // The question is ANSWERED (903): reasoned from the job's open points and the rules; held, the open points
+    // are the answer now and the reasoned answer follows in this thread when the hold lifts.
+    const a = deps.reason ? await deps.reason.question({ reviewId: r.id, messageId: sm.id, question: rr.question, open: open.map((x) => (ctx.lang === 'ar' ? x.ar : x.en)), job: l.inq.job_no, lang: ctx.lang }) : null;
+    await say(repo, r.id, 'text', a ? { en: a, ar: a } : answerSaid('missing', l.inq.job_no, open, r.last_review?.boq_lines ?? l.inq.boq_rows.length));
   } else if (!r.working || st === 'awaiting_upload') {
     await say(repo, r.id, 'text', awaitingUploadSaid());
   } else if (st === 'awaiting_choice') {

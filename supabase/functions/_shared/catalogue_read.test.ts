@@ -14,9 +14,12 @@ import IMPLICATIONS from './service_implications.json' with { type: 'json' };
 
 const here = new URL('.', import.meta.url);
 const path = (u: URL) => decodeURIComponent(u.pathname).replace(/^\/([A-Za-z]:)/, '$1');
+const REASONED_INSTALL = new Set(['it_services.network_install', 'it_services.structured_cabling']);
 const SERVICES: ServiceTerm[] = Object.entries(ALIASES as Record<string, { en: string[]; ar: string[] }>).map(([key, v]) => ({
   trade_code: key.slice(0, key.indexOf('.')), code: key.slice(key.indexOf('.') + 1),
   label_en: key.slice(key.indexOf('.') + 1).replace(/_/g, ' '), label_ar: 'خدمة', aliases: [...v.en, ...v.ar],
+  // install_work is REASONED per service (service_rewrite.install); the fixture carries the reasoned value.
+  install_work: REASONED_INSTALL.has(key),
 }));
 // The live trade aliases that produced the false hits on 21 Sep 2026, plus the two new trades.
 const TRADES: TradeTerm[] = [
@@ -104,13 +107,12 @@ Deno.test('supply only needs a trading word and no installation word, in English
   assertEquals(readCatalogue('IMPORTER AND WHOLESALER\nType Sealed Maintenance Free Type Sealed Maintenance Free', SERVICES, TRADES).supply_only, true);
 });
 
-Deno.test('a supply-only company is not proposed installation work, from its own label', () => {
-  assert(isInstallWork({ label_en: 'Network installation', code: 'network_install' }));
-  assert(isInstallWork({ label_en: 'Structured cabling', code: 'structured_cabling' }));
-  assert(isInstallWork({ label_en: 'Printer & copier servicing', code: 'printer_service' }));
-  assert(!isInstallWork({ label_en: 'Lighting supply & installation', code: 'lighting' }), 'supply & install keeps its supply half');
-  assert(!isInstallWork({ label_en: 'Hardware supply', code: 'hardware_supply' }));
-  assert(!isInstallWork({ label_en: 'CCTV', code: 'cctv' }));
+Deno.test('a supply-only company is not proposed installation work, as REASONED per service (never from its label words)', () => {
+  // The column decides; the label's words decide nothing (decision point service_rewrite.install).
+  assert(isInstallWork({ install_work: true }));
+  assert(!isInstallWork({ install_work: false }));
+  assert(!isInstallWork({ install_work: null }), 'not reasoned yet (the hold): never withheld on a guess');
+  assert(!isInstallWork({}), 'a row read before the column existed');
   const rw = rewriteServices('Networking\nCat 6 Cable\nCCTV', SERVICES, TRADES, { supplyOnly: true });
   assert(!rw.service_keys.includes('it_services.network_install') && !rw.service_keys.includes('it_services.structured_cabling'));
   assert(rw.service_keys.includes('security_systems.cctv'));

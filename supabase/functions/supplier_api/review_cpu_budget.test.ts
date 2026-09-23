@@ -19,7 +19,7 @@ import { boqWithArabic } from '../_shared/boq_arabic.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { inboxBoq } from './identity_scrub.ts';
 import { readQuotationFile } from './quote_review_flow.ts';
-import { readReply, reviewQuotation, workingFromProposal, type SafeInquiry } from './quote_review.ts';
+import { replyFrom, replyPoints, reviewQuotation, workingFromProposal, type SafeInquiry } from './quote_review.ts';
 
 const vocab = (): ServiceTerm[] => Object.entries(aliases as Record<string, { en: string[]; ar: string[] }>).map(([key, a]) => {
   const [trade_code, code] = key.split('.');
@@ -63,7 +63,7 @@ Deno.test(`a ${LINES}-line quotation review runs well inside the edge CPU cap`, 
   assert(read.proposal, 'the fixture quotation is readable');
   assertEquals(read.proposal.line_items.filter((l) => l.amount != null).length, LINES);
   const rv = reviewQuotation(inq, workingFromProposal(read.proposal, read.text));
-  readReply('BOQ line 2 AED 27,880; BOQ line 3 AED 7,680', rv.issues);
+  replyPoints(rv.issues); replyFrom({ boq_2_amount: { value: 'AED 27,880', evidence: 'AED 27,880' } }, rv.issues);   // the reply's own work; its meaning is reasoned elsewhere
   const ms = performance.now() - t0;
   assert(ms < BUDGET_MS, `the review path took ${ms.toFixed(0)} ms for ${LINES} lines (budget ${BUDGET_MS} ms; the edge CPU cap is 2 s)`);
 });

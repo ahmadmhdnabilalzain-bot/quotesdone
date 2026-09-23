@@ -30,19 +30,29 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { DOC_VERSION, completenessOf, inquiryDocument, itemsOfRows, quoteDocument, quoteRef, type InquiryDocRow, type Item } from '../_shared/quote_documents.ts';
 import { duesLines, supplierInvoiceDocument, supplierReceiptDocument, type SupplierPayment } from '../_shared/supplier_payment_documents.ts';
 import { jobAlias } from '../_shared/quote_labels.ts';
-import { deriveLineFields, deriveTermsFromScope } from '../_shared/line_specs/derive.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { quoteTextFacts, vatBasis } from '../_shared/reasoned_intake.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry } from './quote_review_actions.ts';
-import { supabaseReviewRepo } from './quote_review_flow.ts';
-import { jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
+import { liveQuoteReasoner, supabaseReviewRepo } from './quote_review_flow.ts';
+import { boqKey, boqOf, jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec, type SafeInquiry, type Working } from './quote_review.ts';
 import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// THE BOQ MATCH AT EVERY DOOR IS REASONED (decision point supplier_api.quote_review_match). The chat's own match is
+// carried when it was reasoned for exactly these lines (withResolved); otherwise it is reasoned here. Held: the
+// review raises each BOQ line as a clarification and the quote is HELD, never approved on a guess.
+async function withReasonedMatch(inq: SafeInquiry, w: Working, dedupe: string): Promise<Working> {
+  const boq = boqOf(inq);
+  if (!boq.length || w.boq_match) return w;
+  const key = boqKey(boq, w.lines);
+  return { ...w, boq_match_for: key, boq_match: await liveQuoteReasoner(defaultDeps(admin, 'supplier_api')).boqMatch({ reviewId: dedupe, key, boq, lines: w.lines }) };
+}
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // 15 Sep 2026 (sales_engineer): trade_license_no, license_expiry and license_doc_path are NOT here. They
 // are written only by the upload paths, from the stored file and what license_extract read off it; from
@@ -338,7 +348,7 @@ const handle = async (req: Request): Promise<Response> => {
         if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
         return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
       };
-      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan });
+      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan, reason: liveQuoteReasoner(defaultDeps(admin, 'supplier_api')) });
       return J(out.json, out.status);
     }
 
@@ -1339,7 +1349,7 @@ const handle = async (req: Request): Promise<Response> => {
             label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
             label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
           const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-          const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
+          const rvw = reviewQuotation(inqSafe, await withReasonedMatch(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working), boqOf(inqSafe)), 'approve:' + String(row.id)));
           if (rvw.approved) return null;
           return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
         });
@@ -1388,9 +1398,22 @@ const handle = async (req: Request): Promise<Response> => {
       // that is already clean unchanged, so a quotation quote_extract anonymised is unaffected.
       const maskHits: string[] = [];
       const scrub = (v: unknown, n: number) => scrubIdentity(clip(v, n), sup.company_name, maskHits);
-      // What the scope itself states is read into its columns (line_specs/derive.ts — audit 21 Sep
-      // 2026, finding 15): "Exclusions: …" typed inside the scope, and "installation included".
-      const fromScope = deriveTermsFromScope(body.scope, body.exclusions);
+      // WHAT THE FORM'S OWN TEXT STATES, REASONED (audit 21 Sep 2026, finding 15; 23 Sep 2026, decision point
+      // line_specs.options_derive_vat). A supplier types "Brand: Jotun – Product: Fenomastic" into a line and
+      // "Installation included … Exclusions: …" into the scope; the scorer counts COLUMNS. A label list and an
+      // "installation included" phrase list read them before; think() reads them now, each value copied from the
+      // supplier's own words (_shared/reasoned_intake.ts quoteTextFacts). HELD (the model hold): nothing is
+      // derived — the hold gate asks for the brand, the exclusions or the installation as a missing detail and the
+      // supplier states it in its own field (spec_fill). Nothing is inferred that the text does not say.
+      const toRead = items.slice(0, 30).map((it: any, i: number) => ({ n: i + 1, description: String(it?.description ?? ''), it }))
+        .filter((x: any) => x.description.trim() && !(x.it?.brand && x.it?.model && x.it?.specification));
+      const scopeText = String(body.scope ?? '');
+      const facts = (toRead.length || scopeText.trim())
+        ? (await quoteTextFacts(defaultDeps(admin, 'supplier_api'), { lines: toRead.map((x: any) => ({ n: x.n, description: x.description })), scope: scopeText,
+            dedupeKey: 'quote_text:' + sup.id + ':' + inquiryId, subject: { supplier_id: sup.id, inquiry_id: inquiryId } })).value ?? {}
+        : {};
+      const said = (k: string) => String(facts[k]?.value ?? '').trim() || undefined;
+      const fromScope = { exclusions: said('exclusions'), installation_included: !!said('installation_included') };
       const sNotes = scrub(body.notes, 1000), sScope = scrub(body.scope, 2000), sCond = scrub(body.conditions, 2000), sExcl = scrub(body.exclusions || fromScope.exclusions || '', 2000);
       const priorMasked: string[] = Array.isArray(body.masked_terms) ? body.masked_terms.map((x: unknown) => String(x)) : [];
       const allMasked = [...priorMasked, ...maskHits.filter((h) => !priorMasked.includes(h))];
@@ -1403,6 +1426,14 @@ const handle = async (req: Request): Promise<Response> => {
       // customer compares and the 3% is taken on is the price EXCLUDING VAT; the supplier's VAT
       // treatment, VAT amount and TRN are kept on the quote for the record only (vat.ts).
       const vatText = [body.notes, body.scope, body.conditions, body.exclusions, body.payment_terms, body.vat_note, ...items.map((it: any) => it?.description)].filter(Boolean).map(String).join('\n');
+      // THE VAT BASIS: the portal's VAT select when the supplier used it (structured); otherwise what their words
+      // say, REASONED (vatBasis — decision point line_specs.options_derive_vat), never a phrase list. Held: not
+      // stated, so the review holds the quote and asks the supplier for the basis.
+      let statedVat: string | null = body.vat_treatment ? String(body.vat_treatment) : null;
+      if (!statedVat && !(numOrNull(body.price_ex_vat) ?? 0) && vatText.trim()) {
+        const vb = await vatBasis(defaultDeps(admin, 'supplier_api'), { text: vatText, dedupeKey: 'quote_vat:' + sup.id + ':' + inquiryId, subject: { supplier_id: sup.id, inquiry_id: inquiryId } });
+        if (vb.value && vb.value !== 'not_stated') { statedVat = vb.value; body.vat_treatment = vb.value; }
+      }
       const trn = findTrn(vatText) || (/^100\d{12}$/.test(String(body.trn || '')) ? String(body.trn) : null);
 
       // OPTIONS (founder, 14 Sep 2026: "if a supplier wanted to share 2 options on his quote, they will
@@ -1411,6 +1442,8 @@ const handle = async (req: Request): Promise<Response> => {
       // submission's commercial terms; a single-option submission targets option_no (1, the one it
       // is editing, or a new one when the supplier adds another option).
       const normItems = items.map((it: any) => ({ ...it, description: String(it?.description ?? ''), amount: numOrNull(it?.amount) ?? (((numOrNull(it?.qty) || 0) * (numOrNull(it?.unit_price) || 0)) || null) }));
+      // The reasoned facts are keyed by the line's number in the submission; options split these same objects.
+      const lineNo = new Map<unknown, number>(normItems.map((it: unknown, i: number) => [it, i + 1]));
       const opts = splitOptions(normItems, body.option_totals && typeof body.option_totals === 'object' ? body.option_totals : {});
       const multi = opts.length > 1;
       const { data: mine } = await admin.from('quotes').select('id,option_no,status').eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
@@ -1448,9 +1481,9 @@ const handle = async (req: Request): Promise<Response> => {
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
-      const rv = reviewQuotation(safeInq, withResolved(
+      const rv = reviewQuotation(safeInq, await withReasonedMatch(safeInq, withResolved(
         workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
-        resolvedFrom(reviewRow?.working)));
+        resolvedFrom(reviewRow?.working), boqOf(safeInq)), 'submit:' + sup.id + ':' + inquiryId));
       const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
@@ -1471,7 +1504,7 @@ const handle = async (req: Request): Promise<Response> => {
       let anyAccepted = false;
       for (const p of plan) {
         const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
-          stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
+          stated: statedVat, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
           notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
@@ -1506,12 +1539,11 @@ const handle = async (req: Request): Promise<Response> => {
         else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error) return J({ error: error.message }, 500); qid = String(ins.id); }
         try {
           await admin.from('quote_items').delete().eq('quote_id', qid);
-          // A line's own words fill brand / model / specification where the caller sent none; a scope
-          // that says installation is included, with no line carrying a labour or install figure, marks
-          // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
-          // count reads what the supplier wrote (derive.ts, finding 15).
+          // What the reasoning read from a line's own words fills brand / model / specification where the caller
+          // sent none; a scope reasoned to say installation is included, with no line carrying a labour or install
+          // figure, marks the first line install = 0 — "included in the rate" (finding 15).
           const anyInstall = p.lines.some((it: any) => numOrNull(it.labour) != null || numOrNull(it.install) != null);
-          const rows = p.lines.slice(0, 80).map((it: any, i: number) => { const dv = deriveLineFields(it); return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
+          const rows = p.lines.slice(0, 80).map((it: any, i: number) => { const ln = lineNo.get(it); const dv = { brand: ln ? said(`line_${ln}_brand`) : undefined, model: ln ? said(`line_${ln}_model`) : undefined, specification: ln ? said(`line_${ln}_specification`) : undefined }; return { quote_id: qid, line_no: i + 1, description: clip(it.description, 300), brand: clip(it.brand || dv.brand, 120), model: clip(it.model || dv.model, 120), specification: clip(it.specification || dv.specification, 800), qty: numOrNull(it.qty), unit: clip(it.unit, 40), unit_price: numOrNull(it.unit_price), labour: numOrNull(it.labour), install: numOrNull(it.install) ?? (i === 0 && !anyInstall && fromScope.installation_included ? 0 : null), commissioning: numOrNull(it.commissioning), amount: numOrNull(it.amount) ?? ((numOrNull(it.qty) || 0) * (numOrNull(it.unit_price) || 0) || null), country_of_origin: clip(it.country_of_origin, 80), notes: clip(it.notes, 300), ...(() => { const s = sanitizeSpec(it.spec); return Object.keys(s.spec).length ? { spec: s.spec, spec_source: s.source } : {}; })() }; });
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);

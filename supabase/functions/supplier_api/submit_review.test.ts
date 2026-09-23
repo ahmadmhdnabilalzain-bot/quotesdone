@@ -7,7 +7,7 @@
 // `accept()` — and the assertions are about the VERDICT, so a change to the rules that closes a door
 // fails here rather than in production.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { reviewQuotation, type SafeInquiry } from './quote_review.ts';
+import { boqKey, reviewQuotation, type SafeInquiry } from './quote_review.ts';
 import { resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
 
 const NO_SCRUB = { notes: '', scope: '', conditions: '', exclusions: '' };
@@ -24,8 +24,13 @@ const job = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
   ...over,
 });
 
-const review = (inq: SafeInquiry, body: Record<string, unknown>, resolved: unknown = null) =>
-  reviewQuotation(inq, withResolved(workingFromSubmit(body, scrubbedOf(body), {}, [], null), resolvedFrom(resolved)));
+/** The BOQ match as the reasoning returns it for these fixtures: each item is the BOQ line of the same number (supplier_api's
+ *  withReasonedMatch reasons it at the door; here it is the reasoned answer, given). */
+const REASONED = (lines: unknown[]) => Object.fromEntries(lines.map((_, i) => [String(i + 1), i + 1]));
+const review = (inq: SafeInquiry, body: Record<string, unknown>, resolved: unknown = null) => {
+  const w = withResolved(workingFromSubmit(body, scrubbedOf(body), {}, [], null), resolvedFrom(resolved));
+  return reviewQuotation(inq, { ...w, boq_match: REASONED(w.lines) });
+};
 const codes = (r: { issues: { code: string }[] }) => [...new Set(r.issues.map((i) => i.code))].sort();
 
 // ── Door 1: the Quote Builder's one-click accept ────────────────────────────────────────────────
@@ -93,12 +98,23 @@ Deno.test('a caller cannot excuse a BOQ line by putting boq_excluded in its own 
 Deno.test('spec_approve: the stored quote is reviewed as it stands, and a bad one is not released', () => {
   const stored = { quote_amount: 61000, price_ex_vat: 61000, vat_treatment: 'exclusive', lead_time: '6 weeks from approval', validity: '', warranty: '12 months on materials and workmanship, parts and labour included', scope: 'Supply and installation of gypsum partitions and suspended ceiling. Installation included.', conditions: '', exclusions: '', notes: '' };
   const rows = filledForm().items.map((i) => ({ ...i }));
-  const bad = reviewQuotation(job(), withResolved(workingFromStoredQuote(stored, rows), resolvedFrom(null)));
+  const bad = reviewQuotation(job(), { ...withResolved(workingFromStoredQuote(stored, rows), resolvedFrom(null)), boq_match: REASONED(rows) });
   assertEquals(bad.approved, false, 'a stored quote with no validity must not be released');
   assert(codes(bad).includes('validity'));
 
-  const good = reviewQuotation(job(), withResolved(workingFromStoredQuote({ ...stored, validity: '30 days' }, rows), resolvedFrom(null)));
+  const good = reviewQuotation(job(), { ...withResolved(workingFromStoredQuote({ ...stored, validity: '30 days' }, rows), resolvedFrom(null)), boq_match: REASONED(rows) });
   assertEquals(good.approved, true, JSON.stringify(good.issues.map((i) => i.code)));
+});
+
+Deno.test('the chat\'s REASONED match is carried only for exactly the lines it was reasoned for', () => {
+  const b = filledForm();
+  const w = workingFromSubmit(b, scrubbedOf(b), {}, [], null);
+  const key = boqKey(job().boq_rows, w.lines);
+  assertEquals(withResolved(w, resolvedFrom({ boq_match: { '1': 1, '2': 2 }, boq_match_for: key }), job().boq_rows).boq_match, { '1': 1, '2': 2 });
+  assertEquals(withResolved(w, resolvedFrom({ boq_match: { '1': 1, '2': 2 }, boq_match_for: 'other-lines' }), job().boq_rows).boq_match, undefined, 'a match for other lines is not trusted');
+  // no match at all: the review holds every BOQ line as a clarification rather than guessing
+  const held = reviewQuotation(job(), w).issues.filter((i) => i.code === 'boq_line_not_priced');
+  assertEquals(held.map((i) => i.kind), ['clarification', 'clarification']);
 });
 
 Deno.test('workingFromSubmit never carries the caller\'s explanations', () => {

@@ -22,6 +22,8 @@ import { empty } from '../_shared/doc_read/types.ts';
 import { IDENTITY, sheetPdf } from './drawing_set.fixtures.ts';
 
 const pages = await pdfPages(sheetPdf());
+// Which keyed notes are work is REASONED (decision point drawing_boq.vocabulary, scopeNotes); this is that reading.
+const READING = { scope: new Set(['M1.0:1']), demolish: new Set<string>() };
 const page = pages[0];
 const run = (s: string) => page.runs.find((r) => r.text === s)!;
 
@@ -40,7 +42,7 @@ Deno.test('the reader follows the /Contents array, both nested forms, and report
 });
 
 Deno.test('the take-off counts tags the way an estimator does', () => {
-  const { sheets, lines } = takeoff(pages);
+  const { sheets, lines } = takeoff(pages, [], READING);
   assertEquals(sheets[0].number, 'M1.0');
   assertEquals(sheets[0].kind, 'plan');
   assertEquals(sheets[0].scale, '1/8" = 1\'-0"');
@@ -106,4 +108,12 @@ Deno.test('OCR-derived lines are never ready: the portal OCR fallback marks them
   const r = boqFromExtracted(empty('pdf'), '', 'Ere Mill || + | I 0 99 5 m\nCONG ARACEAE SS ENERRGESGH 107 nos');
   assert(r.boq.length >= 1);
   for (const l of r.boq) assertEquals((l as { qty_status?: string }).qty_status, 'to_confirm', l.description);
+});
+
+Deno.test('held: with no reasoned reading of the keyed notes, none becomes a line, and the BOQ says so', () => {
+  const { lines, keyed } = takeoff(pages);
+  assertEquals(keyed.map((k) => k.key), ['M1.0:1'], 'the notes are offered to the reasoning');
+  assert(!lines.some((l) => l.section === 'Keyed notes' || l.section === 'Demolition'), 'no note is taken for work on a word');
+  const set = boqFromDrawingSet(pages, '')!;
+  assert(set.missing_info.some((m) => m.includes('keyed note(s) were not turned into lines')), JSON.stringify(set.missing_info));
 });

@@ -115,9 +115,10 @@ Deno.test('the customer\'s inquiry decides what is required: "supply only" and "
 
 Deno.test('two options from one submission: each its own quote with the shared terms; one held, one passes', async () => {
   const repo = new Fake();
+  // Keyed by option, as the document reader and the portal send them (options split by structure, never by words).
   const submitted = [
-    { description: 'Option 1 - Daikin' }, { description: 'Ducted split 2.5 TR Daikin model FDMRN30, R410A', amount: 10000 },
-    { description: 'Option 2 - Other brand' }, { description: 'Ducted split 2.5 TR, R410A', amount: 8000 },
+    { description: 'Option 1 - Daikin', option: 1 }, { description: 'Ducted split 2.5 TR Daikin model FDMRN30, R410A', amount: 10000, option: 1 },
+    { description: 'Option 2 - Other brand', option: 2 }, { description: 'Ducted split 2.5 TR, R410A', amount: 8000, option: 2 },
   ];
   const shared = { lead_time: '3 weeks', warranty: '5 years on compressor, 1 year parts and labour', scope: 'Supply and installation of ducted split units, testing and commissioning', validity: '30 days', payment_terms: '30 days credit' };
   for (const o of splitOptions(submitted)) {

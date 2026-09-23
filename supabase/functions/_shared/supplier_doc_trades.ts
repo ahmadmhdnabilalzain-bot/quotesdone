@@ -121,7 +121,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
     if (vErr) return { ok: false, error: `vocabulary: ${vErr.message}` };
     // The service aliases too, but only when a catalogue is among the documents: they are what read it.
     const services: ServiceTerm[] = docs.some((d) => d.kind === 'catalogue')
-      ? ((await admin.from('taxonomy_trade_service').select('trade_code,code,label_en,label_ar,aliases').eq('active', true)).data || [])
+      ? ((await admin.from('taxonomy_trade_service').select('trade_code,code,label_en,label_ar,aliases,install_work').eq('active', true)).data || [])
       : [];
     const fresh: DocEvidence[] = [];
     for (const d of docs) {

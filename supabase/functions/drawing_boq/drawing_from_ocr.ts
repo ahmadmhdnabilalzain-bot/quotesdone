@@ -38,7 +38,7 @@
 //
 // IDENTITY. Client, site, project, company, reference and drawn-by are read so they can be REMOVED:
 // they are returned in `identity` for scrubbing and never written into a BOQ line a supplier sees.
-import { DEVICE_TYPES, deviceTypeOf, foldOcr } from './legend_vocabulary.ts';
+import { DEVICE_TYPES, deviceTypeIn, EMPTY_VOCAB, type Vocab } from './legend_vocabulary.ts';
 import { printedLines } from './symbol_count.ts';
 import type { Line } from '../_shared/boq_open_lines.ts';
 
@@ -110,12 +110,6 @@ export function readDate(s: string): string | null {
 /** UK-style postcode spacing restored ("AB12CD" -> "AB1 2CD"); anything else unchanged. */
 const postcode = (s: string) => s.replace(/^([A-Z]{1,2}\d{1,2}[A-Z]?)\s?(\d[A-Z]{2})$/, '$1 $2');
 
-function typeFromTitle(title: string | null): string | null {
-  if (!title) return null;
-  const m = title.toLowerCase().match(/((?:fire alarm|fire fighting|sprinkler|electrical|lighting|small power|plumbing|drainage|hvac|mechanical|security|cctv|access control|data)[a-z ]*?(?:system )?(?:layout|plan|schematic|diagram))/);
-  return m ? m[1].replace(/\s+/g, ' ').trim() : null;
-}
-
 const empty = (): TitleBlock => ({ drawing_title: null, drawing_type: null, scale: null, date: null, revision: null, issue: null, revision_history: [], client: null, site: [], project: null, company: null, drawing_ref: null, drawn_by: null });
 
 /** Lines under a label, in the same cell: below it, starting within its column, until the next label. */
@@ -170,7 +164,6 @@ export function titleBlock(text: string, lines?: OcrLine[], sheetW?: number): Ti
       if (!tb.drawing_title || t.length > tb.drawing_title.length) tb.drawing_title = t;
     }
   }
-  tb.drawing_type = typeFromTitle(tb.drawing_title);
   if (!tb.drawing_ref) { const ref = [...all.matchAll(new RegExp(DREF.source, 'g'))].map((m) => m[1].replace(/–/g, '-')).sort((a, b) => b.length - a.length)[0]; if (ref) tb.drawing_ref = ref; }
   if (!tb.scale) { const sc = all.match(SCALE); if (sc) tb.scale = sc[1].toUpperCase().replace(/\s/g, '').replace('N.T.S', 'NTS').replace(/\.$/, ''); }
   if (tb.scale === 'NTS' && /SCALE\s*@\s*A([0-4])/i.test(all)) tb.scale = `NTS @ A${all.match(/SCALE\s*@\s*A([0-4])/i)![1]}`;
@@ -182,27 +175,31 @@ export function titleBlock(text: string, lines?: OcrLine[], sheetW?: number): Ti
 }
 
 // ── LEGEND ─────────────────────────────────────────────────────────────────────────────────────────
+// Which printed line names which device is REASONED (legend_vocabulary.ts, decision point
+// drawing_boq.vocabulary): a line is a legend entry when the reasoning copied its words for a device type.
+// No heading word, no device regex and no "c/w" test decides it any more. Held: no entries.
 export type LegendEntry = { text: string; type: string; en: string; unit: 'nos' | 'm' };
-export function legend(text: string, lines?: OcrLine[]): LegendEntry[] {
+export function legend(text: string, lines?: OcrLine[], vocab: Vocab = EMPTY_VOCAB): LegendEntry[] {
   // With boxes, one reading per PRINTED line (the longest); a truncated second reading of the same
   // line ("V/ALL MOUNTED SOUNDER BE") is not a second legend entry. Measured: it became "Sounder".
   const L = lines ? printedLines(lines).sort((a, b) => a.bbox.y - b.bbox.y).map((l) => clean(l.text)) : textLines(text);
   const best = new Map<string, LegendEntry>();
-  const push = (l: string) => {
-    const d = deviceTypeOf(l);
-    if (!d || d.type === 'fire_rated_cable' || d.type === 'loop_isolator') return;
-    // A fragment ("[OR ¢/w SOUNDER") names a combined device it did not resolve to; it is not a
-    // plain sounder.
-    if (/c\s*\/?\s*w\b/i.test(foldOcr(l)) && !/_sounder$/.test(d.type)) return;
+  for (const l of L) {
+    const d = deviceTypeIn(l, vocab);
+    if (!d || d.type === 'fire_rated_cable' || d.type === 'loop_isolator') continue;
     const cur = best.get(d.type);
     if (!cur || l.length > cur.text.length) best.set(d.type, { text: l, type: d.type, en: d.en, unit: d.unit });
-  };
-  const start = L.findIndex((l) => labelOf(l) === 'legend' || /مفتاح|دليل الرموز/.test(l));
-  if (start >= 0) for (let i = start + 1; i < L.length && labelOf(L[i]) !== 'notes'; i++) push(L[i]);
-  // Entries whose heading was not read: a short all-caps line that is nothing but a device name.
-  for (const l of L) if (l.length <= 48 && /^[A-Z0-9 ¢©/&\-\[\]]+$/i.test(l) && !/L\s*1\s*\//i.test(l)) push(l);
+  }
   const order = DEVICE_TYPES.map((d) => d.type);
   return [...best.values()].sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type));
+}
+/** What the reasoning is shown: every printed line (one reading each) and the title block's title. */
+export function drawingTexts(input: string | OcrLine[], sheetW = 0): { texts: string[]; title: string | null } {
+  const lines = Array.isArray(input) ? input : undefined;
+  const text = lines ? lines.map((l) => l.text).join('\n') : String(input || '');
+  const W = sheetW || (lines ? Math.max(1, ...lines.map((l) => l.bbox.x + l.bbox.w)) : 0);
+  const L = lines ? printedLines(lines).sort((a, b) => a.bbox.y - b.bbox.y).map((l) => clean(l.text)) : textLines(text);
+  return { texts: [...new Set(L)].filter((l) => l.length >= 2).slice(0, 200), title: titleBlock(text, lines, W).drawing_title };
 }
 
 // ── NOTES ──────────────────────────────────────────────────────────────────────────────────────────
@@ -237,21 +234,7 @@ export function notes(text: string): Notes {
   return { lines: cands.slice(0, 10), cable, isolators: iso ? 'All break glass units and sounders have loop isolators fitted' : null };
 }
 
-// ── ROOMS ──────────────────────────────────────────────────────────────────────────────────────────
-const ROOM_WORDS = /^(main entrance|entrance|reception|kitchen|office|toilets?|wc|lockers|laundry room|store|stores|st\.?|lobby|corridor|stair(?:s|case)?|plant room|boiler room|pram store|nappy changing|dining room|staff room|sleep room|parent room|meeting room|server room|electrical room|bedroom|living room|bathroom|garage)$/i;
-export function rooms(text: string): string[] {
-  const out = new Map<string, string>();
-  const L = textLines(text);
-  for (let i = 0; i < L.length; i++) {
-    let l = L[i].replace(/^[^A-Za-z]+|[^A-Za-z0-9.]+$/g, '').replace(/\s+\|?I?St\.?$/i, '').trim();
-    if (L[i + 1] && /^(room|changing)$/i.test(L[i + 1].trim()) && /^[A-Z][a-z]+$/.test(l)) l = `${l} ${L[i + 1].trim()}`;
-    const m = l.match(/^([A-Z][a-z]+(?:\s+\d)?(?:\s+[A-Z][a-z]+)?\s+Room)$/) || l.match(ROOM_WORDS);
-    if (!m) continue;
-    const name = (m[1] || m[0]).replace(/^St\.?$/i, 'St.').replace(/\bBoller\b/, 'Boiler').replace(/\bRov\b/, 'Room');
-    const k = name.toLowerCase(); if (!out.has(k)) out.set(k, name);
-  }
-  return [...out.values()];
-}
+// ── ROOMS ── the room names are REASONED (legend_vocabulary.ts Vocab.rooms); no room-word list decides them.
 
 /** The room label nearest the plan's FAP mark (outside the legend strip). Needs boxes. */
 export function fapLocation(lines: OcrLine[] | undefined, sheetW: number, roomNames: string[]): string | null {
@@ -308,11 +291,13 @@ export type DrawingRead = {
 /** Loop size is stated as our count only when most of 01..highest was read; below that it is an estimate. */
 const LOOP_COVERAGE = 0.75;
 
-export function readDrawing(input: string | OcrLine[], counts: Counts = {}, sheetW = 0): DrawingRead {
+export function readDrawing(input: string | OcrLine[], counts: Counts = {}, sheetW = 0, vocab: Vocab = EMPTY_VOCAB): DrawingRead {
   const lines = Array.isArray(input) ? input : undefined;
   const text = lines ? lines.map((l) => l.text).join('\n') : String(input || '');
   const W = sheetW || (lines ? Math.max(1, ...lines.map((l) => l.bbox.x + l.bbox.w)) : 0);
-  const tb = titleBlock(text, lines, W); const lg = legend(text, lines); const nt = notes(text); const rm = rooms(text); const loops = addresses(text); const db = soundLevels(text);
+  const tb = titleBlock(text, lines, W); const lg = legend(text, lines, vocab); const nt = notes(text); const rm = vocab.rooms; const loops = addresses(text); const db = soundLevels(text);
+  // The drawing type is what the reasoning read the title to say (never a title regex); held, unknown.
+  tb.drawing_type = vocab.drawingType;
   const boq: Line[] = []; const missing: string[] = [];
   for (const lp of loops) {
     if (!lp.highest) continue;
@@ -344,7 +329,7 @@ export function readDrawing(input: string | OcrLine[], counts: Counts = {}, shee
     const n = Object.entries(counts).filter(([t]) => onTypes.includes(t)).reduce((s, [, v]) => s + v.count, 0);
     boq.push({ section: 'Fire alarm — devices (from the notes)', type: 'loop_isolator', description: 'Loop isolators (fitted to break glass units and sounders)', item: 'Loop isolators', qty: null, estimate: n || null, unit: 'nos', qty_status: 'to_confirm', basis: `drawing note: "${nt.isolators}"; one per break glass unit and sounder`, confidence: 'low' });
   }
-  if (!lg.length) missing.push('No legend could be read, so device types are not listed.');
+  if (!lg.length) missing.push(vocab.device.length ? 'No legend could be read, so device types are not listed.' : 'The drawing\'s legend was not read into device types this time, so device types are not listed; describe them, or they are asked.');
   if (tb.scale && /NTS/.test(tb.scale)) missing.push('The sheet is marked not to scale: cable and containment lengths cannot be measured from it.');
   if (lg.length) missing.push('Per-type device counts are our estimate from the drawing and are confirmed with the customer or verified by the supplier; nothing here is a certified take-off.');
   const identity = [tb.client, ...tb.site, tb.project, tb.company, tb.drawing_ref, tb.drawn_by].filter((s): s is string => !!s && s.length >= 2);

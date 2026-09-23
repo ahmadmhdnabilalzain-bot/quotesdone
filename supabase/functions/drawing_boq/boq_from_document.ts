@@ -22,8 +22,8 @@
 import type { Extracted } from '../_shared/doc_read/types.ts';
 import { boqFromLines, scrubIdentity, type BoqItem } from './boq_from_text.ts';
 import { boqFromRows, MAX_ROWS } from './boq_from_sheet.ts';
-import { readDrawing, type Counts, type OcrLine } from './drawing_from_ocr.ts';
-import { deviceTypeOf } from './legend_vocabulary.ts';
+import { drawingTexts, readDrawing, type Counts, type OcrLine } from './drawing_from_ocr.ts';
+import { deviceTypeIn, EMPTY_VOCAB, type Vocab } from './legend_vocabulary.ts';
 
 export type DrawingInput = { lines?: OcrLine[]; width?: number; counts?: Counts };
 
@@ -39,7 +39,17 @@ const PRICE = new RegExp(`${CUR}\\s*[\\d.,]+|[\\d.,]+\\s*${CUR}|(?:@|\\brate\\b[
 /** Remove every currency amount and "@ 85" / "rate 85" figure from a line of customer text. */
 export const stripPrices = (s: string) => s.replace(PRICE, ' ').replace(/\s{2,}/g, ' ').trim();
 
-export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing: DrawingInput = {}) {
+/** What the vocabulary reasoning is shown for this document: its CAD block names and the drawing's printed lines. */
+export function vocabTexts(ex: Extracted, ocrText = '', drawing: DrawingInput = {}): { texts: string[]; title: string | null } {
+  const blocks: string[] = [];
+  const visit = (e: Extracted) => { for (const q of e.quantities) if (q.section === 'Blocks') blocks.push(scrubIdentity(q.description).slice(0, 120)); for (const c of e.children) visit(c.doc); };
+  visit(ex);
+  const ocrLines = Array.isArray(drawing.lines) && drawing.lines.length ? drawing.lines : null;
+  const d = ocrLines || ocrText ? drawingTexts(ocrLines || ocrText, drawing.width || 0) : { texts: [], title: null };
+  return { texts: [...new Set([...blocks, ...d.texts])].slice(0, 200), title: d.title };
+}
+
+export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing: DrawingInput = {}, vocab: Vocab = EMPTY_VOCAB) {
   const boq: (BoqItem & { type?: string; qty_status?: string; estimate?: number | null })[] = [];
   const missing: string[] = [];
   const assumptions = new Set<string>(['Every line is exactly as written in the customer’s document; nothing was re-measured, and no price was read.']);
@@ -73,7 +83,9 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
       if (!d) continue;
       // A CAD block whose name is a device ("SMOKE_DET", "MCP", "FAP") becomes that device's line,
       // counted exactly by the file itself.
-      const dev = q.section === 'Blocks' ? deviceTypeOf(d.replace(/^block\s+/i, '').replace(/[_-]+/g, ' ')) : null;
+      // Which device a block name names is REASONED (drawing_boq.vocabulary): the block name is looked up in
+      // the vocabulary the reasoning returned for this file. Held: the block stays a plain "block" line.
+      const dev = q.section === 'Blocks' ? deviceTypeIn(d, vocab) : null;
       if (dev) { boq.push({ section: 'Devices (CAD blocks)', type: dev.type, item: dev.en, description: dev.en, qty: q.qty, unit: dev.unit, basis: scrubIdentity(q.basis).slice(0, 200) + ' (counted from the CAD file)', confidence: 'medium', qty_status: 'read' }); continue; }
       boq.push({ section: scrubIdentity(q.section).slice(0, 80) || where, item: d.slice(0, 120), description: d, qty: q.qty, unit: q.unit, basis: scrubIdentity(q.basis).slice(0, 200), confidence: q.confidence });
     }
@@ -85,7 +97,7 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
 
   // THE DRAWING READ. From the OCR lines with boxes when the portal sent them, else from the text.
   const ocrLines = Array.isArray(drawing.lines) && drawing.lines.length ? drawing.lines : null;
-  const dr = ocrLines || ocrText ? readDrawing(ocrLines || ocrText, drawing.counts || {}, drawing.width || 0) : null;
+  const dr = ocrLines || ocrText ? readDrawing(ocrLines || ocrText, drawing.counts || {}, drawing.width || 0, vocab) : null;
   const isDrawing = !!dr && (dr.legend.length > 0 || dr.loops.some((l) => (l.highest || 0) > 0));
   const identity = dr ? dr.identity : [];
   if (dr && isDrawing) {

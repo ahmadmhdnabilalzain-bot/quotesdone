@@ -36,7 +36,8 @@
 // rows (14 Sep 2026). A category added later gets DEFAULT_PROFILE until it is given its own row.
 // When the per-trade spec model lands (branch exact-specs-or-hold) it can adopt PROFILES as its
 // customer-side attribute list.
-import { parseWhen, parseYesNo, isUnknown, normDigits } from '../inquiry_intake/interview.ts';
+import { normDigits } from '../inquiry_intake/interview.ts';
+import { NOT_ANSWERED, type ReqAsk, type Stated } from './reasoned_intake.ts';
 
 export const ACTOR = 'sales_engineer' as const;
 export const VERSION = 2;
@@ -222,15 +223,6 @@ export type Ans = { v: string; note?: string | null; min_months?: number | null;
 export type Answers = Record<string, Ans>;
 
 const isoDay = (now: Date, days: number) => new Date(now.getTime() + days * 86400000).toISOString().slice(0, 10);
-const NOPREF_RE = /no preference|no specific|doesn'?t matter|does not matter|don'?t mind|don'?t care|whatever|any (?:is|will be) fine|up to (?:you|the supplier)|supplier (?:to )?(?:decide|choose|recommend)|لا تفضيل|لا يهم|أي شيء|اي شيء|أي نوع|اي نوع|حسب المورد|بدون تفضيل|ليس لدي تفضيل/i;
-const NOT_NEEDED_RE = /not needed|no need|don'?t need|do not need|not required|غير مطلوب|لا نحتاج|لا أحتاج|لا احتاج|لا حاجة/i;
-function warrantyMonths(t: string): number | null {
-  const m = t.match(/(\d+(?:\.\d+)?)\s*(years?|yrs?|سنة|سنوات|سنين|أعوام|اعوام|عام|months?|mos?|شهر|أشهر|اشهر|شهور|شهراً|شهرا)/i);
-  if (m) { const n = Number(m[1]); if (!(n > 0)) return null; return Math.round(/month|mo|شهر|أشهر|اشهر|شهور/i.test(m[2]) ? n : n * 12); }
-  if (/سنتين|سنتان|two years/i.test(t)) return 24;
-  if (/\b(a|one) year\b|(^|\s)سنة(\s|$)|(^|\s)عام(\s|$)/i.test(t)) return 12;
-  return null;
-}
 function fromOption(q: ReqQuestion, x: Opt & { months?: number; days?: number }, now: Date): Ans {
   if (q.kind === 'warranty') return x.months ? { v: 'yes', min_months: x.months } : { v: x.v, min_months: null };
   if (q.kind === 'required_by') return x.days ? { v: 'date', date: isoDay(now, x.days), text: x.en } : { v: 'flexible', date: null, text: x.en };
@@ -238,11 +230,10 @@ function fromOption(q: ReqQuestion, x: Opt & { months?: number; days?: number },
 }
 
 /**
- * Parse `text` as the answer to `q`. A tapped option comes back as its own label in either language.
- * Returns null when the text does not answer the question: the caller asks it again rather than
- * guessing. A bare "no" to installation is asked again, because it could mean "supply only" or "not
- * needed" and the supplier quotes differently for each. Materials never return null: the customer's
- * own words ARE an answer ('other' + note).
+ * A STRUCTURED answer to `q`: an option the customer tapped (its own label in either language, or its
+ * value), or a calendar date in ISO form. Anything else is not read here — what free text MEANS is
+ * reasoned (answerFromReasoned below, decision point intake_requirements.parse). Returns null when the
+ * text is not one of these; the caller then asks think(), or, under the hold, asks the customer to tap.
  */
 export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new Date()): Ans | null {
   const raw = normDigits(String(text || '')).replace(/\s+/g, ' ').trim();
@@ -250,50 +241,64 @@ export function parseRequirementAnswer(q: ReqQuestion, text: string, now = new D
   const lo = raw.toLowerCase();
   const exact = q.options.find((x) => x.en.toLowerCase() === lo || x.ar === raw || x.v === lo);
   if (exact) return fromOption(q, exact, now);
-  switch (q.kind) {
-    case 'installation': {
-      if (isUnknown(raw)) return { v: 'not_sure' };
-      if (/supply only|delivery only|deliver only|just deliver|only deliver|توريد فقط|التوريد فقط|بدون تركيب/.test(lo)) return { v: 'supply_only' };
-      if (NOT_NEEDED_RE.test(raw)) return { v: 'not_needed' };
-      if (parseYesNo(raw) === 'Yes' || /\binstall|تركيب|ركّب|ركب/.test(lo)) return { v: 'yes' };
-      return null;
-    }
-    case 'warranty': {
-      if (isUnknown(raw)) return { v: 'not_sure', min_months: null };
-      const months = warrantyMonths(raw);
-      if (!months && (NOT_NEEDED_RE.test(raw) || parseYesNo(raw) === 'No')) return { v: 'not_needed', min_months: null };
-      // "Yes" with no period is not an answer to "for how long at least": asked again, not guessed.
-      return months ? { v: 'yes', min_months: months } : null;
-    }
-    case 'material': {
-      const other = raw.match(/^(?:other|أخرى)\s*:\s*(.+)$/i);
-      if (other) return { v: 'other', note: other[1].slice(0, 200) };
-      const hit = q.options.find((x) => {
-        if (x.v === NO_PREFERENCE.v) return false;
-        const en = x.en.toLowerCase().replace(/\s*\(.*?\)\s*/g, ' ').trim();
-        const enHead = en.split(/[\s/,]+/)[0];
-        const arHead = x.ar.split(/[\s(]/)[0];
-        return lo.includes(en) || (enHead.length > 3 && new RegExp(`(^|[^a-z])${enHead.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(lo)) || (arHead.length > 2 && raw.includes(arHead));
-      });
-      if (hit) return { v: hit.v };
-      if (NOPREF_RE.test(raw) || isUnknown(raw)) return { v: NO_PREFERENCE.v };
-      // The customer's own words are an answer — a phrase, not a paragraph about something else
-      // (measured, harness journey a: "Ground and first floor, direct vehicle access, no crane
-      // needed. Budget is open." was recorded as the aluminium profile). A long statement is asked again.
-      // "A phrase" = one clause, at most 80 characters: a reply with a sentence break in it is a
-      // statement (the measured one was 79 characters, so length alone was not the test).
-      return raw.length <= 80 && !/[.!?؟]\s+\S/.test(raw) ? { v: 'other', note: raw.slice(0, 200) } : null;
-    }
-    case 'required_by': {
-      const iso = raw.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
-      if (iso && !isNaN(Date.parse(iso[0]))) return { v: 'date', date: iso[0], text: iso[0] };
-      const w = parseWhen(raw, now);
-      if (!w) return null;
-      if (w.flexible) return { v: 'flexible', date: null, text: 'Flexible' };
-      if (w.days === null) return null;
-      return { v: 'date', date: isoDay(now, w.days), text: w.text };
-    }
+  if (q.kind === 'required_by') { const d = isoDate(raw); if (d) return { v: 'date', date: d, text: d }; }
+  return null;
+}
+
+// ── FORMAT PARSING of a value the reasoning copied from the customer's words ────────────────────
+/** A calendar date as written: 2026-11-30, 30/11/2026, 30.11.26, "30 November 2026", "November 30, 2026". */
+export function dateOf(text: string, now = new Date()): string | null {
+  const t = normDigits(String(text || '')).trim();
+  const iso = isoDate(t);
+  const dmy = iso ? null : t.match(/\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/);
+  const parsed = iso ? Date.parse(iso + 'T12:00:00Z') : dmy ? Date.UTC(Number(dmy[3].length === 2 ? '20' + dmy[3] : dmy[3]), Number(dmy[2]) - 1, Number(dmy[1])) : Date.parse(t + ' 12:00 UTC');
+  if (!Number.isFinite(parsed)) return null;
+  const d = new Date(parsed).toISOString().slice(0, 10);
+  return d >= now.toISOString().slice(0, 10) ? d : null;
+}
+const isoDate = (t: string) => { const m = t.match(/\b(\d{4})-(\d{2})-(\d{2})\b/); return m && !isNaN(Date.parse(m[0])) ? m[0] : null; };
+/** A period as written, in months: "2 years", "18 months", "سنتان" is not a number and is not read. */
+export function monthsOf(text: string): number | null {
+  const m = normDigits(String(text || '')).match(/(\d+(?:\.\d+)?)\s*(years?|yrs?|سنة|سنوات|سنين|أعوام|اعوام|عام|months?|mos?|شهر|أشهر|اشهر|شهور|شهراً|شهرا)/i);
+  if (!m || !(Number(m[1]) > 0)) return null;
+  return Math.round(/month|mo|شهر|أشهر|اشهر|شهور/i.test(m[2]) ? Number(m[1]) : Number(m[1]) * 12);
+}
+
+// ── THE QUESTION AS think() IS ASKED IT ──────────────────────────────────────────────────────────
+const MEANING: Record<string, string> = {
+  yes: 'they want the supplier to install it', supply_only: 'they want it supplied / delivered only, with no installation',
+  not_needed: 'installation (or a warranty) is not needed for this job', not_sure: 'they do not know, or ask us to advise',
+  no_preference: 'they have no preference, or leave the choice to the supplier', flexible: 'there is no fixed date / they are flexible',
+  w2: 'within about two weeks, as soon as possible, or a date inside two weeks', m1: 'within about a month', m3: 'within about three months',
+};
+/** Options with their meaning, and the fields an option needs for its free part (instructions travel in the meaning). */
+export function askFor(q: ReqQuestion): ReqAsk {
+  const how = (field: string, what: string) => ` — ALSO set decision.fields.${field} = {"value": <${what}>, "evidence": <their exact words>}`;
+  const options = q.options.map((x) => ({ id: x.v, meaning: `${x.en}: ${MEANING[x.v] ?? (q.kind === 'material' ? `they want ${x.en}` : x.en)}` }));
+  if (q.kind === 'material') {
+    options.push({ id: 'other', meaning: 'they describe their own material, make or brand that is not one of the listed options' + how('note', 'their description, copied') });
+    return { key: q.key, question: q.en, options, fields: [{ key: 'note', question: 'the material or brand in their own words' }] };
   }
+  if (q.kind === 'warranty') {
+    options.push({ id: 'yes_period', meaning: 'they want a warranty of a stated period not listed above' + how('period', 'the period as they wrote it, with its number') });
+    return { key: q.key, question: q.en, options, fields: [{ key: 'period', question: 'the warranty period as they wrote it' }] };
+  }
+  if (q.kind === 'required_by') {
+    options.push({ id: 'date', meaning: 'they name a calendar date' + how('date', 'the date as they wrote it') });
+    return { key: q.key, question: q.en, options, fields: [{ key: 'date', question: 'the date as they wrote it' }] };
+  }
+  return { key: q.key, question: q.en, options };
+}
+
+/** The reasoned choice as an answer, or null when it does not answer the question (or its free part does not parse). */
+export function answerFromReasoned(q: ReqQuestion, choice: string, fields: Stated, now = new Date()): Ans | null {
+  if (choice === NOT_ANSWERED) return null;
+  const x = q.options.find((o) => o.v === choice);
+  if (x) return fromOption(q, x, now);
+  const f = (k: string) => String(fields[k]?.value ?? '').trim();
+  if (q.kind === 'material' && choice === 'other' && f('note')) return { v: 'other', note: f('note').slice(0, 200) };
+  if (q.kind === 'warranty' && choice === 'yes_period') { const m = monthsOf(f('period')); return m ? { v: 'yes', min_months: m } : null; }
+  if (q.kind === 'required_by' && choice === 'date') { const d = dateOf(f('date'), now); return d ? { v: 'date', date: d, text: f('date').slice(0, 60) } : null; }
   return null;
 }
 
@@ -307,114 +312,62 @@ export function isValidAnswer(q: ReqQuestion, v: Ans | undefined): boolean {
 }
 
 /**
- * SUGGESTIONS, never answers. What the category checklist already heard (a material field, a
- * supply/install scope, a timeline) and, failing that, what the trade usually needs. Offered as the
- * highlighted option; the customer confirms it by tapping it, or picks another.
+ * SUGGESTIONS, never answers. What the category checklist already recorded AS ONE OF THIS QUESTION'S OWN
+ * OPTIONS (a tapped label, exactly) and, failing that, what the trade usually needs. Offered as the
+ * highlighted option; the customer confirms it by tapping it, or picks another. The checklist's free text
+ * is not read for a suggestion: what words mean is reasoned, and a suggestion is not worth a model call.
  */
 export function suggestions(category: string, details: Record<string, unknown>, now = new Date()): Answers {
   const out: Answers = {};
   const d = details || {};
   const val = (k: string) => { const v = d[k]; return v == null ? '' : String(v).trim(); };
   for (const q of requirementQuestions(category)) {
-    if (q.kind === 'material' && q.field) {
-      const v = val(q.field);
-      if (v && !isUnknown(v) && !/^not sure/i.test(v)) out[q.key] = parseRequirementAnswer(q, v, now) || { v: 'other', note: v.slice(0, 200) };
-    }
-    if (q.kind === 'installation') {
-      const k = Object.keys(d).find((x) => /supply_install|^scope|installation|scope_mode|delivery_erection/.test(x) && val(x));
-      const v = k ? val(k).toLowerCase() : '';
-      if (/supply only|delivery only|supply and delivery only|توريد فقط/.test(v)) out[q.key] = { v: 'supply_only' };
-      else if (/install|application|تركيب/.test(v)) out[q.key] = { v: 'yes' };
-    }
-    if (q.kind === 'required_by') {
-      const k = Object.keys(d).find((x) => /timeline|timing|deadline|date|duration/.test(x) && val(x));
-      const a = k ? parseRequirementAnswer(q, val(k), now) : null;
-      if (a) out[q.key] = a;
-    }
+    if (q.kind === 'material' && q.field) { const a = parseRequirementAnswer(q, val(q.field), now); if (a) out[q.key] = a; }
     if (!out[q.key] && q.suggested) out[q.key] = q.kind === 'warranty' ? { v: q.suggested, min_months: null } : { v: q.suggested };
   }
   return out;
 }
 
 /**
- * ANSWERS THE CUSTOMER ALREADY STATED, in their own words, anywhere in the conversation. Not
- * suggestions: only an unambiguous statement is read — "installation is required", "2 year
- * warranty", "delivery needed by 30 November 2026", or an option of a material question named
- * outright. Measured on harness journey a (14 Sep 2026): the customer said all four in their first
- * three messages and was asked all four again, with each later message stored as the wrong answer.
+ * What the sales engineer's reasoning says about one question: the answer, null when the conversation
+ * does not answer it, or undefined when it is held (the model hold) — never a guess.
  */
-export function statedAnswers(category: string, conversation: string, now = new Date()): Answers {
-  const out: Answers = {};
-  const t = normDigits(String(conversation || '')).replace(/\s+/g, ' ');
-  const lo = t.toLowerCase();
-  for (const q of requirementQuestions(category)) {
-    if (q.kind === 'installation') {
-      if (/\b(?:supply|delivery|deliver)\s+only\b|\bwithout installation\b|\bno installation\b|توريد فقط|بدون تركيب/.test(lo)) out[q.key] = { v: 'supply_only' };
-      else if (/\binstallation (?:is )?(?:required|needed|included)\b|\binstallation and [^.]{0,40}\brequired\b|\bsupplier to install\b|\bsuppl(?:y|ied) and install(?:ed)?\b|\bwith installation\b|\bneeds? (?:to be )?installed\b|مع التركيب|التوريد والتركيب/.test(lo)) out[q.key] = { v: 'yes' };
-    }
-    if (q.kind === 'warranty') {
-      const m = lo.match(/(\d+(?:\.\d+)?|one|two|three|five|ten)[\s-]*(years?|yrs?|months?)[\s-]+warranty|warranty (?:of|for)\s+(?:at least\s+)?(\d+(?:\.\d+)?|one|two|three|five|ten)\s*(years?|months?)/);
-      if (m) {
-        const words: Record<string, number> = { one: 1, two: 2, three: 3, five: 5, ten: 10 };
-        const n = Number(words[m[1] || m[3]] ?? (m[1] || m[3])); const unit = m[2] || m[4];
-        if (n > 0) out[q.key] = { v: 'yes', min_months: Math.round(/month/.test(unit) ? n : n * 12) };
-      }
-    }
-    if (q.kind === 'required_by') {
-      const d = t.match(/\b(?:by|before|deadline|needed by|required by|delivery (?:needed |required )?by)\s+(\d{1,2}\s+[A-Za-z]+\s+\d{4}|[A-Za-z]+\s+\d{1,2},?\s+\d{4}|\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
-      if (d) {
-        const parsed = Date.parse(d[1].replace(/(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/, '$3-$2-$1'));
-        if (!isNaN(parsed)) { const iso = new Date(parsed + 12 * 3600e3).toISOString().slice(0, 10); if (iso >= now.toISOString().slice(0, 10)) out[q.key] = { v: 'date', date: iso, text: d[1] }; }
-      }
-    }
-    if (q.kind === 'material') {
-      // Hyphens and spaces fold the same way on both sides: the option "Thermal-break (insulated)"
-      // is what a customer writes as "thermal break" (measured, harness journey a).
-      const fold = (s: string) => s.toLowerCase().replace(/[-\s]+/g, ' ').trim();
-      const flo = fold(lo);
-      const hit = q.options.find((x) => x.v !== NO_PREFERENCE.v && (() => { const en = fold(x.en.replace(/\s*\(.*?\)\s*/g, ' ')); return en.length > 4 && new RegExp(`(^|[^a-z])${en.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(flo); })());
-      if (hit) out[q.key] = { v: hit.v };
-      // Brands the customer named outright ("Schneider or ABB", "MK Logic or Legrand") are their
-      // material answer in their own words. Measured 21 Sep 2026 (customer audit, finding 8): both
-      // pairs were in the first message and the brand question was asked twice more. A brand is read
-      // only as a capitalised pair joined by "or" / "أو", never a lone capitalised word — a bare
-      // proper noun is as likely a place or a person as a make.
-      // ponytail: no brand catalogue; the upgrade is a brands column on category_specs.
-      else if (!out[q.key]) {
-        const pairs = [...String(conversation || '').matchAll(/\b([A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)?) (?:or|أو) ([A-Z][A-Za-z]{2,})\b/g)]
-          .map((m) => `${m[1]} or ${m[2]}`)
-          .filter((p) => !/^(Yes|No|Supply|Install|Installation|Deliver|Delivery|Dubai|Abu|Sharjah|Ajman|Fujairah|Ras|Umm)\b/.test(p));
-        if (pairs.length) out[q.key] = { v: 'other', note: Array.from(new Set(pairs)).join('; ').slice(0, 200) };
-      }
-    }
-  }
-  return out;
-}
+export type Reasoner = (q: ReqQuestion, justAsked: boolean) => Promise<Ans | null | undefined>;
 
 export type ReqStep = {
-  answers: Answers; filled_now: string[]; retry: boolean;
+  answers: Answers; filled_now: string[]; retry: boolean; held: boolean;
   next: { key: string; text: string; options: string[]; suggested: string | null } | null;
   remaining: string[]; filled: number; total: number; complete: boolean;
 };
 /**
- * One turn: `text` answers `askedKey` (the question last asked); the next unanswered question is
- * returned with its suggestion, if any, highlighted but NOT recorded. Only the customer's own choice
- * fills an answer.
+ * One turn: `text` answers `askedKey` (the question last asked). A tapped option is taken as it is; typed
+ * words are reasoned (`reason`). Then the questions still open are checked, in order, for an answer the
+ * customer already gave ("installation is required" in the first message) until one is not answered — so
+ * nothing they said is asked again, and nothing they did not say is filled. The next unanswered question is
+ * returned with its suggestion highlighted but NOT recorded. Held: the asked question stays open and the
+ * customer is asked to tap an option (retry + held).
  */
-export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = ''): ReqStep {
+export async function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), reason?: Reasoner): Promise<ReqStep> {
   const qs = requirementQuestions(category);
   const answers: Answers = {};
   for (const q of qs) if (prev && isValidAnswer(q, prev[q.key])) answers[q.key] = prev[q.key];
   const filledNow: string[] = [];
-  // What the customer already said outright is their answer; nothing inferred, nothing suggested.
-  const stated = conversation ? statedAnswers(category, conversation, now) : {};
-  for (const q of qs) if (!answers[q.key] && stated[q.key] && isValidAnswer(q, stated[q.key])) { answers[q.key] = stated[q.key]; filledNow.push(q.key); }
-  let retry = false;
+  let retry = false; let held = false;
+  const take = (q: ReqQuestion, a: Ans | null | undefined) => { if (a && isValidAnswer(q, a)) { answers[q.key] = a; filledNow.push(q.key); return true; } return false; };
   if (askedKey && String(text || '').trim()) {
     const q = qs.find((x) => x.key === askedKey);
-    if (q && !answers[q.key]) {
-      const a = parseRequirementAnswer(q, text, now);
-      if (a && isValidAnswer(q, a)) { answers[q.key] = a; filledNow.push(q.key); } else retry = true;
+    if (q && !answers[q.key] && !take(q, parseRequirementAnswer(q, text, now))) {
+      const r = reason ? await reason(q, true) : undefined;
+      if (r === undefined) { held = true; retry = true; } else if (!take(q, r)) retry = true;
+    }
+  }
+  // Already said? One question at a time, stopping at the first one the conversation does not answer.
+  if (reason && !held) {
+    for (const q of qs) {
+      if (answers[q.key] || q.key === askedKey) continue;
+      const r = await reason(q, false);
+      if (r === undefined) { held = true; break; }
+      if (!take(q, r)) break;
     }
   }
   const missing = qs.filter((q) => !answers[q.key]);
@@ -429,7 +382,7 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
     next = { key: n.key, text: questionIn(n, lang) + hint, options, suggested: sLabel };
   }
   return {
-    answers, filled_now: filledNow, retry, next,
+    answers, filled_now: filledNow, retry, held, next,
     remaining: missing.map((q) => questionIn(q, lang)),
     filled: qs.length - missing.length, total: qs.length, complete: !n,
   };

@@ -256,8 +256,11 @@ export function keyedNotes(p: PdfPage, strip: Box | null, consumed: Consumed): {
 }
 
 // A keyed note is scope when it tells someone to do or supply something; "EXISTING … TO REMAIN" is not.
-const SCOPE_NOTE = /\b(PROVIDE|INSTALL|REMOVE|DEMO(?:LISH)?|RELOCATE|REPLACE|CONNECT|ROUTE|FURNISH|EXTEND|CAP|NEW|TERMINATION|LOUVER|DAMPER|VALVE|MAN\s+BARS?|GOOSENECK|SOLENOID|FLUSH\s+VALVE)\b/;
-const NOT_SCOPE = /\bTO REMAIN\b|\bCONTINUED\b|\bFIELD VERIFY\b(?!.*\bPROVIDE\b)/;
+// That is REASONED (23 Sep 2026, founder_instruction 886-903; decision point drawing_boq.vocabulary): a verb
+// list (PROVIDE, NEW, CAP, VALVE ...) decided it by spotting a word in the note. think() reads
+// the notes (_shared/reasoned_intake.ts scopeNotes) and names, by '<sheet>:<n>', the ones that instruct work and
+// the ones that remove or demolish. null (held): no keyed-note lines, and the BOQ says so.
+export type NoteReading = { scope: Set<string>; demolish: Set<string> } | null;
 
 /** Sizes of duct and pipe printed on the drawing, grouped. Lengths are not printed: qty stays null. */
 function sizesOn(p: PdfPage, strip: Box | null, consumed: Consumed) {
@@ -282,7 +285,7 @@ const SERVICE_AR: Record<string, string> = { SS: 'صرف صحي', V: 'تهوية
 const SERVICE: Record<string, string> = { SS: 'sanitary sewer (waste)', SAN: 'sanitary sewer (waste)', V: 'vent', VENT: 'vent', W: 'waste', CW: 'domestic cold water', HW: 'domestic hot water', HWR: 'hot water return', TW: 'tempered water', G: 'gas', GAS: 'gas', ST: 'storm', RD: 'roof drain leader', CD: 'condensate drain' };
 
 /** The whole set. `schedules` are OCR tables from the portal: they enrich lines and never make one 'read'. */
-export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
+export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = [], reading: NoteReading = null) {
   const index = drawingIndex(pages);
   const abbr = abbreviations(pages);
   const strips = pages.map((p) => titleStrip(p));
@@ -394,8 +397,9 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
   // 21 Sep 2026) is one lavatory removed, so notes with the same first sentence merge at the larger count.
   const byItem = new Map<string, TakeoffLine>();
   for (const n of notes) {
-    if (!n.bubbles || !SCOPE_NOTE.test(n.text) || NOT_SCOPE.test(n.text)) continue;
-    const demo = n.sheet.kind === 'demolition_plan' || /^\s*(DEMO|REMOVE)\b/.test(n.text);
+    const nk = `${n.sheet.number}:${n.n}`;
+    if (!n.bubbles || !reading || !reading.scope.has(nk)) continue;
+    const demo = n.sheet.kind === 'demolition_plan' || reading.demolish.has(nk);
     const first = n.text.split(/(?<=\.)\s+/)[0];
     const key = (demo ? 'demo|' : 'note|') + first.toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
     const prev = byItem.get(key);
@@ -451,7 +455,9 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     const t = parseTag(tag); if (!t && !/^[A-Z]$/.test(tag)) continue;
     lines.push({ section: 'From the schedule (not found on a plan)', type: `sched:${tag}`, status: 'new', item: `${tag} ${t ? nameOf(t.type) : 'air device'}`, description: `${tag} — ${spec}`, qty: 1, estimate: 1, unit: 'nos', qty_status: 'to_confirm', confidence: 'low', sheets: [], basis: 'row of a schedule read by OCR; no plan tag carries it — quantity and model to confirm' });
   }
-  return { sheets, lines, strips, dense };
+  // The keyed notes a bubble points at, for the reasoning (drawingSetNotes): '<sheet>:<n>' and the note's words.
+  const keyed = notes.filter((n) => n.bubbles).map((n) => ({ key: `${n.sheet.number}:${n.n}`, text: n.text }));
+  return { sheets, lines, strips, dense, keyed };
 }
 
 /** Measured runs -> BOQ lines, one per system and size across the set. */
@@ -531,8 +537,11 @@ const MISSING_ALWAYS = [
 
 /** drawing_boq's response shape for a PDF drawing set: the take-off when it finds anything, with every
  *  string scrubbed of the title strip's names and of any contact detail. `null` = nothing drawn to count. */
-export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: ScheduleTable[] = []) {
-  const t = takeoff(pages, schedules);
+/** The keyed notes of a set, for the reasoning to read (scopeNotes) before the take-off counts them. */
+export function drawingSetNotes(pages: PdfPage[]): { key: string; text: string }[] { return takeoff(pages).keyed; }
+
+export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: ScheduleTable[] = [], reading: NoteReading = null) {
+  const t = takeoff(pages, schedules, reading);
   if (!t.lines.length) return null;
   // Names printed in any sheet's title strip never leave in a line (a keynote can repeat the project name).
   const seeds = [...new Set(pages.flatMap((p, i) => (t.strips[i] ? stripSeeds(p, t.strips[i]!) : [])))];
@@ -548,6 +557,7 @@ export function boqFromDrawingSet(pages: PdfPage[], hint = '', schedules: Schedu
   if (t.dense.length) missing.unshift(DENSE_NOTE(t.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en')));
   const noPlan = t.sheets.filter((s) => s.kind === 'schedule');
   if (noPlan.length && !schedules.length) missing.push(`Schedule sheet(s) ${noPlan.map((s) => s.number).join(', ')} were not read (their tables are images); make and model are therefore not on the lines.`);
+  if (!reading && t.keyed.length) missing.push(`The drawing's ${t.keyed.length} keyed note(s) were not turned into lines this time: which of them are work to be done is read by the sales engineer, and that reading was not available. Describe that work, or it is asked.`);
   if (boq.some((l) => l.qty_status === 'to_confirm')) missing.push('Lines marked "to confirm" are our own count (keyed-note bubbles, a letter continuing a series, or a schedule read by OCR); they are shown to you to confirm before suppliers price them.');
   return {
     drawing_type: plans.length ? `${plans.length} plan sheet(s): ${plans.map((s) => `${s.number} ${s.title}`).join('; ')}`.slice(0, 200) : 'drawing set',
