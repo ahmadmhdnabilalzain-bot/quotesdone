@@ -161,7 +161,7 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       if (!m) return { ok: false, err: 'comment_not_found' };
       // Once per comment: the live path may already have handed it off, and a replay can run twice.
       const { data: prior } = await admin.from('agent_actions').select('id').eq('kind', 'handoff').eq('agent', 'customer_support')
-        .eq('target_table', 'social_message').eq('target_id', m.platform + ':' + m.meta_message_id).neq('status', 'failed').limit(1);
+        .eq('target_table', 'social_message').eq('target_id', 'social.escalation:' + m.platform + ':' + m.meta_message_id).neq('status', 'failed').limit(1);
       if (prior && prior.length) return { ok: true };
       const { raiseSocialHandoff } = await import('../marketing/social_handoffs.ts');
       try {

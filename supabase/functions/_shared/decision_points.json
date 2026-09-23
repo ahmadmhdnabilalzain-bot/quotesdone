@@ -956,7 +956,7 @@
      "must_contain": [
       "row.surface === 'marketing_social.comment_needs_a_person'",
       "io.socialCommentHandoff(subject)",
-      "eq('target_id', m.platform + ':' + m.meta_message_id)"
+      "eq('target_id', 'social.escalation:' + m.platform + ':' + m.meta_message_id)"
      ]
     }
    ]

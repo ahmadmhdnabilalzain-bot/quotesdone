@@ -216,6 +216,10 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     corpus = (data || []) as CorpusRow[];
   } catch (_e) { corpus = []; }
   const library = (lib || []) as LibraryRow[];
+  // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
+  // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
+  // Public surface: marketing's own social replies only, never another seat's cases.
+  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
   // Does this person want a person? REASONED (think(), founder_instruction 886-903), never a phrase list.
   // Held (the model hold, or a model that failed): the question is still ANSWERED now (903) from the library,
   // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
@@ -225,10 +229,6 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
     dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
   });
-  // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
-  // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
-  // Public surface: marketing's own social replies only, never another seat's cases.
-  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
   const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
   if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
 
