@@ -1,8 +1,0 @@
-Committed, not applied: the builder was told not to apply; the coordinator serialises applies across
-parallel builders (23 Sep 2026). Proved before apply by replaying the whole file plus its probe inside one
-aborted transaction: node --test scripts/checks/a_seat_is_never_reviewed_by_a_model_of_its_own_family.test.mjs
-
-Moves when the coordinator runs
-  node scripts/apply_sql.mjs scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql --apply --ddl
-then deletes this note and appends the file to the END of scripts/sql/MANIFEST.txt, redeploys ai_gateway and
-resilience_ping, and regenerates the schema mirror last. Seat: it_engineer (with ceo).

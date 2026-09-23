@@ -127,6 +127,11 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "found"
 // and the page is refused rather than published. That is load-bearing on EVERY path now, not
 // defensive decoration. ON THE FALLBACK PATH the verify reaches anthropic/claude-opus-5.5, a different
 // model from the find, and the independence returns.
+//
+// SUPERSEDED 23 Sep 2026 (it_engineer, founder instruction ~891: a reviewer is never the author's family).
+// The verify now names the find's model as counterpart_model and ai_gateway routes it through
+// fn_ai_route_review: find on Sol -> verify on Opus, find on Opus -> verify on Sol, gemini-3.8-flash (a third
+// family) behind either. The fail-closed handling below stays load-bearing all the same.
 // See scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql §4 and
 // scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql.
 //
@@ -177,7 +182,7 @@ Return STRICT JSON ONLY: {"regions":[{"x":0.80,"y":0.88,"w":0.20,"h":0.12}]} —
 const NO_ANSWER = new Set(['uncertain', 'verify_truncated', 'verify_unparseable', 'verify_exception']);
 const isNoAnswer = (found: string[]) => found.length > 0 && found.every((f) => NO_ANSWER.has(String(f).trim()));
 
-async function retryRegions(key: string, jpgB64: string, found: string[]): Promise<Array<{x:number;y:number;w:number;h:number}>> {
+async function retryRegions(key: string, jpgB64: string, found: string[]): Promise<{ regions: Array<{x:number;y:number;w:number;h:number}>; model: string | null }> {
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: RETRY_SYS,
@@ -185,16 +190,22 @@ async function retryRegions(key: string, jpgB64: string, found: string[]): Promi
           { type: 'text', text: 'The checker refused this page. It reported, verbatim:\n- ' + found.join('\n- ') + '\n\nCover exactly those. Return the JSON.' },
           { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
     const jd = await r.json();
-    if (jd?.truncated === true || jd?.finish_reason === 'length') return [];
+    const model = typeof jd?.model === 'string' && jd.model ? jd.model : null;
+    if (jd?.truncated === true || jd?.finish_reason === 'length') return { regions: [], model };
     const parsed = parseJson(jd?.content || '');
     const regions = Array.isArray(parsed?.regions) ? parsed.regions : [];
-    return regions
+    return { model, regions: regions
       .map((g: any) => ({ x: Number(g.x) || 0, y: Number(g.y) || 0, w: Number(g.w) || 0, h: Number(g.h) || 0 }))
-      .filter((g: any) => g.w > 0 && g.h > 0);
-  } catch (_e) { return []; }
+      .filter((g: any) => g.w > 0 && g.h > 0) };
+  } catch (_e) { return { regions: [], model: null }; }
 }
 
-async function verifyPage(key: string, jpgB64: string): Promise<{ clean: boolean; found: string[] }> {
+// THE VERIFY IS NEVER THE FIND'S FAMILY (founder instruction ~891, 23 Sep 2026). `authors` names every model that
+// boxed this page (the find, and the retry when it ran); ai_gateway routes identity_redaction_verify through
+// fn_ai_route_review away from all of their families, with google/gemini-3.8-flash as a third-family fallback
+// (scripts/sql/every_review_class_is_judged_by_another_family_than_its_author.sql). An unknown author fails closed:
+// the gateway answers "no independent reviewer" and the page is refused, never published unverified.
+async function verifyPage(key: string, jpgB64: string, authors: string): Promise<{ clean: boolean; found: string[] }> {
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
       // `max: 400` was here, and it was the whole defect. MEASURED 5 Aug 2026, same image, same
@@ -210,7 +221,7 @@ async function verifyPage(key: string, jpgB64: string): Promise<{ clean: boolean
       // gemini fine. This is the FIFTH instance of §5's "a token ceiling inside the output's
       // natural range", and gemini spends most of its budget on reasoning tokens, so a 400-token
       // ceiling on a vision check never had room for the answer.
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', temperature: 0, sys: VERIFY_SYS,
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, temperature: 0, sys: VERIFY_SYS,
         input: [{ role: 'user', content: [
           { type: 'text', text: 'Check this redacted page. Return the JSON.' },
           { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
@@ -365,6 +376,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
     for (const im of imgs) { const b = (im && (im.b64 || im.data)) || im; const m = (im && im.mime) || 'image/jpeg'; if (b && typeof b === 'string') content.push({ type: 'image_url', image_url: { url: 'data:' + m + ';base64,' + stripB64(b) } }); }
     const regionsByPage: Record<number, {x:number;y:number;w:number;h:number}[]> = {};
     const identityByPage: Record<number, boolean> = {};
+    let findModel = 'unknown';   // the model that boxed the pages; the verify must be of another family
     try {
       // `max: 2000` removed 5 Aug 2026, same reasoning as the verify call above and the same
       // reasoning that fixed doc_extract and license_extract: ai_gateway takes min(caller, policy),
@@ -378,6 +390,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // `detect_failed` on a PRIVACY control.
       const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
+      if (typeof jd?.model === 'string' && jd.model) findModel = jd.model;
       // Fails closed either way — nothing is published — but `detect_truncated` says "raise the
       // ceiling" where `detect_failed` says "the model misbehaved", and session 9 lost a day to
       // exactly that confusion on the verify call.
@@ -425,7 +438,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // out a third of a drawing for no measured gain, so it is not here. What the verifier
         // actually still reports on the two refused pages is a logo in a corner and a REVISIONS
         // block — not the title strip. Anything that replaces this should be aimed there.
-        let vr = await verifyPage(key, bytesToB64(jpg));
+        let vr = await verifyPage(key, bytesToB64(jpg), findModel);
         let attempt = 1;
         if (!vr.clean) {
           // ONE more attempt, and its shape depends on what the refusal actually was.
@@ -433,15 +446,16 @@ Deno.serve(observe('drawing_redact', async (req) => {
             // The check did not run. Re-ask the same image; nothing about the page is known to be
             // wrong, so masking more of it would be aiming at nothing.
             attempt = 2;
-            vr = await verifyPage(key, bytesToB64(jpg));
+            vr = await verifyPage(key, bytesToB64(jpg), findModel);
           } else {
             // The check ran and named what is left. Cover exactly that, then re-verify.
-            const extra = await retryRegions(key, bytesToB64(jpg), vr.found);
+            const retry = await retryRegions(key, bytesToB64(jpg), vr.found);
+            const extra = retry.regions;
             if (extra.length) {
               attempt = 2;
               paint(img, extra);
               jpg = await img.encodeJPEG(82);
-              vr = await verifyPage(key, bytesToB64(jpg));
+              vr = await verifyPage(key, bytesToB64(jpg), [findModel, retry.model ?? 'unknown'].join(','));
             }
           }
         }

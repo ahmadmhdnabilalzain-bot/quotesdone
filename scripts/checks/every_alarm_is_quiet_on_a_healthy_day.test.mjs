@@ -115,6 +115,13 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_supplier_portfolio_reminder_tick(false)',
     asOf: { agent_actions: 'created_at', leads: 'created_at' },
   },
+  // 23 Sep 2026 (marketing, #876). Raises one finding: a model step quarantined after failing 3 days running
+  // on one subject. It reads marketing_model_run rows that existed at the instant; a healthy day has no step
+  // failing three days in a row, so it is quiet. Its handoffs (the brief) are written inside the rolled-back replay.
+  fn_marketing_plan_loop_tick: {
+    replay: 'pg_temp.qd_replay_fn_marketing_plan_loop_tick()',
+    asOf: { marketing_model_run: 'created_at', marketing_month_plan: 'created_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
