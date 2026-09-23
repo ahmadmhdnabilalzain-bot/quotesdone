@@ -6,21 +6,22 @@
 //
 // THREE PROPERTIES THE TESTS HOLD, because each one is a way this seat could hurt the company:
 //   1. publishPost never POSTs to Postiz unless `live` is true -- and the caller passes live only when
-//      app_secrets.marketing_golive is 'true' AND the post is not a ZZ DEMO post. Switched off, it
-//      returns the payload it WOULD have sent, which is the dry run the founder can read.
+//      app_secrets.marketing_golive is 'true', the post is not a ZZ DEMO post (flag OR text), and the
+//      database's publish gate (fn_marketing_post_refusal: the founder's approval of the month) says yes.
+//      Switched off, it returns the payload it WOULD have sent, which is the dry run the founder can read.
 //   2. Nothing an access token can hide in is returned. Graph puts the token into every paging.next URL
 //      (measured 22 Sep 2026), so paging is never kept and every value passes through stripTokens.
 //   3. readAdSpend reports the business the account sits in, on the same read, so the database can
 //      refuse spend from an account that is not the company's (fn_marketing_ad_spend_record).
 //
 // Nothing here writes to Meta. Reads only: /me, /debug_token, /me/accounts, page and Instagram insights,
-// ad account insights. The only writes are to Postiz, and only through publishPost with live=true.
-
-import { campaignOf, withUtm } from './marketing_post_results.ts';
+// ad account insights. The only writes are to Postiz: publishPost with live=true (upload, post) and
+// deletePostizPost (a cancel). 23 Sep 2026: posts are built from marketing_post_variant, one per platform.
 
 export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
-export const CHANNELS = ['facebook', 'instagram', 'linkedin', 'x'] as const;
+// YouTube is connected in Postiz (measured 22 Sep 2026); TikTok was connected on 23 Sep 2026 (founder).
+export const CHANNELS = ['facebook', 'instagram', 'linkedin', 'x', 'youtube', 'tiktok'] as const;
 export type Channel = typeof CHANNELS[number];
 
 // ── shared helpers ────────────────────────────────────────────────────────────────────────────────
@@ -46,9 +47,9 @@ async function readJson(r: Response): Promise<any> {
   try { return JSON.parse(t); } catch { return { raw: t.slice(0, 300) }; }
 }
 
-/** The post text: English, then Arabic. Both are required by marketing_post. */
-export function postBody(p: { text_en: string; text_ar: string }): string {
-  return `${p.text_en.trim()}\n\n${p.text_ar.trim()}`;
+/** ZZ DEMO in any of the texts: the second direction of the demo rule (the database holds the same one). */
+export function isDemoText(...texts: Array<string | null | undefined>): boolean {
+  return /zz[ _-]?demo/i.test(texts.filter(Boolean).join(' '));
 }
 
 // ── Postiz ────────────────────────────────────────────────────────────────────────────────────────
@@ -67,35 +68,98 @@ export function integrationFor(list: PostizIntegration[], ch: Channel): PostizIn
   return live.find((x) => ch === 'x' ? (x.identifier === 'x' || x.identifier === 'twitter') : (x.identifier === ch || x.identifier.startsWith(ch + '-')));
 }
 
-export interface PublishInput {
-  id: number; ingest_key?: string; text_en: string; text_ar: string; channels: string[]; scheduled_at: string; is_demo: boolean;
-  media: { name: string; type: string; bytes: Uint8Array }[];
+/** One platform post as marketing_post_variant stores it; `body` is the exact text (caption + hashtags). */
+export interface Variant {
+  platform: Channel; seq: number; post_type: 'reel' | 'short' | 'post' | 'video'; body: string; hashtags: string[];
+  title: string | null; alt_text: string | null; first_comment: string | null;
+}
+export interface Media { name: string; type: string; bytes: Uint8Array }
+export interface PublishInput { id: number; ingest_key: string; is_demo: boolean; variants: Variant[]; media: Media[]; cover: Media | null }
+type Uploaded = { id: string; path: string };
+
+/**
+ * Postiz's per-provider settings block (`__type` is the integration identifier; the shapes are the ones the
+ * Postiz agent skill documents for the public API, read 23 Sep 2026). What is not a setting Postiz knows is
+ * silently discarded by Postiz, so only documented keys are sent.
+ *   instagram*: post_type 'post' -- Postiz publishes a VIDEO sent as 'post' as a Reel and an image as a feed
+ *               post; 'story' is never used. So reel vs post is decided by the media, and checked below.
+ *   youtube:    title (required), type 'public', tags from the hashtags, thumbnail = the key frame when uploaded.
+ *   x:          who_can_reply_post 'everyone'.   linkedin-page: no carousel.   facebook: none needed.
+ *   tiktok:     content_posting_method 'DIRECT_POST' (the skill's Rule 3), public, no auto-music, not branded.
+ */
+export function settingsFor(identifier: string, v: Variant, thumb: Uploaded | null): Record<string, unknown> {
+  const s: Record<string, unknown> = { __type: identifier };
+  if (identifier.startsWith('instagram')) { s.post_type = 'post'; s.collaborators = []; }
+  else if (identifier === 'youtube') {
+    s.title = v.title; s.type = 'public'; s.selfDeclaredMadeForKids = 'no';
+    s.tags = v.hashtags.map((h) => ({ value: h, label: h }));
+    if (thumb) s.thumbnail = thumb;
+  } else if (identifier === 'x') s.who_can_reply_post = 'everyone';
+  else if (identifier === 'linkedin-page') s.post_as_images_carousel = false;
+  // TikTok (Postiz identifier 'tiktok-business', measured 23 Sep 2026): DIRECT_POST publishes (UPLOAD only drops the video in the app's inbox while Postiz reports success);
+  // public, duet/stitch/comments allowed, no auto music over the founder's own track, not branded/paid content.
+  else if (identifier.startsWith('tiktok')) Object.assign(s, { privacy_level: 'PUBLIC_TO_EVERYONE', duet: true, stitch: true, comment: true,
+    autoAddMusic: 'no', brand_content_toggle: false, brand_organic_toggle: false, content_posting_method: 'DIRECT_POST' });
+  return s;
 }
 
-/** Builds the Postiz payload. `images` are the uploaded Postiz media ({id, path}); in a dry run they are placeholders. */
-export function buildPostizPayload(post: PublishInput, list: PostizIntegration[], images: { id: string; path: string }[]) {
+/** Reel vs post is the media's call: a video makes reel/short/video, an image makes post. A mismatch is refused. */
+export function kindMismatch(v: Variant, media: Array<{ type: string; name: string }>): string | null {
+  const video = media.some((m) => m.type === 'video/mp4' || /\.mp4$/i.test(m.name));
+  const image = media.some((m) => /^image\//.test(m.type) || /\.(png|jpe?g|webp)$/i.test(m.name));
+  if (['reel', 'short', 'video'].includes(v.post_type) && !video) return `${v.platform} ${v.post_type} needs a video`;
+  if (v.post_type === 'post' && (v.platform === 'instagram') && !image) return 'instagram post needs an image';
+  if ((v.platform === 'youtube' || v.platform === 'tiktok') && !video) return v.platform + ' needs a video';
+  return null;
+}
+
+/**
+ * Builds the Postiz payload from the variants: one Postiz post per platform, never a joined EN+AR text. The
+ * variants of a platform in seq order are its thread (X: EN tweet, AR reply); a first comment follows them.
+ * Media go on the first value; alt text rides on each image (documented `alt`).
+ */
+export function buildPostizPayload(post: PublishInput, list: PostizIntegration[], media: Uploaded[], thumb: Uploaded | null) {
   const posts: unknown[] = []; const skipped: string[] = []; const resolved: Record<string, string> = {};
-  for (const raw of post.channels) {
-    const ch = raw as Channel;
-    if (!CHANNELS.includes(ch)) { skipped.push(raw + ' (not a marketing channel)'); continue; }
+  const byPlatform = new Map<Channel, Variant[]>();
+  for (const v of post.variants) {
+    if (!CHANNELS.includes(v.platform)) { skipped.push(v.platform + ' (not a marketing channel)'); continue; }
+    byPlatform.set(v.platform, [...(byPlatform.get(v.platform) || []), v].sort((a, b) => a.seq - b.seq));
+  }
+  for (const [ch, vs] of byPlatform) {
     const it = integrationFor(list, ch);
     if (!it) { skipped.push(ch + ' (not connected in Postiz)'); continue; }
-    if (it.identifier.startsWith('instagram') && !images.length) { skipped.push(ch + ' (needs media)'); continue; }
-    const settings: Record<string, unknown> = { __type: it.identifier };
-    if (it.identifier.startsWith('instagram')) settings.post_type = 'post';
-    if (it.identifier === 'x') settings.who_can_reply_post = 'everyone';
-    // every quotesdone link names the platform, the month and the post (marketing_post_results.ts withUtm)
-    const content = post.ingest_key ? withUtm(postBody(post), ch, campaignOf(post.scheduled_at), post.ingest_key) : postBody(post);
-    posts.push({ integration: { id: it.id }, value: [{ content, image: images }], settings });
+    const bad = kindMismatch(vs[0], post.media);
+    if (bad) { skipped.push(ch + ' (' + bad + ')'); continue; }
+    const images = media.map((m) => (vs[0].alt_text ? { ...m, alt: vs[0].alt_text } : m));
+    const value: Array<Record<string, unknown>> = vs.map((v, i) => ({ content: v.body, image: i === 0 ? images : [] }));
+    if (vs[0].first_comment) value.push({ content: vs[0].first_comment, image: [] });
+    posts.push({ integration: { id: it.id }, value, settings: settingsFor(it.identifier, vs[0], thumb) });
     resolved[ch] = it.identifier;
   }
+  // shortLink: false ALWAYS. POST /public/v1/posts takes a top-level boolean `shortLink`; Postiz's own CLI
+  // defaults it to true and the account preference is "Ask every time" (23 Sep 2026), so it is stated here:
+  // the approved UTM links reach the platforms unchanged.
   return { payload: { type: 'now', date: new Date().toISOString(), shortLink: false, tags: [], posts }, skipped, resolved };
 }
 
 export type PublishResult =
-  | { mode: 'dry_run'; reason: string; would_send: { channels: Record<string, string>; skipped: string[]; body_chars: number; media: number } }
+  | { mode: 'dry_run'; reason: string; would_send: { channels: Record<string, string>; skipped: string[]; variants: Array<{ platform: string; seq: number; chars: number }>; media: number } }
   | { mode: 'live'; ok: true; postiz: unknown; channels: Record<string, string>; skipped: string[] }
-  | { mode: 'live'; ok: false; error: string; status?: number; skipped: string[] };
+  // unclear: the POST may have been accepted (no answer, 5xx, unreadable 2xx). The post goes to 'unconfirmed'
+  // and is reconciled against GET /posts before anything is sent again -- never retried blind.
+  | { mode: 'live'; ok: false; unclear: boolean; error: string; status?: number; skipped: string[] };
+
+async function upload(f: Fetch, base: string, key: string, m: Media): Promise<Uploaded | string> {
+  const fd = new FormData();
+  // The bytes come from the PRIVATE bucket through the service role and go to Postiz as a multipart upload:
+  // no signed or public URL of our bucket is ever handed to Postiz.
+  fd.append('file', new Blob([m.bytes as unknown as BlobPart], { type: m.type }), m.name);
+  const r = await f(base + '/upload', { method: 'POST', headers: { Authorization: key }, body: fd });
+  const j = await readJson(r);
+  const o = Array.isArray(j) ? j[0] : j;
+  if (!r.ok || !o?.id) return 'media upload refused: ' + String(o?.message || o?.error || r.status);
+  return { id: String(o.id), path: String(o.path || o.url || '') };
+}
 
 /**
  * Publishes one due post through Postiz. With live=false NOTHING is written to Postiz -- no upload, no post:
@@ -105,27 +169,94 @@ export async function publishPost(f: Fetch, base: string, key: string, post: Pub
   const ints = await postizIntegrations(f, base, key);
   if (!live) {
     const placeholders = post.media.map((m, i) => ({ id: 'dry-run-' + i, path: m.name }));
-    const { skipped, resolved } = buildPostizPayload(post, ints.list, placeholders);
+    const { skipped, resolved } = buildPostizPayload(post, ints.list, placeholders, null);
     if (ints.error) skipped.push('postiz integrations unreadable: HTTP ' + ints.status);
-    return { mode: 'dry_run', reason: whyNot, would_send: { channels: resolved, skipped, body_chars: postBody(post).length, media: post.media.length } };
+    return { mode: 'dry_run', reason: whyNot, would_send: { channels: resolved, skipped, media: post.media.length,
+      variants: post.variants.map((v) => ({ platform: v.platform, seq: v.seq, chars: v.body.length })) } };
   }
-  if (ints.error) return { mode: 'live', ok: false, error: 'postiz integrations unreadable: ' + ints.error, status: ints.status, skipped: [] };
-  const images: { id: string; path: string }[] = [];
+  if (ints.error) return { mode: 'live', ok: false, unclear: false, error: 'postiz integrations unreadable: ' + ints.error, status: ints.status, skipped: [] };
+  const media: Uploaded[] = [];
   for (const m of post.media) {
-    const fd = new FormData();
-    fd.append('file', new Blob([m.bytes as unknown as BlobPart], { type: m.type }), m.name);
-    const r = await f(base + '/upload', { method: 'POST', headers: { Authorization: key }, body: fd });
-    const j = await readJson(r);
-    const o = Array.isArray(j) ? j[0] : j;
-    if (!r.ok || !o?.id) return { mode: 'live', ok: false, error: 'media upload refused: ' + String(o?.message || o?.error || r.status), status: r.status, skipped: [] };
-    images.push({ id: String(o.id), path: String(o.path || o.url || '') });
+    const u = await upload(f, base, key, m);
+    if (typeof u === 'string') return { mode: 'live', ok: false, unclear: false, error: u, skipped: [] };
+    media.push(u);
   }
-  const { payload, skipped, resolved } = buildPostizPayload(post, ints.list, images);
-  if (!(payload.posts as unknown[]).length) return { mode: 'live', ok: false, error: 'no channel of this post is connected in Postiz', skipped };
-  const r = await f(base + '/posts', { method: 'POST', headers: { Authorization: key, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  let thumb: Uploaded | null = null;
+  if (post.cover && post.variants.some((v) => v.platform === 'youtube')) {
+    const u = await upload(f, base, key, post.cover);
+    if (typeof u === 'string') return { mode: 'live', ok: false, unclear: false, error: 'thumbnail ' + u, skipped: [] };
+    thumb = u;
+  }
+  const { payload, skipped, resolved } = buildPostizPayload(post, ints.list, media, thumb);
+  if (!(payload.posts as unknown[]).length) return { mode: 'live', ok: false, unclear: false, error: 'no channel of this post can be published: ' + skipped.join('; '), skipped };
+  let r: Response;
+  try {
+    r = await f(base + '/posts', { method: 'POST', headers: { Authorization: key, 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+  } catch (e) {
+    return { mode: 'live', ok: false, unclear: true, error: 'no answer from Postiz to POST /posts: ' + String((e as Error)?.message || e), skipped };
+  }
   const j = await readJson(r);
-  if (!r.ok) return { mode: 'live', ok: false, error: String(j?.message || j?.error || j?.raw || 'HTTP ' + r.status), status: r.status, skipped };
+  if (r.status >= 500) return { mode: 'live', ok: false, unclear: true, error: 'Postiz answered HTTP ' + r.status + ' to POST /posts', status: r.status, skipped };
+  if (!r.ok) return { mode: 'live', ok: false, unclear: false, error: String(j?.message || j?.error || j?.raw || 'HTTP ' + r.status), status: r.status, skipped };
+  if (j?.raw !== undefined) return { mode: 'live', ok: false, unclear: true, error: 'Postiz accepted POST /posts but the answer was unreadable', status: r.status, skipped };
   return { mode: 'live', ok: true, postiz: stripTokens(j), channels: resolved, skipped };
+}
+
+export async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as unknown as BufferSource))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * The first asset whose bytes are not the approved ones (review of #874): `expected` maps a storage path to the
+ * sha256 the calendar carried (and the approval hash covers). A path with an expected hash that does not match
+ * -- or an expected hash with no bytes at all -- is named; null means every approved asset is byte-identical.
+ */
+export async function assetMismatch(assets: Array<{ path: string | null | undefined; bytes: Uint8Array }>, expected: Record<string, string | null | undefined>): Promise<string | null> {
+  for (const [path, want] of Object.entries(expected)) {
+    if (!path || !want) continue;
+    const a = assets.find((x) => x.path === path);
+    if (!a) return path + ' was not read';
+    const got = await sha256Hex(a.bytes);
+    if (got !== want.toLowerCase()) return `${path} is ${got}, approved ${want}`;
+  }
+  return null;
+}
+
+/** Postiz's post ids from its POST /posts answer ([{postId, integration}]). */
+export function postizIds(answer: unknown): string[] {
+  return (Array.isArray(answer) ? answer : []).map((x: any) => String(x?.postId || x?.id || '')).filter(Boolean);
+}
+
+const plain = (s: unknown) => String(s ?? '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/\s+/g, ' ').trim();
+
+/**
+ * Is this post already in Postiz? GET /posts over [from, to], matched by integration and by the text of its
+ * first value (Postiz may store it as HTML, so both sides are compared as plain text). Used before any resend
+ * of an unclear attempt and by the watchdog, so a post Postiz accepted is never published twice.
+ * ok=false means Postiz could not be read -- the caller must NOT treat that as "not there".
+ */
+export async function findInPostiz(f: Fetch, base: string, key: string, from: Date, to: Date,
+                                   targets: Array<{ integrationId: string; content: string }>): Promise<{ ok: boolean; ids: string[]; error?: string }> {
+  let r: Response;
+  try { r = await f(`${base}/posts?startDate=${encodeURIComponent(from.toISOString())}&endDate=${encodeURIComponent(to.toISOString())}`, { headers: { Authorization: key } }); }
+  catch (e) { return { ok: false, ids: [], error: String((e as Error)?.message || e) }; }
+  const j = await readJson(r);
+  if (!r.ok || !Array.isArray(j?.posts)) return { ok: false, ids: [], error: 'HTTP ' + r.status };
+  const ids: string[] = [];
+  for (const t of targets) {
+    const hit = j.posts.find((p: any) => String(p.integration?.id || '') === t.integrationId && plain(p.content) === plain(t.content));
+    if (hit) ids.push(String(hit.id));
+  }
+  return { ok: true, ids };
+}
+
+/** Deletes a post in Postiz (cancel). Postiz's public API has no reschedule: we keep our own clock, see marketing_channels/index.ts. */
+export async function deletePostizPost(f: Fetch, base: string, key: string, id: string): Promise<{ ok: boolean; status: number; error?: string }> {
+  const r = await f(`${base}/posts/${encodeURIComponent(id)}`, { method: 'DELETE', headers: { Authorization: key } });
+  if (r.ok || r.status === 404) { await r.body?.cancel().catch(() => {}); return { ok: true, status: r.status }; }
+  const j = await readJson(r);
+  return { ok: false, status: r.status, error: String(j?.message || j?.error || j?.raw || 'HTTP ' + r.status) };
 }
 
 /** Postiz posts in a window, reduced to what fills permalinks: {postiz id -> {channel, releaseURL}}. */

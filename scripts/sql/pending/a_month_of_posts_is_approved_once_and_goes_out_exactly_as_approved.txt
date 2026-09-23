@@ -1,0 +1,6 @@
+Committed, not applied: the coordinator serialises applies across three parallel marketing builders (23 Sep 2026).
+Proved before commit in ONE aborted transaction against production (this file with begin/commit stripped, then
+a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved_probe.sql) -> PROBE OK; nothing persisted.
+What moves it: node scripts/apply_sql.mjs scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql --apply --ddl --seat marketing,
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
+Seat: marketing.

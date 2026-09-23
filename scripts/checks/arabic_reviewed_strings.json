@@ -4056,5 +4056,11 @@
   "d0c6f4df064e",
   "d2f51ce60d95",
   "e0c574ae3528"
+ ],
+ "supabase/functions/_shared/marketing_calendar_doc.ts": [
+  "a817fa1cebe5"
+ ],
+ "supabase/functions/marketing_channels/index.ts": [
+  "b2a80e50ec94"
  ]
 }
