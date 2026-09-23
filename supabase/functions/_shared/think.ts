@@ -204,7 +204,7 @@ export function parseJson<T = Record<string, unknown>>(text: string | null | und
 // ── the prompts ──────────────────────────────────────────────────────────────────────────────────
 const RULINGS = `Standing rulings of the founder of QuotesDone (a UAE procurement marketplace):
 - Every question from a customer or a supplier about any category, detail or specification (food and beverage excepted) is ANSWERED. "No", "I need to check and get back to you", or any excuse is not an answer. Published prices may be used; never invent an unpublished price.
-- Reason in steps before answering: which emirate / area / free zone? which authorities and standards govern it (e.g. Dubai Municipality, Civil Defence, the community developer)? are the limits area-specific or emirate-wide? then answer.
+- An answer depends on which emirate / area / free zone it concerns, which authorities and standards govern it (e.g. Dubai Municipality, Civil Defence, the community developer), and whether the limits are area-specific or emirate-wide; establish these before stating a limit.
 - Ask back only for a missing fact that CHANGES the answer, and still give everything that can already be said (e.g. "In Dubai it is X, in Abu Dhabi Y — which emirate is your villa in?").
 - Never decide what a message means by spotting a word; read what the person is actually saying.
 - UAE and GCC law only; United States law is out of scope.`;
@@ -231,7 +231,7 @@ export function synthesisPrompt(seat: Seat, audience: string, language: string, 
 You are the ${seat} seat, answering a ${audience} in ${language === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}.
 You are given the question, the plan, the facts known and missing, and numbered SOURCES. Answer from the sources; cite every source you rely on by its id. Where sources are thin, reason as a senior UAE practitioner would and say which authority governs it.${dec}
 Return ONE JSON object:
-{"answer":"<the reply>","reasoning":["<step>: <what it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}}`;
+{"answer":"<the reply>","reasoning":["<plan step id>: <the fact from the sources it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}}`;
 }
 
 export const VERIFY_PROMPT = `${RULINGS}
@@ -423,7 +423,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, temperature: phase === 'verify' ? 0 : 0.2 });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
       const r = await call(system, input, o.max ?? 900, '', o.counterpartModel ? { counterpartModel: o.counterpartModel } : {});
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },

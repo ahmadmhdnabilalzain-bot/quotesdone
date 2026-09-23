@@ -1,0 +1,2 @@
+Committed by it_engineer on 23 Sep 2026 (prompt audit fixes PR) and NOT applied: the release operator applies it serially after merge.
+Apply with node scripts/apply_sql.mjs scripts/sql/the_ceo_justifies_its_choice_without_a_sentence_count.sql --apply --ddl, then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

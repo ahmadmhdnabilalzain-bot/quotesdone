@@ -366,7 +366,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // inside the answer's natural range. every_seat_gets_the_model_its_own_work_needs.sql adds the
       // class on anthropic/claude-opus-5.5 with 2000; this side has to ask for 2000 or the clamp
       // keeps the old ceiling with a better model behind it.
-      const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
+      const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
       // THE CEO NEVER JUDGES ON A SEAT'S OWN FAMILY (founder instruction ~891). The input carries the marketing
       // report (built in SQL) and the open directive replies; fn_ceo_judgement_counterparts names the models those
       // replies' seats wrote on (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.

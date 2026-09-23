@@ -38,6 +38,7 @@ import { paidProviderGate } from '../_shared/paid_gate.ts';
 import { observe } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, subjectOf } from '../_shared/spend_guards.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
+import { shapeRequest } from '../_shared/request_shape.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) =>
@@ -172,6 +173,7 @@ interface Body {
   tool_choice?: any;
   // deno-lint-ignore no-explicit-any
   response_format?: any;                  // JSON mode / json_schema
+  effort?: string;                        // Claude reasoning effort; request_shape.ts defaults it to medium
   require_caps?: string[];                // override; normally inferred from the payload
   want_message?: boolean;                 // return the whole assistant message (tool_calls included)
 }
@@ -180,6 +182,31 @@ interface Body {
 // "this has an image in it" will eventually forget to, and the failure mode is a provider error
 // nobody can trace. Reading it here means vision/audio can never be mis-routed by omission.
 // deno-lint-ignore no-explicit-any
+// OpenRouter's supported_parameters per model. response_format FAILS a request on a model that lacks
+// it, so "unknown" means "do not send". The list is loaded once per isolate, refreshed hourly, and
+// started BEFORE the attempt loop with a short timeout: an attempt never waits on it, and a list
+// that has not arrived yet reads as unknown for that attempt (the caller's own parser is the fallback).
+const PARAMS_TTL_MS = 60 * 60 * 1000;
+let _params: Map<string, Set<string>> | null = null;
+let _paramsAt = 0;
+let _paramsLoading: Promise<void> | null = null;
+function loadSupportedParams(): void {
+  if (_paramsLoading || (_params && Date.now() - _paramsAt < PARAMS_TTL_MS)) return;
+  _paramsLoading = fetch('https://openrouter.ai/api/v1/models', { signal: AbortSignal.timeout(1500) })
+    .then((r) => r.ok ? r.json() : null)
+    .then((j) => {
+      if (!j?.data) return;
+      // deno-lint-ignore no-explicit-any
+      _params = new Map(j.data.map((d: any) => [String(d.id), new Set<string>((d.supported_parameters ?? []).map(String))]));
+      _paramsAt = Date.now();
+    })
+    .catch(() => {})
+    .finally(() => { _paramsLoading = null; });
+}
+function supportedParams(model: string): Set<string> | null {
+  return _params?.get(model) ?? null;
+}
+
 function inferCaps(msgs: Msg[], tools?: any[]): { caps: string[]; hasBinary: boolean } {
   const caps = new Set<string>();
   let hasBinary = false;
@@ -689,6 +716,8 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // attemptPlan bounds the whole ladder at MAX_PAID_CALLS_PER_REQUEST; failureKind decides from
     // the provider's status whether another attempt is worth money (_shared/spend_guards.ts).
     const plan = attemptPlan(ladder);
+    if (body.response_format != null) loadSupportedParams();
+    let sentMaxTok = maxTok;   // what the provider was actually given (Claude adds thinking headroom)
     let pi = 0;
     attempts: while (pi >= 0 && pi < plan.length) {
       const m = plan[pi];
@@ -736,12 +765,19 @@ Deno.serve(observe('ai_gateway', async (req) => {
             // cost has to be re-read later, which is why j.id is now kept below.
             usage: { include: true },
           };
-          if (body.temperature != null) payload.temperature = body.temperature;
+          // Per-model request shape (_shared/request_shape.ts): no sampling params on Claude, an
+          // explicit reasoning effort plus thinking headroom on Claude, and response_format only
+          // where OpenRouter lists it for this model.
+          Object.assign(payload, shapeRequest({
+            model: m, maxTokens: maxTok, temperature: body.temperature ?? null,
+            effort: body.effort ?? null, responseFormat: body.response_format ?? null,
+            supported: supportedParams(m),
+          }));
+          sentMaxTok = Number(payload.max_tokens);
           if (wantStream) payload.stream = true;
           if (body.plugins && body.plugins.length) payload.plugins = body.plugins;
           if (body.tools && body.tools.length) payload.tools = body.tools;
           if (body.tool_choice != null) payload.tool_choice = body.tool_choice;
-          if (body.response_format != null) payload.response_format = body.response_format;
 
           const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
@@ -843,7 +879,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
                  + (useCache ? ' | prompt cache on (' + cacheBlock.length + ' stable chars): '
                                + cachedIn + ' tokens read from cache, ' + cacheWrite + ' written' : '')
                  + (finishReason === 'length'
-                    ? ' | TRUNCATED: the model stopped at the ' + maxTok + '-token ceiling for task_class '
+                    ? ' | TRUNCATED: the model stopped at the ' + sentMaxTok + '-token ceiling for task_class '
                       + String(route.task_class) + ', so the reply is cut off mid-output. A caller that '
                       + 'expects JSON will report unparseable output; raise max_tokens in model_policy.'
                     : '')
@@ -902,7 +938,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
                annotations: outMsg?.annotations ?? undefined,
                tier: route.tier, task_class: route.task_class, caps,
                finish_reason: finishReason || undefined,
-               truncated: finishReason === 'length', max_tokens: maxTok,
+               truncated: finishReason === 'length', max_tokens: sentMaxTok,
                prompt_tokens: inTok, output_tokens: outTok, cached_input_tokens: cachedIn,
                cache_write_tokens: cacheWrite, prompt_cache: useCache,
                cost_usd: costUsd, latency_ms: Date.now() - t0 });
