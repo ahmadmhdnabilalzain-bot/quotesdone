@@ -1,6 +1,6 @@
 {
   "_about": "THE ONE SOURCE OF TRUTH for every company figure a customer, supplier or seat can read: fees, penalties, rates. Founder rule (C), 23 Sep 2026: a change to company knowledge reaches every place at once. Change a value HERE, then run `node scripts/legal/sync_company_facts.mjs --write-repo` (rewrites the website texts) and `--emit-sql <file>` (the production knowledge, the signed registry and the seats' policy keys, one transaction). `scripts/checks/company_facts_agree_everywhere.test.mjs` fails CI if any repository surface states a different figure; `sync_company_facts.mjs --probe` does the same against production. Each fact's `basis` is the INTERNAL legal annex: the article relied on and why the figure is the safe maximum. It is never rendered on a public page.",
-  "version": "2026-09-23.1",
+  "version": "2026-09-24.1",
   "documents": {
     "terms": {
       "version": "v9",
@@ -68,7 +68,7 @@
       "value": 3,
       "unit": "%",
       "founder": "3% reveal fee, no cap (founder ruling; unchanged).",
-      "basis": "A price, not a penalty. Consumer Protection Exec. Reg. (Cabinet Res. 66/2023) requires the full price shown before payment; the terms show fee + card fee + total before confirmation.",
+      "basis": "A price, not a penalty, and the WHOLE price: Cabinet Res. 66/2023 Art. 5(3) forbids adding any amount when a card is used, and Federal Law 15/2020 Art. 1 makes every natural or juristic person buying for its own or others' needs a consumer, so no buyer pays a card fee (24 Sep 2026; QuotesDone bears Stripe's cost, expense 6100). Art. 5(1) requires the price shown before payment.",
       "patterns": [
         "(?<n>\\d+(?:\\.\\d+)?)\\s?% reveal fee",
         "reveal fee of (?<n>\\d+(?:\\.\\d+)?)\\s?%",
@@ -320,7 +320,10 @@
     "repo": [
       "src/content/legal.json",
       "messages/en.json",
-      "messages/ar.json"
+      "messages/ar.json",
+      "src/content/marketing.json",
+      "src/content/blog.json",
+      "src/components/me/portalText.ts"
     ],
     "repo_globs": [
       "supabase/functions/**/*.ts"
@@ -384,25 +387,58 @@
   "canonical_statements": {
     "_about": "Where a rule is worded more than one way across the company, the ONE wording. The coordinator asked 23 Sep 2026 to settle the non-response charge, found worded both as \"3% + AED 250 + 9% a year\" and as \"the refunded amount (which includes the 3%) + AED 250 admin fee + 9% a year simple interest\".",
     "nonresponse_charge": {
-      "en": "the exact amount refunded to the customer (the 3% reveal fee plus the card processing fee charged on it) + an AED 500 administrative fee + simple interest at 9% a year on that total from the due date, never compounded",
-      "ar": "المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3% مضافًا إليها رسوم معالجة البطاقة المحصّلة عليها) + رسم إداري قدره 500 درهم + فائدة بسيطة بنسبة 9% سنويًا على هذا الإجمالي من تاريخ الاستحقاق، ولا تُركَّب",
-      "why": "Chosen from the signed text and the code, not by preference. Supplier Agreement clause 33(a) charges \"the exact amount refunded to the Customer, being the reveal fee (3% of the Quotation Value) plus the card processing fee charged on it\"; the customer is refunded both (Terms clause 5), and supplier_charge.ts computeCharge() and fn_accountant_nonresponse_charge() take the base from the refund record (reveal fee + processing fee), add the administrative fee, and charge simple interest on (base + fee). \"3% + AED 250 + 9%\" is WRONG: it drops the card processing fee the supplier does owe and does not say the interest is simple, annual, on the total, from the due date. A supplier on v12 or earlier owes AED 250 in place of AED 500.",
+      "en": "the exact amount refunded to the customer for that reveal + an AED 500 administrative fee + simple interest at 9% a year on that total from the due date (seven days after QuotesDone's notice), never compounded",
+      "ar": "المبلغ الذي رُدّ إلى العميل عن ذلك الكشف بالضبط + رسم إداري قدره 500 درهم + فائدة بسيطة بنسبة 9% سنويًا على هذا الإجمالي من تاريخ الاستحقاق (بعد سبعة أيام من إشعار QuotesDone)، ولا تُركَّب",
+      "why": "Chosen from the signed text and the code, not by preference. Supplier Agreement clause 33(a) charges \"the exact amount refunded to the Customer, being the reveal fee (3% of the Quotation Value) plus the card processing fee charged on it\"; the customer is refunded both (Terms clause 5), and supplier_charge.ts computeCharge() and fn_accountant_nonresponse_charge() take the base from the refund record (reveal fee + processing fee), add the administrative fee, and charge simple interest on (base + fee). \"3% + AED 250 + 9%\" is WRONG: it drops the card processing fee the supplier does owe and does not say the interest is simple, annual, on the total, from the due date. A supplier on v12 or earlier owes AED 250 in place of AED 500. 24 Sep 2026 (accountant): buyers no longer pay a card processing fee (Cabinet Res. 66/2023 Art. 5(3)), so the refund is the reveal fee alone and the wording no longer names a card fee; the base is still whatever was refunded, which covers a reveal paid before that date. The due date is seven days after the notice, as clause 33 says; fn_accountant_nonresponse_charge now counts from the notice the supplier was actually sent, not from the refund settling.",
       "forbid": [
         {
           "re": "3\\s?%\\s?\\+\\s?AED\\s?\\d[\\d,]*\\s?\\+\\s?9\\s?%",
           "why": "drops the card processing fee and does not say simple, annual, on the total, from the due date; rewrite by hand to the one wording"
         },
         {
-          "re": "(refunded )?reveal fee plus an AED",
-          "fix": "$1reveal fee plus the card processing fee charged on it, plus an AED",
-          "why": "the customer is refunded the card processing fee too, and the supplier owes it (clause 33(a))"
+          "re": "equal to the (?:customer's )?(?:refunded )?reveal fee\b(?! refunded)",
+          "fix": "equal to the exact amount refunded to the customer for that reveal",
+          "why": "the charge is the whole refund"
+        }
+      ]
+    },
+    "no_card_fee": {
+      "en": "the buyer pays the 3% reveal fee and nothing more: no card fee or surcharge is added, whatever the card; QuotesDone bears the payment processor's cost",
+      "ar": "يدفع المشتري رسوم الكشف البالغة 3% فقط: لا تُضاف أي رسوم أو زيادة على الدفع بالبطاقة أيًّا كانت البطاقة، وتتحمّل QuotesDone تكلفة مزوّد الدفع",
+      "why": "Cabinet Resolution 66/2023 (executive regulation of Federal Law 15/2020 on Consumer Protection), Art. 5(3): the supplier shall 'Not add any further amounts on the value of commodity, if credit cards are used in the purchase of commodities and services.' Law 15/2020 Art. 1 defines the consumer as every natural or juristic person obtaining a good or service for its own or others' needs, so a business buyer is not safely outside it; the MoE, DED Dubai and ADDED have each said card surcharges are unlawful (fine up to AED 100,000). Decided 24 Sep 2026 (accountant) on the founder's instruction that the company be fully compliant and not suable. Guarded by supabase/functions/_shared/reveal_fee.test.ts.",
+      "forbid": [
+        {
+          "re": ",? plus the card processing fee(?: charged on it)?,?",
+          "fix": "",
+          "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
         },
         {
-          "re": "equal to the (?:customer's )?(?:refunded )?reveal fee(?! plus the card)",
-          "fix": "equal to the exact amount refunded to the customer (the reveal fee plus the card processing fee charged on it)",
-          "why": "the charge is the whole refund, not the reveal fee alone"
+          "re": "،? ?(?:مضافًا إليها|مع) رسوم معالجة البطاقة(?: المحصّلة عليها)?",
+          "fix": "",
+          "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
+        },
+        {
+          "re": "(?:you (?:also )?pay|pays?|plus|charged?) (?:the |a )?card processing (?:fee|line)",
+          "why": "a card surcharge on the buyer; rewrite by hand to the one wording"
         }
       ]
     }
+  },
+  "marketing_surfaces": {
+    "_about": "Marketing and profile copy: the website FAQ, blog, page texts and the search-engine organisation card. Founder rule (#908, restated 24 Sep 2026): the trade licence number is NEVER in marketing or profile copy. The legal pages (legal.json), invoices, letterheads and signed agreements keep the registered details the law requires and are not listed here. Enforced by scripts/checks/company_facts_agree_everywhere.test.mjs.",
+    "files": [
+      "src/content/marketing.json",
+      "src/content/blog.json",
+      "messages/en.json",
+      "messages/ar.json",
+      "src/lib/seo.ts",
+      "src/components/me/portalText.ts"
+    ],
+    "forbid": [
+      {
+        "re": "1633275|[١][٦][٣][٣][٢][٧][٥]",
+        "why": "the trade licence number; marketing says 'licensed by the Dubai Department of Economy and Tourism' and the legal pages carry the number"
+      }
+    ]
   }
 }

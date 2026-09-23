@@ -79,7 +79,7 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     const payRef = String(s.payment_intent || s.id);
     await admin.from('quotes').update({ status: 'revealed' }).eq('id', qid);
     await admin.from('inquiries').update({ status: 'revealed' }).eq('id', q.inquiry_id);
-    // total_charged is what a refund returns (founder, 14 Sep 2026): the 3% plus card processing.
+    // total_charged is what a refund returns (founder, 14 Sep 2026): since 24 Sep 2026 the 3% alone.
     const totalCharged = s.amount_total ? s.amount_total / 100 : Number(md.total_charged || fee);
     const processing = md.processing_fee != null ? Number(md.processing_fee) : Math.round((totalCharged - fee) * 100) / 100;
     const { error: e2 } = await admin.from('transactions').insert({ quote_id: qid, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, customer_id: cust.id, quote_amount: amount, reveal_fee: fee, app_fee: fee, processing_fee: processing, total_charged: totalCharged, customer_price: amount, paid_by: 'customer', payment_ref: payRef, fee_status: 'paid', revealed_at: new Date().toISOString(), refund_deadline: dl });

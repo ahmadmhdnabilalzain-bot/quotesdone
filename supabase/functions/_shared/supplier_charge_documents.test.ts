@@ -51,10 +51,11 @@ Deno.test('the pack is a demo case and can reach nobody real', () => {
 
 Deno.test('documents agree, give the legal minimum, and charge no VAT', () => {
   const inv = JSON.stringify(invoiceDocument(C, 'en'));
-  assertStringIncludes(inv, 'AED 2,705.72');
+  assertStringIncludes(inv, 'AED 2,617.00');
+  assert(!inv.includes('card processing fee refunded'), 'a reveal with no card fee shows no card-fee line');
   assertStringIncludes(inv, 'not registered for VAT');
-  assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'AED 2,705.72');
-  assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), '2,705.72 درهم');
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'AED 2,617.00');
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), '2,617.00 درهم');
   assert(LEGAL.final_demand_days >= LEGAL.demand_days, 'the demand gives less than the law requires');
   // Art 340(1) is quoted in the official wording of each language, never a translation made here.
   assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), 'يجوز للمتعاقدين أن يُحددا مقدمًا قيمة التعويض بالنص عليها في العقد أو في اتفاق لاحق، مع مراعاة أحكام القانون.');

@@ -81,8 +81,9 @@ export async function payReveal(stripe: StripeCall, a: PayArgs): Promise<PayResu
 
   const lines: [string, number][] = [
     ['Reveal fee (3% of AED ' + Number(a.quoteAmount).toFixed(2) + ')', fils(priced.charge.base_fee)],
-    ['Card processing (Stripe)', fils(priced.charge.processing_fee)],
   ];
+  // No card-fee line: Cabinet Res. 66/2023 Art. 5(3) (24 Sep 2026). A non-zero one would be a surcharge; refuse it.
+  if (priced.charge.processing_fee !== 0) return { status: 'failed', priced, error: 'card_surcharge_refused' };
   for (const [i, [desc, amount]] of lines.entries()) {
     const li = await stripe('invoiceitems', new URLSearchParams({ customer, invoice, currency: 'aed', amount: String(amount), description: desc }), 'qd-ii' + i + '-' + a.ct);
     if (!li.ok) { await stripe('invoices/' + invoice + '/void', new URLSearchParams()); return { status: 'failed', priced, invoice, error: 'invoice_line_failed' }; }

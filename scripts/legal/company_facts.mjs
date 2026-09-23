@@ -53,7 +53,7 @@ export function wrongWordings(text, F = loadFacts()) {
 export function fixWordings(text, F = loadFacts()) {
   let changed = 0;
   for (const s of Object.values(F.canonical_statements || {})) for (const f of (s && s.forbid) || []) {
-    if (!f.fix) continue;
+    if (f.fix == null) continue; // an empty fix deletes the wording
     text = text.replace(new RegExp(f.re, 'giu'), (...a) => { changed++; return a[0].replace(new RegExp(f.re, 'iu'), f.fix); });
   }
   return { text, changed };

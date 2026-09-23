@@ -181,10 +181,8 @@ Deno.serve(observe('stripe_checkout', async (req) => {
     form.set('line_items[0][price_data][unit_amount]', String(Math.round(ch.base_fee * 100)));
     form.set('line_items[0][price_data][product_data][name]', 'Reveal fee (3% of AED ' + Number(q.quote_amount).toFixed(2) + ')');
     form.set('line_items[0][price_data][product_data][description]', requestRef + ' / Supplier ' + letter);
-    form.set('line_items[1][quantity]', '1');
-    form.set('line_items[1][price_data][currency]', 'aed');
-    form.set('line_items[1][price_data][unit_amount]', String(Math.round(ch.processing_fee * 100)));
-    form.set('line_items[1][price_data][product_data][name]', 'Card processing (Stripe)');
+    // ONE LINE ONLY (24 Sep 2026): no card-processing line may be added to a buyer's charge (Cabinet Res. 66/2023 Art. 5(3)).
+    if (ch.processing_fee !== 0) { await logRun('error', { quote_id: qid, processing_fee: ch.processing_fee }, 'card surcharge refused'); return J({ ok: false, error: 'card_surcharge_refused' }, 500); }
     // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder: "stripe automatically generates an
     // invoice as far as i know, our accountant need to retrieve that and be connected, then add it
     // to his records". He is right that Stripe does this and I was wrong to describe it as
