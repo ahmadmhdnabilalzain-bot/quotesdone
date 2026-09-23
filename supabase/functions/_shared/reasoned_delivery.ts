@@ -131,6 +131,10 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
         .select('meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
         .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
       if (!m) return { ok: false, err: 'comment_not_found' };
+      // Once per comment: the live path may already have handed it off, and a replay can run twice.
+      const { data: prior } = await admin.from('agent_actions').select('id').eq('kind', 'handoff').eq('agent', 'customer_support')
+        .eq('target_table', 'social_message').eq('target_id', 'social.escalation:' + m.platform + ':' + m.meta_message_id).neq('status', 'failed').limit(1);
+      if (prior && prior.length) return { ok: true };
       const { raiseSocialHandoff } = await import('../marketing/social_handoffs.ts');
       try {
         await raiseSocialHandoff(admin, 'social.escalation', {
