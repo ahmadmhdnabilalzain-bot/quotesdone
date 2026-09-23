@@ -47,6 +47,10 @@
 --    The blind leak test walks every proposal string of >= 24 normalised characters (and strings that are
 --    themselves JSON) and refuses the deliberation if one appears in the question or the evidence.
 --    The leak test reads the STRING VALUES of the evidence, never its JSON text (escapes hid multi-line copies).
+--    KNOWN LIMIT: evidence.key_frames are sent to the reviewer as IMAGES (_shared/seat_deliberation.ts), and an
+--    image's content cannot be checked for leaked proposal text. What is enforced instead: only server-produced
+--    key frame paths (features/<sha256>/<frame>.jpg|jpeg|png|webp; marketing_asset_feature's list once #876
+--    lands), image/* by metadata, <= 1.5 MB, <= 6, checked before any download.
 --    The author's model is not taken on trust: the seat's LATEST successful ai_cost_log call on
 --    p_author_task_class (mandatory) in the last 24 hours must be on it (only a ZZ DEMO deliberation is
 --    exempt, and a demo deliberation never reaches call_model). Provider names compare as lower(btrim()).
