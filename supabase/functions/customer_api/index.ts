@@ -7,7 +7,8 @@ import { postedSingle, postedSplit } from '../_shared/inquiry_posted.ts';
 import { parseRatingInput } from './rating_input.ts';
 import { cadNote, drawingHandoff, heldRun } from './drawing_hold.ts';
 import { splitInquiry } from '../_shared/inquiry_split.ts';
-import { KW, detect } from './keywords.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { NONE, tradeOfText } from '../_shared/reasoned_trades.ts';
 import { openLines, settleLines, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { asLocale, documentLocale } from '../_shared/registered_locale.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
@@ -67,7 +68,8 @@ async function signedDoc(bucket: string | null | undefined, path: string | null 
 async function getSecret(k: string): Promise<string | undefined> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
 function b64ToBytes(b64: string): Uint8Array { const raw = atob(String(b64).replace(/^data:[^;]+;base64,/, '')); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i); return arr; }
 
-// KW and detect() live in ./keywords.ts (21 Sep 2026) — see its header for the create_inquiry 500.
+// The keyword map (./keywords.ts, KW + detect()) is DELETED (23 Sep 2026, founder_instruction 886-903): a trade is
+// reasoned among the real options (_shared/reasoned_trades.ts), never read off words.
 // The portal's drawing OCR (ocrPlan lines with page boxes, the sheet width, the symbol counts),
 // passed through to drawing_boq, which validates every field. Bounded here only by size.
 function drawingOcr(body: any): Record<string, unknown> {
@@ -1084,7 +1086,18 @@ Deno.serve(observe('customer_api', async (req) => {
       let summary = String(body.summary || '').slice(0, 500);
       if (!summary && briefObj?.summary) summary = String(briefObj.summary).slice(0, 500);
       if (!summary && boqObj?.summary) summary = String(boqObj.summary).slice(0, 500);
-      if (!category) { const dd = detect(raw + ' ' + summary); category = dd.category || 'general'; }
+      // THE TRADE IS THE INTAKE'S, ALREADY REASONED (23 Sep 2026, decision point customer_api.keywords). The keyword
+      // fallback (./keywords.ts detect()) is deleted and NOTHING here reads the words for a trade: a request only
+      // posts from a 'ready' intake (above), and inquiry_intake always saves a trade on it — the model's, the one
+      // tradeOf reasoned (held: the intake itself is held and never reaches 'ready', point 18), or 'general' when
+      // no listed trade is exactly the job. 'general' here is only that same no-trade answer, never a guess.
+      // A category the body or the drawing names is data from outside: only an exact category_specs key is kept;
+      // anything else is ignored and the intake's reasoned trade decides (never a nearest match).
+      if (category && category !== 'general') {
+        const { data: known } = await admin.from('category_specs').select('category').eq('category', category).maybeSingle();
+        if (!known) category = intake?.category ? String(intake.category).trim() : '';
+      }
+      if (!category) category = 'general';
       const emirate = body.emirate || (briefObj?.emirate || null) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
@@ -1109,9 +1122,8 @@ Deno.serve(observe('customer_api', async (req) => {
       spec.customer_requirements = reqStored;
       const scope_type = ['single','multi','turnkey'].includes(String(body.scope_type)) ? String(body.scope_type) : 'single';
       const tradesIn = Array.isArray(body.trades) ? body.trades.map((t: any) => String(t).toLowerCase()).filter(Boolean) : [];
-      const d = detect(raw + ' ' + summary + ' ' + Object.values(spec).join(' '));
-      const base = d.keywords.length ? d.keywords : (KW[category] || []);
-      let keywords = Array.from(new Set([...base, category, ...tradesIn]));
+      // inquiries.keywords: the stated trade codes and the drawing's own keywords — nothing read off the brief's words.
+      let keywords = Array.from(new Set([category, ...tradesIn]));
       if (Array.isArray(boqObj?.keywords)) keywords = Array.from(new Set([...keywords, ...boqObj.keywords.map((s: any) => String(s).toLowerCase())]));
       keywords = keywords.slice(0, 30);
       const drawingPath = drawing?.drawing_file_path ? String(drawing.drawing_file_path) : null;
@@ -1223,7 +1235,7 @@ Deno.serve(observe('customer_api', async (req) => {
         // supplier is invited to a partial request and no parent lists a trade that never went out.
         // Suppliers are matched and notified only once every child exists.
         const childSummary = (tr: string) => ((summary ? summary + ' — ' : '') + labelize(tr) + ' works (part of a combined project)').slice(0, 500);
-        const childKw = (tr: string) => Array.from(new Set([...(KW[tr] || []), tr])).slice(0, 30);
+        const childKw = (tr: string) => [tr];
         const parentIdRef = { id: '' };
         const res = await splitInquiry(distinctTrades, {
           insertParent: async () => {
@@ -1934,20 +1946,32 @@ Deno.serve(observe('customer_api', async (req) => {
       // route_inquiry has resolved customer words through taxonomy_trade.aliases since it was
       // written; discovery never did. Same lexicon, same three steps — code, alias, then label —
       // and whatever still does not resolve is REPORTED rather than searched for and lost.
-      const { data: taxo } = await admin.from('taxonomy_trade').select('code,label,aliases').eq('active', true);
-      const resolveTrade = (w: string): string | null => {
-        for (const t of (taxo || [])) if (String(t.code).toLowerCase() === w) return t.code;
-        for (const t of (taxo || [])) if ((t.aliases || []).some((a: string) => String(a).toLowerCase() === w)) return t.code;
-        for (const t of (taxo || [])) if (String(t.label || '').toLowerCase().includes(w) && w.length >= 4) return t.code;
-        return null;
-      };
-      const resolved: string[] = []; const unresolved: string[] = [];
-      for (const w of typed) { const c = resolveTrade(w); if (c && !resolved.includes(c)) resolved.push(c); else if (!c) unresolved.push(w); }
+      //
+      // 23 Sep 2026 (founder_instruction 886-903): the alias list and the label substring decided what a typed word
+      // MEANT — gone. A word that IS a code (picked from trades_known) is that code; any other word is REASONED
+      // among the taxonomy (decision point customer_api.resolve_trade): exactly one trade, or none. Held, the word
+      // is reported back as still being confirmed and is not searched; nothing is queued, because the answer is
+      // this live search, which the customer runs again.
+      const { data: taxo } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
+      const codes = (taxo || []).map((t: { code: string }) => String(t.code));
+      const resolved: string[] = []; const unresolved: string[] = []; const confirming: string[] = [];
+      for (const w of typed) {
+        let c: string | null = codes.find((x: string) => x.toLowerCase() === w) ?? null;
+        if (!c) {
+          const t = await tradeOfText(defaultDeps(admin, 'customer_api'), {
+            surface: 'customer_api.resolve_trade', text: w, audience: 'customer', queueWhenHeld: false,
+            options: (taxo || []).map((r: { code: string; label: string }) => ({ slug: String(r.code), label: String(r.label || r.code) })),
+          });
+          if (t.value === null) { confirming.push(w); continue; }
+          c = t.value !== NONE && codes.includes(t.value) ? t.value : null;
+        }
+        if (c && !resolved.includes(c)) resolved.push(c); else if (!c) unresolved.push(w);
+      }
       if (!resolved.length) {
         return J({ ok: true, found: 0, matches: [], anonymous: true,
           filters: { trades: [], emirate: body.emirate ? String(body.emirate).slice(0, 40) : null },
-          unresolved,
-          why_empty: { suppliers_holding_trade: 0, confirmed_total: 0, reason: 'not_a_trade_we_know' },
+          unresolved, confirming: confirming.length ? confirming : undefined,
+          why_empty: { suppliers_holding_trade: 0, confirmed_total: 0, reason: confirming.length && !unresolved.length ? 'trade_being_confirmed' : 'not_a_trade_we_know' },
           trades_known: (taxo || []).map((t: Record<string, unknown>) => ({ code: t.code, label: t.label })),
           note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
       }
@@ -2010,7 +2034,7 @@ Deno.serve(observe('customer_api', async (req) => {
         };
       }
       return J({ ok: true, found: matches.length, filters, matches, anonymous: true, why_empty,
-        unresolved: unresolved.length ? unresolved : undefined,
+        unresolved: unresolved.length ? unresolved : undefined, confirming: confirming.length ? confirming : undefined,
         note: 'Supplier identities are revealed after a quote is accepted, so discovery returns ranked, anonymous matches.' });
     }
 
