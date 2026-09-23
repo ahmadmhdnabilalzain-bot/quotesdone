@@ -23,6 +23,8 @@ export interface DeliveryIO {
   founderContact(): Promise<string | null>;
   reportToCeo(key: string, subject: string, evidence: Record<string, unknown>): Promise<void>;
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
+  socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
 
@@ -60,6 +62,13 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
   if (row.surface === 'marketing_social.needs_a_person') {
     if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the reply already went' };
     const s = await io.socialHandoff(subject);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
+  if (row.surface === 'marketing_social.comment_needs_a_person') {
+    // The public reply already went under the comment policy; what was owed is the private handoff.
+    if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the comment was already answered' };
+    const s = await io.socialCommentHandoff(subject);
     return { delivered: s.ok, via: 'social', detail: s.err };
   }
 
@@ -105,6 +114,20 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    socialCommentHandoff: async (subject) => {
+      const { data: m } = await admin.from('social_message')
+        .select('meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+        .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
+      if (!m) return { ok: false, err: 'comment_not_found' };
+      const { raiseSocialHandoff } = await import('../marketing/social_handoffs.ts');
+      try {
+        await raiseSocialHandoff(admin, 'social.escalation', {
+          platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
+          handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
+        }, 'complaint', { decided_by: 'reasoning' });
+        return { ok: true };
+      } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
     },
   };
 }

@@ -29,6 +29,13 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const REGISTRY = JSON.parse(read('supabase/functions/_shared/decision_points.json'));
 const ENGINE = 'scripts/sql/every_seat_reasons_before_it_answers.sql';
 const MIGRATE = 'scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql';
+// The resolver that calls fn_reason_apply_<surface> (one routine per migrated surface, one file per batch).
+const DISPATCH = 'scripts/sql/a_reasoned_answer_is_applied_by_its_own_surface.sql';
+// Every SQL file a migrated point's proof names, in registry order after the three the engine needs:
+// the batch files replay in this order inside a probe, and each must be replay-safe (the test below).
+const BATCH_SQL = [...new Set(REGISTRY.points.filter((p) => p.status === 'migrated').flatMap((p) => (p.proof ?? []).map((x) => x.file))
+  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH].includes(f)))];
+const CHAIN = [ENGINE, MIGRATE, DISPATCH, ...BATCH_SQL];
 
 /** Code only: SQL `--` comments and TS `//` line comments removed (a check that greps source matches its own comment). */
 function code(path, text) {
@@ -57,6 +64,12 @@ test('no migrated decision point is decided by a word list again, and each one a
       for (const s of pr.must_contain ?? []) assert.ok(src.includes(s), `${p.id}: ${pr.file} no longer contains ${s}`);
       for (const s of pr.must_not_contain ?? []) assert.ok(!src.includes(s), `${p.id}: ${pr.file} is word-matching again (${s})`);
     }
+  }
+  // A point migrated by a batch (order > 18) names the word matching it replaced, so a regression is caught
+  // by fingerprint and not only by a missing call: at least one must_not_contain across its proofs.
+  for (const p of REGISTRY.points.filter((x) => x.status === 'migrated' && x.order > 18)) {
+    assert.ok(p.proof.some((pr) => (pr.must_not_contain ?? []).length), `${p.id}: a migrated point names the word matching it replaced (must_not_contain)`);
+    assert.ok(typeof p.held === 'string' && p.held.length > 20, `${p.id}: a migrated point says what happens under the hold (held)`);
   }
   // the engine every migrated point goes through
   const th = read('supabase/functions/_shared/think.ts');
@@ -94,7 +107,7 @@ test('the evaluation harness exists, holds the founder\'s example, and passes in
 
 test('the SQL files replay safely: no begin/commit, a revoke per routine, RLS and a policy per table, a pending note each', () => {
   const manifest = read('scripts/sql/MANIFEST.txt');
-  for (const f of [ENGINE, MIGRATE]) {
+  for (const f of CHAIN) {
     const sql = code(f, read(f));
     assert.doesNotMatch(sql, /^\s*(begin|commit)\s*;/im, `${f}: no begin/commit — the probe replays it inside an aborted transaction`);
     for (const m of sql.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\(/g)) {
@@ -112,6 +125,22 @@ test('the SQL files replay safely: no begin/commit, a revoke per routine, RLS an
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+/** Every file of the chain still pending (a note in scripts/sql/pending, no MANIFEST line), in order: what a probe
+ *  replays inside its aborted transaction so it measures the committed code, not only what production has. */
+const pendingReplay = () => CHAIN.filter((f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt'))))
+  .map((f) => read(f)).join('\n') + '\n';
+/** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
+async function probe(block, prefix = '') {
+  const { sql } = await import('../lib/db.mjs');
+  try { await sql(prefix + pendingReplay() + block, { retry: false }); }
+  catch (e) {
+    const m = String(e.message).match(/CHK<<(.*?)>>/s);
+    assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
+    return JSON.parse(m[1].replace(/\\"/g, '"'));
+  }
+  assert.fail('the probe committed instead of rolling back');
+}
+
 
 const PROBE = String.raw`
 do $p$
@@ -204,7 +233,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const [r] = await sql(`select to_regprocedure('public.fn_reason_retrieve(text,vector,integer)') is not null applied`, { readOnly: true });
   // Measured BEFORE the files replay: which live inquiries the current check calls ready (review finding 5).
   const before = 'create temporary table zz_rfq_before on commit drop as select i.id, coalesce((public.fn_rfq_required_check(i)->>\'required_ok\')::boolean, true) ok from public.inquiries i;\n';
-  const body = before + (r.applied ? '' : read(ENGINE) + '\n' + read(MIGRATE) + '\n') + PROBE;
+  const body = before + (r.applied ? '' : pendingReplay()) + PROBE;
   let out;
   try {
     await sql(body, { retry: false });
@@ -259,4 +288,23 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.equal(out.expired_status, 'expired', 'an expired channel question is closed, not replayed');
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
+});
+
+test('production, aborted: a surface\'s own fn_reason_apply_ routine applies its reasoned answer; a surface without one is left reasoned',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v_id bigint;
+begin
+  create function public.fn_reason_apply_zz_probe__applies(p_id bigint, p_result jsonb) returns jsonb language sql
+    as $f$ select jsonb_build_object('choice', p_result->'decision'->>'choice', 'id', p_id) $f$;
+  v_id := public.fn_reason_hold('it_engineer', 'zz_probe.applies', 'ZZ DEMO', '{"seat":"it_engineer"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-dispatch-1');
+  o := o || jsonb_build_object('with', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"yes"}}'::jsonb));
+  v_id := public.fn_reason_hold('it_engineer', 'zz_probe.no_routine', 'ZZ DEMO', '{"seat":"it_engineer"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-dispatch-2');
+  o := o || jsonb_build_object('without', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"yes"}}'::jsonb)->>'status');
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  assert.equal(out.with.status, 'applied');
+  assert.equal(out.with.effect.choice, 'yes');
+  assert.equal(out.without, 'reasoned');
 });

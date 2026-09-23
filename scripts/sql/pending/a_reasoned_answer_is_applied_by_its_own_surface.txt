@@ -1,0 +1,6 @@
+Committed, not applied. Apply AFTER every_seat_reasons_before_it_answers.sql and
+meaning_is_decided_by_reasoning_not_by_word_lists.sql (it replaces their fn_reason_held_resolve with the same two
+branches plus a call to public.fn_reason_apply_<surface>(bigint, jsonb) when a batch defines one).
+Every later decision-point batch file that defines an fn_reason_apply_* routine must follow this one.
+Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe).
+Seat: it_engineer.

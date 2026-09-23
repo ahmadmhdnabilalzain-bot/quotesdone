@@ -759,6 +759,54 @@
    "severity": "med",
    "where": "scripts/sql/every_seat_reasons_before_it_answers.sql",
    "decides": "support_knowledge and ceo_knowledge carry no vector column, so fn_reason_retrieve cannot read them by meaning"
+  },
+  {
+   "id": "marketing_social.comment_needs_a_person",
+   "order": 72,
+   "status": "migrated",
+   "seat": "marketing",
+   "severity": "high",
+   "where": "supabase/functions/marketing_social_inbox/index.ts",
+   "decides": "processComment(..., wantsHuman(ev.text)): the HUMAN_EN/HUMAN_AR phrase lists decided whether a public commenter (Meta webhook, YouTube duty) is handed to customer_support (#866, found when #884 was merged onto main)",
+   "held": "Held: the comment is still classified and answered under the comment policy; only the person check waits in the marketing queue (dedupe social_comment:<platform>:<id>), and when it is reasoned to need a person reasoned_delivery raises the social.escalation handoff. Nobody is handed off on a guess.",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/index.ts",
+     "must_contain": [
+      "surface: 'marketing_social.comment_needs_a_person'",
+      "}, person.value === true);"
+     ],
+     "must_not_contain": [
+      "wantsHuman("
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing/duties.ts",
+     "must_contain": [
+      "surface: 'marketing_social.comment_needs_a_person'",
+      "ev, person.value === true)"
+     ],
+     "must_not_contain": [
+      "wantsHuman("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'marketing_social.comment_needs_a_person'",
+      "io.socialCommentHandoff(subject)"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "marketing_social.comment_classify",
+   "order": 73,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "high",
+   "where": "supabase/functions/_shared/marketing_social_comments.ts",
+   "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)"
   }
  ]
 }
