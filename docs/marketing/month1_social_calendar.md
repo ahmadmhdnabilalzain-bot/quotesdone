@@ -33,9 +33,10 @@ the AED 1,000 figure, so the captions add it. But:
 
 - **01, 08, 10 and 12 end on a customer call to action** ("Post your job free", "Start your request",
   "Start with your requirement", "Submit your company request"). Month 1 is supplier registration only.
-  These four are in the calendar as **held**: each needs a 4-second supplier end card (Register your
-  business, quotesdone.com/supplier) before it posts. If the re-edit is not in storage 48 hours before
-  its slot, the slot re-runs a named supplier video instead (01 -> 07, 08 -> 04, 10 -> 09, 12 -> 11).
+  Founder instruction 870: they **run unedited**. Their captions open by naming what the viewer sees
+  as the demand a supplier will receive ("The video shows what your future customers will do... Register
+  your business so their requests reach you"), so the video's customer ending and the caption's
+  supplier call to action read as one message.
 - **02, 03 and 06 speak to customers** with a soft end card. Nothing in them is false, so they run, and
   the caption turns them to the supplier: what the customer sees is why the work reaches you.
 - 09's headline "Subscription-free forever" is qualified only by a small "FIRST 1,000 SUPPLIERS" label.
@@ -64,15 +65,14 @@ YouTube Shorts), so every video goes to every channel unchanged.
 |---|---|---|---|---|
 | 1 (28 Sep - 1 Oct) | Awareness: there is a place for you | 09 Your Business Belongs Here | 02 Big Plans | 11 Compete on Value |
 | 2 (5 - 8 Oct) | Trust: how it treats you | 04 Behind the Check | 03 On Your Terms | 05 Complete Before Compare |
-| 3 (12 - 15 Oct) | The offer | 07 The First 1000 | 12 Procurement with Perspective (held) | 06 Stay in the Loop |
-| 4 (19 - 22 Oct) | Action: requests are coming | 08 Beyond Your Contacts (held) | 10 You Dont Need to Be the Expert (held) | 01 Stop Chasing Suppliers (held; falls back to 07) |
+| 3 (12 - 15 Oct) | The offer | 07 The First 1000 | 12 Procurement with Perspective | 06 Stay in the Loop |
+| 4 (19 - 22 Oct) | Action: requests are coming | 08 Beyond Your Contacts | 10 You Dont Need to Be the Expert | 01 Stop Chasing Suppliers |
 
 Why this order: a supplier first has to see that his trade belongs (09), that the work arrives from real
 projects (02) and that he cannot be outbid by money (11). Before handing over a licence he needs to know
 what is checked and why (04), that he is judged on the work (03) and how his quotation is treated (05).
 Only then does the offer land (07), at the midpoint, when the audience knows what they are joining.
-Weeks 3 and 4 show the buyer side, why requests will come, and the last slot closes on the offer again
-if 01 is not re-edited.
+Weeks 3 and 4 show the buyer side: what future customers will do, and so why requests will come.
 
 ## Timing: when, and the gap between posts
 
