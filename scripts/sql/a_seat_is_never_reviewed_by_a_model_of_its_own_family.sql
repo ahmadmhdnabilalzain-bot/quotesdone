@@ -303,10 +303,11 @@ create trigger trg_seat_deliberation_guard before insert or update on public.sea
   for each row execute function public.trg_seat_deliberation_guard();
 
 -- Text reduced to comparable words: lower case, every run of punctuation, quotes, escapes or space one space.
--- JSON-escaped and plain copies of the same sentence normalise to the same words.
+-- JSON-escaped and plain copies of the same sentence normalise to the same words. The Arabic block is written as
+-- regex escapes (U+0600..U+06FF), so the file carries no Arabic characters that are not a message.
 create or replace function public.fn_seat_deliberation_norm(p text)
 returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9؀-ۿ]+', ' ', 'g'))
+  select btrim(regexp_replace(lower(coalesce(p, '')), '[^a-z0-9\u0600-\u06ff]+', ' ', 'g'))
 $fn$;
 revoke execute on function public.fn_seat_deliberation_norm(text) from public, anon, authenticated;
 
