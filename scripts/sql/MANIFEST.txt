@@ -1635,3 +1635,22 @@ scripts/sql/a_ceiling_exists_before_the_door_is_opened.sql
 # while every file on the site said Monday to Friday. Becomes the canonical file for the two routines.
 scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql
 scripts/sql/the_site_error_ingest_names_the_seat_that_owns_it.sql
+
+# 23 Sep 2026 (#862, applied): the identity router names only live seats and models the catalogue
+# knows. 119 of 122 model_policy_by_identity rows named the organisation deleted on 7 Sep.
+scripts/sql/the_identity_router_names_only_live_seats_and_known_models.sql
+
+# 23 Sep 2026 (#856, CONN-01..09, applied in this order): nothing waits past its limit. 2 creates
+# fn_notifications_claim and must precede the send_outbox/send_whatsapp/send_sms deploys — those three
+# claim through it, and deploying them first stops email, WhatsApp and SMS dead. 3 must never precede 2:
+# it teaches the heartbeat and the two probes that a claimed row ('sending') is still a backlog, and
+# without the claim there is no such status. 7 takes ACCESS EXCLUSIVE on leads, which is on the login and
+# WhatsApp-inbound paths, so it carries its own lock_timeout and is applied last and never in a campaign
+# hour. 1, 4, 5 and 6 are order-free. Becomes the canonical file for each routine it names.
+scripts/sql/kb_query_reads_the_index_instead_of_scanning_every_chunk.sql
+scripts/sql/a_queued_notification_is_claimed_before_it_is_sent.sql
+scripts/sql/a_claimed_notification_is_still_a_backlog.sql
+scripts/sql/the_credential_stamp_is_written_at_most_once_a_minute.sql
+scripts/sql/the_embed_dispatcher_never_queues_more_than_it_can_have_in_flight.sql
+scripts/sql/the_signature_trigger_waits_as_long_as_signing_actually_takes.sql
+scripts/sql/finding_a_lead_by_its_email_or_its_handset_uses_an_index.sql

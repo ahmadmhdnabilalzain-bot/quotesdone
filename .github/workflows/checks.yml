@@ -66,6 +66,14 @@ jobs:
       # instead of arriving inside a suite of ninety other files.
       - name: The SSRF guard fires on a private address, a file:// URL and a metadata endpoint
         run: node scripts/checks/ssrf_guard_refuses_private_addresses.mjs
+      # 22 SEP 2026 — REGISTERED WITH ITS FIRST COMMIT, having read the note above about what happens
+      # when that is left for later. This is a RATCHET, not a gate: the connectivity audit counted 113
+      # outbound fetches with no deadline, the baseline file holds the current number, and the step
+      # fails if it RISES (new unbounded code) or if it FALLS without the baseline being tightened (a
+      # ratchet nobody tightens is a ratchet that stops ratcheting). A separate step and not a
+      # *.test.mjs for the same reason as the SSRF guard: a failure should name this by itself.
+      - name: No new outbound fetch without a deadline
+        run: node scripts/checks/every_outbound_fetch_has_a_timeout.mjs
       # 22 SEP 2026 — a DWG is READ, not pictured (founder instructions 31, 63, 64). Nine real DWGs
       # (R14 to 2018) from LibreDWG's test data, fetched at a pinned commit and checked by hash, must give
       # the same take-off as the AutoCAD-written DXF of the same drawing. It needs the network (the

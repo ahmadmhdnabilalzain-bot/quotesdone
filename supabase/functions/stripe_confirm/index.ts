@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { isDemoEmail, stripeKeyNames } from '../_shared/demo_identity.ts';
@@ -40,7 +41,7 @@ Deno.serve(observe('stripe_confirm', async (req) => {
     // 503, not an HTTP 200 carrying a code (customer-portal audit CP-10, 22 Sep 2026).
     if (!sk && keys.mode === 'test') { await logRun('ok', { session_id: sid, mode: 'test' }, 'demo account: stripe test keys are not configured - confirmation refused, live key never used'); return J({ ok: false, error: 'stripe_test_not_configured', code: 'stripe_test_not_configured', mode: 'test', message: 'Card payments are not available on this test account.', message_ar: 'الدفع بالبطاقة غير متاح على هذا الحساب التجريبي.' }, 503); }
     if (!sk) { await logRun('error', { session_id: sid }, 'CONFIRM BLOCKED - stripe_secret_key missing from app_secrets'); return J({ ok: false, error: 'stripe_not_configured', code: 'stripe_not_configured', message: 'We could not confirm your payment just now. Nothing is lost — please reload in a moment.', message_ar: 'تعذّر تأكيد دفعتك الآن. لم يُفقد شيء — يُرجى تحديث الصفحة بعد لحظات.' }, 503); }
-    const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
+    const r = await timedFetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sid), { headers: { 'Authorization': 'Bearer ' + sk } });
     const s = await r.json();
     if (!r.ok) { await logRun('error', { session_id: sid, http: r.status }, 'stripe session fetch failed: ' + String(s?.error?.message || '').slice(0, 250)); return J({ error: 'stripe_error', detail: String(s?.error?.message || '').slice(0, 300) }, 502); }
     const md = s.metadata || {};

@@ -2846,6 +2846,10 @@
  "supabase/functions/_shared/marketing_style.ts": [
   "8a268a74f2b2"
  ],
+ "supabase/functions/_shared/parse_ceiling.ts": [
+  "0a8d930d2506",
+  "954d61a65b2c"
+ ],
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
