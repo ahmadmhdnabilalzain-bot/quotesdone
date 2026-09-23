@@ -776,7 +776,8 @@ begin
     begin
       perform public.fn_decision_record_route(v_dr_id);
     exception when others then
-      raise warning 'fn_decision_record_route failed for decision_record % : %', v_dr_id, sqlerrm;
+      -- recorded where it can be read (a warning prints nowhere through the management API)
+      insert into public.error_events(source, kind, severity, detail) values ('fn_decide', 'decision_record_route', 'medium', jsonb_build_object('decision_record_id', v_dr_id, 'error', sqlerrm));
     end;
   end if;
 
@@ -792,7 +793,7 @@ begin
         coalesce((select d.problem from public.decision_record d where d.id = v_dr_id), p_kind),
         v_dr_id::text);
     exception when others then
-      raise warning 'fn_board_review failed for decision_record % : %', v_dr_id, sqlerrm;
+      insert into public.error_events(source, kind, severity, detail) values ('fn_decide', 'board_review', 'medium', jsonb_build_object('decision_record_id', v_dr_id, 'error', sqlerrm));
     end;
   end if;
 
