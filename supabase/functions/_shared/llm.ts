@@ -86,6 +86,7 @@ export interface LlmResult {
   http_status: number;
   error: string | null;        // set when the call failed; distinguishes refusal from breakage
   model?: string | null;       // the route that actually answered (a deliberation records it per turn)
+  outcome?: string | null;     // the gateway's own outcome (review_held_no_independent_reviewer, budget_halted, ...)
 }
 export interface LlmCallOpts {
   tools?: any[];               // OpenAI-shape function definitions
@@ -320,6 +321,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
         used_llm: j.used_llm !== false,
         http_status: r.status,
         model: typeof j.model === 'string' ? j.model : null,
+        outcome: typeof j.outcome === 'string' ? j.outcome : null,
         // Preserve the gateway's own outcome/error text, not just the HTTP code. A held provider
         // (paidProviderGate) fails closed as 503 with outcome 'circuit_open' / 'every model route ...
         // is open-circuit'; flattening that to 'gateway_http_503' hid the ONE fact a caller needs to

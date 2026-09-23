@@ -335,17 +335,24 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // keeps the old ceiling with a better model behind it.
       const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
       // THE CEO NEVER JUDGES ON A SEAT'S OWN FAMILY (founder instruction ~891). The input carries the marketing
-      // report and the seats' directive replies; fn_ceo_judgement_counterparts names every model a seat wrote on
-      // this week (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.
-      const { data: authors, error: cpErr } = await admin.rpc('fn_ceo_judgement_counterparts');
+      // report (built in SQL) and the open directive replies; fn_ceo_judgement_counterparts names the models those
+      // replies' seats wrote on (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.
+      const { data: authors, error: cpErr } = await admin.rpc('fn_ceo_judgement_counterparts', { p_plan_id: planId });
       if (cpErr || typeof authors !== 'string' || !authors) return J({ ok: false, error: 'judgement authors: ' + (cpErr?.message || 'none') }, 500);
       const r = await llm(String(q.system), JSON.stringify({ output_schema: q.output_schema, input: q.input }), 2000, '', { counterpartModel: authors });
       // deno-lint-ignore no-explicit-any
       let out: any = null;
       try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
-      // No independent reviewer, not even a third family: the gateway HELD the call (review_hold, CEO-owned finding).
-      // It is recorded as held, never accepted, never re-run on an author's family.
-      const why = r.used_llm === false && !r.content ? 'held: no reviewer outside the seats\' model families (review_hold)'
+      // Branch on what the gateway actually answered. No independent reviewer: HELD (review_hold, CEO-owned finding),
+      // never accepted, never re-run on an author's family. The founder's hold and a budget halt are said as themselves.
+      const held: Record<string, string> = {
+        review_held_no_independent_reviewer: 'held: no reviewer outside the seats\' model families (review_hold)',
+        review_author_unknown: 'withheld: a seat\'s author model is not in model_registry (review_author_unknown finding, no review_hold)',
+        budget_halted: 'held: the budget halt refused the call',
+        refused_deterministic: 'held: the route refused a model for this class',
+      };
+      const why = (r.outcome && held[r.outcome]) ? held[r.outcome]
+        : (r.used_llm === false && !r.content) ? 'held: no model answered (' + (r.outcome || r.error || 'no outcome') + ')'
         : r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
       const { data: acc, error: aerr } = await admin.rpc('fn_ceo_judgement_accept', { p_plan_id: planId, p_output: out, p_error: why });
       if (aerr) return J({ ok: false, error: 'judgement accept: ' + aerr.message }, 500);
