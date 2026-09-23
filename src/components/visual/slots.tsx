@@ -1,16 +1,16 @@
 'use client';
 /**
- * The five visual slots of the public site. Every scene sizes to its parent — give the parent a
+ * The visual slots of the public site. Every scene sizes to its parent — give the parent a
  * height (e.g. aspect-[16/10]).
  *
  *   HeroScene         3D (three/r3f): anonymous quote panels orbit, level, one is chosen and its
  *                     redaction bar slides away. Pointer parallax. Hero backdrop — mount it BEHIND
  *                     the headline (absolute inset-0, -z) so LCP stays text, never the canvas.
  *   EmiratesMap       2.5D dotted map of the seven emirates, decorative pulses, names in EN/AR.
- *   DrawingScan       an authored floor-plan sheet is scanned; the title block's contact fields
- *                     are blacked out; BOQ rows assemble beside it. Labelled as a demonstration.
- *   CompareLevelling  three anonymous quotes level into one table: missing-item flag, best-match
- *                     reason. Prices are redaction bars, never figures. Labelled a demonstration.
+ *
+ *   (DrawingScan and CompareLevelling were the third and fourth slots. No page ever mounted them, and
+ *   the founder cancelled the product visuals on 14 Sep 2026 — instruction 70, "i dont like the product
+ *   visuals at all. cancel that idea" — so both scenes were deleted on 22 Sep 2026.)
  *   AnonymityFlow     customer <-> platform <-> suppliers, identities masked until the reveal.
  *
  * All take { locale: 'en' | 'ar' }. Rules enforced in ./gate: mount on viewport + idle, pause
@@ -59,6 +59,4 @@ const map = ({ locale }: SceneProps) => <MapPoster locale={locale} />;
 
 export const HeroScene = gated(dynamic(() => import('./HeroScene'), { ssr: false, loading: hero }), hero, true);
 export const EmiratesMap = gated(dynamic(() => import('./EmiratesMap'), { ssr: false, loading: () => <MapPoster locale="en" /> }), map);
-export const DrawingScan = gated(dynamic(() => import('./DrawingScan'), { ssr: false, loading: sheet }), sheet);
-export const CompareLevelling = gated(dynamic(() => import('./CompareLevelling'), { ssr: false, loading: sheet }), sheet);
 export const AnonymityFlow = gated(dynamic(() => import('./AnonymityFlow'), { ssr: false, loading: sheet }), sheet);
