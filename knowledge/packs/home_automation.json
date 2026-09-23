@@ -1,0 +1,497 @@
+{
+  "trade": "home_automation",
+  "entries": [
+    {
+      "id": "home_automation:knx-wired-vs-wireless",
+      "topic": "KNX wired (TP1) vs KNX RF vs KNX IP",
+      "kind": "comparison",
+      "body_en": "KNX is the open, manufacturer-independent home and building control standard published as EN 50090 and ISO/IEC 14543-3. The specification covers twisted pair (TP1, a dedicated green bus cable carrying both data and SELV power to low-power devices), powerline (PL110, now rarely used; KNX integrator Weinzierl describes TP, RF and IP as the core media), radio (KNX RF at 868.3 MHz) and IP (Ethernet/Wi-Fi, usually as the fast backbone between lines). A TP1 line holds up to 256 device addresses (segments of 64 or 256 devices, extended with repeaters), so large villas and buildings are split into lines and areas joined by line/area couplers or IP routers.\nWhen to choose which: TP1 is the default for new-build villas and buildings in the UAE because it is the most reliable, is independent of Wi-Fi congestion, and every device from any certified brand can be programmed in the same ETS software. KNX RF suits retrofits where chasing walls for bus cable is not acceptable, but battery devices, range through concrete/blockwork and a smaller product range are trade-offs. KNX IP is used for backbones, visualisation servers and integration gateways, not usually for wall switches.\nBuyer takeaway: state the medium explicitly in the RFQ. A quote that says only \"KNX system\" may price RF or mixed devices where wired was expected; wired requires the bus cable to be pulled during first-fix, which must be coordinated with the electrical contractor. Verification note (23 Sep 2026): Wikipedia and Weinzierl confirm EN 50090 / ISO/IEC 14543-3, TP1 at 9,600 baud, KNX RF at 868.3 MHz, up to 256 devices per line in segments of 64 or 256; KNX Association lists 500+ manufacturers.",
+      "body_ar": "نظام KNX هو معيار مفتوح لا يرتبط بمصنّع واحد للتحكم في المنازل والمباني، وهو منشور تحت EN 50090 وISO/IEC 14543-3. تشمل المواصفة: الكابل المزدوج المجدول TP1 (كابل الناقل الأخضر الذي ينقل البيانات والجهد المنخفض الآمن للأجهزة)، وخطوط الكهرباء PL110 (نادرة الاستخدام الآن، إذ تصف Weinzierl الوسائط الأساسية بأنها TP وRF وIP)، والراديو KNX RF على تردد 868.3 ميغاهرتز، وشبكة IP كعمود فقري سريع بين الخطوط. يستوعب خط TP1 حتى 256 عنواناً، لذلك تُقسَّم الفلل والمباني الكبيرة إلى خطوط ومناطق تربطها مقارنات أو موجّهات IP.\nمتى يُختار كل منها: السلكي TP1 هو الخيار الافتراضي للفلل والمباني الجديدة في الإمارات لأنه الأكثر موثوقية ولا يتأثر بازدحام الواي فاي، وتُبرمج جميع الأجهزة المعتمدة من أي علامة بنفس برنامج ETS. أما KNX RF فيناسب التحديث في المباني القائمة حيث لا يُقبل تكسير الجدران، مع ملاحظة الاعتماد على البطاريات ومحدودية المدى عبر الخرسانة. وتُستخدم KNX IP للربط الرئيسي والخوادم والبوابات.\nالخلاصة للمشتري: يجب تحديد الوسيط صراحةً في طلب التسعير، فعبارة \"نظام KNX\" وحدها قد تُسعَّر بأجهزة لاسلكية بدل السلكية، كما يجب تنسيق سحب كابل الناقل مع مقاول الكهرباء في مرحلة التمديدات الأولى. ملاحظة التحقق (23 سبتمبر 2026): تؤكد المصادر المعايير EN 50090 وISO/IEC 14543-3، وسرعة TP1 البالغة 9,600 باود، وتردد KNX RF البالغ 868.3 ميغاهرتز، وحتى 256 جهازاً لكل خط بقطاعات من 64 أو 256؛ وتذكر رابطة KNX أكثر من 500 مصنّع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://weinzierl.de/en/knx-system-media/",
+        "http://www.knx.org/explore-knx/what-is-knx"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:ets-project-file-ownership",
+      "topic": "KNX ETS project file and programming ownership",
+      "kind": "buyer_mistake",
+      "body_en": "Every KNX installation is configured in ETS (Engineering Tool Software), the single vendor-neutral tool maintained by the KNX Association. The resulting ETS project file holds the physical addresses, group addresses, parameters and logic of every device. Without that file (and any passwords set on it or on secure devices), another integrator cannot easily modify the system; they would have to reverse-engineer or reprogram devices one by one.\nThe most common buyer mistake in the UAE is paying for a KNX system, which is \"open\" in theory, but never receiving the ETS project export, the device password list, the visualisation/server backup and the IP gateway credentials. The system then becomes practically locked to the original integrator, defeating the main reason for choosing KNX.\nWhat to write into the contract: handover of the final as-built ETS project (current ETS version), a group-address schedule, device lists with physical addresses, backups of any logic controller or visualisation server, admin credentials for gateways and routers, and licence ownership of any server software in the client's name. Make the final payment/retention release conditional on this handover. The same principle applies to BACnet controllers (the application programs and database backups) and to DALI gateway configurations. Verification note (23 Sep 2026): ETS as the KNX configuration tool is confirmed; the handover advice is practice.",
+      "body_ar": "تُهيّأ كل منظومة KNX عبر برنامج ETS الذي تديره جمعية KNX وهو أداة محايدة لا تتبع مصنّعاً بعينه. ويحتوي ملف مشروع ETS على العناوين الفيزيائية وعناوين المجموعات والإعدادات والمنطق لكل جهاز. وبدون هذا الملف وكلمات المرور المرتبطة به أو بالأجهزة المؤمّنة، يصعب على أي مُكامل آخر تعديل النظام إلا بإعادة برمجة الأجهزة واحداً تلو الآخر.\nأكثر خطأ يقع فيه المشترون في الإمارات هو دفع ثمن نظام KNX \"مفتوح\" نظرياً دون استلام ملف ETS النهائي وقائمة كلمات مرور الأجهزة ونسخة احتياطية لخادم الواجهة وبيانات دخول البوابات، فيصبح النظام عملياً مقيّداً بالمُكامل الأصلي.\nما يجب إدراجه في العقد: تسليم ملف ETS النهائي كما نُفّذ، وجدول عناوين المجموعات، وقوائم الأجهزة، ونسخ احتياطية لأي وحدة منطق أو خادم عرض، وبيانات دخول المسؤول للبوابات، وتسجيل تراخيص البرمجيات باسم المالك، مع ربط الدفعة الأخيرة أو المحتجزات بهذا التسليم. وينطبق المبدأ نفسه على برامج وحدات BACnet وإعدادات بوابات DALI. ملاحظة التحقق (23 سبتمبر 2026): تأكد أن ETS هو أداة إعداد KNX؛ ونصيحة التسليم ممارسة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "http://www.knx.org/explore-knx/what-is-knx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:bacnet-ip-vs-mstp",
+      "topic": "BACnet/IP vs BACnet MS/TP",
+      "kind": "comparison",
+      "body_en": "BACnet (ANSI/ASHRAE 135, also ISO 16484-5) is the dominant open protocol for commercial BMS, especially HVAC. It can run over several data links; the two a UAE buyer meets most are BACnet/IP and BACnet MS/TP.\nBACnet/IP runs over standard Ethernet/IP networks. It is fast, uses ordinary structured cabling and switches, and is the norm for supervisory controllers, chiller plant controllers, servers and integration with other IP systems. It needs proper IT design: VLANs, IP addressing plan, BBMD configuration across subnets, and cyber-security hardening. BACnet/SC (secure connect) is the newer encrypted option.\nBACnet MS/TP is a token-passing multidrop network on RS-485 twisted-pair cable. It is cheap and robust for field-level devices such as VAV controllers, FCU controllers and small unitary controllers, but it is slow, sensitive to wiring quality (daisy-chain, shielding, termination, correct baud rate) and practical segment sizes are limited, so too many devices per trunk causes sluggish response.\nTypical architecture: MS/TP at field level feeding routers or supervisory controllers that talk BACnet/IP upward. Buyers should ask for BTL-listed devices (tested by BACnet Testing Laboratories) and a PICS (protocol implementation conformance statement) for each device so integration capability is documented, not assumed. The current edition is ANSI/ASHRAE 135-2024, and interoperability claims should be backed by a BTL listing (BTL certification is administered by BACnet International). Verification note (23 Sep 2026): ANSI/ASHRAE 135-2024, ISO 16484-5, MS/TP token passing over RS-485 and BACnet/SC are confirmed; the ISO/IEC 17025 detail was not found and was removed.",
+      "body_ar": "بروتوكول BACnet (المعيار ANSI/ASHRAE 135 وكذلك ISO 16484-5) هو البروتوكول المفتوح السائد في أنظمة إدارة المباني التجارية، خاصةً للتكييف. ويعمل على عدة طبقات ربط، أكثرها شيوعاً في الإمارات BACnet/IP وBACnet MS/TP.\nيعمل BACnet/IP على شبكات الإيثرنت العادية، وهو سريع ويستخدم الكابلات والمبدّلات القياسية، ويُعتمد لوحدات التحكم الإشرافية ووحدات المبرّدات والخوادم والتكامل مع الأنظمة الأخرى. ويتطلب تصميم شبكات سليماً يشمل الشبكات الافتراضية وخطة العناوين وإعداد BBMD بين الشبكات الفرعية وتحصيناً أمنياً، وتُعد BACnet/SC الخيار الأحدث المشفّر.\nأما MS/TP فهي شبكة تمرير رمز متعددة النقاط على كابل RS-485، رخيصة ومتينة لأجهزة المستوى الميداني مثل وحدات VAV ووحدات ملف المروحة، لكنها بطيئة وحساسة لجودة التمديد (التسلسل والتدريع والإنهاء وسرعة الاتصال)، وكثرة الأجهزة على الخط الواحد تُبطئ الاستجابة.\nالبنية المعتادة: MS/TP في المستوى الميداني تتصل بموجّهات أو وحدات إشرافية تتخاطب عبر BACnet/IP. وينبغي أن يطلب المشتري أجهزة مدرجة لدى مختبرات BTL وبيان PICS لكل جهاز لتوثيق قدرات التكامل بدل افتراضها. والإصدار الحالي هو ANSI/ASHRAE 135-2024، ويجب أن يُدعَم أي ادعاء بالتوافق بإدراج في قائمة BTL (التي تديرها BACnet International). ملاحظة التحقق (23 سبتمبر 2026): تأكدت المعايير ANSI/ASHRAE 135-2024 وISO 16484-5 وتمرير الرمز على RS-485 وBACnet/SC؛ ولم يُعثر على تفصيل ISO/IEC 17025 فحُذف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/BACnet",
+        "https://bacnetinternational.org/btl/",
+        "https://bacnet.org/bacnet-secure-connect/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:modbus-rtu-vs-tcp",
+      "topic": "Modbus RTU vs Modbus TCP in BMS integration",
+      "kind": "comparison",
+      "body_en": "Modbus is a simple, old and very widely supported client-server protocol. In buildings it is mostly used to read energy meters, VFDs, gensets, UPS units, chillers and pumps into a BMS.\nModbus RTU runs on serial lines, almost always RS-485 two-wire, with one master polling up to 247 addressed slaves; messages are binary with a CRC check. Modbus TCP carries the same register model over Ethernet (TCP port 502). Data is exposed as coils, discrete inputs, input registers and holding registers, all 16-bit oriented.\nThe key limitation for a buyer: Modbus has no standard self-description. A device does not tell the BMS what register 30011 means, its scaling, units or data type; the integrator must obtain the manufacturer's register map and map every point manually. That is why \"Modbus integration\" is priced per point or per device, and why missing or wrong register maps are a common cause of delays and variations.\nRFQ guidance: list each third-party device to be integrated, its protocol (RTU or TCP), the number of points required (e.g. kWh, kW, voltage, alarms), and require the supplier of that equipment to deliver its Modbus register map. On long RS-485 runs specify shielded twisted pair, daisy-chain topology and end-of-line termination. Verification note (23 Sep 2026): the Modbus serial-line specification confirms addresses 1-247, 32 devices per segment without repeater, line termination at both trunk ends and derivations of 20 m or less; port 502 is confirmed by modbus.org.",
+      "body_ar": "بروتوكول Modbus بسيط وقديم ومدعوم على نطاق واسع، ويُستخدم في المباني غالباً لقراءة عدادات الطاقة ومحوّلات التردد والمولدات وأنظمة UPS والمبرّدات والمضخات إلى نظام إدارة المبنى.\nيعمل Modbus RTU على خطوط تسلسلية غالباً RS-485 بسلكين، حيث يستعلم جهاز رئيسي واحد من حتى 247 جهازاً تابعاً مع فحص CRC. أما Modbus TCP فينقل نموذج السجلات نفسه عبر الإيثرنت على المنفذ 502. وتُعرض البيانات كملفات وحالات ومسجلات إدخال ومسجلات احتفاظ بطول 16 بت.\nالقيد الأهم للمشتري: لا يملك Modbus وصفاً ذاتياً قياسياً، فالجهاز لا يخبر النظام بمعنى السجل أو معامل التحويل أو الوحدة، ولا بد أن يحصل المُكامل على خريطة السجلات من المصنّع ويربط كل نقطة يدوياً. لذلك يُسعَّر تكامل Modbus بالنقطة أو بالجهاز، وغياب الخريطة أو خطؤها سبب شائع للتأخير والأوامر التغييرية.\nإرشاد طلب التسعير: اذكر كل جهاز خارجي مطلوب ربطه وبروتوكوله (RTU أو TCP) وعدد النقاط المطلوبة، وألزم مورّد الجهاز بتسليم خريطة السجلات، وحدد في المسافات الطويلة كابلاً مجدولاً مدرّعاً بتوصيل متسلسل ومقاومة إنهاء. ملاحظة التحقق (23 سبتمبر 2026): تؤكد مواصفة Modbus التسلسلية العناوين من 1 إلى 247، و32 جهازاً لكل قطاع دون مكرر، والإنهاء عند طرفي الخط الرئيسي، والتفرعات بطول 20 متراً أو أقل؛ ويؤكد موقع modbus.org المنفذ 502.",
+      "sources": [
+        "https://cdn.linak.com/-/media/files/ic-and-bus-actuators/modbus-over-serial-line-v1-02.pdf",
+        "https://www.modbus.org/faq",
+        "https://en.wikipedia.org/wiki/Modbus"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:lonworks-legacy",
+      "topic": "LonWorks in existing UAE buildings",
+      "kind": "product",
+      "body_en": "LonWorks is a control-network platform originally developed by Echelon, standardised as ISO/IEC 14908, built around the Neuron chip and the LonTalk protocol. Its common twisted-pair channel (free topology, 78 kbit/s) allowed flexible wiring, and LonMark International defined standard network variable types (SNVTs) for interoperability. The technology has passed through several owners and now sits with Renesas, which also sells BACnet products.\nIn the UAE LonWorks is mostly met in older commercial towers, hotels and hospitals built in the 2000s, where HVAC, lighting or metering controllers were supplied on Lon. New projects rarely specify it; BACnet dominates HVAC and KNX/DALI dominate room and lighting control.\nBuyer guidance: for an existing Lon site, the practical choices are (a) maintain and extend with remaining Lon-compatible products, (b) insert gateways/routers that expose Lon points to a new BACnet/IP supervisory layer, or (c) phased replacement of field controllers. Ask the bidder to survey and list every Lon device, the network management database (LNS or equivalent) availability, and spare parts status before pricing. A quote that assumes full reuse without a survey, or that promises \"plug-and-play\" migration, is a red flag. Confidence medium: current UAE market share figures are not established. Ownership of the technology passed from Echelon to Adesto (2018), then Dialog Semiconductor and now Renesas, which is another reason to plan migration rather than expansion. Verification note (23 Sep 2026): ISO/IEC 14908, 78 kbit/s free topology, SNVTs and the Echelon-Adesto-Dialog-Renesas ownership chain are confirmed; UAE market share is not established.",
+      "body_ar": "LonWorks منصة شبكات تحكم طورتها شركة Echelon أصلاً، وهي معيارية تحت ISO/IEC 14908، وتعتمد على شريحة Neuron وبروتوكول LonTalk. أتاحت قناتها المجدولة ذات الطوبولوجيا الحرة بسرعة 78 كيلوبت/ث مرونة في التمديد، وحددت منظمة LonMark متغيرات شبكة قياسية للتوافق. وانتقلت ملكية التقنية عبر عدة شركات حتى أصبحت لدى Renesas.\nفي الإمارات تُصادف LonWorks غالباً في الأبراج التجارية والفنادق والمستشفيات المنشأة في العقد الأول من الألفية، ونادراً ما تُحدد في المشاريع الجديدة، إذ يهيمن BACnet على التكييف وKNX وDALI على التحكم بالغرف والإضاءة.\nإرشاد للمشتري: في موقع قائم على Lon، الخيارات العملية هي الصيانة والتوسعة بمنتجات متوافقة متبقية، أو تركيب بوابات تعرض نقاط Lon لطبقة إشرافية جديدة بـ BACnet/IP، أو استبدال تدريجي لوحدات التحكم الميدانية. اطلب من المتقدم مسحاً يحصر كل أجهزة Lon وتوفر قاعدة بيانات إدارة الشبكة وحالة قطع الغيار قبل التسعير. والعرض الذي يفترض إعادة الاستخدام الكاملة دون مسح أو يعد بترحيل \"فوري\" علامة تحذير. درجة الثقة متوسطة لعدم ثبوت حصة السوق الحالية. وقد انتقلت ملكية هذه التقنية من Echelon إلى Adesto عام 2018 ثم إلى Dialog Semiconductor وحالياً Renesas، وهذا سبب إضافي للتخطيط للانتقال إلى بديل بدلاً من التوسعة. ملاحظة التحقق (23 سبتمبر 2026): تأكد المعيار ISO/IEC 14908 وسرعة 78 كيلوبت/ث وSNVT وتسلسل الملكية من Echelon إلى Adesto ثم Dialog ثم Renesas؛ وحصة السوق في الإمارات غير مثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/LonWorks",
+        "https://www.renesas.com/en/about/newsroom/renesas-completes-acquisition-dialog-semiconductor"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:dali-lighting-control",
+      "topic": "DALI / DALI-2 / D4i lighting control",
+      "kind": "product",
+      "body_en": "DALI (Digital Addressable Lighting Interface) is the open lighting-control standard IEC 62386. A DALI line is a two-wire, polarity-free bus (typically about 16 V DC, bus supply up to 250 mA) running at a slow 1200 bit/s. Each line supports 64 individually addressable control gear (drivers/ballasts), each device can belong to up to 16 groups and store 16 scenes, and dimming follows a logarithmic curve. No termination resistors are needed; cable must be sized so voltage drop stays within 2 V.\nVersions: DALI-1 products were only registered; DALI-2 (since 2017) adds mandatory certification by the DiiA and standardises control devices such as sensors and push-button inputs; D4i adds driver data (energy, diagnostics) for luminaire-mounted IoT. DT8 is the device type for colour/tunable-white control; DT1 covers self-contained emergency luminaires with automatic testing.\nWhen to specify: offices, hotels, retail and high-end villas where individual fixture dimming, scene control, emergency testing reports or energy data are needed. For simple on/off switching, relay control via KNX or a basic system is cheaper.\nIntegration: DALI is usually brought into KNX or BACnet through a gateway; state the number of lines, the gateway protocol and whether the gateway supports DALI-2 control devices and DT8. Verification note (23 Sep 2026): 64 addresses, 16 groups and scenes, 16 V typical / 250 mA, 1200 bit/s, 2 V drop, DALI-2 (2017), D4i (2019) and DT8 are confirmed; the DT1 emergency device type was not confirmed on the fetched pages.",
+      "body_ar": "DALI هو معيار مفتوح للتحكم بالإضاءة تحت IEC 62386. خط DALI عبارة عن ناقل بسلكين لا يتأثر بالقطبية (نحو 16 فولت مستمر وتيار تغذية حتى 250 ملي أمبير) بسرعة بطيئة 1200 بت/ث. يدعم الخط الواحد 64 وحدة تحكم (مشغّل) بعناوين مستقلة، ويمكن لكل جهاز الانتماء إلى 16 مجموعة وتخزين 16 مشهداً، ويتبع التعتيم منحنى لوغاريتمياً. لا يحتاج مقاومات إنهاء، ويجب اختيار مقطع الكابل بحيث لا يتجاوز هبوط الجهد 2 فولت.\nالإصدارات: منتجات DALI-1 كانت مسجلة فقط، أما DALI-2 (منذ 2017) فتشترط اعتماد DiiA وتوحّد أجهزة التحكم كالحساسات ومداخل الأزرار، وتضيف D4i بيانات المشغّل عن الطاقة والتشخيص. ونوع الجهاز DT8 للتحكم في اللون ودرجة البياض، وDT1 لإضاءة الطوارئ ذاتية الاختبار.\nمتى يُحدد: المكاتب والفنادق والمحلات والفلل الراقية حيث يلزم تعتيم كل وحدة إضاءة أو مشاهد أو تقارير اختبار الطوارئ أو بيانات الطاقة. أما التشغيل والإطفاء البسيط فالتحكم بالمرحّلات أرخص.\nالتكامل: يُربط DALI عادةً بـ KNX أو BACnet عبر بوابة، فحدد عدد الخطوط وبروتوكول البوابة ودعمها لأجهزة DALI-2 وDT8. ملاحظة التحقق (23 سبتمبر 2026): تأكدت 64 عنواناً و16 مجموعة ومشهداً و16 فولت نموذجياً و250 ملي أمبير و1200 بت/ث وهبوط 2 فولت وDALI-2 (2017) وD4i (2019) وDT8؛ ولم يتأكد نوع DT1 للطوارئ من الصفحات المفحوصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://www.dali-alliance.org/dali/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:zigbee-zwave-wifi-matter-thread",
+      "topic": "Zigbee vs Z-Wave vs Wi-Fi vs Matter/Thread for smart homes",
+      "kind": "comparison",
+      "body_en": "These are the wireless technologies behind most consumer and retrofit smart-home products.\nZigbee: IEEE 802.15.4 mesh, mostly 2.4 GHz; mains-powered devices act as routers that extend the mesh, battery devices are end nodes; Zigbee 3.0 improved interoperability and pairing security. Shares the 2.4 GHz band with Wi-Fi, so channel planning matters in dense apartments.\nZ-Wave: sub-GHz mesh (868.4/869.85 MHz in Europe and the UAE region, different frequencies in the US), so regional device versions are not interchangeable — a US-frequency device will not join a UAE/EU controller. Z-Wave messages can hop up to four times; S2 security has been mandatory for devices certified after 2 April 2017; Z-Wave Long Range uses a star topology.\nWi-Fi: no hub needed and high bandwidth (cameras, speakers), but higher power use and many devices load the home router.\nThread + Matter: Thread is an IPv6 low-power mesh on 802.15.4 needing a border router; Matter (by the Connectivity Standards Alliance, v1.0 Oct 2022) is the application layer running over Thread, Wi-Fi or Ethernet, aiming at cross-brand interoperability and local control, with bridges for Zigbee/Z-Wave.\nBuyer guidance: for new villas prefer a wired backbone (KNX or similar) for lighting/curtains/HVAC, and use wireless for retrofit or add-ons. Always confirm the regional frequency and the hub/controller brand. Verification note (23 Sep 2026): Silicon Labs lists 868.4/869.85 MHz for the UAE; Matter 1.0 was published 4 October 2022 (version 1.6 by June 2026); the 232-node figure was not confirmed and was removed.",
+      "body_ar": "هذه هي التقنيات اللاسلكية التي تقف وراء معظم منتجات المنزل الذكي الاستهلاكية ومشاريع التحديث.\nZigbee: شبكة متشابكة على IEEE 802.15.4 بتردد 2.4 غيغاهرتز غالباً، الأجهزة الموصولة بالكهرباء تعمل كموجّهات توسّع الشبكة والأجهزة بالبطارية أطراف نهائية، وحسّن Zigbee 3.0 التوافق وأمان الاقتران. ويتشارك النطاق مع الواي فاي لذا يلزم تخطيط القنوات في الشقق المكتظة.\nZ-Wave: شبكة متشابكة دون الغيغاهرتز (868.4 و869.85 ميغاهرتز في أوروبا ومنطقة الإمارات، وترددات مختلفة في أمريكا)، فالأجهزة الإقليمية غير قابلة للتبادل، وجهاز بتردد أمريكي لن ينضم لوحدة تحكم إماراتية. ويمكن للرسالة أن تقفز حتى أربع مرات، وأمان S2 إلزامي للأجهزة المعتمدة بعد 2 أبريل 2017، ونسخة Long Range تعمل بطوبولوجيا نجمية.\nالواي فاي: لا يحتاج محوراً ويوفر نطاقاً عالياً للكاميرات والسماعات، لكنه أعلى استهلاكاً ويثقل الموجّه المنزلي.\nThread وMatter: Thread شبكة متشابكة منخفضة الطاقة بعناوين IPv6 تحتاج موجّه حدود، وMatter طبقة تطبيقات من تحالف معايير الاتصال (الإصدار 1.0 في أكتوبر 2022) تعمل فوق Thread أو الواي فاي أو الإيثرنت وتهدف للتوافق بين العلامات والتحكم المحلي، مع جسور لـ Zigbee وZ-Wave.\nإرشاد للمشتري: في الفلل الجديدة يُفضَّل عمود فقري سلكي للإضاءة والستائر والتكييف، واستخدام اللاسلكي للتحديث والإضافات، مع التأكد دائماً من التردد الإقليمي وعلامة وحدة التحكم. ملاحظة التحقق (23 سبتمبر 2026): تذكر Silicon Labs الترددين 868.4 و869.85 ميغاهرتز للإمارات؛ وصدر Matter 1.0 في 4 أكتوبر 2022 (والإصدار 1.6 بحلول يونيو 2026)؛ ولم يتأكد رقم 232 جهازاً فحُذف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Zigbee",
+        "https://csa-iot.org/all-solutions/zigbee/",
+        "https://www.silabs.com/wireless/z-wave/global-regions",
+        "https://eepower.com/news/new-security-requirements-for-all-z-wave-certified-iot-devices/",
+        "https://en.wikipedia.org/wiki/Z-Wave",
+        "https://en.wikipedia.org/wiki/Matter_(standard)",
+        "https://www.threadgroup.org/What-is-Thread/Overview"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:matter-certification-claims",
+      "topic": "\"Matter compatible\" claims in supplier quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Matter is governed by the Connectivity Standards Alliance and has evolved through several versions since 1.0 in October 2022; device-type coverage grows with each version, so not every device category (or every feature of a device) is covered. Matter devices run over Wi-Fi, Ethernet or Thread; Thread devices additionally need a Thread border router in the home, which is often built into a smart speaker or hub.\nRed flags in quotes: (1) \"Matter ready\" or \"Matter upgradeable\" without the product being CSA-certified today — ask for the certification listing; (2) assuming a Matter device exposes all its features — often only basic on/off, dimming or temperature functions are available through Matter, with advanced functions only in the brand's own app; (3) Thread devices quoted with no border router in the bill of materials; (4) mixing US-market and GCC-market SKUs; (5) claims that Matter replaces a professionally engineered wired system for a large villa.\nWhat to ask: the certified Matter version, transport (Thread or Wi-Fi), the controller/ecosystem that will commission it, whether a bridge is used for Zigbee/Z-Wave devices, and what functions remain app-only. Verification note (23 Sep 2026): CSA governance, the certification programme and Thread/Wi-Fi/Ethernet transports are confirmed; version 1.6 was current as of June 2026.",
+      "body_ar": "يدير تحالف معايير الاتصال معيار Matter، وقد تطور عبر عدة إصدارات منذ 1.0 في أكتوبر 2022، وتتسع أنواع الأجهزة المشمولة مع كل إصدار، فليست كل فئة أجهزة أو كل ميزة مشمولة. وتعمل أجهزة Matter على الواي فاي أو الإيثرنت أو Thread، وتحتاج أجهزة Thread إلى موجّه حدود Thread في المنزل، وغالباً ما يكون مدمجاً في سماعة ذكية أو محور.\nعلامات التحذير في العروض: (1) عبارة \"جاهز لـ Matter\" أو \"قابل للترقية\" دون أن يكون المنتج معتمداً حالياً من التحالف، فاطلب قائمة الاعتماد؛ (2) افتراض أن جهاز Matter يعرض كل ميزاته، بينما غالباً تتاح الوظائف الأساسية فقط والمتقدمة في تطبيق العلامة؛ (3) تسعير أجهزة Thread دون موجّه حدود في قائمة المواد؛ (4) خلط منتجات السوق الأمريكية بمنتجات السوق الخليجية؛ (5) الادعاء بأن Matter يغني عن نظام سلكي مصمم هندسياً لفيلا كبيرة.\nما يجب السؤال عنه: إصدار Matter المعتمد، ووسيط النقل (Thread أو واي فاي)، والمنظومة التي ستُفعّله، واستخدام جسر لأجهزة Zigbee أو Z-Wave، والوظائف التي تبقى حصرية بالتطبيق. ملاحظة التحقق (23 سبتمبر 2026): تأكدت حوكمة CSA وبرنامج الاعتماد ووسائط Thread والواي فاي والإيثرنت؛ والإصدار 1.6 هو الساري حتى يونيو 2026.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Matter_(standard)",
+        "https://csa-iot.org/all-solutions/matter/",
+        "https://www.threadgroup.org/What-is-Thread/Overview"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:crestron-control4-savant-class",
+      "topic": "Control4 / Crestron / Savant-class integrated systems vs open KNX",
+      "kind": "comparison",
+      "body_en": "Premium residential \"integrated control\" platforms such as Crestron, Control4 and Savant combine lighting, shading, climate, AV distribution, cinema, intercom and security user interfaces into one branded app and touch panels. They are sold only through authorised dealers/integrators, who also do the programming; Crestron, for example, does not sell direct to end users.\nStrengths: polished single user experience, strong audio-video and home-cinema control, deep third-party drivers, and one party responsible for the whole experience.\nTrade-offs versus an open standard such as KNX: programming files and dealer tools are generally restricted to authorised dealers, so after handover the owner depends on that dealer channel for changes, updates and troubleshooting; hardware is proprietary and cost per point is typically higher; long-term support depends on the dealer staying in business and certified in the UAE.\nA common UAE high-end pattern is hybrid: KNX (or DALI) for the hard-wired lighting, curtains and HVAC field layer, with Crestron/Control4/Savant on top for AV and the user interface. This keeps the core building functions on an open standard.\nBuyer checklist: dealer authorisation letter for the UAE, programming ownership and handover terms, annual service/licence fees, firmware update policy, and what continues to work locally if the internet or cloud service is down. Confidence medium: licence terms vary by brand and dealer. Verification note (23 Sep 2026): Crestron sells only through dealers and integrators (confirmed); Control4 and Savant channel terms were not checked.",
+      "body_ar": "منصات \"التحكم المتكامل\" الفاخرة للمنازل مثل Crestron وControl4 وSavant تجمع الإضاءة والستائر والتكييف وتوزيع الصوت والصورة والسينما والانتركم وواجهات الأمن في تطبيق وشاشات لمس بعلامة واحدة. وتُباع فقط عبر وكلاء ومُكاملين معتمدين يتولون البرمجة، فمثلاً Crestron لا تبيع مباشرة للمستخدم النهائي.\nالمزايا: تجربة استخدام موحدة مصقولة، وتحكم قوي بالصوت والصورة والمسرح المنزلي، ومشغّلات واسعة للأنظمة الأخرى، وجهة واحدة مسؤولة عن التجربة كاملة.\nالمقايضات مقارنة بمعيار مفتوح مثل KNX: ملفات البرمجة وأدوات الوكيل محصورة غالباً بالوكلاء المعتمدين، فيبقى المالك معتمداً على قناة الوكيل للتعديلات والتحديثات، والأجهزة مملوكة للعلامة وتكلفة النقطة أعلى عادةً، والدعم طويل الأمد مرهون باستمرار الوكيل واعتماده في الإمارات.\nالنمط الشائع في المشاريع الراقية بالإمارات هجين: KNX أو DALI للطبقة الميدانية السلكية للإضاءة والستائر والتكييف، وفوقها Crestron أو Control4 أو Savant للصوت والصورة وواجهة المستخدم، فتبقى وظائف المبنى الأساسية على معيار مفتوح.\nقائمة تحقق: خطاب اعتماد الوكيل في الإمارات، وملكية البرمجة وشروط التسليم، والرسوم السنوية، وسياسة تحديث البرامج الثابتة، وما يبقى يعمل محلياً عند انقطاع الإنترنت. الثقة متوسطة لاختلاف شروط التراخيص. ملاحظة التحقق (23 سبتمبر 2026): تأكد أن Crestron لا تبيع إلا عبر الوكلاء والمكاملين؛ ولم تُفحص شروط Control4 وSavant.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Crestron_Electronics",
+        "https://www.crestron.com/How-To-Buy"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:open-vs-proprietary-lockin",
+      "topic": "Open vs proprietary protocols and vendor lock-in",
+      "kind": "comparison",
+      "body_en": "Open protocols (BACnet, KNX, DALI, Modbus, LonWorks, Zigbee/Matter) are published standards that multiple manufacturers implement, so devices and service providers can be changed without replacing the whole system. Proprietary protocols (a manufacturer's own field bus or dealer-only programming) tie expansion, spares and service to one brand or channel.\nImportant nuance: \"open protocol\" at the network level does not guarantee an open system. Lock-in often returns through (1) proprietary supervisory software or graphics licences, (2) controllers whose application programs can only be edited with the vendor's licensed tool, (3) password-protected devices, (4) withheld project files and databases, and (5) service contracts that restrict third-party access.\nHow to specify genuinely open: require BTL-listed BACnet devices with PICS, KNX-certified devices with handover of the ETS project, DiiA-certified DALI-2 gear; require the owner to receive all licences, source/project files, programming tool access (or at least the right to buy it), and admin passwords; require graphics and trend data exportable in standard formats; and ask whether any vendor-specific protocol is used between controllers.\nLock-in is not always bad — a single-brand system can be cheaper and better supported — but the owner should choose it knowingly and price the lifetime service dependency. Verification note (23 Sep 2026): the protocols named are confirmed open standards; lock-in mechanisms are practice.",
+      "body_ar": "البروتوكولات المفتوحة (BACnet وKNX وDALI وModbus وLonWorks وZigbee وMatter) معايير منشورة يطبّقها عدة مصنّعين، فيمكن تغيير الأجهزة أو مزودي الخدمة دون استبدال النظام كله. أما البروتوكولات المملوكة فتربط التوسعة وقطع الغيار والخدمة بعلامة أو قناة واحدة.\nملاحظة مهمة: كون البروتوكول مفتوحاً على مستوى الشبكة لا يضمن نظاماً مفتوحاً، فالتقييد يعود غالباً عبر برمجيات إشرافية أو رسومات بتراخيص مملوكة، أو وحدات تحكم لا تُعدّل برامجها إلا بأداة المصنّع المرخصة، أو أجهزة محمية بكلمات مرور، أو حجب ملفات المشروع وقواعد البيانات، أو عقود خدمة تمنع دخول طرف ثالث.\nكيف تحدد نظاماً مفتوحاً فعلاً: اشترط أجهزة BACnet مدرجة لدى BTL مع بيان PICS، وأجهزة KNX معتمدة مع تسليم ملف ETS، ومعدات DALI-2 معتمدة من DiiA، وأن يستلم المالك كل التراخيص وملفات المشروع وحق الوصول لأداة البرمجة وكلمات مرور المسؤول، وأن تكون الرسومات وبيانات السجلات قابلة للتصدير بصيغ قياسية، واسأل عن أي بروتوكول خاص بين وحدات التحكم.\nالتقييد ليس سيئاً دائماً، فقد يكون نظام العلامة الواحدة أرخص وأفضل دعماً، لكن على المالك أن يختاره عن وعي ويحسب تبعية الخدمة طوال عمر النظام. ملاحظة التحقق (23 سبتمبر 2026): تأكد أن البروتوكولات المذكورة معايير مفتوحة؛ وآليات الارتباط ممارسة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/BACnet",
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://www.dali-alliance.org/dali/",
+        "https://bacnetinternational.org/btl/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:bms-scope-definition",
+      "topic": "BMS / BAS scope: what is and is not included",
+      "kind": "spec_checklist",
+      "body_en": "A Building Management System (BMS, also BAS) centralises monitoring and control of HVAC, electrical, lighting, shading, and may also monitor security, fire and other systems. It is usually structured in three levels: management (servers, workstations, graphics), automation (DDC controllers) and field (sensors, valves, actuators, meters).\nMost BMS disputes in the UAE come from unclear scope boundaries between the BMS specialist, the MEP contractor and equipment suppliers. Typical grey areas: who supplies control valves and damper actuators, who wires field devices, who provides the chiller or VRF gateway, whether fire alarm and lifts are only monitored (never controlled from BMS), and who provides network switches.\nA buyer asking for a BMS quote must therefore provide an I/O point schedule or at least the equipment list and the sequence of operations, a third-party integration list with protocol per device, and state which items are \"supply only\", \"supply and install\" or \"by others\". Price is driven mostly by point count, number of controllers, integration points, head-end licences and graphics, and commissioning effort. A quote priced as a lump sum with no point schedule cannot be compared with others and should be clarified before award. Verification note (23 Sep 2026): the BMS definition is confirmed; scope boundaries are practice.",
+      "body_ar": "يجمع نظام إدارة المبنى (BMS أو BAS) مراقبة التكييف والكهرباء والإضاءة والتظليل والتحكم فيها مركزياً، وقد يراقب الأمن والحريق وأنظمة أخرى. ويُبنى عادةً على ثلاثة مستويات: الإدارة (خوادم ومحطات عمل ورسومات)، والأتمتة (وحدات تحكم رقمية مباشرة)، والميدان (حساسات وصمامات ومحركات وعدادات).\nمعظم خلافات أنظمة إدارة المباني في الإمارات تنشأ من غموض حدود النطاق بين مختص النظام ومقاول الأعمال الكهروميكانيكية ومورّدي المعدات: من يورّد صمامات التحكم ومحركات الخوانق، ومن يمدّد أسلاك الأجهزة الميدانية، ومن يوفّر بوابة المبرّد أو نظام VRF، وهل الإنذار من الحريق والمصاعد للمراقبة فقط دون تحكم، ومن يوفّر مبدّلات الشبكة.\nلذلك يجب على من يطلب تسعيراً تقديم جدول نقاط الإدخال والإخراج أو على الأقل قائمة المعدات وتسلسل التشغيل، وقائمة الأنظمة الخارجية وبروتوكول كل جهاز، وتحديد البنود \"توريد فقط\" أو \"توريد وتركيب\" أو \"من قبل الغير\". ويتحدد السعر أساساً بعدد النقاط ووحدات التحكم ونقاط التكامل وتراخيص البرنامج الرئيسي والرسومات وجهد التشغيل التجريبي. والعرض المقطوع دون جدول نقاط لا تمكن مقارنته ويجب استيضاحه قبل الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكد تعريف نظام إدارة المباني؛ وحدود النطاق ممارسة.",
+      "required_specs": [
+        "Building type, floors, gross area",
+        "Systems to be monitored vs controlled (chillers, AHUs, FCUs, VAVs, pumps, lighting, lifts, fire, generators, water tanks, leak detection)",
+        "Hard-wired I/O point schedule (AI/AO/DI/DO counts)",
+        "Third-party integration list with protocol per device (BACnet IP/MSTP, Modbus RTU/TCP, KNX, DALI, M-Bus)",
+        "Required protocol at management level (e.g. BACnet/IP, BTL listed)",
+        "Number of workstations/servers, head-end software licences, number of graphics",
+        "Trend, alarm and reporting requirements; data retention period",
+        "Energy metering points and dashboards",
+        "Field devices included (sensors, valves, actuators, dampers) or by MEP contractor",
+        "Control panels, power supply and cabling responsibility",
+        "Network/IT responsibility (switches, VLANs, cyber-security)",
+        "Testing, commissioning and training scope; O&M manuals and as-built",
+        "Warranty period and post-warranty maintenance"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:home-automation-villa-spec",
+      "topic": "Villa smart-home RFQ checklist",
+      "kind": "spec_checklist",
+      "body_en": "For a villa or apartment, a smart-home supplier cannot quote exactly without a room-by-room definition of what is controlled and how. The biggest price drivers are the number and type of lighting circuits (switched vs dimmed, and the dimming method which must match the actual LED drivers), the number of curtain motors, the keypad range chosen (design ranges with glass or metal finishes can cost several times basic ranges), touch panels, and the programming hours.\nStage matters: wired systems must be designed before first-fix so that bus cables, deeper back-boxes, neutral wires at switch points and panel space in the distribution board are provided. In finished homes, wireless (KNX RF, Zigbee, Z-Wave in the regional 868 MHz band, or Matter-over-Thread) avoids breaking walls but depends on battery devices and radio coverage.\nHVAC control: VRF and ducted-split systems usually need a manufacturer-specific gateway to KNX/BACnet/Modbus; state the AC brand and model series. Lighting: confirm LED fixture drivers are compatible with the chosen dimmer type, otherwise flicker and buzzing follow.\nAlways state who provides the IT network; many smart-home failures are actually Wi-Fi or router problems. Verification note (23 Sep 2026): checklist follows verified entries.",
+      "body_ar": "في الفيلا أو الشقة لا يستطيع مورّد المنزل الذكي التسعير بدقة دون تحديد ما يُتحكم به في كل غرفة وطريقته. أكبر محركات السعر هي عدد دوائر الإضاءة ونوعها (تشغيل فقط أم تعتيم، وطريقة التعتيم التي يجب أن تطابق مشغّلات LED الفعلية)، وعدد محركات الستائر، وفئة لوحات المفاتيح المختارة (فالفئات التصميمية بواجهات زجاج أو معدن قد تكلف أضعاف الفئات الأساسية)، وشاشات اللمس، وساعات البرمجة.\nمرحلة البناء مهمة: الأنظمة السلكية يجب تصميمها قبل التمديدات الأولى لتوفير كابل الناقل وعلب أعمق وسلك التعادل عند المفاتيح ومساحة في لوحة التوزيع. وفي المنازل المنتهية يتجنب اللاسلكي (KNX RF أو Zigbee أو Z-Wave بتردد 868 الإقليمي أو Matter عبر Thread) تكسير الجدران، لكنه يعتمد على البطاريات وتغطية الراديو.\nالتحكم بالتكييف: أنظمة VRF والوحدات المخفية تحتاج غالباً بوابة خاصة بالمصنّع إلى KNX أو BACnet أو Modbus، فاذكر علامة المكيف وسلسلة الطراز. وفي الإضاءة تأكد من توافق مشغّلات وحدات LED مع نوع المعتّم، وإلا ظهر الوميض والطنين.\nحدّد دائماً من يوفّر شبكة المعلومات، فكثير من أعطال المنازل الذكية هي في الحقيقة مشكلات واي فاي أو موجّه. ملاحظة التحقق (23 سبتمبر 2026): القائمة مبنية على مدخلات متحقق منها.",
+      "required_specs": [
+        "New build or retrofit; stage of construction (before first-fix or finished)",
+        "Platform/protocol required (KNX TP, KNX RF, Zigbee, Z-Wave EU/868, Matter, Crestron/Control4/Savant) or open to proposal",
+        "Room-by-room list of lighting circuits: switched, dimmable (phase-cut, 0-10V, DALI, DT8 tunable white)",
+        "Curtain/blind motors: count, type (track/roller/Roman), wired or battery, protocol, track lengths",
+        "HVAC integration: system type (VRF, ducted split, chilled-water FCU) and interface/gateway",
+        "Keypads/switches: brand range, finish, number of buttons, engraving",
+        "Touch panels, apps, voice assistants required",
+        "Audio/video, intercom, CCTV, access control integration",
+        "Energy monitoring points",
+        "Network: who supplies router, switches, Wi-Fi access points, rack",
+        "Programming, scenes, handover of project files and passwords",
+        "Warranty and maintenance period"
+      ],
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://www.silabs.com/wireless/z-wave/global-regions",
+        "https://en.wikipedia.org/wiki/Matter_(standard)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:curtain-motors",
+      "topic": "Motorised curtains and blinds: types and integration",
+      "kind": "product",
+      "body_en": "Motorised shading is one of the most requested smart-home items in the UAE because of heavy sun exposure. Main types: curtain track motors (motor pulls carriers along a track for drapes/sheers), tubular motors inside roller-blind tubes, and motors for Roman blinds, venetian/tilt blinds and external shutters or pergola louvres.\nControl options: (1) mains-wired motors with dry-contact or 230 V up/down inputs switched by a KNX or relay actuator; (2) motors with a native bus interface (KNX, DALI-type, or RS-485); (3) radio motors using a brand's own RF protocol, or Zigbee/Z-Wave/Matter; (4) battery/rechargeable motors for retrofit where no power point exists at the window.\nWhat drives price and suitability: track length and curtain fabric weight (the motor torque must suit the load, heavy blackout drapes on long tracks need stronger motors), straight vs curved/bay tracks, ceiling-recessed pockets, silence rating for bedrooms, and whether position feedback (percentage open) is needed for scenes and sun-tracking.\nBuyer notes: provide a power point and conduit at the motor end during first-fix; state protocol so the motor talks to the chosen automation system without an extra gateway; confirm radio motors are the regional frequency version. Confidence medium: torque/weight limits are model-specific and must come from the manufacturer datasheet. Verification note (23 Sep 2026): motor torque limits are model-specific and not established here.",
+      "body_ar": "التظليل الآلي من أكثر عناصر المنزل الذكي طلباً في الإمارات بسبب شدة الشمس. الأنواع الرئيسية: محركات المسارات للستائر القماشية والشيفون، والمحركات الأنبوبية داخل أنابيب الستائر الدوارة، ومحركات الستائر الرومانية والشرائحية والمصاريع الخارجية وشرائح البرجولات.\nخيارات التحكم: (1) محركات موصولة بالكهرباء بمدخلات فتح وإغلاق تُشغَّل عبر مشغّل KNX أو مرحّلات؛ (2) محركات بواجهة ناقل مدمجة مثل KNX أو RS-485؛ (3) محركات راديوية ببروتوكول العلامة أو Zigbee أو Z-Wave أو Matter؛ (4) محركات بالبطارية القابلة للشحن للتحديث حيث لا توجد نقطة كهرباء عند النافذة.\nما يحدد السعر والملاءمة: طول المسار ووزن القماش (يجب أن يناسب عزم المحرك الحمل، فالستائر المعتمة الثقيلة على مسارات طويلة تحتاج محركات أقوى)، والمسار المستقيم أو المنحني، والتجاويف المخفية في السقف، ومستوى الهدوء لغرف النوم، والحاجة لتغذية راجعة بنسبة الفتح للمشاهد وتتبع الشمس.\nملاحظات للمشتري: وفّر نقطة كهرباء وأنبوباً عند طرف المحرك في التمديدات الأولى، وحدد البروتوكول ليتخاطب المحرك مع النظام دون بوابة إضافية، وتأكد أن المحركات الراديوية بنسخة التردد الإقليمي. الثقة متوسطة لأن حدود العزم والوزن تختلف حسب الطراز ويجب أخذها من نشرة المصنّع. ملاحظة التحقق (23 سبتمبر 2026): حدود عزم المحركات خاصة بكل طراز وغير مثبتة هنا.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://www.silabs.com/wireless/z-wave/global-regions"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:hvac-integration",
+      "topic": "HVAC integration: VRF, split, FCU and chiller plant into automation",
+      "kind": "installation",
+      "body_en": "HVAC is usually the largest energy user in a UAE building, so its integration is the core of both smart-home and BMS work.\nChilled-water buildings: fan coil units and AHUs are controlled by DDC controllers (often BACnet MS/TP at field level) with room thermostats, 2-way or 3-way control valves and damper actuators; the chiller plant manager is integrated to the BMS, typically via BACnet/IP or Modbus. District cooling plants and energy transfer stations have their own metering and control, with BMS often only monitoring.\nVRF and ducted split systems: each manufacturer uses its own internal communication bus, so control from KNX, BACnet or Modbus requires the manufacturer's gateway or a licensed third-party interface for that model series. Gateways are limited by the number of indoor units per gateway and by which functions they expose (on/off, mode, setpoint, fan speed, room temperature, fault codes).\nBuyer guidance: state the AC brand, outdoor/indoor unit model series and quantity of indoor units; state whether the automation must control or only monitor; require the HVAC supplier and the automation supplier to agree who provides and configures the gateway. Common failure: an automation quote assumes a generic gateway that is not supported by the installed VRF series. Confidence medium: gateway capacities are brand-specific. Verification note (23 Sep 2026): gateway capacities are brand-specific and not established here.",
+      "body_ar": "التكييف هو عادةً أكبر مستهلك للطاقة في مباني الإمارات، لذا فإن تكامله هو جوهر أعمال المنزل الذكي وإدارة المباني.\nفي مباني المياه المبردة: تُدار وحدات ملف المروحة ووحدات مناولة الهواء بوحدات تحكم رقمية (غالباً BACnet MS/TP ميدانياً) مع منظمات حرارة الغرف وصمامات تحكم ثنائية أو ثلاثية الاتجاه ومحركات خوانق، ويُربط مدير محطة المبرّدات بالنظام عبر BACnet/IP أو Modbus. أما محطات التبريد المركزي ومحطات نقل الطاقة فلها عداداتها وتحكمها، وكثيراً ما يقتصر دور النظام على المراقبة.\nأنظمة VRF والوحدات المخفية: يستخدم كل مصنّع ناقلاً داخلياً خاصاً، فالتحكم من KNX أو BACnet أو Modbus يحتاج بوابة المصنّع أو واجهة مرخّصة لتلك السلسلة، وتُحدّ البوابات بعدد الوحدات الداخلية لكل بوابة وبالوظائف المعروضة (تشغيل، نمط، درجة الضبط، سرعة المروحة، حرارة الغرفة، رموز الأعطال).\nإرشاد للمشتري: اذكر علامة المكيف وسلسلة الوحدات الخارجية والداخلية وعدد الوحدات الداخلية، وحدد هل المطلوب تحكم أم مراقبة فقط، وألزم مورّد التكييف ومورّد الأتمتة بالاتفاق على من يوفّر البوابة ويهيئها. الخطأ الشائع: عرض أتمتة يفترض بوابة عامة غير مدعومة لسلسلة VRF المركبة. الثقة متوسطة لأن سعات البوابات تختلف حسب العلامة. ملاحظة التحقق (23 سبتمبر 2026): سعات البوابات خاصة بكل علامة وغير مثبتة هنا.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/BACnet",
+        "https://en.wikipedia.org/wiki/Modbus",
+        "https://en.wikipedia.org/wiki/Building_management_system"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:energy-metering",
+      "topic": "Energy and utility sub-metering in BMS",
+      "kind": "product",
+      "body_en": "Sub-metering lets an owner see where energy and water go, which is the basis for tenant billing, fault detection and green-building compliance. Utility revenue meters (DEWA, ADDC/AADC, SEWA, district-cooling providers) belong to the utility; building sub-meters are the owner's and are read by the BMS or an energy management system.\nCommon types: electrical multifunction meters on main and sub-distribution boards (kWh, kW, power factor, voltage, current, harmonics), BTU/thermal energy meters on chilled-water branches, water meters with pulse or bus outputs, and in lighting, DALI D4i drivers that report energy per luminaire.\nCommunication: Modbus RTU/TCP is the most common for electrical meters; M-Bus is common for heat/water meters; pulse outputs for simple meters; BACnet on some devices. The integrator needs each meter's register map.\nSpecification points: accuracy class appropriate to use (billing-grade meters for tenant recharge, indicative for monitoring), CT ratio and CT accuracy, number and location of meters, protocol, and required dashboards/reports (daily, monthly, per tenant, per system). Buyer mistake: installing meters without communication cabling or without configuring them into the BMS, so they only display locally. Confidence medium: which meters Al Sa'fat or DEWA require per building type was not verified in the documents fetched. Verification note (23 Sep 2026): Modbus and DALI D4i are confirmed; Weinzierl confirms Wireless M-Bus (EN 13757-4); Al Sa'fat and DEWA metering requirements are not established.",
+      "body_ar": "تتيح العدادات الفرعية للمالك معرفة أين يُستهلك الماء والطاقة، وهي أساس فوترة المستأجرين واكتشاف الأعطال والامتثال للمباني الخضراء. عدادات المرافق الرسمية (ديوا، وأدكو/العين، وسيوا، ومزودو التبريد المركزي) ملك للجهة، أما العدادات الفرعية فملك للمالك ويقرأها نظام إدارة المبنى أو نظام إدارة الطاقة.\nالأنواع الشائعة: عدادات كهربائية متعددة الوظائف على اللوحات الرئيسية والفرعية (كيلوواط ساعة، قدرة، معامل قدرة، جهد، تيار، توافقيات)، وعدادات طاقة حرارية على فروع المياه المبردة، وعدادات مياه بمخارج نبضية أو ناقل، وفي الإضاءة مشغّلات DALI D4i التي تُبلغ عن طاقة كل وحدة.\nالاتصال: Modbus RTU/TCP الأكثر شيوعاً للعدادات الكهربائية، وM-Bus شائع لعدادات الحرارة والمياه، والنبضات للعدادات البسيطة، وBACnet في بعض الأجهزة. ويحتاج المُكامل خريطة سجلات كل عداد.\nنقاط المواصفات: فئة الدقة المناسبة للاستخدام (عدادات بدقة فوترة لإعادة تحميل المستأجرين، ومؤشرية للمراقبة)، ونسبة محوّلات التيار ودقتها، وعدد العدادات ومواقعها، والبروتوكول، ولوحات العرض والتقارير المطلوبة. الخطأ الشائع: تركيب عدادات دون كابلات اتصال أو دون ربطها بالنظام فتبقى للعرض المحلي فقط. الثقة متوسطة لعدم التحقق من العدادات التي تشترطها الصفات أو ديوا لكل نوع مبنى. ملاحظة التحقق (23 سبتمبر 2026): تأكد Modbus وDALI D4i، وتؤكد Weinzierl معيار Wireless M-Bus (EN 13757-4)؛ ومتطلبات القياس في الصفات وديوا غير مثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Modbus",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://weinzierl.de/en/knx-system-media/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:al-safat-dubai",
+      "topic": "Al Sa'fat (Dubai Green Building System) and automation",
+      "kind": "authority_approval",
+      "body_en": "Al Sa'fat is Dubai Municipality's green building evaluation system. It replaced the earlier Dubai Green Building Regulations and Specifications for new buildings from 19 October 2020, and applies to new buildings in Dubai including villas, residential, commercial, industrial and mixed-use projects (DM publishes a 2nd edition dated January 2023). All new buildings must meet the mandatory requirements to obtain the Silver Sa'fa; owners may pursue additional requirements for Golden or Platinum Sa'fa.\nRelevance to automation: Al Sa'fat's objectives include reducing energy consumption and improving the efficiency of electrical and mechanical systems. Controls for lighting and HVAC, and metering/monitoring of energy and water, are the typical means by which building automation contributes to compliance and to higher tiers. However, the exact clause-by-clause BMS, metering and lighting-control requirements for each building type and tier were NOT verified in this research; the specific thresholds must be read from the current Al Sa'fat document for the project's category.\nBuyer guidance: ask the design consultant which Al Sa'fat tier and which control/metering clauses apply, and include them in the automation RFQ; ask suppliers to state which clauses their scope satisfies and what documentation (commissioning records, meter schedules) they will provide for the DM submission. Verification note (23 Sep 2026): Dubai Municipality confirms the 19 October 2020 start, Silver as mandatory, Golden/Platinum optional and the 2nd edition of January 2023.",
+      "body_ar": "الصفات هو نظام بلدية دبي لتقييم المباني الخضراء، وقد حلّ محل لوائح ومواصفات المباني الخضراء السابقة للمباني الجديدة اعتباراً من 19 أكتوبر 2020، ويسري على المباني الجديدة في دبي بما فيها الفلل والسكنية والتجارية والصناعية والمتعددة الاستخدام (وتنشر البلدية إصداراً ثانياً بتاريخ يناير 2023). وعلى جميع المباني الجديدة استيفاء المتطلبات الإلزامية للحصول على الصفة الفضية، ويمكن للمالك السعي لمتطلبات إضافية لنيل الصفة الذهبية أو البلاتينية.\nعلاقته بالأتمتة: من أهداف الصفات خفض استهلاك الطاقة ورفع كفاءة الأنظمة الكهربائية والميكانيكية، ويُعد التحكم بالإضاءة والتكييف وقياس ومراقبة الطاقة والمياه الوسائل المعتادة التي تسهم بها الأتمتة في الامتثال وفي الفئات الأعلى. غير أن متطلبات نظام إدارة المبنى والعدادات والتحكم بالإضاءة بنداً بنداً لكل نوع مبنى وفئة لم يتم التحقق منها في هذا البحث، ويجب قراءة الحدود الدقيقة من وثيقة الصفات الحالية لفئة المشروع.\nإرشاد للمشتري: اسأل الاستشاري عن فئة الصفات والبنود المنطبقة على التحكم والقياس وأدرجها في طلب التسعير، واطلب من المورّدين بيان البنود التي يغطيها نطاقهم والوثائق التي سيقدمونها لملف البلدية كسجلات التشغيل التجريبي وجداول العدادات. ملاحظة التحقق (23 سبتمبر 2026): تؤكد بلدية دبي بدء التطبيق في 19 أكتوبر 2020، وإلزامية الصفة الفضية، واختيارية الذهبية والبلاتينية، والإصدار الثاني في يناير 2023.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:estidama-pearl",
+      "topic": "Estidama Pearl Rating System (Abu Dhabi)",
+      "kind": "authority_approval",
+      "body_en": "Estidama (\"sustainability\" in Arabic) is Abu Dhabi's sustainable-development programme, and its Pearl Rating System (PRS) is the evaluation tool for buildings, villas and communities. It is mandatory in Abu Dhabi: all new buildings must achieve at least 1 Pearl, and government-funded buildings at least 2 Pearls. It is administered by the Abu Dhabi planning authority (originally the Urban Planning Council, now within the Department of Municipalities and Transport).\nRelevance to automation and BMS: higher Pearl ratings reward efficient HVAC and lighting control, energy and water monitoring and proper commissioning, so the automation scope often has to deliver metering, controls and documentation used in the Pearl submission. The detailed credit numbers and requirement text for each credit were not verified in this research and must be taken from the current PRS manual for the relevant typology (Pearl Building, Pearl Villa or Pearl Community).\nBuyer guidance: for Abu Dhabi projects state the target Pearl level in the RFQ, ask the consultant for the list of credits that depend on controls/metering, and require the supplier to provide commissioning reports, meter schedules and control sequences as submittals. Do not apply Dubai's Al Sa'fat terminology to Abu Dhabi projects — they are different systems. Verification note (23 Sep 2026): one Pearl mandatory for all new developments and two Pearls for government projects (Information Bulletin 1, 6 December 2010) are confirmed; the current administering department name was not confirmed on a primary page.",
+      "body_ar": "استدامة هو برنامج أبوظبي للتنمية المستدامة، ونظام اللؤلؤ للتقييم هو أداة تقييم المباني والفلل والمجتمعات. وهو إلزامي في أبوظبي: فعلى جميع المباني الجديدة تحقيق لؤلؤة واحدة على الأقل، والمباني الممولة حكومياً لؤلؤتين على الأقل. وتديره جهة التخطيط في أبوظبي (مجلس التخطيط العمراني سابقاً، وحالياً ضمن دائرة البلديات والنقل).\nعلاقته بالأتمتة: تكافئ مستويات اللؤلؤ الأعلى كفاءة التحكم بالتكييف والإضاءة ومراقبة الطاقة والمياه والتشغيل التجريبي السليم، لذا كثيراً ما يُطلب من نطاق الأتمتة توفير العدادات والتحكم والوثائق المستخدمة في ملف التقييم. ولم يتم التحقق في هذا البحث من أرقام النقاط ونصوص المتطلبات التفصيلية، ويجب أخذها من دليل النظام الحالي للنوع المعني (مبنى أو فيلا أو مجتمع).\nإرشاد للمشتري: في مشاريع أبوظبي اذكر مستوى اللؤلؤ المستهدف في طلب التسعير، واطلب من الاستشاري قائمة البنود المعتمدة على التحكم والقياس، وألزم المورّد بتقديم تقارير التشغيل التجريبي وجداول العدادات وتسلسلات التحكم كمستندات تقديم. ولا تخلط مصطلحات الصفات الخاصة بدبي بمشاريع أبوظبي، فهما نظامان مختلفان. ملاحظة التحقق (23 سبتمبر 2026): تأكدت إلزامية لؤلؤة واحدة لكل المشاريع الجديدة ولؤلؤتين للمشاريع الحكومية (النشرة رقم 1 في 6 ديسمبر 2010)؛ ولم يتأكد اسم الدائرة المشرفة حالياً من صفحة أولية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://climatepolicydatabase.org/policies/estidama-pearl-rating-system-new-residential-and-commercial-buildings",
+        "https://fidic.org/sites/default/files/R&C%20Estidama%20-%20final%20v2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:commissioning",
+      "topic": "Testing and commissioning of BMS and home automation",
+      "kind": "installation",
+      "body_en": "Commissioning (Cx) is the documented, systematic process of verifying that building systems perform together according to the owner's project requirements (OPR) and design intent. Reference frameworks are ASHRAE Guideline 0 and ASHRAE Standard 202; retro-commissioning applies the same idea to existing buildings.\nFor automation, commissioning normally includes: point-to-point checkout (every sensor, actuator and meter verified from field to graphics, with correct scaling and alarm limits); controller and network checks; functional performance tests of each sequence of operation (e.g. chiller staging, AHU supply-air reset, FCU occupancy setback, curtain and lighting scenes); integration tests with third-party systems; trend-logging during a proving period; and training plus O&M manuals and as-built documentation. The contractor usually performs tests and a commissioning provider or consultant witnesses or samples them.\nBuyer guidance: define in the RFQ who performs and who witnesses commissioning, require test sheets signed per point, a minimum trend proving period, and the handover package (as-built drawings, point list, sequences, project files, licences, passwords, training attendance). A quote that has no commissioning line, or states \"commissioning by others\", often means the integrator will only power up devices, leaving sequences unverified. In villas, insist on a scene-by-scene walkthrough with the owner before final payment. Verification note (23 Sep 2026): ASHRAE Standard 202 (approved 2013, built on Guideline 0) and the OPR/BOD framework are confirmed.",
+      "body_ar": "التشغيل التجريبي هو عملية منهجية موثقة للتحقق من أن أنظمة المبنى تعمل معاً وفق متطلبات المالك ونية التصميم، ومرجعياته إرشاد ASHRAE رقم 0 ومعيار ASHRAE رقم 202، ويطبق \"إعادة التشغيل التجريبي\" الفكرة نفسها على المباني القائمة.\nيشمل التشغيل التجريبي للأتمتة عادةً: فحص كل نقطة من الميدان حتى الرسومات بمعاملات صحيحة وحدود إنذار، وفحص وحدات التحكم والشبكة، واختبارات الأداء الوظيفي لكل تسلسل تشغيل (تدرّج المبرّدات، إعادة ضبط هواء الإمداد، خفض وحدات ملف المروحة عند عدم الإشغال، مشاهد الستائر والإضاءة)، واختبارات التكامل مع الأنظمة الخارجية، وتسجيل الاتجاهات خلال فترة إثبات، والتدريب وأدلة التشغيل والصيانة والمخططات النهائية. ويجري المقاول الاختبارات ويشهدها أو يأخذ عينات منها مختص التشغيل التجريبي أو الاستشاري.\nإرشاد للمشتري: حدد في طلب التسعير من يجري الاختبارات ومن يشهدها، واطلب أوراق اختبار موقعة لكل نقطة وفترة إثبات دنيا للاتجاهات وحزمة تسليم كاملة (مخططات نهائية، قائمة نقاط، تسلسلات، ملفات المشروع، تراخيص، كلمات مرور، حضور التدريب). والعرض الخالي من بند التشغيل التجريبي أو الذي يذكر \"من قبل الغير\" يعني غالباً تشغيل الأجهزة فقط دون التحقق من التسلسلات. وفي الفلل اشترط جولة مشهداً بمشهد مع المالك قبل الدفعة الأخيرة. ملاحظة التحقق (23 سبتمبر 2026): تأكد معيار ASHRAE 202 (المعتمد عام 2013 والمبني على الدليل 0) وإطار متطلبات المالك وأساس التصميم.",
+      "sources": [
+        "https://www.csemag.com/commissioning-buildings-systems-using-ashrae-standard-202/",
+        "https://en.wikipedia.org/wiki/Building_commissioning"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:bms-cybersecurity-network",
+      "topic": "BMS and smart-home network and cyber-security",
+      "kind": "installation",
+      "body_en": "Modern automation is IP-based, which brings IT risks: BMS supervisory servers, KNX IP gateways, VRF gateways, cameras and smart-home hubs exposed to the internet are a known attack path, and the BMS literature itself flags growing security vulnerabilities. Classic building protocols (BACnet/IP, Modbus TCP, KNX IP without KNX Secure) were designed without encryption or authentication.\nGood practice to specify: a separate network/VLAN for building systems isolated from the tenant/guest network; no port-forwarding of BMS or KNX gateways to the internet — remote access only via VPN or a vendor cloud with multi-factor authentication; changed default passwords and named user accounts; KNX Secure or BACnet/SC where available; firmware update responsibility defined; logs and backups. For villas, the smart-home system should sit on its own network segment and the router should be business-grade enough for the device count.\nResponsibility gaps are common: the automation contractor assumes the IT contractor provides switches and firewalls, and vice versa. The RFQ should say who supplies network hardware, who configures it, and who is accountable for remote-access security after handover. Confidence medium: UAE-specific cyber regulations for building systems (e.g. for critical facilities) were not researched here. Verification note (23 Sep 2026): BACnet/SC and BMS security concerns are confirmed; KNX Secure details and UAE building-system cyber rules were not established.",
+      "body_ar": "أصبحت الأتمتة الحديثة قائمة على IP، ما يجلب مخاطر تقنية المعلومات: فخوادم إدارة المبنى وبوابات KNX IP وبوابات VRF والكاميرات ومحاور المنزل الذكي المكشوفة على الإنترنت مسار هجوم معروف، والأدبيات تشير إلى تزايد الثغرات الأمنية. وقد صُممت البروتوكولات التقليدية (BACnet/IP وModbus TCP وKNX IP دون KNX Secure) دون تشفير أو مصادقة.\nالممارسات الجيدة الواجب اشتراطها: شبكة منفصلة لأنظمة المبنى معزولة عن شبكة المستأجرين والضيوف، وعدم فتح منافذ بوابات النظام على الإنترنت مع قصر الوصول عن بعد على VPN أو سحابة المصنّع بمصادقة متعددة العوامل، وتغيير كلمات المرور الافتراضية وإنشاء حسابات مستخدمين بأسماء، واستخدام KNX Secure أو BACnet/SC حيث يتوفر، وتحديد مسؤولية تحديث البرامج الثابتة، والسجلات والنسخ الاحتياطية. وفي الفلل يُوضع نظام المنزل الذكي على مقطع شبكة خاص مع موجّه يتحمل عدد الأجهزة.\nالفجوات في المسؤولية شائعة، فكل من مقاول الأتمتة ومقاول تقنية المعلومات يفترض أن الآخر يوفّر المبدّلات والجدران النارية، لذا يجب أن يحدد طلب التسعير من يورّد أجهزة الشبكة ومن يهيئها ومن يتحمل أمن الوصول عن بعد بعد التسليم. الثقة متوسطة لعدم بحث اللوائح السيبرانية الإماراتية الخاصة بأنظمة المباني. ملاحظة التحقق (23 سبتمبر 2026): تأكد BACnet/SC ومخاوف أمن أنظمة إدارة المباني؛ ولم تثبت تفاصيل KNX Secure ولا قواعد الأمن السيبراني الإماراتية لأنظمة المباني.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system",
+        "https://bacnet.org/bacnet-secure-connect/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:dali-vs-0-10v-vs-phase-cut",
+      "topic": "DALI vs 0-10V vs phase-cut (leading/trailing edge) dimming",
+      "kind": "comparison",
+      "body_en": "Three dimming methods appear in UAE lighting and automation quotes.\nPhase-cut (leading-edge / trailing-edge) dimming chops the 230 V mains waveform; no extra control wires are needed, which suits retrofits and villas, but LED drivers must be rated \"dimmable\" for the specific edge type, and mismatches cause flicker, buzzing, limited dimming range or minimum-load problems. Trailing edge is generally preferred for modern LED drivers.\n0-10V (or 1-10V) uses a separate two-wire analogue control signal to the driver while a relay switches power; simple and cheap for commercial fixtures, but there is no addressing, no feedback, and circuits must be wired as groups — regrouping means rewiring. Voltage drop on long runs affects levels.\nDALI (IEC 62386) is digital and addressable: each driver has an address, groups and scenes are changed in software, drivers report status/faults, and DALI-2/D4i add certified sensors and energy data; it needs a two-wire DALI bus and a DALI power supply/gateway, and DALI drivers cost more than basic ones.\nRule of thumb: phase-cut for small residential circuits and retrofit; 0-10V for simple commercial zones; DALI where flexibility, individual control, emergency testing or energy data are needed. Whatever is chosen, the luminaire supplier and the control supplier must confirm driver compatibility in writing. Verification note (23 Sep 2026): DALI facts and its polarity-free bus (unlike 0/1-10V) are confirmed; leading/trailing-edge compatibility advice was not checked against a manufacturer page.",
+      "body_ar": "تظهر ثلاث طرق للتعتيم في عروض الإضاءة والأتمتة بالإمارات.\nالتعتيم بقطع الطور (الحافة الأمامية أو الخلفية) يقطع موجة التيار 230 فولت دون أسلاك تحكم إضافية، ما يناسب التحديث والفلل، لكن يجب أن تكون مشغّلات LED مصنفة \"قابلة للتعتيم\" لنوع الحافة المحدد، وعدم التوافق يسبب الوميض والطنين ومحدودية مدى التعتيم أو مشكلات الحد الأدنى للحمل. وتُفضَّل الحافة الخلفية عموماً لمشغّلات LED الحديثة.\nطريقة 0-10 فولت (أو 1-10) تستخدم إشارة تماثلية منفصلة بسلكين إلى المشغّل بينما يتحكم مرحّل بالتغذية، وهي بسيطة ورخيصة لوحدات الإضاءة التجارية، لكن بلا عناوين ولا تغذية راجعة، وتُمدّد الدوائر كمجموعات فتغيير التجميع يعني إعادة التمديد.\nأما DALI (IEC 62386) فرقمي بعناوين: لكل مشغّل عنوان، وتُعدّل المجموعات والمشاهد برمجياً، وتُبلغ المشغّلات عن الحالة والأعطال، ويضيف DALI-2 وD4i حساسات معتمدة وبيانات طاقة، ويحتاج ناقل DALI بسلكين ومصدر تغذية أو بوابة، ومشغّلاته أغلى.\nقاعدة عملية: قطع الطور للدوائر السكنية الصغيرة والتحديث، و0-10 فولت للمناطق التجارية البسيطة، وDALI حيث تلزم المرونة والتحكم الفردي واختبار الطوارئ أو بيانات الطاقة. وأياً كان الخيار، يجب أن يؤكد مورّد الإضاءة ومورّد التحكم توافق المشغّلات كتابياً. ملاحظة التحقق (23 سبتمبر 2026): تأكدت خصائص DALI وأن ناقلها لا يتقيد بالقطبية بخلاف 0/1-10V؛ ولم تُفحص نصيحة التوافق للقطع الأمامي والخلفي مقابل صفحة مصنّع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://www.dali-alliance.org/dali/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:price-drivers",
+      "topic": "Price drivers in home and building automation quotes",
+      "kind": "price_driver",
+      "body_en": "Automation pricing is driven by quantities and engineering effort, not by floor area alone. Main drivers:\n1. Point/channel count: number of switched and dimmed lighting channels, curtain channels, HVAC zones, and BMS hard-wired I/O points. BMS quotes are commonly built up per point.\n2. Integration count: each third-party system (VRF, chillers, meters, lifts, fire alarm, generators, CCTV) needs a gateway or driver and mapping work; Modbus devices without register maps add engineering hours.\n3. Platform: open wired (KNX/DALI) versus premium dealer platforms (Crestron/Control4/Savant) versus consumer wireless; premium platforms add processors, licences and dealer programming rates.\n4. User interface: keypad design range and finishes, touch panels, custom graphics pages, apps.\n5. Programming and commissioning hours, number of scenes and logic complexity.\n6. Head-end software licences, servers, and annual subscription/cloud fees.\n7. Cabling and containment responsibility (bus cable, RS-485, Cat6), and whether the electrical contractor or the automation supplier installs it.\n8. Warranty length and included post-handover maintenance visits.\nReal AED prices vary widely by brand and project and are not established here; compare quotes on a normalised point/channel schedule rather than on totals. Verification note (23 Sep 2026): no prices are stated.",
+      "body_ar": "يتحدد تسعير الأتمتة بالكميات وجهد الهندسة وليس بالمساحة وحدها. أهم المحركات:\n1. عدد النقاط والقنوات: قنوات الإضاءة (تشغيل وتعتيم) وقنوات الستائر ومناطق التكييف ونقاط الإدخال والإخراج السلكية في نظام إدارة المبنى، وكثيراً ما تُبنى عروض الأنظمة على سعر النقطة.\n2. عدد عمليات التكامل: كل نظام خارجي (VRF، مبرّدات، عدادات، مصاعد، إنذار حريق، مولدات، كاميرات) يحتاج بوابة أو مشغّلاً وأعمال ربط، وأجهزة Modbus بلا خرائط سجلات تضيف ساعات هندسية.\n3. المنصة: سلكية مفتوحة (KNX وDALI) أم منصات وكلاء فاخرة (Crestron وControl4 وSavant) أم لاسلكية استهلاكية؛ والفاخرة تضيف معالجات وتراخيص وأسعار برمجة الوكيل.\n4. واجهة المستخدم: فئة لوحات المفاتيح وتشطيباتها وشاشات اللمس والرسومات المخصصة والتطبيقات.\n5. ساعات البرمجة والتشغيل التجريبي وعدد المشاهد وتعقيد المنطق.\n6. تراخيص البرنامج الرئيسي والخوادم ورسوم الاشتراك أو السحابة السنوية.\n7. مسؤولية الكابلات والمسارات (كابل الناقل وRS-485 وCat6) ومن يركّبها.\n8. مدة الضمان وزيارات الصيانة المشمولة بعد التسليم.\nالأسعار الفعلية بالدرهم تتفاوت كثيراً ولم تُحدد هنا، فقارن العروض على جدول نقاط وقنوات موحد لا على الإجماليات. ملاحظة التحقق (23 سبتمبر 2026): لا توجد أسعار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system",
+        "https://en.wikipedia.org/wiki/Crestron_Electronics"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:lead-times",
+      "topic": "Lead times for automation equipment and programming",
+      "kind": "lead_time",
+      "body_en": "Lead time in automation has two parts: hardware supply and engineering/programming.\nHardware: common KNX actuators, DALI drivers, standard BACnet controllers and sensors from brands with UAE distributors are often held in regional stock, whereas design-range keypads in special finishes, engraved buttons, large touch panels, specific VRF gateways and premium-platform processors may be ordered from the factory in Europe or elsewhere. Verified typical week ranges for UAE supply were not established in this research; buyers should require each supplier to state lead time per line item and whether the item is ex-stock in the UAE.\nEngineering: submittals (point schedules, shop drawings, product data), engineer approval, panel fabrication, programming and commissioning frequently take longer than the hardware. BMS panel fabrication and graphics development must be scheduled before MEP testing, since BMS commissioning depends on chillers, AHUs and FCUs being operational.\nPlanning advice: freeze keypad designs and engraving texts early; get the AC brand/model confirmed before ordering gateways; include programming and a commissioning window in the programme; and ask for staged delivery aligned with first-fix (cabling, back-boxes), second-fix (devices) and final commissioning. Confidence low for durations; the process sequence is standard. Verification note (23 Sep 2026): durations are not established.",
+      "body_ar": "لمدة التوريد في الأتمتة جزءان: توريد الأجهزة، والهندسة والبرمجة.\nالأجهزة: كثيراً ما تتوفر مشغّلات KNX الشائعة ومشغّلات DALI ووحدات BACnet القياسية والحساسات من العلامات التي لها موزعون في الإمارات في المخزون الإقليمي، بينما قد تُطلب لوحات المفاتيح التصميمية بتشطيبات خاصة والأزرار المحفورة وشاشات اللمس الكبيرة وبوابات VRF المحددة ومعالجات المنصات الفاخرة من المصنع في أوروبا أو غيرها. ولم تُثبت في هذا البحث مدد نموذجية بالأسابيع، فعلى المشتري أن يطلب من كل مورّد بيان مدة التوريد لكل بند وهل هو متوفر في المخزون داخل الدولة.\nالهندسة: مستندات التقديم (جداول النقاط، المخططات التنفيذية، بيانات المنتجات) واعتماد الاستشاري وتصنيع اللوحات والبرمجة والتشغيل التجريبي تستغرق غالباً وقتاً أطول من الأجهزة، ويجب جدولة تصنيع لوحات النظام وتطوير الرسومات قبل اختبارات الأعمال الكهروميكانيكية لأن تشغيل النظام يعتمد على جاهزية المبرّدات والمناولات ووحدات ملف المروحة.\nنصيحة للتخطيط: ثبّت تصاميم لوحات المفاتيح ونصوص الحفر مبكراً، وأكد علامة المكيف وطرازه قبل طلب البوابات، وأدرج نافذة للبرمجة والتشغيل في البرنامج الزمني، واطلب توريداً مرحلياً مع التمديدات الأولى والثانية والتشغيل النهائي. الثقة منخفضة للمدد، أما تسلسل العملية فقياسي. ملاحظة التحقق (23 سبتمبر 2026): المدد غير مثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:warranty-maintenance",
+      "topic": "Warranty, maintenance and support norms",
+      "kind": "warranty",
+      "body_en": "Warranty in automation must cover three different things, and quotes often cover only the first:\n1. Manufacturer hardware warranty on devices (actuators, controllers, keypads, motors, drivers). Terms differ by brand and are usually handled through the local distributor; confirm the warranty is valid for units sold in the UAE, not grey imports.\n2. Installer/integrator workmanship and programming warranty: correction of wiring faults, programming errors and sequence bugs for a defined period after handover or practical completion.\n3. Software: licence validity, whether updates and upgrades of the head-end/app are included, and any annual subscription for cloud/remote access. Some premium platforms and cloud services charge recurring fees.\nMaintenance: commercial BMS normally has a planned preventive maintenance contract (periodic controller health checks, sensor calibration, backup of databases, alarm review, software patches) plus response times for faults; villas typically have an annual service plan with a set number of visits and remote support.\nBuyer checklist: warranty start date (handover vs delivery), what voids it (third-party changes, power surges), who pays for labour to replace a failed device during warranty, spare-parts availability period, response time, and remote support method. Confidence low: typical durations in the UAE market were not verified from sources and must be stated by the supplier. Verification note (23 Sep 2026): durations are not established.",
+      "body_ar": "يجب أن يغطي ضمان الأتمتة ثلاثة أمور مختلفة، وكثيراً ما تغطي العروض الأول فقط:\n1. ضمان المصنّع على الأجهزة (المشغّلات، وحدات التحكم، لوحات المفاتيح، المحركات، المشغّلات الضوئية)، وتختلف شروطه حسب العلامة ويُدار عادةً عبر الموزع المحلي، فتأكد أن الضمان سارٍ للأجهزة المباعة في الإمارات لا المستوردة بطرق موازية.\n2. ضمان التنفيذ والبرمجة من المُكامل: إصلاح أخطاء التمديد والبرمجة وعيوب التسلسلات لفترة محددة بعد التسليم أو الإنجاز العملي.\n3. البرمجيات: صلاحية الترخيص، وهل التحديثات والترقيات مشمولة، وأي اشتراك سنوي للسحابة أو الوصول عن بعد، إذ تفرض بعض المنصات الفاخرة والخدمات السحابية رسوماً متكررة.\nالصيانة: يكون للنظام التجاري عادةً عقد صيانة وقائية مخططة (فحص وحدات التحكم، معايرة الحساسات، نسخ قواعد البيانات، مراجعة الإنذارات، تحديثات البرامج) مع أزمنة استجابة للأعطال، وللفلل عادةً خطة خدمة سنوية بعدد زيارات ودعم عن بعد.\nقائمة تحقق: تاريخ بدء الضمان، وما يلغيه (تعديلات طرف ثالث، تذبذب الكهرباء)، ومن يتحمل أجرة استبدال جهاز معطل خلال الضمان، وفترة توفر قطع الغيار، وزمن الاستجابة، وطريقة الدعم عن بعد. الثقة منخفضة لأن المدد المعتادة في السوق الإماراتي لم يتم التحقق منها ويجب أن يذكرها المورّد. ملاحظة التحقق (23 سبتمبر 2026): المدد غير مثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:quote-red-flags",
+      "topic": "Red flags in home/building automation quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs that a supplier's automation quote is incomplete or will lead to variations:\n- Lump sum with no point, channel or device schedule, so quantities cannot be checked or compared.\n- \"KNX\" or \"BACnet compatible\" with no statement of medium (TP/RF/IP, MS/TP vs IP) and no certification (KNX certified, BTL listed, DiiA DALI-2).\n- Third-party integration listed as \"by others\" or \"subject to gateway availability\" without naming the gateway and the devices covered.\n- No mention of handover of project files (ETS project, controller programs, databases), licences in the owner's name, and admin passwords.\n- Programming and commissioning excluded or limited to \"basic configuration\"; no functional tests or trend proving.\n- Cabling, containment, panels or power supplies silently excluded.\n- Wireless devices for the wrong region (US-frequency Z-Wave) or consumer products proposed for a commercial building.\n- Recurring licence/cloud fees not disclosed.\n- Dimming method not stated, or no confirmation of driver compatibility with the lighting supplier.\n- Unrealistic lead time claims for design-range keypads or special gateways.\n- Warranty stated only as \"as per manufacturer\" with no workmanship/programming warranty.\nEach of these should be clarified in writing before comparison or award. Verification note (23 Sep 2026): certification schemes (KNX, BTL, DALI-2) and regional Z-Wave frequencies are confirmed.",
+      "body_ar": "علامات تدل على أن عرض الأتمتة ناقص أو سيؤدي إلى أوامر تغييرية:\n- مبلغ مقطوع دون جدول نقاط أو قنوات أو أجهزة، فلا يمكن التحقق من الكميات أو المقارنة.\n- عبارة \"KNX\" أو \"متوافق مع BACnet\" دون تحديد الوسيط (سلكي أو لاسلكي أو IP، أو MS/TP مقابل IP) ودون اعتماد (اعتماد KNX أو إدراج BTL أو DALI-2 من DiiA).\n- إدراج التكامل مع الأنظمة الخارجية كـ \"من قبل الغير\" أو \"حسب توفر البوابة\" دون تسمية البوابة والأجهزة المشمولة.\n- غياب تسليم ملفات المشروع (ملف ETS، برامج وحدات التحكم، قواعد البيانات) والتراخيص باسم المالك وكلمات مرور المسؤول.\n- استبعاد البرمجة والتشغيل التجريبي أو قصرهما على \"إعداد أساسي\" دون اختبارات وظيفية أو فترة إثبات.\n- استبعاد ضمني للكابلات أو المسارات أو اللوحات أو مصادر التغذية.\n- أجهزة لاسلكية بتردد منطقة أخرى (Z-Wave الأمريكي) أو منتجات استهلاكية لمبنى تجاري.\n- عدم الإفصاح عن رسوم التراخيص أو السحابة المتكررة.\n- عدم تحديد طريقة التعتيم أو عدم تأكيد توافق المشغّلات مع مورّد الإضاءة.\n- ادعاء مدد توريد غير واقعية للوحات التصميمية أو البوابات الخاصة.\n- ضمان \"حسب المصنّع\" فقط دون ضمان للتنفيذ والبرمجة.\nويجب استيضاح كل ذلك كتابياً قبل المقارنة أو الترسية. ملاحظة التحقق (23 سبتمبر 2026): تأكدت برامج الاعتماد (KNX وBTL وDALI-2) وترددات Z-Wave الإقليمية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://bacnetinternational.org/btl/",
+        "https://www.dali-alliance.org/dali/",
+        "https://www.silabs.com/wireless/z-wave/global-regions"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:installation-cabling",
+      "topic": "Installation and cabling practice for automation",
+      "kind": "installation",
+      "body_en": "Many automation faults are installation faults. Key practices a buyer should require:\nKNX TP: use certified KNX bus cable, keep bus topology within line limits (device count per segment/line), plan couplers/IP routers for large projects, provide adequate bus power supplies, keep the bus clearly identified, and observe separation from mains conductors as required by the manufacturer and the applicable wiring regulations.\nRS-485 (BACnet MS/TP, Modbus RTU): shielded twisted pair, daisy-chain (no stars or long stubs), single-point shield earthing, end-of-line termination on both ends, consistent baud rate and unique addresses (Modbus 1-247). Poor RS-485 practice is the classic source of intermittent communication.\nDALI: two-wire bus, polarity-free, can share a multi-core cable with mains if the insulation rating permits, but cable size must keep voltage drop within 2 V; no termination needed; respect 64 devices per line and bus power supply capacity.\nIP: structured cabling (Cat6 or better), a dedicated rack or DB space with UPS for controllers, servers and switches.\nGeneral: deep back-boxes for keypads, neutral at switch points where devices need it, labelled cables and panels, as-built drawings, and a site walk before closing ceilings. In UAE villas coordinate early with the electrical contractor because automation actuators often replace conventional switching in the distribution board, which needs more space. Verification note (23 Sep 2026): KNX segment limits (64 or 256 devices, 1,000 m), Modbus 1-247 addressing and trunk termination, and DALI 64 devices / 2 V drop are confirmed.",
+      "body_ar": "كثير من أعطال الأتمتة هي أعطال تركيب. أهم الممارسات التي يجب أن يشترطها المشتري:\nKNX السلكي: استخدام كابل ناقل KNX معتمد، والالتزام بحدود الطوبولوجيا (عدد الأجهزة لكل مقطع وخط)، وتخطيط المقارنات أو موجّهات IP في المشاريع الكبيرة، وتوفير مصادر تغذية كافية للناقل، وتمييز الناقل بوضوح، والتقيد بالفصل عن موصلات التيار الرئيسي وفق المصنّع ولوائح التمديد المعمول بها.\nRS-485 (BACnet MS/TP وModbus RTU): كابل مجدول مدرّع، وتوصيل متسلسل دون تفرعات نجمية أو طويلة، وتأريض التدريع من نقطة واحدة، ومقاومات إنهاء في الطرفين، وسرعة اتصال موحدة وعناوين فريدة (1 إلى 247 في Modbus). وسوء ممارسات RS-485 هو المصدر التقليدي للانقطاع المتقطع.\nDALI: ناقل بسلكين دون قطبية، يمكن أن يشارك كابلاً متعدد الأسلاك مع التيار الرئيسي إذا سمح تصنيف العزل، مع مقطع يُبقي هبوط الجهد ضمن 2 فولت، ولا يحتاج إنهاء، ويُلتزم بـ 64 جهازاً لكل خط وسعة مصدر التغذية.\nIP: كابلات هيكلية Cat6 أو أفضل، وخزانة أو مساحة مخصصة مع UPS لوحدات التحكم والخوادم والمبدّلات.\nعموماً: علب عميقة للوحات المفاتيح، وسلك تعادل عند المفاتيح حيث يلزم، وكابلات ولوحات موسومة، ومخططات نهائية، وجولة موقعية قبل إغلاق الأسقف. وفي فلل الإمارات نسّق مبكراً مع مقاول الكهرباء لأن مشغّلات الأتمتة تحل غالباً محل التحكم التقليدي في لوحة التوزيع وتحتاج مساحة أكبر. ملاحظة التحقق (23 سبتمبر 2026): تأكدت حدود قطاعات KNX (64 أو 256 جهازاً و1,000 متر)، وعناوين Modbus من 1 إلى 247 وإنهاء الخط الرئيسي، و64 جهازاً وهبوط 2 فولت في DALI.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://cdn.linak.com/-/media/files/ic-and-bus-actuators/modbus-over-serial-line-v1-02.pdf",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:glossary",
+      "topic": "Home and building automation glossary",
+      "kind": "glossary",
+      "body_en": "BMS/BAS: Building Management/Automation System — central monitoring and control of HVAC, lighting and other services.\nDDC: Direct Digital Control — programmable controllers executing HVAC control logic.\nI/O point: one physical input or output (AI analogue in, AO analogue out, DI digital in, DO digital out); the basic BMS pricing unit.\nHead-end / SCADA: the supervisory software, servers and graphics at management level.\nSequence of operation: the written control logic each system must follow; the basis for commissioning tests.\nGateway: device translating between protocols (e.g. VRF bus to BACnet, DALI to KNX).\nETS: the KNX engineering software; the \"ETS project\" is the configuration file.\nGroup address (KNX): logical address linking sensors and actuators.\nBTL: BACnet Testing Laboratories listing; PICS: BACnet protocol implementation conformance statement.\nMS/TP: BACnet's RS-485 token-passing field network.\nRegister map: Modbus document describing which register holds which value.\nDALI-2 / D4i / DT8: certified DALI generation / driver data for IoT / colour control device type.\nBorder router: device connecting a Thread mesh to Wi-Fi/Ethernet.\nScene: stored set of levels/positions recalled by one command.\nOPR: Owner's Project Requirements used in commissioning.\nCx / RCx: commissioning / retro-commissioning.\nLock-in: dependence on one vendor for expansion, spares or service. Verification note (23 Sep 2026): definitions checked against the cited pages.",
+      "body_ar": "BMS/BAS: نظام إدارة أو أتمتة المبنى، للمراقبة والتحكم المركزي بالتكييف والإضاءة والخدمات الأخرى.\nDDC: التحكم الرقمي المباشر، وحدات قابلة للبرمجة تنفذ منطق التحكم بالتكييف.\nنقطة إدخال/إخراج: مدخل أو مخرج فيزيائي واحد (تماثلي أو رقمي)، وهي الوحدة الأساسية لتسعير أنظمة إدارة المباني.\nالبرنامج الرئيسي/سكادا: البرمجيات الإشرافية والخوادم والرسومات في مستوى الإدارة.\nتسلسل التشغيل: منطق التحكم المكتوب الذي يجب أن يتبعه كل نظام، وهو أساس اختبارات التشغيل التجريبي.\nالبوابة: جهاز يترجم بين البروتوكولات (مثل ناقل VRF إلى BACnet، أو DALI إلى KNX).\nETS: برنامج هندسة KNX، و\"مشروع ETS\" هو ملف الإعداد.\nعنوان المجموعة (KNX): عنوان منطقي يربط الحساسات بالمشغّلات.\nBTL: إدراج مختبرات اختبار BACnet، وPICS: بيان مطابقة تطبيق بروتوكول BACnet.\nMS/TP: شبكة BACnet الميدانية على RS-485 بتمرير الرمز.\nخريطة السجلات: وثيقة Modbus تبين أي سجل يحمل أي قيمة.\nDALI-2 / D4i / DT8: جيل DALI المعتمد / بيانات المشغّل لإنترنت الأشياء / نوع جهاز التحكم باللون.\nموجّه الحدود: جهاز يربط شبكة Thread بالواي فاي أو الإيثرنت.\nالمشهد: مجموعة مستويات أو مواضع مخزنة تُستدعى بأمر واحد.\nOPR: متطلبات مشروع المالك المستخدمة في التشغيل التجريبي.\nCx / RCx: التشغيل التجريبي / إعادة التشغيل التجريبي.\nالتقييد بالمورّد: الاعتماد على مورّد واحد للتوسعة أو قطع الغيار أو الخدمة. ملاحظة التحقق (23 سبتمبر 2026): التعريفات مطابقة للصفحات المذكورة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system",
+        "https://en.wikipedia.org/wiki/KNX",
+        "https://en.wikipedia.org/wiki/BACnet",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://www.threadgroup.org/What-is-Thread/Overview",
+        "https://www.csemag.com/commissioning-buildings-systems-using-ashrae-standard-202/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "home_automation:wifi-dependency-mistake",
+      "topic": "Buyer mistake: consumer Wi-Fi smart devices at scale",
+      "kind": "buyer_mistake",
+      "body_en": "A frequent mistake in UAE apartments and villas is building a \"smart home\" from dozens of individual Wi-Fi plugs, bulbs, switches and cameras, each with its own app and cloud account. It is cheap to start, but at scale problems appear: the home router struggles with a large number of clients; devices drop off after router changes or ISP resets; automations depend on several cloud services and fail when the internet is down; different apps do not talk to each other; and some brands stop supporting older devices.\nBetter approaches: for new builds, a wired backbone (KNX, DALI, or a professional platform) for lighting, curtains and HVAC; for retrofits, a low-power mesh (Zigbee, Z-Wave regional 868 MHz version, or Thread) under one hub, ideally Matter-certified devices so the ecosystem is not tied to one brand; and a professional-grade Wi-Fi network (multiple access points, separate IoT network) for the devices that genuinely need Wi-Fi such as cameras and streaming.\nAlso check local control: ask whether scenes and schedules continue to run when the internet is down — Matter was designed to allow local control, but not every product or app behaves that way. For landlords and hotel apartments, consumer-account devices tied to one person's phone create handover problems when tenants change. Verification note (23 Sep 2026): Matter's local-control design is confirmed; the reliability problems are practice.",
+      "body_ar": "من الأخطاء المتكررة في شقق وفلل الإمارات بناء \"منزل ذكي\" من عشرات القوابس والمصابيح والمفاتيح والكاميرات العاملة بالواي فاي، لكلٍّ منها تطبيق وحساب سحابي مستقل. البداية رخيصة، لكن المشكلات تظهر مع التوسع: الموجّه المنزلي يعجز أمام العدد الكبير من الأجهزة، والأجهزة تنفصل بعد تغيير الموجّه أو إعادة ضبط مزود الخدمة، والأتمتة تعتمد على عدة خدمات سحابية فتتعطل عند انقطاع الإنترنت، والتطبيقات لا تتخاطب فيما بينها، وبعض العلامات توقف دعم الأجهزة القديمة.\nالأساليب الأفضل: في المباني الجديدة عمود فقري سلكي (KNX أو DALI أو منصة احترافية) للإضاءة والستائر والتكييف، وفي التحديث شبكة متشابكة منخفضة الطاقة (Zigbee أو Z-Wave بنسخة 868 الإقليمية أو Thread) تحت محور واحد، ويُفضل أجهزة معتمدة لـ Matter كي لا ترتبط المنظومة بعلامة واحدة، مع شبكة واي فاي احترافية (عدة نقاط وصول وشبكة منفصلة لإنترنت الأشياء) للأجهزة التي تحتاج الواي فاي فعلاً كالكاميرات والبث.\nوتحقق كذلك من التحكم المحلي: اسأل هل تستمر المشاهد والجداول عند انقطاع الإنترنت، فـ Matter صُمم ليتيح التحكم المحلي لكن ليس كل منتج أو تطبيق يعمل بهذه الطريقة. ولدى الملاك والشقق الفندقية، تخلق الأجهزة المرتبطة بحساب هاتف شخص واحد مشكلات في التسليم عند تغير المستأجرين. ملاحظة التحقق (23 سبتمبر 2026): تأكد تصميم Matter للتحكم المحلي؛ ومشكلات الموثوقية ممارسة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Matter_(standard)",
+        "https://en.wikipedia.org/wiki/Zigbee",
+        "https://www.silabs.com/wireless/z-wave/global-regions"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should I use KNX wired or KNX wireless for my new villa in Dubai?",
+      "q_ar": "هل أستخدم KNX السلكي أم اللاسلكي لفيلتي الجديدة في دبي؟",
+      "expected_entry_ids": [
+        "home_automation:knx-wired-vs-wireless",
+        "home_automation:home-automation-villa-spec"
+      ]
+    },
+    {
+      "q_en": "What is the difference between BACnet IP and MS/TP for our office tower BMS?",
+      "q_ar": "ما الفرق بين BACnet IP وMS/TP لنظام إدارة برجنا المكتبي؟",
+      "expected_entry_ids": [
+        "home_automation:bacnet-ip-vs-mstp"
+      ]
+    },
+    {
+      "q_en": "Is Crestron better than KNX, and will I be locked to the dealer?",
+      "q_ar": "هل Crestron أفضل من KNX، وهل سأكون مقيداً بالوكيل؟",
+      "expected_entry_ids": [
+        "home_automation:crestron-control4-savant-class",
+        "home_automation:open-vs-proprietary-lockin"
+      ]
+    },
+    {
+      "q_en": "The integrator finished but will not give us the ETS file. What should we have asked for?",
+      "q_ar": "أنهى المُكامل العمل لكنه يرفض تسليم ملف ETS، ماذا كان يجب أن نطلب؟",
+      "expected_entry_ids": [
+        "home_automation:ets-project-file-ownership",
+        "home_automation:open-vs-proprietary-lockin"
+      ]
+    },
+    {
+      "q_en": "DALI or 0-10V dimming for a hotel lobby?",
+      "q_ar": "تعتيم DALI أم 0-10 فولت لردهة فندق؟",
+      "expected_entry_ids": [
+        "home_automation:dali-vs-0-10v-vs-phase-cut",
+        "home_automation:dali-lighting-control"
+      ]
+    },
+    {
+      "q_en": "Can I buy Z-Wave devices from the US for my home in Abu Dhabi?",
+      "q_ar": "هل يمكنني شراء أجهزة Z-Wave من أمريكا لمنزلي في أبوظبي؟",
+      "expected_entry_ids": [
+        "home_automation:zigbee-zwave-wifi-matter-thread"
+      ]
+    },
+    {
+      "q_en": "What do I need to give suppliers to get an exact BMS quotation?",
+      "q_ar": "ما الذي يجب أن أقدمه للمورّدين للحصول على تسعير دقيق لنظام إدارة المبنى؟",
+      "expected_entry_ids": [
+        "home_automation:bms-scope-definition",
+        "home_automation:price-drivers"
+      ]
+    },
+    {
+      "q_en": "Does Al Sa'fat require a BMS in my Dubai building?",
+      "q_ar": "هل تشترط الصفات نظام إدارة مبنى في مبناي بدبي؟",
+      "expected_entry_ids": [
+        "home_automation:al-safat-dubai",
+        "home_automation:energy-metering"
+      ]
+    },
+    {
+      "q_en": "How do we connect our Daikin VRF to the KNX system?",
+      "q_ar": "كيف نربط نظام VRF من دايكن بمنظومة KNX؟",
+      "expected_entry_ids": [
+        "home_automation:hvac-integration"
+      ]
+    },
+    {
+      "q_en": "The quote says Matter-ready and commissioning by others — is that acceptable?",
+      "q_ar": "العرض يقول جاهز لـ Matter والتشغيل التجريبي من قبل الغير، هل هذا مقبول؟",
+      "expected_entry_ids": [
+        "home_automation:matter-certification-claims",
+        "home_automation:quote-red-flags",
+        "home_automation:commissioning"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 30,
+    "claims_checked": 148,
+    "corrected": [
+      "home_automation:knx-wired-vs-wireless",
+      "home_automation:bacnet-ip-vs-mstp",
+      "home_automation:zigbee-zwave-wifi-matter-thread"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "method": "A4b re-pass 2026-09-23: each claim grep-checked against fetched page text; unsupported specifics removed or stated as not established inside the entry (see Verification note)."
+  }
+}

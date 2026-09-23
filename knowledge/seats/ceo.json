@@ -1,0 +1,1065 @@
+{
+ "seat": "ceo",
+ "entries": [
+  {
+   "id": "ceo:gmv-vs-revenue",
+   "topic": "GMV, revealed value and net revenue are three different numbers",
+   "kind": "concept",
+   "body_en": "Gross merchandise volume (GMV) is the total value of transactions that pass through a marketplace; it is not revenue. Revenue is the part the marketplace keeps, which a16z calls the take rate applied to GMV. For QuotesDone the chain has three links that the CEO seat must never blur. First, requested value: the AED size of inquiries buyers post. Second, revealed value: the quotation value of the supplier the buyer chose to reveal. Third, net revenue: the reveal fee actually collected (3% under the current hard rules), less refunds, and before processor fees.\n\nA report that says \"we did AED 2M\" without naming which of the three it means is unusable. The CEO seat states every headline as a triple (requested, revealed, collected) and computes conversion between each link. Growth in requested value with flat collected revenue points to a matching, quoting or reveal-conversion problem, not a demand problem. Growth in revealed value with falling collected revenue points to refunds, failed payments or fee leakage, which is an accountant question. Only collected revenue, reconciled to the bank by the accountant, counts toward the AED 1M target, unless the founder rules otherwise.",
+   "body_ar": "إجمالي قيمة البضائع (GMV) هو مجموع قيمة المعاملات التي تمر عبر المنصة، وليس إيراداً. الإيراد هو الجزء الذي تحتفظ به المنصة، أي نسبة العمولة مطبّقة على تلك القيمة. وفي QuotesDone ثلاث حلقات لا يجوز للرئيس التنفيذي الخلط بينها: القيمة المطلوبة (حجم طلبات المشترين بالدرهم)، والقيمة المكشوفة (قيمة عرض المورد الذي اختار المشتري كشفه)، وصافي الإيراد (رسوم الكشف المحصّلة فعلاً، وهي 3% وفق القواعد الحالية، بعد خصم المبالغ المستردة وقبل رسوم المعالجة). يُعرض كل رقم رئيسي بهذه الحلقات الثلاث مع نسب التحويل بينها؛ فنمو القيمة المطلوبة مع ثبات الإيراد يشير إلى مشكلة في المطابقة أو التسعير أو تحويل الكشف لا في الطلب. ولا يُحتسب ضمن هدف المليون درهم إلا الإيراد المحصّل والمطابق مع البنك من قِبل المحاسب، ما لم يقرّر المؤسس غير ذلك.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:take-rate-strategy",
+   "topic": "Take rate: what to charge and why a modest rake wins",
+   "kind": "concept",
+   "body_en": "Take rate is the share of GMV a marketplace keeps. Bill Gurley's argument in \"A Rake Too Far\" is that platforms should set a rake that suppliers and buyers barely notice rather than the most they can extract. A high rake creates a price umbrella under which a cheaper competitor can grow, pushes suppliers to take deals off-platform, and raises the final price so volume falls. His examples: Booking.com winning Europe with an agency model near 10% against higher-margin merchant models, and oDesk cutting commission from 30% to 10% and becoming the category leader.\n\nFor QuotesDone the reveal fee (3%) is a founder hard rule; the CEO seat does not change it. What it owns is the evidence about whether the rate is right: fee-circumvention signals from the accountant (buyer and supplier meeting off-platform after a first contact), reveal conversion by trade and ticket size, refund requests citing price, and competitor pricing observed by marketing. If evidence accumulates that the fee suppresses volume or drives leakage, the CEO seat writes a proposal to the founder with numbers and a test design. It never changes a rate by itself.",
+   "body_ar": "نسبة العمولة هي الحصة التي تحتفظ بها المنصة من قيمة المعاملات. يرى بيل غيرلي أن على المنصة أن تحدد عمولة بالكاد يلاحظها الطرفان، لا أقصى ما يمكن انتزاعه؛ فالعمولة المرتفعة تفتح مظلة سعرية لمنافس أرخص، وتدفع الموردين إلى إتمام الصفقات خارج المنصة، وترفع السعر النهائي فينخفض الحجم. ومن أمثلته Booking.com بنموذج وكالة قرابة 10%، وoDesk التي خفّضت عمولتها من 30% إلى 10% فتصدّرت فئتها. رسوم الكشف في QuotesDone (3%) قاعدة ثابتة من المؤسس لا يغيّرها الرئيس التنفيذي، لكنه يملك الأدلة على ملاءمتها: مؤشرات التحايل على الرسوم، وتحويل الكشف حسب التخصص وحجم الطلب، وطلبات الاسترداد بسبب السعر، وأسعار المنافسين. وإذا تراكمت الأدلة يرفع مقترحاً مدعوماً بالأرقام وتصميم تجربة إلى المؤسس.",
+   "sources": [
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:marketplace-liquidity",
+   "topic": "Liquidity and match rate: the core health measure of a two-sided marketplace",
+   "kind": "concept",
+   "body_en": "A marketplace is only useful when a request finds a good counterpart quickly. a16z describes this through match rate (share of demand that finds supply), market depth (enough relevant supply for what buyers need) and time to match. For a procurement marketplace like QuotesDone the practical translation is: of the inquiries posted in a period, what share received at least one exact-trade quote, what share received three (the top-3 rule), how long the first quote took, and what share ended in a reveal.\n\nThe CEO seat measures liquidity per trade and per emirate, never only in aggregate, because a national average hides empty cells: Dubai HVAC may be liquid while Al Ain glazing has no supplier at all. An empty cell is a supply gap that belongs to the sales_engineer (recruitment per trade and emirate) with targeting handed to marketing. Liquidity improving in one cell while falling in another is normal; the seat looks at the cells that carry the most requested AED. Liquidity is the leading indicator; revenue lags it by the quoting and decision cycle.",
+   "body_ar": "لا تكون المنصة مفيدة إلا إذا وجد الطلب طرفاً مناسباً بسرعة. تصف a16z ذلك بمعدل المطابقة وعمق السوق وزمن المطابقة. وفي منصة مشتريات مثل QuotesDone يُترجم ذلك إلى: نسبة الطلبات التي تلقّت عرضاً واحداً على الأقل من التخصص نفسه، ونسبة التي تلقّت ثلاثة عروض، والزمن حتى أول عرض، ونسبة التي انتهت بكشف. يقيس الرئيس التنفيذي السيولة لكل تخصص ولكل إمارة، لا بالمتوسط العام فقط، لأن المتوسط يخفي الخانات الفارغة؛ فقد يكون التكييف في دبي سيولاً بينما لا يوجد مورد زجاج واحد في العين. والخانة الفارغة فجوة توريد يتولاها مهندس المبيعات بالاستقطاب، مع تسليم الاستهداف للتسويق. السيولة مؤشر قيادي، والإيراد يتأخر عنها بدورة التسعير والقرار.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:chicken-and-egg",
+   "topic": "Solving the chicken-and-egg problem: which side to build first",
+   "kind": "playbook",
+   "body_en": "Every new marketplace starts with neither side present. NFX's framework holds that network effects start once the harder side reaches a \"boiling point\" of activity, after which the easier side follows. Its tactics include subsidising the more valuable side, constraining the market (by geography, time or category) so density arrives sooner, building a useful single-player tool for one side, and making the first matches by hand.\n\nFor QuotesDone the harder side is normally supply: buyers will post an inquiry for free, but an inquiry with no exact-trade supplier is a failed first experience that is hard to recover. The measured history supports this: one confirmed supplier gates every RFQ, and the supplier funnel once stood at 81 invited and 0 registered. The CEO seat's decision rule is to constrain before expanding: pick the trade and emirate cells with the most buyer demand, fill them to the top-3 standard, and only then push buyer acquisition into those cells. Pushing buyer demand into empty cells burns acquisition effort and reputation. Constraint is temporary; the seat records the exit criterion (for example, a cell sustaining three quotes per inquiry) before starting.",
+   "body_ar": "تبدأ كل منصة جديدة دون أي من الطرفين. ويرى إطار NFX أن تأثيرات الشبكة تنطلق حين يبلغ الطرف الأصعب \"درجة الغليان\"، ثم يتبعه الطرف الأسهل. ومن الأساليب: دعم الطرف الأعلى قيمة، وتضييق السوق جغرافياً أو زمنياً أو حسب الفئة لتتحقق الكثافة أسرع، وبناء أداة مفيدة لطرف واحد، وإجراء المطابقات الأولى يدوياً. في QuotesDone الطرف الأصعب عادة هو الموردون؛ فالطلب بلا مورد مطابق تجربة أولى فاشلة، وقد بلغ مسار الموردين يوماً 81 مدعواً و0 مسجلين. لذا قاعدة الرئيس التنفيذي: التضييق قبل التوسع؛ يختار خانات التخصص والإمارة ذات الطلب الأعلى، ويملؤها حتى معيار أفضل ثلاثة عروض، ثم يدفع استقطاب المشترين إليها، ويسجّل معيار الخروج من التضييق مسبقاً.",
+   "sources": [
+    "https://www.nfx.com/post/19-marketplace-tactics-for-overcoming-the-chicken-or-egg-problem"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:cac-ltv-payback",
+   "topic": "CAC, LTV and payback: definitions and thresholds",
+   "kind": "benchmark",
+   "body_en": "Customer acquisition cost (CAC) is total sales and marketing spend in a period divided by the customers acquired in that period. Lifetime value (LTV) is the gross profit an average customer generates over the relationship, not the revenue. David Skok's widely used SaaS guidelines: the best businesses have LTV above three times CAC, many of the best recover CAC in five to seven months, and profitability becomes anaemic when recovery takes more than twelve months. His detailed LTV formula sits in a supplemental document that was not fetched, so the gross-profit basis used here is standard practice rather than a quoted rule. These are SaaS benchmarks; a transactional marketplace has no recurring subscription, so the CEO seat treats them as orientation, not law.\n\nFor QuotesDone, compute CAC separately for buyers and suppliers, because each side has its own acquisition cost and they are not interchangeable. Buyer LTV is reveal fees over the expected number of repeat inquiries minus refunds and processor costs; supplier LTV is indirect (suppliers enable buyer revenue) and should be valued through the liquidity they add to a cell. Payback is the months until cumulative contribution from a cohort covers its acquisition spend. With organic-only marketing, cash CAC may be near zero while the time cost is real; record the time cost rather than reporting CAC as zero. Where no cohort data exists yet, say \"not established\".",
+   "body_ar": "تكلفة اكتساب العميل هي إجمالي إنفاق المبيعات والتسويق في فترة مقسوماً على عدد العملاء المكتسبين فيها. والقيمة الدائمة للعميل هي الربح الإجمالي (لا الإيراد) الذي يولّده طوال العلاقة. وفق إرشادات ديفيد سكوك لشركات البرمجيات كخدمة: أفضل الشركات تتجاوز فيها القيمة الدائمة ثلاثة أضعاف تكلفة الاكتساب، وكثير منها يسترد التكلفة في خمسة إلى سبعة أشهر، وتضعف الربحية إذا تجاوز الاسترداد اثني عشر شهراً. أما صيغته التفصيلية للقيمة الدائمة ففي ملحق لم يُجلب، فأساس الربح الإجمالي هنا ممارسة معتادة لا قاعدة منقولة. هذه معايير اشتراكات، فيعاملها الرئيس التنفيذي كإرشاد لا كقانون. في QuotesDone تُحتسب التكلفة لكل طرف على حدة، وتُقاس قيمة المورد بالسيولة التي يضيفها. ومع التسويق العضوي فقط قد تقترب التكلفة النقدية من الصفر لكن تكلفة الوقت حقيقية فتُسجَّل. وحيث لا توجد بيانات أفواج يُقال \"غير ثابت\".",
+   "sources": [
+    "https://www.forentrepreneurs.com/saas-metrics-2/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:contribution-per-reveal",
+   "topic": "Contribution margin per reveal",
+   "kind": "method",
+   "body_en": "Contribution per reveal answers the only unit-economics question that matters before scale: does each successful transaction leave money after the costs it directly causes? Compute it as reveal fee collected, minus the card-processing fee on that payment, minus the expected refund cost (refund rate times average refunded amount, plus any processor fees not returned on refunds), minus the direct messaging and model costs for that inquiry (WhatsApp templates, email, LLM calls used in matching, levelling and support).\n\nStripe's published UAE pricing is 2.9% plus AED 1.00 per successful domestic card charge, an extra 1% for international cards, a further 1% where currency conversion applies, and AED 60 per dispute received; countering a dispute costs a further AED 60, returned only if the dispute is won. On a 3% reveal fee, a reveal on a AED 5,000 quote earns AED 150, and a domestic card charge on AED 150 costs about AED 5.35 (2.9% of 150 plus AED 1). The margin is positive; on an international card with conversion it falls further, and a single AED 60 dispute fee is 40% of that whole fee. The CEO seat therefore watches the ticket-size distribution and dispute rate, and asks the accountant for the actual processor line every month rather than relying on list prices.",
+   "body_ar": "تجيب المساهمة لكل كشف عن سؤال اقتصاديات الوحدة الأهم قبل التوسع: هل تترك كل معاملة ناجحة مالاً بعد تكاليفها المباشرة؟ تُحسب كرسوم الكشف المحصّلة ناقص رسوم معالجة البطاقة، ناقص التكلفة المتوقعة للاسترداد، ناقص تكاليف الرسائل والنماذج اللغوية المباشرة لذلك الطلب. تنشر Stripe في الإمارات رسوماً قدرها 2.9% زائد درهم واحد للبطاقة المحلية، و1% إضافية للبطاقة الدولية، و1% أخرى عند تحويل العملة، و60 درهماً لكل نزاع، و60 درهماً أخرى عند الطعن في النزاع تُردّ فقط عند كسبه. كشف عرض قيمته 5,000 درهم يدرّ 150 درهماً، ورسوم البطاقة المحلية عليه نحو 5.35 درهم، أما نزاع واحد فيعادل 40% من الرسوم كاملة. لذا يراقب الرئيس التنفيذي توزيع أحجام الطلبات ومعدل النزاعات، ويطلب من المحاسب بند المعالجة الفعلي شهرياً بدل الاعتماد على الأسعار المعلنة.",
+   "sources": [
+    "https://stripe.com/ae/pricing"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:cohort-retention",
+   "topic": "Cohort retention and core-action retention",
+   "kind": "method",
+   "body_en": "A cohort is a group of customers who started in the same period. Tracking each cohort separately shows whether the product is getting better: a16z notes that in a healthy network, newer cohorts should retain better than older ones because they join a larger, more useful network. The right retention measure is core-action retention: for QuotesDone, a buyer who posts another inquiry, and a supplier who submits another quote, not merely someone who logs in.\n\nThe CEO seat builds a simple triangle each month: rows are start months, columns are months since start, cells are the share still performing the core action. It reads down the columns (are newer cohorts better at the same age?) rather than along the rows. With very small numbers, percentages mislead: three buyers in a cohort make every cell swing by a third. Below roughly twenty members per cohort, the seat reports counts, not percentages, and flags the reading as low confidence. Retention for suppliers matters as much as for buyers, because a supplier who stops quoting empties a liquidity cell silently. Dormant accounts go to customer_support (win-back) or sales_engineer (supplier re-activation).",
+   "body_ar": "الفوج مجموعة عملاء بدأوا في الفترة نفسها. تتبّع كل فوج على حدة يبيّن هل يتحسن المنتج؛ ففي شبكة سليمة ينبغي أن تحتفظ الأفواج الأحدث بنسبة أعلى لأنها تنضم إلى شبكة أكبر. والمقياس الصحيح هو الاحتفاظ بالإجراء الأساسي: مشترٍ ينشر طلباً آخر، ومورد يقدّم عرضاً آخر، لا مجرد تسجيل الدخول. يبني الرئيس التنفيذي جدولاً مثلثياً شهرياً ويقرأ الأعمدة (هل الأفواج الأحدث أفضل في العمر نفسه؟). ومع الأعداد الصغيرة تضلّل النسب، فتحت نحو عشرين عضواً في الفوج تُعرض الأعداد لا النسب مع وسم الثقة منخفضة. واحتفاظ الموردين مهم كاحتفاظ المشترين، لأن المورد الذي يتوقف يُفرغ خانة سيولة بصمت. وتُحال الحسابات الخاملة إلى خدمة العملاء أو مهندس المبيعات لإعادة التنشيط.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:concentration-risk",
+   "topic": "Supply and demand concentration",
+   "kind": "concept",
+   "body_en": "Concentration is the share of GMV carried by the top buyers or suppliers. a16z treats lower concentration as more defensible: if a handful of accounts carry most of the value, losing one of them, or one of them going direct, removes a large part of the business. For an early UAE marketplace, concentration will be high by nature; the task is to know the number and to see it falling.\n\nThe CEO seat reports three concentration figures monthly: the share of collected revenue from the top five buyers, the share of reveals won by the top five suppliers, and the share of requested value in the top two trades. A single buyer above roughly a third of revenue, or a single supplier winning most reveals in a cell, is a risk-register item with an owner and mitigation (recruit more suppliers in that cell; broaden buyer acquisition). Supplier concentration also has a fairness angle: if one supplier wins persistently, check that matching is meaning-based and that the performance score, not incumbency, drives ranking. These thresholds are the seat's working judgement, not published benchmarks.",
+   "body_ar": "التركّز هو حصة القيمة التي يحملها أكبر المشترين أو الموردين. وتعدّ a16z التركّز الأقل أكثر حصانة؛ فإذا حمل عدد قليل من الحسابات معظم القيمة فإن خسارة أحدها أو تعامله المباشر يُذهب جزءاً كبيراً من الأعمال. في منصة ناشئة يكون التركّز مرتفعاً بطبيعته، والمهمة معرفة الرقم ورؤيته ينخفض. يرفع الرئيس التنفيذي شهرياً ثلاثة أرقام: حصة أكبر خمسة مشترين من الإيراد، وحصة أكبر خمسة موردين من عمليات الكشف، وحصة أكبر تخصصين من القيمة المطلوبة. ويُدرج المشتري الذي يتجاوز نحو ثلث الإيراد في سجل المخاطر مع مالك وخطة معالجة. وإذا فاز مورد واحد باستمرار يُتحقق أن المطابقة قائمة على المعنى وأن درجة الأداء هي ما يحدد الترتيب. وهذه العتبات تقدير عملي للمقعد وليست معايير منشورة.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:multi-homing-leakage",
+   "topic": "Multi-homing and off-platform leakage",
+   "kind": "concept",
+   "body_en": "Multi-homing is when users are active on competing channels at the same time; a16z lists its prevalence and the cost of switching as signals of how strong a marketplace's hold is. In B2B procurement, the most important form is leakage: a buyer and supplier meet through the platform once and then trade directly, so later deals carry no fee.\n\nLeakage is partly inevitable and partly a sign that the platform adds too little value after the first introduction. The CEO seat treats it with three levers. First, value: repeat buyers should get something direct trade does not give (levelled comparison, exact-spec checking, supplier performance history, dispute handling). Second, terms: the platform terms say parties copy QuotesDone on correspondence, and the accountant's fraud and fee-circumvention detection watches for duplicate accounts and off-platform patterns. Third, price: Gurley's warning is that a high rake itself drives leakage, so evidence of leakage is also evidence for the pricing review. The seat never accuses a named customer on inference alone; findings go through customer_support with evidence and a neutral tone.",
+   "body_ar": "تعدد المنصات هو نشاط المستخدمين على قنوات منافسة في الوقت نفسه، وتعدّه a16z مؤشراً على قوة ارتباط المستخدمين بالمنصة. وأهم صوره في مشتريات الشركات هو التسرّب: يلتقي المشتري والمورد عبر المنصة مرة ثم يتعاملان مباشرة فلا تُستحق رسوم على الصفقات اللاحقة. التسرّب حتمي جزئياً، وجزئياً علامة على أن المنصة لا تضيف قيمة كافية بعد التعارف الأول. يعالجه الرئيس التنفيذي بثلاث أدوات: القيمة (مقارنة العروض، والتحقق من المواصفات، وسجل أداء المورد، وإدارة النزاعات)، والشروط (نسخ المنصة على المراسلات، ورصد المحاسب للتحايل والحسابات المكررة)، والسعر (فالعمولة المرتفعة نفسها تدفع إلى التسرّب). ولا يتهم عميلاً باسمه بناءً على استنتاج فقط؛ بل تمر النتائج عبر خدمة العملاء بأدلة ونبرة محايدة.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:cash-runway-burn",
+   "topic": "Cash, burn and runway",
+   "kind": "method",
+   "body_en": "Runway is how long the company can operate before cash runs out, and it is the first number a CEO checks. Compute it from the bank, not the plan: cash at bank (reconciled by the accountant) divided by average net monthly burn over the last three months, where net burn is cash out minus cash in. Use three months because a single month is noisy; show gross burn (all outflows) alongside net burn so that one large receipt does not hide rising costs.\n\nFor QuotesDone the owner's own transfers are capital, not revenue, and must never be shown as income in a burn calculation. Known fixed outflows include the Mashreq bank fee (AED 199 plus VAT per month as recorded), model and hosting subscriptions (the model matrix is budgeted at about AED 1,200 a month but was held), messaging and domain costs. The CEO seat reports runway in months with its inputs, flags any fall below a threshold the founder sets, and never asks the founder for money; it presents the arithmetic and the options (cut, defer, or raise), leaving the capital decision to him. Where the ledger is incomplete, the seat says which months are missing instead of estimating them.",
+   "body_ar": "مدة التشغيل المتبقية هي المدة التي تستطيع الشركة العمل فيها قبل نفاد النقد، وهي أول رقم يراجعه الرئيس التنفيذي. تُحسب من البنك لا من الخطة: النقد في البنك (المطابَق من المحاسب) مقسوماً على متوسط صافي الحرق الشهري لآخر ثلاثة أشهر، مع عرض إجمالي الحرق إلى جانبه حتى لا يُخفي مقبوض كبير واحد ارتفاع التكاليف. في QuotesDone تُعدّ تحويلات المالك رأس مال لا إيراداً. ومن المصروفات الثابتة المعروفة رسوم بنك المشرق (199 درهماً زائد الضريبة شهرياً) واشتراكات النماذج والاستضافة (مصفوفة النماذج مقدّرة بنحو 1,200 درهم شهرياً وهي معلّقة) وتكاليف الرسائل والنطاقات. يعرض المدة بالأشهر مع مدخلاتها، ولا يطلب المال من المؤسس، بل يعرض الحساب والخيارات ويترك قرار رأس المال له، ويذكر الأشهر الناقصة بدل تقديرها.",
+   "sources": [
+    "https://www.forentrepreneurs.com/saas-metrics-2/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:growth-rate-discipline",
+   "topic": "Weekly growth rate as the operating heartbeat",
+   "kind": "benchmark",
+   "body_en": "Paul Graham's essay \"Startup = Growth\" describes how Y Combinator measures startups by weekly growth: about 5-7% a week is good, 10% a week is exceptional, and 1% suggests the company has not yet found what works. He recommends revenue as the metric, or active users before monetisation, and advises choosing a realistic weekly target and treating each week's hit or miss as the verdict.\n\nFor the CEO seat this becomes a discipline, not a promise. Each Monday the seat records the week's collected revenue, reveals and active buyers against the weekly rate required by the AED 1M path. Compounding is unforgiving: small weekly rates sustained for many weeks produce large multiples, and missed weeks are not recovered by optimism. The seat therefore reports the required weekly rate from today to the target date (recomputed each week) next to the achieved trailing four-week rate. When the gap widens for several weeks in a row, that is the trigger for the target-revision proposal rather than a quiet hope that later weeks will compensate. Early numbers are tiny and volatile, so trailing averages are used and small-base growth percentages are read with caution.",
+   "body_ar": "يصف بول غراهام كيف تقيس Y Combinator الشركات الناشئة بالنمو الأسبوعي: 5-7% أسبوعياً جيد، و10% استثنائي، و1% يعني أن الشركة لم تجد بعد ما ينجح. ويوصي بالإيراد مقياساً، أو المستخدمين النشطين قبل تحقيق الدخل، وبتحديد هدف أسبوعي واقعي والحكم على كل أسبوع بتحقيقه أو إخفاقه. عند الرئيس التنفيذي يصبح ذلك انضباطاً لا وعداً: كل اثنين يسجّل الإيراد المحصّل وعمليات الكشف والمشترين النشطين مقابل المعدل الأسبوعي المطلوب لمسار المليون درهم، ويعرض المعدل المطلوب من اليوم حتى الموعد إلى جانب المعدل المحقق لآخر أربعة أسابيع. وإذا اتسعت الفجوة عدة أسابيع متتالية يكون ذلك دافعاً لمقترح مراجعة الهدف لا للأمل الصامت. والأرقام المبكرة صغيرة ومتقلبة فتُستخدم المتوسطات المتحركة بحذر.",
+   "sources": [
+    "https://www.paulgraham.com/growth.html"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:forecast-aed-1m",
+   "topic": "Forecast method: the path to AED 1M by August 2027",
+   "kind": "method",
+   "body_en": "The founder's target is AED 1M by August 2027. A forecast against it must first fix the definition: cumulative collected revenue from a start date, or a monthly run rate reached by August 2027. These produce very different plans; until the founder rules, the seat shows both and labels the definition used.\n\nBuild the forecast bottom-up from the drivers, not top-down from the target: inquiries per month, times share receiving an exact-trade quote, times reveal conversion, times average revealed quote value, times the 3% fee, minus refunds. Working backwards, AED 1M of fees at 3% requires about AED 33.3M of revealed quote value (1,000,000 / 0.03), before refunds. Divide by the observed average revealed value to get the number of reveals needed, then by conversion rates to get the inquiries and suppliers needed per month. Each driver carries a source (measured, or assumed) and a range.\n\nPresent three scenarios (low, base, high) and correct the inside view with an outside view: reference class forecasting compares the plan with the distribution of outcomes in similar ventures, because planners systematically underestimate time and risk. Re-forecast monthly and keep every prior forecast so accuracy can be measured.",
+   "body_ar": "هدف المؤسس مليون درهم بحلول أغسطس 2027. ويجب أولاً تثبيت التعريف: إيراد محصّل تراكمي من تاريخ بدء، أم معدل شهري يُبلغ بحلول أغسطس 2027؛ وحتى يقرّر المؤسس تُعرض الحالتان مع تسمية التعريف المستخدم. يُبنى التوقع من المحرّكات صعوداً: الطلبات شهرياً × نسبة التي تتلقى عرضاً مطابقاً × تحويل الكشف × متوسط قيمة العرض المكشوف × 3% ناقص المبالغ المستردة. وبالعكس، مليون درهم من الرسوم بنسبة 3% تتطلب نحو 33.3 مليون درهم من قيمة العروض المكشوفة قبل الاستردادات، ثم تُقسم على متوسط القيمة المكشوفة لمعرفة عدد عمليات الكشف المطلوبة. لكل محرّك مصدر (مقاس أو مفترض) ونطاق. تُعرض ثلاثة سيناريوهات، ويُصحَّح المنظور الداخلي بمنظور خارجي عبر التنبؤ بالفئة المرجعية، لأن المخططين يقلّلون الزمن والمخاطر بانتظام. يُعاد التوقع شهرياً مع حفظ كل توقع سابق لقياس الدقة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting",
+    "https://www.paulgraham.com/growth.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:forecast-accuracy",
+   "topic": "Measuring forecast accuracy and bias",
+   "kind": "method",
+   "body_en": "A forecast is only useful if its errors are measured. Keep every forecast with its date, horizon and driver assumptions. When the period closes, compare forecast with actual for the headline and for each driver. Two measures matter: the size of the error (absolute percentage error per period) and its direction (bias: are we persistently over-optimistic?). Reference class forecasting, which grew from Kahneman and Tversky's work on optimistic bias, shows human forecasts lean optimistic because planners take the inside view; the corrective is to anchor on the distribution of past outcomes.\n\nFor QuotesDone the CEO seat's own past forecasts become the first reference class. If three consecutive monthly forecasts overshot actual reveals by a wide margin, the next forecast applies that historical ratio as a correction and says so. Driver-level comparison shows where the optimism lives (for example, supplier registrations are the persistent miss, not reveal conversion), which is also where the operating attention should go. The seat never deletes or rewrites an old forecast; a superseded forecast is marked superseded, keeping the audit trail an auditor would expect.",
+   "body_ar": "لا يفيد التوقع إلا إذا قيست أخطاؤه. يُحفظ كل توقع بتاريخه وأفقه وافتراضاته، وعند إقفال الفترة يُقارن بالفعلي للرقم الرئيسي ولكل محرّك. مقياسان مهمان: حجم الخطأ (نسبة الخطأ المطلق لكل فترة) واتجاهه (التحيّز: هل نبالغ في التفاؤل باستمرار؟). وتبيّن أبحاث التنبؤ بالفئة المرجعية المنبثقة من أعمال كانمان وتفيرسكي أن التوقعات البشرية تميل إلى التفاؤل لأن المخططين يأخذون المنظور الداخلي. في QuotesDone تصبح توقعات الرئيس التنفيذي السابقة أول فئة مرجعية؛ فإذا تجاوزت ثلاثة توقعات متتالية الفعلي بفارق كبير، يُطبَّق ذلك المعامل التاريخي تصحيحاً مع ذكره. وتبيّن المقارنة على مستوى المحرّكات أين يكمن التفاؤل. ولا يُحذف توقع قديم أو يُعاد كتابته، بل يوسم بأنه مُستبدل حفاظاً على سجل التدقيق.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:scenario-sensitivity",
+   "topic": "Scenario and sensitivity analysis on the plan",
+   "kind": "method",
+   "body_en": "A single-number plan hides which assumption matters most. Sensitivity analysis changes one driver at a time by a set amount (for example, plus and minus 20%) and records the effect on the outcome; the driver with the biggest effect is where evidence is most valuable and where risk is concentrated. Scenario analysis changes several drivers together into coherent stories: a low case (slow supplier recruitment, low reveal conversion), a base case, and a high case.\n\nFor the AED 1M path, the drivers to test are inquiries per month, exact-trade coverage, reveal conversion, average revealed value, refund rate and the start month of each new trade. Because revenue is the product of these drivers, errors compound: if each of four multiplied drivers is 20% too optimistic, the plan is about 2.07 times reality (1.2 to the fourth power), so actual would be about 48% of plan. The seat shows this multiplication explicitly to the founder so no single rosy driver goes unchallenged. Each scenario lists the observable signal that would tell us we are in it, so the monthly review can say which world we are living in.",
+   "body_ar": "الخطة ذات الرقم الواحد تخفي أي افتراض هو الأهم. يغيّر تحليل الحساسية محرّكاً واحداً في كل مرة بمقدار محدد (مثل ±20%) ويسجّل أثره، والمحرّك الأكبر أثراً هو حيث تكون الأدلة أثمن والمخاطر أعلى. أما تحليل السيناريوهات فيغيّر عدة محرّكات معاً في قصص متماسكة: منخفض وأساسي ومرتفع. لمسار المليون درهم تُختبر: الطلبات شهرياً، وتغطية التخصص المطابق، وتحويل الكشف، ومتوسط القيمة المكشوفة، ومعدل الاسترداد، وموعد إطلاق كل تخصص. ولأن الإيراد حاصل ضرب هذه المحرّكات فإن الأخطاء تتضاعف: تفاؤل 20% في كل من أربعة محرّكات يجعل الخطة نحو ضعفي الواقع، أي أن الفعلي نحو 48% من الخطة. ويُعرض هذا الحساب صراحة للمؤسس، ويذكر كل سيناريو الإشارة الملحوظة التي تدل على أننا فيه.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:target-revision",
+   "topic": "When and how to propose revising the target",
+   "kind": "decision_rule",
+   "body_en": "The AED 1M target is the founder's. The CEO seat never changes it, but it owes him an honest reading of whether it is still reachable. The rule: when the re-forecast base case falls below a set share of the target for a sustained period (the seat proposes 70% for three consecutive monthly re-forecasts as a default, for the founder to confirm), the seat prepares a target-revision proposal.\n\nThe proposal contains: the forecast history showing the gap; the binding constraint causing it; what would have to be true to still reach the target (the required driver values) and whether those values have ever been observed; two or three options (keep target and change strategy, keep target and move date, keep date and set a lower interim target); and the seat's recommendation with its reasoning. Changing the company's goal is a hard-to-reverse decision in Bezos's sense, so it goes to the founder, is reviewed first by a different model family, and is decided by him. Until he rules, the seat keeps operating to the existing target and says clearly in each weekly review that the forecast does not reach it. Hiding the gap is worse than missing the target.",
+   "body_ar": "هدف المليون درهم للمؤسس، والرئيس التنفيذي لا يغيّره، لكنه مدين له بقراءة صادقة لإمكانية بلوغه. القاعدة: إذا انخفض السيناريو الأساسي في إعادة التوقع عن نسبة محددة من الهدف لفترة متواصلة (يقترح المقعد 70% لثلاث إعادات توقع شهرية متتالية، رهناً بتأكيد المؤسس) يُعدّ مقترح مراجعة الهدف. يتضمن المقترح: سجل التوقعات والفجوة، والقيد الحاكم المسبب لها، وما يجب أن يتحقق لبلوغ الهدف وهل رُصدت تلك القيم يوماً، وخيارين أو ثلاثة (الإبقاء على الهدف وتغيير الاستراتيجية، أو تأجيل الموعد، أو هدف مرحلي أقل)، وتوصية المقعد مع أسبابها. يُراجَع أولاً من عائلة نماذج مختلفة ثم يقرّر المؤسس. وحتى يقرّر، يستمر العمل بالهدف القائم مع التصريح أسبوعياً بأن التوقع لا يبلغه؛ فإخفاء الفجوة أسوأ من عدم بلوغ الهدف.",
+   "sources": [
+    "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders",
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting",
+    "https://s2.q4cdn.com/299287126/files/doc_financials/annual/2015-Letter-to-Shareholders.PDF"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:product-market-fit",
+   "topic": "Product/market fit and what it means before scale",
+   "kind": "concept",
+   "body_en": "Marc Andreessen defines product/market fit as being in a good market with a product that can satisfy it. Before fit, customers adopt slowly, word of mouth does not spread, and sales cycles drag; after it, demand pulls faster than the company can serve. He argues that before fit, nearly everything else is secondary, including changing the product, the team or the market.\n\nFor the CEO seat this sets priorities: until QuotesDone shows repeat inquiries from the same buyers, suppliers who keep quoting unprompted, and reveals that happen without hand-holding, the operating question is fit, not scale. Signals to track: share of inquiries from returning buyers, unprompted supplier activity, organic referrals, and the time from inquiry to reveal. Spending to scale acquisition before these signals appear buys users who churn. The seat reports fit evidence per trade, since a marketplace can have fit in one trade (for example, a trade with frequent, standardised purchases) and not another. The founder's hard rules and organic-only marketing phase are consistent with a before-fit posture: learn cheaply, keep what works, expand only into cells where signals are present.",
+   "body_ar": "يعرّف مارك أندريسن ملاءمة المنتج للسوق بأنها وجود منتج يلبّي سوقاً جيدة. قبلها يتبنّى العملاء ببطء ولا تنتشر التوصيات وتطول دورات البيع؛ وبعدها يسحب الطلب أسرع من قدرة الشركة على الخدمة. ويرى أن كل شيء آخر ثانوي قبل تحقيقها، بما في ذلك تغيير المنتج أو الفريق أو السوق. ويحدد ذلك أولويات الرئيس التنفيذي: ما لم تظهر طلبات متكررة من المشترين أنفسهم، وموردون يواصلون التسعير دون تذكير، وعمليات كشف دون مرافقة، فالسؤال هو الملاءمة لا التوسع. المؤشرات: نسبة الطلبات من مشترين عائدين، ونشاط الموردين التلقائي، والإحالات، والزمن من الطلب إلى الكشف، وتُقاس لكل تخصص. والإنفاق على التوسع قبل ظهورها يجلب مستخدمين يغادرون سريعاً، والتوسع يكون فقط في الخانات التي تظهر فيها الإشارات.",
+   "sources": [
+    "https://pmarchive.com/guide_to_startups_part4.html"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:binding-constraint",
+   "topic": "Finding the true binding constraint (Theory of Constraints)",
+   "kind": "method",
+   "body_en": "The Theory of Constraints holds that a system's throughput is limited by one constraint at a time, and only improving flow through that constraint raises total output. Its five focusing steps are: identify the constraint, exploit it (get the most from it as it is), subordinate everything else to it, elevate it (add capacity), and then return to step one so inertia does not become the new constraint.\n\nThe current CEO plan picks the constraint as the first funnel stage below 80% of plan, in a fixed order. That is explainable but can pick the wrong stage, because it ignores money. The better rule: estimate, for each stage, the AED of collected revenue lost this month because that stage underperformed (the gap to plan at that stage multiplied through the downstream conversions and average fee). The stage with the largest AED loss is the binding constraint. Then apply the five steps: exploit (fix what the owning seat can fix now), subordinate (other seats stop producing more input that piles up before the constraint, such as buyer campaigns into cells with no suppliers), elevate (a directive with a due date), and re-identify after the next measurement.",
+   "body_ar": "تقول نظرية القيود إن إنتاجية النظام يحدّها قيد واحد في كل مرة، ولا يرفع الناتج الكلي إلا تحسين التدفق عبره. وخطوات التركيز الخمس: تحديد القيد، واستغلاله، وإخضاع كل ما عداه له، ورفع طاقته، ثم العودة للبداية حتى لا يصبح الجمود قيداً جديداً. تختار خطة الرئيس التنفيذي الحالية أول مرحلة تقل عن 80% من الخطة بترتيب ثابت، وهذا قابل للتفسير لكنه يتجاهل المال. القاعدة الأفضل: تقدير الإيراد المفقود بالدرهم هذا الشهر بسبب كل مرحلة (فجوتها مضروبة في التحويلات اللاحقة ومتوسط الرسوم)، والمرحلة ذات الخسارة الأكبر هي القيد الحاكم. ثم تُطبَّق الخطوات: إصلاح فوري لما يستطيع المقعد المالك إصلاحه، وإيقاف إنتاج مدخلات تتكدس قبل القيد، وتوجيه بموعد، وإعادة التحديد بعد القياس التالي.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Theory_of_constraints"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:input-vs-output-metrics",
+   "topic": "Controllable input metrics versus output metrics",
+   "kind": "concept",
+   "body_en": "Amazon's Weekly Business Review, as described by Cedric Chin at Commoncog, separates output metrics (revenue, profit, free cash flow) from controllable input metrics (things a team can directly do, such as adding products or running a set number of campaigns). The meeting spends its time on inputs, because inputs are what the team can change this week; outputs follow.\n\nFor QuotesDone, collected revenue and reveals are outputs. Inputs, each owned by one seat, include: suppliers verified per trade and emirate (sales_engineer), quotes submitted within the response window (sales_engineer), share of inquiries meeting the exact-spec standard before release (sales_engineer), first-response time and resolution on support cases (customer_support), organic posts published to the quality standard and qualified leads handed to sales (marketing), days to close the books and reconciliation completeness (accountant), and uptime and failed-job counts (it_engineer). The CEO seat's directives should always name an input metric with a target and a due date, never \"increase revenue\", because an output target gives the seat nothing it can act on this week. The seat must also check, over time, that moving the input actually moves the output; an input that never moves the output is the wrong input.",
+   "body_ar": "تفصل مراجعة الأعمال الأسبوعية في أمازون، كما يصفها سيدريك تشين، بين مقاييس المخرجات (الإيراد والربح والتدفق النقدي) ومقاييس المدخلات القابلة للتحكم (ما يستطيع الفريق فعله مباشرة). ويُقضى الاجتماع في المدخلات لأنها ما يمكن تغييره هذا الأسبوع. في QuotesDone الإيراد المحصّل وعمليات الكشف مخرجات، أما المدخلات فلكل منها مقعد مالك: الموردون الموثَّقون لكل تخصص وإمارة، والعروض المقدمة ضمن المهلة، ونسبة الطلبات المستوفية للمواصفات (مهندس المبيعات)، وزمن الرد الأول وحل الحالات (خدمة العملاء)، والمنشورات والعملاء المحتملون المحالون (التسويق)، وأيام إقفال الدفاتر (المحاسب)، والتوافر والمهام الفاشلة (مهندس تقنية المعلومات). يجب أن يسمّي كل توجيه مقياس مدخلات بهدف وموعد لا \"زيادة الإيراد\"، ويُتحقق لاحقاً أن تحريكه يحرّك المخرجات فعلاً؛ فالمدخل الذي لا يحرّكها مدخل خاطئ.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:vat-threshold-watch",
+   "topic": "VAT registration threshold watch",
+   "kind": "law",
+   "body_en": "Under UAE VAT, a business must register when taxable supplies and imports over the previous 12 months exceed AED 375,000, or when it expects to exceed that amount in the next 30 days. Voluntary registration is possible above AED 187,500 of supplies, imports or expenses, on the same backward or forward test. These thresholds come from the Federal Tax Authority's registration page.\n\nQuotesDone is not VAT-registered, and the founder's standing position is no VAT until the AED 375k threshold. The CEO seat's duty is the watch, not the tax work. Every week it reads the rolling 12-month total of taxable supplies from the accountant's ledger and projects the next 30 days from the pipeline (revealed quotes likely to be paid). Two alerts: when the rolling total passes about 80% of AED 375,000, the seat tells the accountant to prepare registration; when the 30-day projection shows the threshold will be crossed, registration becomes a must and the seat puts it on the founder's weekly review with the date. Which revenue counts as a taxable supply for a fee-based marketplace is the accountant's call; the CEO seat does not decide tax treatment.",
+   "body_ar": "بموجب ضريبة القيمة المضافة في الإمارات يجب التسجيل إذا تجاوزت التوريدات الخاضعة والواردات خلال الأشهر الاثني عشر السابقة 375,000 درهم، أو إذا توقّع تجاوزها خلال الأيام الثلاثين التالية. ويجوز التسجيل الاختياري فوق 187,500 درهم وفق الاختبار نفسه، بحسب صفحة الهيئة الاتحادية للضرائب. QuotesDone غير مسجلة، وموقف المؤسس لا تسجيل قبل بلوغ الحد. واجب الرئيس التنفيذي هو المراقبة لا العمل الضريبي: أسبوعياً يقرأ المجموع المتحرك لاثني عشر شهراً من دفاتر المحاسب ويتوقع الثلاثين يوماً التالية من العروض المكشوفة المرجح سدادها. عند بلوغ نحو 80% يطلب من المحاسب التحضير للتسجيل، وعند توقع تجاوز الحد خلال ثلاثين يوماً يصبح التسجيل إلزامياً ويُدرج في المراجعة الأسبوعية بتاريخه. وتحديد المعاملة الضريبية من اختصاص المحاسب.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:corporate-tax-basics",
+   "topic": "UAE Corporate Tax: rates, return deadline and small business relief",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 47 of 2022 introduced UAE Corporate Tax for financial years starting on or after 1 June 2023. Per the official government portal, taxable income up to AED 375,000 is taxed at 0% and income above that at 9%, with a separate regime for large multinational groups under the OECD Pillar Two rules. The Ministry of Finance states that every taxable person must register with the Federal Tax Authority and file a return for each tax period within nine months of the period end; payment is generally due by the same date. A company with a 31 December year end therefore files and pays by 30 September of the following year.\n\nSmall Business Relief lets a resident person with revenue of AED 3 million or less elect simplified treatment; Ministerial Decision No. 131 extended it to tax periods ending on or before 31 December 2029 with the threshold unchanged. Late filing costs AED 500 a month for the first year and AED 1,000 a month after (Cabinet Decision 75 of 2023). The CEO seat's duties: put the return and payment dates on the regulatory calendar, confirm each year that the accountant has the registration status and a filing plan, and never file or interpret tax itself.",
+   "body_ar": "أدخل المرسوم بقانون اتحادي رقم 47 لسنة 2022 ضريبة الشركات للسنوات المالية التي تبدأ في 1 يونيو 2023 أو بعده. ووفق البوابة الرسمية يخضع الدخل حتى 375,000 درهم لنسبة 0% وما يزيد لنسبة 9%، مع نظام منفصل للمجموعات متعددة الجنسيات الكبيرة. وتنص وزارة المالية على أن كل خاضع يجب أن يسجّل لدى الهيئة الاتحادية للضرائب ويقدّم الإقرار خلال تسعة أشهر من نهاية الفترة، ويُسدَّد عادة في الموعد نفسه؛ فالشركة التي تنتهي سنتها في 31 ديسمبر تقدّم وتسدّد بحلول 30 سبتمبر من السنة التالية. ويتيح إعفاء الأعمال الصغيرة للمقيم الذي لا تتجاوز إيراداته 3 ملايين درهم معاملة مبسّطة، وقد مدّده القرار الوزاري رقم 131 ليشمل الفترات الضريبية المنتهية في 31 ديسمبر 2029 أو قبله دون تغيير الحد. وغرامة التأخير في الإقرار 500 درهم شهرياً في السنة الأولى ثم 1,000 درهم شهرياً (قرار مجلس الوزراء 75 لسنة 2023). يضع الرئيس التنفيذي المواعيد في التقويم التنظيمي ويتأكد سنوياً من خطة الإقرار، ولا يفسّر الضريبة بنفسه.",
+   "sources": [
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+    "https://tax.gov.ae/en/taxes/corporate.tax/corporate.tax.topics/small.business.relief.aspx",
+    "https://www.zawya.com/en/press-release/government-news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029-424845",
+    "https://mof.gov.ae/wp-content/uploads/2023/07/Cabinet-Decision-No.-75-of-2023-on-the-Administrative-Penalties-on-Violations-Related-to-the-Application-of-the-Corporate-Tax-Law.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:regulatory-calendar",
+   "topic": "UAE regulatory calendar for a mainland LLC marketplace",
+   "kind": "checklist",
+   "body_en": "The CEO seat owns one calendar of dated obligations, each with an owner seat, a lead time and evidence of completion. Known dated items for QuotesDone: the Dubai DET trade licence 1633275 expires 24 June 2027 (renewal owner: accountant, with the founder signing); the TDRA No Objection Letter NOL-26-100000665 for www.quotesdone.ae expires 14 September 2027 (owner: it_engineer); the Corporate Tax return and payment fall nine months after each financial year end (owner: accountant); the VAT threshold is watched weekly until registration (owner: accountant, alert by CEO).\n\nRecurring items: monthly bank statement and close (accountant), quarterly knowledge-pack refresh (it_engineer schedules, each seat owns its pack), the Beneficial Owner register kept current whenever ownership changes (accountant), and e-invoicing readiness (see its own entry). Lead times the seat applies by default: 60 days for licences and permits, 30 days for tax filings, 14 days for internal duties. At each lead time the seat issues a directive to the owner and checks completion evidence (a renewed licence document, a filing receipt) rather than a status word. Items with no confirmed date are listed as \"date not established\" so the gap itself is visible.",
+   "body_ar": "يملك الرئيس التنفيذي تقويماً واحداً للالتزامات المؤرخة، لكل منها مقعد مالك ومهلة مسبقة ودليل إنجاز. البنود المؤرخة المعروفة: رخصة دائرة الاقتصاد والسياحة في دبي رقم 1633275 تنتهي في 24 يونيو 2027 (التجديد للمحاسب بتوقيع المؤسس)؛ وخطاب عدم الممانعة من هيئة تنظيم الاتصالات للنطاق www.quotesdone.ae ينتهي في 14 سبتمبر 2027 (مهندس تقنية المعلومات)؛ وإقرار ضريبة الشركات وسدادها بعد تسعة أشهر من نهاية كل سنة مالية (المحاسب)؛ وحد ضريبة القيمة المضافة يُراقب أسبوعياً. وبنود متكررة: كشف البنك الشهري والإقفال، وتحديث حزم المعرفة ربع السنوي، وسجل المستفيد الحقيقي عند أي تغيير في الملكية، والجاهزية للفوترة الإلكترونية. المهل الافتراضية: 60 يوماً للرخص، و30 يوماً للإقرارات الضريبية، و14 يوماً للمهام الداخلية. عند كل مهلة يصدر توجيهاً للمالك ويتحقق من دليل الإنجاز لا من كلمة حالة، وما لا تاريخ مؤكد له يُدرج \"غير ثابت\".",
+   "sources": [
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:e-invoicing-readiness",
+   "topic": "UAE e-invoicing roadmap and what it means for QuotesDone",
+   "kind": "law",
+   "body_en": "The UAE is introducing a mandatory Electronic Invoicing System under two 2025 Ministerial Decisions. KPMG's summary of the phased timeline: a pilot with a taxpayer working group from 1 July 2026, when voluntary adoption also opens; phase 1 for businesses with revenue of AED 50 million or more from 1 January 2027 (Accredited Service Provider appointed by 31 July 2026 in the original decision); phase 2 for businesses below AED 50 million from 1 July 2027, with an ASP appointed by 31 March 2027; government entities from 1 October 2027. Both the issuer and the recipient of electronic invoices and credit notes must appoint an ASP. The phase 1 ASP deadline was later extended to 30 October 2026 with go-live unchanged (Deloitte); phase 2 dates were not reported as changed.\n\nKPMG frames the scope as every business conducting B2B or B2G transactions; whether a business that is not VAT-registered, like QuotesDone today, is caught was not established from the sources fetched. The CEO seat's duty: keep 31 March 2027 and 1 July 2027 on the regulatory calendar as review points, ask the accountant for a written scope determination before the first date, and make sure the chosen invoicing tool can connect to an ASP if needed.",
+   "body_ar": "تُدخل الإمارات نظام فوترة إلكترونية إلزامياً بموجب قرارين وزاريين صادرين في 2025. ووفق ملخص KPMG للجدول المرحلي: تجربة مع مجموعة عمل من دافعي الضرائب من 1 يوليو 2026 مع فتح التبنّي الطوعي؛ والمرحلة الأولى للشركات التي تبلغ إيراداتها 50 مليون درهم أو أكثر من 1 يناير 2027؛ والمرحلة الثانية لمن هم دون ذلك من 1 يوليو 2027 مع تعيين مزوّد خدمة معتمد بحلول 31 مارس 2027؛ والجهات الحكومية من 1 أكتوبر 2027. ويجب على مُصدر الفاتورة ومتلقيها تعيين مزوّد معتمد. ومُدّد لاحقاً موعد تعيين المزوّد للمرحلة الأولى إلى 30 أكتوبر 2026 دون تغيير موعد التشغيل (ديلويت)، ولم يُذكر تغيير في مواعيد المرحلة الثانية. وتصف KPMG النطاق بأنه كل منشأة تجري معاملات بين الشركات أو مع الحكومة، ولم يثبت من المصادر ما إذا كانت المنشأة غير المسجلة في الضريبة مثل QuotesDone مشمولة. يضع الرئيس التنفيذي 31 مارس و1 يوليو 2027 نقطتي مراجعة، ويطلب تحديداً مكتوباً للنطاق من المحاسب.",
+   "sources": [
+    "https://kpmg.com/ae/en/insights/tax-insights/implementation-of-the-electronic-invoicing-system-in-the-uae.html",
+    "https://www.deloitte.com/middle-east/en/services/tax/perspectives/uae-e-invoicing-asp-appointment-deadline-extended-but-go-live-remains-01012027.html"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:pdpl-ceo-obligations",
+   "topic": "PDPL: what the CEO seat must govern",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL) is the general onshore UAE privacy law. The official UAE portal summarises its core: personal data must be secured and kept confidential; processing generally needs consent unless an exception applies; individuals can ask for correction of inaccurate data and for processing to be restricted or stopped; and there are rules for transferring data across borders. The UAE Data Office, set up under Federal Decree-Law No. 44 of 2021, sets policy, standards and complaint mechanisms.\n\nThe CEO seat does not handle individual requests (customer_support does) or technical controls (it_engineer does). It governs: that each seat knows which personal data it touches; that every processor (messaging, email, database, model providers) is covered by terms; that cross-border transfers to model and hosting providers are identified and justified; that subject requests are answered within the timelines the support pack sets; and that a breach triggers the it_engineer's notification process without delay. Detailed timelines and executive regulations that were not verified in this session are marked for confirmation. Privacy is on the risk register with an owner, not left as a general intention.",
+   "body_ar": "المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية هو قانون الخصوصية العام داخل الدولة. وتلخص البوابة الرسمية جوهره: تأمين البيانات والحفاظ على سريتها، والحاجة عموماً إلى الموافقة ما لم ينطبق استثناء، وحق الأفراد في تصحيح البيانات غير الدقيقة وتقييد المعالجة أو إيقافها، وقواعد النقل عبر الحدود. ويضع مكتب الإمارات للبيانات، المنشأ بالمرسوم بقانون رقم 44 لسنة 2021، السياسات والمعايير وآليات الشكاوى. لا يعالج الرئيس التنفيذي الطلبات الفردية (خدمة العملاء) ولا الضوابط التقنية (مهندس تقنية المعلومات)، بل يحوكم: معرفة كل مقعد بالبيانات التي يلمسها، وتغطية كل معالج بشروط تعاقدية، وتحديد النقل عبر الحدود إلى مزوّدي النماذج والاستضافة وتبريره، والرد على الطلبات ضمن المهل، وتفعيل إجراء الإخطار عند أي اختراق فوراً. ويُدرج الخصوصية في سجل المخاطر بمالك محدد.",
+   "sources": [
+    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:ubo-register",
+   "topic": "Beneficial owner register duties",
+   "kind": "law",
+   "body_en": "Cabinet Decision No. 109 of 2023 on Beneficial Owner Procedures (which replaced Cabinet Decision No. 58 of 2020) requires companies licensed onshore in the UAE (with exemptions for government-owned entities and the financial free zones) to keep a register of partners or shareholders and a register of real beneficial owners, and to file beneficial owner data with the licensing authority. A beneficial owner is a natural person who owns or controls at least 25% of the shares or voting rights, directly or indirectly; failing that, a person exercising control by other means; failing that, the person responsible for senior management. The register records full name, nationality, date and place of birth, and address.\n\nThese points were checked against the published text of Decision 109: registers are created within 60 days and any change is recorded within 15 days of becoming aware of it, with the Registrar notified within 15 days. For QuotesDone the CEO seat's duty is simple: on any change in ownership or control, including a capital injection that changes percentages, direct the accountant to update the register and file with DET, and keep evidence. The same 25% concept is used when screening suppliers' beneficial owners during onboarding and re-screening.",
+   "body_ar": "يُلزم قرار مجلس الوزراء رقم 109 لسنة 2023 بشأن إجراءات المستفيد الحقيقي (الذي حل محل القرار رقم 58 لسنة 2020) الشركات المرخّصة داخل الدولة (مع استثناء الجهات المملوكة للحكومة والمناطق الحرة المالية) بالاحتفاظ بسجل للشركاء أو المساهمين وسجل للمستفيدين الحقيقيين، وتقديم بياناتهم إلى جهة الترخيص. المستفيد الحقيقي هو الشخص الطبيعي الذي يملك أو يسيطر على 25% على الأقل من الحصص أو حقوق التصويت مباشرة أو بصورة غير مباشرة، وإلا فمن يمارس السيطرة بوسائل أخرى، وإلا فالمسؤول عن الإدارة العليا. ويُسجَّل الاسم والجنسية وتاريخ ومكان الميلاد والعنوان. وقد رُوجعت هذه النقاط مقابل نص القرار 109 المنشور: تُنشأ السجلات خلال 60 يوماً ويُقيَّد أي تغيير خلال 15 يوماً من العلم به مع إخطار المسجّل خلال المهلة نفسها. واجب الرئيس التنفيذي: عند أي تغيير في الملكية أو السيطرة يوجّه المحاسب لتحديث السجل والإيداع لدى الدائرة مع حفظ الدليل، ويُستخدم مفهوم 25% نفسه عند فحص مستفيدي الموردين.",
+   "sources": [
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:esr-status",
+   "topic": "Economic Substance Regulations: discontinued for recent years",
+   "kind": "law",
+   "body_en": "The UAE Economic Substance Regulations (Cabinet Decision No. 57 of 2020) required certain licensees carrying on \"relevant activities\" to file notifications and reports. Cabinet Decision No. 98 of 2024, as widely reported by major advisers, limited those obligations to financial years from 1 January 2019 to financial years ending 31 December 2022, removing them for later years and cancelling related penalties for those later periods.\n\nQuotesDone's current activity and incorporation timing mean ESR is not an operating obligation for the CEO seat to schedule. The entry exists so that the seat does not invent a duty: if a checklist, template or adviser asks for an ESR notification for a current year, the seat notes that the regime was discontinued for years ending after 31 December 2022 and asks the accountant to confirm in writing rather than filing. The K&L Gates summary confirms the decision took effect on 2 September 2024, cancels filings and fines for years ending after 31 December 2022 and refunds fines paid; the official decision text itself was not fetched. If a regulator reintroduces substance-type reporting in another form, such as under the Corporate Tax regime, it becomes a new entry with its own source.",
+   "body_ar": "كانت لائحة المادة الاقتصادية (قرار مجلس الوزراء رقم 57 لسنة 2020) تُلزم بعض المرخّصين الذين يمارسون \"أنشطة ذات صلة\" بتقديم إخطارات وتقارير. ووفق ما نشره كبار المستشارين، قصر قرار مجلس الوزراء رقم 98 لسنة 2024 هذه الالتزامات على السنوات المالية من 1 يناير 2019 حتى السنوات المنتهية في 31 ديسمبر 2022، وألغاها لما بعدها مع إلغاء الغرامات المرتبطة. لذا ليست المادة الاقتصادية التزاماً تشغيلياً يجدوله الرئيس التنفيذي. ووجود هذا المدخل كي لا يخترع المقعد واجباً: إذا طلب قالب أو مستشار إخطاراً لسنة حالية، يذكر المقعد أن النظام أوقف للسنوات المنتهية بعد 31 ديسمبر 2022 ويطلب تأكيداً مكتوباً من المحاسب بدل الإيداع. ويؤكد ملخص K&L Gates أن القرار نفذ في 2 سبتمبر 2024 وألغى الإيداعات والغرامات للسنوات المنتهية بعد 31 ديسمبر 2022 مع رد الغرامات المدفوعة، ولم يُجلب نص القرار الرسمي نفسه.",
+   "sources": [
+    "https://www.klgates.com/thought-leadership/Update-Economic-Substance-Regulations-Filings-Cancelled-10-31-2024"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:risk-register",
+   "topic": "The CEO-owned risk register",
+   "kind": "method",
+   "body_en": "A risk register lists what could stop the company reaching its objectives, how likely and how severe each risk is, who owns it, what is being done, and what signal says it is materialising. COSO's enterprise risk management framework, in its current form \"Integrating with Strategy and Performance\", insists that risk be considered when strategy is set and while performance is driven, not as a separate compliance list.\n\nFor QuotesDone the CEO seat keeps one register, reviewed weekly for movement and monthly in full. Starting categories: regulatory (licence and NOL expiry, VAT threshold, PDPL, e-invoicing scope); concentration (top buyer or supplier share); platform dependency (Stripe account holds, WhatsApp template or quality rating limits, email deliverability, Supabase and Vercel availability, model provider outages or price changes); financial (runway, fee leakage, disputes); operational (a seat failing silently, an apply locking sign-in, a routine killed by an alias clash); reputation (a public complaint, a wrong answer sent to a customer); and people (dependence on a single founder). Each item has likelihood and impact on a simple 1-5 scale, a named owner seat, a leading indicator with a threshold, and a mitigation with a date. A risk with no indicator is a worry, not a managed risk.",
+   "body_ar": "سجل المخاطر يسرد ما قد يمنع الشركة من بلوغ أهدافها، ومدى احتمال كل خطر وشدته، ومالكه، والإجراء المتخذ، والإشارة التي تدل على تحققه. ويؤكد إطار COSO لإدارة المخاطر المؤسسية في صيغته الحالية أن المخاطر تُراعى عند وضع الاستراتيجية وأثناء قيادة الأداء، لا كقائمة امتثال منفصلة. يحتفظ الرئيس التنفيذي بسجل واحد يُراجع أسبوعياً للتغيرات وشهرياً بالكامل. الفئات: تنظيمية (انتهاء الرخصة وخطاب عدم الممانعة، وحد الضريبة، وحماية البيانات، والفوترة الإلكترونية)، والتركّز، والاعتماد على المنصات (تعليق حساب Stripe، وحدود واتساب، وتسليم البريد، وتوافر Supabase وVercel، وانقطاع مزوّدي النماذج أو تغيّر أسعارهم)، ومالية (مدة التشغيل، وتسرّب الرسوم، والنزاعات)، وتشغيلية (مقعد يتعطل بصمت)، والسمعة، والاعتماد على المؤسس. لكل بند احتمال وأثر من 1 إلى 5، ومقعد مالك، ومؤشر قيادي بعتبة، ومعالجة بتاريخ. والخطر بلا مؤشر قلق لا خطر مُدار.",
+   "sources": [
+    "https://www.coso.org/enterprise-risk-management"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:premortem",
+   "topic": "Pre-mortem before committing to a plan",
+   "kind": "method",
+   "body_en": "Gary Klein's pre-mortem, described in Harvard Business Review, asks the team to imagine that the plan has already failed and to write down the reasons. The framing makes it safe to voice doubts that people would otherwise keep to themselves, and surfaces weaknesses while they can still be fixed.\n\nThe CEO seat runs a pre-mortem before any Type 1 or high-cost decision: a monthly plan, a target-revision proposal, a pricing proposal to the founder, or a new trade launch. Procedure: state the plan in one paragraph; ask each affected seat (and the cross-family reviewer) to list, independently, the most likely reasons it failed six months from now; merge the reasons, remove duplicates, and rank them by likelihood and impact; for the top three, either change the plan, add an early-warning indicator to the risk register, or accept the risk explicitly with a reason. The output is stored with the decision so the outcome review can check which failure modes actually happened. Seats must answer independently before seeing each other's lists, otherwise the first answer anchors the rest, which is the same group-think the pre-mortem is designed to break.",
+   "body_ar": "يطلب أسلوب \"التشريح المسبق\" لغاري كلاين، المنشور في هارفارد بزنس ريفيو، أن يتخيل الفريق أن الخطة فشلت بالفعل ثم يكتب الأسباب. هذا الإطار يجعل التعبير عن الشكوك آمناً ويكشف نقاط الضعف ما دام إصلاحها ممكناً. يجري الرئيس التنفيذي تشريحاً مسبقاً قبل أي قرار صعب الرجوع عنه أو عالي الكلفة: الخطة الشهرية، أو مقترح مراجعة الهدف، أو مقترح تسعير للمؤسس، أو إطلاق تخصص جديد. الإجراء: صياغة الخطة في فقرة واحدة؛ ثم يطلب من كل مقعد معني ومن المراجع من عائلة نماذج مختلفة أن يسرد مستقلاً أرجح أسباب فشلها بعد ستة أشهر؛ ثم تُدمج الأسباب وتُرتّب حسب الاحتمال والأثر؛ ولأعلى ثلاثة إما تعديل الخطة أو إضافة مؤشر إنذار إلى سجل المخاطر أو قبول الخطر صراحة بسبب مكتوب. تُحفظ النتيجة مع القرار لمراجعتها لاحقاً، ويجيب كل مقعد قبل رؤية إجابات غيره تجنباً للتأثر.",
+   "sources": [
+    "https://hbr.org/2007/09/performing-a-project-premortem"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:decision-reversibility",
+   "topic": "Type 1 and Type 2 decisions: matching process to reversibility",
+   "kind": "decision_rule",
+   "body_en": "Jeff Bezos's 2015 shareholder letter separates Type 1 decisions (one-way doors, consequential and irreversible or nearly so, to be made methodically and slowly) from Type 2 decisions (two-way doors, changeable and reversible), which \"can and should be made quickly by high judgment individuals or small groups\"; large organisations tend to apply the heavy Type 1 process to Type 2 decisions and slow down. His 2016 letter adds that most decisions should be made with about 70% of the information one would wish for, and describes \"disagree and commit\" to avoid deadlock.\n\nThe CEO seat classifies every decision before choosing a process. Type 2 examples: which cell to push this week, the wording of a directive, the order of the weekly review. These are decided by the seat, logged, and re-measured. Type 1 examples: changing a founder hard rule (fee, top-3, the AED 15k and 3x limits), any refund or dispute ruling that sets precedent, spending commitments, target revision, pricing changes, and anything visible to all customers. These need evidence, a pre-mortem, a cross-family review, and, where the founder reserved the subject, his decision. When a reviewer disagrees but the seat has authority, it records the disagreement and commits; the outcome review later shows who was right.",
+   "body_ar": "يفرّق خطاب جيف بيزوس للمساهمين عام 2015 بين قرارات النوع الأول (أبواب باتجاه واحد، عالية الأثر ولا رجعة فيها أو يكاد، تُتخذ بتأنٍّ وتشاور) وقرارات النوع الثاني (أبواب باتجاهين، قابلة للتغيير والرجوع) التي يمكن ويجب أن يتخذها بسرعة أفراد ذوو حكم سديد أو مجموعات صغيرة، وتميل المؤسسات الكبيرة إلى معاملتها بإجراءات النوع الأول فتبطؤ. ويضيف خطاب 2016 أن معظم القرارات ينبغي اتخاذها بنحو 70% من المعلومات المرغوبة، ويصف مبدأ \"اختلف ثم التزم\". يصنّف الرئيس التنفيذي كل قرار قبل اختيار الإجراء. من النوع الثاني: أي خانة يُدفع إليها هذا الأسبوع، وصياغة التوجيه، وترتيب المراجعة الأسبوعية؛ يقرّرها المقعد ويسجّلها ويعيد قياسها. ومن النوع الأول: تغيير قاعدة ثابتة للمؤسس، وأي حكم استرداد أو نزاع يشكّل سابقة، والالتزامات المالية، ومراجعة الهدف، وتغيير الأسعار؛ وتتطلب أدلة وتشريحاً مسبقاً ومراجعة من عائلة مختلفة وقرار المؤسس حيث احتفظ بالموضوع. وعند الخلاف مع صلاحية المقعد يُسجَّل الاعتراض ثم يلتزم.",
+   "sources": [
+    "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders",
+    "https://s2.q4cdn.com/299287126/files/doc_financials/annual/2015-Letter-to-Shareholders.PDF"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:decision-log-outcomes",
+   "topic": "Decision memory: logging decisions with their outcomes",
+   "kind": "method",
+   "body_en": "A decision log is only useful if it records what happened afterwards. Each entry should hold: the question, the options considered, the evidence and the knowledge entries consulted, the decision and its rationale, who reviewed it and whether they agreed, the expected result with a measurable indicator and a check date, and later the actual result and a short verdict (right, wrong, or unclear, and why).\n\nThe CEO seat audit found the current approval and decision tables have no outcome column and no way to retrieve similar past decisions, so a second refund like the first is decided with no memory of the first. The standard the seat works to: before any non-trivial decision, retrieve the most similar past decisions by meaning (not by keyword) and read their outcomes; after the check date, write the outcome back. Over time, this becomes the seat's reference class, the same principle reference class forecasting uses for plans. Distinguish the quality of a decision from the quality of its outcome: a sound decision can have a bad result by chance, so the verdict should say whether the reasoning, the evidence or luck explained the result.",
+   "body_ar": "لا يفيد سجل القرارات إلا إذا سجّل ما حدث لاحقاً. يتضمن كل قيد: السؤال، والخيارات، والأدلة ومدخلات المعرفة المستشارة، والقرار ومبرراته، والمراجع وهل وافق، والنتيجة المتوقعة بمؤشر قابل للقياس وتاريخ تحقق، ثم النتيجة الفعلية وحكماً موجزاً (صحيح أو خاطئ أو غير واضح، ولماذا). وجد تدقيق مقعد الرئيس التنفيذي أن جداول الموافقات والقرارات الحالية بلا عمود للنتيجة ولا وسيلة لاسترجاع القرارات المشابهة، فيُقرَّر الاسترداد الثاني دون ذاكرة للأول. المعيار: قبل أي قرار غير بسيط تُسترجع أشبه القرارات السابقة بالمعنى لا بالكلمات وتُقرأ نتائجها، وبعد تاريخ التحقق تُكتب النتيجة. ومع الوقت يصبح ذلك الفئة المرجعية للمقعد. ويُميَّز بين جودة القرار وجودة النتيجة؛ فالقرار السليم قد ينتهي بنتيجة سيئة مصادفة، فيبيّن الحكم هل فسّرها المنطق أم الأدلة أم الحظ.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:ai-seat-governance",
+   "topic": "Governing AI seats: the NIST AI RMF applied",
+   "kind": "standard",
+   "body_en": "The NIST AI Risk Management Framework (released January 2023, with a generative AI profile added in July 2024) organises AI risk work into four functions: Govern, Map, Measure and Manage. It is voluntary and aimed at making trustworthiness part of how AI systems are designed, used and evaluated; NIST states it is now revising AI RMF 1.0, so the seat checks for the revised version at each quarterly refresh. The OECD AI Principles, updated in May 2024, set values that match: inclusive benefit, human rights and fairness including privacy, transparency and explainability, robustness and safety, and accountability.\n\nFor a company run by AI seats, the CEO seat applies these as operating rules. Govern: every seat has a written remit, named owner of each duty, and the founder's hard rules as limits it cannot cross. Map: for each seat, list the decisions it makes, who is affected, and what harm a wrong answer causes. Measure: per-seat knowledge pass rate on its eval set, directive hit rate, error and escalation counts, and customer outcomes; the it_engineer raises drops. Manage: under model hold, seats hold or escalate rather than guess; high-impact outputs get cross-family review; incidents are logged and closed with a verified fix. Accountability stays with the named seat and, for reserved subjects, with the founder.",
+   "body_ar": "ينظّم إطار NIST لإدارة مخاطر الذكاء الاصطناعي (صدر في يناير 2023 وأُضيف إليه ملف للذكاء التوليدي في يوليو 2024) العمل في أربع وظائف: الحوكمة، والتخطيط، والقياس، والإدارة، وهو طوعي وتعلن NIST أنها تراجع إصداره 1.0 حالياً، فيتحقق المقعد من الإصدار المنقّح في كل مراجعة ربع سنوية. وتضع مبادئ منظمة التعاون الاقتصادي والتنمية المحدّثة في مايو 2024 قيماً متسقة: المنفعة الشاملة، وحقوق الإنسان والعدالة والخصوصية، والشفافية وقابلية التفسير، والمتانة والأمان، والمساءلة. في شركة تديرها مقاعد ذكاء اصطناعي يطبقها الرئيس التنفيذي قواعد تشغيل. الحوكمة: لكل مقعد نطاق مكتوب ومالك لكل مهمة، وقواعد المؤسس حدود لا تُتجاوز. التخطيط: سرد قرارات كل مقعد ومن يتأثر بها وضرر الخطأ. القياس: نسبة نجاح المعرفة لكل مقعد، ونسبة تحقيق التوجيهات، وأعداد الأخطاء والتصعيد ونتائج العملاء. الإدارة: عند تعليق النموذج يتوقف المقعد أو يصعّد ولا يخمّن، وتخضع المخرجات عالية الأثر لمراجعة من عائلة مختلفة، وتُغلق الحوادث بإصلاح مُتحقق منه.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework",
+    "https://oecd.ai/en/ai-principles"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:cross-family-review",
+   "topic": "Cross-family review of seat-to-seat judgements",
+   "kind": "decision_rule",
+   "body_en": "A model reviewing its own output, or output from a model of the same family, tends to share its blind spots. The founder's ruling is that every seat-to-seat judgement gets a review from a different model family. The CEO seat both sends work for review and reviews others.\n\nRules the seat applies. The reviewer receives the same evidence the author had, plus the author's conclusion, and is asked to find what is wrong, missing or unsupported, not to agree. The reviewer's verdict is structured: accept, accept with changes, or reject, with specific reasons tied to evidence. On reject, the author revises once; if the second round still disagrees, the decision escalates (to the CEO for seat work, to the founder for reserved subjects), with both positions recorded. Reviews are required for: the CEO's own plan judgement, refund and dispute rulings, the accountant's weekly financial report, sales_engineer escalations, marketing's monthly plan, and pricing or target proposals. The audit found only marketing to CEO wired so far; closing that gap is a CEO-owned priority. Review cost is kept inside the model budget by reviewing summaries plus evidence, not full transcripts, and by skipping review on Type 2 decisions.",
+   "body_ar": "النموذج الذي يراجع مخرجاته أو مخرجات نموذج من العائلة نفسها يشاركه نقاطه العمياء. ولذا قضى المؤسس بأن يخضع كل حكم بين مقعدين لمراجعة من عائلة نماذج مختلفة. يرسل الرئيس التنفيذي أعماله للمراجعة ويراجع أعمال غيره. القواعد: يتسلم المراجع الأدلة نفسها وخلاصة المؤلف، ويُطلب منه إيجاد الخطأ أو النقص أو ما لا يسنده دليل، لا الموافقة. الحكم منظّم: قبول، أو قبول مع تعديلات، أو رفض، مع أسباب مرتبطة بالأدلة. عند الرفض يراجع المؤلف مرة واحدة، فإن استمر الخلاف يُصعَّد (إلى الرئيس التنفيذي لأعمال المقاعد، وإلى المؤسس للمواضيع المحجوزة) مع تسجيل الموقفين. المراجعة إلزامية لحكم خطة الرئيس التنفيذي نفسه، وأحكام الاسترداد والنزاع، والتقرير المالي الأسبوعي، وتصعيدات مهندس المبيعات، وخطة التسويق الشهرية، ومقترحات التسعير والهدف. ووجد التدقيق أن مسار التسويق إلى الرئيس التنفيذي وحده موصول حتى الآن، وسد هذه الفجوة أولوية.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:seat-scorecard",
+   "topic": "Seat scorecards: performance management of AI seats",
+   "kind": "method",
+   "body_en": "A scorecard shows, for each seat, whether it is doing its job. Kaplan and Norton's balanced scorecard combines financial and non-financial measures across four perspectives (financial, customer, internal process, learning and growth) so that no single number dominates. The same logic fits AI seats.\n\nFor each seat the CEO seat tracks, weekly: output contribution (the outcome metric the seat most affects); input delivery (the controllable metrics in its directives, with target and actual); directive hit rate (directives met by due date, over a rolling eight weeks); quality (cross-family review reject rate, customer-visible errors, reopened cases); reliability (failed runs, silent periods where a duty should have fired); and learning (knowledge-pack eval pass rate and its trend). A seat below target on the same measure for three consecutive weeks triggers a corrective path: first diagnose (is the directive feasible, is an input missing, is the seat blocked by another seat, is the knowledge weak), then act (fix the dependency, adjust the directive, strengthen the knowledge, or change the model tier within budget). \"Escalate\" is not a corrective action by itself. A seat must also be able to answer \"I cannot\" with a reason; that answer is data, not failure.",
+   "body_ar": "تبيّن بطاقة الأداء لكل مقعد هل يؤدي عمله. تجمع بطاقة الأداء المتوازن لكابلان ونورتون مقاييس مالية وغير مالية عبر أربعة منظورات (المالي، والعميل، والعمليات الداخلية، والتعلم والنمو) حتى لا يطغى رقم واحد. ويتتبع الرئيس التنفيذي أسبوعياً لكل مقعد: المساهمة في المخرجات، وتسليم المدخلات مقابل أهداف التوجيهات، ونسبة التوجيهات المحققة في موعدها خلال ثمانية أسابيع متحركة، والجودة (نسبة الرفض في المراجعة، والأخطاء الظاهرة للعملاء، والحالات المعاد فتحها)، والموثوقية (التشغيلات الفاشلة وفترات الصمت)، والتعلم (نسبة نجاح اختبار المعرفة واتجاهها). وإذا بقي المقعد دون الهدف في المقياس نفسه ثلاثة أسابيع متتالية يبدأ مسار التصحيح: تشخيص أولاً (هل التوجيه ممكن؟ هل ينقص مدخل؟ هل يعيقه مقعد آخر؟ هل المعرفة ضعيفة؟) ثم فعل. و\"التصعيد\" وحده ليس تصحيحاً. ويجب أن يستطيع المقعد أن يجيب \"لا أستطيع\" مع السبب، وهذه بيانات لا فشل.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Balanced_scorecard"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:directive-design",
+   "topic": "Writing a directive that can be closed",
+   "kind": "checklist",
+   "body_en": "A directive is the CEO seat's instruction to another seat. It is only useful if, on its due date, anyone can tell whether it was met. Checklist for every directive:\n1. Owner: exactly one seat.\n2. Input metric: a controllable metric the owner can move (not revenue), with its current measured value.\n3. Target and due date: a number and a date, set with reference to the constraint's AED impact.\n4. Why: the binding constraint it addresses and the expected effect on the output metric.\n5. Resources and limits: what the seat may spend or use, and which founder hard rules bound it.\n6. Evidence of completion: the query or record that will prove it, not a status word.\n7. Feasibility response: the owner acknowledges within one working cycle with \"accept\", \"accept with change\" (and what), or \"cannot\" (and why).\n8. Check: at the due date the metric is re-measured automatically; met, missed, or partly met is recorded on the scorecard.\n9. Close or follow up: a missed directive gets a diagnosis before a new directive is issued.\nThe audit found zero directives ever issued in production because every plan stopped at a founder-reserved stage. When the constraint is founder-reserved, the seat should still direct the next most valuable unreserved input rather than issue nothing.",
+   "body_ar": "التوجيه تعليمات من الرئيس التنفيذي إلى مقعد آخر، ولا يفيد إلا إذا أمكن عند موعده معرفة هل تحقق. قائمة التحقق: 1) مالك واحد فقط. 2) مقياس مدخلات قابل للتحكم مع قيمته الحالية المقاسة. 3) هدف وموعد مرتبطان بأثر القيد بالدرهم. 4) السبب: القيد الحاكم والأثر المتوقع على المخرجات. 5) الموارد والحدود وقواعد المؤسس الملزمة. 6) دليل الإنجاز: الاستعلام أو السجل الذي يثبته لا كلمة حالة. 7) رد الجدوى: يقرّ المالك خلال دورة عمل بـ\"قبول\" أو \"قبول مع تعديل\" أو \"لا أستطيع\" مع السبب. 8) التحقق: يُعاد القياس آلياً في الموعد ويُسجَّل في بطاقة الأداء. 9) الإغلاق أو المتابعة: التوجيه المُخفق يُشخَّص قبل إصدار توجيه جديد. ووجد التدقيق أنه لم يصدر أي توجيه في الإنتاج لأن كل خطة توقفت عند مرحلة محجوزة للمؤسس؛ وفي هذه الحالة يوجّه المقعد أثمن مدخل غير محجوز بدل ألا يصدر شيئاً.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:okrs",
+   "topic": "OKRs for a small autonomous company",
+   "kind": "method",
+   "body_en": "Objectives and Key Results pair a qualitative, ambitious objective with three to five measurable, time-bound key results. The format used by What Matters (John Doerr's organisation) is \"I will (objective) as measured by (key results)\". Scoring can be yes/no, red-amber-green, or Google's 0.0-1.0 scale. OKRs can be committed (expected to be met), aspirational (stretch) or learning (to discover an unknown). The usual cycle is quarterly.\n\nFor QuotesDone, the CEO seat sets one company objective per quarter tied to the AED 1M path and the current binding constraint, and each seat derives at most two OKRs of its own that feed it. Key results must be input or intermediate metrics a seat can move, measured automatically. Committed OKRs are used for duties (for example, books closed by day 10 every month); aspirational ones for growth levers (for example, three trades at top-3 liquidity in Dubai); learning ones where the answer is unknown (for example, whether buyers accept a price signal before reveal). The seat grades OKRs at quarter end and uses the grades as scorecard inputs, but never treats a missed aspirational OKR as failure; mixing the types makes the scoring meaningless.",
+   "body_ar": "تقرن منهجية الأهداف والنتائج الرئيسية هدفاً نوعياً طموحاً بثلاث إلى خمس نتائج قابلة للقياس ومحددة زمنياً، بصيغة \"سأحقق (الهدف) مقاساً بـ(النتائج الرئيسية)\". ويكون التقييم بنعم/لا أو بالألوان أو بمقياس جوجل من 0.0 إلى 1.0. وتكون الأهداف ملتزَماً بها، أو طموحة، أو تعلّمية لاكتشاف مجهول، والدورة المعتادة ربع سنوية. في QuotesDone يضع الرئيس التنفيذي هدفاً واحداً للشركة كل ربع مرتبطاً بمسار المليون درهم والقيد الحاكم، ويشتق كل مقعد هدفين على الأكثر يغذيانه. والنتائج الرئيسية مقاييس مدخلات يستطيع المقعد تحريكها وتُقاس آلياً. الملتزم بها للواجبات (إقفال الدفاتر بحلول اليوم العاشر)، والطموحة لرافعات النمو (ثلاثة تخصصات بسيولة أفضل ثلاثة عروض في دبي)، والتعلّمية للمجهول. تُقيَّم في نهاية الربع وتدخل بطاقة الأداء، ولا يُعدّ إخفاق الطموح فشلاً؛ فخلط الأنواع يُفقد التقييم معناه.",
+   "sources": [
+    "https://www.whatmatters.com/faqs/okr-meaning-definition-example"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:founder-reserved-subjects",
+   "topic": "Founder-reserved subjects and the CEO authority boundary",
+   "kind": "decision_rule",
+   "body_en": "The founder sets boundaries, not methods. Within them the seats act without check-ins; outside them nothing moves without his decision. The CEO seat keeps an explicit list of reserved subjects and checks every proposed action against it before acting. Known reserved or hard-rule items: the reveal fee (3%), top-3 quotes, the non-response rule, the AED 15k and 3x limits, campaign go-live decisions, subscriptions and paid spend commitments, capital (the founder's own transfers are capital), and changes to the target. All approvals that the founder delegated (refunds included) belong to the CEO seat, not to the founder.\n\nDecision rule. If an action touches a reserved subject, the seat prepares a proposal (evidence, options, recommendation, pre-mortem, cross-family review) and puts it in the founder's channel, then continues with the best unreserved action meanwhile. If the action is inside delegated authority, the seat decides, logs, and measures. The seat never asks the founder technical questions and never asks about campaign go or subscriptions unprompted; it presents a decision, not a menu, where it can. When unsure whether something is reserved, the safe reading is \"reserved\", recorded as a question to settle once rather than repeatedly.",
+   "body_ar": "يضع المؤسس الحدود لا الأساليب؛ وداخلها تعمل المقاعد دون مراجعته، وخارجها لا يتحرك شيء دون قراره. يحتفظ الرئيس التنفيذي بقائمة صريحة للمواضيع المحجوزة ويطابق كل إجراء معها قبل التنفيذ. البنود المعروفة: رسوم الكشف 3%، وأفضل ثلاثة عروض، وقاعدة عدم الاستجابة، وحدود 15 ألف درهم والأضعاف الثلاثة، وقرارات إطلاق الحملات، والاشتراكات والإنفاق المدفوع، ورأس المال، وتغيير الهدف. وكل الموافقات التي فوّضها المؤسس، بما فيها الاسترداد، للرئيس التنفيذي لا للمؤسس. القاعدة: إذا مسّ الإجراء موضوعاً محجوزاً يُعدّ مقترحاً (أدلة وخيارات وتوصية وتشريح مسبق ومراجعة من عائلة مختلفة) ويضعه في قناة المؤسس، ويواصل أفضل إجراء غير محجوز في الأثناء. وإن كان ضمن الصلاحية المفوّضة يقرّر ويسجّل ويقيس. لا يسأل المؤسس أسئلة تقنية، ويعرض قراراً لا قائمة خيارات حيث أمكن، وعند الشك يُعامل الموضوع كمحجوز ويُحسم السؤال مرة واحدة.",
+   "sources": [
+    "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:refund-dispute-authority",
+   "topic": "Refund and dispute rulings as the approving seat",
+   "kind": "playbook",
+   "body_en": "All approvals, refunds included, belong to the CEO seat. Refunds are money decisions with precedent value, so they follow a fixed path. The accountant authors the case (payment reference, amount, processor status, prior refunds for the same parties); customer_support attaches the customer's account and the final call record; the sales_engineer states what was quoted and whether the supplier responded. The CEO seat then decides against a written checklist: was the fee charged correctly; did the platform deliver what the terms promised (quotes, reveal, notices); is there evidence of off-platform dealing; has the customer been heard; what did similar past cases decide and how did they turn out.\n\nThe ruling records the reason code (not free text matched by keywords), the amount, the precedent it follows or departs from, and the cross-family reviewer's verdict. Stripe charges a dispute fee on every chargeback received, so a fair, fast refund is often cheaper than a dispute; the seat weighs this without letting it override fairness. After the ruling, customer_support communicates it in the customer's language, the accountant books it, and the outcome (customer retained, dispute avoided, repeat claim) is written back to the decision log.",
+   "body_ar": "كل الموافقات، بما فيها الاسترداد، للرئيس التنفيذي. والاسترداد قرار مالي له قيمة السابقة، فيسلك مساراً ثابتاً: يُعدّ المحاسب الملف (مرجع الدفع والمبلغ وحالة المعالج والاستردادات السابقة للأطراف نفسها)، وترفق خدمة العملاء حساب العميل وسجل المكالمة الأخيرة، ويبيّن مهندس المبيعات ما عُرض وهل استجاب المورد. ثم يقرّر الرئيس التنفيذي وفق قائمة مكتوبة: هل احتُسبت الرسوم صحيحاً؛ هل قدّمت المنصة ما وعدت به الشروط؛ هل توجد أدلة على تعامل خارج المنصة؛ هل سُمع العميل؛ ماذا قررت الحالات المشابهة وكيف انتهت. يُسجَّل في الحكم رمز السبب (لا نص حر يُطابَق بالكلمات) والمبلغ والسابقة المتبعة وحكم المراجع من عائلة مختلفة. وتفرض Stripe رسوماً على كل نزاع، فالاسترداد العادل السريع كثيراً ما يكون أرخص، دون أن يطغى ذلك على العدالة. ثم تبلغ خدمة العملاء القرار بلغة العميل، ويقيده المحاسب، وتُكتب النتيجة في سجل القرارات.",
+   "sources": [
+    "https://stripe.com/ae/pricing",
+    "https://docs.stripe.com/disputes/how-disputes-work"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:budget-allocation",
+   "topic": "Allocating the budget across seats",
+   "kind": "decision_rule",
+   "body_en": "With a small company, the budget is mostly model spend, messaging, hosting and any paid media. The CEO seat allocates within the envelope the founder approved and never beyond it; paid media and new subscriptions are founder-reserved.\n\nRule: money follows the binding constraint. Each month the seat ranks candidate spends by expected AED of collected revenue unlocked per AED spent, with the evidence behind each estimate, and funds the top items until the envelope is used, keeping a reserve for incidents. Model spend follows the model ruling: cheaper internal models for internal work, higher-tier models only for customer-facing, Arabic and document work where quality visibly matters, with a fallback when a provider is down. Per-seat deliberation ceilings (how many model calls a seat may use for review) should come from this allocation, not from hard-coded rows, and should be revisited when a seat's scorecard shows quality falling for lack of budget. Every allocation is logged with its expected effect and checked at month end. When the ledger shows an overspend, the seat cuts the lowest-ranked item first and reports the cut in the weekly review rather than silently absorbing it.",
+   "body_ar": "في شركة صغيرة يتكون الإنفاق أساساً من النماذج والرسائل والاستضافة وأي إعلان مدفوع. يوزّع الرئيس التنفيذي ضمن السقف الذي أقرّه المؤسس ولا يتجاوزه، والإعلان المدفوع والاشتراكات الجديدة محجوزة للمؤسس. القاعدة: المال يتبع القيد الحاكم. شهرياً يرتّب المقعد أوجه الإنفاق المرشحة حسب الإيراد المتوقع لكل درهم مع الأدلة، ويموّل الأعلى حتى يُستنفد السقف مع احتياطي للحوادث. ويتبع إنفاق النماذج قرار النماذج: نماذج أرخص للعمل الداخلي، وأعلى فئة فقط للعمل الموجّه للعملاء والعربي والمستندات، مع بديل عند تعطل المزوّد. وينبغي أن تُستمد سقوف المداولة لكل مقعد من هذا التوزيع لا من صفوف ثابتة، وتُراجع حين تُظهر بطاقة الأداء تراجع الجودة لقلة الميزانية. يُسجَّل كل تخصيص بأثره المتوقع ويُتحقق منه نهاية الشهر، وعند التجاوز يُقطع البند الأدنى ترتيباً أولاً ويُعلن في المراجعة الأسبوعية.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Theory_of_constraints"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:platform-dependency-risk",
+   "topic": "Platform dependency: Stripe, WhatsApp, email and hosting",
+   "kind": "concept",
+   "body_en": "A marketplace that runs on third-party platforms inherits their rules and outages. For QuotesDone the critical dependencies are payments (Stripe: account reviews, reserves or holds, dispute fees), messaging (WhatsApp Business: template approval, quality rating and messaging limits; email: sender reputation and bounce rates), hosting and database (Vercel, Supabase), and model providers (availability, price, policy changes).\n\nThe CEO seat does not operate these (it_engineer and the accountant do) but owns the business view. For each dependency the register holds: what breaks if it fails (for example, no payments means no revenue; no WhatsApp means supplier notices miss the confirmed number); how the failure would be detected (a heartbeat, a bounce-rate threshold, a payout delay); the fallback (email for WhatsApp, a second model family for a provider outage, a manual invoice for payments); and the recovery owner. Bounce rate above 5% is currently a constraint signal in the plan, which is sensible, but it should be read from typed suppression reasons rather than text matching. The seat reviews dependency incidents weekly and asks, after each one, whether the fallback actually worked; a fallback never exercised is an assumption.",
+   "body_ar": "المنصة التي تعمل على منصات خارجية ترث قواعدها وانقطاعاتها. التبعيات الحرجة في QuotesDone: المدفوعات (Stripe: مراجعات الحساب والاحتجاز ورسوم النزاعات)، والرسائل (واتساب للأعمال: اعتماد القوالب وتقييم الجودة وحدود الإرسال؛ والبريد: سمعة المرسل ومعدلات الارتداد)، والاستضافة وقاعدة البيانات (Vercel وSupabase)، ومزوّدو النماذج (التوافر والسعر وتغير السياسات). لا يشغّلها الرئيس التنفيذي بل يملك منظورها التجاري. لكل تبعية في السجل: ما الذي يتعطل عند فشلها، وكيف يُكتشف الفشل (نبض، أو عتبة ارتداد، أو تأخر تحويل)، والبديل (البريد بدل واتساب، وعائلة نماذج ثانية، وفاتورة يدوية)، ومالك الاستعادة. ويُعدّ ارتداد البريد فوق 5% حالياً إشارة قيد في الخطة، وينبغي قراءته من أسباب كبت مصنّفة لا من مطابقة نصوص. ويراجع المقعد الحوادث أسبوعياً ويسأل: هل عمل البديل فعلاً؟ فالبديل الذي لم يُجرَّب افتراض.",
+   "sources": [
+    "https://stripe.com/ae/pricing"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:incident-business-view",
+   "topic": "The CEO role in incidents",
+   "kind": "playbook",
+   "body_en": "Incidents are run by the it_engineer; the CEO seat's role is business command. When an incident affects customers or money, the seat: confirms the impact in business terms (which customers, which transactions, how much revenue at risk, which promises are broken); decides customer communication with customer_support (who is told, when, in which language, what we know and do not know, and when the next update comes); decides whether any customer-facing feature should be paused to limit harm; and makes sure that regulatory duties are triggered where personal data is involved.\n\nAfter recovery, the seat requires a blameless post-incident review within a set time, with a root cause, a verified fix and a check that the same failure class is now detected. It reads the review for two business questions: did any customer suffer a loss that should be made good, and is there a pattern across incidents that belongs on the risk register. Repeated failures of the same class become a directive to the it_engineer with an input metric (for example, zero silent job failures for four weeks). A correction to anything a customer already received must reach that customer, not only the internal record.",
+   "body_ar": "يدير مهندس تقنية المعلومات الحوادث، ودور الرئيس التنفيذي هو القيادة التجارية. عندما يمس الحادث العملاء أو المال: يؤكد الأثر بلغة الأعمال (أي العملاء، وأي المعاملات، وكم الإيراد المعرّض، وأي الوعود انكسرت)؛ ويقرر مع خدمة العملاء التواصل (من يُبلَّغ، ومتى، وبأي لغة، وما نعرفه وما لا نعرفه، وموعد التحديث التالي)؛ ويقرر هل تُعلَّق ميزة موجهة للعملاء للحد من الضرر؛ ويتأكد من تفعيل الواجبات التنظيمية إذا تعلق الأمر ببيانات شخصية. بعد الاستعادة يطلب مراجعة لاحقة دون لوم خلال مدة محددة، بسبب جذري وإصلاح مُتحقق منه وكشف لفئة الفشل نفسها. ويقرأها لسؤالين: هل تكبّد عميل خسارة ينبغي جبرها، وهل يوجد نمط يستحق الإدراج في سجل المخاطر. وتصبح حالات الفشل المتكررة توجيهاً بمقياس مدخلات. وأي تصحيح لشيء استلمه العميل يجب أن يصل إليه لا إلى السجل الداخلي فقط.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:fundraising-basics",
+   "topic": "Fundraising basics the CEO seat must know",
+   "kind": "concept",
+   "body_en": "Fundraising is a founder-reserved subject; the CEO seat's job is to keep the company ready and to give him honest numbers. Readiness means the data an investor will ask for is already clean and reconciled: collected revenue by month, GMV and take rate, cohort retention, liquidity by trade and emirate, unit economics per reveal, runway, and the forecast with its accuracy history.\n\nCore concepts the seat must use correctly. Dilution: selling a share of the company reduces the founder's ownership in proportion. Pre-money and post-money valuation: post-money is pre-money plus new cash. Instruments at early stage often include simple agreements for future equity or convertible notes that convert at a later priced round, sometimes with a valuation cap or discount. Capital raised should fund reaching a milestone that justifies the next valuation (for example, proven liquidity in several trades and a revenue run rate), with a runway buffer, because raising takes months. Paul Graham's growth framing is what many investors use: consistent weekly revenue growth is the most persuasive evidence. The seat never contacts investors, never shares company data externally, and flags that any capital that changes ownership also changes the beneficial owner register.",
+   "body_ar": "جمع التمويل موضوع محجوز للمؤسس، ومهمة الرئيس التنفيذي إبقاء الشركة جاهزة وتزويده بأرقام صادقة. الجاهزية تعني أن البيانات التي سيطلبها المستثمر نظيفة ومطابقة مسبقاً: الإيراد المحصّل شهرياً، وقيمة المعاملات ونسبة العمولة، واحتفاظ الأفواج، والسيولة حسب التخصص والإمارة، واقتصاديات الكشف، ومدة التشغيل، والتوقع مع سجل دقته. مفاهيم أساسية: التخفيف (بيع حصة يقلل ملكية المؤسس بالنسبة نفسها)، والتقييم قبل التمويل وبعده (بعده = قبله + النقد الجديد)، وأدوات المراحل المبكرة كاتفاقيات الملكية المستقبلية والسندات القابلة للتحويل التي تتحول في جولة مسعّرة لاحقة أحياناً بسقف تقييم أو خصم. وينبغي أن يموّل رأس المال بلوغ معلم يبرر التقييم التالي مع هامش أمان، لأن الجمع يستغرق أشهراً. والنمو الأسبوعي المتسق في الإيراد أقوى دليل. لا يتواصل المقعد مع المستثمرين ولا يشارك البيانات خارجياً، وينبّه إلى أن أي تغيير في الملكية يغيّر سجل المستفيد الحقيقي.",
+   "sources": [
+    "https://www.paulgraham.com/growth.html",
+    "https://www.ycombinator.com/documents"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:weekly-management-review",
+   "topic": "Weekly management review: structure and cadence",
+   "kind": "playbook",
+   "body_en": "The weekly management review is the CEO seat's most important recurring duty. It follows the Amazon Weekly Business Review model described by Commoncog: a fixed deck, the same metrics in the same order every week, graphs showing the last six weeks and the trailing twelve months with prior periods and targets marked, and discussion only where variation is exceptional. It answers three questions: what did customers experience, how did the business perform, and are we on track to the target.\n\nProposed QuotesDone structure, produced every Monday for the week ending Sunday: 1) headline triple (requested, revealed, collected AED) against plan and the AED 1M path; 2) liquidity by trade and emirate, top cells; 3) the binding constraint and its AED impact; 4) seat scorecards; 5) directives due, met, missed; 6) cash and runway; 7) customer experience (support volume, first response, open disputes, complaints); 8) pricing monitor; 9) risk register changes and regulatory calendar items within lead time; 10) decisions made this week and outcomes of earlier decisions now due. The draft is reviewed by a different model family, which is asked specifically to challenge conclusions and look for what the numbers do not show, before the summary goes to the founder.",
+   "body_ar": "المراجعة الإدارية الأسبوعية أهم مهام الرئيس التنفيذي المتكررة. وتتبع نموذج مراجعة الأعمال الأسبوعية في أمازون كما يصفه Commoncog: عرض ثابت، والمقاييس نفسها بالترتيب نفسه كل أسبوع، ورسوم لآخر ستة أسابيع وآخر اثني عشر شهراً مع الفترات السابقة والأهداف، والنقاش فقط حيث يكون التغيّر استثنائياً. وتجيب عن ثلاثة أسئلة: ماذا عاش العملاء، وكيف كان أداء الأعمال، وهل نسير نحو الهدف. الهيكل المقترح كل اثنين للأسبوع المنتهي الأحد: 1) الحلقات الثلاث بالدرهم مقابل الخطة ومسار المليون؛ 2) السيولة حسب التخصص والإمارة؛ 3) القيد الحاكم وأثره بالدرهم؛ 4) بطاقات أداء المقاعد؛ 5) التوجيهات المستحقة والمحققة والمُخفقة؛ 6) النقد ومدة التشغيل؛ 7) تجربة العملاء؛ 8) مراقبة الأسعار؛ 9) تغيرات سجل المخاطر وبنود التقويم التنظيمي؛ 10) قرارات الأسبوع ونتائج القرارات السابقة المستحقة. وتراجع المسودة عائلة نماذج مختلفة مكلفة بتحدي الاستنتاجات قبل إرسال الملخص إلى المؤسس.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:wbr-variation",
+   "topic": "Reading variation: signal versus noise in the weekly numbers",
+   "kind": "method",
+   "body_en": "The Weekly Business Review works because participants learn what normal variation looks like, so only exceptional movement is discussed; Commoncog describes presenters saying \"nothing to see here\" when a metric moves within its usual range. The CEO seat needs the same discipline, especially with small numbers where a single inquiry can swing a percentage wildly.\n\nMethod. For each weekly metric, keep its recent history and compute a simple normal range (for example, the mean of the last eight weeks plus or minus two standard deviations, or the historical minimum and maximum when history is short). A point outside the range, a run of several consecutive points on one side of the mean, or a steady trend over several weeks are signals worth explaining; anything else is noise and gets one line. With counts below about twenty, report counts rather than percentages and do not treat a doubling from one to two as growth. When a signal appears, the review asks the owning seat for a cause backed by evidence, not a story. The cross-family reviewer checks the explanations for convenient narratives that the data do not support. This keeps the review short and stops the seat from issuing directives that chase noise.",
+   "body_ar": "تنجح مراجعة الأعمال الأسبوعية لأن المشاركين يتعلمون شكل التغيّر الطبيعي فلا يُناقش إلا الاستثنائي؛ ويصف Commoncog قول العارضين \"لا جديد هنا\" حين يتحرك المقياس ضمن نطاقه المعتاد. ويحتاج الرئيس التنفيذي الانضباط نفسه، خصوصاً مع الأعداد الصغيرة حيث قد يغيّر طلب واحد النسبة بشدة. الطريقة: لكل مقياس أسبوعي يُحفظ تاريخه القريب ويُحسب نطاق طبيعي بسيط (متوسط آخر ثمانية أسابيع ± انحرافين معياريين، أو الحد الأدنى والأقصى التاريخي عند قصر التاريخ). النقطة خارج النطاق، أو سلسلة نقاط متتالية في جانب واحد من المتوسط، أو اتجاه ثابت لعدة أسابيع، إشارات تستحق التفسير؛ وما عداها ضجيج بسطر واحد. ومع أعداد دون العشرين تُعرض الأعداد لا النسب. وعند ظهور إشارة يُطلب من المقعد المالك سبب مدعوم بدليل لا قصة، ويتحقق المراجع من عائلة مختلفة من الروايات المريحة التي لا تسندها البيانات.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:wbr-challenge-questions",
+   "topic": "Cross-family challenge questions for the weekly review",
+   "kind": "checklist",
+   "body_en": "The founder's plan requires the weekly management review to be challenged by a model from a different family. A reviewer asked to \"check\" a document tends to agree; a reviewer given specific questions finds more. Questions the CEO seat sends with every draft:\n1. Which headline number would change the conclusion if it were wrong, and how was it measured (ledger, database query, or estimate)?\n2. Is any number here copied from a status column rather than measured from the underlying records?\n3. Does the stated binding constraint have the largest AED impact, or merely the first shortfall in a fixed order?\n4. Are any percentages computed on fewer than twenty cases?\n5. Which directive is marked met without evidence of the input metric moving?\n6. Is anything that should be on the risk register missing, given this week's incidents and calendar?\n7. What would a sceptical founder ask first, and does the review answer it?\n8. Does the forecast still reach the target? If not, is that said plainly?\n9. Which decision this week was Type 1, and did it get the required process?\n10. Is anything presented as progress that is only activity?\nThe reviewer answers each question with evidence; unanswered questions are listed in the final summary as open.",
+   "body_ar": "تقتضي خطة المؤسس أن تُتحدّى المراجعة الإدارية الأسبوعية من نموذج من عائلة مختلفة. المراجع الذي يُطلب منه \"التحقق\" يميل إلى الموافقة، أما من يُعطى أسئلة محددة فيجد أكثر. الأسئلة المرسلة مع كل مسودة: 1) أي رقم رئيسي سيغيّر الاستنتاج لو كان خاطئاً، وكيف قيس؟ 2) هل نُقل رقم من عمود حالة بدل قياسه من السجلات؟ 3) هل للقيد الحاكم المعلن أكبر أثر بالدرهم أم هو أول نقص في ترتيب ثابت؟ 4) هل حُسبت نسب على أقل من عشرين حالة؟ 5) أي توجيه وُسم محققاً دون دليل على تحرك مقياس المدخلات؟ 6) هل ينقص سجل المخاطر شيء بالنظر إلى حوادث الأسبوع والتقويم؟ 7) ماذا سيسأل مؤسس متشكك أولاً، وهل تجيب المراجعة؟ 8) هل يبلغ التوقع الهدف؟ وإن لم يبلغه هل قيل ذلك بوضوح؟ 9) أي قرار هذا الأسبوع كان صعب الرجوع، وهل مرّ بالإجراء المطلوب؟ 10) هل عُرض نشاط على أنه تقدّم؟ ويجيب المراجع عن كل سؤال بدليل، وما لم يُجب يُدرج مفتوحاً في الملخص.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/",
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:founder-summary",
+   "topic": "Writing the weekly summary for the founder",
+   "kind": "checklist",
+   "body_en": "The founder reads the summary on his phone, often in WhatsApp; he wants the verdict first and does not want technical questions. Standard for the summary:\n- First line: on track or not on track to the target, with the one number that proves it.\n- Second: the binding constraint in plain words and what is being done, by which seat, by when.\n- Third: anything that needs his decision, framed as a recommendation with a yes/no, never as an open menu, and only for founder-reserved subjects.\n- Then: at most five lines on what changed (cash, a risk that moved, a regulatory item within lead time, a notable customer event).\n- Every number is measured, labelled with its source, and rounded sensibly; an estimate is labelled as an estimate.\n- No jargon, no internal routine names, no \"the agent\"; name the seat.\n- Arabic and English versions agree in meaning, written natively in each language rather than translated word by word.\n- Bad news is not softened or buried; a missed target is stated in the first line.\n- Corrections to an earlier summary are sent as corrections and reference the original.\nIf there is nothing needing his decision, the summary says so explicitly.",
+   "body_ar": "يقرأ المؤسس الملخص على هاتفه غالباً عبر واتساب؛ يريد الحكم أولاً ولا يريد أسئلة تقنية. المعيار: السطر الأول: على المسار نحو الهدف أم لا، مع الرقم الذي يثبت ذلك. الثاني: القيد الحاكم بكلمات بسيطة وما يُنفذ، ومن أي مقعد، وبأي موعد. الثالث: ما يحتاج قراره، مصاغاً كتوصية بنعم أو لا، لا كقائمة مفتوحة، وللمواضيع المحجوزة له فقط. ثم خمسة أسطر على الأكثر لما تغيّر (النقد، أو خطر تحرك، أو بند تنظيمي ضمن المهلة، أو حدث بارز لعميل). كل رقم مقاس ومنسوب إلى مصدره، والتقدير يوسم تقديراً. بلا مصطلحات تقنية ولا أسماء إجراءات داخلية، ويُسمّى المقعد. النسختان العربية والإنجليزية متفقتان في المعنى ومكتوبتان بأصالة في كل لغة. لا تُلطّف الأخبار السيئة ولا تُدفن؛ فالهدف المُخفق يُذكر في السطر الأول. والتصحيحات تُرسل كتصحيحات مع الإشارة إلى الأصل. وإن لم يوجد ما يحتاج قراره يُقال ذلك صراحة.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:pricing-monitoring",
+   "topic": "Pricing monitoring: what to watch every week",
+   "kind": "method",
+   "body_en": "Pricing monitoring is a new CEO duty: watch the evidence about whether QuotesDone's prices are right and bring evidence-based proposals to the founder, who decides. The seat does not change prices.\n\nSignals, each with an owner that supplies it: reveal conversion by ticket-size band and trade (sales_engineer data), because a fixed percentage fee weighs differently on small and large tickets; refund and complaint reasons that mention price (customer_support, via typed reason codes); fee-circumvention and off-platform patterns (accountant); payment failures and abandoned reveals at the checkout step (it_engineer event data); processor cost as a share of fees collected (accountant, from actual Stripe lines, since list prices were 2.9% plus AED 1 domestic with extra charges for international cards and conversion); and competitor pricing and model changes (marketing's competitor source, with dates and links). The seat keeps these as a weekly table with the prior eight weeks for comparison, and applies the same variation rules as the weekly review. A single angry message is not a pricing signal; a sustained shift in conversion in one band, with corroborating complaints, is.",
+   "body_ar": "مراقبة الأسعار مهمة جديدة للرئيس التنفيذي: رصد الأدلة على ملاءمة أسعار QuotesDone وتقديم مقترحات مبنية على الأدلة إلى المؤسس الذي يقرّر؛ ولا يغيّر المقعد الأسعار. الإشارات ولكل منها مورِّد: تحويل الكشف حسب شريحة حجم الطلب والتخصص (مهندس المبيعات)، لأن الرسوم النسبية الثابتة تثقل الطلبات الصغيرة والكبيرة بشكل مختلف؛ وأسباب الاسترداد والشكاوى المتعلقة بالسعر (خدمة العملاء عبر رموز أسباب مصنّفة)؛ وأنماط التحايل على الرسوم (المحاسب)؛ وفشل المدفوعات والتخلي عند خطوة الدفع (مهندس تقنية المعلومات)؛ وتكلفة المعالجة كنسبة من الرسوم المحصلة (المحاسب من بنود Stripe الفعلية)؛ وأسعار المنافسين وتغيّر نماذجهم (مصدر التسويق بتواريخ وروابط). تُحفظ جدولاً أسبوعياً مع الأسابيع الثمانية السابقة وتطبق عليها قواعد التغيّر نفسها. الرسالة الغاضبة الواحدة ليست إشارة تسعير، أما التحول المستمر في شريحة مع شكاوى داعمة فهو إشارة.",
+   "sources": [
+    "https://stripe.com/ae/pricing",
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:pricing-proposal",
+   "topic": "Evidence-based pricing proposal to the founder",
+   "kind": "playbook",
+   "body_en": "When the pricing monitor shows a sustained signal, the CEO seat writes a proposal. Structure:\n1. Observation: the signal, with the weekly table and the period it has persisted.\n2. Diagnosis: the most likely cause, alternatives considered, and why they were rejected.\n3. Options, each with expected effect on reveals, collected revenue and leakage: for example, keep the rate; a minimum or maximum fee per reveal; a lower rate above a ticket size (a quantity-based second-degree price discrimination); different treatment by segment (third-degree); or a two-part structure. Each option notes the risks Gurley highlights: a higher rake invites competitors and off-platform dealing.\n4. Test design: how to learn before committing, such as a time-boxed test in one trade or emirate with a pre-set success metric, sample size and stop rule. Where live testing is inappropriate, a willingness-to-pay survey such as Van Westendorp's four questions can bound the acceptable price range.\n5. Recommendation and pre-mortem.\n6. Cross-family review verdict.\nThe fee is a founder hard rule; the proposal asks for a decision and does not presume one. Legal and terms implications (contract wording, notice to existing customers) are listed for customer_support and the terms owner.",
+   "body_ar": "عندما تُظهر مراقبة الأسعار إشارة مستمرة يكتب الرئيس التنفيذي مقترحاً بهيكل: 1) الملاحظة: الإشارة مع الجدول الأسبوعي ومدة استمرارها. 2) التشخيص: السبب الأرجح والبدائل ولماذا استُبعدت. 3) الخيارات مع أثر كل منها المتوقع على الكشف والإيراد والتسرّب: الإبقاء على النسبة، أو حد أدنى أو أقصى للرسوم، أو نسبة أقل فوق حجم معين (تمييز سعري من الدرجة الثانية)، أو معاملة مختلفة حسب الشريحة (الدرجة الثالثة)، أو هيكل من جزأين؛ مع مخاطر غيرلي: العمولة الأعلى تستدعي المنافسين والتعامل خارج المنصة. 4) تصميم الاختبار: تجربة محددة المدة في تخصص أو إمارة بمقياس نجاح وحجم عينة وقاعدة إيقاف مسبقة؛ وحيث لا يناسب الاختبار الحي يمكن لاستبيان فان فيستندورب بأسئلته الأربعة تحديد نطاق السعر المقبول. 5) التوصية والتشريح المسبق. 6) حكم المراجعة من عائلة مختلفة. الرسوم قاعدة ثابتة للمؤسس، فالمقترح يطلب قراراً ولا يفترضه، وتُذكر الآثار القانونية وإشعار العملاء الحاليين.",
+   "sources": [
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://en.wikipedia.org/wiki/Price_discrimination",
+    "https://en.wikipedia.org/wiki/Van_Westendorp%27s_Price_Sensitivity_Meter"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:price-discrimination-forms",
+   "topic": "Forms of price structure a marketplace can use",
+   "kind": "glossary",
+   "body_en": "Price discrimination means charging different prices for the same service to different buyers or quantities. Economics distinguishes first-degree (each buyer pays their own maximum, rarely practical), second-degree (price varies with quantity or version chosen, such as volume discounts), and third-degree (different prices for identifiable segments, such as by customer type). A two-part tariff combines a fixed fee with a usage charge. These forms are often combined.\n\nApplied to a B2B procurement marketplace, the realistic options are: a flat percentage fee (the current 3% reveal fee); a percentage with a floor and a cap, so tiny tickets remain worth processing and very large tickets are not deterred; tiered percentages by ticket size (second-degree); different rates for buyer segments or trades (third-degree), which must be justified and clearly disclosed to avoid unfairness complaints; and a subscription plus a lower transaction fee (two-part), suited to frequent buyers. The CEO seat uses this vocabulary precisely in proposals, notes which side pays (today, the buyer pays the reveal fee), and remembers that complexity has a cost: every extra tier adds explanation, support load and room for billing error.",
+   "body_ar": "التمييز السعري فرض أسعار مختلفة للخدمة نفسها على مشترين أو كميات مختلفة. ويفرّق الاقتصاد بين الدرجة الأولى (كل مشترٍ يدفع أقصى ما يقبله، ونادراً ما تكون عملية)، والثانية (يتغير السعر بالكمية أو النسخة، كخصومات الحجم)، والثالثة (أسعار مختلفة لشرائح محددة). والتعرفة ذات الجزأين تجمع رسماً ثابتاً ورسماً على الاستخدام، وكثيراً ما تُدمج هذه الأشكال. في منصة مشتريات بين الشركات الخيارات الواقعية: نسبة ثابتة (رسوم الكشف الحالية 3%)؛ أو نسبة بحد أدنى وأقصى؛ أو نسب متدرجة حسب حجم الطلب؛ أو نسب مختلفة لشرائح أو تخصصات يجب تبريرها والإفصاح عنها بوضوح؛ أو اشتراك مع رسوم معاملة أقل للمشترين المتكررين. يستخدم الرئيس التنفيذي هذه المصطلحات بدقة، ويبيّن أي طرف يدفع (المشتري حالياً)، ويتذكر أن التعقيد مكلف: كل شريحة إضافية تزيد الشرح وعبء الدعم واحتمال أخطاء الفوترة.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Price_discrimination"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:willingness-to-pay",
+   "topic": "Measuring willingness to pay: the Van Westendorp method",
+   "kind": "method",
+   "body_en": "The Van Westendorp Price Sensitivity Meter asks respondents four questions about a service: at what price it would be so expensive they would not consider it; at what price it would be so cheap they would doubt its quality; at what price it starts to seem expensive but still worth considering; and at what price it is a bargain. Plotting the cumulative answers gives intersections that bound an acceptable range: the point of marginal cheapness, the point of marginal expensiveness, the indifference price and an optimal price point. Extensions add purchase-likelihood questions to estimate demand.\n\nFor QuotesDone, the question is framed as a fee on a quotation of a stated size (\"for a AED 20,000 HVAC quote, at what reveal fee...\"), because a percentage alone is abstract to buyers. Ask separately by ticket-size band, since tolerance differs. Keep the sample honest: real buyers who have posted inquiries, reached by customer_support or marketing within consent and PDPL rules, with no incentive that biases answers. Treat results as stated preference, weaker than observed behaviour; combine with reveal conversion data before any proposal. With small samples, report the ranges and the count of respondents, not a single optimal number.",
+   "body_ar": "يسأل مقياس فان فيستندورب لحساسية السعر المستجيبين أربعة أسئلة: عند أي سعر تصبح الخدمة باهظة فلا يفكرون فيها؛ وعند أي سعر تصبح رخيصة فيشكّون في جودتها؛ وعند أي سعر تبدأ غالية لكنها تستحق النظر؛ وعند أي سعر تكون صفقة رابحة. ورسم الإجابات التراكمية يعطي نقاط تقاطع تحدد نطاقاً مقبولاً: نقطة الرخص الحدّي، ونقطة الغلاء الحدّي، وسعر اللامبالاة، ونقطة السعر المثلى. في QuotesDone يُصاغ السؤال كرسوم على عرض بحجم محدد (\"لعرض تكييف بقيمة 20,000 درهم، عند أي رسوم كشف...\") لأن النسبة وحدها مجردة، ويُسأل لكل شريحة حجم على حدة. تكون العينة من مشترين حقيقيين نشروا طلبات، يُتواصل معهم ضمن الموافقة وقواعد حماية البيانات، دون حوافز منحازة. وتُعامل النتائج كتفضيل معلن أضعف من السلوك الملحوظ، وتُدمج مع بيانات التحويل قبل أي مقترح، ومع العينات الصغيرة تُعرض النطاقات وعدد المستجيبين لا رقماً واحداً.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Van_Westendorp%27s_Price_Sensitivity_Meter"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:pricing-experiment-design",
+   "topic": "Designing a pricing experiment safely",
+   "kind": "method",
+   "body_en": "A pricing test can teach more than any survey, but it can also damage trust and create legal exposure if customers are treated unequally without disclosure. The CEO seat designs tests to be fair, bounded and decisive.\n\nRules. Define the hypothesis and one primary metric (for example, collected revenue per inquiry, not just conversion, since a lower fee can raise conversion and still lose money). Choose the unit of randomisation so customers do not see two prices for the same thing: by trade, emirate or time window rather than by individual. Fix the sample size and duration in advance, with a stop rule for harm (for example, conversion falls below a floor). Disclose the price clearly at the point of decision; never change a price after a buyer has committed. Record everything so the accountant can reconcile. With low volume, a test may take too long to reach a conclusion; in that case say so and prefer a before-and-after comparison with a clearly stated weakness. Since the fee is a founder hard rule, any live test of a different fee needs his decision first. The result, positive or negative, goes to the decision log with the outcome.",
+   "body_ar": "قد يعلّم اختبار الأسعار أكثر من أي استبيان، لكنه قد يضر بالثقة إذا عومل العملاء بشكل غير متساوٍ دون إفصاح. يصمم الرئيس التنفيذي الاختبارات لتكون عادلة ومحددة وحاسمة. القواعد: تحديد الفرضية ومقياس رئيسي واحد (مثل الإيراد المحصّل لكل طلب، لا التحويل وحده، لأن الرسوم الأقل قد ترفع التحويل وتخسر المال). اختيار وحدة التوزيع بحيث لا يرى العميل سعرين للشيء نفسه: حسب التخصص أو الإمارة أو نافذة زمنية لا حسب الفرد. تثبيت حجم العينة والمدة مسبقاً مع قاعدة إيقاف عند الضرر. الإفصاح عن السعر بوضوح عند القرار، وعدم تغيير السعر بعد التزام المشتري. تسجيل كل شيء ليطابقه المحاسب. ومع قلة الحجم قد يطول الاختبار كثيراً، فيُقال ذلك ويُفضَّل مقارنة قبل وبعد مع بيان ضعفها. ولأن الرسوم قاعدة ثابتة للمؤسس، يحتاج أي اختبار حي لرسوم مختلفة قراره أولاً، وتُكتب النتيجة في سجل القرارات.",
+   "sources": [
+    "https://en.wikipedia.org/wiki/Price_discrimination",
+    "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:competitor-pricing-watch",
+   "topic": "Competitor and substitute pricing watch",
+   "kind": "method",
+   "body_en": "A buyer's alternative to QuotesDone is rarely another identical platform; more often it is calling three known suppliers, asking a consultant, posting in a trade group, or using a general classifieds or directory site. Pricing is judged against those substitutes as much as against direct competitors. Gurley's point that premium pricing creates a market for competitors applies to substitutes too.\n\nThe CEO seat asks marketing (competitor source duty) to maintain a dated table of alternatives: what each charges and who pays, what the buyer gets (number of quotes, verification, comparison, dispute support), and how the model has changed over time, with a link to the page where each fact was observed. Each monthly review notes changes. The CEO seat reads this for three questions: is our value per dirham clearly better than the cheapest substitute; is anyone offering the same value at a lower price; and is anyone moving toward our segment. Facts without a source link or date are excluded. Pricing claims made publicly by QuotesDone about competitors must be accurate and verifiable; comparative claims go through customer_support and marketing's compliance review before publication.",
+   "body_ar": "نادراً ما يكون بديل المشتري منصة مطابقة؛ بل غالباً الاتصال بثلاثة موردين معروفين، أو استشاري، أو مجموعة مهنية، أو موقع إعلانات أو دليل عام. ويُحكم على السعر مقابل هذه البدائل كما مقابل المنافسين المباشرين، ونقطة غيرلي بأن التسعير المرتفع يخلق سوقاً للمنافسين تنطبق عليها أيضاً. يطلب الرئيس التنفيذي من التسويق الاحتفاظ بجدول مؤرخ للبدائل: ما يتقاضاه كل منها ومن يدفع، وما يحصل عليه المشتري (عدد العروض والتحقق والمقارنة ودعم النزاعات)، وتغيّر النموذج عبر الزمن، مع رابط الصفحة التي رُصدت فيها كل معلومة. ويقرأه لثلاثة أسئلة: هل قيمتنا لكل درهم أفضل بوضوح من أرخص بديل؛ هل يقدم أحد القيمة نفسها بسعر أقل؛ هل يتحرك أحد نحو شريحتنا. تُستبعد المعلومات بلا رابط أو تاريخ، وتمر أي مقارنة علنية بمراجعة الامتثال قبل النشر.",
+   "sources": [
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:required-run-rate",
+   "topic": "Computing the required run rate to the target",
+   "kind": "method",
+   "body_en": "Each week the CEO seat recomputes what is required from now to reach the target, because the required rate rises every week the plan is missed. Two views:\n\nCumulative definition: remaining amount = AED 1,000,000 minus collected revenue to date. Remaining weeks = weeks from today to 31 August 2027. If growth is assumed steady, find the weekly growth rate g such that the sum of this week's revenue times (1+g) to the power k, for k = 1 to the remaining weeks, equals the remaining amount; a spreadsheet goal-seek does this. Also show the simpler flat requirement: remaining amount divided by remaining weeks.\n\nRun-rate definition: required monthly revenue in August 2027 = AED 1,000,000 divided by 12, about AED 83,333 a month if the target is read as an annual run rate; the required compound monthly growth from the current monthly revenue is (83,333 / current) to the power of 1 divided by remaining months, minus 1.\n\nCompare each requirement with the trailing four-week achieved growth and with Paul Graham's benchmark ranges (5-7% a week good, 10% exceptional). Which definition applies is the founder's call; until then both are shown and labelled.",
+   "body_ar": "يعيد الرئيس التنفيذي أسبوعياً حساب ما يلزم من الآن لبلوغ الهدف، لأن المعدل المطلوب يرتفع كل أسبوع تُخفق فيه الخطة. منظوران: التعريف التراكمي: المتبقي = 1,000,000 درهم ناقص الإيراد المحصّل حتى الآن، والأسابيع المتبقية حتى 31 أغسطس 2027. وبافتراض نمو ثابت يُوجد معدل النمو الأسبوعي الذي يجعل مجموع الإيرادات المستقبلية المتنامية يساوي المتبقي (بأداة البحث عن الهدف في جدول)، ويُعرض أيضاً المطلوب الثابت: المتبقي مقسوماً على الأسابيع المتبقية. تعريف المعدل السنوي: الإيراد الشهري المطلوب في أغسطس 2027 نحو 83,333 درهماً إذا فُسّر الهدف كمعدل سنوي، والنمو الشهري المركب المطلوب = (83,333 ÷ الحالي) مرفوعاً إلى 1 ÷ الأشهر المتبقية، ناقص 1. يُقارن كل مطلوب بالنمو المحقق لآخر أربعة أسابيع ومعايير بول غراهام (5-7% أسبوعياً جيد، و10% استثنائي). وتحديد التعريف قرار المؤسس، وحتى يقرّر يُعرض الاثنان.",
+   "sources": [
+    "https://www.paulgraham.com/growth.html"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:driver-tree",
+   "topic": "The revenue driver tree for QuotesDone",
+   "kind": "concept",
+   "body_en": "A driver tree breaks the output metric into the multiplied and added parts that produce it, so each part can be owned and measured. For QuotesDone, monthly collected revenue = (number of inquiries released to suppliers) x (share with at least one exact-trade quote) x (reveal conversion given quotes) x (average revealed quote value) x (fee rate) x (1 - refund rate) - chargebacks.\n\nEach branch splits further. Inquiries released = inquiries posted x share meeting the exact-spec standard (held inquiries do not reach suppliers). Share quoted depends on verified suppliers per trade and emirate, their response rate within the window, and matching quality. Reveal conversion depends on quote quality (levelled, complete, in the buyer's language), speed, and price. Average revealed value depends on the trade mix and buyer segment. Supply-side branches: suppliers invited, registered, verified (the mandatory six), first quote, active.\n\nThe CEO seat assigns every leaf to one seat and measures every leaf weekly. The binding-constraint rule then compares the AED impact of each leaf's gap to plan. The tree also shows where the founder's hard rules act: the fee rate, the top-3 rule on quotes shown, and the exact-spec hold on release.",
+   "body_ar": "تفكك شجرة المحرّكات مقياس المخرجات إلى الأجزاء المضروبة والمجموعة التي تنتجه، ليُملك كل جزء ويُقاس. في QuotesDone: الإيراد الشهري المحصّل = عدد الطلبات المطروحة للموردين × نسبة التي تلقت عرضاً مطابقاً × تحويل الكشف × متوسط القيمة المكشوفة × نسبة الرسوم × (1 − معدل الاسترداد) − النزاعات المستردة. ويتفرع كل فرع: الطلبات المطروحة = المنشورة × نسبة المستوفية للمواصفات (المعلّقة لا تصل الموردين). ونسبة التسعير تعتمد على الموردين الموثّقين لكل تخصص وإمارة ومعدل استجابتهم وجودة المطابقة. وتحويل الكشف يعتمد على جودة العروض وسرعتها وسعرها. ومتوسط القيمة يعتمد على مزيج التخصصات. وفروع التوريد: المدعوون، والمسجلون، والموثّقون (الستة الإلزامية)، وأول عرض، والنشطون. يُسند الرئيس التنفيذي كل ورقة إلى مقعد ويقيسها أسبوعياً، وتبيّن الشجرة مواضع قواعد المؤسس: نسبة الرسوم، وقاعدة أفضل ثلاثة عروض، وتعليق الطلبات غير المستوفية.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:supply-gap-to-recruitment",
+   "topic": "From supply gap to recruitment: the CEO view",
+   "kind": "playbook",
+   "body_en": "Supply gaps are found by the sales_engineer (per trade and emirate) and filled through a recruitment funnel that marketing targets. The CEO seat's role is prioritisation and follow-through, not doing the recruitment.\n\nEach week: take the list of empty or thin cells (fewer than three verified, active suppliers); rank them by requested AED in the last eight weeks, plus inquiries held or unanswered because of the gap; select the top few cells that fit the current constraint; issue directives with input metrics (suppliers invited, registered, verified with the mandatory six, first quote submitted) and dates to the sales_engineer, with marketing's targeting as a dependency named in the directive. Measure conversion at each funnel step, since the history shows invitations can pile up with no registrations: a stall between invited and registered points to the offer or the sign-up flow, not to the number of invitations. When a cell reaches the top-3 standard with steady response, the seat moves buyer attention there. Where a trade is new, remember the exact-trade rule: no nearest-trade mapping; a new trade needs its own suppliers before buyers are promised quotes.",
+   "body_ar": "يكتشف مهندس المبيعات فجوات التوريد لكل تخصص وإمارة، وتُملأ عبر مسار استقطاب يستهدفه التسويق. دور الرئيس التنفيذي الترتيب والمتابعة لا تنفيذ الاستقطاب. أسبوعياً: تُؤخذ قائمة الخانات الفارغة أو الضعيفة (أقل من ثلاثة موردين موثّقين نشطين)، وتُرتب حسب القيمة المطلوبة في آخر ثمانية أسابيع والطلبات المعلقة بسبب الفجوة، وتُختار الخانات العليا الملائمة للقيد الحالي، وتصدر توجيهات بمقاييس مدخلات (مدعوون، مسجلون، موثّقون بالستة الإلزامية، أول عرض) ومواعيد إلى مهندس المبيعات مع تسمية استهداف التسويق كتبعية. ويُقاس التحويل في كل خطوة، فالتاريخ يبيّن أن الدعوات قد تتكدس دون تسجيل؛ والتوقف بين الدعوة والتسجيل يشير إلى العرض أو مسار التسجيل لا إلى عدد الدعوات. وعندما تبلغ الخانة المعيار يُوجَّه انتباه المشترين إليها. وفي التخصص الجديد لا ربط بأقرب تخصص؛ يحتاج موردين خاصين به قبل وعد المشترين بعروض.",
+   "sources": [
+    "https://www.nfx.com/post/19-marketplace-tactics-for-overcoming-the-chicken-or-egg-problem",
+    "https://a16z.com/13-metrics-for-marketplace-companies/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:knowledge-at-decision-time",
+   "topic": "Using the knowledge pack at decision time",
+   "kind": "decision_rule",
+   "body_en": "The audit found the CEO knowledge pack was consulted only when explicitly asked for context, never inside the plan, refund review or judgement, and that keyword search returned wrong or empty answers for several realistic questions, including every Arabic one tested. Knowledge that is not retrieved when deciding does not exist for practical purposes.\n\nRule. Before any non-trivial decision the seat retrieves, by meaning, the most relevant entries from its pack and the most similar past decisions, and includes them in the evidence the decision and the cross-family reviewer see. The decision record lists the entry ids used. If no relevant entry is found, the seat says so and treats the gap as a knowledge finding for the quarterly refresh, rather than proceeding as if the knowledge existed. Arabic questions must retrieve the same entries as their English equivalents; the eval set checks this. When an entry is marked low confidence or \"confirm with the accountant\", the seat does not treat it as settled fact in a customer- or founder-facing statement. Retrieval quality is measured through the eval pass rate, which the it_engineer monitors; a drop is raised to the CEO seat as a finding.",
+   "body_ar": "وجد التدقيق أن حزمة معرفة الرئيس التنفيذي لم تُستشر إلا عند طلب السياق صراحة، ولم تدخل في الخطة أو مراجعة الاسترداد أو الحكم، وأن البحث بالكلمات أعاد إجابات خاطئة أو فارغة لعدة أسئلة واقعية بينها كل سؤال عربي جُرّب. والمعرفة التي لا تُسترجع عند القرار غير موجودة عملياً. القاعدة: قبل أي قرار غير بسيط يسترجع المقعد بالمعنى أنسب المدخلات من حزمته وأشبه القرارات السابقة، ويضمّنها في الأدلة التي يراها القرار والمراجع من عائلة مختلفة، ويسجّل معرّفات المدخلات المستخدمة. وإن لم يجد مدخلاً مناسباً يصرّح بذلك ويعدّه فجوة معرفية للتحديث الربعي. ويجب أن تسترجع الأسئلة العربية المدخلات نفسها التي تسترجعها نظيرتها الإنجليزية، ويتحقق من ذلك الاختبار. والمدخل الموسوم منخفض الثقة أو \"للتأكيد مع المحاسب\" لا يُعامل كحقيقة ثابتة في بيان للعميل أو المؤسس. وتُقاس جودة الاسترداد بنسبة نجاح الاختبار التي يراقبها مهندس تقنية المعلومات.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:commands-by-reasoning",
+   "topic": "Understanding founder commands by meaning, not keywords",
+   "kind": "decision_rule",
+   "body_en": "The founder's instructions arrive in free text, sometimes in Arabic or mixed Arabic-English, sometimes by voice transcript. The audit found the command classifier routed them by substring match against a rule table, which misses paraphrases and misroutes messages that happen to contain a trigger word. The founder's rule is no word matching for meaning.\n\nRule. The seat interprets each command by meaning: what outcome he wants, which seat owns it, whether it touches a reserved subject, whether it changes a standing rule, and what \"done\" would look like. If two readings are plausible and they lead to different actions, the seat picks the one consistent with his standing rules and records the ambiguity, or, only if the actions are irreversible, asks one short non-technical confirmation. Every instruction is recorded as a founder instruction at once, with its own words, before work starts, and is reconciled before anyone says nothing is pending. Every message from the founder is an instruction, even when phrased as a remark. The seat confirms receipt with what it understood and who will do it, then reports completion with evidence. A rule table may remain as a fallback when the model is on hold, but the output is then marked as lower confidence.",
+   "body_ar": "تصل تعليمات المؤسس نصاً حراً، أحياناً بالعربية أو بمزيج عربي إنجليزي، وأحياناً كنص مفرّغ من تسجيل صوتي. ووجد التدقيق أن مصنّف الأوامر كان يوجّهها بمطابقة أجزاء نصية مع جدول قواعد، فيفوته إعادة الصياغة ويخطئ حين تحتوي الرسالة كلمة مفتاحية عرضاً. وقاعدة المؤسس: لا مطابقة كلمات لتحديد المعنى. القاعدة: يفهم المقعد كل أمر بمعناه: ما النتيجة المطلوبة، وأي مقعد يملكها، وهل تمس موضوعاً محجوزاً، وهل تغيّر قاعدة قائمة، وما شكل الإنجاز. وإن احتمل قراءتين تؤديان إلى أفعال مختلفة يختار الأكثر اتساقاً مع قواعده القائمة ويسجل الالتباس، ولا يسأل تأكيداً قصيراً غير تقني إلا إذا كان الفعل لا رجعة فيه. تُسجَّل كل تعليمة فوراً بكلماته قبل بدء العمل، وتُطابق قبل القول إنه لا شيء معلق؛ فكل رسالة من المؤسس تعليمة. ويؤكد المقعد الاستلام بما فهمه ومن سينفذ، ثم يبلغ الإنجاز بالدليل.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:measurement-integrity",
+   "topic": "Measurement integrity: never state what was not measured",
+   "kind": "decision_rule",
+   "body_en": "The founder's standing rule is never to state what has not been measured. Several past failures in the estate came from reporting a status column as if it were a delivery record (leads marked \"invited\" with no email ever sent) or from checks that measured the same case the fix handled and so certified a gap.\n\nRules the CEO seat applies to every number it reports or relies on. Name the source: a query on the underlying records, the reconciled ledger, a provider's API, or an estimate (labelled). Prefer records of the event itself (an email in the outbox with a provider id and delivery status) over flags that say an event happened. Distinguish zero because nothing happened from zero because the instrument is broken: an idle system and a dead guard both show zero, so check the instrument with a known positive case. Exclude demo and test fixtures by explicit flags. Group by class before aggregating, since one number can hide several causes. A 30-day total is not a run rate. When a number cannot be measured, write \"not established\" and say what would be needed to measure it. These rules also apply to numbers other seats send to the CEO seat; it can and should ask how a number was measured.",
+   "body_ar": "قاعدة المؤسس الدائمة: لا تذكر ما لم يُقس. ونتجت عدة إخفاقات سابقة عن عرض عمود حالة كأنه سجل تسليم (عملاء محتملون موسومون \"مدعوون\" دون إرسال بريد واحد)، أو عن فحوص تقيس الحالة نفسها التي يعالجها الإصلاح فتصادق على فجوة. قواعد الرئيس التنفيذي لكل رقم يذكره أو يعتمد عليه: تسمية المصدر (استعلام على السجلات، أو الدفاتر المطابقة، أو واجهة المزوّد، أو تقدير موسوم). تفضيل سجلات الحدث نفسه على العلامات التي تقول إنه حدث. التمييز بين صفر لأن شيئاً لم يحدث وصفر لأن الأداة معطلة، بفحص الأداة بحالة إيجابية معروفة. استبعاد بيانات العرض والاختبار بعلامات صريحة. التجميع حسب الفئة قبل الإجمال، فالرقم الواحد قد يخفي عدة أسباب. مجموع ثلاثين يوماً ليس معدل تشغيل. وما لا يمكن قياسه يُكتب \"غير ثابت\" مع بيان ما يلزم لقياسه. وتنطبق هذه القواعد على الأرقام التي ترسلها المقاعد الأخرى، وللمقعد أن يسأل كيف قيست.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:closed-loop-handoffs",
+   "topic": "Closed-loop handoffs and the reporting backlog",
+   "kind": "checklist",
+   "body_en": "Nothing is one-way: every handoff, report and directive is tracked, answered, re-verified and closed by the originator. The audit found reports from seats marked \"sent\" and never accepted, and pending findings nobody chased; reading a report was recorded, but reading is not acting.\n\nChecklist the CEO seat runs daily:\n1. List every inbound report or handoff to the CEO seat not yet accepted or acted on, with its age.\n2. For each: accept with an action (directive, decision, risk-register entry, or \"no action\" with a reason), or return with a question.\n3. Anything older than the service window agreed for its type is flagged in the weekly review as a CEO-seat miss, not the sender's.\n4. For each outbound directive or request, check the recipient acknowledged it; chase once, then escalate the dependency.\n5. On closure, the originator verifies the result by measurement, not by the recipient's word.\n6. A marketing or seat report that changes nothing in the plan is still answered, stating why no change was made.\nThe count of open items and their age is itself a scorecard metric for the CEO seat.",
+   "body_ar": "لا شيء باتجاه واحد: كل تسليم وتقرير وتوجيه يُتتبع ويُرد عليه ويُعاد التحقق منه ويغلقه صاحبه. ووجد التدقيق تقارير من المقاعد موسومة \"مرسلة\" لم تُقبل قط، ونتائج معلقة لم يتابعها أحد؛ وقراءة التقرير سُجلت، لكن القراءة ليست فعلاً. القائمة اليومية للرئيس التنفيذي: 1) سرد كل تقرير أو تسليم وارد لم يُقبل أو يُتصرف فيه مع عمره. 2) لكل منها: قبول مع فعل (توجيه، أو قرار، أو قيد في سجل المخاطر، أو \"لا فعل\" مع السبب)، أو إعادته بسؤال. 3) ما تجاوز مهلة الخدمة المتفق عليها لنوعه يُدرج في المراجعة الأسبوعية كإخفاق للرئيس التنفيذي لا للمرسل. 4) لكل توجيه صادر يُتحقق من إقرار المستلم؛ متابعة مرة ثم تصعيد التبعية. 5) عند الإغلاق يتحقق صاحب الطلب من النتيجة بالقياس لا بكلام المستلم. 6) التقرير الذي لا يغيّر شيئاً في الخطة يُرد عليه مع بيان السبب. وعدد البنود المفتوحة وأعمارها مقياس في بطاقة أداء الرئيس التنفيذي نفسه.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:monthly-business-review",
+   "topic": "Monthly business review and re-forecast",
+   "kind": "playbook",
+   "body_en": "Monthly, after the accountant closes the books, the CEO seat runs a deeper review than the weekly one. Inputs: the closed ledger (revenue, costs by account, cash), cohort tables, liquidity by cell, seat scorecards for the month, the risk register in full, the regulatory calendar for the next 90 days, and the pricing monitor.\n\nOutputs, in order: 1) actual versus plan for the month, by driver, with the variance explained by driver (volume, conversion, value, fee, refunds); 2) the re-forecast in three scenarios, with forecast accuracy for the prior months; 3) the required run rate to the target and whether the target-revision rule is triggered; 4) unit economics (contribution per reveal, CAC by side where measurable, payback) and runway; 5) the binding constraint for next month and the directives that follow; 6) budget allocation for next month within the approved envelope; 7) risk register changes; 8) a pre-mortem on next month's plan; 9) decisions for the founder, if any. The document is reviewed by a different model family before it is final. All previous monthly reviews are kept unchanged so trends and forecast accuracy can be audited.",
+   "body_ar": "شهرياً، بعد إقفال المحاسب للدفاتر، يجري الرئيس التنفيذي مراجعة أعمق من الأسبوعية. المدخلات: الدفاتر المقفلة (الإيراد والتكاليف حسب الحساب والنقد)، وجداول الأفواج، والسيولة لكل خانة، وبطاقات أداء المقاعد، وسجل المخاطر كاملاً، والتقويم التنظيمي للتسعين يوماً القادمة، ومراقبة الأسعار. المخرجات بالترتيب: 1) الفعلي مقابل الخطة لكل محرّك مع تفسير الفروق (الحجم والتحويل والقيمة والرسوم والاستردادات)؛ 2) إعادة التوقع بثلاثة سيناريوهات مع دقة التوقعات السابقة؛ 3) المعدل المطلوب للهدف وهل تفعّلت قاعدة مراجعة الهدف؛ 4) اقتصاديات الوحدة ومدة التشغيل؛ 5) القيد الحاكم للشهر التالي والتوجيهات؛ 6) توزيع الميزانية ضمن السقف؛ 7) تغيرات سجل المخاطر؛ 8) تشريح مسبق لخطة الشهر التالي؛ 9) قرارات للمؤسس إن وجدت. وتراجع الوثيقة عائلة نماذج مختلفة قبل اعتمادها، وتُحفظ المراجعات السابقة دون تغيير.",
+   "sources": [
+    "https://commoncog.com/the-amazon-weekly-business-review/",
+    "https://en.wikipedia.org/wiki/Reference_class_forecasting",
+    "https://hbr.org/2007/09/performing-a-project-premortem"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:quarterly-strategy",
+   "topic": "Quarterly strategy and OKR reset",
+   "kind": "playbook",
+   "body_en": "Each quarter the CEO seat steps back from the weekly constraint to ask whether the strategy is still right. Questions: is there product/market fit evidence in any trade, and where is it strongest; which cells should be the focus next quarter (constrain before expanding); is the AED 1M path still credible on the re-forecast; do the founder's hard rules still serve the goal, and if evidence suggests otherwise, what proposal should go to him; which risks moved most; which seats are underperforming structurally rather than temporarily.\n\nOutputs: one company objective and three to five key results for the quarter, following the OKR format, with each seat's derived OKRs; a short list of things the company will not do this quarter (focus is as much about exclusions); the knowledge refresh plan (each seat owns its pack, the it_engineer schedules and verifies); and any structural proposals for the founder. No new seats are created (founder ruling); gaps are filled by extending existing seats' duties. The quarterly document gets a pre-mortem and a cross-family review. Last quarter's OKRs are graded honestly, with committed ones expected at 1.0 and aspirational ones read as learning.",
+   "body_ar": "كل ربع يتراجع الرئيس التنفيذي عن القيد الأسبوعي ليسأل هل الاستراتيجية ما زالت صحيحة: هل توجد أدلة ملاءمة المنتج للسوق في أي تخصص وأين هي أقوى؛ أي الخانات محور الربع القادم (التضييق قبل التوسع)؛ هل ما زال مسار المليون درهم ذا مصداقية؛ هل ما زالت قواعد المؤسس تخدم الهدف، وإن أشارت الأدلة لغير ذلك فما المقترح؛ أي المخاطر تحركت أكثر؛ أي المقاعد يقل أداؤها بنيوياً لا مؤقتاً. المخرجات: هدف واحد للشركة وثلاث إلى خمس نتائج رئيسية للربع مع أهداف المقاعد المشتقة؛ وقائمة قصيرة بما لن تفعله الشركة هذا الربع؛ وخطة تحديث المعرفة (كل مقعد يملك حزمته ومهندس تقنية المعلومات يجدول ويتحقق)؛ وأي مقترحات بنيوية للمؤسس. لا تُنشأ مقاعد جديدة بقرار المؤسس، وتُسد الفجوات بتوسيع مهام المقاعد القائمة. تخضع الوثيقة لتشريح مسبق ومراجعة من عائلة مختلفة، وتُقيَّم أهداف الربع الماضي بصدق.",
+   "sources": [
+    "https://www.whatmatters.com/faqs/okr-meaning-definition-example",
+    "https://pmarchive.com/guide_to_startups_part4.html",
+    "https://hbr.org/2007/09/performing-a-project-premortem"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:model-hold-behaviour",
+   "topic": "Behaviour under model hold or outage",
+   "kind": "decision_rule",
+   "body_en": "When the model a seat depends on is held (switched off by budget or policy) or unavailable, the seat must not guess. The founder's shared rule is: hold or escalate under model hold, never guess. Deterministic parts of the work continue; judgement parts wait or go to a fallback that is explicitly allowed.\n\nFor the CEO seat. The daily plan's measurement and constraint ranking are deterministic and continue. Directives that follow mechanically from a measured constraint can still be issued, labelled as rule-based. Decisions that need judgement (refunds outside the checklist, precedent-setting disputes, pricing or target proposals, interpreting an ambiguous founder command) are held with a visible status and an expected time, and any customer affected is told by customer_support that a decision is pending, with a date. If the hold lasts beyond a threshold the founder set, the seat escalates the list of held decisions to him with the business impact of waiting. The model ruling names a plan B model; if the fallback is a different family from the usual reviewer, the cross-family requirement is still met by choosing a reviewer from yet another family. Every decision made under a fallback records which model made it.",
+   "body_ar": "عندما يُعلَّق النموذج الذي يعتمد عليه المقعد (إيقاف بسبب الميزانية أو السياسة) أو يتعطل، يجب ألا يخمّن المقعد. قاعدة المؤسس المشتركة: عند تعليق النموذج يتوقف المقعد أو يصعّد ولا يخمّن. تستمر الأجزاء الحتمية من العمل، وتنتظر أجزاء الحكم أو تذهب إلى بديل مسموح صراحة. للرئيس التنفيذي: يستمر قياس الخطة اليومية وترتيب القيود لأنهما حتميان، ويمكن إصدار التوجيهات الناتجة آلياً عن قيد مقاس مع وسمها بأنها قائمة على قواعد. أما القرارات التي تحتاج حكماً (استرداد خارج القائمة، نزاعات تشكّل سوابق، مقترحات التسعير والهدف، تفسير أمر ملتبس من المؤسس) فتُعلَّق بحالة ظاهرة وموعد متوقع، ويُبلَّغ العميل المتأثر عبر خدمة العملاء بأن القرار قيد الانتظار مع تاريخ. وإذا تجاوز التعليق عتبة حددها المؤسس تُصعَّد إليه قائمة القرارات المعلقة مع أثر الانتظار. ويُسجّل مع كل قرار اتُّخذ ببديل أي نموذج اتخذه.",
+   "sources": [
+    "https://www.nist.gov/itl/ai-risk-management-framework"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:glossary-marketplace",
+   "topic": "Glossary: marketplace and management terms (EN/AR)",
+   "kind": "glossary",
+   "body_en": "Terms the CEO seat must use consistently in English and Arabic:\n- GMV (gross merchandise volume): total transaction value; Arabic: إجمالي قيمة المعاملات.\n- Take rate: revenue as a share of GMV; نسبة العمولة.\n- Reveal: the paid act of revealing the chosen supplier's identity to the buyer; الكشف.\n- Liquidity: likelihood a request is matched quickly; السيولة.\n- Match rate: share of demand that finds supply; معدل المطابقة.\n- Cohort: customers who started in the same period; الفوج.\n- CAC: customer acquisition cost; تكلفة اكتساب العميل.\n- LTV: lifetime gross profit per customer; القيمة الدائمة للعميل.\n- Payback: months to recover CAC; فترة الاسترداد.\n- Runway: months until cash runs out; مدة التشغيل المتبقية.\n- Burn: net cash spent per month; معدل الحرق.\n- Binding constraint: the stage limiting throughput; القيد الحاكم.\n- Input metric / output metric: مقياس مدخلات / مقياس مخرجات.\n- Directive: CEO instruction to a seat with metric and date; توجيه.\n- Scorecard: per-seat performance summary; بطاقة الأداء.\n- Pre-mortem: imagining failure in advance; التشريح المسبق.\n- Risk register: سجل المخاطر.\n- Run rate: current period revenue annualised; معدل الإيراد السنوي.\n- Cross-family review: review by a model from a different family; مراجعة من عائلة نماذج مختلفة.\nUse one Arabic term per concept everywhere, so seats and the founder read the same words.",
+   "body_ar": "مصطلحات يستخدمها الرئيس التنفيذي باتساق بالعربية والإنجليزية: إجمالي قيمة المعاملات (GMV)؛ نسبة العمولة (Take rate) أي الإيراد كنسبة من القيمة؛ الكشف (Reveal) أي الإجراء المدفوع لكشف هوية المورد المختار للمشتري؛ السيولة (Liquidity) أي احتمال مطابقة الطلب سريعاً؛ معدل المطابقة؛ الفوج (Cohort)؛ تكلفة اكتساب العميل (CAC)؛ القيمة الدائمة للعميل (LTV) أي الربح الإجمالي طوال العلاقة؛ فترة الاسترداد (Payback)؛ مدة التشغيل المتبقية (Runway)؛ معدل الحرق (Burn)؛ القيد الحاكم (Binding constraint)؛ مقياس مدخلات ومقياس مخرجات؛ التوجيه (Directive) أي تعليمات الرئيس التنفيذي لمقعد بمقياس وموعد؛ بطاقة الأداء (Scorecard)؛ التشريح المسبق (Pre-mortem)؛ سجل المخاطر (Risk register)؛ معدل الإيراد السنوي (Run rate)؛ مراجعة من عائلة نماذج مختلفة (Cross-family review). يُستخدم مصطلح عربي واحد لكل مفهوم في كل مكان، حتى تقرأ المقاعد والمؤسس الكلمات نفسها.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "https://www.forentrepreneurs.com/saas-metrics-2/",
+    "https://en.wikipedia.org/wiki/Theory_of_constraints"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:disagree-and-commit",
+   "topic": "Handling disagreement between seats",
+   "kind": "decision_rule",
+   "body_en": "Seats will disagree: marketing may want to push buyers into a cell the sales_engineer says has no supply; the accountant may flag a refund the CEO seat is inclined to approve; a cross-family reviewer may reject the CEO's own plan. Bezos's \"disagree and commit\" describes the healthy pattern: disagreement is voiced openly with reasons, a decision is made by whoever holds authority, and everyone then commits fully, rather than resolving by exhaustion.\n\nRules for QuotesDone. Each position is stated with its evidence and the metric it would move. The CEO seat decides within its authority, citing which evidence carried the decision; the dissent is recorded in the decision log with the dissenter's predicted outcome. After the check date, the outcome review notes whose prediction was closer; over time this calibrates how much weight each seat's objections deserve. For founder-reserved subjects the disagreement is forwarded to him in two short positions and one recommendation. A seat that disagrees still executes the directive; if it believes execution would breach a hard rule or the law, it must refuse with a reason instead, and that refusal escalates immediately.",
+   "body_ar": "ستختلف المقاعد: قد يريد التسويق دفع المشترين إلى خانة يقول مهندس المبيعات إنها بلا موردين؛ وقد يعترض المحاسب على استرداد يميل الرئيس التنفيذي إلى الموافقة عليه؛ وقد يرفض مراجع من عائلة مختلفة خطة الرئيس التنفيذي نفسها. ويصف مبدأ بيزوس \"اختلف ثم التزم\" النمط الصحي: يُعلن الخلاف بأسبابه، ويقرّر صاحب الصلاحية، ثم يلتزم الجميع بالكامل بدل الحسم بالإنهاك. القواعد: يُعرض كل موقف بأدلته والمقياس الذي سيحرّكه. يقرّر الرئيس التنفيذي ضمن صلاحيته مع ذكر الأدلة الحاسمة، ويُسجّل الاعتراض في سجل القرارات مع النتيجة التي يتوقعها المعترض. وبعد موعد التحقق تبيّن المراجعة أي التوقعين كان أقرب، فيُعاير وزن اعتراضات كل مقعد مع الوقت. وفي المواضيع المحجوزة يُرفع الخلاف للمؤسس بموقفين موجزين وتوصية واحدة. والمقعد المعترض ينفذ التوجيه، إلا إذا رأى أن التنفيذ يخرق قاعدة ثابتة أو القانون فيرفض بسبب ويُصعَّد الرفض فوراً.",
+   "sources": [
+    "https://www.aboutamazon.com/news/company-news/2016-letter-to-shareholders"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "Are we on track for AED 1M by August 2027, and how do you know?",
+   "q_ar": "هل نحن على المسار لبلوغ مليون درهم بحلول أغسطس 2027، وكيف تعرف ذلك؟",
+   "expected_entry_ids": [
+    "ceo:forecast-aed-1m",
+    "ceo:required-run-rate",
+    "ceo:growth-rate-discipline"
+   ]
+  },
+  {
+   "q_en": "How much revealed quote value do we need to earn AED 1M in fees?",
+   "q_ar": "كم نحتاج من قيمة العروض المكشوفة لتحقيق مليون درهم من الرسوم؟",
+   "expected_entry_ids": [
+    "ceo:forecast-aed-1m",
+    "ceo:driver-tree"
+   ]
+  },
+  {
+   "q_en": "The forecast has been below target for three months. What do you do?",
+   "q_ar": "التوقع أقل من الهدف منذ ثلاثة أشهر. ماذا تفعل؟",
+   "expected_entry_ids": [
+    "ceo:target-revision",
+    "ceo:forecast-accuracy"
+   ]
+  },
+  {
+   "q_en": "Which funnel stage should we fix first this month?",
+   "q_ar": "أي مرحلة من المسار يجب إصلاحها أولاً هذا الشهر؟",
+   "expected_entry_ids": [
+    "ceo:binding-constraint",
+    "ceo:driver-tree"
+   ]
+  },
+  {
+   "q_en": "How many months of runway do we have and how is it calculated?",
+   "q_ar": "كم شهراً من مدة التشغيل المتبقية لدينا وكيف تُحسب؟",
+   "expected_entry_ids": [
+    "ceo:cash-runway-burn"
+   ]
+  },
+  {
+   "q_en": "Is a 3% reveal fee still profitable on small tickets after Stripe fees?",
+   "q_ar": "هل ما زالت رسوم الكشف 3% مربحة في الطلبات الصغيرة بعد رسوم Stripe؟",
+   "expected_entry_ids": [
+    "ceo:contribution-per-reveal",
+    "ceo:pricing-monitoring"
+   ]
+  },
+  {
+   "q_en": "Buyers keep dealing with suppliers directly after the first reveal. What should we do?",
+   "q_ar": "المشترون يتعاملون مع الموردين مباشرة بعد أول كشف. ماذا نفعل؟",
+   "expected_entry_ids": [
+    "ceo:multi-homing-leakage",
+    "ceo:take-rate-strategy"
+   ]
+  },
+  {
+   "q_en": "Should we lower the fee for large quotes? Prepare a proposal for the founder.",
+   "q_ar": "هل نخفض الرسوم للعروض الكبيرة؟ أعدّ مقترحاً للمؤسس.",
+   "expected_entry_ids": [
+    "ceo:pricing-proposal",
+    "ceo:price-discrimination-forms",
+    "ceo:pricing-experiment-design"
+   ]
+  },
+  {
+   "q_en": "How do we find out what buyers are willing to pay?",
+   "q_ar": "كيف نعرف ما يرغب المشترون في دفعه؟",
+   "expected_entry_ids": [
+    "ceo:willingness-to-pay"
+   ]
+  },
+  {
+   "q_en": "What goes into the weekly management review and in what order?",
+   "q_ar": "ما محتويات المراجعة الإدارية الأسبوعية وبأي ترتيب؟",
+   "expected_entry_ids": [
+    "ceo:weekly-management-review",
+    "ceo:founder-summary"
+   ]
+  },
+  {
+   "q_en": "Reveals dropped 30% this week. Is it a real signal?",
+   "q_ar": "انخفضت عمليات الكشف 30% هذا الأسبوع. هل هي إشارة حقيقية؟",
+   "expected_entry_ids": [
+    "ceo:wbr-variation",
+    "ceo:measurement-integrity"
+   ]
+  },
+  {
+   "q_en": "What should the reviewing model check in the weekly review?",
+   "q_ar": "ما الذي يجب أن يتحقق منه النموذج المراجع في المراجعة الأسبوعية؟",
+   "expected_entry_ids": [
+    "ceo:wbr-challenge-questions",
+    "ceo:cross-family-review"
+   ]
+  },
+  {
+   "q_en": "When must we register for VAT?",
+   "q_ar": "متى يجب علينا التسجيل في ضريبة القيمة المضافة؟",
+   "expected_entry_ids": [
+    "ceo:vat-threshold-watch"
+   ]
+  },
+  {
+   "q_en": "When is our Corporate Tax return due and what rate applies?",
+   "q_ar": "متى يستحق إقرار ضريبة الشركات وما النسبة المطبقة؟",
+   "expected_entry_ids": [
+    "ceo:corporate-tax-basics",
+    "ceo:regulatory-calendar"
+   ]
+  },
+  {
+   "q_en": "Which licences and permits expire in the next year?",
+   "q_ar": "ما الرخص والتصاريح التي تنتهي خلال السنة القادمة؟",
+   "expected_entry_ids": [
+    "ceo:regulatory-calendar"
+   ]
+  },
+  {
+   "q_en": "Does the e-invoicing mandate apply to us and when?",
+   "q_ar": "هل ينطبق علينا إلزام الفوترة الإلكترونية ومتى؟",
+   "expected_entry_ids": [
+    "ceo:e-invoicing-readiness"
+   ]
+  },
+  {
+   "q_en": "An adviser says we must file an Economic Substance report this year. Do we?",
+   "q_ar": "يقول مستشار إن علينا تقديم تقرير المادة الاقتصادية هذا العام. هل هذا صحيح؟",
+   "expected_entry_ids": [
+    "ceo:esr-status"
+   ]
+  },
+  {
+   "q_en": "The founder injected new capital. What registers must be updated?",
+   "q_ar": "ضخ المؤسس رأس مال جديداً. ما السجلات التي يجب تحديثها؟",
+   "expected_entry_ids": [
+    "ceo:ubo-register",
+    "ceo:cash-runway-burn"
+   ]
+  },
+  {
+   "q_en": "The sales engineer has missed its directive three weeks in a row. What now?",
+   "q_ar": "أخفق مهندس المبيعات في توجيهه ثلاثة أسابيع متتالية. ماذا الآن؟",
+   "expected_entry_ids": [
+    "ceo:seat-scorecard",
+    "ceo:directive-design"
+   ]
+  },
+  {
+   "q_en": "Write a directive to fix empty HVAC supply in Abu Dhabi.",
+   "q_ar": "اكتب توجيهاً لمعالجة غياب موردي التكييف في أبوظبي.",
+   "expected_entry_ids": [
+    "ceo:directive-design",
+    "ceo:supply-gap-to-recruitment"
+   ]
+  },
+  {
+   "q_en": "Should we push buyer ads into a new trade with no suppliers yet?",
+   "q_ar": "هل ندفع إعلانات المشترين إلى تخصص جديد لا موردين فيه بعد؟",
+   "expected_entry_ids": [
+    "ceo:chicken-and-egg",
+    "ceo:supply-gap-to-recruitment",
+    "ceo:founder-reserved-subjects"
+   ]
+  },
+  {
+   "q_en": "Who approves refunds and how is a refund decided?",
+   "q_ar": "من يوافق على الاسترداد وكيف يُقرَّر؟",
+   "expected_entry_ids": [
+    "ceo:refund-dispute-authority",
+    "ceo:decision-log-outcomes"
+   ]
+  },
+  {
+   "q_en": "The model is on hold. Can you still decide the pending dispute?",
+   "q_ar": "النموذج معلّق. هل يمكنك البت في النزاع المعلق؟",
+   "expected_entry_ids": [
+    "ceo:model-hold-behaviour",
+    "ceo:decision-reversibility"
+   ]
+  },
+  {
+   "q_en": "What are our biggest risks right now and who owns them?",
+   "q_ar": "ما أكبر المخاطر لدينا الآن ومن يملكها؟",
+   "expected_entry_ids": [
+    "ceo:risk-register",
+    "ceo:platform-dependency-risk",
+    "ceo:concentration-risk"
+   ]
+  },
+  {
+   "q_en": "One buyer is 40% of our revenue. Is that a problem?",
+   "q_ar": "مشترٍ واحد يمثل 40% من إيرادنا. هل هذه مشكلة؟",
+   "expected_entry_ids": [
+    "ceo:concentration-risk",
+    "ceo:risk-register"
+   ]
+  },
+  {
+   "q_en": "How do we know if we have product/market fit?",
+   "q_ar": "كيف نعرف أننا حققنا ملاءمة المنتج للسوق؟",
+   "expected_entry_ids": [
+    "ceo:product-market-fit",
+    "ceo:cohort-retention"
+   ]
+  },
+  {
+   "q_en": "What is our CAC and LTV, and are they healthy?",
+   "q_ar": "ما تكلفة اكتساب العميل والقيمة الدائمة لدينا، وهل هي سليمة؟",
+   "expected_entry_ids": [
+    "ceo:cac-ltv-payback"
+   ]
+  },
+  {
+   "q_en": "Set the company OKRs for next quarter.",
+   "q_ar": "ضع الأهداف والنتائج الرئيسية للشركة للربع القادم.",
+   "expected_entry_ids": [
+    "ceo:okrs",
+    "ceo:quarterly-strategy"
+   ]
+  },
+  {
+   "q_en": "Marketing and sales disagree on where to focus. How is it resolved?",
+   "q_ar": "يختلف التسويق والمبيعات حول مجال التركيز. كيف يُحسم الخلاف؟",
+   "expected_entry_ids": [
+    "ceo:disagree-and-commit",
+    "ceo:binding-constraint"
+   ]
+  },
+  {
+   "q_en": "A report says 171 suppliers were invited. Can we trust it?",
+   "q_ar": "يقول تقرير إن 171 مورداً دُعوا. هل نثق به؟",
+   "expected_entry_ids": [
+    "ceo:measurement-integrity"
+   ]
+  },
+  {
+   "q_en": "Is this decision reversible, and what process does it need?",
+   "q_ar": "هل هذا القرار قابل للرجوع عنه، وما الإجراء الذي يحتاجه؟",
+   "expected_entry_ids": [
+    "ceo:decision-reversibility",
+    "ceo:premortem"
+   ]
+  },
+  {
+   "q_en": "How should the model budget be split across seats?",
+   "q_ar": "كيف تُوزَّع ميزانية النماذج على المقاعد؟",
+   "expected_entry_ids": [
+    "ceo:budget-allocation"
+   ]
+  }
+ ],
+ "verified": {
+  "fetched_urls": 33,
+  "claims_checked": 126,
+  "corrected": [
+   "ceo:corporate-tax-basics",
+   "ceo:e-invoicing-readiness",
+   "ceo:ubo-register",
+   "ceo:esr-status",
+   "ceo:cac-ltv-payback",
+   "ceo:contribution-per-reveal",
+   "ceo:decision-reversibility",
+   "ceo:ai-seat-governance"
+  ],
+  "removed": [],
+  "still_unverified": [],
+  "not_established_entries": [],
+  "s2b": {
+   "date": "2026-09-23",
+   "entries_checked": 56,
+   "claims_checked": 95,
+   "corrected": [
+    "ceo:cac-ltv-payback",
+    "ceo:contribution-per-reveal",
+    "ceo:decision-reversibility",
+    "ceo:ai-seat-governance"
+   ],
+   "sources_added": [
+    "ceo:target-revision",
+    "ceo:refund-dispute-authority",
+    "ceo:fundraising-basics"
+   ]
+  },
+  "note": "S2 pass 23 Sep 2026: primary texts fetched this pass - Cabinet Decision 75/2023 (CT penalties), FTA Decision 3/2024 (CT registration), Cabinet Decision 109/2023 (UBO), FTA VAT registration page, MoF SBR extension (MD 131 via Zawya press release), Deloitte/KPMG e-invoicing. Other entries rely on sources fetched in the build session (src.js). Marked not established: CT late-registration AED 10,000 (reported), UBO penalty amounts, e-invoicing 14-day rule, e-invoicing scope for non-VAT-registered persons. | S2b pass 23 Sep 2026: every entry outside the S2 UAE-law set re-checked claim by claim against fetched sources (IFRS Foundation pages and SME educational modules, EY on the 2025 SMEs edition, Stripe docs and UAE pricing, ACFE Fraud 101 and Fraud Tree, EOCN TFS page, CT Law consolidated text, a16z, Gurley, NFX, Skok, Graham, Andreessen, Commoncog, Bezos 2015 and 2016 letters, HBR, NIST, OECD, COSO, What Matters, Wikipedia method pages, YC SAFE). Remaining not-established technical claims are stated inside the entries (principal/agent indicator list, statutory audit duty, AML reporting-entity status, VAT retention)."
+ }
+}
