@@ -33,6 +33,7 @@ import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -106,7 +107,7 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
 }
 async function specOfferSweep(limit: number) {
-  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[] };
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[], precedent: [] as unknown[] };
   const secret = await sec('cred_fn_sales_engineer');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
@@ -131,6 +132,14 @@ async function specOfferSweep(limit: number) {
       const j = await r.json().catch(() => null);
       if (!r.ok || !j) { await failed(c.inquiry_id, `quote_compare HTTP ${r.status}`); continue; }
       const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
+      // HOW DID THE LAST OFFER LIKE THIS END? (23 Sep 2026.) Recalled before the offer opens, per
+      // offer, and returned with the sweep so the seat sees "we offered this before and it was declined".
+      for (const sp of offers.slice(0, 5)) {
+        const situation = `no exact match for ${sp.label_en} = ${sp.requested} | item: ${sp.item ?? ''}`;
+        const m = await recallCases(admin, { seat: 'sales_engineer', path: 'spec_offer', caseKind: 'spec_offer', otherSeats: false,
+          situation, embedding: await Promise.race([embed(situation), new Promise<null>((r) => setTimeout(() => r(null), 1500))]) });
+        out.precedent.push({ inquiry_id: c.inquiry_id, attr: sp.label_en, ...recallTrace(m), rule: m.rule });
+      }
       const { data: opened, error: oErr } = await admin.rpc('fn_spec_offer_open', { p_inquiry: c.inquiry_id, p_offers: offers });
       if (oErr) { await failed(c.inquiry_id, `open ${oErr.message}`); continue; }
       out.checked++; out.offers_opened += (opened || []).length;
@@ -344,6 +353,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // A vector adds recall only for rows that ALSO corroborate lexically, so 1.5 s is all it gets;
       // past that the lexical routes answer alone rather than the customer waiting.
       const vec = await Promise.race([embed(message), new Promise<null>((r) => setTimeout(() => r(null), 1500))]);
+      // PAST CASES BEFORE THE ANSWER (23 Sep 2026): has this seat met this question before, and how did
+      // it end? The same vector, so no second embedding. A customer caller gets case numbers in the log
+      // only — another customer's case is never shown to a customer, masked or not.
+      const memory = await recallCases(admin, { seat: 'sales_engineer', path: 'assist', situation: message, embedding: vec });
       const { data, error } = await admin.rpc('fn_sales_assist', {
         p_text: message, p_embedding: vec,
         p_min_similarity: Number(body.min_similarity ?? 0.86),
@@ -398,6 +411,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         refusal: r.refusal ?? (answered ? null : 'cited_off_topic'),
         task_id: taskId,
         embedded: vec !== null,
+        precedent: recallTrace(memory),
       });
 
       return J({
@@ -405,6 +419,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         seat: 'sales_engineer',
         answered,
         reply,
+        ...(caller.kind === 'customer' ? {} : { precedent: memory }),
         cited: recs.map((x) => String(x.corpus) + ':' + String(x.record_id)),
         corpora: r.corpora,
         floor: r.floor,
@@ -682,6 +697,17 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const floor = Number.isFinite(pol.match_relevance_floor) ? pol.match_relevance_floor : 35;
 
       const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
+      // HAVE WE MATCHED THIS KIND OF JOB BEFORE, AND HOW DID IT END? (23 Sep 2026.) By meaning, within
+      // the same trade only (the exact-trade rule), never this inquiry itself. Evidence in the answer;
+      // it does not change the SQL gates — a precedent informs the seat, it does not pick suppliers.
+      const memory = await recallCases(admin, {
+        seat: 'sales_engineer', path: 'match', situation: brief,
+        // The same key the case row is written under (trg_case_memory_inquiry: trades[1], else category).
+        trade: inq ? (arr(inq.trades)[0] || String(inq.category ?? '') || null) : null,
+        exclude: inquiryId ? { table: 'inquiries', id: inquiryId } : null,
+        // this worker's own gte-small session, not a second one
+        embedding: brief ? await Promise.race([embed(brief), new Promise<null>((r) => setTimeout(() => r(null), 1500))]) : null,
+      });
       // BOTH SIDES KEPT on the merge of 23 Sep 2026: `services` is this branch's p_services record,
       // `criteria_from` is #866's.
       const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate, services: [] as string[] };
@@ -695,7 +721,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         // a list would be exactly the padding the grant forbids.
         await run('match', 'ok', { inquiry_id: inquiryId || null, trades: 0, matched: 0, gap: 'no_trade_identified' });
         return J({
-          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, criteria_from: criteriaFrom, policy,
+          ok: true, seat: 'sales_engineer', inquiry_id: inquiryId || null, asked_for: askedFor, criteria_from: criteriaFrom, policy, precedent: memory,
           candidates: 0, above_floor: 0, matched: [], persisted: 0,
           gap: { reason: 'no_trade_identified',
             note: 'The brief names no trade in taxonomy_trade, so fn_match_capability was not called. This is a brief that needs a question answered, not a supply gap.' },
@@ -843,7 +869,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       });
 
       return J({
-        ok: true, seat: 'sales_engineer', caller: caller.kind,
+        ok: true, seat: 'sales_engineer', caller: caller.kind, precedent: memory,
         inquiry_id: inquiryId || null,
         asked_for: askedFor, criteria_from: criteriaFrom, policy,
         candidates: rows.length, above_floor: aboveFloor.length,
