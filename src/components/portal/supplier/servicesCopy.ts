@@ -11,7 +11,10 @@
 export const SERVICES_COPY = {
   en: {
     title: 'Your services',
-    first_run: 'These services decide which inquiries you receive. Our sales engineer prepared this list from what we know about your company. Untick anything you do not do, add what is missing, then confirm.',
+    // Founder_instruction 862 (23 Sep 2026): the first visit starts unticked, so the prompt asks him to
+    // TICK what he does rather than untick what he does not. It also says what an unticked service
+    // means under 857, because that is the whole consequence of leaving one blank.
+    first_run: 'These services decide which inquiries you receive. Our sales engineer has listed the trades we believe you work in, with their services, and nothing is ticked yet. Tick each service you actually do, add anything missing, then confirm. A service you do not tick is one you have not confirmed, and inquiries that name it will not reach you.',
     confirmed: 'Your services are confirmed. Inquiries that match them reach you in the Inquiries tab.',
     loading: 'Loading your services…',
     load_failed: 'Could not load your services.',
@@ -91,7 +94,7 @@ export const SERVICES_COPY = {
   },
   ar: {
     title: 'خدماتكم',
-    first_run: 'تحدّد هذه الخدمات الاستفسارات التي تصلكم. أعدّ مهندس المبيعات هذه القائمة استنادًا إلى ما نعرفه عن شركتكم. يُرجى إلغاء تحديد أي خدمة لا تقدّمونها، وإضافة ما ينقص، ثم التأكيد.',
+    first_run: 'تحدّد هذه الخدمات الاستفسارات التي تصلكم. أدرج مهندس المبيعات التخصصات التي نرى أنكم تعملون فيها مع خدماتها، ولم نحدّد أيًّا منها بعد. يُرجى تحديد كل خدمة تقدّمونها فعلًا، وإضافة ما ينقص، ثم التأكيد. فالخدمة التي لا تحدّدونها تُعدّ غير مؤكَّدة، ولن تصلكم الاستفسارات التي تطلبها.',
     confirmed: 'أُكّدت خدماتكم، وتصلكم الاستفسارات المطابقة لها في تبويب الاستفسارات.',
     loading: 'جارٍ تحميل خدماتكم…',
     load_failed: 'تعذّر تحميل خدماتكم.',

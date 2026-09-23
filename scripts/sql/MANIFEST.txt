@@ -1671,3 +1671,5 @@ scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_cla
 # 23 Sep 2026 (review of #867): the three retired models deactivated so the capability search cannot
 # fall back to them; a model_rate row for every routed model so the ceilings count real spend.
 scripts/sql/the_retired_models_cannot_be_called_and_the_ceilings_count_real_spend.sql
+scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql
+scripts/sql/a_supplier_receives_a_service_inquiry_only_for_what_he_ticked.sql
