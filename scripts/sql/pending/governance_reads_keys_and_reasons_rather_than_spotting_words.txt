@@ -1,0 +1,12 @@
+Committed, not applied. Decision-point batch B7 (seat ceo; the Arabic cache is the sales_engineer's).
+Apply AFTER every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql and
+a_reasoned_answer_is_applied_by_its_own_surface.sql (its fn_reason_apply_ceo__challenge / __what_if / __kb_jurisdiction
+and fn_reason_apply_sales_engineer__document_arabic are called by that resolver).
+Deploy WITH it, in the same release: customer_api, supplier_api and every function importing
+_shared/quote_documents.ts or _shared/line_specs (they read fn_arabic_translations / fn_arabic_translation_store,
+which this file creates), and the two scripts that pass the jurisdiction lookup to fn_kb_purge_clause
+(scripts/checks/the_knowledge_library_holds_no_foreign_bulk.mjs, scripts/kb/purge_kb_bulk.mjs): the clause's third
+argument is now the reasoned jurisdiction, not the citation.
+After apply, once the founder's hold lifts: select public.fn_kb_jurisdiction_file(50) files the undecided citations
+(13,541 distinct on 23 Sep 2026) for reasoning, in batches; until then that knowledge is kept (clause 4).
+Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe, B7).

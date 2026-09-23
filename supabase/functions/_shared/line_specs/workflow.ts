@@ -35,7 +35,7 @@ import { TRADES } from './model.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { requestDelivery } from '../deliver.ts';
-import { quoteDocument, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
+import { quoteDocument, type ArTexts, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
 
 export type QuoteRow = Terms & {
   id: string; inquiry_id: string; supplier_id: number; status: string; option_no: number; submission_id: string | null;
@@ -187,7 +187,11 @@ export function standardise(q: QuoteRow, lines: Line[], a: Assessment, ctx: Ctx)
  * pdf_url for approval. Prevented by pdf_native/every_document_we_issue.test.ts and
  * scripts/checks/every_pdf_we_issue_is_on_our_template.mjs (renders this body and asserts content).
  */
-export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar' }) {
+export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar'; arTexts?: ArTexts }) {
+  return pdfDoc(s, args).body;
+}
+/** The whole quoteDocument result (body + the lines an Arabic page still needs translated by reasoning). */
+export function pdfDoc(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar'; arTexts?: ArTexts }) {
   // The record keeps installation and warranty as one sentence each (standardise above); the document
   // reads them as the completeness fields quoteDocument prints.
   const inst = s.terms.installation;
@@ -204,8 +208,7 @@ export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: st
     unit_price: l.unit_price == null ? null : Number(l.unit_price), amount: l.amount == null ? null : Number(l.amount),
     specs: Object.fromEntries(l.spec.map((x) => [x.code, `${x.value}${x.unit ? ' ' + (args.lang === 'ar' ? x.unit_ar ?? x.unit : x.unit) : ''}`])),
   }));
-  const { body } = quoteDocument({ quote, inquiry: { ...args.inquiry, summary: null }, items, letter: args.letter, lang: args.lang });
-  return body;
+  return quoteDocument({ quote, inquiry: { ...args.inquiry, summary: null }, items, letter: args.letter, lang: args.lang, arTexts: args.arTexts });
 }
 
 export type Render = (s: Standardised) => Promise<{ bucket: string; path: string } | null>;

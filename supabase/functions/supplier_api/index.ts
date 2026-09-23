@@ -13,7 +13,8 @@ import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
 import { serviceVocab, servicesState, servicesResolve, servicesRewrite, servicesSaveRewrite, transcribeServiceNote, voiceEnabled } from '../_shared/supplier_services.ts';
 import { boqWithArabic } from '../_shared/boq_arabic.ts';
-import { arTrade } from '../_shared/trade_glossary_ar.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -21,7 +22,7 @@ import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trade
 import { readExpiry } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
-import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { approve, fillIn, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
@@ -1030,9 +1031,10 @@ const handle = async (req: Request): Promise<Response> => {
         const boqWithheld = gated ? gated.withheld : false;
         const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
         const sBoqAr = sBoq ? boqWithArabic(sBoq as any, vocab) : null;
-        // The scope in Arabic ONLY when the trade glossary reads every word of it (audit 21 Sep 2026, finding 26);
-        // a partial reading would be a guessed scope, so it stays null and the portal shows the customer's words.
-        const sSummaryAr = sSummary ? (() => { const t = arTrade(sSummary); return t.complete && t.ar && t.ar !== sSummary ? t.ar : null; })() : null;
+        // The scope in Arabic is the REASONED translation of the (already scrubbed) summary, filled in after the
+        // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
+        // null and the portal shows the customer's own words, never a partial or word-by-word reading.
+        const sSummaryAr: string | null = null;
         // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
         // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
         // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
@@ -1043,6 +1045,13 @@ const handle = async (req: Request): Promise<Response> => {
         const sBudget = revealed ? i.budget : (budgetGate ? budgetGate.boq : null);
         const budgetWithheld = budgetGate ? budgetGate.withheld : false;
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+      }
+      const summaries = out.map((o) => o.summary).filter((x): x is string => typeof x === 'string' && !!x.trim());
+      if (summaries.length) {
+        try {
+          const ar = await arabicOf(defaultDeps(admin, 'supplier_api'), { texts: summaries });
+          for (const o of out) if (typeof o.summary === 'string' && ar.map[o.summary.trim()]) o.summary_ar = ar.map[o.summary.trim()];
+        } catch (_e) { /* the portal shows the customer's own words */ }
       }
       return J({ inquiries: out, approval_status: sup.approval_status });
     }
@@ -1075,6 +1084,10 @@ const handle = async (req: Request): Promise<Response> => {
       // and so changes the hash too. The cache row is never read for anything but the file's location.
       const hashOf = async (input: unknown) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(input))))).map((b) => b.toString(16).padStart(2, '0')).join('');
       const sign = async (b: string, p: string) => { try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
+      // An Arabic document with a line not yet translated by reasoning (the founder's model hold): held, not half-printed.
+      const ARABIC_HELD_REPLY = { ok: false, held: true, code: 'arabic_held',
+        message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
+        message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' };
       const served = async (kind: 'inquiry' | 'quotation', subject: string, hash: string, build: () => Promise<{ doc: Record<string, unknown>; ref: string } | null>) => {
         const { data: hit } = await admin.from('supplier_document_cache').select('bucket,path,content_hash').eq('kind', kind).eq('subject_id', subject).eq('supplier_id', sup.id).eq('lang', lang).maybeSingle();
         if (hit && hit.content_hash === hash) { const url = await sign(hit.bucket, hit.path); if (url) return { url, cached: true }; }
@@ -1113,7 +1126,14 @@ const handle = async (req: Request): Promise<Response> => {
         const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
         const inquiry = { id: String(q.inquiry_id), rfq_no: spec?.rfq_no ?? null, category: inq?.category ?? null, emirate: inq?.emirate ?? null, summary: null };
         const ref = quoteRef(inquiry, letter);
-        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => ({ doc: quoteDocument({ quote: done.quote, inquiry, items, letter, lang }).body as Record<string, unknown>, ref }));
+        // The supplier's own words in Arabic are reasoned; a line not yet translated holds the Arabic document.
+        let heldAr = false;
+        const r = await served('quotation', String(q.id), await hashOf({ q, items, inquiry, letter, checks: done.quote, layout: DOC_VERSION }), async () => {
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => quoteDocument({ quote: done.quote, inquiry, items, letter, lang, arTexts }), { subject: { quote_id: q.id } });
+          if (!d.doc) { heldAr = true; return null; }
+          return { doc: d.doc.body as Record<string, unknown>, ref };
+        });
+        if (heldAr) return J(ARABIC_HELD_REPLY, 202);
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1136,7 +1156,13 @@ const handle = async (req: Request): Promise<Response> => {
           documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
         const ref = quoteRef(row, 'RFQ');
         // The signed drawing URLs are not on the row, so the hash is stable across signings.
-        const r = await served('inquiry', iid, await hashOf({ row, layout: DOC_VERSION }), async () => ({ doc: inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal') }).body as Record<string, unknown>, ref }));
+        let heldAr = false;
+        const r = await served('inquiry', iid, await hashOf({ row, layout: DOC_VERSION }), async () => {
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => inquiryDocument({ inquiry: row, lang, portalUrl: CANONICAL_ORIGIN + (lang === 'ar' ? '/ar/portal' : '/portal'), arTexts }), { subject: { inquiry_id: iid } });
+          if (!d.doc) { heldAr = true; return null; }
+          return { doc: d.doc.body as Record<string, unknown>, ref };
+        });
+        if (heldAr) return J(ARABIC_HELD_REPLY, 202);
         if (r && 'error' in r) return J({ error: 'You have generated many PDFs recently. Please try again shortly.', code: 'rate_limited' }, 429);
         return r ? J({ ok: true, url: r.url, ref, job_no: d.job, lang, cached: r.cached }) : J({ error: 'pdf_failed', code: 'pdf_failed' }, 502);
       }
@@ -1307,7 +1333,10 @@ const handle = async (req: Request): Promise<Response> => {
           const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
           const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
           const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
-          const doc = pdfBody(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang });
+          // An Arabic quotation whose lines are not all translated by reasoning yet is not rendered (held).
+          const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id } });
+          if (!d.doc) return null;
+          const doc = d.doc.body;
           const r = await fetch(`${SUPA_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, ...doc, bucket: 'quote-files', folder: `quotes/${sup.id}/${q.inquiry_id}/regenerated`, name: `quotation_${String(rec.quote_id).slice(0, 8)}_option${rec.option_no}_${lang}` }) });
           const j = await r.json().catch(() => null);
           return j?.ok ? { bucket: String(j.bucket), path: String(j.path) } : null;

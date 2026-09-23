@@ -2,7 +2,7 @@
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/line_specs/no_exact_spec.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { technicalComparison } from './compare.ts';
-import { noExactSpec, offerMessage, acceptedMessage, apologyMessage } from './no_exact_spec.ts';
+import { noExactSpec, offerMessage, acceptedMessage, apologyMessage, offerTexts } from './no_exact_spec.ts';
 import { latinLeaks } from '../trade_glossary_ar.test.ts';
 import type { Requirements } from './assess.ts';
 
@@ -72,8 +72,8 @@ Deno.test('the question, the reminders, the confirmation and the apology: Englis
   assert(offerMessage(OFFER, 'en', { reminder: 2, final: true }).subject.startsWith('Final reminder: '));
   for (const m of [offerMessage(OFFER, 'ar', { rfqNo: 1042 }), offerMessage(OFFER, 'ar', { reminder: 1 }), offerMessage(OFFER, 'ar', { reminder: 2, final: true }),
     acceptedMessage(OFFER, 'ar', { rfqNo: 1042 }), apologyMessage(OFFER, 'ar', 'declined', { rfqNo: 1042 }), apologyMessage(OFFER, 'ar', 'no_reply')]) {
-    // Supplier or customer wording the glossary cannot finish may only follow "كما وردت".
-    const primary = (m.subject + '\n' + m.body).replace(/\(كما وردت: [^)]*\)/g, '');
+    // Without a reasoned translation (the model hold) the person's own words are QUOTED «…», never substituted.
+    const primary = (m.subject + '\n' + m.body).replace(/«[^»]*»/g, '');
     assertEquals(latinLeaks(primary), [], 'English in an Arabic message: ' + m.subject);
   }
   assert(offerMessage(OFFER, 'ar', {}).body.includes('مورّدان'), 'two suppliers in Arabic');
@@ -84,4 +84,15 @@ Deno.test('the question, the reminders, the confirmation and the apology: Englis
 Deno.test('no message tells the customer to contact a supplier', () => {
   const all = (['en', 'ar'] as const).flatMap((l) => [offerMessage(OFFER, l), acceptedMessage(OFFER, l), apologyMessage(OFFER, l, 'declined'), apologyMessage(OFFER, l, 'no_reply')]);
   for (const m of all) assert(!/contact the supplier|ask the supplier|تواصل مع المورّ?د|اسأل المورّ?د/i.test(m.body), m.body);
+});
+
+Deno.test('an Arabic message prints the reasoned Arabic of the words when it has it, and quotes them «…» when it does not', () => {
+  const arTexts = { Wardrobe: 'خزانة ملابس' };
+  assertEquals(offerTexts(OFFER), ['Wardrobe', '18', '16', '16', '25']);
+  const withIt = offerMessage(OFFER, 'ar', { arTexts }).body;
+  assert(withIt.includes('البند: خزانة ملابس'), withIt);
+  assertEquals(latinLeaks(withIt), []);
+  const held = offerMessage(OFFER, 'ar', {}).body;
+  assert(held.includes('البند: «Wardrobe»'), 'under the hold the words are quoted exactly as written: ' + held);
+  assert(!/خزانة/.test(held), 'nothing is guessed');
 });

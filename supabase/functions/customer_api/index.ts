@@ -24,7 +24,9 @@ import { applyEdits, validateStored, supplierLine } from '../_shared/intake_requ
 import { portalLink } from '../_shared/site_origins.ts';
 import { revealCharge } from '../_shared/reveal_fee.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
-import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { arabicOf, arabicTextsFor, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/sanctioned.ts';
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
@@ -544,7 +546,12 @@ async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   items = done.items;
   if (!items.length && inq?.boq && Array.isArray((inq.boq as any).boq)) items = (inq.boq as any).boq.map((b: any) => ({ desc: String(b.description || ''), qty: b.qty == null ? '' : String(b.qty), unit: String(b.unit || '') })).filter((x: any) => x.desc).slice(0, 40);
   const quoteRow = { ...done.quote, scope: items.length ? q.scope : (q.scope || inq?.summary || '') };
-  const { body, ref } = quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames: partyName ? [] : await supplierIdentities([q.supplier_id]), requestUrl: portalLink(lang, inq.id, q.id) });
+  const maskNames = partyName ? [] : await supplierIdentities([q.supplier_id]);
+  // The Arabic of the supplier's own words is reasoned (decision point trade_glossary_ar); a line not yet
+  // translated HOLDS the Arabic document — it is never printed half-translated.
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => quoteDocument({ quote: quoteRow, inquiry: inq, items, letter, lang, partyName, maskNames, requestUrl: portalLink(lang, inq.id, q.id), arTexts }), { subject: { quote_id: q.id } });
+  if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
+  const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
   const j = await r.json();
@@ -633,11 +640,18 @@ async function fetchCompareAnalysis(iid: string, lang: 'en' | 'ar'): Promise<{ a
   return { error: jd?.note || jd?.error || (r.ok ? 'comparison_unavailable' : 'comparison_unavailable_http_' + r.status) };
 }
 
+/** An Arabic document with a line not yet translated by reasoning (under the founder's model hold). */
+const ARABIC_HELD = { ok: false, held: true, error: 'arabic_held' } as const;
+const heldReply = () => J({ ok: false, held: true, code: 'arabic_held',
+  message: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.',
+  message_ar: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.' }, 202);
 async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar') {
   const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
   const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
   const portalUrl = portalLink(lang, inq.id);
-  const { body, ref } = compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid) });
+  const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id } });
+  if (!doc.doc) return { j: ARABIC_HELD, ref: 'QD-' + jobNoOf(inq) + '-CMP' };
+  const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
   const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...body, __secret: secret }) });
@@ -1509,7 +1523,8 @@ Deno.serve(observe('customer_api', async (req) => {
         const { data: c } = await admin.from('customers').select('email,locale').eq('id', cust.id).maybeSingle();
         const { data: inqRow } = await admin.from('inquiries').select('rfq_no').eq('id', String(res.inquiry_id)).maybeSingle();
         const lang = asLocale(c?.locale ?? cust.locale);
-        const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
+        const arTexts = res.state === 'accepted' && o ? await arabicTextsFor(defaultDeps(admin, 'customer_api'), lang, offerTexts(o as OfferForText)) : undefined;
+        const msg = res.state === 'accepted' ? acceptedMessage(o as OfferForText, lang, { rfqNo: inqRow?.rfq_no, arTexts }) : apologyMessage(o as OfferForText, lang, 'declined', { rfqNo: inqRow?.rfq_no });
         const kind = res.state === 'accepted' ? 'accepted' : 'apology_declined';
         // customer_support asks and answers the alternatives question (finding SP-F-08, 22 Sep 2026;
         // the same change in sales_engineer/index.ts carries the reasoning). The `type` is unchanged.
@@ -1550,6 +1565,7 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
       try {
         const { j, ref } = await buildComparePdf(analysis, inq, lang);
+        if ((j as any)?.held) return heldReply();
         if (j?.ok && j.url) return J({ ok: true, url: j.url, ref });
         return J({ error: 'pdf_failed', detail: j?.error || j?.detail || '' }, 502);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
@@ -1571,7 +1587,12 @@ Deno.serve(observe('customer_api', async (req) => {
         const got = await fetchCompareAnalysis(iid, lang);
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
-      const side = compareTable(analysis, lang === 'ar');
+      let side = compareTable(analysis, lang === 'ar');
+      if (side && side.untranslated.length) {
+        const ar = await arabicOf(defaultDeps(admin, 'customer_api'), { texts: side.untranslated, subject: { inquiry_id: iid } });
+        side = ar.complete ? compareTable(analysis, true, ar.map) : null;
+        if (!side || side.untranslated.length) return heldReply();
+      }
       if (!side) return J({ ok: false, error: 'comparison_unavailable', code: 'comparison_unavailable', message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       return J({ ok: true, csv: toCsv(side.head, side.rows), filename: 'QD-' + jobNoOf(inq) + (lang === 'ar' ? '-مقارنة' : '-comparison') + '.csv' });
     }
@@ -1624,6 +1645,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if ((gens || 0) >= PDF_LIMIT_PER_HOUR) return J({ error: 'You have generated many PDFs recently. Please try again shortly.' }, 429);
       try {
         const { j, ref } = await buildQuotePdf(q, inq, lang);
+        if ((j as any)?.held) return heldReply();
         if (j?.ok && j.url) {
           try { await admin.from('quote_pdf_cache').upsert({ quote_id: qid, lang, customer_id: cust.id, bucket: j.bucket || 'agent-docs', path: j.path, created_at: new Date().toISOString() }, { onConflict: 'quote_id,lang' }); } catch (_e) { /* */ }
           return J({ ok: true, url: j.url, ref, lang });

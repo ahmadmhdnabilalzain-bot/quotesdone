@@ -30,7 +30,9 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
-import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 
@@ -141,7 +143,8 @@ async function specOfferSweep(limit: number) {
       // deno-lint-ignore no-explicit-any
       for (const o of opened as any[]) {
         if (o.last_sent_at) continue;
-        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id) }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id), arTexts }), lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
       }
@@ -157,7 +160,8 @@ async function specOfferSweep(limit: number) {
       const lang = await registeredLocale(admin, { role: 'customer', customerId: o.customer_id });
       const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
       if (d.action === 'remind') {
-        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final, arTexts }), lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
         out.reminders++;
       } else if (d.action === 'close_no_reply') {

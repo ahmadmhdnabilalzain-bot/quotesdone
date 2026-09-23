@@ -308,3 +308,109 @@ end $p$;`);
   assert.equal(out.with.effect.choice, 'yes');
   assert.equal(out.without, 'reasoned');
 });
+
+// Batch B7 (seat ceo): governance reads keys and reasons. scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql
+test('production, aborted: B7 — demand, challenge, what-if, founder mail, digest, governance, knowledge jurisdiction and Arabic read no words for meaning',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; v_id bigint; v_n bigint; v_h bigint;
+begin
+  -- 55 demand: an exact key, and the spelling of an unregistered one decides nothing
+  o := o || jsonb_build_object('demand_invite', public.fn_task_is_demand('invite'), 'demand_analysis', public.fn_task_is_demand('analysis'),
+                               'demand_spelled', public.fn_task_is_demand('zz_invite_customer_quote'));
+  -- 56 challenge: held (no stance from the words), then applied by its surface
+  v := public.fn_challenge('ZZ DEMO raise the reveal fee and skip the review', 'founder', 'zz_demo');
+  o := o || jsonb_build_object('challenge_stance', v->>'stance');
+  v_id := (v->>'held_id')::bigint;
+  select jsonb_build_object('challenge_surface', surface, 'challenge_has_none', exists (select 1 from jsonb_array_elements(request->'decision'->'options') x where x->>'id' = 'none'),
+                            'challenge_has_rank1', exists (select 1 from jsonb_array_elements(request->'decision'->'options') x where x->>'id' = 'h' || (select min(id) from public.challenge_heuristic where active and rank_touched = 1)))
+    into v from public.reasoning_held_question where id = v_id;
+  o := o || v;
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO reasoned',
+         'decision', jsonb_build_object('choice', 'h' || (select min(id) from public.challenge_heuristic where active and rank_touched = 1))));
+  o := o || jsonb_build_object('challenge_applied', v->>'status', 'challenge_reasoned_stance', v->'effect'->>'stance',
+                               'challenge_record', (select stance from public.challenge_record where id = (v->'effect'->>'challenge_record_id')::bigint));
+  v := public.fn_board_review('ZZ DEMO expand to a new market', null);
+  o := o || jsonb_build_object('board_verdict', v->>'board_verdict', 'board_proceed', (v->>'proceed')::int);
+  -- 57 what-if: held, then the reasoned scenario key runs the simulation
+  v := public.fn_what_if('ZZ DEMO what if we lower the reveal fee', '{}'::jsonb);
+  o := o || jsonb_build_object('what_if_status', v->>'status');
+  v := public.fn_reason_held_resolve((v->>'held_id')::bigint, '{"status":"answered","answer":"ZZ","decision":{"choice":"reveal_fee_discount"}}'::jsonb);
+  o := o || jsonb_build_object('what_if_applied', v->>'status',
+    'what_if_scenario', (select result->>'scenario' from public.simulations where id = (v->'effect'->>'simulation_id')::bigint));
+  -- 58 founder mail: the level is the stated severity; a CRITICAL subject decides nothing
+  insert into public.notifications (type, kind, to_role, subject, body, status, channel)
+  values ('zz_demo_signal', 'zz_demo_unregistered', 'founder', 'CRITICAL URGENT system down', 'ZZ DEMO', 'queued', 'email');
+  o := o || jsonb_build_object('mail_queued_to_founder', exists (select 1 from public.notifications where kind = 'zz_demo_unregistered'),
+    'mail_task_level', (select result->'founder_mail'->>'level' from public.org_tasks where result->'founder_mail'->>'kind' = 'zz_demo_unregistered' order by id desc limit 1));
+  -- 59 digest: an allowlisted type folds even with an alarming subject; a stated severity goes at once
+  insert into public.notifications (type, to_email, to_role, subject, body, status, channel)
+  values ('health_alert', 'zz-demo-digest@example.invalid', 'founder', 'CRITICAL failed down', 'ZZ DEMO', 'queued', 'email') returning id into v_n;
+  o := o || jsonb_build_object('digest_words', (select status from public.notifications where id = v_n));
+  insert into public.notifications (type, to_email, to_role, subject, body, status, channel, severity)
+  values ('health_alert', 'zz-demo-digest@example.invalid', 'founder', 'routine', 'ZZ DEMO', 'queued', 'email', 'critical') returning id into v_n;
+  o := o || jsonb_build_object('digest_severity', (select status from public.notifications where id = v_n));
+  -- 60 governance: a registered kind escalates; a kind merely SPELLED like one does not
+  insert into public.agent_actions (agent, kind, title, confidence) values ('ceo', 'finance_alert', 'ZZ DEMO', 0.9) returning id into v_n;
+  o := o || jsonb_build_object('gov_registered', (select escalated from public.agent_actions where id = v_n));
+  insert into public.agent_actions (agent, kind, title, confidence) values ('zz_legal_finance_security', 'zz_legal_refund_payment', 'ZZ DEMO', 0.9) returning id into v_n;
+  o := o || jsonb_build_object('gov_spelled', (select escalated from public.agent_actions where id = v_n));
+  -- 61 knowledge: undecided is kept; a reasoned 'us' is deleted; the citation regex is gone
+  o := o || jsonb_build_object('kb_null', public.fn_kb_purge_clause('standard', 'x', null), 'kb_us', public.fn_kb_purge_clause('standard', 'x', 'us'),
+    'kb_uae', public.fn_kb_purge_clause('standard', 'x', 'uae'), 'kb_ours', public.fn_kb_purge_clause('standard', 'x', 'quotesdone'),
+    'kb_citation_text', public.fn_kb_purge_clause('standard', 'x', 'NFPA 13 United States Code'),
+    'kb_is_us_code_gone', to_regprocedure('public.fn_kb_is_us_code(text)') is null);
+  o := o || jsonb_build_object('kb_filed', public.fn_kb_jurisdiction_file(1));
+  select id into v_h from public.reasoning_held_question where surface = 'ceo.kb_jurisdiction' order by id desc limit 1;
+  v := public.fn_reason_held_resolve(v_h, '{"status":"answered","answer":"ZZ","decision":{"choice":"us"}}'::jsonb);
+  o := o || jsonb_build_object('kb_applied', v->>'status',
+    'kb_row', (select jurisdiction from public.kb_citation_jurisdiction where held_id = v_h));
+  -- 62 Arabic: the replay stores only Arabic-script lines against the filed sources
+  v_id := public.fn_reason_hold('sales_engineer', 'sales_engineer.document_arabic', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            '{"sources":["ZZ DEMO wardrobe carcass","ZZ DEMO second line"]}'::jsonb, 'model_hold', 'zz-demo-arabic-1');
+  v := public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', '{"1":"هيكل خزانة","2":"still English"}'));
+  o := o || jsonb_build_object('ar_applied', v->>'status', 'ar_stored', v->'effect'->'stored',
+    'ar_lookup', public.fn_arabic_translations(array['ZZ DEMO wardrobe carcass', 'ZZ DEMO second line']));
+  -- grants: service_role only on every new routine
+  o := o || jsonb_build_object('anon_any', (select bool_or(has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute'))
+      from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_kb_jurisdiction_file(integer)',
+                        'public.fn_reason_apply_ceo__challenge(bigint,jsonb)', 'public.fn_reason_apply_ceo__what_if(bigint,jsonb)',
+                        'public.fn_reason_apply_ceo__kb_jurisdiction(bigint,jsonb)', 'public.fn_reason_apply_sales_engineer__document_arabic(bigint,jsonb)',
+                        'public.fn_arabic_translations(text[])', 'public.fn_arabic_translation_store(jsonb,bigint)', 'public.fn_kb_purge_clause(text,text,text)']) f),
+    'service_all', (select bool_and(has_function_privilege('service_role', f, 'execute'))
+      from unnest(array['public.fn_challenge(text,text,text,jsonb)', 'public.fn_what_if(text,jsonb,text)', 'public.fn_arabic_translations(text[])']) f),
+    'old_overloads', (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public' and ((p.proname = 'fn_challenge' and pronargs = 3) or (p.proname = 'fn_what_if' and pronargs = 2))));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  assert.deepEqual([out.demand_invite, out.demand_analysis, out.demand_spelled], [true, false, false], 'the revenue path is a key, not a spelling');
+  assert.equal(out.challenge_stance, 'held', 'no stance is taken from the words');
+  assert.equal(out.challenge_surface, 'ceo.challenge');
+  assert.ok(out.challenge_has_none && out.challenge_has_rank1);
+  assert.equal(out.challenge_applied, 'applied');
+  assert.equal(out.challenge_reasoned_stance, 'recommend_against');
+  assert.equal(out.challenge_record, 'recommend_against');
+  assert.match(out.board_verdict, /^HELD/);
+  assert.equal(out.board_proceed, 0, 'no advisor proceeds on a guessed stance');
+  assert.equal(out.what_if_status, 'held');
+  assert.equal(out.what_if_applied, 'applied');
+  assert.equal(out.what_if_scenario, 'reveal_fee_discount');
+  assert.equal(out.mail_queued_to_founder, false, 'an unregistered kind is never mailed to the founder');
+  assert.equal(out.mail_task_level, 'warn', '"CRITICAL URGENT" in the subject sets nothing; the unstated level is the normal one');
+  assert.equal(out.digest_words, 'digest', 'an alarming subject no longer escapes the digest by its words');
+  assert.equal(out.digest_severity, 'queued', 'a stated critical severity goes at once');
+  assert.equal(out.gov_registered, true);
+  assert.equal(out.gov_spelled, false, 'a kind spelled "legal/refund/payment" is not sensitive unless registered');
+  assert.deepEqual([out.kb_null, out.kb_us, out.kb_uae, out.kb_ours, out.kb_citation_text], [4, 5, 3, 1, 4], 'undecided knowledge is kept; citation text decides nothing');
+  assert.equal(out.kb_is_us_code_gone, true);
+  assert.equal(out.kb_filed, 1);
+  assert.equal(out.kb_applied, 'applied');
+  assert.equal(out.kb_row, 'us');
+  assert.equal(out.ar_applied, 'applied');
+  assert.equal(out.ar_stored, 1, 'a line the answer left in English is not stored');
+  assert.deepEqual(out.ar_lookup, { 'ZZ DEMO wardrobe carcass': 'هيكل خزانة' });
+  assert.equal(out.anon_any, false);
+  assert.equal(out.service_all, true);
+  assert.equal(out.old_overloads, 0);
+});

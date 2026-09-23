@@ -30,7 +30,8 @@ import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
-import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
+import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 // 22 Sep 2026 (customer_support, instruction 759): the URL Twilio signs, and the welcome + menu.
@@ -525,7 +526,8 @@ async function handleInbound(req: Request): Promise<Response> {
           const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', offer?.inquiry_id ?? so.inquiry_id).maybeSingle();
           if (offer) {
             const o = { ...offer, accepted_value: offer.accepted_value ?? so.accepted_value ?? null } as OfferForText;
-            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
+            const arTexts = so.state === 'accepted' ? await arabicTextsFor(defaultDeps(admin, 'wa_inbound'), lang, offerTexts(o)) : undefined;
+            text = (so.state === 'accepted' ? acceptedMessage(o, lang, { rfqNo: inq?.rfq_no, arTexts }) : apologyMessage(o, lang, 'declined', { rfqNo: inq?.rfq_no })).body;
           }
         } else if (so.error === 'unknown_option') {
           const n = Number(so.options || 0);
