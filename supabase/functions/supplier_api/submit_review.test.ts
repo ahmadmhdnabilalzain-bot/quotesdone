@@ -9,6 +9,9 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { reviewQuotation, type SafeInquiry } from './quote_review.ts';
 import { resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
+import { readFixture } from './review_reading.fixture.ts';
+/** The review after the (mocked) reading production does first: review_reading.fixture.ts. */
+const rq = (i: SafeInquiry, w: Parameters<typeof reviewQuotation>[1]) => reviewQuotation(i, readFixture(i, w));
 
 const NO_SCRUB = { notes: '', scope: '', conditions: '', exclusions: '' };
 const scrubbedOf = (b: Record<string, unknown>) => ({ notes: String(b.notes ?? ''), scope: String(b.scope ?? ''), conditions: String(b.conditions ?? ''), exclusions: String(b.exclusions ?? '') });
@@ -25,7 +28,7 @@ const job = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
 });
 
 const review = (inq: SafeInquiry, body: Record<string, unknown>, resolved: unknown = null) =>
-  reviewQuotation(inq, withResolved(workingFromSubmit(body, scrubbedOf(body), {}, [], null), resolvedFrom(resolved)));
+  rq(inq, withResolved(workingFromSubmit(body, scrubbedOf(body), {}, [], null), resolvedFrom(resolved)));
 const codes = (r: { issues: { code: string }[] }) => [...new Set(r.issues.map((i) => i.code))].sort();
 
 // ── Door 1: the Quote Builder's one-click accept ────────────────────────────────────────────────
@@ -93,11 +96,11 @@ Deno.test('a caller cannot excuse a BOQ line by putting boq_excluded in its own 
 Deno.test('spec_approve: the stored quote is reviewed as it stands, and a bad one is not released', () => {
   const stored = { quote_amount: 61000, price_ex_vat: 61000, vat_treatment: 'exclusive', lead_time: '6 weeks from approval', validity: '', warranty: '12 months on materials and workmanship, parts and labour included', scope: 'Supply and installation of gypsum partitions and suspended ceiling. Installation included.', conditions: '', exclusions: '', notes: '' };
   const rows = filledForm().items.map((i) => ({ ...i }));
-  const bad = reviewQuotation(job(), withResolved(workingFromStoredQuote(stored, rows), resolvedFrom(null)));
+  const bad = rq(job(), withResolved(workingFromStoredQuote(stored, rows), resolvedFrom(null)));
   assertEquals(bad.approved, false, 'a stored quote with no validity must not be released');
   assert(codes(bad).includes('validity'));
 
-  const good = reviewQuotation(job(), withResolved(workingFromStoredQuote({ ...stored, validity: '30 days' }, rows), resolvedFrom(null)));
+  const good = rq(job(), withResolved(workingFromStoredQuote({ ...stored, validity: '30 days' }, rows), resolvedFrom(null)));
   assertEquals(good.approved, true, JSON.stringify(good.issues.map((i) => i.code)));
 });
 
