@@ -4,6 +4,7 @@
 //     That gap is closed here. Also surfaces Resend domain-verification failures, which were swallowed by a
 //     bare catch. Runs every 2 minutes, so recurring states are throttled to one row per hour and healthy
 //     idle runs are not logged at all.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
@@ -64,7 +65,7 @@ Deno.serve(observe('email_cron', async (req) => {
     let flush: unknown = null;
     let flushErr = '';
     if (enabled) {
-      try { const r = await fetch(`${SUPA}/functions/v1/send_outbox`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: secret, limit: 50 }) }); flush = await r.json(); if (!r.ok) flushErr = 'send_outbox returned http ' + r.status; } catch (e) { flushErr = String((e as Error)?.message || e).slice(0, 200); flush = { error: String(e) }; }
+      try { const r = await timedFetch(`${SUPA}/functions/v1/send_outbox`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ __secret: secret, limit: 50 }) }, 60_000); flush = await r.json(); if (!r.ok) flushErr = 'send_outbox returned http ' + r.status; } catch (e) { flushErr = String((e as Error)?.message || e).slice(0, 200); flush = { error: String(e) }; }
     } else {
       // send_outbox is never invoked while disabled, so this is the only place the outage can surface.
       const { count: queued } = await admin.from('notifications').select('id', { count: 'exact', head: true }).or('status.eq.queued,status.eq.pending,status.is.null');

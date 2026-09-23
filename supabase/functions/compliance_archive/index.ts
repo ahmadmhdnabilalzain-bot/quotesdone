@@ -22,6 +22,7 @@
 // that column up for BOTH customers and suppliers on the next backup sweep. One function decides
 // where a document lives in Dropbox. The certificate reaches Dropbox on the next tick instead of
 // instantly, which is the correct trade for never filing it in two places again.
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 // SheetJS 0.20.3, VENDORED in _shared/vendor (14 Sep 2026). NOT the remote esm.sh copy of xlsx 0.18.5: that npm package
@@ -48,7 +49,7 @@ async function dbxToken(): Promise<string | null> {
   const key = await sec('dropbox_app_key'), secret = await sec('dropbox_app_secret'), refresh = await sec('dropbox_refresh_token');
   if (!key || !secret || !refresh) return null;
   try {
-    const r = await fetch('https://api.dropboxapi.com/oauth2/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refresh, client_id: key, client_secret: secret }) });
+    const r = await timedFetch('https://api.dropboxapi.com/oauth2/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refresh, client_id: key, client_secret: secret }) });
     const jd = await r.json(); return jd?.access_token || null;
   } catch { return null; }
 }
@@ -58,7 +59,7 @@ function apiArg(obj: any) { return JSON.stringify(obj).replace(/[-￿]/g, (c) =
 // The cast is at the fetch body instead, where BodyInit is what is actually being satisfied.
 async function dbxUpload(token: string, path: string, bytes: Uint8Array): Promise<boolean> {
   try {
-    const r = await fetch('https://content.dropboxapi.com/2/files/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': apiArg({ path, mode: 'overwrite', autorename: false, mute: true, strict_conflict: false }) }, body: bytes as unknown as BodyInit });
+    const r = await timedFetch('https://content.dropboxapi.com/2/files/upload', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/octet-stream', 'Dropbox-API-Arg': apiArg({ path, mode: 'overwrite', autorename: false, mute: true, strict_conflict: false }) }, body: bytes as unknown as BodyInit });
     return r.ok;
   } catch { return false; }
 }
@@ -67,7 +68,7 @@ async function renderCert(fields: Record<string, string>, kind: string, hash: st
   const { title, body_html } = certificate(fields, kind, hash, termsUrl, lang);
   try {
     const secret = await sec('cred_fn_to_pdf_native');
-    const pr = await fetch(`${URL_}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, title, lang, body_html, name, bucket: BUCKET, folder: (kind === 'supplier' ? 'suppliers' : 'customers'), options: { letterhead: true, sign: true, stamp: true } }) });
+    const pr = await timedFetch(`${URL_}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, title, lang, body_html, name, bucket: BUCKET, folder: (kind === 'supplier' ? 'suppliers' : 'customers'), options: { letterhead: true, sign: true, stamp: true } }) }, 45_000);
     const pj = await pr.json(); if (pj?.ok && pj.path) return { path: pj.path, url: pj.url }; return null;
   } catch { return null; }
 }

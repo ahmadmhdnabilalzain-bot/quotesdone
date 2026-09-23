@@ -1,3 +1,4 @@
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
@@ -344,7 +345,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
         const send = async (channel: 'whatsapp' | 'sms') => {
-          const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
+          const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Channel: channel, Locale: smsLocale }) });
           return { r, jd: await r.json() };
         };
         // ONE CODE, ONE CHANNEL. sendWhatsAppFirst tries SMS only when Verify refuses the WhatsApp
@@ -446,7 +447,11 @@ Deno.serve(observe('login_otp', async (req) => {
       if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.', code: 'sms_signin_unavailable' }, 503);
       try {
-        const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
+        // main's timedFetch (CONN-01..09) bounds the Twilio leg; #858's stable codes let the portal
+        // translate the refusal; and the thrown message is logged SERVER-SIDE rather than returned as
+        // `detail`, which is the leak SP-I-03 closed in thirteen other places — a Twilio exception
+        // string is not for the browser. All three kept.
+        const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
         const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
       } catch (e) { console.error('login_otp: Verify check threw —', String((e as Error)?.message || e)); return J({ error: 'Verification failed, please try again.', code: 'verify_failed' }, 502); }
       // HISTORY IS NOT IDENTITY. This used to take the newest phone_verifications row for the

@@ -23,6 +23,7 @@
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
@@ -277,6 +278,13 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_redact');
     if (!__auth.ok) return J({ error: 'forbidden' }, 403);
+    // TOO BIG TO PARSE IS REFUSED BEFORE IT IS PARSED (22 Sep 2026, it_engineer, CONN-06). The pixel
+    // work plus the PDF text layer is what put this function past the edge CPU cap (HTTP 546, 8 of 8
+    // pages lost). The page COUNT was already capped here; the SIZE never was. See
+    // _shared/parse_ceiling.ts — and note the refusal comes back before job_id means anything, so no
+    // half-run is recorded for a request that was never begun.
+    const tooBig = tooLargeToParse([body.images, body.original_b64]);
+    if (tooBig) return J({ ok: false, ...tooBig }, 413);
     const job_id = crypto.randomUUID();
     // ANONYMITY 27 Jul 2026. These objects are handed to matched suppliers as SIGNED URLs before any
     // reveal or payment, and a signed URL necessarily contains the object path. The path is therefore
