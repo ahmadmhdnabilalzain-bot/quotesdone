@@ -4483,7 +4483,8 @@
  ],
  "supabase/functions/_shared/reasoned_delivery.ts": [
   "579dd4d95c6e",
-  "c2fe022839a2"
+  "c2fe022839a2",
+  "fa2a92814d32"
  ],
  "supabase/functions/_shared/reveal_guard.ts": [
   "605a93533c3b",
