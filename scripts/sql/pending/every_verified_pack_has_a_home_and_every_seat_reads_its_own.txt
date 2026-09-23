@@ -1,0 +1,9 @@
+Committed, not applied (it_engineer, 23 Sep 2026): the release operator applies serially. Proved in aborted transactions by scripts/checks/every_seat_reads_its_verified_pack.test.mjs and by scripts/eval/knowledge_pack_eval.mjs --mode staged.
+
+Apply, load, evaluate -- in this order:
+  1. node scripts/apply_sql.mjs scripts/sql/every_verified_pack_has_a_home_and_every_seat_reads_its_own.sql --apply --ddl
+     then delete this note and append the file to the END of scripts/sql/MANIFEST.txt (after
+     every_seat_reasons_before_it_answers.sql, whose fn_reason_retrieve this supersedes).
+  2. node scripts/kb/load_verified_packs.mjs --apply          (free gte-small embeddings; upsert + retire)
+  3. node scripts/eval/knowledge_pack_eval.mjs --mode live    (must print EVAL OK: every pack/seat at or above FLOOR)
+To add packs verified later: node scripts/kb/load_verified_packs.mjs --import <kb dir>, commit knowledge/, repeat 2 and 3.

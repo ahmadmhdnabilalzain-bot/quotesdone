@@ -1,0 +1,1024 @@
+{
+ "seat": "accountant",
+ "entries": [
+  {
+   "id": "accountant:ct-rates-and-scope",
+   "topic": "UAE Corporate Tax: rates, scope and start date",
+   "kind": "law",
+   "body_en": "UAE Corporate Tax (CT) is imposed by Federal Decree-Law No. 47 of 2022 and administered by the Federal Tax Authority (FTA). A business becomes subject to CT from the start of its first financial year beginning on or after 1 June 2023. The headline structure is a 0% rate on taxable income up to AED 375,000 and 9% on taxable income above that band; a separate rate applies to large multinationals aligned with the OECD framework. Mainland licensed companies such as QuotesDone (a Dubai DET-licensed LLC) are in scope, as are free zone persons and foreign entities trading regularly in the UAE. Exempt persons include government bodies, qualifying public benefit entities, pension and qualifying investment funds. For the accountant seat the practical consequences are: (1) the company is a taxable person even if it expects to pay nothing; (2) the 0% band applies to taxable income, not revenue, so profit must be computed from IFRS-based accounts with tax adjustments; (3) the CT position must be reviewed every period, not only when profit appears. Decision rule: never tell the CEO \"we have no corporate tax\"; say \"we are a taxable person; current liability is X because Y (band, SBR, losses)\". Record the basis for every CT conclusion in the period close file.",
+   "body_ar": "تُفرض ضريبة الشركات في الإمارات بموجب المرسوم بقانون اتحادي رقم 47 لسنة 2022 وتديرها الهيئة الاتحادية للضرائب. تخضع المنشأة للضريبة اعتباراً من بداية أول سنة مالية تبدأ في 1 يونيو 2023 أو بعده. الهيكل الأساسي: نسبة 0% على الدخل الخاضع للضريبة حتى 375,000 درهم، و9% على ما يزيد عن ذلك، مع نسبة مستقلة للمجموعات متعددة الجنسيات الكبيرة. الشركات المرخّصة في البر الرئيسي مثل كوتس دن خاضعة للنطاق، وكذلك أشخاص المناطق الحرة والجهات الأجنبية التي تمارس نشاطاً منتظماً في الدولة. النتائج العملية لمقعد المحاسب: الشركة شخص خاضع للضريبة حتى لو لم تتوقع سداد شيء؛ وشريحة الصفر تُطبَّق على الدخل الخاضع للضريبة لا على الإيرادات؛ ويجب مراجعة الموقف الضريبي في كل فترة. قاعدة القرار: لا يُقال للرئيس التنفيذي \"لا ضريبة علينا\"، بل \"نحن خاضعون للضريبة والالتزام الحالي كذا للسبب الفلاني\"، مع توثيق الأساس في ملف الإقفال.",
+   "sources": [
+    "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ct-return-and-payment-deadline",
+   "topic": "CT return filing and payment: the 9-month rule",
+   "kind": "law",
+   "body_en": "A taxable person must file one Corporate Tax return per tax period, and both the return and the payment are due within 9 months of the end of that period. For a company whose financial year ends on 31 December, the return and any tax due must be submitted and paid by 30 September of the following year. The accountant seat owns this deadline as a hard calendar duty: the obligation exists whether or not tax is payable and whether or not Small Business Relief is elected (the SBR election is itself made in the return). Working back from the deadline, a senior accountant plans: final trial balance and period lock within about six weeks of year-end; tax computation (accounting profit, add-backs, exempt income, loss relief) next; a review pack to the CEO with the computation, the SBR decision and supporting revenue figures; filing well before the statutory date to leave room for portal or UAE Pass problems. Cabinet Decision No. 75 of 2023 sets the administrative penalties: a late return costs AED 500 for each month or part of a month for the first twelve months and AED 1,000 per month from the thirteenth month, and unpaid tax attracts a penalty of 14% per annum applied monthly on the outstanding amount. A one-day delay therefore already counts as a full month. Decision rule: raise a CEO item 60 days before the due date if the computation is not drafted, and 14 days before if it is not filed.",
+   "body_ar": "يجب على الشخص الخاضع للضريبة تقديم إقرار ضريبة شركات واحد عن كل فترة ضريبية، ويستحق الإقرار والسداد خلال 9 أشهر من نهاية الفترة. فالشركة التي تنتهي سنتها المالية في 31 ديسمبر تقدّم إقرارها وتسدد ما عليها بحلول 30 سبتمبر من السنة التالية. هذا الموعد واجب ثابت على مقعد المحاسب سواء وُجدت ضريبة مستحقة أم لا، وسواء اختيرت إعفاءات الأعمال الصغيرة أم لا، إذ يتم هذا الاختيار داخل الإقرار نفسه. يخطط المحاسب رجوعاً من الموعد: ميزان مراجعة نهائي وإقفال الفترة، ثم احتساب الضريبة، ثم حزمة مراجعة للرئيس التنفيذي، ثم التقديم مبكراً تحسباً لأعطال البوابة. ويحدد قرار مجلس الوزراء رقم 75 لسنة 2023 الغرامات الإدارية: 500 درهم عن كل شهر أو جزء منه من التأخير في تقديم الإقرار خلال الأشهر الاثني عشر الأولى، و1,000 درهم شهرياً ابتداءً من الشهر الثالث عشر، وغرامة بنسبة 14% سنوياً تُحتسب شهرياً على الضريبة غير المسددة؛ فتأخير يوم واحد يُعدّ شهراً كاملاً. قاعدة القرار: رفع بند للرئيس التنفيذي قبل 60 يوماً إن لم تُعدّ المسودة، وقبل 14 يوماً إن لم يتم التقديم.",
+   "sources": [
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://mof.gov.ae/wp-content/uploads/2023/07/Cabinet-Decision-No.-75-of-2023-on-the-Administrative-Penalties-on-Violations-Related-to-the-Application-of-the-Corporate-Tax-Law.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ct-small-business-relief",
+   "topic": "Small Business Relief (SBR): conditions and decision rule",
+   "kind": "decision_rule",
+   "body_en": "Small Business Relief lets a UAE-resident taxable person whose revenue is at or below AED 3 million in the relevant tax period (and in each previous tax period) elect to be treated as having no taxable income for that period. Ministerial Decision No. 73 of 2023 originally limited the relief to tax periods ending on or before 31 December 2026; the Ministry of Finance announced Ministerial Decision No. 131 extending it to tax periods ending on or before 31 December 2029, with the AED 3 million threshold unchanged. Exclusions: Qualifying Free Zone Persons and members of multinational enterprise groups with consolidated revenue above AED 3.15 billion. Losses and disallowed net interest from SBR periods can be carried forward to later periods in which SBR is not claimed. The FTA treats artificially splitting a business to stay under AED 3 million as an abusive arrangement under the general anti-abuse rule. The relief is elected in the return, and CT registration is still required. Decision rule for QuotesDone: each period, test 12-month revenue against AED 3 million; if below and no exclusion applies, elect SBR and document the revenue computation; if revenue crosses AED 3 million in any period, SBR is lost from then on, so warn the CEO as run-rate approaches the line.",
+   "body_ar": "تتيح إعفاءات الأعمال الصغيرة للشخص المقيم الخاضع للضريبة الذي لا تتجاوز إيراداته 3 ملايين درهم في الفترة الضريبية المعنية وفي كل فترة سابقة أن يختار معاملته كأن لا دخل خاضعاً للضريبة لديه. حدد القرار الوزاري رقم 73 لسنة 2023 الإعفاء أصلاً بالفترات المنتهية حتى 31 ديسمبر 2026، ثم أعلنت وزارة المالية القرار الوزاري رقم 131 بتمديده للفترات المنتهية حتى 31 ديسمبر 2029 مع بقاء الحد 3 ملايين درهم. يُستثنى أشخاص المناطق الحرة المؤهلون وأعضاء المجموعات متعددة الجنسيات التي تتجاوز إيراداتها المجمعة 3.15 مليار درهم. يمكن ترحيل الخسائر من فترات الإعفاء إلى فترات لاحقة لا يُطلب فيها. وتعدّ الهيئة تجزئة النشاط صورياً للبقاء تحت الحد ترتيباً مسيئاً. يُختار الإعفاء في الإقرار ويبقى التسجيل الضريبي واجباً. قاعدة القرار: اختبار إيرادات 12 شهراً في كل فترة، وتنبيه الرئيس التنفيذي عند اقتراب معدل الإيرادات من الحد.",
+   "sources": [
+    "https://mof.gov.ae/en/news/ministry-of-finance-issues-decision-on-small-business-relief-for-corporate-tax-purposes/",
+    "https://mof.gov.ae/en/news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029/",
+    "https://tax.gov.ae/Datafolder/Files/Guides/CT/Small%20Business%20Relief%20Guide%20-%20EN%20-%2029%2008%202023.pdf",
+    "https://www.zawya.com/en/press-release/government-news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029-424845"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ct-registration-duty",
+   "topic": "CT registration: always required, even under SBR",
+   "kind": "checklist",
+   "body_en": "Every taxable person, including free zone entities, must register with the FTA and hold a Corporate Tax Registration Number; electing Small Business Relief does not remove this duty. The accountant seat checklist: (1) confirm the TRN for corporate tax exists and record it with the trade licence facts (licence DET 1633275); (2) record the first tax period start and end dates, derived from the financial year; (3) store the registration certificate in the document archive with its issue date; (4) check that the legal name, licence number and financial year on the FTA record match the licence and the books; (5) re-verify after any licence amendment, change of activity, or change of financial year, because a change of year-end changes every downstream deadline. FTA Decision No. 3 of 2024 (effective 1 March 2024) fixed the registration timeline: resident companies that existed before that date registered by a deadline tied to the issue month of their earliest licence, and a resident company incorporated on or after 1 March 2024 must apply within three months of incorporation. The late-registration penalty is widely reported as AED 10,000 (added to Cabinet Decision 75 of 2023 by a 2024 amendment); that amendment text was not fetched, so the figure is quoted as reported, not as verified. Decision rule: if no CT registration evidence is on file, treat it as an S1 compliance gap and raise it to the CEO the same day with the licence details needed to register via EmaraTax.",
+   "body_ar": "يجب على كل شخص خاضع للضريبة، بما في ذلك جهات المناطق الحرة، التسجيل لدى الهيئة الاتحادية للضرائب والحصول على رقم تسجيل ضريبة الشركات، ولا يُسقط اختيارُ إعفاء الأعمال الصغيرة هذا الواجب. قائمة المحاسب: التأكد من وجود رقم التسجيل وحفظه مع بيانات الرخصة؛ تسجيل تاريخي بداية ونهاية أول فترة ضريبية؛ حفظ شهادة التسجيل في الأرشيف؛ مطابقة الاسم القانوني ورقم الرخصة والسنة المالية بين سجل الهيئة والرخصة والدفاتر؛ إعادة التحقق عند أي تعديل في الرخصة أو النشاط أو السنة المالية. وحدد قرار الهيئة رقم 3 لسنة 2024 (النافذ من 1 مارس 2024) مواعيد التسجيل: الشركات المقيمة القائمة قبل ذلك التاريخ سجّلت وفق شهر إصدار أقدم رخصة لها، والشركة المقيمة المؤسسة في 1 مارس 2024 أو بعده تقدّم طلبها خلال ثلاثة أشهر من التأسيس. أما غرامة التأخير في التسجيل فمنشورة على نطاق واسع بمبلغ 10,000 درهم بموجب تعديل عام 2024، ولم يُجلب نص التعديل فتُذكر كرقم منشور غير مُتحقق منه. قاعدة القرار: إن لم يوجد دليل على التسجيل فهي فجوة امتثال من الدرجة الأولى تُرفع للرئيس التنفيذي في اليوم نفسه.",
+   "sources": [
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://tax.gov.ae/Datafolder/Files/Guides/CT/Small%20Business%20Relief%20Guide%20-%20EN%20-%2029%2008%202023.pdf",
+    "https://tax.gov.ae/Datafolder/Files/Legislation/FTA%20Decision%20No.%203%20of%202024%20on%20Registration%20Timeline%20for%20Corporate%20Tax%20-%20For%20publishing.pdf"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ct-taxable-income-bridge",
+   "topic": "From accounting profit to taxable income",
+   "kind": "method",
+   "body_en": "UAE CT starts from the accounting net profit shown in financial statements prepared under accepted standards (IFRS, or IFRS for SMEs for smaller entities) and then adjusts it. A senior accountant builds a documented bridge each period: accounting profit before tax; plus non-deductible items (for example fines and penalties, entertainment beyond the allowed share, donations to non-qualifying bodies, expenses not incurred wholly for the business); less exempt income; adjustments for related-party transactions not at arm's length; interest limitation where relevant; then relief for brought-forward tax losses. Each adjustment line must reference the GL accounts and documents behind it, so an auditor can re-perform it. For QuotesDone the likely material items are: owner-related spending that is not wholly business, any penalties, and related-party dealings with the founder. The Corporate Tax Law fixes both caps: only 50% of entertainment, amusement or recreation expenditure is deductible (Article 32), and brought-forward losses can offset at most 75% of the period's taxable income before loss relief (Article 37). Decision rule: never file SBR or a full return without a written bridge, even when the answer is zero; the bridge is the evidence that the zero is right.",
+   "body_ar": "تبدأ ضريبة الشركات من صافي الربح المحاسبي الوارد في قوائم مالية مُعدّة وفق معايير مقبولة ثم تُجرى عليه تعديلات. يبني المحاسب الأول جسراً موثقاً كل فترة: الربح المحاسبي قبل الضريبة، مضافاً إليه البنود غير القابلة للخصم كالغرامات والتبرعات لجهات غير مؤهلة والمصروفات غير المتكبدة كلياً لغرض العمل، مطروحاً منه الدخل المعفى، مع تعديلات معاملات الأطراف ذات العلاقة غير الجارية بسعر السوق، وقيود الفوائد، ثم ترحيل الخسائر. يرتبط كل سطر بحسابات الأستاذ العام والمستندات الداعمة ليعيد المدقق أداءه. البنود المرجحة لدى كوتس دن: مصروفات المالك غير التجارية كلياً والغرامات والتعاملات مع المؤسس. ويحدد قانون ضريبة الشركات السقفين: لا يُخصم إلا 50% من مصروفات الضيافة والترفيه (المادة 32)، ولا يتجاوز ما يُعوَّض من الخسائر المرحّلة 75% من الدخل الخاضع للضريبة للفترة قبل التعويض (المادة 37). قاعدة القرار: لا إقرار دون جسر مكتوب حتى لو كانت النتيجة صفراً.",
+   "sources": [
+    "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://mof.gov.ae/wp-content/uploads/2026/01/Federal-Decree-Law-No.-47-of-2022-and-its-amendments-en-v13.1.26.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ct-related-parties-founder",
+   "topic": "Related parties and the founder: arm's length and capital",
+   "kind": "decision_rule",
+   "body_en": "In an owner-managed LLC the founder is the most important related party. Three flows must be kept apart in the books: capital contributed (equity), loans from the owner (liability, only if the founder says it is a loan), and payments the company makes on the owner's behalf (a receivable from, or distribution to, the owner, never a business expense). The standing company rule is that the founder's own transfers in are capital unless he states they are a loan; the seat identifies them by the sender IBAN on the bank statement, not by narrative text. Under UAE CT, transactions between related parties are expected to be at arm's length, and non-arm's-length terms can be adjusted in the taxable income bridge. Practical checks: any expense whose receipt names the founder personally, a personal card, or a non-business item is held for classification rather than booked to opex; any payment to an entity the founder controls is flagged as related-party and documented with its commercial basis. Detailed transfer-pricing documentation thresholds were not verified from fetched sources; the SBR guide indicates transfer-pricing documentation is not required for SBR electors, but arm's length pricing still applies.",
+   "body_ar": "في الشركة ذات المسؤولية المحدودة التي يديرها مالكها يكون المؤسس أهم طرف ذي علاقة. يجب الفصل في الدفاتر بين ثلاثة تدفقات: رأس المال المساهَم به (حقوق ملكية)، وقروض المالك (التزام، فقط إذا صرّح المؤسس بأنها قرض)، والمدفوعات نيابة عن المالك (ذمة مدينة أو توزيع، وليست مصروفاً تشغيلياً). القاعدة القائمة أن تحويلات المؤسس الواردة رأس مال ما لم يقل إنها قرض، ويُتعرَّف عليها برقم الآيبان المرسِل في كشف الحساب لا بنص الوصف. تتوقع ضريبة الشركات أن تكون معاملات الأطراف ذات العلاقة بسعر السوق، ويجوز تعديل غير ذلك. أي مصروف يحمل اسم المؤسس شخصياً أو بطاقة شخصية يُعلَّق للتصنيف، وأي دفعة لجهة يسيطر عليها المؤسس تُوسَم كمعاملة ذات علاقة مع توثيق أساسها التجاري.",
+   "sources": [
+    "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+    "https://tax.gov.ae/Datafolder/Files/Guides/CT/Small%20Business%20Relief%20Guide%20-%20EN%20-%2029%2008%202023.pdf"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:vat-registration-thresholds",
+   "topic": "VAT registration: mandatory and voluntary thresholds",
+   "kind": "law",
+   "body_en": "UAE VAT registration has two thresholds measured on a rolling basis. Mandatory registration is required when taxable supplies and imports exceeded AED 375,000 over the previous 12 months, or are expected to exceed it within the next 30 days. Voluntary registration is allowed when taxable supplies, imports or taxable expenses exceeded AED 187,500 over the previous 12 months, or are expected to within 30 days. The mandatory threshold does not apply to non-resident businesses. Registration is done with the FTA through EmaraTax using UAE Pass. The seat must run two tests every month, not one: the backward-looking 12-month total and the forward-looking 30-day forecast, because a large RFQ month or a price change can trip the forward test before the historic one. For a marketplace the base is QuotesDone's own taxable supplies (its fees), not the gross value of supplier quotations passing through the platform. Decision rule: at 70% of AED 375,000 on either test, send the CEO a registration-readiness note (invoice templates, pricing VAT-inclusive or exclusive, system changes); on crossing, start the registration process immediately and record the date the threshold was crossed.",
+   "body_ar": "للتسجيل في ضريبة القيمة المضافة حدّان يُقاسان بشكل متجدد. التسجيل إلزامي عندما تتجاوز التوريدات الخاضعة للضريبة والواردات 375,000 درهم خلال الأشهر الاثني عشر السابقة، أو يُتوقع تجاوزها خلال الثلاثين يوماً التالية. والتسجيل الاختياري متاح عند تجاوز التوريدات أو الواردات أو المصروفات الخاضعة 187,500 درهم بالطريقة نفسها. لا يسري الحد الإلزامي على غير المقيمين. يتم التسجيل عبر منصة إمارات تاكس باستخدام الهوية الرقمية. يجري المقعد اختبارين شهرياً: الإجمالي التاريخي لاثني عشر شهراً، والتوقع للثلاثين يوماً القادمة. أساس الاحتساب في السوق الإلكتروني هو رسوم كوتس دن نفسها لا القيمة الإجمالية لعروض الموردين. قاعدة القرار: عند بلوغ 70% من الحد في أي اختبار تُرسل مذكرة جاهزية للرئيس التنفيذي، وعند التجاوز يبدأ التسجيل فوراً ويُوثق تاريخ التجاوز.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:vat-unregistered-input-tax",
+   "topic": "Input VAT when the company is not VAT-registered",
+   "kind": "decision_rule",
+   "body_en": "Only a VAT-registered person can recover input tax through a VAT return. While QuotesDone is not registered (its standing position until the AED 375,000 mandatory threshold is reached), VAT charged by suppliers on subscriptions, services and purchases is simply part of the cost of the item. Booking it to a recoverable \"VAT input\" asset account overstates assets and understates expenses, and the balance can never be collected. Correct treatment: post the gross amount (net plus VAT) to the expense or asset account the purchase belongs to, and keep the VAT amount as a memo field on the expense record so it is available for analysis and for any future voluntary-registration decision. When registration takes effect, input tax on costs incurred after the effective date becomes recoverable subject to the normal conditions (valid tax invoice, business use); whether any pre-registration input tax can be recovered is governed by FTA rules the seat must check at that time rather than assume. This rule directly fixes audit gap T6, where the posting routine splits VAT to account 1150 despite the company being unregistered. Decision rule: unregistered means VAT is cost; re-check this rule on the registration effective date.",
+   "body_ar": "لا يسترد ضريبة المدخلات عبر الإقرار إلا المسجَّل في ضريبة القيمة المضافة. وما دامت كوتس دن غير مسجلة، فإن الضريبة التي يفرضها الموردون على الاشتراكات والخدمات والمشتريات جزء من تكلفة البند. تسجيلها في حساب أصل \"ضريبة مدخلات\" قابلة للاسترداد يضخّم الأصول ويقلل المصروفات، ولن يُحصَّل الرصيد أبداً. المعالجة الصحيحة: قيد المبلغ الإجمالي (الصافي مع الضريبة) في حساب المصروف أو الأصل المعني، مع الاحتفاظ بمبلغ الضريبة كحقل مذكرة للتحليل ولقرار التسجيل الاختياري مستقبلاً. عند سريان التسجيل تصبح ضريبة المدخلات على التكاليف اللاحقة قابلة للاسترداد وفق الشروط المعتادة، أما ما قبل التسجيل فيُراجع في قواعد الهيئة حينها. هذه القاعدة تعالج فجوة التدقيق T6. قاعدة القرار: غير مسجّل يعني أن الضريبة تكلفة.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:vat-voluntary-registration-decision",
+   "topic": "Should QuotesDone register voluntarily for VAT?",
+   "kind": "decision_rule",
+   "body_en": "Voluntary registration becomes possible once taxable supplies, imports or taxable expenses pass AED 187,500 over 12 months (or are expected to within 30 days). The decision is commercial, not only technical. Benefits: input VAT on costs becomes recoverable, which matters when most costs carry UAE VAT; the company can issue tax invoices, which some corporate buyers expect. Costs: the platform fee becomes subject to 5% output VAT, which either raises the price to customers or reduces margin if prices are VAT-inclusive; return filing, record keeping and invoice-format obligations begin; e-invoicing obligations follow for B2B once the mandate phases in. For a B2B marketplace whose customers are mostly VAT-registered businesses, output VAT is usually recoverable by the customer, so the price effect is small, while for non-registered small contractors it is a real increase. Many of QuotesDone's costs are foreign SaaS; how imported services are treated under the reverse charge was not confirmed from sources fetched this session and must be checked before modelling. Decision rule: the accountant prepares the numbers (recoverable input VAT per year versus customer price impact and compliance cost) and the CEO decides; never register voluntarily without that written comparison.",
+   "body_ar": "يصبح التسجيل الاختياري ممكناً عند تجاوز التوريدات أو الواردات أو المصروفات الخاضعة 187,500 درهم خلال اثني عشر شهراً. القرار تجاري وليس فنياً فقط. المزايا: استرداد ضريبة المدخلات، وإصدار فواتير ضريبية يتوقعها بعض المشترين من الشركات. التكاليف: خضوع رسوم المنصة لضريبة 5% ترفع السعر أو تقلل الهامش، وبدء التزامات الإقرارات والسجلات وصيغ الفواتير، ثم التزامات الفوترة الإلكترونية. العملاء المسجلون يستردون الضريبة عادة فيكون الأثر محدوداً، أما المقاولون الصغار غير المسجلين فيتحملون زيادة حقيقية. كثير من تكاليف كوتس دن اشتراكات برمجية أجنبية، ولم تُؤكَّد معالجة الخدمات المستوردة بآلية الاحتساب العكسي من المصادر المسترجعة. قاعدة القرار: يُعدّ المحاسب المقارنة الرقمية المكتوبة ويقرر الرئيس التنفيذي.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx",
+    "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:vat-marketplace-supply-base",
+   "topic": "What counts as QuotesDone's taxable supply",
+   "kind": "concept",
+   "body_en": "QuotesDone connects buyers who post RFQs with suppliers who quote; the commercial contract for goods or works is between the buyer and the supplier. For VAT and revenue purposes the platform's own supply is its service: reveal fees, subscriptions, the non-response charge, and any other fee it charges in its own name. The gross value of quotations, purchase orders and payments passing between buyers and suppliers is not QuotesDone's turnover unless the platform itself sells the goods. This distinction drives three things: the VAT threshold test (measure fees, not gross merchandise value), revenue recognition (the platform is an agent for the underlying trade and records its fee, see the principal-versus-agent entry), and management reporting (GMV is a marketplace health metric, not revenue). Refunds and credit notes reduce the platform's taxable supplies in the period the adjustment is made. The seat must keep GMV and fee revenue in separate reports so no one mistakes one for the other when judging the AED 375,000 or AED 3 million thresholds. Decision rule: any report that shows a threshold test must label its base explicitly as \"QuotesDone fee revenue, 12 months to <date>\".",
+   "body_ar": "تربط كوتس دن المشترين الذين ينشرون طلبات عروض الأسعار بالموردين الذين يقدّمون عروضهم، والعقد التجاري للسلع أو الأعمال بين المشتري والمورد. أما توريد المنصة الخاص فهو خدمتها: رسوم الكشف والاشتراكات ورسم عدم الاستجابة وأي رسم تفرضه باسمها. القيمة الإجمالية للعروض وأوامر الشراء بين الطرفين ليست حجم أعمال كوتس دن. يترتب على هذا التمييز ثلاثة أمور: اختبار حد التسجيل يقيس الرسوم لا القيمة الإجمالية للصفقات، والاعتراف بالإيراد يكون بصفة وكيل يسجّل رسومه، والتقارير الإدارية تعدّ القيمة الإجمالية مؤشراً لصحة السوق لا إيراداً. المردودات والإشعارات الدائنة تخفض التوريدات في فترة التعديل. قاعدة القرار: كل تقرير يعرض اختبار حدّ يجب أن يسمّي أساسه صراحة \"إيرادات رسوم كوتس دن لاثني عشر شهراً حتى تاريخ كذا\".",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx",
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:einvoicing-roadmap",
+   "topic": "UAE e-invoicing mandate and QuotesDone's timeline",
+   "kind": "standard",
+   "body_en": "Ministerial Decisions No. 243 and No. 244 of 2025 set the UAE Electronic Invoicing System. It uses the Peppol network, with an Accredited Service Provider (ASP) that validates invoices and reports data to the authority. Phasing by revenue: businesses with revenue of AED 50 million or more appoint an ASP (originally by 31 July 2026, extended by an amendment to Ministerial Decision 244 to 30 October 2026, go-live unchanged) and comply from 1 January 2027; businesses below AED 50 million appoint an ASP by 31 March 2027 and comply from 1 July 2027; government entities by 31 March 2027 and 1 October 2027. A voluntary pilot began in July 2026. B2C transactions are excluded for now, and there are limited exemptions such as certain government sovereign activities. KPMG states invoices are issued within the timelines of the VAT legislation; a specific 14-day issuance rule and in-country record storage are reported by secondary sources but not established from a fetched primary text. KPMG also frames the scope as every business conducting B2B or B2G transactions. For QuotesDone (below AED 50 million), the working dates are ASP appointment by 31 March 2027 and live e-invoicing from 1 July 2027 for B2B fee invoices. Decision rule: by Q4 2026 the accountant produces an ASP shortlist with costs for the CEO, and confirms with the IT engineer that invoice data (TRN, line items, VAT) can be exported in the required structure.",
+   "body_ar": "حدد القراران الوزاريان 243 و244 لسنة 2025 نظام الفوترة الإلكترونية في الإمارات، القائم على شبكة Peppol ومزوّد خدمة معتمد يتحقق من الفواتير ويرسل بياناتها للجهة المختصة. التدرج حسب الإيرادات: المنشآت التي تبلغ إيراداتها 50 مليون درهم فأكثر تعيّن المزوّد (مُدّد الموعد من 31 يوليو إلى 30 أكتوبر 2026) وتلتزم اعتباراً من 1 يناير 2027؛ والمنشآت دون 50 مليون درهم تعيّن المزوّد بحلول 31 مارس 2027 وتلتزم اعتباراً من 1 يوليو 2027؛ والجهات الحكومية بحلول 31 مارس و1 أكتوبر 2027. بدأت مرحلة تجريبية اختيارية في يوليو 2026. تُستثنى معاملات الأعمال مع المستهلكين حالياً. وتذكر KPMG أن الفواتير تصدر ضمن المهل المحددة في تشريع ضريبة القيمة المضافة؛ أما مهلة 14 يوماً وحفظ السجلات داخل الدولة فمنشورة في مصادر ثانوية ولم تثبت من نص رسمي. ويشمل النطاق كل منشأة تجري معاملات بين الشركات أو مع الحكومة. مواعيد كوتس دن: تعيين المزوّد بحلول 31 مارس 2027 والتشغيل من 1 يوليو 2027 لفواتير الرسوم بين الشركات. قاعدة القرار: قائمة مزوّدين مع التكاليف للرئيس التنفيذي بحلول الربع الأخير من 2026.",
+   "sources": [
+    "https://kpmg.com/ae/en/insights/tax-insights/implementation-of-the-electronic-invoicing-system-in-the-uae.html",
+    "https://www.deloitte.com/middle-east/en/services/tax/perspectives/uae-e-invoicing-asp-appointment-deadline-extended-but-go-live-remains-01012027.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:tax-calendar",
+   "topic": "The accountant's UAE compliance calendar",
+   "kind": "checklist",
+   "body_en": "A senior accountant runs the company off a dated calendar, not memory. Minimum recurring items for QuotesDone: monthly - bank statement intake and full reconciliation, Stripe payout reconciliation, expense classification review, VAT threshold tests (12-month and 30-day), period close and lock, sanctions list delta re-screen; quarterly - fraud and fee-circumvention review, UBO and ownership-change check on active suppliers, prepayment and accrual review, IFRS for SMEs policy check; annually - financial statements, CT computation and SBR decision, CT return and payment within 9 months of year-end (30 September for a December year-end), trade licence renewal support (DET licence 1633275 expires 24 June 2027), UBO register confirmation for the company itself, knowledge-pack refresh; one-off dated items - e-invoicing ASP appointment by 31 March 2027 and go-live 1 July 2027, IFRS for SMEs third edition effective 1 January 2027, SBR available for periods ending on or before 31 December 2029. Every item has an owner (this seat), a due date, an evidence field and a lead time. Decision rule: an item without evidence on its due date is escalated to the CEO; \"done\" means the evidence link exists, not that a job ran.",
+   "body_ar": "يدير المحاسب الأول الشركة من تقويم مؤرخ لا من الذاكرة. البنود الشهرية: استلام كشف البنك والتسوية الكاملة، تسوية دفعات سترايب، مراجعة تصنيف المصروفات، اختبارا حد ضريبة القيمة المضافة، إقفال الفترة وقفلها، وإعادة الفحص مقابل تحديثات قوائم العقوبات. الربع سنوية: مراجعة الاحتيال والتحايل على الرسوم، فحص المستفيد الحقيقي للموردين النشطين، مراجعة المدفوعات المقدمة والمستحقات. السنوية: القوائم المالية، احتساب ضريبة الشركات وقرار الإعفاء، الإقرار والسداد خلال 9 أشهر، دعم تجديد الرخصة التي تنتهي في 24 يونيو 2027، وتأكيد سجل المستفيد الحقيقي للشركة. بنود مؤرخة: تعيين مزوّد الفوترة الإلكترونية بحلول 31 مارس 2027، وسريان الإصدار الثالث من المعيار للمنشآت الصغيرة في 1 يناير 2027، وإعفاء الأعمال الصغيرة حتى الفترات المنتهية في 31 ديسمبر 2029. قاعدة القرار: البند بلا دليل في موعده يُصعَّد للرئيس التنفيذي.",
+   "sources": [
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://mof.gov.ae/en/news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029/",
+    "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:vat-threshold-monitor-method",
+   "topic": "Method: monitoring the VAT and SBR thresholds",
+   "kind": "method",
+   "body_en": "Two thresholds matter to QuotesDone's revenue line: AED 375,000 of taxable supplies for mandatory VAT registration, and AED 3 million of revenue per tax period for Small Business Relief. A robust monitor computes, on the first working day of each month: (a) trailing-12-month posted fee revenue from the revenue accounts in the GL, excluding refunded amounts only when the refund is posted; (b) a 30-day forward estimate built from signed subscriptions, scheduled renewals and the average of recent reveal-fee volume; (c) the tax-period-to-date revenue for SBR, which follows the financial year rather than a rolling window. It then records all three numbers with the query used, so the figure can be reproduced. Failure modes to guard against: counting GMV instead of fees; ignoring unposted Stripe charges (reconcile Stripe to the GL first); using a 3-month run-rate multiplied by four as the forward test, which is a forecast of the year and not the 30-day test the law asks for. Alerts: VAT at 70% and 100% on either test; SBR at 80% of AED 3 million within the period. Each alert goes to the CEO as a decision item with the numbers, not as a free-text notice.",
+   "body_ar": "حدّان يهمّان خط إيرادات كوتس دن: 375,000 درهم من التوريدات الخاضعة للتسجيل الإلزامي، و3 ملايين درهم من الإيرادات لكل فترة ضريبية لإعفاء الأعمال الصغيرة. يحتسب المراقب في أول يوم عمل من كل شهر: إيرادات الرسوم المرحّلة لاثني عشر شهراً من حسابات الإيرادات، وتقديراً للثلاثين يوماً القادمة من الاشتراكات الموقعة والتجديدات المجدولة ومتوسط رسوم الكشف، وإيرادات الفترة الضريبية حتى تاريخه لأغراض الإعفاء. تُحفظ الأرقام الثلاثة مع الاستعلام المستخدم لإعادة إنتاجها. أخطاء يجب تجنبها: احتساب القيمة الإجمالية للصفقات بدل الرسوم، وإغفال مبالغ سترايب غير المرحّلة، واستخدام معدل ثلاثة أشهر مضروباً في أربعة بدلاً من اختبار الثلاثين يوماً. التنبيهات: عند 70% و100% لضريبة القيمة المضافة، و80% من حد الإعفاء، وتُرسل كبنود قرار بالأرقام.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx",
+    "https://mof.gov.ae/en/news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ifrs-for-smes-framework",
+   "topic": "IFRS for SMEs: the reporting framework and the 2025 edition",
+   "kind": "standard",
+   "body_en": "The IFRS for SMEs Accounting Standard is a self-contained framework for entities without public accountability. Compared with full IFRS it omits topics irrelevant to small companies, removes many policy options, simplifies recognition and measurement, and cuts disclosures. The IASB issued the third edition in February 2025; it is effective for periods beginning on or after 1 January 2027, with early application permitted, and entities may continue using the 2015 edition until then. For QuotesDone, a small private LLC, IFRS for SMEs is the natural basis for statutory statements and therefore for the Corporate Tax starting point. The accountant should: document the chosen framework and edition in an accounting-policies memo; decide explicitly whether to adopt the 2025 edition early or from 1 January 2027 and record why; identify the edition changes that affect the business (the 2025 edition aligns revenue recognition more closely with the IFRS 15 five-step model, which is the area most relevant to a fee-earning marketplace); and keep a transition checklist for comparative figures. Decision rule: every accounting judgement in the books cites the section of the framework it relies on; if no section fits, raise it as a policy decision to the CEO rather than improvising.",
+   "body_ar": "المعيار الدولي لإعداد التقارير المالية للمنشآت الصغيرة والمتوسطة إطار مستقل للمنشآت غير الخاضعة للمساءلة العامة، يحذف الموضوعات غير ذات الصلة ويقلل الخيارات ويبسط الاعتراف والقياس والإفصاحات. أصدر المجلس الإصدار الثالث في فبراير 2025 ويسري على الفترات التي تبدأ في 1 يناير 2027 أو بعده، مع جواز التطبيق المبكر. هو الأساس الطبيعي لقوائم كوتس دن النظامية وبالتالي لنقطة بداية ضريبة الشركات. على المحاسب توثيق الإطار والإصدار في مذكرة السياسات، وتقرير التطبيق المبكر أو من 2027 مع السبب، وتحديد التغييرات المؤثرة، وأبرزها مواءمة الاعتراف بالإيراد مع نموذج الخطوات الخمس، والاحتفاظ بقائمة انتقال لأرقام المقارنة. قاعدة القرار: كل حكم محاسبي يستند إلى قسم من الإطار، وما لا يجد قسماً يُرفع للرئيس التنفيذي كقرار سياسة.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/",
+    "https://www.ey.com/en_gl/technical/ifrs-technical-resources/iasb-issues-third-edition-of-ifrs-for-smes-accounting-standard"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:revenue-five-step",
+   "topic": "Revenue recognition: the five-step model applied to QuotesDone",
+   "kind": "method",
+   "body_en": "Revenue is recognised to depict the transfer of promised services in the amount the entity expects to be entitled to. The five steps: identify the contract with the customer; identify the performance obligations (distinct promised services); determine the transaction price including variable amounts; allocate the price to obligations by relative stand-alone selling price; recognise revenue when (or as) each obligation is satisfied, at a point in time or over time. Applied to QuotesDone: a reveal fee is earned when the supplier's details are revealed to the buyer - a point-in-time obligation, so revenue is recognised at reveal, not at payment and not at RFQ creation; a monthly or annual subscription gives access over time, so it is recognised evenly over the service period with the unearned part held as deferred revenue (contract liability); the non-response charge is recognised when the contractual trigger occurs and collection is probable. Refunds reduce revenue in the period granted; expected refunds may require a refund liability. Payment received before the obligation is satisfied is a liability, not revenue. Decision rule: every revenue posting carries the event that satisfied the obligation (reveal ID, service period) so it can be traced.",
+   "body_ar": "يُعترف بالإيراد بما يعكس نقل الخدمات الموعودة بالمبلغ الذي تتوقع المنشأة استحقاقه. الخطوات الخمس: تحديد العقد، وتحديد التزامات الأداء، وتحديد سعر المعاملة بما فيه المبالغ المتغيرة، وتوزيع السعر على الالتزامات، والاعتراف عند الوفاء بكل التزام في لحظة زمنية أو على مدى فترة. تطبيقاً على كوتس دن: رسم الكشف يُكتسب عند كشف بيانات المورد للمشتري فيُعترف به حينها لا عند الدفع ولا عند إنشاء الطلب؛ والاشتراك يمنح وصولاً على مدى زمني فيُعترف به بالتساوي على فترة الخدمة ويُحتفظ بالجزء غير المكتسب كإيراد مؤجل؛ ورسم عدم الاستجابة يُعترف به عند وقوع المسبب التعاقدي مع ترجيح التحصيل. المردودات تخفض الإيراد في فترة منحها، والمبالغ المقبوضة قبل الوفاء التزام لا إيراد. قاعدة القرار: كل قيد إيراد يحمل الحدث الذي أوفى بالالتزام.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:principal-vs-agent",
+   "topic": "Principal or agent: QuotesDone records its fee, not the deal",
+   "kind": "decision_rule",
+   "body_en": "When another party is involved in providing goods or services to a customer, an entity must decide whether it is the principal (it controls the good or service before transfer and records gross revenue) or the agent (it arranges for another party to provide it and records only its fee or commission). Indicators of principal status include primary responsibility for fulfilment, inventory risk, and discretion over price. QuotesDone does not supply the construction materials or works, does not hold inventory, does not set the supplier's price and does not take fulfilment responsibility; it arranges the introduction and earns fees. It is therefore an agent for the underlying trade, and its revenue is its fees only. Consequences: never gross up revenue with the buyer's order value; do not recognise supplier payables or buyer receivables for the trade itself; GMV appears only in management KPIs. If the business model changes - for example QuotesDone starts collecting the full order value and paying the supplier, or guaranteeing delivery - the assessment must be redone before the first such transaction, because control and fulfilment responsibility may shift. The fetched IFRS 15 summary did not include the detailed indicators, so treat the indicator list as standard practice to verify against the full text.",
+   "body_ar": "عندما يشارك طرف آخر في تقديم السلع أو الخدمات للعميل، يجب تحديد ما إذا كانت المنشأة أصيلاً يسيطر على السلعة أو الخدمة قبل نقلها ويسجل الإيراد بالإجمالي، أم وكيلاً يرتّب لتقديمها ويسجل رسومه فقط. من مؤشرات الأصيل: المسؤولية الأساسية عن التنفيذ، ومخاطر المخزون، وحرية تحديد السعر. كوتس دن لا تورّد المواد ولا تحتفظ بمخزون ولا تحدد سعر المورد ولا تتحمل مسؤولية التنفيذ، بل ترتب التعارف وتكسب رسوماً، فهي وكيل وإيرادها رسومها فقط. النتائج: عدم تضخيم الإيراد بقيمة طلب المشتري، وعدم إثبات ذمم الصفقة ذاتها، وظهور القيمة الإجمالية للصفقات في المؤشرات الإدارية فقط. إذا تغيّر النموذج كأن تحصّل المنصة كامل قيمة الطلب وتدفع للمورد، يُعاد التقييم قبل أول معاملة. لم يتضمن الملخص المسترجع المؤشرات التفصيلية فيجب التحقق منها في النص الكامل.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23",
+   "gap_kind": "technical"
+  },
+  {
+   "id": "accountant:chart-of-accounts",
+   "topic": "A real chart of accounts for a UAE B2B marketplace",
+   "kind": "standard",
+   "body_en": "A chart of accounts must let the P&L answer management's questions without manual re-analysis. A defensible structure for QuotesDone: 1xxx assets (1000 cash at Mashreq, 1010 Stripe balance, 1020 cash in transit - payouts sent not yet received, 1100 trade receivables for fees, 1200 prepayments, 1300 owner current account receivable); 2xxx liabilities (2000 trade payables, 2100 accruals, 2200 deferred revenue, 2300 refund liability, 2400 owner loan if declared, 2500 corporate tax payable); 3xxx equity (3000 share capital, 3100 capital contributions, 3200 retained earnings); 4xxx revenue (4000 reveal fees, 4100 subscriptions, 4200 non-response charges, 4900 refunds and credit notes as contra-revenue); 5xxx direct costs of revenue (5000 payment processing fees, 5100 dispute fees and losses, 5200 messaging and delivery costs such as email and WhatsApp); 6xxx operating expenses split by nature (6000 software and hosting, 6050 AI model usage, 6100 marketing and advertising, 6200 data and lead sources, 6300 professional fees, 6400 government fees and licences, 6500 bank charges, 6600 telecoms, 6900 other); 7xxx other income and finance costs; 8xxx tax. This directly replaces the two-category classification (Subscription/Usage both mapped to 6000) found in audit gap T4. Decision rule: no posting to a catch-all account above AED 500 without a note explaining why no specific account fits.",
+   "body_ar": "يجب أن يمكّن دليل الحسابات قائمة الدخل من الإجابة عن أسئلة الإدارة دون إعادة تحليل يدوية. هيكل مقترح لكوتس دن: 1xxx الأصول (النقد لدى المشرق، رصيد سترايب، النقد في الطريق، ذمم الرسوم، المدفوعات المقدمة، الحساب الجاري المدين للمالك)؛ 2xxx الالتزامات (الدائنون، المستحقات، الإيراد المؤجل، التزام المردودات، قرض المالك إن صُرِّح به، ضريبة الشركات المستحقة)؛ 3xxx حقوق الملكية (رأس المال، المساهمات الرأسمالية، الأرباح المحتجزة)؛ 4xxx الإيرادات (رسوم الكشف، الاشتراكات، رسوم عدم الاستجابة، المردودات كحساب مقابل)؛ 5xxx التكاليف المباشرة (رسوم المعالجة، رسوم النزاعات وخسائرها، تكاليف الرسائل)؛ 6xxx المصروفات التشغيلية حسب طبيعتها (البرمجيات والاستضافة، استخدام نماذج الذكاء الاصطناعي، التسويق، مصادر البيانات، الأتعاب المهنية، الرسوم الحكومية، رسوم البنك، الاتصالات، أخرى)؛ 7xxx و8xxx. يعالج هذا فجوة T4. قاعدة القرار: لا قيد في حساب عام فوق 500 درهم دون مذكرة تبرير.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://docs.stripe.com/reports/balance-transaction-types"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:expense-classification-by-reasoning",
+   "topic": "Classifying expenses by meaning, with memory",
+   "kind": "method",
+   "body_en": "Expense classification must be decided by what the cost is for, not by whether it recurs. A monthly Google Workspace bill and a monthly Meta ads charge are both recurring, but one is software (6000) and the other is marketing (6100). Method: (1) read the receipt - vendor, line descriptions, period covered, currency, VAT; (2) recall prior decisions for the same vendor and for semantically similar vendors from the classification memory, with the account chosen and who confirmed it; (3) reason about the nature of the spend against the chart of accounts, choosing the most specific account; (4) decide the period treatment (expense now, prepayment, or accrual - see those entries); (5) if confidence is low, or the item could be personal, capital, or related-party, hold it with a specific question rather than guessing; (6) store the final decision and any human correction as a new memory example so the next similar receipt benefits. Lexical vendor matching (\"ilike vendor\") is a starting hint, not the decision - vendor names change and one vendor can sell different things. Quality control: each month sample classifications and measure the correction rate; a rising rate means the memory or the reasoning is drifting. This closes audit gaps T4 and the missing learning loop.",
+   "body_ar": "يُقرَّر تصنيف المصروف بحسب الغرض منه لا بحسب تكراره. فاتورة Google Workspace الشهرية وإعلانات ميتا الشهرية كلتاهما متكررة، لكن الأولى برمجيات والثانية تسويق. المنهج: قراءة الإيصال (المورد، الوصف، الفترة، العملة، الضريبة)؛ استدعاء القرارات السابقة للمورد نفسه ولموردين متشابهين في المعنى من ذاكرة التصنيف؛ الاستدلال على طبيعة الإنفاق واختيار أدق حساب؛ تحديد المعالجة الزمنية (مصروف الآن أو مدفوع مقدماً أو مستحق)؛ عند ضعف الثقة أو احتمال أن يكون البند شخصياً أو رأسمالياً أو ذا علاقة يُعلَّق بسؤال محدد دون تخمين؛ حفظ القرار النهائي وأي تصحيح بشري كمثال جديد. مطابقة اسم المورد نصياً تلميح لا قرار. رقابة الجودة: عينة شهرية وقياس معدل التصحيح؛ ارتفاعه يعني انحرافاً. يعالج هذا الفجوة T4 وغياب حلقة التعلم.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:prepayments-annual-subscriptions",
+   "topic": "Prepayments: annual subscriptions and advance payments",
+   "kind": "method",
+   "body_en": "When the company pays in advance for a service that will be consumed over future periods - an annual SaaS plan, a yearly domain or licence fee, insurance - the payment is an asset (prepayment) and is expensed over the service period. Under accrual accounting, expensing the full annual amount on the day of payment misstates both the month of payment (overstated cost) and the following eleven months (understated cost). Method: on booking, read the service period from the invoice; if it extends beyond the current month and the amount is above a materiality threshold set in the policy memo (for a company of QuotesDone's size, a small figure such as AED 1,000 is reasonable - this is a policy choice, not a legal number), debit 1200 Prepayments; create an amortisation schedule with a monthly release to the correct expense account; at each month end, post the release and reconcile the prepayments balance to the schedule. On cancellation with refund, reduce the prepayment by the refund; on cancellation without refund, expense the remainder immediately. The trade licence fee is a typical prepayment for the licence year. This closes audit gap T5. Decision rule: every prepayment balance has a schedule; a balance with no schedule is an error.",
+   "body_ar": "عندما تدفع الشركة مقدماً عن خدمة تُستهلك في فترات لاحقة - كاشتراك برمجي سنوي أو رسوم نطاق أو رخصة أو تأمين - فالدفعة أصل (مدفوع مقدماً) يُحمَّل كمصروف على مدى فترة الخدمة. تحميل المبلغ السنوي كاملاً يوم الدفع يشوّه شهر الدفع والأشهر الأحد عشر التالية. المنهج: قراءة فترة الخدمة من الفاتورة؛ إن امتدت بعد الشهر الحالي وتجاوز المبلغ حد الأهمية المحدد في مذكرة السياسات (مبلغ صغير كألف درهم معقول، وهو خيار سياسة لا رقم قانوني) يُقيَّد في حساب المدفوعات المقدمة؛ يُعدّ جدول إطفاء شهري إلى حساب المصروف الصحيح؛ وفي نهاية كل شهر يُرحَّل الإطفاء ويُطابق الرصيد مع الجدول. عند الإلغاء مع استرداد يُخفَّض الرصيد، ودون استرداد يُحمَّل الباقي فوراً. رسم الرخصة التجارية مثال نموذجي. يعالج هذا الفجوة T5.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:accruals",
+   "topic": "Accruals: costs incurred but not yet invoiced",
+   "kind": "method",
+   "body_en": "An accrual records an expense in the period in which the service was consumed when the invoice arrives later. Typical QuotesDone accruals: usage-billed services (AI model usage, messaging, email delivery) whose invoice for month M arrives in month M+1; professional fees for work done but not yet billed; bank charges for the month that appear on the next statement; ad spend already delivered by a platform but charged later. Method at month end: list every usage-based vendor; estimate the month's cost from the vendor's usage dashboard or API, or from the prior month adjusted for known volume changes; post Dr expense / Cr 2100 Accruals with the basis noted; when the invoice arrives, reverse the accrual and book the actual, and record the difference so the estimating method improves. Materiality applies - accruing trivial amounts wastes effort - but systematic under-accrual makes every month look cheaper than it is and flatters the unit economics the CEO relies on. Accruals must never be used to smooth results. Decision rule: accrual balances older than 60 days without a matching invoice are investigated and either cleared or explained in the close file.",
+   "body_ar": "يسجّل الاستحقاق المصروفَ في الفترة التي استُهلكت فيها الخدمة عندما تصل الفاتورة لاحقاً. أمثلة لدى كوتس دن: خدمات مُفوترة حسب الاستخدام كنماذج الذكاء الاصطناعي والرسائل والبريد، التي تصل فاتورة شهرها في الشهر التالي؛ أتعاب مهنية لعمل منجز لم يُفوتر؛ رسوم بنكية تظهر في الكشف التالي؛ إعلانات قُدّمت وتُحمَّل لاحقاً. المنهج في نهاية الشهر: حصر موردي الاستخدام، وتقدير التكلفة من لوحة الاستخدام أو واجهة البرمجة أو من الشهر السابق معدلاً، وقيد المصروف مقابل حساب المستحقات مع ذكر الأساس، وعند وصول الفاتورة يُعكس الاستحقاق ويُقيَّد الفعلي ويُسجَّل الفرق لتحسين التقدير. الأهمية النسبية معتبرة، لكن نقص الاستحقاق المنهجي يجمّل اقتصاديات الوحدة. لا تُستخدم المستحقات لتسوية النتائج. قاعدة القرار: أي رصيد مستحق يتجاوز 60 يوماً دون فاتورة يُحقَّق فيه.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:deferred-revenue",
+   "topic": "Deferred revenue and refund liabilities",
+   "kind": "method",
+   "body_en": "Cash received before QuotesDone has delivered what it promised is a contract liability, not income. Two cases matter. Subscriptions paid in advance: on receipt, Dr Stripe balance (net of fee handled separately) / Cr 2200 Deferred revenue; each month, release the earned portion to 4100 Subscriptions. Prepaid credits or bundles of reveals: hold as deferred revenue and release per reveal consumed; unused credits that expire are recognised according to the contract terms and the policy memo, and this treatment should be documented. Refund liability: where terms or practice make refunds likely (for example a guarantee that fees are refunded if no supplier responds), estimate expected refunds and hold them as a liability rather than recognising all cash as revenue. At each month end reconcile deferred revenue to a per-customer schedule: opening balance, cash received, released, refunded, closing. The schedule must tie to the GL; a difference is an error to be found, never plugged. This matters for the CEO's reporting because cash collected overstates revenue in growth months, and for Corporate Tax because taxable income follows the accounting recognition.",
+   "body_ar": "النقد المقبوض قبل أن تقدّم كوتس دن ما وعدت به التزام تعاقدي لا دخل. حالتان مهمتان: الاشتراكات المدفوعة مقدماً تُقيَّد عند القبض في الإيراد المؤجل، ويُحوَّل الجزء المكتسب شهرياً إلى إيراد الاشتراكات؛ والأرصدة المسبقة أو باقات الكشف تُحفظ كإيراد مؤجل وتُحوَّل عند كل كشف، ويُعالج ما ينتهي دون استخدام وفق شروط العقد ومذكرة السياسات. التزام المردودات: حيث يُرجَّح الاسترداد بحكم الشروط أو الممارسة، يُقدَّر ويُحفظ كالتزام بدلاً من الاعتراف بكل النقد كإيراد. في نهاية كل شهر يُطابق الإيراد المؤجل مع جدول لكل عميل: الرصيد الافتتاحي والمقبوض والمحوَّل والمسترد والختامي، ويجب أن يطابق الأستاذ العام؛ والفرق خطأ يُبحث عنه ولا يُسدّ بقيد موازن. يهمّ هذا تقارير الرئيس التنفيذي وضريبة الشركات معاً.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/",
+    "https://docs.stripe.com/refunds"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:capital-vs-loan-iban",
+   "topic": "Owner money in: capital by default, identified by IBAN",
+   "kind": "decision_rule",
+   "body_en": "The standing ruling for QuotesDone is that money the founder transfers into the company is capital contribution unless he explicitly says it is a loan. The identification must be deterministic: the bank statement line is matched to the founder by the sender IBAN (and account name) held on the owner record, not by guessing from narrative text such as \"transfer\" or \"top up\", which any sender can use. Treatment: Dr 1000 Bank / Cr 3100 Capital contributions, with the statement line ID as evidence. If the founder later states a specific transfer was a loan, reclassify to 2400 Owner loan with his instruction recorded (date, words used) and consider whether terms (interest, repayment) need documenting for related-party purposes. Payments from any other IBAN are never assumed to be capital; an unrecognised inbound credit is held in a suspense line and investigated (customer payment outside Stripe, refund from a vendor, bank error). The known August 2026 AED 1,000 owner transfer is an example already classified as capital. Decision rule: IBAN match plus no loan instruction equals capital; IBAN mismatch equals investigate; never let an unexplained credit sit in revenue.",
+   "body_ar": "القاعدة القائمة لدى كوتس دن أن ما يحوّله المؤسس إلى الشركة مساهمة رأسمالية ما لم يصرّح صراحة بأنه قرض. يجب أن يكون التعرّف حتمياً: تُطابق سطر كشف البنك مع المؤسس برقم الآيبان المرسِل واسم الحساب المحفوظين في سجل المالك، لا بتخمين من نص الوصف الذي يستطيع أي مرسِل استخدامه. المعالجة: مدين البنك ودائن المساهمات الرأسمالية مع رقم السطر كدليل. إن صرّح المؤسس لاحقاً بأن تحويلاً بعينه قرض يُعاد تصنيفه إلى قرض المالك مع توثيق تعليماته، وتُدرس الحاجة لتوثيق الشروط لأغراض الأطراف ذات العلاقة. المدفوعات من أي آيبان آخر لا تُفترض رأسمالاً؛ والدائن غير المعروف يُحفظ في حساب معلّق ويُحقَّق فيه. تحويل أغسطس 2026 البالغ 1,000 درهم مثال مصنّف رأسمالاً. قاعدة القرار: تطابق الآيبان مع عدم وجود تعليمات قرض يساوي رأس مال؛ وعدم التطابق يساوي تحقيقاً.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:period-close-checklist",
+   "topic": "Month-end close checklist",
+   "kind": "checklist",
+   "body_en": "A senior close is a fixed sequence with evidence at each step. 1) Cut-off: all Stripe balance transactions to the last second of the month exported; bank statement for the month received (Mashreq statements arrive monthly via the expenses mailbox). 2) Cash: bank reconciliation to zero unexplained difference; Stripe balance reconciled (opening + charges - refunds - fees - disputes - payouts = closing). 3) Revenue: reveals and subscriptions posted; deferred revenue released; refunds and disputes posted. 4) Expenses: all receipts in the mailbox classified; holds resolved or listed; accruals posted; prepayment releases posted. 5) Balance sheet review: every balance sheet account has a supporting schedule tied to the GL - receivables ageing, prepayments, accruals, deferred revenue, owner accounts, suspense (should be zero or explained). 6) Analytical review: compare revenue and each expense line with prior month and budget; explain movements beyond a set threshold. 7) Tax: VAT threshold tests, CT provision estimate. 8) Close and lock the period. 9) Pack to the CEO: P&L, balance sheet, cash, key variances, open issues. Target: complete within the first 7 working days. A step without evidence is not done.",
+   "body_ar": "الإقفال المتقن تسلسل ثابت مع دليل لكل خطوة. 1) القطع: تصدير جميع معاملات رصيد سترايب حتى آخر ثانية من الشهر واستلام كشف بنك المشرق للشهر. 2) النقد: تسوية البنك حتى صفر فروق غير مفسرة، وتسوية رصيد سترايب (الافتتاحي + المقبوضات - المردودات - الرسوم - النزاعات - الدفعات = الختامي). 3) الإيراد: ترحيل عمليات الكشف والاشتراكات وتحويل الإيراد المؤجل وقيد المردودات والنزاعات. 4) المصروفات: تصنيف كل إيصالات البريد، ومعالجة المعلّقات أو حصرها، وقيد المستحقات وإطفاء المدفوعات المقدمة. 5) مراجعة الميزانية: لكل حساب جدول داعم يطابق الأستاذ العام، والحساب المعلّق صفر أو مفسَّر. 6) المراجعة التحليلية مقارنة بالشهر السابق والموازنة. 7) الضرائب: اختبارات الحد وتقدير مخصص ضريبة الشركات. 8) إقفال الفترة وقفلها. 9) حزمة للرئيس التنفيذي. الهدف: خلال أول 7 أيام عمل. الخطوة بلا دليل ليست منجزة.",
+   "sources": [
+    "https://docs.stripe.com/reports/balance-transaction-types",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:period-lock",
+   "topic": "Period lock: a closed month cannot change silently",
+   "kind": "standard",
+   "body_en": "After a month is closed and reported, postings dated in that month must be blocked. Without a lock, a late receipt or a correction can silently change figures already given to the CEO or used in a tax computation, and the audit trail loses meaning. Design: a periods table (period start, end, status open/closing/closed, closed_at, closed_by); a database-level check that rejects any insert or update to journal lines whose date falls in a closed period; a controlled reopen that requires a reason, records who reopened and when, and produces a notice to the CEO. The preferred correction for an error found after close is a dated adjusting entry in the current open period, with a reference to the original, rather than reopening - that keeps prior reports reproducible. Reopen only when the error is material to a statutory output (financial statements or a tax return) not yet filed. The enforcement must live in the database, not only in the application, because every writer - the accountant function, bookkeeper tools, scripts - must obey it. This closes audit gap T2 (no gl_period table exists). Decision rule: late items go to the current period with a back-reference; reopening is an exception with a recorded reason.",
+   "body_ar": "بعد إقفال الشهر وتقديم تقاريره يجب منع أي قيود مؤرخة فيه. دون قفل قد يغيّر إيصال متأخر أو تصحيح أرقاماً سبق تقديمها للرئيس التنفيذي أو استُخدمت في احتساب ضريبي، فيفقد سجل التدقيق معناه. التصميم: جدول فترات (البداية والنهاية والحالة مفتوحة أو قيد الإقفال أو مقفلة وتاريخ الإقفال ومن أقفل)؛ قيد على مستوى قاعدة البيانات يرفض أي إدراج أو تعديل لسطور قيود تقع في فترة مقفلة؛ إعادة فتح مضبوطة تتطلب سبباً وتسجّل الفاعل والتوقيت وتُخطر الرئيس التنفيذي. التصحيح المفضّل لخطأ يُكتشف بعد الإقفال هو قيد تسوية مؤرخ في الفترة المفتوحة الحالية مع إشارة للأصل. لا يُعاد الفتح إلا لخطأ جوهري يمس مخرجاً نظامياً لم يُقدَّم بعد. يجب أن يكون التطبيق في قاعدة البيانات لا في التطبيق وحده. يعالج هذا الفجوة T2.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:audit-trail-standard",
+   "topic": "Audit trail: what every posting must carry",
+   "kind": "standard",
+   "body_en": "An external auditor or the FTA must be able to pick any number in the financial statements and trace it back to a source document, and pick any source document and trace it forward to the ledger. Every journal entry therefore carries: a unique ID; posting date and document date; the source type and source ID (Stripe balance transaction ID, bank statement line ID, receipt ID in the archive, contract or reveal ID); the accounts and amounts balancing to zero; the currency and exchange rate used where not AED; the actor that created it (which seat or routine, or which human) and the reasoning note for any judgement (classification, prepayment period, accrual estimate); and, for corrections, a link to the entry being corrected. Entries are never deleted; errors are reversed and re-posted. Source documents (PDF receipts, statements, Stripe exports) are stored immutably with a content hash so later substitution is detectable. Retention: the Corporate Tax Law requires records to be kept for seven years following the end of the tax period (Article 56). The VAT retention period was not established from a source fetched in this research, so the policy keeps all financial records for at least seven years and checks current FTA guidance before any deletion is ever contemplated.",
+   "body_ar": "يجب أن يتمكن المدقق الخارجي أو الهيئة من اختيار أي رقم في القوائم المالية وتتبعه إلى مستند المصدر، واختيار أي مستند وتتبعه إلى الأستاذ العام. لذلك يحمل كل قيد: معرّفاً فريداً؛ تاريخ الترحيل وتاريخ المستند؛ نوع المصدر ومعرّفه (معاملة سترايب، سطر كشف البنك، الإيصال في الأرشيف، العقد أو عملية الكشف)؛ الحسابات والمبالغ المتوازنة؛ العملة وسعر الصرف لغير الدرهم؛ الجهة المنشئة ومذكرة الاستدلال لكل حكم؛ وللتصحيحات رابطاً بالقيد المصحَّح. لا تُحذف القيود، بل تُعكس وتُعاد. تُحفظ المستندات بشكل غير قابل للتعديل مع بصمة محتوى لكشف أي استبدال. الاحتفاظ: يلزم قانون ضريبة الشركات بحفظ السجلات سبع سنوات بعد نهاية الفترة الضريبية (المادة 56). أما مدة الاحتفاظ لضريبة القيمة المضافة فلم تثبت من مصدر مسترجع، فتحفظ السياسة جميع السجلات المالية سبع سنوات على الأقل وتراجع إرشادات الهيئة الحالية قبل أي حذف.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://docs.stripe.com/reports/balance-transaction-types",
+    "https://mof.gov.ae/wp-content/uploads/2026/01/Federal-Decree-Law-No.-47-of-2022-and-its-amendments-en-v13.1.26.pdf"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23",
+   "gap_kind": "technical"
+  },
+  {
+   "id": "accountant:materiality-and-judgement",
+   "topic": "Materiality and when to escalate a judgement",
+   "kind": "decision_rule",
+   "body_en": "Not every uncertainty deserves the CEO's time; not every shortcut is harmless. Materiality is whether an error or omission could change a decision made on the figures. For a company at QuotesDone's scale, small absolute amounts can be material relative to monthly revenue, so thresholds should be set in the policy memo as both an absolute floor and a percentage of monthly revenue or expenses, and revisited as the business grows. Rules of thumb for this seat: (1) classification between two expense accounts - decide and note; (2) anything affecting revenue recognition, tax (VAT registration date, CT computation, SBR election), the owner's accounts, or cash that cannot be explained - escalate regardless of size, because these are qualitatively material; (3) suspected fraud or sanctions matches - escalate immediately regardless of amount; (4) repeated small errors of the same kind - treat as a process defect, fix the cause, and report the pattern. When the reasoning model is unavailable or on hold, the seat holds the item and escalates rather than falling back to keyword guesses. Every escalation states the question, the options, the numbers, and the seat's recommendation, so the CEO can decide in one reading.",
+   "body_ar": "ليست كل حالة عدم يقين تستحق وقت الرئيس التنفيذي، وليس كل اختصار بلا ضرر. الأهمية النسبية هي ما إذا كان الخطأ أو الإغفال قد يغيّر قراراً يُتخذ بناءً على الأرقام. في حجم كوتس دن قد تكون المبالغ الصغيرة جوهرية نسبةً إلى الإيراد الشهري، فتُحدَّد العتبات في مذكرة السياسات كحد أدنى مطلق ونسبة مئوية، وتُراجَع مع النمو. قواعد المقعد: التصنيف بين حسابي مصروف يُقرَّر ويُوثَّق؛ ما يمس الاعتراف بالإيراد أو الضرائب أو حسابات المالك أو نقداً غير مفسر يُصعَّد مهما كان حجمه؛ الاشتباه في احتيال أو تطابق مع قوائم العقوبات يُصعَّد فوراً؛ تكرار أخطاء صغيرة من نوع واحد يُعالج كعيب في العملية. عند توقف نموذج الاستدلال يُعلَّق البند ويُصعَّد دون الرجوع إلى تخمين بالكلمات. كل تصعيد يذكر السؤال والخيارات والأرقام وتوصية المقعد.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:financial-statements-pack",
+   "topic": "Annual financial statements pack",
+   "kind": "checklist",
+   "body_en": "For each financial year the accountant produces a complete, reproducible pack: statement of financial position, statement of comprehensive income, statement of changes in equity, statement of cash flows, and notes (accounting policies and framework edition, revenue recognition policy and principal/agent judgement, related parties including the founder, taxation including CT computation and SBR election, significant judgements and estimates, events after the reporting date, going concern assessment). Supporting schedules: trial balance, every balance sheet reconciliation, revenue by stream, expense by account, fixed assets if any, deferred revenue, prepayments and accruals, owner capital and loan movements, and the tax bridge. Going concern deserves particular care in an early-stage company funded by its owner: the note should state the cash runway and the owner's support position factually. Whether a statutory audit is required for the company depends on the licensing authority and entity type; this was not established from sources fetched this session and must be confirmed for the DET mainland LLC before year-end rather than assumed. The pack is locked with the period and versioned; any later change creates a new version with a reason.",
+   "body_ar": "يُعدّ المحاسب لكل سنة مالية حزمة كاملة قابلة لإعادة الإنتاج: قائمة المركز المالي، وقائمة الدخل الشامل، وقائمة التغيرات في حقوق الملكية، وقائمة التدفقات النقدية، والإيضاحات (السياسات المحاسبية والإصدار المعتمد، وسياسة الاعتراف بالإيراد وحكم الأصيل والوكيل، والأطراف ذات العلاقة بمن فيهم المؤسس، والضرائب واحتساب ضريبة الشركات واختيار الإعفاء، والأحكام والتقديرات الجوهرية، والأحداث اللاحقة، وتقييم الاستمرارية). الجداول الداعمة: ميزان المراجعة، وتسويات بنود الميزانية، والإيراد حسب المصدر، والمصروف حسب الحساب، والإيراد المؤجل، والمدفوعات المقدمة والمستحقات، وحركة رأس مال المالك وقروضه، وجسر الضريبة. تحتاج الاستمرارية عناية في شركة ناشئة يموّلها مالكها. لم يُثبت من المصادر المسترجعة ما إذا كان التدقيق النظامي إلزامياً للشركة، فيجب التأكد قبل نهاية السنة. تُقفل الحزمة وتُرقَّم إصداراتها.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23",
+   "gap_kind": "technical"
+  },
+  {
+   "id": "accountant:foreign-currency-expenses",
+   "topic": "Foreign-currency expenses and card FX",
+   "kind": "method",
+   "body_en": "Much of QuotesDone's spend is in USD or EUR (cloud hosting, AI models, SaaS tools) and is paid by card or bank from an AED account. The functional currency is AED. Method: record each foreign-currency transaction in AED at the rate on the transaction date; when the bank or card statement shows the actual AED amount debited, use that amount as the booked cost, because it is the real outflow and already includes the bank's conversion. Card FX fees charged separately by the bank are bank charges (6500), not part of the vendor cost. Where a receipt arrives before the statement, book at a reference rate and adjust to the statement amount at reconciliation; the difference is an exchange difference or bank charge depending on its nature. Monetary balances in foreign currency at period end (for example a USD Stripe balance, if any) are retranslated at the closing rate with the difference to profit or loss. Keep the original currency amount and the rate on every expense record so the audit trail shows how AED was derived. Decision rule: the bank statement AED amount is truth for card spend; never leave the USD receipt value as the booked cost once the statement is in.",
+   "body_ar": "معظم إنفاق كوتس دن بالدولار أو اليورو (الاستضافة ونماذج الذكاء الاصطناعي والأدوات البرمجية) ويُدفع ببطاقة أو من حساب بالدرهم. العملة الوظيفية الدرهم. المنهج: تسجيل كل معاملة أجنبية بالدرهم بسعر تاريخ المعاملة؛ وعند ظهور المبلغ الفعلي المخصوم بالدرهم في كشف البنك أو البطاقة يُعتمد كتكلفة لأنه التدفق الحقيقي. رسوم تحويل العملة التي يفرضها البنك منفصلة تُعدّ رسوماً بنكية لا جزءاً من تكلفة المورد. إذا وصل الإيصال قبل الكشف يُقيَّد بسعر مرجعي ثم يُعدَّل عند التسوية، والفرق فرق صرف أو رسوم بنكية حسب طبيعته. الأرصدة النقدية الأجنبية في نهاية الفترة يُعاد تحويلها بسعر الإقفال ويُحمَّل الفرق على الأرباح والخسائر. يُحفظ المبلغ الأصلي والسعر في كل سجل. قاعدة القرار: مبلغ الدرهم في الكشف هو الحقيقة لإنفاق البطاقة.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://docs.stripe.com/reports/balance-transaction-types",
+    "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/smes/2026-modules/module-30.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ad-spend-accounting",
+   "topic": "Ad spend: reported versus paid, and the organic-only period",
+   "kind": "decision_rule",
+   "body_en": "Advertising platforms (Meta, Google, LinkedIn, TikTok) report spend in their dashboards, but the accounting cost is what was actually charged to the company's card or bank, net of credits. The two differ because of billing thresholds, timing, currency conversion, taxes and promotional credits. Method: record the platform-reported spend as an operational metric; book the cost from the invoice or card charge; at month end accrue delivered-but-unbilled spend from the platform's billing page; reconcile platform billing to card lines and investigate differences above a small tolerance. This closes audit gap T8 (spend recorded only as the platform reports it). The marketing seat currently runs organic activity only; paid campaigns are the founder's decision. So the accountant's duty now is: confirm each month that no ad charges appear on the card or bank; if any appear, identify the account and campaign and raise it to the CEO as an unexpected charge, since it may indicate an unauthorised or forgotten campaign, or fraud on the card. When paid activity starts, marketing hands the planned budget and campaign IDs to the accountant before spend, and the accountant reports actual against budget weekly.",
+   "body_ar": "تعرض منصات الإعلان الإنفاق في لوحاتها، لكن التكلفة المحاسبية هي ما حُمِّل فعلاً على بطاقة الشركة أو حسابها بعد الأرصدة الدائنة، ويختلفان بسبب حدود الفوترة والتوقيت والعملة والضرائب والأرصدة الترويجية. المنهج: تسجيل الإنفاق المعلن كمؤشر تشغيلي، وقيد التكلفة من الفاتورة أو خصم البطاقة، واستحقاق ما قُدِّم ولم يُفوتر في نهاية الشهر، ومطابقة فواتير المنصة مع سطور البطاقة. يعالج هذا الفجوة T8. يعمل مقعد التسويق حالياً بالنشاط العضوي فقط، والحملات المدفوعة قرار المؤسس. واجب المحاسب الآن التأكد شهرياً من عدم ظهور أي رسوم إعلانية، وإن ظهرت يحدد الحساب والحملة ويرفعها للرئيس التنفيذي كرسوم غير متوقعة قد تدل على حملة غير مصرّح بها أو احتيال على البطاقة. عند بدء الإنفاق المدفوع يسلّم التسويق الموازنة ومعرّفات الحملات مسبقاً.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:stripe-balance-transactions",
+   "topic": "Stripe balance transactions: the accounting source of truth",
+   "kind": "concept",
+   "body_en": "Stripe creates a balance transaction for every movement into or out of the Stripe balance, and recommends balance transactions as the starting point for reporting. Each carries an amount, fee, net, currency, status (pending or available), a type, a reporting_category, and a source ID pointing to the object that caused it. For accounting, classify by reporting_category rather than type. Types QuotesDone will meet: charge and payment (customer payments), refund and refund_failure, adjustment (used for dispute withdrawals and dispute reversals, among other things - the description and source tell which), payout, payout_failure and payout_cancel, stripe_fee (fees for Stripe products such as Radar or Billing), stripe_fx_fee, tax_fee (tax on Stripe fees), and reserve-related types (reserve_hold, reserve_release, reserved_funds). A payment arrives first as pending, net of fees, and becomes available per the settlement schedule. Method: import all balance transactions for the period, map each reporting_category to GL accounts (gross charge to revenue or deferred revenue, fee to 5000, refund to 4900, dispute amounts to receivable-in-dispute or loss, payout to cash in transit), and require the closing Stripe balance in the GL to equal Stripe's reported balance. Any unmapped category stops the close until mapped.",
+   "body_ar": "تنشئ سترايب معاملة رصيد لكل حركة داخلة أو خارجة من الرصيد، وتوصي بها كنقطة بداية للتقارير. تحمل كل معاملة المبلغ والرسوم والصافي والعملة والحالة (معلقة أو متاحة) والنوع وفئة التقرير ومعرّف المصدر. للأغراض المحاسبية يُصنَّف حسب فئة التقرير لا النوع. الأنواع التي ستواجهها كوتس دن: charge وpayment لمدفوعات العملاء، وrefund وrefund_failure، وadjustment المستخدم لسحب مبالغ النزاعات وإعادتها وغير ذلك، وpayout وفشله وإلغاؤه، وstripe_fee لرسوم منتجات سترايب، وstripe_fx_fee، وtax_fee، وأنواع الاحتياطي. تصل الدفعة أولاً معلقة صافية من الرسوم ثم تصبح متاحة وفق جدول التسوية. المنهج: استيراد جميع معاملات الفترة، وربط كل فئة بحسابات الأستاذ العام، واشتراط تطابق رصيد سترايب الختامي في الدفاتر مع الرصيد المعلن. أي فئة غير مربوطة توقف الإقفال حتى تُربط.",
+   "sources": [
+    "https://docs.stripe.com/reports/balance-transaction-types"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:stripe-fees-accounting",
+   "topic": "Stripe processing fees: gross revenue, separate cost",
+   "kind": "method",
+   "body_en": "Stripe deducts its processing fee from each payment, so the net amount reaching the balance is less than the customer paid. Revenue must be recognised gross - the full amount the customer was charged - and the fee recorded as a separate cost (5000 Payment processing fees). Recording only the net understates revenue and hides the cost of payments, which distorts take-rate and unit-economics analysis. Journal for a card payment of 100 with a fee of 3.2 for a reveal already delivered: Dr 1010 Stripe balance 96.8; Dr 5000 Processing fees 3.2; Cr 4000 Reveal fees 100. When a payment is refunded, Stripe's processing fees from the original transaction are not returned, so a refund reverses revenue but not the fee; the fee remains a cost of the failed sale. Separate Stripe product fees (stripe_fee type, for example Radar or Billing) and tax on Stripe fees (tax_fee) go to the same cost family but should be distinguishable in sub-accounts or analysis codes. Monthly check: total fees in the GL equal the sum of fee fields on the period's balance transactions plus stripe_fee and tax_fee transactions. The effective fee rate (fees / gross charges) is reported to the CEO monthly as part of unit economics.",
+   "body_ar": "تخصم سترايب رسوم المعالجة من كل دفعة فيصل الصافي أقل مما دفعه العميل. يجب الاعتراف بالإيراد بالإجمالي - كامل المبلغ المحمَّل على العميل - وتسجيل الرسوم كتكلفة مستقلة. تسجيل الصافي فقط يقلل الإيراد ويخفي تكلفة المدفوعات ويشوّه تحليل نسبة الاقتطاع واقتصاديات الوحدة. قيد دفعة 100 برسوم 3.2 لكشف منجز: مدين رصيد سترايب 96.8، مدين رسوم المعالجة 3.2، دائن رسوم الكشف 100. عند الاسترداد لا تُعاد رسوم المعالجة الأصلية، فيُعكس الإيراد دون الرسوم وتبقى تكلفة على البيع الفاشل. رسوم منتجات سترايب المنفصلة والضريبة على رسومها تُسجَّل في عائلة التكلفة نفسها مع تمييزها بحسابات فرعية. الفحص الشهري: إجمالي الرسوم في الدفاتر يساوي مجموع حقول الرسوم في معاملات الفترة مضافاً إليها معاملات stripe_fee وtax_fee. تُبلَّغ نسبة الرسوم الفعلية للرئيس التنفيذي شهرياً.",
+   "sources": [
+    "https://docs.stripe.com/reports/balance-transaction-types",
+    "https://docs.stripe.com/refunds"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:stripe-refunds-accounting",
+   "topic": "Refunds: mechanics and accounting",
+   "kind": "method",
+   "body_en": "A refund can be full or partial, can be issued more than once against a charge, but can never exceed the original amount, and can only go back to the original payment method. Refunds draw on the available Stripe balance; if it is insufficient, card refunds stay pending until funds arrive (other methods fail), and in some regions Stripe may debit the linked bank. Refunds issued soon after the charge may process as a reversal, where the original charge drops off the customer statement. Customers usually see the credit in about 5-10 business days; an Acquirer Reference Number can take up to 7 business days to become available and helps customers trace the refund with their bank. A refund can fail (closed account, lost card, or the customer disputed while the refund was pending); the money returns to the balance, which can take up to 30 days, and the refund.failed event fires - the company must then arrange another way to repay. Accounting: Dr 4900 Refunds (or reduce deferred revenue if the service was not yet recognised) / Cr 1010 Stripe balance; the original fee stays as cost. Before retrying any refund, ask Stripe what already exists for that charge, to prevent double refunds. All refunds are CEO-approved under the company's standing rules.",
+   "body_ar": "يمكن أن يكون الاسترداد كاملاً أو جزئياً ومتكرراً على الدفعة نفسها، لكنه لا يتجاوز المبلغ الأصلي ولا يذهب إلا إلى وسيلة الدفع الأصلية. يُسحب من الرصيد المتاح، وإن لم يكفِ يبقى استرداد البطاقة معلقاً حتى توفر المال. الاسترداد بعد الدفع بوقت قصير قد يتم كعكس للمعاملة. يرى العميل المبلغ عادة خلال 5 إلى 10 أيام عمل، وقد يستغرق الرقم المرجعي للمستحوذ حتى 7 أيام عمل ويساعد العميل على التتبع مع بنكه. قد يفشل الاسترداد بسبب حساب مغلق أو بطاقة مفقودة أو نزاع أثناء التعليق، فيعود المال إلى الرصيد خلال مدة قد تصل إلى 30 يوماً وتُطلق حادثة refund.failed، وعلى الشركة ترتيب وسيلة أخرى للرد. المحاسبة: مدين المردودات أو تخفيض الإيراد المؤجل، ودائن رصيد سترايب، وتبقى الرسوم الأصلية تكلفة. قبل إعادة أي محاولة يُسأل سترايب عما هو موجود فعلاً لمنع الازدواج. جميع الاستردادات بموافقة الرئيس التنفيذي.",
+   "sources": [
+    "https://docs.stripe.com/refunds"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:stripe-disputes-lifecycle",
+   "topic": "Card disputes (chargebacks): lifecycle, money and deadlines",
+   "kind": "playbook",
+   "body_en": "When a cardholder disputes a payment, Stripe notifies the business, debits the disputed amount plus a dispute fee from the balance, and holds those funds for the whole dispute. While the dispute is open the business cannot refund outside the dispute process. Cardholders can typically dispute within 120 days of payment (longer for future-dated services). The business usually has 7-21 days, depending on network, to respond with evidence; the issuer then takes around 60-75 days to decide, so the full cycle is often 2-3 months. Outcomes: won - the disputed amount is returned; lost - no further money moves, the funds are gone. For businesses outside Mexico the dispute-received fee is not refunded even if won; if the business counters, a separate dispute-countered fee applies and is returned only on a win. Some networks use a pre-dispute inquiry stage (mainly American Express and Discover); failing to answer an inquiry can escalate to an unwinnable chargeback. Early fraud warnings are signals, not disputes; Stripe's analysis suggests proactive refunds make sense mainly for charges up to around the dispute fee. Accounting: on dispute, move the amount to a disputed receivable and expense the fee; on loss, write off to 5100; on win, restore. The company's rule: draft the response first, CEO review, then submit.",
+   "body_ar": "عند اعتراض حامل البطاقة على دفعة تُخطر سترايب المنشأة وتخصم المبلغ المعترض عليه مع رسم نزاع وتحجزه طوال النزاع، ولا يجوز الاسترداد خارج مسار النزاع أثناءه. يحق لحامل البطاقة الاعتراض عادة خلال 120 يوماً. أمام المنشأة عادة من 7 إلى 21 يوماً للرد بالأدلة، ثم يستغرق البنك المصدر نحو 60 إلى 75 يوماً للبت، فتمتد الدورة غالباً شهرين إلى ثلاثة. عند الكسب يُعاد المبلغ، وعند الخسارة لا تتحرك أموال أخرى. خارج المكسيك لا يُسترد رسم استلام النزاع حتى عند الكسب، وعند الطعن يُفرض رسم طعن مستقل يُعاد عند الكسب فقط. تمر بعض الشبكات بمرحلة استفسار مسبق، وإهمالها قد يحوّلها إلى نزاع غير قابل للكسب. تحذيرات الاحتيال المبكرة إشارات لا نزاعات. المحاسبة: نقل المبلغ إلى ذمة متنازع عليها وتحميل الرسم، وشطبه عند الخسارة، واستعادته عند الكسب. قاعدة الشركة: مسودة رد أولاً ثم مراجعة الرئيس التنفيذي ثم التقديم.",
+   "sources": [
+    "https://docs.stripe.com/disputes/how-disputes-work",
+    "https://docs.stripe.com/reports/balance-transaction-types"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:stripe-payout-reconciliation",
+   "topic": "Stripe payout to bank reconciliation",
+   "kind": "method",
+   "body_en": "Stripe pays out the available balance to the company's bank account on a schedule (manual, daily, weekly or monthly). The first payout typically comes 7-14 days after the first live payment; later payouts follow the schedule plus settlement timing. Payouts can fail or be cancelled, in which case funds return to the Stripe balance (payout_failure, payout_cancel). Reconciliation method: treat each payout as a transfer from 1010 Stripe balance to 1020 Cash in transit when Stripe creates it, then from 1020 to 1000 Bank when the Mashreq statement shows the credit. Match by amount, currency and date window, using the payout reference where the bank narrative carries it. Each payout must also tie back to the set of balance transactions it settled, so revenue, fees and refunds inside it are all accounted for. Exceptions to list at close: payouts in transit longer than the normal window, bank credits labelled Stripe with no matching payout, amount mismatches (possible bank charges on receipt, which go to 6500), and failed payouts not yet returned. Measured state in audit: 0 of 1 payouts matched - the first payout match should be proven before relying on the routine. Decision rule: 1020 Cash in transit should be zero or consist only of payouts sent in the last few days.",
+   "body_ar": "تحوّل سترايب الرصيد المتاح إلى حساب الشركة البنكي وفق جدول يدوي أو يومي أو أسبوعي أو شهري. تصل الدفعة الأولى عادة بعد 7 إلى 14 يوماً من أول دفعة حية، ثم تتبع الجدول وتوقيت التسوية. قد تفشل الدفعة أو تُلغى فيعود المال إلى الرصيد. منهج التسوية: تُقيَّد كل دفعة من رصيد سترايب إلى النقد في الطريق عند إنشائها، ثم منه إلى البنك عند ظهور القيد في كشف المشرق، مع المطابقة بالمبلغ والعملة ونطاق التاريخ ومرجع الدفعة. ويجب ربط كل دفعة بمجموعة المعاملات التي سوّتها. الاستثناءات عند الإقفال: دفعات في الطريق أطول من المعتاد، وقيود بنكية باسم سترايب بلا دفعة مقابلة، وفروق المبالغ كرسوم بنكية، ودفعات فاشلة لم تعد. الحالة المقاسة في التدقيق: صفر من دفعة واحدة مطابقة، فيجب إثبات أول مطابقة. قاعدة القرار: رصيد النقد في الطريق صفر أو دفعات الأيام الأخيرة فقط.",
+   "sources": [
+    "https://docs.stripe.com/payouts",
+    "https://docs.stripe.com/reports/balance-transaction-types"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:bank-reconciliation-full",
+   "topic": "Full bank reconciliation: every line, both directions",
+   "kind": "method",
+   "body_en": "A bank reconciliation proves that the ledger's cash equals the bank's cash and that every movement is explained. It is two-directional: every bank statement line must match a ledger entry, and every ledger cash entry must match a bank line (or be a genuine timing item). Steps: (1) confirm the statement is complete - opening balance plus lines equals closing balance, and the opening equals last month's closing; (2) auto-match on amount, date window and reference (Stripe payouts, known vendor debits, card settlements); (3) reason about the rest: card and bank debits against expense receipts (vendor names on statements are often truncated or differ from the receipt), bank charges and VAT on charges (Mashreq's monthly fee is AED 199 plus AED 9.95 VAT), interest, owner transfers by IBAN; (4) create entries for items with no ledger counterpart, such as bank fees; (5) list what remains - unpresented items and unexplained lines - with an owner and age. The result: adjusted bank balance equals adjusted ledger balance with zero unexplained difference. The audit found reconciliation covers Stripe payouts only (gap T3); expense debits are never matched to expense records, so a missing receipt or an unauthorised debit would go unnoticed. Decision rule: an unexplained line older than one month is escalated to the CEO.",
+   "body_ar": "تثبت التسوية البنكية أن نقد الدفاتر يساوي نقد البنك وأن كل حركة مفسَّرة، وهي في الاتجاهين: كل سطر في الكشف يطابق قيداً، وكل قيد نقدي يطابق سطراً أو يكون فرق توقيت حقيقياً. الخطوات: التأكد من اكتمال الكشف (الافتتاحي مع السطور يساوي الختامي، والافتتاحي يساوي ختامي الشهر الماضي)؛ المطابقة الآلية بالمبلغ والتاريخ والمرجع؛ الاستدلال على الباقي: خصومات البطاقة والبنك مقابل الإيصالات، والرسوم البنكية وضريبتها (رسم المشرق الشهري 199 درهماً مع 9.95 ضريبة)، والفوائد، وتحويلات المالك بالآيبان؛ قيد البنود التي لا مقابل لها؛ حصر الباقي مع مسؤول وعمر. النتيجة: فرق غير مفسر يساوي صفراً. وجد التدقيق أن التسوية تغطي دفعات سترايب فقط (الفجوة T3)، فلا يُكتشف إيصال مفقود أو خصم غير مصرّح به. قاعدة القرار: أي سطر غير مفسر يتجاوز شهراً يُصعَّد للرئيس التنفيذي.",
+   "sources": [
+    "https://docs.stripe.com/payouts",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:bank-statement-integrity",
+   "topic": "Bank statement intake: integrity checks",
+   "kind": "checklist",
+   "body_en": "Statements arrive monthly from Mashreq by email to the expenses mailbox. Before any line is used: (1) source - confirm the email came from the forwarding path the company uses and the attachment is the bank's document, not a re-typed spreadsheet; (2) continuity - the opening balance equals the prior statement's closing, with no gap in dates; (3) arithmetic - opening plus credits minus debits equals closing, line by line if running balances are printed; (4) account identity - account number or IBAN and currency match the company's account on file; (5) duplicates - the same statement or period has not already been ingested (hash the file and check period overlap); (6) completeness - the number of lines parsed equals the number on the document; if the parser drops lines, the check fails loudly rather than reconciling a partial set. Keep the original PDF immutably with its hash, link every derived line to it, and record who or what parsed it. Because the inbound mail provider keeps messages only for about a month, statements must be archived on arrival rather than re-fetched later. Decision rule: any failed check holds the whole statement; nothing from a failed statement is posted.",
+   "body_ar": "تصل كشوف المشرق شهرياً بالبريد إلى صندوق المصروفات. قبل استخدام أي سطر: المصدر - التأكد من أن البريد جاء عبر مسار التحويل المعتمد وأن المرفق مستند البنك لا جدول مُعاد طباعته؛ الاستمرارية - الرصيد الافتتاحي يساوي ختامي الكشف السابق دون فجوة تواريخ؛ الحساب - الافتتاحي مع الدائن ناقص المدين يساوي الختامي؛ هوية الحساب - رقم الحساب أو الآيبان والعملة تطابق السجل؛ التكرار - لم يُستورد الكشف أو الفترة سابقاً (بصمة الملف وتداخل الفترات)؛ الاكتمال - عدد السطور المقروءة يساوي عددها في المستند، وإن أسقط المحلل سطوراً يفشل الفحص صراحة. يُحفظ الملف الأصلي مع بصمته ويُربط كل سطر به. ولأن مزوّد البريد الوارد يحتفظ بالرسائل نحو شهر فقط، تُؤرشف الكشوف فور وصولها. قاعدة القرار: أي فحص فاشل يعلّق الكشف كله.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:receivables-and-collections",
+   "topic": "Fee receivables, ageing and collections",
+   "kind": "method",
+   "body_en": "Fees not collected at the moment they are earned - invoiced subscriptions, the non-response charge, any fee billed after the event - are trade receivables (1100). A senior accountant keeps an ageing report (current, 1-30, 31-60, 61-90, over 90 days) reconciled to the GL, and a documented collection path: reminder at due date, second reminder with the amount and invoice at 7 days, handoff to the sales engineer for a relationship call at 14-21 days (sales owns the customer relationship; the accountant owns the number), and escalation to the CEO for formal steps beyond that. Every step is logged against the receivable. Impairment: under IFRS for SMEs, at each reporting date assess whether there is objective evidence a receivable will not be collected and recognise an impairment loss; a practical policy provides for items over 90 days unless there is specific evidence of payment. Write-off requires CEO approval and does not stop collection efforts. The audit noted collections run as ticks with no round trip to a seat; the fix is a closed-loop handoff to sales with a required outcome recorded. Decision rule: no receivable over 60 days without a named next action and date.",
+   "body_ar": "الرسوم غير المحصَّلة لحظة اكتسابها - الاشتراكات المفوترة ورسم عدم الاستجابة وأي رسم يُفوتر لاحقاً - ذمم تجارية مدينة. يحتفظ المحاسب بتقرير أعمار (جارية، 1-30، 31-60، 61-90، أكثر من 90 يوماً) مطابق للأستاذ العام، ومسار تحصيل موثق: تذكير عند الاستحقاق، وتذكير ثانٍ بعد 7 أيام مع المبلغ والفاتورة، وتسليم لمهندس المبيعات لاتصال علاقات بعد 14 إلى 21 يوماً (المبيعات تملك العلاقة والمحاسب يملك الرقم)، ثم تصعيد للرئيس التنفيذي للخطوات الرسمية. يُسجَّل كل إجراء. الانخفاض في القيمة: في كل تاريخ تقرير يُقيَّم وجود دليل موضوعي على عدم التحصيل، والسياسة العملية تكوين مخصص لما يتجاوز 90 يوماً ما لم يوجد دليل محدد على السداد. الشطب بموافقة الرئيس التنفيذي ولا يوقف التحصيل. قاعدة القرار: لا ذمة تتجاوز 60 يوماً دون إجراء تالٍ مسمّى ومؤرخ.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/",
+    "https://www.ifrs.org/content/dam/ifrs/supporting-implementation/smes/2025-modules/module-11.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:cash-position-and-runway",
+   "topic": "Cash position, burn and runway reporting",
+   "kind": "method",
+   "body_en": "The CEO needs one reliable cash number and how long it lasts. Cash position = bank balance (from the latest reconciled statement plus known movements since) + Stripe available balance + Stripe pending balance shown separately (not yet spendable) - committed outflows due within 30 days (subscriptions, accrued usage, approved refunds, tax due). Burn: use the average of the last three closed months' net operating cash outflow, not a single month and not a 30-day total treated as a run rate, and show fixed costs (subscriptions, licences) separately from variable costs (usage, messaging, payment fees) because they respond differently to growth. Runway = spendable cash / monthly net burn, with the assumption stated; present a base case and a case with the next known large payment (licence renewal, annual plans). Revenue is not cash: deferred revenue has been collected, receivables have not. Owner capital injections are shown as financing, not operating inflow, so the operating picture is honest. Report weekly to the CEO with the date of each input so staleness is visible. Decision rule: if runway falls below a threshold the CEO sets (for example six months), the accountant raises it as a decision item with the cost lines that could be cut.",
+   "body_ar": "يحتاج الرئيس التنفيذي رقماً نقدياً موثوقاً ومدة كفايته. المركز النقدي = رصيد البنك من آخر كشف مسوّى مع الحركات المعروفة بعده + الرصيد المتاح في سترايب + الرصيد المعلق معروضاً منفصلاً - الالتزامات المستحقة خلال 30 يوماً (الاشتراكات، الاستخدام المستحق، الاستردادات المعتمدة، الضريبة المستحقة). الحرق: متوسط صافي التدفق التشغيلي الخارج لآخر ثلاثة أشهر مقفلة، لا شهر واحد ولا إجمالي ثلاثين يوماً كمعدل، مع فصل التكاليف الثابتة عن المتغيرة. المدى = النقد القابل للإنفاق مقسوماً على صافي الحرق الشهري مع ذكر الافتراض، بسيناريو أساسي وآخر يشمل الدفعة الكبيرة التالية. الإيراد ليس نقداً، وضخ رأس مال المالك يُعرض كتمويل لا كتدفق تشغيلي. يُرفع التقرير أسبوعياً مع تاريخ كل مدخل. قاعدة القرار: إذا نزل المدى تحت حد يحدده الرئيس التنفيذي يُرفع بند قرار مع بنود التكلفة القابلة للخفض.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:unit-economics-inputs",
+   "topic": "Accounting inputs to marketplace unit economics",
+   "kind": "concept",
+   "body_en": "The accountant does not set strategy, but supplies the numbers the CEO's unit economics depend on, and must define them precisely. Take rate = QuotesDone fee revenue / GMV for the same period and the same transactions (GMV from the platform, not the ledger). Revenue per reveal = reveal fee revenue / number of reveals. Payment cost ratio = Stripe fees (processing + product fees + tax on fees) / gross charges. Refund rate = refunds / gross revenue; dispute rate = number of disputes / number of charges, and dispute loss = amounts lost plus fees. Variable cost per RFQ = usage-based costs (AI model usage, messaging, email) allocated by activity count. Contribution margin = revenue - payment costs - variable costs. Fixed cost base = subscriptions, licences, hosting minimums. Each metric is published with its formula, period, and source queries, because the same word (\"revenue\", \"cost\") can mean different things and silently change a conclusion. Watch for one number with several causes: a rise in cost per RFQ may be price changes, volume mix, or a misclassified expense; break it down before explaining it. Decision rule: never report a ratio without its numerator and denominator shown.",
+   "body_ar": "لا يضع المحاسب الاستراتيجية، لكنه يقدم الأرقام التي تعتمد عليها اقتصاديات الوحدة ويعرّفها بدقة. نسبة الاقتطاع = إيرادات رسوم كوتس دن / القيمة الإجمالية للصفقات للفترة والمعاملات نفسها. الإيراد لكل كشف = إيراد رسوم الكشف / عدد عمليات الكشف. نسبة تكلفة الدفع = رسوم سترايب / إجمالي المقبوضات. معدل المردودات = المردودات / إجمالي الإيراد؛ ومعدل النزاعات = عدد النزاعات / عدد العمليات، وخسارة النزاعات = المبالغ المفقودة مع الرسوم. التكلفة المتغيرة لكل طلب = تكاليف الاستخدام موزعة حسب عدد الأنشطة. هامش المساهمة = الإيراد - تكاليف الدفع - التكاليف المتغيرة. يُنشر كل مؤشر مع صيغته وفترته واستعلامات مصدره. احذر الرقم الواحد متعدد الأسباب: ارتفاع التكلفة لكل طلب قد يكون تغير أسعار أو مزيج حجم أو مصروفاً مصنفاً خطأ. قاعدة القرار: لا نسبة دون إظهار البسط والمقام.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/",
+    "https://docs.stripe.com/reports/balance-transaction-types"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:weekly-report-to-ceo",
+   "topic": "Weekly finance report to the CEO: contents",
+   "kind": "checklist",
+   "body_en": "The weekly report is short, factual and decision-oriented. Contents: (1) cash - bank, Stripe available and pending, as-of dates, change on last week; (2) revenue this week and month-to-date by stream (reveals, subscriptions, non-response charges), with refunds and disputes shown; (3) costs - month-to-date by account family against the prior month, highlighting any new vendor or a charge more than 20% above its usual level; (4) exceptions - unreconciled bank lines, held receipts, failed payouts or refunds, disputes with deadlines in the next 7 days; (5) compliance - next three calendar deadlines with status (VAT threshold test result, CT milestones, e-invoicing preparation, licence renewal); (6) risk - fraud and fee-circumvention signals opened or closed this week, sanctions or UBO re-screen results (counts, and any partial or confirmed match as a separate headline); (7) decisions needed, each with options and a recommendation. Every figure states its source and date. Nothing is rounded to hide a variance. If a number could not be measured this week, say so and why - never carry last week's figure forward silently. The CEO acknowledges; unanswered decision items are re-raised next week, not dropped.",
+   "body_ar": "التقرير الأسبوعي قصير وواقعي وموجّه للقرار. محتواه: النقد (البنك ورصيد سترايب المتاح والمعلق مع تواريخها والتغير عن الأسبوع الماضي)؛ الإيراد هذا الأسبوع ومنذ بداية الشهر حسب المصدر مع المردودات والنزاعات؛ التكاليف منذ بداية الشهر حسب عائلة الحسابات مقارنة بالشهر السابق، مع إبراز أي مورد جديد أو رسم يزيد 20% عن المعتاد؛ الاستثناءات (سطور بنكية غير مسوّاة، إيصالات معلقة، دفعات أو استردادات فاشلة، نزاعات تستحق خلال 7 أيام)؛ الامتثال (المواعيد الثلاثة القادمة وحالتها)؛ المخاطر (إشارات الاحتيال والتحايل على الرسوم، ونتائج إعادة فحص العقوبات والمستفيد الحقيقي، وأي تطابق جزئي أو مؤكد كعنوان مستقل)؛ القرارات المطلوبة مع الخيارات والتوصية. كل رقم يذكر مصدره وتاريخه، ولا تقريب يخفي فرقاً. ما لم يُقس يُذكر مع السبب دون ترحيل رقم الأسبوع الماضي. البنود غير المجابة تُعاد في الأسبوع التالي.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:non-response-charge-accounting",
+   "topic": "The non-response 3% charge: recognition and evidence",
+   "kind": "method",
+   "body_en": "QuotesDone's rules include a charge of 3% where a party fails to respond as its terms require. From the accountant's side this is contractual revenue with a high dispute risk, so evidence matters more than speed. Before recognition: confirm the contractual clause the party accepted (version and acceptance timestamp), the trigger event and its timestamps from the platform, the notices sent (through the outbox, with delivery evidence, not merely a status column), and the calculation base and amount. Recognise revenue when the trigger has occurred and collection is probable; if collection is doubtful from the outset, recognise when collected or record with a full impairment, and document which. Record it in its own revenue account (4200) so its size and collection rate are visible separately from ordinary fees. Collection follows the receivables path, and court steps are a CEO decision. Because the charge is likely to be challenged, keep a per-case evidence bundle that could be handed to a court or to the card network if the payer disputes a charge. Decision rule: no invoice for the non-response charge is issued without the evidence bundle complete; incomplete cases are held, not guessed.",
+   "body_ar": "تتضمن قواعد كوتس دن رسماً بنسبة 3% عند تخلف طرف عن الاستجابة كما تقتضي شروطه. من جهة المحاسب هو إيراد تعاقدي عالي مخاطر النزاع، فالأدلة أهم من السرعة. قبل الاعتراف: تأكيد البند التعاقدي الذي قبله الطرف (الإصدار وتوقيت القبول)، والحدث المسبّب وتوقيتاته من المنصة، والإشعارات المرسلة عبر صندوق الإرسال مع دليل التسليم لا مجرد عمود حالة، وأساس الاحتساب والمبلغ. يُعترف بالإيراد عند وقوع المسبب وترجيح التحصيل، وإن كان التحصيل مشكوكاً فيه من البداية يُعترف عند التحصيل أو يُقيَّد مع مخصص كامل مع توثيق الخيار. يُسجَّل في حساب إيراد مستقل لرؤية حجمه ومعدل تحصيله. التحصيل يتبع مسار الذمم، والخطوات القضائية قرار الرئيس التنفيذي. تُحفظ حزمة أدلة لكل حالة. قاعدة القرار: لا فاتورة دون اكتمال حزمة الأدلة.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/",
+    "https://docs.stripe.com/disputes/how-disputes-work"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:fraud-concepts-triangle",
+   "topic": "Fraud: definition, the fraud triangle and categories",
+   "kind": "concept",
+   "body_en": "Fraud is any activity that relies on deception to achieve a gain; legally, a knowing misrepresentation or concealment of a material fact to induce another to act to their detriment. Cressey's fraud triangle explains when people commit it: pressure (an unshareable financial need), opportunity (a perceived chance to act and not be caught), and rationalisation (a justification that makes it acceptable to the person). The ACFE groups fraud affecting organisations into internal (employees defrauding the employer: asset misappropriation, corruption, financial statement fraud, per the ACFE Fraud Tree) and external (vendors, customers and other outsiders defrauding the organisation). For an autonomous marketplace with no human staff, the internal risk shifts to automated actors and credentials: a compromised key, a misconfigured routine that refunds or pays out wrongly, or a seat acting outside its authority. The external risk is concentrated in customers and suppliers: fake or duplicate accounts, stolen cards, abuse of refunds and free credits, and parties trading off-platform to avoid fees. Controls work on the triangle's opportunity side: segregation (one seat proposes, another approves), limits, reconciliation, and monitoring that makes deception visible quickly.",
+   "body_ar": "الاحتيال أي نشاط يعتمد على الخداع لتحقيق مكسب، وقانونياً هو تحريف متعمد للحقيقة أو إخفاء لواقعة جوهرية لدفع الغير إلى تصرف يضره. يفسّر مثلث كريسي متى يقع: الضغط (حاجة مالية لا يمكن البوح بها)، والفرصة (إمكانية الفعل دون انكشاف)، والتبرير. تصنّف جمعية فاحصي الاحتيال المعتمدين الاحتيال على المنظمات إلى داخلي (موظفون ضد صاحب العمل: اختلاس الأصول والفساد وتزوير القوائم المالية) وخارجي (موردون وعملاء وغيرهم). في سوق مستقل بلا موظفين بشريين ينتقل الخطر الداخلي إلى الجهات الآلية وبيانات الاعتماد: مفتاح مخترق، أو روتين خاطئ الإعداد يسترد أو يدفع خطأً، أو مقعد يتجاوز صلاحيته. ويتركز الخطر الخارجي في العملاء والموردين: حسابات وهمية أو مكررة، وبطاقات مسروقة، وإساءة استخدام الاستردادات والأرصدة المجانية، والتعامل خارج المنصة لتجنب الرسوم. تعمل الضوابط على ضلع الفرصة: الفصل بين المقترح والمعتمِد، والحدود، والتسويات، والرقابة التي تكشف الخداع بسرعة.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud",
+    "https://www.acfe.com/acfe-insights-blog/blog-detail?s=fraud-tree-explained"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:fee-circumvention-detection",
+   "topic": "Fee circumvention (disintermediation): detection method",
+   "kind": "playbook",
+   "body_en": "Fee circumvention happens when a buyer and supplier meet through QuotesDone and then complete the deal, or future deals, directly to avoid the platform's fees. It is the central revenue-leakage risk of any introduction marketplace. Signals, strongest first: (1) contact details exchanged before reveal inside messages, attachments or quotation PDFs (phone numbers, emails, WhatsApp links, spelled-out numbers, text in images) - detect by reasoning over the content, not by a digit regex alone, because people obfuscate; (2) a pattern where a buyer repeatedly engages the same supplier's quotes and then stops revealing, or cancels after reveal of a competitor but not of that supplier; (3) a supplier whose quote-to-reveal conversion is normal but whose post-reveal activity with a buyer disappears while the buyer's RFQs in that trade stop too; (4) RFQs that are withdrawn shortly after a supplier sends a clarification message; (5) near-identical RFQs posted repeatedly then closed without reveal. Each signal alone is weak; score them together per buyer-supplier pair over a 90-day window. Outcomes: for a scored case, the accountant opens a case with the evidence and hands it to the CEO; enforcement (warning, fee, suspension) is a CEO decision under the accepted terms. Never accuse a party on one signal; never let a case sit without an outcome recorded.",
+   "body_ar": "يقع التحايل على الرسوم عندما يلتقي مشترٍ ومورد عبر كوتس دن ثم يُتمّان الصفقة أو صفقات لاحقة مباشرة لتجنب رسوم المنصة، وهو الخطر الأساسي لتسرب الإيراد في أي سوق للتعارف. الإشارات، الأقوى أولاً: تبادل بيانات الاتصال قبل الكشف داخل الرسائل أو المرفقات أو ملفات العروض (أرقام هواتف، بريد، روابط واتساب، أرقام مكتوبة بالحروف، نص داخل صور) ويُكتشف بالاستدلال على المحتوى لا بتعبير نمطي للأرقام وحده؛ نمط مشترٍ يتفاعل مراراً مع عروض المورد نفسه ثم يتوقف عن الكشف؛ مورد تختفي أنشطته مع مشترٍ بعد الكشف بينما تتوقف طلبات المشتري في تلك الحرفة؛ سحب طلبات بعد رسالة استيضاح من مورد بقليل؛ طلبات متطابقة تقريباً تُنشر مراراً وتُغلق دون كشف. كل إشارة منفردة ضعيفة، فتُجمع في درجة لكل زوج مشترٍ ومورد خلال 90 يوماً. تُفتح حالة بالأدلة وتُسلَّم للرئيس التنفيذي، والتطبيق قراره وفق الشروط المقبولة. لا اتهام بإشارة واحدة، ولا حالة دون نتيجة مسجلة.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud",
+    "https://docs.stripe.com/radar/rules"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:duplicate-account-detection",
+   "topic": "Duplicate and linked accounts: detection method",
+   "kind": "playbook",
+   "body_en": "Duplicate accounts let a party reuse first-time benefits, evade a suspension, dodge the non-response charge, or inflate supplier counts. Because the company treats email as identity and a phone may confirm but never select an account, detection must look across several attributes rather than any single one. Signals: the same or normalised email (dots and plus-tags in the local part, disposable domains); the same mobile number confirmed on two accounts; the same trade licence number, TRN or company name variants; the same IBAN on payout or refund details; the same card fingerprint in Stripe across customers; shared device or IP patterns in a short window; near-identical business addresses or document images (same licence scan uploaded twice). Method: compute links between accounts on these attributes, weight them (licence number, IBAN and card fingerprint are strong; IP alone is weak because offices and mobile networks share addresses), and cluster. A cluster is not proof - branches of one company legitimately have several users - so the question is whether the cluster is used to obtain something the terms allow once, or to evade a sanction. Output: a case with the linked accounts, the attributes that link them, and the benefit obtained; CEO decides action; customer support communicates. Record false positives to tune weights.",
+   "body_ar": "تتيح الحسابات المكررة إعادة استخدام مزايا المرة الأولى أو التهرب من إيقاف أو من رسم عدم الاستجابة أو تضخيم أعداد الموردين. ولأن الشركة تعدّ البريد هويةً والهاتف يؤكد ولا يختار حساباً، يجب أن ينظر الكشف إلى سمات متعددة. الإشارات: البريد نفسه بعد التوحيد (النقاط وعلامات الإضافة والنطاقات المؤقتة)؛ رقم الهاتف نفسه مؤكداً على حسابين؛ رقم الرخصة التجارية أو الرقم الضريبي أو صيغ متقاربة لاسم الشركة؛ الآيبان نفسه في بيانات الاسترداد؛ بصمة البطاقة نفسها في سترايب لعملاء مختلفين؛ أنماط جهاز أو عنوان إنترنت مشتركة في وقت قصير؛ صور مستندات متطابقة. المنهج: حساب الروابط وترجيحها (الرخصة والآيبان وبصمة البطاقة قوية، وعنوان الإنترنت وحده ضعيف) ثم التجميع. المجموعة ليست دليلاً، ففروع الشركة الواحدة لها مستخدمون متعددون؛ والسؤال هل تُستخدم للحصول على ما تسمح به الشروط مرة واحدة أو للتهرب من عقوبة. المخرج حالة يقرر فيها الرئيس التنفيذي ويتواصل الدعم، وتُسجَّل الإيجابيات الكاذبة لضبط الأوزان.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud",
+    "https://docs.stripe.com/radar/rules"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:payment-fraud-controls",
+   "topic": "Payment fraud controls with Stripe Radar",
+   "kind": "method",
+   "body_en": "Stripe Radar screens every payment with default AI-based rules; on plans that support it, custom rules can request 3D Secure, block, review or (with Stripe's agreement) allow payments. Rules take the form action-if-attribute-operator-value, apply only to future payments, and can be tested against the last six months of charges before activation; custom transaction rules can be rolled out at a percentage, including 0% shadow mode that reports what would have happened. 3DS-authenticated payments usually shift fraud-dispute liability to the issuer. Guidance from Stripe: prefer review rules before block rules; keep allow rules minimal because they override everything else; monitor rule metrics (blocked volume, estimated false-positive rate, disputes from overrides) and revisit rules as patterns change. For QuotesDone, sensible starting rules: request 3DS for new cards or elevated risk above a small amount; review payments where card country and IP country differ and the customer is new; review use of disposable email domains with prepaid cards. The accountant owns the financial monitoring of these rules - dispute rate, fraud losses, refunds as fraud - and reports monthly; changing live rules is a change to production and follows the company's change process with the IT engineer.",
+   "body_ar": "تفحص Stripe Radar كل دفعة بقواعد افتراضية قائمة على الذكاء الاصطناعي، وفي الخطط الداعمة يمكن إنشاء قواعد مخصصة لطلب التحقق ثلاثي الأبعاد أو الحظر أو المراجعة أو السماح. تأخذ القواعد صيغة إجراء-إذا-سمة-عامل-قيمة، وتسري على الدفعات المستقبلية فقط، ويمكن اختبارها على عمليات آخر ستة أشهر قبل تفعيلها، وطرحها بنسبة من الحركة بما في ذلك وضع الظل بنسبة 0%. الدفعات الموثقة بالتحقق ثلاثي الأبعاد تنقل عادة مسؤولية نزاعات الاحتيال إلى البنك المصدر. توجيهات سترايب: تفضيل قواعد المراجعة قبل الحظر، وتقليل قواعد السماح لأنها تتجاوز كل شيء، ومتابعة مقاييس القواعد. قواعد بداية معقولة لكوتس دن: طلب التحقق للبطاقات الجديدة أو المخاطر المرتفعة، ومراجعة الدفعات التي يختلف فيها بلد البطاقة عن بلد العنوان لعميل جديد، ومراجعة البريد المؤقت مع البطاقات المسبقة الدفع. يملك المحاسب الرقابة المالية لهذه القواعد ويرفع تقريراً شهرياً، وتغيير القواعد الحية تغيير في الإنتاج يتبع إجراءات التغيير مع مهندس تقنية المعلومات.",
+   "sources": [
+    "https://docs.stripe.com/radar/rules",
+    "https://docs.stripe.com/disputes/how-disputes-work"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:refund-abuse-and-internal-controls",
+   "topic": "Refund abuse and controls over money-out actions",
+   "kind": "decision_rule",
+   "body_en": "Every path that sends money out - refunds, dispute acceptances, supplier credits, any payout change - is where fraud and costly errors concentrate. Controls for an autonomous company: (1) authority - refunds are approved by the CEO seat under a standing grant with a limit; above the limit or outside the grant, a CEO decision is recorded before execution; (2) idempotency - before creating a refund, query Stripe for existing refunds on that charge, because a retried job or a parallel dispute can otherwise pay twice (Stripe warns that refunding while a dispute is pending can double-reimburse); (3) destination - refunds go only to the original payment method, which Stripe enforces; never pay a refund to a new bank account supplied by message; (4) pattern monitoring - refunds per customer, refund rate per supplier trade, refunds shortly after reveal, and customers who both refund and later dispute; (5) payout details - any change to the company's payout bank account in Stripe is treated as a critical event, verified out of band with the founder, and reported. Decision rule: a money-out action without a recorded approver, a Stripe pre-check and an evidence link is a control failure, reported to the CEO even if the amount was correct.",
+   "body_ar": "كل مسار يُخرج مالاً - الاستردادات وقبول النزاعات وأرصدة الموردين وأي تغيير في الدفعات - هو موضع تركز الاحتيال والأخطاء المكلفة. الضوابط لشركة مستقلة: الصلاحية - يعتمد الرئيس التنفيذي الاستردادات بمنحة قائمة ذات حد، وما يتجاوزها يُسجَّل قراره قبل التنفيذ؛ عدم التكرار - قبل إنشاء أي استرداد يُستعلم من سترايب عن الاستردادات القائمة على الدفعة، إذ قد يؤدي تكرار المهمة أو نزاع متزامن إلى دفع مرتين؛ الوجهة - لا يذهب الاسترداد إلا إلى وسيلة الدفع الأصلية، ولا يُدفع إلى حساب بنكي جديد مرسل في رسالة؛ رقابة الأنماط - الاستردادات لكل عميل، ومعدلها لكل حرفة، والاستردادات بعد الكشف مباشرة، والعملاء الذين يستردون ثم يعترضون؛ بيانات الدفعات - أي تغيير في حساب استلام دفعات الشركة في سترايب حدث حرج يُتحقق منه مع المؤسس عبر قناة مستقلة. قاعدة القرار: أي إخراج للمال دون معتمِد مسجل وفحص مسبق ودليل إخفاق رقابي يُبلَّغ حتى لو كان المبلغ صحيحاً.",
+   "sources": [
+    "https://docs.stripe.com/refunds",
+    "https://docs.stripe.com/disputes/how-disputes-work"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:fraud-case-handling",
+   "topic": "Handling a fraud or circumvention case end to end",
+   "kind": "playbook",
+   "body_en": "A case moves through fixed states: detected, triaged, investigated, decided, actioned, closed, with a timestamp and actor for each. Detected: the signal or cluster that opened it, with the score and raw evidence snapshot (messages, account links, payment records) preserved immutably, since the underlying data may change. Triaged within one working day: is money at risk now (pending payout, refund request, open dispute)? If so, the accountant can place a hold on that money-out action pending decision. Investigated: collect the full timeline, ask the sales engineer or customer support for context they hold, and write a neutral summary - facts, not conclusions about intent. Decided by the CEO: no action, warning, fee under the terms, suspension, or referral. Actioned: the decided step is executed by the seat that owns the channel (support communicates with the party; the accountant bills or refunds), and the outcome is verified - for example the fee actually collected. Closed: the case records the outcome and lessons, and feeds detection tuning (true or false positive). Personal data in the case is limited to what is needed and retained per policy. Decision rule: every opened case reaches closed with an outcome; a case older than 30 days in any open state is escalated.",
+   "body_ar": "تمر الحالة بمراحل ثابتة: مكتشفة، مفرزة، قيد التحقيق، مقرَّرة، منفَّذة، مغلقة، مع توقيت وفاعل لكل مرحلة. الاكتشاف: الإشارة أو المجموعة التي فتحتها مع الدرجة ولقطة غير قابلة للتعديل من الأدلة الخام. الفرز خلال يوم عمل: هل هناك مال معرّض للخطر الآن (دفعة معلقة، طلب استرداد، نزاع مفتوح)؟ إن كان كذلك يجوز للمحاسب تعليق إجراء إخراج المال حتى القرار. التحقيق: جمع الخط الزمني الكامل وطلب السياق من مهندس المبيعات أو الدعم، وكتابة ملخص محايد بالوقائع دون استنتاج النية. القرار للرئيس التنفيذي: لا إجراء، أو تحذير، أو رسم وفق الشروط، أو إيقاف، أو إحالة. التنفيذ: ينفذ المقعد المالك للقناة الخطوة ويُتحقق من النتيجة. الإغلاق: تسجيل النتيجة والدروس وتغذية ضبط الكشف. تقتصر البيانات الشخصية على الضروري. قاعدة القرار: كل حالة تُغلق بنتيجة، وما يتجاوز 30 يوماً مفتوحاً يُصعَّد.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:tfs-sanctions-obligations",
+   "topic": "UAE targeted financial sanctions: screening and freezing",
+   "kind": "law",
+   "body_en": "The UAE implements targeted financial sanctions (TFS) through the Executive Office for Control and Non-Proliferation (EOCN), covering the UAE Local Terrorist List and the UN Security Council Consolidated List. Reporting entities are required to screen regularly and on an ongoing basis: when the lists are updated (within 24 hours), before onboarding a new customer, during periodic reviews and on material ownership changes, and before processing counterparty transactions. On a confirmed match, freezing measures apply without delay (within 24 hours) to funds owned or controlled, directly or indirectly, wholly or jointly, by the designated person; freezes remain until delisting or an EOCN cancellation decision. Reports are filed within five business days of implementing measures: a Confirmed Name Match Report for definite matches and a Partial Name Match Report where the match is uncertain, through goAML or, for non-goAML users, by email to the EOCN TFS address. The EOCN offers a notification alert system for list updates. Whether QuotesDone is formally a \"reporting entity\" under the AML law was not established from the sources fetched; the company's standing position is to apply the TFS standard to its customers and suppliers anyway, because facilitating trade with a designated person is itself a severe risk.",
+   "body_ar": "تطبق الإمارات العقوبات المالية المستهدفة عبر المكتب التنفيذي للرقابة وحظر الانتشار، وتشمل القائمة المحلية للإرهاب والقائمة الموحدة لمجلس الأمن. يُطلب من الجهات المبلِّغة الفحص المنتظم والمستمر: عند تحديث القوائم خلال 24 ساعة، وقبل قبول عميل جديد، وخلال المراجعات الدورية وعند تغيّر الملكية الجوهري، وقبل تنفيذ معاملات الأطراف المقابلة. عند التطابق المؤكد يُطبَّق التجميد دون تأخير خلال 24 ساعة على الأموال المملوكة أو المسيطر عليها مباشرة أو غير مباشرة للشخص المدرج، ويستمر حتى الشطب أو قرار إلغاء من المكتب. تُقدَّم التقارير خلال خمسة أيام عمل من تطبيق الإجراءات: تقرير تطابق اسم مؤكد، وتقرير تطابق اسم جزئي عند عدم اليقين، عبر منصة goAML أو بالبريد لغير المستخدمين. يتيح المكتب نظام تنبيهات بالتحديثات. لم يُثبت من المصادر ما إذا كانت كوتس دن جهة مبلِّغة رسمياً، وموقفها القائم تطبيق المعيار على عملائها ومورديها لأن تسهيل التجارة مع شخص مدرج خطر جسيم بذاته.",
+   "sources": [
+    "https://www.uaeiec.gov.ae/en-us/un-page",
+    "https://www.uaeiec.gov.ae/en-us/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23",
+   "gap_kind": "technical"
+  },
+  {
+   "id": "accountant:sanctions-rescreening-duty",
+   "topic": "Ongoing sanctions re-screening: the duty design",
+   "kind": "playbook",
+   "body_en": "Screening once at sign-up is not enough; lists change, and a customer or supplier (or their owner) can be designated later. The re-screening duty: (1) subscribe to list-update notifications and also poll the official list sources on a schedule, recording the list version or timestamp each run; (2) on every list update, screen the delta (new and amended designations) against all active customers, suppliers, their registered company names, trade names, UBOs, and directors captured in onboarding - within 24 hours; (3) re-screen the full population against the full lists at least monthly, to catch data changes on the platform side (new UBO, renamed company); (4) screen immediately on onboarding, on any change of company name, licence, owner or IBAN, and before any money-out action to a counterparty; (5) matching uses normalised names, transliteration variants between Arabic and Latin script, and secondary identifiers (date of birth, nationality, licence number) to separate true hits from namesakes; (6) every run is logged with counts: population screened, list version, hits, partial matches, dispositions. A run that did not happen must be visible - zero hits from a job that never ran looks identical to a clean result, so the log proves the run itself. Decision rule: a partial match suspends the party's money-out actions and new RFQ activity until disposition.",
+   "body_ar": "الفحص مرة عند التسجيل لا يكفي، فالقوائم تتغير وقد يُدرج العميل أو المورد أو مالكه لاحقاً. واجب إعادة الفحص: الاشتراك في تنبيهات تحديث القوائم مع سحب المصادر الرسمية دورياً وتسجيل إصدار القائمة في كل تشغيل؛ عند كل تحديث يُفحص الفرق (الإدراجات الجديدة والمعدلة) مقابل جميع العملاء والموردين النشطين وأسماء شركاتهم التجارية ومستفيديهم الحقيقيين ومديريهم خلال 24 ساعة؛ إعادة فحص كامل المجموعة مقابل كامل القوائم شهرياً على الأقل؛ الفحص فوراً عند القبول وعند تغيّر الاسم أو الرخصة أو المالك أو الآيبان وقبل أي إخراج للمال لطرف مقابل؛ المطابقة بالأسماء الموحدة وصيغ النقل بين العربية واللاتينية والمعرّفات الثانوية (تاريخ الميلاد، الجنسية، رقم الرخصة) لتمييز التطابق الحقيقي عن التشابه؛ تسجيل كل تشغيل بأعداده. يجب أن يظهر التشغيل الذي لم يحدث، فصفر نتائج من مهمة لم تعمل يشبه النتيجة النظيفة. قاعدة القرار: التطابق الجزئي يوقف إخراج المال ونشاط الطلبات الجديد حتى البت.",
+   "sources": [
+    "https://www.uaeiec.gov.ae/en-us/un-page",
+    "https://www.uaeiec.gov.ae/en-us/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:sanctions-match-disposition",
+   "topic": "Dispositioning a sanctions hit: confirmed, partial, false",
+   "kind": "decision_rule",
+   "body_en": "Every hit needs a documented disposition, made by comparing the platform record with the list entry on more than the name. Steps: (1) gather identifiers from the list entry (full name and aliases, date of birth, nationality, passport or ID numbers, addresses, for entities registration details) and from the platform record (licence, UBO data, Emirates ID if captured, addresses); (2) compare: name similarity alone is never enough to confirm; a mismatch on a strong identifier (different date of birth, different licence authority and number) supports a false positive; (3) classify: false positive - record the reasons and whitelist that pairing for that list entry version only, so a later amendment is screened again; partial match - identifiers cannot confirm or exclude; confirmed match - identifiers agree. For partial and confirmed matches the accountant immediately suspends money-out actions and new activity for the party, notifies the CEO the same day, and prepares the report (CNMR or PNMR) - the TFS framework expects freezing within 24 hours and reporting within five business days. Do not tell the party why they are suspended (avoid tipping off); customer support uses a neutral message approved by the CEO. The CEO signs off every partial and confirmed disposition; the accountant signs off false positives with evidence.",
+   "body_ar": "يحتاج كل تطابق إلى قرار موثق يُتخذ بمقارنة سجل المنصة مع قيد القائمة بأكثر من الاسم. الخطوات: جمع معرّفات القيد (الاسم الكامل والأسماء البديلة، تاريخ الميلاد، الجنسية، أرقام الجواز أو الهوية، العناوين، وبيانات التسجيل للجهات) ومعرّفات سجل المنصة؛ المقارنة: تشابه الاسم وحده لا يؤكد أبداً، واختلاف معرّف قوي يدعم الإيجابي الكاذب؛ التصنيف: إيجابي كاذب مع تسجيل الأسباب واستثناء هذا الاقتران لإصدار القيد ذاته فقط، أو تطابق جزئي لا يمكن تأكيده ولا نفيه، أو تطابق مؤكد. في الجزئي والمؤكد يوقف المحاسب فوراً إخراج المال والنشاط الجديد للطرف، ويخطر الرئيس التنفيذي في اليوم نفسه، ويعدّ التقرير المناسب؛ فالإطار يتوقع التجميد خلال 24 ساعة والإبلاغ خلال خمسة أيام عمل. لا يُخبَر الطرف بسبب الإيقاف تجنباً للتنبيه، ويستخدم الدعم رسالة محايدة معتمدة. يوقّع الرئيس التنفيذي على كل قرار جزئي أو مؤكد.",
+   "sources": [
+    "https://www.uaeiec.gov.ae/en-us/un-page",
+    "https://www.almaazmilawyers.com/insights/eocn-sanctions-screening-local-terrorist-list-uae"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ubo-rules-uae",
+   "topic": "Beneficial ownership (UBO) rules in the UAE",
+   "kind": "law",
+   "body_en": "Cabinet Decision No. 109 of 2023 on beneficial owner procedures (replacing Cabinet Decision No. 58 of 2020) requires mainland and commercial free zone legal persons to identify and register the natural persons who ultimately own or control them. A beneficial owner is a natural person who owns or controls 25% or more of the capital or voting rights, directly or indirectly through a chain of ownership, or who controls the entity by other means such as the right to appoint or remove the majority of directors. If no person meets the ownership test, the fallback is control by other means, and finally the senior managing official - there is always someone identified. Entities keep a register of beneficial owners, a register of shareholders or partners, and a register of nominee directors identifying both nominee and nominator. The registers are created within 60 days and any change is recorded within 15 days of becoming aware of it; the Registrar must also be notified of changes within 15 days. Penalty amounts sit in a separate Cabinet decision that was not fetched; secondary sources report fines up to AED 100,000, which is treated as not established. For QuotesDone this means two duties: keep its own UBO filing current (the founder), and, for counterparties, collect UBO information at supplier onboarding so sanctions screening covers the real owners, not only the company name. Offshore holding layers do not break the chain; screening must follow it to the natural person.",
+   "body_ar": "يلزم قرار مجلس الوزراء رقم 109 لسنة 2023 بشأن إجراءات المستفيد الحقيقي، الذي حل محل القرار رقم 58 لسنة 2020، الأشخاصَ الاعتبارية في البر الرئيسي والمناطق الحرة التجارية بتحديد وتسجيل الأشخاص الطبيعيين الذين يملكونها أو يسيطرون عليها في النهاية. المستفيد الحقيقي شخص طبيعي يملك أو يسيطر على 25% أو أكثر من رأس المال أو حقوق التصويت مباشرة أو عبر سلسلة ملكية، أو يسيطر بوسائل أخرى كحق تعيين أغلبية المديرين أو عزلهم. إن لم يستوفِ أحد اختبار الملكية يُلجأ إلى السيطرة بوسائل أخرى ثم إلى المسؤول الإداري الأعلى، فيوجد دائماً شخص محدد. تحتفظ الجهات بسجل المستفيدين الحقيقيين وسجل الشركاء أو المساهمين وسجل المديرين الصوريين. تُنشأ السجلات خلال 60 يوماً ويُقيَّد أي تغيير خلال 15 يوماً من العلم به مع إخطار المسجّل خلال المهلة نفسها. أما مبالغ الغرامات فواردة في قرار مستقل لم يُجلب، وتذكر مصادر ثانوية أنها تصل إلى 100,000 درهم، فتُعدّ غير مثبتة. لكوتس دن واجبان: تحديث بيانات مستفيدها (المؤسس)، وجمع بيانات المستفيد الحقيقي للموردين عند القبول ليشمل الفحص المالكين الفعليين. طبقات الشركات الخارجية لا تقطع السلسلة.",
+   "sources": [
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:ubo-rescreening-counterparties",
+   "topic": "Counterparty UBO collection and re-screening",
+   "kind": "playbook",
+   "body_en": "Screening only a supplier's trade name misses the people behind it. At supplier onboarding (part of the mandatory six: name, mobile, email, licence, profile, signed terms), the platform should also capture, for companies, the owners of 25% or more and the manager named on the licence, with nationality and date of birth where offered. The accountant's re-screening duty for UBOs: (1) screen each UBO and manager against sanctions lists on onboarding and on every list update, exactly as for the company; (2) re-confirm UBO data periodically - at least annually, and on trade-licence renewal, since the licence often shows partners and managers - and whenever signals suggest a change (new signatory on documents, new payout IBAN, company name change); (3) compare UBO data across suppliers: the same UBO behind several supplier accounts may be legitimate (a group) but matters for duplicate-account detection and for the fairness of \"top 3\" matching if one owner fills several slots; (4) where a supplier refuses to provide UBO information, treat it as a risk factor and escalate rather than proceeding silently. Store only what the purpose requires, protect it as personal data, and record the lawful basis for processing under the company's privacy policy. Decision rule: no supplier receives payouts or credits without UBO screening on file.",
+   "body_ar": "فحص الاسم التجاري للمورد وحده يُغفل الأشخاص خلفه. عند قبول المورد، ضمن المتطلبات الستة الإلزامية (الاسم، الجوال، البريد، الرخصة، الملف، الشروط الموقعة)، ينبغي أن تجمع المنصة للشركات مالكي 25% فأكثر والمدير الوارد في الرخصة مع الجنسية وتاريخ الميلاد إن توفرا. واجب المحاسب: فحص كل مستفيد ومدير مقابل قوائم العقوبات عند القبول ومع كل تحديث؛ إعادة تأكيد بيانات المستفيد سنوياً على الأقل وعند تجديد الرخصة التي تُظهر عادة الشركاء والمديرين، وعند ظهور إشارات تغيير (موقّع جديد، آيبان جديد، تغيير اسم)؛ مقارنة المستفيدين عبر الموردين، فالمستفيد نفسه خلف عدة حسابات قد يكون مجموعة مشروعة لكنه يهم كشف الحسابات المكررة وعدالة ترشيح أفضل ثلاثة؛ رفض المورد تقديم البيانات عامل خطر يُصعَّد. تُحفظ البيانات بقدر الغرض وتُحمى كبيانات شخصية مع تسجيل الأساس القانوني للمعالجة. قاعدة القرار: لا دفعات أو أرصدة لمورد دون فحص المستفيد الحقيقي.",
+   "sources": [
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf",
+    "https://www.uaeiec.gov.ae/en-us/un-page"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:own-ubo-and-licence-facts",
+   "topic": "QuotesDone's own regulatory facts the accountant keeps",
+   "kind": "checklist",
+   "body_en": "The accountant maintains a single record of the company's own regulatory facts and their evidence, because every filing and every bank or payment-provider review asks for them. Current facts on record: Dubai DET trade licence 1633275, expiring 24 June 2027; not VAT-registered, with registration required only once the AED 375,000 mandatory threshold is reached; bank Mashreq, with monthly statements forwarded to the expenses mailbox and a monthly account fee of AED 199 plus AED 9.95 VAT; the founder as sole beneficial owner; TDRA NOL NOL-26-100000665 for the quotesdone.ae domain, expiring 14 September 2027; payments through Stripe. Items the accountant must confirm and hold evidence for (not assumed): Corporate Tax registration number and first tax period; the UBO filing with the licensing authority and its last update date; the financial year-end; whether a statutory audit is required. Each fact carries its source document, date verified and next review date. Lead times: licence renewal work starts at least 60 days before expiry (because UBO and other filings can block renewal); any change to ownership or managers triggers the 15-day UBO update. Decision rule: facts are re-verified from documents, not from memory, before being quoted in any filing.",
+   "body_ar": "يحتفظ المحاسب بسجل واحد لحقائق الشركة التنظيمية وأدلتها، لأن كل إقرار وكل مراجعة من البنك أو مزوّد الدفع يطلبها. الحقائق المسجلة: رخصة دائرة الاقتصاد والسياحة في دبي رقم 1633275 وتنتهي في 24 يونيو 2027؛ عدم التسجيل في ضريبة القيمة المضافة إلى أن يُبلغ الحد الإلزامي 375,000 درهم؛ البنك المشرق مع كشوف شهرية تُحوَّل إلى بريد المصروفات ورسم شهري 199 درهماً مع 9.95 ضريبة؛ المؤسس مستفيداً حقيقياً وحيداً؛ شهادة عدم ممانعة هيئة تنظيم الاتصالات للنطاق وتنتهي في 14 سبتمبر 2027؛ المدفوعات عبر سترايب. بنود يجب تأكيدها بالأدلة لا افتراضها: رقم تسجيل ضريبة الشركات وأول فترة ضريبية، وإيداع المستفيد الحقيقي وتاريخ آخر تحديث، ونهاية السنة المالية، وإلزامية التدقيق النظامي. يبدأ عمل تجديد الرخصة قبل 60 يوماً على الأقل، وأي تغيير في الملكية يستوجب تحديثاً خلال 15 يوماً. قاعدة القرار: تُعاد التحقق من الحقائق من المستندات قبل ذكرها في أي إقرار.",
+   "sources": [
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf",
+    "https://tax.gov.ae/en/taxes/vat/vat.topics/registration.for.vat.aspx"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:segregation-of-duties-ai-seats",
+   "topic": "Segregation of duties among AI seats",
+   "kind": "standard",
+   "body_en": "Classic internal control separates the person who initiates a transaction, the one who approves it, the one who records it, and the one who holds the asset. In an autonomous company the \"people\" are seats and routines, and the same principle applies. Mapping for QuotesDone: the sales engineer or customer support may request a refund; the CEO seat approves; the accountant executes through Stripe and records it; reconciliation (also the accountant, but as a separate step with an independent data source - the Stripe balance and the bank statement) detects anything recorded that did not happen or happened unrecorded. Where one seat must both execute and record, compensate with independent review: a cross-family model review of judgements (a different model family checks the reasoning), and periodic sampling by the CEO seat. Database permissions should enforce this: the routine that creates refunds cannot also edit approval records; journal entries cannot be deleted; period locks bind every writer. Keys and credentials with money-out power are held by the fewest components possible and rotated. Decision rule: any path where one component can both authorise and execute a money-out action without an independent check is a control gap to report to the CEO and the IT engineer.",
+   "body_ar": "تفصل الرقابة الداخلية التقليدية بين من يبدأ المعاملة ومن يعتمدها ومن يسجلها ومن يحوز الأصل. في الشركة المستقلة يكون \"الأشخاص\" مقاعد وروتينات، والمبدأ نفسه ينطبق. في كوتس دن: يطلب مهندس المبيعات أو الدعم الاسترداد، ويعتمده الرئيس التنفيذي، وينفذه المحاسب عبر سترايب ويسجله، ثم تكشف التسوية - كخطوة مستقلة بمصدر بيانات مستقل هو رصيد سترايب وكشف البنك - أي قيد لم يحدث أو حدث دون قيد. حيث يجب على مقعد واحد التنفيذ والتسجيل معاً يُعوَّض بمراجعة مستقلة: مراجعة من عائلة نماذج مختلفة للأحكام، وعينات دورية من الرئيس التنفيذي. يجب أن تفرض صلاحيات قاعدة البيانات ذلك: الروتين الذي ينشئ الاستردادات لا يعدّل سجلات الاعتماد، والقيود لا تُحذف، وقفل الفترات يلزم الجميع. تُحصر المفاتيح ذات صلاحية إخراج المال في أقل عدد من المكونات وتُدوَّر. قاعدة القرار: أي مسار يمكّن مكوناً واحداً من الاعتماد والتنفيذ دون فحص مستقل فجوة رقابية تُبلَّغ.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud",
+    "https://docs.stripe.com/radar/rules"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:anomaly-detection-expenses",
+   "topic": "Detecting anomalies in expenses and vendor charges",
+   "kind": "method",
+   "body_en": "The accountant should notice spending that does not fit before the month closes. Checks on each new charge: (1) new vendor never seen before - verify it relates to a known service and that someone authorised it; (2) amount out of pattern - a recurring vendor charging well above its median of recent months, or a usage vendor spiking without matching platform activity; (3) duplicate - same vendor, same amount, same or adjacent date, possibly from different receipts or channels (email receipt and card line counted twice); (4) timing - charges on days the service should not bill, or after a subscription was cancelled; (5) currency or merchant country unusual for that vendor; (6) card-testing pattern - several small charges from unknown merchants in a short time, a common sign of a compromised card. Each check produces a reasoned note, not only a flag: the likely explanation, and what evidence would confirm it. Usage spikes are cross-checked with the IT engineer (a runaway job or a loop can burn AI or messaging budget quickly). A confirmed unauthorised card charge is reported to the CEO immediately with a recommendation to block the card, and the dispute or claim is filed with the bank within its deadline.",
+   "body_ar": "يجب أن يلاحظ المحاسب الإنفاق الشاذ قبل إقفال الشهر. فحوص كل رسم جديد: مورد جديد لم يُرَ من قبل - التحقق من ارتباطه بخدمة معروفة ومن اعتماده؛ مبلغ خارج النمط - مورد متكرر يتجاوز وسيط الأشهر الأخيرة بوضوح، أو مورد استخدام يقفز دون نشاط مقابل في المنصة؛ تكرار - المورد والمبلغ والتاريخ نفسه أو المتقارب من إيصالات أو قنوات مختلفة؛ توقيت - رسوم في أيام لا يفوتر فيها المورد أو بعد إلغاء الاشتراك؛ عملة أو بلد تاجر غير معتاد؛ نمط اختبار البطاقة - رسوم صغيرة متعددة من تجار مجهولين في وقت قصير. ينتج كل فحص مذكرة مسببة لا مجرد علامة: التفسير المرجح والدليل الذي يؤكده. تُراجع قفزات الاستخدام مع مهندس تقنية المعلومات، فمهمة خارجة عن السيطرة قد تستنزف ميزانية الذكاء الاصطناعي أو الرسائل بسرعة. الرسم غير المصرّح به المؤكد يُبلَّغ للرئيس التنفيذي فوراً مع توصية بإيقاف البطاقة وتقديم الاعتراض للبنك ضمن مهلته.",
+   "sources": [
+    "https://www.acfe.com/fraud-resources/fraud-101-what-is-fraud"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:classification-memory-design",
+   "topic": "Classification memory: learning from every decision",
+   "kind": "method",
+   "body_en": "A senior bookkeeper remembers how each vendor was treated and why; the seat must do the same explicitly. Each final classification is stored as an example: vendor (raw and normalised), receipt text summary, amount and currency, service period, account chosen, period treatment (expense, prepayment, accrual), VAT treatment, confidence, who decided (seat, model family, human), and the reason in one sentence. Corrections are stored as new examples that supersede the earlier one, keeping the history. At decision time, retrieve examples by meaning (semantic similarity of the receipt description and vendor) and by exact vendor, and present them to the reasoning step as precedent - precedent informs, it does not decide, because the same vendor can sell different things. Measure: the share of receipts auto-classified, the share later corrected, and the correction rate by account; a rising correction rate on one account signals drift. Guard against self-reinforcement: examples decided without review should carry lower weight than confirmed ones. This replaces the current lexical vendor lookup that carries only cadence and closes the audit's learning-loop gap. Decision rule: an example contradicted twice by human correction is retired.",
+   "body_ar": "يتذكر المحاسب المتمرس كيف عولج كل مورد ولماذا، وعلى المقعد فعل ذلك صراحة. يُحفظ كل تصنيف نهائي كمثال: المورد (خام وموحد)، وملخص نص الإيصال، والمبلغ والعملة، وفترة الخدمة، والحساب المختار، والمعالجة الزمنية، ومعالجة الضريبة، ودرجة الثقة، ومن قرر، والسبب في جملة واحدة. تُحفظ التصحيحات كأمثلة جديدة تحل محل السابقة مع الإبقاء على التاريخ. عند القرار تُسترجع الأمثلة بالمعنى وبالمورد المطابق وتُقدَّم كسوابق تُرشد ولا تقرر، لأن المورد نفسه قد يبيع أشياء مختلفة. القياس: نسبة الإيصالات المصنفة آلياً، والمصحَّحة لاحقاً، ومعدل التصحيح لكل حساب؛ ارتفاعه في حساب ما يشير إلى انحراف. الحماية من التعزيز الذاتي: الأمثلة غير المراجعة وزنها أقل من المؤكدة. يحل هذا محل البحث النصي الحالي الذي يحمل الدورية فقط، ويسد فجوة حلقة التعلم. قاعدة القرار: المثال الذي يناقضه تصحيح بشري مرتين يُستبعد.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:held-receipts-policy",
+   "topic": "Receipts that cannot be read or classified",
+   "kind": "decision_rule",
+   "body_en": "Some receipts cannot be processed automatically: image-only receipts when vision processing is unavailable, receipts in unusual formats, receipts with no amount or date, or charges with no receipt at all. The policy is to hold, never to guess. A held item records what is missing and the specific question to resolve it (for example \"amount unreadable - need PDF invoice from vendor portal\"). Resolution routes: request a better copy from the vendor (many portals provide PDF invoices), match to the bank or card line to recover amount and date, or, where the charge is small and the vendor and nature are clear from the statement, book from the statement with a note \"no receipt, booked from bank line\" - acceptable for internal books but weaker evidence for tax purposes, so the count and value of such items are reported. Holds have an age limit: at month end, list all holds with age and value; anything still held at close is booked on best evidence with a flag, or accrued, so the month is complete - an unbooked hold would understate expenses. The audit notes image receipts are held because vision is on a paid route; the CEO should see the monthly count and value of these holds to decide whether enabling vision is worth the cost.",
+   "body_ar": "بعض الإيصالات لا يمكن معالجتها آلياً: إيصالات صور فقط حين تتعذر معالجة الصور، أو صيغ غير معتادة، أو بلا مبلغ أو تاريخ، أو رسوم بلا إيصال أصلاً. السياسة التعليق لا التخمين. يسجّل البند المعلّق ما ينقصه والسؤال المحدد لحله. مسارات الحل: طلب نسخة أفضل من المورد، أو المطابقة مع سطر البنك أو البطاقة لاستعادة المبلغ والتاريخ، أو قيد الرسوم الصغيرة الواضحة من الكشف مع مذكرة \"بلا إيصال، قُيّد من سطر البنك\"، وهذا مقبول داخلياً لكنه دليل أضعف ضريبياً فيُبلَّغ عدده وقيمته. للتعليق حد عمر: في نهاية الشهر تُحصر المعلّقات بعمرها وقيمتها، وما يبقى عند الإقفال يُقيَّد بأفضل دليل مع علامة أو يُستحق، لأن عدم قيده يقلل المصروفات. يشير التدقيق إلى تعليق إيصالات الصور لأن معالجتها على مسار مدفوع، فيجب أن يرى الرئيس التنفيذي عددها وقيمتها شهرياً ليقرر جدوى تفعيلها.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:glossary-accounting-uae",
+   "topic": "Glossary: key terms for the accountant seat",
+   "kind": "glossary",
+   "body_en": "Accrual - expense recorded when incurred, before the invoice. Prepayment - payment in advance for future service, held as an asset and released over time. Deferred revenue (contract liability) - cash received before the service is delivered. Principal/agent - whether the entity controls the good or service (gross revenue) or arranges it for another party (fee only). GMV - gross merchandise value of deals on the platform; not revenue. Take rate - fee revenue divided by GMV. Balance transaction - Stripe's record of each movement in the Stripe balance; reporting_category is the accounting classification. Payout - transfer from Stripe to the bank. Dispute / chargeback - a cardholder's challenge through their bank; inquiry - a pre-dispute request. EFW - early fraud warning from a card network. 3DS - 3D Secure card authentication, usually shifting fraud liability to the issuer. TRN - tax registration number. SBR - Small Business Relief under UAE CT. FTA - Federal Tax Authority; EmaraTax - its portal. ASP - Accredited Service Provider for e-invoicing; Peppol - the exchange network. UBO - ultimate beneficial owner (25% ownership or control test). TFS - targeted financial sanctions; EOCN - the UAE executive office administering them; CNMR/PNMR - confirmed/partial name match reports; goAML - the reporting platform. Period lock - control preventing postings into a closed month.",
+   "body_ar": "الاستحقاق: مصروف يُسجَّل عند تكبده قبل الفاتورة. المدفوع مقدماً: دفعة مسبقة عن خدمة مستقبلية تُحفظ أصلاً وتُطفأ تدريجياً. الإيراد المؤجل (الالتزام التعاقدي): نقد مقبوض قبل تقديم الخدمة. الأصيل والوكيل: هل تسيطر المنشأة على السلعة أو الخدمة فتسجل الإيراد بالإجمالي أم ترتبها لطرف آخر فتسجل رسومها فقط. القيمة الإجمالية للصفقات: قيمة الصفقات عبر المنصة وليست إيراداً. نسبة الاقتطاع: إيراد الرسوم مقسوماً على القيمة الإجمالية. معاملة الرصيد: سجل سترايب لكل حركة في الرصيد، وفئة التقرير تصنيفها المحاسبي. الدفعة: تحويل من سترايب إلى البنك. النزاع أو رد المبلغ: اعتراض حامل البطاقة عبر بنكه، والاستفسار مرحلة سابقة. التحذير المبكر من الاحتيال. التحقق ثلاثي الأبعاد. الرقم الضريبي. إعفاء الأعمال الصغيرة. الهيئة الاتحادية للضرائب وبوابتها إمارات تاكس. مزوّد الخدمة المعتمد للفوترة الإلكترونية وشبكة Peppol. المستفيد الحقيقي. العقوبات المالية المستهدفة والمكتب التنفيذي وتقارير التطابق المؤكد والجزئي ومنصة goAML. قفل الفترة.",
+   "sources": [
+    "https://docs.stripe.com/reports/balance-transaction-types",
+    "https://docs.stripe.com/disputes/how-disputes-work",
+    "https://mof.gov.ae/en/news/ministry-of-finance-announces-extension-of-small-business-relief-for-corporate-tax-purposes-until-31-december-2029/",
+    "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf",
+    "https://www.uaeiec.gov.ae/en-us/un-page",
+    "https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:handoffs-accountant",
+   "topic": "Closed-loop handoffs to and from the accountant",
+   "kind": "standard",
+   "body_en": "The accountant works with every seat, and each exchange is a tracked handoff with a required outcome, not a message. Inbound: from sales engineer - refund requests (with the reveal and reason), new subscription or pricing terms that change revenue recognition; from customer support - delivery results, customer payment questions, dispute notices from customers; from IT engineer - usage spikes, credential rotations affecting payment integrations, incidents that touched money paths; from marketing - planned paid spend with budget and campaign IDs before any spend (currently organic only); from CEO - decisions on refunds, write-offs, policy choices. Outbound: to sales engineer - collections needing a relationship call, fee-circumvention cases needing context; to customer support - neutral messages for suspended parties, refund status for customers; to CEO - decision items, weekly report, compliance deadlines, fraud and sanctions cases; to IT engineer - reconciliation breaks that suggest a system fault. Every handoff carries the question, the evidence and the expected outcome, and is closed only by the originator once the outcome is verified (for example, refund actually succeeded in Stripe, not merely \"submitted\"). Unanswered handoffs are chased, not dropped; the audit's missing marketing and sales handoffs are added here.",
+   "body_ar": "يعمل المحاسب مع كل المقاعد، وكل تبادل تسليم متتبَّع بنتيجة مطلوبة لا مجرد رسالة. الوارد: من مهندس المبيعات طلبات الاسترداد مع الكشف والسبب، وشروط الاشتراكات أو التسعير الجديدة المؤثرة على الاعتراف بالإيراد؛ من الدعم نتائج التسليم وأسئلة الدفع وإشعارات النزاع؛ من مهندس تقنية المعلومات قفزات الاستخدام وتدوير بيانات الاعتماد والحوادث التي مست مسارات المال؛ من التسويق الإنفاق المدفوع المخطط بموازنته ومعرّفات حملاته قبل الإنفاق (النشاط حالياً عضوي فقط)؛ من الرئيس التنفيذي القرارات. الصادر: إلى المبيعات التحصيل المحتاج لاتصال علاقات وحالات التحايل المحتاجة لسياق؛ إلى الدعم رسائل محايدة وحالة الاستردادات؛ إلى الرئيس التنفيذي بنود القرار والتقرير الأسبوعي والمواعيد وحالات الاحتيال والعقوبات؛ إلى تقنية المعلومات أعطال التسوية الدالة على خلل نظامي. يحمل كل تسليم السؤال والدليل والنتيجة المتوقعة، ولا يُغلق إلا من منشئه بعد التحقق من النتيجة. يُلاحق غير المجاب ولا يُسقط.",
+   "sources": [
+    "https://docs.stripe.com/refunds"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-23"
+  },
+  {
+   "id": "accountant:knowledge-limits-and-sources",
+   "topic": "What this pack does not establish, and how to check",
+   "kind": "decision_rule",
+   "body_en": "Several numbers a UAE accountant is often asked for are still not confirmed from primary sources and must not be quoted from memory: the Corporate Tax late-registration penalty (reported as AED 10,000; the amending decision was not fetched); UBO penalty amounts; the VAT record-retention period; the treatment of imported services under the VAT reverse charge and the conditions for recovering pre-registration input tax; whether a statutory audit is required for a DET mainland LLC of QuotesDone's size; whether QuotesDone is a formal AML \"reporting entity\"; and the reported 14-day e-invoice issuance rule. Closed from primary texts since the first build: CT late-filing and late-payment penalties (Cabinet Decision 75 of 2023), the CT registration timeline (FTA Decision 3 of 2024), seven-year CT record retention, the 50% entertainment limit and the 75% loss-offset cap (CT Law Articles 56, 32 and 37), and the phase 1 e-invoicing ASP deadline of 30 October 2026. The method when one of these is needed: go to the primary source first - the FTA website and its guides (tax.gov.ae), the Ministry of Finance (mof.gov.ae), the EOCN (uaeiec.gov.ae), the Ministry of Economy and Tourism for UBO - quote the source and date, and if the source cannot be reached, say \"not established\" and escalate rather than filling the gap. Secondary commentary from advisers is useful for orientation but never the final basis for a filing. This entry itself must be updated each quarterly refresh as gaps are closed.",
+   "body_ar": "عدة أرقام يُسأل عنها المحاسب في الإمارات كثيراً لم تُؤكَّد بعد من مصادر أولية ولا يجوز ذكرها من الذاكرة: غرامة التأخير في التسجيل في ضريبة الشركات (منشورة بمبلغ 10,000 درهم ولم يُجلب قرار التعديل)؛ مبالغ غرامات المستفيد الحقيقي؛ مدة الاحتفاظ بسجلات ضريبة القيمة المضافة؛ معالجة الخدمات المستوردة بالاحتساب العكسي وشروط استرداد ضريبة ما قبل التسجيل؛ إلزامية التدقيق النظامي لشركة ذات مسؤولية محدودة بحجم كوتس دن؛ ما إذا كانت الشركة جهة مبلِّغة رسمياً في مكافحة غسل الأموال؛ وقاعدة إصدار الفاتورة الإلكترونية خلال 14 يوماً. وأُغلق من نصوص أولية منذ البناء الأول: غرامات التأخر في الإقرار والسداد (قرار مجلس الوزراء 75 لسنة 2023)، ومواعيد التسجيل (قرار الهيئة 3 لسنة 2024)، وحفظ سجلات ضريبة الشركات سبع سنوات، وسقف 50% للضيافة و75% لتعويض الخسائر (المواد 56 و32 و37 من القانون)، وموعد تعيين مزوّد الفوترة للمرحلة الأولى في 30 أكتوبر 2026. المنهج عند الحاجة: المصدر الأولي أولاً - موقع الهيئة الاتحادية للضرائب وأدلتها، ووزارة المالية، والمكتب التنفيذي، ووزارة الاقتصاد والسياحة - مع ذكر المصدر والتاريخ، وإن تعذر الوصول يُقال \"غير مثبت\" ويُصعَّد. تعليقات المستشارين للاسترشاد لا أساساً نهائياً لإقرار. يُحدَّث هذا البند في كل مراجعة ربع سنوية.",
+   "sources": [
+    "https://tax.gov.ae/en/taxes/corporate.tax.aspx",
+    "https://mof.gov.ae/en/public-finance/tax/corporate-tax/",
+    "https://www.uaeiec.gov.ae/en-us/",
+    "https://mof.gov.ae/wp-content/uploads/2026/01/Federal-Decree-Law-No.-47-of-2022-and-its-amendments-en-v13.1.26.pdf",
+    "https://mof.gov.ae/wp-content/uploads/2023/07/Cabinet-Decision-No.-75-of-2023-on-the-Administrative-Penalties-on-Violations-Related-to-the-Application-of-the-Corporate-Tax-Law.pdf",
+    "https://tax.gov.ae/Datafolder/Files/Legislation/FTA%20Decision%20No.%203%20of%202024%20on%20Registration%20Timeline%20for%20Corporate%20Tax%20-%20For%20publishing.pdf",
+    "https://www.deloitte.com/middle-east/en/services/tax/perspectives/uae-e-invoicing-asp-appointment-deadline-extended-but-go-live-remains-01012027.html"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-23",
+   "gap_kind": "technical"
+  }
+ ],
+ "eval": [
+  {
+   "q_en": "Our revenue is under AED 3 million. Do we still need to register for corporate tax and file a return?",
+   "q_ar": "إيراداتنا أقل من 3 ملايين درهم، هل ما زلنا ملزمين بالتسجيل في ضريبة الشركات وتقديم إقرار؟",
+   "expected_entry_ids": [
+    "accountant:ct-registration-duty",
+    "accountant:ct-small-business-relief",
+    "accountant:ct-return-and-payment-deadline"
+   ]
+  },
+  {
+   "q_en": "Our year ends 31 December 2026. When is the corporate tax return due?",
+   "q_ar": "تنتهي سنتنا المالية في 31 ديسمبر 2026، متى يستحق إقرار ضريبة الشركات؟",
+   "expected_entry_ids": [
+    "accountant:ct-return-and-payment-deadline",
+    "accountant:tax-calendar"
+   ]
+  },
+  {
+   "q_en": "Until when can we claim Small Business Relief?",
+   "q_ar": "حتى متى يمكننا طلب إعفاء الأعمال الصغيرة؟",
+   "expected_entry_ids": [
+    "accountant:ct-small-business-relief"
+   ]
+  },
+  {
+   "q_en": "When must QuotesDone register for VAT?",
+   "q_ar": "متى يجب على كوتس دن التسجيل في ضريبة القيمة المضافة؟",
+   "expected_entry_ids": [
+    "accountant:vat-registration-thresholds",
+    "accountant:vat-threshold-monitor-method"
+   ]
+  },
+  {
+   "q_en": "Should the VAT on our Google and hosting invoices go to a VAT receivable account?",
+   "q_ar": "هل تُقيَّد ضريبة القيمة المضافة على فواتير جوجل والاستضافة في حساب ضريبة مستردة؟",
+   "expected_entry_ids": [
+    "accountant:vat-unregistered-input-tax"
+   ]
+  },
+  {
+   "q_en": "Is the value of supplier quotations part of our turnover for the VAT threshold?",
+   "q_ar": "هل تدخل قيمة عروض الموردين ضمن حجم أعمالنا لحد التسجيل؟",
+   "expected_entry_ids": [
+    "accountant:vat-marketplace-supply-base",
+    "accountant:principal-vs-agent"
+   ]
+  },
+  {
+   "q_en": "When do we have to issue e-invoices?",
+   "q_ar": "متى يجب علينا إصدار الفواتير الإلكترونية؟",
+   "expected_entry_ids": [
+    "accountant:einvoicing-roadmap"
+   ]
+  },
+  {
+   "q_en": "When do we recognise revenue for a reveal fee versus an annual subscription?",
+   "q_ar": "متى نعترف بإيراد رسم الكشف مقارنة بالاشتراك السنوي؟",
+   "expected_entry_ids": [
+    "accountant:revenue-five-step",
+    "accountant:deferred-revenue"
+   ]
+  },
+  {
+   "q_en": "We paid USD 1,200 for a yearly SaaS plan. How do we book it?",
+   "q_ar": "دفعنا 1,200 دولار لاشتراك برمجي سنوي، كيف نقيّده؟",
+   "expected_entry_ids": [
+    "accountant:prepayments-annual-subscriptions",
+    "accountant:foreign-currency-expenses"
+   ]
+  },
+  {
+   "q_en": "The founder transferred AED 5,000 into the company account. Is it revenue, a loan or capital?",
+   "q_ar": "حوّل المؤسس 5,000 درهم إلى حساب الشركة، هل هي إيراد أم قرض أم رأس مال؟",
+   "expected_entry_ids": [
+    "accountant:capital-vs-loan-iban",
+    "accountant:ct-related-parties-founder"
+   ]
+  },
+  {
+   "q_en": "Stripe paid us less than the customer paid. How do we record revenue and fees?",
+   "q_ar": "دفعت لنا سترايب أقل مما دفعه العميل، كيف نسجل الإيراد والرسوم؟",
+   "expected_entry_ids": [
+    "accountant:stripe-fees-accounting",
+    "accountant:stripe-balance-transactions"
+   ]
+  },
+  {
+   "q_en": "A customer opened a chargeback. What happens to the money and what must we do?",
+   "q_ar": "فتح عميل نزاعاً على الدفعة، ماذا يحدث للمال وما المطلوب منا؟",
+   "expected_entry_ids": [
+    "accountant:stripe-disputes-lifecycle",
+    "accountant:refund-abuse-and-internal-controls"
+   ]
+  },
+  {
+   "q_en": "A refund failed. What now?",
+   "q_ar": "فشل استرداد، ماذا نفعل الآن؟",
+   "expected_entry_ids": [
+    "accountant:stripe-refunds-accounting"
+   ]
+  },
+  {
+   "q_en": "How do we reconcile Stripe payouts to the Mashreq statement?",
+   "q_ar": "كيف نسوّي دفعات سترايب مع كشف المشرق؟",
+   "expected_entry_ids": [
+    "accountant:stripe-payout-reconciliation",
+    "accountant:bank-reconciliation-full"
+   ]
+  },
+  {
+   "q_en": "Can someone post an expense into August after we closed August?",
+   "q_ar": "هل يمكن قيد مصروف في أغسطس بعد إقفاله؟",
+   "expected_entry_ids": [
+    "accountant:period-lock",
+    "accountant:period-close-checklist"
+   ]
+  },
+  {
+   "q_en": "How do we detect suppliers and buyers dealing off-platform to avoid our fees?",
+   "q_ar": "كيف نكتشف تعامل الموردين والمشترين خارج المنصة لتجنب رسومنا؟",
+   "expected_entry_ids": [
+    "accountant:fee-circumvention-detection",
+    "accountant:fraud-case-handling"
+   ]
+  },
+  {
+   "q_en": "How do we find duplicate accounts created by the same company?",
+   "q_ar": "كيف نكتشف الحسابات المكررة التي تنشئها الشركة نفسها؟",
+   "expected_entry_ids": [
+    "accountant:duplicate-account-detection"
+   ]
+  },
+  {
+   "q_en": "The UN sanctions list was updated today. What must we do and by when?",
+   "q_ar": "حُدّثت قائمة عقوبات الأمم المتحدة اليوم، ما المطلوب ومتى؟",
+   "expected_entry_ids": [
+    "accountant:tfs-sanctions-obligations",
+    "accountant:sanctions-rescreening-duty"
+   ]
+  },
+  {
+   "q_en": "A supplier owner partially matches a sanctions list name. How do we handle it?",
+   "q_ar": "تطابق اسم مالك مورد جزئياً مع قائمة عقوبات، كيف نتصرف؟",
+   "expected_entry_ids": [
+    "accountant:sanctions-match-disposition",
+    "accountant:tfs-sanctions-obligations"
+   ]
+  },
+  {
+   "q_en": "Who is the beneficial owner of a supplier and why do we screen them?",
+   "q_ar": "من هو المستفيد الحقيقي للمورد ولماذا نفحصه؟",
+   "expected_entry_ids": [
+    "accountant:ubo-rules-uae",
+    "accountant:ubo-rescreening-counterparties"
+   ]
+  },
+  {
+   "q_en": "What goes into the weekly finance report to the CEO?",
+   "q_ar": "ما محتوى التقرير المالي الأسبوعي للرئيس التنفيذي؟",
+   "expected_entry_ids": [
+    "accountant:weekly-report-to-ceo",
+    "accountant:cash-position-and-runway"
+   ]
+  },
+  {
+   "q_en": "How should we classify a Meta ads charge versus a Google Workspace charge?",
+   "q_ar": "كيف نصنّف رسوم إعلانات ميتا مقارنة برسوم Google Workspace؟",
+   "expected_entry_ids": [
+    "accountant:expense-classification-by-reasoning",
+    "accountant:chart-of-accounts",
+    "accountant:ad-spend-accounting"
+   ]
+  },
+  {
+   "q_en": "What is the late filing penalty for corporate tax?",
+   "q_ar": "ما غرامة التأخر في تقديم إقرار ضريبة الشركات؟",
+   "expected_entry_ids": [
+    "accountant:knowledge-limits-and-sources",
+    "accountant:ct-return-and-payment-deadline"
+   ]
+  },
+  {
+   "q_en": "Is our take rate calculated on revenue or cash collected?",
+   "q_ar": "هل تُحسب نسبة الاقتطاع على الإيراد أم النقد المحصل؟",
+   "expected_entry_ids": [
+    "accountant:unit-economics-inputs",
+    "accountant:principal-vs-agent"
+   ]
+  }
+ ],
+ "verified": {
+  "fetched_urls": 30,
+  "claims_checked": 138,
+  "corrected": [
+   "accountant:ct-return-and-payment-deadline",
+   "accountant:ct-registration-duty",
+   "accountant:einvoicing-roadmap",
+   "accountant:ubo-rules-uae",
+   "accountant:ct-taxable-income-bridge",
+   "accountant:audit-trail-standard",
+   "accountant:knowledge-limits-and-sources"
+  ],
+  "removed": [],
+  "still_unverified": [],
+  "not_established_entries": [
+   "accountant:principal-vs-agent:technical",
+   "accountant:audit-trail-standard:technical",
+   "accountant:financial-statements-pack:technical",
+   "accountant:tfs-sanctions-obligations:technical",
+   "accountant:knowledge-limits-and-sources:technical"
+  ],
+  "s2b": {
+   "date": "2026-09-23",
+   "entries_checked": 50,
+   "claims_checked": 80,
+   "corrected": [
+    "accountant:ct-taxable-income-bridge",
+    "accountant:audit-trail-standard",
+    "accountant:knowledge-limits-and-sources"
+   ],
+   "sources_added": [
+    "accountant:ifrs-for-smes-framework",
+    "accountant:principal-vs-agent",
+    "accountant:financial-statements-pack",
+    "accountant:foreign-currency-expenses",
+    "accountant:receivables-and-collections",
+    "accountant:fraud-concepts-triangle",
+    "accountant:tfs-sanctions-obligations",
+    "accountant:sanctions-match-disposition",
+    "accountant:glossary-accounting-uae"
+   ]
+  },
+  "note": "S2 pass 23 Sep 2026: primary texts fetched this pass - Cabinet Decision 75/2023 (CT penalties), FTA Decision 3/2024 (CT registration), Cabinet Decision 109/2023 (UBO), FTA VAT registration page, MoF SBR extension (MD 131 via Zawya press release), Deloitte/KPMG e-invoicing. Other entries rely on sources fetched in the build session (src.js). Marked not established: CT late-registration AED 10,000 (reported), UBO penalty amounts, e-invoicing 14-day rule, e-invoicing scope for non-VAT-registered persons. | S2b pass 23 Sep 2026: every entry outside the S2 UAE-law set re-checked claim by claim against fetched sources (IFRS Foundation pages and SME educational modules, EY on the 2025 SMEs edition, Stripe docs and UAE pricing, ACFE Fraud 101 and Fraud Tree, EOCN TFS page, CT Law consolidated text, a16z, Gurley, NFX, Skok, Graham, Andreessen, Commoncog, Bezos 2015 and 2016 letters, HBR, NIST, OECD, COSO, What Matters, Wikipedia method pages, YC SAFE). Remaining not-established technical claims are stated inside the entries (principal/agent indicator list, statutory audit duty, AML reporting-entity status, VAT retention)."
+ }
+}
