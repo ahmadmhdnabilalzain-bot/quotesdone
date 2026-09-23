@@ -8,17 +8,21 @@
 // is built from that table on every message, never from a copy of it.
 //
 // THE EXACT-TRADE RULE (founder, 14 Sep 2026): "either exact match or no match", and "our categories are
-// not finalized ... he is welcomed". So a trade is claimed only when the question names one of its own
-// labels or aliases, the reply says a request goes only to suppliers of that exact trade, and every list
-// ends by welcoming a trade that is not on it. A question that names nothing we match is NOT answered
-// here ("do you do catering" falls through to the FAQ and then the courteous fallback) — guessing that a
-// word is a trade we lack would be the same fuzzy match the rule forbids, in the other direction.
+// not finalized ... he is welcomed". A trade is claimed only when the REASONED meaning names it
+// (trade:<code>, one of the live rows), the reply says a request goes only to suppliers of that exact trade,
+// and every list ends by welcoming a trade that is not on it.
 //
-// Pure: no network, no database. index.ts reads the rows; coverage.test.ts drives this with fixtures.
-import { type Lang, newRequestUrl, norm, siteUrl } from './menu.ts';
+// WHAT THE QUESTION ASKS IS REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903). Until today
+// EN/AR regexes decided "is this a coverage question" and the longest label substring decided which trade
+// was named ("do you do outdoor events" had to be kept away from "doors" by hand). The meaning now arrives
+// from think() (_shared/reasoned_channels.ts whatsappOptions); a trade we do not list (coverage:other) gets
+// the list and the welcome, which a word match could never tell apart from a word that is not a trade.
+//
+// Pure: no network, no database. index.ts reads the rows; menu_flow.test.ts drives this with fixtures.
+import { type Lang, newRequestUrl, siteUrl } from './menu.ts';
+import { COVERAGE_LIST, COVERAGE_OTHER } from '../_shared/reasoned_channels.ts';
 
 export type Trade = { code: string; label: string; label_ar: string | null; aliases: string[] | null };
-export type CoverageIntent = { kind: 'list' } | { kind: 'trade' };
 
 // Grouping is presentation only. A code not named here (a trade a supplier registered tomorrow) is still
 // listed, under "other trades", so the answer can never fall behind the table.
@@ -39,57 +43,6 @@ const GROUPS: Array<{ en: string; ar: string; codes: string[] }> = [
 ];
 const OTHER = { en: 'Other trades', ar: 'تخصصات أخرى' };
 
-// Written against norm(): lower case, alef/ya/ta-marbuta folded, punctuation collapsed to spaces.
-const EN_TOPIC = /\b(sectors?|trades?|categor(?:y|ies)|industr(?:y|ies)|speciali[sz]ations?|specialt(?:y|ies)|fields|services|(?:kinds?|types?) of (?:work|jobs?))\b/;
-const EN_ASK = /\b(cover|covers|covered|covering|coverage|offer|support|serve|handle|provide|which|what|list|available)\b/;
-const EN_MONEY = /\b(fees?|price|prices|pricing|cost|costs|pay|paid|charges?|commission|subscription)\b/;
-const EN_TRADE_ASK = /\b(do|does|can|could|are|is)\s+(you|u|quotesdone|your\s+(?:suppliers?|platform|team))\b|\byou\s+(cover|do|handle|offer|support|serve)\b/;
-const AR_TOPIC = /(قطاع|تخصص|فئات|فئه|مجالات|انشطه|نشاطات|خدمات)/;
-const AR_ASK = /(تغط|يغط|نغط|تخدم|يخدم|تقدم|تشمل|يشمل|تتعامل|ما هي|ما هو|ماهي|ايش|شو |وش |اي )/;
-const AR_MONEY = /(رسوم|سعر|اسعار|تكلف|دفع|عموله|اشتراك)/;
-const AR_TRADE_ASK = /(^| )هل /;
-const LATIN = /^[a-z0-9]/;
-
-function esc(s: string) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-// The article (and a joined و / ب / ل / ف before it) drops from every Arabic word, on both sides:
-// the alias "تنسيق حدائق" must meet "تنسيق الحدائق" as people write it.
-function noArticle(s: string) { return s.replace(/(^| )[وبلف]?ال(?=[؀-ۿ]{2})/g, '$1'); }
-
-/** The trade the text names, by its own label or alias — the longest name wins — or null. */
-export function tradeNamed(text: string, trades: Trade[]): Trade | null {
-  const t = ' ' + noArticle(norm(text)) + ' ';
-  let best: Trade | null = null; let bestLen = 0;
-  for (const tr of trades) {
-    for (const raw of [tr.label, tr.label_ar || '', ...(tr.aliases || [])]) {
-      const n = noArticle(norm(raw));
-      if (n.length < 3 || n.length <= bestLen) continue;
-      // A Latin name must stand as a word ("door" is not in "outdoor"); an Arabic one may carry a prefix
-      // (ال, و, ب) and a suffix, as Arabic words do.
-      const hit = LATIN.test(n) ? new RegExp('[^a-z0-9]' + esc(n) + '(?:s|es)?[^a-z0-9]').test(t) : t.includes(n);
-      if (hit) { best = tr; bestLen = n.length; }
-    }
-  }
-  return best;
-}
-
-/** Is this a coverage question? A named trade is asked about ("do you do MEP"); a list is asked for. */
-export function coverageIntent(text: string, trades: Trade[] = []): CoverageIntent | null {
-  const n = norm(text);
-  if (!n) return null;
-  const ar = /[؀-ۿ]/.test(n);
-  // A fee question that names a trade ("do you charge suppliers for marble") is a fee question.
-  if (ar ? AR_MONEY.test(n) : EN_MONEY.test(n)) return null;
-  if ((ar ? AR_TRADE_ASK : EN_TRADE_ASK).test(n) && tradeNamed(n, trades)) return { kind: 'trade' };
-  if (ar ? (AR_TOPIC.test(n) && AR_ASK.test(n)) : (EN_TOPIC.test(n) && EN_ASK.test(n))) return { kind: 'list' };
-  return null;
-}
-
-/** True when the text could be a coverage question at all, before any row is read. */
-export function mightBeCoverage(text: string): boolean {
-  const n = norm(text);
-  return EN_TOPIC.test(n) || EN_TRADE_ASK.test(n) || AR_TOPIC.test(n) || AR_TRADE_ASK.test(n);
-}
-
 function label(t: Trade, lang: Lang) { return lang === 'ar' ? (t.label_ar || t.label) : t.label; }
 
 /** The grouped list, in the table's own order within each group. */
@@ -105,15 +58,16 @@ export function groupedTrades(trades: Trade[], lang: Lang): Array<{ title: strin
   return out;
 }
 
-/** The reply, or null when the text is not a coverage question (or no trade row could be read). */
-export function coverageReply(text: string, trades: Trade[], lang: Lang): string | null {
+/** The reply to a REASONED coverage question (_shared/reasoned_channels.ts whatsappOptions): the list for
+ *  coverage:list / coverage:other, the one trade for trade:<code>. Null for any other meaning, or no trade row. */
+export function coverageReply(meaning: string, trades: Trade[], lang: Lang): string | null {
   if (!trades.length) return null;
-  const intent = coverageIntent(text, trades);
-  if (!intent) return null;
+  const named = meaning.startsWith('trade:') ? trades.find((t) => 'trade:' + t.code === meaning) ?? null : null;
+  if (!named && meaning !== COVERAGE_LIST && meaning !== COVERAGE_OTHER && !meaning.startsWith('trade:')) return null;
   const ar = lang === 'ar';
   const newReq = newRequestUrl(lang);
-  if (intent.kind === 'trade') {
-    const t = tradeNamed(text, trades)!;
+  if (named) {
+    const t = named;
     return ar
       ? 'نعم، ' + label(t, 'ar') + ' من التخصصات التي نطابق طلبات عروض الأسعار معها. تفضلوا بوصف العمل المطلوب عبر الرابط التالي، وسنرسل طلبكم إلى موردي هذا التخصص وحدهم:\n' + newReq
       : 'Yes, ' + t.label + ' is one of the trades we match quotation requests to. Describe the job here and it will go only to suppliers of that trade:\n' + newReq;

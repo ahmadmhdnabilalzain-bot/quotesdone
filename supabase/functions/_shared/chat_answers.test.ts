@@ -1,7 +1,7 @@
 // The one runnable check for chat_answers.ts: the three public questions and the scaffolding case
 // from the 21 Sep 2026 audit, EN and AR. `deno test supabase/functions/_shared/chat_answers.test.ts`.
 import { assertEquals, assert } from 'jsr:@std/assert@1';
-import { routeQuestion, pickFaq, quoteAnswer, onTopic, notYet, langOf } from './chat_answers.ts';
+import { pickFaq, quoteAnswer, onTopic, notYet, langOf } from './chat_answers.ts';
 
 const FAQS = [
   { id: 13, question: 'How many suppliers receive my RFQ?', answer: 'a handful' },
@@ -14,13 +14,9 @@ const FAQS = [
   { id: 903, question: 'كم يستغرق الحصول على عروض الأسعار؟', answer: '3 إلى 5 أيام عمل' },
 ];
 
-Deno.test('the three public questions route to the FAQ that asks them, EN and AR', () => {
-  assertEquals(routeQuestion('how many quotes will I get?'), 'count');
-  assertEquals(routeQuestion('what does it cost?'), 'cost');
-  assertEquals(routeQuestion('how long until I receive quotes?'), 'timeline');
-  assertEquals(routeQuestion('كم عدد عروض الأسعار التي سأحصل عليها؟'), 'count');
-  assertEquals(routeQuestion('كم تكلفة الخدمة؟'), 'cost');
-  assertEquals(routeQuestion('كم يستغرق الحصول على عروض الأسعار؟'), 'timeline');
+// Which of the three a question IS is reasoned by the caller (reasoned_channels.ts, 23 Sep 2026); what is pinned
+// here is that each type is answered by the FAQ whose QUESTION it is, in the asker's language and side.
+Deno.test('each of the three public questions is answered by the FAQ that asks it, EN and AR', () => {
   assertEquals(pickFaq('count', 'en', FAQS)?.id, 13);
   assertEquals(pickFaq('cost', 'en', FAQS)?.id, 30);
   assertEquals(pickFaq('timeline', 'en', FAQS)?.id, 26);
@@ -28,22 +24,7 @@ Deno.test('the three public questions route to the FAQ that asks them, EN and AR
   assertEquals(pickFaq('cost', 'ar', FAQS)?.id, 609);
   assertEquals(pickFaq('timeline', 'ar', FAQS)?.id, 903);
   assertEquals(pickFaq('count', 'en', FAQS, 'supplier')?.id, 43);
-  // a per-trade price question belongs to the price guide, not the fee FAQ
-  assertEquals(routeQuestion('what should a gypsum false ceiling cost per sqm in Dubai'), null);
-  assertEquals(routeQuestion('كم تكلفة السقف الجبسي للمتر المربع في دبي'), null);
-  // nothing else is routed
-  assertEquals(routeQuestion('does a Dubai supplier cover Abu Dhabi as well'), null);
-  // review of PR #783: a fee / duration question about something else is NOT ours to answer
-  for (const q of ['what is the parking fee at Dubai Mall', 'how long is a football match',
-    'كم رسوم ركن السيارة في دبي مول؟', 'كم يستغرق مباراة كرة القدم؟', 'كم تستغرق مباراة كرة القدم؟']) {
-    assertEquals(routeQuestion(q), null, q);
-    assertEquals(pickFaq(routeQuestion(q), langOf(q), FAQS), null, q);
-  }
-  // …while the same words about us still are
-  assertEquals(routeQuestion('what are your fees?'), 'cost');
-  assertEquals(routeQuestion('is the service free?'), 'cost');
-  assertEquals(routeQuestion('how long does a supplier take to quote?'), 'timeline');
-  assertEquals(routeQuestion('هل المنصة مجانية؟'), 'cost');
+  assertEquals(pickFaq(null, 'en', FAQS), null, 'no reasoned type, no canned answer');
 });
 
 const QUOTE = {

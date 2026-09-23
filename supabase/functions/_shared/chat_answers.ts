@@ -7,7 +7,7 @@
 // and the portal chat answered a question about the customer's OWN quote's exclusion line with
 // five unrelated FAQs. There is no model (OpenRouter is held), so both surfaces answer by lexemes:
 //
-//   1. routeQuestion   — count / cost / timeline by the words the asker used, EN and AR;
+//   1. the question type — count / cost / timeline, REASONED by the caller (reasoned_channels.ts);
 //   2. pickFaq         — the approved FAQ whose QUESTION is that question, in the asker's language;
 //   3. quoteAnswer     — a question about a specific quote is answered from that quote's own
 //                        fields (exclusions, scope, warranty, …), never from a corpus;
@@ -72,42 +72,11 @@ export function shared(question: string, passage: string): number {
 export const onTopic = (question: string, passage: string): boolean => shared(question, passage) > 0;
 
 // ── 1. QUESTION TYPE ─────────────────────────────────────────────────────────────────────────
-// The three question types the audit measured wrong, decided by the asker's own words. Cost wins
-// over count when both appear ("how much for 3 quotes" is a cost question); a per-trade price
-// question ("what does gypsum cost per sqm") is NOT routed here — it names a trade, and the price
-// guide owns it.
-const COUNT_RE = /\b(how many)\b|كم عدد|عدد (العروض|عروض|الموردين|موردين)/i;
-const COST_RE = /\b(what does it cost|how much (does|is|do)( it| this| the service| quotesdone| you)?( cost| charge)?|is (it|this|the service|the platform|quotesdone) free|any (fee|charge)s?|fees?|charges?|commission|pricing)\b|كم (تكلفة|تكلف|سعر) (الخدمة|المنصة|الاستخدام|استخدام)|هل (هي|هو|الخدمة|المنصة)? ?مجان|رسوم|عمولة|تكلفة الخدمة|تكلفة المنصة/i;
-const TIMELINE_RE = /\b(how long|how soon|how fast|how quickly|when (do|will|can) i (get|receive|see)|turnaround|time ?frame|timeline|within how)\b|كم يستغرق|كم من الوقت|متى (أحصل|سأحصل|تصل|ستصل|يصل|أستلم|سأستلم)|خلال كم/i;
-const TRADE_PRICE_RE = /\b(per (sqm|sq ?m|square|sqft|metre|meter|unit|piece|kg|ton|tonne)|cost of (a|an|the)? ?[a-z]+ (ceiling|wall|floor|door|window|paint|tile|install)|price (of|for) (a|an|the)? ?[a-z]+)\b|للمتر|المتر المربع|سعر (السقف|الجبس|الدهان|البلاط|الأرضيات|التركيب)/i;
-
-// ABOUT US OR NOT ROUTED (review of PR #783, 21 Sep 2026). "fee" / "how long" alone matched
-// "what is the parking fee at Dubai Mall" to the platform-fee FAQ and "how long is a football match"
-// to the timeline FAQ — the unrelated-FAQ defect again. A routed question must either name
-// QuotesDone's own subject (quote, supplier, request, reveal, platform, service, … EN + AR) or carry
-// no substantive word beyond the question-type vocabulary itself ("what does it cost?" asked on our
-// widget is about us). Anything else falls through to the corpus and its own on-topic gates.
-const ANCHOR_RE = /quot(e|es|ation|ations|ing)\b|quotesdone|supplier|vendor|contractor|\brfqs?\b|request|inquir|enquir|reveal|platform|service|marketplace|your (site|app|website|company)|you charge|عرض|عروض|مورد|طلب|كشف|منص|خدم|كوتس/i;
-const TYPE_VOCAB = new Set([
-  ...words('cost costs costing fee fees charge charges charged commission pricing price prices free paid pay payment much long soon fast quickly quick turnaround time timeframe frame timeline take takes taking receive until expect usually typically many number count'),
-  ...words('تكلفة تكلف التكلفة سعر السعر رسوم الرسوم عمولة مجانية مجاني مجانا يستغرق تستغرق وقت الوقت أحصل سأحصل الحصول تصل ستصل يصل أستلم سأستلم استلام عدد خلال'),
-]);
-export function aboutUs(message: string): boolean {
-  if (ANCHOR_RE.test(message)) return true;
-  for (const w of words(message)) if (!TYPE_VOCAB.has(w)) return false;
-  return true;
-}
-
-export function routeQuestion(message: string): QuestionType {
-  const m = String(message || '');
-  if (TRADE_PRICE_RE.test(m)) return null;
-  if (!aboutUs(m)) return null;
-  if (COST_RE.test(m)) return 'cost';
-  if (COUNT_RE.test(m)) return 'count';
-  if (TIMELINE_RE.test(m)) return 'timeline';
-  return null;
-}
-
+// REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903). COUNT_RE / COST_RE / TIMELINE_RE /
+// TRADE_PRICE_RE and the ANCHOR_RE "about us" gate decided which of these three a message was; every one
+// of them was a word list ("fee" alone once sent "the parking fee at Dubai Mall" to the platform-fee FAQ).
+// The type is now the caller's reasoned choice (_shared/reasoned_channels.ts: siteQuestion for the widget,
+// socialMeaning's faq:<type> for social), and pickFaq below answers it.
 // ── 2. THE FAQ FOR A TYPE ────────────────────────────────────────────────────────────────────
 // Chosen by the FAQ's QUESTION, never by its answer or tags — an answer mentioning "quotes" is what
 // put the refund policy under "how many quotes will I get". Measured rows on 21 Sep 2026:

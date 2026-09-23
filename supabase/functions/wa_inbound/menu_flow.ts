@@ -23,8 +23,8 @@ import {
   type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, isGreeting, isMenuWord,
   isSalam, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
-import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
-import { capabilityAnswer, figuresText, type Figures, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
+import { coverageReply, type Trade } from './coverage.ts';
+import { capabilityAnswer, figuresText, type Figures, isFiguresCommand } from './founder_queries.ts';
 
 export type Turn = { route: string | null; await: string | null; lang: Lang | null };
 export type SendResult = { ok: boolean; err?: string };
@@ -39,6 +39,12 @@ export type MenuDeps = {
   context(from: string): Promise<MenuContext>;
   /** fn_faq_answer with the gte-small embedding: a corroborated answer from the approved FAQ, or null. */
   faq(text: string): Promise<string | null>;
+  /** What this message ASKS, reasoned by think() (_shared/reasoned_channels.ts whatsappOptions): 'size',
+   *  'coverage:list', 'trade:<code>', 'intent:<key>', 'none' — or null while it cannot be reasoned (the hold). Once per message. */
+  meaning(text: string): Promise<string | null>;
+  /** Under the hold, when nothing answered the message: its meaning is filed in customer_support's queue, and the
+   *  replay answers it on WhatsApp (_shared/reasoned_delivery.ts). */
+  queueMeaning(text: string): Promise<void>;
   /** public.taxonomy_trade, active rows in table order: the list fn_match_capability matches on. */
   trades(): Promise<Trade[]>;
   /** fn_support_knowledge_gap: the unanswered question is filed for the team. False if it could not be. */
@@ -85,14 +91,12 @@ async function reply(d: MenuDeps, inp: MenuInput, lang: Lang, route: string, tex
                    send_error: err, extra: { ...extra, via, autoreply_enabled: enabled } });
 }
 
-/** A question's answer: coverage from the live trade list first (it has an exact answer), then the
- *  approved FAQ. Null when neither has a confident one. */
+/** A question's answer: a REASONED coverage question from the live trade list first (it has an exact answer),
+ *  then the approved FAQ. Null when neither has a confident one. */
 async function answerOf(d: MenuDeps, text: string): Promise<string | null> {
-  if (mightBeCoverage(text)) {
-    const cov = coverageReply(text, await d.trades(), langOf(text));
-    if (cov) return cov;
-  }
-  return d.faq(text);
+  const meaning = await d.meaning(text);
+  const cov = meaning ? coverageReply(meaning, await d.trades(), langOf(text)) : null;
+  return cov ?? d.faq(text);
 }
 
 async function sendMenu(d: MenuDeps, inp: MenuInput, lang: Lang, ctx: MenuContext, route: string, lead: string | null,
@@ -166,7 +170,9 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   // 0c. A question about our size or volumes, from ANY number, the founder's included (instruction 777):
   //     what we do, never a number. Taken before every other handler so no FAQ row, fn_wa_route intent
   //     or model can answer it with a count. The command word from anyone but the founder lands here too.
-  if (isSizeQuestion(body) || isFiguresCommand(body)) {
+  //     Whether it IS a size question is reasoned (think(), 23 Sep 2026), never matched; a menu choice is not
+  //     reasoned at all. Held, it is not guessed: the message goes on, and is answered on replay if unanswered.
+  if (isFiguresCommand(body) || (!choice && (await d.meaning(body)) === 'size')) {
     await reply(d, inp, lang, 'capability_answer', capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
     return { handled: true, route: 'capability_answer' };
   }
@@ -253,6 +259,8 @@ export async function founderUnanswered(d: MenuDeps, inp: MenuInput, reason: str
 export async function unanswered(d: MenuDeps, inp: MenuInput, reason: string): Promise<void> {
   const body = String(inp.body || '').trim();
   const recorded = body ? await d.recordGap(body, reason) : false;
+  // Unreasoned (the hold) is not unanswerable: the meaning waits in the queue and the replay answers it here.
+  if (body && (await d.meaning(body)) === null) await d.queueMeaning(body);
   const lang = langOf(body);
   await sendMenu(d, inp, lang, { audience: inp.audience, name: null }, 'menu_reoffer', sorryLead(lang, recorded),
     { unanswered_reason: reason, gap_recorded: recorded });

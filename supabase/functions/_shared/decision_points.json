@@ -163,74 +163,288 @@
   {
    "id": "wa_inbound.intent_table",
    "order": 7,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "scripts/sql/handing_to_a_person_is_giving_the_number_because_there_is_one_person.sql",
-   "decides": "fn_wa_answer: body tokens vs wa_reply_intent.match_patterns pick the deterministic intent (incl. contact_human)"
+   "decides": "fn_wa_answer: body tokens vs wa_reply_intent.match_patterns pick the deterministic intent (incl. contact_human)",
+   "held": "p_intent is null: fn_wa_answer answers nothing from the intent table and logs the message as held, never matched. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay calls fn_wa_answer with the reasoned intent; a request for a person is delivered by wa_inbound.needs_a_person, never twice.",
+   "proof": [
+    {
+     "file": "scripts/sql/whatsapp_answers_the_intent_that_was_reasoned_not_the_words_it_matched.sql",
+     "must_contain": [
+      "where active and intent_key = p_intent",
+      "public.fn_wa_answer(p_phone, coalesce(p_body, '(voice note)'), p_intent)",
+      "drop function if exists public.fn_wa_answer(text, text);"
+     ],
+     "must_not_contain": [
+      "foreach v_pat in array i.match_patterns",
+      "match_patterns"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "whatsappMeaning(defaultDeps(admin, 'wa_inbound')",
+      "p_intent: intent"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'wa_inbound.intent_table'",
+      "await io.waIntentReply(phone, question, choice.slice(7))"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.coverage_intent",
    "order": 8,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/coverage.ts",
-   "decides": "coverageIntent/mightBeCoverage: EN/AR regexes decide a coverage question and skip the model"
+   "decides": "coverageIntent/mightBeCoverage: EN/AR regexes decide a coverage question and skip the model",
+   "held": "A coverage question is not recognised by words while held: the list is not sent on a guess. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay builds the list from the live taxonomy_trade rows (coverageReply).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/coverage.ts",
+     "must_contain": [
+      "export function coverageReply(meaning: string, trades: Trade[], lang: Lang)"
+     ],
+     "must_not_contain": [
+      "EN_TOPIC",
+      "AR_TOPIC",
+      "function mightBeCoverage",
+      "function coverageIntent"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "coverageReply(meaning, await d.trades(), langOf(text))"
+     ],
+     "must_not_contain": [
+      "mightBeCoverage("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "{ id: COVERAGE_LIST, meaning:"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.trade_named",
    "order": 9,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/coverage.ts",
-   "decides": "tradeNamed: longest label substring decides covered / not covered"
+   "decides": "tradeNamed: longest label substring decides covered / not covered",
+   "held": "No trade is claimed while held (the exact-trade rule): no label substring is read. Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). The replay answers the reasoned trade:<code> from the live row, or the list and the welcome for a trade we do not list (coverage:other).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/coverage.ts",
+     "must_contain": [
+      "trades.find((t) => 'trade:' + t.code === meaning)"
+     ],
+     "must_not_contain": [
+      "function tradeNamed",
+      "noArticle(",
+      "tradeNamed("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "id: 'trade:' + t.code"
+     ]
+    }
+   ]
   },
   {
    "id": "shared.size_question",
    "order": 10,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/size_question.ts",
-   "decides": "isSizeQuestion: a canned capability statement pre-empts every other handler"
+   "decides": "isSizeQuestion: a canned capability statement pre-empts every other handler",
+   "held": "A size question is not guessed to be one: no surface sends the capability statement on a word. WhatsApp: Held (the model hold): nothing is guessed. WhatsApp answers from what needs no meaning (the approved FAQ, then the courteous line and the menu, the question filed as a knowledge gap), then files the meaning in customer_support's queue (queueWhatsAppMeaning); the replay sends the reasoned answer on WhatsApp — free text in the 24-hour window, the support_reply template outside it (reasoned_delivery.ts, wa_inbound.intent_table). Social: the honest unknown goes and the meaning waits in the marketing queue (replay: the statement on the platform). Widget: nothing is queued (an anonymous visitor cannot be answered later); the widget's own path answers or files a knowledge gap.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/size_question.ts",
+     "must_contain": [
+      "export function capabilityStatement(lang: Lang)"
+     ],
+     "must_not_contain": [
+      "EN_ABOUT_US",
+      "function isSizeQuestion",
+      "AR_SUBJECT"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "(await d.meaning(body)) === 'size'"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "if (asked === 'size')"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "if (m === 'size')"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion("
+     ]
+    }
+   ]
   },
   {
    "id": "shared.route_question",
    "order": 11,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/_shared/chat_answers.ts",
-   "decides": "routeQuestion COST/COUNT/TIMELINE/TRADE_PRICE regexes pick a canned FAQ as the final answer (site widget, social)"
+   "decides": "routeQuestion COST/COUNT/TIMELINE/TRADE_PRICE regexes pick a canned FAQ as the final answer (site widget, social)",
+   "held": "No canned FAQ is chosen on a word. Widget: siteQuestion is held and never queued (no channel to answer an anonymous visitor later); the widget's own path (price guide, corpus, gateway) answers or files the question as a knowledge gap. Social: the honest unknown goes and the meaning (faq:<type>) waits in the marketing queue; the replay sends the FAQ on the platform.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/chat_answers.ts",
+     "must_contain": [
+      "export function pickFaq("
+     ],
+     "must_not_contain": [
+      "COST_RE",
+      "COUNT_RE",
+      "TIMELINE_RE",
+      "function routeQuestion",
+      "ANCHOR_RE"
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "siteQuestion(defaultDeps(admin, 'site_assistant')"
+     ],
+     "must_not_contain": [
+      "routeQuestion("
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "pickFaq(m.slice(4) as QuestionType, lang, faqs)"
+     ],
+     "must_not_contain": [
+      "routeQuestion("
+     ]
+    }
+   ]
   },
   {
    "id": "marketing_social.library_match",
    "order": 12,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "high",
    "where": "supabase/functions/marketing_social_inbox/reply.ts",
-   "decides": "matchLibrary: match_words substrings pick a standard public reply"
+   "decides": "matchLibrary: match_words substrings pick a standard public reply",
+   "held": "No standard reply is picked on a word: the honest unknown library reply goes now (the gap recorded, a person offered) and the meaning waits in the marketing seat's queue with the retrieved passages on the row; the replay sends the reasoned library / FAQ / passage reply on the platform, inside Meta's window, once (marketing_social_inbox reasoned_reply). A public comment is never queued; the comment policy owns it.",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "'lib:' + r.key === m"
+     ],
+     "must_not_contain": [
+      "function matchLibrary",
+      "hay.includes(",
+      "match_words as string[]"
+     ]
+    },
+    {
+     "file": "supabase/functions/marketing_social_inbox/index.ts",
+     "must_contain": [
+      "socialMeaning(deps, {",
+      "j.action === 'reasoned_reply'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "row.surface === 'marketing_social.library_match'",
+      "await io.socialReply(subject, choice)"
+     ]
+    }
+   ]
   },
   {
    "id": "marketing_social.on_topic",
    "order": 13,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "med",
    "where": "supabase/functions/marketing_social_inbox/reply.ts",
-   "decides": "onTopic: a shared word decides a corpus passage answers the question"
+   "decides": "onTopic: a shared word decides a corpus passage answers the question",
+   "held": "No passage is quoted because it shares a word: held, the honest unknown goes and the meaning waits in the marketing queue carrying the exact passages it was reasoned over; the replay quotes the reasoned passage (kb:<n>) on the platform.",
+   "proof": [
+    {
+     "file": "supabase/functions/marketing_social_inbox/reply.ts",
+     "must_contain": [
+      "passages[Number(m.slice(3))]"
+     ],
+     "must_not_contain": [
+      "onTopic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_channels.ts",
+     "must_contain": [
+      "id: 'kb:' + n"
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.audience",
    "order": 14,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "med",
    "where": "supabase/functions/site_assistant/index.ts",
-   "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier"
+   "decides": "SUP_RE/CUS_RE audienceFromText: customer vs supplier",
+   "held": "Held, the audience stays unknown (never guessed from phrases); the prompt's own rule applies: answer what holds for both sides and ask one short question if it matters. A verified session or the page path (a URL format, not meaning) still decides first. Never queued: the visitor is answered now.",
+   "proof": [
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "visitorSide(defaultDeps(admin, 'site_assistant')"
+     ],
+     "must_not_contain": [
+      "SUP_RE",
+      "CUS_RE",
+      "audienceFromText("
+     ]
+    }
+   ]
   },
   {
    "id": "site_assistant.person",

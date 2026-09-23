@@ -1,7 +1,8 @@
 // Recurrence gate for the customer audit of 21 Sep 2026, findings 6, 7, 13 (docs/audits/CHAT_ANSWERS_21_SEP_2026.md).
 // The behaviour itself is replayed by supabase/functions/_shared/chat_answers.test.ts; this file fails if
 // the ORDER that makes it reach a customer is undone:
-//   13  the public widget routes count / cost / timeline by lexemes BEFORE the model key and the gateway,
+//   13  the public widget routes count / cost / timeline (REASONED since 23 Sep 2026: siteQuestion, never lexemes)
+//       BEFORE the model key and the gateway,
 //       so a held ai_gateway (circuit_open) can never again refuse "what does it cost?";
 //    7  the portal chat reads the customer's own quote BEFORE the corpora, drops off-topic passages, and
 //       never prints the raw "[corpus · provenance]" tag;
@@ -15,7 +16,7 @@ const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8')
 
 test('site_assistant answers the routed questions before it reads the model key or calls the gateway', () => {
   const s = read('supabase/functions/site_assistant/index.ts');
-  const route = s.indexOf('routeQuestion(message)');
+  const route = s.indexOf('pickFaq(qType');
   const key = s.indexOf("sec('cred_fn_ai')");
   const gw = s.indexOf('fetch(GATEWAY');
   assert.ok(route > 0 && key > 0 && gw > 0, 'markers missing');

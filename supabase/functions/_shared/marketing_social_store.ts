@@ -3,7 +3,9 @@
 // 'social_comments' (retry sweep, handoff close; YouTube via Postiz when connected — X removed 23 Sep 2026). Every comment read is a row in social_message (direction 'in', with
 // its classification, outcome, who decided and any handoff); every reply is a row (direction 'out') with
 // its send status. Kept forever, like every conversation (founder, 14 Sep).
-import { decide, unknown, type CorpusRow, type LibraryRow } from '../marketing_social_inbox/reply.ts';
+import { decide, passagesFor, unknown, type CorpusRow, type LibraryRow } from '../marketing_social_inbox/reply.ts';
+import { socialMeaning } from './reasoned_channels.ts';
+import { defaultDeps } from './think.ts';
 import type { FaqRow, Lang } from './chat_answers.ts';
 import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
 import { call, hideRequest, replyRequest, type CommentEvent, type Fetch, type Store } from './marketing_social_comments.ts';
@@ -80,7 +82,13 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       const library = ((lib || []) as LibraryRow[]).filter((r) => r.key.startsWith('comment_'));
       // false: whether this commenter wants a person was already REASONED by the caller (needsAPerson) and
       // reached processComment as wantsPerson; this call only picks the answer text.
-      const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, false);
+      // Which grounded answer fits is REASONED (socialMeaning, comment: true — never queued; see there). Held,
+      // the answer text is empty and processComment's own held path applies. No match_words, no shared word.
+      const passages = passagesFor(ev.text, corpus);
+      const meaning = (await socialMeaning(defaultDeps(admin, 'marketing_social_inbox'), {
+        message: ev.text, library, passages, platform: ev.platform, messageId: ev.commentId, userId: ev.authorId, comment: true,
+      })).value;
+      const d = decide(ev.text, library, (faqs || []) as FaqRow[], passages, false, meaning);
       return d.kind === 'unknown' ? { ...unknown(library, d.lang), text: '' } : d;
     },
     async draft(ev, lang: Lang) {

@@ -20,9 +20,11 @@
 //     knowledge gap (fn_support_knowledge_gap) when we cannot answer, and a visibility report to
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, pickFaq, routeQuestion, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, pickFaq, type FaqRow, type QuestionType } from '../_shared/chat_answers.ts';
 import { observe } from '../_shared/observe.ts';
-import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
+import { capabilityStatement } from '../_shared/size_question.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { siteQuestion, visitorSide } from '../_shared/reasoned_channels.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -85,14 +87,9 @@ function audienceFromPath(p: string): 'customer' | 'supplier' | 'unknown' {
   if (/(^|\/)(me|app|customer|my-requests?)(\/|$|\?)/.test(s)) return 'customer';
   return 'unknown';
 }
-const SUP_RE = /(trade licen|register (as|my)|sign ?up as a? ?(supplier|vendor|contractor)|become a supplier|join as a supplier|my company|our company|we supply|we manufacture|we install|receive (jobs|leads|rfq)|get leads|supplier (account|portal|registration|subscription)|as a supplier|i am a supplier|i'?m a supplier|مورد|رخصة تجارية|التسجيل كمورد)/i;
-const CUS_RE = /(i need a (quote|price)|need quotes?|get quotes?|post a job|how much (would|will|does)|price for my|my project|i want to (buy|order|get)|looking for a (supplier|price|quote)|as a customer|i am a customer|أريد عرض سعر|أحتاج عرض|طلب عروض)/i;
-function audienceFromText(t: string): 'customer' | 'supplier' | 'unknown' {
-  const sup = SUP_RE.test(t), cus = CUS_RE.test(t);
-  if (sup && !cus) return 'supplier';
-  if (cus && !sup) return 'customer';
-  return 'unknown';
-}
+// Customer or supplier, from what they WROTE, is reasoned (visitorSide, 23 Sep 2026, founder_instruction
+// 886-903); SUP_RE / CUS_RE, two phrase lists, decided it until then. Held, the audience stays unknown and the
+// prompt's own rule applies: answer what holds for both sides and ask one short question if it matters.
 
 // WHO IS ASKING. Measured on production 13 Aug 2026: the founder, SIGNED IN, ON /me, asked "what
 // is my email registered" and "do i have any inquiries" and was told twice to go and log in. This
@@ -193,8 +190,8 @@ Deno.serve(observe('site_assistant', async (req) => {
     let source = who ? 'session' : (audience !== 'unknown' ? 'path' : 'none');
     if (audience === 'unknown') {
       const blob = history.map((h:any)=>h.content).join(' ') + ' ' + message;
-      audience = audienceFromText(blob);
-      if (audience !== 'unknown') source = 'text';
+      const side = (await visitorSide(defaultDeps(admin, 'site_assistant'), { conversation: blob })).value;
+      if (side === 'customer' || side === 'supplier') { audience = side; source = 'text'; }
     }
 
     // THE LIVE BLOCK. Identical scoping to the WhatsApp channel, because it is the same function:
@@ -272,13 +269,18 @@ Deno.serve(observe('site_assistant', async (req) => {
     // How big are we (instruction 777, 22 Sep 2026): what we do, never a number. Measured before this:
     // "how many suppliers do you have" took the count route to FAQ 13 ("How many suppliers receive my
     // RFQ?") — no count, but not the question asked; "how big are you" reached the model.
-    if (isSizeQuestion(message)) {
+    // WHICH QUESTION IT IS is reasoned (siteQuestion, 23 Sep 2026, founder_instruction 886-903), never matched:
+    // isSizeQuestion's and routeQuestion's regexes are gone. Held (the model hold), nothing is guessed and nothing
+    // is queued (an anonymous visitor cannot be answered later): the widget's own path below answers it from the
+    // price guide or the corpus, or files it as a knowledge gap (fn_support_knowledge_gap).
+    const asked = (await siteQuestion(defaultDeps(admin, 'site_assistant'), { message })).value;
+    if (asked === 'size') {
       const reply = capabilityStatement(langOf(message, uiLang));
       try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
       return J({ reply, scope: live ? audience : 'public', routed: 'capability' });
     }
     {
-      const qType = routeQuestion(message);
+      const qType = (['cost', 'count', 'timeline'].includes(String(asked)) ? asked : null) as QuestionType;
       const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
       if (faq) {
         const reply = String(faq.answer || '').trim();

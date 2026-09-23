@@ -34,9 +34,8 @@ const FIGURES_WORDS = ['figures', 'ارقام', 'الارقام'].map(norm);
 /** The whole message is the command word (any case, punctuation ignored). Nothing else counts. */
 export function isFiguresCommand(text: string): boolean { return FIGURES_WORDS.includes(norm(text)); }
 
-// ---- Rule 1: a question about our size (the detector and the words are shared with the site
-// assistant and the social inbox: _shared/size_question.ts) -------------------------------------------
-export { isSizeQuestion } from '../_shared/size_question.ts';
+// ---- Rule 1: a question about our size. Whether a message IS one is reasoned (think(): the 'size' option
+// of _shared/reasoned_channels.ts), never matched; this is the answer it gets. ------------------------
 
 /** The capability statement, with the MENU hint WhatsApp ends every free-text answer with. No figures. */
 export function capabilityAnswer(lang: Lang): string { return capabilityStatement(lang) + MENU_HINT[lang]; }

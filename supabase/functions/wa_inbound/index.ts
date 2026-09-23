@@ -29,6 +29,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
@@ -570,7 +571,23 @@ async function handleInbound(req: Request): Promise<Response> {
     // Twilio. It runs after the no-exact-spec answer (a "2" there is an answer to that offer) and before
     // the founder's command channel, and it never takes a document (the media branch below owns those).
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
+    // WHAT THE MESSAGE ASKS, reasoned ONCE (23 Sep 2026, founder_instruction 886-903): which intent row, our
+    // size, the trade list or one trade (_shared/reasoned_channels.ts). It replaces fn_wa_answer's
+    // match_patterns, coverage.ts's regexes and isSizeQuestion's. Held (the model hold) it is null: nothing is
+    // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
+    let meaningP: Promise<string | null> | null = null;
+    const meaningIn = async (): Promise<WaMeaningInput> => {
+      const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
+      return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+    };
     const menuDeps: MenuDeps = {
+      meaning: (_text: string) => (meaningP ??= (async () => Body.trim()
+        ? (await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn())).value : null)().catch(() => null)),
+      queueMeaning: async (_text: string) => {
+        try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn()); }
+        catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
+      },
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)
@@ -993,7 +1010,10 @@ async function handleInbound(req: Request): Promise<Response> {
       } catch (_e) { /* visibility must not block the reply */ }
     }
     try {
-      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson });
+      // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
+      const meaning = await menuDeps.meaning(Body);
+      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : 'none';
+      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
 

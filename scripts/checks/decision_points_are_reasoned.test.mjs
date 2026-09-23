@@ -223,7 +223,7 @@ begin
             from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
             ('fn_wa_route', 'fn_ceo_command_submit', 'fn_ceo_command_interpret', 'fn_rfq_required_check', 'fn_reason_retrieve',
              'fn_reason_hold', 'fn_reason_held_due', 'fn_reason_held_resolve', 'fn_reason_propose_knowledge', 'fn_reason_held_delivered')),
-    'service_can', has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean)', 'execute'));
+    'service_can', has_function_privilege('service_role', to_regproc('public.fn_wa_route')::oid, 'execute'));
 
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
@@ -307,4 +307,60 @@ end $p$;`);
   assert.equal(out.with.status, 'applied');
   assert.equal(out.with.effect.choice, 'yes');
   assert.equal(out.without, 'reasoned');
+});
+
+// Batch B1 (decision points 7-14, customer channels): the WhatsApp intent table answers the REASONED intent and
+// never reads the body for meaning; the old overloads are gone; only service_role executes.
+test('production, aborted: fn_wa_answer / fn_wa_route answer the reasoned intent, never the words (wa_inbound.intent_table)',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb;
+begin
+  -- Words that the old match_patterns caught ('hi', 'price', 'register', 'speak to a human') decide nothing now.
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO hi, what is the price, how do I register, speak to a human', null);
+  o := o || jsonb_build_object('held_matched', v->>'matched', 'held_by', v->>'intent_decided_by');
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO hi, what is the price', 'none');
+  o := o || jsonb_build_object('none_matched', v->>'matched', 'none_by', v->>'intent_decided_by');
+  -- ...and a body with none of pricing's words is answered as pricing when that is what was reasoned.
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO is it free for me?', 'pricing');
+  o := o || jsonb_build_object('reasoned_intent', v->>'intent', 'reasoned_matched', v->>'matched');
+  v := public.fn_wa_answer('+971500000021', 'ZZ DEMO', 'not_a_row');
+  o := o || jsonb_build_object('unknown_row_matched', v->>'matched');
+  o := o || jsonb_build_object('held_log', (select refusal_reason from public.wa_answer_log where from_phone = '+971500000021' and body like 'ZZ DEMO hi, what is the price, how%' order by id desc limit 1));
+  -- The route passes the intent through; a reasoned contact_human is the one way to the number by intent.
+  v := public.fn_wa_route('+971500000021', 'ZZ DEMO is anyone actually there?', false, false, 'contact_human');
+  o := o || jsonb_build_object('route_intent', v->>'deterministic_intent', 'route_person', v->>'needs_a_person', 'route_by', v->>'person_decided_by');
+  v := public.fn_wa_route('+971500000021', 'ZZ DEMO speak to a human please', false, null);
+  o := o || jsonb_build_object('route_held_intent', v->'deterministic_intent', 'route_held_person', v->>'needs_a_person', 'route_held_by', v->>'intent_decided_by');
+  o := o || jsonb_build_object(
+    'old_answer', to_regprocedure('public.fn_wa_answer(text,text)') is not null,
+    'old_route', to_regprocedure('public.fn_wa_route(text,text,boolean,boolean)') is not null,
+    'reads_patterns', position('match_patterns' in pg_get_functiondef('public.fn_wa_answer(text,text,text)'::regprocedure)) > 0,
+    'anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+                   from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_wa_answer', 'fn_wa_route')),
+    'service_can', has_function_privilege('service_role', 'public.fn_wa_answer(text,text,text)', 'execute')
+                   and has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean,text)', 'execute'));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.held_matched, 'false', 'unreasoned: the words decide nothing');
+  assert.equal(out.held_by, 'held: not yet reasoned');
+  assert.match(out.held_log, /^Not reasoned yet \(the model hold\)/);
+  assert.equal(out.none_matched, 'false');
+  assert.equal(out.none_by, 'reasoning');
+  assert.equal(out.reasoned_intent, 'pricing');
+  assert.equal(out.reasoned_matched, 'true');
+  assert.equal(out.unknown_row_matched, 'false', 'an intent that is not an active row is not answered');
+  assert.equal(out.route_intent, 'contact_human');
+  assert.equal(out.route_person, 'true');
+  assert.equal(out.route_by, 'intent');
+  assert.equal(out.route_held_intent, null, '"speak to a human" held: no intent from the words');
+  assert.equal(out.route_held_person, 'false');
+  assert.equal(out.route_held_by, 'held: not yet reasoned');
+  assert.equal(out.old_answer, false);
+  assert.equal(out.old_route, false);
+  assert.equal(out.reads_patterns, false);
+  assert.equal(out.anon_can, false);
+  assert.equal(out.service_can, true);
 });

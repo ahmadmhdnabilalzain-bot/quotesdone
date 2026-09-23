@@ -11,8 +11,13 @@
 //     question, {{2}} the answer). It stays queued, never dropped, until Meta approves that template;
 //   * social (Instagram / Facebook): the platform reply path — marketing_social_inbox's own send, called
 //     with an internal credential, which also applies Meta's messaging window (meta.ts withinWindow).
+//   * a held MEANING (wa_inbound.intent_table, marketing_social.library_match — _shared/reasoned_channels.ts):
+//     the answer the reasoned meaning selects — the database's intent reply, the trade list, the size statement
+//     on WhatsApp; the library / FAQ / passage reply on the platform. Nothing when the meaning selects nothing.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
+import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
+import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
 
 export type Sent = { ok: boolean; err?: string };
@@ -25,6 +30,12 @@ export interface DeliveryIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** fn_wa_answer with the reasoned intent: the database's answer for this sender, or null. */
+  waIntentReply(phone: string, question: string, intent: string): Promise<string | null>;
+  /** public.taxonomy_trade, active rows: the live trade list a coverage answer is built from. */
+  waTrades(): Promise<Trade[]>;
+  /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
+  socialReply(subject: Record<string, unknown>, meaning: string): Promise<Sent>;
 }
 export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'none'; detail?: string };
 
@@ -72,6 +83,26 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return { delivered: s.ok, via: 'social', detail: s.err };
   }
 
+  if (row.surface === 'wa_inbound.intent_table') {
+    // What an unanswered WhatsApp message asked, reasoned now: the database's answer goes on WhatsApp.
+    const phone = String(subject.phone ?? '');
+    if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
+    const lang = isAr(question) ? 'ar' : 'en';
+    let text: string | null = null;
+    if (choice === 'size') text = capabilityAnswer(lang);
+    else if (choice?.startsWith('coverage:') || choice?.startsWith('trade:')) text = coverageReply(choice, await io.waTrades(), lang);
+    // A request for a person is delivered by wa_inbound.needs_a_person (its own held row), never twice.
+    else if (choice?.startsWith('intent:') && choice !== 'intent:contact_human') text = await io.waIntentReply(phone, question, choice.slice(7));
+    if (!text) return { delivered: false, via: 'none', detail: 'reasoned: ' + (choice ?? 'no choice') + ' — nothing more is owed; the courteous reply and the knowledge gap stand' };
+    return await whatsapp(io, phone, question, text);
+  }
+
+  if (row.surface === 'marketing_social.library_match') {
+    if (!choice || choice === 'none') return { delivered: false, via: 'none', detail: 'reasoned: no grounded reply; the honest unknown already went' };
+    const s = await io.socialReply(subject, choice);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
   if (!row.request?.decision && subject.channel === 'whatsapp' && subject.phone && r.answer) {
     return await whatsapp(io, String(subject.phone), question, r.answer);
@@ -114,6 +145,24 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    waIntentReply: async (phone, question, intent) => {
+      const { data } = await admin.rpc('fn_wa_answer', { p_from: phone, p_body: question.slice(0, 4000), p_intent: intent });
+      return (data as { matched?: boolean; reply?: string } | null)?.matched ? String(data.reply || '') || null : null;
+    },
+    waTrades: async () => {
+      const { data } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases').eq('active', true).order('sort').order('code');
+      return (data || []) as Trade[];
+    },
+    socialReply: async (subject, meaning) => {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_inbox', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'reasoned_reply', platform: subject.platform, message_id: subject.message_id, meaning, passages: subject.passages ?? [] }),
+      }, 20_000);
+      const j = await r.json().catch(() => ({}));
+      // Sent only when the inbox says it answered; 'already_answered', 'outside_window' and the like are reported, not counted.
+      return r.ok && j?.ok && String(j?.outcome ?? '').startsWith('answered') ? { ok: true } : { ok: false, err: String(j?.error ?? j?.outcome ?? r.status) };
     },
     socialCommentHandoff: async (subject) => {
       const { data: m } = await admin.from('social_message')
