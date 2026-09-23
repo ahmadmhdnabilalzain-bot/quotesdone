@@ -447,8 +447,22 @@ async function marketingTick(): Promise<unknown> {
     });
     // deno-lint-ignore no-explicit-any
     const j = await r.json().catch(() => null) as any;
+    // THE CEO'S TURN on the marketing plan (founder instruction 866) is the CEO's, so it runs in ceo_agent under
+    // the CEO's credential — never inside the marketing seat. The marketing duty only reports it due.
+    const month = j?.result?.results?.judgement?.ceo_turn_due;
+    let ceoTurn: unknown = null;
+    if (month) {
+      const c = await fetch(FN + '/ceo_agent', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'marketing_plan_review', month }),
+        signal: AbortSignal.timeout(50000),
+      });
+      // deno-lint-ignore no-explicit-any
+      const cj = await c.json().catch(() => null) as any;
+      ceoTurn = { status: c.status, outcome: cj?.review?.outcome ?? null };
+    }
     return { status: r.status, ok: r.ok && j?.ok !== false, duties: j?.result?.duties ?? null,
-             failing: j?.result?.failing ?? null, report: j?.result?.tick?.report ?? null,
+             failing: j?.result?.failing ?? null, report: j?.result?.tick?.report ?? null, ceo_marketing_turn: ceoTurn,
              ...(r.ok ? {} : { error: 'marketing ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }

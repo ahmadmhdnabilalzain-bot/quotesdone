@@ -23,6 +23,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
+import { runStep } from '../_shared/marketing_judgement.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -344,12 +346,36 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, seat: 'ceo', accepted: acc });
     }
 
+    // ── MARKETING PLAN REVIEW (23 Sep 2026, founder instruction 866) ─────────────────────────────
+    // The CEO's turn in the monthly plan debate with the marketing seat: accept, request changes with its
+    // reasons, or (in the last of 3 rounds) decide. Judged against ceo_plan_month and the company plan. The
+    // turn is a row in marketing_plan_review_turn, never a chat reply; while the founder's hold stands it
+    // records "held, not run" and writes nothing else. Charged to the marketing ceiling (dept 'marketing').
+    // resilience_ping calls this when the marketing duty reports ceo_turn_due.
+    if (action === 'marketing_plan_review') {
+      if (who !== 'ceo') return J({ error: 'only the ceo reviews the marketing plan' }, 403);
+      const month = String(body.month || '');
+      if (!/^\d{4}-\d{2}-01$/.test(month)) return J({ error: 'month must be YYYY-MM-01' }, 400);
+      // The CEO SEES what marketing saw (867 follow-up): the request carries, for every video the plan relies on,
+      // the perception row, the features, the per-post results, and its key frames — attached here as images.
+      const out = await runStep({
+        admin, held: () => modelHeld(admin),
+        signedUrl: async (bucket, path) => (await admin.storage.from(bucket).createSignedUrl(path, 3600)).data?.signedUrl ?? null,
+        callModel: async (taskClass, max, messages, requireCaps) => {
+          const llm = makeLlmRich(undefined, { fn: 'ceo_agent', taskClass, dept: 'marketing', agent: 'ceo', max, timeoutMs: 45000, temperature: 0.1 });
+          const r = await llm('', '', max, '', { messages, requireCaps });
+          return { content: r.content, error: r.error, truncated: r.truncated, model: r.model ?? null };
+        },
+      }, 'ceo', 'ceo_review', month);
+      return J({ ok: true, seat: 'ceo', review: out });
+    }
+
     // `task` is deliberately open to BOTH seats and carries no guard of its own. whoami returns
     // only 'founder', 'ceo' or null, the null is already refused above, and both remaining seats
     // legitimately touch ceo_task — the CEO working it, the founder unblocking or cancelling work
     // his own command created. A `who !== 'ceo' && who !== 'founder'` check here would be a
     // condition that cannot occur, which reads as protection and provides none.
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement'] }, 400);
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement', 'marketing_plan_review'] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

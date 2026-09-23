@@ -1,0 +1,7 @@
+Committed, not applied: the builder was told not to apply (three builders' applies are serialised by the
+coordinator). Apply FIRST of the pair, before
+the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql:
+  node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_gets_a_model_ceiling_and_every_class_it_thinks_with.sql --apply --ddl
+It must print PROBE OK (budget 150, no orphan marketing class, seven classes active, fn.marketing may present to
+ai_gateway, the CEO reviewer on anthropic/, the hold untouched). Then delete this note and append the file to the
+END of MANIFEST.txt in the same commit. Seat: marketing.

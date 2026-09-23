@@ -110,4 +110,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
   { type: 'it.finding', from: 'it_engineer', to: 'marketing' },
+  // THE MONTHLY PLAN DEBATE (founder instruction 866, 23 Sep 2026;
+  // scripts/sql/the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql).
+  // Marketing proposes and closes when agreed; the CEO answers each round.
+  { type: 'marketing.plan.review', from: 'marketing', to: 'ceo' },
+  { type: 'marketing.plan.answer', from: 'ceo', to: 'marketing' },
 ] as const;
