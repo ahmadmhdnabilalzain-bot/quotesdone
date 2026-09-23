@@ -210,7 +210,11 @@ Deno.serve(observe('send_outbox', async (req) => {
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
       const arMail = !internal && n.lang === 'ar';
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'QuotesDone Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
+      // 22 Sep 2026 (documents-language audit, DL-07): the signature block prints NAME then TITLE, and
+      // the sales-engineer seat printed "مهندس المبيعات" in both lines — the Arabic reader saw the same
+      // words twice where the English reader saw a person and a desk. The name is the seat, the title
+      // is the desk it sits at, in both languages.
+      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '' });
       const htmlBody = ownDomain(arMail ? arabicFrame(htmlBody0) : htmlBody0, Deno.env.get('SUPABASE_URL') || '', assetBase);
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the

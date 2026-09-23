@@ -194,6 +194,26 @@ function main() {
     { stdio: 'inherit', cwd: REPO });
   let status = nodeRes.status ?? 1;
 
+  // THE CHECKS THAT ARE NOT `*.test.mjs`, 22 Sep 2026 (documents-language audit, DL-12).
+  // language_follows_registration.mjs is a full gate — it walks production in one rolled-back
+  // transaction, reads the 396 intake questions and then reads every touchpoint's source — and it
+  // was in scripts/checks with nothing running it. It had been RED on main since 14 Sep on two
+  // assertions that named the pre-fix code, and nobody saw it because nothing ran it. Its first
+  // part needs a management token; when there is none the run says so by name rather than passing
+  // quietly (the rule this runner was rewritten for).
+  //
+  // AND IT IS SPAWNED UNCONDITIONALLY, 22 Sep 2026 (second review of PR #857). The first version of
+  // this loop skipped the file when no token was present — and this job has no token, so the file was
+  // "registered and never enforced", exactly the state it was added to end. The check itself now
+  // separates its parts: without a token the production walk and the 396 intake questions print
+  // NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL by name, and the source assertions — the documents, the
+  // edge functions, the portals, and the arabic_frame deploy-order bridge — run and fail it here.
+  for (const check of ['scripts/checks/language_follows_registration.mjs']) {
+    console.log(`\nrunning ${check}`);
+    const r = spawnSync(process.execPath, [path.join(REPO, check)], { stdio: 'inherit', cwd: REPO });
+    status = status || (r.status ?? 1);
+  }
+
   if (deno.length) {
     console.log(`\nrunning ${deno.length} deno test file(s):\n  ${deno.join('\n  ')}\n`);
     // No permission flags: `deno test` grants nothing by default on Deno 2, and these are pure
