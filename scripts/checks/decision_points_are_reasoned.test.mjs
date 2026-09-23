@@ -233,7 +233,9 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const [r] = await sql(`select to_regprocedure('public.fn_reason_retrieve(text,vector,integer)') is not null applied`, { readOnly: true });
   // Measured BEFORE the files replay: which live inquiries the current check calls ready (review finding 5).
   const before = 'create temporary table zz_rfq_before on commit drop as select i.id, coalesce((public.fn_rfq_required_check(i)->>\'required_ok\')::boolean, true) ok from public.inquiries i;\n';
-  const body = before + (r.applied ? '' : pendingReplay()) + PROBE;
+  // Every pending file replays, whether or not the engine is already applied (a later file may still be pending).
+  void r;
+  const body = before + pendingReplay() + PROBE;
   let out;
   try {
     await sql(body, { retry: false });
