@@ -1659,3 +1659,6 @@ scripts/sql/the_credential_stamp_is_written_at_most_once_a_minute.sql
 scripts/sql/the_embed_dispatcher_never_queues_more_than_it_can_have_in_flight.sql
 scripts/sql/the_signature_trigger_waits_as_long_as_signing_actually_takes.sql
 scripts/sql/finding_a_lead_by_its_email_or_its_handset_uses_an_index.sql
+[INFO] Recording command outcome: cd
+
+[OK] Command outcome recorded
