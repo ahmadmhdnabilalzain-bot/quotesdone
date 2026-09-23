@@ -14,7 +14,8 @@
 --     audio+vision row is google/gemini-3.5-flash, which is INACTIVE. openai/gpt-5.6-sol is text+image+file.
 --
 -- WHAT THIS CHANGES
---   1. The ceiling: AED 150/month (degrade 70 %, halt 85 % unchanged). Arithmetic below.
+--   1. The ceiling: AED 100/month (degrade 70 %, halt 85 % unchanged), and marketplace 1,360 -> 1,300, so the
+--      founder's total across every seat stays AED 1,600 (review decision, 23 Sep 2026). Arithmetic below.
 --   2. The orphan: marketing_draft carries dept_key 'marketing'.
 --   3. Six task classes in model_policy, each with its reason (the founder's ruling: customer-facing or a
 --      judgement -> openai/gpt-5.6-sol, purely internal -> z-ai/glm-5.3-flash; 867: perception -> a model that
@@ -41,7 +42,7 @@
 --                                                                     TOTAL      4.89     11.31
 -- Worst case: every call fails over once to opus-5.5 (2x price) and reasoning triples output: ~AED 25/month.
 -- The audit's ~AED 28 (sol, before reasoning overhead) assumed daily copy drafting as well; with that added
--- the realistic bound is ~AED 55-85. AED 150 leaves the degrade line (AED 105) above the worst case measured
+-- the realistic bound is ~AED 55-85. AED 100 leaves the degrade line (AED 70) above the worst case measured
 -- here, so the ceiling bounds a runaway loop, not normal work.
 --
 -- THE CEO'S REVIEW IS NOT A CLASS OF THIS SEAT (founder_instruction 873 and the founder's approval, 23 Sep 2026).
@@ -51,7 +52,10 @@
 -- above is priced from that file's own estimate (USD 0.096 a round) so the ceiling here covers it.
 
 -- ── 1. THE CEILING ───────────────────────────────────────────────────────────────────────────────
-update public.department_budget set monthly_aed = 150, updated_at = now() where dept_key = 'marketing';
+update public.department_budget set monthly_aed = 100, updated_at = now() where dept_key = 'marketing';
+-- THE TOTAL STAYS AED 1,600 (the sum eaecbb2's probe asserted): the AED 60 marketing gains comes out of marketplace,
+-- whose 1,360 is its own worst-case estimate with headroom; 1,300 still clears it.
+update public.department_budget set monthly_aed = 1300, updated_at = now() where dept_key = 'marketplace';
 
 -- ── 2. THE ORPHAN, AND ANY FUTURE ONE ─────────────────────────────────────────────────────────────
 update public.fn_task_class set dept_key = 'marketing', updated_at = now()
@@ -83,8 +87,10 @@ update public.internal_credential
 
 -- ── VERDICT ──────────────────────────────────────────────────────────────────────────────────────
 select case
-  when (select monthly_aed from public.department_budget where dept_key = 'marketing') <> 150
-    then 'PROBE FAILED: marketing budget is not 150'
+  when (select monthly_aed from public.department_budget where dept_key = 'marketing') <> 100
+    then 'PROBE FAILED: marketing budget is not 100'
+  when (select sum(monthly_aed) from public.department_budget) <> 1600
+    then 'PROBE FAILED: the founder''s total across every seat is no longer AED 1,600'
   when exists (select 1 from public.fn_task_class where (fn like 'marketing%' or task_class like 'marketing%') and dept_key is distinct from 'marketing')
     then 'PROBE FAILED: a marketing task class is still outside the marketing ceiling'
   when (select count(*) from public.model_policy where active and task_class in ('marketing_watch','marketing_quality_review',

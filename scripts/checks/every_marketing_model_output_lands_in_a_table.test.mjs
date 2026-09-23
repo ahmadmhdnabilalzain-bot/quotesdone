@@ -66,11 +66,13 @@ test('the marketing seat builds a model client only as a runStep callModel', () 
   assert.deepEqual(bad, []);
 });
 
-test('the SQL puts every marketing task class inside the marketing ceiling, which is AED 150', () => {
+test('the SQL puts every marketing task class inside the marketing ceiling, which is AED 100, and the total stays AED 1,600', () => {
   assert.match(allSql, /update public\.fn_task_class set dept_key = 'marketing'[\s\S]{0,120}where \(fn like 'marketing%' or task_class like 'marketing%'\)/,
     'no scripts/sql file moves every marketing fn_task_class row into the marketing ceiling (marketing_draft was orphaned)');
-  assert.match(allSql, /update public\.department_budget set monthly_aed = 150[^;]*where dept_key = 'marketing'/,
-    'the marketing ceiling is not set to AED 150 in any scripts/sql file');
+  assert.match(allSql, /update public\.department_budget set monthly_aed = 100[^;]*where dept_key = 'marketing'/,
+    'the marketing ceiling is not set to AED 100 in any scripts/sql file');
+  assert.match(allSql, /update public\.department_budget set monthly_aed = 1300[^;]*where dept_key = 'marketplace'/,
+    'marketing gained AED 60 and nothing gave it back: the founder\'s AED 1,600 total moved');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

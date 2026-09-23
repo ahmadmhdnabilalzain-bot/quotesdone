@@ -21,6 +21,7 @@
 //
 //   node scripts/media/measure_marketing_assets.mjs --check-determinism [--limit=2]   # measure twice, no write
 //   node scripts/media/measure_marketing_assets.mjs --write                           # record + upload key frames
+//   node scripts/media/measure_marketing_assets.mjs --fixture=<file.mp4>             # measure a local file twice; no network, no secrets
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from 'node:fs';
@@ -38,6 +39,7 @@ const SCENE = 0.30, VOICE_RATIO = 0.55, TEXT_MIN_CHARS = 8;
 const args = process.argv.slice(2);
 const WRITE = args.includes('--write');
 const TWICE = args.includes('--check-determinism');
+const FIXTURE = (args.find((a) => a.startsWith('--fixture=')) || '').slice(10);
 const LIMIT = Number((args.find((a) => a.startsWith('--limit=')) || '').slice(8)) || Infinity;
 
 const token = () => { const t = process.env.SUPABASE_ACCESS_TOKEN; if (!t) throw new Error('SUPABASE_ACCESS_TOKEN is not set'); return t.trim(); };
@@ -153,7 +155,18 @@ export function measure(file, dir) {
   };
 }
 
+/** The pull-request proof: a local file, measured twice, compared field by field and frame by frame. */
+function fixtureDeterminism(file) {
+  const dir = mkdtempSync(join(tmpdir(), 'mkt-fx-'));
+  const strip = (x) => ({ ...x, keyframes_local: x.keyframes_local.map((k) => ({ t: k.t, sha: createHash('sha256').update(readFileSync(k.local)).digest('hex') })) });
+  const a = strip(measure(file, mkdtempSync(join(dir, 'a-')))), b = strip(measure(file, mkdtempSync(join(dir, 'b-'))));
+  rmSync(dir, { recursive: true, force: true });
+  if (!isDeepStrictEqual(a, b)) throw new Error('NOT DETERMINISTIC on the fixture:\n' + JSON.stringify(a) + '\n' + JSON.stringify(b));
+  console.log(JSON.stringify({ fixture: file, deterministic: true, features: a }));
+}
+
 async function main() {
+  if (FIXTURE) return fixtureDeterminism(FIXTURE);
   const listed = await sql(`select name, (metadata->>'size')::bigint size from storage.objects where bucket_id = '${BUCKET}'
                              and name ~ '^campaigns/[^/]+/videos/[^/]+\\.mp4$' order by name`);
   const videos = listed.slice(0, LIMIT);

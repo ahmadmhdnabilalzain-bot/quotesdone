@@ -35,7 +35,13 @@ export interface Duty {
 // duty bounds itself (fn_marketing_steps_due caps per day; at most 1 model step per beat, so the 55 s heartbeat call is never outrun; research weekly).
 // While the founder's hold stands every model step records "held, not run" once a day and writes nothing else.
 
-const IG_GRAPH = 'https://graph.facebook.com/v21.0';
+// THE GRAPH API VERSION IS ONE CONFIG VALUE: app_secrets.meta_graph_version, defaulting to the version the seat's
+// other Meta callers use today. Moving versions is one row, not a code search.
+const DEFAULT_GRAPH_VERSION = 'v21.0';
+async function graphBase(ctx: DutyContext): Promise<string> {
+  const v = String((await ctx.sec('meta_graph_version')) || DEFAULT_GRAPH_VERSION).trim();
+  return 'https://graph.facebook.com/' + (/^v\d+\.\d+$/.test(v) ? v : DEFAULT_GRAPH_VERSION);
+}
 
 /** The seat's model client: its own class per step, charged to the marketing ceiling. */
 function marketingDeps(ctx: DutyContext): Deps {
@@ -75,12 +81,18 @@ export const DUTIES: Duty[] = [
       const { data: last } = await ctx.admin.from('market_intel').select('fetched_at').eq('platform', 'instagram')
         .order('fetched_at', { ascending: false }).limit(1).maybeSingle();
       if (last?.fetched_at && ctx.now.getTime() - new Date(last.fetched_at).getTime() < 7 * 86400_000) return { due: false, reason: 'fetched this week' };
+      // A DATED FAILURE MARKER: a fetch that failed today is not retried, and not raised again, until tomorrow.
+      const today = new Date(ctx.now.getTime() + 4 * 3600_000).toISOString().slice(0, 10);   // Dubai day
+      const { data: failedToday } = await ctx.admin.from('marketing_model_run').select('id').eq('step', 'competitor_fetch')
+        .eq('outcome', 'failed').eq('run_day', today).limit(1);
+      if (failedToday && failedToday.length) return { due: false, reason: 'the fetch failed today; next try tomorrow' };
+      const base = await graphBase(ctx);
       const { data: comps } = await ctx.admin.from('competitor').select('id,name,social_handles').not('social_handles->>instagram', 'is', null).limit(25);
       const rows: Record<string, unknown>[] = []; const errors: string[] = [];
       for (const c of (comps || []) as Array<{ id: number; social_handles: Record<string, string> }>) {
         const handle = String(c.social_handles.instagram).replace(/^@/, '');
         const fields = `business_discovery.username(${handle}){media.limit(25){id,caption,media_type,permalink,timestamp,like_count,comments_count}}`;
-        const r = await fetch(`${IG_GRAPH}/${igUser}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(token)}`,
+        const r = await fetch(`${base}/${igUser}?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(token)}`,
           { signal: AbortSignal.timeout(15000) });
         // deno-lint-ignore no-explicit-any
         const j = await r.json().catch(() => null) as any;
@@ -93,7 +105,12 @@ export const DUTIES: Duty[] = [
       }
       const { data, error } = await ctx.admin.rpc('fn_marketing_intel_upsert', { p_rows: rows });
       if (error) throw new Error('fn_marketing_intel_upsert: ' + error.message);
-      if (errors.length && !rows.length) throw new Error('every competitor fetch failed: ' + errors.join('; '));
+      if (errors.length && !rows.length) {
+        // recorded once for the day, then raised once (the runtime turns this throw into marketing's IT finding)
+        await ctx.admin.from('marketing_model_run').insert({ step: 'competitor_fetch', subject: today, seat: 'marketing',
+          task_class: 'deterministic', outcome: 'failed', reason: ('every competitor fetch failed: ' + errors.join('; ')).slice(0, 1000), run_day: today });
+        throw new Error('every competitor fetch failed: ' + errors.join('; '));
+      }
       return { due: true, competitors: (comps || []).length, posts: rows.length, stored: data, errors };
     },
   },

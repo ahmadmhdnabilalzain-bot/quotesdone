@@ -119,7 +119,7 @@ create table if not exists public.marketing_insight_note (
 create table if not exists public.marketing_month_plan (
   month               date primary key check (extract(day from month) = 1),   -- the month the plan is FOR
   status              text not null default 'draft'
-                      check (status in ('draft','with_ceo','agreed','sent_to_founder','accepted','rejected')),
+                      check (status in ('draft','with_ceo','agreed','brief_requested','sent_to_founder','accepted','rejected')),
   verdict             jsonb,                  -- marketing_evaluate on the month before
   plan                jsonb,                  -- the plan as it stands (latest propose/adjust/decide)
   content_brief       jsonb,                  -- the agreed plan as the founder's production brief
@@ -285,9 +285,17 @@ begin
       when 'insight_note'     then exists (select 1 from public.marketing_insight_note where week_start::text = r)
       when 'ceo_plan_month'   then exists (select 1 from public.ceo_plan_month where month::text = r)
       when 'turn'             then exists (select 1 from public.marketing_plan_review_turn where id::text = r)
-      when 'scorecard'        then r ~ '^\d{4}-\d{2}-01$'
+      when 'scorecard'        then r ~ '^\d{4}-\d{2}-01$' and to_regclass('public.marketing_post_metric') is not null
       when 'post_metric'      then to_regclass('public.marketing_post_metric') is not null and coalesce(r, '') <> ''
       else false end;
+    -- a post metric must be a row of marketing_post_metric; a scorecard must name a month that has metric rows
+    -- (read by name at run time: the table is the sibling metrics build's)
+    if v_ok and k = 'post_metric' then
+      execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)->>''id'' = $1)' into v_ok using r;
+    elsif v_ok and k = 'scorecard' then
+      execute 'select exists (select 1 from public.marketing_post_metric m where to_jsonb(m)::text like ''%"'' || $1 || ''-%'')'
+        into v_ok using left(r, 7);
+    end if;
     if not coalesce(v_ok, false) then
       bad := bad || ('evidence ' || coalesce(k,'?') || ':' || coalesce(r,'?') || ' does not exist');
     end if;
@@ -306,10 +314,10 @@ begin
   end loop;
   if jsonb_typeof(p_plan->'topics') is distinct from 'array' or jsonb_array_length(coalesce(p_plan->'topics','[]')) = 0 then
     bad := bad || 'plan names no topics'::text; end if;
-  if coalesce((p_plan->'video'->>'count')::numeric, 0) <= 0 then bad := bad || 'plan.video.count must be above 0'::text; end if;
-  if coalesce((p_plan->'video'->>'length_s')::numeric, 0) <= 0 then bad := bad || 'plan.video.length_s must be above 0'::text; end if;
-  if coalesce((p_plan->'budget'->>'ad_spend_aed')::numeric, 0) <> 0 then
-    bad := bad || 'ORGANIC ONLY (founder 866): plan.budget.ad_spend_aed must be 0'::text; end if;
+  if coalesce(public.fn_marketing_jnum(p_plan->'video'->'count'), 0) <= 0 then bad := bad || 'plan.video.count must be a number above 0'::text; end if;
+  if coalesce(public.fn_marketing_jnum(p_plan->'video'->'length_s'), 0) <= 0 then bad := bad || 'plan.video.length_s must be a number above 0'::text; end if;
+  if p_plan->'budget' ? 'ad_spend_aed' and public.fn_marketing_jnum(p_plan->'budget'->'ad_spend_aed') is distinct from 0 then
+    bad := bad || 'ORGANIC ONLY (founder 866): plan.budget.ad_spend_aed must be the number 0'::text; end if;
   if p_plan::text ~* '(boost(ed|ing)?\s+(the\s+)?post|sponsor(ed)?\s+(post|content|ad)|paid\s+(ad|ads|promotion|reach|media)|ad\s*spend\s*(of|:)?\s*(aed|usd)?\s*[1-9]|promoted\s+post|ads\s+manager)' then
     bad := bad || 'ORGANIC ONLY (founder 866): the plan proposes paid promotion'::text; end if;
   return bad;
@@ -347,6 +355,37 @@ returns text[] language sql stable security definer set search_path to 'public',
             from jsonb_array_elements(coalesce(p_evidence, '[]'::jsonb)) e) x
 $fn$;
 
+-- SAFE READS OF MODEL TEXT: a number or a boolean the model wrote is used only if it IS one; anything else is null
+-- and the caller rejects it. A raw cast of model text would throw, and a throw is a failed run, not a rejected one.
+create or replace function public.fn_marketing_jnum(v jsonb)
+returns numeric language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select case when jsonb_typeof(v) = 'number' then (v #>> '{}')::numeric end
+$fn$;
+create or replace function public.fn_marketing_jbool(v jsonb)
+returns boolean language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select case when jsonb_typeof(v) = 'boolean' then (v #>> '{}')::boolean end
+$fn$;
+
+-- THE ATTEMPT CAP (review of #876). Every non-held attempt (written, rejected, failed) counts per step, subject and
+-- Dubai day; after 2 the subject waits for tomorrow. A subject that failed (rejected/failed, nothing written) on each
+-- of the last 3 Dubai days is QUARANTINED: it leaves the queue until someone fixes it, and fn_marketing_plan_loop_tick
+-- raises an IT finding owned by marketing. Returns null when the subject may run, else the reason.
+create or replace function public.fn_marketing_subject_blocked(p_step text, p_subject text, p_at timestamptz default now())
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  with d as (select (p_at at time zone 'Asia/Dubai')::date today)
+  select case
+    when (select count(distinct r.run_day) from public.marketing_model_run r, d
+           where r.step = p_step and r.subject = p_subject and r.outcome in ('rejected','failed')
+             and r.run_day between d.today - 2 and d.today) = 3
+         and not exists (select 1 from public.marketing_model_run r, d where r.step = p_step and r.subject = p_subject
+                           and r.outcome = 'written' and r.run_day between d.today - 2 and d.today)
+      then 'quarantined: failed on each of the last 3 days'
+    when (select count(*) from public.marketing_model_run r, d where r.step = p_step and r.subject = p_subject
+           and r.outcome in ('written','rejected','failed') and r.run_day = d.today) >= 2
+      then 'attempt cap: 2 attempts today'
+  end
+$fn$;
+
 -- ═══ 3. WHAT IS DUE ══════════════════════════════════════════════════════════════════════════════
 -- Bounded: at most 6 perceptions and 6 reviews written per Dubai day, research once a week, the month's work
 -- only inside its window. The duty runs at most 1 model step per 30-minute beat (48 a day).
@@ -361,6 +400,7 @@ begin
     for x in select distinct on (f.file_sha256) f.file_sha256 from public.marketing_asset_feature f
               where not exists (select 1 from public.marketing_asset_perception q
                                  where q.file_sha256 = f.file_sha256 and q.prompt_version = 'watch-v1')
+                and public.fn_marketing_subject_blocked('watch', f.file_sha256, p_at) is null
               order by f.file_sha256 limit 3 loop
       out := out || jsonb_build_object('step', 'watch', 'subject', x.file_sha256, 'seat', 'marketing');
     end loop;
@@ -371,6 +411,7 @@ begin
               where q.prompt_version = 'watch-v1'
                 and not exists (select 1 from public.marketing_asset_review r where r.file_sha256 = q.file_sha256
                                    and r.created_at > p_at - interval '30 days')
+                and public.fn_marketing_subject_blocked('quality_review', q.file_sha256, p_at) is null
               order by q.id limit 3 loop
       out := out || jsonb_build_object('step', 'quality_review', 'subject', x.file_sha256, 'seat', 'marketing');
     end loop;
@@ -378,6 +419,7 @@ begin
   -- research: the last complete week, once, when there is anything to read
   v_week := (date_trunc('week', v_day) - interval '7 days')::date;
   if not exists (select 1 from public.marketing_insight_note where week_start = v_week)
+     and public.fn_marketing_subject_blocked('research', v_week::text, p_at) is null
      and exists (select 1 from public.market_intel where platform is not null
                    and coalesce(posted_at, created_at) >= v_week and coalesce(posted_at, created_at) < v_week + 7) then
     out := out || jsonb_build_object('step', 'research', 'subject', v_week::text, 'seat', 'marketing');
@@ -385,7 +427,11 @@ begin
   -- the month: evaluate -> plan -> (the CEO's review on seat_deliberation <-> plan_defend)
   if (cal->>'in_window')::boolean then
     select * into p from public.marketing_month_plan where month = (cal->>'plan_month')::date;
-    if p.month is null or p.verdict is null then
+    if public.fn_marketing_subject_blocked(case when p.month is null or p.verdict is null then 'evaluate'
+                                              when p.plan is null then 'plan' else 'plan_defend' end,
+                                         cal->>'plan_month', p_at) is not null then
+      null;   -- capped or quarantined today: the other steps above still run
+    elsif p.month is null or p.verdict is null then
       out := out || jsonb_build_object('step', 'evaluate', 'subject', cal->>'plan_month', 'seat', 'marketing');
     elsif p.plan is null then
       out := out || jsonb_build_object('step', 'plan', 'subject', cal->>'plan_month', 'seat', 'marketing');
@@ -609,6 +655,9 @@ begin
     if jsonb_typeof(p_output->'scenes') is distinct from 'array' or jsonb_array_length(coalesce(p_output->'scenes','[]')) = 0 then v_bad := v_bad || 'scenes missing'::text; end if;
     if jsonb_typeof(p_output->'on_screen_text') is distinct from 'array' then v_bad := v_bad || 'on_screen_text missing'::text; end if;
     if not (p_output ?& array['hook','pacing','legibility','music','voiceover','cta']) then v_bad := v_bad || 'hook/pacing/legibility/music/voiceover/cta required'::text; end if;
+    if p_output ? 'duration_s_claimed' and public.fn_marketing_jnum(p_output->'duration_s_claimed') is null then v_bad := v_bad || 'duration_s_claimed must be a number'::text; end if;
+    if p_output ? 'has_audio_claimed' and public.fn_marketing_jbool(p_output->'has_audio_claimed') is null then v_bad := v_bad || 'has_audio_claimed must be true or false'::text; end if;
+    if p_output->'voiceover' ? 'present' and public.fn_marketing_jbool(p_output->'voiceover'->'present') is null then v_bad := v_bad || 'voiceover.present must be true or false'::text; end if;
   elsif p_step = 'quality_review' then
     if not (p_output ?& array['hook','pacing','legibility','music_fit','voiceover_recommendation','overall_recommendation']) then
       v_bad := v_bad || 'hook, pacing, legibility, music_fit, voiceover_recommendation and overall_recommendation are required'::text; end if;
@@ -636,7 +685,8 @@ begin
     if p_step = 'plan_defend' and v_last.seat = 'ceo' then
       if jsonb_typeof(p_output->'answers') is distinct from 'array'
          or (select count(distinct (a->>'ask')) from jsonb_array_elements(coalesce(p_output->'answers','[]')) a
-              where (a->>'ask') ~ '^\d+$' and (a->>'ask')::int < jsonb_array_length(coalesce(v_last.changes,'[]'))
+              where (case when jsonb_typeof(a->'ask') = 'number' and (a->>'ask') ~ '^\d{1,6}$' then (a->>'ask')::int end)
+                    < jsonb_array_length(coalesce(v_last.changes,'[]'))
                 and a->>'response' in ('concede','defend') and length(btrim(coalesce(a->>'reasoning',''))) >= 20
                 and cardinality(public.fn_marketing_evidence_problems(a->'evidence')) = 0)
             <> jsonb_array_length(coalesce(v_last.changes,'[]')) then
@@ -660,11 +710,11 @@ begin
 
   -- write
   if p_step = 'watch' then
-    if abs(coalesce((p_output->>'duration_s_claimed')::numeric, f.duration_s) - f.duration_s) > 1.5 then
+    if abs(coalesce(public.fn_marketing_jnum(p_output->'duration_s_claimed'), f.duration_s) - f.duration_s) > 1.5 then
       v_dis := v_dis || jsonb_build_object('field', 'duration_s', 'model', p_output->'duration_s_claimed', 'measured', f.duration_s); end if;
-    if (p_output->>'has_audio_claimed')::boolean is distinct from f.audio_present and p_output ? 'has_audio_claimed' then
+    if p_output ? 'has_audio_claimed' and public.fn_marketing_jbool(p_output->'has_audio_claimed') is distinct from f.audio_present then
       v_dis := v_dis || jsonb_build_object('field', 'audio_present', 'model', p_output->'has_audio_claimed', 'measured', f.audio_present); end if;
-    if f.voiceover_suspected is not null and (p_output->'voiceover'->>'present')::boolean is distinct from f.voiceover_suspected then
+    if f.voiceover_suspected is not null and p_output->'voiceover' ? 'present' and public.fn_marketing_jbool(p_output->'voiceover'->'present') is distinct from f.voiceover_suspected then
       v_dis := v_dis || jsonb_build_object('field', 'voiceover', 'model', p_output->'voiceover'->'present', 'measured_proxy', f.voiceover_suspected,
                                            'note', 'the measured side is a speech-band proxy; a disagreement is a flag for review, not a verdict'); end if;
     insert into public.marketing_asset_perception (file_sha256, model, prompt_version, perception, disagreements)
@@ -813,7 +863,7 @@ begin
                                                               'why', coalesce(o->>'reasoning', c.steelman_against))) end;
   v_cited := cardinality(public.fn_marketing_assets_cited(m.evidence));
   if v_move = 'accept' and coalesce(v_cited, 0) <= 2
-     and coalesce((o->'criteria'->'evidence_strength'->>'flagged')::boolean, false) is not true then
+     and public.fn_marketing_jbool(o->'criteria'->'evidence_strength'->'flagged') is not true then
     v_move := 'request_changes'; v_measured := true;
     v_changes := jsonb_build_array(jsonb_build_object(
       'what', 'Treat the plan''s central claim as a hypothesis, not a finding: it rests on ' || coalesce(v_cited, 0)
@@ -858,7 +908,7 @@ on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, r
 create or replace function public.fn_marketing_plan_loop_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare p public.marketing_month_plan; n_closed int := 0; n_sent int := 0; n_taken int := 0; v_id bigint; b jsonb; v_status text; r jsonb;
-        v_refused jsonb := '[]'::jsonb;
+        v_refused jsonb := '[]'::jsonb; n_delivered int := 0; n_quarantined int := 0; q record;
 begin
   for p in select * from public.marketing_month_plan where status = 'with_ceo' order by month loop
     begin
@@ -891,11 +941,34 @@ begin
             || E'\nVoice-over: ' || coalesce(b->'voiceover'->>'use', '-') || coalesce(' (' || (b->'voiceover'->>'language') || ')', '')
             || E'\nCadence: ' || coalesce(b->'cadence'->>'posts_per_week', '?') || ' posts a week'
             || E'\n\nOrganic only: no ads and no paid promotion. Every turn of the discussion is in marketing_plan_review_turn.'));
-      update public.marketing_month_plan set brief_handoff_id = v_id, status = 'sent_to_founder', updated_at = now() where month = p.month;
+      update public.marketing_month_plan set brief_handoff_id = v_id, status = 'brief_requested', updated_at = now() where month = p.month;
       n_sent := n_sent + 1;
     end if;
   end loop;
+  -- SENT MEANS THE OUTBOX SAYS SENT (review of #876): the brief is 'brief_requested' until the notification that
+  -- customer_support queued for it reads status 'sent'.
+  for p in select * from public.marketing_month_plan where status = 'brief_requested' order by month loop
+    if exists (select 1 from public.agent_actions a join public.notifications nt on nt.id::text = a.evidence->>'notification_id'
+                where a.id = p.brief_handoff_id and nt.status = 'sent') then
+      update public.marketing_month_plan set status = 'sent_to_founder', updated_at = now() where month = p.month;
+      n_delivered := n_delivered + 1;
+    end if;
+  end loop;
+  -- A QUARANTINED SUBJECT IS A FINDING OWNED BY MARKETING, not a silent gap in the queue.
+  for q in select distinct r.step, r.subject from public.marketing_model_run r
+            where r.run_day >= (now() at time zone 'Asia/Dubai')::date - 2 and r.outcome in ('rejected','failed')
+              and public.fn_marketing_subject_blocked(r.step, r.subject) like 'quarantined%' loop
+    perform public.fn_it_engineer_finding_upsert('marketing:step_quarantined:' || q.step || ':' || q.subject,
+      'Marketing step ' || q.step || ' failed 3 days running on ' || left(q.subject, 40) || ' and left the queue',
+      'public.fn_marketing_steps_due (marketing)', 'agent_facing', 1,
+      jsonb_build_object('owner_seat', 'marketing', 'step', q.step, 'subject', q.subject,
+        'last_reasons', (select jsonb_agg(reason order by id desc) from (select id, reason from public.marketing_model_run
+                          where step = q.step and subject = q.subject and outcome in ('rejected','failed') order by id desc limit 3) z)),
+      '{}'::text[], array['why the step keeps failing on this subject (see last_reasons)'], 'fn_marketing_plan_loop_tick');
+    n_quarantined := n_quarantined + 1;
+  end loop;
   return jsonb_build_object('ok', true, 'ceo_reviews_taken', n_taken, 'deliberations_closed', n_closed, 'briefs_sent', n_sent,
+                            'briefs_delivered', n_delivered, 'quarantined', n_quarantined,
                             'not_yet_before_the_ceo', v_refused);
 end $fn$;
 
@@ -919,6 +992,9 @@ revoke execute on function public.fn_marketing_plan_calendar(timestamptz) from p
 revoke execute on function public.fn_marketing_evidence_problems(jsonb) from public, anon, authenticated;
 revoke execute on function public.fn_marketing_plan_problems(jsonb) from public, anon, authenticated;
 revoke execute on function public.fn_marketing_steps_due(timestamptz) from public, anon, authenticated;
+revoke execute on function public.fn_marketing_subject_blocked(text, text, timestamptz) from public, anon, authenticated;
+revoke execute on function public.fn_marketing_jnum(jsonb) from public, anon, authenticated;
+revoke execute on function public.fn_marketing_jbool(jsonb) from public, anon, authenticated;
 revoke execute on function public.fn_marketing_asset_dossier(text) from public, anon, authenticated;
 revoke execute on function public.fn_marketing_assets_cited(jsonb) from public, anon, authenticated;
 revoke execute on function public.fn_marketing_step_request(text, text) from public, anon, authenticated;
