@@ -329,6 +329,37 @@ begin
 end $fn$;
 revoke execute on function public.fn_marketing_variant_violations(jsonb) from public, anon, authenticated;
 
+-- The interface marketing_post_variant (PR #874) calls: text only, one message per broken limit. post_type is
+-- #874's vocabulary (reel|short|post|video); it maps to the surface whose CAPTION rows govern the text. The
+-- hashtags are appended to the body as the platform will publish them, so they count in the length and the
+-- hashtag limit. alt_text and first_comment have no spec rows (first-comment support is unread; see the rows).
+create or replace function public.fn_marketing_platform_spec_problems(p_platform text, p_post_type text, p_body text,
+  p_hashtags text[], p_title text, p_alt_text text, p_first_comment text)
+returns text[] language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_pf text := lower(btrim(coalesce(p_platform, '')));
+  v_pt text := lower(btrim(coalesce(p_post_type, '')));
+  v_sf text; v_tags text;
+begin
+  v_sf := case
+    when v_pf = 'instagram' then case v_pt when 'reel' then 'reel' else 'feed_image' end
+    when v_pf = 'facebook'  then case v_pt when 'reel' then 'reel' else 'feed_post' end
+    when v_pf = 'youtube'   then case v_pt when 'short' then 'short' else 'video' end
+    when v_pf = 'x'         then 'post'
+    when v_pf = 'linkedin'  then 'page_post'
+    when v_pf = 'tiktok'    then 'video'
+    else v_pt end;
+  select string_agg('#' || ltrim(btrim(t), '#'), ' ') into v_tags
+    from unnest(coalesce(p_hashtags, '{}'::text[])) t where btrim(t) <> '';
+  return coalesce((
+    select array_agg(e->>'message')
+      from jsonb_array_elements(public.fn_marketing_variant_violations(
+             jsonb_build_object('platform', v_pf, 'surface', v_sf,
+                                'caption', concat_ws(' ', nullif(btrim(coalesce(p_body, '')), ''), v_tags))
+             || case when p_title is not null then jsonb_build_object('title', p_title) else '{}'::jsonb end)) e), '{}'::text[]);
+end $fn$;
+revoke execute on function public.fn_marketing_platform_spec_problems(text, text, text, text[], text, text, text) from public, anon, authenticated;
+
 -- ── 5. THE SEAT'S KNOWLEDGE ──────────────────────────────────────────────────────────────────────
 -- One ops_knowledge record per platform, composed from the rows (so a corrected row is a corrected answer on
 -- the next sync), found by fn_marketing_assist's lexical and gte-small routes and cited by record_id.

@@ -77,6 +77,22 @@ with v(name, variant, expect_attr) as (values
    where not exists (select 1 from public.ops_knowledge o where o.record_id = 'qd-marketing:platform-spec:' || p
                         and o.role_key = 'marketing' and o.content like '%Source: https://%')
   union all
+  -- #874's interface: the hashtags count in X's length; an in-limit post returns an empty array
+  select 'problems(): x body 270 + 2 hashtags not refused'
+   where cardinality(public.fn_marketing_platform_spec_problems('x', 'post', repeat('a',270), array['uae','#dubai'], null, null, null)) = 0
+  union all
+  select 'problems(): x body 260 + 2 hashtags refused'
+   where cardinality(public.fn_marketing_platform_spec_problems('x', 'post', repeat('a',260), array['uae','#dubai'], null, null, null)) > 0
+  union all
+  select 'problems(): youtube short title 101 not refused'
+   where cardinality(public.fn_marketing_platform_spec_problems('youtube', 'short', 'x', null, repeat('t',101), null, null)) = 0
+  union all
+  select 'problems(): instagram post 31 hashtags not refused'
+   where cardinality(public.fn_marketing_platform_spec_problems('instagram', 'post', 'x', (select array_agg('t' || g) from generate_series(1,31) g), null, null, null)) = 0
+  union all
+  select 'problems(): tiktok video 2001 not refused'
+   where cardinality(public.fn_marketing_platform_spec_problems('tiktok', 'video', repeat('a',2001), null, null, null, null)) = 0
+  union all
   select 'artifact_platform_spec still carries a stale number: ' || platform || '/' || kind
     from public.artifact_platform_spec
    where (platform = 'youtube' and kind = 'short' and max_duration_s is distinct from 180)
