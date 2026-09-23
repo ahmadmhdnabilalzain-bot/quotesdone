@@ -89,6 +89,23 @@ test('the denylist and the drift reader actually fire (they are not vacuous)', (
   assert.equal(wrongWordings('the charge is 3% + AED 250 + 9% a year').length, 1);
 });
 
+test('no marketing or profile surface carries what the source forbids there (the trade licence number)', () => {
+  const bad = [];
+  for (const p of F.marketing_surfaces.files) {
+    const t = read(p);
+    for (const f of F.marketing_surfaces.forbid) for (const m of t.matchAll(new RegExp(f.re, 'gu'))) bad.push(`${p}: "${m[0]}" — ${f.why}`);
+  }
+  assert.deepEqual(bad, []);
+  assert.ok(new RegExp(F.marketing_surfaces.forbid[0].re, 'u').test('Trader License No. 1633275'), 'the licence rule is vacuous');
+});
+
+test('no buyer-facing wording adds a card fee (Cabinet Res. 66/2023 Art. 5(3)); the rule is not vacuous', () => {
+  assert.equal(wrongWordings('You pay a 3% reveal fee, plus the card processing fee, on the quote').length > 0, true);
+  assert.equal(wrongWordings('ادفع 3% من ذلك العرض مضافًا إليها رسوم معالجة البطاقة').length > 0, true);
+  assert.equal(wrongWordings('With the Reveal Fee you also pay a card processing fee').length > 0, true);
+  assert.equal(wrongWordings('You pay the 3% reveal fee and nothing more: no card fee is added').length, 0);
+});
+
 test('the Supplier Agreement module a supplier signs is the current legal.json text and version', () => {
   const mod = read('supabase/functions/_shared/supplier_agreement.ts');
   assert.match(mod, new RegExp(`SUPPLIER_AGREEMENT_VERSION = "${F.documents['supplier-agreement'].version}"`));

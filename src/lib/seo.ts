@@ -167,8 +167,7 @@ export function siteLd(locale: string) {
         email: 'management@quotesdone.com',
         areaServed: { '@type': 'Country', name: 'United Arab Emirates' },
         address: { '@type': 'PostalAddress', addressLocality: 'Dubai', addressCountry: 'AE' },
-        // DET Dubai Trader License 1633275 — the same number the FAQ and legal pages print (company.json sources).
-        identifier: { '@type': 'PropertyValue', propertyID: 'DET Dubai Trader License', value: '1633275' },
+        // No licence number here: founder rule, never in marketing or profile copy (company_facts.json marketing_surfaces).
         sameAs: SOCIALS,
       },
       {

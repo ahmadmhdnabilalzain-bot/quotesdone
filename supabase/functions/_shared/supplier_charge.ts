@@ -2,7 +2,8 @@
 //
 // 14 Sep 2026, agent: accountant. Supplier Agreement clause 33 (v10, and v11 with the same numbering): when a supplier never answers a
 // customer who paid the reveal fee, QuotesDone refunds the customer and the supplier owes
-//   (a) the exact amount refunded (3% reveal fee + the card processing fee charged on it),
+//   (a) the exact amount refunded (the 3% reveal fee, and any card fee on a reveal paid before 24 Sep
+//       2026, when buyers still paid one),
 //   (b) an administrative fee — the amount in the version the supplier had accepted when the customer revealed
 //       it (see adminFeeAed below), and
 //   (c) simple interest on the unpaid total at the clause 31 rate — 9% per annum, "or the maximum
@@ -32,7 +33,7 @@ export const DAYS_IN_YEAR = 365;
 export const DUE_AFTER_NOTICE_DAYS = 7;
 
 export type ChargeInput = {
-  /** What the customer was refunded, in AED: reveal fee + card processing fee (refunds_api record). */
+  /** What the customer was refunded, in AED: the reveal fee, and any card processing fee a pre-24-Sep-2026 reveal carried. */
   refunded_reveal_fee: number;
   refunded_processing_fee: number;
   /** ISO date the charge notice (the invoice) was sent. The due date is 7 days later. */

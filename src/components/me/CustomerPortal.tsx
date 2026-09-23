@@ -1322,7 +1322,7 @@ function FeeBreakdown({ r, price, lang }) {
   const row = (k, v, strong = false) => (<div className={cn('flex justify-between gap-4', strong && 'font-semibold text-foreground border-t border-border pt-1')}><span>{k}</span><span className="tabular font-mono">{v}</span></div>);
   return (<div className="mb-3 rounded-md border border-border bg-secondary/20 p-3 text-[12.5px] text-muted-foreground">
     {row(tf(lang, 'q_bd_fee', { price }), aed(r.reveal_fee))}
-    {row(t(lang, 'q_bd_proc'), aed(r.processing_fee))}
+    {row(t(lang, 'q_bd_proc'), aed(0))}
     {row(t(lang, 'q_bd_total'), aed(r.total_charged), true)}
     <div className="mt-1.5 text-[11.5px]">{t(lang, 'q_bd_refund')}</div>
   </div>);
