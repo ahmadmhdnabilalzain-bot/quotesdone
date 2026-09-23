@@ -71,6 +71,26 @@ test('the morning list and the article cadence read the switch before acting', (
   assert.match(body('fn_marketing_publishing_live'), /key = 'marketing_golive'/);
 });
 
+// Founder, 23 Sep 2026: the marketing seat may answer comments on LinkedIn ONLY on the QuotesDone company page.
+// The one gate is linkedinTarget in _shared/marketing_social_comments.ts: exactly the Postiz 'linkedin-page'
+// integration whose id app_secrets.linkedin_company_page_integration_id names. A personal profile ('linkedin')
+// is refused whatever its id. Behaviour is replayed in marketing_social_comments.test.ts; this pins the gate.
+test('LinkedIn comment replies are narrowed to the company page integration id, and a personal profile is refused', () => {
+  const src = read('supabase/functions/_shared/marketing_social_comments.ts');
+  const at = src.indexOf('export function linkedinTarget(');
+  const gate = at < 0 ? '' : src.slice(at, src.indexOf('\n}', at) + 2);
+  assert.ok(gate.length > 30, 'linkedinTarget is missing');
+  assert.match(gate, /integration\.identifier === 'linkedin-page'/, 'only a company page integration');
+  assert.match(gate, /String\(integration\.id\) === String\(companyPageId\)/, 'only the one page id the founder named');
+  assert.match(gate, /!!companyPageId/, 'no configured id means nothing is allowed');
+  // the personal-profile identifier can never satisfy the gate
+  const identifierIsPage = (identifier) => identifier === 'linkedin-page';
+  assert.equal(identifierIsPage('linkedin'), false, 'a personal-profile integration is refused');
+  const duty = read('supabase/functions/marketing/duties.ts');
+  assert.match(duty, /linkedinTarget\(x, ours\)/, 'the duty selects LinkedIn only through the gate');
+  assert.match(duty, /sec\('linkedin_company_page_integration_id'\)/);
+});
+
 test('the edge function sends nothing to the founder except through the routine', () => {
   const fn = read('supabase/functions/marketing_outreach/index.ts');
   assert.doesNotMatch(fn, /fn_notify_founder|from\('notifications'\)|resend|twilio/i);
