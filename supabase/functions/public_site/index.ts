@@ -146,8 +146,8 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
 // WHICH TRADE A QUESTION IS ABOUT, AND WHETHER IT ASKS A PRICE AT ALL, IS REASONED (think(),
 // _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
 // longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
-async function priceGuidance(question: string) {
-  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor');
+async function priceGuidance(question: string, ip: string) {
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor', 'ip:' + ip);
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
@@ -229,7 +229,7 @@ Deno.serve(async (req) => {
     const pip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
     if (!(await rl('public_site_page_ip:' + pip, await secNum('public_site_page_ip_hour', 600), 3600))) return J({ ok: false, rate_limited: true }, 429);
     try {
-      const r = await priceGuidance(`How much does ${String(b.topic)} cost per square metre in the UAE?`);
+      const r = await priceGuidance(`How much does ${String(b.topic)} cost per square metre in the UAE?`, pip);
       return J(r, 200, { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' });
     } catch (_e) { return J({ ok: false, error: 'internal' }, 500); }
   }
@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
     if (action === 'price_guidance') {
       const q = String(b.question || '').trim() || (b.topic ? `How much does ${String(b.topic).slice(0, 80)} cost per square metre in the UAE?` : '');
       if (q.length < 3) return J({ ok: false, error: 'empty' }, 400);
-      return J(await priceGuidance(q));
+      return J(await priceGuidance(q, ip));
     }
     return J({ ok: false, error: 'unknown_action' }, 400);
   } catch (_e) {

@@ -1,6 +1,6 @@
 // reasoned_suppliers — the sales engineer's decision points on prices, supplier profiles and quotations,
 // moved off word lists onto think(). Seat: sales_engineer. 23 Sep 2026, founder_instruction 886-903
-// (batch B5 of decision_points.json: orders 39-46).
+// (batch B5 of decision_points.json: orders 39-46, and 84-87 found by the batch).
 //
 // Each function asks think() one question and returns { value | null, result } (reasoned_decisions.ts'
 // shape). null means HELD (the founder's model hold, or a model that failed): the caller does the safe,
@@ -70,10 +70,43 @@ export async function priceQuestion(deps: ThinkDeps, o: { question: string; trad
   return { value: { trade: null, asks_price: choice === 'other_trade', item }, result };
 }
 
+// THE PRE-FILTER DECIDES ONLY WHETHER TO SPEND A REASONING CALL, NEVER THE ANSWER (#888 review: every chat
+// message and public request paid for a think()). The question is embedded (gte-small, free, in-region) and
+// compared with a few price-question exemplars in both languages; below the floor, no reasoning is spent and
+// the caller treats it as "no price block" — exactly what it does under the hold. Above it, the REASONING
+// decides whether it is a price question at all and which trade. A miss costs one price block, never a
+// wrong price. PRICE_PREFILTER_FLOOR is a calibration knob, NOT measured for these exemplars: 0.80 sits at
+// the bottom of the band think.ts measured for gte-small (paraphrases 0.847-0.924, unrelated 0.760-0.816),
+// chosen to let a paraphrase through and spend a call on some unrelated questions rather than miss one.
+export const PRICE_EXEMPLARS = [
+  'how much does it cost', 'what is the price per square metre', 'what should this job cost in Dubai',
+  'give me a price range for the work', 'what is the rate for supply and installation',
+  'كم تكلفة هذا العمل', 'ما هو سعر المتر المربع', 'كم يكلف التركيب في دبي',
+];
+export const PRICE_PREFILTER_FLOOR = 0.80;
+/** Per sender, per hour: price reasonings one address or account may start (rl_check). */
+export const PRICE_REASONING_PER_HOUR = 20;
+const cos = (a: number[], b: number[]) => { let d = 0, x = 0, y = 0; for (let i = 0; i < a.length; i++) { d += a[i] * b[i]; x += a[i] * a[i]; y += b[i] * b[i]; } return x && y ? d / Math.sqrt(x * y) : 0; };
+// One gte-small vector per exemplar, kept for the life of the worker (the model is fixed; the text is ours).
+const exemplarVecs = new Map<string, number[]>();
+async function plausiblyAPriceQuestion(deps: ThinkDeps, question: string): Promise<boolean | null> {
+  const q = await deps.embed(question.slice(0, 500)).catch(() => null);
+  if (!q) return null;
+  for (const e of PRICE_EXEMPLARS) if (!exemplarVecs.has(e)) { const v = await deps.embed(e).catch(() => null); if (v) exemplarVecs.set(e, v); }
+  const vs = [...exemplarVecs.values()];
+  if (!vs.length) return null;
+  return Math.max(...vs.map((v) => cos(q, v))) >= PRICE_PREFILTER_FLOOR;
+}
+
 /** The trades we publish for, then the reasoned trade, then the bands: the whole price answer for a caller
- *  that has only the visitor's words. Held -> { reason: 'held' }. */
-export async function priceGuidanceFor(deps: ThinkDeps, question: string, limit = 6, audience?: 'visitor' | 'customer' | 'supplier') {
+ *  that has only the visitor's words. Held -> { reason: 'held' }. `sender` (an address or account) is
+ *  rate-limited per hour before any reasoning is spent. */
+export async function priceGuidanceFor(deps: ThinkDeps, question: string, limit = 6, audience?: 'visitor' | 'customer' | 'supplier', sender = 'unknown') {
   const rpc = deps.rpc;
+  // Without an embedding (the embedder failed) the pre-filter cannot say no, so it lets the reasoning decide.
+  if ((await plausiblyAPriceQuestion(deps, question)) === false) return { ok: false, reason: 'not_a_price_question', prefilter: true };
+  const { data: allowed } = await rpc('rl_check', { p_key: 'price_reasoning:' + sender, p_limit: PRICE_REASONING_PER_HOUR, p_seconds: 3600 });
+  if (allowed === false) return { ok: false, reason: 'rate_limited' };
   const { data: list, error } = await rpc('fn_price_guidance', { p_trade: null, p_limit: limit });
   if (error || !list) return { ok: false, reason: 'unavailable' };
   const r = await priceQuestion(deps, { question, trades: Array.isArray(list.trades) ? list.trades.map(String) : [], audience });
@@ -149,25 +182,80 @@ export async function readSupplierProfile(deps: ThinkDeps, leadId: number, max =
   return { read, held };
 }
 
-// ── 45 sql.trg_quote_quality ──────────────────────────────────────────────────────────────────────
+// ── 45 sql.trg_quote_quality, 84 sql.fn_os_catalog_test_gate ─────────────────────────────────────
+type Aspect = { aspect: string; label: string; note?: string | null };
+/** Which of these category aspects does the text state? One reading, used by the quote trigger and the
+ *  catalogue test gate. Present = a value AND the words that state it. */
+export async function aspectsStated(deps: ThinkDeps, o: { surface: string; text: string; aspects: Aspect[]; trade?: string; queueWhenHeld?: boolean; dedupeKey?: string; subject?: Record<string, unknown> }): Promise<Reasoned<string[]>> {
+  const text = o.text.slice(0, 8000);
+  const result = await think(deps, {
+    seat: 'sales_engineer', surface: o.surface, question: text, queueWhenHeld: o.queueWhenHeld, dedupeKey: o.dedupeKey, subject: o.subject,
+    context: { audience: 'internal', trade: o.trade ?? null, conversation: [{ role: 'supplier', text }] },
+    decision: {
+      name: 'aspects_stated',
+      fields: o.aspects.map((a) => ({ key: a.aspect, question: `Does the quotation state the ${a.label}${a.note ? ` (${a.note})` : ''}? If so, the words that state it; if not, leave empty.` })),
+    },
+  });
+  return { value: answered(result) ? o.aspects.map((a) => a.aspect).filter((k) => stated(result, k)) : null, result };
+}
+
 /** Which category aspects does the quote state? Reads fn_quote_aspects_due, reasons, records. Held: the
  *  reading is recorded as queued and the quote's category verdict stays 'needs_reasoning' (not a pass). */
 export async function reasonQuoteAspects(deps: ThinkDeps, quoteId: string): Promise<{ status: 'none_due' | 'reasoned' | 'held'; present?: string[] }> {
   const { data: due, error } = await deps.rpc('fn_quote_aspects_due', { p_quote_id: quoteId });
   if (error || !due) return { status: 'none_due' };
-  const aspects = (due.aspects ?? []) as { aspect: string; label: string; note?: string | null }[];
-  const result = await think(deps, {
-    seat: 'sales_engineer', surface: 'sql.trg_quote_quality', question: String(due.text ?? '').slice(0, 6000),
+  const r = await aspectsStated(deps, {
+    surface: 'sql.trg_quote_quality', text: String(due.text ?? ''), aspects: (due.aspects ?? []) as Aspect[], trade: String(due.spec_group ?? ''),
     dedupeKey: `quote_aspects:${quoteId}:${due.content_md5}`, subject: { quote_id: quoteId, content_md5: due.content_md5 },
-    context: { audience: 'internal', trade: String(due.spec_group ?? ''), conversation: [{ role: 'supplier', text: String(due.text ?? '').slice(0, 6000) }] },
-    decision: {
-      name: 'aspects_stated',
-      fields: aspects.map((a) => ({ key: a.aspect, question: `Does the quotation state the ${a.label}${a.note ? ` (${a.note})` : ''}? If so, the words that state it; if not, leave empty.` })),
-    },
   });
-  const present = answered(result)
-    ? aspects.map((a) => a.aspect).filter((k) => stated(result, k))
-    : null;
-  await deps.rpc('fn_quote_aspect_reading_record', { p_quote_id: quoteId, p_content_md5: due.content_md5, p_present: present, p_held_id: result.held_id ?? null });
-  return present ? { status: 'reasoned', present } : { status: 'held' };
+  await deps.rpc('fn_quote_aspect_reading_record', { p_quote_id: quoteId, p_content_md5: due.content_md5, p_present: r.value, p_held_id: r.result.held_id ?? null });
+  return r.value ? { status: 'reasoned', present: r.value } : { status: 'held' };
+}
+
+/** The catalogue test gate over a sample: the aspects of the category (fn_os_catalog_test_gate with none
+ *  present), the reasoned reading of the sample, then the verdict. Not queued: an admin test has nobody to
+ *  deliver a late verdict to. Held -> { held: true }, never a verdict from matching the sample's words. */
+export async function catalogTestGate(deps: ThinkDeps, category: string, sample: string) {
+  const { data: empty, error } = await deps.rpc('fn_os_catalog_test_gate', { p_category: category, p_present: [] });
+  if (error || !empty) return { ok: false, reason: 'unavailable' };
+  const aspects = (empty.aspects ?? []) as Aspect[];
+  if (!aspects.length || !sample.trim()) return empty;
+  const r = await aspectsStated(deps, { surface: 'sql.fn_os_catalog_test_gate', text: sample, aspects, trade: category, queueWhenHeld: false });
+  if (!r.value) return { ok: false, reason: 'held', held: true };
+  const { data } = await deps.rpc('fn_os_catalog_test_gate', { p_category: category, p_present: r.value });
+  return data;
+}
+
+// ── 86 sql.fn_org_task_consume_tick (its price branch and its FAQ lexemes) ──────────────────────────
+/** Reads the knowledge-gap tasks whose QUESTION has no reading (fn_org_task_questions_due) and records, per
+ *  question, which published trade price or which approved public FAQ answers it, or neither. The FAQ
+ *  candidates are the nearest by meaning (gte-small, fn_org_task_question_candidates): a shortlist only, the
+ *  reasoning chooses. Held: recorded as queued; fn_reason_apply_sql__fn_org_task_consume_tick records the
+ *  answer when the hold lifts, and the tick parks the task meanwhile. Run by resilience_ping. */
+export async function reasonOrgTaskQuestions(deps: ThinkDeps, limit = 3): Promise<{ read: number; held: number }> {
+  const { data: due, error } = await deps.rpc('fn_org_task_questions_due', { p_limit: limit });
+  if (error || !due) return { read: 0, held: 0 };
+  const trades = (due.trades ?? []) as string[];
+  let read = 0, held = 0;
+  for (const q of (due.questions ?? []) as { task_id: number; question: string; question_md5: string }[]) {
+    const e = await deps.embed(q.question.slice(0, 500)).catch(() => null);
+    const faqs = e ? ((await deps.rpc('fn_org_task_question_candidates', { p_embedding: '[' + e.join(',') + ']', p_k: 8 })).data ?? []) as { id: number; question: string }[] : [];
+    const result = await think(deps, {
+      seat: 'sales_engineer', surface: 'sql.fn_org_task_consume_tick', question: q.question.slice(0, 2000),
+      dedupeKey: `org_task_q:${q.task_id}:${q.question_md5}`, subject: { task_id: q.task_id, question_md5: q.question_md5 },
+      context: { audience: 'customer' },
+      decision: {
+        name: 'what_answers_it',
+        options: [
+          ...trades.map((t) => ({ id: 'price:' + t, meaning: `it asks what ${t.replace(/-/g, ' ')} work or material costs` })),
+          ...faqs.map((f) => ({ id: 'faq:' + f.id, meaning: `this approved FAQ answers it: "${f.question.slice(0, 200)}"` })),
+          { id: 'neither', meaning: 'none of these answers it' },
+        ],
+      },
+    });
+    const choice = answered(result) ? result.decision?.choice ?? 'neither' : null;
+    await deps.rpc('fn_org_task_question_reading_record', { p_task_id: q.task_id, p_question_md5: q.question_md5, p_choice: choice, p_reasoned: choice !== null, p_held_id: result.held_id ?? null });
+    if (choice !== null) read++; else held++;
+  }
+  return { read, held };
 }

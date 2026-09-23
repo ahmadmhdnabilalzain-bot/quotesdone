@@ -336,7 +336,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     try {
       // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
       // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
-      const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience);
+      const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience, who ? 'acct:' + who.email : 'ip:' + ip);
       priceBands = pg || null;
       if (pg && pg.ok) {
         priceCtx = 'PRICE GUIDANCE (published UAE ranges held by QuotesDone, for the trade "'
