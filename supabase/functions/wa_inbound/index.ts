@@ -1012,7 +1012,7 @@ async function handleInbound(req: Request): Promise<Response> {
     try {
       // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
       const meaning = await menuDeps.meaning(Body);
-      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : 'none';
+      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
       const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }

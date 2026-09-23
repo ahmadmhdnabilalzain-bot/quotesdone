@@ -92,7 +92,7 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     if (choice === 'size') text = capabilityAnswer(lang);
     else if (choice?.startsWith('coverage:') || choice?.startsWith('trade:')) text = coverageReply(choice, await io.waTrades(), lang);
     // A request for a person is delivered by wa_inbound.needs_a_person (its own held row), never twice.
-    else if (choice?.startsWith('intent:') && choice !== 'intent:contact_human') text = await io.waIntentReply(phone, question, choice.slice(7));
+    else if (choice?.startsWith('intent:') && !['intent:contact_human', 'intent:greeting', 'intent:small_talk'].includes(choice)) text = await io.waIntentReply(phone, question, choice.slice(7));
     if (!text) return { delivered: false, via: 'none', detail: 'reasoned: ' + (choice ?? 'no choice') + ' — nothing more is owed; the courteous reply and the knowledge gap stand' };
     return await whatsapp(io, phone, question, text);
   }

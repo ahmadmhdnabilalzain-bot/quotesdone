@@ -487,6 +487,15 @@ Deno.test('held (the model hold): a coverage question is not guessed at; unanswe
   assertEquals(n.queued, []);
 });
 
+Deno.test('held: a first contact gets the welcome AND its meaning is queued, so the question is answered on replay', async () => {
+  const h = harness({ meaning: null });
+  assertEquals(await welcomeFirstContact(h.d, msg('what trades do you cover?')), true);
+  assertEquals(h.queued, ['what trades do you cover?']);
+  const a = harness({ meaning: 'coverage:list' });
+  await welcomeFirstContact(a.d, msg('what trades do you cover?'));
+  assertEquals(a.queued, [], 'answered now: nothing to replay');
+});
+
 Deno.test('held: a size question is not guessed to be one (no capability answer), and a menu choice is never reasoned', async () => {
   const h = harness({ meaning: null });
   assertEquals((await menuTurn(h.d, msg('how many suppliers do you have'))).handled, false);

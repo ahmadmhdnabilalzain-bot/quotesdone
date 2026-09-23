@@ -225,6 +225,8 @@ export async function welcomeFirstContact(d: MenuDeps, inp: MenuInput): Promise<
   const ctx = await d.context(inp.from);
   const ans = body ? await answerOf(d, body) : null;
   if (ans) await reply(d, inp, lang, 'menu_first_answer', ans, null, { audience: ctx.audience, faq: true });
+  // Held (the hold): the welcome is not an answer, so the meaning waits in the queue and the replay answers it.
+  else if (body && (await d.meaning(body)) === null) await d.queueMeaning(body);
   await sendMenu(d, inp, lang, ctx, 'menu_welcome', null);
   return true;
 }

@@ -90,7 +90,8 @@ begin
     values (p_from, p_body, v_ident_k, v_ident_id, false, v_reply,
             case when p_intent is null
                  then 'Not reasoned yet (the model hold). The meaning waits in customer_support''s queue and is answered on WhatsApp when it is reasoned.'
-                 else 'Reasoned: no intent row fits. This row is the backlog: a real question with no resolver.' end)
+                 when p_intent = 'none' then 'Reasoned: no intent row fits. This row is the backlog: a real question with no resolver.'
+                 else 'Reasoned as ' || p_intent || ': answered outside the intent table (size statement, trade list), not backlog.' end)
     returning id into v_log;
     return jsonb_build_object('ok', true, 'matched', false, 'reply', v_reply, 'log_id', v_log,
                               'intent_decided_by', case when p_intent is null then 'held: not yet reasoned' else 'reasoning' end);
