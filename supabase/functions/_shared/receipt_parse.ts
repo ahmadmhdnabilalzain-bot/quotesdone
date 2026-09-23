@@ -1,15 +1,19 @@
-// receipt_parse — DETERMINISTIC extraction of a forwarded vendor receipt (6 Sep 2026).
+// receipt_parse — the FORMAT of a forwarded vendor receipt, read deterministically (6 Sep 2026; 23 Sep 2026).
 //
 // Why this exists: resend_inbound booked a forwarded SaaS receipt only after an ai_gateway extraction
 // call. Since the paid hold began on 15 Aug that call returns nothing, so every receipt the founder
 // forwarded fell through to the supplier-document path and landed on HIS screen as "Inbox — awaiting
 // your reply" and "Reviews pending" — four of them by 6 Sep, expense_entries at 0 since 15 Aug.
-// A Stripe/Orb/Apify receipt is a fixed-shape document: the vendor is the original sender's domain,
-// the amount is next to "Amount paid" / "Total" / "payment of", the date is on the "Paid" or "Sent:"
-// line. Plain parsing reads all four real receipts; the model is the fallback, not the path.
+// The amount beside its currency mark, the date on the "Paid" or "Sent:" line, a stated VAT figure and a
+// labelled TRN are FORMAT, and plain parsing reads them.
 //
-// Pure: no I/O, no Deno APIs, so scripts/backfill_unbooked_receipts.ts runs the same code the edge
-// function runs. The only company data it consults is passed in (knownCadence from `expenses`).
+// 23 SEP 2026 (founder_instruction 886-903, decision point accountant.receipt_parse): what the document IS,
+// how often it bills, and WHO issued it are MEANING. They were decided here by a word list (parsePeriod:
+// /annual|monthly|renew|your plan/) and by the sender's domain with a spelling map (vendorFromAddress,
+// VENDOR_NAMES). Both are gone: the vendor and the period arrive already REASONED (_shared/reasoned_books.ts,
+// documentKind and receiptVendor, through think()), and this file only reads the figures.
+//
+// Pure: no I/O, no Deno APIs.
 
 export type ParsedReceipt = {
   vendor: string;
@@ -23,15 +27,6 @@ export type ParsedReceipt = {
   trn: string | null;      // the vendor's 15-digit UAE TRN when the receipt prints one
 };
 
-// The vendor is DERIVED from the original sender's domain (billing@apify.com -> Apify). This map only
-// exists for names whose casing or wording the domain label cannot produce; it is a constant rather
-// than a table because it carries no company decision — it is spelling — and the same six names
-// already sit as literals in expense_entries.vendor, which dedup matches on. Add a line when a new
-// vendor's domain label is not its name.
-const VENDOR_NAMES: Record<string, string> = {
-  openrouter: 'OpenRouter', godaddy: 'GoDaddy', openai: 'OpenAI', cloudconvert: 'CloudConvert',
-  dubaipay: 'DubaiPay', withorb: 'Orb', stripe: 'Stripe',
-};
 const CURRENCIES = 'USD|AED|EUR|GBP|SGD|SAR';
 const MONTHS: Record<string, number> = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };
 
@@ -62,28 +57,6 @@ function num(s: string): number { return Number(String(s).replace(/,/g, '')); }
 function ymd(y: number, m: number, d: number): string | null {
   if (!(y >= 2000 && y <= 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-}
-
-/** The ORIGINAL sender of a forwarded email: the first "From: ... <addr>" line in the body, else the forwarder. */
-export function originalSender(body: string, from: string): string {
-  const m = body.match(/^\s*(?:>?\s*)?From:\s*([^\n]+)$/im);
-  if (m) {
-    const addrs = m[1].match(/[\w.+-]+@[\w.-]+\.\w+/g);
-    if (addrs && addrs.length) return addrs[addrs.length - 1].toLowerCase(); // "x on behalf of Y <y>": Y is the vendor
-  }
-  return String(from || '').toLowerCase();
-}
-
-export function vendorFromAddress(addr: string): string | null {
-  const dom = (addr.split('@')[1] || '').toLowerCase();
-  if (!dom) return null;
-  const labels = dom.split('.').filter(Boolean);
-  if (labels.length < 2) return null;
-  // registrable label: the one before the public suffix (co.uk / com.au style handled by length)
-  const last = labels[labels.length - 1]; const prev = labels[labels.length - 2];
-  const label = (['co', 'com', 'org', 'net'].includes(prev) && last.length === 2 && labels.length >= 3) ? labels[labels.length - 3] : prev;
-  if (['gmail', 'outlook', 'hotmail', 'yahoo', 'icloud', 'live', 'quotesdone'].includes(label)) return null;
-  return VENDOR_NAMES[label] || (label.charAt(0).toUpperCase() + label.slice(1));
 }
 
 export function parseAmount(text: string): { amount: number; currency: string; basis: string } | null {
@@ -166,36 +139,26 @@ export function parseVat(text: string, total: number): { amount: number; basis: 
   return null;
 }
 
-export function parsePeriod(text: string, knownCadence?: string | null): { period: ParsedReceipt['period']; basis: string } {
-  if (/\b(annual|yearly|per year|\/\s?yr|12 months)\b/i.test(text)) return { period: 'annual', basis: 'text:annual' };
-  if (/\b(subscription|monthly|per month|\/\s?mo\b|renew(al|ed|s)?|your plan)\b/i.test(text)) return { period: 'monthly', basis: 'text:monthly' };
-  // a Stripe line-item period "Aug 29–Sep 28, 2026" is a one-month billing cycle
-  if (/\b[A-Za-z]{3,9}\s+\d{1,2}\s?[–-]\s?[A-Za-z]{3,9}\s+\d{1,2},\s+\d{4}\b/.test(text)) return { period: 'monthly', basis: 'text:month_range' };
-  if (knownCadence === 'annual' || knownCadence === 'monthly') return { period: knownCadence, basis: 'expenses.cadence' };
-  return { period: 'one_off', basis: 'default' };
-}
-
 /**
- * Returns null when no amount can be read — the caller then falls back to the model (which under the
- * paid hold returns nothing) and hands the email to the bookkeeper. Never guesses an amount.
+ * The figures of a receipt whose vendor and period were REASONED upstream (reasoned_books.ts). Returns null
+ * when no amount can be read beside a currency mark — the caller then holds the email for the bookkeeper.
+ * Never guesses an amount, a vendor or a period.
  */
-export function parseReceipt(input: { from: string; subject: string; body: string; knownCadence?: string | null; today?: string }): ParsedReceipt | null {
+export function parseReceipt(input: { subject: string; body: string; vendor: string; period: ParsedReceipt['period']; today?: string }): ParsedReceipt | null {
   const body = String(input.body || ''); const subject = String(input.subject || '');
   const text = subject + '\n' + body;
+  const vendor = String(input.vendor || '').trim();
+  if (!vendor) return null;
   const amt = parseAmount(body) || parseAmount(subject);
   if (!amt) return null;
-  const sender = originalSender(body, input.from);
-  const vendor = vendorFromAddress(sender) || vendorFromAddress(input.from);
-  if (!vendor) return null;
   const dt = parseDate(text);
   const date = dt?.date || input.today || new Date().toISOString().slice(0, 10);
-  const per = parsePeriod(text, input.knownCadence);
   const vat = parseVat(text, amt.amount);
   const trn = parseTrn(text);
   return {
-    vendor, amount: amt.amount, currency: amt.currency, date, period: per.period,
-    recurring: per.period !== 'one_off',
-    basis: `vendor=${sender} amount=${amt.basis} date=${dt?.basis || 'today'} period=${per.basis}`
+    vendor, amount: amt.amount, currency: amt.currency, date, period: input.period,
+    recurring: input.period !== 'one_off',
+    basis: `vendor=reasoned amount=${amt.basis} date=${dt?.basis || 'today'} period=reasoned`
       + (vat ? ` vat=${vat.basis}` : '') + (trn ? ' trn=read' : ''),
     vat: vat?.amount ?? null,
     trn,

@@ -59,7 +59,7 @@ Deno.test(`a ${LINES}-line quotation review runs well inside the edge CPU cap`, 
   const t0 = performance.now();
   const seeds = seedTerms({ name: 'ZZ DEMO Customer', email: 'c@example.invalid', phone: '+971500000001', project: 'ZZ DEMO Villa' });
   const gated = inboxBoq({ boq: rows }, 'ZZ DEMO Customer', seeds, []);
-  const boq = boqWithArabic(gated.boq ?? { boq: rows }, v);
+  const boq = boqWithArabic(gated.boq ?? { boq: rows }, {});
   const inq: SafeInquiry = { id: '00000000-0000-4000-8000-000000000001', job_no: 'ZZ1', category: 'gypsum', emirate: 'Dubai', spec: null,
     boq_rows: (boq as { boq: typeof rows }).boq, boq_withheld: false, concluded: false, revealed: false };
   const read = await readQuotationFile(new TextEncoder().encode(csv), 'ZZDEMO_quotation.csv', 'text/csv', ['ZZ DEMO Supplier']);

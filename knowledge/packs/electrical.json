@@ -1,0 +1,899 @@
+{
+  "trade": "electrical",
+  "entries": [
+    {
+      "id": "electrical:xlpe-vs-pvc-insulation",
+      "topic": "XLPE vs PVC cable insulation",
+      "kind": "comparison",
+      "body_en": "PVC (polyvinyl chloride) and XLPE (cross-linked polyethylene) are the two insulation families a UAE buyer meets most. PVC insulated cables are thermoplastic: cheaper, flexible, easy to terminate, but rated for a lower maximum continuous conductor temperature (typically 70 C) and they soften under overload. XLPE is thermoset: it does not melt back, carries a higher continuous conductor temperature (typically 90 C) and a higher short-circuit temperature, so for the same copper size it usually carries more current, and it has better dielectric properties and moisture resistance. Consequence for procurement: a cable schedule sized on XLPE ratings cannot be swapped for PVC of the same cross-section without re-checking current capacity, voltage drop and fault withstand; that substitution is a classic quote-stage trap. In UAE practice, LV power sub-mains and feeders are normally XLPE/SWA/PVC (0.6/1 kV) to IEC 60502-1 or BS 5467, while final circuits inside buildings are often PVC or LSZH single-core in conduit to BS 6004/BS EN 50525 equivalents. High ambient temperatures in the Gulf (ground and air) require derating factors whichever insulation is chosen, and XLPE gives more headroom. Always state the insulation, the standard, and the voltage grade on the order.",
+      "body_ar": "تُعدّ عوازل PVC (بولي فينيل كلورايد) وXLPE (البولي إيثيلين المتشابك) الأكثر شيوعاً في السوق الإماراتي. كابلات PVC من اللدائن الحرارية؛ أرخص وأسهل في التشكيل والتوصيل، لكن درجة حرارة الموصل المستمرة المسموح بها أقل (عادةً 70 درجة مئوية) وتلين عند الأحمال الزائدة. أما XLPE فهي مادة متصلّدة حرارياً لا تذوب، وتتحمل درجة تشغيل أعلى (عادةً 90 درجة مئوية) ودرجة أعلى عند القصر، لذا تحمل تياراً أكبر لنفس مقطع النحاس، مع خصائص عزل ومقاومة رطوبة أفضل. الأثر على الشراء: لا يجوز استبدال كابل مُصمَّم على أساس XLPE بكابل PVC بنفس المقطع دون إعادة التحقق من سعة التيار وهبوط الجهد وتحمّل القصر، وهذا من أشهر الأفخاخ في مرحلة العروض. في الممارسة المحلية تكون المغذيات الرئيسية عادةً XLPE/SWA/PVC بجهد 0.6/1 ك.ف وفق IEC 60502-1 أو BS 5467، بينما الدوائر النهائية داخل المباني غالباً أحادية القلب PVC أو LSZH داخل المواسير. ويجب تطبيق معاملات التخفيض بسبب ارتفاع درجات الحرارة في الخليج أياً كان نوع العازل، مع هامش أوسع في XLPE. يجب ذكر نوع العازل والمواصفة ودرجة الجهد في أمر الشراء.",
+      "sources": [
+        "https://uk.prysmian.com/media/news/pvc-vs-xlpe"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:lszh-cables",
+      "topic": "LSZH / LS0H low smoke zero halogen cables",
+      "kind": "product",
+      "body_en": "LSZH (also written LS0H or LSOH) cables use sheaths and insulation compounds that emit little smoke and no halogen acid gas when burning. Ordinary PVC releases dense black smoke and hydrochloric acid gas, which blinds occupants during evacuation and corrodes electronics. LSZH is therefore specified for escape routes, public buildings, malls, hospitals, tunnels, data centres, and high-rise buildings, and consultants in Dubai and Abu Dhabi routinely call for it in such projects in line with the UAE Fire and Life Safety Code. Important distinctions: LSZH is not the same as fire-resistant. An LSZH cable limits smoke and toxicity but may fail in a fire; a fire-resistant cable (for example tested to BS EN 50200 / BS 8434 or IEC 60331) keeps circuit integrity for a stated time and is required for life-safety circuits such as fire alarm, emergency lighting and smoke extract. Typical test references for LSZH performance are IEC 60754 (halogen acid gas), IEC 61034 (smoke density) and IEC 60332 (flame propagation). Buyers should state LSZH explicitly on both insulation and sheath, the test standards demanded, and whether fire resistance is also needed. LSZH compounds are stiffer and costlier than PVC and need care when pulling.",
+      "body_ar": "كابلات LSZH (وتُكتب أيضاً LS0H) مصنوعة من مركّبات عزل وغلاف تُطلق دخاناً قليلاً ولا تُطلق غازات هالوجينية حمضية عند الاحتراق، بخلاف PVC الذي يُطلق دخاناً أسود كثيفاً وغاز حمض الهيدروكلوريك الذي يحجب الرؤية أثناء الإخلاء ويُتلف الأجهزة الإلكترونية. لذلك تُشترط في مسارات الهروب والمباني العامة والمراكز التجارية والمستشفيات والأنفاق ومراكز البيانات والأبراج، ويطلبها الاستشاريون في دبي وأبوظبي عادةً انسجاماً مع كود الإمارات للحماية من الحريق وسلامة الأرواح. تنبيه مهم: LSZH لا تعني مقاومة الحريق؛ فالكابل منخفض الدخان يحدّ من الدخان والسمّية لكنه قد يتعطل في الحريق، بينما الكابل المقاوم للحريق (مختبر مثلاً وفق BS EN 50200 أو BS 8434 أو IEC 60331) يحافظ على استمرارية الدائرة لمدة محددة، وهو مطلوب لدوائر السلامة كإنذار الحريق وإنارة الطوارئ وشفط الدخان. من مراجع الاختبار الشائعة: IEC 60754 للغازات الحمضية وIEC 61034 لكثافة الدخان وIEC 60332 لانتشار اللهب. على المشتري أن ينص صراحةً على LSZH للعازل والغلاف، ومعايير الاختبار، وهل يلزم أيضاً مقاومة الحريق. هذه المركّبات أقسى وأغلى من PVC وتحتاج عناية عند السحب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Low_smoke_zero_halogen",
+        "https://www.elandcables.com/cables/standard-and-enhanced-fire-cables"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:fire-resistant-cables",
+      "topic": "Fire-resistant (FR / FP) cables for life-safety circuits",
+      "kind": "product",
+      "body_en": "Fire-resistant cables maintain circuit integrity during a fire so that fire alarm panels, sounders, emergency lighting central systems, smoke control fans, fire pumps and firefighting lifts keep working. Common UAE-seen types are mineral-insulated copper-clad (MICC), and polymeric FR cables with mica-glass tape under LSZH sheath (often marketed as FP200, FP400 or similar). Performance is proven by test: IEC 60331 (circuit integrity under fire), BS EN 50200 with classes such as PH30/PH60/PH120 for small cables, and BS 8434 / BS 8491 for fire with water spray and mechanical shock. 'Standard' versus 'enhanced' grades in British practice relate to survival duration (for example 30 vs 120 minutes); the grade must follow the fire engineering design and the UAE Fire and Life Safety Code and Civil Defence approval. Accessories matter: fire-rated clips and supports (metal, not plastic) are required, because a cable that survives but falls from melted plastic clips has failed. Civil Defence approvals typically require the cable make and model to be listed/approved. Buyers must state: FR performance class and test standard, number of cores, size, LSZH sheath colour (red is common for fire alarm), and whether armoured. Verified grading: standard fire-resistant cables are typically PH30/PH60 to BS EN 50200 (30 to 60 minutes), while enhanced cables must meet PH120 plus BS 8434-2, a 120-minute test combining flame, mechanical shock and water spray; enhanced construction usually adds mica-glass tape under the insulation.\n\nUAE Fire and Life Safety Code 2018: all fire detection and alarm wiring must be 2-hour fire rated and Civil Defence listed, with metal conduit optional for such listed cable except in corrosive environments (Chapter 8); all voice evacuation and two-way firefighter telephone wiring must be 2-hour fire rated (Chapter 7, Tables 7.1 and 7.2).",
+      "body_ar": "تحافظ الكابلات المقاومة للحريق على استمرارية الدائرة أثناء الحريق حتى تستمر لوحات إنذار الحريق والصافرات وأنظمة إنارة الطوارئ المركزية ومراوح التحكم بالدخان ومضخات الحريق ومصاعد رجال الإطفاء في العمل. الأنواع الشائعة في الإمارات: كابلات معدنية العزل مغلفة بالنحاس (MICC)، وكابلات بوليمرية مقاومة للحريق بشريط الميكا تحت غلاف LSZH (تُسوّق غالباً بأسماء مثل FP200 وFP400). يُثبت الأداء بالاختبار: IEC 60331 لاستمرارية الدائرة، وBS EN 50200 بفئات مثل PH30/PH60/PH120 للكابلات الصغيرة، وBS 8434 وBS 8491 مع رش الماء والصدمات الميكانيكية. الفرق بين الدرجة القياسية والمعززة في الممارسة البريطانية يتعلق بمدة الصمود (مثلاً 30 مقابل 120 دقيقة)، ويجب أن تتبع الدرجة تصميم هندسة الحريق وكود الإمارات للحماية من الحريق وموافقة الدفاع المدني. الملحقات مهمة: يلزم استخدام مشابك ودعامات معدنية مقاومة للحريق لا بلاستيكية، لأن الكابل الذي يصمد ثم يسقط بذوبان المشابك يُعدّ فاشلاً. غالباً يشترط الدفاع المدني أن تكون الماركة والطراز معتمدين. على المشتري تحديد: فئة الأداء ومعيار الاختبار، عدد الأقطاب، المقطع، لون غلاف LSZH (الأحمر شائع لإنذار الحريق)، وهل الكابل مُدرّع. التصنيف المُتحقق منه: الكابلات المقاومة للحريق القياسية عادةً PH30/PH60 وفق BS EN 50200 (من 30 إلى 60 دقيقة)، أما الكابلات المعززة فيجب أن تحقق PH120 إضافة إلى BS 8434-2، وهو اختبار لمدة 120 دقيقة يجمع اللهب والصدمة الميكانيكية ورش الماء؛ ويضيف التركيب المعزز عادةً شريط ميكا زجاجي تحت العزل.\n\nكود الإمارات للحماية من الحريق وسلامة الأرواح 2018: يجب أن تكون جميع أسلاك كشف وإنذار الحريق مقاومة للحريق لمدة ساعتين ومدرجة لدى الدفاع المدني، والمواسير المعدنية اختيارية لهذه الكابلات المدرجة إلا في البيئات المسببة للتآكل (الفصل الثامن)؛ ويجب أن تكون جميع أسلاك الإخلاء الصوتي والهاتف ثنائي الاتجاه لرجال الإطفاء مقاومة للحريق لمدة ساعتين (الفصل السابع، الجدولان 7.1 و7.2).",
+      "sources": [
+        "https://www.elandcables.com/cables/standard-and-enhanced-fire-cables",
+        "https://en.wikipedia.org/wiki/Mineral-insulated_copper-clad_cable",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:armoured-swa-vs-unarmoured",
+      "topic": "Armoured (SWA/AWA) vs unarmoured cable",
+      "kind": "comparison",
+      "body_en": "Armoured cables have a layer of steel wire (SWA) for multicore cables or aluminium wire (AWA) for single-core AC cables, laid over the bedding and under the outer sheath. The armour gives mechanical protection for direct burial, cable trenches, outdoor runs and industrial areas, and in UAE practice it is often used as, or supplements, the circuit protective conductor. Single-core cables carrying AC must not use steel-wire armour because the magnetic steel causes eddy currents and heating; aluminium armour is used instead. Unarmoured cables (for example XLPE/PVC or LSZH single cores) must be protected by containment: conduit, trunking or tray within buildings. When armour is used as earth, its cross-section must satisfy the adiabatic check, and glands must be correctly earthed (brass glands with earth tags, often with shrouds; hazardous areas need certified glands). DEWA service cables are armoured and the armour forms the supplier's protective conductor. Buyers should specify armour type, whether an extra copper earth core is required, the gland type (indoor/outdoor, CW/E1W/ BW), and outer sheath material (PVC or LSZH) because armoured LSZH is often needed in basements and car parks.",
+      "body_ar": "تحتوي الكابلات المدرّعة على طبقة من الأسلاك الفولاذية (SWA) للكابلات متعددة الأقطاب أو أسلاك الألمنيوم (AWA) للكابلات أحادية القلب بالتيار المتردد، فوق الطبقة الحاشية وتحت الغلاف الخارجي. يوفر التدريع حماية ميكانيكية للدفن المباشر والخنادق والتمديدات الخارجية والمناطق الصناعية، ويُستخدم في الممارسة الإماراتية كموصل حماية أو كمكمّل له. لا يجوز استخدام التدريع الفولاذي في الكابلات أحادية القلب بالتيار المتردد لأنه يسبب تيارات دوامية وسخونة، ويُستعمل الألمنيوم بدلاً منه. أما الكابلات غير المدرعة فيجب حمايتها بالمواسير أو المجاري أو الصواني داخل المباني. عند استخدام التدريع كأرضي يجب التحقق من مقطعه بحساب التحمل الحراري، وأن تكون الجلندات مؤرضة جيداً (جلندات نحاسية مع حلقات تأريض وأغطية، وجلندات معتمدة في المناطق الخطرة). كابلات خدمة ديوا مدرعة ويشكّل تدريعها موصل الحماية من جهة المزوّد. على المشتري تحديد نوع التدريع، وهل يلزم قلب أرضي نحاسي إضافي، ونوع الجلند (داخلي/خارجي)، ومادة الغلاف الخارجي (PVC أو LSZH)، إذ يُطلب غالباً مدرع LSZH في السراديب ومواقف السيارات.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:copper-vs-aluminium-conductors",
+      "topic": "Copper vs aluminium conductors",
+      "kind": "comparison",
+      "body_en": "Copper has higher conductivity, so for the same current it needs a smaller cross-section, bends and terminates easily and is the default for building wiring in the UAE. Aluminium is lighter and considerably cheaper per ampere, so it is used for large LV feeders, overhead lines and MV/utility cables, where the size penalty (roughly 1.6 times the copper cross-section for similar ampacity) is acceptable. Aluminium needs compatible lugs (bi-metallic Cu/Al lugs at copper busbars), oxide-inhibiting compound, correct torque and periodic re-tightening, because poor aluminium terminations are a known cause of overheating. Many consultants in Dubai and Abu Dhabi specify copper only for building installations; check the project specification before offering aluminium as a value-engineering option. Copper price follows the LME metal market and is the single biggest cost driver in cable quotes, so suppliers often issue validity of only days and may index the price to LME copper. A buyer comparing quotes must ensure all are for the same conductor metal, class (Class 2 stranded vs Class 5 flexible), and cross-section.",
+      "body_ar": "النحاس أعلى موصلية، لذا يحتاج مقطعاً أصغر لنفس التيار، ويسهل ثنيه وتوصيله، وهو الخيار الافتراضي لتمديدات المباني في الإمارات. أما الألمنيوم فأخف وزناً وأرخص بكثير لكل أمبير، ويُستخدم في المغذيات الكبيرة للجهد المنخفض والخطوط الهوائية وكابلات الجهد المتوسط، حيث تكون زيادة المقطع (قرابة 1.6 مرة من مقطع النحاس لتيار مماثل) مقبولة. يحتاج الألمنيوم إلى أطراف توصيل مناسبة (أطراف ثنائية المعدن نحاس/ألمنيوم عند القضبان النحاسية) ومادة مانعة للأكسدة وعزم ربط صحيح وإعادة شد دورية، لأن سوء توصيلات الألمنيوم سبب معروف للسخونة. كثير من الاستشاريين في دبي وأبوظبي يشترطون النحاس فقط في تمديدات المباني، فيجب مراجعة مواصفات المشروع قبل عرض الألمنيوم كبديل لخفض التكلفة. يتبع سعر النحاس بورصة لندن للمعادن (LME) وهو أكبر محرّك لتكلفة الكابلات، لذا تكون صلاحية العروض أياماً قليلة وقد يُربط السعر بسعر النحاس. عند مقارنة العروض تأكد أنها لنفس المعدن وفئة الموصل (فئة 2 مجدول أو فئة 5 مرن) والمقطع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Aluminum_building_wiring"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:cable-sizing-derating",
+      "topic": "Cable sizing and derating in UAE conditions",
+      "kind": "installation",
+      "body_en": "Cable size is not chosen from current alone. The designer checks: (1) design current versus the protective device rating; (2) current-carrying capacity from the installation method tables (clipped direct, in conduit, on tray, buried, in duct), multiplied by correction factors for ambient temperature, grouping with other circuits, thermal insulation, and soil thermal resistivity and depth when buried; (3) voltage drop, commonly limited in DEWA/BS 7671-based practice to a few percent for lighting and other circuits, and (4) fault withstand and earth fault loop impedance so the device disconnects in the required time. In the Gulf, ambient air in ceiling voids and plant rooms and ground temperatures are high, so the ambient correction often forces a larger size than European rules of thumb suggest. Long runs to villas, pumps and car-park lighting are usually governed by voltage drop, not ampacity. A supplier quote should not change sizes: if a contractor offers a smaller cable than the schedule, ask for the calculation. Buyers should supply the single-line diagram or cable schedule with sizes, number of cores, lengths, and installation method so suppliers quote exactly.",
+      "body_ar": "لا يُختار مقطع الكابل على أساس التيار وحده. يتحقق المصمم من: (1) تيار التصميم مقارنةً بقيمة جهاز الحماية؛ (2) سعة حمل التيار من جداول طريقة التمديد (مثبت مباشرة، داخل ماسورة، على صينية، مدفون، داخل مجرى) مضروبةً في معاملات التصحيح لدرجة الحرارة المحيطة وتجميع الدوائر والعزل الحراري ومقاومة التربة الحرارية وعمق الدفن؛ (3) هبوط الجهد، ويُقيّد في الممارسة المبنية على ديوا وBS 7671 بنسب مئوية محدودة للإنارة والدوائر الأخرى؛ (4) تحمّل تيار القصر ومعاوقة حلقة العطل الأرضي لضمان الفصل في الزمن المطلوب. في الخليج تكون درجات حرارة الأسقف المستعارة وغرف المعدات والتربة مرتفعة، فيفرض معامل الحرارة غالباً مقطعاً أكبر مما توحي به القواعد الأوروبية التقريبية. التمديدات الطويلة للفلل والمضخات وإنارة المواقف يحكمها عادةً هبوط الجهد لا سعة التيار. لا يجوز لعرض المورّد تغيير المقاطع؛ فإن عرض المقاول كابلاً أصغر من الجدول فاطلب الحسابات. على المشتري تقديم المخطط الأحادي أو جدول الكابلات بالمقاطع وعدد الأقطاب والأطوال وطريقة التمديد ليكون التسعير دقيقاً.",
+      "sources": [
+        "https://uk.prysmian.com/media/news/pvc-vs-xlpe",
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:cable-spec-checklist",
+      "topic": "Cable order specification checklist",
+      "kind": "spec_checklist",
+      "body_en": "A cable enquiry that only says '4 core 95 mm2 cable' cannot be quoted exactly. Suppliers in the UAE (local manufacturers and importers) price by the full construction, and small differences change the cost substantially: conductor metal and class, insulation (PVC, XLPE, LSZH compound), armour (none, SWA, AWA), outer sheath (PVC, LSZH, flame-retardant), voltage grade (300/500 V, 450/750 V, 0.6/1 kV, MV), standard of manufacture, and any fire-resistance class. Quantity is quoted in metres and drum lengths matter: cut lengths cost extra, and short drums create waste and joints. State colour/core identification (brown, black, grey, blue, green-yellow per harmonised codes) and whether an earth core is included. For projects under consultant supervision, ask for the approved make list and require test certificates and a certificate of conformity. The procurement checklist below is the minimum set of fields. Construction details also decide the rating: XLPE insulation runs at 90 C continuous and 250 C short-circuit, PVC at 70 C and 160 C, so the insulation type must be named, not just the size. For fire performance state separately whether the sheath must be LSZH and whether the cable must be fire resistant (PH30/60/120, BS 8434-2). Ask for the drum schedule, manufacturer, country of origin, routine test certificates and delivery programme so partial deliveries match site progress.",
+      "body_ar": "استفسار الكابل الذي يذكر فقط «كابل 4 أقطاب 95 مم²» لا يمكن تسعيره بدقة. يسعّر الموردون في الإمارات (المصنّعون المحليون والمستوردون) على أساس التركيب الكامل، والفروق الصغيرة تغيّر التكلفة كثيراً: معدن الموصل وفئته، والعازل (PVC أو XLPE أو مركّب LSZH)، والتدريع (بدون، SWA، AWA)، والغلاف الخارجي (PVC أو LSZH أو مثبط للهب)، ودرجة الجهد (300/500 ف، 450/750 ف، 0.6/1 ك.ف، جهد متوسط)، ومواصفة التصنيع، وأي فئة مقاومة للحريق. تُسعّر الكمية بالمتر، ويهمّ طول البكرة: فالقطع حسب الطلب له تكلفة إضافية، والبكرات القصيرة تسبب هدراً ووصلات. حدّد ألوان تمييز الأقطاب (بني، أسود، رمادي، أزرق، أخضر-أصفر وفق الترميز الموحد) وهل يوجد قطب أرضي. في المشاريع تحت إشراف استشاري اطلب قائمة الماركات المعتمدة، واشترط شهادات الاختبار وشهادة المطابقة. القائمة أدناه هي الحد الأدنى من البيانات. تفاصيل التركيب تحدد أيضاً قدرة الكابل: عزل XLPE يعمل عند 90 درجة مستمرة و250 درجة عند القصر، وعزل PVC عند 70 و160 درجة، لذا يجب تسمية نوع العزل لا المقاس فقط. ولأداء الحريق حدّد بشكل منفصل هل يجب أن يكون الغلاف LSZH وهل يجب أن يكون الكابل مقاوماً للحريق (PH30/60/120 وBS 8434-2). واطلب جدول البكرات والمصنّع وبلد المنشأ وشهادات الاختبار الروتيني وبرنامج التوريد حتى تتوافق الدفعات الجزئية مع تقدم الموقع.",
+      "sources": [
+        "https://uk.prysmian.com/media/news/pvc-vs-xlpe",
+        "https://en.wikipedia.org/wiki/Low_smoke_zero_halogen",
+        "https://www.elandcables.com/cables/standard-and-enhanced-fire-cables"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "conductor metal (Cu/Al) and class",
+        "cross-section mm2 and number of cores (incl. earth core)",
+        "insulation type (PVC/XLPE/LSZH)",
+        "armour (none/SWA/AWA)",
+        "outer sheath (PVC/LSZH)",
+        "voltage grade",
+        "standard of manufacture (e.g. IEC 60502-1, BS 5467, BS 6724)",
+        "fire performance class if any",
+        "length per circuit and drum lengths",
+        "core colours",
+        "approved make list / origin",
+        "test certificates and delivery location"
+      ]
+    },
+    {
+      "id": "electrical:switchgear-hierarchy-mdb-smdb-db",
+      "topic": "Distribution hierarchy: LV panel, MDB, SMDB, DB",
+      "kind": "glossary",
+      "body_en": "UAE drawings use a standard hierarchy. The utility transformer (DEWA/ADDC substation, often inside the building) feeds the main LV switchboard, sometimes called the LV panel or MDB (main distribution board), which contains the incoming ACB or large MCCB, metering provisions as required by the utility, and outgoing feeders. Sub-main distribution boards (SMDB) serve floors, zones or plant (chillers, pumps, lifts). Final distribution boards (DB) hold MCBs and RCDs/RCBOs for lighting, socket and small-power circuits. Motor control centres (MCC) and dedicated panels (ATS panels for generator changeover, capacitor banks for power-factor correction, emergency DBs) sit alongside. Each assembly in modern practice should be a type-tested or design-verified assembly under IEC 61439-1/-2, with a stated form of internal separation (Form 1 to Form 4) and IP rating. Utilities require approved panel builders and inspection before energisation. When a buyer asks for 'a DB', the supplier needs to know which level it is, its incomer, the number and rating of outgoing ways, and whether it is surface or flush.",
+      "body_ar": "تستخدم المخططات في الإمارات تسلسلاً قياسياً: محوّل المرفق (محطة ديوا أو أدك، وغالباً داخل المبنى) يغذي لوحة الجهد المنخفض الرئيسية، وتُسمى LV Panel أو MDB (لوحة التوزيع الرئيسية)، وتحتوي على قاطع الدخل ACB أو MCCB كبير وتجهيزات العدادات حسب متطلبات المرفق والمخارج. ثم لوحات التوزيع الفرعية (SMDB) التي تخدم الطوابق أو المناطق أو المعدات (المبردات، المضخات، المصاعد). ثم لوحات التوزيع النهائية (DB) التي تضم قواطع MCB وأجهزة RCD/RCBO لدوائر الإنارة والمقابس والأحمال الصغيرة. وإلى جانبها مراكز التحكم بالمحركات (MCC) ولوحات مخصصة كلوحات التحويل الآلي للمولد (ATS) ومكثفات تحسين معامل القدرة ولوحات الطوارئ. في الممارسة الحديثة يجب أن تكون كل لوحة مجمّعة مُتحقَّق من تصميمها وفق IEC 61439-1/-2، مع تحديد شكل الفصل الداخلي (Form 1 إلى Form 4) ودرجة الحماية IP. تشترط المرافق مصنّعي لوحات معتمدين وفحصاً قبل التوصيل. عندما يطلب المشتري «لوحة توزيع» يحتاج المورد معرفة مستواها وقاطع الدخل وعدد المخارج وقيمها، وهل هي سطحية أم مدفونة.",
+      "sources": [
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation",
+        "https://en.wikipedia.org/wiki/Circuit_breaker",
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:form-of-separation",
+      "topic": "Forms of internal separation (Form 1–4) in switchboards",
+      "kind": "standard",
+      "body_en": "IEC 61439-2 defines forms of internal separation inside low-voltage switchgear assemblies. Form 1 has no internal separation. Form 2 separates busbars from functional units. Form 3 additionally separates functional units from each other, while terminals may share a compartment. Form 4 also separates the outgoing terminals of each functional unit, so one feeder can be worked on while neighbours stay live (subject to safe systems of work). There are sub-types (a/b) depending on whether terminals are in the same compartment as the unit or whether barriers are by insulated covers. In UAE projects, main LV panels are commonly specified Form 3b or Form 4 (often 4b type 2 or type 6 in the British BS EN 61439-2 annex), while small DBs are Form 1 or 2. The higher the form, the larger, heavier and more expensive the board, and the longer the fabrication lead time. Quotes that omit the form, or offer Form 2 against a Form 4 specification, are not comparable. Buyers should state the form, the busbar rating and short-time withstand (Icw, kA for 1 s), IP rating and access (front/rear).",
+      "body_ar": "تحدد مواصفة IEC 61439-2 أشكال الفصل الداخلي في لوحات الجهد المنخفض. Form 1 بلا فصل داخلي. Form 2 يفصل القضبان عن الوحدات الوظيفية. Form 3 يفصل كذلك الوحدات الوظيفية عن بعضها، مع إمكانية اشتراك أطراف التوصيل في حجرة واحدة. Form 4 يفصل أيضاً أطراف الخرج لكل وحدة، بحيث يمكن العمل على مغذٍّ واحد بينما تبقى المجاورة مكهربة (مع الالتزام بأنظمة العمل الآمن). وهناك أنواع فرعية (a/b) حسب وجود الأطراف في حجرة الوحدة نفسها أو الفصل بأغطية معزولة. في مشاريع الإمارات تُحدد اللوحات الرئيسية عادةً Form 3b أو Form 4 (وغالباً 4b نوع 2 أو نوع 6 وفق الملحق البريطاني)، بينما لوحات التوزيع الصغيرة Form 1 أو 2. كلما ارتفع الشكل زاد الحجم والوزن والتكلفة ومدة التصنيع. العروض التي تُغفل الشكل أو تعرض Form 2 مقابل مواصفة Form 4 غير قابلة للمقارنة. على المشتري تحديد الشكل، وتيار القضبان، وتحمّل القصر لفترة قصيرة (Icw بالكيلو أمبير لثانية واحدة)، ودرجة IP، وطريقة الوصول (أمامي/خلفي).",
+      "sources": [
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:mcb-mccb-acb",
+      "topic": "MCB vs MCCB vs ACB",
+      "kind": "comparison",
+      "body_en": "Three breaker families cover LV protection. MCBs (miniature circuit breakers, IEC 60898-1 for household/similar use, or IEC 60947-2 for industrial) are DIN-rail devices for final circuits, typically up to about 125 A, with fixed thermal-magnetic trip and breaking capacity commonly 6 or 10 kA. MCCBs (moulded case, IEC 60947-2) cover roughly 16 A to 1600 A, have higher breaking capacities (for example 25 to 100 kA and above), and are available with adjustable thermal-magnetic or electronic trip units, shunt trips, auxiliary contacts and motor operators; they are used as SMDB incomers and feeders. ACBs (air circuit breakers, IEC 60947-2) cover roughly 630 A to 6300 A, are usually withdrawable, have electronic protection (long-time, short-time, instantaneous, earth fault — LSIG), high short-time withstand (Icw) for selectivity, and are used as transformer incomers, bus couplers and generator breakers on main LV panels. Choosing wrongly has consequences: an MCB with insufficient breaking capacity near a transformer can fail violently. Specify rating, poles, breaking capacity at the installation's prospective fault level (Icu/Ics), trip curve or unit, and accessories.",
+      "body_ar": "تغطي ثلاث عائلات من القواطع حماية الجهد المنخفض. قواطع MCB المصغّرة (IEC 60898-1 للاستخدام المنزلي والمماثل أو IEC 60947-2 للصناعي) تُركّب على قضيب DIN للدوائر النهائية حتى نحو 125 أمبير عادةً، بفصل حراري-مغناطيسي ثابت وسعة قطع شائعة 6 أو 10 كيلو أمبير. قواطع MCCB ذات الغلاف المصبوب (IEC 60947-2) تغطي تقريباً من 16 إلى 1600 أمبير بسعات قطع أعلى (مثلاً 25 إلى 100 كيلو أمبير وأكثر)، مع وحدات فصل قابلة للضبط حرارية-مغناطيسية أو إلكترونية، وملحقات مثل ملف الفصل والتلامسات المساعدة والمشغّل الآلي، وتُستخدم دخلاً ومخارج للوحات الفرعية. قواطع ACB الهوائية (IEC 60947-2) تغطي تقريباً من 630 إلى 6300 أمبير، وتكون غالباً قابلة للسحب، بحماية إلكترونية (طويلة الزمن، قصيرة الزمن، لحظية، عطل أرضي LSIG) وتحمّل قصر عالٍ (Icw) لتحقيق الانتقائية، وتُستخدم كدخل للمحوّل وقاطع ربط ومولد في اللوحات الرئيسية. الاختيار الخاطئ خطير؛ فقاطع MCB بسعة قطع غير كافية قرب المحوّل قد ينفجر. حدّد القيمة وعدد الأقطاب وسعة القطع عند مستوى القصر المتوقع (Icu/Ics) ومنحنى أو وحدة الفصل والملحقات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Circuit_breaker",
+        "https://breakerhunters.com/blogs/news/circuit-breaker-trip-curves-b-c-d-2025-guide"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:mcb-trip-curves",
+      "topic": "MCB trip curves B, C, D",
+      "kind": "glossary",
+      "body_en": "MCBs to IEC 60898-1 are classified by the magnetic (instantaneous) trip band, expressed as a multiple of rated current In. Type B trips instantaneously between 3 and 5 times In and suits resistive loads and long domestic circuits where fault currents are low. Type C trips between 5 and 10 times In and suits general commercial loads with moderate inrush such as fluorescent/LED drivers in quantity and small motors. Type D trips between 10 and 20 times In and suits high inrush loads such as transformers, large motors and some welding equipment. A higher curve tolerates inrush but needs a lower earth fault loop impedance to disconnect in time, so swapping B for C or D without checking the loop impedance can make a circuit non-compliant with BS 7671/DEWA disconnection times. Nuisance tripping on LED lighting circuits is commonly solved by correct curve selection or by limiting luminaires per circuit per driver inrush data, not by oversizing the breaker. Always state curve along with rating, poles and breaking capacity. Note: some manufacturer catalogues publish a narrower D band (about 10 to 14 times In) for their own products; the IEC 60898-1 band is 10 to 20 times In, so read the datasheet of the actual device when loop impedance is tight.",
+      "body_ar": "تُصنّف قواطع MCB وفق IEC 60898-1 حسب نطاق الفصل المغناطيسي اللحظي كمضاعف للتيار المقنن In. النوع B يفصل لحظياً بين 3 و5 أضعاف In، ويناسب الأحمال المقاومة والدوائر المنزلية الطويلة ذات تيارات العطل المنخفضة. النوع C يفصل بين 5 و10 أضعاف In، ويناسب الأحمال التجارية العامة ذات تيار البدء المعتدل مثل مجموعات مشغلات الإنارة والمحركات الصغيرة. النوع D يفصل بين 10 و20 ضعف In، ويناسب الأحمال ذات تيار البدء العالي كالمحولات والمحركات الكبيرة وبعض معدات اللحام. المنحنى الأعلى يتحمل تيار البدء لكنه يحتاج معاوقة حلقة عطل أرضي أقل للفصل في الوقت المحدد، لذا فإن استبدال B بـ C أو D دون التحقق قد يجعل الدائرة مخالفة لأزمنة الفصل في BS 7671 وديوا. الفصل المزعج في دوائر إنارة LED يُعالج عادةً باختيار المنحنى الصحيح أو بتحديد عدد الوحدات لكل دائرة وفق بيانات تيار البدء للمشغلات، لا بتكبير القاطع. يجب دائماً ذكر المنحنى مع القيمة والأقطاب وسعة القطع. ملاحظة: تنشر بعض كتالوجات المصنّعين نطاقاً أضيق للنوع D (نحو 10 إلى 14 ضعف In) لمنتجاتها، بينما النطاق في IEC 60898-1 من 10 إلى 20 ضعفاً، لذا راجع نشرة الجهاز الفعلي عندما تكون معاوقة الحلقة حرجة.",
+      "sources": [
+        "https://breakerhunters.com/blogs/news/circuit-breaker-trip-curves-b-c-d-2025-guide"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:rcd-rccb-rcbo",
+      "topic": "RCD, RCCB and RCBO — earth leakage protection",
+      "kind": "comparison",
+      "body_en": "A residual current device (RCD) compares current in the line and neutral and trips when the difference (leakage to earth) exceeds its rated residual current, IΔn. An RCCB (IEC 61008) provides only this earth-leakage function and must be backed by overcurrent protection; one RCCB often protects a group of circuits, so one fault trips them all. An RCBO (IEC 61009) combines an MCB and an RCD in one device, protecting each circuit individually against overload, short circuit and leakage, which avoids nuisance loss of several circuits but costs more per way. Sensitivity: 30 mA devices provide additional protection against electric shock and are required by BS 7671-based rules (and DEWA/ADWR) for socket outlets for general use, bathrooms and other special locations; 100 mA or 300 mA devices are used for fire protection or selectivity at upstream levels. Type matters: Type AC detects only sinusoidal AC; Type A also pulsating DC (common with electronics); Type F for variable-frequency single-phase loads; Type B for smooth DC leakage (needed in some EV charger and PV inverter arrangements unless the equipment has built-in DC detection). Specify IΔn, type, rating, poles and whether time-delayed (S-type) for selectivity.",
+      "body_ar": "جهاز التيار المتبقي (RCD) يقارن التيار في الطور والمحايد ويفصل عندما يتجاوز الفرق (التسرب إلى الأرض) قيمته المقننة IΔn. جهاز RCCB (وفق IEC 61008) يوفر حماية التسرب فقط ويجب أن يُسند بحماية من التيار الزائد، وغالباً يحمي مجموعة دوائر فيفصلها جميعاً عند عطل واحد. أما RCBO (وفق IEC 61009) فيجمع القاطع المصغر وحماية التسرب في جهاز واحد، فيحمي كل دائرة بمفردها من الحمل الزائد والقصر والتسرب، وهذا يمنع انقطاع عدة دوائر لكنه أغلى لكل مخرج. الحساسية: أجهزة 30 مللي أمبير توفر حماية إضافية من الصعق الكهربائي، وتشترطها القواعد المستندة إلى BS 7671 (وديوا ولوائح أبوظبي) للمقابس العامة والحمامات والأماكن الخاصة؛ وتُستخدم أجهزة 100 أو 300 مللي أمبير للحماية من الحريق أو الانتقائية في المستويات الأعلى. النوع مهم: النوع AC يكشف التيار المتردد الجيبي فقط؛ النوع A يكشف أيضاً التيار المستمر النبضي؛ النوع F للأحمال أحادية الطور متغيرة التردد؛ النوع B لتسرب التيار المستمر الأملس (مطلوب في بعض ترتيبات شواحن السيارات والعاكسات ما لم يكن للجهاز كشف داخلي للتيار المستمر). حدّد IΔn والنوع والقيمة والأقطاب وهل هو مؤخر زمنياً (S) للانتقائية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Residual-current_device"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:earthing-systems-tn-tt",
+      "topic": "Earthing systems in the UAE (TN-S, TT) and consumer earthing",
+      "kind": "standard",
+      "body_en": "The DEWA 2017 Regulations describe the supply as 230/400 V, 50 Hz, three-phase four-wire with a separate protective conductor, generally the metallic armour of the service cable, and the neutral solidly earthed at the utility substation and not earthed again within the consumer installation. In other words, the consumer must not create a neutral-earth link downstream (except where the consumer owns the transformer or generator, under the applicable rules). Consumers still provide their own main earthing terminal, main earth electrode(s), earth continuity conductors and main and supplementary equipotential bonding of metallic services (water, gas, structural steel, AC ducts). Earth pits with copper-bonded or solid copper rods, test links and inspection covers are standard, and the utility inspection checks earth electrode resistance and continuity before connection. Abu Dhabi's Electricity Wiring Regulations, consistent with BS 7671, set comparable principles. Generators and private transformers need a defined earthing arrangement and neutral switching strategy in ATS panels (3-pole vs 4-pole changeover) to avoid parallel neutral-earth paths. The earthing design is a consultant deliverable, not a supplier choice.",
+      "body_ar": "تصف لوائح ديوا لعام 2017 التغذية بجهد 230/400 فولت و50 هرتز، ثلاثية الطور رباعية الأسلاك مع موصل حماية منفصل، هو عادةً التدريع المعدني لكابل الخدمة، مع تأريض المحايد تأريضاً مباشراً في محطة المرفق وعدم تأريضه مرة أخرى داخل منشأة المستهلك. أي لا يجوز للمستهلك إنشاء ربط بين المحايد والأرضي بعد نقطة التوريد (إلا حيث يملك المستهلك المحول أو المولد وفق القواعد المطبقة). ومع ذلك يوفر المستهلك طرف التأريض الرئيسي وأقطاب التأريض وموصلات استمرارية الأرضي والربط التساوي الرئيسي والتكميلي للخدمات المعدنية (المياه، الغاز، الحديد الإنشائي، مجاري التكييف). حفر التأريض بقضبان نحاسية أو مغلفة بالنحاس مع وصلات اختبار وأغطية فحص أمر قياسي، ويفحص المرفق مقاومة الأقطاب والاستمرارية قبل التوصيل. تتبنى لوائح التمديدات الكهربائية في أبوظبي، المتوافقة مع BS 7671، مبادئ مماثلة. المولدات والمحولات الخاصة تحتاج ترتيب تأريض محدداً واستراتيجية لتبديل المحايد في لوحات ATS (تحويل ثلاثي أو رباعي الأقطاب) لتجنب مسارات متوازية بين المحايد والأرضي. تصميم التأريض من مسؤولية الاستشاري لا المورد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Earthing_system",
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:lightning-protection",
+      "topic": "Lightning protection systems (IEC 62305 / BS EN 62305)",
+      "kind": "standard",
+      "body_en": "Structural lightning protection is designed to IEC 62305 (BS EN 62305 in British-referenced specifications). Part 2 is a risk assessment deciding whether protection is needed and at which lightning protection level (LPL I to IV); Part 3 covers the physical system: air terminations (rods, mesh conductors, or the rolling sphere/protective angle/mesh methods to place them), down conductors at spacings depending on class, test joints, and an earth termination network typically of rods or ring electrode bonded to the building's main earth. Part 4 covers surge protection for electrical and electronic systems inside the structure, which is where surge protective devices (SPDs) come in. Materials are copper or aluminium tape, stranded conductors, or approved components tested to the IEC/EN 62561 series. Early streamer emission (ESE) air terminals are marketed in the region under French standard NF C 17-102; they are not recognised by IEC 62305, so the consultant's specification governs whether ESE is acceptable. Buyers should provide roof drawings and height, the required protection level, whether it is a conventional or ESE design, and test/inspection requirements.",
+      "body_ar": "يُصمَّم نظام الحماية من الصواعق للمباني وفق IEC 62305 (BS EN 62305 في المواصفات البريطانية المرجع). الجزء الثاني تقييم للمخاطر يحدد هل الحماية مطلوبة وبأي مستوى حماية (LPL من I إلى IV)؛ والجزء الثالث يغطي النظام المادي: نهايات التقاط الهواء (قضبان، شبكة موصلات، مع طرق الكرة المتدحرجة أو زاوية الحماية أو الشبكة لتحديد مواقعها)، والموصلات الهابطة بمسافات تعتمد على الفئة، ووصلات الاختبار، وشبكة التأريض من قضبان أو حلقة مربوطة بالتأريض الرئيسي للمبنى. والجزء الرابع يغطي حماية الأنظمة الكهربائية والإلكترونية داخل المبنى من الارتفاعات المفاجئة، ومن هنا تأتي أجهزة الحماية من التيارات العابرة (SPD). المواد: شرائط نحاس أو ألمنيوم، موصلات مجدولة، أو مكونات معتمدة ومختبرة وفق سلسلة IEC/EN 62561. تُسوّق في المنطقة رؤوس الإطلاق المبكر (ESE) وفق المواصفة الفرنسية NF C 17-102، وهي غير معترف بها في IEC 62305، لذا تحكم مواصفة الاستشاري قبولها من عدمه. على المشتري تقديم مخططات السطح والارتفاع ومستوى الحماية المطلوب ونوع التصميم (تقليدي أو ESE) ومتطلبات الفحص والاختبار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Lightning_rod"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:surge-protective-devices",
+      "topic": "Surge protective devices (SPD Type 1/2/3)",
+      "kind": "product",
+      "body_en": "SPDs divert transient over-voltages (from lightning or switching) to earth. IEC 61643-11 classifies them by test class: Type 1 (Class I) is tested with a 10/350 µs impulse and is installed at the origin (main LV panel) where the building has external lightning protection or overhead supply risk; Type 2 (Class II, 8/20 µs) is installed at sub-distribution boards; Type 3 is fine protection close to sensitive equipment. Combined Type 1+2 devices are common at main panels. Key parameters: maximum continuous operating voltage (Uc), voltage protection level (Up) which must be below the withstand of protected equipment, impulse current (Iimp) or nominal discharge current (In), and the required backup fuse/breaker. Connecting leads must be short (a commonly cited guideline is a total lead length of about 0.5 m) or the let-through voltage rises. Remote status contacts allow BMS monitoring. Specify type, system (TN-S, 3-phase + N), Uc, Up, Iimp/In per pole, mode of protection, and monitoring. Update: IEC 61643-11 was revised in 2025; reported changes include a higher Uc requirement for TT systems and stricter testing of combined Type 1+2 devices, so ask which edition a product is certified to. Every SPD needs the upstream backup fuse or MCB stated in its datasheet.",
+      "body_ar": "تُحوّل أجهزة SPD الجهود العابرة الزائدة (من الصواعق أو عمليات الفصل والوصل) إلى الأرض. تصنّفها IEC 61643-11 حسب فئة الاختبار: النوع 1 (الفئة I) يُختبر بنبضة 10/350 ميكروثانية ويُركّب عند نقطة الدخول (اللوحة الرئيسية) عندما يكون للمبنى نظام حماية خارجي من الصواعق أو تغذية هوائية؛ النوع 2 (الفئة II، 8/20 ميكروثانية) يُركّب في لوحات التوزيع الفرعية؛ النوع 3 حماية دقيقة قرب الأجهزة الحساسة. الأجهزة المدمجة نوع 1+2 شائعة في اللوحات الرئيسية. المعاملات الأساسية: أقصى جهد تشغيل مستمر (Uc)، ومستوى حماية الجهد (Up) الذي يجب أن يكون أقل من تحمّل الأجهزة المحمية، وتيار النبضة (Iimp) أو تيار التفريغ الاسمي (In)، والمصهر أو القاطع الاحتياطي المطلوب. يجب أن تكون أسلاك التوصيل قصيرة (من الإرشادات الشائعة طول إجمالي نحو 0.5 متر) وإلا ارتفع الجهد المار. تسمح تلامسات الحالة عن بُعد بالمراقبة عبر نظام إدارة المبنى. حدّد النوع والنظام (TN-S ثلاثي الطور + محايد) وUc وUp وIimp/In لكل قطب ونمط الحماية والمراقبة. تحديث: رُوجعت IEC 61643-11 في 2025، ومن التغييرات المنشورة رفع متطلب Uc لأنظمة TT وتشديد اختبار الأجهزة المركبة من النوعين 1+2، لذا اسأل عن الإصدار الذي اعتُمد عليه المنتج. ويحتاج كل جهاز SPD إلى فيوز أو قاطع حماية احتياطي في المنبع كما تحدده نشرته الفنية.",
+      "sources": [
+        "https://trilpeak.com/surge-protective-devices-iec-61643-11/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:led-lighting-specs",
+      "topic": "LED luminaire specification: lumens, efficacy, CRI, CCT, driver, L70",
+      "kind": "spec_checklist",
+      "body_en": "LED luminaires are compared on measured performance, not wattage. Key parameters: luminous flux of the whole luminaire (lm), efficacy (lm/W), correlated colour temperature (CCT, e.g. 3000 K warm, 4000 K neutral, 6500 K cool), colour rendering index (CRI/Ra, commonly 80 minimum indoors, 90 for retail/hospitality), unified glare rating (UGR, often <19 for offices), beam angle, IP rating for wet or outdoor areas and IK for impact, lifetime stated as LxBy at hours (for example L70B50 at 50,000 h), driver quality (power factor, total harmonic distortion, flicker, surge withstand) and dimming protocol (non-dim, phase-cut, 0-10 V, DALI). In the UAE, high ambient temperature shortens driver and LED life, so ask for the rated ambient (Ta) and thermal design. Lighting products sold in the UAE are subject to MoIAT/ECAS conformity schemes and energy-efficiency labelling for some lamp categories. Demand photometric files (IES/LDT), LM-79 test reports and LM-80/TM-21 data for the LED source.",
+      "body_ar": "تُقارن وحدات إنارة LED بالأداء المقاس لا بالواط. المعاملات الأساسية: التدفق الضوئي للوحدة كاملة (لومن)، والكفاءة (لومن/واط)، ودرجة حرارة اللون (CCT مثل 3000 كلفن دافئ و4000 محايد و6500 بارد)، ومؤشر تجسيد الألوان (CRI/Ra، وعادةً 80 كحد أدنى داخلياً و90 للتجزئة والضيافة)، ومعامل الوهج الموحد (UGR، غالباً أقل من 19 للمكاتب)، وزاوية الشعاع، ودرجة IP للأماكن الرطبة والخارجية وIK لمقاومة الصدمات، والعمر بصيغة LxBy عند عدد ساعات (مثل L70B50 عند 50,000 ساعة)، وجودة المشغل (معامل القدرة، التشوه التوافقي، الوميض، تحمّل الارتفاعات) وبروتوكول التعتيم (بدون، قطع الطور، 0-10 فولت، DALI). في الإمارات تقصّر الحرارة المرتفعة عمر المشغل والـLED، فاطلب درجة الحرارة المحيطة المقننة (Ta) والتصميم الحراري. تخضع منتجات الإنارة المبيعة في الدولة لبرامج مطابقة وزارة الصناعة والتكنولوجيا المتقدمة (ECAS) وملصقات كفاءة الطاقة لبعض فئات المصابيح. اطلب ملفات القياس الضوئي (IES/LDT) وتقارير LM-79 وبيانات LM-80/TM-21 لمصدر الضوء.",
+      "sources": [
+        "https://www.intertek.com/government/product-conformity/ecas/",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "luminaire type and mounting",
+        "luminaire lumen output",
+        "wattage and efficacy lm/W",
+        "CCT",
+        "CRI",
+        "UGR",
+        "beam angle",
+        "IP and IK rating",
+        "rated ambient Ta",
+        "lifetime LxBy at hours",
+        "driver make, PF, THD, flicker",
+        "dimming protocol",
+        "finish/colour and dimensions",
+        "warranty years",
+        "photometric files and test reports"
+      ]
+    },
+    {
+      "id": "electrical:emergency-lighting",
+      "topic": "Emergency lighting: self-contained vs central battery",
+      "kind": "comparison",
+      "body_en": "Emergency lighting provides escape route illumination, open-area (anti-panic) lighting, high-risk task lighting and illuminated exit signs when normal power fails. UAE projects follow the UAE Fire and Life Safety Code, with design commonly referenced to BS 5266-1 and product standard IEC/EN 60598-2-22; Civil Defence approval of products and design is required. Two architectures exist. Self-contained luminaires have their own battery and charger in each fitting: simpler, no fire-rated wiring to each fitting, but many batteries to test and replace, and batteries degrade quickly in hot ceiling voids. Central battery systems (CBS) supply all emergency fittings from one battery room via fire-resistant cabling: easier maintenance and monitoring, but need a dedicated room, FR cables and careful design so one failure does not kill a zone. Addressable self-test (DALI or proprietary) systems automate the monthly functional and annual full-duration tests and logging that authorities expect. Rated duration is typically specified as 1 or 3 hours according to the occupancy; check the Code for the project. Specify mode (maintained/non-maintained), duration, battery chemistry (NiCd, NiMH, LiFePO4), self-test, and sign legend and viewing distance.\n\nUAE Fire and Life Safety Code 2018, Chapter 6, Table 6.1: emergency lighting must run 3 hours (180 minutes) after power failure; initial illumination at least 1.1 lux at any point on the egress path (floor level or its 1 m centre strip), average at least 10.8 lux, falling to no less than 0.65 lux at 3 hours; maximum to minimum ratio 40:1; open (anti-panic) areas may fall to 0.5 lux at 3 hours; high-risk task areas need at least 12 lux average and 1.8 lux minimum. Rooms over 280 m² need at least two luminaires. Systems are central battery, monitored self-contained (addressable, self-diagnostic, automatic testing) or stand-alone self-contained types.",
+      "body_ar": "توفر إنارة الطوارئ إضاءة مسارات الهروب والمناطق المفتوحة (منع الذعر) والمهام عالية الخطورة ولافتات المخارج المضيئة عند انقطاع التيار. تتبع المشاريع في الإمارات كود الإمارات للحماية من الحريق وسلامة الأرواح، ويُرجع التصميم غالباً إلى BS 5266-1 ومواصفة المنتج IEC/EN 60598-2-22، ويلزم اعتماد الدفاع المدني للمنتجات والتصميم. هناك نمطان: الوحدات المستقلة التي تحتوي كل منها على بطارية وشاحن، وهي أبسط ولا تحتاج كابلات مقاومة للحريق لكل وحدة، لكنها تعني بطاريات كثيرة للفحص والاستبدال، وتتدهور البطاريات بسرعة في الأسقف الحارة. وأنظمة البطارية المركزية (CBS) التي تغذي كل وحدات الطوارئ من غرفة بطاريات واحدة عبر كابلات مقاومة للحريق، وهي أسهل في الصيانة والمراقبة لكنها تحتاج غرفة مخصصة وكابلات FR وتصميماً دقيقاً حتى لا يُعطّل عطل واحد منطقة كاملة. أنظمة الفحص الذاتي العنونة (DALI أو خاصة) تؤتمت الاختبارات الشهرية والسنوية والسجلات التي تتوقعها الجهات. تُحدد مدة التشغيل عادةً بساعة أو ثلاث ساعات حسب نوع الإشغال؛ راجع الكود للمشروع. حدّد النمط (دائم/غير دائم) والمدة وكيمياء البطارية والفحص الذاتي ونص اللافتة ومسافة الرؤية.\n\nكود الإمارات للحماية من الحريق وسلامة الأرواح 2018، الفصل السادس، الجدول 6.1: يجب أن تعمل إنارة الطوارئ 3 ساعات (180 دقيقة) بعد انقطاع التيار، بإضاءة ابتدائية لا تقل عن 1.1 لوكس في أي نقطة على مسار الهروب (عند الأرض أو على شريط عرضه 1 م في منتصفه) ومتوسط لا يقل عن 10.8 لوكس، ولا تنخفض عن 0.65 لوكس في نهاية الساعات الثلاث، وألا تتجاوز نسبة الأعلى إلى الأدنى 40:1. ويجوز أن تنخفض المناطق المفتوحة (مكافحة الذعر) إلى 0.5 لوكس، وتحتاج مناطق المهام عالية الخطورة متوسطاً لا يقل عن 12 لوكس وحداً أدنى 1.8 لوكس. وتحتاج الغرف التي تزيد على 280 م² إلى وحدتي إنارة على الأقل. والأنظمة إما بطارية مركزية أو ذاتية الاحتواء مراقبة (معنونة وذاتية التشخيص والاختبار) أو ذاتية الاحتواء مستقلة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Emergency_light",
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://www.elandcables.com/cables/standard-and-enhanced-fire-cables",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:wiring-accessories",
+      "topic": "Wiring accessories: BS 1363 sockets, switches, fused spurs, isolators",
+      "kind": "product",
+      "body_en": "The UAE uses British-style accessories: 13 A three-rectangular-pin sockets to BS 1363 are the standard domestic and commercial outlet, with fused plugs; 15 A round-pin (BS 546) sockets are still seen for some fixed appliances; industrial sockets to IEC 60309 (blue 230 V, red 400 V) for site and plant. Fused connection units (fused spurs) with 3 A or 13 A fuses feed fixed appliances such as water heaters and hand dryers; double-pole isolators (20 A, 32 A, 45 A for cookers) are required near fixed equipment like AC units and heaters. Grid switches, dimmers, USB sockets, floor boxes and weatherproof IP-rated outdoor accessories complete the family. Plastic (white/grey) and metal-clad or decorative finishes (brushed steel, brass, black nickel) differ greatly in price. Products placed on the UAE market fall under MoIAT conformity requirements for electrical products. Specify gang, rating, switching (switched/unswitched, DP), finish, back box depth, and whether outdoor IP rating is needed.",
+      "body_ar": "تعتمد الإمارات الملحقات على الطراز البريطاني: مقابس 13 أمبير ذات الثلاثة أطراف المستطيلة وفق BS 1363 هي المأخذ القياسي في المنازل والمنشآت التجارية مع قوابس بمصهر؛ وما زالت مقابس 15 أمبير ذات الأطراف المستديرة (BS 546) تُرى لبعض الأجهزة الثابتة؛ والمقابس الصناعية وفق IEC 60309 (الزرقاء 230 فولت والحمراء 400 فولت) للمواقع والمعدات. وحدات التوصيل بمصهر (Fused Spur) بمصاهر 3 أو 13 أمبير تغذي الأجهزة الثابتة كسخانات المياه ومجففات الأيدي؛ ومفاتيح العزل ثنائية القطب (20 و32 و45 أمبير للطباخات) مطلوبة قرب المعدات الثابتة كوحدات التكييف والسخانات. وتكمّل العائلة المفاتيح الشبكية والمعتّمات ومقابس USB وصناديق الأرضيات والملحقات الخارجية المقاومة للماء بدرجة IP. تتفاوت الأسعار كثيراً بين التشطيبات البلاستيكية (أبيض/رمادي) والمعدنية أو الزخرفية (ستانلس مصقول، نحاسي، نيكل أسود). تخضع المنتجات المطروحة في السوق الإماراتي لمتطلبات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة. حدّد عدد الوحدات والقيمة ونوع التحكم (بمفتاح/بدون، ثنائي القطب) والتشطيب وعمق العلبة الخلفية وهل يلزم تصنيف IP خارجي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/AC_power_plugs_and_sockets:_British_and_related_types",
+        "https://www.intertek.com/government/product-conformity/ecas/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:containment-conduit-trunking-tray",
+      "topic": "Containment: conduit, trunking, cable tray and ladder",
+      "kind": "comparison",
+      "body_en": "Containment protects and routes cables. PVC conduit (BS EN 61386 series; heavy gauge for concealed in-slab work) is standard for concealed final circuits in UAE blockwork and concrete. Galvanised steel (GI) conduit is used where mechanical protection or fire performance is needed, in plant rooms, car parks and exposed areas. Flexible conduit is limited to short final connections to equipment. Trunking (PVC or galvanised steel, BS EN 50085) carries many cables in accessible routes, including dado and floor trunking with segregation for power and data. Cable tray (perforated, hot-dip galvanised or pre-galvanised; BS EN 61537) carries armoured and larger cables; cable ladder carries heavy feeders over longer spans. Basket (wire mesh) tray suits data cabling. Finish matters in the Gulf: pre-galvanised (Sendzimir) steel corrodes outdoors and in humid car parks, so hot-dip galvanised after fabrication or stainless steel (316 near the sea) is specified there. Specify material, finish, size (width x depth), gauge/thickness, fittings (bends, tees, reducers), covers, supports and span, and fill ratio allowances.",
+      "body_ar": "تحمي أنظمة الاحتواء الكابلات وتوجّه مساراتها. مواسير PVC (سلسلة BS EN 61386، والنوع الثقيل للأعمال المدفونة في البلاطات) قياسية للدوائر النهائية المخفية في البلوك والخرسانة بالإمارات. وتُستخدم المواسير الحديدية المجلفنة (GI) حيث تلزم حماية ميكانيكية أو أداء في الحريق، في غرف المعدات والمواقف والمناطق المكشوفة. والمواسير المرنة تقتصر على التوصيلات القصيرة النهائية للمعدات. المجاري (Trunking) من PVC أو الحديد المجلفن (BS EN 50085) تحمل عدداً كبيراً من الكابلات في مسارات يمكن الوصول إليها، ومنها مجاري الجدران والأرضيات مع فصل الكهرباء عن البيانات. صواني الكابلات (مثقبة، مجلفنة بالغمس الساخن أو مسبقة الجلفنة؛ BS EN 61537) تحمل الكابلات المدرعة والأكبر، والسلالم تحمل المغذيات الثقيلة لمسافات أطول، والصواني الشبكية تناسب كابلات البيانات. التشطيب مهم في الخليج: الحديد مسبق الجلفنة يصدأ في الخارج والمواقف الرطبة، فيُشترط هناك الجلفنة بالغمس الساخن بعد التصنيع أو الستانلس ستيل (316 قرب البحر). حدّد المادة والتشطيب والمقاس (عرض × عمق) والسماكة والملحقات (أكواع، تفرعات، مخفضات) والأغطية والدعامات والمسافات ونسبة الإشغال.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cable_tray"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:ev-charger-modes-connectors",
+      "topic": "EV chargers: AC vs DC, modes, Type 2 / CCS2",
+      "kind": "product",
+      "body_en": "EV charging equipment is standardised by IEC 61851 (conductive charging system, modes 1–4) and IEC 62196 (plugs and connectors). In the UAE, AC charging uses the Type 2 connector (IEC 62196-2); DEWA's EV Green Charger guidance lists Type 2 for AC, and public DC fast chargers typically offer CCS2 (Combo 2) with CHAdeMO on some older units. AC wallboxes for villas and buildings are commonly 7.4 kW single-phase or 11/22 kW three-phase (Mode 3); DC fast chargers (Mode 4) range from tens to hundreds of kW and need a substantial supply, often a dedicated transformer or load assessment. Key specification items: power rating and phases, tethered cable vs socket outlet, OCPP version for back-office connectivity, load management/dynamic load balancing, metering (MID), RFID or app authorisation, IP/IK rating for outdoor and car-park use, and earth-fault/DC leakage protection (Type A RCD plus 6 mA DC detection, or Type B RCD). In Dubai, chargers connected to DEWA's network require DEWA procedures and an enrolled contractor; check the current DEWA EV pages before quoting. DEWA public network examples: 22 kW AC wall-box/public units with Type 2 sockets, 43 kW AC fast chargers with Type 2, 50 kW DC fast chargers with CCS and CHAdeMO, and 150 kW DC ultra-fast units. IEC 62196-2 Type 2 supports three-phase AC up to 63 A; DC connectors are covered by IEC 62196-3 (CCS Combo 2 is configuration FF).",
+      "body_ar": "تُنظّم معدات شحن السيارات الكهربائية بمواصفة IEC 61851 (نظام الشحن الموصل، الأنماط 1–4) وIEC 62196 (القوابس والموصلات). في الإمارات يستخدم الشحن المتردد موصل Type 2 (IEC 62196-2)، وتذكر إرشادات ديوا لشواحن EV Green Charger موصل Type 2 للتيار المتردد، بينما توفر الشواحن السريعة العامة بالتيار المستمر عادةً CCS2 مع CHAdeMO في بعض الوحدات القديمة. الشواحن الجدارية للفلل والمباني غالباً 7.4 كيلوواط أحادية الطور أو 11/22 كيلوواط ثلاثية الطور (النمط 3)؛ والشواحن السريعة بالتيار المستمر (النمط 4) من عشرات إلى مئات الكيلوواط وتحتاج تغذية كبيرة، غالباً محولاً مخصصاً أو تقييماً للأحمال. بنود المواصفة الأساسية: القدرة وعدد الأطوار، كابل مثبت أم مقبس، إصدار OCPP للربط بالنظام الخلفي، إدارة الأحمال وموازنتها ديناميكياً، العداد (MID)، التفويض عبر RFID أو التطبيق، درجة IP/IK للاستخدام الخارجي والمواقف، والحماية من التسرب الأرضي والتيار المستمر (RCD نوع A مع كشف 6 مللي أمبير تيار مستمر، أو RCD نوع B). في دبي تتطلب الشواحن الموصولة بشبكة ديوا إجراءات ديوا ومقاولاً مسجلاً؛ راجع صفحات ديوا الحالية قبل التسعير. أمثلة من شبكة ديوا العامة: شواحن جدارية/عامة تيار متردد بقدرة 22 كيلوواط بمقابس النوع 2، وشواحن سريعة تيار متردد 43 كيلوواط بالنوع 2، وشواحن سريعة تيار مستمر 50 كيلوواط بمقبسي CCS وCHAdeMO، وشواحن فائقة السرعة 150 كيلوواط. يدعم النوع 2 وفق IEC 62196-2 التيار المتردد ثلاثي الطور حتى 63 أمبير، أما موصلات التيار المستمر فيغطيها IEC 62196-3 (CCS Combo 2 هو التكوين FF).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/IEC_62196",
+        "https://www.dubizzle.com/blog/cars/types-dewa-ev-chargers/",
+        "https://en.wikipedia.org/wiki/Residual-current_device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:ev-charger-dewa-process",
+      "topic": "EV charger installation approval in Dubai (DEWA)",
+      "kind": "authority_approval",
+      "body_en": "DEWA runs the EV Green Charger initiative and publishes charger types and instructions for public and private charging. For a private or building installation connected to DEWA's network, the work is carried out through a DEWA-enrolled electrical contractor or consultant, who assesses the existing connected load and spare capacity, prepares the design and submits it for DEWA approval where the added load requires a load change, and arranges inspection before energisation. In multi-occupancy buildings, landlord/owners association consent and a load-management plan are usually needed because many chargers on one riser can exceed spare capacity. Incentive programmes and tariffs change; the brief-writer found third-party claims of DEWA subsidy amounts for villas and buildings, but these were not confirmed on DEWA's own page and must be treated as not established until verified at the time of the enquiry. Abu Dhabi and other emirates have their own utilities (ADDC/AADC, EtihadWE, SEWA) with separate procedures. Buyers should ask suppliers to confirm the charger model is accepted by the relevant utility and that the quote includes approval, cabling from the DB, protection, and testing. Public charging tariffs have changed over time: older consumer guides quote 29 fils/kWh for registered users, while newer reports cite higher AC and DC rates from 2024. Treat any tariff as not established until read on DEWA's current page. In Abu Dhabi, the 2020 wiring regulations added EVSE provisions under the DoE.",
+      "body_ar": "تدير ديوا مبادرة الشاحن الأخضر للسيارات الكهربائية (EV Green Charger) وتنشر أنواع الشواحن وتعليماتها للشحن العام والخاص. في التركيبات الخاصة أو في المباني الموصولة بشبكة ديوا، يُنفّذ العمل عبر مقاول أو استشاري كهربائي مسجل لدى ديوا، يقيّم الحمل الموصول الحالي والسعة المتاحة، ويعدّ التصميم ويقدّمه لاعتماد ديوا إن كانت الزيادة تستلزم تعديل الحمل، ويرتب الفحص قبل التشغيل. في المباني متعددة الشاغلين يلزم عادةً موافقة المالك أو جمعية الملاك وخطة لإدارة الأحمال، لأن كثرة الشواحن على صاعد واحد قد تتجاوز السعة المتاحة. برامج الحوافز والتعرفة تتغير؛ وقد وُجدت ادعاءات من جهات خارجية عن مبالغ دعم ديوا للفلل والمباني، لكنها لم تتأكد من صفحة ديوا نفسها، فتُعامل بأنها «غير مثبتة» حتى يتم التحقق وقت الاستفسار. لأبوظبي والإمارات الأخرى مرافقها الخاصة (أدك/العين للتوزيع، الاتحاد للماء والكهرباء، هيئة كهرباء ومياه الشارقة) بإجراءات مستقلة. على المشتري أن يطلب من المورد تأكيد قبول طراز الشاحن لدى المرفق المعني، وأن يشمل العرض الاعتماد والكابلات من اللوحة والحماية والاختبار. تغيّرت تعرفة الشحن العام مع الوقت: تذكر أدلة استهلاكية أقدم 29 فلساً لكل كيلوواط ساعة للمستخدمين المسجلين، بينما تشير تقارير أحدث إلى أسعار أعلى للتيار المتردد والمستمر منذ 2024. اعتبر أي تعرفة غير مثبتة حتى تُقرأ من صفحة ديوا الحالية. وفي أبوظبي أضافت لوائح التمديدات لعام 2020 أحكاماً لمعدات شحن المركبات تحت دائرة الطاقة.",
+      "sources": [
+        "https://www.dubizzle.com/blog/cars/types-dewa-ev-chargers/",
+        "https://www.doe.gov.ae/en/Media-Centre/News/DoE-Issues-Revised-Electricity-Wiring-Regulations"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:solar-pv-basics",
+      "topic": "Solar PV basics: modules, inverters, on-grid vs off-grid",
+      "kind": "product",
+      "body_en": "A rooftop PV system consists of modules (monocrystalline PERC, TOPCon or heterojunction are current mainstream; bifacial for ground mounts and carports), mounting structure, DC cabling (solar cable to EN 50618/IEC 62930), DC isolators and protection, inverter(s) (string, hybrid with battery, or microinverters/optimisers), AC protection, and a bidirectional meter. On-grid (grid-tied) systems export surplus to the utility under a net-metering scheme; off-grid systems need batteries sized for autonomy; hybrid systems do both. Module quality indicators: IEC 61215 (design qualification) and IEC 61730 (safety) certification, temperature coefficient of power (important in UAE heat), degradation warranty (commonly a linear performance warranty over 25–30 years), product warranty, and manufacturer bankability tiers. Dust soiling in the UAE reduces output significantly, so cleaning access and schedule are part of the design. Inverters must be on the utility's approved list (DEWA publishes eligible equipment for Shams Dubai). Specify system kWp, roof type and area, module wattage and technology, inverter type and phase, battery if any, monitoring, and warranty expectations.",
+      "body_ar": "يتكون نظام الطاقة الشمسية على الأسطح من ألواح (أحادية البلورة PERC أو TOPCon أو الوصلة غير المتجانسة هي السائدة حالياً، والألواح ثنائية الوجه للتركيبات الأرضية ومظلات المواقف)، وهيكل التثبيت، وكابلات التيار المستمر (كابل شمسي وفق EN 50618/IEC 62930)، وعوازل وحماية التيار المستمر، والعاكس (عاكسات السلسلة، الهجينة مع بطارية، أو العاكسات الدقيقة/المحسّنات)، وحماية التيار المتردد، وعداد ثنائي الاتجاه. الأنظمة الموصولة بالشبكة تصدّر الفائض للمرفق ضمن نظام صافي القياس؛ الأنظمة المستقلة تحتاج بطاريات بحجم يكفي للاستقلالية؛ والهجينة تجمع الاثنين. مؤشرات جودة الألواح: شهادة IEC 61215 (تأهيل التصميم) وIEC 61730 (السلامة)، ومعامل الحرارة للقدرة (مهم في حرارة الإمارات)، وضمان التدهور (غالباً ضمان أداء خطي على 25–30 سنة)، وضمان المنتج، وتصنيف موثوقية المصنّع. الغبار في الإمارات يقلل الإنتاج بشكل ملحوظ، لذا فإن إمكانية التنظيف وجدوله جزء من التصميم. يجب أن تكون العاكسات ضمن قائمة المرفق المعتمدة (تنشر ديوا المعدات المؤهلة لبرنامج شمس دبي). حدّد قدرة النظام بالكيلوواط ذروة، ونوع السطح ومساحته، وقدرة اللوح وتقنيته، ونوع العاكس وأطواره، والبطارية إن وجدت، والمراقبة، ومتطلبات الضمان.",
+      "sources": [
+        "https://www.surgepv.com/solar-compliance/uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:shams-dubai-approval",
+      "topic": "Shams Dubai solar connection approval (DEWA)",
+      "kind": "authority_approval",
+      "body_en": "Shams Dubai is DEWA's net-metering programme allowing building owners to install PV and connect it to DEWA's grid, with exported energy offset against consumption. The process runs through a DEWA-enrolled solar PV consultant/contractor: feasibility and design, submission of site plan, design drawings, single-line diagram and details of equipment (modules and inverters from DEWA's eligible list), DEWA review and approval, installation, then inspection, meter installation and connection. DEWA's connection conditions limit the installed capacity relative to the premises' connected load (Section 2.2, 'Limits to capacity of Renewable Generators'); the exact ratio should be read from the current conditions rather than assumed. Tenants normally need landlord consent. In Abu Dhabi, rooftop solar connections are handled by the Department of Energy framework with ADDC/AADC; Sharjah and the northern emirates have separate schemes. For quotes, buyers should confirm the contractor's DEWA enrolment category, that the offer includes the DEWA submission fees and inspection, and the equipment's DEWA eligibility. Reported framework details (secondary source, verify before quoting): Shams Dubai credits exports against consumption with credits rolling forward, rooftop systems are capped at 1 MW per plot, Abu Dhabi distribution companies allow up to 5 MW per premises with kWh credits, and EtihadWE launched a distributed scheme for the northern emirates in 2024. Equipment is expected to meet IEC 61215/61730 (modules) and IEC 62109/62116 (inverters) and hold ECAS certification.",
+      "body_ar": "«شمس دبي» برنامج ديوا لصافي القياس الذي يتيح لمالكي المباني تركيب أنظمة الطاقة الشمسية وربطها بشبكة ديوا، مع مقاصة الطاقة المصدّرة مقابل الاستهلاك. تمر العملية عبر استشاري أو مقاول طاقة شمسية مسجل لدى ديوا: دراسة الجدوى والتصميم، ثم تقديم مخطط الموقع ورسومات التصميم والمخطط الأحادي وتفاصيل المعدات (ألواح وعاكسات من قائمة ديوا المؤهلة)، ثم مراجعة ديوا واعتمادها، فالتركيب، ثم الفحص وتركيب العداد والتوصيل. تحدّ شروط التوصيل لدى ديوا القدرة المركبة نسبةً إلى الحمل الموصول للعقار (البند 2.2 «حدود قدرة مولدات الطاقة المتجددة»)، ويجب قراءة النسبة الدقيقة من الشروط الحالية لا افتراضها. يحتاج المستأجرون عادةً إلى موافقة المالك. في أبوظبي تُعالج التوصيلات الشمسية ضمن إطار دائرة الطاقة مع أدك وشركة العين للتوزيع، وللشارقة والإمارات الشمالية برامج منفصلة. عند التسعير يجب على المشتري التأكد من فئة تسجيل المقاول لدى ديوا، وأن العرض يشمل رسوم تقديم الطلب لدى ديوا والفحص، وأن المعدات مؤهلة لدى ديوا. تفاصيل إطار منشورة (مصدر ثانوي، تحقق قبل الاعتماد): يحتسب برنامج شمس دبي الطاقة المصدّرة مقابل الاستهلاك مع ترحيل الرصيد، وتُحدّ أنظمة الأسطح بـ1 ميغاواط لكل قطعة، وتسمح شركات التوزيع في أبوظبي بما يصل إلى 5 ميغاواط لكل منشأة مع أرصدة بالكيلوواط ساعة، وأطلقت الاتحاد للماء والكهرباء برنامجاً موزعاً للإمارات الشمالية في 2024. ويُتوقع أن تطابق المعدات IEC 61215/61730 للألواح وIEC 62109/62116 للعاكسات وأن تحمل شهادة ECAS.",
+      "sources": [
+        "https://www.surgepv.com/solar-compliance/uae"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:dewa-regulations-overview",
+      "topic": "DEWA Regulations for Electrical Installations (2017 edition)",
+      "kind": "standard",
+      "body_en": "In Dubai, LV electrical installations connected to DEWA's network must comply with the DEWA Regulations for Electrical Installations (2017 edition is the widely referenced version). DEWA states they give general guidance for design, installation, inspection and compliance, and that references are generally made to the IET Wiring Regulations (BS 7671, 17th edition at the time) and IEC documents. Main themes: supply characteristics (230/400 V ±10%, 50 Hz, TN-S style with the service-cable armour as protective conductor and neutral earthed only at the substation), consumer earthing and bonding, protection against electric shock and overcurrent, RCD requirements, cable selection, distribution boards and metering, special locations (bathrooms, swimming pools), power factor and harmonics, generators and inspection/testing requirements. Electrical works require a DEWA-registered contractor and completion certificates with test results. Where the DEWA regulations and BS 7671 differ, DEWA's requirement governs for connection. Buyers should ensure suppliers and contractors quote for DEWA-compliant materials and that any equipment requiring DEWA approval (meters, some switchgear, PV, EV chargers) is on the relevant list. Check for newer editions or circulars before relying on a clause. Points confirmed in the regulation text: where total connected load exceeds 400 kW a DEWA substation space must be provided in the building or plot (sometimes below that), the neutral is earthed only at DEWA substations with the cable armour as protective conductor, power factor must stay between 0.9 lagging and unity, and voltage drop from supply point to any outlet is capped at 4% of nominal.",
+      "body_ar": "في دبي يجب أن تمتثل منشآت الجهد المنخفض الموصولة بشبكة ديوا للوائح ديوا للتمديدات الكهربائية (إصدار 2017 هو الأكثر اعتماداً). تنص ديوا على أنها تقدّم إرشادات عامة للتصميم والتركيب والفحص والامتثال، وأن المرجعية فيها عموماً للوائح التمديدات الصادرة عن IET (BS 7671، الإصدار السابع عشر آنذاك) ووثائق IEC. محاورها الرئيسية: خصائص التغذية (230/400 فولت ±10٪ و50 هرتز، بنمط TN-S مع تدريع كابل الخدمة كموصل حماية وتأريض المحايد في المحطة فقط)، وتأريض المستهلك والربط التساوي، والحماية من الصعق والتيار الزائد، ومتطلبات أجهزة RCD، واختيار الكابلات، ولوحات التوزيع والعدادات، والأماكن الخاصة (الحمامات، المسابح)، ومعامل القدرة والتوافقيات، والمولدات، ومتطلبات الفحص والاختبار. تتطلب الأعمال الكهربائية مقاولاً مسجلاً لدى ديوا وشهادات إنجاز مع نتائج الاختبار. عند الاختلاف بين لوائح ديوا وBS 7671 يسود متطلب ديوا لأغراض التوصيل. على المشتري التأكد من أن الموردين والمقاولين يسعّرون مواد متوافقة مع ديوا، وأن أي معدات تتطلب اعتماد ديوا (العدادات، بعض المفاتيح، الطاقة الشمسية، الشواحن) مدرجة في القائمة المعنية. راجع وجود إصدارات أو تعاميم أحدث قبل الاعتماد على أي بند. نقاط مؤكدة في نص اللوائح: عندما يتجاوز الحمل الموصول الإجمالي 400 كيلوواط يجب توفير مساحة محطة فرعية لديوا داخل المبنى أو القطعة (وأحياناً دون ذلك)، ويُؤرَّض المحايد في محطات ديوا فقط مع استخدام درع الكابل موصلاً واقياً، ويجب أن يبقى معامل القدرة بين 0.9 متأخر والواحد، ولا يتجاوز هبوط الجهد من نقطة التغذية إلى أي مخرج 4% من الجهد الاسمي.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0",
+        "https://electrical.theiet.org/bs-7671/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:abu-dhabi-wiring-regulations",
+      "topic": "Abu Dhabi Electricity Wiring Regulations (DoE / ADDC / AADC)",
+      "kind": "standard",
+      "body_en": "In Abu Dhabi, low-voltage installations follow the Electricity Wiring Regulations issued by the regulator — originally the Regulation and Supervision Bureau, now the Department of Energy (DoE). The Third Edition incorporated amendments effective 1 March 2014 and applied to distribution companies (ADDC, AADC), customers, owners and licensed contractors. The DoE announced revised regulations that came into force on 1 April 2020, superseding the 2014 issue, with reference tables and appendices that incorporate the 18th edition of BS 7671 as appropriate. The 2020 issue also introduced provisions for electric-vehicle supply equipment and allowed wall-mounted distribution boards in residential villas below 400 A. Like Dubai, the regulations cover supply characteristics, earthing and bonding, RCD protection, cable and accessory requirements, special locations and inspection/testing, but the detailed clauses, forms and approval processes differ from DEWA's, so a contractor experienced only in Dubai may miss Abu Dhabi specifics. Connections are processed by ADDC in Abu Dhabi city and region and AADC in Al Ain (these distribution entities have been under TAQA's distribution business; check the current naming). Buyers in Abu Dhabi should require contractors licensed for the emirate and materials meeting the current DoE regulations.",
+      "body_ar": "في أبوظبي تتبع منشآت الجهد المنخفض لوائح التمديدات الكهربائية الصادرة عن الجهة التنظيمية — مكتب التنظيم والرقابة سابقاً، ودائرة الطاقة حالياً. الإصدار الثالث تضمّن تعديلات سارية منذ 1 مارس 2014 وطُبّق على شركات التوزيع (أدك وشركة العين للتوزيع) والعملاء والملاك والمقاولين المرخصين. وأعلنت دائرة الطاقة لوائح منقحة دخلت حيز التنفيذ في 1 أبريل 2020 لتحل محل إصدار 2014، وتتضمن جداولها المرجعية وملاحقها الإصدار الثامن عشر من BS 7671 حسب الاقتضاء. كما أضاف إصدار 2020 أحكاماً لمعدات شحن المركبات الكهربائية، وسمح بتركيب لوحات التوزيع على الجدار في الفلل السكنية التي يقل تيارها عن 400 أمبير. وكما في دبي تغطي اللوائح خصائص التغذية والتأريض والربط وحماية RCD ومتطلبات الكابلات والملحقات والأماكن الخاصة والفحص والاختبار، لكن البنود التفصيلية والنماذج وإجراءات الاعتماد تختلف عن ديوا، لذلك قد يُغفل مقاول خبرته في دبي فقط خصوصيات أبوظبي. تتولى أدك التوصيلات في مدينة أبوظبي ومنطقتها، وشركة العين للتوزيع في العين (وقد انضمت هذه الجهات إلى أعمال التوزيع لدى طاقة؛ تحقق من المسميات الحالية). على المشترين في أبوظبي اشتراط مقاولين مرخصين في الإمارة ومواد مطابقة للوائح دائرة الطاقة الحالية.",
+      "sources": [
+        "https://www.doe.gov.ae/en/Media-Centre/News/DoE-Issues-Revised-Electricity-Wiring-Regulations"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:bs7671-iec60364",
+      "topic": "BS 7671 and IEC 60364 — the reference wiring standards",
+      "kind": "standard",
+      "body_en": "IEC 60364 is the international standard series for low-voltage electrical installations (fundamental principles, protection for safety, selection and erection, verification, special locations). BS 7671, the IET Wiring Regulations, is the UK national standard derived from IEC 60364 via CENELEC harmonisation documents; the current edition is the 18th (BS 7671:2018) with subsequent amendments, and a newer edition may be current by the time of reading. UAE utility regulations (DEWA, Abu Dhabi DoE) were written referencing BS 7671 editions of their time, so consultants' specifications in the UAE frequently cite BS 7671 terms: disconnection times, earth fault loop impedance limits, RCD additional protection, arc fault detection devices (AFDD, introduced in the 18th edition as a recommendation for certain premises), special locations, and model forms for certification (Electrical Installation Certificate, schedules of test results). When a UAE utility regulation is silent, BS 7671 or IEC 60364 usually fills the gap. A supplier or contractor asked for 'BS 7671 compliance' should state which edition and amendment they work to. Verified status (Sept 2026): the IET lists BS 7671:2018 with Amendment 4:2026 as the current text; no 19th edition has been published. Ask suppliers and contractors which amendment their certificates and designs follow.",
+      "body_ar": "سلسلة IEC 60364 هي المعيار الدولي لتمديدات الجهد المنخفض (المبادئ الأساسية، الحماية للسلامة، الاختيار والتركيب، التحقق، الأماكن الخاصة). أما BS 7671 — لوائح التمديدات الصادرة عن IET — فهي المواصفة البريطانية الوطنية المشتقة من IEC 60364 عبر وثائق التوحيد الأوروبية؛ والإصدار الحالي هو الثامن عشر (BS 7671:2018) مع تعديلاته اللاحقة، وقد يكون إصدار أحدث سارياً وقت القراءة. كُتبت لوائح المرافق في الإمارات (ديوا ودائرة الطاقة في أبوظبي) بالرجوع إلى إصدارات BS 7671 في وقتها، لذا تستشهد مواصفات الاستشاريين بمصطلحاتها كثيراً: أزمنة الفصل، وحدود معاوقة حلقة العطل الأرضي، والحماية الإضافية بأجهزة RCD، وأجهزة كشف أعطال القوس (AFDD التي أُدخلت في الإصدار الثامن عشر كتوصية لبعض المنشآت)، والأماكن الخاصة، والنماذج القياسية للشهادات (شهادة التمديدات الكهربائية، وجداول نتائج الاختبار). حين تسكت لائحة المرفق الإماراتي يسدّ BS 7671 أو IEC 60364 الفراغ عادةً. على المورد أو المقاول الذي يُطلب منه «الامتثال لـ BS 7671» أن يحدد الإصدار والتعديل المعتمد. الوضع المُتحقق منه (سبتمبر 2026): تُدرج هيئة IET الإصدار BS 7671:2018 مع التعديل الرابع لعام 2026 بوصفه النص الساري، ولم يصدر إصدار تاسع عشر بعد. اسأل الموردين والمقاولين عن رقم التعديل الذي تستند إليه شهاداتهم وتصاميمهم.",
+      "sources": [
+        "https://electrical.theiet.org/bs-7671/",
+        "https://www.doe.gov.ae/en/Media-Centre/News/DoE-Issues-Revised-Electricity-Wiring-Regulations"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:iec-61439-panels",
+      "topic": "IEC 61439 design verification for switchboards",
+      "kind": "standard",
+      "body_en": "IEC 61439 (parts 1 and 2 for power switchgear assemblies, part 3 for distribution boards operated by ordinary persons) replaced the old type-tested/partially type-tested concept (IEC 60439) with 'design verification' and 'routine verification'. Design verification proves, by test, calculation or design rule, the assembly's temperature rise, dielectric properties, short-circuit withstand, protective circuit effectiveness, clearances and creepage, mechanical operation and IP degree. Routine verification is done on each built panel before dispatch. In practice, UAE panel builders assemble under licence of a switchgear system (from major European, Asian or local system houses) and rely on the original manufacturer's design verification; a buyer should request the design verification certificates matching the actual configuration (busbar rating, Icw, form) and the routine test report. Also relevant are the 'assembly manufacturer' responsibilities and the rated diversity factor. Panels also need utility inspection before energisation and consultant approval of drawings. A cheap panel from an unverified builder that copies a brand's enclosure but not its verified busbar system is a well-known risk.",
+      "body_ar": "استبدلت مواصفة IEC 61439 (الجزآن 1 و2 لتجميعات مفاتيح القدرة، والجزء 3 للوحات التوزيع التي يشغّلها أشخاص عاديون) المفهوم القديم للاختبار النوعي الكامل والجزئي (IEC 60439) بمفهومي «التحقق من التصميم» و«التحقق الروتيني». يُثبت التحقق من التصميم — بالاختبار أو الحساب أو قواعد التصميم — ارتفاع الحرارة وخصائص العزل وتحمل القصر وفعالية دائرة الحماية ومسافات الخلوص والزحف والتشغيل الميكانيكي ودرجة IP. أما التحقق الروتيني فيُجرى على كل لوحة مصنّعة قبل الشحن. عملياً يجمّع مصنّعو اللوحات في الإمارات اللوحات بترخيص من نظام مفاتيح لشركة كبرى (أوروبية أو آسيوية أو محلية) ويعتمدون على التحقق من التصميم لدى الشركة الأصلية؛ فعلى المشتري طلب شهادات التحقق المطابقة للتكوين الفعلي (تيار القضبان، Icw، شكل الفصل) وتقرير الاختبار الروتيني. ومن المهم أيضاً مسؤوليات «مصنّع التجميعة» ومعامل التنوع المقنن. كما تحتاج اللوحات إلى فحص المرفق قبل التشغيل واعتماد الاستشاري للمخططات. اللوحة الرخيصة من مجمّع غير معتمد يقلّد غلاف ماركة معروفة دون نظام قضبانها المتحقق منه خطر معروف.",
+      "sources": [
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:panel-spec-checklist",
+      "topic": "Distribution board / switchboard enquiry checklist",
+      "kind": "spec_checklist",
+      "body_en": "Panel quotes vary widely because the builder chooses components unless told otherwise. To quote exactly, a supplier needs the single-line diagram (SLD) and panel schedule, and the buyer must state: system voltage and earthing, incomer type and rating (ACB/MCCB/switch-disconnector), breaking capacity required at the panel (from fault level study), busbar rating and material (copper, tinned or bare), short-time withstand Icw, form of separation, IP rating, indoor/outdoor, floor-standing or wall-mounted, cable entry (top/bottom), outgoing breakers with ratings, poles, curves and RCD requirements, metering (multifunction meters, CTs class), ATS/generator interface, capacitor bank or active harmonic filter if any, SPD, BMS interface, approved component brand list, and the IEC 61439 verification documents required. Delivery, testing at factory (FAT), and site testing and commissioning should be included or explicitly excluded. Be explicit about the form of separation including the sub-form (for example 3b or 4b) and, on British-referenced projects, the BS EN 61439-2 type, because a 4a and a 4b board differ in where outgoing terminals sit and in price. State the breaker family for each way (MCB to IEC 60898-1 or IEC 60947-2, MCCB, ACB) and whether trip units are thermal-magnetic or electronic. Include spare ways and spare space percentage, labelling language (English/Arabic), paint finish and colour, and who supplies the as-built drawings and test certificates.",
+      "body_ar": "تتفاوت عروض اللوحات كثيراً لأن المصنّع يختار المكونات ما لم يُحدَّد له. ليتمكن المورد من التسعير الدقيق يحتاج المخطط الأحادي وجدول اللوحة، ويجب أن يحدد المشتري: جهد النظام ونظام التأريض، ونوع قاطع الدخل وقيمته (ACB/MCCB/مفتاح فصل)، وسعة القطع المطلوبة عند اللوحة (من دراسة مستوى القصر)، وتيار القضبان ومادتها (نحاس مقصدر أو عاري)، وتحمل القصر قصير الزمن Icw، وشكل الفصل، ودرجة IP، وداخلي أم خارجي، وأرضي أم جداري، ومدخل الكابلات (علوي/سفلي)، وقواطع المخارج بقيمها وأقطابها ومنحنياتها ومتطلبات RCD، والقياس (عدادات متعددة الوظائف وفئة محولات التيار)، وربط ATS والمولد، ومكثفات أو مرشح توافقيات نشط إن وجد، وSPD، وربط نظام إدارة المبنى، وقائمة الماركات المعتمدة للمكونات، ووثائق التحقق وفق IEC 61439 المطلوبة. يجب تضمين أو استثناء صريح للتوريد والاختبار في المصنع (FAT) والاختبار والتشغيل في الموقع. كن صريحاً في شكل الفصل الداخلي بما فيه الشكل الفرعي (مثل 3b أو 4b)، وفي المشاريع ذات المرجعية البريطانية حدّد نوع BS EN 61439-2، لأن اللوحة 4a تختلف عن 4b في موضع أطراف المخارج وفي السعر. حدّد عائلة القاطع لكل مخرج (MCB وفق IEC 60898-1 أو IEC 60947-2، أو MCCB، أو ACB) وهل وحدات الفصل حرارية مغناطيسية أم إلكترونية. وأدرج المخارج الاحتياطية ونسبة المساحة الاحتياطية ولغة الملصقات (إنجليزي/عربي) والطلاء واللون، ومن يسلّم مخططات التنفيذ الفعلي وشهادات الاختبار.",
+      "sources": [
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation",
+        "https://en.wikipedia.org/wiki/Circuit_breaker"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "SLD and panel schedule",
+        "system voltage and earthing",
+        "incomer type and rating",
+        "breaking capacity kA",
+        "busbar rating and material",
+        "Icw kA/1s",
+        "form of separation",
+        "IP rating and location",
+        "mounting and cable entry",
+        "outgoing devices: rating, poles, curve, RCD",
+        "metering and CT class",
+        "ATS / generator interface",
+        "PFC or harmonic filter",
+        "SPD",
+        "BMS interface",
+        "approved component brands",
+        "IEC 61439 documents, FAT, site testing"
+      ]
+    },
+    {
+      "id": "electrical:ats-generator-changeover",
+      "topic": "ATS panels and generator changeover",
+      "kind": "product",
+      "body_en": "An automatic transfer switch (ATS) transfers load from utility supply to a standby generator when mains fails and back when it returns. Two technologies: contactor-based ATS (economical, common in smaller ratings) and motorised circuit-breaker or dedicated transfer-switching equipment (TSE) to IEC 60947-6-1, with mechanical and electrical interlocking. Critical choices: 3-pole vs 4-pole switching (switching the neutral avoids parallel neutral paths when the generator's neutral is separately earthed and prevents RCD nuisance tripping); open transition (break-before-make, brief outage) vs closed transition (make-before-break, needs utility permission for momentary paralleling); and the controller functions (voltage/frequency sensing, time delays, engine start signal, exercise schedule, BMS contacts). In the UAE, fire-life-safety loads (fire pumps, smoke extract, firefighting lifts) often need a dedicated emergency supply arrangement approved by Civil Defence. Utilities do not permit generators to back-feed the grid; interlocking is inspected. Specify rating, poles, transition type, utilisation category (e.g. AC-33B for mixed motor loads), controller, and enclosure IP.",
+      "body_ar": "مفتاح التحويل الآلي (ATS) ينقل الحمل من تغذية المرفق إلى المولد الاحتياطي عند انقطاع التيار ويعيده عند عودته. هناك تقنيتان: ATS بالكونتاكتورات (اقتصادي وشائع في القدرات الصغيرة)، ومعدات تحويل بقواطع ذات محركات أو معدات TSE مخصصة وفق IEC 60947-6-1 مع تعشيق ميكانيكي وكهربائي. الخيارات الحاسمة: التحويل ثلاثي أو رباعي الأقطاب (تحويل المحايد يمنع المسارات المتوازية للمحايد عند تأريض محايد المولد بشكل منفصل ويمنع الفصل المزعج لأجهزة RCD)؛ والانتقال المفتوح (فصل قبل وصل مع انقطاع قصير) أو المغلق (وصل قبل فصل ويحتاج إذن المرفق للتوازي اللحظي)؛ ووظائف المتحكم (استشعار الجهد والتردد، التأخيرات الزمنية، إشارة تشغيل المحرك، جدول التشغيل الدوري، تلامسات نظام إدارة المبنى). في الإمارات تحتاج أحمال السلامة من الحريق (مضخات الحريق، شفط الدخان، مصاعد الإطفاء) غالباً ترتيب تغذية طوارئ مخصصاً يعتمده الدفاع المدني. لا تسمح المرافق بتغذية المولد عكسياً إلى الشبكة، ويُفحص التعشيق. حدّد القيمة والأقطاب ونوع الانتقال وفئة الاستخدام (مثل AC-33B للأحمال المختلطة) والمتحكم ودرجة IP للغلاف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Transfer_switch"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:power-factor-harmonics",
+      "topic": "Power factor correction and harmonic filtering",
+      "kind": "product",
+      "body_en": "Utilities in the UAE set a minimum power factor for large consumers (DEWA's regulations include power factor requirements; check the current value in the regulation before quoting a target). Low power factor from motors, chillers and older lighting increases current, losses and may attract utility requirements. Capacitor banks with automatic power factor controllers switch capacitor steps to hold the target. In modern buildings, non-linear loads (VFDs, LED drivers, IT equipment, EV chargers, UPS) create harmonics; plain capacitors can resonate with the transformer at a harmonic frequency and fail or amplify distortion, so detuned banks (capacitors with series reactors, commonly 7% or 14% detuning) are specified. Active harmonic filters (AHF) inject compensating current to cancel harmonics and can also correct power factor, at higher cost. Specify the kvar rating and steps, detuning factor, controller, capacitor type (gas-filled/dry, self-healing), ambient rating (UAE plant rooms are hot; ventilation or AC required), and for AHF the compensation current in amperes and harmonic orders. A power quality measurement or study should precede sizing. The DEWA regulation text reviewed for this pack requires installations to operate between 0.9 lagging and unity power factor; confirm the clause in the edition that applies to the project. Detuned reactors are chosen so the capacitor bank resonates below the lowest significant harmonic (usually the 5th); common tuning orders are about 3.8, 4.2, 4.3 and 4.7.",
+      "body_ar": "تحدد المرافق في الإمارات حداً أدنى لمعامل القدرة للمستهلكين الكبار (تتضمن لوائح ديوا متطلبات لمعامل القدرة؛ تحقق من القيمة الحالية في اللائحة قبل عرض هدف معين). معامل القدرة المنخفض الناتج عن المحركات والمبردات والإنارة القديمة يزيد التيار والفقد وقد يستدعي متطلبات من المرفق. بنوك المكثفات مع متحكم آلي تُدخل خطوات المكثفات للحفاظ على الهدف. في المباني الحديثة تُحدث الأحمال غير الخطية (محركات السرعة المتغيرة، مشغلات LED، أجهزة تقنية المعلومات، الشواحن، UPS) توافقيات؛ وقد تدخل المكثفات العادية في رنين مع المحول عند تردد توافقي فتتعطل أو تُضخّم التشوه، لذا تُحدد بنوك مُعاكسة الرنين (مكثفات مع مفاعلات على التوالي، بنسبة 7٪ أو 14٪ عادةً). أما مرشحات التوافقيات النشطة (AHF) فتحقن تياراً معاكساً لإلغاء التوافقيات ويمكنها أيضاً تصحيح معامل القدرة بتكلفة أعلى. حدّد قدرة البنك بالكيلوفار وعدد الخطوات ونسبة معاكسة الرنين والمتحكم ونوع المكثف (جاف أو غازي، ذاتي الالتئام) ودرجة الحرارة المحيطة المقننة (غرف المعدات حارة وتحتاج تهوية أو تكييف)، وبالنسبة للمرشح النشط: تيار التعويض بالأمبير ورتب التوافقيات. يجب أن تسبق التحجيمَ دراسة أو قياس لجودة الطاقة. نص لوائح ديوا الذي رُوجع لهذه الحزمة يشترط تشغيل المنشآت بمعامل قدرة بين 0.9 متأخر والواحد الصحيح؛ تأكد من البند في الإصدار المطبق على المشروع. وتُختار المفاعلات المُزاحة بحيث يقع رنين مجموعة المكثفات دون أدنى توافقية مؤثرة (عادةً الخامسة)، ومن رتب الضبط الشائعة نحو 3.8 و4.2 و4.3 و4.7.",
+      "sources": [
+        "https://circuitenergy.ca/detuned-reactors-in-capacitor-banks-mitigating-harmonics-and-preventing-resonance/",
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive",
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:busduct-vs-cable-risers",
+      "topic": "Busduct (busway) vs cable risers",
+      "kind": "comparison",
+      "body_en": "In high-rise and large buildings, rising mains can be run as multiple large cables or as busduct (busbar trunking system, IEC 61439-6). Busduct offers compact size for high currents (hundreds to several thousand amperes), plug-in tap-off boxes at each floor, lower voltage drop, and faster installation, but has higher material cost, requires accurate site measurement and fabrication lead time, precise joint torque and IP-rated joints, and sprinkler/water ingress protection in risers. Cables are flexible, cheaper for lower currents, easier to procure quickly, but require large tray space, many terminations and heavier fire-stopping. Busduct comes in aluminium or copper conductors and sandwich (compact) or ventilated designs; fire-rated barriers at floor penetrations are required under the fire code. Specify rated current, conductor material, number of conductors (3P+N+PE, 200% neutral for harmonic-heavy loads), IP rating, short-circuit withstand, tap-off quantity and rating, route layout and length, and fire barrier requirements. Busbar trunking is a factory-built assembly verified under IEC 61439-6, so ask for the manufacturer's design-verification evidence for the exact rating and configuration, not just a catalogue. A key technical advantage is that the trunking delivers its rated current in one enclosure without the grouping derating that several parallel cables on one tray would need. For procurement, fix the route by site survey before fabrication, confirm IP rating of joints and tap-offs, spare tap-off positions per floor, fire barriers at slabs, and the supplier's responsibility for joint torque checks and insulation testing at handover.",
+      "body_ar": "في الأبراج والمباني الكبيرة يمكن تنفيذ الصواعد الرئيسية بعدة كابلات كبيرة أو بقضبان التوزيع المغلفة (Busduct، وفق IEC 61439-6). توفر القضبان حجماً مضغوطاً للتيارات العالية (من مئات إلى عدة آلاف أمبير) وصناديق تفرع قابلة للتوصيل في كل طابق وهبوط جهد أقل وتركيباً أسرع، لكنها أعلى تكلفة في المواد، وتتطلب قياساً دقيقاً في الموقع ومدة تصنيع، وعزم ربط دقيقاً للوصلات ووصلات بدرجة IP وحماية من دخول الماء والرشاشات في الصواعد. أما الكابلات فمرنة وأرخص للتيارات الأقل وأسهل في الشراء السريع، لكنها تحتاج مساحة صواني كبيرة ونهايات توصيل كثيرة وأعمال عزل حريق أثقل. تتوفر القضبان بموصلات ألمنيوم أو نحاس وبتصميم مضغوط أو مهوّى؛ ويلزم وضع حواجز حريق عند اختراق البلاطات وفق كود الحريق. حدّد التيار المقنن ومادة الموصل وعدد الموصلات (3 أطوار + محايد + أرضي، محايد 200٪ للأحمال كثيرة التوافقيات) ودرجة IP وتحمل القصر وعدد صناديق التفرع وقيمها ومسار التمديد وطوله ومتطلبات حواجز الحريق. مجاري القضبان تجميعة مصنّعة في المصنع يُتحقق من تصميمها وفق IEC 61439-6، لذا اطلب أدلة التحقق من التصميم من المصنّع للقيمة والتكوين الفعليين لا الكتالوج فقط. ومن مزاياها الفنية أنها توصل تيارها المقنن في غلاف واحد دون تخفيض التجميع الذي تحتاجه عدة كابلات متوازية على حامل واحد. وعند الشراء ثبّت المسار بمسح ميداني قبل التصنيع، وتأكد من درجة IP للوصلات ووحدات التفريع، ومواقع التفريع الاحتياطية في كل طابق، وحواجز الحريق عند البلاطات، ومسؤولية المورد عن فحص عزم الوصلات واختبار العزل عند التسليم.",
+      "sources": [
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:dewa-connection-load-approval",
+      "topic": "DEWA building electricity connection and load approval",
+      "kind": "authority_approval",
+      "body_en": "For a new building or a load increase in Dubai, the owner's DEWA-registered consultant submits the electrical load calculation (connected load and maximum demand), SLDs and drawings to DEWA for approval of the building electrical design and the required supply arrangement (LV supply from an existing substation, or a new substation/room inside the plot for larger loads). DEWA then issues requirements for the substation room, cable routes and metering. The contractor executes to the approved drawings, after which DEWA inspects the installation and test results before connection and meter installation. Consultants and contractors must be registered with DEWA in the appropriate category. Typical buyer mistakes: ordering switchgear or cables before DEWA approval of the load and SLD, then facing redesign; underestimating lead time for DEWA-required items; and not reserving the substation room or cable trench dimensions demanded by DEWA. The exact procedure, fees and forms are published on DEWA's builder services pages and change periodically, so confirm the current process at the time of the project.",
+      "body_ar": "عند إنشاء مبنى جديد أو زيادة حمل في دبي، يقدّم الاستشاري المسجل لدى ديوا حسابات الأحمال (الحمل الموصول والطلب الأقصى) والمخططات الأحادية والرسومات إلى ديوا لاعتماد التصميم الكهربائي وترتيب التغذية المطلوب (تغذية جهد منخفض من محطة قائمة، أو محطة/غرفة جديدة داخل القطعة للأحمال الأكبر). ثم تُصدر ديوا متطلبات غرفة المحطة ومسارات الكابلات والعدادات. ينفّذ المقاول وفق المخططات المعتمدة، ثم تفحص ديوا المنشأة ونتائج الاختبار قبل التوصيل وتركيب العداد. يجب أن يكون الاستشاري والمقاول مسجلين لدى ديوا في الفئة المناسبة. أخطاء شائعة لدى المشترين: طلب المفاتيح أو الكابلات قبل اعتماد ديوا للحمل والمخطط الأحادي ثم الاضطرار لإعادة التصميم؛ والاستهانة بمدة توريد البنود التي تشترطها ديوا؛ وعدم حجز أبعاد غرفة المحطة أو خندق الكابلات التي تطلبها ديوا. الإجراء الدقيق والرسوم والنماذج منشورة في صفحات خدمات المطورين لدى ديوا وتتغير دورياً، فتأكد من الإجراء الحالي وقت المشروع.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:inspection-testing-commissioning",
+      "topic": "Inspection, testing and certification of installations",
+      "kind": "installation",
+      "body_en": "Before energisation, an installation is inspected and tested, following BS 7671 Part 6 / IEC 60364-6 methods referenced by DEWA and Abu Dhabi regulations. Typical sequence: visual inspection; continuity of protective conductors and ring final circuits; insulation resistance (with a test voltage appropriate to circuit voltage, commonly 500 V DC for 230/400 V circuits); polarity; earth electrode resistance; earth fault loop impedance and prospective fault current; RCD operation (trip time at rated residual current); phase sequence; functional testing of switchgear, interlocks, ATS and emergency systems. Results are recorded on schedules of test results and an installation certificate signed by the competent contractor, then submitted to the utility for inspection. Large projects add factory acceptance tests (FAT) for panels, thermographic surveys under load, and primary/secondary injection of ACB protection relays. Buyers should require the test instruments' calibration certificates and include testing and commissioning explicitly in the scope, as it is sometimes quietly excluded from low quotes.",
+      "body_ar": "قبل التشغيل تُفحص المنشأة وتُختبر وفق طرق الجزء السادس من BS 7671 وIEC 60364-6 التي ترجع إليها لوائح ديوا وأبوظبي. التسلسل النموذجي: الفحص البصري؛ استمرارية موصلات الحماية والدوائر الحلقية؛ مقاومة العزل (بجهد اختبار مناسب لجهد الدائرة، وعادةً 500 فولت مستمر لدوائر 230/400 فولت)؛ القطبية؛ مقاومة قطب التأريض؛ معاوقة حلقة العطل الأرضي وتيار القصر المتوقع؛ تشغيل أجهزة RCD (زمن الفصل عند التيار المتبقي المقنن)؛ تتابع الأطوار؛ والاختبار الوظيفي للمفاتيح والتعشيق وATS وأنظمة الطوارئ. تُسجّل النتائج في جداول نتائج الاختبار وشهادة تركيب يوقعها المقاول المؤهل، ثم تُقدّم للمرفق للفحص. تضيف المشاريع الكبيرة اختبارات القبول في المصنع (FAT) للوحات، والمسح الحراري تحت الحمل، والحقن الأولي والثانوي لمرحلات حماية قواطع ACB. على المشتري اشتراط شهادات معايرة أجهزة الاختبار، وتضمين الاختبار والتشغيل صراحة في النطاق، إذ يُستبعد أحياناً بصمت من العروض المنخفضة.",
+      "sources": [
+        "https://electrical.theiet.org/bs-7671/",
+        "https://en.wikipedia.org/wiki/Residual-current_device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:ip-ik-ratings",
+      "topic": "IP and IK ratings for electrical equipment",
+      "kind": "glossary",
+      "body_en": "The IP code (IEC 60529) gives protection against solids (first digit, 0–6, where 5 is dust-protected and 6 dust-tight) and water (second digit, 0–9: 4 splashing, 5 water jets, 6 powerful jets, 7 temporary immersion, 8 continuous immersion, 9 high-pressure/high-temperature jets per IEC 60529 amendment). The IK code (IEC 62262) gives impact resistance from IK00 to IK10 (IK10 = 20 joules). In the UAE, dust and sand make IP5X/IP6X important for outdoor luminaires, outdoor DBs, EV chargers and rooftop equipment; wash-down areas, car washes and pool surroundings need high water ratings; car parks and public areas need high IK to resist vandalism and impacts. Beware: an enclosure's IP rating is lost if cable glands or knockouts are poorly installed; the rating of the assembly after installation is what counts. Also note heat: sealing an enclosure for high IP traps heat, so derating or ventilation with filtered fans may be needed. Always quote both codes, e.g. IP65/IK08, and do not accept 'weatherproof' as a specification.",
+      "body_ar": "يعطي رمز IP (وفق IEC 60529) الحماية من الأجسام الصلبة (الرقم الأول 0–6، حيث 5 محمي من الغبار و6 مانع كلياً للغبار) ومن الماء (الرقم الثاني 0–9: 4 للرذاذ، 5 لنفاثات الماء، 6 للنفاثات القوية، 7 للغمر المؤقت، 8 للغمر المستمر، 9 للنفاثات عالية الضغط والحرارة). ويعطي رمز IK (وفق IEC 62262) مقاومة الصدمات من IK00 إلى IK10 (IK10 = 20 جول). في الإمارات يجعل الغبار والرمل درجات IP5X/IP6X مهمة لوحدات الإنارة الخارجية ولوحات التوزيع الخارجية والشواحن ومعدات الأسطح؛ وتحتاج مناطق الغسيل ومغاسل السيارات ومحيط المسابح درجات عالية ضد الماء؛ وتحتاج المواقف والأماكن العامة درجة IK عالية لمقاومة العبث والصدمات. تنبيه: تضيع درجة IP للغلاف إذا رُكّبت الجلندات أو الفتحات بشكل سيئ؛ والعبرة بدرجة التجميعة بعد التركيب. وانتبه للحرارة: إحكام الغلاف لرفع درجة IP يحبس الحرارة، فقد يلزم تخفيض الأحمال أو تهوية بمراوح مزوّدة بمرشحات. اذكر الرمزين دائماً مثل IP65/IK08، ولا تقبل عبارة «مقاوم للطقس» كمواصفة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/IP_code",
+        "https://en.wikipedia.org/wiki/IK_code"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:hazardous-area-equipment",
+      "topic": "Hazardous area (Ex / ATEX / IECEx) electrical equipment",
+      "kind": "product",
+      "body_en": "Fuel stations, gas rooms, paint booths, oil and gas facilities, and some chemical stores are classified hazardous areas where electrical equipment must be explosion-protected. Area classification (Zones 0/1/2 for gas, 20/21/22 for dust per IEC 60079-10) is done by the designer; equipment is then selected with a suitable protection concept (Ex d flameproof, Ex e increased safety, Ex i intrinsic safety, Ex n, Ex p pressurised, Ex t for dust), gas group (IIA, IIB, IIC) and temperature class (T1–T6). Certification under IECEx (international) or ATEX (EU) is expected; UAE oil and gas owners (for example ADNOC) and civil defence for fuel stations have their own requirements and may require specific certification or approved vendor lists. Installation must use certified cable glands, correct cable types and competent installers (IEC 60079-14). Ex equipment is much more expensive and has longer lead times than standard equipment. A quote that offers 'weatherproof' fittings for a classified zone is non-compliant. Specify zone, gas group, temperature class, protection concept, certification body, and ambient temperature range.",
+      "body_ar": "محطات الوقود وغرف الغاز وأكشاك الطلاء ومنشآت النفط والغاز وبعض مخازن الكيماويات مناطق خطرة مصنفة، يجب أن تكون المعدات الكهربائية فيها مقاومة للانفجار. يجري المصمم تصنيف المناطق (المناطق 0/1/2 للغاز و20/21/22 للغبار وفق IEC 60079-10)، ثم تُختار المعدات بمفهوم حماية مناسب (Ex d مانع للهب، Ex e أمان معزز، Ex i أمان ذاتي، Ex n، Ex p مضغوط، Ex t للغبار) ومجموعة الغاز (IIA، IIB، IIC) وفئة الحرارة (T1–T6). يُتوقع اعتماد IECEx (دولي) أو ATEX (أوروبي)؛ ولمالكي منشآت النفط والغاز في الإمارات (مثل أدنوك) وللدفاع المدني في محطات الوقود متطلباتهم الخاصة، وقد يشترطون شهادات معينة أو قوائم موردين معتمدين. يجب أن يتم التركيب بجلندات معتمدة وأنواع كابلات صحيحة وفنيين مؤهلين (IEC 60079-14). معدات Ex أغلى بكثير ومدة توريدها أطول من المعدات العادية. العرض الذي يقدّم وحدات «مقاومة للطقس» لمنطقة مصنفة غير مطابق. حدّد المنطقة ومجموعة الغاز وفئة الحرارة ومفهوم الحماية وجهة الاعتماد ونطاق درجة الحرارة المحيطة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Electrical_equipment_in_hazardous_areas"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:ups-systems",
+      "topic": "UPS systems: offline, line-interactive, online double conversion",
+      "kind": "comparison",
+      "body_en": "UPS topologies differ in protection level. Offline (standby) UPS switches to battery on failure with a short transfer time; suited to small desktop loads. Line-interactive adds voltage regulation (AVR) and suits small servers and network cabinets. Online double-conversion UPS (IEC 62040-3 classification VFI) continuously rectifies and inverts, giving zero transfer time and isolation from mains disturbances; it is standard for data centres, hospitals, control rooms and BMS/fire critical loads, often in modular N+1 redundant configurations. Key specifications: kVA/kW rating and output power factor, input/output phases, efficiency (including eco-mode), battery type (VRLA lead-acid vs lithium-ion; Li-ion is lighter with longer life but needs fire-safety review), autonomy time at stated load, bypass arrangements (static and maintenance bypass), harmonic performance on input, parallel capability, monitoring (SNMP/Modbus), and ambient rating. Batteries degrade quickly above about 25 C, so UPS/battery rooms in the UAE need dedicated cooling; ignoring this shortens battery life dramatically. Specify autonomy at actual load, not only nameplate.",
+      "body_ar": "تختلف أنواع UPS في مستوى الحماية. النوع غير المتصل (Offline/Standby) ينتقل للبطارية عند الانقطاع بزمن تحويل قصير، ويناسب الأحمال المكتبية الصغيرة. النوع التفاعلي (Line-interactive) يضيف تنظيم الجهد (AVR) ويناسب الخوادم الصغيرة وخزائن الشبكات. أما النوع المتصل بالتحويل المزدوج (Online، وتصنيف VFI وفق IEC 62040-3) فيقوّم ويعكس التيار باستمرار، فلا زمن تحويل وعزل تام عن اضطرابات الشبكة، وهو القياسي لمراكز البيانات والمستشفيات وغرف التحكم وأحمال نظام إدارة المبنى والحريق الحرجة، وغالباً بتكوينات معيارية مع احتياطي N+1. المواصفات الأساسية: القدرة kVA/kW ومعامل قدرة الخرج، وأطوار الدخل والخرج، والكفاءة (بما فيها الوضع الاقتصادي)، ونوع البطارية (رصاص-حمض VRLA مقابل ليثيوم أيون؛ الليثيوم أخف وأطول عمراً لكنه يحتاج مراجعة لسلامة الحريق)، وزمن الاستقلالية عند حمل محدد، وترتيبات التجاوز (الثابت والصيانة)، والأداء التوافقي عند الدخل، وإمكانية التوازي، والمراقبة (SNMP/Modbus)، ودرجة الحرارة المحيطة. تتدهور البطاريات بسرعة فوق نحو 25 درجة مئوية، لذا تحتاج غرف UPS والبطاريات في الإمارات تبريداً مخصصاً؛ وإهماله يقصّر عمر البطارية كثيراً. حدّد زمن الاستقلالية عند الحمل الفعلي لا عند القدرة الاسمية فقط.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Uninterruptible_power_supply"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:lead-times",
+      "topic": "Typical lead-time drivers for electrical materials in the UAE",
+      "kind": "lead_time",
+      "body_en": "Lead times vary by product and market conditions, and no reliable published durations exist, so every number is not established here; the pattern, however, is consistent. Stock items such as common MCBs and RCBOs, small distribution-board enclosures, PVC conduit and fittings, standard cables, wiring accessories and common LED fittings are usually available from UAE distributors' stock. Built-to-order items take longer: main LV panels and MCCs (drawings, consultant approval, fabrication, factory acceptance test), ACBs of specific ratings, busduct measured and fabricated per route, large or special cables, Ex-certified equipment and central-battery emergency systems. Utility-driven items follow the utility's own queue: under DEWA's Regulations for Electrical Installations, tariff meters are smart meters normally provided by DEWA, CT metering applies where the supply breaker is 160 A and above, and DEWA supplies, tests and calibrates the meter and CTs before installation, so metering cannot be accelerated by the contractor. Import shipping, customs clearance and conformity documentation add time. Ask each supplier to state lead time from approved drawings or PO, whether items are ex-stock, and how long that stock position is valid.",
+      "body_ar": "تختلف مدد التوريد بحسب المنتج وظروف السوق، ولا توجد مدد منشورة موثوقة، لذا فإن كل رقم غير ثابت هنا؛ لكن النمط ثابت. الأصناف المخزنة مثل القواطع المصغرة الشائعة وقواطع RCBO وعلب لوحات التوزيع الصغيرة ومواسير PVC وملحقاتها والكابلات القياسية وملحقات التمديدات ووحدات الإنارة LED الشائعة تتوفر عادة من مخزون الموزعين في الإمارات. أما الأصناف المصنوعة حسب الطلب فتستغرق وقتاً أطول: اللوحات الرئيسية للجهد المنخفض ولوحات التحكم بالمحركات (مخططات، واعتماد الاستشاري، وتصنيع، واختبار قبول في المصنع)، والقواطع الهوائية بمقننات محددة، ومجاري القضبان التي تُقاس وتُصنّع لكل مسار، والكابلات الكبيرة أو الخاصة، والمعدات المعتمدة للمناطق الخطرة، وأنظمة الطوارئ ذات البطارية المركزية. وتتبع البنود المرتبطة بالمرفق دوره الخاص: فبموجب لوائح التركيبات الكهربائية لهيئة كهرباء ومياه دبي تكون عدادات التعرفة عدادات ذكية توفرها الهيئة عادة، ويُطبق القياس بمحولات التيار عندما يكون قاطع التغذية 160 أمبير فأكثر، وتوفر الهيئة العداد ومحولات التيار وتختبرها وتعايرها قبل التركيب، فلا يستطيع المقاول تسريع القياس. ويضيف الشحن والتخليص الجمركي ووثائق المطابقة وقتاً. اطلب من كل مورد بيان مدة التوريد من اعتماد المخططات أو أمر الشراء، وهل الأصناف من المخزون، ومدة صلاحية ذلك.",
+      "sources": [
+        "https://electricalwikipedia.wordpress.com/wp-content/uploads/2018/05/dewa-regulations-for-electrical-installations-2017-edition.pdf"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:price-drivers",
+      "topic": "Price drivers in electrical quotations",
+      "kind": "price_driver",
+      "body_en": "Electrical quotes are driven by a handful of factors. (1) Metal: copper, and to a lesser degree aluminium and steel, dominate cable, busduct, busbar and earthing costs; copper follows LME prices, so cable quotes often have short validity or LME-linked clauses. (2) Brand and origin: European-origin switchgear typically commands a premium over Asian or regional brands; consultants' approved make lists constrain the choice. (3) Specification level: LSZH and fire-resistant compounds, higher breaking capacity, electronic trip units, Form 4 separation, higher IP and IK ratings, detuned PFC, and stainless or hot-dip galvanised containment all add cost. (4) Engineering and documentation: IEC 61439 verification, shop drawings, FAT, and compliance submittals. (5) Quantity and packaging: drum lengths, cut lengths, minimum order quantities. (6) Logistics: import duty, shipping, and conformity certification. (7) Labour and approvals for installation quotes: utility fees, testing and commissioning, access equipment, working-at-height and night work. A buyer comparing quotes should normalise these items before comparing totals.",
+      "body_ar": "تتحكم عوامل قليلة في أسعار العروض الكهربائية. (1) المعادن: النحاس، وبدرجة أقل الألمنيوم والحديد، يهيمن على تكلفة الكابلات والقضبان المغلفة وقضبان اللوحات والتأريض؛ ويتبع النحاس أسعار بورصة لندن للمعادن، لذا تكون صلاحية عروض الكابلات قصيرة أو مربوطة بسعر النحاس. (2) الماركة والمنشأ: المفاتيح أوروبية المنشأ عادةً أغلى من الماركات الآسيوية أو الإقليمية، وتقيّد قوائم الماركات المعتمدة لدى الاستشاري الاختيار. (3) مستوى المواصفة: مركبات LSZH والمقاومة للحريق، وسعة القطع الأعلى، ووحدات الفصل الإلكترونية، وفصل Form 4، ودرجات IP وIK الأعلى، وبنوك المكثفات معاكسة الرنين، والاحتواء من الستانلس أو المجلفن بالغمس الساخن، كلها تزيد التكلفة. (4) الهندسة والوثائق: التحقق وفق IEC 61439، ورسومات التنفيذ، واختبار المصنع، ومستندات الاعتماد. (5) الكمية والتعبئة: أطوال البكرات، والقطع حسب الطلب، والحد الأدنى للطلب. (6) اللوجستيات: الرسوم الجمركية والشحن وشهادات المطابقة. (7) في عروض التركيب: العمالة ورسوم المرافق والاختبار والتشغيل ومعدات الوصول والعمل على المرتفعات والعمل الليلي. على المشتري توحيد هذه البنود قبل مقارنة الإجماليات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Aluminum_building_wiring",
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:quote-red-flags",
+      "topic": "Red flags in electrical supplier quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs a UAE buyer or sales engineer should catch: (1) Brand or model not stated ('equivalent', 'as per spec') for breakers, panels or cables, leaving the supplier free to substitute. (2) Cable quoted with a different insulation (PVC instead of XLPE/LSZH), without armour, or a smaller size than the schedule. (3) Breakers without breaking capacity (kA) or with a lower value than the fault level; MCBs offered where MCCBs are specified. (4) RCDs as Type AC where Type A/F/B is required (electronics, EV chargers, inverters). (5) Panels without IEC 61439 design verification from the system manufacturer, or with Form 2 instead of the specified Form. (6) 'LSZH' claimed without test standards, or LSZH offered where fire-resistant cable is required. (7) Emergency lights or fire-rated cables without Civil Defence-approved models. (8) Missing test certificates, certificate of origin, or conformity certificates. (9) Very short price validity combined with no LME clause clarity. (10) Installation quotes silent on testing and commissioning, utility fees, or making good. (11) Warranty stated as 'standard' with no years and no start event.",
+      "body_ar": "علامات تحذيرية يجب أن ينتبه لها المشتري أو مهندس المبيعات في الإمارات: (1) عدم ذكر الماركة أو الطراز («مماثل»، «حسب المواصفات») للقواطع أو اللوحات أو الكابلات، مما يترك للمورد حرية الاستبدال. (2) كابل مسعّر بعازل مختلف (PVC بدل XLPE/LSZH) أو بدون تدريع أو بمقطع أصغر من الجدول. (3) قواطع بلا سعة قطع (كيلو أمبير) أو بقيمة أقل من مستوى القصر؛ أو عرض قواطع MCB حيث المطلوب MCCB. (4) أجهزة RCD من النوع AC حيث يلزم النوع A أو F أو B (الإلكترونيات، الشواحن، العاكسات). (5) لوحات بدون تحقق تصميم وفق IEC 61439 من مصنّع النظام، أو بفصل Form 2 بدل الشكل المحدد. (6) ادعاء «LSZH» دون معايير اختبار، أو عرض LSZH حيث يلزم كابل مقاوم للحريق. (7) إنارة طوارئ أو كابلات مقاومة للحريق بطرازات غير معتمدة من الدفاع المدني. (8) غياب شهادات الاختبار أو شهادة المنشأ أو شهادات المطابقة. (9) صلاحية سعر قصيرة جداً دون وضوح بند ربط النحاس. (10) عروض تركيب تسكت عن الاختبار والتشغيل ورسوم المرافق وإصلاح التشطيبات. (11) ضمان مذكور بأنه «قياسي» بلا عدد سنوات ولا تاريخ بدء.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Residual-current_device",
+        "https://www.elandcables.com/cables/standard-and-enhanced-fire-cables",
+        "https://myelectrical.com/notes/entryid/120/switchboard-forms-of-internal-separation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:buyer-mistakes",
+      "topic": "Common buyer mistakes in electrical procurement",
+      "kind": "buyer_mistake",
+      "body_en": "Frequent mistakes seen in UAE electrical buying: (1) Asking for price with only a product name ('DB 12 way', '4C cable') and no rating, standard or construction, then comparing incomparable quotes. (2) Buying materials before the consultant's material submittal and the utility's approval of the design, leading to rejection. (3) Ignoring the consultant's approved make list. (4) Choosing the cheapest breaker without checking breaking capacity at the point of installation. (5) Forgetting ambient derating in hot roofs, ceiling voids and plant rooms, causing overheating and nuisance tripping. (6) Using pre-galvanised trays and non-UV-stable PVC outdoors in coastal areas. (7) Treating LSZH as fire resistant. (8) Buying EV chargers or PV inverters that are not accepted by the utility, or with RCD types unsuited to DC leakage. (9) Ignoring spare capacity in DBs (spare ways) and in the utility connection for future loads such as EV chargers. (10) Not asking for O&M manuals, as-built drawings, and warranty terms at order stage. (11) Mixing Dubai and Abu Dhabi regulatory assumptions.",
+      "body_ar": "أخطاء متكررة في شراء المواد الكهربائية في الإمارات: (1) طلب السعر باسم المنتج فقط («لوحة 12 مخرج»، «كابل 4 أقطاب») دون القيمة أو المواصفة أو التركيب، ثم مقارنة عروض غير قابلة للمقارنة. (2) شراء المواد قبل اعتماد الاستشاري لتقديم المواد واعتماد المرفق للتصميم، مما يؤدي إلى الرفض. (3) تجاهل قائمة الماركات المعتمدة لدى الاستشاري. (4) اختيار أرخص قاطع دون التحقق من سعة القطع عند نقطة التركيب. (5) نسيان تخفيض الأحمال بسبب الحرارة في الأسطح والأسقف المستعارة وغرف المعدات، مما يسبب السخونة والفصل المزعج. (6) استخدام صوانٍ مسبقة الجلفنة ومواسير PVC غير مقاومة للأشعة فوق البنفسجية في المناطق الساحلية المكشوفة. (7) اعتبار LSZH مقاوماً للحريق. (8) شراء شواحن سيارات أو عاكسات شمسية غير مقبولة لدى المرفق، أو بأنواع RCD غير مناسبة لتسرب التيار المستمر. (9) إهمال السعة الاحتياطية في اللوحات (مخارج احتياطية) وفي توصيلة المرفق للأحمال المستقبلية كالشواحن. (10) عدم طلب كتيبات التشغيل والصيانة ومخططات التنفيذ الفعلي وشروط الضمان عند الطلب. (11) الخلط بين افتراضات لوائح دبي وأبوظبي.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0",
+        "https://en.wikipedia.org/wiki/Low_smoke_zero_halogen"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:warranty-norms",
+      "topic": "Warranty norms for electrical products and installations",
+      "kind": "warranty",
+      "body_en": "Warranty terms for electrical products are commercial and vary by manufacturer, so none should be assumed; the typical structure, however, is predictable. Switchgear, breakers and wiring devices usually carry a product warranty against manufacturing defects for a stated period, often conditional on installation by qualified persons and use within ratings. LED luminaires are commonly offered with multi-year warranties that may depend on ambient temperature and operating hours; ask whether the driver is covered for the same period. Solar modules usually have a product warranty plus a separate long performance warranty; inverters and UPS batteries have shorter, often temperature-conditional warranties. These typical patterns are market practice, not established from a fetched source. What is established: for consumer sales, UAE Federal Law 15 of 2020 obliges the supplier to implement all warranties, provide spare parts and maintenance, replace or refund within the specified time and give after-sales service, and a replacement item must be provided free where a warranty repair exceeds seven days. On projects, contractors give a defects liability period set by the contract plus pass-through of manufacturer warranties. Buyers should ask: years; start date (delivery, installation or commissioning); parts only or parts and labour; exclusions (surges, heat, improper installation); who in the UAE honours claims; and response time.",
+      "body_ar": "شروط الضمان للمنتجات الكهربائية تجارية وتختلف بين المصنعين، فلا يجوز افتراض أي منها؛ لكن الهيكل المعتاد متوقع. تحمل لوحات التوزيع والقواطع وملحقات التمديدات عادة ضماناً ضد عيوب التصنيع لمدة محددة، مشروطاً غالباً بالتركيب بواسطة أشخاص مؤهلين والاستخدام ضمن المقننات. وتُعرض وحدات الإنارة LED غالباً بضمانات متعددة السنوات قد ترتبط بدرجة الحرارة المحيطة وساعات التشغيل؛ فاسأل هل يشمل الضمان وحدة التشغيل (الدرايفر) للمدة نفسها. وللألواح الشمسية عادة ضمان منتج إضافة إلى ضمان أداء منفصل طويل؛ أما العواكس وبطاريات UPS فضماناتها أقصر ومشروطة غالباً بدرجة الحرارة. هذه الأنماط ممارسة سوقية لم تثبت من مصدر تم الاطلاع عليه. أما الثابت: ففي مبيعات المستهلكين يُلزم القانون الاتحادي رقم 15 لسنة 2020 المورّد بتنفيذ جميع الضمانات وتوفير قطع الغيار والصيانة والاستبدال أو رد القيمة خلال المدة المحددة وتقديم خدمة ما بعد البيع، ويجب توفير سلعة بديلة مجاناً إذا تجاوز إصلاح الضمان سبعة أيام. وفي المشاريع يقدم المقاولون فترة مسؤولية عن العيوب يحددها العقد إضافة إلى نقل ضمانات المصنعين. على المشتري أن يسأل: عدد السنوات؛ وتاريخ البدء (التسليم أو التركيب أو التشغيل)؛ وهل الضمان للقطع فقط أم للقطع والعمالة؛ والاستثناءات (الارتفاعات المفاجئة، الحرارة، سوء التركيب)؛ ومن يلتزم بالمطالبات داخل الإمارات؛ وزمن الاستجابة.",
+      "sources": [
+        "https://www.moet.gov.ae/documents/20121/0/Law_15_2020_pdf.pdf/b676fd26-275c-3652-e949-8b3663e7bd79?t=1715057123879"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:moiat-ecas-conformity",
+      "topic": "MoIAT / ECAS conformity for electrical products in the UAE",
+      "kind": "authority_approval",
+      "body_en": "The UAE Ministry of Industry and Advanced Technology (MoIAT), which absorbed the former Emirates Authority for Standardization and Metrology (ESMA), operates conformity assessment schemes (the Emirates Conformity Assessment Scheme, ECAS, and related technical regulations) for regulated products, including many low-voltage electrical products, lighting and energy-efficiency-labelled appliances. Products in regulated categories need a certificate of conformity and may need registration and labelling before being placed on the UAE market; importers and distributors hold this responsibility. The exact list of regulated electrical products, applicable UAE standards and technical regulations, and the process change over time and should be checked on MoIAT's portal for each product category. Separately, emirate-level authorities (Dubai Municipality and Dubai Central Laboratory for some products, Civil Defence for fire-related products, utilities for connected equipment) have their own approval lists. A sales engineer should ask suppliers for the relevant conformity certificates, and should not assume that a CE or UL mark alone satisfies UAE market requirements.",
+      "body_ar": "تشغّل وزارة الصناعة والتكنولوجيا المتقدمة في الإمارات، التي آلت إليها اختصاصات هيئة الإمارات للمواصفات والمقاييس (مواصفات) سابقاً، برامج تقييم المطابقة (نظام الإمارات لتقييم المطابقة ECAS واللوائح الفنية ذات الصلة) للمنتجات الخاضعة للتنظيم، ومنها كثير من منتجات الجهد المنخفض والإنارة والأجهزة الحاملة لملصقات كفاءة الطاقة. تحتاج المنتجات في الفئات الخاضعة للتنظيم إلى شهادة مطابقة، وقد تحتاج إلى تسجيل وملصق قبل طرحها في السوق الإماراتي، وتقع هذه المسؤولية على المستوردين والموزعين. القائمة الدقيقة للمنتجات الكهربائية الخاضعة للتنظيم والمواصفات واللوائح الفنية المطبقة والإجراءات تتغير مع الوقت، ويجب التحقق منها في بوابة الوزارة لكل فئة منتج. وإلى جانب ذلك لجهات الإمارات المحلية قوائم اعتمادها الخاصة (بلدية دبي ومختبر دبي المركزي لبعض المنتجات، والدفاع المدني لمنتجات الحريق، والمرافق للمعدات الموصولة بالشبكة). على مهندس المبيعات أن يطلب من الموردين شهادات المطابقة ذات الصلة، وألا يفترض أن علامة CE أو UL وحدها تكفي لمتطلبات السوق الإماراتي.",
+      "sources": [
+        "https://www.intertek.com/government/product-conformity/ecas/",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:civil-defence-electrical",
+      "topic": "UAE Fire & Life Safety Code — electrical items Civil Defence checks",
+      "kind": "authority_approval",
+      "body_en": "The UAE Fire and Life Safety Code of Practice, enforced by Civil Defence in each emirate, drives several electrical procurement decisions. Emergency and exit lighting sits in Chapter 6 of the code, which draws on a mix of British, European and American standards. As summarised in CIBSE's UAE emergency-lighting guidance, emergency lighting must run for 3 hours, stand-alone luminaires must be connected to an automatic monitoring and testing system that reports low battery, faults and status, and systems need monthly short-duration and annual full-duration tests (central battery cabinets also a daily visual check). The same guidance states that all life-safety, fire-safety and emergency products must be listed, approved and registered by Civil Defence, and that approvals are issued separately by the emirate authorities (Dubai, Abu Dhabi and others), so an approval in one emirate does not automatically cover another. Other electrical items the code touches: fire-alarm power supplies and cabling, fire-resistant cabling for life-safety systems (fire pumps, smoke control, firefighting lifts, voice evacuation), secondary power for life-safety loads, fire-stopping of cable penetrations, and low-smoke materials in escape routes; the specific clauses for these were not checked in this pass. Code editions are revised, so confirm the current edition. A sales engineer must flag any quote for life-safety electrical items that does not name an approved model.\n\nChecked against the 2018 code text itself: Chapter 6, Table 6.1 confirms the 3-hour (180-minute) duration, and Chapter 8 requires all fire alarm wiring to be 2-hour fire rated and Civil Defence listed.",
+      "body_ar": "يحكم دليل الإمارات للوقاية من الحريق وحماية الأرواح، الذي يطبقه الدفاع المدني في كل إمارة، عدداً من قرارات شراء المواد الكهربائية. تقع إنارة الطوارئ وإشارات المخارج في الفصل السادس من الدليل، الذي يستند إلى مزيج من المعايير البريطانية والأوروبية والأمريكية. ووفق ملخص إرشادات CIBSE لإنارة الطوارئ في الإمارات، يجب أن تعمل إنارة الطوارئ لمدة 3 ساعات، وأن تُربط الوحدات المستقلة بنظام مراقبة واختبار آلي يبلغ عن انخفاض البطارية والأعطال والحالة، وتحتاج الأنظمة اختباراً شهرياً قصير المدة واختباراً سنوياً للمدة الكاملة (مع فحص بصري يومي لخزائن البطارية المركزية). وتنص الإرشادات نفسها على وجوب إدراج جميع منتجات حماية الأرواح والسلامة من الحريق والطوارئ واعتمادها وتسجيلها لدى الدفاع المدني، وأن الاعتمادات تصدر من جهات كل إمارة على حدة (دبي وأبوظبي وغيرهما)، فاعتماد إمارة لا يغطي تلقائياً إمارة أخرى. ومن البنود الكهربائية الأخرى التي يمسها الدليل: مصادر تغذية إنذار الحريق وكابلاته، والكابلات المقاومة للحريق لأنظمة حماية الأرواح (مضخات الحريق، التحكم بالدخان، مصاعد الإطفاء، الإخلاء الصوتي)، والتغذية الاحتياطية لأحمال السلامة، وسد فتحات مرور الكابلات بمواد مقاومة للحريق، والمواد منخفضة الدخان في مسارات الهروب؛ ولم تُراجع البنود التفصيلية لهذه في هذه المرحلة. تُحدَّث إصدارات الدليل، فتأكد من الإصدار الساري. ويجب على مهندس المبيعات التنبيه على أي عرض لبنود كهربائية للسلامة لا يذكر موديلاً معتمداً.\n\nتمت المطابقة مع نص كود 2018 نفسه: يؤكد الفصل السادس، الجدول 6.1 مدة التشغيل 3 ساعات (180 دقيقة)، ويشترط الفصل الثامن أن تكون جميع أسلاك إنذار الحريق مقاومة للحريق لمدة ساعتين ومدرجة لدى الدفاع المدني.",
+      "sources": [
+        "https://www.cibse.org/media/2y5gijlb/emergency-lighting-in-the-uae-slides.pdf",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:smart-lighting-control-dali-knx",
+      "topic": "Lighting controls and building automation: DALI, KNX, sensors",
+      "kind": "comparison",
+      "body_en": "Lighting and small-power control in UAE villas, offices and hotels uses several systems. DALI (IEC 62386) is a digital lighting protocol: each driver is addressable, allowing individual dimming, grouping, scenes and status feedback; DALI-2 adds certified interoperability and sensor/input devices; D4i adds luminaire data. KNX (ISO/IEC 14543-3) is an open building automation bus covering lighting, blinds, HVAC and scenes, popular in high-end villas and hotels, requiring a certified integrator. Proprietary wired or wireless systems (Zigbee, Bluetooth mesh, Wi-Fi smart switches) are cheaper for retrofits but can lock the owner into one vendor. Occupancy/presence and daylight sensors deliver the energy savings that green-building frameworks in the UAE (Dubai Green Building Regulations/Al Sa'fat, Abu Dhabi Estidama) encourage or require for certain building types. For quoting, specify the protocol, number of addresses/devices, dimmable drivers matching the protocol, keypads and their finishes, sensors, gateway/BMS integration (BACnet/Modbus), programming and commissioning scope, and handover of the project file.",
+      "body_ar": "يستخدم التحكم بالإنارة والأحمال الصغيرة في الفلل والمكاتب والفنادق الإماراتية عدة أنظمة. بروتوكول DALI (IEC 62386) رقمي تكون فيه كل مشغّلة قابلة للعنونة، مما يتيح التعتيم الفردي والتجميع والمشاهد وتغذية الحالة؛ ويضيف DALI-2 التوافقية المعتمدة وأجهزة الحساسات والمدخلات، ويضيف D4i بيانات الوحدة. أما KNX (ISO/IEC 14543-3) فناقل مفتوح لأتمتة المباني يغطي الإنارة والستائر والتكييف والمشاهد، وهو شائع في الفلل الفاخرة والفنادق ويتطلب مُكامِلاً معتمداً. والأنظمة الخاصة السلكية أو اللاسلكية (Zigbee، Bluetooth mesh، مفاتيح Wi-Fi الذكية) أرخص في التحديث لكنها قد تربط المالك بمورد واحد. حساسات الإشغال والضوء النهاري تحقق وفورات الطاقة التي تشجعها أو تشترطها أطر المباني الخضراء في الإمارات (لوائح المباني الخضراء في دبي/السعفات، واستدامة في أبوظبي) لبعض أنواع المباني. عند التسعير حدّد البروتوكول وعدد العناوين/الأجهزة، ومشغّلات قابلة للتعتيم مطابقة للبروتوكول، ولوحات المفاتيح وتشطيبها، والحساسات، وربط البوابة بنظام إدارة المبنى (BACnet/Modbus)، ونطاق البرمجة والتشغيل، وتسليم ملف المشروع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Digital_Addressable_Lighting_Interface",
+        "https://en.wikipedia.org/wiki/Building_management_system"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:cable-glands-terminations",
+      "topic": "Cable glands, lugs and terminations",
+      "kind": "installation",
+      "body_en": "Terminations are where many faults begin. Armoured cables enter panels through mechanical glands that clamp the armour for earth continuity. A BW-type gland (BS 6121, classified to IEC/EN 62444) clamps steel or aluminium wire armour but has no environmental seal, with ingress protection of only IP2X, so it suits dry indoor locations. CW and E1W types add sheath seals for outdoor or wet use; E1W has both an inner seal on the bedding and an outer seal on the sheath, and one manufacturer's E1W is rated IP66 for indoor and outdoor use. Glands come in brass or nickel-plated brass, with earth tags bonding the armour to the panel and PVC or LSZH shrouds. Hazardous areas need Ex-certified glands, with barrier types where required. Conductors are terminated with compression lugs crimped with the correct die, or mechanical shear-bolt lugs. Aluminium conductors need aluminium or bi-metallic lugs; bi-metallic lugs join an aluminium barrel to a copper palm, are supplied filled with contact grease against oxidation, and carry a code number that matches them to the correct crimping tool. Tighten to the device maker's torque values and mark them. Poor practice (wrong die, strands cut to fit, missing earth tags, loose bolts) later shows as hot spots on thermographic surveys. For quoting, list gland size per cable outer diameter and armour, gland type, lug size and material, and who supplies them.",
+      "body_ar": "تبدأ كثير من الأعطال عند نقاط التوصيل. تدخل الكابلات المسلحة إلى اللوحات عبر جلندات ميكانيكية تثبت التسليح لضمان استمرارية التأريض. الجلند من نوع BW (وفق BS 6121 ومصنف حسب IEC/EN 62444) يثبت تسليح الأسلاك الفولاذية أو الألمنيوم لكنه بلا مانع تسرب بيئي، ودرجة حمايته IP2X فقط، فيناسب الأماكن الداخلية الجافة. أما النوعان CW وE1W فيضيفان موانع تسرب على الغلاف للاستخدام الخارجي أو الرطب؛ ولجلند E1W مانع داخلي على طبقة الفرش ومانع خارجي على الغلاف، ويصنّف أحد المصنعين جلند E1W بدرجة IP66 للاستخدام الداخلي والخارجي. تُصنع الجلندات من النحاس الأصفر أو النحاس الأصفر المطلي بالنيكل، مع حلقات تأريض تربط التسليح باللوحة وأغطية من PVC أو LSZH. وتحتاج المناطق الخطرة جلندات معتمدة Ex مع أنواع العزل الحاجز حيث يلزم. تُنهى الموصلات بأطراف ضغط تُكبس بالقالب الصحيح، أو أطراف ميكانيكية ذات مسامير قابلة للكسر. وتحتاج موصلات الألمنيوم أطرافاً من الألمنيوم أو ثنائية المعدن؛ والأطراف ثنائية المعدن تجمع جسماً من الألمنيوم مع لسان نحاسي، وتأتي معبأة بشحم تلامس ضد الأكسدة، وتحمل رقماً رمزياً يطابقها مع أداة الكبس الصحيحة. اربط بعزوم الشد المحددة من صانع الجهاز وعلّمها. وتظهر الممارسات السيئة (قالب خاطئ، قص الأسلاك لتدخل، غياب حلقات التأريض، مسامير مرتخية) لاحقاً كنقاط ساخنة في المسح الحراري. عند التسعير اذكر مقاس الجلند حسب القطر الخارجي للكابل ونوع التسليح، ونوع الجلند، ومقاس الطرف ومادته، ومن يوردها.",
+      "sources": [
+        "https://www.cmp-products.com/glands/products/industrial-general-purpose/bw-industrial-cable-gland/",
+        "https://www.hubbell.com/hawke/en/products/e1w-industrial-cable-gland/p/18656153",
+        "https://www.powerandcables.com/product/product-category/bi-metallic-cable-lugs-compression-crimp-terminations-for-aluminium-cables/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:street-outdoor-lighting",
+      "topic": "Outdoor, landscape and street lighting",
+      "kind": "product",
+      "body_en": "Outdoor lighting in the UAE covers villa landscape lighting (bollards, spikes, in-ground uplights, wall lights), car park and area floodlighting, façade lighting and street lighting on poles. Road lighting in Dubai's public rights-of-way is delivered by the Roads and Transport Authority: RTA is executing a street-lighting plan for 2024-2026 covering 40 areas, installing LED units with poles and underground cable networks and stating that it selects technology suited to UAE climatic conditions. Contractors and products for such work follow the authority's own specifications; private developments follow the master developer's guidelines. Surge protection is a key specification for outdoor LED: a common cascaded approach is basic luminaire-level immunity of 1 kV differential and 2 kV common mode (per IEC 61547), additional protection up to 10 kV where lightning exposure is high, and a service-entrance SPD of up to 40 kA surge current for the most exposed installations. Other choices: IP66 and high IK luminaires, corrosion-resistant housings, galvanised or aluminium poles designed for local wind loads, feeder pillars with photocell or astronomical timer control, and optional smart control (NEMA/Zhaga sockets). Specify lumen output, optic, CCT, IP/IK, surge rating, pole height and material, control method, and whether cabling and foundations are included. Abu Dhabi and other emirates' road-lighting manuals were not checked in this pass.",
+      "body_ar": "تشمل الإنارة الخارجية في الإمارات إنارة حدائق الفلل (أعمدة قصيرة، وحدات مغروسة، كشافات أرضية، وحدات جدارية)، وإنارة المواقف والمساحات بالكشافات، وإنارة الواجهات، وإنارة الشوارع على الأعمدة. تنفذ هيئة الطرق والمواصلات إنارة الطرق في حرم الطرق العامة بدبي: إذ تنفذ الهيئة خطة لإنارة الشوارع للفترة 2024-2026 تشمل 40 منطقة، بتركيب وحدات LED مع الأعمدة وشبكات الكابلات الأرضية، وتذكر أنها تختار تقنيات ملائمة للظروف المناخية في الدولة. ويخضع المقاولون والمنتجات في هذه الأعمال لمواصفات الهيئة، بينما تتبع المشاريع الخاصة إرشادات المطور الرئيسي. والحماية من الارتفاعات المفاجئة مواصفة أساسية لإنارة LED الخارجية: والنهج المتدرج الشائع هو مناعة أساسية على مستوى الوحدة بقيمة 1 كيلوفولت للنمط التفاضلي و2 كيلوفولت للنمط المشترك (وفق IEC 61547)، وحماية إضافية حتى 10 كيلوفولت حيث التعرض للصواعق مرتفع، وجهاز حماية عند مدخل التغذية بتيار تفريغ حتى 40 كيلوأمبير للمنشآت الأكثر تعرضاً. ومن الخيارات الأخرى: وحدات IP66 وبدرجة IK عالية، وأغلفة مقاومة للتآكل، وأعمدة مجلفنة أو من الألمنيوم مصممة لأحمال الرياح المحلية، وكبائن تغذية بخلية ضوئية أو مؤقت فلكي، وتحكم ذكي اختياري (مقابس NEMA/Zhaga). حدّد شدة الإضاءة بالليومن، ونوع العدسة، ودرجة حرارة اللون، ودرجتي IP/IK، ومقنن الحماية من الارتفاعات، وارتفاع العمود ومادته، وطريقة التحكم، وهل تشمل الكابلات والقواعد. لم تُراجع أدلة إنارة الطرق في أبوظبي والإمارات الأخرى في هذه المرحلة.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home/news-and-media/all-news/NewsDetails/installation-of-1000-advanced-lighting-units-in-umm-suqeim-1-abu-hail-and-al-baraha",
+        "https://colorkinetics.helpdocs.io/article/ekt2auh18g-surge-protection"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:generator-sets",
+      "topic": "Diesel generator sets for standby power",
+      "kind": "product",
+      "body_en": "Standby generator sets in UAE buildings supply life-safety and essential loads during utility outages. Ratings are stated per ISO 8528-1 as standby (emergency, limited hours, no overload) or prime (continuous with variable load) power in kVA at 0.8 pf; buyers must not compare a standby rating against another supplier's prime rating. Critical in the UAE: derating for high ambient temperature and altitude (use the manufacturer's derating at, for example, 50 C ambient), radiator sizing, acoustic canopy performance for residential areas (dB(A) at 7 m or 1 m), fuel tank autonomy and Civil Defence rules for fuel storage, exhaust routing, and vibration isolation. Controls: auto-start with ATS signal, synchronising panels for multiple sets, remote monitoring. Engine and alternator brands and the local service network strongly affect price and lifecycle cost. Emissions and noise may be regulated by emirate environmental authorities and free-zone rules. Specify rating (standby/prime kVA), voltage, phases, frequency, ambient design temperature, canopy/sound level, fuel tank capacity and autonomy, ATS and controller, installation scope, load bank testing, and service/warranty terms.",
+      "body_ar": "تغذي المولدات الاحتياطية في مباني الإمارات أحمال السلامة والأحمال الأساسية أثناء انقطاع المرفق. تُحدد القدرات وفق ISO 8528-1 كقدرة احتياطية (طوارئ، ساعات محدودة، بلا تحميل زائد) أو قدرة رئيسية (مستمرة بحمل متغير) بالكيلوفولت أمبير عند معامل قدرة 0.8؛ ولا يجوز للمشتري مقارنة قدرة احتياطية لدى مورد بقدرة رئيسية لدى آخر. من الأمور الحاسمة في الإمارات: تخفيض القدرة بسبب الحرارة المرتفعة والارتفاع (استخدم جداول المصنّع مثلاً عند 50 درجة مئوية)، وحجم المبرد، وأداء الغطاء العازل للصوت في المناطق السكنية (ديسيبل عند 7 أمتار أو متر واحد)، واستقلالية خزان الوقود وقواعد الدفاع المدني لتخزين الوقود، ومسار العادم، وعزل الاهتزاز. التحكم: تشغيل آلي بإشارة ATS، ولوحات مزامنة لعدة مولدات، ومراقبة عن بُعد. تؤثر ماركات المحرك والمولد وشبكة الخدمة المحلية كثيراً على السعر وتكلفة دورة الحياة. وقد تنظم الجهات البيئية في كل إمارة وقواعد المناطق الحرة الانبعاثات والضوضاء. حدّد القدرة (احتياطية/رئيسية kVA) والجهد والأطوار والتردد ودرجة حرارة التصميم المحيطة والغطاء ومستوى الصوت وسعة الخزان والاستقلالية وATS والمتحكم ونطاق التركيب واختبار حمل البنك وشروط الخدمة والضمان.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Transfer_switch"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:electrical-contractor-licensing",
+      "topic": "Electrical contractor registration and who may do the work",
+      "kind": "authority_approval",
+      "body_en": "In the UAE, electrical work connected to the grid must be done by contractors registered with the relevant utility, and designs by registered consultants. In Dubai, DEWA's Regulations for Electrical Installations state that only DEWA-enrolled consultants and electrical contractors can submit the online Getting Electricity application, and that the building permit from the authority where the plot is located is a prerequisite. Solar PV adds a second layer: a company must first be enrolled with DEWA as Contractor-Electrical or Consultant-Electrical and can then add the DRRG Solar PV category, with staff who have passed DEWA's solar PV training. In Abu Dhabi, under the authority of the Department of Energy, the distribution company (TAQA Distribution, formerly ADDC/AADC) assesses and licenses electrical contractors who carry out installation work in buildings, and publishes the list of licensed contractors. Free zones and master developments (for example Trakhees areas) add their own building approvals on top of the utility. Individual electrician competency cards were not established in this pass. For the buyer: a materials supplier is not automatically allowed to install; installation quotes should state the contractor's utility enrolment or licence number and category; and the approval route (utility, zone authority, Civil Defence) should be identified at the start, because work by an unregistered installer cannot be submitted for connection.",
+      "body_ar": "في الإمارات يجب أن ينفذ الأعمال الكهربائية المتصلة بالشبكة مقاولون مسجلون لدى المرفق المختص، وأن يعد التصاميم استشاريون مسجلون. في دبي تنص لوائح التركيبات الكهربائية لهيئة كهرباء ومياه دبي على أن الاستشاريين والمقاولين الكهربائيين المسجلين لدى الهيئة وحدهم يستطيعون تقديم طلب توصيل الكهرباء الإلكتروني، وأن رخصة البناء من الجهة التي تقع القطعة في نطاقها شرط مسبق. وتضيف أنظمة الطاقة الشمسية طبقة ثانية: إذ يجب أن تُسجَّل الشركة أولاً لدى الهيئة كمقاول كهربائي أو استشاري كهربائي، ثم يمكنها إضافة فئة الطاقة الشمسية ضمن برنامج شمس دبي، مع موظفين اجتازوا تدريب الهيئة للطاقة الشمسية. وفي أبوظبي، وتحت سلطة دائرة الطاقة، تقيّم شركة التوزيع (طاقة للتوزيع، سابقاً أبوظبي والعين للتوزيع) المقاولين الكهربائيين الذين ينفذون أعمال التمديدات في المباني وترخصهم، وتنشر قائمة المقاولين المرخصين. وتضيف المناطق الحرة ومشاريع المطورين الرئيسيين (مثل مناطق تراخيص) اعتمادات بناء خاصة بها فوق متطلبات المرفق. ولم تثبت في هذه المرحلة بطاقات كفاءة للكهربائيين الأفراد. بالنسبة للمشتري: مورد المواد ليس مخولاً تلقائياً بالتركيب؛ ويجب أن يذكر عرض التركيب رقم تسجيل المقاول أو ترخيصه لدى المرفق وفئته؛ وأن يُحدد مسار الاعتماد (المرفق، سلطة المنطقة، الدفاع المدني) من البداية، لأن أعمال المركّب غير المسجل لا يمكن تقديمها للتوصيل.",
+      "sources": [
+        "https://electricalwikipedia.wordpress.com/wp-content/uploads/2018/05/dewa-regulations-for-electrical-installations-2017-edition.pdf",
+        "https://www.businessdubai.ae/blogs/solar-energy-company-setup-dubai",
+        "https://www.addc.ae/en-US/distribution/Pages/Contractors.aspx"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:smart-meters-submetering",
+      "topic": "Energy metering and sub-metering",
+      "kind": "product",
+      "body_en": "Utility tariff meters in Dubai are supplied by DEWA, not bought by the consumer. DEWA's Regulations for Electrical Installations state that all tariff metering will be smart meters normally provided by DEWA, one per consumer installation unless DEWA approves otherwise; CT-operated metering applies where the supply breaker is 160 A or more, and DEWA provides, tests and calibrates the meter and CTs. The regulations also allow a consumer, in some cases, to fit a meter and CTs complying with DEWA's smart-meter specification as a private check meter for energy monitoring. DEWA also reports 100% smart water-meter coverage in Dubai by mid-2024. What buyers procure is sub-metering. Al Sa'fat section 503.03 requires, for buildings with a cooling load of at least 1 MW or 5,000 m² gross floor area, tariff-class sub-metering of each major energy system, with every system of 100 kW or more sub-metered, records kept for five years, and a sub-meter for each tenancy where there is no building tariff meter; those tenancy sub-meters are for demand management and cost allocation only, and all meters should be DEWA-approved. Specifications: accuracy class (IEC 62053-21 covers classes 0.5, 1 and 2; IEC 62053-22 covers transformer-operated classes 0.1S, 0.2S and 0.5S), direct or CT-connected, CT ratio and class, communications (Modbus, M-Bus, BACnet), parameters (kWh, kvarh, demand, THD, PF) and mounting. Because tenancy sub-meters are limited to cost allocation, check the emirate's rules before designing any tenant re-billing scheme.",
+      "body_ar": "عدادات التعرفة في دبي توفرها هيئة كهرباء ومياه دبي، ولا يشتريها المستهلك. تنص لوائح التركيبات الكهربائية للهيئة على أن جميع عدادات التعرفة عدادات ذكية توفرها الهيئة عادة، بواقع عداد واحد لكل تركيب مستهلك ما لم توافق الهيئة على غير ذلك؛ ويُطبق القياس بمحولات التيار عندما يكون قاطع التغذية 160 أمبير أو أكثر، وتوفر الهيئة العداد ومحولات التيار وتختبرها وتعايرها. كما تسمح اللوائح للمستهلك في بعض الحالات بتركيب عداد ومحولات تيار مطابقة لمواصفات العدادات الذكية للهيئة كعداد تحقق خاص لمراقبة الطاقة. وتعلن الهيئة أيضاً تغطية دبي بعدادات المياه الذكية بنسبة 100% بحلول منتصف 2024. أما ما يشتريه المشترون فهو العدادات الفرعية. إذ يشترط البند 503.03 من نظام السعفات، للمباني ذات حمل تبريد 1 ميغاواط على الأقل أو مساحة إجمالية 5000 متر مربع، تركيب عدادات فرعية بدقة التعرفة لكل نظام رئيسي مستهلك للطاقة، مع قياس كل نظام بقدرة 100 كيلوواط فأكثر، وحفظ السجلات خمس سنوات، وعداد فرعي لكل وحدة مستأجرة عند عدم وجود عداد تعرفة للمبنى؛ وهذه العدادات للوحدات مخصصة لإدارة الطلب وتوزيع التكلفة فقط، ويجب أن تكون جميع العدادات معتمدة من الهيئة. المواصفات: فئة الدقة (يغطي IEC 62053-21 الفئات 0.5 و1 و2، ويغطي IEC 62053-22 العدادات العاملة بمحولات بالفئات 0.1S و0.2S و0.5S)، والتوصيل المباشر أو عبر محولات التيار، ونسبة المحول وفئته، والاتصالات (Modbus وM-Bus وBACnet)، والقيم المقاسة (kWh وkvarh والطلب والتشوه التوافقي ومعامل القدرة)، وطريقة التركيب. ولأن عدادات الوحدات مقصورة على توزيع التكلفة، تحقق من قواعد الإمارة قبل تصميم أي نظام لإعادة فوترة المستأجرين.",
+      "sources": [
+        "https://electricalwikipedia.wordpress.com/wp-content/uploads/2018/05/dewa-regulations-for-electrical-installations-2017-edition.pdf",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://webstore.iec.ch/en/publication/29987",
+        "https://mediaoffice.ae/en/news/2024/july/23-07/dewa-water-meters-in-dubai"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:vfd-motor-starters",
+      "topic": "Motor starters and variable frequency drives (VFD)",
+      "kind": "comparison",
+      "body_en": "Motors for pumps, fans, AHUs, chillers and lifts are started and protected by: direct-on-line (DOL) starters (contactor plus overload relay, IEC 60947-4-1) for small motors; star-delta starters to reduce starting current for medium motors; soft starters that ramp voltage to limit inrush and mechanical shock; and variable frequency drives (VFDs, IEC 61800 series) that control speed, giving large energy savings on variable-torque loads (pumps and fans follow the affinity laws) and enabling pressure or flow control. VFDs introduce harmonics to the network (mitigated by DC chokes/line reactors, 12-pulse or active-front-end drives, or active filters) and can cause motor bearing currents and insulation stress over long cable runs (mitigated by output filters and correct VFD-rated shielded cable). In the UAE heat, drive enclosures and MCC rooms need adequate cooling; drives are derated above their rated ambient. Utilities and consultants may set harmonic limits at the point of common coupling. Specify motor kW, voltage, duty, starting method, IP rating, bypass requirement, harmonic mitigation, communication (BACnet/Modbus to BMS), and cable length to motor.",
+      "body_ar": "تُشغَّل وتُحمى محركات المضخات والمراوح ووحدات مناولة الهواء والمبردات والمصاعد بواسطة: بادئات التشغيل المباشر (DOL: كونتاكتور مع مرحل حمل زائد، وفق IEC 60947-4-1) للمحركات الصغيرة؛ وبادئات النجمة-الدلتا لخفض تيار البدء للمحركات المتوسطة؛ والبادئات الناعمة التي ترفع الجهد تدريجياً للحد من تيار البدء والصدمة الميكانيكية؛ ومحركات السرعة المتغيرة (VFD، سلسلة IEC 61800) التي تتحكم في السرعة فتحقق وفورات كبيرة في الطاقة للأحمال متغيرة العزم (تتبع المضخات والمراوح قوانين التشابه) وتتيح التحكم بالضغط أو التدفق. تُدخل محركات VFD توافقيات إلى الشبكة (تُعالج بخوانق التيار المستمر أو مفاعلات الخط أو محركات 12 نبضة أو ذات الواجهة الأمامية النشطة أو المرشحات النشطة)، وقد تسبب تيارات في محامل المحرك وإجهاداً للعزل في التمديدات الطويلة (تُعالج بمرشحات الخرج وكابلات مدرعة مناسبة لـVFD). في حرارة الإمارات تحتاج أغلفة المحركات وغرف MCC تبريداً كافياً، وتُخفّض قدرة المحركات فوق درجة الحرارة المقننة. وقد يحدد المرفق أو الاستشاري حدوداً للتوافقيات عند نقطة الربط المشتركة. حدّد قدرة المحرك بالكيلوواط والجهد ونمط التشغيل وطريقة البدء ودرجة IP ومتطلب التجاوز ومعالجة التوافقيات والاتصال بنظام إدارة المبنى (BACnet/Modbus) وطول الكابل إلى المحرك.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:selectivity-discrimination",
+      "topic": "Selectivity (discrimination) and cascading of breakers",
+      "kind": "glossary",
+      "body_en": "Selectivity means that when a fault occurs, only the protective device immediately upstream of the fault trips, leaving the rest of the installation energised. It is achieved by current discrimination (upstream device rating well above downstream), time discrimination (short-time delay settings on ACBs/MCCBs with electronic trip units, requiring adequate Icw), energy-based selectivity using current-limiting breakers, and zone-selective interlocking. Manufacturers publish selectivity tables showing, for each upstream/downstream pair of their devices, whether selectivity is total or partial up to a given fault current; these tables are valid only for devices of the same manufacturer and tested combination. Cascading (back-up protection) is the opposite trade-off: an upstream current-limiting breaker helps a downstream breaker with lower breaking capacity survive a fault, reducing cost but sacrificing selectivity. Life-safety circuits and critical facilities usually require selectivity. For procurement, this is why mixing brands between main and sub panels can void the design's selectivity assumptions; ask for the coordination study and the manufacturer's tables supporting the offered combination.",
+      "body_ar": "الانتقائية تعني أنه عند حدوث عطل يفصل جهاز الحماية الواقع مباشرة قبل العطل فقط، وتبقى بقية المنشأة مكهربة. وتتحقق عبر انتقائية التيار (قيمة الجهاز الأعلى أكبر بكثير من الأدنى)، والانتقائية الزمنية (إعدادات تأخير قصير في قواطع ACB/MCCB ذات الوحدات الإلكترونية، مع Icw كافٍ)، والانتقائية القائمة على الطاقة باستخدام قواطع محددة للتيار، والتعشيق الانتقائي بين المناطق. ينشر المصنّعون جداول انتقائية تبيّن لكل زوج من أجهزتهم (أعلى/أدنى) هل الانتقائية كاملة أم جزئية حتى تيار قصر معين؛ وهذه الجداول صالحة فقط لأجهزة الشركة نفسها والتركيبة المختبرة. أما التتابع (الحماية الاحتياطية) فهو المقايضة المعاكسة: قاطع علوي محدد للتيار يساعد قاطعاً أدنى بسعة قطع أقل على الصمود أمام العطل، فتقل التكلفة على حساب الانتقائية. عادةً تشترط دوائر السلامة والمنشآت الحرجة الانتقائية. ولهذا فإن خلط الماركات بين اللوحات الرئيسية والفرعية قد يُبطل افتراضات الانتقائية في التصميم؛ فاطلب دراسة التنسيق وجداول المصنّع التي تدعم التركيبة المعروضة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Circuit_breaker"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:fault-level-breaking-capacity",
+      "topic": "Prospective fault current and breaking capacity (Icu, Ics, Icw)",
+      "kind": "glossary",
+      "body_en": "Every protective device must safely interrupt the maximum prospective short-circuit current at its point of installation. The fault level is highest at the transformer's LV terminals and falls with cable impedance downstream. DEWA's Regulations for Electrical Installations state a design fault level within the substation of 40 kA for 1 second (except fuse-protected equipment), and DEWA's panel schedule sets a minimum circuit-breaker fault rating of 6 kA, or higher as the calculated downstream short-circuit current requires; consultants therefore assess the fault level at each board and select MCBs and MCCBs accordingly. For industrial breakers, IEC 60947-2 defines Icu, the ultimate breaking capacity (test sequence O-t-CO, after which the breaker need not remain in service), and Ics, the service breaking capacity (O-t-CO-t-CO, after which it must remain serviceable), with Ics stated as a percentage of Icu. Icw is the rated short-time withstand current the device can carry for a specified time without damage; IEC 60947-2 gives preferred times of 0.05, 0.1, 0.25, 0.5 and 1 s. Icw matters for ACBs and busbars where selectivity is achieved by a time delay. Household-type MCBs under IEC 60898-1 are rated by Icn (test sequence O-t-CO) with a service value Ics. A quote with a lower kA rating than the calculated fault level is non-compliant even if the ampere rating is correct.",
+      "body_ar": "يجب أن يقطع كل جهاز حماية بأمان أقصى تيار قصر محتمل عند موضع تركيبه. ويكون مستوى العطل في أعلاه عند أطراف الجهد المنخفض للمحول، ثم ينخفض مع ممانعة الكابلات باتجاه الأحمال. تنص لوائح التركيبات الكهربائية لهيئة كهرباء ومياه دبي على أن مستوى العطل التصميمي داخل المحطة الفرعية 40 كيلوأمبير لمدة ثانية واحدة (باستثناء المعدات المحمية بالمصاهر)، ويحدد جدول اللوحات لدى الهيئة حداً أدنى لمقنن قطع القواطع قدره 6 كيلوأمبير، أو أعلى بحسب تيار القصر المحسوب؛ لذا يقيّم الاستشاريون مستوى العطل عند كل لوحة ويختارون القواطع المصغرة والمقولبة وفقاً له. وللقواطع الصناعية يعرّف المعيار IEC 60947-2 القيمة Icu، أي سعة القطع القصوى (تسلسل الاختبار O-t-CO، ولا يُشترط بقاء القاطع صالحاً للخدمة بعده)، والقيمة Ics، أي سعة القطع التشغيلية (O-t-CO-t-CO، ويجب أن يبقى صالحاً للخدمة بعدها)، وتُذكر Ics كنسبة مئوية من Icu. أما Icw فهو تيار التحمل قصير الأمد المقنن الذي يتحمله الجهاز لمدة محددة دون ضرر، ويعطي المعيار IEC 60947-2 أزمنة مفضلة هي 0.05 و0.1 و0.25 و0.5 و1 ثانية. وتهم قيمة Icw في القواطع الهوائية وقضبان التوزيع حيث يتحقق التمييز بتأخير زمني. أما القواطع المصغرة من النوع المنزلي وفق IEC 60898-1 فتُقنّن بالقيمة Icn (تسلسل O-t-CO) مع قيمة تشغيلية Ics. والعرض الذي يقل مقنن الكيلوأمبير فيه عن مستوى العطل المحسوب غير مطابق حتى لو كان مقنن الأمبير صحيحاً.",
+      "sources": [
+        "https://library.e.abb.com/public/9a3244577f3047c8978654a261582b05/70-75+m8014_EN_72dpi.pdf",
+        "https://electricalwikipedia.wordpress.com/wp-content/uploads/2018/05/dewa-regulations-for-electrical-installations-2017-edition.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:afdd-arc-fault",
+      "topic": "Arc fault detection devices (AFDD)",
+      "kind": "product",
+      "body_en": "An AFDD (IEC 62606) detects the characteristic high-frequency signature of dangerous series or parallel arcs caused by damaged cables, loose terminals or crushed flexes, and disconnects the circuit before a fire starts. MCBs and RCDs do not detect series arcs because the current is below their trip threshold. BS 7671:2018 introduced AFDDs as a recommendation, later strengthened by amendment for certain higher-risk premises (for example higher-risk residential buildings and houses in multiple occupation in the UK context). In UAE practice AFDDs are not a general DEWA mandate as far as could be established, but consultants on premium residential, hotels, care facilities and timber/combustible-content spaces sometimes specify them. They are available as combined AFDD+RCBO units in a single DIN module width or as add-on modules. They cost considerably more than an RCBO. Note compatibility: some AFDDs may nuisance-trip with certain electronic loads; select devices from manufacturers with published test data. Specify rating, curve, RCD sensitivity/type when combined, and module width to confirm the DB has space.",
+      "body_ar": "جهاز كشف أعطال القوس الكهربائي (AFDD، وفق IEC 62606) يكشف البصمة عالية التردد المميزة للأقواس الخطرة على التوالي أو التوازي الناتجة عن الكابلات التالفة أو الأطراف المرتخية أو الأسلاك المرنة المسحوقة، ويفصل الدائرة قبل نشوب الحريق. لا تكشف قواطع MCB وأجهزة RCD أقواس التوالي لأن التيار أقل من عتبة فصلها. أدخل BS 7671:2018 أجهزة AFDD كتوصية، ثم عزّزها تعديل لاحق لبعض المنشآت الأعلى خطورة (مثل المباني السكنية عالية الخطورة والمساكن متعددة الإشغال في السياق البريطاني). في الممارسة الإماراتية لا تُعد AFDD متطلباً عاماً من ديوا بحسب ما أمكن التحقق منه، لكن بعض الاستشاريين يشترطونها في المشاريع السكنية الفاخرة والفنادق ومرافق الرعاية والأماكن ذات المحتوى القابل للاشتعال. تتوفر كوحدات مدمجة AFDD+RCBO بعرض وحدة DIN واحدة أو كوحدات إضافية، وتكلفتها أعلى بكثير من RCBO. انتبه للتوافق: فقد يفصل بعضها بشكل مزعج مع أحمال إلكترونية معينة؛ فاختر أجهزة من مصنّعين ينشرون بيانات اختبار. حدّد القيمة والمنحنى وحساسية ونوع RCD عند الدمج، وعرض الوحدة للتأكد من توفر المساحة في اللوحة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Arc-fault_circuit_interrupter",
+        "https://electrical.theiet.org/bs-7671/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "electrical:electrical-services-scope",
+      "topic": "Electrical services and installation scope items",
+      "kind": "spec_checklist",
+      "body_en": "Beyond materials, buyers request electrical services: new installation (fit-out of offices, retail, villas), modifications and load upgrades, DB replacement, rewiring, lighting retrofits, EV charger and PV installation, generator and ATS installation, annual maintenance contracts (AMC), thermographic surveys, periodic inspection and testing, earthing and lightning system testing, and emergency call-outs. An exact service quote needs a defined scope: site location and access hours (malls often allow only night work), existing drawings or a survey visit, the list of points (lighting points, sockets, isolators, data if included), who supplies materials (turnkey vs labour only), approvals and fees (utility, Civil Defence, landlord/NOC, free zone authority), testing and certification deliverables, making good of civil/ceiling works, waste removal, and warranty/defects period. For AMCs, state asset list, visit frequency, response times, and whether spare parts are included. Without these, quotes from different contractors are not comparable and scope disputes follow. A services enquiry should also say who holds the authority interfaces: DEWA or ADDC submissions and inspections, Civil Defence witness tests for life-safety circuits, and consultant approvals. State the testing deliverables expected (insulation resistance, loop impedance, RCD trip times, earth electrode results, signed installation certificate), the defects liability period, and whether the contractor provides the as-built drawings and O&M manuals. Without these lines two quotes for the same electrical works can differ widely simply because one has priced the approvals and paperwork and the other has not.",
+      "body_ar": "إلى جانب المواد، يطلب المشترون خدمات كهربائية: تمديدات جديدة (تجهيز المكاتب والمحلات والفلل)، والتعديلات ورفع الأحمال، واستبدال اللوحات، وإعادة التمديد، وتحديث الإنارة، وتركيب الشواحن والطاقة الشمسية، وتركيب المولدات وATS، وعقود الصيانة السنوية، والمسح الحراري، والفحص والاختبار الدوري، واختبار أنظمة التأريض والصواعق، والاستدعاء الطارئ. يحتاج عرض الخدمة الدقيق إلى نطاق محدد: موقع العمل وساعات الوصول (المراكز التجارية غالباً تسمح بالعمل ليلاً فقط)، والمخططات القائمة أو زيارة معاينة، وقائمة النقاط (نقاط الإنارة، المقابس، مفاتيح العزل، البيانات إن شملت)، ومن يوفر المواد (تسليم مفتاح أم عمالة فقط)، والاعتمادات والرسوم (المرفق، الدفاع المدني، المالك/عدم ممانعة، سلطة المنطقة الحرة)، ومخرجات الاختبار والشهادات، وإصلاح الأعمال المدنية والأسقف، وإزالة المخلفات، وفترة الضمان والعيوب. أما عقود الصيانة فتتطلب قائمة الأصول وتكرار الزيارات وأزمنة الاستجابة وهل قطع الغيار مشمولة. بدون ذلك لا تكون عروض المقاولين قابلة للمقارنة وتنشأ نزاعات حول النطاق. يجب أن يوضح طلب الخدمات أيضاً من يتولى التعامل مع الجهات: تقديمات وتفتيش ديوا أو أدك، واختبارات الدفاع المدني بحضوره لدوائر السلامة، واعتمادات الاستشاري. وحدّد مخرجات الاختبار المتوقعة (مقاومة العزل، معاوقة الحلقة، أزمنة فصل RCD، نتائج قطب التأريض، شهادة التركيب الموقعة)، وفترة ضمان العيوب، وهل يسلّم المقاول مخططات التنفيذ الفعلي وأدلة التشغيل والصيانة. ومن دون هذه البنود قد يختلف عرضان للأعمال نفسها كثيراً لمجرد أن أحدهما سعّر الاعتمادات والمستندات والآخر لم يفعل.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0",
+        "https://en.wikipedia.org/wiki/Residual-current_device"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "service type",
+        "site location, emirate and authority (DEWA/ADDC/free zone)",
+        "working hours/access constraints",
+        "drawings or survey requirement",
+        "point schedule / quantities",
+        "materials supply: turnkey or labour only",
+        "approvals and fees included",
+        "testing, certification and as-built deliverables",
+        "making good and waste removal",
+        "warranty / defects liability period",
+        "AMC: asset list, frequency, response time, spares"
+      ]
+    },
+    {
+      "id": "electrical:dewa-vs-addc-differences",
+      "topic": "Dubai (DEWA) vs Abu Dhabi (DoE/ADDC) — practical differences for buyers",
+      "kind": "comparison",
+      "body_en": "Both emirates base their LV rules on IEC 60364/BS 7671 principles and supply 230/400 V, 50 Hz, but they are separate regimes. Dubai: DEWA is both utility and author of the DEWA Regulations for Electrical Installations; approvals, contractor registration, Shams Dubai net metering and EV Green Charger programmes run through DEWA. Abu Dhabi: the Department of Energy is the regulator issuing the Electricity Wiring Regulations (2020 revision superseding 2014), while distribution companies ADDC and AADC process connections and inspections. The northern emirates are served by Etihad Water and Electricity (EtihadWE) and Sharjah by SEWA, each with its own procedures. Practical consequences: forms, drawing conventions, approved product lists, inspection checklists, and some technical details (for example metering arrangements, specific RCD or earthing details, cable colour conventions in older installations) differ; a material or contractor approved in one emirate is not automatically approved in another. When a buyer names the project location, the sales engineer should route the requirement to the correct authority set before quoting.",
+      "body_ar": "تستند الإمارتان في قواعد الجهد المنخفض إلى مبادئ IEC 60364/BS 7671 وتغذيان بجهد 230/400 فولت و50 هرتز، لكنهما نظامان منفصلان. في دبي: ديوا هي المرفق وواضع لوائح التمديدات الكهربائية في آن واحد؛ وتمر الاعتمادات وتسجيل المقاولين وبرنامج «شمس دبي» لصافي القياس وبرنامج الشاحن الأخضر عبر ديوا. في أبوظبي: دائرة الطاقة هي الجهة التنظيمية التي تصدر لوائح التمديدات الكهربائية (مراجعة 2020 التي حلت محل 2014)، بينما تتولى شركتا التوزيع أدك والعين للتوزيع التوصيلات والفحص. وتخدم الإماراتِ الشمالية شركةُ الاتحاد للماء والكهرباء، والشارقةَ هيئةُ كهرباء ومياه الشارقة، ولكل منها إجراءاتها. النتائج العملية: تختلف النماذج وأعراف الرسومات وقوائم المنتجات المعتمدة وقوائم الفحص وبعض التفاصيل الفنية (مثل ترتيبات العدادات وتفاصيل RCD أو التأريض وأعراف ألوان الكابلات في المنشآت القديمة)؛ والمادة أو المقاول المعتمد في إمارة ليس معتمداً تلقائياً في أخرى. عندما يذكر المشتري موقع المشروع، يجب على مهندس المبيعات توجيه المتطلب إلى مجموعة الجهات الصحيحة قبل التسعير.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0",
+        "https://www.doe.gov.ae/en/Media-Centre/News/DoE-Issues-Revised-Electricity-Wiring-Regulations",
+        "https://www.surgepv.com/solar-compliance/uae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What's the difference between an MCB and an MCCB, and which do I need for a 250 A sub-main?",
+      "q_ar": "ما الفرق بين قاطع MCB وMCCB، وأيهما أحتاج لمغذٍّ فرعي 250 أمبير؟",
+      "expected_entry_ids": [
+        "electrical:mcb-mccb-acb",
+        "electrical:fault-level-breaking-capacity"
+      ]
+    },
+    {
+      "q_en": "The consultant specified LSZH cable for the fire alarm. Is LSZH enough?",
+      "q_ar": "حدد الاستشاري كابل LSZH لإنذار الحريق، هل يكفي LSZH؟",
+      "expected_entry_ids": [
+        "electrical:lszh-cables",
+        "electrical:fire-resistant-cables",
+        "electrical:civil-defence-electrical"
+      ]
+    },
+    {
+      "q_en": "Supplier offered PVC cable instead of XLPE same size, cheaper. Can I accept?",
+      "q_ar": "عرض المورد كابل PVC بدل XLPE بنفس المقطع وبسعر أرخص، هل أقبل؟",
+      "expected_entry_ids": [
+        "electrical:xlpe-vs-pvc-insulation",
+        "electrical:cable-sizing-derating",
+        "electrical:quote-red-flags"
+      ]
+    },
+    {
+      "q_en": "I want an EV charger at my villa in Dubai — what approvals and which RCD type?",
+      "q_ar": "أريد شاحن سيارة كهربائية في فيلتي بدبي، ما الاعتمادات المطلوبة وما نوع RCD؟",
+      "expected_entry_ids": [
+        "electrical:ev-charger-dewa-process",
+        "electrical:ev-charger-modes-connectors",
+        "electrical:rcd-rccb-rcbo"
+      ]
+    },
+    {
+      "q_en": "RCCB or RCBO for a new apartment DB?",
+      "q_ar": "هل أستخدم RCCB أم RCBO في لوحة توزيع شقة جديدة؟",
+      "expected_entry_ids": [
+        "electrical:rcd-rccb-rcbo",
+        "electrical:switchgear-hierarchy-mdb-smdb-db"
+      ]
+    },
+    {
+      "q_en": "What must I include in an RFQ for a main LV panel so quotes are comparable?",
+      "q_ar": "ماذا يجب أن أذكر في طلب عرض سعر للوحة جهد منخفض رئيسية لتكون العروض قابلة للمقارنة؟",
+      "expected_entry_ids": [
+        "electrical:panel-spec-checklist",
+        "electrical:form-of-separation",
+        "electrical:iec-61439-panels"
+      ]
+    },
+    {
+      "q_en": "How do I get rooftop solar connected to DEWA and what inverter is allowed?",
+      "q_ar": "كيف أربط نظام طاقة شمسية على السطح بشبكة ديوا وما العاكسات المسموح بها؟",
+      "expected_entry_ids": [
+        "electrical:shams-dubai-approval",
+        "electrical:solar-pv-basics"
+      ]
+    },
+    {
+      "q_en": "Is ESE lightning arrester acceptable instead of conventional rods?",
+      "q_ar": "هل مانعة الصواعق من نوع ESE مقبولة بدل القضبان التقليدية؟",
+      "expected_entry_ids": [
+        "electrical:lightning-protection",
+        "electrical:surge-protective-devices"
+      ]
+    },
+    {
+      "q_en": "Our contractor works in Dubai; can he do the same electrical job in Abu Dhabi?",
+      "q_ar": "مقاولنا يعمل في دبي، هل يمكنه تنفيذ نفس العمل الكهربائي في أبوظبي؟",
+      "expected_entry_ids": [
+        "electrical:dewa-vs-addc-differences",
+        "electrical:abu-dhabi-wiring-regulations",
+        "electrical:electrical-contractor-licensing"
+      ]
+    },
+    {
+      "q_en": "Why are two LED downlight quotes so different in price for the same wattage?",
+      "q_ar": "لماذا يختلف سعر عرضين لإنارة LED بنفس الواط اختلافاً كبيراً؟",
+      "expected_entry_ids": [
+        "electrical:led-lighting-specs",
+        "electrical:price-drivers",
+        "electrical:warranty-norms"
+      ]
+    },
+    {
+      "q_en": "Copper or aluminium busduct for a 2500 A riser in a tower?",
+      "q_ar": "قضبان مغلفة نحاس أم ألمنيوم لصاعد 2500 أمبير في برج؟",
+      "expected_entry_ids": [
+        "electrical:busduct-vs-cable-risers",
+        "electrical:copper-vs-aluminium-conductors"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 47,
+    "claims_checked": 166,
+    "corrected": [
+      "electrical:surge-protective-devices",
+      "electrical:ev-charger-dewa-process",
+      "electrical:dewa-regulations-overview",
+      "electrical:abu-dhabi-wiring-regulations",
+      "electrical:bs7671-iec60364",
+      "electrical:power-factor-harmonics",
+      "electrical:lead-times",
+      "electrical:warranty-norms",
+      "electrical:civil-defence-electrical",
+      "electrical:cable-glands-terminations",
+      "electrical:street-outdoor-lighting",
+      "electrical:electrical-contractor-licensing",
+      "electrical:smart-meters-submetering",
+      "electrical:fault-level-breaking-capacity",
+      "electrical:emergency-lighting",
+      "electrical:fire-resistant-cables"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "second_pass_A1b": {
+      "entries": 8,
+      "fetched_urls": 14,
+      "note": "Each entry now cites >=1 fetched source; unsupported claims rewritten as \"not established\". DEWA regs read via a public mirror of the 2017 edition (dewa.gov.ae 403)."
+    },
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+  }
+}

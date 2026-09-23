@@ -185,7 +185,7 @@ const isNoAnswer = (found: string[]) => found.length > 0 && found.every((f) => N
 async function retryRegions(key: string, jpgB64: string, found: string[]): Promise<{ regions: Array<{x:number;y:number;w:number;h:number}>; model: string | null }> {
   try {
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: RETRY_SYS,
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact', response_format: { type: 'json_object' }, temperature: 0, sys: RETRY_SYS,
         input: [{ role: 'user', content: [
           { type: 'text', text: 'The checker refused this page. It reported, verbatim:\n- ' + found.join('\n- ') + '\n\nCover exactly those. Return the JSON.' },
           { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
@@ -221,7 +221,7 @@ async function verifyPage(key: string, jpgB64: string, authors: string): Promise
       // gemini fine. This is the FIFTH instance of §5's "a token ceiling inside the output's
       // natural range", and gemini spends most of its budget on reasoning tokens, so a 400-token
       // ceiling on a vision check never had room for the answer.
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, temperature: 0, sys: VERIFY_SYS,
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, response_format: { type: 'json_object' }, temperature: 0, sys: VERIFY_SYS,
         input: [{ role: 'user', content: [
           { type: 'text', text: 'Check this redacted page. Return the JSON.' },
           { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
@@ -388,7 +388,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // hid doc_extract's ceiling until a real page was measured at 1,996 / 2,170 / 2,051. A
       // six-page drawing set is a different distribution entirely, and the failure lands as
       // `detect_failed` on a PRIVACY control.
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'drawing_redact', response_format: { type: 'json_object' }, temperature: 0, sys: SYS, input: [{ role: 'user', content }] }) });
       const jd = await r.json();
       if (typeof jd?.model === 'string' && jd.model) findModel = jd.model;
       // Fails closed either way — nothing is published — but `detect_truncated` says "raise the

@@ -97,7 +97,7 @@ begin
       '{}'::text[], array['why the routine fails or is not reached'], 'it_engineer');
   end loop;
   update public.it_engineer_finding f
-     set closed_at = now(), close_note = 'the duty ran successfully on its clock again (fn_seat_duties_tick)'
+     set closed_at = now(), close_note = 'the duty is no longer overdue or failing: it ran on its clock again, or it was disabled (fn_seat_duties_tick)'
    where f.issue_key like 'seat_duty:%' and f.closed_at is null
      and not exists (select 1 from jsonb_array_elements(v_health) h where 'seat_duty:' || (h->>'duty') = f.issue_key);
   return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health));

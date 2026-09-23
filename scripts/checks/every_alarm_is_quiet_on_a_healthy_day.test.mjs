@@ -122,6 +122,21 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_plan_loop_tick()',
     asOf: { marketing_model_run: 'created_at', marketing_month_plan: 'created_at' },
   },
+  // 24 Sep 2026 (it_engineer, #910). Raises learning_accuracy_fell:<seat> when a seat's 7-day judgement accuracy
+  // falls against the week before. It reads the judgements, lessons and daily rows that existed at the instant;
+  // a healthy day has no seat whose accuracy fell, so it is quiet. Its own daily row is written inside the
+  // rolled-back replay.
+  fn_seat_learning_measure: {
+    replay: 'pg_temp.qd_replay_fn_seat_learning_measure(null::date)',
+    asOf: { seat_judgement: 'made_at', seat_learning_daily: 'measured_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #901). Raises seat_duty:<duty> when a registered duty is overdue, failing or has no
+  // live owner (fn_seat_duty_health). Duties are present state; a healthy day has every duty on its clock. The
+  // duties it runs are run inside the rolled-back replay.
+  fn_seat_duties_tick: {
+    replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
+    asOf: {},
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
@@ -131,6 +146,7 @@ export const REGISTER = {
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
+  fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
