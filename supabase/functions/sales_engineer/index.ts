@@ -545,8 +545,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // WHAT WAS MEASURED, because the finding handed over said something else. The hand-over said
       // "a signed-in customer can steer which suppliers receive somebody else's inquiry". A customer
       // CANNOT reach this branch: the cutoff above (`if (caller.kind === 'customer') return 403`)
-      // refuses every portal caller before `match` is read, and `body.services` does not exist in
-      // this file at all. Nor does any caller in the repository pass criteria: the ONE runtime
+      // refuses every portal caller before `match` is read. (#866 also noted that no service list
+      // existed on the request at all; PR #859 added one on 23 Sep 2026, and it goes through the one
+      // criteria source below like every other criterion, so a named inquiry still decides its own.)
+      // Nor does any caller in the repository pass criteria: the ONE runtime
       // caller is customer_api.matchAndNotify, which sends `{action:'match', inquiry_id, persist:false}`
       // and nothing else. So the lever was reachable only with the sales_engineer credential, an
       // internal credential, or the founder's admin JWT.
@@ -605,6 +607,11 @@ Deno.serve(observe('sales_engineer', async (req) => {
         trades: body.trades, emirate: body.emirate, scope_type: body.project_type,
         role_needed: body.need, expected_value: body.value, budget: body.value,
         summary: body.text, raw_input: null, category: null, keywords: [],
+        // The request's own service list belongs here with every other criterion (merge of #866 and
+        // #859, 23 Sep 2026): on a NAMED inquiry `src` is the stored row, so the stored service_keys
+        // decide and the request's list is never consulted — a caller cannot narrow somebody else's
+        // match to the services it chooses. On an unnamed call there is no third party to steer.
+        service_keys: body.services,
       };
       // NO STORED EQUIVALENT, SAID OUT LOUD. `inquiries` carries no products and no brands column —
       // the select above is the whole of what this path reads. On a NAMED inquiry they are therefore
@@ -716,15 +723,16 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // candidate through, so a brief the vocabulary does not recognise falls back to trade-level
       // matching and NOBODY is dropped for it. The derivation is stored on first use, which is
       // also how a pre-existing inquiry acquires its keys.
-      let serviceKeys = arr(body.services);
-      if (!serviceKeys.length && inq) {
-        const stored = Array.isArray(inq.service_keys) ? (inq.service_keys as unknown[]).map((x) => String(x)) : null;
-        if (stored) serviceKeys = stored;
-        else {
-          serviceKeys = serviceKeysOf(brief, inq.boq, await serviceVocab(admin));
-          // A failed write must not stop the match; the keys are still used for this run.
-          await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
-        }
+      //
+      // NULL AND '{}' ARE DIFFERENT, and only the column itself can tell them apart — `arr` flattens
+      // both to an empty list, so the derivation is decided by Array.isArray on the stored value, not
+      // by the length. '{}' means a reader already looked and the brief names no service this taxonomy
+      // knows; re-deriving it on every match would re-read the vocabulary for nothing.
+      let serviceKeys = arr(src.service_keys);
+      if (inq && !Array.isArray(inq.service_keys)) {
+        serviceKeys = serviceKeysOf(brief, inq.boq, await serviceVocab(admin));
+        // A failed write must not stop the match; the keys are still used for this run.
+        await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
       }
       askedFor.services = serviceKeys;
 
