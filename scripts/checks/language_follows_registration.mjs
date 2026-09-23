@@ -219,13 +219,14 @@ const sp = src('src/components/portal/SupplierPortal.tsx');
 ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = [^\n]*settings\.locale[\s\S]{0,200}?adoptLocale\(l, setLang\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
 ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching language while signed in must save leads.locale');
 
-// THE DEPLOY-ORDER BRIDGE IN arabic_frame.ts REMOVES ITSELF (22 Sep 2026, review of PR #857).
-// DL-06 corrected the supplier footer in templates.email_supplier and in arabic_frame.ts, which
-// translates the English footer words at send time. The function deploys on push and the template is
-// applied separately, so for the minutes in between the frame must still recognise the OLD wording —
-// an untranslated English line inside an Arabic mail is worse than one the next apply corrects. That
-// bridge is temporary, and a temporary thing with nothing watching it becomes permanent. This asserts
-// the pair: once no template carries the old wording, the bridge must be gone.
+// THE FRAME AND THE TEMPLATE MUST AGREE ON THE FOOTER (22 Sep 2026, reviews of PR #857).
+// DL-06 corrected the supplier footer in templates.email_supplier and in send_outbox/arabic_frame.ts,
+// which translates the English footer words at send time. Those two are one sentence split across a
+// stored template and a deployed function, and either half alone prints a wrong footer: the frame
+// without the apply leaves an English licence line inside an Arabic mail, and the apply without the
+// frame leaves the corrected English words untranslated. A bridge that recognised BOTH wordings was
+// carried for one commit and then removed rather than left as dead code with nothing to remove it —
+// so this asserts the pair in both directions, and fails while the two disagree.
 {
   const frame = src(F + 'send_outbox/arabic_frame.ts');
   const bridged = /Dubai DET E-Trader Licence/.test(frame);
@@ -235,9 +236,9 @@ ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching lan
     ok(live !== null, 'arabic_frame bridge: could not read templates (HTTP ' + r.status + ')');
     if (live === 0) {
       ok(!bridged, 'arabic_frame.ts still carries the pre-DL-06 footer mapping, and no template holds that wording any more: delete the bridge');
+      console.log('supplier footer: the template and arabic_frame.ts agree on DET Trader Licence No. 1633275 · TDRA NOL-26-100000665');
     } else {
-      console.log(`arabic_frame bridge: ${live} template(s) still carry the pre-DL-06 footer, so the mapping is still needed`);
-      ok(bridged, 'arabic_frame.ts dropped the pre-DL-06 footer mapping while a template still carries that wording: an Arabic mail would print an English licence line');
+      ok(bridged, `templates.email_supplier still carries the pre-DL-06 footer on ${live} row(s) while arabic_frame.ts translates only the corrected wording — an Arabic supplier mail would print an English licence line. APPLY: node scripts/apply_sql.mjs scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql --apply  (and apply it BEFORE deploying send_outbox)`);
     }
   } else {
     NOT_VERIFIED.push('whether the arabic_frame.ts deploy-order bridge is still needed (reads templates)');
