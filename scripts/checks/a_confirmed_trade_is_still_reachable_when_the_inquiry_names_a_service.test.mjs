@@ -73,6 +73,84 @@ test('production: naming a trade\'s services never reaches fewer suppliers than 
   assert.deepEqual(lost, [], 'the service gate removed suppliers a trade-level inquiry reaches, so these trades lose requests silently');
 });
 
+// THE MULTI-TRADE CASE, WHICH IS THE ONLY CASE PRODUCTION HAS (re-review finding A, 23 Sep 2026). The
+// test above measures one trade at a time, and a gate that reads the named trades as one UNION passes
+// it while still emptying a trade: a supplier silent on doors but spoken-on for aluminium looks
+// spoken-on to a union, so {doors.fire_doors, aluminium.tensile_structures} reached nobody in doors.
+// Every real inquiry is multi-trade — sales_engineer derives ONE key set from one brief across all of
+// the inquiry's trades, and the three backfilled rows carry keys across three, two and two trades.
+//
+// The property is per supplier, not per count, because a lower count can be the gate working: a
+// supplier that has named services in EVERY named trade it declares and holds none of the named ones
+// SHOULD be dropped. So this asserts only the suppliers the relaxation is about — those a trade-level
+// inquiry reaches AND which have named nothing in at least one of the named trades they declare.
+//
+// The services asked for are deliberately ones NO confirmed supplier holds. Asking for services
+// somebody holds would let a union-reading gate pass on that hit and hide the defect.
+test('production: a two-trade inquiry still reaches a supplier silent in one of those trades', { skip: SKIP }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const rows = await sql(`
+    with declared as (
+      select distinct t as tr
+        from public.supplier_capabilities sc, unnest(coalesce(sc.trades, '{}'::text[])) t
+       where sc.confirmed_at is not null
+    ),
+    unheld as (      -- a service of that trade that no confirmed supplier has named
+      select s.trade_code as tr, s.trade_code || '.' || s.code as key
+        from public.taxonomy_trade_service s
+       where s.active
+         and not exists (
+           select 1 from public.supplier_capabilities sc
+            where sc.confirmed_at is not null
+              and (s.trade_code || '.' || s.code) = any(
+                    public.fn_services_effective(sc.services, sc.trades, sc.services_removed)))
+    ),
+    ask as (
+      select a.tr as a, b.tr as b,
+             array(select u.key from unheld u where u.tr in (a.tr, b.tr) order by 1) as keys
+        from declared a join declared b on b.tr > a.tr
+    ),
+    pair as (select * from ask where cardinality(keys) > 0),
+    base as (
+      select p.a, p.b, m.supplier_id
+        from pair p, public.fn_match_capability(array[p.a, p.b], p_limit := 500) m
+    ),
+    got as (
+      select p.a, p.b, m.supplier_id
+        from pair p, public.fn_match_capability(array[p.a, p.b], p_limit := 500, p_services := p.keys) m
+    ),
+    silent as (      -- of those, the ones that named nothing in one of the two trades they declare
+      select b.a, b.b, b.supplier_id
+        from base b
+        join public.supplier_capabilities sc on sc.supplier_id = b.supplier_id
+       where exists (
+         select 1 from (values (b.a), (b.b)) v(tr)
+          where v.tr = any(coalesce(sc.trades, '{}'::text[]))
+            and not exists (
+              select 1 from unnest(public.fn_services_effective(sc.services, sc.trades, sc.services_removed)) k
+               where split_part(k, '.', 1) = v.tr))
+    )
+    select p.a, p.b, cardinality(p.keys) as services_asked,
+           (select count(*)::int from base b where b.a = p.a and b.b = p.b) as at_trade_level,
+           (select count(*)::int from got  g where g.a = p.a and g.b = p.b) as naming_services,
+           (select count(*)::int from silent s where s.a = p.a and s.b = p.b) as silent_in_one,
+           coalesce((select array_agg(s.supplier_id order by s.supplier_id) from silent s
+                      where s.a = p.a and s.b = p.b
+                        and not exists (select 1 from got g
+                                         where g.a = s.a and g.b = s.b and g.supplier_id = s.supplier_id)), '{}') as lost
+      from pair p
+     order by p.a, p.b`);
+  for (const r of rows) {
+    console.log(`  {${r.a}, ${r.b}} asking ${r.services_asked} unheld service(s): trade level ${r.at_trade_level}, ` +
+                `naming services ${r.naming_services}, of which silent in one trade ${r.silent_in_one}` +
+                (r.lost.length ? `  LOST ${r.lost.join(',')}` : ''));
+  }
+  assert.ok(rows.length > 0, 'no two declared trades to pair, so this check measured nothing');
+  const lost = rows.filter((r) => r.lost.length)
+    .map((r) => `{${r.a}, ${r.b}}: supplier(s) ${r.lost.join(', ')} are reached at trade level and named nothing in one of these trades, yet the service gate dropped them`);
+  assert.deepEqual(lost, [], 'the gate read the named trades as one union, so silence in one trade was covered by having spoken in another');
+});
+
 test('production: no confirmed capability stores a word an active service alias already names', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const rows = await sql(`

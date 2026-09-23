@@ -29,12 +29,28 @@
 -- supabase/migrations_history/20260724153607_*.sql), so every rehearsal mints it again. A fix that
 -- names a supplier and a word patches one row of a class.
 --
--- THE FIX. The gate now asks whether the supplier named services in the trades THIS INQUIRY named
--- services in. It applies where the supplier has something to say and stays out of the way where it
--- has not. Nothing is loosened where the gate was doing its job: a supplier that named
--- doors.wooden_doors and nothing else is still excluded from a doors.fire_doors inquiry -- it spoke,
--- and it did not name that service. `why` now says "trade level (no service named in this trade)" so
--- a trade-level pass is never mistaken for a service match in the audit trail.
+-- THE FIX. The gate now asks, FOR EACH TRADE the inquiry named a service in and the supplier declares,
+-- whether the supplier has named any service in THAT trade. It applies where the supplier has
+-- something to say and stays out of the way where it has not. Nothing is loosened where the gate was
+-- doing its job: a supplier that named doors.wooden_doors and nothing else is still excluded from a
+-- doors.fire_doors inquiry -- it spoke, and it did not name that service. `why` names the trade it
+-- passed at trade level in, so a trade-level pass is never mistaken for a service match.
+--
+-- PER TRADE, NOT PER INQUIRY. The first draft of this file unioned the prefixes of every trade the
+-- inquiry named a service in and asked whether the supplier had named ANYTHING in that union. Re-review
+-- finding A, 23 Sep 2026: that re-creates the defect for a multi-trade inquiry. A supplier silent on
+-- doors but spoken-on for aluminium had a non-empty union, so the relaxation never fired, and
+-- {doors.fire_doors, aluminium.tensile_structures} measured doors 6 -> 0. That is not a corner case --
+-- it is the normal path. sales_engineer derives ONE key set from one brief across every trade of the
+-- inquiry, so the backfilled rows carry keys across three, two and two trades respectively. The
+-- single-trade reading would have gone green in the guard while the real path still reached nobody.
+--
+-- A NON-KEY IN p_services NO LONGER SWITCHES THE GATE OFF (re-review finding B). See the `named` CTE.
+--
+-- THIS IS A MATCHING-POLICY CHANGE, AND THE FOUNDER HAS NOT RULED ON IT. From 15 Sep 2026 a supplier's
+-- silence at service level was read as a denial; from this file it is read as trade level. The founder's
+-- own rule is untouched -- exact trade match or none, and no key is ever invented or mapped to a
+-- neighbour -- but he decides policy, so this is raised to him rather than presented as a pure repair.
 --
 -- AFTER, measured 23 Sep 2026 WITHOUT applying anything: this file's body was run against production
 -- as a plain read-only query with its parameters substituted as literals, so the numbers below are the
@@ -42,6 +58,28 @@
 --   aluminium 4 -> 4, doors 4 -> 4, gypsum 1 -> 1, painting 1 -> 1. No trade falls to zero.
 -- painting reaches its supplier again through the trade-level path, on the UNPATCHED row, which is the
 -- point: the gate no longer needs a data fix to stop emptying a trade.
+--
+-- RE-MEASURED 23 Sep 2026 after finding A was fixed, same read-only method, on the set production held
+-- at that moment (one confirmed supplier, 126512, declaring {gypsum, painting} with five gypsum keys
+-- and the free-text «الدهانات»):
+--   per trade                          gypsum   1 -> 1 before, 1 after
+--                                      painting 1 -> 0 before, 1 after
+--   TWO TRADES {gypsum, painting}, asking the 5 painting services NO confirmed supplier holds:
+--                                      trade level 1, before 0, AFTER 1
+--                                      why = "trades painting+gypsum · trade level in painting"
+--   a non-key p_services {'Doors'}     trade level 1, before 0, after 1   (finding B)
+-- The two-trade row is the finding-A case measured on production: the supplier has spoken on gypsum and
+-- is silent on painting, so the union reading dropped it and the per-trade reading keeps it, and `why`
+-- names painting as the trade it passed at trade level in.
+--
+-- THE EXCLUSION ARM COULD NOT BE MEASURED ON TODAY'S ROWS, and that is said rather than glossed: it
+-- needs a supplier that HAS named services in a trade and is asked for one of that trade's services it
+-- does not hold. 126512 holds all five active gypsum services and none of the painting ones, so no such
+-- pair exists right now. It is preserved by construction -- the third disjunct requires a DECLARED named
+-- trade with no key at all in it, which is false for a trade the supplier has spoken in -- and the
+-- re-review verified it directly on the previous draft (aluminium.tensile_structures, 0). After step 3
+-- of the apply order, 126512 holds painting.interior and painting.repainting and three painting services
+-- become unheld: fn_match_capability(array['painting'], p_services := those three) must then return 0.
 --
 -- THE ROWS THEMSELVES CHURN, because every confirmed capability in production today is a ZZ DEMO
 -- rehearsal supplier that a later rehearsal replaces. A second reading twenty minutes after the one
@@ -76,6 +114,23 @@ req_auth as (
   from public.taxonomy_trade t, unnest(t.authority_required) a
   where t.code = any(p_trades)
 ),
+-- THE SERVICES THE INQUIRY ACTUALLY NAMED, and the trades they belong to. Only a value that IS a live
+-- taxonomy key counts (23 Sep 2026, re-review finding B): p_services is derived from free text by
+-- servicesFromText, and one non-key string such as 'Doors' used to make split_part(...,'.',1) return
+-- 'Doors', which is no trade, so the per-trade test below found nothing to apply and the gate switched
+-- itself off for the whole inquiry. This is the same filter fn_services_effective applies to what the
+-- supplier stored, so both sides of the comparison now admit exactly the same vocabulary.
+named as (
+  select distinct s as key, split_part(s, '.', 1) as tr
+  from unnest(coalesce(p_services, '{}'::text[])) s
+  where position('.' in s) > 0
+    and exists (select 1 from public.taxonomy_trade_service ts
+                where ts.active and ts.trade_code || '.' || ts.code = s)
+),
+-- HOW MANY REAL SERVICES WERE NAMED. Zero means the gate does not apply at all — whether the inquiry
+-- named none or named only words this taxonomy does not know. Trade-level matching, as the column's
+-- own contract states ('{}' = derived and no service named).
+n as (select count(*)::int as k from named),
 -- LOCATION. What the supplier itself STATED: the confirmed capability's coverage list and the
 -- registration's service_emirates, as one distinct list with blanks dropped. Empty = no self-imposed
 -- limit = the whole UAE (founder, 9 and 14 Sep 2026). Non-empty = the limit is honoured (finding 25).
@@ -133,19 +188,24 @@ cand as (
 -- and accepted by the attribution, so `why` could name a curated rule that never actually fired.
 eff as (
   select c.*,
-         case when cardinality(p_services) = 0 then '{}'::text[]
+         case when (select k from n) = 0 then '{}'::text[]
               else public.fn_services_effective(c.services, c.trades, c.services_removed) end as eff_services
   from cand c
 ),
 svc as (
   select e.*,
-    array(select unnest(e.eff_services) intersect select unnest(p_services)) as service_hits,
-    -- THE GATE'S REACH (23 Sep 2026, SP-F-01 re-review): the keys this supplier named in the trades
-    -- the inquiry named services IN. Empty means the supplier said nothing at service level about
-    -- this kind of work, so it is trade-level here and the service gate below does not apply to it.
-    array(select k from unnest(e.eff_services) k
-           where split_part(k, '.', 1) in (select split_part(s, '.', 1) from unnest(p_services) s))
-      as eff_in_named_trade,
+    array(select unnest(e.eff_services) intersect select key from named) as service_hits,
+    -- THE TRADES THIS SUPPLIER IS SILENT IN (23 Sep 2026, SP-F-01 re-review, corrected the same day
+    -- after finding A): a trade the inquiry named a service in, that this supplier DECLARES, and in
+    -- which it has named no service at all. Per trade, not per inquiry — an earlier draft unioned the
+    -- prefixes of every named trade, so a supplier that had spoken on aluminium was treated as having
+    -- spoken on doors too, and a {doors.fire_doors, aluminium.tensile_structures} inquiry emptied doors
+    -- again. Every real inquiry is this case: the backfill's own three rows carry keys across three,
+    -- two and two trades, because sales_engineer derives ONE key set from one brief across all trades.
+    array(select t.tr from named t
+           where t.tr = any(coalesce(e.trades, '{}'::text[]))
+             and not exists (select 1 from unnest(e.eff_services) k where split_part(k, '.', 1) = t.tr)
+           group by t.tr order by t.tr) as silent_in,
     -- ponytail: one scan of service_implication per candidate. At 113 curated rows against a
     -- candidate set the gates above have already cut down, this is not measurable; batch it with a
     -- single unnest+join if the map or the candidate count grows an order of magnitude.
@@ -154,7 +214,7 @@ svc as (
       from public.service_implication i
       where i.active
         and (i.implies_trade || '.' || i.implies_code) = any(e.eff_services)   -- it really is covered
-        and (i.implies_trade || '.' || i.implies_code) = any(p_services)       -- and the inquiry asked
+        and (i.implies_trade || '.' || i.implies_code) in (select key from named)  -- and the inquiry asked
         and not ((i.implies_trade || '.' || i.implies_code) = any(coalesce(e.services, '{}'::text[])))
         and (i.from_code = any(coalesce(e.trades, '{}'::text[]))
           or i.from_code = any(coalesce(e.services, '{}'::text[])))
@@ -175,12 +235,13 @@ scored as (
      )) as ptype_hit,
     (p_value is not null and c.min_project_value is not null and c.max_project_value is not null) as size_known
   from svc c
-  -- GATE: the inquiry named services, so a supplier that named services IN THOSE TRADES must cover
-  -- one of them. A supplier that named NONE in those trades is trade-level for this work and stays a
-  -- candidate: see the header of this file for why excluding it silently emptied whole trades.
-  where cardinality(p_services) = 0
+  -- GATE: the inquiry named services, so the supplier must either cover one of them, or be SILENT in
+  -- at least one named trade it declares — silent there means trade level there, and excluding it is
+  -- what emptied whole trades. Read per trade: a supplier that has named services in EVERY named trade
+  -- it declares and covers none of the named ones is still excluded, which is the gate doing its job.
+  where (select k from n) = 0
      or cardinality(c.service_hits) > 0
-     or cardinality(c.eff_in_named_trade) = 0
+     or cardinality(c.silent_in) > 0
 ),
 ranked as (
   select s.*,
@@ -198,9 +259,12 @@ select r.supplier_id, r.company_name, r.score_v as score,
   r.trades, r.roles, r.product_hits, r.brand_hit, r.ptype_hit, round(r.track,3) as track,
   concat_ws(' · ',
     'trades ' || array_to_string(array(select unnest(r.trades) intersect select unnest(p_trades)), '+'),
-    case when cardinality(r.service_hits) > 0 then cardinality(r.service_hits)||'/'||cardinality(p_services)||' services' end,
-    case when cardinality(p_services) > 0 and cardinality(r.service_hits) = 0
-           then 'trade level (no service named in this trade)' end,
+    case when cardinality(r.service_hits) > 0 then cardinality(r.service_hits)||'/'||(select k from n)||' services' end,
+    -- WHICH trade it passed at trade level in, not merely that it did (re-review finding A): a
+    -- multi-trade inquiry can hit a service in one trade and pass on silence in another, and the audit
+    -- trail has to say which was which.
+    case when cardinality(r.silent_in) > 0
+           then 'trade level in ' || array_to_string(r.silent_in, '+') end,
     case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality(p_products)||' products' end,
     case when r.brand_hit then 'brand match' end,
