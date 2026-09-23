@@ -4089,5 +4089,10 @@
   "53d4bae517e7",
   "8d271add63c5",
   "5f72551ec377"
+ ],
+ "scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql": [
+  "415d60f32c58",
+  "fc3b6977c5b6",
+  "5b783224f4d2"
  ]
 }
