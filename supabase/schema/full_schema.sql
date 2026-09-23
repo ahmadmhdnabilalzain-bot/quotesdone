@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T22:20:06.850Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T22:45:54.064Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -201,7 +201,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (597) =====
+-- ===== TABLES (598) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6992,6 +6992,22 @@ CREATE TABLE IF NOT EXISTS public.seat_deliberation_turn (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.seat_duty (
+  duty text NOT NULL,
+  owner_seat text NOT NULL,
+  every interval NOT NULL,
+  routine text NOT NULL,
+  what text NOT NULL,
+  owner_file text NOT NULL,
+  enabled boolean DEFAULT true NOT NULL,
+  last_started_at timestamp with time zone,
+  last_ok_at timestamp with time zone,
+  last_result jsonb,
+  last_error text,
+  failures integer DEFAULT 0 NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.seat_handoff_kind (
   type text NOT NULL,
   from_seat text NOT NULL,
@@ -8816,6 +8832,7 @@ ALTER TABLE public.seat_case_memory_miss ADD CONSTRAINT seat_case_memory_miss_pk
 ALTER TABLE public.seat_deliberation ADD CONSTRAINT seat_deliberation_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_deliberation_ceiling ADD CONSTRAINT seat_deliberation_ceiling_pkey PRIMARY KEY (author_seat, reviewer_seat);
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_pkey PRIMARY KEY (duty);
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
@@ -9590,6 +9607,12 @@ ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_round_check CHECK ((round >= 1));
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_status_check CHECK ((status = ANY (ARRAY['recorded'::text, 'held_not_run'::text, 'no_independent_reviewer'::text, 'failed'::text])));
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_verdict_check CHECK ((verdict = ANY (ARRAY['approve'::text, 'reject'::text, 'revise'::text])));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_check CHECK ((split_part(duty, '.'::text, 1) = owner_seat));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_duty_check CHECK ((duty ~ '^[a-z_]+\.[a-z_]+$'::text));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_every_check CHECK ((every >= '00:05:00'::interval));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_routine_check CHECK ((routine ~ '^fn_[a-z0-9_]+$'::text));
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_what_check CHECK ((btrim(what) <> ''::text));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_handler_check CHECK ((handler ~ '^fn_[a-z0-9_]+$'::text));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_meaning_check CHECK ((btrim(meaning) <> ''::text));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
@@ -9952,6 +9975,7 @@ ALTER TABLE public.sanctions_ban ADD CONSTRAINT sanctions_ban_lead_id_fkey FOREI
 ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE CASCADE;
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_deliberation_id_fkey FOREIGN KEY (deliberation_id) REFERENCES seat_deliberation(id) ON DELETE CASCADE;
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_reviews_turn_id_fkey FOREIGN KEY (reviews_turn_id) REFERENCES seat_deliberation_turn(id);
+ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
@@ -19689,6 +19713,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -19714,16 +19748,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -51724,16 +51748,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -51904,6 +51918,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -59348,6 +59372,122 @@ AS $function$
   select coalesce(string_agg(x #>> '{}', ' '), '') from jsonb_path_query(coalesce(p, 'null'::jsonb), 'strict $.**') x
    where jsonb_typeof(x) = 'string'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_duties_tick(p_limit integer DEFAULT 8)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.seat_duty; v_res jsonb; v_out jsonb := '[]'::jsonb; v_health jsonb; p jsonb;
+begin
+  for d in
+    select * from public.seat_duty
+     where enabled
+       -- two minutes of tolerance, the same reasoning as fn_resilience_tick_plan: a tick is never exactly on the beat
+       and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
+     order by last_started_at nulls first, duty
+     limit greatest(1, least(coalesce(p_limit, 8), 30))
+     for update skip locked
+  loop
+    update public.seat_duty set last_started_at = now() where duty = d.duty;
+    begin
+      if to_regprocedure(format('public.%I()', d.routine)) is null then
+        raise exception 'routine public.%() does not exist', d.routine;
+      end if;
+      execute format('select public.%I()', d.routine) into v_res;
+      update public.seat_duty set last_ok_at = now(), last_result = v_res, last_error = null, failures = 0 where duty = d.duty;
+      v_out := v_out || jsonb_build_object('duty', d.duty, 'ok', true);
+    exception when others then
+      update public.seat_duty set last_error = left(sqlerrm, 1000), failures = failures + 1 where duty = d.duty;
+      v_out := v_out || jsonb_build_object('duty', d.duty, 'ok', false, 'error', left(sqlerrm, 300));
+    end;
+  end loop;
+
+  -- The check, every tick: each problem is a finding; a duty that recovered closes its own.
+  v_health := public.fn_seat_duty_health();
+  for p in select * from jsonb_array_elements(v_health) loop
+    perform public.fn_it_engineer_finding_upsert(
+      'seat_duty:' || (p->>'duty'),
+      'Seat duty ' || (p->>'duty') || ' is not being done: ' || (p->>'problem'),
+      'public.seat_duty / ' || coalesce(p->>'routine', '?'), 'agent_facing', 1, p,
+      '{}'::text[], array['why the routine fails or is not reached'], 'it_engineer');
+  end loop;
+  update public.it_engineer_finding f
+     set closed_at = now(), close_note = 'the duty is no longer overdue or failing: it ran on its clock again, or it was disabled (fn_seat_duties_tick)'
+   where f.issue_key like 'seat_duty:%' and f.closed_at is null
+     and not exists (select 1 from jsonb_array_elements(v_health) h where 'seat_duty:' || (h->>'duty') = f.issue_key);
+  return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_duty_cross_review(p_kind text, p_author text, p_reviewer text, p_question text, p_evidence jsonb, p_proposal jsonb, p_result jsonb, p_subject_table text, p_subject_id text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint; v_demo boolean := coalesce(p_question like 'ZZ DEMO%', false);
+begin
+  v_id := public.fn_seat_deliberation_open(p_kind, p_author, p_reviewer, p_question, p_evidence, p_proposal,
+            coalesce(nullif(p_result->>'model', ''), 'unknown'), 'agent_reasoning', p_subject_table, p_subject_id, v_demo);
+  return jsonb_build_object('deliberation_id', v_id, 'reviewer', p_reviewer);
+exception when others then
+  -- Recorded for the CEO to see, never raised: the decision it reviews has already been applied or held.
+  perform public.fn_it_engineer_finding_upsert('cross_review:' || p_kind || ':' || coalesce(p_subject_id, '?'),
+    'A cross-family review could not be opened for ' || p_kind, 'public.fn_seat_duty_cross_review', 'agent_facing', 1,
+    jsonb_build_object('error', left(sqlerrm, 500), 'author', p_author, 'reviewer', p_reviewer, 'owner_seat', 'ceo'),
+    '{}'::text[], array['whether the author model was proven and the pair registered'], p_author);
+  return jsonb_build_object('deliberation_id', null, 'error', left(sqlerrm, 300));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_duty_health()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('duty', d.duty, 'owner_seat', d.owner_seat, 'routine', d.routine,
+           'problem', x.problem, 'last_ok_at', d.last_ok_at, 'failures', d.failures, 'last_error', d.last_error)
+           order by d.duty), '[]'::jsonb)
+    from public.seat_duty d
+    cross join lateral (select case
+        when to_regprocedure(format('public.%I()', d.routine)) is null then 'its routine public.' || d.routine || '() does not exist'
+        when not exists (select 1 from public.org_role r where r.role_id = d.owner_seat and r.status = 'active')
+          then 'its owner ' || d.owner_seat || ' is not an active seat'
+        when d.failures >= 3 then 'failed ' || d.failures || ' times running: ' || coalesce(left(d.last_error, 200), '?')
+        -- overdue: no success within twice the interval plus one 15-minute tick (a new row gets the same grace)
+        when coalesce(d.last_ok_at, d.created_at) < now() - (2 * d.every) - interval '15 minutes'
+          then 'no successful run since ' || coalesce(to_char(d.last_ok_at, 'YYYY-MM-DD HH24:MI'), 'it was registered')
+      end as problem) x
+   where d.enabled and x.problem is not null;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_duty_reason(p_seat text, p_surface text, p_question text, p_options jsonb, p_case jsonb, p_subject jsonb, p_dedupe_key text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if split_part(p_surface, '.', 1) <> p_seat then
+    raise exception 'a duty''s decision point belongs to its seat: % is not %''s', p_surface, p_seat;
+  end if;
+  if jsonb_typeof(p_options) <> 'array' or jsonb_array_length(p_options) < 2 then
+    raise exception 'a decision needs at least two options (%).', p_surface;
+  end if;
+  if coalesce(btrim(p_dedupe_key), '') = '' then raise exception 'a duty''s question needs a dedupe key (%)', p_surface; end if;
+  return public.fn_reason_hold(p_seat, p_surface, p_question,
+    jsonb_build_object('seat', p_seat, 'surface', p_surface, 'question', left(p_question, 8000),
+      'context', jsonb_build_object('audience', 'internal', 'case', coalesce(p_case, '{}'::jsonb)),
+      'decision', jsonb_build_object('name', p_surface, 'options', p_options),
+      'stakes', 'high', 'research', false, 'subject', coalesce(p_subject, '{}'::jsonb), 'dedupeKey', p_dedupe_key),
+    jsonb_build_object('pending', jsonb_build_array('decompose', 'resolve', 'retrieve', 'decide', 'verify'), 'filed_by', 'seat_duty'),
+    coalesce(p_subject, '{}'::jsonb), 'seat_duty', p_dedupe_key);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_for_surface(p_signed_in boolean, p_surface text)
@@ -75245,6 +75385,7 @@ ALTER TABLE public.seat_case_memory_miss ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_deliberation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_deliberation_ceiling ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_deliberation_turn ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_duty ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_handoff_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_judgement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
@@ -75472,6 +75613,7 @@ CREATE POLICY seat_case_memory_miss_service_role_only ON public.seat_case_memory
 CREATE POLICY seat_deliberation_service_role_only ON public.seat_deliberation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_deliberation_ceiling_service_role_only ON public.seat_deliberation_ceiling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_deliberation_turn_service_role_only ON public.seat_deliberation_turn AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_duty_service_role_only ON public.seat_duty AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_judgement_service_role_only ON public.seat_judgement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

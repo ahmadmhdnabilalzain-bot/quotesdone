@@ -222,6 +222,18 @@ async function seatClocksTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// EVERY SEAT DUTY ON ITS OWN CLOCK (23 Sep 2026, it_engineer; founder_instruction 898). public.seat_duty holds each
+// seat's registered duties with their interval; fn_seat_duties_tick runs the due ones, each in its own
+// sub-transaction, and files a finding for any duty that is overdue or failing
+// (every_seat_duty_has_an_owner_a_clock_and_a_check.sql). Duties queue mail, so it runs before the outbox drain.
+async function seatDutiesTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_duties_tick', { p_limit: 8 });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -1350,6 +1362,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
+  seatDuties: { run: seatDutiesTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.
