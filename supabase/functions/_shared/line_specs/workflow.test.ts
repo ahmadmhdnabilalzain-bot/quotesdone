@@ -171,8 +171,6 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
 // Decision point line_specs.workflow_installation: the document reads the structured installation fields,
 // never the record's sentence. A sentence saying "Included" with installation_included false prints Not included.
 import { pdfBody as pdfBody82, type Standardised as Std82 } from './workflow.ts';
-});
-
 Deno.test('pdfBody reads installation from the structured fields, not from the sentence', () => {
   const rec = (inc: boolean | null, detail: string | null, sentence: string | null): Std82 => ({
     contract: 'standardised_quotation', version: 1, quote_id: 'zzdemo00-0000-4000-8000-000000000082', option_no: 1, category: 'hvac', trade: 'hvac', currency: 'AED',
