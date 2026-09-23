@@ -1716,3 +1716,5 @@ scripts/sql/every_judgement_learns_from_its_outcome.sql
 scripts/sql/an_arabic_question_finds_the_same_knowledge_as_an_english_one.sql
 scripts/sql/the_multilingual_embedder_is_the_it_engineers.sql
 scripts/sql/a_standing_rule_is_recorded_not_left_open.sql
+scripts/sql/opus_5_5_classes_leave_room_for_thinking.sql
+scripts/sql/the_ceo_justifies_its_choice_without_a_sentence_count.sql
