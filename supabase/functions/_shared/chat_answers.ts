@@ -132,7 +132,7 @@ export function quoteAnswer(choice: string | null, quotes: QuoteForAnswer[], lan
   const f = figures(line, message);
   if (f && m![3]) {
     const applies = m![3] === 'applies';
-    const rel = f.asked > f.line ? { en: 'above', ar: 'يتجاوز' } : { en: 'below', ar: 'أقل من' };
+    const rel = f.asked > f.line ? { en: 'above', ar: 'يتجاوز' } : f.asked < f.line ? { en: 'below', ar: 'أقل من' } : { en: 'exactly at', ar: 'يساوي' };
     compare = lang === 'ar'
       ? ` القياس الذي ذكرته (${f.asked} متر) ${rel.ar} الحدّ الوارد في هذا البند (${f.line} متر)، لذا ${applies ? 'ينطبق' : 'لا ينطبق'} هذا البند على حالتك وفق نصّه.`
       : ` Your figure (${f.asked} m) is ${rel.en} the ${f.line} m threshold in that line, so as written this ${applies ? 'does apply' : 'does not apply'} to your case.`;

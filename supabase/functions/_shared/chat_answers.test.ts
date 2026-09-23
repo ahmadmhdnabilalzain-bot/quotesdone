@@ -28,7 +28,8 @@ const FAQS = [
 const widgetFaq = (q: string, choice: string) => pickFaq((['cost', 'count', 'timeline'].includes(choice) ? choice : null) as QuestionType, langOf(q), FAQS);
 
 Deno.test('the three public questions reach the FAQ that asks them, EN and AR; a fee or duration about something else reaches none', () => {
-  const route = cases('shared.route_question');
+  // (the bank's cw* cases carry the full widgetOptions — passages and the side — and are scored by reasoning_eval)
+  const route = cases('shared.route_question').filter((c) => !c.options);
   assert(route.length >= 20, 'every case the regex version pinned is in the bank: ' + route.length);
   const ids = new Set(SITE_OPTIONS.map((o) => o.id));
   for (const c of route) {

@@ -94,7 +94,9 @@ export async function queueWhatsAppMeaning(deps: ThinkDeps, o: WaMeaningInput, r
     p_seat: req.seat, p_surface: req.surface, p_question: req.question, p_request: JSON.parse(JSON.stringify(req)),
     p_plan: {}, p_subject: req.subject ?? null, p_reason: reason, p_dedupe_key: req.dedupeKey ?? null,
   });
-  return error ? null : Number(data) || null;
+  // A filing that fails must be seen: the caller turns this throw into an IT finding (never a silent loss).
+  if (error) throw new Error('fn_reason_hold: ' + error.message);
+  return Number(data) || null;
 }
 
 // ── The website widget (surface shared.route_question; also shared.size_question, site_assistant.audience,

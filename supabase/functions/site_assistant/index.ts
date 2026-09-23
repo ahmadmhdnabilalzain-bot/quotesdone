@@ -320,7 +320,8 @@ Deno.serve(observe('site_assistant', async (req) => {
     // The model's context is the retrieved pack (FAQ + support pack + operations knowledge, by fn_support_corpus_search)
     // — no longer the FAQs that shared the most tokens with the question.
     const chosen = asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))] ?? null : null;
-    const matchedIds: unknown[] = chosen?.citation ? [chosen.citation] : [];
+    // assistant_logs.matched_ids is bigint[] (FAQ ids); a pack passage is cited in the reply itself, not there.
+    const matchedIds: number[] = [];
 
     // WHAT IT COSTS, WHICH THIS AGENT ALSO WAS NEVER GIVEN. Measured 10 Sep 2026: a visitor asked
     // "what should a gypsum false ceiling cost per square metre in Dubai", the widget refused, and
