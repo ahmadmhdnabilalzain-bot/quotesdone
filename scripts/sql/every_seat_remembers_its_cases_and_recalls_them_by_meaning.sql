@@ -217,12 +217,14 @@ as $fn$
 declare
   v_trade text := nullif(lower(btrim(p_trade)), '');
   v_out   jsonb;
+  v_prev  text := current_setting('enable_indexscan');
 begin
   if p_embedding is null then
     return jsonb_build_object('ok', false, 'reason', 'no_embedding', 'cases', '[]'::jsonb);
   end if;
   -- EXACT UNTIL 20,000 ROWS. An HNSW scan with a WHERE clause can return fewer than k rows that
-  -- clear the floor; below this size the exact scan costs milliseconds and misses nothing.
+  -- clear the floor; below this size the exact scan costs milliseconds and misses nothing. The
+  -- setting is put back before returning, so a caller's own transaction keeps its planner.
   if (select count(*) from public.seat_case_memory where embedding is not null) < 20000 then
     perform set_config('enable_indexscan', 'off', true);
   end if;
@@ -250,6 +252,7 @@ begin
            'source', case when t.seat = p_seat then t.source_table || ':' || t.source_id end)
          order by t.sim + case when t.correction is not null then 0.05 else 0 end desc), '[]'::jsonb)
     into v_out from top t;
+  perform set_config('enable_indexscan', v_prev, true);
   return jsonb_build_object('ok', true, 'floor', coalesce(p_floor, 0.84), 'cases', v_out,
                             'finalised_precedent', exists (select 1 from jsonb_array_elements(v_out) e where (e->>'finalised')::boolean));
 end
@@ -348,12 +351,22 @@ create trigger z90_case_memory after insert or update of status, outcome, lost_r
 -- customer_support: a support case, closed with its reason.
 create or replace function public.fn_case_from_support_case(n public.support_case, o public.support_case default null)
 returns boolean language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_known text[] := '{}';
 begin
   begin
+    -- party_id is a key, not a name: the identity to mask is read from the party it names (a customer
+    -- uuid, or a supplier's leads id — fn_sales_portal_report's convention).
+    if n.party_kind = 'customer' then
+      select array[c.full_name, c.email, c.phone, c.whatsapp_phone] into v_known
+        from public.customers c where c.id::text = n.party_id;
+    elsif n.party_kind = 'supplier' and n.party_id ~ '^\d+$' then
+      select array[l.company_name, l.contact_name, l.signatory_name, l.email, l.phone, l.phone_e164, l.whatsapp, l.whatsapp_phone]
+        into v_known from public.leads l where l.id = n.party_id::bigint;
+    end if;
     perform public.fn_case_remember('customer_support', 'support_case', 'support_case', n.case_id::text, null,
       concat_ws(' | ', n.subject, n.party_kind || ' party'),
       'state ' || n.state, null, n.close_reason,
-      n.state = 'closed' or n.closed_at is not null, array[n.party_id], n.opened_at, null);
+      n.state = 'closed' or n.closed_at is not null, coalesce(v_known, '{}'), n.opened_at, null);
   exception when others then
     insert into public.seat_case_memory_miss (source_table, source_id, error) values ('support_case', n.case_id::text, sqlerrm);
   end;

@@ -365,7 +365,9 @@ Deno.serve(observe('site_assistant', async (req) => {
     // PAST CASES BEFORE THE REPLY (23 Sep 2026). Has support met this question before, and how did it
     // end? Recalled by meaning, masked at write. The visitor is never told about another customer's
     // case: the block tells the model to stay consistent with a finalised resolution, not to cite it.
-    const memory = await recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message });
+    // A PUBLIC surface reads support's own cases only (otherSeats:false): an anonymous visitor's
+    // prompt is never seeded with refunds, CEO decisions, expenses or IT findings, masked or not.
+    const memory = await recallCases(admin, { seat: 'customer_support', path: 'reply', situation: message, otherSeats: false });
     const memoryBlock = memory.cases.length
       ? precedentBlock(memory) + '\nFOR THIS REPLY: stay consistent with how a FINALISED past case was resolved, or answer differently only where this case plainly differs. Never mention another customer, a case number or this block to the person you are answering.'
       : '';

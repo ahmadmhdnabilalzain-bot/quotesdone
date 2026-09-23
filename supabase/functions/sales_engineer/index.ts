@@ -134,7 +134,8 @@ async function specOfferSweep(limit: number) {
       const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
       // HOW DID THE LAST OFFER LIKE THIS END? (23 Sep 2026.) Recalled before the offer opens, per
       // offer, and returned with the sweep so the seat sees "we offered this before and it was declined".
-      for (const sp of offers.slice(0, 5)) {
+      // ponytail: the first 2 offers per inquiry, sequential gte-small runs inside the sweep's budget.
+      for (const sp of offers.slice(0, 2)) {
         const situation = `no exact match for ${sp.label_en} = ${sp.requested} | item: ${sp.item ?? ''}`;
         const m = await recallCases(admin, { seat: 'sales_engineer', path: 'spec_offer', caseKind: 'spec_offer', otherSeats: false,
           situation, embedding: await Promise.race([embed(situation), new Promise<null>((r) => setTimeout(() => r(null), 1500))]) });

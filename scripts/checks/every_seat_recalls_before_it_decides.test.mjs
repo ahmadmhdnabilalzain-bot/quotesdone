@@ -127,7 +127,7 @@ test('a reworded case from another customer recalls the finalised one, masked; a
 
   const probe = `
 do $p$
-declare v_a bigint; v_r jsonb; v_c jsonb; v_hi jsonb; v_it jsonb; v_re jsonb; v_miss int;
+declare v_a bigint; v_cust uuid; v_sc text; v_r jsonb; v_c jsonb; v_hi jsonb; v_it jsonb; v_re jsonb; v_miss int;
 begin
   select count(*) into v_miss from public.seat_case_memory_miss;
   -- Case A: handled by sales_engineer and finalised as won.
@@ -148,7 +148,18 @@ begin
   update public.it_engineer_finding set closed_at = null where issue_key = 'zz_demo_check:case_memory';
   select jsonb_build_object('correction', correction, 'by', corrected_by, 'lessons', to_jsonb(lessons)) into v_re
     from public.seat_case_memory where source_table = 'it_engineer_finding' and source_id = 'zz_demo_check:case_memory';
+  -- A mapping, not a hand-built call: a support case whose SUBJECT names its customer in free text
+  -- must be masked from the customer row its party_id points at.
+  insert into public.customers (full_name, email, phone)   -- is_demo is generated from the example.invalid address
+  values ('Khalid Zzdemo', 'khalid.zzdemo@example.invalid', '+971500001234') returning id into v_cust;
+  insert into public.support_case (case_ref, party_kind, party_id, subject)
+  values ('ZZDEMO-CHECK-CASE-MEMORY', 'customer', v_cust::text,
+          'ZZ DEMO Khalid asked why his AC quote was late; Khalid Zzdemo wants a call on +971500001234 or khalid.zzdemo@example.invalid');
+  select situation into v_sc from public.seat_case_memory
+   where source_table = 'support_case'
+     and source_id = (select case_id::text from public.support_case where case_ref = 'ZZDEMO-CHECK-CASE-MEMORY');
   raise exception 'CHK<<%>>', jsonb_build_object('a', v_a, 'recall', v_r, 'unrelated', v_c, 'high_floor', v_hi,
+    'support_situation', v_sc,
     'it', v_it, 'reopened', v_re,
     'a_row', (select jsonb_build_object('embedded', embedding is not null, 'situation', situation,
                      'sim_b', round((1 - (embedding <=> ${q(vB)}::vector(384)))::numeric, 3))
@@ -165,6 +176,10 @@ end $p$;`;
   const text = JSON.stringify(hit);
   for (const leak of ['Khalid', 'Zzdemo', 'example.invalid', '000 1234', '0001234']) {
     assert.equal(text.includes(leak), false, `identity leaked through recall: ${leak}`);
+  }
+  assert.ok(r.support_situation, 'a support case did not become a case row');
+  for (const leak of ['Khalid', 'Zzdemo', 'example.invalid', '500001234']) {
+    assert.equal(r.support_situation.includes(leak), false, `a support case kept its customer's identity (${leak}): ${r.support_situation}`);
   }
   assert.deepEqual(r.unrelated.cases, [], `an unrelated case recalled something above the floor: ${JSON.stringify(r.unrelated.cases).slice(0, 300)}`);
   assert.deepEqual(r.high_floor.cases, [], 'the floor does not bite');

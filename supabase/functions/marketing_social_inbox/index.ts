@@ -151,7 +151,8 @@ async function answer(ev: InboundEvent): Promise<Decision> {
   const library = (lib || []) as LibraryRow[];
   // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
   // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
-  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', situation: ev.text });
+  // Public surface: marketing's own social replies only, never another seat's cases.
+  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
   const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus);
   if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
 
