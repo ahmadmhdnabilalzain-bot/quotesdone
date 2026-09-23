@@ -22,7 +22,7 @@
 // which never touches the outbox. per_recipient_24h=1 applied here would answer "hi" and then refuse
 // the option they picked from our own list. wa_autoreply_enabled still governs every send.
 import {
-  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, type Lang, langOf, MENU_HINT, menuAsText, menuChoice, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
+  type Audience, caseClosedNotice, caseConfirm, type CaseResult, contentKey, founderCommand, greetLine, type Lang, langOf, MENU_HINT, MENU_IDS, menuAsText, menuChoice, type MenuId, type MenuContext, optionReply, sorryLead, welcomeText, WELCOME_TAIL,
 } from './menu.ts';
 import { coverageReply, mightBeCoverage, type Trade } from './coverage.ts';
 import { capabilityAnswer, figuresText, type Figures, isFiguresCommand, isSizeQuestion } from './founder_queries.ts';
@@ -33,7 +33,7 @@ export type Content = { sid: string; variables: Record<string, string> };
 export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
 export type MenuDeps = {
   /** What this message means to the menu, REASONED (_shared/reasoned_menus.ts menuMeaning); null while held. */
-  meaning(text: string, awaitingProblem: boolean): Promise<MenuMeaning | null>;
+  meaning(text: string, awaitingProblem: boolean): Promise<MenuMeaning | MenuId | null>;
   autoreplyEnabled(): Promise<boolean>;
   /** This number's wa_messages rows in the last 24 hours, newest first, excluding the current message. */
   recentTurns(from: string): Promise<Turn[]>;
@@ -139,7 +139,9 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
   }
 
   // 0a'. FIGURES / «أرقام» as the whole message: his internal reading (instruction 777). His number only;
-  //      from anyone else the command word is answered like a size question, below.
+  //      Exact-token command on HIS number only (decision point wa_inbound.figures_command: a structured command,
+  //      not a reading of meaning). From anyone else the word is ordinary text: nothing is matched on it, and the
+  //      figures routine refuses every other number anyway.
   if (inp.audience === 'founder' && isFiguresCommand(body)) {
     const lang = langOf(body);
     const f = await d.founderFigures(inp.from);
@@ -169,26 +171,29 @@ export async function menuTurn(d: MenuDeps, inp: MenuInput): Promise<{ handled: 
 
   // 0c. A question about our size or volumes, from ANY number, the founder's included (instruction 777):
   //     what we do, never a number. Taken before every other handler so no FAQ row, fn_wa_route intent
-  //     or model can answer it with a count. The command word from anyone but the founder lands here too.
-  if (isSizeQuestion(body) || isFiguresCommand(body)) {
+  //     or model can answer it with a count.
+  if (isSizeQuestion(body)) {
     await reply(d, inp, lang, 'capability_answer', capabilityAnswer(lang), null, { audience: inp.audience, size_question: true });
     return { handled: true, route: 'capability_answer' };
   }
 
   // What the message MEANS to the menu is reasoned, once (menuMeaning); null while held — never a word list.
   const meaning = !choice && body ? await d.meaning(body, awaiting === 'problem') : null;
+  // A typed option (its title, or plainly asking for it) is REASONED to that option (decision point wa_inbound.menu_choice).
+  const picked: MenuId | null = choice ?? ((MENU_IDS as readonly string[]).includes(String(meaning)) ? meaning as MenuId : null);
 
   // 1. The message after "Report a problem": reasoned to describe the problem, it is the case. Held, the words are
   //    kept as the case all the same — a person reads them, nothing is lost and they get a reference; only a
   //    message REASONED to be a hello or something else is not filed.
-  if (!choice && awaiting === 'problem' && body && (meaning === 'problem' || meaning === null)) {
+  if (!picked && awaiting === 'problem' && body && (meaning === 'problem' || meaning === null)) {
     const c = await d.openCase(inp.from, body, lang);
     await reply(d, inp, lang, 'menu_case', caseConfirm(lang, c), null, { case_ref: c.ref, case_appended: !!c.appended, meaning: meaning ?? 'held' });
     return { handled: true, route: 'menu_case' };
   }
 
   // 2. An option.
-  if (choice) {
+  if (picked) {
+    const choice = picked;
     const ctx = await d.context(inp.from);
     const extra: Record<string, unknown> = { choice, audience: ctx.audience };
     if (choice === 'qd_person') extra.founder_notified = await d.notifyHuman(inp.from, ctx, body);

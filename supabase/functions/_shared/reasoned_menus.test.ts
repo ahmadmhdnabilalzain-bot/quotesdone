@@ -22,3 +22,11 @@ Deno.test('held: null, and nothing is filed — the conversation has moved on by
   assertEquals((await menuMeaning(m.deps, { text: 'Hi', awaitingProblem: true, messageSid: 'SMzz' })).value, null);
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_hold').length, 0);
 });
+
+Deno.test('menu_choice: the menu options are offered by id, and a reasoned pick is that id; an invented id is never used', async () => {
+  const menu = [{ id: 'qd_problem', title: 'Report a problem', description: 'Tell us what went wrong' }];
+  const m = mockDeps({ choice: 'qd_problem' });
+  assertEquals((await menuMeaning(m.deps, { text: 'I want to report something', awaitingProblem: false, menu })).value, 'qd_problem');
+  assert(m.prompts.some((p) => p.includes('qd_problem (they pick the menu option "Report a problem"')));
+  assertEquals((await menuMeaning(mockDeps({ choice: 'qd_drop' }).deps, { text: 'x', awaitingProblem: false, menu })).value, null);
+});

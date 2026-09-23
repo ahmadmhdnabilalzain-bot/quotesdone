@@ -38,7 +38,7 @@ import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { isOwnNumber, signedUrlCandidates, verifyInboundSignature } from '../_shared/twilio_inbound_signature.ts';
 import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import type { Figures } from './founder_queries.ts';
-import { type Audience, humanAlert, type Lang } from './menu.ts';
+import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -573,7 +573,8 @@ async function handleInbound(req: Request): Promise<Response> {
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
     const menuDeps: MenuDeps = {
       meaning: async (text: string, awaitingProblem: boolean) =>
-        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined })).value,
+        (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
+          menu: menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => ({ id: i.id, title: i.item, description: i.description })) })).value,
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
         const { data } = await admin.from('wa_messages').select('meta,lang,created_at').eq('wa_from', from)

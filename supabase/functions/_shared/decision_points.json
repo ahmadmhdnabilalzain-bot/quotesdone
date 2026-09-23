@@ -1016,29 +1016,93 @@
   {
    "id": "wa_inbound.figures_command",
    "order": 74,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/founder_queries.ts",
-   "decides": "isFiguresCommand: a word list decides a WhatsApp message asks for the company figures (and so what a non-founder is answered) — found by batch B2"
+   "decides": "isFiguresCommand: a word list decides a WhatsApp message asks for the company figures (and so what a non-founder is answered) — found by batch B2",
+   "held": "No reasoning is needed: FIGURES / أرقام is an exact-token command honoured ONLY on the founder's own number (structured, like a button). From any other number the word is ordinary text — it is no longer matched to route a reply (the command word decided a non-founder's answer before); fn_founder_whatsapp_figures refuses every other number anyway.",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "if (inp.audience === 'founder' && isFiguresCommand(body)) {",
+      "  if (isSizeQuestion(body)) {"
+     ],
+     "must_not_contain": [
+      "isSizeQuestion(body) || isFiguresCommand(body)"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.menu_choice",
    "order": 75,
-   "status": "pending",
+   "status": "migrated",
    "seat": "customer_support",
    "severity": "high",
    "where": "supabase/functions/wa_inbound/menu.ts",
-   "decides": "menuChoice: a typed menu TITLE matched as words picks the menu branch (exact menu ids / digits stay as format parsing; free text is reasoned) — found by B2"
+   "decides": "menuChoice: a typed menu TITLE matched as words picks the menu branch (exact menu ids / digits stay as format parsing; free text is reasoned) — found by B2",
+   "held": "Held: a typed option title is not picked on a word; the message goes on to the other handlers, whose last word is the menu (reofferMenu). List ids, button payloads and a bare digit right after the numbered menu stay as format parsing. Nothing is queued (the conversation has moved on).",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/menu.ts",
+     "must_contain": [
+      "for (const id of [p.listId, p.buttonPayload])"
+     ],
+     "must_not_contain": [
+      "norm(i.item) === n"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "const picked: MenuId | null = choice ?? ",
+      "if (picked) {"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_menus.ts",
+     "must_contain": [
+      "they pick the menu option"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "menu: menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown')"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.founder_command",
    "order": 76,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
    "where": "supabase/functions/wa_inbound/menu.ts",
-   "decides": "founderCommand: a command grammar read from the founder's free text; stays only if it is exact-token structured commands, otherwise reasoned — found by B2"
+   "decides": "founderCommand: a command grammar read from the founder's free text; stays only if it is exact-token structured commands, otherwise reasoned — found by B2",
+   "held": "No reasoning is needed and none is held: founderCommand is format parsing of an exact-token grammar (CLOSE <QD-S- reference> [reason] | DONE <phone>), anchored at both ends, on the founder's number only; the reason is stored verbatim, never interpreted, and anything else goes to his reasoned command channel.",
+   "proof": [
+    {
+     "file": "supabase/functions/wa_inbound/menu.ts",
+     "must_contain": [
+      "(QD-S-[23456789A-HJ-NP-Z]{6})\\b",
+      "^(?:done|تم)\\s+(\\+?[\\d\\s-]{9,20})$/i"
+     ],
+     "must_not_contain": [
+      "const CLOSE_WORDS",
+      ".includes('close"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/menu_flow.ts",
+     "must_contain": [
+      "if (inp.audience === 'founder') {\n    const cmd = founderCommand(body);"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_kb_route_decide",

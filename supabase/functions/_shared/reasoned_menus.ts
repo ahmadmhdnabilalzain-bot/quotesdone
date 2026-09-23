@@ -18,11 +18,15 @@ import type { Reasoned } from './reasoned_decisions.ts';
 
 export type MenuMeaning = 'greeting' | 'salam' | 'problem' | 'other';
 
-export async function menuMeaning(deps: ThinkDeps, o: { text: string; awaitingProblem: boolean; messageSid?: string }): Promise<Reasoned<MenuMeaning>> {
-  const options: { id: MenuMeaning; meaning: string }[] = [
+/** `menu`: the welcome menu's options (decision point 75, wa_inbound.menu_choice) — a message that TYPES one of them
+ *  (its title, or plainly asking for that option) is reasoned to that option id; structured replies never get here. */
+export async function menuMeaning<M extends string = never>(deps: ThinkDeps, o: { text: string; awaitingProblem: boolean; messageSid?: string;
+  menu?: { id: M; title: string; description: string }[] }): Promise<Reasoned<MenuMeaning | M>> {
+  const options: { id: MenuMeaning | M; meaning: string }[] = [
     { id: 'greeting', meaning: 'only a greeting, or only a request to see the menu / the options, and nothing else' },
     { id: 'salam', meaning: 'only a greeting that uses as-salamu alaikum (in any spelling), and nothing else' },
     ...(o.awaitingProblem ? [{ id: 'problem' as const, meaning: 'the person describes a problem or something that went wrong (they were just asked to)' }] : []),
+    ...(o.menu ?? []).map((m) => ({ id: m.id, meaning: `they pick the menu option "${m.title}" (${m.description}) — by typing it or plainly asking for exactly that, and nothing else` })),
     { id: 'other', meaning: 'anything else: a question, a request, an answer, a document, a number' },
   ];
   const result = await think(deps, {
@@ -33,5 +37,5 @@ export async function menuMeaning(deps: ThinkDeps, o: { text: string; awaitingPr
     decision: { name: 'menu_meaning', options },
   });
   const choice = result.status === 'answered' ? result.decision?.choice ?? null : null;
-  return { value: options.some((x) => x.id === choice) ? choice as MenuMeaning : null, result };
+  return { value: options.some((x) => x.id === choice) ? choice as MenuMeaning | M : null, result };
 }

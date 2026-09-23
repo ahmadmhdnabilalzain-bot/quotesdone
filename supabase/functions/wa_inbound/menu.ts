@@ -68,7 +68,9 @@ export function menuItems(lang: Lang, audience: Audience): MenuItem[] {
 }
 export const MENU_BUTTON: Record<Lang, string> = { en: 'View options', ar: 'عرض الخيارات' };
 
-/** Which option the message chose, or null. `numbers` is true only right after we offered the menu. */
+/** Which option the message chose STRUCTURALLY, or null: the list reply's id, the button payload, or — only right
+ *  after we offered the numbered menu — a bare digit (format parsing). A TYPED title or any other free text is not
+ *  matched here (23 Sep 2026, decision point wa_inbound.menu_choice): its meaning is reasoned (menuMeaning). */
 export function menuChoice(p: { body?: string; listId?: string; buttonPayload?: string; numbers?: boolean }): MenuId | null {
   for (const id of [p.listId, p.buttonPayload]) {
     if (id && (MENU_IDS as readonly string[]).includes(id)) return id as MenuId;
@@ -77,15 +79,6 @@ export function menuChoice(p: { body?: string; listId?: string; buttonPayload?: 
   if (p.numbers) {
     const m = body.match(/^\(?([1-6])[).]?$/);
     if (m) return MENU_IDS[Number(m[1]) - 1];
-  }
-  // A list reply also carries the item's title as Body; so does a customer who types it.
-  const n = norm(body);
-  if (!n) return null;
-  for (const lang of ['en', 'ar'] as Lang[]) {
-    for (const aud of ['unknown', 'supplier'] as Audience[]) {
-      const hit = menuItems(lang, aud).find((i) => norm(i.item) === n);
-      if (hit) return hit.id;
-    }
   }
   return null;
 }
@@ -336,7 +329,11 @@ export function humanAlert(p: { phone: string; name: string | null; profile: str
   };
 }
 
-/** A command only the founder's number may give: close a support case, or close a human request. */
+/** A command only the founder's number may give: close a support case, or close a human request.
+ *  Decision point wa_inbound.founder_command: this is FORMAT PARSING of an exact-token grammar, not a reading of
+ *  meaning — the whole message must be CLOSE/اغلاق + a case reference (QD-S-XXXXXX), or DONE/تم + a phone number,
+ *  anchored at both ends; the reason after a case reference is stored verbatim, never interpreted. Anything else is
+ *  null and goes to the founder's reasoned command channel. menu_flow calls it only for his number. */
 export type FounderCommand = { kind: 'close_case'; ref: string; reason: string } | { kind: 'close_human'; phone: string };
 export function founderCommand(body: string): FounderCommand | null {
   const t = westernDigits(String(body || '')).trim();
