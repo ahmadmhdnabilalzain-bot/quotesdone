@@ -36,7 +36,7 @@ async function gte(text) {
   return r.ok && typeof j.embedding === 'string' ? j.embedding : null;
 }
 const state = async () => (await sql(`select (select count(*) from public.knowledge_vector_ml)::int vectors,
-  (select priority_complete_at from public.knowledge_ml_status) priority_complete_at, public.fn_ml_read_space() read_space`, { readOnly: true }))[0];
+  (select priority_complete_at from public.knowledge_ml_status) priority_complete_at, public.fn_ml_read_space() read_space`))[0];   // not the read-only role: it cannot EXECUTE the service-role-only fn_ml_read_space (42501, 24 Sep 2026)
 
 const t0 = Date.now(), deadline = t0 + MINUTES * 60_000;
 console.log('start:', JSON.stringify(await state()));
