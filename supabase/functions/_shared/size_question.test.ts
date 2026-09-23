@@ -44,7 +44,7 @@ Deno.test('777: the social inbox answers a size question with the statement, bef
   const library = [{ key: 'suppliers', active: true, priority: 1, match_words: ['suppliers', 'الموردين'], reply_en: 'We have 0 suppliers', reply_ar: 'لدينا 0 مورد' }];
   for (const [q, lang] of [['how many suppliers do you have', 'en'], ['كم عدد الموردين لديكم', 'ar']] as const) {
     // deno-lint-ignore no-explicit-any
-    const d = decide(q, library as any, [], []);
+    const d = decide(q, library as any, [], [], false);
     assertEquals(d.key, 'capability_answer', q);
     assertEquals(d.text, capabilityStatement(lang));
   }

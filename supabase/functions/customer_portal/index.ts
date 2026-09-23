@@ -18,6 +18,7 @@
 // every list below comes back empty — an empty recommendation feed is the honest output of a
 // database with no traffic, and none of these branches invents a number to avoid one.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { modelHeld } from '../_shared/llm_hold.ts';
 import { observe } from '../_shared/observe.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
@@ -227,7 +228,10 @@ Deno.serve(observe('customer_portal', async (req) => {
       const { data: routeRows } = await pRoutes;
       const routesTotal = (routeRows || []).length;
       const routesHeld = (routeRows || []).filter((r: { open_until: string | null }) => r.open_until && new Date(r.open_until) > new Date()).length;
-      const llm_available = routesTotal ? routesHeld < routesTotal : null;
+      // AVAILABLE IS THE GATE'S ANSWER, NOT A ROW COUNT (23 Sep 2026). This said "available" while
+      // ANY route was free, but the gate refuses every call when ANY route is held; the portal then
+      // offered voice and drawing reading that failed after upload. _shared/llm_hold asks the gate.
+      const llm_available = routesTotal ? !(await modelHeld(admin)) : null;
 
       return J({ ok: true, customer: { id: cust.id, name: cust.full_name, industry: cust.industry },
                  llm_available, llm_routes: { total: routesTotal, held: routesHeld },
