@@ -85,7 +85,7 @@ begin
       or (v_manifest->'tables' ? t.table_name
           and coalesce(v_manifest->'tables'->t.table_name->>'mode', 'full') not like 'changes_since%')
    -- 23 Sep 2026: a page the export says has rows first; reltuples counts demo rows the export excludes.
-   order by (coalesce((v_manifest->'tables'->t.table_name->>'rows')::bigint, 0) > 0) desc,
+   order by coalesce((v_manifest->'tables'->t.table_name->>'rows') ~ '^[1-9][0-9]*$', false) desc,
             (coalesce(pc.reltuples, 0) > 0) desc, random() limit 1;
   return jsonb_build_object('newest_export_day', v_newest,
     'sample_rows', coalesce(public.fn_it_threshold('restore_table_sample_rows'), 50),
