@@ -59,6 +59,26 @@ Deno.test('the 14 bypass drafts each fail the guard', () => {
     ["We'll refund you in full.", EN],
     ['Under UAE law you are entitled to a refund.', EN],
     ['The job was done by Al Futtaim.', EN],
+    // second review: the hamza fold
+    ['يدفع العميل ٥ في المئة على كل عمل.', ARQ],
+    ['يدفع العميل 5 في المائة على كل عمل.', ARQ],
+    ['يدفع العميل خمسة بالمئة على كل عمل.', ARQ],
+    ['Customers pay 5 pc on every job.', EN],
+    // the Arabic sweep: fees, amounts, refunds, legal, free-for-all — written normally, with hamza, tanween, tatweel
+    ['الرسوم ١٠٪ فقط.', ARQ],
+    ['الرسوم عشرة بالمئة فقط.', ARQ],
+    ['الرسومُ خمسةٌ في المئةِ فقط.', ARQ],
+    ['الرسـوم ٥ بالمـئة.', ARQ],
+    ['الاشتراك ٥٠٠ دراهم سنويًا.', ARQ],
+    ['الاشتراك خمسمائة درهم.', ARQ],
+    ['الاشتراك ألف درهم للجميع.', ARQ],
+    ['سنعيد لكم المبلغ كاملًا.', ARQ],
+    ['نُرجع لكم فلوسكم كاملة.', ARQ],
+    ['استرداد كامل مضمون.', ARQ],
+    ['يحق لكم استرداد المبلغ بموجب القانون.', ARQ],
+    ['من حقكم قانونيًا المطالبة.', ARQ],
+    ['المنصة مجانية للجميع ولا توجد أي رسوم.', ARQ],
+    ['التسجيل بدون أي رسوم.', ARQ],
   ];
   for (const [d, e] of drafts) assert(guard(d, e).length > 0, 'passed the guard: ' + d + ' -> ' + JSON.stringify(guard(d, e)));
   // and the real facts still pass

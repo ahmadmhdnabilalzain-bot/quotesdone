@@ -1,6 +1,6 @@
 // The database and network side of marketing_social_comments.ts (marketing, 23 Sep 2026): one Store bound to
-// the service-role client, shared by the Meta webhook (marketing_social_inbox) and the X / YouTube poll
-// (marketing duty 'social_comments'). Every comment read is a row in social_message (direction 'in', with
+// the service-role client, shared by the Meta webhook (marketing_social_inbox) and the marketing duty
+// 'social_comments' (retry sweep, handoff close; YouTube via Postiz when connected — X removed 23 Sep 2026). Every comment read is a row in social_message (direction 'in', with
 // its classification, outcome, who decided and any handoff); every reply is a row (direction 'out') with
 // its send status. Kept forever, like every conversation (founder, 14 Sep).
 import { decide, unknown, type CorpusRow, type LibraryRow } from '../marketing_social_inbox/reply.ts';

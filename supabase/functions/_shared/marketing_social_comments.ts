@@ -62,6 +62,8 @@ export function normalise(s: string): string {
     .replace(/[‘’‛′＇]/g, "'").replace(/[“”‟″]/g, '"')
     .replace(/[​-‏‪-‮⁠-⁤﻿ـ]/g, '')
     .replace(/[Ѐ-ӿͰ-Ͽ]/g, (c) => LOOKALIKE[c] ?? c)
+    // Hamza carriers folded BEFORE the mark strip, so NFD cannot silently turn ئ into ي mid-word unseen by the rules.
+    .replace(/[ئى]/g, 'ي').replace(/ؤ/g, 'و').replace(/[أإآٱ]/g, 'ا').replace(/ء/g, '')
     .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
 
@@ -109,7 +111,8 @@ const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
 const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
   + '|واحد|اثنين|اثنان|اربعه|خمسه|سته|سبعه|ثمانيه|تسعه|عشره|عشرين|ثلاثين|خمسين|مائه|مئه|مية|الف|نصف|صفر';
-const PCT = "%|٪|percent|per ?cent|pct|بالمئه|بالمائه|بالميه|في المئه|في المائه";
+// Matched against normalised text (hamza folded, ة→ه): المئة arrives as الميه, المائة as الماه/المايه.
+const PCT = "%|٪|percent|per ?cents?|pct|pc|(?:بال|في ال|فى ال|من ال)(?:ميه|مايه|ماه|مئه|مائه|مية)|بالميه|نسبه";
 const CUR = 'aed|dhs?|dirhams?|درهم|دراهم';
 
 export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' | 'handle'>): string[] {
