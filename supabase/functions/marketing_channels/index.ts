@@ -31,6 +31,7 @@ import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_s
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
 import { recallCases } from '../_shared/case_recall.ts';
+import { accessToken } from '../_shared/marketing_social_oauth.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -374,9 +375,13 @@ async function accessCheck(e: Awaited<ReturnType<typeof env>>) {
 }
 
 async function insights(e: Awaited<ReturnType<typeof env>>) {
-  if (!e.meta) return { ok: false, error: 'meta_access_token is not in app_secrets' };
   const day = dubaiDate(new Date(), -1);
-  const { rows, errors } = await pullInsights(fetch, e.meta, e.postizKey ? { base: e.postizBase, key: e.postizKey } : null, day);
+  // The YouTube channel owner's token (the founder's one connect link, sealed in app_secrets.youtube_oauth).
+  const sec = async (k: string) => (await secrets([k]))[k] || undefined;
+  const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
+  const yt = await accessToken(fetch, 'youtube', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', sec, save).catch(() => null);
+  const { rows, errors } = await pullInsights(fetch, e.meta, e.postizKey ? { base: e.postizBase, key: e.postizKey } : null, day,
+    yt ? { token: yt.access_token, channelId: yt.account_id } : null);
   if (rows.length) {
     const { error } = await admin.from('marketing_insight_day').upsert(rows.map((r) => ({ ...r, pulled_at: new Date().toISOString() })), { onConflict: 'platform,object_id,metric,day' });
     if (error) return { ok: false, error: error.message };

@@ -17,7 +17,7 @@ import { makeLlmRich } from '../_shared/llm.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { call, linkedinComments, processComment, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { call, linkedinComments, processComment, tiktokComments, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
 import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
 import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
@@ -61,7 +61,7 @@ export class Skip extends Error {}
 //   1. retries every Instagram/Facebook comment an earlier run left unfinished (no outcome after 10 minutes);
 //   2. un-hides what a reviewing seat said was not abuse, and closes each social.* handoff the receiving seat
 //      has answered (the originator closes: fn_marketing_social_handoffs_close);
-//   3. YouTube and 4. the LinkedIn company page: read the last 3 days of comments with the token the founder's
+//   3. YouTube, 4. the LinkedIn company page and 5. the TikTok business account: read the last 3 days of comments with the token the founder's
 //      one link stored (marketing_social_connect; instructions 919-920) and answer each through processComment,
 //      the same policy and guards as Instagram and Facebook. Not connected: skipped, and SAYS so.
 // X is removed (founder, 23 Sep 2026: no paid X API).
@@ -75,6 +75,7 @@ export const socialComments: Duty = {
     const own = (p: SocialPlatform) => accessToken(timedFetch, p, master, sec, save);
     const metaToken = async (ev: { platform: Platform; accountId: string }) =>
       ev.platform === 'youtube' || ev.platform === 'linkedin' ? (await own(ev.platform))?.access_token ?? null
+        : ev.platform === 'tiktok' ? (await sec('tiktok_business_token')) ?? null
         : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
     const since = new Date(now.getTime() - 3 * 24 * 3600_000);
     const answer = async (events: CommentEvent[]) => {
@@ -139,6 +140,12 @@ export const socialComments: Duty = {
         const t = await own('linkedin');
         if (!t) throw new Skip('linkedin company page not connected (the founder\'s link: scripts/marketing/social_connect_link.mjs linkedin)');
         return await answer(await linkedinComments(timedFetch, t.access_token, t.account_id, since));
+      },
+      // TikTok: the business account's own token, so every reply posts AS the QuotesDone account.
+      async tiktok() {
+        const token = await sec('tiktok_business_token'); const biz = await sec('tiktok_business_id');
+        if (!token || !biz) throw new Skip('tiktok business account not connected (app_secrets.tiktok_business_token + tiktok_business_id)');
+        return await answer(await tiktokComments(timedFetch, token, biz, since));
       },
     });
     const counts = { ...out, skipped };

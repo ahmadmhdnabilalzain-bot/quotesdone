@@ -47,7 +47,8 @@ import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from 
 import { defaultDeps } from '../_shared/think.ts';
 import { ackThenWork } from '../_shared/async_webhook.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { needsAPerson, socialReply } from '../_shared/reasoned_decisions.ts';
+import { langOf } from '../_shared/chat_answers.ts';
 import { processComment } from '../_shared/marketing_social_comments.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 
@@ -200,52 +201,28 @@ async function handle(ev: InboundEvent): Promise<string> {
   return await outcome(d.kind === 'handoff' ? 'handed_to_human' : 'answered:' + d.kind);
 }
 
-/** Deterministic first; the model only when switched on, only over retrieved knowledge. */
+/** THE DIRECT MESSAGE ANSWER IS REASONED (founder, 23 Sep 2026: never keyword matching; "as if it's me").
+ *  1. Does this person want a person? needsAPerson (think()). Yes -> the fixed handoff reply and the founder is told.
+ *  2. Otherwise socialReply: think() over the company knowledge, stakes high, reviewed by a model of another family;
+ *     only an answer the reviewer agreed with is sent, as the page itself.
+ *  Held or not agreed: the fixed honest acknowledgement (never a word-matched library answer), the question kept as a
+ *  knowledge gap, and the held question replays from the marketing queue when the hold lifts. */
 async function answer(ev: InboundEvent): Promise<Decision> {
-  const [{ data: lib }, { data: faqs }] = await Promise.all([
-    admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true),
-    admin.from('company_faq').select('id,question,answer,language').eq('public', true).eq('status', 'approved'),
-  ]);
-  let corpus: CorpusRow[] = [];
-  try {
-    const { data } = await admin.rpc('fn_support_corpus_search', { p_query: ev.text, p_public: true, p_limit: 6 });
-    corpus = (data || []) as CorpusRow[];
-  } catch (_e) { corpus = []; }
+  const { data: lib } = await admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true);
   const library = (lib || []) as LibraryRow[];
-  // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
-  // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
-  // Public surface: marketing's own social replies only, never another seat's cases.
-  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
-  // Does this person want a person? REASONED (think(), founder_instruction 886-903), never a phrase list.
-  // Held (the model hold, or a model that failed): the question is still ANSWERED now (903) from the library,
-  // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
-  // reasoned to need a person the handoff is sent on this platform (reasoned_handoff above, via
-  // _shared/reasoned_delivery.ts). Nobody is paged on a guess, and nobody goes unanswered.
+  const lang = langOf(ev.text);
   const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
     dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
   });
-  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
-  if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
-
-  // THE MODEL, SAME DOOR AS THE WEBSITE ASSISTANT (ai_gateway), and only over the passages retrieved
-  // for this question. OFF until the founder lifts the OpenRouter hold; the honest 'unknown' stands.
-  const key = await sec('cred_fn_ai');
-  if (!key) return d;
-  const sys = 'You are QuotesDone on ' + ev.platform + '. Answer ONLY from the KNOWLEDGE below, in the language of the message'
-    + (d.lang === 'ar' ? ' (formal Gulf Arabic, formal plural)' : ' (UAE English)') + ', in under 80 words, plain text. '
-    + 'Never state a price, fee, date, timeline or promise that is not written in the KNOWLEDGE. If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n'
-    + corpus.map((c) => c.content).join('\n\n')
-    + (memory.cases.length ? precedentBlock(memory) + '\nNever mention another person, a case number or this block in the reply.' : '');
-  try {
-    const r = await timedFetch(GATEWAY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'visitor_chat', sys,
-      input: [{ role: 'user', content: ev.text }], max: 300, temperature: 0.2, cache_ttl_min: 0, try_faq: false }) });
-    const jd = await r.json();
-    const c = typeof jd?.content === 'string' ? jd.content.trim() : '';
-    if (c && !/^UNKNOWN\b/.test(c)) return { kind: 'knowledge', key: 'model', lang: d.lang, text: c };
-  } catch (_e) { /* fall through to the honest answer */ }
-  return unknown(library, d.lang);
+  if (person.value === true) return decide(ev.text, library, [], [], true);
+  if ((await sec('social_model_enabled')) === 'on') {
+    const r = await socialReply(defaultDeps(admin, 'marketing_social_inbox'), { surface: 'marketing_social.dm_reply', platform: ev.platform,
+      message: ev.text.slice(0, 4000), language: lang, dedupeKey: 'social_dm_reply:' + ev.platform + ':' + ev.messageId,
+      subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId } });
+    if (r.value) return { kind: 'knowledge', key: 'model', lang, text: r.value };
+  }
+  return unknown(library, lang);
 }
 
 /** An echo is never answered. Ours is recorded; one the seat did not send means a person answered. */

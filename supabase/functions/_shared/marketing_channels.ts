@@ -370,7 +370,7 @@ export async function measureAccess(f: Fetch, p: { postizBase: string; postizKey
 }
 
 // ── insights ──────────────────────────────────────────────────────────────────────────────────────
-export interface InsightRow { platform: 'facebook' | 'instagram' | 'linkedin'; object_type: 'page' | 'account' | 'post'; object_id: string; metric: string; day: string; value: number }
+export interface InsightRow { platform: 'facebook' | 'instagram' | 'linkedin' | 'youtube' | 'tiktok'; object_type: 'page' | 'account' | 'post'; object_id: string; metric: string; day: string; value: number }
 
 export const PAGE_METRICS = ['page_post_engagements', 'page_follows', 'page_views_total'];
 export const IG_METRICS = ['reach', 'views', 'profile_views', 'accounts_engaged', 'total_interactions'];
@@ -382,13 +382,17 @@ export function dubaiDayBounds(day: string): { since: number; until: number } {
   return { since, until: since + 86400 };
 }
 
-/** One Asia/Dubai day of page, Instagram and LinkedIn metrics, plus a snapshot of recent post counters. */
-export async function pullInsights(f: Fetch, env: MetaEnv, postiz: { base: string; key: string } | null, day: string): Promise<{ rows: InsightRow[]; errors: string[] }> {
+/** One Asia/Dubai day of every channel's numbers: Facebook page and Instagram (Graph), LinkedIn, YouTube and TikTok
+ *  (Postiz analytics for each channel connected there), the YouTube channel's own counters (Data API, with the channel
+ *  owner's token from the one connect link), plus a snapshot of recent post counters. A channel not connected is
+ *  named in `errors`; the others still come back. */
+export async function pullInsights(f: Fetch, env: MetaEnv | null, postiz: { base: string; key: string } | null, day: string,
+  youtube: { token: string; channelId: string } | null = null): Promise<{ rows: InsightRow[]; errors: string[] }> {
   const rows: InsightRow[] = []; const errors: string[] = [];
   const { since, until } = dubaiDayBounds(day);
-  const pg = await metaPage(f, env);
+  const pg = env ? await metaPage(f, env) : { page: null, error: 'meta_access_token is not in app_secrets' };
   if (!pg.page) errors.push('meta page unreadable: ' + (pg.error || 'no page'));
-  if (pg.page) {
+  if (env && pg.page) {
     const pt = await graphGet(f, env, `/${pg.page.id}?fields=access_token`);
     const pageToken: string | undefined = pt.body?.access_token;
     if (!pageToken) errors.push('page token unavailable: ' + (gErr(pt.body) || 'HTTP ' + pt.status));
@@ -426,15 +430,26 @@ export async function pullInsights(f: Fetch, env: MetaEnv, postiz: { base: strin
   }
   if (postiz) {
     const ints = await postizIntegrations(f, postiz.base, postiz.key);
-    const li = integrationFor(ints.list, 'linkedin');
-    if (li) {
-      const r = await f(`${postiz.base}/analytics/${li.id}?date=7`, { headers: { Authorization: postiz.key } });
+    for (const ch of ['linkedin', 'youtube', 'tiktok'] as const) {
+      const it = integrationFor(ints.list, ch);
+      if (!it) { errors.push(ch + ' is not connected in Postiz'); continue; }
+      const r = await f(`${postiz.base}/analytics/${it.id}?date=7`, { headers: { Authorization: postiz.key } });
       const j = await readJson(r);
-      if (!r.ok || !Array.isArray(j)) errors.push('linkedin analytics via postiz: HTTP ' + r.status);
+      if (!r.ok || !Array.isArray(j)) errors.push(ch + ' analytics via postiz: HTTP ' + r.status);
       for (const series of Array.isArray(j) ? j : []) {
         const pt = (series.data || []).find((x: any) => String(x.date) === day);
-        if (pt) rows.push({ platform: 'linkedin', object_type: 'page', object_id: li.id, metric: slug(String(series.label || 'metric')), day, value: Number(pt.total) || 0 });
+        if (pt) rows.push({ platform: ch, object_type: ch === 'linkedin' ? 'page' : 'account', object_id: it.id, metric: slug(String(series.label || 'metric')), day, value: Number(pt.total) || 0 });
       }
+    }
+  }
+  if (youtube) {
+    // The channel's running totals, read as the owner (youtube.force-ssl covers channels.list).
+    const r = await f('https://www.googleapis.com/youtube/v3/channels?part=statistics&id=' + encodeURIComponent(youtube.channelId), { headers: { Authorization: 'Bearer ' + youtube.token } });
+    const j = await readJson(r);
+    const st = j?.items?.[0]?.statistics;
+    if (!r.ok || !st) errors.push('youtube channel statistics: HTTP ' + r.status);
+    else for (const [k, metric] of [['subscriberCount', 'subscribers'], ['viewCount', 'views_total'], ['videoCount', 'videos']] as const) {
+      if (st[k] != null) rows.push({ platform: 'youtube', object_type: 'account', object_id: youtube.channelId, metric, day, value: Number(st[k]) || 0 });
     }
   }
   return { rows, errors };

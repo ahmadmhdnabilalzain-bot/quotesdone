@@ -1,0 +1,3 @@
+Not applied yet. Apply with node scripts/apply_sql.mjs scripts/sql/tiktok_comments_and_every_channels_insights_have_a_home.sql --apply --ddl
+before deploying marketing and marketing_channels (a TikTok comment row or a YouTube/TikTok insight row is refused until then),
+then delete this note and append the file to MANIFEST.txt. Seat: marketing.

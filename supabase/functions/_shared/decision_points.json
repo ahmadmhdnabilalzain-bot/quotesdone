@@ -988,11 +988,39 @@
   {
    "id": "marketing_social.comment_classify",
    "order": 73,
-   "status": "pending",
+   "status": "migrated",
    "seat": "marketing",
    "severity": "high",
    "where": "supabase/functions/_shared/marketing_social_comments.ts",
-   "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)"
+   "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)",
+   "held": "Held: the comment is stored with no class and no outcome; nothing is said, hidden or handed off, and the social_comments sweep (retry_unfinished) asks the reasoning again. No word list stands in.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/marketing_social_comments.ts",
+     "must_contain": [
+      "await s.classOf(ev)",
+      "if (reasoned == null) return 'held_class';"
+     ],
+     "must_not_contain": [
+      "const RULES",
+      "const ABUSE",
+      "const ASKS",
+      "export function classify"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/marketing_social_store.ts",
+     "must_contain": [
+      "commentClass(defaultDeps(admin, 'marketing')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_decisions.ts",
+     "must_contain": [
+      "surface: 'marketing_social.comment_classify'"
+     ]
+    }
+   ]
   },
   {
    "id": "wa_inbound.figures_command",

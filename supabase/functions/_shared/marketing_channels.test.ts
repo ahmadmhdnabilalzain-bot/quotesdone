@@ -218,8 +218,11 @@ Deno.test('insights: one Dubai day of page, Instagram, post and LinkedIn metrics
     ...graphRoutes(),
     [/\/integrations$/, () => INTEGRATIONS],
     [/\/analytics\/i-li/, () => [{ label: 'Page Views', data: [{ total: 6, date: '2026-09-21' }, { total: 1, date: '2026-09-20' }] }]],
+    [/\/analytics\/i-yt/, () => [{ label: 'Views', data: [{ total: 12, date: '2026-09-21' }] }]],
+    [/\/analytics\/i-tt/, () => [{ label: 'Video Views', data: [{ total: 9, date: '2026-09-21' }] }]],
+    [/youtube\/v3\/channels/, () => ({ items: [{ statistics: { subscriberCount: '41', viewCount: '900', videoCount: '3' } }] })],
   ]);
-  const { rows, errors } = await pullInsights(f, META, { base: P, key: 'k' }, '2026-09-21');
+  const { rows, errors } = await pullInsights(f, META, { base: P, key: 'k' }, '2026-09-21', { token: 'YT', channelId: 'UC1' });
   assertEquals(errors, []);
   const m = Object.fromEntries(rows.map((r) => [`${r.platform}.${r.object_type}.${r.metric}`, r.value]));
   assertEquals(m['facebook.page.page_follows'], 4);
@@ -227,6 +230,9 @@ Deno.test('insights: one Dubai day of page, Instagram, post and LinkedIn metrics
   assertEquals(m['instagram.account.followers'], 4);
   assertEquals(m['facebook.post.reactions'], 5);
   assertEquals(m['linkedin.page.page_views'], 6);
+  assertEquals(m['youtube.account.views'], 12);
+  assertEquals(m['tiktok.account.video_views'], 9);
+  assertEquals(m['youtube.account.subscribers'], 41);
   assert(!JSON.stringify(rows).includes('PAGETOKEN-SECRET'));
 });
 

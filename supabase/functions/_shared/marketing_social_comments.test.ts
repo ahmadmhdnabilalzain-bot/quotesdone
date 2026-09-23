@@ -2,8 +2,8 @@
 // The marketing seat answers public comments with no person approving a reply (instruction 866, 23 Sep 2026).
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { call, classify, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
-  type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
+import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, tiktokComments, unhideRequest,
+  type Class, type CommentEvent, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
 const SQL = ['every_social_message_is_answered.sql', 'the_marketing_seat_answers_comments_on_every_channel.sql']
@@ -14,7 +14,17 @@ for (const m of SQL.matchAll(/^\('(\w+)', (?:\d+|null),\s*(?:array\[[\s\S]*?\]|'
 }
 
 interface Mem { rows: Map<string, Outcome>; replies: { ev: CommentEvent; text: string }[]; hides: string[]; handoffs: string[]; released: number[]; threadCount: Map<string, number> }
-function memStore(o: { send?: boolean; model?: boolean; draft?: string | null; det?: Decided; handoffThrows?: boolean } = {}): Store & { mem: Mem } {
+// What the REASONING (think(), stubbed here) concludes for each fixture. The class is never read from the words by
+// code any more; this table stands in for the model, so the tests pin what each reasoned class then DOES.
+const REASONED: Record<string, Class> = {
+  'Who is the supplier that did the Al Barsha villa?': 'sensitive_legal', 'you are all scammers and idiots': 'spam_abuse',
+  'I will take you to court, my lawyer is on it': 'sensitive_legal', 'Get 10k followers now http://cheap-followers.biz': 'spam_abuse',
+  'I paid and nobody answered, I want a refund': 'complaint', 'We are a fit-out contractor, how do we register our company?': 'supplier_enquiry',
+  'I need a quote for painting my apartment': 'sales_lead', 'ممتاز ما شاء الله': 'praise', 'نصابين': 'spam_abuse',
+  'مين المورد اللي نفذ المشروع؟': 'sensitive_legal', '🙂': 'off_topic', 'amazing platform': 'praise', 'great work': 'praise',
+  'idiot': 'spam_abuse', 'thanks for the support!': 'praise',
+};
+function memStore(o: { send?: boolean; model?: boolean; draft?: string | null; cls?: Class | null; handoffThrows?: boolean } = {}): Store & { mem: Mem } {
   const mem: Mem = { rows: new Map(), replies: [], hides: [], handoffs: [], released: [], threadCount: new Map() };
   const seen = new Set<string>(); let id = 0; const byId = new Map<number, string>();
   return {
@@ -30,7 +40,7 @@ function memStore(o: { send?: boolean; model?: boolean; draft?: string | null; d
     },
     async switchOn(key) { return key === 'social_send_enabled' ? o.send !== false : !!o.model; },
     async library(key, lang) { return (LIB.get(key) as any)?.[lang] ?? ''; },
-    async deterministic() { return o.det ?? { kind: 'unknown', key: 'unknown', text: '' }; },
+    async classOf(ev) { return o.cls !== undefined ? o.cls : REASONED[ev.text] ?? 'question'; },
     async draft() { return o.draft ?? null; },
     async reply(ev, text) { mem.replies.push({ ev, text }); return { ok: true, id: 'r' + mem.replies.length }; },
     async hide(ev) { mem.hides.push(ev.commentId); return { ok: true }; },
@@ -123,23 +133,19 @@ Deno.test('adversarial comments each end in the right outcome, with no approval 
   }
 });
 
-Deno.test("hiding needs a clear signal, and never takes a comment that asks or wants to join (the reviewer's cases)", () => {
-  assertEquals(classify('Is this a scam? how do I register as supplier'), 'supplier_enquiry');
-  assertEquals(classify('stupid question but how do I sign up?'), 'question');
-  assert(classify('We are a tiling supplier, see our work at www.bestfloors.ae') !== 'spam_abuse');
-  assertEquals(classify('We are a tiling supplier, see our work at www.bestfloors.ae'), 'supplier_enquiry');
-  const cy = classify('courtyard paving quote');
-  assert(cy !== 'sensitive_legal' && cy !== 'spam_abuse', 'courtyard is not court: ' + cy);
-  assertEquals(classify('شكرا لكم'), 'praise');                      // لكم is not the question word كم
-  assertEquals(classify('كم سعر الدهان؟'), 'sales_lead');
-  assertEquals(classify('great, how do I register?'), 'question');
-  assertEquals(classify('hello', true), 'complaint');
-  assert(classify('love https://quotesdone.com') !== 'spam_abuse');
+Deno.test('the class is reasoned: held, nothing is said or hidden and the row waits for the sweep (no word list stands in)', async () => {
+  const s = memStore({ cls: null });
+  const e = ev('you are all scammers and idiots');
+  assertEquals(await processComment(s, e), 'held_class');
+  assertEquals(s.mem.replies.length + s.mem.hides.length + s.mem.handoffs.length, 0);
+  assertEquals(s.mem.rows.size, 0, 'no outcome is recorded, so retry_unfinished asks again');
+  const src = Deno.readTextFileSync(new URL('./marketing_social_comments.ts', import.meta.url));
+  for (const gone of ['const RULES', 'const ABUSE', 'const ASKS', 'export function classify']) assert(!src.includes(gone), 'word list is back: ' + gone);
 });
 
 Deno.test('every text that would be sent passes the guard and fits — library, FAQ and knowledge included; a fact is never truncated', async () => {
   // a FAQ/knowledge answer carrying a DM instruction and a phone number: not posted, escalated instead
-  const bad = memStore({ det: { kind: 'faq', key: 'x', text: "Reply 'agent' or call +971 50 931 9355 to reach us." } });
+  const bad = memStore({ model: true, draft: "Reply 'agent' or call +971 50 931 9355 to reach us." });
   const e1 = ev('how do I reach you?');
   assertEquals(await processComment(bad, e1), 'replied');
   const r1 = bad.mem.rows.get('instagram:' + e1.commentId)!;
@@ -148,13 +154,13 @@ Deno.test('every text that would be sent passes the guard and fits — library, 
   assertEquals(bad.mem.replies[0].text, LIB.get('comment_escalated_ack')!.en);
   // a knowledge answer too long for the platform: escalated, never cut
   const long = 'Posting is free. '.repeat(40);
-  const lg = memStore({ det: { kind: 'knowledge', key: 'k', text: long } });
+  const lg = memStore({ model: true, draft: long });
   const e2 = ev('what is posting like?');
   await processComment(lg, e2);
   assert(lg.mem.rows.get('instagram:' + e2.commentId)!.guard_failures.includes('too_long'));
   assert(!lg.mem.replies[0].text.includes('…') && lg.mem.replies[0].text === LIB.get('comment_escalated_ack')!.en);
   // a clean FAQ answer goes as it is
-  const ok = memStore({ det: { kind: 'faq', key: 'pricing', text: 'Posting a request is free; a 3% reveal fee applies only if you reveal a supplier.' } });
+  const ok = memStore({ model: true, draft: 'Posting a request is free; a 3% reveal fee applies only if you reveal a supplier.' });
   assertEquals(await processComment(ok, ev('is it free?', { platform: 'youtube' })), 'replied');
   assert(ok.mem.replies[0].text.startsWith('Posting a request is free'));
 });
@@ -258,6 +264,24 @@ Deno.test('Instagram, Facebook and YouTube: replies, hides and un-hides go to th
   assertEquals(hideRequest(li, 'T'), null, 'LinkedIn has no reversible hide');
   assertEquals((await call(mock({}), hideRequest(li, 'T'))).ok, false);
   assert(!LIMIT['x' as Platform], 'X is removed (founder, 23 Sep 2026)');
+  const tt = ev('x', { platform: 'tiktok', accountId: 'BIZ', threadId: 'V1' });
+  const tr = replyRequest(tt, 'a', 'T');
+  assertEquals(tr.headers['Access-Token'], 'T', 'the business account itself answers');
+  assertEquals(JSON.parse(tr.body!), { business_id: 'BIZ', video_id: 'V1', comment_id: tt.commentId, text: 'a' });
+  assertEquals(JSON.parse(hideRequest(tt, 'T')!.body!).action, 'HIDE');
+  assertEquals(JSON.parse(unhideRequest(tt, 'T')!.body!).action, 'UNHIDE');
+  assertEquals((await call(mock({ code: 40001, message: 'no permission' }), tr)).ok, false, 'a TikTok non-zero code is a failure');
+});
+
+Deno.test('TikTok comments: only newer than since, never our own', async () => {
+  const f = (async (u: string) => new Response(JSON.stringify(u.includes('video/list') ? { code: 0, data: { videos: [{ item_id: 'V1' }] } }
+    : { code: 0, data: { comments: [
+      { comment_id: 'c1', user_id: 'u1', username: 'a', text: 'hi', create_time: Math.floor(Date.now() / 1000) },
+      { comment_id: 'c2', user_id: 'u2', text: 'old', create_time: 1 },
+      { comment_id: 'c3', user_id: 'BIZ', text: 'ours', create_time: Math.floor(Date.now() / 1000), owner: true } ] } }), { status: 200 })) as unknown as typeof fetch;
+  const out = await tiktokComments(f, 'T', 'BIZ', new Date(Date.now() - 3600_000));
+  assertEquals(out.map((c) => c.commentId), ['c1']);
+  assertEquals(out[0].threadId, 'V1');
 });
 
 

@@ -14,17 +14,23 @@
 //   linkedin             — ONLY the QuotesDone company page, through the Community Management API with the
 //                          organization scopes the same link grants; the actor of every reply is the page, never
 //                          a member (never a personal profile).
+//   tiktok               — the TikTok for Business Accounts API (comment list / reply / hide) with the business
+//                          account's own token (app_secrets.tiktok_business_token + tiktok_business_id): the reply posts
+//                          AS the QuotesDone account. Not connected: skipped, and says so.
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
-// THE POLICY, deterministic first (processComment):
+// WHAT A COMMENT IS, is REASONED (founder, 23 Sep 2026: never keyword matching): Store.classOf asks think()
+// (reasoned_decisions.commentClass). Held (the model hold, or no answer), the comment is stored with no class
+// and no outcome and NOTHING is said or hidden; the duty's sweep (retry_unfinished) asks again. No word list
+// ever stands in for the reasoning. The action each reasoned class takes:
 //   spam_abuse       -> hidden where the platform allows it, AND handed to customer_support to review
 //                       (unhideRequest reverses it); never hidden when the comment also asks or wants to join
 //   complaint, sensitive_legal, a request for a person
 //                    -> handed to customer_support ('social.escalation') + a fixed acknowledgement
 //   sales_lead / supplier_enquiry -> handed to sales_engineer ('social.lead') + the fixed reply
 //   praise           -> the fixed thanks
-//   question         -> the comment library / FAQ / knowledge answer; only when none exists does the model
-//                       draft. While the model is held: recorded 'held_not_run', nothing sent.
+//   question         -> the reasoned answer over the company knowledge (think(), with its cross-family review);
+//                       while the model is held: recorded 'held_not_run', nothing sent.
 //   off_topic        -> ignored
 // EVERY text that would be sent — library, FAQ, knowledge or model — passes guard() and the platform's
 // length limit, or it is NOT sent: the comment is escalated and the fixed acknowledgement goes instead. A
@@ -34,7 +40,7 @@
 import { langOf, type Lang } from './chat_answers.ts';
 import { LI_REST, liHeaders } from './marketing_social_oauth.ts';
 
-export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin';
+export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
 export type Class = 'question' | 'praise' | 'complaint' | 'spam_abuse' | 'sales_lead' | 'supplier_enquiry' | 'sensitive_legal' | 'off_topic';
 
 export interface CommentEvent {
@@ -70,32 +76,6 @@ export function normalise(s: string): string {
     .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
 
-// ── CLASSIFY ─────────────────────────────────────────────────────────────────────────────────────
-// Word-bounded throughout: 'court' is not 'courtyard', 'كم' is not 'لكم'. Punctuation becomes space
-// (except ? and ؟), so every term is matched between spaces.
-const n = (s: string) => ' ' + normalise(s).toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي')
-  .replace(/([?؟])/g, ' $1 ').replace(/[^\p{L}\p{N}?؟%٪'\s]/gu, ' ').replace(/\s+/g, ' ') + ' ';
-const W = (alts: string) => new RegExp(`(?<=\\s)(?:${alts})(?=\\s)`);
-// A hide needs a clear signal: an insult or a known spam pitch, as whole words.
-const ABUSE = W("idiots?|stupid|morons?|scam(?:mers?|s)?|fraudsters?|fuck\\w*|shit\\w*|bastards?|crypto|bitcoin|forex|onlyfans|promo code|dm me for \\w+|(?:buy|get|cheap|free) \\d*k? ?followers|نصاب|نصابين|حرامي|حراميه|تافه|غبي|كلب|اربح|متابعين");
-// …and is never taken when the comment also asks something or wants to join: that person gets an answer.
-const ASKS = W("\\?|؟|how|what|where|when|why|can i|can we|do you|is it|is this|register|registration|sign up|signup|join|quote|quotes|كيف|وش|ايش|متي|وين|ليش|هل|كم|تسجيل|اسجل|انضم|عرض سعر");
-const RULES: [Class, RegExp][] = [
-  ['sensitive_legal', W("lawyer|lawsuit|sue|court|legal action|police|report you|consumer protection|fraud|who (?:is|was) the (?:supplier|customer|client)|name of the (?:supplier|customer|client)|which (?:supplier|company) (?:did|was|is)|اسم المورد|اسم العميل|مين المورد|من هو المورد|منو المورد|محامي|محكمه|قضيه|الشرطه|بلاغ|حمايه المستهلك|احتيال")],
-  ['complaint', W("refund|complain|complaint|terrible|worst|disappointed|never (?:replied|responded|answered)|no one (?:replied|answered)|nobody answered|charged me|overcharged|not happy|bad service|استرجاع|استرداد|شكوي|اشتكي|سيء|سيئ|اسوا|ما احد رد|ما رد|محد رد|خصم مني|خدمه سيئه|غير راضي")],
-  ['supplier_enquiry', W("supplier|contractor|vendor|register (?:my|our) (?:company|business)|register as (?:a )?supplier|list (?:my|our) (?:company|business)|get (?:leads|jobs|projects)|trade licen[cs]e|مورد|موردين|مقاول|تسجيل شركتي|تسجيل شركتنا|رخصه تجاريه")],
-  ['sales_lead', W("i need (?:a |an )?(?:quote|quotation)|need quotes?|quote|quotes|quotation|looking for (?:a |an )?(?:company|someone|quote)|can you (?:do|quote)|how much (?:for|to|would)|price for|احتاج عرض|ابي عرض|ابغي عرض|اريد عرض|عرض سعر|ابحث عن شركه|كم سعر|كم يكلف")],
-  ['question', W("\\?|؟|how|what|where|when|why|can i|do you|is it|fees?|sign up|register|كيف|وش|ايش|متي|وين|ليش|هل|كم")],
-  ['praise', /(?<=\s)(?:great|amazing|awesome|love (?:it|this)|well done|good job|excellent|thank(?:s| you)|nice|brilliant|ممتاز|رائع|جميل|يعطيكم العافيه|شكرا|ما شاء الله|مبدعين|احسنتم)(?=\s)|👏|🔥|❤/],
-];
-export function classify(text: string, wantsPerson = false): Class {
-  const t = n(text);
-  if (ABUSE.test(t) && !ASKS.test(t)) return 'spam_abuse';
-  if (wantsPerson) return 'complaint';
-  for (const [c, re] of RULES) if (re.test(t)) return c;
-  return 'off_topic';
-}
-
 // ── THE GUARDS every outgoing text passes before it can be sent (founder, 23 Sep 2026) ────────────────
 // The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy): customers pay
 // a 3% reveal fee only on a reveal; the first 1,000 suppliers are free permanently, AED 1,000 a year from the
@@ -109,7 +89,7 @@ export const FACTS = {
   domains: /^(www\.)?quotesdone\.(com|ae)$/,
   emails: ['management@quotesdone.com'],
 };
-export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500 };
+export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500, tiktok: 150 };
 const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
 const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
@@ -170,19 +150,18 @@ export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' 
 
 
 // ── THE STORE, injected so tests replay every platform with no network and no database ─────────────
-export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
 export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class): Promise<number | null>;   // null: already answered (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // null: already answered (idempotency)
   release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;
   handoff(type: HandoffType, ev: CommentEvent, cls: Class, extra?: Record<string, unknown>): Promise<number | null>;
   switchOn(key: 'social_send_enabled' | 'social_model_enabled'): Promise<boolean>;
   library(key: string, lang: Lang): Promise<string>;
-  deterministic(ev: CommentEvent): Promise<Decided>;                 // comment_* library rows, FAQ, knowledge
-  draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // the model, only over retrieved knowledge
+  classOf(ev: CommentEvent): Promise<Class | null>;                  // REASONED (think()); null = held, nothing is done
+  draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // think() over the knowledge, cross-family reviewed
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
   /** Already handled (an inbound row with an outcome): a redelivery must not re-ask the reasoning. Optional for test stores. */
@@ -209,9 +188,13 @@ export const seatFor = (t: HandoffType) => SEAT[t];
 export async function processComment(s: Store, ev: CommentEvent, wantsPerson: boolean | (() => Promise<boolean>) = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
   if (typeof wantsPerson === 'function' && s.seen && (await s.seen(ev))) return 'duplicate';
-  const cls = classify(ev.text, typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson);
-  const inId = await s.insertInbound(ev, cls);
+  const person = typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson;
+  const reasoned: Class | null = person ? 'complaint' : await s.classOf(ev);
+  const inId = await s.insertInbound(ev, reasoned);
   if (inId == null) return 'duplicate';
+  // Held: the row stays with no class and no outcome, so the sweep asks the reasoning again. Nothing is guessed.
+  if (reasoned == null) return 'held_class';
+  const cls: Class = reasoned;
   let sent = false;
   try {
     return await run();
@@ -247,14 +230,9 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson: bo
     else if (cls === 'sales_lead') { await escalate('social.lead'); text = await s.library('comment_lead', lang); }
     else if (cls === 'praise') text = await s.library('comment_praise', lang);
     else {
-      const d = await s.deterministic(ev);
-      if (d.kind === 'handoff') { o.classification = 'complaint'; text = await ack(); }
-      else if (d.kind !== 'unknown' && d.text) text = d.text;
-      else {
-        if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
-        text = String((await s.draft(ev, lang)) || '').trim();
-        o.decided_by = 'model';
-      }
+      if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
+      text = String((await s.draft(ev, lang)) || '').trim();
+      o.decided_by = 'model';
     }
     // EVERY text, whatever produced it, passes the guards and fits the platform — or it is not sent: the
     // subject goes to the seat that owns it and the fixed acknowledgement goes instead. Never truncated.
@@ -282,6 +260,8 @@ export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 export interface Req { url: string; method: string; headers: Record<string, string>; body?: string }
 const J = { 'Content-Type': 'application/json' };
 const GRAPH = 'https://graph.facebook.com/v21.0/';
+export const TIKTOK = 'https://business-api.tiktok.com/open_api/v1.3/business/';
+const ttHeaders = (token: string) => ({ ...J, 'Access-Token': token });
 
 export function replyRequest(ev: CommentEvent, text: string, token: string): Req {
   const auth = { ...J, Authorization: 'Bearer ' + token };
@@ -294,6 +274,9 @@ export function replyRequest(ev: CommentEvent, text: string, token: string): Req
     case 'linkedin': return { url: LI_REST + 'socialActions/' + encodeURIComponent(ev.commentId) + '/comments', method: 'POST',
       headers: { ...J, ...liHeaders(token) },
       body: JSON.stringify({ actor: ev.accountId, object: ev.threadId, parentComment: ev.commentId, message: { text } }) };
+    // The business account's own token: the reply is posted AS the QuotesDone TikTok account.
+    case 'tiktok': return { url: TIKTOK + 'comment/reply/create/', method: 'POST', headers: ttHeaders(token),
+      body: JSON.stringify({ business_id: ev.accountId, video_id: ev.threadId, comment_id: ev.commentId, text }) };
   }
 }
 /** Hides (hidden = true) or restores (hidden = false) a comment. Every hide can be reversed by the reviewing seat. */
@@ -306,6 +289,8 @@ export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req
       + '&moderationStatus=' + (hidden ? 'heldForReview' : 'published'), method: 'POST', headers: auth };
     // LinkedIn offers only DELETE, which cannot be reversed: nothing is hidden, the comment goes to review.
     case 'linkedin': return null;
+    case 'tiktok': return { url: TIKTOK + 'comment/hide/', method: 'POST', headers: ttHeaders(token),
+      body: JSON.stringify({ business_id: ev.accountId, video_id: ev.threadId, comment_id: ev.commentId, action: hidden ? 'HIDE' : 'UNHIDE' }) };
   }
 }
 export const unhideRequest = (ev: CommentEvent, token: string) => hideRequest(ev, token, false);
@@ -316,7 +301,9 @@ export async function call(f: Fetch, r: Req | null): Promise<SendResult> {
     const res = await f(r.url, { method: r.method, headers: r.headers, body: r.body });
     const j = await res.json().catch(() => ({})) as any;
     if (!res.ok) return { ok: false, error: String(j?.error?.message || j?.detail || j?.title || res.status).slice(0, 300) };
-    return { ok: true, id: j?.data?.id ?? j?.id ?? null };
+    // TikTok answers HTTP 200 with a non-zero code on failure.
+    if (typeof j?.code === 'number' && j.code !== 0) return { ok: false, error: String(j.message || 'tiktok code ' + j.code).slice(0, 300) };
+    return { ok: true, id: j?.data?.comment_id ?? j?.data?.id ?? j?.id ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
 }
 
@@ -355,6 +342,30 @@ export async function linkedinComments(f: Fetch, token: string, orgId: string, s
       if (!urn || at < since) continue;
       out.push({ platform: 'linkedin', accountId: org, commentId: urn, authorId: String(e.actor || ''), handle: null,
         text: String(e?.message?.text || ''), at, threadId: post });
+    }
+  }
+  return out;
+}
+
+// TikTok: the business account's recent videos, then each video's comments newer than `since`.
+export async function tiktokComments(f: Fetch, token: string, businessId: string, since: Date): Promise<CommentEvent[]> {
+  const get = async (path: string) => {
+    const r = await f(TIKTOK + path, { headers: ttHeaders(token) });
+    const j = await r.json().catch(() => ({})) as any;
+    if (!r.ok || (typeof j?.code === 'number' && j.code !== 0)) throw new Error('tiktok ' + path.split('?')[0] + ' HTTP ' + r.status + ': ' + String(j?.message || '').slice(0, 120));
+    return j?.data || {};
+  };
+  const b = encodeURIComponent(businessId);
+  const vids = await get('video/list/?business_id=' + b + '&max_count=10&fields=' + encodeURIComponent('["item_id"]'));
+  const out: CommentEvent[] = [];
+  for (const v of vids.videos || []) {
+    const vid = String(v.item_id || ''); if (!vid) continue;
+    const cs = await get('comment/list/?business_id=' + b + '&video_id=' + encodeURIComponent(vid) + '&max_count=30&sort_field=create_time&sort_order=desc');
+    for (const c of cs.comments || []) {
+      const at = new Date(Number(c.create_time || 0) * 1000);
+      if (!c.comment_id || at < since || c.owner) continue;          // owner: our own comment
+      out.push({ platform: 'tiktok', accountId: businessId, commentId: String(c.comment_id), authorId: String(c.user_id || ''), handle: c.username ?? null,
+        text: String(c.text || ''), at, threadId: vid });
     }
   }
   return out;
