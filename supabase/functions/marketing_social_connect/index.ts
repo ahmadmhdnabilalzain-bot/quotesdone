@@ -33,9 +33,9 @@ function page(status: number, title: string, body: string, extra: Record<string,
     { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
       'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", ...extra } });
 }
-async function sec(k: string) {
+async function sec(k: string): Promise<string | undefined> {
   const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
-  return String(data?.value ?? '').trim() || undefined;
+  return data?.value as string | undefined;
 }
 async function put(k: string, v: string) {
   const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' });
