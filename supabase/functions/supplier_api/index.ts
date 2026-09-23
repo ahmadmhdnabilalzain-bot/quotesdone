@@ -8,6 +8,9 @@ import { arDays } from '../_shared/ar_days.ts';
 // forwarded and served back. See _shared/malware.ts for why the lookup blocks and the analysis does not.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { quoteTerms, reasonQuoteAspects } from '../_shared/reasoned_suppliers.ts';
+import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
@@ -27,7 +30,6 @@ import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
 import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line } from '../_shared/line_specs/assess.ts';
-import { defaultDeps } from '../_shared/think.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
@@ -245,6 +247,11 @@ async function kickDelivery() {
 const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
+  // WHICH CATEGORY ASPECTS THE QUOTE STATES is reasoned (think(), reasoned_suppliers.ts; founder_instruction
+  // 886-903), after the response so a submission never waits on a model. Until the reading lands,
+  // trg_quote_quality keeps the category verdict 'needs_reasoning' (not a pass); held, it is queued and
+  // applied by fn_reason_apply_sql__trg_quote_quality when the hold lifts.
+  runtimeWaitUntil()?.(reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid).catch((e) => console.error('quote aspects not read:', String(e))));
   const r = await acceptRule(qid);
   // deno-lint-ignore no-explicit-any
   let coaching: any = null;
@@ -376,6 +383,7 @@ const handle = async (req: Request): Promise<Response> => {
         return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
       };
       const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan,
+        readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
         // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
         readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
       return J(out.json, out.status);

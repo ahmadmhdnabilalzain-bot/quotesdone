@@ -349,6 +349,139 @@ end $p$;`);
   assert.equal(out.without, 'reasoned');
 });
 
+// ── Batch B5 (sales_engineer): prices, supplier profiles and quote quality ─────────────────────────────
+// scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql. Every routine it replaced
+// read free text for meaning; after the replay none does, the meaning arrives as a reasoned reading, and each
+// surface's replay effect lands through fn_reason_held_resolve. ZZ DEMO text only; nothing commits.
+test('production, aborted: B5 — price by reasoned trade, quote quality held until read, twin and own words read by reasoning, grants',
+  { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const out = await probe(String.raw`
+do $p$
+declare o jsonb := '{}'::jsonb; v jsonb; v_due jsonb; v_q uuid; v_id bigint; v_lead bigint; v_sup bigint; v_key text; v_name text; v_catkey text; v_trade text; v_fields jsonb;
+begin
+  -- 40. fn_price_guidance reads no question: a sentence is not a trade; a reasoned trade is.
+  v := public.fn_price_guidance(null, 6);
+  o := o || jsonb_build_object('price_null', v->>'reason', 'price_trades', jsonb_array_length(v->'trades'),
+    'price_sentence', public.fn_price_guidance('ZZ DEMO what does a gypsum false ceiling cost per sqm', 6)->>'reason',
+    'price_old_overload', to_regprocedure('public.fn_price_guidance(text,integer)') is not null);
+  select category into v_trade from public.price_benchmark group by category having bool_and(source_kind <> 'gap') order by category limit 1;
+  v := public.fn_price_guidance(v_trade, 3, 'ZZ DEMO item');
+  o := o || jsonb_build_object('price_ok', v->>'ok', 'price_item', v->>'asked_item', 'price_capped', jsonb_array_length(v->'bands') between 1 and 3);
+
+  -- 45. A quote's category verdict is held until reasoned, then applied by the replay.
+  select q.id into v_q from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+   where exists (select 1 from public.category_quote_specs c where c.spec_group = public.fn_quote_spec_group(coalesce(i.category, ''))) order by q.id limit 1;
+  update public.quotes set quality = quality where id = v_q;
+  select quality into v from public.quotes where id = v_q;
+  o := o || jsonb_build_object('q_before', v->'category'->>'status', 'q_pass_before', v->>'pass');
+  v_due := public.fn_quote_aspects_due(v_q);
+  o := o || jsonb_build_object('q_due_aspects', jsonb_array_length(v_due->'aspects'));
+  perform public.fn_quote_aspect_reading_record(v_q, v_due->>'content_md5', null, null);
+  o := o || jsonb_build_object('q_due_after_held', public.fn_quote_aspects_due(v_q) is null);
+  select jsonb_object_agg(c.aspect, jsonb_build_object('value', 'ZZ', 'evidence', 'ZZ DEMO words')) into v_fields
+    from public.category_quote_specs c where c.spec_group = v_due->>'spec_group';
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.trg_quote_quality', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('quote_id', v_q, 'content_md5', v_due->>'content_md5'), 'model_hold', 'zz-b5-quote');
+  o := o || jsonb_build_object('q_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ',
+            'decision', jsonb_build_object('choice', null, 'fields', v_fields)))->>'status');
+  select quality into v from public.quotes where id = v_q;
+  o := o || jsonb_build_object('q_after', v->'category'->>'status', 'q_cat_pass_after', v->'category'->>'pass', 'q_missing_after', v->'category'->>'mandatory_missing');
+
+  -- 42. The twin: installation from the reasoned reading of the current summary only.
+  select id into v_lead from public.leads where nullif(btrim(coalesce(capability_summary, '')), '') is not null
+     and coalesce(engineers_count, 0) = 0 and jsonb_typeof(machinery) is distinct from 'array'
+     and not exists (select 1 from public.supplier_capability_reading r where r.lead_id = leads.id) order by id limit 1;
+  v := public.fn_supplier_twin(v_lead);
+  o := o || jsonb_build_object('twin_before', v->>'capability_reading', 'twin_install_before', v->'capabilities'->1->>'has');
+  v_due := public.fn_supplier_readings_due(v_lead);
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead, 'summary_md5', v_due->'capability'->>'summary_md5'), 'model_hold', 'zz-b5-twin');
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{"installation":{"value":"ZZ","evidence":"ZZ DEMO"}}}}'::jsonb);
+  -- a late replay of an OLD summary (another md5) must not replace the reading of the current one
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_twin', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead, 'summary_md5', repeat('f', 32)), 'model_hold', 'zz-b5-twin-stale');
+  o := o || jsonb_build_object('twin_stale', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":null,"fields":{}}}'::jsonb)->'effect'->>'skipped');
+  v := public.fn_supplier_twin(v_lead);
+  o := o || jsonb_build_object('twin_after', v->>'capability_reading', 'twin_install_after', v->'capabilities'->1->>'has',
+    'twin_design_after', v->'capabilities'->3->>'has', 'twin_due_after', jsonb_typeof(public.fn_supplier_readings_due(v_lead)->'capability'));
+
+  -- 43. An own word names a service only by a reasoned reading.
+  select supplier_id, trades[1] into v_sup, v_trade from public.supplier_capabilities
+   where confirmed_at is not null and coalesce(cardinality(trades), 0) > 0 order by supplier_id limit 1;
+  update public.supplier_capabilities set services = coalesce(services, '{}'::text[]) || array['ZZ DEMO own words'] where supplier_id = v_sup;
+  o := o || jsonb_build_object('gaps_before', (select jsonb_agg(x->>'code') from jsonb_array_elements(public.fn_supplier_portfolio_gaps(v_sup)) x),
+    'gaps_due', public.fn_supplier_readings_due(v_sup)->'own_words');
+  select s.trade_code || '.' || s.code into v_key from public.taxonomy_trade_service s where s.active and s.trade_code = v_trade order by s.sort, s.code limit 1;
+  v_id := public.fn_reason_hold('sales_engineer', 'sql.fn_supplier_portfolio_gaps', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('supplier_id', v_sup, 'word', 'ZZ DEMO own words'), 'model_hold', 'zz-b5-word');
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
+  v := public.fn_supplier_portfolio_gaps(v_sup);
+  o := o || jsonb_build_object('gaps_after', (select jsonb_agg(x->>'code') from jsonb_array_elements(v) x),
+    'gaps_named', (select x->'services'->>0 from jsonb_array_elements(v) x where x->>'code' = 'own_word_is_a_service') = v_key);
+  begin perform public.fn_supplier_own_word_reading_record(v_sup, 'ZZ DEMO x', 'not.a_service', true, null); o := o || '{"bad_key":"accepted"}';
+  exception when others then o := o || jsonb_build_object('bad_key', sqlstate); end;
+
+  -- 46. A catalogue name in a task's words names no category; a key in its own format does.
+  select c.name, i.category_key into v_name, v_catkey from public.catalog_supplier_categories c
+    join public.org_category_identity i on i.catalog_num = c.num order by c.num limit 1;
+  o := o || jsonb_build_object('cat_by_name', public.fn_category_key_from_text('ZZ DEMO a task about ' || v_name),
+                               'cat_by_key', public.fn_category_key_from_text('ZZ DEMO key ' || v_catkey) = v_catkey);
+
+  -- 41, 44 and every body: no free text read for meaning.
+  o := o || jsonb_build_object('bodies', (select jsonb_object_agg(p.proname, case p.proname
+      when 'fn_supplier_opportunities' then p.prosrc !~ 'position\(|capability_summary'
+      when 'fn_rfq_short_of_quotes_tick' then p.prosrc !~* 'ilike|~\*'
+      when 'fn_supplier_twin' then p.prosrc !~ 'capability_summary ilike'
+      when 'fn_supplier_portfolio_gaps' then p.prosrc !~ 'aliases'
+      when 'trg_quote_quality' then p.prosrc !~ 'match_regex'
+      when 'fn_price_guidance' then p.prosrc !~* 'like|~'
+      when 'fn_category_key_from_text' then p.prosrc !~* 'like' end)
+    from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_supplier_opportunities', 'fn_rfq_short_of_quotes_tick',
+      'fn_supplier_twin', 'fn_supplier_portfolio_gaps', 'trg_quote_quality', 'fn_price_guidance', 'fn_category_key_from_text')));
+
+  o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
+            from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in ('fn_price_guidance', 'fn_supplier_opportunities', 'fn_supplier_twin',
+              'fn_supplier_portfolio_gaps', 'fn_rfq_short_of_quotes_tick', 'trg_quote_quality', 'fn_category_key_from_text', 'fn_supplier_readings_due',
+              'fn_supplier_capability_reading_record', 'fn_supplier_own_word_reading_record', 'fn_quote_aspect_text', 'fn_quote_aspects_due',
+              'fn_quote_aspect_reading_record', 'fn_reason_field_stated', 'fn_reason_apply_sql__fn_supplier_twin',
+              'fn_reason_apply_sql__fn_supplier_portfolio_gaps', 'fn_reason_apply_sql__trg_quote_quality')),
+    'service_can', has_function_privilege('service_role', 'public.fn_quote_aspect_reading_record(uuid,text,text[],bigint)', 'execute'),
+    'rls', (select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.supplier_capability_reading'::regclass,
+              'public.supplier_own_word_reading'::regclass, 'public.quote_aspect_reading'::regclass)));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`);
+  console.log(JSON.stringify(out, null, 1));
+  assert.equal(out.price_null, 'needs_reasoning');
+  assert.ok(out.price_trades >= 1);
+  assert.equal(out.price_sentence, 'no_trade_matched', 'a sentence is never read for its trade');
+  assert.equal(out.price_old_overload, false);
+  assert.equal(out.price_ok, 'true'); assert.equal(out.price_item, 'ZZ DEMO item'); assert.equal(out.price_capped, true);
+
+  assert.equal(out.q_before, 'needs_reasoning', 'an unread quote is not scored by a regex');
+  assert.equal(out.q_pass_before, 'false', 'held, never passed on a guess');
+  assert.ok(out.q_due_aspects >= 1);
+  assert.equal(out.q_due_after_held, true, 'a queued reading is not re-asked on every write');
+  assert.equal(out.q_resolve, 'applied');
+  assert.equal(out.q_after, 'reasoned'); assert.equal(out.q_cat_pass_after, 'true'); assert.equal(out.q_missing_after, '0');
+
+  assert.equal(out.twin_before, 'needs_reasoning'); assert.equal(out.twin_install_before, 'false');
+  assert.equal(out.twin_after, 'reasoned'); assert.equal(out.twin_install_after, 'true'); assert.equal(out.twin_design_after, 'false');
+  assert.equal(out.twin_due_after, 'null', 'a read summary is not read again');
+  assert.equal(out.twin_stale, 'stale', 'a replay of an edited summary does not overwrite the current reading');
+
+  assert.ok(out.gaps_before.includes('own_words') && !out.gaps_before.includes('own_word_is_a_service'), JSON.stringify(out.gaps_before));
+  assert.ok(out.gaps_due.includes('ZZ DEMO own words'));
+  assert.ok(out.gaps_after.includes('own_word_is_a_service'), JSON.stringify(out.gaps_after));
+  assert.equal(out.gaps_named, true);
+  assert.equal(out.bad_key, '22023');
+
+  assert.equal(out.cat_by_name, null, 'a catalogue name in the words decides nothing');
+  assert.equal(out.cat_by_key, true);
+  for (const [fn, clean] of Object.entries(out.bodies)) assert.equal(clean, true, `${fn} reads free text for meaning again`);
+  assert.equal(Object.keys(out.bodies).length, 7);
+  assert.equal(out.anon_can, false); assert.equal(out.service_can, true); assert.equal(out.rls, true);
+});
+
 // ── batch B2 (menus, comments, trades): the replay writes the reasoned trade on the row it was held for ─────────────
 test('production, aborted: a held lead sector is set by its own routine — exact slug or nothing, empty sectors only',
   { skip: hasToken ? false : 'no Supabase management token' }, async () => {

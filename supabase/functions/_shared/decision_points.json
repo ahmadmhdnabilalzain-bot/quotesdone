@@ -808,74 +808,256 @@
   {
    "id": "quote_extract.document",
    "order": 39,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
    "where": "supabase/functions/quote_extract/quote_from_document.ts",
-   "decides": "quote field reading by label regex"
+   "decides": "the quotation's terms (lead time, validity, payment, warranty, exclusions, installation) were read by label regexes (FIELD, CONCRETE, /install|supply only/); now reasoned by quoteTerms (think() fields, verbatim evidence). The prices stay a layout read of the table.",
+   "held": "Held: the prices are still read from the file; the terms are left empty (not queued - there is no form to fill later) and the supplier is told to type them, and the review asks for each one. Never read off a label.",
+   "proof": [
+    {
+     "file": "supabase/functions/quote_extract/quote_from_document.ts",
+     "must_contain": [
+      "export function quoteText(",
+      "read: Partial<Record<QuoteTermKey, string>> = {}"
+     ],
+     "must_not_contain": [
+      "const FIELD",
+      "const CONCRETE",
+      "/install|تركيب|supply\\s*only"
+     ]
+    },
+    {
+     "file": "supabase/functions/quote_extract/index.ts",
+     "must_contain": [
+      "quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) })"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
+     "must_contain": [
+      "surface: 'quote_extract.document'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_price_guidance",
    "order": 40,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
-   "where": "scripts/sql",
-   "decides": "price-book like '%x%' -> price band"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "fn_price_guidance: \"is it a price question\" by v_q ~ (cost|price|...) and the trade by like-substring over price_trade_term and latin words over item labels; now the trade (or not-a-price-question) is reasoned by priceQuestion and passed as p_trade.",
+   "held": "Held: no price band is offered on a guess (reason held); the visitor is still answered from the FAQ and the support corpus, and nothing is queued because a closed chat has no one to deliver a late price to.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "create or replace function public.fn_price_guidance(p_trade text, p_limit integer default 6, p_asked_item text default null)",
+      "drop function if exists public.fn_price_guidance(text, integer);"
+     ],
+     "must_not_contain": [
+      "price_trade_term",
+      "'%' || x || '%'",
+      "how much|charge"
+     ]
+    },
+    {
+     "file": "supabase/functions/site_assistant/index.ts",
+     "must_contain": [
+      "priceGuidanceFor(defaultDeps(admin, 'site_assistant')"
+     ],
+     "must_not_contain": [
+      "admin.rpc('fn_price_guidance'"
+     ]
+    },
+    {
+     "file": "supabase/functions/public_site/index.ts",
+     "must_contain": [
+      "priceGuidanceFor(defaultDeps(admin, 'public_site')"
+     ],
+     "must_not_contain": [
+      "p_question"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
+     "must_contain": [
+      "surface: 'sql.fn_price_guidance'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_supplier_opportunities",
    "order": 41,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "position(cat in capability) -> capacity_hit"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "capacity_hit was position(category in capability_summary); now the trades the supplier confirmed (keyed ticks) against the enquiry's trade codes.",
+   "held": "No reasoning needed and nothing held: capacity is keyed data the supplier chose; with no confirmed services it is shown as not assessable, never guessed from his prose.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "public.fn_taxonomy_trades_for(array[c.category]) && me.confirmed_trades"
+     ],
+     "must_not_contain": [
+      "position(c.cat in",
+      "lower(coalesce(l.capability_summary"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_supplier_twin",
    "order": 42,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "capability_summary ilike manufactur/install/service/design"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "Manufacturing/Installation/Maintenance/Design were capability_summary ilike words; now supplier_capability_reading, reasoned by capabilityKinds from the current summary (md5-keyed), plus keyed machinery/engineers.",
+   "held": "Held: the reading is queued (sql.fn_supplier_twin) and recorded needs_reasoning; the twin shows capabilities from keyed data only and says capability_reading needs_reasoning; fn_reason_apply_sql__fn_supplier_twin records it when the hold lifts.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "from public.supplier_capability_reading r, l",
+      "function public.fn_reason_apply_sql__fn_supplier_twin("
+     ],
+     "must_not_contain": [
+      "capability_summary ilike '%"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_portal/index.ts",
+     "must_contain": [
+      "readSupplierProfile(defaultDeps(admin, 'supplier_portal'), supId)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
+     "must_contain": [
+      "surface: 'sql.fn_supplier_twin'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_supplier_portfolio_gaps",
    "order": 43,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "supplier service words vs aliases"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "a supplier's own service word was matched to a listed service by a regex built from each service's aliases; now supplier_own_word_reading, reasoned by ownWordService over the services of his confirmed trades.",
+   "held": "Held: the word is queued (sql.fn_supplier_portfolio_gaps) and listed as \"not on our list\", which is true of it as written; fn_reason_apply_sql__fn_supplier_portfolio_gaps records the reasoned service when the hold lifts.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "join public.supplier_own_word_reading r on r.supplier_id = p_lead_id",
+      "function public.fn_reason_apply_sql__fn_supplier_portfolio_gaps("
+     ],
+     "must_not_contain": [
+      "unnest(s.aliases)",
+      "fn_ar_norm(o.w) ~*"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
+     "must_contain": [
+      "surface: 'sql.fn_supplier_portfolio_gaps'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_rfq_short_of_quotes_tick",
    "order": 44,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "scope_type ilike turnkey / supply regex"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "the need was scope_type ilike %turnkey% / ~* supply|material|product; now keyed: scope_type = turnkey (customer_api's set) or role_needed when it is one of fn_match_capability's needs.",
+   "held": "No reasoning needed and nothing held: the need is keyed data the customer chose; any other value is the matcher's default need (executes), never inferred from words.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "when r.scope_type = 'turnkey' then 'whole_scope'"
+     ],
+     "must_not_contain": [
+      "ilike '%turnkey%'",
+      "~* 'supply|material|product'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.trg_quote_quality",
    "order": 45,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "quote_quality match_regex on the quote blob"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "each category aspect counted as addressed when the quote blob ~* its match_regex; now quote_aspect_reading, reasoned by reasonQuoteAspects over the quote text (md5-keyed, verbatim evidence).",
+   "held": "Held: the quote is held on this verdict - quality.category.status needs_reasoning and pass false (never passed on a word guess); the question is queued (sql.trg_quote_quality) and fn_reason_apply_sql__trg_quote_quality records it and re-scores the quote when the hold lifts.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "from public.quote_aspect_reading a",
+      "v_cat_status := 'needs_reasoning';",
+      "function public.fn_reason_apply_sql__trg_quote_quality("
+     ],
+     "must_not_contain": [
+      "~* r.match_regex"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
+     "must_contain": [
+      "surface: 'sql.trg_quote_quality'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_category_key_from_text",
    "order": 46,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "catalogue name substring, longest wins"
+   "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+   "decides": "step 4 chose a category when a catalogue slug or name was a substring of the task text (longest wins); deleted - only a keyed reference (inquiry/run uuid, a category key in its format) names a category.",
+   "held": "No reasoning needed and nothing held: a task that names no inquiry, run or category key gets no category pack rather than one guessed from a name in its words.",
+   "proof": [
+    {
+     "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
+     "must_contain": [
+      "v_key := substring(p_text from '\\m([0-9]{3}_[a-z0-9-]+)\\M');"
+     ],
+     "must_not_contain": [
+      "catalog_supplier_categories",
+      "like '%' || lower(c.name)"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_resolve_cat_agent",
