@@ -8,8 +8,11 @@ import { assessInput, canReveal, heldQuoteIds, refuse } from './reveal_guard.ts'
 // A complete quote of the kind line_specs ranks (same shape as line_specs/compare.test.ts's A).
 const COMPLETE = { id: 'q1', inquiry_id: 'i1', supplier_id: 7, status: 'submitted', quote_amount: 6000,
   price_ex_vat: 6000, lead_time: '21 days', warranty: '2 years on workmanship',
-  scope: 'Supply and installation of wardrobes by our team' };
-const ITEM = { quote_id: 'q1', line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish', amount: 6000 };
+  scope: 'Supply and installation of wardrobes by our team',
+  terms_spec: { installation: { included: 'yes', detail: 'by our team', source: 'reasoned' }, warranty: { period: '2 years', coverage: 'workmanship', source: 'reasoned' } } };
+// As the gate stores it after reading (reasoned_matching.ts): the values and their source, the terms on terms_spec.
+const ITEM = { quote_id: 'q1', line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish', amount: 6000,
+  spec: { material: 'MR MDF', thickness_mm: '18', finish: 'HPL' }, spec_source: { material: 'reasoned', thickness_mm: 'reasoned', finish: 'reasoned' } };
 
 // deno-lint-ignore no-explicit-any
 type Rows = Record<string, any>;

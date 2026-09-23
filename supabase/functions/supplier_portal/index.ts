@@ -21,6 +21,8 @@ import { SANCTIONED_REFUSAL, sanctionedEmail, sanctionedLead } from '../_shared/
 import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
+import { productsAsked } from '../_shared/reasoned_matching.ts';
+import { defaultDeps } from '../_shared/think.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
 async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
@@ -305,10 +307,22 @@ Deno.serve(observe('supplier_portal', async (req) => {
     if (action === 'product_match') {
       const inquiryId = String(b.inquiry_id || '');
       if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
+      // WHICH OF HIS PRODUCTS THE ENQUIRY ASKS FOR IS REASONED, not counted in shared words (founder_instruction
+      // 886-903; decision point 26): the routine hands back the enquiry and his products, think() reads them
+      // (reasoned_matching.ts productsAsked), and the routine is asked again with the answer. Held: the list is
+      // shown unscored with status 'needs_reasoning' — never a word-count percentage.
       const { data: pm, error } = await admin.rpc('fn_supplier_product_match',
         { p_inquiry_id: inquiryId, p_lead_id: supId });
       if (error) return loadFailed(String(action), error);
-      return J({ ok: true, ...pm });
+      // deno-lint-ignore no-explicit-any
+      const tr: any = (pm as any)?.to_reason;
+      if (!tr?.products?.length || !tr.want) return J({ ok: true, ...pm, to_reason: undefined });
+      const asked = await productsAsked(defaultDeps(admin, 'supplier_portal'), { want: String(tr.want), products: tr.products, inquiryId, leadId: Number(supId) });
+      if (asked.value == null) return J({ ok: true, ...pm, to_reason: undefined, held: true });
+      const { data: pm2, error: e2 } = await admin.rpc('fn_supplier_product_match',
+        { p_inquiry_id: inquiryId, p_lead_id: supId, p_asked: asked.value });
+      if (e2) return loadFailed(String(action), e2);
+      return J({ ok: true, ...pm2 });
     }
 
     // §16 §24 — every certificate with its validity status and what it gates.

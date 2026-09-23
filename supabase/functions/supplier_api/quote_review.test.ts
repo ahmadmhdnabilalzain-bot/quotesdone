@@ -14,6 +14,9 @@ import { choose, message, readQuotationFile, start, submit, submitPayload, threa
 import { boqCsv } from './quote_review_actions.ts';
 import { memoryReviewRepo } from './quote_review_memory_repo.ts';
 import { completenessOf, itemsOfRows, quoteDocument } from '../_shared/quote_documents.ts';
+import { readFixture } from './review_reading.fixture.ts';
+/** The review after the (mocked) reading production does first: review_reading.fixture.ts. */
+const rq = (i: SafeInquiry, w: Parameters<typeof reviewQuotation>[1]) => reviewQuotation(i, readFixture(i, w));
 
 const INQ_ID = '3f2a9c1e-0000-4000-8000-00000000abcd';
 const inquiry = (over: Partial<SafeInquiry> = {}): SafeInquiry => ({
@@ -32,7 +35,7 @@ const good = (over: Partial<Working> = {}): Working => ({
 const ARABIC = /[؀-ۿ]/;
 
 Deno.test('a quotation that meets every rule is approved, in both languages', () => {
-  const r = reviewQuotation(inquiry(), good());
+  const r = rq(inquiry(), good());
   assertEquals(r.issues, [], JSON.stringify(r.issues));
   assert(r.approved);
   const s = reviewSaid(jobNo(INQ_ID), r);
@@ -58,7 +61,7 @@ const CASES: { name: string; inq?: Partial<SafeInquiry>; w: Partial<Working>; co
 ];
 for (const c of CASES) {
   Deno.test(`held for ${c.name} — ${c.code}, EN and AR`, () => {
-    const r = reviewQuotation(inquiry(c.inq), good(c.w));
+    const r = rq(inquiry(c.inq), good(c.w));
     assert(!r.approved, 'expected a hold');
     const hit = r.issues.find((i) => i.code === c.code);
     assert(hit, `expected ${c.code}, got ${r.issues.map((i) => i.code).join(', ')}`);
@@ -73,14 +76,14 @@ for (const c of CASES) {
 }
 
 Deno.test('a TRN is never asked for, and "not VAT registered" is a complete VAT basis', () => {
-  const r = reviewQuotation(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: 'We are not VAT registered' }));
+  const r = rq(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: 'We are not VAT registered' }));
   assert(r.approved, JSON.stringify(r.issues));
-  const all = reviewQuotation(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: '', validity: '', lead_time: '' }));
+  const all = rq(inquiry(), good({ vat_treatment: 'not_stated', price_ex_vat: null, notes: '', validity: '', lead_time: '' }));
   assert(!all.issues.some((i) => /\bTRN\b/.test(i.en) && !/needs no TRN/.test(i.en)), 'a TRN must never be requested');
 });
 
 Deno.test('a withheld BOQ is not held against the supplier', () => {
-  const r = reviewQuotation(inquiry({ boq_withheld: true, boq_rows: [{ description: 'Ceiling painting', qty: 1, unit: 'ls' }] }), good());
+  const r = rq(inquiry({ boq_withheld: true, boq_rows: [{ description: 'Ceiling painting', qty: 1, unit: 'ls' }] }), good());
   assert(r.approved, JSON.stringify(r.issues));
 });
 
@@ -122,11 +125,11 @@ for (const c of REPLIES) {
 Deno.test('an excluded BOQ line and a stated specification close their points', () => {
   const inq = inquiry({ boq_rows: [...inquiry().boq_rows, { description: 'Ceiling gypsum board painting', qty: 120, unit: 'm2' }] });
   const w0 = good({ lines: [{ description: 'Jotun Fenomastic emulsion, internal walls', qty: '450', unit: 'm2', unit_price: 20, amount: 9000 }] });
-  const r0 = reviewQuotation(inq, w0);
+  const r0 = rq(inq, w0);
   assertEquals(r0.issues.map((i) => i.code).sort(), ['boq_line_not_priced', 'spec']);
   const rr = readReply('BOQ line 2 excluded — by others. Line 1 number of coats: 2', r0.issues);
   const w1 = applyCorrections(w0, rr.corrections);
-  const r1 = reviewQuotation(inq, w1);
+  const r1 = rq(inq, w1);
   assert(r1.approved, JSON.stringify({ corrections: rr.corrections, issues: r1.issues }));
   assertMatch(w1.exclusions, /BOQ line 2 excluded/);
 });
@@ -164,6 +167,7 @@ function harness(inq = inquiry()) {
     submit(p) { submitted.push(p); return Promise.resolve({ status: 200, json: { ok: true, accepted: true, quote: { id: 'q-1', option_no: 1, status: 'submitted' } } }); },
     quotePdf: () => Promise.resolve({ url: 'https://example.invalid/q.pdf', ref: 'QD-3F2A9C1E-S' }),
     now: () => new Date('2026-09-15T10:00:00Z'),
+    readWorking: (i, w) => Promise.resolve(readFixture(i, w)),
   };
   return { mem, deps, submitted, ctx: { supplierId: 7, email: 'qd-test-sup1@example.invalid', lang: 'en' as const } };
 }
@@ -310,12 +314,12 @@ Deno.test('a photo is answered, not guessed; a closed job refuses; another suppl
 
 Deno.test('an explained quantity does not silence a unit that differs on the same line', () => {
   const w = good({ lines: [{ description: 'Jotun Fenomastic emulsion, 2 coats, internal walls', qty: '400', unit: 'litre', unit_price: 22.5, amount: 9000 }], qty_explained: { '1': 'measured on site' } });
-  const r = reviewQuotation(inquiry(), w);
+  const r = rq(inquiry(), w);
   assert(r.issues.some((i) => i.code === 'unit_mismatch') && !r.issues.some((i) => i.code === 'qty_mismatch'), JSON.stringify(r.issues.map((i) => i.code)));
   const open = r.issues.filter((i) => i.code === 'unit_mismatch');
   const rr = readReply('BOQ line 1 unit: we measure paint by the litre, 1 litre covers 1 m2', open);
   assertEquals(rr.corrections.map((c) => (c as { what?: string }).what), ['unit']);
-  assert(reviewQuotation(inquiry(), applyCorrections(w, rr.corrections)).approved);
+  assert(rq(inquiry(), applyCorrections(w, rr.corrections)).approved);
 });
 
 Deno.test('the BOQ CSV never hands Excel a formula', () => {
@@ -353,7 +357,7 @@ Deno.test('a double submission submits once', async () => {
 
 Deno.test('submitPayload carries the chat-confirmed details the hold gate reads', () => {
   const w = applyCorrections(good(), readReply('installation included, 5 working days on site', []).corrections);
-  const p = submitPayload(inquiry(), { original_file_path: 'review/7/x/q.csv', original_file_name: 'q.csv' }, w, reviewQuotation(inquiry(), w));
+  const p = submitPayload(inquiry(), { original_file_path: 'review/7/x/q.csv', original_file_name: 'q.csv' }, w, rq(inquiry(), w));
   assertEquals((p.terms_spec as { installation?: { included: string } }).installation?.included, 'yes');
   assertEquals((p.items as { qty: number }[])[0].qty, 450);
 });
@@ -416,7 +420,7 @@ Deno.test('finding 1: the auditor\'s text PDF is read — every line priced, VAT
   assertEquals(read.proposal.price_ex_vat, 65960); assertEquals(read.proposal.vat_treatment, 'exclusive'); assertEquals(read.proposal.vat_amount, 3298);
   assertEquals(read.proposal.validity, '30 days'); assertEquals(read.proposal.lead_time, '4 weeks from LPO');
   assert(read.proposal.masked_terms.includes('ZZ DEMO Interiors gypsum founderdemo'), 'the letterhead name is withheld from the customer');
-  const rv = reviewQuotation(gypsumInquiry(), workingFromProposal(read.proposal, read.text));
+  const rv = rq(gypsumInquiry(), workingFromProposal(read.proposal, read.text));
   const keys = rv.issues.map(issueKey).sort();
   // Genuinely absent from the PDF: no installation statement, no warranty, the partition board's
   // thickness (100mm is the stud, not the board) and the bulkhead's board type. Nothing else.
@@ -430,7 +434,7 @@ Deno.test('finding 1: the auditor\'s text PDF is read — every line priced, VAT
 Deno.test('finding 2: prices typed in the chat — the auditor\'s grammar, the review\'s own grammar, and Arabic — price the BOQ line', () => {
   const inq = gypsumInquiry();
   const w0: Working = { ...good(), lines: [], amount: null, subtotal: null, vat_amount: null, price_ex_vat: null, vat_treatment: 'exclusive', validity: '30 days', lead_time: '4 weeks' };
-  const open = reviewQuotation(inq, w0).issues;
+  const open = rq(inq, w0).issues;
   assertEquals(open.filter((i) => i.code === 'boq_line_not_priced').length, 3);
   const cases: [string, number, number | null, number][] = [
     ['BOQ line 1: AED 95.00 per m2 × 320 m2 = AED 30,400', 1, 95, 30400],
@@ -446,7 +450,7 @@ Deno.test('finding 2: prices typed in the chat — the auditor\'s grammar, the r
     const w1 = applyCorrections(w0, rr.corrections, inq.boq_rows);
     const l = w1.lines.find((x) => x.description === String(inq.boq_rows[n - 1].description))!;
     assert(l, `line ${n} not created`); assertEquals(l.amount, amount); assertEquals(l.unit_price, rate); assertEquals(l.unit, String(inq.boq_rows[n - 1].unit));
-    assert(!reviewQuotation(inq, w1).issues.some((i) => i.code === 'boq_line_not_priced' && i.boq_line === n), `BOQ line ${n} still unpriced after "${text}"`);
+    assert(!rq(inq, w1).issues.some((i) => i.code === 'boq_line_not_priced' && i.boq_line === n), `BOQ line ${n} still unpriced after "${text}"`);
     const said = tookSaid(rr.corrections)!; assertMatch(said.en, new RegExp(`BOQ line ${n} priced`)); assert(ARABIC.test(said.ar));
   }
   // all three in one message, and the total follows the lines
@@ -454,7 +458,7 @@ Deno.test('finding 2: prices typed in the chat — the auditor\'s grammar, the r
   assertEquals(rr.corrections.filter((x) => x.field === 'boq_price').length, 3);
   const w3 = applyCorrections(w0, rr.corrections, inq.boq_rows);
   assertEquals(w3.amount, 65960);
-  assert(!reviewQuotation(inq, w3).issues.some((i) => i.code === 'boq_line_not_priced' || i.code === 'total_mismatch'));
+  assert(!rq(inq, w3).issues.some((i) => i.code === 'boq_line_not_priced' || i.code === 'total_mismatch'));
   // a priced line is no longer an excluded one
   const wx = applyCorrections(w0, readReply('BOQ line 3 excluded — by others', open).corrections, inq.boq_rows);
   assertEquals(Object.keys(wx.boq_excluded), ['3']);
@@ -469,7 +473,7 @@ Deno.test('finding 14: several answers in one message all match, and the acknowl
     { description: 'Suspended false ceiling 600x600 mineral fibre', qty: '410', unit: 'm2', unit_price: 68, amount: 27880 },
     { description: 'Gypsum bulkhead 300mm drop, painted finish', qty: '64', unit: 'm', unit_price: 120, amount: 7680 },
   ], amount: 65960, price_ex_vat: 65960, warranty: '', scope: '', notes: 'Prices exclude VAT', lead_time: '4 weeks' });
-  const open = reviewQuotation(inq, w0).issues;
+  const open = rq(inq, w0).issues;
   assertEquals(open.map(issueKey).sort(), ['installation_included|||installation_included', 'spec|1||thickness_mm', 'spec|3||board_type', 'warranty_coverage|||warranty_coverage', 'warranty_period|||warranty_period'].sort());
   const rr = readReply('line 1 thickness: 12.5mm. line 3 board type: standard gypsum board. Installation included, 4 weeks on site. Warranty 2 years parts and labour.', open);
   const fields = rr.corrections.map((c) => c.field).sort();
@@ -480,7 +484,7 @@ Deno.test('finding 14: several answers in one message all match, and the acknowl
   assertEquals(wt.period, '2 years'); assertEquals(wt.coverage, 'parts, labour');   // finding 4: not "installation, on site, parts, labour"
   const said = tookSaid(rr.corrections)!;
   assertMatch(said.en, /line 1: 12\.5mm; line 3: standard gypsum board/); assert(!/Installation included, 4 weeks on site\. Warranty/.test(said.en), 'no echoed run-on');
-  const r1 = reviewQuotation(inq, applyCorrections(w0, rr.corrections, inq.boq_rows));
+  const r1 = rq(inq, applyCorrections(w0, rr.corrections, inq.boq_rows));
   assert(r1.approved, JSON.stringify(r1.issues.map((i) => i.en)));
 });
 
@@ -520,28 +524,28 @@ Deno.test('finding 2: every open point closes from the chat — the supplier\'s 
     { description: 'Suspended false ceiling 600x600 mineral fibre tiles', qty: '410', unit: 'm2', unit_price: 68, amount: 27880 },
     { description: 'Gypsum bulkhead, standard gypsum board, 300mm drop, painted finish', qty: '64', unit: 'm', unit_price: 120, amount: 7680 }, panel,
   ], amount: 70000, price_ex_vat: 70000, warranty: '2 years parts and labour', scope: 'Supply and install, installation included, 4 weeks on site', notes: 'Prices exclude VAT', lead_time: '4 weeks' });
-  const open = reviewQuotation(inq, w0).issues;
+  const open = rq(inq, w0).issues;
   assert(open.some((i) => i.code === 'line_unpriced' && i.line_no === 4), JSON.stringify(open.map(issueKey)));
   const rr = readReply('line 4 AED 150 each', open);
   assertEquals(rr.corrections, [{ field: 'line_price', line_no: 4, unit_price: 150, amount: null }]);
   const w1 = applyCorrections(w0, rr.corrections, inq.boq_rows);
   assertEquals(w1.lines[3].amount, 600); assertEquals(w1.amount, 66560);
-  assert(!reviewQuotation(inq, w1).issues.some((i) => i.code === 'line_unpriced' || i.code === 'total_mismatch'));
+  assert(!rq(inq, w1).issues.some((i) => i.code === 'line_unpriced' || i.code === 'total_mismatch'));
   // a total that does not add up: re-stated, or explained by a discount
   const w2 = good({ ...w1, amount: 70000, price_ex_vat: 70000 });
-  const open2 = reviewQuotation(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
-  assert(!reviewQuotation(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
+  const open2 = rq(inq, w2).issues; assert(open2.some((i) => i.code === 'total_mismatch'));
+  assert(!rq(inq, applyCorrections(w2, readReply('Total AED 66,560', open2).corrections)).issues.some((i) => i.code === 'total_mismatch'));
   const wd = applyCorrections(w2, readReply('We give a discount of AED 3,440.', open2).corrections);
-  assert(!reviewQuotation(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
+  assert(!rq(inq, wd).issues.some((i) => i.code === 'total_mismatch')); assertMatch(wd.conditions, /discount of AED 3,440/);
   // a material the customer named
   const withGlass: SafeInquiry = { ...inq, category: 'glass', boq_rows: [], spec: { customer_requirements: { version: 1, materials: [{ component: 'glass', label_en: 'Glass', label_ar: 'الزجاج' }] } } };
   const wg = good({ lines: [{ description: 'Shower screen, 8mm clear tempered, chrome hinges', qty: '1', unit: 'nos', unit_price: 9000, amount: 9000 }] });
-  const og = reviewQuotation(withGlass, wg).issues.filter((i) => i.code === 'component');
+  const og = rq(withGlass, wg).issues.filter((i) => i.code === 'component');
   assertEquals(og.map(issueKey), ['component|||component:glass']); {
     const rg = readReply('glass: 8mm clear tempered, polished edges', og);
     const c = rg.corrections.find((x) => x.field === 'component') as { key: string; value: string } | undefined;
     assert(c, JSON.stringify({ og, rg })); assertEquals(c.key, 'glass');
-    const after = reviewQuotation(withGlass, applyCorrections(wg, rg.corrections)).issues;
+    const after = rq(withGlass, applyCorrections(wg, rg.corrections)).issues;
     assert(!after.some((i) => i.code === 'component'), JSON.stringify(after.map(issueKey)));
     assert(ARABIC.test(tookSaid(rg.corrections)!.ar));
   }
@@ -576,12 +580,12 @@ Deno.test('finding 4: a BOQ line excluded in the chat leaves the quotation and t
   const inq = gypsumInquiry();
   const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo'], pdfModel);
   const w0 = workingFromProposal(read.proposal!, read.text);
-  const open = reviewQuotation(inq, w0).issues;
+  const open = rq(inq, w0).issues;
   const w1 = applyCorrections(w0, readReply('BOQ line 3 excluded — by others. line 1 thickness: 12.5mm', open).corrections, inq.boq_rows);
   assertEquals(w1.lines.map((l) => l.amount), [30400, 27880]);
   assertEquals(w1.amount, 58280); assertEquals(w1.price_ex_vat, 58280); assertEquals(Object.keys(w1.boq_excluded), ['3']);
   assertEquals(w1.lines[0].spec?.thickness_mm, '12.5mm');   // the spec in the same message still names line 1
-  const rv = reviewQuotation(inq, w1);
+  const rv = rq(inq, w1);
   assert(!rv.issues.some((i) => ['boq_line_not_priced', 'total_mismatch', 'vat_basis', 'vat_ex_price', 'price_ex_vat'].includes(i.code)), JSON.stringify(rv.issues.map((i) => i.en)));
 });
 

@@ -98,6 +98,8 @@ export interface ReviewDeps {
   /** supplier_api quote_pdf: the standardised quotation the customer receives, for this supplier's own quote. */
   quotePdf(quoteId: string, lang: Lang): Promise<{ url: string | null; ref: string | null }>;
   now(): Date;
+  /** What reasoning reads from the working quotation (quote_review.ts readWorking), before the review; absent or held: nothing is read. */
+  readWorking?(inq: SafeInquiry, w: Working): Promise<Working>;
 }
 export type Ctx = { supplierId: number; email: string; lang: Lang; companyName?: string | null };
 
@@ -224,6 +226,7 @@ function writableOr(l: Loaded, r: ReviewRow | null, now: Date): Fail | null {
 // The review, and the requests it opens and closes.
 // ---------------------------------------------------------------------------------------------
 async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: ReviewRow, w: Working, trigger: string | null) {
+  if (deps.readWorking) w = await deps.readWorking(inq, w);
   const rv = reviewQuotation(inq, w);
   const open = await repo.requests(r.id, true);
   const openIssues = open.filter((x) => x.kind !== 'choice');

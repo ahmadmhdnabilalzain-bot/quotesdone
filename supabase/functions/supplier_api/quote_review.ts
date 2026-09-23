@@ -26,9 +26,11 @@
 //
 // WHAT IT DOES NOT DO: it never decides a price is too high or too low, never compares a supplier to
 // another supplier, and never tells a supplier anything about the customer beyond the scrubbed
-// inquiry the inbox already serves. Pure: no I/O, no clock, no model.
+// inquiry the inbox already serves. Pure: no I/O, no clock, no model — except readWorking, which takes its model as deps.
 import { assessQuote, readDelivery, readInstallation, readWarranty, requirementsOf, type Line, type MissingItem, type TermsSpec } from '../_shared/line_specs/assess.ts';
 import { normText, VAGUE } from '../_shared/line_specs/model.ts';
+import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
+import type { ThinkDeps } from '../_shared/think.ts';
 import { OPTION_HEAD } from '../_shared/line_specs/options.ts';
 import { readVat, type VatTreatment } from '../_shared/line_specs/vat.ts';
 import { arDuration, jobNoOf } from '../_shared/quote_documents.ts';
@@ -56,7 +58,7 @@ export type WLine = {
   description: string; qty: string; unit: string; unit_price: number | null; amount: number | null; option?: number;
   /** The file's own "Specification" column for this line, read with the description by every spec reader. */
   specification?: string;
-  spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal'>;
+  spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal' | 'reasoned'>;
 };
 /** The quotation under review: what the file said, plus every detail the supplier confirmed in the chat. */
 export type Working = {
@@ -195,6 +197,20 @@ const cut = (s: unknown, n = 60) => { const t = normText(String(s ?? '')); retur
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 const I = (code: IssueCode, kind: Issue['kind'], line_no: number | null, boq_line: number | null, attr: string | null, en: string, ar: string): Issue => ({ code, kind, line_no, boq_line, attr, en, ar });
 const assessLines = (w: Working): Line[] => w.lines.map((l, i) => ({ line_no: i + 1, description: l.description, specification: l.specification ?? null, qty: l.qty, unit: l.unit, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? null, spec_source: l.spec_source ?? null }));
+
+/**
+ * What reasoning reads from the working quotation (decision points 29-30, _shared/reasoned_matching.ts readQuote),
+ * written onto its lines' spec and its terms_spec as source 'reasoned', so the review asks exactly what the hold
+ * gate will. Held (the model hold): the working is returned unread, and every detail is asked. No word reader.
+ */
+export async function readWorking(think: ThinkDeps, inq: SafeInquiry, w: Working, key: string): Promise<Working> {
+  const lines = assessLines(w);
+  const reading = await readQuote(think, { quoteId: key, category: inq.category, lines, requirements: requirementsOf(inq.spec),
+    terms: { lead_time: w.lead_time, warranty: w.warranty, scope: w.scope, exclusions: w.exclusions, conditions: w.conditions, notes: w.notes, terms_spec: w.terms_spec } });
+  if (!reading) return w;
+  const ap = applyReading(lines, w.terms_spec, reading);
+  return { ...w, terms_spec: ap.terms_spec, lines: w.lines.map((l, i) => ({ ...l, spec: ap.lines[i].spec ?? l.spec, spec_source: ap.lines[i].spec_source ?? l.spec_source })) };
+}
 
 export function reviewQuotation(inq: SafeInquiry, w: Working): Review {
   const issues: Issue[] = [];
