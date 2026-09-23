@@ -13,7 +13,8 @@
 //             report to the CEO and the ad-spend loops). A failing duty is an IT finding owned by marketing.
 //   assist  — company knowledge for a question (fn_marketing_assist, gte-small in-region, no paid model).
 //
-// NO MODEL CALL. Deterministic first; the founder sets the model per seat later.
+// MODEL CALLS: only through ./duties.ts -> _shared/marketing_judgement.ts (one class per step, dept 'marketing',
+// asked of the founder's hold first; while it stands each step records "held, not run"). Deterministic first.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
@@ -36,7 +37,7 @@ async function sec(k: string): Promise<string | undefined> {
 }
 
 // The credentials held for this seat alone (rule 641). Read here for presence only.
-const HELD_KEYS = ['meta_access_token', 'meta_ad_account_id', 'postiz_api_key', 'postiz_publish_key', 'postiz_integrations'];
+const HELD_KEYS = ['meta_access_token', 'meta_ad_account_id', 'postiz_api_key', 'postiz_publish_key', 'postiz_integrations', 'meta_ig_user_id'];
 
 type Caller = { kind: 'marketing' | 'founder' } | null;
 async function whoami(req: Request, body: Record<string, unknown>): Promise<Caller> {

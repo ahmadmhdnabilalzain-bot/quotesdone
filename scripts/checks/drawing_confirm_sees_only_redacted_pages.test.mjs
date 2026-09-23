@@ -24,12 +24,13 @@ test('drawing_boq: confirmStep takes no image from the request and is called onl
   const start = src.indexOf('async function confirmStep(');
   assert.ok(start > 0, 'confirmStep not found');
   const fn = src.slice(start, src.indexOf('\nfunction ', start));
-  assert.match(fn, /confirmStep\(lines: any\[\], page: RedactedPage\)/, 'the signature takes a RedactedPage');
+  // + the draft's author model (23 Sep 2026, founder instruction ~891): a model id or 'deterministic', never page content
+  assert.match(fn, /confirmStep\(lines: any\[\], page: RedactedPage, author: string\)/, 'the signature takes a RedactedPage');
   // Reading the request = a property access on the handler's body (the fetch option key is not).
   assert.doesNotMatch(fn, /\bbody\s*(?:\.|\?\.|\[)/, 'confirmStep must not read the request body');
   assert.doesNotMatch(fn, /\bimages\b/, 'confirmStep must not touch request images');
   const calls = [...src.matchAll(/await confirmStep\(([^)]*)\)/g)].map((m) => m[1]);
-  assert.deepEqual(calls, ['lines, page'], 'exactly one call, with the page');
+  assert.deepEqual(calls, ['lines, page, author'], 'exactly one call, with the page');
   assert.match(src, /const page = redactedPageFor\(/, 'the page comes from redactedPageFor');
 });
 

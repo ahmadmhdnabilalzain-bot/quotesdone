@@ -50,7 +50,11 @@ declare
     -- ceo_agent added 22 Sep 2026: the CEO's judgement (plan A/B, off until app_secrets.ceo_model_slot
     -- = 'on') runs in its own function. The live widening is in
     -- scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql; named here for a rebuilt database.
-    'ceo_agent'];
+    'ceo_agent',
+    -- marketing added 23 Sep 2026: the marketing seat's judgement steps (marketing/duties.ts ->
+    -- _shared/marketing_judgement.ts). The live widening is in
+    -- scripts/sql/the_marketing_seat_gets_a_model_ceiling_and_every_class_it_thinks_with.sql.
+    'marketing'];
   c text; v jsonb; v_id bigint; v_has_secret boolean;
   n_widened int := 0; n_issued int := 0; n_rotated int := 0; n_noop int := 0; n_missing int;
 begin

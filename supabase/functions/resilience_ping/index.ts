@@ -14,6 +14,7 @@ import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
+import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -1027,6 +1028,14 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
+  // Two seats never agree on one model family (founder_instruction 873). The review steps are routed and
+  // held in the database (a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql): under the hold each
+  // one records "held, not run" once and costs nothing. Then the agreement monitor: a reviewer approving
+  // >= 90% of >= 10 proposals, or a review with no independent model, is a finding for the CEO.
+  await step('deliberations', async () => advanceOpenDeliberations(admin, 3));
+  await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
+  // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).
+  await step('review_independence', async () => rpc('fn_it_review_independence_watch'));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');

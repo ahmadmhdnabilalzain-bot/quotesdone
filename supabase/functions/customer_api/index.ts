@@ -1007,7 +1007,7 @@ Deno.serve(observe('customer_api', async (req) => {
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
           try {
-            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });
+            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, author_model: typeof boqOut.author_model === 'string' ? boqOut.author_model : 'unknown', redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });
             const cj = await cr.json();
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
