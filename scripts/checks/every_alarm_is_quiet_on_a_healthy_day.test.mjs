@@ -122,6 +122,14 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_plan_loop_tick()',
     asOf: { marketing_model_run: 'created_at', marketing_month_plan: 'created_at' },
   },
+  // 24 Sep 2026 (it_engineer, #910). Raises learning_accuracy_fell:<seat> when a seat's 7-day judgement accuracy
+  // falls against the week before. It reads the judgements, lessons and daily rows that existed at the instant;
+  // a healthy day has no seat whose accuracy fell, so it is quiet. Its own daily row is written inside the
+  // rolled-back replay.
+  fn_seat_learning_measure: {
+    replay: 'pg_temp.qd_replay_fn_seat_learning_measure(null::date)',
+    asOf: { seat_judgement: 'made_at', seat_learning_daily: 'measured_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },

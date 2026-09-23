@@ -171,6 +171,8 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
 // Decision point line_specs.workflow_installation: the document reads the structured installation fields,
 // never the record's sentence. A sentence saying "Included" with installation_included false prints Not included.
 import { pdfBody as pdfBody82, type Standardised as Std82 } from './workflow.ts';
+});
+
 Deno.test('pdfBody reads installation from the structured fields, not from the sentence', () => {
   const rec = (inc: boolean | null, detail: string | null, sentence: string | null): Std82 => ({
     contract: 'standardised_quotation', version: 1, quote_id: 'zzdemo00-0000-4000-8000-000000000082', option_no: 1, category: 'hvac', trade: 'hvac', currency: 'AED',
@@ -241,4 +243,28 @@ Deno.test('the fill-in form offers the installation scope beside "is installatio
   assertEquals(formSchema(a, []).terms.map((t) => t.attr), ['delivery', 'installation_included', 'installation_detail', 'warranty_coverage']);
   const b = { lines: [], missing: [termItem('installation_detail')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
   assertEquals(formSchema(b, []).terms.map((t) => t.attr), ['installation_detail'], 'never offered twice');
+});
+
+// Post-deploy smoke, 23 Sep 2026 ("filling in the details regenerates the quotation": still missing
+// installation_detail). Under the hold nothing reads the scope from his prose, so the form asked "Is
+// installation included?" alone, his "yes" opened a second round for the scope. The form asks both at once.
+Deno.test('UNDER THE HOLD "is installation included?" is asked with its scope, so one fill-in completes the quote', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q6', q('q6', SUP_EN.id));
+  repo.items.set('q6', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000, spec: WARDROBE_READ, spec_source: { material: 'supplier_portal', thickness_mm: 'supplier_portal', finish: 'supplier_portal' } }]);
+  const ctx = { category: 'joinery', requirements: { version: 1, installation: { required: 'yes' }, warranty: { required: 'not_needed' } }, ref: 'ZZDEMO07', now: NOW, read: reads({}) };
+  const g = await gate(repo, 'q6', SUP_EN, ctx);
+  assertEquals(g.missing.map((m) => m.attr), ['installation_included']);
+  const asked = formSchema(g.assessment!, []).terms.map((m) => m.attr);
+  assertEquals(asked, ['installation_included', 'installation_detail'], 'the scope is asked with the question, not in a second round');
+  const done = await fillIn(repo, 'q6', SUP_EN, { terms: { installation_included: 'yes', installation_detail: 'Installation within 10 working days of delivery' } }, ctx);
+  assert(done.ok && done.complete, `one fill-in did not complete it: ${JSON.stringify(done.ok && !done.complete ? done.missing : done)}`);
+  // "Supply only": the scope stays blank and is not required.
+  const repo2 = new Fake();
+  repo2.quotes.set('q6', q('q6', SUP_EN.id));
+  repo2.items.set('q6', structuredClone(repo.items.get('q6')!));
+  await gate(repo2, 'q6', SUP_EN, ctx);
+  const no = await fillIn(repo2, 'q6', SUP_EN, { terms: { installation_included: 'no', installation_detail: '' } }, ctx);
+  assert(no.ok && no.complete, 'a supply-only answer is asked for no scope');
+  nobodyReal(repo); nobodyReal(repo2);
 });
