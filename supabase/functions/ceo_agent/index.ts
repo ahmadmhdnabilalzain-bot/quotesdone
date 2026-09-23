@@ -19,10 +19,17 @@
 // route the same way twice, cost nothing to route, and be explainable by pointing at the row that
 // matched. fn_ceo_classify is a pattern table and a rank. The model's judgement belongs in HOW the
 // work is done, not in whether he was understood.
+//
+// SUPERSEDED 23 Sep 2026 (founder_instruction 886-903: "NO word matching anywhere"). The pattern table
+// read "check why the refund failed" as 'measure' and "don't build anything yet" as 'build'. Whether he
+// was understood is now REASONED (think(), _shared/reasoned_decisions.ts commandIntent) and the command is
+// recorded first, so under the hold it waits as 'interpreting' instead of being routed on a word.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { commandIntent } from '../_shared/reasoned_decisions.ts';
 import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -109,7 +116,20 @@ Deno.serve(observe('ceo_agent', async (req) => {
       });
       if (error) return J({ error: error.message }, 500);
       const r = Array.isArray(data) ? data[0] : data;
-      return J({ ok: true, command_id: r?.command_id, intent: r?.intent_id, state: r?.state, matched: r?.matched });
+      // WHAT HE MEANT IS REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903). The command is
+      // recorded first ('interpreting'); think() chooses its intent among ceo_command_intent's meanings and
+      // fn_ceo_command_interpret applies it. Under the hold it stays 'interpreting' in the ceo queue and is
+      // applied by the replay the moment the hold lifts — never by the old pattern table (fn_ceo_classify, dropped).
+      const { data: intents } = await admin.from('ceo_command_intent').select('intent_id,meaning');
+      const reasoned = await commandIntent(defaultDeps(admin, 'ceo_agent'), { body: text, intents: intents ?? [], commandId: Number(r?.command_id) });
+      if (reasoned.value) {
+        const { data: applied, error: aErr } = await admin.rpc('fn_ceo_command_interpret', {
+          p_command_id: r?.command_id, p_intent: reasoned.value, p_why: reasoned.result.answer.slice(0, 1000) });
+        if (aErr) return J({ error: aErr.message, command_id: r?.command_id }, 500);
+        return J({ ok: true, command_id: r?.command_id, intent: applied?.intent, state: applied?.state, reasoning: reasoned.result.steps });
+      }
+      return J({ ok: true, command_id: r?.command_id, intent: r?.intent_id, state: r?.state, held: reasoned.result.held_id ?? null,
+                 note: 'recorded; what it means is reasoned the moment the model hold lifts (' + (reasoned.result.reason ?? 'held') + ')' });
     }
 
     // ── CONTEXT ────────────────────────────────────────────────────────────────────────────────

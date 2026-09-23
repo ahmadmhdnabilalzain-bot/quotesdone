@@ -13,6 +13,8 @@ import { detectCat, detectTrades, detectEmirate, detectUrgency, utilityText } fr
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -387,6 +389,35 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     else if (!llmCallOk) { await logRun('error', { llm_call_ok: 0, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM call failed for every model (or the OpenRouter key is missing), so this customer\'s brief was assembled by the crude keyword fallback instead of real comprehension — the RFQ may be mis-categorised, under-specified, or held at \'needs_info\' forever, and the customer will never learn why.'); }
     else if (!llmParseOk) { await logRun('error', { llm_call_ok: 1, llm_parse_ok: 0, keyword_fallback_used: 1 }, 'Intake LLM replied with unparseable JSON, so this customer\'s brief fell back to keyword guessing rather than the model — the brief that suppliers eventually quote against is degraded and may name the wrong trade.'); }
 
+    // HELD, NOT GUESSED (23 Sep 2026, founder_instruction 886-903). With no model reading, the trade used
+    // to come from the keyword map (detectCat / detectTrades), which filed "ground floor fire alarm" under
+    // flooring. Now the trade is REASONED (think(), tradeOf over every category) — and while that reasoning
+    // is held the inquiry is HELD: status 'held', nothing is decided, the customer is told it is being
+    // reviewed, and fn_reason_held_resolve sets the reasoned trade the moment the hold lifts (the portal
+    // then continues the interview). A trade already reasoned for this draft (brief.category_by) stands.
+    if (!out && allText.trim() && !(draft.brief && draft.brief.category_by === 'reasoning')) {
+      const t = await tradeOf(defaultDeps(admin, 'inquiry_intake'), {
+        conversation: allText, candidates: validSlugs.map((slug: string) => ({ slug, label: slug.replace(/[-_]/g, ' ') })),
+        dedupeKey: 'intake_trade:' + draft.id, subject: { intake_id: draft.id },
+      });
+      if (t.value && validSlugs.includes(t.value)) {
+        // The reasoned trade replaces the keyword one everywhere the deterministic interview reads it.
+        category = t.value; kwTrades = [];
+        const { data: cs } = await admin.from('category_specs').select('fields').eq('category', category).maybeSingle();
+        checklist = Array.isArray(cs?.fields) ? cs.fields : [];
+        draft.brief = { ...(draft.brief && typeof draft.brief === 'object' ? draft.brief : {}), category_by: 'reasoning' };
+      } else {
+        const heldMsg = ar
+          ? 'شكرًا لكم. استلمنا طلبكم، ويراجعه الآن مهندس المبيعات لدينا لتحديد التخصص المناسب بدقة. سنكمل معكم هنا فور الانتهاء، ولا حاجة إلى إعادة كتابة أي شيء.'
+          : 'Thank you — we have your request and our sales engineer is reviewing it now to identify exactly the right trade. We will continue with you here as soon as that is done; there is no need to type anything again.';
+        turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });
+        await admin.from('inquiry_intake').update({ status: 'held', raw_input: allText.slice(0, 4000), turns, updated_at: new Date().toISOString() }).eq('id', draft.id);
+        await logRun('ok', { model_held: 1, intake_held: 1 }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords');
+        return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
+                   readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, agent: ACTOR });
+      }
+    }
+
     let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
     let nextQuestion: { key: string | null; text: string; options: string[] | null; suggested?: string | null } | null = null;
     let readinessFields: { filled: number; required: number } | null = null;
@@ -473,13 +504,27 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     // exists and the model's category has none of it, the deterministic answer stands. The
     // disagreement is returned as classifier_override rather than swallowed, because a
     // suggestion that silently wins is not a suggestion.
+    //
+    // SUPERSEDED FOR THE MODEL PATH, 23 Sep 2026 (founder_instruction 886-903: "NO word matching
+    // anywhere"). The keyword layer no longer overrules the model: a word map read "ground floor" as
+    // flooring and "break glass" as glass (_shared/trade_classify.ts says so itself). When the model's
+    // trade and the keyword evidence disagree, the disagreement is REASONED — think() weighs the
+    // candidates against the customer's whole description (_shared/reasoned_decisions.ts tradeOf) — and
+    // the reasoned trade stands. If that reasoning is held, the model's own reading stands; nothing is
+    // decided by the word map. The deterministic interview under the hold (out === null above) still
+    // seeds its checklist from the map: that path is the next intake item in decision_points.json.
     const kwCategory = detectCat(allText);
-    let classifierOverride: { model: string; kept: string } | null = null;
+    let classifierOverride: { model: string; kept: string; by?: string } | null = null;
     let requiredGate: { category: string; missing_keys: string[] } | null = null;
     let cat = out.category || category;
-    if (out.category && kwTrades.length && !kwTrades.includes(out.category) && out.category !== kwCategory) {
-      const kept = kwCategory || kwTrades[0];
-      if (kept) { classifierOverride = { model: String(out.category), kept: String(kept) }; cat = kept; }
+    const modelAnswered = llmParseOk;   // `out` is the model's reading, not the deterministic interview's
+    if (modelAnswered && out.category && kwTrades.length && !kwTrades.includes(out.category) && out.category !== kwCategory) {
+      const candidates = Array.from(new Set([String(out.category), kwCategory, ...kwTrades].filter((c): c is string => !!c && validSlugs.includes(c))))
+        .map((slug) => ({ slug, label: slug.replace(/[-_]/g, ' ') }));
+      const t = candidates.length > 1
+        ? await tradeOf(defaultDeps(admin, 'inquiry_intake'), { conversation: allText, candidates, dedupeKey: 'intake_trade:' + (draft.id ?? email) + ':' + turns.length })
+        : null;
+      if (t?.value && t.value !== out.category) { classifierOverride = { model: String(out.category), kept: t.value, by: 'reasoning' }; cat = t.value; }
     }
     if (!cat || (!validSlugs.includes(cat) && cat !== 'general')) { cat = detectCat(allText) || (validSlugs.includes(String(draft.category)) ? draft.category : null) || 'general'; }
     category = cat;
@@ -492,7 +537,8 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     // its own checklist, so one invented trade can hold a complete request at needs_info forever.
     // When the keyword layer found anything at all, a model trade it did not corroborate is
     // dropped. When there is no keyword evidence, the model is all we have and is trusted.
-    if (kwTrades.length) {
+    // (Model path: the model's trade list stands — a word map does not get to strike a trade out of it.)
+    if (!modelAnswered && kwTrades.length) {
       const supported = trades.filter((s: string) => kwTrades.includes(s) || s === kwCategory);
       if (supported.length !== trades.length) {
         classifierOverride = classifierOverride
@@ -500,13 +546,13 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       }
       trades = supported;
     }
-    if (!trades.length) trades = kwTrades.slice();
+    if (!trades.length && !modelAnswered) trades = kwTrades.slice();
     if (category && validSlugs.includes(category) && !trades.includes(category)) trades.unshift(category);
     if (trades.includes('flooring') && trades.includes('tiling')) trades = trades.filter((c: string) => c !== 'tiling');
     trades = Array.from(new Set(trades)).slice(0, 6);
     const urgency = ['emergency', 'urgent', 'normal'].includes(out.urgency) ? out.urgency : detectUrgency(allText);
     const plausibility = (out.plausibility && typeof out.plausibility === 'object') ? out.plausibility : null;
-    const provenance = (out.provenance && typeof out.provenance === 'object') ? out.provenance : null;
+    let provenance = (out.provenance && typeof out.provenance === 'object') ? out.provenance : null;
 
     // ONE DEFINITION OF READY.
     // The intake used to declare 'ready' on the model's own say-so. dispatch is gated by
@@ -526,10 +572,26 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
         : [];
       const b = (out.brief && typeof out.brief === 'object') ? out.brief : {};
       const det = (b.details && typeof b.details === 'object') ? b.details : {};
-      const absent = required.filter((f: any) => {
-        const v = b[f.key] ?? det[f.key];
-        return v === undefined || v === null || String(v).trim() === '';
-      });
+      if (!b.details || typeof b.details !== 'object') b.details = det;
+      const isAbsent = (f: any) => { const v = b[f.key] ?? det[f.key]; return v === undefined || v === null || String(v).trim() === ''; };
+      // EXACT SPEC BY REASONING (23 Sep 2026, founder_instruction 886-903). fn_rfq_required_check used to
+      // count a required spec as answered when a 4-letter token of any of its option labels appeared
+      // anywhere in the text ("no preference on the frame" answered frame_material). That scan is gone
+      // (scripts/sql/meaning_is_decided_by_reasoning_not_by_word_lists.sql). A field the brief left blank
+      // is asked of think(): has the customer ALREADY stated it? It is filled only with the customer's own
+      // words as evidence (the validator refuses a value it cannot find verbatim), and marked 'reasoned'.
+      // Held: nothing is filled, and the field is simply asked.
+      const blank = required.filter(isAbsent);
+      if (blank.length) {
+        const stated = await statedSpecs(defaultDeps(admin, 'inquiry_intake'), {
+          conversation: allText, category, dedupeKey: 'intake_spec:' + (draft.id ?? email) + ':' + turns.length,
+          fields: blank.map((f: any) => ({ key: String(f.key), question: String(f.question || f.key) })),
+        });
+        for (const [k, v] of Object.entries(stated.value ?? {})) {
+          if (v.value && blank.some((f: any) => f.key === k)) { det[k] = v.value; provenance = { ...(provenance || {}), [k]: 'reasoned' }; out.provenance = provenance; }
+        }
+      }
+      const absent = required.filter(isAbsent);
       if (absent.length) {
         status = 'needs_info';
         out.status = 'needs_info';

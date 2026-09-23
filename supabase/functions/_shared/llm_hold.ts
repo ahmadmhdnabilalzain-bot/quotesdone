@@ -12,30 +12,44 @@
 // working as designed must not be logged as a fault, and a call that cannot be answered must not be
 // made. Both need the same one-line answer, and nothing in _shared gave it.
 //
-// COST: one select of a tiny table, cached per isolate for 60 s. The gateway still enforces the
+// IT ASKS THE GATE ITSELF (23 Sep 2026, word-matching audit, part_src_llm). This file used to read
+// llm_route_health and call the estate held only when EVERY row was held, while the gate the gateway
+// obeys (public.fn_kernel_paid_provider_gate, step 3) refuses on ANY held row. With a partial hold
+// this said "available" and every call then failed — the exact false error it was written to stop.
+// Two readings of one rule drift; so there is one reading now: the gate's. It is asked with a probe
+// model name, and its rule says whether the refusal is the hold (founder_hold, the no_paid_ai switch,
+// or no route state at all) or something about that one model (which is not a hold).
+//
+// COST: one call to a STABLE function, cached per isolate for 60 s. The gateway still enforces the
 // hold; this only stops the pointless round trip and the false error.
 // ponytail: 60 s cache — a release takes at most a minute to be seen by a warm isolate.
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-export type RouteRow = { open_until: string | null };
+export type GateAnswer = { allowed?: unknown; rule?: unknown; [k: string]: unknown } | null | undefined;
 
-/** True when EVERY model route is open (circuit open) — i.e. no route can answer. */
-export function heldFromRows(rows: RouteRow[] | null, now: Date = new Date()): boolean {
-  if (!rows || rows.length === 0) return false;   // no routes configured is not a hold; let the gateway decide
-  return rows.every((r) => r.open_until != null && new Date(r.open_until).getTime() > now.getTime());
+/** The gate rules that mean "no model route can answer at all" — the estate-wide hold. */
+export const HOLD_RULES = new Set(['founder_hold', 'no_paid_ai_switch', 'empty_route_state']);
+
+/** The name the gate is probed with. It is never registered, so an open estate answers route_not_registered. */
+export const HOLD_PROBE_MODEL = 'hold-probe/not-a-model';
+
+/** True when the gate's refusal is the estate-wide hold, not a refusal of one model. */
+export function heldFromGate(g: GateAnswer): boolean {
+  if (!g || typeof g !== 'object') return false;   // could not tell: the gateway decides
+  return g.allowed !== true && HOLD_RULES.has(String(g.rule ?? ''));
 }
 
 let _cached: { at: number; held: boolean } | null = null;
 
-/** Is the OpenRouter hold on? Never throws: an unreadable table answers false and the gateway decides. */
+/** Is the OpenRouter hold on? Never throws: an unreadable gate answers false and the gateway decides. */
 export async function modelHeld(admin: Admin, ttlMs = 60_000): Promise<boolean> {
   if (_cached && Date.now() - _cached.at < ttlMs) return _cached.held;
   try {
-    const { data, error } = await admin.from('llm_route_health').select('open_until');
+    const { data, error } = await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL });
     if (error) return false;
-    const held = heldFromRows(data as RouteRow[]);
+    const held = heldFromGate(data as GateAnswer);
     _cached = { at: Date.now(), held };
     return held;
   } catch (_e) { return false; }

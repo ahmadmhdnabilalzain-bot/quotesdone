@@ -78,7 +78,8 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       // Only the comment_* rows: a DM row carries DM instructions ("reply 'agent'", the founder's mobile)
       // that must never be posted under a public post. FAQ and knowledge answers pass guard() in processComment.
       const library = ((lib || []) as LibraryRow[]).filter((r) => r.key.startsWith('comment_'));
-      const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus);
+      // the person question is reasoned once, upstream, and handed to processComment; here only the answer is picked
+      const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, false);
       return d.kind === 'unknown' ? { ...unknown(library, d.lang), text: '' } : d;
     },
     async draft(ev, lang: Lang) {
