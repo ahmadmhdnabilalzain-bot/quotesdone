@@ -38,6 +38,14 @@
 //   ceo               EN .396 AR .000     EN .547 AR .057   EN .583 AR .672   EN .583 AR .609
 //   it_engineer       EN .728 AR .000     EN .794 AR .178   EN .675 AR .817   EN .811 AR .589
 //   marketing         EN .600 AR .067     EN .711 AR .200   EN .683 AR .694   EN .750 AR .517
+// RUN 24 Sep 2026, same flags, with the model production loads (the Arabic+English trim, _shared/ml_embed_recipe.ts):
+//   sales_engineer    today EN .617 AR .059 | e5 EN .676 AR .631 | fused EN .716 AR .540
+//   customer_support  today EN .626 AR .059 | e5 EN .686 AR .647 | fused EN .727 AR .536
+//   accountant        today EN .444 AR .000 | e5 EN .653 AR .653 | fused EN .715 AR .604
+//   ceo               today EN .396 AR .000 | e5 EN .583 AR .646 | fused EN .542 AR .625
+//   it_engineer       today EN .728 AR .000 | e5 EN .675 AR .833 | fused EN .828 AR .589
+//   marketing         today EN .600 AR .067 | e5 EN .683 AR .678 | fused EN .767 AR .517
+// Against the 23 Sep full-model run: e5 within 0.02 everywhere; fused within 0.05 (ceo EN .583 -> .542). EVAL OK.
 // Without kb_chunks the fused path is EN .578-.833, AR .544-.656. Corroboration equivalent: 0.833 (both runs).
 // Chunking rows by paragraph (an earlier variant) lowered every seat and was dropped.
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
@@ -45,7 +53,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import { ML_MODEL, ML_QUERY_PREFIX, ML_PASSAGE_PREFIX, rowText } from '../kb/ml_embed_recipe.mjs';
+import { ML_MODEL, ML_QUERY_PREFIX, ML_PASSAGE_PREFIX, rowText, modelHost } from '../kb/ml_embed_recipe.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const at = (f) => { const i = process.argv.indexOf(f); return i >= 0 ? process.argv[i + 1] : null; };
@@ -83,7 +91,7 @@ const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].
   ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: [...new Set(q.expected_entry_ids)] })))));
 
 // ── the live pool, read-only ────────────────────────────────────────────────────────────────────
-const { sql } = await import('../lib/db.mjs');
+const { sql, PROJECT_REF } = await import('../lib/db.mjs');
 const Q = [
   `select 'ops_knowledge' src, record_id id, title, content body, null seat from public.ops_knowledge where runtime_eligible and supersession_state = 'current' and scope_type in ('company','external_source','category')`,
   `select 'agent_knowledge' src, id::text id, topic title, content body, agent_key seat from public.agent_knowledge where agent_key in ('_global','ceo','accountant','sales_engineer','customer_support','it_engineer','marketing')`,
@@ -98,10 +106,11 @@ const packIds = new Set(packRows.map((p) => p.id));
 const live = (await Promise.all(Q.map((s) => sql(s, { readOnly: true })))).flat().filter((r) => !packIds.has(r.id));
 
 // ── the embedders ───────────────────────────────────────────────────────────────────────────────
-const { pipeline } = await import('@huggingface/transformers');
+const { pipeline, env } = await import('@huggingface/transformers');
 const cachePath = join(tmpdir(), 'qd_ml_recall_eval_vectors.json');
 const cache = existsSync(cachePath) ? JSON.parse(readFileSync(cachePath, 'utf8')) : {};
 async function embedder(model) {
+  Object.assign(env, modelHost(model, `https://${PROJECT_REF}.supabase.co`));
   const f = await pipeline('feature-extraction', model, { dtype: 'q8' });
   return async (texts) => {
     const out = new Array(texts.length), todo = [];

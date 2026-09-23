@@ -1,11 +1,11 @@
 // THE MULTILINGUAL EMBEDDER, ASKED FROM A REQUEST PATH. Seat: it_engineer (shared platform). 23 Sep 2026.
 //
-// The model (~118 MB, ml_embed.ts) runs in ONE place: the ai_gateway worker that serves 'embed_ml'. A seat
-// answering a customer (think.ts, case_recall.ts) asks the gateway over HTTP instead of loading the model in
-// its own worker, so a worker that runs out of memory loading it is the gateway's, and here it is only a failed
-// fetch: this returns null and the caller takes the gte-small path. (Review of this PR, finding 1: an in-process
-// load on wa_inbound or customer_api could kill the isolate mid-reply, which no try/catch can recover.)
-// The credential is cred_fn_ai, the fn.ai context scoped to ai_gateway; 'fn' names the caller in the audit.
+// The model (45.5 MB, ml_embed.ts) runs in ONE place: the embed_ml function. A seat answering a customer
+// (think.ts, case_recall.ts) asks it over HTTP instead of loading the model in its own worker, so a worker that
+// runs out of memory loading it is embed_ml's, and here it is only a failed fetch: this returns null and the
+// caller takes the gte-small path. (Review of #907, finding 1: an in-process load on wa_inbound or customer_api
+// could kill the isolate mid-reply, which no try/catch can recover.)
+// The credential is cred_fn_ai, the fn.ai context whose scope includes embed_ml; 'fn' names the caller in the audit.
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -35,9 +35,9 @@ export async function embedQueryMlRemote(admin: Admin, text: string, caller: str
       if (!data?.value) return null;
       cred = { v: String(data.value), at: Date.now() };
     }
-    const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway', {
+    const r = await fetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/embed_ml', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: cred.v, fn: caller, action: 'embed_ml', text: t }),
+      body: JSON.stringify({ __secret: cred.v, fn: caller, action: 'query', text: t }),
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!r.ok) return null;

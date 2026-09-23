@@ -211,8 +211,10 @@ grant execute on function public.fn_ml_embed_claim(integer) to service_role;
 -- Writes the row's multilingual vector (and, for support/ceo, its gte-small vector) only if the source text is
 -- still the text the caller embedded (p_hash); otherwise the lease is dropped and the row is claimed again.
 -- Both are 384-d, so the database cannot tell which model made a vector: that p_embedding is multilingual and
--- p_embedding_gte is gte-small is guaranteed by the one caller, _shared/ml_embed.ts embedQueueOnce (embedRaw and
--- embedLine respectively). Execute is service_role only.
+-- p_embedding_gte is gte-small is guaranteed by its two callers, which load the same model files: the edge
+-- trickle (_shared/ml_embed.ts embedQueueOnce: embedRaw and embedLine) and the runner backfill
+-- (scripts/kb/run_ml_embed_backfill.mjs: the trimmed e5 from Storage, and gte from embed_ml's 'gte' action, i.e.
+-- Supabase.ai gte-small). Execute is service_role only.
 create or replace function public.fn_ml_embed_write(p_src text, p_row_id text, p_hash text, p_embedding vector(384),
   p_embedding_gte vector(384) default null)
 returns boolean
@@ -533,11 +535,21 @@ grant execute on function public.fn_case_recall_ml(text, vector, text, integer, 
 
 -- ── 8. on the heartbeat: new and changed rows after the backfill ─────────────────────────────────
 -- The backlog is drained by .github/workflows/ml-embed-backfill.yml (the clock that can hold a connection
--- for 30 minutes). This step embeds what arrives afterwards: resilience_ping asks ai_gateway to claim and
--- embed up to 8 rows per tick, the same bound the gte case-memory tick keeps for the edge CPU cap.
+-- for 30 minutes). This step embeds what arrives afterwards: resilience_ping asks the embed_ml function to claim and
+-- embed up to 4 rows per tick (8 rows took 1.3 s of worker CPU, 16 were refused: measured 24 Sep 2026).
 insert into public.resilience_step (step, every, budget_ms, place, rank, note, owner_seat) values
   ('mlEmbed', interval '15 minutes', 8000, 'plan', 0,
-   'knowledge_vector_ml trickle: up to 8 new or changed rows per tick embedded with multilingual-e5-small in ai_gateway (free, in-region, not OpenRouter); gated by ml_embed_golive and ml_embed_daily_cap',
+   'knowledge_vector_ml trickle: up to 4 new or changed rows per tick embedded with multilingual-e5-small (Arabic+English trim) in the embed_ml function (free, in-region, not OpenRouter); gated by ml_embed_golive and ml_embed_daily_cap',
    'it_engineer')
 on conflict (step) do update set every = excluded.every, budget_ms = excluded.budget_ms, place = excluded.place,
                                 rank = excluded.rank, note = excluded.note, owner_seat = excluded.owner_seat;
+
+-- ── 9. the embedder's home: the embed_ml function and the model files ────────────────────────────
+-- embed_ml authenticates like ai_gateway (requireInternal). Its callers (think.ts, case_recall.ts,
+-- resilience_ping) already present cred_fn_ai, so the fn.ai credential's scope gains 'embed_ml'; nothing else
+-- about the credential changes. The model files (scripts/kb/trim_ml_model.py; sha256 in
+-- _shared/ml_embed_recipe.ts) live in the public bucket ml-models: MIT weights, nothing private. The bucket was
+-- created and the files uploaded on 24 Sep 2026 while measuring; this line records it so a rebuild has it.
+update public.internal_credential set scope = array_append(scope, 'embed_ml')
+ where context = 'fn.ai' and not ('embed_ml' = any(scope));
+insert into storage.buckets (id, name, public) values ('ml-models', 'ml-models', true) on conflict (id) do nothing;

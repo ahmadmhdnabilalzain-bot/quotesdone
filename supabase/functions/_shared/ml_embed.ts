@@ -1,19 +1,28 @@
-// THE MULTILINGUAL EMBEDDER — Arabic and English in one space. Seat: it_engineer (shared platform). 23 Sep 2026.
+// THE MULTILINGUAL EMBEDDER — Arabic and English in one space. Seat: it_engineer (shared platform). 23-24 Sep 2026.
 //
 // Supabase.ai.Session runs one embedding model, gte-small, and it is English-only (measured: an Arabic question
-// reached its own Arabic knowledge row 0-8% of the time). This runs Xenova/multilingual-e5-small (MIT, 384-d)
-// with transformers.js. In the Supabase edge runtime transformers.js does not bring its own ONNX build: the
-// runtime exposes its native ONNX session under Symbol.for('onnxruntime') and transformers.js uses it
-// (node_modules/@huggingface/transformers/src/backends/onnx.js). Free, in-region, not OpenRouter; the model
-// file (~118 MB, q8) is fetched from the Hugging Face CDN on a cold start.
+// reached its own Arabic knowledge row 0-8% of the time). This runs the trimmed multilingual-e5-small
+// (ml_embed_recipe.ts) with transformers.js, in ONE small function of its own (embed_ml), never in ai_gateway.
+//
+// WHY THIS IMPORT AND THESE OPTIONS (measured 24 Sep 2026 on htdblwldjkcgjvmqkbeh, zz_test_ml_embed, deleted after):
+//   npm:@huggingface/transformers   the deploy fails, 500 "internal error", in a function of its own as in ai_gateway
+//   jsDelivr +esm, no device        "Unsupported device: wasm": the web build defaults to wasm, which the edge
+//                                   runtime does not offer; it exposes its native ONNX under Symbol.for('onnxruntime')
+//   device 'auto'                   uses that native session; the full 118 MB model then dies at 298 MB (Memory)
+//   + the trimmed 45.5 MB model     loads in 1.2-2.6 s cold, a question embeds in ~35 ms, 20 questions in 190 ms,
+//                                   8 rows of 1,200 chars in 1.3 s; 16 rows exceed the worker's resources
+// The model files come from Storage (in-region, free); nothing here is OpenRouter.
 //
 // FAIL SOFT, NEVER WRONG. Anything that goes wrong returns null and the caller uses the gte-small path with
 // the gte routines. A vector is never returned for the wrong space. The pipeline is built once per worker
 // (module scope): building it per request is what killed kb_embed with WORKER_RESOURCE_LIMIT on 28 Jul.
-import { ML_MODEL, ML_PASSAGE_PREFIX, ML_QUERY_PREFIX, rowText } from './ml_embed_recipe.ts';
+import * as TJS from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm';
+import { ML_MODEL, ML_MODEL_PATH, ML_PASSAGE_PREFIX, ML_QUERY_PREFIX, rowText } from './ml_embed_recipe.ts';
 import { embedLine } from './gte_embed.ts';
 
-export const ML_EMBED_MS = 20_000;   // a cold start downloads the model; a warm embed is tens of ms
+export const ML_EMBED_MS = 20_000;   // a cold start downloads the model (1.2-2.6 s measured); a warm embed is tens of ms
+// Rows per tick: 8 rows took 1.3 s of the worker's CPU and 16 were refused, so a tick embeds 4.
+export const ML_TICK_MAX = 4;
 // deno-lint-ignore no-explicit-any
 let pipe: Promise<any> | null = null;
 
@@ -21,10 +30,13 @@ let pipe: Promise<any> | null = null;
 async function extractor(): Promise<any> {
   if (!pipe) {
     pipe = (async () => {
-      const { pipeline, env } = await import('npm:@huggingface/transformers@3.8.1');
+      // deno-lint-ignore no-explicit-any
+      const { pipeline, env } = TJS as any;
       env.allowLocalModels = false;
       env.useBrowserCache = false;
-      return await pipeline('feature-extraction', ML_MODEL, { dtype: 'q8' });
+      env.remoteHost = Deno.env.get('SUPABASE_URL') + ML_MODEL_PATH;
+      env.remotePathTemplate = '{model}/';
+      return await pipeline('feature-extraction', ML_MODEL, { dtype: 'q8', device: 'auto' });
     })();
     pipe.catch(() => { pipe = null; });   // a failed load is retried by the next call, not cached forever
   }
@@ -69,7 +81,7 @@ type Rpc = { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ d
 
 // ── the embed queue: claim, embed, write ────────────────────────────────────────────────────────
 type Claimed = { src: string; row_id: string; title: string | null; body: string | null; hash: string };
-/** One pass of the queue (fn_ml_embed_claim -> embed -> fn_ml_embed_write). Used by ai_gateway's tick. */
+/** One pass of the queue (fn_ml_embed_claim -> embed -> fn_ml_embed_write). Used by embed_ml's tick (resilience_ping's clock). */
 export async function embedQueueOnce(admin: Rpc, limit: number): Promise<Record<string, unknown>> {
   const { data, error } = await admin.rpc('fn_ml_embed_claim', { p_limit: limit });
   if (error) return { ok: false, error: error.message };

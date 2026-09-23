@@ -459,7 +459,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
-      // The model runs in ai_gateway, never in this worker (ml_embed_client.ts); 8 s covers a gateway cold start.
+      // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
       if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return await embedQueryMlRemote(admin, t, fn, 8000); }
       const { embedLine } = await import('./gte_embed.ts'); return await embedLine(t);
     },

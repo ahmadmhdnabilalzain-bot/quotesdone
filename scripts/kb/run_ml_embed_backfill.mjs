@@ -1,51 +1,70 @@
-// The pump for the multilingual backfill (knowledge_vector_ml). Seat: it_engineer. 23 Sep 2026.
+// THE MULTILINGUAL BACKFILL, embedded on the runner. Seat: it_engineer. 23-24 Sep 2026.
 //
-// The embedding happens in ai_gateway (action 'embed_ml_tick': claim up to 16 rows, embed them with
-// multilingual-e5-small in the edge runtime, write them back) — free, in-region, not OpenRouter. This script
-// is only the clock: it calls that action back to back for --minutes, two calls in flight, and stops early
-// when the queue is empty or fn_ml_embed_claim says the gate is shut or today's cap is reached. The gate
-// (app_secrets ml_embed_golive) and the cap (ml_embed_daily_cap) are enforced in the database, not here.
-// Every write is one row's chunks; nothing here issues a bulk statement.
+// The backlog (~165,000 rows, 150,103 of them kb_chunks) is embedded HERE, in Node on the GitHub runner
+// (.github/workflows/ml-embed-backfill.yml), with the SAME model files the edge path loads: the trimmed
+// multilingual-e5-small from the public Storage bucket (_shared/ml_embed_recipe.ts). An edge worker embeds 4 rows
+// a call at most (8 rows took 1.3 s of its CPU, 16 were refused, measured 24 Sep 2026), so the edge keeps only the
+// trickle (resilience_ping -> embed_ml 'tick') and live questions. Free (runner minutes), not OpenRouter.
 //
-//   node scripts/kb/run_ml_embed_backfill.mjs [--minutes=30] [--limit=16] [--parallel=2]
-import { sql, PROJECT_REF } from '../lib/db.mjs';
+// The queue is the database's: fn_ml_embed_claim (the gate app_secrets ml_embed_golive, the daily cap
+// ml_embed_daily_cap) hands out rows, fn_ml_embed_write stores a vector only if the row's text still has the hash
+// that was embedded. support_knowledge and ceo_knowledge rows also need their gte-small vector: that one comes
+// from embed_ml's 'gte' action, i.e. Supabase.ai gte-small itself, so the gte space never mixes in a second copy
+// of the model. Writes are one statement per batch of at most 16 fn_ml_embed_write calls, one row each.
+//
+//   npm i --no-save @huggingface/transformers@3.8.1
+//   node scripts/kb/run_ml_embed_backfill.mjs [--minutes=40] [--claim=64]
+import { sql, lit, PROJECT_REF } from '../lib/db.mjs';
+import { ML_MODEL, modelHost, ML_PASSAGE_PREFIX, ML_QUERY_PREFIX, rowText } from './ml_embed_recipe.mjs';
 
 const arg = (n, d) => (process.argv.find((a) => a.startsWith(`--${n}=`)) || `--${n}=${d}`).split('=').slice(1).join('=');
-const MINUTES = Number(arg('minutes', 30));
-const LIMIT = Math.max(1, Math.min(Number(arg('limit', 16)), 16));
-const PARALLEL = Math.max(1, Math.min(Number(arg('parallel', 2)), 4));
+const MINUTES = Number(arg('minutes', 40));
+const CLAIM = Math.max(1, Math.min(Number(arg('claim', 64)), 64));
+const GTE_ALSO = new Set(['support_knowledge', 'ceo_knowledge']);   // _shared/ml_embed.ts GTE_ALSO
+const URL = `https://${PROJECT_REF}.supabase.co`;
 
-const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
-if (!secret) { console.error('no cred_fn_ai in app_secrets'); process.exit(2); }
-const state = async () => (await sql(`select (select count(*) from public.knowledge_vector_ml where chunk = 0)::int rows_embedded,
-  (select count(*) from public.knowledge_vector_ml)::int vectors, (select priority_complete_at from public.knowledge_ml_status) priority_complete_at,
-  public.fn_ml_read_space() read_space`, { readOnly: true }))[0];
+const { pipeline, env } = await import('@huggingface/transformers');
+env.allowLocalModels = false;
+Object.assign(env, modelHost(ML_MODEL, URL));
+const embed = await pipeline('feature-extraction', ML_MODEL, { dtype: 'q8' });
+
+const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`, { readOnly: true }))[0]?.value;
+async function gte(text) {
+  const r = await fetch(`${URL}/functions/v1/embed_ml`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ __secret: secret, fn: 'ml_embed_backfill', action: 'gte', text }), signal: AbortSignal.timeout(30_000) });
+  const j = await r.json().catch(() => ({}));
+  return r.ok && typeof j.embedding === 'string' ? j.embedding : null;
+}
+const state = async () => (await sql(`select (select count(*) from public.knowledge_vector_ml)::int vectors,
+  (select priority_complete_at from public.knowledge_ml_status) priority_complete_at, public.fn_ml_read_space() read_space`, { readOnly: true }))[0];
 
 const t0 = Date.now(), deadline = t0 + MINUTES * 60_000;
 console.log('start:', JSON.stringify(await state()));
-let calls = 0, embedded = 0, stale = 0, failed = 0, errors = 0, stop = '';
-async function worker() {
-  while (!stop && Date.now() < deadline) {
-    try {
-      const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: secret, fn: 'ml_embed_backfill', action: 'embed_ml_tick', limit: LIMIT }),
-        signal: AbortSignal.timeout(120_000),
-      });
-      const j = await r.json().catch(() => ({}));
-      calls++; embedded += j.embedded ?? 0; stale += j.stale ?? 0; failed += j.failed ?? 0;
-      if (j.reason) stop = String(j.reason);
-      else if (j.claimed === 0) stop = 'queue empty';
-      else if (!r.ok) { errors++; await new Promise((s) => setTimeout(s, 5000 * Math.min(errors, 6))); }
-      if (errors >= 10) stop = `10 failed calls (last HTTP ${r.status}: ${JSON.stringify(j).slice(0, 200)})`;
-      if (calls % 20 === 0) {
-        const m = (Date.now() - t0) / 60_000;
-        console.log(`${calls} calls: embedded ${embedded}, stale ${stale}, failed ${failed} | ${(embedded / m).toFixed(0)} rows/min`);
-      }
-    } catch (e) { errors++; if (errors >= 10) stop = 'errors: ' + String(e.message).slice(0, 200); }
+let embedded = 0, stale = 0, failed = 0, stop = '';
+while (!stop && Date.now() < deadline) {
+  const c = (await sql(`select public.fn_ml_embed_claim(${CLAIM}) c`))[0].c;
+  const rows = Array.isArray(c?.rows) ? c.rows : [];
+  if (c?.reason) { stop = c.reason; break; }
+  if (!rows.length) { stop = 'queue empty'; break; }
+  for (let i = 0; i < rows.length; i += 16) {
+    const part = rows.slice(i, i + 16);
+    const texts = part.map((r) => (r.src === 'seat_case_memory' ? ML_QUERY_PREFIX : ML_PASSAGE_PREFIX) + rowText(r.title, r.body));
+    const v = (await embed(texts, { pooling: 'mean', normalize: true })).tolist();
+    const calls = [];
+    for (const [k, r] of part.entries()) {
+      if (v[k]?.length !== 384) { failed++; continue; }
+      const g = GTE_ALSO.has(r.src) ? await gte(rowText(r.title, r.body)) : null;
+      if (GTE_ALSO.has(r.src) && !g) { failed++; continue; }
+      calls.push(`public.fn_ml_embed_write(${lit(r.src)}, ${lit(r.row_id)}, ${lit(r.hash)}, ${lit('[' + v[k].join(',') + ']')}::vector(384), ${g ? lit(g) + '::vector(384)' : 'null'})`);
+    }
+    if (!calls.length) continue;
+    const res = await sql(`select ${calls.map((x, n) => `${x} w${n}`).join(', ')}`);
+    for (const val of Object.values(res[0] ?? {})) { if (val === true) embedded++; else stale++; }
   }
+  const m = (Date.now() - t0) / 60_000;
+  console.log(`embedded ${embedded}, stale ${stale}, failed ${failed} | ${(embedded / m).toFixed(0)} rows/min`);
+  if (failed > 50 && embedded === 0) stop = `${failed} rows failed and none embedded`;
 }
-await Promise.all(Array.from({ length: PARALLEL }, worker));
-console.log(`stopped: ${stop || 'time'}; ${calls} calls, embedded ${embedded}, stale ${stale}, failed ${failed}`);
+console.log(`stopped: ${stop || 'time'}; embedded ${embedded}, stale ${stale}, failed ${failed}`);
 console.log('end:', JSON.stringify(await state()));
 process.exit(failed > 0 && embedded === 0 ? 1 : 0);

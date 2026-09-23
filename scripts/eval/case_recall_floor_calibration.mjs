@@ -13,12 +13,13 @@
 // a different trade framed alike ("40 windows for a villa" vs "200 chairs for an office") is separated by
 // fn_case_recall's exact-trade rule, not by similarity (the gte-small measurement found the same, 0.913).
 // Ten pairs is a small sample: the floor is a measured starting point, re-measured as cases accumulate.
-// Local ONNX (`npm i --no-save @huggingface/transformers@3.8.1` first); nothing is read from or written to production.
+// Local ONNX (`npm i --no-save @huggingface/transformers@3.8.1` first); nothing is written to production (the multilingual model files are read from its public Storage bucket).
 //
 // RUN 23 Sep 2026. multilingual-e5-small: same case EN 0.876-0.954, AR 0.803-0.899; different case
 // 0.759-0.849 (0.873 for the other-trade pair) -> floor 0.85, 13/20 same-case pairs clear it (EN 10/10,
 // AR 3/10). gte-small: AR 0.722-0.849, so an Arabic situation never clears its deployed 0.84 floor.
-import { ML_MODEL, ML_QUERY_PREFIX } from '../kb/ml_embed_recipe.mjs';
+import { ML_MODEL, ML_QUERY_PREFIX, modelHost } from '../kb/ml_embed_recipe.mjs';
+import { PROJECT_REF } from '../lib/db.mjs';
 
 export const PAIRS = [
   ['6 sign-in codes in an hour to one UAE mobile number | IT engineer duty: otp | blast: security',
@@ -63,13 +64,14 @@ export const PAIRS = [
    'customer asked how to upload a drawing to an existing inquiry'],
 ];
 
-const { pipeline } = await import('@huggingface/transformers');
+const { pipeline, env } = await import('@huggingface/transformers');
 const dot = (a, b) => a.reduce((s, x, i) => s + x * b[i], 0);
 const MODELS = [
   { model: 'Supabase/gte-small', q: (t) => t },
   { model: ML_MODEL, q: (t) => ML_QUERY_PREFIX + t },
 ];
 for (const m of MODELS) {
+  Object.assign(env, modelHost(m.model, `https://${PROJECT_REF}.supabase.co`));
   const f = await pipeline('feature-extraction', m.model, { dtype: 'q8' });
   const e = async (ts) => (await f(ts, { pooling: 'mean', normalize: true })).tolist();
   const anchors = await e(PAIRS.map((r) => m.q(r[0])));   // a case is compared with a case: symmetric, both sides "query: "

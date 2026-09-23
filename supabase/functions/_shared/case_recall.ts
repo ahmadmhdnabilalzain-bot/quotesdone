@@ -20,7 +20,7 @@
 // scripts/checks/every_seat_recalls_before_it_decides.test.mjs fails if a decision path loses its call.
 //
 // TWO SPACES (23 Sep 2026). When fn_ml_read_space answers 'ml', the situation is embedded with
-// multilingual-e5-small by ai_gateway (ml_embed_client.ts: the model never loads in this worker) and put to fn_case_recall_ml, so an Arabic situation meets its English
+// multilingual-e5-small by the embed_ml function (ml_embed_client.ts: the model never loads in this worker) and put to fn_case_recall_ml, so an Arabic situation meets its English
 // precedent. A vector a caller passes in `embedding` is a gte-small vector (every caller computes it with
 // embedLine for its own gte knowledge search), so it is used only on the gte path. If the multilingual
 // embedder cannot answer, the call falls back to gte-small and fn_case_recall.
