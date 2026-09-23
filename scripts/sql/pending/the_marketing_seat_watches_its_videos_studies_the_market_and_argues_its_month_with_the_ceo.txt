@@ -1,8 +1,0 @@
-Committed, not applied: the builder was told not to apply (the coordinator serialises applies across builders).
-Apply LAST of three: #877's a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql (the CEO's review runs on its
-seat_deliberation), then the_marketing_seat_gets_a_model_ceiling_and_every_class_it_thinks_with.sql, then:
-  node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql --apply --ddl
-It must print PROBE OK. It reads marketing_post_metric and fn_marketing_scorecard (the sibling metrics build) by name
-at run time, and its fn_table_export_list skips the sibling PRs' tables until they exist, so it applies before or
-after #873/#874/#875. Then deploy marketing and resilience_ping, delete this note and append the file to the END of
-MANIFEST.txt in the same commit. Seat: marketing.
