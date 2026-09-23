@@ -242,7 +242,7 @@ export function lineDefs(trade: string | null, l: Pick<Line, 'spec' | 'spec_sour
   return defs;
 }
 
-export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements }): Assessment {
+export function assessQuote(input: { category: string | null; lines: Line[]; terms: Terms; requirements?: Requirements; checklist?: Attr[] }): Assessment {
   const trade = tradeOfCategory(input.category);
   const req = input.requirements ?? null;
   const lines: LineResult[] = [];
@@ -256,7 +256,9 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     const lt = material ? lineTradeOf(trade, l) : null;
     const unreadComposite = material && !lt && COMPOSITE.has(trade);
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, l));
-    const defs = unreadComposite ? [SPEC_ATTR, ...lineDefs(null, l, req)] : (lt || namesComponent ? lineDefs(lt, l, req) : []);
+    // A trade with no catalogue entry asks each material line its knowledge pack's required specs (reasoned_specs.ts).
+    const packOnly = material && !TRADES[trade] && !(COMPOSITE.has(trade) && trade !== 'general') && input.checklist?.length ? input.checklist : [];
+    const defs = unreadComposite ? [SPEC_ATTR, ...lineDefs(null, l, req)] : (lt || namesComponent ? lineDefs(lt, l, req) : packOnly);
     for (const m of req?.materials ?? []) if (m?.component && material && m.component !== 'main' && componentOnLine(m, l)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
     for (const a of defs) {
