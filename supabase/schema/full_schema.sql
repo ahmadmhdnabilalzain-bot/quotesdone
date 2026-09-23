@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T15:50:41.285Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T17:17:01.780Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19213,16 +19213,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -19248,6 +19238,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -51621,6 +51621,25 @@ begin
   end if;
   update ai_rate_limit set count = count + 1 where bucket = p_bucket;
   return jsonb_build_object('allowed', true, 'count', r.count + 1, 'limit', p_limit);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_inbound_email__infer_sector(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_n integer := 0;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  if not found or (r.subject->>'lead_id') is null then return null; end if;
+  if v_choice is not null and exists (select 1 from public.category_specs cs where cs.category = v_choice) then
+    update public.leads l set sector = v_choice
+     where l.id = (r.subject->>'lead_id')::bigint and l.sector is null;
+    get diagnostics v_n = row_count;
+  end if;
+  return jsonb_build_object('lead_id', (r.subject->>'lead_id')::bigint, 'sector', v_choice, 'set', v_n = 1);
 end $function$
 
 
