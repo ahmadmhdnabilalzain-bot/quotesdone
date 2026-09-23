@@ -40,6 +40,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
+import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
 import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
@@ -142,13 +143,13 @@ async function handle(ev: InboundEvent): Promise<string> {
   if (ev.channel === 'comment' && !ev.echo) {
     // Does this commenter want a person? REASONED (think()), never a phrase list; held, the comment is still
     // classified and answered from the policy, and the person check waits in the marketing queue.
-    const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+    const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
       seat: 'marketing', surface: 'marketing_social.comment_needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
       dedupeKey: 'social_comment:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
-    });
+    })).value === true;
     return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
-      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person.value === true);
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person);
   }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };
@@ -211,6 +212,10 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     corpus = (data || []) as CorpusRow[];
   } catch (_e) { corpus = []; }
   const library = (lib || []) as LibraryRow[];
+  // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
+  // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
+  // Public surface: marketing's own social replies only, never another seat's cases.
+  const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
   // Does this person want a person? REASONED (think(), founder_instruction 886-903), never a phrase list.
   // Held (the model hold, or a model that failed): the question is still ANSWERED now (903) from the library,
   // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
@@ -230,7 +235,8 @@ async function answer(ev: InboundEvent): Promise<Decision> {
   const sys = 'You are QuotesDone on ' + ev.platform + '. Answer ONLY from the KNOWLEDGE below, in the language of the message'
     + (d.lang === 'ar' ? ' (formal Gulf Arabic, formal plural)' : ' (UAE English)') + ', in under 80 words, plain text. '
     + 'Never state a price, fee, date, timeline or promise that is not written in the KNOWLEDGE. If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n'
-    + corpus.map((c) => c.content).join('\n\n');
+    + corpus.map((c) => c.content).join('\n\n')
+    + (memory.cases.length ? precedentBlock(memory) + '\nNever mention another person, a case number or this block in the reply.' : '');
   try {
     const r = await timedFetch(GATEWAY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'visitor_chat', sys,

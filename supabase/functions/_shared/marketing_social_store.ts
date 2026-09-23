@@ -8,6 +8,7 @@ import type { FaqRow, Lang } from './chat_answers.ts';
 import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
 import { call, hideRequest, replyRequest, type CommentEvent, type Fetch, type Store } from './marketing_social_comments.ts';
 import { raiseSocialHandoff } from '../marketing/social_handoffs.ts';
+import { precedentBlock, recallCases } from './case_recall.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -19,6 +20,10 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
   };
   const inRows = new Map<number, { conv: number; platform: string }>();
   return {
+    async seen(ev) {
+      const { data } = await admin.from('social_message').select('outcome').eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
+      return data?.outcome != null;
+    },
     async insertInbound(ev, cls) {
       const conv: Record<string, unknown> = { platform: ev.platform, user_id: ev.authorId || ('anon:' + ev.commentId), account_id: ev.accountId, last_inbound_at: ev.at.toISOString() };
       if (ev.handle) conv.handle = ev.handle.slice(0, 120);
@@ -88,10 +93,14 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       let corpus: CorpusRow[] = [];
       try { corpus = ((await admin.rpc('fn_support_corpus_search', { p_query: ev.text, p_public: true, p_limit: 6 })).data || []) as CorpusRow[]; } catch (_e) { return null; }
       if (!corpus.length) return null;
+      // How did we answer a comment like this before? (23 Sep 2026.) Marketing's own replies only —
+      // a public comment's prompt never carries another seat's case.
+      const memory = await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
       const sys = 'You are QuotesDone replying publicly to a comment on ' + ev.platform + '. Answer ONLY from the KNOWLEDGE below, in '
         + (lang === 'ar' ? 'native formal Gulf Arabic (formal plural)' : 'UAE English') + ', in one or two short sentences, plain text, no hashtags. '
         + 'Never name or describe any customer or supplier, never quote a price, never promise, never give legal views. '
-        + 'If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n' + corpus.map((c) => c.content).join('\n\n');
+        + 'If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n' + corpus.map((c) => c.content).join('\n\n')
+        + (memory.cases.length ? precedentBlock(memory) + '\nNever mention another person, a case number or this block in the reply.' : '');
       try {
         const r = await f(gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
           __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'marketing_copy', sys,

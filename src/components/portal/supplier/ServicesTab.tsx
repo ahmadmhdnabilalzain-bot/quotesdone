@@ -38,7 +38,7 @@ import { countServices, sc, scCount } from './servicesCopy';
 type Service = { key: string; label_en: string; label_ar: string };
 type Trade = { code: string; label: string; label_ar?: string | null };
 type Role = { code: string; label: string };
-type ChecklistTrade = { code: string; source: 'confirmed' | 'on_file' | 'documents' };
+type ChecklistTrade = { code: string; source: 'confirmed' | 'on_file' | 'documents' | 'refine' };
 type Proposal = { code: string; label_en?: string | null; label_ar?: string | null; status: string; mapped_to?: string | null };
 type DocHit = { code: string; snippet?: string };
 type Doc = { path: string; name: string; status?: string; trades?: DocHit[] };
@@ -273,7 +273,9 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const save = async () => {
     setBusy(true); setNote(null);
     const j = await call('supplier_api', {
-      action: 'services_save_rewrite', trades: activeTrades, removed_trades: [...removedTrades], roles,
+      // A 'refine' trade (split from one he holds, offered unticked) is his only when he ticked a service
+      // in it: it is never saved because it was shown (founder instructions 895/899/900).
+      action: 'services_save_rewrite', trades: activeTrades.filter((c) => sourceOf(c) !== 'refine' || statedKeys.some((k) => k.startsWith(c + '.'))), removed_trades: [...removedTrades], roles,
       services: statedKeys, implied: rwImplied, removed: rwRemoved,
       own_words: rwOwnWords, raw_text: rawText.trim(),
     }, token).catch(() => null);
@@ -344,6 +346,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
                 <span className={h3}>{tradeName(code)}</span>
                 {src === 'documents' ? <Badge variant="secondary" className="ms-2">{sc(lang, 'from_docs')}</Badge>
                   : src === 'on_file' ? <Badge variant="secondary" className="ms-2">{sc(lang, 'on_file')}</Badge>
+                  : src === 'refine' ? <Badge variant="secondary" className="ms-2">{sc(lang, 'refine_badge')}</Badge>
                   : src === 'confirmed' ? <Badge variant="ok" className="ms-2">{sc(lang, 'confirmed_badge')}</Badge> : null}
               </legend>
               {svcs.length ? (

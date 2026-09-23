@@ -189,6 +189,8 @@ export interface Store {
   draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // the model, only over retrieved knowledge
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
+  /** Already handled (an inbound row with an outcome): a redelivery must not re-ask the reasoning. Optional for test stores. */
+  seen?(ev: CommentEvent): Promise<boolean>;
 }
 export interface Outcome {
   classification: Class;
@@ -206,9 +208,12 @@ export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /
 const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
 export const seatFor = (t: HandoffType) => SEAT[t];
 
-export async function processComment(s: Store, ev: CommentEvent, wantsPerson = false): Promise<string> {
+/** wantsPerson may be a function: the reasoned person check (think()) then runs only for a comment that is
+ *  not our own and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
+export async function processComment(s: Store, ev: CommentEvent, wantsPerson: boolean | (() => Promise<boolean>) = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
-  const cls = classify(ev.text, wantsPerson);
+  if (typeof wantsPerson === 'function' && s.seen && (await s.seen(ev))) return 'duplicate';
+  const cls = classify(ev.text, typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson);
   const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
   let sent = false;
