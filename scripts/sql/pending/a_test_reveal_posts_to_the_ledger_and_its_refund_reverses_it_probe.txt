@@ -1,0 +1,3 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes (the demo flag it
+lifts included). Run it after a nightly or manual E2E run of journeys d+e has left a ZZ DEMO reveal paid and
+refunded in Stripe TEST mode; it must print PROBE OK. This note stays for the life of the file. Seat: accountant.
