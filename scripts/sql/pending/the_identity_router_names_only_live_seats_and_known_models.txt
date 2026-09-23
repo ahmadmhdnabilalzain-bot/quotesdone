@@ -1,0 +1,12 @@
+Committed, not applied.
+
+APPLY AFTER scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql
+(PR #861), which is what puts the models this file names into model_registry and llm_route_health.
+This file's own guard refuses its rewrite if that file has not been applied, so the order is enforced,
+not merely documented.
+
+  node scripts/apply_sql.mjs scripts/sql/the_identity_router_names_only_live_seats_and_known_models.sql --apply --ddl --seat it_engineer
+
+Expect: PROBE OK :: 3 rows left, every identity a live seat, every model in the catalogue and under
+the hold, guard in force. Then delete this note and append the file as the LAST line of MANIFEST.txt
+in the same commit.
