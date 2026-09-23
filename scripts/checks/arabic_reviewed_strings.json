@@ -803,6 +803,15 @@
   "82d439166a51",
   "a1899880347c"
  ],
+ "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql": [
+  "0e3944a15f96",
+  "25831966a970",
+  "3fbfc9c44cae",
+  "50d6d400e862",
+  "71425d07f632",
+  "a88f17897251",
+  "d5286ce9f7f2"
+ ],
  "scripts/sql/one_job_number_on_every_portal_document_and_notice.sql": [
   "2e6cf0d056d2"
  ],
@@ -2003,6 +2012,13 @@
  ],
  "scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql": [
   "67e0d864b486"
+ ],
+ "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
+  "70b5a40fe07a",
+  "859798d5f8bb",
+  "9a13507c3538",
+  "d230862d2dc2",
+  "fc89cb827cc1"
  ],
  "scripts/sql/the_supplier_invitation_goes_once_in_the_suppliers_language_and_never_to_a_demo_or_sanctioned_lead.sql": [
   "361ce5b53fac"
@@ -4969,20 +4985,5 @@
   "a5cba62f3cdc",
   "d7028cd29b51",
   "d9a9b884d813"
- ],
- "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql": [
-  "25831966a970",
-  "3fbfc9c44cae",
-  "50d6d400e862",
-  "71425d07f632",
-  "a88f17897251",
-  "d5286ce9f7f2"
- ],
- "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
-  "70b5a40fe07a",
-  "859798d5f8bb",
-  "9a13507c3538",
-  "d230862d2dc2",
-  "fc89cb827cc1"
  ]
 }
