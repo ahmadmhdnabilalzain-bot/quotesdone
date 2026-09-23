@@ -22,24 +22,43 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FN = read('supabase/functions/marketing_channels/index.ts');
 const LIB = read('supabase/functions/_shared/marketing_channels.ts');
 const SQL = read('scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend.sql');
+const MONTH = read('scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql');
 const code = (s) => s.split('\n').filter((l) => !/^\s*(\/\/|--)/.test(l)).join('\n');
 
-test('live publishing needs marketing_golive to read exactly true, and never applies to a demo post', () => {
+test('live publishing needs the switch, no ZZ DEMO by flag OR text, and the database\'s verdict', () => {
   assert.match(code(FN), /golive:\s*String\(s\.marketing_golive \|\| 'false'\)\.toLowerCase\(\) === 'true'/, 'the switch defaults to off');
-  assert.match(code(FN), /const isLive = e\.golive && !p\.is_demo;/, 'a demo post or a switched-off seat must not go live');
-  assert.match(code(FN), /publishPost\(fetch, [^)]*isLive,/, 'publishPost must receive the gated flag');
+  assert.match(code(FN), /const demo = p\.is_demo \|\| isDemoText\(/, 'the demo rule must read the text as well as the flag');
+  assert.match(code(FN), /const isLive = e\.golive && !demo && !why;/, 'a demo post, a switched-off seat or a refused post must not go live');
+  assert.match(code(FN), /publishPost\(fetch, [^\n]*input\(media, cover\), true,/, 'only the claimed path publishes live');
+  assert.doesNotMatch(code(LIB), /export function postBody\(/, 'the joined EN+AR body is gone: variants carry the text per platform');
 });
 
-test('the only outside writes are Postiz upload and post, after the dry-run return', () => {
+test('the database refuses publishing without the founder\'s approval of exactly this content', () => {
+  const m = code(MONTH);
+  assert.match(m, /create trigger marketing_post_guard_publish before insert or update of status on public\.marketing_post/);
+  assert.match(m, /if c\.approved_hash <> public\.fn_marketing_campaign_hash\(c\.id\) then/, 'an edit must void the approval');
+  assert.match(m, /check \(is_demo or \(text_en \|\| ' ' \|\| text_ar \|\| ' ' \|\| coalesce\(title, ''\)\) !~\* 'zz\[ _-\]\?demo'\)/, 'ZZ DEMO text needs the flag');
+  assert.match(m, /spend_policy\s+text not null default 'organic_only' check \(spend_policy = 'organic_only'\)/, 'organic only');
+});
+
+test('the only outside writes are to Postiz: upload and post after the dry-run return, and a cancel\'s delete', () => {
   const lib = code(LIB);
-  const posts = [...lib.matchAll(/method:\s*'(POST|PUT|PATCH|DELETE)'/g)];
-  assert.equal(posts.length, 2, 'exactly two writes (Postiz /upload and /posts) are expected in the shared module');
+  const writes = [...lib.matchAll(/method:\s*'(POST|PUT|PATCH|DELETE)'/g)];
+  assert.equal(writes.length, 3, 'expected Postiz /upload, /posts and DELETE /posts/{id} only');
   const fnStart = lib.indexOf('export async function publishPost(');
   const dryReturn = lib.indexOf("return { mode: 'dry_run'", fnStart);
+  const uploadAt = lib.indexOf('async function upload(');
   assert.ok(fnStart > 0 && dryReturn > fnStart, 'publishPost returns the dry run');
-  for (const m of posts) assert.ok(m.index > dryReturn && m.index < lib.indexOf('export async function postizReleases('), 'a write outside publishPost, or before its dry-run return');
+  for (const w of writes) {
+    const inUpload = w.index > uploadAt && w.index < fnStart;
+    const inPublish = w.index > dryReturn && w.index < lib.indexOf('export function postizIds(');
+    const inDelete = w[1] === 'DELETE' && w.index > lib.indexOf('export async function deletePostizPost(');
+    assert.ok(inUpload || inPublish || inDelete, 'a write outside upload/publishPost/deletePostizPost');
+  }
+  assert.ok(lib.indexOf('await upload(', dryReturn) > dryReturn && lib.indexOf('await upload(') > dryReturn, 'upload is only called after the dry-run return');
   assert.doesNotMatch(code(FN), /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'the edge function writes to no outside service itself');
   assert.doesNotMatch(lib + FN, /graph[^\n]*method:\s*'POST'/i, 'nothing may POST to Graph');
+  assert.doesNotMatch(lib + FN, /\/boost|boost\w*\(|\/(adsets|campaigns)['`?]/i,'nothing in the publish path can buy reach');
 });
 
 test('ad spend never reaches the ledger, and demo amounts never reach the accountant', () => {

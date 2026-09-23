@@ -4063,5 +4063,43 @@
   "d0c6f4df064e",
   "d2f51ce60d95",
   "e0c574ae3528"
+ ],
+ "supabase/functions/_shared/marketing_calendar_doc.ts": [
+  "a817fa1cebe5"
+ ],
+ "supabase/functions/marketing_channels/index.ts": [
+  "b2a80e50ec94"
+ ],
+ "scripts/sql/an_edited_faq_answer_is_re_embedded_and_a_quote_is_not_a_fee.sql": [
+  "a47a1a80835f",
+  "1014b435b32f",
+  "5628306d1e0e",
+  "09e34500ac5e",
+  "f07872a12ef2",
+  "6de21aed034d",
+  "2fcc300bc0ca",
+  "4c605fe5b5ab",
+  "6190da0bcb51",
+  "ca7ac89e6aaf",
+  "645f307c5da1",
+  "53962f65c124",
+  "9f0c722adeaa",
+  "b7a97a31e18e",
+  "05bf391d672b",
+  "c5775a110d98",
+  "4bdd12523768",
+  "ba58c3e097b7",
+  "4e0e02c9c581",
+  "1ff60edf941b",
+  "fc50ccfee153",
+  "7ecf7b80329a",
+  "53d4bae517e7",
+  "8d271add63c5",
+  "5f72551ec377"
+ ],
+ "scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql": [
+  "415d60f32c58",
+  "fc3b6977c5b6",
+  "5b783224f4d2"
  ]
 }
