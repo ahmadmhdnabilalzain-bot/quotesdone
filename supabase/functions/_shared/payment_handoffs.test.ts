@@ -28,7 +28,12 @@ Deno.test('the accountant and the sales engineer talk in both directions', () =>
 Deno.test('only customer_support delivers, and every seat that asks hears back', () => {
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) assertEquals(h.to, 'customer_support');
   // what support says to ANOTHER seat is only ever the answer to a send it was asked for
-  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support' && x.to !== 'customer_support')) assertEquals(h.type, 'delivery.result');
+  // — and one named exception (#904): a post-reveal dispute's fault finding goes to the CEO, who decides disputes,
+  // on the cross-family review machine. It asks for a decision; it delivers nothing.
+  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support' && x.to !== 'customer_support')) {
+    if (h.type === 'deliberation.review' && h.to === 'ceo') continue;
+    assertEquals(h.type, 'delivery.result');
+  }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
     assert(HANDOFF_TYPES.some((r) => r.type === 'delivery.result' && r.from === 'customer_support' && r.to === h.from),
       `${h.from} asks for deliveries and gets no delivery.result back`);
