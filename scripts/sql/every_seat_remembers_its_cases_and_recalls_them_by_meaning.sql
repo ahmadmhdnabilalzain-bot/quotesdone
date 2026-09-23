@@ -613,19 +613,29 @@ drop trigger if exists z90_case_memory on public.marketing_campaign;
 create trigger z90_case_memory after insert or update of approved_at, theme, title
   on public.marketing_campaign for each row execute function public.trg_case_memory_campaign();
 
--- marketing: a reply to a comment or DM, finalised when its outcome is known. The situation is the
--- message it answered, masked.
+-- marketing: a DM or a public comment and how the seat answered it. Both the DM path
+-- (marketing_social_inbox) and the comment policy (marketing_social_store.record) write the OUTCOME on
+-- the INBOUND row, and the reply is a separate 'out' row pointing at it (in_reply_to) — inserted after
+-- the outcome on the comment path. So the case is keyed on the inbound row, and an 'out' row re-maps
+-- its parent so the reply text lands on the same case. Masked with the person's handle and user id.
 create or replace function public.fn_case_from_social_reply(n public.social_message, o public.social_message default null)
 returns boolean language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_asked text; v_author text;
+declare v_in public.social_message; v_reply text; v_known text[];
 begin
   begin
-    if n.direction = 'out' and n.outcome is not null then
-      select m.body, m.author into v_asked, v_author from public.social_message m where m.id = n.in_reply_to;
-      perform public.fn_case_remember('marketing', 'social_reply', 'social_message', n.id::text, null,
-        concat_ws(' | ', coalesce(v_asked, n.body), n.platform || ' ' || n.channel),
-        coalesce(n.reply_kind, 'reply') || ': ' || left(n.body, 500), n.reply_key, n.outcome,
-        true, array[v_author, n.author], n.occurred_at, null);
+    if n.direction = 'out' and n.in_reply_to is not null then
+      select * into v_in from public.social_message m where m.id = n.in_reply_to;
+    elsif n.direction = 'in' then
+      v_in := n;
+    end if;
+    if v_in.id is not null and v_in.outcome is not null then
+      select m.body into v_reply from public.social_message m
+       where m.in_reply_to = v_in.id and m.direction = 'out' order by m.id desc limit 1;
+      select array[c.handle, c.user_id] into v_known from public.social_conversation c where c.id = v_in.conversation_id;
+      perform public.fn_case_remember('marketing', 'social_reply', 'social_message', v_in.id::text, null,
+        concat_ws(' | ', v_in.body, v_in.platform || ' ' || v_in.channel),
+        coalesce('replied: ' || left(v_reply, 500), 'no reply sent'), null, v_in.outcome,
+        true, coalesce(v_known, '{}'), v_in.occurred_at, null);
     end if;
   exception when others then
     insert into public.seat_case_memory_miss (source_table, source_id, error) values ('social_message', n.id::text, sqlerrm);
@@ -641,7 +651,7 @@ begin
 end $fn$;
 revoke execute on function public.trg_case_memory_social_reply() from public, anon, authenticated;
 drop trigger if exists z90_case_memory on public.social_message;
-create trigger z90_case_memory after insert or update of outcome
+create trigger z90_case_memory after insert or update of outcome, body
   on public.social_message for each row execute function public.trg_case_memory_social_reply();
 
 -- sales_engineer: a spec the market could not meet exactly, the alternatives offered, and the answer.
@@ -689,7 +699,7 @@ select count(public.fn_case_from_ceo_approval(t)) from public.ceo_approval t;
 select count(public.fn_case_from_refund_case(t)) from public.refund_case t;
 select count(public.fn_case_from_expense(t)) from public.expense_entries t;
 select count(public.fn_case_from_campaign(t)) from public.marketing_campaign t;
-select count(public.fn_case_from_social_reply(t)) from public.social_message t where t.direction = 'out' and t.outcome is not null;
+select count(public.fn_case_from_social_reply(t)) from public.social_message t where t.direction = 'in' and t.outcome is not null;
 
 select 'seat_case_memory rows: ' || count(*) || ', misses: ' || (select count(*) from public.seat_case_memory_miss) as verdict
   from public.seat_case_memory;

@@ -45,6 +45,7 @@ export const DECISION_PATHS = [
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'triage', "return J({ ok: true, seat: 'it_engineer', issue_key"],
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
   ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const d = decide(ev.text'],
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await f(gateway'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
@@ -127,7 +128,7 @@ test('a reworded case from another customer recalls the finalised one, masked; a
 
   const probe = `
 do $p$
-declare v_a bigint; v_cust uuid; v_sc text; v_r jsonb; v_c jsonb; v_hi jsonb; v_it jsonb; v_re jsonb; v_miss int;
+declare v_a bigint; v_cust uuid; v_sc text; v_conv bigint; v_in bigint; v_soc jsonb; v_r jsonb; v_c jsonb; v_hi jsonb; v_it jsonb; v_re jsonb; v_miss int;
 begin
   select count(*) into v_miss from public.seat_case_memory_miss;
   -- Case A: handled by sales_engineer and finalised as won.
@@ -158,8 +159,19 @@ begin
   select situation into v_sc from public.seat_case_memory
    where source_table = 'support_case'
      and source_id = (select case_id::text from public.support_case where case_ref = 'ZZDEMO-CHECK-CASE-MEMORY');
+  -- A public comment, answered the way marketing_social_store.record writes it: the outcome on the
+  -- inbound row first, the reply row after. One case, keyed on the comment, carrying the reply.
+  insert into public.social_conversation (platform, user_id, account_id, handle)
+  values ('instagram', 'ZZDEMO-case-memory', 'ZZDEMO-page', 'zzdemo_khalid') returning id into v_conv;
+  insert into public.social_message (conversation_id, platform, channel, direction, author, body, occurred_at)
+  values (v_conv, 'instagram', 'comment', 'in', 'person', 'ZZ DEMO @zzdemo_khalid asks: do you cover Sharjah?', now()) returning id into v_in;
+  update public.social_message set outcome = 'replied' where id = v_in;
+  insert into public.social_message (conversation_id, platform, channel, direction, author, in_reply_to, body, occurred_at)
+  values (v_conv, 'instagram', 'comment', 'out', 'seat', v_in, 'ZZ DEMO Yes, we cover all seven emirates.', now());
+  select jsonb_build_object('situation', situation, 'decision', decision, 'outcome', outcome) into v_soc
+    from public.seat_case_memory where source_table = 'social_message' and source_id = v_in::text;
   raise exception 'CHK<<%>>', jsonb_build_object('a', v_a, 'recall', v_r, 'unrelated', v_c, 'high_floor', v_hi,
-    'support_situation', v_sc,
+    'support_situation', v_sc, 'social', v_soc,
     'it', v_it, 'reopened', v_re,
     'a_row', (select jsonb_build_object('embedded', embedding is not null, 'situation', situation,
                      'sim_b', round((1 - (embedding <=> ${q(vB)}::vector(384)))::numeric, 3))
@@ -181,6 +193,9 @@ end $p$;`;
   for (const leak of ['Khalid', 'Zzdemo', 'example.invalid', '500001234']) {
     assert.equal(r.support_situation.includes(leak), false, `a support case kept its customer's identity (${leak}): ${r.support_situation}`);
   }
+  assert.ok(r.social, 'an answered comment did not become a marketing case');
+  assert.match(r.social.decision, /seven emirates/, 'the reply did not reach the case');
+  assert.equal(r.social.situation.includes('zzdemo_khalid'), false, `the commenter's handle survived: ${r.social.situation}`);
   assert.deepEqual(r.unrelated.cases, [], `an unrelated case recalled something above the floor: ${JSON.stringify(r.unrelated.cases).slice(0, 300)}`);
   assert.deepEqual(r.high_floor.cases, [], 'the floor does not bite');
   assert.equal(r.it.finalised, true, 'a closed IT finding did not become a finalised case');
