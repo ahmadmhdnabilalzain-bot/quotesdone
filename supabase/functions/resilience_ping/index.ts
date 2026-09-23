@@ -54,7 +54,7 @@ async function digestTick(): Promise<unknown> {
     let path: string | null = null, err: string | null = null;
     try {
       const r = await fetch(FN + '/pdf_native', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({
           __secret: await sec('cred_fn_resilience_ping'), title: t.pdf_title, blocks: t.pdf_blocks,
           bucket: 'agent-docs', folder: 'ceo/daily_brief',
@@ -134,7 +134,7 @@ async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/conversation_archive', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
     });
     return { status: r.status, result: await r.json().catch(() => null) };
@@ -225,7 +225,7 @@ async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_outbox', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 20 }), signal: AbortSignal.timeout(20000),
     });
     return { flushed: true, status: r.status, result: await r.json().catch(() => null) };
@@ -300,7 +300,7 @@ async function ceoPlanTick(): Promise<unknown> {
     const t = data as any;
     if (!t?.judgement?.call_model || !t?.plan_id) return t;
     const r = await fetch(FN + '/ceo_agent', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
       signal: AbortSignal.timeout(45000),
     });
@@ -318,7 +318,7 @@ async function renderPdfAndAttach(t: any, folder: string, fallbackName: string, 
   let path: string | null = null, url: string | null = null, bytes: number | null = null, err: string | null = null;
   try {
     const r = await fetch(FN + '/pdf_native', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({
         __secret: await sec('cred_fn_resilience_ping'), title: t.subject, blocks: t.pdf_blocks,
         bucket: 'agent-docs', folder,
@@ -517,7 +517,7 @@ async function dropboxVerifyTick(): Promise<unknown> {
     if (!(data as any)?.reconcile?.due) return data;
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/dropbox_backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
     });
     const reconcile_run = { status: r.status, result: await r.json().catch(() => null) };
@@ -540,7 +540,7 @@ async function dropboxHealthTick(): Promise<unknown> {
     let status = 0; let recorded: string | null = null; let why = '';
     try {
       const r = await fetch(FN + '/dropbox_backup', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), op: 'health' }), signal: AbortSignal.timeout(55000),
       });
       status = r.status;
@@ -577,7 +577,7 @@ async function backupTick(): Promise<unknown> {
     // The pass still reports itself — dropbox_backup writes its own agent_runs rows, fn_it_backup_tick
     // and fn_dropbox_backup_due both read them, so a chain that stops is still a finding.
     const started = fetch(FN + '/dropbox_backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 25 }),
     }).then((r) => r.body?.cancel()).catch(() => {});
     // deno-lint-ignore no-explicit-any
@@ -660,7 +660,7 @@ async function orphanTick(): Promise<unknown> {
     const call = async (slug: string, ms = 20000, body: Record<string, unknown> = {}, cred: string = secret) => {
       try {
         const r = await fetch(FN + '/' + slug, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
           body: JSON.stringify({ __secret: cred, ...body }), signal: AbortSignal.timeout(ms),
         });
         const b = await r.json().catch(() => null);
@@ -738,7 +738,7 @@ async function tableExportTick(): Promise<unknown> {
     if (!d?.due) return { due: false, stamp: d?.stamp, status: d?.status ?? null };
     const secret = await sec('cred_fn_resilience_ping');
     const started = fetch(FN + '/backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, stamp: d.stamp, kind: d.kind, since: d.since ?? null, state: d.resume ?? null }),
     }).then((r) => r.body?.cancel()).catch(() => {});
     // deno-lint-ignore no-explicit-any
@@ -763,7 +763,7 @@ async function backupPruneTick(): Promise<unknown> {
     if (!d?.storage_pending && !d?.dropbox_pending) return out;
     const secret = await sec('cred_fn_resilience_ping');
     const call = async (fn: string) => {
-      const r = await fetch(FN + '/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(FN + '/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: secret, op: 'prune' }), signal: AbortSignal.timeout(55000) });
       await r.body?.cancel().catch(() => {});
       return r.status;
@@ -807,7 +807,7 @@ async function whatsappTick(): Promise<unknown> {
     // tick and the subject has a real pulse to be measured against.
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_whatsapp', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(30000),
     });
     const sent = { queued: count ?? 0, status: r.status, result: await r.json().catch(() => null) };
@@ -817,7 +817,7 @@ async function whatsappTick(): Promise<unknown> {
     let backstop: unknown;
     try {
       const b = await fetch(FN + '/wa_status', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: secret, poll: true }), signal: AbortSignal.timeout(30000),
       });
       backstop = { status: b.status, result: await b.json().catch(() => null) };
@@ -849,7 +849,7 @@ async function accountantWeeklyTick(): Promise<unknown> {
     let path: string | null = null, url: string | null = null, bytes: number | null = null, err: string | null = null;
     try {
       const r = await fetch(FN + '/pdf_native', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({
           __secret: secret, title: t.subject, blocks: t.pdf_blocks,
           bucket: 'agent-docs', folder: 'accountant/weekly',
