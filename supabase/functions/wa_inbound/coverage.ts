@@ -22,25 +22,16 @@
 import { type Lang, newRequestUrl, siteUrl } from './menu.ts';
 import { COVERAGE_LIST, COVERAGE_OTHER } from '../_shared/reasoned_channels.ts';
 
-export type Trade = { code: string; label: string; label_ar: string | null; aliases: string[] | null };
+export type TradeGroup = { code: string; label_en: string; label_ar: string | null; sort: number | null };
+export type Trade = { code: string; label: string; label_ar: string | null; aliases: string[] | null; group?: TradeGroup | null };
+export type CoverageIntent = { kind: 'list' } | { kind: 'trade' };
 
-// Grouping is presentation only. A code not named here (a trade a supplier registered tomorrow) is still
-// listed, under "other trades", so the answer can never fall behind the table.
-const GROUPS: Array<{ en: string; ar: string; codes: string[] }> = [
-  { en: 'MEP', ar: 'الأعمال الكهروميكانيكية',
-    codes: ['mep_general', 'hvac', 'electrical', 'plumbing', 'fire_fighting', 'elevators', 'power_generators', 'solar',
-            'home_automation', 'security_systems', 'av_it'] },
-  { en: 'Construction & outdoor', ar: 'الإنشاءات والأعمال الخارجية',
-    codes: ['civil_works', 'engineering_consultancy', 'steel', 'scaffolding', 'waterproofing', 'landscaping',
-            'heavy_equipment', 'labour_supply'] },
-  { en: 'Fit-out & finishes', ar: 'التشطيبات الداخلية',
-    codes: ['interior_fitout', 'joinery', 'flooring', 'painting', 'gypsum', 'wallpaper', 'glazing', 'aluminium', 'doors',
-            'upholstery', 'signage'] },
-  { en: 'Materials & supplies', ar: 'المواد والتوريدات',
-    codes: ['building_materials', 'chemicals', 'plastics_pipes', 'safety_equipment', 'oilfield', 'marine', 'packaging'] },
-  { en: 'Services & tech', ar: 'الخدمات والتقنية',
-    codes: ['cleaning', 'logistics_moving', 'it_services', 'office_equipment', 'pos_retail'] },
-];
+// Grouping is presentation only, and it is READ, not written here (23 Sep 2026). This file carried five
+// hand-made groups while the taxonomy moved to twelve (public.taxonomy_trade_group, PR #881), so the
+// answer to "which sectors do you cover" named sectors the company no longer uses. Each trade row now
+// brings its own group (taxonomy_trade.group_code -> taxonomy_trade_group); the groups appear in their
+// table order, and a trade with no group yet is listed under "other trades", so the answer can never
+// fall behind the table.
 const OTHER = { en: 'Other trades', ar: 'تخصصات أخرى' };
 
 function label(t: Trade, lang: Lang) { return lang === 'ar' ? (t.label_ar || t.label) : t.label; }
@@ -48,12 +39,14 @@ function label(t: Trade, lang: Lang) { return lang === 'ar' ? (t.label_ar || t.l
 /** The grouped list, in the table's own order within each group. */
 export function groupedTrades(trades: Trade[], lang: Lang): Array<{ title: string; labels: string[] }> {
   const out: Array<{ title: string; labels: string[] }> = [];
-  const seen = new Set<string>();
-  for (const g of GROUPS) {
-    const labels = trades.filter((t) => g.codes.includes(t.code)).map((t) => { seen.add(t.code); return label(t, lang); });
-    if (labels.length) out.push({ title: lang === 'ar' ? g.ar : g.en, labels });
+  const groups = new Map<string, TradeGroup>();
+  for (const t of trades) if (t.group?.code && !groups.has(t.group.code)) groups.set(t.group.code, t.group);
+  const ordered = [...groups.values()].sort((x, y) => (x.sort ?? 1e9) - (y.sort ?? 1e9) || x.code.localeCompare(y.code));
+  for (const g of ordered) {
+    const labels = trades.filter((t) => t.group?.code === g.code).map((t) => label(t, lang));
+    if (labels.length) out.push({ title: lang === 'ar' ? (g.label_ar || g.label_en) : g.label_en, labels });
   }
-  const rest = trades.filter((t) => !seen.has(t.code)).map((t) => label(t, lang));
+  const rest = trades.filter((t) => !t.group?.code).map((t) => label(t, lang));
   if (rest.length) out.push({ title: lang === 'ar' ? OTHER.ar : OTHER.en, labels: rest });
   return out;
 }

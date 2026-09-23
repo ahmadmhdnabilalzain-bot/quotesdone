@@ -22,7 +22,13 @@ import { readExpiry } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
+import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
+import type { Attr } from '../_shared/line_specs/model.ts';
+import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
+import type { Line } from '../_shared/line_specs/assess.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
 import { findTrn } from '../_shared/identity_numbers.ts';
@@ -37,7 +43,7 @@ import { drawingWithheld, signRedactedDrawings } from '../_shared/drawing_pages.
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { inquiryDocuments, MAX_FILE, REVIEW_ACTIONS, reviewAction, safeInquiry } from './quote_review_actions.ts';
 import { supabaseReviewRepo } from './quote_review_flow.ts';
-import { jobNo, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
+import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from './quote_review.ts';
 import { issueAsMissing, resolvedFrom, withResolved, workingFromStoredQuote, workingFromSubmit } from './submit_review.ts';
 import { SANCTIONED_REFUSAL, SANCTIONED_REGISTRATION_REFUSAL, sanctionedEmail, sanctionedLeads } from '../_shared/sanctioned.ts';
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -71,6 +77,37 @@ const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ?
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n !== 0 ? n : (isFinite(n) && String(v).trim() !== '' ? n : null); };
+// EXACT SPECS FOR A TRADE WITH NO LINE READER (23 Sep 2026). The trade's knowledge pack says what a line
+// must state (fn_trade_spec_checklist); think() judges what the supplier's lines already state
+// (_shared/line_specs/reasoned_specs.ts). Under the model hold nothing is judged and every required spec
+// is asked, so the quote is held until it is stated. A trade with a reader, or no checklist, is unchanged.
+// mode 'gate': choose the checklist (reasoned) and judge the lines — once per submission. 'stored': the
+// live hold's own checklist, read back for fill-in and approval, no reasoning. 'preflight': no reasoning,
+// a prediction only (one checklist, or every checklist together).
+async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' | 'preflight' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
+  if (!category || !needsChecklist(category)) return {};
+  if (mode === 'stored') {
+    const { data: h } = await admin.from('quote_spec_hold').select('original_snapshot').eq('quote_id', quoteId)
+      .in('state', ['open', 'awaiting_approval']).order('id', { ascending: false }).limit(1).maybeSingle();
+    const rows = ((h?.original_snapshot as { checklist?: ChecklistRow[] } | null)?.checklist ?? []) as ChecklistRow[];
+    return rows.length ? { checklist: checklistAttrs(rows) } : {};
+  }
+  const { data, error } = await admin.rpc('fn_trade_spec_checklist', { p_category: category });
+  const lists = (!error && Array.isArray(data) ? data : []) as Checklist[];
+  if (!lists.length) {
+    // Not held on an empty list, and not silently: the missing pack is an IT finding the knowledge work closes.
+    try { await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'spec_checklist_missing:' + category, p_title: 'A trade with no line reader has no spec checklist, so its quotes cannot be held for missing specs',
+      p_where: 'edge function supplier_api', p_blast: 'customer_facing', p_affected: 1, p_evidence: { category, quote_id: quoteId, error: error?.message ?? null }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }); } catch (_e) { /* the gate goes on */ }
+    return {};
+  }
+  if (mode === 'preflight') return { checklist: checklistAttrs(lists.length === 1 ? lists[0].specs : unionOf(lists)) };
+  const deps = defaultDeps(admin, 'supplier_api');
+  const { data: lineRows } = await admin.from('quote_items').select('*').eq('quote_id', quoteId).order('line_no', { ascending: true }).limit(60);
+  const picked = await chooseChecklist(deps, { checklists: lists, lines: (lineRows ?? []) as Line[], trade: category, quoteId });
+  const checklist = checklistAttrs(picked.rows);
+  if (!checklist.length) return {};
+  return { checklist, reason: (lines, cl) => reasonLineSpecs(deps, { lines, checklist: cl, trade: category, quoteId }) };
+}
 async function secretVal(key: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return data?.value || null; }
 // A SUPPLIER ACTS ONLY ON A JOB IT WAS MATCHED TO (audit 22 Sep 2026, finding SP-N-03).
 //
@@ -338,7 +375,9 @@ const handle = async (req: Request): Promise<Response> => {
         if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
         return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
       };
-      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan });
+      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan,
+        // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
+        readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
       return J(out.json, out.status);
     }
 
@@ -1285,13 +1324,14 @@ const handle = async (req: Request): Promise<Response> => {
       const { count: optCount } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiry_id).eq('supplier_id', sup.id);
       // deno-lint-ignore no-explicit-any
       const spec: any = inqRow?.spec;
-      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1 };
+      const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1,
+                    ...(await specChecklist(inqRow?.category ?? null, String(q.id), 'stored')) };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
         const hold = hs?.[0] || null;
         const lines = await repo.lines(qid);
-        const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements });
+        const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
         return J({ ok: true, quote_id: qid, option_no: q.option_no, hold: hold ? { ...hold, pdf_url: await signed(hold.pdf_bucket, hold.pdf_path) } : null, schema: formSchema(a, lines) });
       }
       if (action === 'spec_fill') {
@@ -1339,7 +1379,8 @@ const handle = async (req: Request): Promise<Response> => {
             label_en: 'We could not read this job just now, so we have not sent your quotation. Please confirm your approval again in a moment.',
             label_ar: 'تعذّر علينا قراءة هذا الطلب الآن، ولذلك لم نرسل عرضكم. يُرجى تأكيد الموافقة مرة أخرى بعد قليل.' }] };
           const rrow = await supabaseReviewRepo(admin).review(String(row.inquiry_id), Number(sup.id)).catch(() => null);
-          const rvw = reviewQuotation(inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)));
+          // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+          const rvw = reviewQuotation(inqSafe, await readWorking(defaultDeps(admin, 'supplier_api'), inqSafe, withResolved(workingFromStoredQuote(row, await repo.lines(String(row.id))), resolvedFrom(rrow?.working)), 'review:' + inqSafe.id + ':' + sup.id));
           if (rvw.approved) return null;
           return { missing: rvw.issues.map(issueAsMissing), issues: rvw.issues };
         });
@@ -1448,9 +1489,10 @@ const handle = async (req: Request): Promise<Response> => {
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
-      const rv = reviewQuotation(safeInq, withResolved(
+      // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked.
+      const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
         workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
-        resolvedFrom(reviewRow?.working)));
+        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
       const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
@@ -1521,7 +1563,10 @@ const handle = async (req: Request): Promise<Response> => {
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
         if (dryRun) {
           const acc = await acceptRule(qid);
-          const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements });
+          // The same reading the real submission's gate does (reasoned_matching.ts), so the preflight and the gate agree.
+          const dq = (await repo.quote(qid))!; const dl = await repo.lines(qid);
+          const rd = applyReading(dl, dq.terms_spec, await readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: dl, terms: dq, requirements }));
+          const a = assessQuote({ category, lines: rd.lines, terms: { ...dq, terms_spec: rd.terms_spec }, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;
@@ -1561,7 +1606,9 @@ const handle = async (req: Request): Promise<Response> => {
         }
         // THE HOLD GATE (founder, 14 Sep 2026). The sales engineer holds a quote that does not state
         // every required detail exactly, records which line and which detail, and tells the supplier.
-        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption });
+        const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
+          // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
+          read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
         if (g.held) { results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
         // assessment; these are rules 1-7 — the BOQ priced line by line, quantities and units, prices in

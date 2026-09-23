@@ -536,74 +536,259 @@
   {
    "id": "sql.fn_norm_trades",
    "order": 23,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "taxonomy_trade.aliases regex -> trade codes (sales_engineer brief)"
+   "decides": "taxonomy_trade.aliases regex -> trade codes (sales_engineer brief)",
+   "held": "fn_norm_trades reads no free text: a slug or code resolves exactly, anything else is NULL (needs reasoning). A supplier's own trade words are reasoned (tradeOfWords); held, no trade and no new-trade code is claimed and the words go to the sales engineer as a proposal. The sales_engineer brief path is point 35.",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "public.fn_taxonomy_trades_for(array[btrim(coalesce(p_text"
+     ],
+     "must_not_contain": [
+      "x.s ~* ('\\m'",
+      "regexp_replace(n.na"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/supplier_services.ts",
+     "must_contain": [
+      "tradeOfWords(defaultDeps(admin, 'supplier_api')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'sql.fn_norm_trades'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_kb_route",
    "order": 24,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "kb_operational_alias substring hits -> catalogue category"
+   "decides": "kb_operational_alias substring hits -> catalogue category",
+   "held": "Under the hold the visitor is asked, in plain words, to describe the job (the router clarification); nothing is routed on a guess and nothing is queued, because a public page has no channel to answer on later. fn_kb_route is dropped.",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "drop function if exists public.fn_kb_route(text, integer);"
+     ],
+     "must_not_contain": [
+      "q.t like '%' || ' ' || a.alias_norm"
+     ]
+    },
+    {
+     "file": "supabase/functions/public_site/index.ts",
+     "must_contain": [
+      "catalogueCategoryOf(defaultDeps(admin, 'public_site')"
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "catalogueCategoryOf(defaultDeps(admin, 'inquiry_intake')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'sql.fn_kb_route'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_match_capability",
    "order": 25,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "products/brands ilike both ways -> supplier match"
+   "decides": "products/brands ilike both ways -> supplier match",
+   "held": "No reasoning is needed at match time: products, brands, project type and emirate compare by exact normalised equality (exact or none, as the trade gate); a substring never scores. The request side reasons its terms upstream (point 35).",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "pq = any(array(select lower(btrim(pp))"
+     ],
+     "must_not_contain": [
+      "pp ilike '%'||pq||'%'",
+      "bb ilike '%'||bq||'%'",
+      "pt ilike '%'||p_project_type||'%'",
+      "e ilike p_emirate"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_supplier_product_match",
    "order": 26,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "position(term in inquiry.want) -> matched_terms"
+   "decides": "position(term in inquiry.want) -> matched_terms",
+   "held": "Held: the supplier sees his products listed unscored with status needs_reasoning (held: true); no word-count percentage is ever shown; the question is queued once per enquiry and supplier and the next view after the hold lifts reasons it.",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "'status', case when p_asked is null then 'needs_reasoning' else 'reasoned' end"
+     ],
+     "must_not_contain": [
+      "position(pt.w in inq.want)",
+      "regexp_split_to_array(inq.want"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_portal/index.ts",
+     "must_contain": [
+      "productsAsked(defaultDeps(admin, 'supplier_portal')"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_quote_spec_group",
    "order": 27,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql",
-   "decides": "45-branch category regex -> which specs are required"
+   "decides": "45-branch category regex -> which specs are required",
+   "held": "No reasoning at read time: the spec group is the keyed column category_specs.quote_spec_group (seeded with the measured value per category); a category with no group set checks no group specs, and nothing is inferred from its name.",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "select cs.quote_spec_group from public.category_specs cs where cs.category = p_category"
+     ],
+     "must_not_contain": [
+      "p_category ~* 'duct.?clean",
+      "when p_category ~*"
+     ]
+    }
+   ]
   },
   {
    "id": "line_specs.same_value",
    "order": 28,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "critical",
    "where": "supabase/functions/_shared/line_specs/compare.ts",
-   "decides": "sameValue -> no-exact-spec offer"
+   "decides": "sameValue -> no-exact-spec offer",
+   "held": "Held: no alternative is offered to the customer and nothing opens for that inquiry; the spec-offer sweep asks again next tick (dedupe spec_offer:<inquiry>:<line>:<attr>), so an offer is only ever made on a reasoned difference.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/compare.ts",
+     "must_contain": [
+      "return !!p && p === q;"
+     ],
+     "must_not_contain": [
+      "p.includes(q)",
+      "q.includes(p)",
+      "const firstNum"
+     ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "reasonedOffers(defaultDeps(admin, 'sales_engineer'), proposed, c.inquiry_id)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'line_specs.same_value'"
+     ]
+    }
+   ]
   },
   {
    "id": "line_specs.vague",
    "order": 29,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/_shared/line_specs/model.ts",
-   "decides": "VAGUE, per-trade attribute readers, tradeOfLine, NO_INSTALL, WARRANTY_ONLY_IF"
+   "decides": "VAGUE, per-trade attribute readers, tradeOfLine, NO_INSTALL, WARRANTY_ONLY_IF",
+   "held": "Held: nothing is read, so no value is judged exact or vague and no composite line is given a trade; every required detail is asked of the supplier (a composite line its exact specification) and the quote is held until he states it in the portal.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/model.ts",
+     "must_contain": [
+      "import CATALOGUE from './catalogue.json'"
+     ],
+     "must_not_contain": [
+      "VAGUE = /",
+      "kw.test(text)",
+      "NON_MATERIAL = /",
+      "WARRANTY_ONLY_IF",
+      "find: (text: string)",
+      "const rules: [RegExp, string][]"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'line_specs.vague'"
+     ]
+    }
+   ]
   },
   {
    "id": "line_specs.assess",
    "order": 30,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "supabase/functions/_shared/line_specs/assess.ts",
-   "decides": "MATERIAL_LEXICON, readInstallation, readWarranty, readDelivery"
+   "decides": "MATERIAL_LEXICON, readInstallation, readWarranty, readDelivery",
+   "held": "Held: readQuote returns null and files ONE question per quote (quote_read:<id>); the gate then holds the quote and asks the supplier every required detail — his own statement in the portal releases it. No word reader decides anything, before or after the hold.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/assess.ts",
+     "must_contain": [
+      "reasoned(l, READ.notMaterial)"
+     ],
+     "must_not_contain": [
+      "MATERIAL_LEXICON",
+      "INSTALL_YES",
+      "W_COVER",
+      "a.find(text)",
+      "OPTION_HEAD.test"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "await ctx.read(q, stored)"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'line_specs.assess'"
+     ]
+    }
+   ]
   },
   {
    "id": "supplier_api.quote_review_match",
@@ -1053,11 +1238,24 @@
   {
    "id": "sql.fn_kb_route_decide",
    "order": 77,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "high",
    "where": "scripts/sql/route_decide_activation_and_target_role_models.sql",
-   "decides": "fn_kb_route_decide: alias substring matching routes an intake to a catalogue category — found by B2"
+   "decides": "fn_kb_route_decide: alias substring matching routes an intake to a catalogue category — found by B2",
+   "held": "Without a reasoned category the router answers needs_reasoning with the activated categories and a plain clarification; a deactivated category can never be routed to; the caller reasons (catalogueCategoryOf) and, held, asks the visitor to describe the job.",
+   "proof": [
+    {
+     "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "function public.fn_kb_route_decide(p_text text, p_catalog_num integer default null)",
+      "'action', 'needs_reasoning'"
+     ],
+     "must_not_contain": [
+      "from public.fn_kb_route(p_text, 5)"
+     ]
+    }
+   ]
   },
   {
    "id": "shared.quote_answer",
@@ -1178,6 +1376,40 @@
    "severity": "low",
    "where": "supabase/functions/_shared/quote_documents.ts",
    "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
+  },
+  {
+   "id": "quote.line_specs_readerless",
+   "order": 84,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "critical",
+   "where": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
+   "decides": "for a trade with no line reader (123 of #881's 153), which pack checklist a quote is priced against and whether each line states each required spec — reasoned with the supplier's own words as evidence; under the hold every required spec is asked and the quote is held. Not 123 regex readers.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/reasoned_specs.ts",
+     "must_contain": [
+      "surface: 'quote.line_specs'",
+      "surface: 'quote.spec_checklist'"
+     ],
+     "must_not_contain": [
+      "new RegExp("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "withReasoned(read, await ctx.reason(read, ctx.checklist))"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_trade_spec_checklist'"
+     ]
+    }
+   ],
+   "held": "Under the hold every required spec of the pack checklist is asked of the supplier and the quote is held; it is never passed on a guess."
   }
  ]
 }

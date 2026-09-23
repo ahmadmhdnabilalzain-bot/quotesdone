@@ -91,13 +91,15 @@ await add('1 · 86_CATEGORIES (routing)', 'operational routes', csvRows(join(R, 
 await add('1 · 86_CATEGORIES (routing)', 'crosswalk / route map', lines(join(R, '02_OPERATIONAL_CROSSWALK.jsonl')),
   await one('select count(*) n from kb_operational_route_map'),
   'fn_kb_route_decide -> kb_stage.decision_rules join',
-  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai'))->'rules') n`,
+  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai', (select m.catalog_num from public.kb_operational_route_map m order by m.catalog_num limit 1)))->'rules') n`,
   'the rules only resolve through the route map');
 await add('1 · 86_CATEGORIES (routing)', 'alias lexicon', lines(join(R, '03_OPERATIONAL_ALIAS_LEXICON.jsonl')),
   await one('select count(*) n from kb_operational_alias'),
-  'fn_kb_route_decide on Arabic input',
+  // Since 23 Sep 2026 (decision points 24/77) no routine matches the alias lexicon: the category is reasoned
+  // (think()) over the open routes fn_kb_route_decide lists, so this row counts the routes an Arabic request is reasoned over.
+  'fn_kb_route_decide on Arabic input (routes offered to reasoning)',
   `select count(*) n from jsonb_array_elements((public.fn_kb_route_decide('أحتاج رمل مغسول في دبي'))->'candidates')`,
-  'Arabic can only match through the alias lexicon');
+  'an Arabic request is reasoned over the open routes, never alias-matched');
 await add('1 · 86_CATEGORIES (routing)', 'route tests', lines(join(R, '04_OPERATIONAL_ROUTE_TESTS.jsonl')),
   await one('select count(*) n from kb_operational_route_test'),
   'fn_kb_route_test_run (hourly)',
@@ -128,7 +130,7 @@ await add('1 · 86_CATEGORIES (knowledge)', 'inquiry questions', await one('sele
 await add('1 · 86_CATEGORIES (knowledge)', 'decision rules', 12929,
   await one('select count(*) n from kb_stage.decision_rules'),
   'fn_kb_route_decide (hourly, 344x)',
-  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai'))->'rules') n`,
+  `select jsonb_array_length((public.fn_kb_route_decide('ready mix concrete Dubai', (select m.catalog_num from public.kb_operational_route_map m order by m.catalog_num limit 1)))->'rules') n`,
   '12,929 rows in 13_decision_rules.jsonl');
 await add('1 · 86_CATEGORIES (knowledge)', 'routes ACTIVATED for live use', 86,
   86 - await one(`select count(*) n from generate_series(1,86) g where (fn_kb_route_activation_blocked(g)->>'blocked')::boolean`),

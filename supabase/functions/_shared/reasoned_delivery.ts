@@ -164,6 +164,9 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       return (data as { matched?: boolean; reply?: string } | null)?.matched ? String(data.reply || '') || null : null;
     },
     waTrades: async () => {
+      // Each trade with its live group (#885), the same read wa_inbound makes; ungrouped if the groups are absent.
+      const grouped = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases,group:taxonomy_trade_group(code,label_en,label_ar,sort)').eq('active', true).order('sort').order('code');
+      if (!grouped.error) return (grouped.data || []) as unknown as Trade[];
       const { data } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases').eq('active', true).order('sort').order('code');
       return (data || []) as Trade[];
     },

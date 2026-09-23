@@ -34,7 +34,7 @@ export function assessInput(q: QuoteRow, items: ItemRow[]): { lines: Line[]; ter
       line_no: Number(it.line_no ?? it.line ?? 0), description: String(it.description || ''),
       brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit,
       unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount,
-      notes: it.notes, spec: it.spec ?? null,
+      notes: it.notes, spec: it.spec ?? null, spec_source: it.spec_source ?? null,
     })),
     // price_ex_vat AND NOTHING ELSE. It is the figure the founder's hold rule names and the figure
     // the 3% is charged on (line_specs/vat.ts); quote_amount is the supplier's headline total and
@@ -68,7 +68,7 @@ export function heldQuoteIds(
 export async function itemsByQuote(admin: Admin, quoteIds: string[]): Promise<Record<string, ItemRow[]>> {
   const out: Record<string, ItemRow[]> = {};
   if (!quoteIds.length) return out;
-  const COLS = 'quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec';
+  const COLS = 'quote_id,line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec,spec_source';
   const CHUNK = 25;     // quote ids per request — keeps the URL short and the page small
   const PAGE = 1000;    // rows per page; paged until a short page says the chunk is exhausted
   for (let i = 0; i < quoteIds.length; i += CHUNK) {

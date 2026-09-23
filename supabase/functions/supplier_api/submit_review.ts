@@ -16,7 +16,7 @@
 // never read off the request body: otherwise a supplier posting straight to the endpoint could declare
 // every BOQ line excluded and walk past the whole review.
 import type { MissingItem, TermsSpec } from '../_shared/line_specs/assess.ts';
-import { foreignCurrency, parseQty, type Issue, type WLine, type Working } from './quote_review.ts';
+import { foreignCurrency, parseQty, sanitizeSpec, type Issue, type WLine, type Working } from './quote_review.ts';
 
 const num = (v: unknown): number | null => { const n = Number(v); return Number.isFinite(n) && String(v ?? '').trim() !== '' ? n : null; };
 const str = (v: unknown): string => (v == null ? '' : String(v));
@@ -49,7 +49,8 @@ export function workingFromSubmit(body: SubmitBody, scrubbed: { notes: string; s
     unit_price: num(it?.unit_price),
     amount: num(it?.amount) ?? (((num(it?.qty) || 0) * (num(it?.unit_price) || 0)) || null),
     ...(it?.specification ? { specification: String(it.specification) } : {}),
-    ...(it?.spec && typeof it.spec === 'object' ? { spec: it.spec as Record<string, string> } : {}),
+    // The same cleaning the stored rows get (sanitizeSpec), so the review and the hold gate judge one set of values.
+    ...(it?.spec && typeof it.spec === 'object' ? { spec: sanitizeSpec(it.spec).spec } : {}),
   }));
   const lead_time = str(body.lead_time), validity = str(body.validity), payment_terms = str(body.payment_terms), warranty = str(body.warranty);
   return {
