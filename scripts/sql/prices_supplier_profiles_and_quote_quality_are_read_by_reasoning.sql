@@ -768,7 +768,7 @@ begin
   grp := public.fn_quote_spec_group(coalesce(cat,''));
   if grp is not null and exists (select 1 from public.category_quote_specs where spec_group=grp) then
     -- WHICH ASPECTS THE QUOTE STATES IS A REASONED READING of this exact text (quote_aspect_reading),
-    -- never match_regex. No reading yet: the category verdict is 'needs_reasoning' and NOT a pass.
+    -- never a pattern over the text. No reading yet: the category verdict is 'needs_reasoning' and NOT a pass.
     v_md5 := md5(coalesce(public.fn_quote_aspect_text(NEW), ''));
     select a.present into v_present from public.quote_aspect_reading a
      where a.quote_id = NEW.id and a.content_md5 = v_md5 and a.status = 'reasoned';
