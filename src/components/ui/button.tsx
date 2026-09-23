@@ -20,12 +20,27 @@ const buttonVariants = cva(
         destructive: 'bg-danger text-navy shadow-e1 hover:bg-danger/90',
         link: 'text-teal-light underline-offset-4 hover:underline active:scale-100',
       },
+      // EVERY BUTTON IS AT LEAST 44x44 TO A FINGER (22 Sep 2026, audit SP-M-01).
+      //
+      // MEASURED on the supplier portal on a phone: 53 buttons were 32px tall (`sm`, h-8) and five
+      // about 24px; the language switch came out 44x32 and the theme toggle 37x32. WCAG 2.5.5 asks
+      // for 44 and 2.5.8 for 24, and a 32px control is a miss on a 6-inch screen on either reading.
+      //
+      // The 44 is applied UNDER `pointer: coarse` only, and that is the whole point. The rule exists
+      // for a fingertip; a mouse hits 32px exactly. Raising `sm` to h-11 outright would re-lay-out
+      // every dense row in the customer portal, the OS dashboard and the marketing site — none of
+      // which this audit looked at — to fix a defect none of their desktop users have.
+      //
+      // NOT a `::after` hit area, which is the usual trick and is wrong here: `.qd-hoverlit`, on
+      // every one of these buttons, sets `overflow:hidden` for its pointer-following glow
+      // (globals.css), so a pseudo-element larger than the button is clipped away and the target
+      // does not grow at all. The box itself has to be the target.
       size: {
-        sm: 'h-8 px-3 text-small',
-        default: 'h-10 px-4 text-copy',
+        sm: 'h-8 px-3 text-small [@media(pointer:coarse)]:min-h-11',
+        default: 'h-10 px-4 text-copy [@media(pointer:coarse)]:min-h-11',
         lg: 'h-12 px-6 text-copy',
         xl: 'h-14 rounded-[12px] px-8 text-[16px]',
-        icon: 'h-10 w-10',
+        icon: 'h-10 w-10 [@media(pointer:coarse)]:min-h-11 [@media(pointer:coarse)]:min-w-11',
       },
     },
     defaultVariants: { variant: 'default', size: 'default' },

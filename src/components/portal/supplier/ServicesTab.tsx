@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { blobToWav } from '@/lib/wavEncode';
 import { call } from './api';
+import { panelErrorText } from './PanelState';
 import { srvMsg, vocabLabel } from './serverCopy';
 import { countServices, sc, scCount } from './servicesCopy';
 
@@ -175,7 +176,8 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   if (!st.data) return (
     <Card className="qd-panel p-5">
       <h2 className={h3}>{sc(lang, 'load_failed')}</h2>
-      {st.err ? <p className={sub}>{st.err}</p> : null}
+      {/* SP-I-01: `st.err` is the server's own English — a raw code, or a DB message on a 500. */}
+      {st.err ? <p className={sub}>{panelErrorText(ar ? 'ar' : 'en', st.err)}</p> : null}
       <Button className="mt-3" onClick={load}>{sc(lang, 'retry')}</Button>
     </Card>
   );

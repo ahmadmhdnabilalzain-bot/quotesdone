@@ -15,8 +15,9 @@
 // supplier can act on — a missing licence, an expired ISO certificate, an empty capability summary
 // — and each links to the tab that fixes it. That is the truthful answer to "why am I losing":
 // today it is "you are not yet eligible to compete", and that is worth saying.
-import React, { useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useState } from 'react';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 
 type Rec = {
   key: string; action: string; why: string; action_ar?: string | null; why_ar?: string | null;
@@ -34,17 +35,6 @@ type Advice = {
   impact_basis?: { live_inquiries?: number; note?: string };
 };
 type Lang = 'en' | 'ar';
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -84,18 +74,17 @@ export default function SupplierAdvisor({
   const [a, setA] = useState<Advice | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'advisor' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setA(j);
-      else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
+  // Named, so the failure state's "Try again" re-runs exactly the read that failed.
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'advisor' }, token);
+    if (j && j.ok) setA(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!a) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!a) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const loss = a.loss_analysis || {};
   // A reason with a zero count is not a loss; "not quoted yet" is said only when nothing was quoted.
@@ -183,7 +172,7 @@ export default function SupplierAdvisor({
                     <button
                       type="button"
                       onClick={() => goTo(r.goes_to as string)}
-                      className="shrink-0 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] hover:bg-white/10"
+                      className="shrink-0 min-h-11 min-w-11 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] hover:bg-white/10"
                     >
                       {t(lang, 'fix')}
                     </button>

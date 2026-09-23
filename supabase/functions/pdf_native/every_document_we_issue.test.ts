@@ -71,7 +71,12 @@ const SALE: RevealSale = { tx_id: 'tx-zzdemo', invoice_no: 'ZZDEMO-0001', paid_a
   request: { summary: 'ZZ DEMO gypsum ceilings', category: 'gypsum', ref: 'QD-ZZDEMO01' }, card: { brand: 'visa', last4: '4242' }, refund: null };
 const REG: SupplierPayment = { kind: 'registration', ref: 'QD-REG-990001-2026', paid_at: '2026-09-06T10:00:00Z', payment_ref: 'pi_zzdemo_reg',
   supplier: { name: 'ZZ DEMO Supplier LLC', email: 'zz.demo.supplier@example.invalid' }, period: { from: '2026-09-06', to: '2027-09-06' },
-  lines: [{ en: 'Annual supplier listing fee', ar: 'رسوم الإدراج السنوية للمورّد', amount: 1250 }], total: 1250 };
+  // The fee's name comes from the signed Supplier Agreement v12, clause 2: "Subscription Fee" /
+  // «رسوم الاشتراك». This fixture said "Annual supplier listing fee" / «رسوم الإدراج السنوية للمورّد»
+  // until 22 Sep 2026, which was a third name for one fee and, being the fixture, it was the name the
+  // golden receipt was rendered and eyeballed with. Updated to the name the company now issues —
+  // scripts/checks/one_fee_has_one_name.test.mjs is what keeps the two in step.
+  lines: [{ en: 'Annual supplier Subscription Fee', ar: 'رسوم الاشتراك السنوية للمورّد', amount: 1250 }], total: 1250 };
 const DUES_ROWS = [{ id: 990001, amount_due: 1000, admin_fee: 250, interest_amount: 0, fine_amount: 0 }];
 const DUES: SupplierPayment = { kind: 'dues', ref: 'QD-DU-990001', paid_at: '2026-09-06T10:00:00Z', payment_ref: 'pi_zzdemo_dues',
   supplier: { name: 'ZZ DEMO Supplier LLC', email: 'zz.demo.supplier@example.invalid' }, lines: duesLines(DUES_ROWS), total: 1250 };

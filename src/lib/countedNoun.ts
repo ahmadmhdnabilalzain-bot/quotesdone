@@ -12,7 +12,8 @@
 // Tested in src/lib/countedNoun.test.mjs.
 
 export type ArForms = { one: string; two: string; twoOblique: string; few: string; many: string };
-export type Noun = 'request' | 'quote' | 'line' | 'page' | 'area' | 'project' | 'hour' | 'category' | 'supplier';
+export type Noun = 'request' | 'quote' | 'line' | 'page' | 'area' | 'project' | 'hour' | 'category' | 'supplier'
+  | 'day' | 'inquiry' | 'matchedInquiry' | 'drawingPage' | 'openPoint' | 'product' | 'unreadMessage' | 'document';
 
 /** twoOblique is the dual after a verb it is the object of, or after a preposition ('قرأتُ بندين'). */
 export const AR_NOUN: Record<Noun, ArForms> = {
@@ -25,6 +26,21 @@ export const AR_NOUN: Record<Noun, ArForms> = {
   hour: { one: 'ساعة واحدة', two: 'ساعتان', twoOblique: 'ساعتين', few: 'ساعات', many: 'ساعة' },
   category: { one: 'فئة واحدة', two: 'فئتان', twoOblique: 'فئتين', few: 'فئات', many: 'فئة' },
   supplier: { one: 'مورّد واحد', two: 'مورّدان', twoOblique: 'مورّدين', few: 'مورّدين', many: 'مورّدًا' },
+  // ── Added 23 Sep 2026, review of #858. That branch had declared these same eight nouns as private
+  // four-form arrays in six files, next to a SECOND arCount in src/lib/durationLabel.ts whose only
+  // difference was that it had no k === 0 branch — so an empty list read '0 استفسارات' where Arabic
+  // takes the accusative singular, exactly as at 11+. This file already said so on the line below
+  // arCount's zero branch. One rule, one table: the arrays are lines here now.
+  day: { one: 'يوم واحد', two: 'يومان', twoOblique: 'يومين', few: 'أيام', many: 'يومًا' },
+  inquiry: { one: 'استفسار واحد', two: 'استفساران', twoOblique: 'استفسارين', few: 'استفسارات', many: 'استفسارًا' },
+  // The adjective follows the noun it describes, so it carries the same number and case.
+  matchedInquiry: { one: 'استفسار واحد مطابق لكم', two: 'استفساران مطابقان لكم', twoOblique: 'استفسارين مطابقين لكم', few: 'استفسارات مطابقة لكم', many: 'استفسارًا مطابقًا لكم' },
+  // A construct phrase: the dual drops its نون (صفحتا مخطط) and the 11+ singular takes no tanwin.
+  drawingPage: { one: 'صفحة مخطط واحدة', two: 'صفحتا مخطط', twoOblique: 'صفحتي مخطط', few: 'صفحات مخطط', many: 'صفحة مخطط' },
+  openPoint: { one: 'نقطة واحدة مفتوحة', two: 'نقطتان مفتوحتان', twoOblique: 'نقطتين مفتوحتين', few: 'نقاط مفتوحة', many: 'نقطة مفتوحة' },
+  product: { one: 'منتج واحد', two: 'منتجان', twoOblique: 'منتجين', few: 'منتجات', many: 'منتجًا' },
+  unreadMessage: { one: 'رسالة واحدة غير مقروءة', two: 'رسالتان غير مقروءتين', twoOblique: 'رسالتين غير مقروءتين', few: 'رسائل غير مقروءة', many: 'رسالة غير مقروءة' },
+  document: { one: 'مستند واحد', two: 'مستندان', twoOblique: 'مستندين', few: 'مستندات', many: 'مستندًا' },
 };
 
 const EN_NOUN: Record<Noun, [string, string]> = {
@@ -37,6 +53,14 @@ const EN_NOUN: Record<Noun, [string, string]> = {
   hour: ['hour', 'hours'],
   category: ['category', 'categories'],
   supplier: ['supplier', 'suppliers'],
+  day: ['day', 'days'],
+  inquiry: ['inquiry', 'inquiries'],
+  matchedInquiry: ['inquiry matched to you', 'inquiries matched to you'],
+  drawingPage: ['drawing page', 'drawing pages'],
+  openPoint: ['open point', 'open points'],
+  product: ['product', 'products'],
+  unreadMessage: ['unread message', 'unread messages'],
+  document: ['document', 'documents'],
 };
 
 /** arCount(2, AR_NOUN.line) = 'بندان'; with {oblique:true} = 'بندين'; arCount(3, …) = '3 بنود'. */

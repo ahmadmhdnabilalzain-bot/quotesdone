@@ -14,9 +14,10 @@
 // literally cannot happen without it. It is not a score derived from this supplier's history, and
 // the panel says so, because a stated rule dressed as an observation is the failure this row keeps
 // guarding against.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 import { arDays } from '@/lib/durationLabel';
 
 type Lang = 'en' | 'ar';
@@ -29,17 +30,6 @@ type Payload = {
   certifications?: Cert[]; impact_basis?: string; impact_basis_ar?: string | null;
   summary?: { held?: number; total?: number; expired?: number; expiring?: number; blocking_missing?: number };
 };
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -81,17 +71,16 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
   const [d, setD] = useState<Payload | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'certifications' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
-    }).catch(() => { if (live) setErr('load_err'); });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'certifications' }, token);
+    if (j && j.ok) setD(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="p-4 text-xs opacity-60">{err}</div>;
-  if (!d) return <div className="p-4 text-xs opacity-60">{L.loading}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!d) return <PanelLoading lang={lang} text={L.loading} />;
 
   const certs = (d.certifications || []).filter((c) => !RETIRED_SUBJECTS.has(c.key));
   const ar = lang === 'ar';
@@ -135,7 +124,7 @@ export default function SupplierCertifications({ token, lang = 'en', goTo }:
               <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{L.impact}</div>
               <div className={'text-[12px] font-medium ' + IMPACT_STYLE[c.impact_level]}>{IMPACT_LABEL[ar ? 'ar' : 'en'][c.impact_level] || c.impact_level}</div>
               {!c.held && goTo && (
-                <button type="button" className="qd-link mt-1 text-[11px]" onClick={() => goTo('documents')}>
+                <button type="button" className="qd-link mt-1 inline-flex min-h-11 min-w-11 items-center justify-end text-[11px]" onClick={() => goTo('documents')}>
                   {L.upload}
                 </button>
               )}

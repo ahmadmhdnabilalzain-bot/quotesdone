@@ -22,8 +22,11 @@
 // estate that fn_match_capability actually returns. The panel told it that it could not be matched.
 // `matchable` now counts on both legs of the real gate and `me_matchable` is computed about the
 // reader, so a supplier who has done the work is told they are ahead instead of being told a lie.
-import React, { useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useState } from 'react';
+import { call } from './api';
+// The one count formatter: a bare toLocaleString() follows the VIEWER's browser, not the page.
+import { num, price as aed } from './money';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, tradeLabel } from './serverCopy';
 
@@ -50,17 +53,6 @@ type Market = {
   demand_trend?: Trend; most_requested?: TopCat; avg_market_price?: Price;
 };
 type Lang = 'en' | 'ar';
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -108,7 +100,7 @@ function Bars({ rows, lang }: { rows: { name: string; count: number }[]; lang: L
         <div key={r.name}>
           <div className="flex justify-between text-[11px] mb-0.5">
             <span className="opacity-70 truncate pe-2">{r.name}</span>
-            <span className="tabular-nums opacity-60">{r.count.toLocaleString()}</span>
+            <span className="tabular-nums opacity-60">{num(r.count)}</span>
           </div>
           <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
             <div
@@ -121,11 +113,6 @@ function Bars({ rows, lang }: { rows: { name: string; count: number }[]; lang: L
     </div>
   );
 }
-
-// Money the supplier is meant to compare against their own. No decimals — a market price quoted to
-// the fils is a precision the population cannot support.
-const aed = (n?: number | null, cur = 'AED') =>
-  n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
 
 // A card that shows a computed figure. The three demand figures share it so that "available" is
 // decided in exactly one place on the surface, the same way the routine decides it in one place.
@@ -156,18 +143,16 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
   const [m, setM] = useState<Market | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'market' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setM(j);
-      else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'market' }, token);
+    if (j && j.ok) setM(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!m) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!m) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const c = m.competitors || {};
   const byEm = (c.by_emirate || []).map((x) => ({ name: emirateLabel(lang, x.emirate), count: x.count }));
@@ -199,15 +184,15 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-2xl font-semibold tabular-nums">{(c.total ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-semibold tabular-nums">{num(c.total ?? 0)}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'competitors')}</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums">{(c.in_my_area ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-semibold tabular-nums">{num(c.in_my_area ?? 0)}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'inArea')}</div>
           </div>
           <div>
-            <div className="text-2xl font-semibold tabular-nums text-warn-fg">{(c.matchable ?? 0).toLocaleString()}</div>
+            <div className="text-2xl font-semibold tabular-nums text-warn-fg">{num(c.matchable ?? 0)}</div>
             <div className="text-[10px] uppercase tracking-wide opacity-50">{t(lang, 'matchable')}</div>
           </div>
         </div>
@@ -274,15 +259,15 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
         {m.avg_market_price?.available ? (
           <Figure label={t(lang, 'avgPrice')}>
             <div className="text-2xl font-semibold tabular-nums">
-              {aed(m.avg_market_price.value, m.avg_market_price.currency)}
+              {aed(lang, m.avg_market_price.value, m.avg_market_price.currency)}
             </div>
             {/* The mean alone tells a supplier nothing about where they sit. The median and the
                 middle half are what "you are high" is actually measured against, so they are shown
                 beside it rather than left in the payload. */}
             <div className="text-[11px] opacity-55 mt-1 leading-relaxed">
-              <div>{t(lang, 'median')}: <span className="tabular-nums">{aed(m.avg_market_price.median, m.avg_market_price.currency)}</span></div>
-              <div>{t(lang, 'quartiles')}: <span className="tabular-nums">{aed(m.avg_market_price.p25, m.avg_market_price.currency)} – {aed(m.avg_market_price.p75, m.avg_market_price.currency)}</span></div>
-              <div className="opacity-70">{t(lang, 'range')}: <span className="tabular-nums">{aed(m.avg_market_price.low, m.avg_market_price.currency)} – {aed(m.avg_market_price.high, m.avg_market_price.currency)}</span></div>
+              <div>{t(lang, 'median')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.median, m.avg_market_price.currency)}</span></div>
+              <div>{t(lang, 'quartiles')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.p25, m.avg_market_price.currency)} – {aed(lang, m.avg_market_price.p75, m.avg_market_price.currency)}</span></div>
+              <div className="opacity-70">{t(lang, 'range')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.low, m.avg_market_price.currency)} – {aed(lang, m.avg_market_price.high, m.avg_market_price.currency)}</span></div>
             </div>
             <p className="text-[10px] opacity-40 mt-1.5 leading-snug">
               {lang === 'en' && m.avg_market_price.basis ? m.avg_market_price.basis + ' · ' : ''}

@@ -11,7 +11,7 @@ const UNSUB = 'https://x.supabase.co/functions/v1/unsubscribe?e=a%40b.ae&t=abc';
 // The shape of templates.email_supplier as measured on 21 Sep 2026: {{BODY}} inside a pre-wrap div,
 // the licence footer, then {{UNSUB}}.
 const WRAPPER = '<!doctype html><html><head></head><body>{{LOGO}}<div dir="auto">{{BODY}}</div>'
-  + '<div>{{NAME}}</div><div>{{TITLE}}, QuotesDone</div><div>{{REPLY}}</div><div>QuotesDone &middot; Dubai, UAE &middot; Dubai DET E-Trader Licence 1633275{{UNSUB}}</div></body></html>';
+  + '<div>{{NAME}}</div><div>{{TITLE}}, QuotesDone</div><div>{{REPLY}}</div><div>QuotesDone Technologies &middot; Dubai, UAE &middot; DET Trader Licence No. 1633275 &middot; TDRA NOL-26-100000665{{UNSUB}}</div></body></html>';
 
 Deno.test('an unsubscribed address with a capital letter is still recognised', () => {
   const suppressed = new Set(['buyer@acme.ae'].map(foldEmail));
@@ -30,8 +30,12 @@ Deno.test('the plain-text part carries the body, the licence footer and the unsu
   const en = plainTextPart({ body: 'Dear X,\n\n' + LINK, unsub: UNSUB, ar: false, internal: false });
   assertStringIncludes(en, LINK);
   assertStringIncludes(en, 'Unsubscribe: ' + UNSUB);
-  assertStringIncludes(en, 'Licence 1633275');
+  // 22 Sep 2026 (DL-06): the footer names the licence the company actually holds, and the TDRA permit.
+  assertStringIncludes(en, 'DET Trader Licence No. 1633275 · TDRA NOL-26-100000665');
+  assert(!/E-Trader/.test(en), 'the DET issues no "E-Trader" licence to this company');
   const ar = plainTextPart({ body: 'السادة', unsub: UNSUB, ar: true, internal: false });
+  assertStringIncludes(ar, 'رخصة تاجر رقم 1633275');
+  assert(!/تاجر إلكتروني/.test(ar));
   assertStringIncludes(ar, 'إلغاء الاشتراك: ' + UNSUB);
   // The second way out names the mailbox resend_inbound reads, never "reply" (that went to an unread inbox).
   assertStringIncludes(en, 'or email unsubscribe@mail.quotesdone.com to be removed.');

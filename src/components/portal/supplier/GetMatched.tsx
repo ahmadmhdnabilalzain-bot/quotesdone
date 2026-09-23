@@ -119,7 +119,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
           state: s.done ? 'done' : s === next ? 'current' : 'next',
           title: (
             <button type="button" disabled={s.done} onClick={() => go(s.fix)}
-              className={cn('rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              className={cn('inline-flex min-h-11 items-center rounded-sm text-start transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 s.done ? 'cursor-default text-muted-foreground line-through decoration-white/20' : 'hover:text-primary')}>
               {s.label}
               <span className="sr-only">{s.done ? (ar ? ' — مكتمل' : ' — done') : (ar ? ' — مطلوب' : ' — to do')}</span>
@@ -136,7 +136,7 @@ export default function GetMatched({ token, lang, go, initial = null }: { token:
       )}
       {improving.length > 0 && (
         <details className="mt-5 group">
-          <summary className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">{ar ? `ما يرفع ترتيبكم (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
+          <summary className="flex min-h-11 cursor-pointer items-center text-[12.5px] font-bold text-muted-foreground">{ar ? `ما يرفع ترتيبكم (${improving.length})` : `Improves your ranking (${improving.length})`}</summary>
           <ul className="mt-2 flex flex-col gap-2.5">{improving.slice(0, 8).map((it, i) => <Row key={i} it={it} lang={lang} tone="improve" go={go} fixLabel={fixLabel} />)}</ul>
         </details>
       )}
@@ -154,7 +154,7 @@ function Row({ it, lang, tone, go, fixLabel }: { it: any; lang: Lang; tone: 'blo
         <div className="text-[13.5px] font-semibold text-foreground">{title}</div>
         <div className="text-[13px] leading-[1.65] text-muted-foreground max-w-[68ch]">{detail}</div>
         {label && ['profile', 'documents', 'scope'].includes(it.fix) && (
-          <button type="button" className="mt-1 text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>{label} {lang === 'ar' ? '←' : '→'}</button>
+          <button type="button" className="mt-1 inline-flex min-h-11 items-center text-[12.5px] font-semibold text-primary underline-offset-2 hover:underline" onClick={() => go(it.fix)}>{label} {lang === 'ar' ? '←' : '→'}</button>
         )}
       </div>
     </li>

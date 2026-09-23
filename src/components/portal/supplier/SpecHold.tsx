@@ -17,6 +17,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+import { PanelError, panelErrorCode } from './PanelState';
+import { aed } from './money';
 import { srvMsg } from './serverCopy';
 // Amounts, units and codes are left-to-right runs inside Arabic text; src/lib/Ltr.tsx holds the rule.
 import { Ltr } from '@/lib/Ltr';
@@ -60,10 +62,19 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
   const [terms, setTerms] = useState<Record<string, string>>({});
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [errs, setErrs] = useState<Record<string, string>>({}); const [confirm, setConfirm] = useState(false);
-  const load = () => call('supplier_api', { action: 'spec_hold', quote_id: quoteId }, token).then(setData);
+  const [err, setErr] = useState('');
+  // `if (data.error)` never matched a resolved `{ ok:false, code:'network' }` or `'timeout'` — those
+  // carry no `error` field — so a dropped connection fell through to `data.hold`, which is undefined,
+  // and the panel RETURNED NULL: the only route a supplier has to supply the exact specifications a
+  // held quote is waiting on simply vanished (review of PR #858, item 3d). `ok` is the whole contract.
+  const load = () => {
+    setErr('');
+    return call('supplier_api', { action: 'spec_hold', quote_id: quoteId }, token)
+      .then((j) => { if (j && j.ok) setData(j); else { setData(null); setErr(panelErrorCode(j)); } });
+  };
   useEffect(() => { load(); }, [quoteId, token]);
+  if (err) return <div className="mt-3"><PanelError lang={ar ? 'ar' : 'en'} code={err} onRetry={load} /></div>;
   if (!data) return <div className="mt-3 text-[13px] text-muted-foreground" aria-busy="true">{t.loading}</div>;
-  if (data.error) return <div className="mt-3 text-[13px] text-muted-foreground">{srvMsg(String(lang), data, t.err)}</div>;
   const hold = data.hold; const schema = data.schema || { lines: [], terms: [] };
   if (!hold || !['open', 'awaiting_approval'].includes(hold.state)) return null;
   const awaiting = hold.state === 'awaiting_approval';
@@ -158,7 +169,9 @@ export function SpecHoldPanel({ quoteId, lang, token, onChanged, onResubmit, tit
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12.5px]">
           {(['delivery', 'installation', 'warranty', 'validity', 'payment_terms'] as const).filter((k) => reg.terms?.[k]).map((k) => (
             <div key={k} className="contents"><dt className="text-muted-foreground">{({ delivery: ar ? 'التسليم' : 'Delivery', installation: ar ? 'التركيب' : 'Installation', warranty: ar ? 'الضمان' : 'Warranty', validity: ar ? 'صلاحية العرض' : 'Validity', payment_terms: ar ? 'شروط الدفع' : 'Payment terms' } as Record<string, string>)[k]}</dt><dd className="text-foreground">{reg.terms[k]}</dd></div>))}
-          <dt className="font-semibold text-foreground">{t.total}</dt><dd className="font-mono font-semibold tabular-nums text-foreground"><Ltr>AED {Number(reg.total || 0).toLocaleString('en-AE', { maximumFractionDigits: 2 })}</Ltr></dd>
+          <dt className="font-semibold text-foreground">{t.total}</dt><dd className="font-mono font-semibold tabular-nums text-foreground">{/* A quotation total balances to the fils, so it keeps its two decimals; the currency side
+                and the grouping are ./money.ts's, not a hard-coded "AED" (audit 22 Sep 2026, SP-I-10). */}
+            <Ltr>{aed(lang, reg.total, 2)}</Ltr></dd>
         </dl>
         {hold.pdf_url ? <a className="text-[13px] font-semibold text-primary underline-offset-2 hover:underline" href={hold.pdf_url} target="_blank" rel="noopener noreferrer">{t.pdf}</a> : null}
         <label className="flex items-start gap-2 text-[13px] text-foreground"><input type="checkbox" className="mt-0.5" checked={confirm} onChange={(e) => setConfirm(e.target.checked)} />{t.confirm}</label>

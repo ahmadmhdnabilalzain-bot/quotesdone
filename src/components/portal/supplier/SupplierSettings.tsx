@@ -162,7 +162,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
     <div className="qd-panel p-5 text-[13px] text-muted-foreground" role="alert">
       {err}
       <button type="button" onClick={load}
-        className="ms-2 underline rounded outline-none focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
+        className="ms-2 inline-flex min-h-11 min-w-11 items-center underline rounded outline-none focus-visible:ring-1 focus-visible:ring-ring">{t(lang, 'retry')}</button>
     </div>
   );
   if (!s) return <div className="qd-panel p-5 text-[13px] text-muted-foreground" aria-busy="true">{t(lang, 'loading')}</div>;
@@ -191,7 +191,7 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
         </div>
 
         <button type="button" onClick={save} disabled={busy}
-          className="w-full mt-3 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+          className="w-full min-h-11 mt-3 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
           {busy ? t(lang, 'saving') : t(lang, 'save')}
         </button>
         {msg && <p role="status" className="text-[12px] text-ok-fg mt-2">{msg}</p>}

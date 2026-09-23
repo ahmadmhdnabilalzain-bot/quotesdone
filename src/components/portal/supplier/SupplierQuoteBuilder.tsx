@@ -19,8 +19,12 @@
 // "Use these terms" posts to supplier_api submit_quote, the same endpoint the form posts to, with
 // the same approval gate, the same registration gate and the same identity scrubbing. A supplier
 // cannot reach a quote the platform would otherwise refuse by coming through this door instead.
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { call, callShared } from './api';
+import { PanelError, panelErrorCode, panelErrorText } from './PanelState';
+// The one money formatter. `price` is the market-price variant: an em dash for a figure the
+// platform has not computed, rounded to the dirham, and the routine's own currency.
+import { price as aed } from './money';
 import { Button } from '@/components/ui/button';
 
 type Lang = 'en' | 'ar';
@@ -86,9 +90,6 @@ const T = {
 };
 const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
-const aed = (n?: number | null, cur = 'AED') =>
-  n === null || n === undefined ? '—' : cur + ' ' + Math.round(n).toLocaleString('en-US');
-
 const RISK_TONE: Record<string, string> = {
   low: 'text-ok-fg border-ok/25 bg-ok/[0.06]',
   medium: 'text-warn-fg border-warn/25 bg-warn/[0.06]',
@@ -116,23 +117,31 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState('');
   const [err, setErr] = useState('');
+  const [oppsErr, setOppsErr] = useState('');
   const [demo, setDemo] = useState(false);
+  // A tab switch unmounts this; an answer arriving afterwards must not write state.
+  const live = useRef(true);
 
-  useEffect(() => {
-    let live = true;
-    // Shares the one flight with SupplierOpportunities, which sits in the same Insights panel.
-    // The catch is not decoration: the old private `call` used a bare r.json(), so a non-JSON
-    // answer rejected here with nothing listening, and this panel simply stayed empty for ever
-    // with no trace. ./api.ts's call resolves that case to { ok:false }; this covers the rest.
+  // Shares the one flight with SupplierOpportunities, which sits in the same Insights panel.
+  // `j.ok` is the whole contract (./api.ts resolves every failure as an object): without it a failed
+  // read fell through to `|| []` and the chooser said "there is no open request you can quote right
+  // now" to a supplier whose trades are full of them (review of PR #858, item 3b).
+  const loadOpps = () => {
+    setOppsErr('');
     callShared('supplier_portal', { action: 'opportunities' }, token).then((j) => {
-      if (!live || !j) return;
+      if (!live.current) return;
+      if (!j || !j.ok) { setOpps(null); setOppsErr(panelErrorCode(j)); return; }
       const list: Opp[] = j.opportunities || j.items || j.rows || [];
       setOpps(Array.isArray(list) ? list : []);
-    }).catch(() => { if (live) setOpps([]); });
+    });
+  };
+  useEffect(() => {
+    live.current = true;
+    loadOpps();
     // The demo banner is driven by the same routine that partitions the population, so the two can
     // never disagree about which market this supplier is being shown.
-    call('supplier_portal', { action: 'market' }, token).then((j) => { if (live && j) setDemo(j.population === 'demo'); });
-    return () => { live = false; };
+    call('supplier_portal', { action: 'market' }, token).then((j) => { if (live.current && j && j.ok) setDemo(j.population === 'demo'); });
+    return () => { live.current = false; };
   }, [token]);
 
   const oid = (o: Opp) => String(o.inquiry_id || '');
@@ -157,7 +166,9 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
     setBusy(true); setErr(''); setSent(''); setRec(null); setChosen(inquiryId);
     const j = await call('supplier_portal', { action: 'quote_recommend', inquiry_id: inquiryId }, token);
     setBusy(false);
-    if (j && j.ok) setRec(j); else setErr((j && (j.error || j.hint)) || 'load_err');
+    // SP-I-01: this stored the server's own English — on a 500 the raw Postgres message — and the
+    // panel printed it. It stores the stable code and the panel translates it.
+    if (j && j.ok) setRec(j); else setErr(panelErrorCode(j));
   };
 
   // Accepting posts through supplier_api submit_quote — the same endpoint, gates and scrubbing the
@@ -178,11 +189,15 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
     }, token);
     setBusy(false);
     // `ok` MEANS THE REQUEST WAS UNDERSTOOD, NOT THAT THE QUOTE WENT (audit 22 Sep 2026, SP-C-04 /
-    // SP-N-07). submit_quote answers ok:true for a quotation the sales engineer held for missing specs
-    // and for one saved as a draft, both with accepted:false — and this screen read `ok` alone, so a
-    // one-click accept that reached nobody said "Quote created". The flag to read is `accepted`.
+    // SP-N-07, kept from main). submit_quote answers ok:true for a quotation the sales engineer held
+    // for missing specs and for one saved as a draft, both with accepted:false — and this screen read
+    // `ok` alone, so a one-click accept that reached nobody said "Quote created". The flag is `accepted`.
+    // The REASON travels as the server's stable code, not as its English sentence: line 257 renders
+    // through panelErrorText, which looks a key up in PanelState's table, so a sentence put here would
+    // fall through to the generic "could not load". spec_hold / quote_review_changes / draft_saved are
+    // named in that table (EN + AR) so a held quote tells the supplier what is missing on /ar too.
     if (j && j.accepted === true) setSent(t(lang, 'created'));
-    else setErr((j && (j.message || j.error || j.hint)) || 'submit_err');
+    else setErr(panelErrorCode(j));
   };
 
   const loaded = opps !== null;
@@ -212,6 +227,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
           value={intent}
           onChange={(e) => setIntent(e.target.value)}
         />
+        {oppsErr ? <div className="mt-3"><PanelError lang={lang} code={oppsErr} onRetry={loadOpps} /></div> : null}
         <div className="mt-3 space-y-1.5 max-h-64 overflow-y-auto">
           {/* Audit 21 Sep 2026, finding 38: "Nothing matches that yet" printed before anything was
               typed, beside "Choose a project above" with nothing above. Each line now needs its own
@@ -229,7 +245,8 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
               <span className="block truncate font-medium">{otitle(o)}</span>
               <span className="mt-0.5 block font-mono text-[11px] text-muted-foreground">
                 {[o.category, o.emirate].filter(Boolean).join(' · ')}
-                {typeof o.match_pct === 'number' ? ' · ' + o.match_pct + '% match' : ''}
+                {/* SP-I-02: "% match" was English on /ar too. */}
+                {typeof o.match_pct === 'number' ? ' · ' + o.match_pct + '% ' + (lang === 'ar' ? 'ملاءمة' : 'match') : ''}
               </span>
             </button>
           ))}
@@ -237,7 +254,7 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
       </section>
 
       {busy && <p className="text-xs opacity-60 px-1">{t(lang, 'building')}</p>}
-      {err && <p className="text-xs text-danger-fg/90 px-1">{err}</p>}
+      {err && <p role="alert" className="text-xs text-danger-fg/90 px-1">{panelErrorText(lang, err)}</p>}
       {sent && <p className="text-xs text-ok-fg/90 px-1">{sent}</p>}
       {!chosen && !busy && matches.length > 0 && <p className="text-xs opacity-50 px-1">{t(lang, 'pickOne')}</p>}
 
@@ -255,10 +272,10 @@ export default function SupplierQuoteBuilder({ token, lang = 'en' }: { token?: s
           {/* The suggested price. The spread comes with it: a supplier deciding whether to sit
               under the middle needs to see how much room there is. */}
           <Suggested label={t(lang, 'recPrice')} foot={<>{t(lang, 'whyThis')}: {price?.basis}</>}>
-            <div className="qd-figure font-head text-[clamp(30px,6vw,40px)] font-semibold">{aed(price?.value, price?.currency)}</div>
+            <div className="qd-figure font-head text-[clamp(30px,6vw,40px)] font-semibold">{aed(lang, price?.value, price?.currency)}</div>
             <div className="mt-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
-              <div>{t(lang, 'middleHalf')}: <span className="tabular-nums">{aed(price?.p25, price?.currency)} – {aed(price?.p75, price?.currency)}</span></div>
-              <div className="opacity-75">{t(lang, 'range')}: <span className="tabular-nums">{aed(price?.low, price?.currency)} – {aed(price?.high, price?.currency)}</span></div>
+              <div>{t(lang, 'middleHalf')}: <span className="tabular-nums">{aed(lang, price?.p25, price?.currency)} – {aed(lang, price?.p75, price?.currency)}</span></div>
+              <div className="opacity-75">{t(lang, 'range')}: <span className="tabular-nums">{aed(lang, price?.low, price?.currency)} – {aed(lang, price?.high, price?.currency)}</span></div>
             </div>
           </Suggested>
 

@@ -11,6 +11,10 @@ import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPat
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
+// THE UAE MOBILE RULE IS ENFORCED HERE TOO, NOT ONLY IN THE BROWSER (SP-A-05, 22 Sep 2026).
+// TWIN: src/components/portal/supplier/uaeMobile.ts — _shared/uae_mobile.ts holds the one regex both
+// sides use, and src/components/portal/supplier/serverCopy.ts owns the EN/AR for `bad_mobile`.
+import { uaeMobile } from '../_shared/uae_mobile.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -176,8 +180,15 @@ Deno.serve(observe('kyc', async (req) => {
 
     if (action === 'save_customer') {
       const full_name = String(b.full_name || '').trim().slice(0, 120); const phone = String(b.phone || '').trim().slice(0, 40); const dob = String(b.dob || '').trim();
-      if (full_name.length < 2) return J({ error: 'Please enter your name.' }, 400);
-      if (phone.replace(/\D/g, '').length < 7) return J({ error: 'Please enter a valid mobile number.' }, 400);
+      if (full_name.length < 2) return J({ error: 'Please enter your name.', code: 'enter_name' }, 400);
+      // SP-A-05, the third door nobody named (review of #858, 22 Sep 2026). This action has no `kind`
+      // gate, so a SUPPLIER session can post here and write a customers row keyed by their own email
+      // carrying any 7+ digit number. That row is not cosmetic: login_otp's resolveEmailByPhone maps
+      // an incoming number back to an account, so a junk or foreign number saved here resolves a
+      // phone sign-in to the supplier's address. Customers keep the loose rule for the documented
+      // Dubai landline fallback (+9714…, verified by voice call, 12 Aug 2026).
+      if (kind === 'supplier' && !uaeMobile(phone)) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
+      if (phone.replace(/\D/g, '').length < 7) return J({ error: 'Please enter a valid mobile number.', code: 'bad_mobile' }, 400);
       // DATE OF BIRTH IS REQUIRED AND UNDER-18 IS REFUSED (founder's account rule, 14 Sep 2026 — see
       // _shared/account_rule.ts). This used to keep an 18-120 date and silently DROP anything else, so
       // an under-18 user was never told no and a profile could complete with no DOB at all. Now a
@@ -219,7 +230,7 @@ Deno.serve(observe('kyc', async (req) => {
       // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
       if (await isSuppressed(email)) {
         await logRun('error', { action, kind, suppressed: 1, channel: 'email' }, 'kyc refused to email a verification code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
-        return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
+        return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', code: 'email_suppressed', suppressed: true }, 403);
       }
       // The same 8-an-hour ceiling login_otp puts on sign-in codes; this branch had none (21 Sep 2026).
       const since = new Date(Date.now() - 3600e3).toISOString();
@@ -242,7 +253,7 @@ Deno.serve(observe('kyc', async (req) => {
     }
     if (action === 'verify_email') {
       const c = String(b.code || '').replace(/\D/g, '');
-      if (!c) return J({ error: 'Enter the 6-digit code.' }, 400);
+      if (!c) return J({ error: 'Enter the 6-digit code.', code: 'enter_code' }, 400);
       // SECURITY FIX (27 Jul 2026): see the OTP note at the top. The lookup used to put the code in
       // the WHERE clause, so a wrong guess was indistinguishable from "no code" and could not be
       // counted — unlimited guesses at 10^6. Now: cap per caller BEFORE touching the row, fetch the
@@ -250,23 +261,23 @@ Deno.serve(observe('kyc', async (req) => {
       const vip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
       if (!(await rl('kyc_verify_email_ip:' + vip, KYC_EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
         await logRun('error', { action, kind, rate_limited: 1, scope: 'verify_ip' }, 'kyc blocked a caller making more than ' + KYC_EMAIL_VERIFY_PER_IP_HOUR + ' email-code attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
-        return J({ error: 'Too many attempts. Please request a new code.' }, 429);
+        return J({ error: 'Too many attempts. Please request a new code.', code: 'too_many_attempts' }, 429);
       }
       // limit(1) + [0], NOT maybeSingle(): a user who pressed send twice has two live rows and
       // maybeSingle() errors on >1 and returns null, which would reject BOTH codes (login_otp's
       // self-inflicted lockout, 21 Jul). limit(1) deterministically takes the newest.
       const { data: rows } = await admin.from('email_verifications').select('*').eq('email', email).eq('purpose', 'kyc').is('used_at', null).order('created_at', { ascending: false }).limit(1);
       const row = rows && rows[0];
-      if (!row) return J({ error: 'Incorrect or expired code.' }, 400);
-      if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired.' }, 400);
+      if (!row) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+      if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired.', code: 'code_expired' }, 400);
       if ((row.attempts || 0) >= KYC_EMAIL_MAX_ATTEMPTS) {
         await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
         await logRun('error', { action, kind, locked: 1 }, 'kyc burned an email code after ' + KYC_EMAIL_MAX_ATTEMPTS + ' wrong guesses; the user must request a new one. Sustained hits on one account mean someone is guessing.');
-        return J({ error: 'Too many incorrect attempts. Please request a new code.' }, 429);
+        return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
       }
       // row.token is only set for codes issued before hashing shipped on 27 Jul 2026
       const match = row.token_hash ? ((await otpHash(c)) === row.token_hash) : (!!row.token && c === row.token);
-      if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.' }, 400); }
+      if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400); }
       await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
       // 27 Jul 2026: 'state' no longer creates the customers row as a side effect of a read, so this
       // must not assume one exists — an .update() on a missing row silently persists nothing and the
@@ -279,9 +290,15 @@ Deno.serve(observe('kyc', async (req) => {
     }
 
     if (action === 'send_sms') {
-      const phone = toE164(String(b.phone || '')); if (!phone) return J({ error: 'Enter a valid mobile number.' }, 400);
-      const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ error: 'SMS is not configured.' }, 500); }
-      if (await phoneRateLimited(phone, email)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.' }, 429); }
+      // SP-A-05: a SUPPLIER's mobile must satisfy the same +9715XXXXXXXX rule the sign-up form applies
+      // in the browser, so posting straight to this function cannot get a junk number past it and leave
+      // the supplier waiting on an SMS Twilio accepted and never delivered. CUSTOMERS keep toE164: the
+      // landline fallback below is real (a Dubai landline, +9714…, verified by voice call, 12 Aug 2026)
+      // and the UAE-mobile rule would refuse it before Twilio was ever asked.
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      if (!phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
+      const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio_api_key_sid / secret / verify_service_sid'); return J({ error: 'SMS is not configured.', code: 'sms_unavailable' }, 500); }
+      if (await phoneRateLimited(phone, email)) { await logRun('ok', { action, kind, rate_limited: true }, 'rate limit hit: 5+ code requests for this number in the last hour'); return J({ error: 'Too many code requests. Please try again later.', code: 'sms_rate_limited' }, 429); }
       // LANDLINE FALLBACK (12 Aug 2026). Twilio Verify refuses SMS to a landline with error 21635,
       // and the only customer on file registered a Dubai landline: Twilio Lookup returns
       // type=landline for +97142587734, and a real send returned HTTP 400 / 21635. So the one
@@ -295,16 +312,24 @@ Deno.serve(observe('kyc', async (req) => {
       let channel = String(b.channel || 'sms'); if (channel !== 'sms' && channel !== 'call') channel = 'sms';
       let { r, jd } = await verifySend(tw, phone, channel, vLocale);
       if (jd?.code === 21635 && channel === 'sms') { channel = 'call'; ({ r, jd } = await verifySend(tw, phone, channel, vLocale)); }
-      if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: jd?.message || 'Could not send the code.' }, 502); }
+      if (!r.ok || jd?.status === 'canceled') { await logRun('error', { action, kind, http: r.status, channel }, 'twilio verify send failed on channel ' + channel + ': ' + String(jd?.message || jd?.status || '').slice(0, 200)); return J({ error: 'Could not send the code. Please try again in a minute.', code: 'sms_send_failed' }, 502); }
       await admin.from('phone_verifications').insert({ email, phone, code: 'twilio', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       await logRun('ok', { action, kind, channel }, '');
       return J({ ok: true, channel });
     }
     if (action === 'verify_sms') {
-      const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
-      if (!phone || !code) return J({ error: 'Enter the 6-digit code.' }, 400);
-      const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio credentials'); return J({ error: 'SMS is not configured.' }, 500); }
-      if (!(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.' }, 400);
+      // SP-A-05 WAS ONLY HALF CLOSED (review of #858, 22 Sep 2026). send_sms applied the UAE-mobile
+      // rule; THIS action did not, and this is the one that writes. A caller could post
+      // whatsapp_send_code with +447700900000 (Verify happily sends to it), then verify_sms with the
+      // code, and line below wrote leads.phone = that number with owner_phone_verified = true — a
+      // supplier record carrying a verified non-UAE mobile, exactly what the rule exists to prevent.
+      // Customers keep toE164 for the documented Dubai landline fallback (+9714…, 12 Aug 2026).
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      const code = String(b.code || '').replace(/\D/g, '');
+      if (kind === 'supplier' && !phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
+      if (!phone || !code) return J({ error: 'Enter the 6-digit code.', code: 'enter_code' }, 400);
+      const tw = await twilioAuth(); if (!tw) { await logRun('error', { action, kind }, 'SMS not configured: missing twilio credentials'); return J({ error: 'SMS is not configured.', code: 'sms_unavailable' }, 500); }
+      if (!(await verifyCheck(tw, phone, code))) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
       if (kind === 'supplier') await admin.from('leads').update({ owner_phone_verified: true, phone }).eq('claimed_by', email); else await admin.from('customers').update({ phone_verified: true, phone }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', phone).is('used_at', null);
       await logRun('ok', { action, kind }, '');
@@ -333,7 +358,11 @@ Deno.serve(observe('kyc', async (req) => {
     // ever held the marker 'twilio'; no reader compares it), so the day WhatsApp starts delivering shows
     // up in the table with no code change.
     if (action === 'whatsapp_send_code') {
-      const phone = toE164(String(b.phone || ''));
+      // SP-A-05, the same hole as verify_sms above (review of #858, 22 Sep 2026): this action sent a
+      // billable Verify code to ANY 8+ digit number for a supplier, which is the first half of the
+      // bypass that ended with a verified non-UAE number on the supplier record.
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      if (kind === 'supplier' && !phone) return J({ ok: false, error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
       // A reserved fixture number never reaches this line: the shared guard above (isDemoPhone, #681)
       // refuses it first, reading the phone exactly as `phone` is read here, so the number it checks is
@@ -357,7 +386,12 @@ Deno.serve(observe('kyc', async (req) => {
       return J({ ok: true, channel: res.channel });
     }
     if (action === 'whatsapp_verify') {
-      const phone = toE164(String(b.phone || '')); const code = String(b.code || '').replace(/\D/g, '');
+      // SP-A-05. The reviewer named send_code and verify_sms; THIS action writes too — it puts the
+      // number in leads.whatsapp_phone with whatsapp_verified_at set, so without the rule a supplier
+      // record ends up with a verified non-UAE WhatsApp number even when leads.phone is clean.
+      const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
+      const code = String(b.code || '').replace(/\D/g, '');
+      if (kind === 'supplier' && !phone) return J({ ok: false, error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
       if (!phone) return J({ ok: false, error: 'bad_phone', code: 'bad_phone' }, 400);
       if (!code) return J({ ok: false, error: 'wrong_code', code: 'wrong_code' }, 400);
       const tw = await twilioAuth();
@@ -416,5 +450,7 @@ Deno.serve(observe('kyc', async (req) => {
 
     await logRun('error', { action }, 'unknown_action');
     return J({ error: 'unknown_action' }, 400);
-  } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
+  } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m);
+    // The raw message belongs in the log, never in the browser (the SP-I-01 rule, applied here too).
+    return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
 }));

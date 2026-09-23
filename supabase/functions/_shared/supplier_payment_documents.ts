@@ -65,7 +65,10 @@ function what(p: SupplierPayment, lang: Lang) {
   const ar = lang === 'ar';
   if (p.kind === 'registration') {
     const per = p.period ? (ar ? ` (${shortDate(p.period.from, 'ar')} إلى ${shortDate(p.period.to, 'ar')})` : ` (${shortDate(p.period.from, 'en')} to ${shortDate(p.period.to, 'en')})`) : '';
-    return ar ? `رسوم الإدراج السنوية للمورّد على QuotesDone${per}` : `QuotesDone annual supplier listing fee${per}`;
+    // The name comes from the signed Supplier Agreement v12 clause 2 ('Subscription Fee' / «رسوم الاشتراك»), not
+    // from this file. It was a THIRD name for the same fee, printed on the tax document the supplier files
+    // (review of #858, 22 Sep 2026). scripts/checks/one_fee_has_one_name.test.mjs holds it to the agreement.
+    return ar ? `رسوم الاشتراك السنوية للمورّد على QuotesDone${per}` : `QuotesDone annual supplier Subscription Fee${per}`;
   }
   return ar ? 'تسوية الرسوم المستحقة بموجب اتفاقية المورّد' : 'Settlement of outstanding charges under the Supplier Agreement';
 }

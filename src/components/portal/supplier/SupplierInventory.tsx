@@ -11,8 +11,12 @@
 // them would make an empty inventory look like a small one; listing them as "not stated" makes the
 // gap visible and gives the supplier the one thing worth doing about it. The counter at the top
 // counts the gap on purpose.
-import React, { useEffect, useMemo, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
+// SP-I-04: "{n} منتج" is right for no value of n on its own; Arabic counts in four forms.
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
+
 
 type Lang = 'en' | 'ar';
 type Attrs = Record<string, unknown>;
@@ -20,17 +24,6 @@ type Product = {
   id?: string; name?: string; brand?: string; model?: string; external_key?: string;
   category_slug?: string; subcategory_slug?: string; status?: string; attributes?: Attrs;
 };
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -41,7 +34,7 @@ const T = {
     stated: 'with a stated stock position', gap: 'still to state',
     gapHelp: 'Customers see delivery confidence on your quotes. Products with no stated position are quoted blind.',
     goProducts: 'Open Product Intelligence',
-    all: 'All', search: 'Filter by name, brand or model',
+    all: 'All', search: 'Filter by name, brand or model', productsWord: (n: number) => n + ' products',
   },
   ar: {
     title: 'المخزون', loading: 'جارٍ قراءة الكتالوج…',
@@ -51,10 +44,12 @@ const T = {
     stated: 'بحالة مخزون محددة', gap: 'بحاجة إلى تحديد',
     gapHelp: 'يطّلع العملاء في عروضكم على مدى التزامكم بالتسليم، أما المنتجات غير المحددة فتُسعَّر دون معرفة حالة توفرها.',
     goProducts: 'فتح ذكاء المنتجات',
-    all: 'الكل', search: 'البحث بالاسم أو العلامة التجارية أو الطراز',
+    all: 'الكل', search: 'البحث بالاسم أو العلامة التجارية أو الطراز', productsWord: (n: number) => arCount(n, AR_NOUN.product),
   },
 };
-const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// `productsWord` is a function of a count, so `t` must not offer it: it returns a string.
+type StrKey = { [K in keyof typeof T.en]: (typeof T.en)[K] extends string ? K : never }[keyof typeof T.en];
+const t = (lang: Lang, k: StrKey): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
 
 const attr = (p: Product, k: string): string | null => {
   const v = (p.attributes || {})[k];
@@ -68,16 +63,15 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
   const [loaded, setLoaded] = useState(false);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'products', q: '' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setRows(Array.isArray(j.products) ? j.products : (j.items || []));
-      else setErr((j && (j.error || j.hint)) || 'load_err');
-      setLoaded(true);
-    });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'products', q: '' }, token);
+    if (j && j.ok) setRows(Array.isArray(j.products) ? j.products : (j.items || []));
+    else setErr(panelErrorCode(j));
+    setLoaded(true);
   }, [token]);
+
+  useEffect(() => { void load(); }, [load]);
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -90,16 +84,17 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
   const withPosition = rows.filter((p) => attr(p, 'availability')).length;
   const missing = rows.length - withPosition;
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!loaded) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
-  if (!rows.length) return <div className="text-xs opacity-60 p-4">{t(lang, 'empty')}</div>;
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!loaded) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
+  if (!rows.length) return <div className="text-xs opacity-60 p-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>{t(lang, 'empty')}</div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
-          <span className="text-[10px] opacity-40">{rows.length} products</span>
+          {/* SP-I-02: this counter read "N products" on /ar as well. */}
+          <span className="text-[10px] opacity-40">{(T[lang] || T.en).productsWord(rows.length)}</span>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -115,7 +110,7 @@ export default function SupplierInventory({ token, lang = 'en', goTo }:
           <p className="text-[10px] opacity-45 mt-2 leading-snug">
             {t(lang, 'gapHelp')}
             {goTo && (
-              <button type="button" onClick={() => goTo('products')} className="ms-1 underline underline-offset-2 hover:opacity-100">
+              <button type="button" onClick={() => goTo('products')} className="ms-1 inline-flex min-h-11 min-w-11 items-center underline underline-offset-2 hover:opacity-100">
                 {t(lang, 'goProducts')}
               </button>
             )}

@@ -48,13 +48,54 @@ export function callShared(path: string, body: Record<string, unknown>, token?: 
   return p;
 }
 
+/**
+ * EVERY FAILURE MODE ARRIVES AS AN OBJECT, NEVER AS A THROW (22 Sep 2026, audit SP-C-05/SP-I-01).
+ *
+ * Twelve panels had each written their own `call` whose whole body was `return r.json()`. Seven of
+ * them (MarketIntelligence, ProductIntelligence, SupplierAdvisor, SupplierDocumentImpact,
+ * SupplierInventory, SupplierKnowledgeGraph, SupplierTwin) then did `.then(j => …)` with no
+ * `.catch`: a gateway 502 whose body is HTML, or a dropped connection, rejected the promise, the
+ * component's state was never written, and the panel sat on "Loading…" for as long as the supplier
+ * left it open. This helper resolves — never rejects — so `if (j.ok)` / `else` is the whole
+ * contract, and the `else` branch always has something to say.
+ *
+ * `code` is what the UI renders (translated by supplier/PanelState); `error` is the server's own
+ * English, kept as a fallback for a code no client knows yet. A 500's `error` is NOT shown: since
+ * 22 Sep supplier_portal returns `code: 'load_failed'` and keeps the Postgres message on the server.
+ *
+ * `_expired` is set on ANY 401 — the gateway's `UNAUTHORIZED_INVALID_JWT_FORMAT` and a function's
+ * own refusal look nothing alike in the body, and only the status tells them apart. Before this,
+ * only the dashboard read `_http === 401`; Projects, Receipts and RfqParts rendered an empty tab.
+ *
+ * TIMEOUT: a Supabase edge function is killed at its own wall clock, but a request that never gets
+ * a response back (captive portal, dead mobile leg) hangs the panel forever. 20s, then `timeout`.
+ */
+const TIMEOUT_MS = 20000;
+
 export async function call(path: string, body: Record<string, unknown>, token?: string | null): Promise<any> {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  const j = await r.json().catch(() => ({ ok: false, error: 'bad_response' }));
-  if (!r.ok && j && typeof j === 'object') j._http = r.status;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
+  let r: Response;
+  try {
+    r = await fetch(fnUrl(path), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    });
+  } catch (_e) {
+    return { ok: false, code: ac.signal.aborted ? 'timeout' : 'network' };
+  } finally {
+    clearTimeout(timer);
+  }
+  const text = await r.text().catch(() => '');
+  let j: any = null;
+  try { j = JSON.parse(text); } catch (_e) { j = null; }
+  if (!j || typeof j !== 'object') return { ok: false, code: 'bad_response', _http: r.status };
+  if (!r.ok) {
+    j._http = r.status;
+    if (r.status === 401) j._expired = true;
+    if (!j.code) j.code = 'load_failed';
+  }
   return j;
 }

@@ -9,6 +9,56 @@
 
 type Dict = Record<string, string>;
 
+// ARABIC NUMBER AGREEMENT (audit 22 Sep 2026, SP-I-04).
+//
+// Every counted noun here printed one form for every n, so one unpriced inquiry read
+// "1 استفسارًا" and two read "2 استفسارًا"; Arabic writes no digit for 1 or 2, uses the plural
+// genitive for 3–10 and the accusative singular from 11. The rule is ONE rule and it is
+// `arCount` in src/lib/durationLabel.ts — [1, 2, 3–10, 11+], in that order.
+//
+// WHY IT IS NOT IMPORTED HERE. This module is loaded straight into node by its parity check
+// (scripts/checks/supplier_workspace_copy_is_bilingual.test.mjs does
+// `import(pathToFileURL('…/workspaceCopy.ts'))`), where the "@/" alias does not exist and an
+// extensionless relative import is ERR_MODULE_NOT_FOUND — measured 22 Sep 2026 on node v24.16.
+// So the FORMS live here as data and `ws()` picks between them with the same four indices. If the
+// check is ever given a loader that resolves the alias, delete AR_COUNTED's selection and call
+// arCount directly; nothing else here depends on the copy.
+type Forms = readonly [string, string, string, string];
+const INQUIRY: Forms = ['استفسار واحد', 'استفسارين', 'استفسارات', 'استفسارًا'];   // after a preposition (genitive)
+const UNREAD_MSG: Forms = ['رسالة واحدة غير مقروءة', 'رسالتان غير مقروءتين', 'رسائل غير مقروءة', 'رسالة غير مقروءة'];
+const DOCUMENT: Forms = ['مستند واحد', 'مستندان', 'مستندات', 'مستندًا'];
+// CASE MATTERS FOR THE DUAL ONLY, and it is decided by what stands before the number.
+// DAY — genitive dual «يومين» — for a count governed by a preposition: «خلال {days}»، «نحو {n}».
+const DAY: Forms = ['يوم واحد', 'يومين', 'أيام', 'يومًا'];
+// DAY_NOM — nominative dual «يومان» — for a count that is the predicate of a nominal sentence with
+// no preposition over it: «متوسط مدة التنفيذ {days}». Reviewer, 22 Sep 2026: hint_lead_time_t took
+// the genitive from DAY although nothing governs it. Same four indices, different dual — pick by
+// the position the placeholder sits in, never by the noun.
+const DAY_NOM: Forms = ['يوم واحد', 'يومان', 'أيام', 'يومًا'];
+
+/** Which {placeholder} of which key is a counted Arabic noun, and the noun's four forms. */
+const AR_COUNTED: Record<string, Record<string, Forms>> = {
+  hint_quote_more_t: { unquoted: INQUIRY },
+  hint_doc_expiring_t: { days: DAY },
+  hint_lead_time_t: { days: DAY_NOM },
+  days: { n: DAY },
+  mb_unread: { n: UNREAD_MSG },
+  sd_err_limit_reached: { max: DOCUMENT },
+};
+const arCounted = (forms: Forms, v: string | number): string => {
+  const k = Math.abs(Math.trunc(Number(v)));
+  if (!Number.isFinite(k)) return String(v);
+  // ZERO TAKES THE ACCUSATIVE SINGULAR, AS AT 11+ — never the 3-10 plural (re-review of #858,
+  // 23 Sep 2026). Without this line '0' fell through to forms[2] and printed '0 ايام'. The rule and
+  // its reason belong to src/lib/countedNoun.ts, which this file cannot import (see above); the four
+  // indices and this branch are kept identical to arCount there, and the check named below fails if
+  // this branch is removed.
+  if (k === 0) return `0 ${forms[3]}`;
+  if (k === 1) return forms[0];
+  if (k === 2) return forms[1];
+  return `${k} ${k <= 10 ? forms[2] : forms[3]}`;
+};
+
 const EN: Dict = {
   // navigation (founder's order, 15 Sep 2026)
   tab_services: 'Services', tab_rfqs: 'Inquiries received', tab_quotes: 'Quotations submitted', tab_messages: 'Messages',
@@ -93,7 +143,7 @@ const AR: Dict = {
   mb_locked_cta: 'عرض الاستفسارات الواردة',
   mb_jobs_h: 'المشاريع المكشوفة', mb_threads_h: 'المحادثات', mb_customer: 'العميل', mb_no_msgs: 'لا توجد رسائل بعد. رحّبوا بالعميل وأكّدوا الخطوة التالية.',
   mb_respond_by: 'الرد قبل {date}', mb_overdue: 'انقضت مهلة الرد منذ {date}', mb_acked: 'أكّدتم التواصل',
-  mb_unread: '{n} غير مقروءة', mb_back: 'العودة إلى المحادثات', mb_type: 'اكتبوا رسالة إلى العميل', mb_send: 'إرسال', mb_sending: 'جارٍ الإرسال…',
+  mb_unread: 'لديكم {n}', mb_back: 'العودة إلى المحادثات', mb_type: 'اكتبوا رسالة إلى العميل', mb_send: 'إرسال', mb_sending: 'جارٍ الإرسال…',
   mb_send_err: 'لم تُرسل رسالتكم. يُرجى المحاولة مرة أخرى.', mb_warning: 'تُحفظ الرسائل هنا في السجل لكلا الطرفين. يُرجى قصرها على هذا المشروع.',
   mb_closed_policy: 'أُغلقت هذه المحادثة بسبب مخالفة للسياسة.', mb_not_open: 'هذه المحادثة غير مفتوحة بعد.',
   mb_status_open: 'مفتوحة', mb_status_none: 'لم تبدأ', mb_status_banned: 'مغلقة — مخالفة', mb_status_closed: 'مغلقة',
@@ -104,7 +154,7 @@ const AR: Dict = {
   sd_download: 'تنزيل', sd_opening: 'جارٍ الفتح…', sd_empty: 'لا توجد مستندات داعمة بعد.', sd_count: '{n} من {max}', sd_uploaded: 'رُفع في {date}', sd_limits: 'ملف PDF أو صورة أو مستند مكتبي، حتى 25 ميغابايت لكل ملف.',
   sd_saved: 'تم الحفظ.', sd_removed: 'أُزيل من مستنداتكم.',
   sd_err_label_required: 'يُرجى إدخال اسم للمستند.', sd_err_file_required: 'يُرجى اختيار ملف لرفعه.', sd_err_too_large: 'حجم هذا الملف أكبر من 25 ميغابايت.',
-  sd_err_file_refused: 'تعذّر قبول هذا الملف. يُرجى رفع ملف PDF أو صورة أو مستند مكتبي.', sd_err_limit_reached: 'بلغتم الحد الأقصى وهو {max} مستندًا. يُرجى إزالة مستند لإضافة آخر.',
+  sd_err_file_refused: 'تعذّر قبول هذا الملف. يُرجى رفع ملف PDF أو صورة أو مستند مكتبي.', sd_err_limit_reached: 'بلغتم الحد الأقصى وهو {max}. يُرجى إزالة مستند لإضافة آخر.',
   sd_err_generic: 'تعذّر إتمام العملية. يُرجى المحاولة مرة أخرى.',
   sd_t_certificate: 'شهادة', sd_t_accreditation: 'اعتماد', sd_t_reference_letter: 'خطاب توصية', sd_t_project_reference: 'مرجع مشروع',
   sd_t_financial_statement: 'بيان مالي', sd_t_organisation_chart: 'الهيكل التنظيمي', sd_t_hse_policy: 'سياسة الصحة والسلامة والبيئة', sd_t_quality_policy: 'سياسة الجودة',
@@ -120,17 +170,17 @@ const AR: Dict = {
   price_no_data: 'بعد أن تقدّموا عروضًا على استفسارات قدّم عليها موردون آخرون أيضًا، ستتمكنون من معرفة موقع أسعاركم. لا نعرض سعر أي طرف آخر أبدًا.',
   in_funnel_h: 'من الاستفسار إلى الفوز بالمشروع', st_received: 'وردت إليكم', st_quoted: 'قدّمتم عرضًا', st_revealed: 'كشف عنها العميل', st_won: 'فزتم بها',
   conv_of_prev: '{pct} من المرحلة السابقة', in_trend_h: 'آخر 12 شهرًا', trend_quotes: 'عروض الأسعار', trend_reveals: 'مرات الكشف', trend_empty: 'لا توجد عروض أو مرات كشف في آخر 12 شهرًا بعد.',
-  in_rates_h: 'المعدلات', r_win: 'معدل الفوز', r_reveal: 'معدل الكشف', r_response: 'معدل الاستجابة', r_lead: 'متوسط مدة التنفيذ', r_lost: 'خسرتموها لصالح منافسين', days: 'بالأيام: {n}',
+  in_rates_h: 'المعدلات', r_win: 'معدل الفوز', r_reveal: 'معدل الكشف', r_response: 'معدل الاستجابة', r_lead: 'متوسط مدة التنفيذ', r_lost: 'خسرتموها لصالح منافسين', days: 'نحو {n}',
   in_hints_h: 'كيف تحسّنون أداءكم', hint_go: 'فتح',
   hint_not_eligible_t: 'أكملوا قائمة التسجيل', hint_not_eligible_b: 'لن تصلكم الطلبات حتى تكتمل جميع خطوات القائمة في تبويب المستندات.',
   hint_doc_expired_t: 'انتهت صلاحية {doc}', hint_doc_expired_b: 'يُرجى رفع نسخة مجدَّدة؛ فالمستند المنتهي يوقف المطابقة أو يُضعف موقعكم عند مقارنة العملاء.',
-  hint_doc_expiring_t: 'تقترب صلاحية {doc} من الانتهاء (الأيام المتبقية: {days})', hint_doc_expiring_b: 'يُرجى تجديده الآن حتى لا يتوقف شيء عند انتهاء صلاحيته.',
-  hint_quote_more_t: '{unquoted} استفسارًا لم تقدّموا عليها عرضًا', hint_quote_more_b: 'قدّمتم عروضًا على أقل من نصف الاستفسارات الواردة إليكم، وعددها {received}. كل عرض فرصة ليقع الاختيار عليكم.',
+  hint_doc_expiring_t: 'تنتهي صلاحية {doc} خلال {days}', hint_doc_expiring_b: 'يُرجى تجديده الآن حتى لا يتوقف شيء عند انتهاء صلاحيته.',
+  hint_quote_more_t: 'لم تقدّموا عرضًا على {unquoted}', hint_quote_more_b: 'قدّمتم عروضًا على أقل من نصف الاستفسارات الواردة إليكم، وعددها {received}. كل عرض فرصة ليقع الاختيار عليكم.',
   hint_price_above_t: 'أسعاركم أعلى من متوسط السوق بنسبة {pct}%', hint_price_above_b: 'راجعوا النطاق والبنود المشمولة مقارنةً بالاستفسار؛ فالتفصيل الأوضح أو السعر الأدق يكسب مقارنات أكثر.',
   hint_price_below_no_reveal_t: 'أسعار تنافسية دون كشف بعد', hint_price_below_no_reveal_b: 'أسعاركم أقل من المتوسط بنسبة {pct}%، لكن لم يكشف عنكم أي عميل بعد. أكملوا المواصفات وأرفقوا الملف التعريفي لشركتكم ليثق العملاء بالسعر.',
   hint_follow_up_t: 'حوّلوا مرات الكشف إلى مشاريع', hint_follow_up_b: 'كشف عنكم {revealed} من العملاء، وتعاقد معكم {won} منهم. احرصوا على الرد خلال مهلة 5 أيام عمل والمتابعة عبر الرسائل.',
   hint_response_rate_t: 'معدل الاستجابة {pct}%', hint_response_rate_b: 'يفضّل العملاء الموردين الذين يردّون بسرعة. احرصوا على الرد على كل مشروع مكشوف خلال 5 أيام عمل.',
-  hint_lead_time_t: 'متوسط مدة التنفيذ (بالأيام): {days}', hint_lead_time_b: 'مدد التنفيذ الطويلة تُضعف فرصكم في المقارنة. اذكروا مدة واقعية وأقصر حيثما أمكن.',
+  hint_lead_time_t: 'متوسط مدة التنفيذ {days}', hint_lead_time_b: 'مدد التنفيذ الطويلة تُضعف فرصكم في المقارنة. اذكروا مدة واقعية وأقصر حيثما أمكن.',
   hint_first_request_t: 'بانتظار أول استفسار يصلكم', hint_first_request_b: 'حدّثوا خدماتكم والإمارات التي تعملون فيها ليصلكم كل استفسار مطابق.',
   hint_all_good_t: 'لا شيء يحتاج إلى إصلاح الآن', hint_all_good_b: 'واصلوا تقديم العروض بسرعة، وستواصل أرقامكم هنا النمو.',
 };
@@ -139,5 +189,10 @@ export const WORKSPACE_COPY = { en: EN, ar: AR } as const;
 
 export function ws(lang: string, key: string, params: Record<string, string | number> = {}): string {
   const s = (lang === 'ar' ? AR : EN)[key] ?? EN[key] ?? key;
-  return s.replace(/\{(\w+)\}/g, (_, k) => (params[k] == null ? '' : String(params[k])));
+  const counted = lang === 'ar' ? AR_COUNTED[key] : undefined;
+  return s.replace(/\{(\w+)\}/g, (_, k) => {
+    if (params[k] == null) return '';
+    const forms = counted && counted[k];
+    return forms ? arCounted(forms, params[k]) : String(params[k]);
+  });
 }

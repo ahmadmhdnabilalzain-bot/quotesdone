@@ -3,6 +3,7 @@
 import { useDeferredValue, useEffect, useRef, useState } from 'react';
 import { urlLocale, applyDocumentLocale, applyShellChrome, adoptLocale } from '@/lib/documentLocale';
 import { arDays } from '@/lib/durationLabel';
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { supaClient } from '@/lib/supaClient';
 import { takeAuthFragment } from '@/lib/authFragment';
 import { signupEmailProblem } from '@/lib/signupEmail';
@@ -26,6 +27,15 @@ import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_CODES, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
+// THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
+// stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
+// same figure.
+import { aed } from './supplier/money';
+// WHAT A FAILED READ MEANS, DECIDED IN ONE PLACE (audit 22 Sep 2026, SP-C-08): only the dashboard
+// read `_http === 401`. Billing, Receipts, Projects, Documents and Profile each rendered an empty
+// panel on an expired session — "you have no dues / no projects / no documents" to a supplier whose
+// token had simply aged out.
+import { isExpired, panelErrorText } from './supplier/PanelState';
 import { openDocument } from '@/lib/openDocument';
 import { Bell } from 'lucide-react';
 // THE DASHBOARD'S FIRST READ STARTS WITH THE TOKEN (15 Sep 2026), the way the customer portal's does
@@ -64,6 +74,9 @@ const SB = () => supaClient('qd-portal-auth');
 function arDaysLeft(n) {
   return `${arDays(n)} ${n === 1 ? 'متبقٍ' : n === 2 ? 'متبقيان' : n <= 10 ? 'متبقية' : 'متبقيًا'} لمعالجة ذلك`;
 }
+// "We read your quotation — N line items". The Arabic said "{n} بند" for every n (audit 22 Sep 2026,
+// SP-I-04); arCount is the one rule the whole estate counts by.
+const lineCount = (lang, n) => (lang === 'ar' ? arCount(n, AR_NOUN.line) : `${n} line item${n === 1 ? '' : 's'}`);
 
 function Need({ lang, req = false }) {
   return <span className={cn('ms-1.5 align-middle text-[11px] font-semibold', req ? 'text-danger-fg' : 'text-muted-foreground')}>{t(lang, req ? 'required' : 'optional')}</span>;
@@ -71,7 +84,22 @@ function Need({ lang, req = false }) {
 function Lbl({ text, children, className = '', visible = false, need = null, lang = 'en' }) {
   return <label className={cn('block min-w-0', className)}><span className={visible || need ? 'mb-1 block text-[12px] font-semibold text-muted-foreground' : 'sr-only'}>{text}{need ? <Need lang={lang} req={need === 'req'} /> : null}</span>{children}</label>;
 }
-const aed = (n) => 'AED ' + Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
+// `aed(lang, n)` is imported from ./supplier/money — see the note at the imports.
+// A SESSION THAT HAS ENDED IS NOT AN EMPTY PANEL. Every read in this file routes its failure through
+// here: an expired token goes to the dashboard's own `onExpired` (refresh once, then sign in again),
+// anything else stays with the panel's own message.
+//
+// `onErr` IS NOT OPTIONAL POLISH (review of #858). `onExpired` no longer always signs out — a
+// single 401 during a GoTrue outage now leaves the session in place (see onExpired below). A caller
+// that returns early on the strength of that would render a blank panel and no explanation, which
+// is the very defect this helper was added to end. So every caller that HAS an error state is
+// handed one here; the panel shows "your session has ended" and a retry that can actually succeed.
+const wentExpired = (j, onExpired, onErr = null) => {
+  if (!isExpired(j)) return false;
+  if (onErr) onErr('session_expired');
+  if (onExpired) onExpired();
+  return true;
+};
 // Amounts, phone numbers, e-mails and reference codes are left-to-right runs. Inside the Arabic
 // portal an unisolated "AED 12,500" or "+971 50 …" is reordered by the bidi algorithm around the
 // Arabic text beside it (portal audit 14 Sep 2026); <Ltr> keeps each one whole.
@@ -107,7 +135,7 @@ function ReceiptBanner({ receipt, lang }) {
     <div role="status" className="qd-panel flex items-start gap-3 border-primary/40 p-4">
       <span aria-hidden className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground text-sm font-bold">✓</span>
       <div>
-        <div className="text-[14px] font-bold text-foreground">{ar ? (reg ? 'تم استلام رسوم التسجيل' : 'تم استلام الدفعة') : (reg ? 'Registration payment received' : 'Payment received')}</div>
+        <div className="text-[14px] font-bold text-foreground">{ar ? (reg ? 'تم استلام رسوم الاشتراك' : 'تم استلام الدفعة') : (reg ? 'Subscription payment received' : 'Payment received')}</div>
         <div className={S.sub}>{ar
           ? 'استلمت Stripe دفعتكم وسترسل إليكم الفاتورة بالبريد الإلكتروني، ويُحدَّث رصيدكم هنا فور تأكيد Stripe لنا، وعادةً خلال دقيقة.'
           : 'Stripe has your payment and will email you the invoice. Your balance here updates as soon as Stripe confirms it to us, usually within a minute.'}</div>
@@ -134,16 +162,17 @@ function RegistrationFeeCard({ token, lang, base }) {
   };
   return (
     <Card className="qd-panel p-5">
-      <div className={S.h2}>{ar ? 'رسوم التسجيل السنوية' : 'Yearly registration fee'}</div>
+      {/* The name the signed agreement uses — see the note on the receipts row (SP-I-08). */}
+      <div className={S.h2}>{ar ? 'رسوم الاشتراك السنوية' : 'Annual subscription fee'}</div>
       <div className={cn(S.sub, 'mt-1')}>{ar
         ? 'التسجيل مجاني بصفة دائمة لأول 1,000 مورّد، واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم سنويًا. إن كانت عليكم رسوم مستحقة فستنتقلون مباشرة إلى صفحة الدفع الآمنة في Stripe، وإلا فسنوضح لكم السبب.'
         : 'Registration is permanently free for the first 1,000 suppliers; from the 1,001st registration it is AED 1,000 per year. If a fee is due you go straight to Stripe’s secure checkout; if not, we tell you why.'}</div>
-      <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'التحقق من رسوم التسجيل' : 'Check my registration fee')}</Button>
+      <Button className="mt-3" variant="outline" disabled={busy} onClick={check}>{busy ? (ar ? 'جارٍ التحقق…' : 'Checking…') : (ar ? 'التحقق من رسوم الاشتراك' : 'Check my subscription fee')}</Button>
       {res && <div role="status" className={cn('mt-2 text-[13px]', res.ok ? 'text-primary' : 'text-danger-fg')}>{res.text}</div>}
     </Card>
   );
 }
-function BillingPanel({ token, lang, receipt }) {
+function BillingPanel({ token, lang, receipt, onExpired }) {
   const [st, setSt] = useState({ loading: true, dues: [], total: 0, err: '' });
   const [busy, setBusy] = useState(false);
   // Stripe returns to base + '/portal', so an Arabic supplier comes back to /ar/portal.
@@ -151,8 +180,11 @@ function BillingPanel({ token, lang, receipt }) {
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
     const j = await call('supplier_pay', { action: 'list' }, token);
-    if (j && j.ok) setSt({ loading: false, dues: j.dues || [], total: Number(j.total_owed || 0), err: '' });
-    else setSt({ loading: false, dues: [], total: 0, err: (j && j.error) || 'load_err' });
+    if (j && j.ok) { setSt({ loading: false, dues: j.dues || [], total: Number(j.total_owed || 0), err: '' }); return; }
+    // "Nothing to pay" and "we could not read your balance" must never look the same to someone who
+    // owes money and is accruing interest on it (SP-C-08).
+    if (wentExpired(j, onExpired, (c) => setSt({ loading: false, dues: [], total: 0, err: c }))) return;
+    setSt({ loading: false, dues: [], total: 0, err: (j && (j.code || j.error)) || 'load_err' });
   };
   useEffect(() => { load(); }, [token]);
   // A disputed charge goes to the sales engineer, who has the accountant check it against the payment
@@ -187,13 +219,20 @@ function BillingPanel({ token, lang, receipt }) {
         {st.dues.map((d) => (
           <div key={d.id} className="flex justify-between items-center border-b border-border pb-2 text-[13.5px]">
             <div>
-              <div className="font-semibold tabular-nums"><Ltr>{aed(d.amount)}</Ltr></div>
-              <div className={S.sub}>{t(lang, 'bill_commission')} <Ltr>{aed(d.commission)}</Ltr>{d.fine ? <> · {t(lang, 'bill_fine')} <Ltr>{aed(d.fine)}</Ltr></> : null}</div>
+              <div className="font-semibold tabular-nums"><Ltr>{aed(lang, d.amount)}</Ltr></div>
+              {/* A part that is zero is not shown: three lines reading AED 0 say nothing and hide the one
+                  that is not. `interest` already carries the fine, as supplier_pay adds them together. */}
+              <div className={S.sub}>{[
+                ['bill_refund', d.refunded_fee], ['bill_admin', d.admin_fee], ['bill_interest', d.interest],
+              ].filter(([, v]) => Number(v) > 0).map(([k, v], i) => (
+                <span key={k}>{i ? ' · ' : ''}{t(lang, k)} <Ltr>{aed(lang, v)}</Ltr></span>
+              ))}</div>
             </div>
-            <div className="text-right">
+            {/* text-end, not text-right: on /ar the column sits on the left and this pinned it right. */}
+            <div className="text-end">
               <div className={S.sub}>{d.due_date ? <>{t(lang, 'bill_due')} <Ltr>{fmtDate(d.due_date, lang)}</Ltr></> : ''}</div>
               <button type="button" disabled={disp.pending} aria-busy={(disp.busy && disp.key === 'd' + d.id) || undefined}
-                className="inline-flex items-center gap-1.5 text-[12px] underline text-muted-foreground disabled:opacity-60" onClick={() => dispute(d.id)}>
+                className="inline-flex min-h-11 items-center gap-1.5 text-[12px] underline text-muted-foreground disabled:opacity-60" onClick={() => dispute(d.id)}>
                 {disp.busy && disp.key === 'd' + d.id
                   ? <><Spinner />{lang === 'ar' ? 'جارٍ إرسال اعتراضكم…' : 'Sending your query…'}</>
                   : (lang === 'ar' ? 'الاعتراض على هذه الرسوم' : 'Dispute this charge')}
@@ -205,14 +244,14 @@ function BillingPanel({ token, lang, receipt }) {
       <div className="flex justify-between items-center mt-3 flex-wrap gap-3">
         <div>
           <div className={S.sub}>{t(lang, 'bill_total')}</div>
-          <div className="text-[20px] font-extrabold text-foreground tabular-nums"><Ltr>{aed(st.total)}</Ltr></div>
+          <div className="text-[20px] font-extrabold text-foreground tabular-nums"><Ltr>{aed(lang, st.total)}</Ltr></div>
         </div>
         <Button onClick={pay} disabled={busy}>{busy ? t(lang, 'bill_paying') : t(lang, 'bill_pay')}</Button>
       </div>
       <div className={cn(S.sub, 'mt-3')}>{t(lang, 'bill_secure')}</div>
     </Card>
   );
-  return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<Receipts token={token} lang={lang} /><RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
+  return <div className={S.list}>{receipt ? <ReceiptBanner receipt={receipt} lang={lang} /> : null}{dues}<Receipts token={token} lang={lang} onExpired={onExpired} /><RegistrationFeeCard token={token} lang={lang} base={base} /></div>;
 }
 // A supplier's own document as PDF (supplier_api quote_pdf / receipt_pdf, 15 Sep 2026): the portal's
 // language first and the other language one click away, through the same popup-safe door the customer's
@@ -234,17 +273,25 @@ function PdfLinks({ lang, fetchPdf, otherOnly = false }) {
   </span>);
 }
 // Receipts for the dues this supplier has paid (supplier_api receipts). Nothing paid, nothing shown.
-function Receipts({ token, lang }) {
+//
+// ONE FEE, ONE NAME (audit 22 Sep 2026, SP-I-08). The row below called it the "Annual listing fee"
+// and the card further down the same tab called it the "Yearly registration fee" — two names in
+// English and three in Arabic for the single fee of clause 6. The signed Supplier Agreement v12
+// (src/content/legal.json, key "supplier-agreement"; clause 2 defines it, clause 6 sets it) calls
+// it the Subscription Fee, and that is the name every surface uses now. "Registration" in clause
+// 6's heading is the act of registering — free for the first 1,000 — not the fee's name.
+function Receipts({ token, lang, onExpired }) {
   const ar = lang === 'ar';
   const [list, setList] = useState([]);
-  useEffect(() => { let live = true; call('supplier_api', { action: 'receipts' }, token).then((j) => { if (live) setList((j && j.ok && j.receipts) || []); }).catch(() => {}); return () => { live = false; }; }, [token]);
+  // An expired token answered 401 and this rendered null — "you have paid nothing" (SP-C-08).
+  useEffect(() => { let live = true; call('supplier_api', { action: 'receipts' }, token).then((j) => { if (!live) return; if (wentExpired(j, onExpired)) return; setList((j && j.ok && j.receipts) || []); }).catch(() => {}); return () => { live = false; }; }, [token]);
   if (!list.length) return null;
   return (
     <Card className="qd-panel p-5">
       <div className={S.h2}>{ar ? 'إيصالات الدفع' : 'Payment receipts'}</div>
       <ul className="mt-3 flex flex-col gap-2">{list.map((r) => (
         <li key={(r.kind || 'dues') + ':' + (r.id ?? r.paid_at)} className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2 text-[13.5px]">
-          <span>{r.kind === 'registration' ? (ar ? 'رسوم الإدراج السنوية · ' : 'Annual listing fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
+          <span>{r.kind === 'registration' ? (ar ? 'رسوم الاشتراك السنوية · ' : 'Annual subscription fee · ') : ''}<Ltr className="font-semibold tabular-nums">{aed(lang, r.total)}</Ltr> · <Ltr>{fmtDate(r.paid_at, lang)}</Ltr></span>
           {/* A paid receipt is sealed: View / Download work, Replace / Remove say why not (instruction 524).
               The other-language copy stays one click away beside them. */}
           <span className="inline-flex flex-wrap items-center gap-3">
@@ -287,7 +334,13 @@ const T = {
     conflict_customer:'This email is registered as a customer. Please use the customer app to sign in.',
     setup_title:'Set up your supplier account', setup_sub_company:'Register your company, then complete your profile.', setup_sub_profile:'Complete your profile to start receiving RFQs and submitting quotes.',
     onboard_title:'Register your company', onboard_sub:'Enter your company name and your main trade. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', company_name:'Company name', emirate:'Emirate', create_company:'Create company', enter_company:'Enter your company name.', err_generic:'Something went wrong.', something_wrong:'Something went wrong',
-    bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.', bill_commission:'Refunded amount recovered', bill_fine:'Late fee', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
+    bill_title:'Amounts due', bill_none:'Nothing to pay. You are not charged commission on the work you win.', bill_total:'Total outstanding', bill_pay:'Pay now', bill_paying:'Opening secure checkout…', bill_err:'We could not load your balance. Please try again.',
+    // WHAT A DUE IS ACTUALLY MADE OF (audit 22 Sep 2026, SP-C-01). This row read `d.commission` and
+    // `d.fine`; supplier_pay's `list` has never returned either name — it returns `refunded_fee`,
+    // `admin_fee` and `interest` (supplier_pay/index.ts). Every outstanding due therefore printed
+    // "Refunded amount recovered AED 0", and the AED 250 administrative fee and the 9% interest of
+    // clause 33 were invisible. These three keys are those three fields, named as clause 33 names them.
+    bill_refund:'Refund recovered', bill_admin:'Administrative fee', bill_interest:'Late interest and fines', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
     
     
     
@@ -295,7 +348,7 @@ const T = {
     mobile_verified:'Mobile verified', verify_my_mobile:'Verify my mobile →', sms_code:'6-digit SMS code', verify:'Verify',
     email_verified:'E-mail verified', email_unverified:'e-mail not yet verified',
     reg_rest_optional:'Attach these two and you are done. Everything else is optional and can wait until you are inside.', verify_first:'Please verify your mobile number first.',
-    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Authority (DED / free zone)', lic_expiry:'Licence expiry', vat_trn:'VAT no. (TRN)', h_egr:'Establishment (EGR)', egr_no:'Economic Register (EGR) no.', egr_cert:'EGR / establishment certificate:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
+    accept_pre:'I accept the QuotesDone ', terms_link:'supplier terms', accept_post:'.', submit_approval:'Submit for approval', submitting:'Submitting…', must_accept:'Please accept the supplier terms.', loading_rfqs:'Loading RFQs…', no_rfqs_h:'No open RFQs right now', no_rfqs_sub:'When a customer posts a request that matches your capabilities, it appears here.', request_w:'Request', you_won:' · You won', concluded:' · Concluded', quoted:'Quoted ', close:'Close', quote:'Quote', boq_prefix:'BOQ: ', boq_items:'line items', confidence:' confidence', drawing_p:'Drawing p', upload_quote:"Upload your quotation — PDF, photo, Excel, Word, e-mail, CAD or ZIP — and we'll read it:", reading:'Reading…', total_aed:'Total amount (AED)', lead_time:'Lead time (e.g. 10 days)', scope_work:'Scope of work', notes_customer:'Notes for the customer', submit_quote:'Submit quote', enter_valid_amount:'Enter a valid amount.', could_not_read:'Could not read the file — please fill the form.', could_not_submit:'Could not submit.', draft_saved:'Saved as draft — add the missing details to send it.', read_quote_pre:'Read your quotation', line_items:'line items', read_quote_post:'. Review and submit.', loading_docs:'Loading documents…', docs_h:'Documents & certificates', docs_sub:'Upload renewals before they expire — we will remind you here and pause matching if a required document lapses.', st_expired:'Expired', st_expiring:'Expiring soon', st_valid:'Valid', expires_pre:'Expires ', on_file:'On file', not_uploaded:'Not uploaded yet', view:'view', uploading:'Uploading…', upload:'Upload', no_projects_h:'No won projects yet', no_projects_sub:'When a customer reveals and hires you, the project appears here.', project_w:'Project', back:'← Back', send:'Send', ask_placeholder:"Ask a question — our assistant answers instantly, or opens a direct chat if it's really needed.", ask_request:'Ask / request a chat', assistant_pre:'Assistant: ', sent_review:'Sent for review — you will be notified if a chat opens.', sent:'Sent.', registering_pre:'Registering ', registering_post:'. Registration is free for the first 1,000 suppliers to register, permanently; from the 1,001st registration it is AED 1,000 per year.', corrected:' (corrected from your licence)', signatory:'Authorized signatory', owner_dob:'Owner date of birth', h_trade:'Trade licence', trade_sub:'Upload your licence and we read the number, authority, expiry and TRN automatically.', reading_lic:'Reading licence…', lic_no:'Trade licence no.', authority:'Licensing authority (Economic Department or free-zone authority)', lic_expiry:'Licence expiry', vat_trn:'Tax Registration Number (TRN)', h_egr:'Economic Register (EGR) card', egr_no:'Economic Register (EGR) card no.', egr_cert:'Economic Register (EGR) card:', h_offer:'What you offer', products_ph:'Products you supply (comma separated)', services_ph:'Services you offer', desc_ph:'Short company description / capabilities', company_profile_pdf:'Company profile (PDF):', catalogs_ph:'Product catalogs (up to 5):', add_contact_phone:'Add your contact name and phone.', add_license:'Add your trade licence number (or upload your licence to auto-fill it).', could_not_save:'Could not save your profile.', save_error:'Something went wrong saving your profile. Please try again.', lic_on_file:'Trade licence on file.', could_not_sms:'Could not send SMS.', wrong_code:'Wrong code.', read_lic:'Read your licence', expires_comma:', expires ', lic_uploaded:'Licence uploaded.', lic_uploaded_noread:'Uploaded (could not auto-read).', attach_file:'Attach file', selected:'selected', lic_expires:'Licence expires', lic_expired:'Licence expired', action_required:'Action required', ar_days_left:'days left to fix this', ar_overdue:'Overdue - your account can be suspended', ar_why:'Why', catalogues:'Catalogues', doc_profile:'Company profile', doc_iso:'ISO certification', add_profile:'Please attach your company profile (required).',
     lic_uploaded_type:'Licence uploaded. If the number did not fill in, type it below — automatic reading is optional.', lic_upload_failed:'We could not store your licence file. Please try again with a PDF or a clear photo.',
     verify_my_email:'Verify my e-mail →', email_code:'6-digit e-mail code', email_sent:'We emailed you a 6-digit code.', could_not_email:'Could not send the e-mail code.',
     trade_label:'Your main trade', trade_ph:'Choose your trade', trade_not_listed:'My trade isn’t listed', trade_other_ph:'Type your trade', trade_help:'Every trade is welcome. If yours isn’t listed, choose “My trade isn’t listed” and type it — we review it and add it.',
@@ -319,9 +372,9 @@ const T = {
     signup_email_only:'يُرجى التسجيل ببريدكم الإلكتروني للعمل، ثم تسجيل شركتكم وتأكيد رقم جوالكم في الخطوة التالية.',
     signup_email_reserved:'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريد العمل الحقيقي.', err_need_email:'يُرجى إدخال بريد العمل أولًا.', err_need_id:'يُرجى إدخال بريدكم الإلكتروني أو رقم جوالكم أولًا.',
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
-    setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال طلبات التسعير وتقديم عروض الأسعار.',
+    setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال الاستفسارات وتقديم عروض الأسعار.',
     onboard_title:'تسجيل الشركة', onboard_sub:'أدخلوا اسم شركتكم وتخصصها الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'يُرجى إدخال اسم الشركة.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
-    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_commission:'استرداد المبلغ المردود للعميل', bill_fine:'رسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'طلبات التسعير', approved:'معتمد', pending:'قيد المراجعة',
+    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_refund:'استرداد المبلغ المردود للعميل', bill_admin:'رسوم إدارية', bill_interest:'فوائد ورسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'الاستفسارات', approved:'معتمد', pending:'قيد المراجعة',
     
     
     
@@ -329,7 +382,7 @@ const T = {
     mobile_verified:'تم التحقق من الجوال', verify_my_mobile:'تأكيد رقم الجوال ←', sms_code:'رمز الرسالة (6 أرقام)', verify:'تأكيد',
     email_verified:'تم التحقق من البريد', email_unverified:'لم يتم التحقق من البريد بعد',
     reg_rest_optional:'بإرفاق هذين الملفين يكتمل التسجيل، وكل ما عدا ذلك اختياري ويمكن إكماله بعد الدخول.', verify_first:'يُرجى تأكيد رقم جوالكم أولًا.',
-    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' في منصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل طلبات التسعير…', no_rfqs_h:'لا توجد طلبات تسعير مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتكم، يظهر هنا.', request_w:'طلب', you_won:' · فزتم بالطلب', concluded:' · مُغلق', quoted:'قدّمتم عرضًا: ', close:'إغلاق', quote:'تقديم عرض', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفعوا عرض السعر (PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP) وسنتولّى قراءته:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'يُرجى إدخال مبلغ صحيح.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ العرض كمسودة، ويُرجى إضافة التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضكم', line_items:'بند', read_quote_post:'. يُرجى مراجعته ثم إرساله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'يُرجى رفع المستندات المجدَّدة قبل انتهاء صلاحيتها؛ سنذكّركم هنا، وتتوقف المطابقة إذا انتهت صلاحية مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضكم ويتعاقد معكم، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اكتبوا سؤالكم، وسيجيب مساعدنا فورًا أو يفتح محادثة مباشرة عند الحاجة.', ask_request:'سؤال أو طلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة، وسنُعلمكم إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحَّح وفق رخصتكم)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفعوا الرخصة التجارية وسنقرأ منها تلقائيًا رقمها والجهة المُصدِرة وتاريخ الانتهاء والرقم الضريبي.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'الجهة (دائرة التنمية الاقتصادية / منطقة حرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'الرقم الضريبي (TRN)', h_egr:'المنشأة (السجل الاقتصادي)', egr_no:'رقم السجل الاقتصادي (EGR)', egr_cert:'شهادة السجل الاقتصادي / المنشأة:', h_offer:'ما تقدّمونه', products_ph:'المنتجات التي تورّدونها (افصلوا بينها بفاصلة)', services_ph:'الخدمات التي تقدّمونها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'يُرجى إضافة اسم جهة الاتصال ورقم الهاتف.', add_license:'يُرجى إضافة رقم الرخصة التجارية، أو رفع الرخصة لتعبئته تلقائيًا.', could_not_save:'تعذّر حفظ ملف الشركة.', save_error:'حدث خطأ أثناء حفظ ملف الشركة. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتكم', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', ar_days_left:'متبقية لمعالجة ذلك', ar_overdue:'تجاوز الموعد — قد يُعلَّق حسابكم', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
+    accept_pre:'أوافق على ', terms_link:'شروط المورّد', accept_post:' في منصة QuotesDone.', submit_approval:'إرسال للموافقة', submitting:'جارٍ الإرسال…', must_accept:'يُرجى الموافقة على شروط المورّد.', loading_rfqs:'جارٍ تحميل الاستفسارات…', no_rfqs_h:'لا توجد استفسارات مفتوحة حاليًا', no_rfqs_sub:'عندما ينشر عميل طلبًا يطابق إمكانياتكم، يظهر هنا.', request_w:'طلب', you_won:' · فزتم بالطلب', concluded:' · مُغلق', quoted:'قدّمتم عرضًا: ', close:'إغلاق', quote:'تقديم عرض', boq_prefix:'جدول الكميات: ', boq_items:'بند', confidence:' ثقة', drawing_p:'المخطط ص', upload_quote:'ارفعوا عرض السعر (PDF أو صورة أو Excel أو Word أو بريد إلكتروني أو ملف CAD أو ZIP) وسنتولّى قراءته:', reading:'جارٍ القراءة…', total_aed:'المبلغ الإجمالي (درهم)', lead_time:'مدة التنفيذ (مثال: 10 أيام)', scope_work:'نطاق العمل', notes_customer:'ملاحظات للعميل', submit_quote:'إرسال العرض', enter_valid_amount:'يُرجى إدخال مبلغ صحيح.', could_not_read:'تعذّرت قراءة الملف — يُرجى تعبئة النموذج.', could_not_submit:'تعذّر الإرسال.', draft_saved:'حُفظ العرض كمسودة، ويُرجى إضافة التفاصيل الناقصة لإرساله.', read_quote_pre:'قرأنا عرضكم', line_items:'بند', read_quote_post:'. يُرجى مراجعته ثم إرساله.', loading_docs:'جارٍ تحميل المستندات…', docs_h:'المستندات والشهادات', docs_sub:'يُرجى رفع المستندات المجدَّدة قبل انتهاء صلاحيتها؛ سنذكّركم هنا، وتتوقف المطابقة إذا انتهت صلاحية مستند مطلوب.', st_expired:'منتهٍ', st_expiring:'ينتهي قريبًا', st_valid:'سارٍ', expires_pre:'ينتهي في ', on_file:'محفوظ', not_uploaded:'لم يُرفع بعد', view:'عرض', uploading:'جارٍ الرفع…', upload:'رفع', no_projects_h:'لا توجد مشاريع فائزة بعد', no_projects_sub:'عندما يكشف العميل عن عرضكم ويتعاقد معكم، يظهر المشروع هنا.', project_w:'مشروع', back:'→ رجوع', send:'إرسال', ask_placeholder:'اكتبوا سؤالكم، وسيجيب مساعدنا فورًا أو يفتح محادثة مباشرة عند الحاجة.', ask_request:'سؤال أو طلب محادثة', assistant_pre:'المساعد: ', sent_review:'أُرسل للمراجعة، وسنُعلمكم إذا فُتحت محادثة.', sent:'أُرسل.', registering_pre:'تسجيل ', registering_post:'. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', corrected:' (مُصحَّح وفق رخصتكم)', signatory:'المفوّض بالتوقيع', owner_dob:'تاريخ ميلاد المالك', h_trade:'الرخصة التجارية', trade_sub:'ارفعوا الرخصة التجارية وسنقرأ منها تلقائيًا رقمها والجهة المُصدِرة وتاريخ الانتهاء ورقم التسجيل الضريبي.', reading_lic:'جارٍ قراءة الرخصة…', lic_no:'رقم الرخصة التجارية', authority:'جهة الترخيص (الدائرة الاقتصادية أو سلطة المنطقة الحرة)', lic_expiry:'انتهاء الرخصة', vat_trn:'رقم التسجيل الضريبي (TRN)', h_egr:'بطاقة المنشأة', egr_no:'رقم بطاقة المنشأة (EGR)', egr_cert:'بطاقة المنشأة (EGR):', h_offer:'ما تقدّمونه', products_ph:'المنتجات التي تورّدونها (افصلوا بينها بفاصلة)', services_ph:'الخدمات التي تقدّمونها', desc_ph:'وصف مختصر للشركة / القدرات', company_profile_pdf:'الملف التعريفي للشركة (PDF):', catalogs_ph:'كتالوجات المنتجات (حتى 5):', add_contact_phone:'يُرجى إضافة اسم جهة الاتصال ورقم الهاتف.', add_license:'يُرجى إضافة رقم الرخصة التجارية، أو رفع الرخصة لتعبئته تلقائيًا.', could_not_save:'تعذّر حفظ ملف الشركة.', save_error:'حدث خطأ أثناء حفظ ملف الشركة. يُرجى المحاولة مرة أخرى.', lic_on_file:'الرخصة التجارية محفوظة.', could_not_sms:'تعذّر إرسال الرسالة.', wrong_code:'رمز خاطئ.', read_lic:'قرأنا رخصتكم', expires_comma:'، تنتهي في ', lic_uploaded:'تم رفع الرخصة.', lic_uploaded_noread:'تم الرفع (تعذّرت القراءة التلقائية).', attach_file:'إرفاق ملف', selected:'محدد', lic_expires:'تنتهي الرخصة', lic_expired:'انتهت الرخصة', action_required:'إجراء مطلوب', /* no ar_days_left: Arabic goes through arDaysLeft(), which agrees with the number; a key here could only ever hold one of the four forms. */ ar_overdue:'تجاوز الموعد — قد يُعلَّق حسابكم', ar_why:'السبب', catalogues:'الكتالوجات', doc_profile:'الملف التعريفي للشركة', doc_iso:'شهادة ISO', add_profile:'يُرجى إرفاق الملف التعريفي للشركة (مطلوب).',
     lic_uploaded_type:'تم رفع الرخصة. إن لم يظهر الرقم تلقائيًا فيُرجى كتابته أدناه، فالقراءة التلقائية اختيارية.', lic_upload_failed:'تعذّر حفظ ملف الرخصة. يُرجى المحاولة مرة أخرى بملف PDF أو صورة واضحة.',
     verify_my_email:'تأكيد البريد الإلكتروني ←', email_code:'رمز البريد (6 أرقام)', email_sent:'أرسلنا إليكم رمزًا من 6 أرقام بالبريد الإلكتروني.', could_not_email:'تعذّر إرسال رمز البريد.',
     trade_label:'التخصص الرئيسي', trade_ph:'اختاروا التخصص', trade_not_listed:'تخصصنا غير مدرج', trade_other_ph:'اكتبوا التخصص', trade_help:'نرحّب بجميع التخصصات. إن لم يكن تخصصكم مدرجًا فاختاروا «تخصصنا غير مدرج» واكتبوه، وسنراجعه ونضيفه.',
@@ -364,22 +417,64 @@ const S = {
   wrap: 'max-w-[1040px] mx-auto px-[22px] py-7',
   frow: 'flex gap-2.5 flex-wrap mt-2.5',
   tabsWrap: 'qd-tabs inline-flex flex-wrap gap-1 p-1.5',
-  tab: 'qd-tab px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
+  // 44px is the floor for anything a thumb presses. Measured on a phone 22 Sep 2026 (SP-M-01): the
+  // sign-in / create-account tabs were 134x37 and the registration <select> 42 tall. `min-h-11` is
+  // on the shared tab class so no caller can forget it; the main nav strip already added its own.
+  tab: 'qd-tab min-h-11 px-3.5 py-2 text-[13px] font-semibold text-muted-foreground cursor-pointer border-0 bg-transparent',
   tabOn: 'qd-tab-on',
   list: 'flex flex-col gap-3',
   section: 'qd-section',
   figure: 'qd-figure',
-  field: 'mt-3 flex h-[42px] w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+  field: 'mt-3 flex min-h-11 w-full rounded-md border border-input bg-transparent px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
   area: 'mt-3 flex w-full rounded-md border border-input bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-y',
   chip: 'rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[12.5px] font-semibold text-muted-foreground cursor-pointer',
   chipOn: 'bg-primary/15 border-primary/60 text-primary',
-  fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
+  fileInput: 'text-sm text-muted-foreground file:me-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
 // WHAT THIS COMPANY CAN QUOTE FOR is the Services tab now (15 Sep 2026, sales_engineer):
 // ./supplier/ServicesTab.tsx, over supplier_api services_* (docs/api/supplier_portal_services.md). It
 // supersedes CapabilityConfirmPanel, which lived here: same confirm, same ledger, services inside trades.
 
+// WHY A CLAIM WAS REFUSED, IN THE SUPPLIER'S LANGUAGE (SP-C-10).
+//
+// supplier_api's `claim` answers `invalid_link` as a stable code and its two 409s as English
+// sentences only (supplier_api/index.ts action 'claim'), so the code is read first and the sentence
+// is the fallback — the same order loginErr uses. Anything this table does not know falls to
+// PanelState's bilingual "could not load" line rather than to the server's English.
+const CLAIM_REFUSAL = {
+  invalid_link: { en: 'This invitation link is not valid, so your company listing was not attached. You can still register below, or write to info@quotesdone.com and we will attach it for you.',
+    ar: 'رابط الدعوة غير صالح، فلم يُربط سجل شركتكم بحسابكم. يمكنكم إكمال التسجيل أدناه، أو مراسلتنا على info@quotesdone.com لنربطه نيابةً عنكم.' },
+  not_found: { en: 'We could not find the listing this invitation points to, so nothing was attached. You can still register below.',
+    ar: 'لم نعثر على السجل الذي تشير إليه هذه الدعوة، فلم يُربط شيء. يمكنكم إكمال التسجيل أدناه.' },
+  already_claimed: { en: 'This company has already been claimed by another account — most likely a colleague registered it first. Ask them to add you, or register your own account below.',
+    ar: 'سبق أن طالب حساب آخر بهذه الشركة، والأرجح أن أحد زملائكم سجّلها قبلكم. يمكنكم أن تطلبوا منه إضافتكم، أو إكمال تسجيل حسابكم أدناه.' },
+  other_company: { en: 'Your account already manages another company, so this listing was not attached to it. Sign in with the account you want to use, or register below.',
+    ar: 'حسابكم يدير شركة أخرى بالفعل، فلم يُربط هذا السجل به. يُرجى تسجيل الدخول بالحساب الذي ترغبون في استخدامه، أو إكمال التسجيل أدناه.' },
+};
+export function claimRefusalKey(j) {
+  const c = String((j && j.code) || '');
+  if (CLAIM_REFUSAL[c]) return c;
+  const e = String((j && j.error) || '');
+  if (/invalid_link/i.test(e)) return 'invalid_link';
+  if (/not found/i.test(e)) return 'not_found';
+  if (/already claimed/i.test(e)) return 'already_claimed';
+  if (/already manages another company/i.test(e)) return 'other_company';
+  return 'load_failed';
+}
+function ClaimRefusal({ code, lang, onClose }) {
+  const ar = lang === 'ar';
+  const c = CLAIM_REFUSAL[code];
+  return (
+    <div className={S.wrap} style={{ paddingBottom: 0 }}>
+      <Card role="alert" className="qd-panel border-warn/50 p-5" dir={ar ? 'rtl' : 'ltr'}>
+        <div className={S.h2}>{ar ? 'لم يُربط سجل شركتكم' : 'Your company listing was not attached'}</div>
+        <div className={cn(S.sub, 'mt-1')}>{c ? (ar ? c.ar : c.en) : panelErrorText(ar ? 'ar' : 'en', code)}</div>
+        <Button className="mt-3" variant="outline" onClick={onClose}>{ar ? 'متابعة التسجيل' : 'Continue registering'}</Button>
+      </Card>
+    </div>
+  );
+}
 const LANG_NOTE = { en: 'The portal follows your account language. Switching here updates it (EN/AR).', ar: 'تتبع البوابة لغة حسابكم، والتبديل هنا يغيّر لغة الحساب.' };
 export function SupplierPortal() {
   const [lang, setLang] = useState('en');
@@ -423,6 +518,13 @@ export function SupplierPortal() {
   // warm-up it discarded is started again with the claimed company in place.
   // Prevented by scripts/checks/an_invited_supplier_can_finish_registering.test.mjs.
   const [claiming, setClaiming] = useState(false);
+  // THE CLAIM COULD BE REFUSED AND NOBODY WAS TOLD (audit 22 Sep 2026, SP-C-10). The answer was
+  // thrown away: a supplier whose invitation link had already been used by a colleague, or whose
+  // account already manages another company, saw the "Attaching your company listing…" message,
+  // then a blank registration form, and never learned that the listing had not been attached. The
+  // refusal is now shown — and registration still continues underneath it, because the claim has
+  // always been an improvement on the flow rather than a gate into it.
+  const [claimRefusal, setClaimRefusal] = useState('');
   const claimRun = useRef(null);
   const claimIfInvited = (access) => {
     let t = '';
@@ -433,9 +535,10 @@ export function SupplierPortal() {
     claimRun.current = (async () => {
       try {
         // A failure here must never block the portal: the supplier can still register manually, which
-        // is exactly what everyone has had to do until now.
-        await call('supplier_api', { action: 'claim', t }, access);
-      } catch (_e) { /* claim is an improvement on the flow, not a gate into it */ }
+        // is exactly what everyone has had to do until now. It is said out loud all the same.
+        const j = await call('supplier_api', { action: 'claim', t }, access);
+        if (!(j && j.ok)) setClaimRefusal(claimRefusalKey(j));
+      } catch (_e) { setClaimRefusal('load_failed'); }
       try { sessionStorage.removeItem(CLAIM_KEY); } catch (_e) {}
       drop(); warmSupplier(access);   // what was warmed was asked before the company was claimed
       setClaiming(false);
@@ -494,13 +597,68 @@ export function SupplierPortal() {
   // customer portal (globals.css). The supplier portal had no control for it at all.
   const [theme, setTheme] = useState('dark');
   const swapTheme = () => { const next = theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('qd-theme', next); } catch (_e) {} setTheme(next); };
-  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
+  // HOW MANY TIMES A 401 HAS COME BACK WITHOUT A USABLE REFRESH, AND THE ONE REFRESH IN FLIGHT.
+  // Both are read by onExpired below, and declared here because onAuth resets the counter.
+  const expiredRuns = useRef(0);
+  const refreshing = useRef<Promise<void> | null>(null);
+  const onAuth = (access, refresh, locale) => { adoptLocale(locale, setLang); expiredRuns.current = 0; try { localStorage.setItem('qd-sup-token', access || ''); if (refresh) localStorage.setItem('qd-sup-refresh', refresh); } catch (_e) {} setToken(access || ''); if (access) warmSupplier(access); setPhase('app'); if (access) { try { SB().auth.setSession({ access_token: access, refresh_token: refresh || '' }).catch(() => {}); } catch (_e) {} claimIfInvited(access); } };
   const doSignOut = () => { try { localStorage.removeItem('qd-sup-token'); localStorage.removeItem('qd-sup-refresh'); } catch (_e) {} setToken(''); setPhase('login'); try { SB().auth.signOut().catch(() => {}); } catch (_e) {} };
-  // A 401 from the dashboard: try the stored refresh token once, and only if that fails send the
-  // supplier back to sign-in — never leave them on a retry button that cannot succeed.
-  const onExpired = async () => {
-    try { const { data } = await SB().auth.refreshSession(); const ss = data && data.session; if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; } } catch (_e) {}
-    doSignOut();
+  // A 401: try the stored refresh token once, and only then decide whether to sign the supplier out.
+  //
+  // SIGNING SOMEONE OUT IS NOT A SAFE DEFAULT (review of #858, 22 Sep 2026). Until this PR only the
+  // dashboard reached here. `_expired` is now set on ANY 401, so Projects, Documents, Profile,
+  // Onboarding, Receipts, Billing and `me` all route into it — and supplier_api, supplier_pay and
+  // kyc still call `admin.auth.getUser` raw, which returned bare 401s throughout the ~35 s GoTrue
+  // outages of 18 and 21 Sep 2026. During an outage the refresh fails too, because it is the same
+  // service, so the old code would have thrown a working supplier out mid-form on every one of
+  // those 401s at once. The exposure grew; the remedy had to grow with it.
+  //
+  // So the two cases are separated, because they are genuinely different:
+  //   - the refresh token is EXPLICITLY rejected (invalid_grant / "Invalid Refresh Token" / 400 or
+  //     403 from the refresh itself) — that is certain. Sign out now.
+  //   - anything else (network, 5xx, 429, no detail) — that is an outage, not an expiry. Leave the
+  //     session alone and let the panel show its retry. Only a SECOND consecutive such 401 signs
+  //     out, so a single blip costs a retry press and not the supplier's half-filled registration.
+  // A successful refresh resets the counter, through `onAuth` — see the three notes below it.
+  //
+  // The proper fix is upstream: #854 moves supplier_pay to `signedInUser`, which answers a genuine
+  // expiry and a GoTrue outage differently. supplier_api and kyc still need the same move, and when
+  // all three are done the counter below can go.
+  // THE COUNTER ONLY MEANS "CONSECUTIVE" IF ONE OUTAGE INSTANT INCREMENTS IT ONCE (re-review of
+  // #858, 23 Sep 2026 — three defects in the mitigation above, all of which SIGNED A WORKING
+  // SUPPLIER OUT, the very thing it was written to stop):
+  //
+  //   1. The comment above claimed onAuth resets the counter. It did not touch it, so the count was
+  //      monotonic for the whole session: a blip at 09:00 left it at 1, an unrelated blip at 15:00
+  //      made it 2, and the supplier was signed out mid-form. onAuth resets it now, so "consecutive"
+  //      is true of the code and not only of the comment.
+  //   2. ONE dead leg produces SEVERAL 401s, not one. The dashboard alone fires two reads on mount
+  //      (`me` through wentExpired, and fetchDashboard's own _http === 401) and every open tab adds
+  //      more; each called refreshSession separately and each added 1, so a SINGLE blip reached 2 and
+  //      signed out. `refreshing` makes the refresh one shared promise, so concurrent 401s from the
+  //      same instant are one attempt and one increment.
+  //   3. "already used" was read as an explicit rejection. Under refresh-token rotation it is what
+  //      the SECOND concurrent refresh is told while the first one SUCCEEDS — the signature of a race,
+  //      not of a dead token. It signed the supplier out while a live token was being handed back.
+  //      Removed; invalid_grant / Invalid Refresh Token / refresh_token_not_found still sign out at
+  //      once, and with the dedupe above the race cannot happen from this component anyway.
+  const onExpired = async (): Promise<void> => {
+    if (refreshing.current) return refreshing.current;
+    const attempt = (async () => {
+      let refusedOutright = false;
+      try {
+        const { data, error } = await SB().auth.refreshSession();
+        const ss = data && data.session;
+        if (ss && ss.access_token) { onAuth(ss.access_token, ss.refresh_token); return; }
+        const msg = String((error && (error.message || error.code)) || '');
+        const st = Number((error && error.status) || 0);
+        refusedOutright = /invalid[_ ]?(grant|refresh)|refresh[_ ]?token[_ ]?not[_ ]?found/i.test(msg) || st === 400 || st === 403;
+      } catch (_e) { refusedOutright = false; }
+      expiredRuns.current += 1;
+      if (refusedOutright || expiredRuns.current >= 2) { expiredRuns.current = 0; doSignOut(); }
+    })().finally(() => { refreshing.current = null; });
+    refreshing.current = attempt;
+    return attempt;
   };
   const rtl = lang === 'ar';
   if (!mounted) return null;
@@ -537,7 +695,10 @@ export function SupplierPortal() {
         {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
-          : <Dashboard token={token} lang={lang} onExpired={onExpired} />)}
+          : <>
+              {claimRefusal ? <ClaimRefusal code={claimRefusal} lang={lang} onClose={() => setClaimRefusal('')} /> : null}
+              <Dashboard token={token} lang={lang} onExpired={onExpired} />
+            </>)}
       </>)}
       </main>
     </div>
@@ -573,9 +734,28 @@ function InviteBanner({ invite, lang, onStart }) {
     </section>
   );
 }
-// login_otp answers with English sentences and no code (read 15 Sep 2026), and the form printed them
-// raw on /ar/portal. The known sentences map to EN/AR keys; anything unknown is a generic message plus
-// the HTTP status, never untranslated English on an Arabic page.
+// WHAT WENT WRONG AT SIGN-IN, MATCHED ON A CODE (audit 22 Sep 2026, SP-A-03).
+//
+// login_otp's refusals used to be matched by their ENGLISH SENTENCE. A regex table over prose is a
+// contract nobody signed: two of the nineteen sentences the function can answer matched no pattern
+// and fell through to "Something went wrong (400)", and any rewording of a server sentence silently
+// broke another one. login_otp now returns a stable `code`, and that is what this reads first.
+// Every code login_otp can answer with (supabase/functions/login_otp/index.ts, read 22 Sep 2026),
+// each pointing at a copy key that already existed. A code missing from here falls through to the
+// sentence table and then to the generic line, so adding a code to the function can never make the
+// page worse than it was — but it should be added here the same day.
+const LOGIN_CODE = {
+  rate_limited: 'le_too_many', too_many_attempts: 'le_attempts', code_burned: 'le_attempts',
+  bad_identifier: 'le_bad_id', bad_mobile: 'le_bad_id',
+  email_suppressed: 'le_suppressed', ambiguous_phone: 'le_ambiguous', sms_signup_refused: 'le_signup_email',
+  no_account_for_number: 'le_no_account', sms_signin_unavailable: 'le_sms_off', sms_not_available_for_number: 'le_sms_off',
+  email_not_sent: 'err_code_send', sms_send_failed: 'err_code_send',
+  enter_code: 'le_enter_code', code_expired: 'le_expired', wrong_code: 'err_incorrect',
+  session_failed: 'le_session', verify_failed: 'le_generic', unexpected_error: 'le_generic',
+};
+// THE LEGACY PATH. Until every deployed login_otp answers with a code, a sentence is still all some
+// refusals carry, so these patterns stay as the fallback. They are matched only when `code` is
+// absent or unknown, and nothing new should be added here — add a code to LOGIN_CODE instead.
 const LOGIN_ERR = [
   [/too many code requests/i, 'le_too_many'], [/valid (email address or uae )?mobile|valid email address/i, 'le_bad_id'],
   [/do-not-send list/i, 'le_suppressed'], [/more than one quotesdone account/i, 'le_ambiguous'],
@@ -585,6 +765,8 @@ const LOGIN_ERR = [
   [/incorrect or expired/i, 'err_incorrect'], [/could not start your session/i, 'le_session'],
 ];
 export const loginErr = (lang, j, fallbackKey) => {
+  const code = String((j && j.code) || '');
+  if (LOGIN_CODE[code]) return t(lang, LOGIN_CODE[code]);
   const e = String((j && j.error) || '');
   if (!e) return t(lang, fallbackKey);
   const hit = LOGIN_ERR.find(([re]) => re.test(e));
@@ -615,10 +797,10 @@ function Login({ onAuth, lang, startMode }) {
       </div>
       <div className={cn(S.tabsWrap, 'mb-4 flex w-full')}><button className={cn(S.tab, 'flex-1', !isSignup && S.tabOn)} onClick={() => swap('signin')}>{t(lang, 'tab_signin')}</button><button className={cn(S.tab, 'flex-1', isSignup && S.tabOn)} onClick={() => swap('signup')}>{t(lang, 'tab_signup')}</button></div>
       {step === 'id' ? (<>
-        <Lbl text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="mt-3" autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
+        <Lbl text={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')}><Input className="mt-3 min-h-11" autoComplete={isSignup ? 'email' : 'username'} dir="ltr" placeholder={isSignup ? t(lang, 'work_email') : t(lang, 'email_or_mobile')} value={id} onChange={(e) => setId(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} /></Lbl>
         <Button className="w-full mt-3" disabled={busy} onClick={send}>{busy ? t(lang, 'sending') : (isSignup ? t(lang, 'create_my_account') : t(lang, 'send_code'))}</Button>
       </>) : (<>
-        <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
+        <Lbl text={t(lang, 'code_placeholder')}><Input className="mt-3 min-h-11" inputMode="numeric" autoComplete="one-time-code" dir="ltr" placeholder={t(lang, 'code_placeholder')} value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && verify()} /></Lbl>
         <div className={S.hint}>{t(lang, 'junk_note')}</div>
         <Button className="w-full mt-3" disabled={busy} onClick={verify}>{busy ? t(lang, 'verifying') : (isSignup ? t(lang, 'verify_continue') : t(lang, 'verify_signin'))}</Button>
         <Button variant="link" className="mt-2 px-0 h-auto" onClick={() => { setStep('id'); setCode(''); setMsg(''); }}>{t(lang, 'use_diff')}</Button>
@@ -758,6 +940,18 @@ function NotificationBell({ ov, lang, go }) {
   // URL (finding 5: the only link a supplier had was the e-mail's, which opened the customer portal),
   // and a notice counts on the badge until the bell is opened once (the newest id seen is remembered).
   const notices = (n.notices || []).filter((x) => MAIN_TABS.includes(x.tab)).slice(0, 8);
+  // THIS BADGE IS PER-DEVICE, AND THAT IS ALL IT CAN BE TODAY (audit 22 Sep 2026, SP-A-04).
+  //
+  // `qd-sup-notice-seen` is the newest notice id this BROWSER has seen. A notice read on a phone is
+  // still bold on the laptop, and clearing site data makes every notice new again. Checked 22 Sep
+  // 2026 before writing this: there is no server-side read state to persist it to —
+  // public.notifications has no read_at/seen_at/dismissed_at column (supabase/schema/full_schema.sql),
+  // RLS is enabled on it with no policy so no client may write it at all, and supplier_portal's
+  // `notifications` action only READS (overview.ts buildNotifications). The one read-state write in
+  // the estate is messages_api setting messages.read_by_supplier as a side effect of opening a
+  // thread, which does nothing for this list. Making the badge authoritative needs a column and an
+  // action in supplier_portal — the edge functions are not this seat's to change — so until then it
+  // is a per-device convenience and must not be described as anything more.
   const [seen, setSeen] = useState(() => { try { return Number(localStorage.getItem('qd-sup-notice-seen') || 0); } catch (_e) { return 0; } });
   const fresh = notices.filter((x) => x.id > seen).length;
   const markSeen = () => { const top = notices.length ? notices[0].id : 0; if (top > seen) { setSeen(top); try { localStorage.setItem('qd-sup-notice-seen', String(top)); } catch (_e) {} } };
@@ -820,7 +1014,7 @@ function Dashboard({ token, lang, onExpired }) {
   useEffect(() => { call('kyc', { action: 'state' }, token).then((k) => { if (waNeedsPrompt(k)) setWaPrompt(k); }).catch(() => {}); }, [token]);
   // Which agreement version this supplier accepted, against the live one (supplier_api me).
   const [me, setMe] = useState(null);
-  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => setMe((j && j.supplier) || null)).catch(() => {}); }, [token]);
+  useEffect(() => { call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe((j && j.supplier) || null); }).catch(() => {}); }, [token]);
   // ONE call (supplier_portal `dashboard`): stats, alerts, eligibility, document impact and the bell's
   // counts. It was three, the second wave starting only after the first rendered. `first` takes the
   // request warmSupplier started with the token; every later load asks fresh.
@@ -872,7 +1066,7 @@ function Dashboard({ token, lang, onExpired }) {
     if (INSIGHT_PANELS.includes(k)) { setPanel(k); setTab('insights'); return; }
     setTab('services');
   };
-  if (err === 'no_company') return <Onboarding token={token} lang={lang} onDone={() => { setErr(''); load(); }} />;
+  if (err === 'no_company') return <Onboarding token={token} lang={lang} onExpired={onExpired} onDone={() => { setErr(''); load(); }} />;
   if (err) return <div className={S.center}><Card className="qd-panel max-w-[460px] p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div><Button className="mt-3" onClick={() => { setErr(''); load(); }}>{t(lang, 'bill_retry')}</Button></Card></div>;
   if (needsReaccept(me)) return <ReacceptTerms token={token} lang={lang} me={me} onDone={() => setMe({ ...me, accepted_terms_version: me.terms_current })} />;
   if (!ov) return <div className={S.center} aria-busy="true">{t(lang, 'loading_dash')}</div>;
@@ -943,18 +1137,18 @@ function Dashboard({ token, lang, onExpired }) {
       {shownTab === 'quotes' && <QuotationsTab token={token} lang={lang} focus={focusRfq} onFocused={() => { if (!switching) setFocusRfq(null); }} openInquiry={(id) => { setFocusRfq(id); setTab('rfqs'); }} />}
       {/* Messages holds the revealed jobs (Projects) above the conversations, behind the reveal gate. */}
       {shownTab === 'messages' && <SupplierMailbox token={token} lang={lang} goTo={go}
-        jobs={(open) => <Projects token={token} lang={lang} openChat={open} />} />}
+        jobs={(open) => <Projects token={token} lang={lang} openChat={open} onExpired={onExpired} />} />}
       {/* The registration checklist heads Documents, next to the uploads it asks for; after an upload the
           dashboard is read again so the checklist and document impact reflect the new file. */}
       {shownTab === 'documents' && <>
         <GetMatched token={token} lang={lang} go={go} initial={ov.eligibility || null} />
         <div className="mb-4"><SupplierDocumentImpact token={token} lang={lang} goTo={go} initial={ov.document_impact || null} /></div>
-        <Documents token={token} lang={lang} onSaved={load} />
+        <Documents token={token} lang={lang} onSaved={load} onExpired={onExpired} />
         <div className="mt-4"><SupplierSupportingDocuments token={token} lang={lang} /></div>
       </>}
       {shownTab === 'insights' && <Insights token={token} lang={lang} goTo={go} initial={panel} />}
-      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} />}
-      {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} />}
+      {shownTab === 'profile' && <ProfilePanel token={token} lang={lang} initial={me} onSaved={load} onExpired={onExpired} />}
+      {shownTab === 'billing' && <BillingPanel token={token} lang={lang} receipt={receipt} onExpired={onExpired} />}
       {shownTab === 'settings' && <SupplierSettings token={token} lang={lang} onLang={(l) => adoptLocale(l, setLang)} />}
       </div>
     </div>
@@ -983,7 +1177,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
   const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
-  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + pr.line_items.length + ' ' + t(lang, 'line_items') : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
+  const onFile = async (file) => { if (!file) return; setReading(true); setMsg(''); try { const { images, b64, mime } = await fileToImages(file); const j = await call('supplier_api', { action: 'extract_quote', inquiry_id: inquiry.id, images, original: { b64, filename: file.name, mime } }, token); if (j && j.ok && j.proposal) { const pr = j.proposal; setProp(pr); setOrig({ path: j.original_file_path, name: j.original_file_name }); const amt = pr.total != null ? pr.total : (pr.amount != null ? pr.amount : (pr.grand_total != null ? pr.grand_total : '')); if (amt !== '' && amt != null) setAmount(String(amt)); if (pr.lead_time) setLead(pr.lead_time); if (pr.scope || pr.description_anonymized) setScope(pr.scope || pr.description_anonymized); if (pr.notes) setNotes(pr.notes); if (VAT_BASIS.includes(pr.vat_treatment)) setVat(pr.vat_treatment); setMsg(t(lang, 'read_quote_pre') + (pr.line_items ? ' — ' + lineCount(lang, pr.line_items.length) : '') + t(lang, 'read_quote_post') + (pr.options && pr.options.length > 1 ? ' ' + srvText(lang, 'options_split', { count: pr.options.length }) : '')); } else setMsg(srvMsg(lang, j, t(lang, 'could_not_read'))); } catch (_e) { setMsg(t(lang, 'could_not_read')); } setReading(false); };
   const [chk, setChk] = useState(null); const [checking, setChecking] = useState(false);
   const vatArgs = { vat_treatment: vat || undefined, price_ex_vat: vat === 'inclusive' && Number(exVat) > 0 ? Number(exVat) : undefined };
   const buildPayload = () => prop ? { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, conditions: prop.conditions || '', exclusions: prop.exclusions || '', validity: validity || prop.validity || '', payment_terms: payment || prop.payment_terms || '', warranty: warranty || prop.warranty || '', items: prop.line_items || [], masked_terms: prop.masked_terms || null, source: 'upload', original_file_path: orig && orig.path, original_file_name: orig && orig.name, subtotal: prop.subtotal ?? undefined, vat_amount: prop.vat_amount ?? undefined, trn: prop.trn ?? undefined, option_totals: prop.option_totals || undefined, ...vatArgs, ...optionArgs } : { action: 'submit_quote', inquiry_id: inquiry.id, amount: Number(amount), lead_time: lead, notes, scope, validity, payment_terms: payment, warranty, items: items.filter((x) => (x.description || '').trim()), source: 'form', ...vatArgs, ...optionArgs };
@@ -1033,7 +1227,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
         </select></Lbl>
       {vat === 'inclusive' ? <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'السعر غير شامل الضريبة (درهم)' : 'Price excluding VAT (AED)'}><Input className="tabular font-mono" inputMode="decimal" value={exVat} onChange={(e) => setExVat(e.target.value)} /></Lbl> : null}
     </div>
-    <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقمكم الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
+    <div className={S.sub}>{ar ? 'يقارن العميل ويدفع على السعر غير شامل الضريبة، ولا تُعرض عليه تفاصيل الضريبة ولا رقم تسجيلكم الضريبي.' : 'The customer compares and pays on the price excluding VAT; your VAT details and TRN are never shown to them.'}</div>
     <div className="flex gap-2.5 flex-wrap">{[[validity, setValidity, lang === 'ar' ? 'صلاحية العرض (مثلاً 30 يومًا)' : 'Quote validity (e.g. 30 days)'], [payment, setPayment, lang === 'ar' ? 'شروط الدفع (مثلاً 50% مقدمًا)' : 'Payment terms (e.g. 50% advance)'], [warranty, setWarranty, lang === 'ar' ? 'الضمان (مثلاً سنة واحدة)' : 'Warranty (e.g. 1 year)']].map(([v, sv, ph], k) => <Lbl key={k} className="flex-1 min-w-[160px]" text={ph}><Input placeholder={ph} value={v} onChange={(e) => sv(e.target.value)} /></Lbl>)}</div>
     <div className="border-t border-border pt-4">
       <div className={cn(grp, 'mb-1')}>{ar ? 'بنود العرض' : 'Line items'}</div>
@@ -1051,7 +1245,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
         <Button size="sm" variant="outline" onClick={() => setItems([...items, { description: '', qty: '', unit: '', unit_price: '' }])}>{lang === 'ar' ? '+ إضافة بند' : '+ Add item'}</Button>
         {lineSum > 0 && <div className="flex items-baseline gap-3 rounded-chip border border-border px-3 py-1.5">
           <span className={grp}>{ar ? 'مجموع البنود المسعّرة' : 'Sum of priced lines'}</span>
-          <span className="tabular font-mono text-[14px] font-semibold text-foreground">{aed(lineSum)}</span>
+          <span className="tabular font-mono text-[14px] font-semibold text-foreground">{aed(lang, lineSum)}</span>
         </div>}
       </div>
     </div>
@@ -1128,9 +1322,16 @@ function QuoteCheck({ chk, lang }) {
     </Card>
   );
 }
-function Documents({ token, lang, onSaved = null }) {
+function Documents({ token, lang, onSaved = null, onExpired = null }) {
   const [data, setData] = useState(null); const [busy, setBusy] = useState('');
-  const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => { setData(j); return j; });
+  // On a failed read `data.documents` was undefined and every row vanished: a supplier whose licence
+  // is on file was shown an empty checklist (SP-C-08). A failure keeps `data` null and `loadErr` says so.
+  const [loadErr, setLoadErr] = useState('');
+  const load = () => call('supplier_portal', { action: 'documents' }, token).then((j) => {
+    if (wentExpired(j, onExpired)) return j;
+    if (j && j.ok) { setData(j); setLoadErr(''); } else setLoadErr((j && (j.code || j.error)) || 'load_failed');
+    return j;
+  });
   // ONE READ AFTER EVERY WRITE (audit 21 Sep 2026, finding 16): save_documents, remove_document and
   // set_expiry answer with the fresh list, so the card, the counter and the unlock panel are painted
   // from the row as it is NOW. A second `documents` round trip used to race the write.
@@ -1173,7 +1374,8 @@ function Documents({ token, lang, onSaved = null }) {
     if (j && j.ok) { setReads((o) => { const n = { ...o }; delete n[kind]; return n; }); take(j); if (onSaved) onSaved(); return true; }
     setErr(srvMsg(lang, j, lang === 'ar' ? 'تعذّر حفظ التاريخ.' : 'Could not save the date.')); return false;
   };
-  if (!data) return <Card className="qd-panel p-5">{t(lang, 'loading_docs')}</Card>;
+  if (!data && loadErr) return <Card role="alert" className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{panelErrorText(lang === 'ar' ? 'ar' : 'en', loadErr)}</div><Button className="mt-3" onClick={load}>{t(lang, 'bill_retry')}</Button></Card>;
+  if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading_docs')}</Card>;
   // Order comes from the server (DOC_ORDER) so adding a document type needs no change here.
   const allDocs = data.documents || [];
   // Count only what is actually shown. The server still returns vat, and counting it would report
@@ -1354,10 +1556,13 @@ function DocRow({ d, busy, onUpload, onRemove, onConfirmExpiry, read, lang }) {
 // and 33) gives the supplier 5 working days to respond, and QuotesDone chases at 3. The customer's
 // contact is shown here because this list is built from the supplier's own transactions rows — the
 // reveal itself — so it cannot appear before one.
-function Projects({ token, lang, openChat }) {
+function Projects({ token, lang, openChat, onExpired }) {
   const ar = lang === 'ar';
   const [data, setData] = useState(null); const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
-  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => setData(j));
+  // A 401 has no `error` field of its own, so `data.error` below was false and the list rendered
+  // empty: "No won projects yet" to a supplier with revealed jobs and a 5-working-day clock running
+  // on each of them (SP-C-08).
+  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => { if (wentExpired(j, onExpired, (c) => setData({ ok: false, code: c }))) return; setData(j); });
   useEffect(() => { load(); }, [token]);
   const ack = async (id) => {
     setBusy(id); setMsg('');
@@ -1366,7 +1571,8 @@ function Projects({ token, lang, openChat }) {
     if (j && j.ok) load(); else setMsg(srvMsg(lang, j, ar ? 'تعذّر تسجيل ذلك. يُرجى المحاولة مرة أخرى.' : 'We could not record that. Please try again.'));
   };
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
-  if (data.error) return <Card className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
+  if (data.code === 'session_expired') return <Card role="alert" className="qd-panel p-5">{panelErrorText(lang, 'session_expired')}</Card>;
+  if (data.error || data.ok !== true) return <Card role="alert" className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.projects || [];
   const rule = ar
     ? 'عندما يكشف العميل عن عرضكم يجب أن تتواصلوا معه خلال 5 أيام عمل من تاريخ الكشف. وإن لم تتواصلوا خلال 3 أيام عمل نتابع معكم ونُشرك العميل في المراسلة، وإن لم يصل منكم أي رد يُردّ إلى العميل كل ما دفعه، وتُستحق عليكم رسوم عدم الاستجابة: المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3% مضافًا إليها رسوم معالجة البطاقة)، ورسم إداري قدره 250 درهمًا، وفائدة بسيطة بنسبة 9% سنويًا (أو الحد الأقصى الذي يسمح به القانون) من تاريخ الاستحقاق (البند 33 من اتفاقية المورّد).'
@@ -1385,7 +1591,7 @@ function Projects({ token, lang, openChat }) {
             <div className="font-semibold text-foreground">{categoryLabel(p.category || '', lang) || t(lang, 'project_w')} · {emirateLabel(lang, p.emirate || '')}</div>
             {p.summary ? <div className={cn(S.sub, 'mt-0.5')}>{p.summary}</div> : null}
           </div>
-          <div className="text-end shrink-0"><b className="tabular-nums text-foreground"><Ltr>{aed(p.amount)}</Ltr></b><div className={S.sub}>{(ar ? 'كُشف في ' : 'Revealed ')}<Ltr>{fmtDate(p.revealed_at, lang)}</Ltr></div></div>
+          <div className="text-end shrink-0"><b className="tabular-nums text-foreground"><Ltr>{aed(lang, p.amount)}</Ltr></b><div className={S.sub}>{(ar ? 'كُشف في ' : 'Revealed ')}<Ltr>{fmtDate(p.revealed_at, lang)}</Ltr></div></div>
         </div>
         <div className="mt-3 rounded-md border border-border px-3.5 py-3">
           <div className="font-mono text-label uppercase tracking-caps text-muted-foreground">{ar ? 'العميل' : 'Customer'}</div>
@@ -1414,10 +1620,10 @@ function Projects({ token, lang, openChat }) {
 // Profile tab for an established supplier. Reuses ProfileForm rather than duplicating it, so the
 // same validation, terms handling and save_profile call apply whether the supplier is registering
 // for the first time or correcting a detail two years later.
-function ProfilePanel({ token, lang, onSaved, initial = null }) {
+function ProfilePanel({ token, lang, onSaved, initial = null, onExpired = null }) {
   // Audit 21 Sep 2026, finding 34: the tab re-read `me` the portal had already read, and waited for it.
   const [me, setMe] = useState(initial || undefined);
-  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
+  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
   useEffect(() => { if (!initial) load(); }, [token]);
   if (me === undefined) return <Card className="qd-panel p-5">{t(lang, 'loading')}</Card>;
   if (!me) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'something_wrong')}</div><div className={S.sub}>{t(lang, 'err_generic')}</div></Card>;
@@ -1431,9 +1637,10 @@ function ProfilePanel({ token, lang, onSaved, initial = null }) {
     <ProfileForm token={token} me={me} onSaved={() => { load(); if (onSaved) onSaved(); }} lang={lang} mode="edit" />
   </div>;
 }
-function Onboarding({ token, onDone, lang }) {
+function Onboarding({ token, onDone, lang, onExpired = null }) {
   const [me, setMe] = useState(undefined);
-  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => setMe(j.supplier || null)).catch(() => setMe(null));
+  // An expired token here offered "Register your company" to a supplier who already has one (SP-C-08).
+  const load = () => call('supplier_api', { action: 'me' }, token).then((j) => { if (wentExpired(j, onExpired)) return; setMe(j.supplier || null); }).catch(() => setMe(null));
   useEffect(() => { load(); }, []);
   if (me === undefined) return <div className={S.center}>{t(lang, 'loading')}</div>;
   return (<div className={S.wrap} style={{ maxWidth: 640 }}>
@@ -1473,7 +1680,7 @@ function NewCompany({ token, onReady, lang }) {
   </Card>);
 }
 function FilePick({ lang, accept, multiple, onPick, label }) {
-  return <label className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"><input type="file" accept={accept} multiple={multiple ? true : undefined} className="hidden" onChange={(e) => { const fs = e.target.files; if (!fs || !fs.length) return; onPick(multiple ? Array.from(fs) : fs[0]); e.target.value = ''; }} />📎 {label || t(lang, 'attach_file')}</label>;
+  return <label className="inline-flex min-h-11 items-center gap-2 cursor-pointer rounded-md border border-border bg-secondary px-3 py-1.5 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"><input type="file" accept={accept} multiple={multiple ? true : undefined} className="hidden" onChange={(e) => { const fs = e.target.files; if (!fs || !fs.length) return; onPick(multiple ? Array.from(fs) : fs[0]); e.target.value = ''; }} />📎 {label || t(lang, 'attach_file')}</label>;
 }
 // `mode` distinguishes first-time REGISTRATION (Onboarding) from an established supplier
 // EDITING their profile (the Profile tab). Document uploads (trade licence, company profile,
