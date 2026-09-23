@@ -30,7 +30,9 @@ const obj = (v: unknown) => (v && typeof v === 'object' ? v : {});
 export async function capabilityVocabulary(admin: Admin) {
   // label_ar arrives with a_suppliers_documents_propose_trades_and_a_new_trade_is_reviewed_not_dropped.sql.
   // Read without it if that column is not there yet, so a deploy that lands first never empties the list.
-  let { data: tr, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,authority_required').eq('active', true).order('sort');
+  // umbrella_code arrives with the_missing_trades_join_the_taxonomy_under_twelve_groups.sql; same fallback.
+  let { data: tr, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,authority_required,umbrella_code').eq('active', true).order('sort');
+  if (error) ({ data: tr, error } = await admin.from('taxonomy_trade').select('code,label,label_ar,authority_required').eq('active', true).order('sort'));
   if (error) ({ data: tr } = await admin.from('taxonomy_trade').select('code,label,authority_required').eq('active', true).order('sort'));
   const { data: ro } = await admin.from('taxonomy_role').select('code,label,supplies,executes,whole_scope').eq('active', true).order('sort');
   return { trades: tr || [], roles: ro || [] };

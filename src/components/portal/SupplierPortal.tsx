@@ -26,7 +26,7 @@ import { ws } from './supplier/workspaceCopy';
 import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
-import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_CODES, tradeLabel } from './supplier/serverCopy';
+import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_GROUPS, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
 // THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
 // stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
@@ -1662,7 +1662,8 @@ function NewCompany({ token, onReady, lang }) {
   const [cname, setCname] = useState(''); const [trade, setTrade] = useState(''); const [other, setOther] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const category = trade === TRADE_OTHER ? (other.trim().slice(0, 60) || null) : (trade || null);
   const create = async () => { if (cname.trim().length < 2) { setMsg(t(lang, 'enter_company')); return; } setBusy(true); setMsg(''); const j = await call('supplier_api', { action: 'create_company', company_name: cname.trim(), category, role: 'supplier', lang, first_touch: (() => { try { return readFirstTouch(window.localStorage); } catch (_e) { return null; } })() }, token); setBusy(false); if (j && j.ok) onReady(); else setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); };
-  const codes = [...TRADE_CODES].sort((a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang));
+  // 195 trades read as twelve groups (taxonomy_trade_group), each sorted by its label in the reader's language.
+  const byLabel = (a, b) => tradeLabel(lang, a).localeCompare(tradeLabel(lang, b), lang);
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
@@ -1670,7 +1671,7 @@ function NewCompany({ token, onReady, lang }) {
     <Lbl need="opt" lang={lang} className="mt-3" text={t(lang, 'trade_label')}>
       <select className={cn(S.field, 'mt-0 bg-card')} value={trade} onChange={(e) => setTrade(e.target.value)} aria-describedby="qd-trade-help">
         <option value="">{t(lang, 'trade_ph')}</option>
-        {codes.map((c) => <option key={c} value={c}>{tradeLabel(lang, c)}</option>)}
+        {TRADE_GROUPS.map((g) => <optgroup key={g.code} label={lang === 'ar' ? g.ar : g.en}>{[...g.codes].sort(byLabel).map((c) => <option key={c} value={c}>{tradeLabel(lang, c)}</option>)}</optgroup>)}
         <option value={TRADE_OTHER}>{t(lang, 'trade_not_listed')}</option>
       </select>
     </Lbl>
