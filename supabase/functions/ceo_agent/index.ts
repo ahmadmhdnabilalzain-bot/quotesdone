@@ -23,6 +23,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { makeLlmRich } from '../_shared/llm.ts';
+import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -280,9 +281,21 @@ Deno.serve(observe('ceo_agent', async (req) => {
         if ((chk as any)?.ok !== true) return J({ ok: false, refused: 'the process checklist failed', failed: (chk as any)?.failed ?? [] }, 409);
       }
 
+      // WE DECIDED SOMETHING LIKE THIS BEFORE (23 Sep 2026). The CEO's past decisions and every seat's
+      // finalised cases, by meaning. Where a finalised one exists the rationale names it (#id) or the
+      // caller says why this one differs; a decision that ignores its own precedent is not written.
+      const memory = await recallCases(admin, { seat: 'ceo', path: 'decide', situation: `${kind} ${decision}: ${rationale}` });
+      const finalised = memory.cases.filter((c) => c.finalised);
+      const differs = String(body.differs_because || '').trim();
+      if (finalised.length && !finalised.some((c) => rationale.includes('#' + c.case_id)) && differs.length < 12) {
+        return J({ ok: false, refused: 'precedent_not_referenced', rule: memory.rule, precedent: memory,
+          detail: 'Name the finalised case in the rationale (#id), or pass differs_because saying why this case is different.' }, 409);
+      }
+
       const { data: dec, error: decErr } = await admin.from('ceo_approval').insert({
         subject_kind: kind, subject_id: subject, decision, decided_by: who,
-        amount_aed: body.amount_aed ?? null, rationale,
+        amount_aed: body.amount_aed ?? null,
+        rationale: differs && finalised.length ? `${rationale} (differs from ${finalised.map((c) => '#' + c.case_id).join(', ')}: ${differs})` : rationale,
       }).select('decision_id').maybeSingle();
       if (decErr) return J({ ok: false, refused: decErr.message }, 400);
 
@@ -295,7 +308,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
         // as a record and the caller is told exactly what refused it.
         refundLinked = rfErr ? { refused: rfErr.message } : rf;
       }
-      return J({ ok: true, decision_id: dec?.decision_id, refund: refundLinked });
+      return J({ ok: true, decision_id: dec?.decision_id, refund: refundLinked, precedent: recallTrace(memory) });
     }
 
     // ── REVIEW_REFUND ──────────────────────────────────────────────────────────────────────────
@@ -339,7 +352,11 @@ Deno.serve(observe('ceo_agent', async (req) => {
       // replies' seats wrote on (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.
       const { data: authors, error: cpErr } = await admin.rpc('fn_ceo_judgement_counterparts', { p_plan_id: planId });
       if (cpErr || typeof authors !== 'string' || !authors) return J({ ok: false, error: 'judgement authors: ' + (cpErr?.message || 'none') }, 500);
-      const r = await llm(String(q.system), JSON.stringify({ output_schema: q.output_schema, input: q.input }), 2000, '', { counterpartModel: authors });
+      // PAST DECISIONS LIKE THIS PLAN (23 Sep 2026), by meaning, handed to the judgement as evidence.
+      const memory = await recallCases(admin, { seat: 'ceo', path: 'judgement',
+        situation: String(q.input?.summary ?? JSON.stringify(q.input ?? {})).slice(0, 1200) });
+      const r = await llm(String(q.system) + precedentBlock(memory),
+        JSON.stringify({ output_schema: q.output_schema, input: q.input, precedent: memory.cases }), 2000, '', { counterpartModel: authors });
       // deno-lint-ignore no-explicit-any
       let out: any = null;
       try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
