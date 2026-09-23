@@ -697,8 +697,16 @@ begin
        set plan = coalesce(v_plan, plan), rounds = greatest(rounds, v_round), updated_at = now(),
            status = 'with_ceo'
      where month = v_month;
-    -- the CEO reviews it on seat_deliberation (873): opened on the proposal, revised on each answer
-    perform public.fn_marketing_plan_to_ceo(v_month);
+    -- the CEO reviews it on seat_deliberation (873): opened on the proposal, revised on each answer. A refusal
+    -- by the review machine (an unproven author model, a leak) must not undo marketing's own turn: it is kept,
+    -- the refusal is logged, and fn_marketing_plan_loop_tick sends it again on the next beat.
+    begin
+      perform public.fn_marketing_plan_to_ceo(v_month);
+    exception when others then
+      insert into public.marketing_model_run (step, subject, seat, task_class, outcome, reason, model)
+      values ('ceo_review', p_subject, 'marketing', 'seat_deliberation_blind', 'failed',
+              'not yet before the CEO: ' || left(sqlerrm, 400), p_model);
+    end;
   end if;
 
   insert into public.marketing_model_run (step, subject, seat, task_class, outcome, model, output_table, output_ref)
@@ -715,6 +723,22 @@ returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $
     'music', p_plan->'music', 'voiceover', p_plan->'voiceover', 'cadence', p_plan->'cadence',
     'who_makes_it', 'The founder and Claude produce the videos; the marketing seat decided what is in them.')
 $fn$;
+
+-- ═══ 6a. THE PAIR: marketing -> ceo on the review machine (it registers no pair itself; its caller does) ═══
+-- The conversation, and its ceiling: the founder's approval of 23 Sep 2026 — the CEO reviews marketing on
+-- opus-5.5, up to AED 50 a month, charged to marketing. fn_seat_deliberation_budget holds a review past it.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('deliberation.review', 'marketing', 'ceo',
+   'Marketing asks the CEO to judge its monthly plan. The CEO reviews on a model of another family, blind first, with the strongest case against (founder_instruction 873); marketing closes it.',
+   'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
+   'scripts/sql/the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql')
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+insert into public.seat_deliberation_ceiling (author_seat, reviewer_seat, dept_key, cap_aed_month, note) values
+  ('marketing', 'ceo', 'marketing', 50,
+   'Founder approval 23 Sep 2026: the CEO reviews marketing''s monthly plan on opus-5.5, up to AED 50 a month, charged to marketing.')
+on conflict (author_seat, reviewer_seat) do update set dept_key = excluded.dept_key, cap_aed_month = excluded.cap_aed_month, note = excluded.note;
 
 -- ═══ 6b. THE ADAPTER TO THE COMPANY'S REVIEW MACHINE (873) — the ONLY two routines that touch seat_deliberation ═══
 -- OUT: marketing's proposal (and each later answer) goes to the CEO as a seat_deliberation. Opened on round 1,
@@ -834,9 +858,14 @@ on conflict (kind) do update set allowed_to_email = excluded.allowed_to_email, r
 create or replace function public.fn_marketing_plan_loop_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare p public.marketing_month_plan; n_closed int := 0; n_sent int := 0; n_taken int := 0; v_id bigint; b jsonb; v_status text; r jsonb;
+        v_refused jsonb := '[]'::jsonb;
 begin
   for p in select * from public.marketing_month_plan where status = 'with_ceo' order by month loop
-    perform public.fn_marketing_plan_to_ceo(p.month);
+    begin
+      perform public.fn_marketing_plan_to_ceo(p.month);
+    exception when others then
+      v_refused := v_refused || jsonb_build_object('month', p.month, 'why', left(sqlerrm, 300));
+    end;
     r := public.fn_marketing_takes_the_ceo_review(p.month);
     if coalesce((r->>'taken')::boolean, false) then n_taken := n_taken + 1; end if;
   end loop;
@@ -866,7 +895,8 @@ begin
       n_sent := n_sent + 1;
     end if;
   end loop;
-  return jsonb_build_object('ok', true, 'ceo_reviews_taken', n_taken, 'deliberations_closed', n_closed, 'briefs_sent', n_sent);
+  return jsonb_build_object('ok', true, 'ceo_reviews_taken', n_taken, 'deliberations_closed', n_closed, 'briefs_sent', n_sent,
+                            'not_yet_before_the_ceo', v_refused);
 end $fn$;
 
 -- The founder's answer on the brief, recorded (from his portal or by the CEO on his word).

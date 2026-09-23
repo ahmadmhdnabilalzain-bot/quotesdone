@@ -51,6 +51,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'refund.remediate', from: 'ceo', to: 'accountant' },
   { type: 'refund.remediate', from: 'ceo', to: 'sales_engineer' },
   { type: 'incident.fix', from: 'ceo', to: 'accountant' },
+  // marketing puts its monthly plan before the CEO on the review machine: another model family, blind first
+  // (founder_instructions 866 and 873; the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql)
+  { type: 'deliberation.review', from: 'marketing', to: 'ceo' },
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
