@@ -15,6 +15,7 @@ import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionI
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
+import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const T0 = Date.now();
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
@@ -138,13 +139,18 @@ Deno.serve(observe('inquiry_intake', async (req) => {
     let routeClarification: string | null = null;
     if (!category && allText.trim()) {
       try {
-        const { data: decision } = await admin.rpc('fn_kb_route_decide', { p_text: allText.slice(0, 1000) });
-        const d: any = decision || {};
+        // The router lists the activated categories; which one the customer means is REASONED (decision point 24,
+        // reasoned_matching.ts catalogueCategoryOf), then the router is asked again with it. Held: its plain question is asked.
+        const { data: open } = await admin.rpc('fn_kb_route_decide', { p_text: allText.slice(0, 1000) });
+        let d: any = open || {};
+        const cats = (d.candidates || []) as { catalog_num: number; live_name: string }[];
+        const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'inquiry_intake'), { text: allText.slice(0, 2000), categories: cats, audience: 'customer', queue: false }) : null;
+        if (pick?.value) { const { data: routed } = await admin.rpc('fn_kb_route_decide', { p_text: allText.slice(0, 1000), p_catalog_num: pick.value }); d = routed || {}; }
         const liveSlug = d?.candidates?.[0]?.live_slug || null;
         if (d.catalog_num && liveSlug) {
           const { data: mapped } = await admin.rpc('fn_intake_slug_for_catalog', { p_catalog_slug: liveSlug });
           if (mapped && validSlugs.includes(String(mapped))) category = String(mapped);
-        } else if (d.action === 'ask_clarifying_question' && d.clarification) {
+        } else if (d.clarification) {
           // Do not guess between tied routes. Hand the router's own question to the model so it is
           // asked once, in the customer's own framing, instead of the model inventing a worse one.
           routeClarification = String(d.clarification);

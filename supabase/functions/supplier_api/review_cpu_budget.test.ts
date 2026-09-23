@@ -20,6 +20,9 @@ import { seedTerms } from '../_shared/anonymise.ts';
 import { inboxBoq } from './identity_scrub.ts';
 import { readQuotationFile } from './quote_review_flow.ts';
 import { readReply, reviewQuotation, workingFromProposal, type SafeInquiry } from './quote_review.ts';
+import { readFixture } from './review_reading.fixture.ts';
+/** The review after the (mocked) reading production does first: review_reading.fixture.ts. */
+const rq = (i: SafeInquiry, w: Parameters<typeof reviewQuotation>[1]) => reviewQuotation(i, readFixture(i, w));
 
 const vocab = (): ServiceTerm[] => Object.entries(aliases as Record<string, { en: string[]; ar: string[] }>).map(([key, a]) => {
   const [trade_code, code] = key.split('.');
@@ -62,7 +65,7 @@ Deno.test(`a ${LINES}-line quotation review runs well inside the edge CPU cap`, 
   const read = await readQuotationFile(new TextEncoder().encode(csv), 'ZZDEMO_quotation.csv', 'text/csv', ['ZZ DEMO Supplier']);
   assert(read.proposal, 'the fixture quotation is readable');
   assertEquals(read.proposal.line_items.filter((l) => l.amount != null).length, LINES);
-  const rv = reviewQuotation(inq, workingFromProposal(read.proposal, read.text));
+  const rv = rq(inq, workingFromProposal(read.proposal, read.text));
   readReply('BOQ line 2 AED 27,880; BOQ line 3 AED 7,680', rv.issues);
   const ms = performance.now() - t0;
   assert(ms < BUDGET_MS, `the review path took ${ms.toFixed(0)} ms for ${LINES} lines (budget ${BUDGET_MS} ms; the edge CPU cap is 2 s)`);

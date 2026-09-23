@@ -17,7 +17,9 @@ import { makeLlmRich } from '../_shared/llm.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { type Deps, runStep, type Step } from '../_shared/marketing_judgement.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { call, linkedinTarget, processComment, unhideRequest, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { call, linkedinComments, processComment, unhideRequest, youtubeComments, type CommentEvent, type Platform } from '../_shared/marketing_social_comments.ts';
+import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oauth.ts';
+import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { defaultDeps } from '../_shared/think.ts';
@@ -59,24 +61,34 @@ export class Skip extends Error {}
 //   1. retries every Instagram/Facebook comment an earlier run left unfinished (no outcome after 10 minutes);
 //   2. un-hides what a reviewing seat said was not abuse, and closes each social.* handoff the receiving seat
 //      has answered (the originator closes: fn_marketing_social_handoffs_close);
-//   3. YouTube: through the founder's Postiz YouTube connection only — skipped, and SAYS so, until it is there;
-//   4. LinkedIn: the QuotesDone company page only (linkedinTarget) — a personal profile is refused.
+//   3. YouTube and 4. the LinkedIn company page: read the last 3 days of comments with the token the founder's
+//      one link stored (marketing_social_connect; instructions 919-920) and answer each through processComment,
+//      the same policy and guards as Instagram and Facebook. Not connected: skipped, and SAYS so.
 // X is removed (founder, 23 Sep 2026: no paid X API).
 export const socialComments: Duty = {
   name: 'social_comments',
   owner_seat: 'marketing',
   async run({ admin, sec, now }) {
     const gateway = Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway';
-    const metaToken = (ev: { platform: Platform; accountId: string }) =>
-      ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
-    let postiz: PostizIntegration[] | null = null;
-    const integrations = async () => {
-      if (postiz) return postiz;
-      const key = await sec('postiz_api_key');
-      if (!key) throw new Skip('no postiz_api_key');
-      const r = await postizIntegrations(timedFetch, (await sec('postiz_api_url')) || 'https://api.postiz.com/public/v1', key);
-      if (r.error) throw new Error('postiz integrations HTTP ' + r.status + ': ' + r.error);
-      return (postiz = r.list.filter((x) => !x.disabled && !x.refreshNeeded));
+    const master = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
+    const own = (p: SocialPlatform) => accessToken(timedFetch, p, master, sec, save);
+    const metaToken = async (ev: { platform: Platform; accountId: string }) =>
+      ev.platform === 'youtube' || ev.platform === 'linkedin' ? (await own(ev.platform))?.access_token ?? null
+        : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
+    const since = new Date(now.getTime() - 3 * 24 * 3600_000);
+    const answer = async (events: CommentEvent[]) => {
+      const counts: Record<string, number> = { read: events.length };
+      for (const ev of events) {
+        // A person check is REASONED (think()) and lazy, as in retry_unfinished below; held, it is queued.
+        const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing'), { seat: 'marketing', surface: 'marketing_social.comment_needs_a_person',
+          message: String(ev.text || '').slice(0, 4000), audience: 'visitor', dedupeKey: 'social_comment:' + ev.platform + ':' + ev.commentId,
+          subject: { platform: ev.platform, message_id: ev.commentId, user_id: ev.authorId } })).value === true;
+        const o = await processComment(adminStore(admin, timedFetch, metaToken, gateway), ev, person)
+          .catch((e) => 'error:' + String(e?.message || e).slice(0, 60));
+        counts[o] = (counts[o] || 0) + 1;
+      }
+      return counts;
     };
 
     const { out, skipped, errors } = await isolated({
@@ -119,17 +131,14 @@ export const socialComments: Duty = {
         return { unhidden, closed };
       },
       async youtube() {
-        const yt = (await integrations()).find((x) => x.identifier === 'youtube');
-        if (!yt) throw new Skip('youtube not connected in Postiz');
-        // Measured 23 Sep 2026 (docs.postiz.com/llms.txt): Postiz's public API has no comment read or reply and
-        // hands out no platform token, and the founder ruled out our own Google OAuth keys. Nothing is read.
-        throw new Skip('youtube connected in Postiz (' + yt.id + '), but Postiz exposes no comment endpoint or token');
+        const t = await own('youtube');
+        if (!t) throw new Skip('youtube not connected (the founder\'s link: scripts/marketing/social_connect_link.mjs youtube)');
+        return await answer(await youtubeComments(timedFetch, t.access_token, t.account_id, since));
       },
       async linkedin() {
-        const ours = await sec('linkedin_company_page_integration_id');
-        const page = (await integrations()).find((x) => linkedinTarget(x, ours));
-        if (!page) throw new Skip('the company page named by linkedin_company_page_integration_id is not connected in Postiz (personal profiles are refused)');
-        throw new Skip('linkedin company page connected, but Postiz exposes no comment endpoint');
+        const t = await own('linkedin');
+        if (!t) throw new Skip('linkedin company page not connected (the founder\'s link: scripts/marketing/social_connect_link.mjs linkedin)');
+        return await answer(await linkedinComments(timedFetch, t.access_token, t.account_id, since));
       },
     });
     const counts = { ...out, skipped };
@@ -222,7 +231,42 @@ function marketingDeps(ctx: DutyContext): Deps {
 // scorecard:    fn_marketing_scorecard stored weekly (Monday, Asia/Dubai) and at month end (the 1st).
 // platform_spec_freshness: the cited platform pages re-read monthly (above).
 // social_comments: public comments read and answered on every synced channel (instruction 866, above).
-// competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above).
+// PROFILE TEXT (instruction 920): once a day, every profile an API may write is made to equal profile_text.json.
+export const profileText: Duty = {
+  name: 'profile_text',
+  owner_seat: 'marketing',
+  async run({ admin, sec, now }) {
+    if (now.getUTCHours() !== 3 || now.getUTCMinutes() >= 30) return { due: false };
+    if ((await sec('profile_text_push')) === 'off') return { due: true, held: 'app_secrets.profile_text_push is off' };
+    const since = new Date(now.getTime() - 10 * 60_000).toISOString();
+    const master = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error(error.message); };
+    const { out, skipped, errors } = await isolated({
+      async whatsapp() {
+        const [ks, kk, from] = await Promise.all([sec('twilio_api_key_sid'), sec('twilio_api_key_secret'), sec('twilio_wa_from')]);
+        if (!ks || !kk || !from) throw new Skip('no Twilio key or twilio_wa_from');
+        return await pushWhatsapp(timedFetch, 'Basic ' + btoa(`${ks}:${kk}`), from, since);
+      },
+      async facebook() {
+        const { data } = await admin.from('marketing_meta_page').select('page_id').limit(1).maybeSingle();
+        if (!data?.page_id) throw new Skip('no Facebook page cached yet (marketing_meta_page)');
+        const t = await metaPageToken(admin, timedFetch, 'facebook', data.page_id);
+        if (!t) throw new Skip('no page token');
+        return await pushFacebook(timedFetch, data.page_id, t);
+      },
+      async youtube() {
+        const t = await accessToken(timedFetch, 'youtube', master, sec, save);
+        if (!t) throw new Skip('youtube not connected');
+        return await pushYoutube(timedFetch, t.access_token);
+      },
+    });
+    if (errors.length) throw new Error(errors.join(' | ') + ' (' + JSON.stringify({ out, skipped }).slice(0, 300) + ')');
+    return { due: true, ...out, skipped, manual: VARIANTS.filter((v) => v.api === 'manual').map((v) => v.platform + '.' + v.field) };
+  },
+};
+
+
+// competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above); profile_text (920).
 export const DUTIES: Duty[] = [
   POST_RESULTS, SCORECARD, platformSpecFreshness, socialComments,
   {
@@ -300,4 +344,5 @@ export const DUTIES: Duty[] = [
       return data as Record<string, unknown>;
     },
   },
+  profileText,
 ];
