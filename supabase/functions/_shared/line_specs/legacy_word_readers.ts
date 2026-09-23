@@ -10,8 +10,9 @@
 //   * line_specs/derive.ts         — decision point 36 (line_specs.options_derive_vat)
 // Both are registered pending in supabase/functions/_shared/decision_points.json and migrate in their own
 // batch. They are moved here UNCHANGED so those files keep compiling; DELETE THIS FILE when both points are
-// migrated. Nothing in assess.ts, compare.ts, model.ts, no_exact_spec.ts or workflow.ts may import it
-// (scripts/checks/decision_points_are_reasoned.test.mjs holds that by fingerprint).
+// migrated. model.ts / assess.ts only RE-EXPORT these names so those two files keep their imports; nothing in
+// assess.ts, compare.ts, model.ts, no_exact_spec.ts or workflow.ts CALLS them (the registry's must_not_contain
+// fingerprints in decision_points.json hold that).
 import { normText } from './model.ts';
 import type { Line, Terms } from './assess.ts';
 

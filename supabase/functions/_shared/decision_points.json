@@ -327,7 +327,7 @@
    "severity": "high",
    "where": "scripts/sql",
    "decides": "taxonomy_trade.aliases regex -> trade codes (sales_engineer brief)",
-   "held": "fn_norm_trades reads no free text under any condition: a slug or taxonomy code resolves exactly, anything else returns NULL (needs reasoning) and every caller treats it as no trade; a TS caller holding free text reasons it (point 35). No word is ever mapped to a trade.",
+   "held": "fn_norm_trades reads no free text: a slug or code resolves exactly, anything else is NULL (needs reasoning). A supplier's own trade words are reasoned (tradeOfWords); held, no trade and no new-trade code is claimed and the words go to the sales engineer as a proposal. The sales_engineer brief path is point 35.",
    "proof": [
     {
      "file": "scripts/sql/trades_categories_and_product_matches_are_reasoned_not_word_matched.sql",
@@ -337,6 +337,18 @@
      "must_not_contain": [
       "x.s ~* ('\\m'",
       "regexp_replace(n.na"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/supplier_services.ts",
+     "must_contain": [
+      "tradeOfWords(defaultDeps(admin, 'supplier_api')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_matching.ts",
+     "must_contain": [
+      "surface: 'sql.fn_norm_trades'"
      ]
     }
    ]
@@ -364,6 +376,12 @@
      "file": "supabase/functions/public_site/index.ts",
      "must_contain": [
       "catalogueCategoryOf(defaultDeps(admin, 'public_site')"
+     ]
+    },
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      "catalogueCategoryOf(defaultDeps(admin, 'inquiry_intake')"
      ]
     },
     {

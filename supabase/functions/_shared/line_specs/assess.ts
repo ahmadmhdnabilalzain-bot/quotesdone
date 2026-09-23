@@ -258,7 +258,7 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, l));
     // A trade with no catalogue entry asks each material line its knowledge pack's required specs (reasoned_specs.ts).
     const packOnly = material && !TRADES[trade] && !(COMPOSITE.has(trade) && trade !== 'general') && input.checklist?.length ? input.checklist : [];
-    const defs = unreadComposite ? [SPEC_ATTR, ...lineDefs(null, l, req)] : (lt || namesComponent ? lineDefs(lt, l, req) : packOnly);
+    const defs = lt || namesComponent ? lineDefs(lt, l, req) : packOnly.length ? packOnly : unreadComposite ? [SPEC_ATTR, ...lineDefs(null, l, req)] : [];
     for (const m of req?.materials ?? []) if (m?.component && material && m.component !== 'main' && componentOnLine(m, l)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
     for (const a of defs) {

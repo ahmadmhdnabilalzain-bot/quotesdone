@@ -27,8 +27,9 @@
 --      enquiry asks for (reasoned_matching.ts productsAsked); without them it answers 'needs_reasoning' with
 --      the enquiry and the products to reason over, and scores nothing.
 --   27 fn_quote_spec_group reads public.category_specs.quote_spec_group, a keyed column seeded below with
---      the value the old regex returned for each of the 56 categories (measured on production 23 Sep 2026,
---      the same 56-row map line_specs/model.ts carries). A new category has no group until its row says so.
+--      the value the old regex returned for each of the 56 categories (measured on production 23 Sep 2026:
+--      54 have a group; job-shop-manufacturing and engineering-and-architectural-consultancies had none and
+--      stay NULL). A new category has no group until its row says so.
 --
 -- MEASURED BEFORE THIS FILE (production, 23 Sep 2026, read-only):
 --   * callers — fn_norm_trades: fn_customer_decision_support, fn_supplier_market (both pass a category

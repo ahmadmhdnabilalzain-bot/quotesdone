@@ -3,6 +3,7 @@
 // decision points 24 and 26-30 of decision_points.json (batch B3). Follows reasoned_decisions.ts: one decision,
 // one function, a think() call, and a value that is null when the reasoning is held.
 //
+//   tradeOfWords         which live trade a supplier's own words name             (sql.fn_norm_trades)
 //   catalogueCategoryOf  which catalogue category a visitor's words ask for         (sql.fn_kb_route)
 //   productsAsked        which of a supplier's products an enquiry asks for         (sql.fn_supplier_product_match)
 //   reasonedOffers       whether a quoted value is GENUINELY not the customer's spec (line_specs.same_value)
@@ -22,6 +23,20 @@ import type { SpecOffer } from './line_specs/no_exact_spec.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 const answered = (r: ThinkResult) => r.status === 'answered';
+
+/** Which live trade do a supplier's own words name? [] = none. Exact trade or none (surface sql.fn_norm_trades). */
+export async function tradeOfWords(deps: ThinkDeps, o: { text: string; trades: { code: string; label: string }[] }): Promise<Reasoned<string[]>> {
+  const result = await think(deps, {
+    seat: 'sales_engineer', surface: 'sql.fn_norm_trades', question: o.text.slice(0, 500), dedupeKey: 'trade_words:' + o.text.slice(0, 120).toLowerCase(),
+    context: { audience: 'supplier' },
+    decision: { name: 'trade', options: [
+      ...o.trades.map((t) => ({ id: t.code, meaning: `the words name ${t.label} work or supply, exactly that trade` })),
+      { id: 'none', meaning: 'the words name no trade in this list exactly' },
+    ] },
+  });
+  const choice = answered(result) ? result.decision?.choice ?? null : null;
+  return { value: choice == null ? null : choice === 'none' ? [] : [choice], result };
+}
 
 /** Which catalogue category does the visitor's description ask for? 0 = none of them. (surface sql.fn_kb_route) */
 export async function catalogueCategoryOf(deps: ThinkDeps, o: {
@@ -86,11 +101,14 @@ export async function reasonedOffers(deps: ThinkDeps, offers: SpecOffer[], inqui
 }
 
 // ── THE QUOTATION, READ ──────────────────────────────────────────────────────────────────────────────
-// Lines per reasoning call: the answer must fit the gateway's output cap (~900 tokens), and each batch carries
-// its own text so every value's evidence is in front of the model. Lines past MAX_READ_LINES are left unread
-// (asked of the supplier).
-export const LINES_PER_CALL = 3;
-export const MAX_READ_LINES = 40;
+// COST (review of #893). Lines per reasoning call: the answer must fit the gateway's output cap (~900 tokens) —
+// each line asks its trade's attributes with verbatim evidence — and each batch carries its own text. Lines past
+// MAX_READ_LINES are left unread and asked of the supplier. A line ALREADY read (any 'reasoned' value on it) is
+// not read again, so the review's turns, the preflight and the gate pay for a line once.
+// ponytail: sequential think() calls inside the request; move the read to a queue if quotes grow past ~20 lines.
+export const LINES_PER_CALL = 2;
+export const MAX_READ_LINES = 20;
+const alreadyRead = (l: Line) => Object.values(l.spec_source ?? {}).includes('reasoned');
 /** What reasoning read: per line, values and READ keys to add to its spec (source 'reasoned'); the terms it found. */
 export type QuoteReading = { lines: Record<number, Record<string, string>>; terms: TermsSpec };
 
@@ -114,7 +132,7 @@ export async function readQuote(deps: ThinkDeps, o: { quoteId: string; category:
   const base = { seat: 'sales_engineer' as const, dedupeKey: 'quote_read:' + o.quoteId, subject: { quote_id: o.quoteId } };
   const out: QuoteReading = { lines: {}, terms: {} };
   const put = (n: number, k: string, v: string) => { (out.lines[n] ??= {})[k] = v; };
-  const lines = o.lines.slice(0, MAX_READ_LINES);
+  const lines = o.lines.filter((l) => !alreadyRead(l)).slice(0, MAX_READ_LINES);
   const ts = o.terms.terms_spec ?? {};
 
   // 1. The quote-level terms the supplier has not already stated in the portal.

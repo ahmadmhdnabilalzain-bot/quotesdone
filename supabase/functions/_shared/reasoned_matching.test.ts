@@ -3,7 +3,7 @@
 // dedupeKey and subject.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { ThinkDeps } from './think.ts';
-import { applyReading, catalogueCategoryOf, productsAsked, readQuote, reasonedOffers } from './reasoned_matching.ts';
+import { applyReading, catalogueCategoryOf, productsAsked, readQuote, reasonedOffers, tradeOfWords } from './reasoned_matching.ts';
 import { assessQuote, READ, type Line } from './line_specs/assess.ts';
 import type { SpecOffer } from './line_specs/no_exact_spec.ts';
 
@@ -114,4 +114,21 @@ Deno.test('a value the quotation does not say is refused by the validator, never
     : { answer: 'Line details stated.', decision: { fields: { L1__thickness_mm: ev('20mm', '20mm MR MDF carcass') } } });
   assertEquals(await readQuote(m.deps, { quoteId: 'q4', category: 'joinery', lines: [LINES[0]], terms: TERMS, requirements: null }), null);
   assertEquals(m.holds[0].p_dedupe_key, 'quote_read:q4');
+});
+
+Deno.test('a supplier own words: the reasoned trade, none, and held -> no trade and no invented code', async () => {
+  const trades = [{ code: 'hvac', label: 'HVAC' }, { code: 'joinery', label: 'Joinery' }];
+  assertEquals((await tradeOfWords(mock(choose('hvac')).deps, { text: 'we install ducted split AC', trades })).value, ['hvac']);
+  assertEquals((await tradeOfWords(mock(choose('none')).deps, { text: 'event catering', trades })).value, []);
+  const h = mock(choose('hvac'), { held: true });
+  assertEquals((await tradeOfWords(h.deps, { text: 'AC', trades })).value, null);
+  assertEquals(h.holds[0].p_surface, 'sql.fn_norm_trades');
+});
+
+Deno.test('a line already read is not read again (cost): an all-read quote makes no model call', async () => {
+  const m = mock(reader);
+  const read = applyReading(LINES, { installation: { included: 'yes', detail: 'x', source: 'reasoned' }, warranty: { period: '2 years', coverage: 'x', source: 'reasoned' }, delivery: { value: '3 weeks', source: 'reasoned' } },
+    { lines: { 1: { material: 'MR MDF' }, 2: { [READ.notMaterial]: 'Installation labour' } }, terms: {} });
+  const rd = await readQuote(m.deps, { quoteId: 'q5', category: 'joinery', lines: read.lines, terms: { ...TERMS, terms_spec: read.terms_spec }, requirements: null });
+  assertEquals([rd, m.calls()], [{ lines: {}, terms: {} }, 0]);
 });

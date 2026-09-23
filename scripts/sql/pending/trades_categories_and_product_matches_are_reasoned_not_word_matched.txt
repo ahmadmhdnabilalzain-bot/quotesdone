@@ -1,13 +1,19 @@
-Committed, not applied (batch B3, seat sales_engineer, decision points 23-27 and 77). Apply AFTER
-a_reasoned_answer_is_applied_by_its_own_surface.sql (and the engine / migrate files it follows). This file defines no
+Committed, not applied (batch B3, seat sales_engineer, decision points 23-27 and 77). Apply after the engine files
+(every_seat_reasons_before_it_answers.sql ... a_held_question_never_expires_it_is_escalated_at_48_hours.sql, all applied). This file defines no
 fn_reason_apply_* routine: none of its surfaces has an effect in SQL on replay.
 
 DEPLOY IN THE SAME STEP as this apply, because they call the new signatures:
   * public_site      — calls fn_kb_route_decide(p_text, p_catalog_num); the old one-argument routine is dropped.
   * supplier_portal  — calls fn_supplier_product_match(p_inquiry_id, p_lead_id, p_asked); the two-argument one is dropped.
+  * inquiry_intake   — reasons the category and calls fn_kb_route_decide(p_text, p_catalog_num).
+  * supplier_api     — its services_resolve / services_save_rewrite reason a supplier's own trade words (fn_norm_trades
+                       no longer reads free text).
 Deploy with or after it (no SQL dependency): supplier_api (the quotation is read by reasoning before the hold gate and
 the review), sales_engineer (the no-exact-spec offer only on a reasoned difference). inquiry_intake keeps calling
-fn_kb_route_decide(p_text) and now gets 'needs_reasoning' (its trade is reasoned elsewhere, point 3); nothing breaks.
+fn_kb_route_decide: see above. sales_engineer's brief path (fn_norm_trades on free text, point 35, pending) gets no trade
+until point 35 reasons it: an inquiry with NO category then matches nobody and says 'no_trade_identified' (measured 23 Sep 2026: 0 of
+the 3 inquiries lack a category). The route-test runner cron 222 names (fn_kb_route_test_run) does not exist in production
+(measured 23 Sep 2026), so no hourly route test is affected.
 
 What changes for a running company: under the model hold every newly submitted quotation is held and its supplier is
 asked every required detail (the founder's "exact specs or the quote is held"); a stated value releases it. The site's

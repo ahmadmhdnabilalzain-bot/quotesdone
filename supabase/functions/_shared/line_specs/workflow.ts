@@ -120,8 +120,9 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   const reading = ctx.read ? await ctx.read(q, stored) : null;
   const applied = applyReading(stored, q.terms_spec, reading);
   if (reading) { q.terms_spec = applied.terms_spec; await repo.updateQuote(quoteId, { terms_spec: applied.terms_spec }); }
+  const read = applied.lines;
   const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
-    ? withReasoned(applied.lines, await ctx.reason(applied.lines, ctx.checklist)) : applied.lines;
+    ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
   await persistSpecs(repo, quoteId, a, stored);
   const at = nowIso(ctx);

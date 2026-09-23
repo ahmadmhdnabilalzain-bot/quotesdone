@@ -22,10 +22,10 @@
 // confirmed_at, and — when the inquiry names services — on fn_services_effective(services, trades,
 // services_removed): what the supplier STATED, plus ONE level of the curated service_implication map,
 // minus what it removed. A stated service is stored as '<trade>.<code>' and its trade joins trades,
-// so the trade gate is fed either way. Words the aliases do not name are kept EXACTLY as the supplier
-// wrote them and become a taxonomy_trade_proposal for the sales engineer — never dropped, never
-// guessed. No model anywhere on this path (OpenRouter is on hold, and a rewrite that decides who
-// receives an inquiry has to be reproducible).
+// so the trade gate is fed either way. Which trade a phrase names is READ BY REASONING over the live taxonomy
+// (23 Sep 2026, decision point 23; resolveText below). Words no trade is found for, or that could not be read
+// under the model hold, are kept EXACTLY as the supplier wrote them and become a taxonomy_trade_proposal for
+// the sales engineer — never dropped, never guessed.
 
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
@@ -37,6 +37,8 @@ import { embedLine } from './gte_embed.ts';
 import { readWithModel } from './catalogue_model.ts';
 import { allText, type DocEvidence } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
+import { tradeOfWords } from './reasoned_matching.ts';
+import { defaultDeps } from './think.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -172,17 +174,25 @@ export async function servicesState(admin: Admin, supplierId: number) {
   };
 }
 
-/** Codes fn_norm_trades names in the text (exact alias or nothing). */
-export async function resolveText(admin: Admin, text: string): Promise<string[]> {
+/**
+ * The trade codes a supplier's own words name. A slug or code resolves exactly (fn_norm_trades); any other words
+ * are READ BY REASONING over the live taxonomy (reasoned_matching.ts tradeOfWords, decision point 23 — never an
+ * alias match). Held: `held` is true and no code is claimed; the words go to the sales engineer as a proposal.
+ */
+export async function resolveText(admin: Admin, text: string): Promise<{ codes: string[]; held: boolean }> {
   const { data, error } = await admin.rpc('fn_norm_trades', { p_text: text });
-  return error || !Array.isArray(data) ? [] : data.map(String);
+  if (!error && Array.isArray(data) && data.length) return { codes: data.map(String), held: false };
+  const { data: tax } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
+  const r = await tradeOfWords(defaultDeps(admin, 'supplier_api'), { text, trades: (tax || []) as { code: string; label: string }[] });
+  return { codes: r.value ?? [], held: r.value == null };
 }
 
 export async function servicesResolve(admin: Admin, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
   const text = cleanExtras([body.text])[0];
   if (!text) return [400, { error: 'empty_text', code: 'services_empty_text' }];
-  const trades = await resolveText(admin, text);
-  return [200, { ok: true, text, trades, new_trade: trades.length ? null : tradeCode(text) }];
+  const { codes: trades, held } = await resolveText(admin, text);
+  // Held: nothing is claimed either way — neither a trade nor a new-trade code is invented from the words.
+  return [200, { ok: true, text, trades, held, new_trade: trades.length || held ? null : tradeCode(text) }];
 }
 
 // ── VOICE ─────────────────────────────────────────────────────────────────────────────────────────
@@ -431,7 +441,7 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const freshOwn = own.filter((w) => !storedOwn.has(w.toLowerCase()));
   const resolved: Record<string, string[]> = {}; const proposals: string[] = [];
   // Independent lookups, so one round trip rather than up to 25 in series.
-  const codesFor = await Promise.all(freshOwn.map((w) => resolveText(admin, w)));
+  const codesFor = (await Promise.all(freshOwn.map((w) => resolveText(admin, w)))).map((r) => r.codes);
   freshOwn.forEach((w, i) => {
     const codes = codesFor[i];
     resolved[w] = codes;
