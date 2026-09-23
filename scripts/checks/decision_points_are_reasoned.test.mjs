@@ -34,8 +34,10 @@ const DISPATCH = 'scripts/sql/a_reasoned_answer_is_applied_by_its_own_surface.sq
 // Every SQL file a migrated point's proof names, in registry order after the three the engine needs:
 // the batch files replay in this order inside a probe, and each must be replay-safe (the test below).
 const BATCH_SQL = [...new Set(REGISTRY.points.filter((p) => p.status === 'migrated').flatMap((p) => (p.proof ?? []).map((x) => x.file))
-  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH].includes(f)))];
-const CHAIN = [ENGINE, MIGRATE, DISPATCH, ...BATCH_SQL];
+  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH, 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql'].includes(f)))];
+// A held question never expires; at 48 hours it is escalated to its seat (applies after DISPATCH).
+const LIFECYCLE = 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql';
+const CHAIN = [ENGINE, MIGRATE, DISPATCH, LIFECYCLE, ...BATCH_SQL];
 
 /** Code only: SQL `--` comments and TS `//` line comments removed (a check that greps source matches its own comment). */
 function code(path, text) {
@@ -227,13 +229,18 @@ begin
   o := o || jsonb_build_object('intake_after', (select status || ':' || (brief->>'category_by') from public.inquiry_intake where id = v_intake),
                                'intake_expires', (select expires_at is null from public.reasoning_held_question where id = v_id));
   v_id := public.fn_reason_hold('customer_support', 'wa_inbound.needs_a_person', 'ZZ DEMO', '{"seat":"customer_support"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-probe-3');
-  o := o || jsonb_build_object('channel_expires_days', (select round(extract(epoch from expires_at - now()) / 86400) from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('channel_expires', (select expires_at is not null from public.reasoning_held_question where id = v_id));
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"needs_a_person"}}'::jsonb);
   perform public.fn_reason_held_delivered(v_id, '{"delivered":true,"via":"whatsapp_template"}'::jsonb);
   o := o || jsonb_build_object('delivered_row', (select status || ':' || (result->'delivery'->>'via') from public.reasoning_held_question where id = v_id));
-  update public.reasoning_held_question set status = 'held', expires_at = now() - interval '1 minute' where id = v_id;
+  -- Held 49 hours: never expired; escalated once to its seat as a pending item, and still held for the replay.
+  update public.reasoning_held_question set status = 'held', created_at = now() - interval '49 hours' where id = v_id;
   perform public.fn_reason_held_due(1);
-  o := o || jsonb_build_object('expired_status', (select status from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('old_status', (select status from public.reasoning_held_question where id = v_id),
+    'escalated', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id),
+    'escalated_again', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id));
+  -- its own statement: a subquery in the statement that escalated would read the snapshot before the insert
+  o := o || jsonb_build_object('seat_item', (select agent || ':' || status from public.agent_actions where kind = 'held_question' and target_id = v_id::text));
 
   -- 6. Only service_role executes.
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
@@ -302,9 +309,12 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   console.log('already-dispatched inquiries whose readiness the text scan had supplied:', out.rfq_flipped_after_dispatch);
   assert.equal(out.intake_after, 'needs_info:reasoning', 'the held intake reopens with the reasoned trade');
   assert.equal(out.intake_expires, true, 'a held intake never expires');
-  assert.equal(out.channel_expires_days, 7);
+  assert.equal(out.channel_expires, false, 'a held question never expires (the hold lasts a while)');
   assert.equal(out.delivered_row, 'applied:whatsapp_template');
-  assert.equal(out.expired_status, 'expired', 'an expired channel question is closed, not replayed');
+  assert.equal(out.old_status, 'held', 'a 49-hour-old question is still held for the replay, never expired');
+  assert.equal(out.escalated, 1, 'at 48 hours it is escalated to its seat');
+  assert.equal(out.escalated_again, 0, 'once');
+  assert.equal(out.seat_item, 'customer_support:pending', 'a human-visible pending item in the owning seat queue');
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
 });
