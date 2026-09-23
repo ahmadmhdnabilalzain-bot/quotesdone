@@ -739,16 +739,46 @@ end $fn$;
 revoke execute on function public.fn_kb_purge_batch(integer) from public, anon, authenticated;
 grant execute on function public.fn_kb_purge_batch(integer) to service_role;
 
--- Files the next p_limit undecided citations in the ceo seat's queue (one question per distinct citation).
--- Run by the release operator after the hold lifts; under the hold the questions simply wait, and the
--- knowledge they cover is kept meanwhile (clause 4).
+-- THE BACKFILL IS PAID AND NEVER AUTOMATIC (founder rule: quote the cost before spending).
+-- The estimate, computed 23 Sep 2026. It is an ESTIMATE: ai_cost_log has no agent_reasoning call with a cost in
+-- the last 60 days, so nothing was measured to base it on.
+--   13,541 distinct citations x one decision each. A think() decision costs 2 calls (decompose + one synthesis),
+--   3 with a forced re-pass; ~2,500 prompt tokens + ~400 output tokens per call. model_policy.agent_reasoning is
+--   priced in its own rationale at USD 2.00 / 6.00 per million tokens in/out, and USD 1 = AED 3.6725.
+--   Per question: 2 calls = USD 0.0148 = AED 0.054; 3 calls = AED 0.08.
+--   Whole backfill: AED 735 - 1,085. The exec department (the ceo seat) has a ceiling of AED 60 a month.
+-- So the backfill:
+--   * runs only while app_secrets.kb_jurisdiction_backfill = 'go' (absent or anything else: it files nothing);
+--   * files at most decision_policy.kb_jurisdiction_daily_cap questions per UTC day, 12 by default:
+--     12 x AED 0.08 = AED 0.96 a day, under AED 30 a month, which is half the exec ceiling;
+--   * at that cap the backfill takes about three years. The founder decides whether to raise the cap and the
+--     budget; the knowledge is kept (clause 4) meanwhile.
+insert into public.decision_policy (key, value, description, updated_at) values
+  ('kb_jurisdiction_daily_cap', to_jsonb(12),
+   'Maximum ceo.kb_jurisdiction questions fn_kb_jurisdiction_file may file per UTC day. 12 x AED 0.08 = AED 0.96/day, under half the exec ceiling of AED 60/month. The whole backfill (13,541 citations) is estimated at AED 735-1,085 and only runs while app_secrets.kb_jurisdiction_backfill = ''go''.', now()),
+  ('kb_jurisdiction_backfill_estimate', jsonb_build_object('citations', 13541, 'aed_per_question_low', 0.054, 'aed_per_question_high', 0.08,
+     'aed_total_low', 735, 'aed_total_high', 1085, 'basis', 'model_policy.agent_reasoning rationale: USD 2/6 per M tokens; 2-3 calls x ~2,500 in + ~400 out; USD 1 = AED 3.6725; not measured, since ai_cost_log holds no priced agent_reasoning call',
+     'computed_at', '2026-09-23'),
+   'The quoted cost of the citation-jurisdiction backfill, recorded before any of it is spent.', now())
+on conflict (key) do nothing;
+
+-- Files the next undecided citations in the ceo seat's queue (one question per distinct citation): only under
+-- the 'go', and never more than the daily cap. Under the hold the filed questions wait; the knowledge is kept.
 create or replace function public.fn_kb_jurisdiction_file(p_limit integer default 50)
 returns integer
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare c record; n integer := 0; v_req jsonb; v_opts jsonb;
+declare c record; n integer := 0; v_req jsonb; v_opts jsonb; v_go text; v_cap integer; v_today integer;
 begin
+  select value into v_go from public.app_secrets where key = 'kb_jurisdiction_backfill';
+  if coalesce(v_go, '') <> 'go' then return 0; end if;
+  select coalesce((value #>> '{}')::int, 12) into v_cap from public.decision_policy where key = 'kb_jurisdiction_daily_cap';
+  v_cap := coalesce(v_cap, 12);
+  select count(*) into v_today from public.reasoning_held_question
+   where surface = 'ceo.kb_jurisdiction' and created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc';
+  p_limit := least(coalesce(p_limit, 50), greatest(v_cap - v_today, 0));
+  if p_limit <= 0 then return 0; end if;
   v_opts := jsonb_build_array(
     jsonb_build_object('id', 'quotesdone',    'meaning', 'written by QuotesDone itself'),
     jsonb_build_object('id', 'uae',           'meaning', 'issued by or adopted by a UAE federal or emirate authority, free zone, municipality, civil defence or UAE utility'),
@@ -763,7 +793,7 @@ begin
        and public.fn_kb_purge_clause(k.source_kind, k.category, null) <> 1
        and not exists (select 1 from public.kb_citation_jurisdiction j where j.citation_md5 = md5(k.citation))
        and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'kb_jurisdiction:' || md5(k.citation))
-     limit greatest(1, least(coalesce(p_limit, 50), 500))
+     limit p_limit
   loop
     v_req := jsonb_build_object('seat', 'ceo', 'surface', 'ceo.kb_jurisdiction',
       'question', 'Which jurisdiction does this knowledge-library citation belong to? Citation: ' || left(c.citation, 2000),

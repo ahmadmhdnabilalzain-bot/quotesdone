@@ -11,6 +11,12 @@ the replay renders a waiting Arabic quotation through supplier_api spec_arabic_f
 _shared/quote_documents.ts (DOC_VERSION v2.2 re-renders every cached glossary-era Arabic PDF). The file adds
 supplier_api to the fn.resilience_ping credential scope for that one internal door.
 The KB check and scripts/kb/purge_kb_bulk.mjs now pass the reasoned jurisdiction to fn_kb_purge_clause.
-After apply, once the founder's hold lifts: select public.fn_kb_jurisdiction_file(50), in batches (13,541 distinct
-citations on 23 Sep 2026 — a one-off reasoning run to budget); until then that knowledge is kept (clause 4).
+THE CITATION-JURISDICTION BACKFILL IS PAID AND NEVER AUTOMATIC. fn_kb_jurisdiction_file files nothing unless
+app_secrets.kb_jurisdiction_backfill = 'go' (the founder's switch), and never more than
+decision_policy.kb_jurisdiction_daily_cap questions a UTC day (default 12).
+The estimate, recorded before any spend as decision_policy.kb_jurisdiction_backfill_estimate: 13,541 citations at AED 0.054-0.08 each
+(2-3 calls of ~2,500 in + ~400 out tokens at USD 2/6 per M, from model_policy.agent_reasoning's own rationale; not
+measured, since no priced agent_reasoning call exists) = AED 735-1,085 in total. The cap of 12 a day costs about AED 0.96 a day,
+under half the exec ceiling of AED 60 a month, so at that cap the backfill takes about three years. Raising the cap and
+the budget is the founder's decision. Until a citation is reasoned, its knowledge is kept (clause 4).
 Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs (aborted-transaction probe, B7).

@@ -423,7 +423,14 @@ begin
     'kb_uae', public.fn_kb_purge_clause('standard', 'x', 'uae'), 'kb_ours', public.fn_kb_purge_clause('standard', 'x', 'quotesdone'),
     'kb_citation_text', public.fn_kb_purge_clause('standard', 'x', 'NFPA 13 United States Code'),
     'kb_is_us_code_gone', to_regprocedure('public.fn_kb_is_us_code(text)') is null);
-  o := o || jsonb_build_object('kb_filed', public.fn_kb_jurisdiction_file(1));
+  -- the paid backfill: nothing without the founder's 'go', and never past the daily cap
+  delete from public.app_secrets where key = 'kb_jurisdiction_backfill';
+  o := o || jsonb_build_object('kb_no_go', public.fn_kb_jurisdiction_file(5));
+  insert into public.app_secrets (key, value) values ('kb_jurisdiction_backfill', 'go');
+  update public.decision_policy set value = to_jsonb((select count(*) from public.reasoning_held_question
+      where surface = 'ceo.kb_jurisdiction' and created_at >= date_trunc('day', now() at time zone 'utc') at time zone 'utc')::int + 1)
+   where key = 'kb_jurisdiction_daily_cap';
+  o := o || jsonb_build_object('kb_filed', public.fn_kb_jurisdiction_file(5), 'kb_at_cap', public.fn_kb_jurisdiction_file(5));
   select id into v_h from public.reasoning_held_question where surface = 'ceo.kb_jurisdiction' order by id desc limit 1;
   v := public.fn_reason_held_resolve(v_h, '{"status":"answered","answer":"ZZ","decision":{"choice":"us"}}'::jsonb);
   o := o || jsonb_build_object('kb_applied', v->>'status',
@@ -487,7 +494,9 @@ end $p$;`);
   assert.equal(out.gov_spelled, false, 'a kind spelled "legal/refund/payment" is not sensitive unless registered');
   assert.deepEqual([out.kb_null, out.kb_us, out.kb_uae, out.kb_ours, out.kb_citation_text], [4, 5, 3, 1, 4], 'undecided knowledge is kept; citation text decides nothing');
   assert.equal(out.kb_is_us_code_gone, true);
-  assert.equal(out.kb_filed, 1);
+  assert.equal(out.kb_no_go, 0, 'no paid backfill without app_secrets.kb_jurisdiction_backfill = go');
+  assert.equal(out.kb_filed, 1, 'with go, it files up to the daily cap (5 asked, cap leaves 1)');
+  assert.equal(out.kb_at_cap, 0, 'at the daily cap it files nothing more');
   assert.equal(out.kb_applied, 'applied');
   assert.equal(out.kb_row, 'us');
   assert.equal(out.ar_applied, 'applied');
