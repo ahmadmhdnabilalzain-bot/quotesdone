@@ -79,6 +79,19 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
   return { delivered: false, via: 'none', detail: 'no channel effect for ' + row.surface };
 }
 
+/** A question held 48 hours (or failed) was escalated to its seat (fn_reason_held_escalate). A WhatsApp customer
+ *  is told it is being handled — once, by the row's escalation — under the same window rule as an answer. Other
+ *  surfaces already replied at the time, or have no person waiting on a channel. */
+export async function holdingNotice(row: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }, io: DeliveryIO): Promise<Delivery> {
+  const phone = String(row.subject?.phone ?? '');
+  if (!phone) return { delivered: false, via: 'none', detail: 'no customer channel on ' + row.surface };
+  const q = String(row.question ?? '');
+  const text = isAr(q)
+    ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'
+    : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';
+  return await whatsapp(io, phone, q, text);
+}
+
 // ── the live io ──────────────────────────────────────────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -120,6 +133,10 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
         .select('meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
         .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
       if (!m) return { ok: false, err: 'comment_not_found' };
+      // Once per comment: the live path may already have handed it off, and a replay can run twice.
+      const { data: prior } = await admin.from('agent_actions').select('id').eq('kind', 'handoff').eq('agent', 'customer_support')
+        .eq('target_table', 'social_message').eq('target_id', 'social.escalation:' + m.platform + ':' + m.meta_message_id).neq('status', 'failed').limit(1);
+      if (prior && prior.length) return { ok: true };
       const { raiseSocialHandoff } = await import('../marketing/social_handoffs.ts');
       try {
         await raiseSocialHandoff(admin, 'social.escalation', {
