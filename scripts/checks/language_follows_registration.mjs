@@ -121,8 +121,21 @@ begin
                     where public.fn_language_mismatch('ar', f->>'question_plain_ar', array['Teams', 'Zoom']) is not null));
 end $walk$;`;
 
+// 22 Sep 2026 (review of PR #857). This used to be one all-or-nothing gate: with no management token
+// the whole file failed, so run.mjs could only run it where a token exists — and CI's checks job has
+// none, which meant "registered but never enforced". The file has three parts and only the first two
+// need production. Part 3 reads SOURCE, and part 3 is what had been wrong on main since 14 Sep while
+// nothing ran it. So the parts are now separable: with no token the walk and the intake questions are
+// NOT VERIFIED and say so by name, and the source assertions still run and still fail the check.
+// This is not a softening — nothing that used to be asserted has stopped being asserted; a part that
+// could not run before is now the part that CI enforces.
+const NOT_VERIFIED = [];
 if (!TOKEN) {
-  fails.push('no Supabase token (SUPABASE_ACCESS_TOKEN or ~/.supabase/access-token): the walk reads production and cannot be skipped');
+  NOT_VERIFIED.push('the production walk (4 demo recipients, one rolled-back transaction)');
+  NOT_VERIFIED.push('the 396 Arabic intake questions');
+  console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL — no SUPABASE_ACCESS_TOKEN and no ~/.supabase/access-token.');
+  console.log('  Parts 1 and 2 read production and are NOT asserted in this run. Part 3 (the documents,');
+  console.log('  the edge functions and the portals) runs below and still fails this check.');
 } else {
   const r = await sql(WALK);
   let msg = r.text; try { const j = JSON.parse(r.text); msg = String(j.message || j.error || r.text); } catch (_e) { /* raw */ }
@@ -160,11 +173,18 @@ console.log(`documents: quote_documents.test.ts ${deno.status === 0 ? 'passed' :
 // ── 3b. EACH TOUCHPOINT READS THE REGISTERED ROW ─────────────────────────────────────────────────
 const F = 'supabase/functions/';
 const capi = src(F + 'customer_api/index.ts');
-ok((capi.match(/asLocale\(cust\.locale\)/g) || []).length >= 3, 'customer_api: the comparison, CSV and brief documents must each take asLocale(cust.locale)');
-// The quotation is the one document with a second-language copy on offer (customer audit 21 Sep 2026,
-// finding 4: the "النسخة العربية" button served English). It defaults to the registered language and
-// honours only an explicit 'en'/'ar' (documentLocale, tested in _shared/registered_locale.test.ts).
-ok((capi.match(/documentLocale\(body\.lang, cust\.locale\)/g) || []).length === 1, 'customer_api: only quote_pdf may take a requested document language, via documentLocale(body.lang, cust.locale)');
+// 21 Sep 2026 (customer-portal journey audit, finding 4): the "النسخة العربية" button served English,
+// because a document read customers.locale alone and ignored the button that was pressed. The fix went
+// further than the quotation — EVERY customer document (quotation, comparison, CSV, brief) now routes
+// through documentLocale(body.lang, cust.locale): the registered language is the default, and only an
+// explicit 'en'/'ar' overrides it. 22 SEP 2026 (DL-12): these two lines still described the state
+// before that fix — they demanded three bare asLocale(cust.locale) calls and exactly one
+// documentLocale — so this check had been RED on main since, naming correct code as the defect.
+// What must hold now: every document action takes documentLocale, and none reads the locale alone.
+ok((capi.match(/documentLocale\(body\.lang, cust\.locale\)/g) || []).length >= 4,
+   'customer_api: each customer document (quote, comparison, CSV, brief) must take documentLocale(body.lang, cust.locale)');
+ok(!/lang = asLocale\(cust\.locale\)/.test(capi),
+   'customer_api: a document reads customers.locale alone again, so the language button it was asked for is ignored');
 ok(!/String\(body\.lang/.test(capi), 'customer_api: a document still reads its language from the request body');
 ok(/registeredLocale\(admin, \{ role: 'customer'/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: an unspecified language must come from the registered customer');
 ok(!/test\(String\(inq\.summary/.test(src(F + 'quote_compare/index.ts')), 'quote_compare: still guesses the language from the request text');
@@ -199,9 +219,42 @@ const sp = src('src/components/portal/SupplierPortal.tsx');
 ok(/action: 'settings' \}, token\)\.then\(\(j\) => \{\s*const l = [^\n]*settings\.locale[\s\S]{0,200}?adoptLocale\(l, setLang\)/.test(sp), 'SupplierPortal: the supplier\'s registered language must open the portal');
 ok(/action: 'save_settings', locale: l/.test(sp), 'SupplierPortal: switching language while signed in must save leads.locale');
 
+// THE FRAME AND THE TEMPLATE MUST AGREE ON THE FOOTER (22 Sep 2026, reviews of PR #857).
+// DL-06 corrected the supplier footer in templates.email_supplier and in send_outbox/arabic_frame.ts,
+// which translates the English footer words at send time. Those two are one sentence split across a
+// stored template and a deployed function, and either half alone prints a wrong footer: the frame
+// without the apply leaves an English licence line inside an Arabic mail, and the apply without the
+// frame leaves the corrected English words untranslated. A bridge that recognised BOTH wordings was
+// carried for one commit and then removed rather than left as dead code with nothing to remove it —
+// so this asserts the pair in both directions, and fails while the two disagree.
+{
+  const frame = src(F + 'send_outbox/arabic_frame.ts');
+  const bridged = /Dubai DET E-Trader Licence/.test(frame);
+  if (TOKEN) {
+    const r = await sql(`select count(*)::int n from public.templates where content like '%Dubai DET E-Trader Licence%'`);
+    let live = null; try { live = JSON.parse(r.text)?.[0]?.n ?? null; } catch (_e) { /* reported below */ }
+    ok(live !== null, 'arabic_frame bridge: could not read templates (HTTP ' + r.status + ')');
+    if (live === 0) {
+      ok(!bridged, 'arabic_frame.ts still carries the pre-DL-06 footer mapping, and no template holds that wording any more: delete the bridge');
+      console.log('supplier footer: the template and arabic_frame.ts agree on DET Trader Licence No. 1633275 · TDRA NOL-26-100000665');
+    } else {
+      ok(bridged, `templates.email_supplier still carries the pre-DL-06 footer on ${live} row(s) while arabic_frame.ts translates only the corrected wording — an Arabic supplier mail would print an English licence line. APPLY: node scripts/apply_sql.mjs scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql --apply  (and apply it BEFORE deploying send_outbox)`);
+    }
+  } else {
+    NOT_VERIFIED.push('whether the arabic_frame.ts deploy-order bridge is still needed (reads templates)');
+  }
+}
+
 if (fails.length) {
   console.error(`\nlanguage_follows_registration: ${fails.length} failure(s)`);
   for (const f of fails) console.error('  - ' + f);
   process.exit(1);
 }
-console.log('\nlanguage_follows_registration: every touchpoint speaks the registered language');
+// NAMED, NEVER SILENT: a pass that could not measure everything says what it did not measure.
+if (NOT_VERIFIED.length) {
+  console.log(`\nlanguage_follows_registration: the source side passes; ${NOT_VERIFIED.length} part(s) NOT VERIFIED here:`);
+  for (const n of NOT_VERIFIED) console.log('  - ' + n);
+  console.log('  Run this file where a management token exists to assert them.');
+} else {
+  console.log('\nlanguage_follows_registration: every touchpoint speaks the registered language');
+}

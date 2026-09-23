@@ -316,7 +316,11 @@ Deno.test('763/1 the welcome never greets with an address, and sounds like a sen
     assert(w.includes(HOURS[lang]), lang + ' welcome states the working hours');
     assert(w.includes('QuotesDone'));
   }
-  assertMatch(WELCOME_TAIL.en, /construction procurement platform: request quotations and compare verified suppliers/);
+  // 22 Sep 2026 (documents-language audit, DL-11): this pinned "construction procurement platform",
+  // which named a sector the product does not confine itself to — every trade is welcome except food
+  // and beverage. The assertion now pins the corrected sentence, and refuses the old one by name.
+  assertMatch(WELCOME_TAIL.en, /sourcing marketplace for every trade except food and beverage: request quotations and compare verified suppliers/);
+  assert(!/construction procurement/.test(WELCOME_TAIL.en + WELCOME_TAIL.ar));
   assertMatch(WELCOME_TAIL.ar, /فريق خدمة العملاء في QuotesDone$/);
 });
 

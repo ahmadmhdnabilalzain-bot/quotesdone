@@ -1,3 +1,13 @@
+// RETIRED 22 Sep 2026 (documents-language audit, DL-13) — WITH ITS SUBJECT, never softened.
+// The mechanism this file gates was removed by scripts/sql/the_report_pdf_enqueue_had_no_consumer.sql:
+// the report_pdf edge function is not deployed (absent from the 74 ACTIVE functions measured on the
+// management API, and no source for it in this repository), action_execution never carried a single
+// row of class report.pdf, org_action_executor has no such executor, and the three z_report_pdf_enqueue
+// triggers were dropped. This check has been vacuously green since 7 Sep because no report row has been
+// created in any 8-day window since; it would have gone red on the next report, naming a renderer that
+// does not exist. Bring it back — rename to *.test.mjs and move it out of retired/ — when a renderer
+// composes a report again and the trigger is restored.
+//
 // EVERY REPORT IS A CORPORATE PDF.
 //
 // Founder's order, 6 Sep 2026: "any report needs to be in PDF format; all finance reports need to be

@@ -149,10 +149,14 @@ export function greetLine(lang: Lang, _audience: Audience, name: string | null, 
 /** The fixed part of the welcome: who we are in one line, what to do, when a person is here, signed.
  *  The Content body is greetLine + this; a list-picker body may hold 1,024 characters (menu test). */
 export const WELCOME_TAIL: Record<Lang, string> = {
-  en: 'QuotesDone is the UAE construction procurement platform: request quotations and compare verified suppliers, with your identity protected until you choose to reveal one.\n\n' +
+  // 22 Sep 2026 (documents-language audit, DL-11): "construction procurement" named a sector the
+  // product does not confine itself to — every trade is welcome except food and beverage (the
+  // founder's exact-trade rule), and a supplier of office furniture or IT reading this line would
+  // conclude the platform is not for them.
+  en: 'QuotesDone is the UAE sourcing marketplace for every trade except food and beverage: request quotations and compare verified suppliers, with your identity protected until you choose to reveal one.\n\n' +
       'Please choose from the options below, or simply type your question and I will answer it straight away. Our team is available ' + HOURS.en + '.\n\n' +
       'Kind regards,\nQuotesDone Customer Support',
-  ar: 'QuotesDone منصة إماراتية لمشتريات قطاع البناء: اطلبوا عروض الأسعار وقارنوا بين موردين موثّقين، مع حجب هويتكم حتى تختاروا الكشف عن أحدهم.\n\n' +
+  ar: 'QuotesDone سوق إماراتي لعروض الأسعار في جميع الأنشطة باستثناء الأغذية والمشروبات: اطلبوا عروض الأسعار وقارنوا بين موردين موثّقين، مع حجب هويتكم حتى تختاروا الكشف عن أحدهم.\n\n' +
       'تفضلوا باختيار ما يناسبكم من الخيارات أدناه، أو اكتبوا استفساركم وسنجيبكم عليه فورًا. فريقنا في خدمتكم ' + HOURS.ar + '.\n\n' +
       'مع خالص التحية،\nفريق خدمة العملاء في QuotesDone',
 };

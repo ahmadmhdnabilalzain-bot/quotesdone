@@ -29,7 +29,7 @@ export function stripHtml(h: string): string {
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim();
 }
 
-function attachmentNames(a: unknown): string[] {
+function attachmentNames(a: unknown, ar = false): string[] {
   if (Array.isArray(a)) {
     return a.map((x) => {
       if (x && typeof x === 'object') { const o = x as Record<string, unknown>; return String(o.filename ?? o.name ?? o.path ?? o.bucket_path ?? JSON.stringify(o)); }
@@ -38,7 +38,12 @@ function attachmentNames(a: unknown): string[] {
   }
   if (a && typeof a === 'object' && typeof (a as { count?: unknown }).count === 'number') {
     const n = (a as { count: number }).count;
-    return n > 0 ? [`${n} attachment(s) - stored with the supplier or receipt documents`] : [];
+    // 22 Sep 2026 (DL-14): on an Arabic page this one line printed in English. It is a count and a
+    // place, not a filename, so it is written in the page's language. The count precedes a noun that
+    // is not "day", so no ar_days() form is involved.
+    if (n <= 0) return [];
+    return [ar ? `عدد المرفقات: ${n} — محفوظة مع مستندات المورّد أو الإيصالات`
+               : `${n} attachment(s) - stored with the supplier or receipt documents`];
   }
   return [];
 }
@@ -79,7 +84,7 @@ export function conversationDocument(r: ConversationRow): Record<string, any> {
   let any = false;
   for (const p of paras) { if (p.trim()) { blocks.push({ t: 'p', text: p }); any = true; } else blocks.push({ t: 'space', h: 4 }); }
   if (!any) blocks.push({ t: 'p', text: L.none });
-  const atts = attachmentNames(r.attachments);
+  const atts = attachmentNames(r.attachments, ar);
   if (atts.length) { blocks.push({ t: 'h2', text: L.attachments }); for (const a of atts) blocks.push({ t: 'li', text: a }); }
   return {
     lang: ar ? 'ar' : 'en',

@@ -1635,6 +1635,11 @@ scripts/sql/a_ceiling_exists_before_the_door_is_opened.sql
 # while every file on the site said Monday to Friday. Becomes the canonical file for the two routines.
 scripts/sql/the_working_week_is_monday_to_friday_in_the_database_too.sql
 scripts/sql/the_site_error_ingest_names_the_seat_that_owns_it.sql
+scripts/sql/a_greeting_written_in_arabic_is_answered_in_arabic.sql
+scripts/sql/the_arabic_faq_answers_every_question_the_english_one_does.sql
+scripts/sql/the_live_composers_say_it_in_native_arabic.sql
+scripts/sql/the_licence_we_name_is_the_licence_we_hold.sql
+scripts/sql/the_report_pdf_enqueue_had_no_consumer.sql
 
 # 23 Sep 2026 (#862, applied): the identity router names only live seats and models the catalogue
 # knows. 119 of 122 model_policy_by_identity rows named the organisation deleted on 7 Sep.

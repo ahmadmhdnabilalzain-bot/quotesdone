@@ -72,11 +72,16 @@ const CATALOGUE: Record<string, Catalogue> = {
     // is what a Gulf business writer produces, and approved template #2 already models it with `بوابتك`),
     // and `وأي إجراء مطلوب` (`أي` + indefinite singular is word-for-word "any action needed"; the definite
     // plural carries it idiomatically and keeps the two conjoined objects symmetric).
-    ar: 'تحديث من QuotesDone بخصوص حسابك كمورّد: {{1}}. يُرجى فتح بوابة الموردين للاطلاع على التفاصيل الكاملة والإجراءات المطلوبة: {{2}} شكرًا لك.',
+    // 22 SEP 2026 (documents-language audit, DL-05). The 18 Sep pass still addressed a supplier company
+    // in the singular and opened with a preposition an Arabic writer would not use here. The formal
+    // plural is what the invitation and the reminders use, and the company is "your supplier account"
+    // as one idāfa, not a possessive hung off it. Resubmitted to Meta as UTILITY.
+    ar: 'تحديث من QuotesDone بشأن حسابكم كمورّد: {{1}}. يُرجى الدخول إلى بوابة الموردين للاطلاع على التفاصيل والإجراءات المطلوبة: {{2}} وشكرًا لكم.',
     sample1_en: 'New requests to your company are paused on QuotesDone',
     // `استقبال`, not `إيقاف إرسال … إلى شركتك`: nothing stopped being sent, the company stopped receiving.
     // The brand is not repeated — the body it lands in already opens with `تحديث من QuotesDone`.
-    sample1_ar: 'تم إيقاف استقبال الطلبات الجديدة لشركتك مؤقتًا',
+    // The Arabic passive verb, not the "تمّ + verbal noun" construction a translator reaches for.
+    sample1_ar: 'أُوقف استقبال شركتكم للطلبات الجديدة مؤقتًا',
     url: 'https://quotesdone.com/portal',
   },
   // 6 SEP 2026 — the founder's own alert. Founder: "whatsapp token with twilio is with you, fix the
@@ -94,14 +99,16 @@ const CATALOGUE: Record<string, Catalogue> = {
   },
   supplier_doc_expiry: {
     en: 'QuotesDone reminder: {{1}}. Please renew it to keep receiving customer requests. You can update it here: {{2}} Thank you.',
-    ar: 'تذكير من QuotesDone: {{1}}. يُرجى تجديدها للاستمرار في استقبال طلبات العملاء. حدّثها هنا: {{2}} شكرًا لك.',
-    sample1_en: 'your trade licence expires on 2026-08-01', sample1_ar: 'تنتهي رخصتك التجارية في 2026-08-01',
+    // 22 Sep 2026 (DL-05): formal plural, and a link is entered rather than "updated here".
+    ar: 'تذكير من QuotesDone: {{1}}. يُرجى تجديدها لمواصلة استقبال طلبات العملاء، ويمكنكم تحديثها عبر الرابط: {{2}} وشكرًا لكم.',
+    sample1_en: 'your trade licence expires on 2026-08-01', sample1_ar: 'تنتهي رخصتكم التجارية في 2026-08-01',
     url: 'https://quotesdone.com/portal',
   },
   // The supplier's side of a paid reveal (founder, 19 Aug 2026: both parties, both channels).
   supplier_quote_accepted: {
     en: 'QuotesDone: a customer has paid to reveal your quote for {{1}}. Please respond within 5 working days. Open your portal here: {{2}} Thank you.',
-    ar: 'QuotesDone: قام عميل بالدفع للاطلاع على عرض سعرك لـ {{1}}. يُرجى الرد خلال 5 أيام عمل. افتح بوابتك هنا: {{2}} شكرًا لك.',
+    // 22 Sep 2026 (DL-05): the active verb سدّد, not "قام … بالدفع", and the formal plural throughout.
+    ar: 'QuotesDone: سدّد أحد العملاء رسوم الاطلاع على عرض سعركم لـ {{1}}. يُرجى الرد خلال 5 أيام عمل عبر بوابتكم: {{2}} وشكرًا لكم.',
     sample1_en: 'supply and install aluminium windows for a villa in Dubai', sample1_ar: 'توريد وتركيب نوافذ ألمنيوم لفيلا في دبي',
     url: 'https://quotesdone.com/portal',
   },
