@@ -8,12 +8,13 @@ import { sanitizeOrMessage, SAFE_AUDIO } from '../_shared/attachment.ts';
 // customer file entering the estate, and it is billed to a model, so it gets the same verdict.
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
+import { readTranscript } from '../_shared/provider_signals.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 const GW = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
-const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - output an empty string only, and never guess or fabricate any sentence.';
+const PROMPT = 'Transcribe the spoken words in this audio EXACTLY as spoken, word for word. The speaker may talk in Arabic, English, or a mix of both (United Arab Emirates). Output ONLY the transcribed words and nothing else. Do NOT translate, summarise, correct, complete, punctuate creatively, or invent anything. Keep numbers, measurements and units as spoken. If the audio contains no clear human speech - for example silence, background noise, music, or a tone - say so in the speech field, and never guess or fabricate any sentence. Reply with ONE JSON object and nothing else: {"speech": true, "text": "<the transcribed words>"} when there is speech, {"speech": false, "text": ""} when there is none.';
 
 Deno.serve(observe('transcribe', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -46,11 +47,11 @@ Deno.serve(observe('transcribe', async (req) => {
       const j = await r.json();
       if (!r.ok || j?.ok === false) { lastErr = JSON.stringify(j?.detail || j?.error || j).slice(0, 220); }
       else {
-        const c = j?.content;
-        let t = (typeof c === 'string' ? c : Array.isArray(c) ? c.map((p: any) => p?.text || '').join('') : '').trim();
-        // strip common non-speech placeholders a model might emit
-        if (/^(\(|\[)?\s*(no (clear )?(human )?speech|silence|inaudible|no audio|blank|empty)\s*(\)|\])?\.?$/i.test(t)) t = '';
-        text = t;
+        // 23 SEP 2026 (founder_instruction 886-903): "was there speech?" is the model's structured answer
+        // ({speech, text}, _shared/provider_signals.ts), never a placeholder regex over its words. A reply that is
+        // not that object is unreadable: the caller is asked to try again rather than handed a guess.
+        const read = readTranscript(j?.content);
+        if (read) text = read.text; else lastErr = 'transcription_unreadable: the model did not return {speech, text}';
       }
     } catch (e) { lastErr = String((e as Error)?.message || e); }
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
