@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-23T11:29:10.730Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-23T11:57:34.748Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -22729,6 +22729,7 @@ AS $function$
     ('ceo_knowledge.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a label naming where a knowledge entry came from, not a stored file; the entries themselves are table rows in the daily table export'),
     ('cad_read_jobs.source_path',            'column', null, false, null, 'EXEMPT (not a file or not ours): a work-queue pointer to the customer''s original drawing in drawing-files, which is backed up through inquiries.drawing_file_path; the job holds no second copy'),
     ('marketing_first_touch.landing_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): the site page (a URL path such as /en/suppliers) a supplier first landed on from a post, not a stored file; the row is in the daily table export'),
+    ('marketing_asset_feature.asset_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer to a post video already in marketing-media (backed up through marketing_post.video_path and media_paths); the feature row measures it and holds no second copy'),
     ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
 
     -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
@@ -44263,7 +44264,7 @@ begin
     if q.id is null then raise exception 'no perception for asset %', p_subject; end if;
     if to_regclass('public.marketing_post_metric') is not null then
       execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select m.* from public.marketing_post_metric m '
-           || 'join public.marketing_post p on p.id = m.post_id where $1 = any(p.media_paths) or $2 = any(p.media_paths) '
+           || 'join public.marketing_post mp on mp.id = m.post_id where $1 = any(mp.media_paths) or $2 = any(mp.media_paths) '
            || 'order by m.id limit 50) m'
         into v_metrics using f.asset_path, f.asset_bucket || '/' || f.asset_path;
     end if;
@@ -56590,7 +56591,7 @@ begin
   if d.handoff_id is not null then
     -- trg_handoff_only_originator_closes: the author seat names itself, only for this transaction.
     perform set_config('qd.handoff_closer', d.author_seat, true);
-    perform public.fn_seat_handoff_complete(d.handoff_id, jsonb_build_object('deliberation_id', p_id,
+    perform public.fn_seat_handoff_complete(d.handoff_id, jsonb_build_object('kind', 'deliberation.review', 'deliberation_id', p_id,
       'final_verdict', c.verdict, 'reviewer_model', c.model, 'reviewer_provider', c.provider,
       'ended', d.status, 'outcome', p_outcome, 'closed_by', p_closed_by));
   end if;

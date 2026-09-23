@@ -492,7 +492,7 @@ begin
     if q.id is null then raise exception 'no perception for asset %', p_subject; end if;
     if to_regclass('public.marketing_post_metric') is not null then
       execute 'select coalesce(jsonb_agg(to_jsonb(m)), ''[]''::jsonb) from (select m.* from public.marketing_post_metric m '
-           || 'join public.marketing_post p on p.id = m.post_id where $1 = any(p.media_paths) or $2 = any(p.media_paths) '
+           || 'join public.marketing_post mp on mp.id = m.post_id where $1 = any(mp.media_paths) or $2 = any(mp.media_paths) '
            || 'order by m.id limit 50) m'
         into v_metrics using f.asset_path, f.asset_bucket || '/' || f.asset_path;
     end if;
