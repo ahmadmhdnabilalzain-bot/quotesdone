@@ -39,7 +39,7 @@ export function escalationOptions(legalTriggers: string[], candidates: { id: num
     { id: ESCALATION_NEITHER, meaning: 'neither a legal exposure nor a repeat of an attempt that ended worse' },
   ];
 }
-/** dedupeKey must be the SQL's: 'ceo.escalation:' + md5 of the jsonb text of ctx || {actor, decide_kind} (fn_should_escalate), so the
+/** dedupeKey must be the SQL's: 'ceo.escalation:' + md5(decide_kind || '|' || actor || '|' || lower(text)) (fn_should_escalate), so the
  *  replay (fn_reason_apply_ceo__escalation_meaning re-runs fn_decide with subject.ctx) finds its own answer. */
 export function escalationMeaning(deps: ThinkDeps, o: { text: string; kind: string; actor: string; ctx: Record<string, unknown>; legalTriggers: string[]; candidates: { id: number; headline: string }[]; dedupeKey: string }) {
   return pick(deps, 'ceo', 'ceo.escalation_meaning', o.text, escalationOptions(o.legalTriggers, o.candidates), o.dedupeKey, { kind: o.kind, ctx: o.ctx, actor: o.actor });
@@ -91,6 +91,18 @@ export function collaborationRuleOptions(situation: string): Opt[] {
     { id: 'does_not_apply', meaning: 'the task is not that situation' },
   ];
 }
+// ── lead_trade.classify (sql.leads_categories_keyword_v1) ─────────────────────────────────────────
+// The SQL files these (fn_lead_reclassify_tick, only behind app_secrets.lead_reclassify_backfill = 'go' and its daily
+// cap). The embedding shortlist is a HINT inside the question, never an option filter: every active trade is
+// offered, plus 'none'.
+export const NONE = 'none';
+export function leadTrade(deps: ThinkDeps, o: { leadId: number; record: string; trades: { code: string; label: string }[]; shortlist: string[] }) {
+  const hint = o.shortlist.length ? `\nNearest trades by meaning (a hint to check, never the answer): ${o.shortlist.join(', ')}` : '';
+  return pick(deps, 'sales_engineer', 'lead_trade.classify', o.record + hint,
+    [...o.trades.map((t) => ({ id: t.code, meaning: t.label })), { id: NONE, meaning: 'no trade in this list is what the company supplies or performs' }],
+    'lead_trade:' + o.leadId, { lead_id: o.leadId, shortlist: o.shortlist });
+}
+
 export function taskCollaborationRule(deps: ThinkDeps, o: { taskId: number; ruleId: number; situation: string; text: string; dedupeKey: string }) {
   return pick(deps, 'ceo', 'ceo.task_collaboration_rule', o.text, collaborationRuleOptions(o.situation), o.dedupeKey, { task_id: o.taskId, rule_id: o.ruleId });
 }

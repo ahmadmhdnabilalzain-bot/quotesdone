@@ -1,15 +1,25 @@
 Committed, not applied (23 Sep 2026, batch B6 of the decision-point migration; seats ceo + sales_engineer).
 
-Apply order: AFTER every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql and
-a_reasoned_answer_is_applied_by_its_own_surface.sql (it writes reasoning_held_question and relies on
-fn_reason_held_resolve calling fn_reason_apply_<surface>). Then: delete this note and append the file to the END of
-scripts/sql/MANIFEST.txt in the same commit.
+Apply order: AFTER scripts/sql/fn_decide_reads_its_prior_outcomes_inline.sql (PR #896: this file carries the same
+inline read of the prior outcomes in fn_decide, so applying it after #896 changes nothing there), and after
+a_reasoned_answer_is_applied_by_its_own_surface.sql and a_held_question_never_expires_it_is_escalated_at_48_hours.sql
+(already applied). Then: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
 
-Functions to deploy with it: none is required for the SQL to work (every question is filed and read in SQL, and
-replayHeld in resilience_ping already reasons any held row). supabase/functions/_shared/reasoned_routing.ts ships with
-the next deploy of any function; no function imports it yet.
+Functions to deploy with it: resilience_ping (the lead_reclassify step; it does nothing until the gate below is 'go').
+supabase/functions/_shared/reasoned_routing.ts ships with any deploy; no function imports it.
+
+THE BULK BACKFILL IS GATED, CAPPED AND PRICED — nothing is spent until the founder says go:
+  gate key:  app_secrets.lead_reclassify_backfill = 'go'   (absent or anything else: fn_lead_reclassify_tick files nothing)
+  daily cap: app_secrets.lead_reclassify_daily_cap = 95 leads per Dubai day (written by this file)
+  estimate:  ~AED 0.114 per lead (1 question = ~3 calls, ~12k in / 0.7k out tokens, agent_reasoning at USD 2/10 per M);
+             22,272 leads = ~AED 2,540; the cap = ~AED 10.8 a day, ~AED 325 a month (25% of the marketplace
+             department's AED 1,300 monthly ceiling); ~235 days. Written to app_secrets.lead_reclassify_cost_estimate.
+One-off questions this file files at apply (not gated, small): the 6 live supporting documents and the ~40 vocabulary
+words no declared rung maps to a catalogue key — ~46 questions, ~AED 5 once, reasoned only when the hold lifts.
 
 What moves when applied: under the model hold, an escalate/approve on text returns awaiting_reasoning and records
-nothing; a refund with a customer note waits (waiting_on_reasoning) instead of being judged by a pattern; a task's
-owner is recorded only once reasoned; the 6 live supporting documents are each asked about once.
-Proved in one aborted transaction: node --test scripts/checks/decision_points_are_reasoned.test.mjs (B6 tests).
+nothing; a refund with a customer note waits (its other remediable work still goes to its owners, and the founder is
+never paged over a question only reasoning answers); a task's owner is recorded only once reasoned; suppliers are in
+no trade pool until reasoned (lead_trade_class); a vocabulary word without a declared catalogue key has none until
+reasoned. No held question here expires.
+Proved in one aborted transaction: node --test scripts/checks/decision_points_are_reasoned.test.mjs (the B6 tests).

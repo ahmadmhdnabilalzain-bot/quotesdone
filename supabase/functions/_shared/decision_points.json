@@ -655,14 +655,14 @@
    "severity": "high",
    "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
    "decides": "the escalate/approve branches acted on fn_should_escalate's word matches, and the invite pool took any supplier whose category text CONTAINED the slug (like '%'||category||'%')",
-   "held": "An escalate/approve on text not yet reasoned returns awaiting_reasoning with route_to ceo and writes no decision_record, log or task; the question waits in the CEO seat's queue and fn_reason_apply_ceo__escalation_meaning re-runs the decision on the reasoned meaning. The invite pool is exact list membership (no model).",
+   "held": "An escalate/approve on text not yet reasoned returns awaiting_reasoning with route_to ceo and writes no decision_record, log or task; the question waits in the CEO seat's queue and fn_reason_apply_ceo__escalation_meaning re-runs the decision on the reasoned meaning. The invite pool reads the REASONED trade (lead_trade_class) exactly; an unclassified supplier is in no pool.",
    "proof": [
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
      "must_contain": [
       "v_held := public.fn_reason_route_ask('ceo', 'ceo.escalation_meaning',",
       "'decided', public.fn_decide(r.subject->>'kind'",
-      "= any (select lower(btrim(x)) from unnest(string_to_array(coalesce(categories,''), ',')) x)"
+      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))"
      ],
      "must_not_contain": [
       "lower(coalesce(sub_type,'')) like '%'||lower(v_ctx->>'category')||'%'"
@@ -1052,6 +1052,74 @@
      "file": "supabase/functions/supplier_api/index.ts",
      "must_contain": [
       "admin.rpc('fn_trade_spec_checklist'"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sql.leads_categories_keyword_v1",
+   "order": 85,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "a supplier's trade: leads.categories is free text (company names as often as trades, measured 23 Sep 2026) and lead_category was filled by keyword_v1; fn_decide's invite pool and fn_twin matched a category as a substring of it",
+   "held": "A lead is in no trade's pool until reasoned. fn_lead_reclassify_tick files lead_trade.classify questions (195 trades + none; a gte-small shortlist is a hint only) ONLY when app_secrets.lead_reclassify_backfill = 'go', at most lead_reclassify_daily_cap (95) a Dubai day (~AED 0.114 a lead, ~AED 2,540 for 22,272, quoted in app_secrets.lead_reclassify_cost_estimate); the answer is stored in lead_trade_class with evidence and confidence.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "if coalesce(btrim(v_gate), '') <> 'go' then",
+      "perform public.fn_reason_route_ask('sales_engineer', 'lead_trade.classify',",
+      "create or replace function public.fn_reason_apply_lead_trade__classify(",
+      "exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category')))"
+     ],
+     "must_not_contain": [
+      "lower(coalesce(categories,''))||' '||lower(coalesce(sub_type,'')) like"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sql.fn_category_key_for_slug",
+   "order": 86,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "rungs 3 and 4 matched the trade word inside catalogue slugs and names (slug like '%-'||word||'-%', name like '%'||word||'%'); they resolved 40 of 56 vocabulary words (measured 23 Sep 2026)",
+   "held": "A word no declared rung maps is asked once (category.key_for_slug, dedupe category_key:<word>; on the category_specs insert trigger and a one-off for the 40 known words); until reasoned it has no key (null), which callers read as no category.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "where o.category_key = public.fn_reason_route_answer('category_key:' || lower(btrim(p_slug)))",
+      "return public.fn_reason_route_ask('sales_engineer', 'category.key_for_slug',"
+     ],
+     "must_not_contain": [
+      "c.slug like lower(btrim(p_slug))",
+      "lower(c.name) like '%' || lower(btrim(p_slug))"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "sql.fn_twin_category",
+   "order": 87,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+   "decides": "fn_twin('category'): approved_suppliers and supplier_pool_total counted leads whose free-text categories CONTAINED the category word",
+   "held": "Not a model decision: the counts read lead_trade_class (reasoned trades) exactly; unclassified leads are counted apart (supplier_pool_unclassified), never guessed into a trade.",
+   "proof": [
+    {
+     "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
+     "must_contain": [
+      "'supplier_pool_total',(select count(*) from lead_trade_class c where c.trade_code = lower(btrim(p_id))),"
+     ],
+     "must_not_contain": [
+      "like '%'||lower(p_id)||'%'"
      ]
     }
    ]

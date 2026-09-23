@@ -4,7 +4,7 @@ import { assert, assertEquals } from 'jsr:@std/assert';
 import type { ThinkDeps } from './think.ts';
 import {
   DOCUMENT_SUBJECT, ESCALATION_LEGAL, ESCALATION_NEITHER, ESCALATION_REPEAT, REFUND_OFF_PLATFORM, SAME_REQUEST, TASK_RESPONSIBILITY_NONE,
-  collaborationRuleOptions, escalationMeaning, escalationOptions, refundOffPlatform, sameInquiry, supplierDocumentSubject,
+  collaborationRuleOptions, escalationMeaning, escalationOptions, leadTrade, refundOffPlatform, sameInquiry, supplierDocumentSubject,
   taskCollaborationRule, taskResponsibility, taskResponsibilityOptions,
 } from './reasoned_routing.ts';
 
@@ -94,6 +94,18 @@ Deno.test('task: responsibility and collaboration rule reasoned; held queues eac
   const m2 = mock({ held: true });
   assertEquals((await taskCollaborationRule(m2.deps, ro)).value, null);
   assertEquals([heldCall(m2)!.p_surface, heldCall(m2)!.p_dedupe_key], ['ceo.task_collaboration_rule', 'task_rule:4:2:md5']);
+});
+
+Deno.test('supplier trade: every trade offered (the shortlist is only a hint); held queues lead_trade.classify', async () => {
+  const trades = [{ code: 'hvac', label: 'HVAC' }, { code: 'plumbing', label: 'Plumbing' }, { code: 'electrical', label: 'Electrical' }];
+  const o = { leadId: 7, record: 'Company: ZZ DEMO\nDescription: we install split units', trades, shortlist: ['hvac'] };
+  assertEquals((await leadTrade(mock({ choice: 'plumbing' }).deps, o)).value, 'plumbing', 'a trade outside the shortlist can be the answer');
+  assertEquals((await leadTrade(mock({ choice: 'none' }).deps, o)).value, 'none');
+  const m = mock({ held: true });
+  assertEquals((await leadTrade(m.deps, o)).value, null);
+  const h = heldCall(m)!;
+  assertEquals([h.p_seat, h.p_surface, h.p_dedupe_key], ['sales_engineer', 'lead_trade.classify', 'lead_trade:7']);
+  assertEquals((h.p_request as { decision: { options: unknown[] } }).decision.options.length, 4);
 });
 
 Deno.test('the SQL that files these questions uses the same surfaces and option ids (no drift)', () => {

@@ -50,6 +50,7 @@
 --
 -- Follows every_seat_reasons_before_it_answers.sql, meaning_is_decided_by_reasoning_not_by_word_lists.sql
 -- and a_reasoned_answer_is_applied_by_its_own_surface.sql.
+-- Applies after fn_decide_reads_its_prior_outcomes_inline.sql (#896) and a_held_question_never_expires_it_is_escalated_at_48_hours.sql.
 -- Pending: scripts/sql/pending/routing_and_ceo_decisions_are_reasoned_not_word_matched.txt.
 -- Proved in one aborted transaction: scripts/checks/decision_points_are_reasoned.test.mjs.
 
@@ -159,7 +160,286 @@ end $fn$;
 revoke execute on function public.fn_category_expert_ref(text) from public, anon, authenticated;
 grant execute on function public.fn_category_expert_ref(text) to service_role;
 
--- ── 3. a repeat request (sql.trg_inquiry_enrich) ────────────────────────────────────────────────────
+
+-- ── 1b. a supplier's trade, reasoned from its own record (sql.leads_categories_keyword_v1) ───────────
+-- leads.categories is free text (measured 23 Sep 2026: 22,234 of 22,272 leads carry it, and it holds company
+-- names such as "MAPEI" as often as trades), and lead_category was filled by keyword_v1. Neither decides a
+-- supplier's trade any more. Each lead is classified onto the 195-trade taxonomy (taxonomy_trade) by the
+-- sales engineer seat's REASONING over its licence authority, stated categories, description and website;
+-- the nearest trades by meaning (gte-small, free, over taxonomy_trade_service) are given to the reasoning as
+-- a hint and recorded beside the answer, and never decide it. Each answer is stored with its evidence and
+-- confidence. Until a lead is classified it is in NO trade's pool (fn_decide invite, fn_twin category).
+create table if not exists public.lead_trade_class (
+  lead_id     bigint primary key references public.leads(id) on delete cascade,
+  trade_code  text,                       -- a taxonomy_trade.code, or null when the reasoning says none applies
+  confidence  numeric check (confidence is null or (confidence >= 0 and confidence <= 1)),
+  evidence    text not null check (btrim(evidence) <> ''),
+  shortlist   jsonb not null default '[]'::jsonb,
+  shortlist_agreed boolean,               -- did the reasoned trade appear in the embedding shortlist (corroboration)
+  held_id     bigint,
+  decided_by  text not null default 'reasoning' check (decided_by = 'reasoning'),
+  decided_at  timestamptz not null default now()
+);
+create index if not exists lead_trade_class_trade_idx on public.lead_trade_class (trade_code);
+alter table public.lead_trade_class enable row level security;
+drop policy if exists lead_trade_class_service_role_only on public.lead_trade_class;
+create policy lead_trade_class_service_role_only on public.lead_trade_class
+  as permissive for all to public using (false) with check (false);
+revoke all on public.lead_trade_class from anon, authenticated;
+
+-- THE BACKFILL IS A SPEND, SO IT IS GATED, CAPPED AND PRICED BEFORE IT RUNS (founder: quote the cost first).
+--   gate:  app_secrets.lead_reclassify_backfill = 'go'  — absent or anything else: the tick files nothing.
+--   cap:   app_secrets.lead_reclassify_daily_cap (default 95 leads per Dubai day).
+--   price: 1 lead = 1 held question = ~3 model calls when replayed (decompose + up to 2 decide passes), ~12k in /
+--          0.7k out tokens on agent_reasoning (openai/gpt-5.6-sol, priced here at USD 2 / 10 per million, the
+--          class's own quoted band) = ~USD 0.031 = ~AED 0.114 per lead; 22,272 leads = ~AED 2,540 in total;
+--          the default cap of 95 a day = ~AED 10.8 a day = ~AED 325 a month, 25 % of the marketplace
+--          department's AED 1,300 monthly ceiling (department_budget, measured 23 Sep 2026); ~235 days.
+-- The estimate is written next to the gate so whoever says 'go' reads it first. Nothing here sets the gate.
+insert into public.app_secrets (key, value) values
+  ('lead_reclassify_daily_cap', '95'),
+  ('lead_reclassify_cost_estimate', 'AED ~0.114 per lead (~3 calls, ~12k in / 0.7k out tokens, agent_reasoning at USD 2/10 per M); 22,272 leads = ~AED 2,540; cap 95/day = ~AED 10.8/day, ~AED 325/month (25% of the marketplace AED 1,300 ceiling). Gate: lead_reclassify_backfill = go.')
+on conflict (key) do nothing;
+
+-- The earlier one-argument shape is dropped so exactly one signature exists (none is live yet).
+drop function if exists public.fn_lead_reclassify_tick(integer);
+create or replace function public.fn_lead_reclassify_tick(p_limit integer default 20, p_only bigint[] default null)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare
+  v_gate text; v_cap int; v_today int; v_room int; v_n int := 0; l record; v_short jsonb; v_opts jsonb; v_day timestamptz;
+begin
+  select value into v_gate from public.app_secrets where key = 'lead_reclassify_backfill';
+  if coalesce(btrim(v_gate), '') <> 'go' then
+    return jsonb_build_object('ran', false, 'reason', 'gate_off', 'gate_key', 'lead_reclassify_backfill');
+  end if;
+  begin select btrim(value)::int into v_cap from public.app_secrets where key = 'lead_reclassify_daily_cap';
+  exception when others then v_cap := null; end;
+  v_cap := greatest(0, coalesce(v_cap, 95));
+  v_day := date_trunc('day', now() at time zone 'Asia/Dubai') at time zone 'Asia/Dubai';
+  select count(*) into v_today from public.reasoning_held_question where surface = 'lead_trade.classify' and created_at >= v_day;
+  v_room := greatest(0, least(greatest(coalesce(p_limit, 20), 0), v_cap - v_today));
+  if v_room = 0 then
+    return jsonb_build_object('ran', false, 'reason', 'daily_cap', 'cap', v_cap, 'filed_today', v_today);
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('id', t.code, 'meaning', t.label) order by t.sort, t.code), '[]'::jsonb)
+         || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'no trade in this list is what the company supplies or performs'))
+    into v_opts from public.taxonomy_trade t where t.active;
+  for l in
+    select x.* from public.leads x
+     where (p_only is null or x.id = any (p_only))   -- p_only: a named set (the probe's ZZ DEMO leads); null = every lead
+       and not exists (select 1 from public.lead_trade_class c where c.lead_id = x.id)
+       and not exists (select 1 from public.reasoning_held_question h where h.dedupe_key = 'lead_trade:' || x.id)
+     order by x.id
+     limit v_room
+  loop
+    v_short := '[]'::jsonb;
+    if l.embedding_gte is not null then
+      select coalesce(jsonb_agg(distinct z.trade_code), '[]'::jsonb) into v_short
+        from (select s.trade_code from public.taxonomy_trade_service s
+               where s.active and s.embedding_gte is not null
+               order by s.embedding_gte <=> l.embedding_gte limit 8) z;
+    end if;
+    perform public.fn_reason_route_ask('sales_engineer', 'lead_trade.classify',
+      concat_ws(E'\n',
+        'Company: ' || l.company_name,
+        'Licence authority: ' || nullif(btrim(coalesce(l.license_authority, '')), ''),
+        'Stated categories (the supplier''s or a directory''s free text; may name the company, not its trade): ' || nullif(btrim(coalesce(l.categories, '')), ''),
+        'Sub type: ' || nullif(btrim(coalesce(l.sub_type, '')), ''),
+        'Description: ' || left(nullif(btrim(coalesce(l.description, '')), ''), 1500),
+        'Website: ' || nullif(btrim(coalesce(l.website, '')), ''),
+        case when jsonb_array_length(v_short) > 0
+             then 'Nearest trades by meaning (a hint to check, never the answer): ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_short) x) end,
+        'Which trade in the taxonomy does this company supply or perform? Answer none if the record does not say.'),
+      v_opts, jsonb_build_object('lead_id', l.id, 'shortlist', v_short), 'lead_trade:' || l.id);
+    v_n := v_n + 1;
+  end loop;
+  return jsonb_build_object('ran', true, 'filed', v_n, 'cap', v_cap, 'filed_today', v_today + v_n);
+end $fn$;
+revoke execute on function public.fn_lead_reclassify_tick(integer, bigint[]) from public, anon, authenticated;
+grant execute on function public.fn_lead_reclassify_tick(integer, bigint[]) to service_role;
+
+create or replace function public.fn_reason_apply_lead_trade__classify(p_id bigint, p_result jsonb)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_code text; v_conf numeric;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  if nullif(r.subject->>'lead_id', '') is null or coalesce(v_choice, '') = '' then return null; end if;
+  select t.code into v_code from public.taxonomy_trade t where t.code = v_choice;
+  if v_code is null and v_choice <> 'none' then return null; end if;   -- an option that does not exist is not stored
+  begin v_conf := least(1, greatest(0, (p_result->>'confidence')::numeric)); exception when others then v_conf := null; end;
+  insert into public.lead_trade_class (lead_id, trade_code, confidence, evidence, shortlist, shortlist_agreed, held_id)
+  values ((r.subject->>'lead_id')::bigint, v_code, v_conf,
+          left(coalesce(nullif(btrim(p_result->>'answer'), ''), 'reasoned without a stated reason'), 2000),
+          coalesce(r.subject->'shortlist', '[]'::jsonb),
+          case when v_code is null then null else coalesce(r.subject->'shortlist', '[]'::jsonb) ? v_code end, p_id)
+  on conflict (lead_id) do update set trade_code = excluded.trade_code, confidence = excluded.confidence, evidence = excluded.evidence,
+        shortlist = excluded.shortlist, shortlist_agreed = excluded.shortlist_agreed, held_id = excluded.held_id, decided_at = now();
+  return jsonb_build_object('lead_id', (r.subject->>'lead_id')::bigint, 'trade_code', v_code);
+end $fn$;
+revoke execute on function public.fn_reason_apply_lead_trade__classify(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_reason_apply_lead_trade__classify(bigint, jsonb) to service_role;
+
+-- ── 1c. the catalogue key of a trade word, declared or reasoned (sql.fn_category_key_for_slug) ────────
+-- Rungs 3 and 4 matched the slug inside catalogue slugs and names (like '%-'||slug||'-%', name like
+-- '%'||slug||'%'); measured 23 Sep 2026 they resolved 40 of the 56 vocabulary words. Those words are now asked
+-- once each (category.key_for_slug, sales engineer) and the reasoned key is read back by its dedupe key.
+-- Until answered the word has no key (null), which its callers already read as "no category".
+create or replace function public.fn_category_key_for_slug(p_slug text)
+returns text
+language sql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select i.category_key
+    from (
+      select m.catalog_num, 1 as pri from public.category_route_map m where m.category = lower(btrim(p_slug))
+      union all
+      select c.num, 2 from public.catalog_supplier_categories c where c.slug = lower(btrim(p_slug))
+      union all
+      select o.catalog_num, 3 from public.org_category_identity o
+       where o.category_key = public.fn_reason_route_answer('category_key:' || lower(btrim(p_slug)))
+    ) r
+    join public.org_category_identity i on i.catalog_num = r.catalog_num
+   where coalesce(btrim(p_slug), '') <> ''
+   order by r.pri, i.category_key
+   limit 1;
+$fn$;
+revoke execute on function public.fn_category_key_for_slug(text) from public, anon, authenticated;
+grant execute on function public.fn_category_key_for_slug(text) to service_role;
+
+create or replace function public.fn_category_key_ask(p_word text)
+returns bigint
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_w text := lower(btrim(coalesce(p_word, '')));
+begin
+  if v_w = '' or exists (select 1 from public.category_route_map m where m.category = v_w)
+     or exists (select 1 from public.catalog_supplier_categories c where c.slug = v_w) then
+    return null;
+  end if;
+  return public.fn_reason_route_ask('sales_engineer', 'category.key_for_slug',
+    'The marketplace names a trade "' || v_w || '". Which catalogue category is that trade?',
+    (select coalesce(jsonb_agg(jsonb_build_object('id', i.category_key, 'meaning', c.name) order by i.category_key), '[]'::jsonb)
+       from public.org_category_identity i join public.catalog_supplier_categories c on c.num = i.catalog_num)
+      || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'no catalogue category is that trade')),
+    jsonb_build_object('word', v_w), 'category_key:' || v_w);
+end $fn$;
+revoke execute on function public.fn_category_key_ask(text) from public, anon, authenticated;
+grant execute on function public.fn_category_key_ask(text) to service_role;
+
+create or replace function public.trg_category_key_asked()
+returns trigger
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+begin
+  perform public.fn_category_key_ask(NEW.category);
+  return NEW;
+end $fn$;
+revoke execute on function public.trg_category_key_asked() from public, anon, authenticated;
+grant execute on function public.trg_category_key_asked() to service_role;
+create or replace trigger category_key_asked after insert on public.category_specs
+  for each row execute function public.trg_category_key_asked();
+
+-- The 40 vocabulary words no declared rung resolves (measured 23 Sep 2026) are asked once: ~AED 5 at the
+-- per-question price above, a one-off, not a bulk backfill.
+do $backfill$
+begin
+  perform public.fn_category_key_ask(w)
+     from (select distinct lower(btrim(category)) w from public.category_specs
+           union select distinct lower(btrim(category)) from public.inquiries where category is not null) s;
+end $backfill$;
+
+-- The category twin counts suppliers by their REASONED trade (sql.fn_twin).
+create or replace function public.fn_twin(p_kind text, p_id text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ set search_path to 'public', 'pg_temp'
+AS $function$
+declare res jsonb;
+begin
+  if p_kind='customer' then
+    select jsonb_build_object('kind','customer','id',c.id,'name',c.full_name,'email',c.email,
+      'industry',c.industry,
+      'rfqs',(select count(*) from inquiries where customer_id=c.id),
+      'deals',(select count(*) from transactions where customer_id=c.id),
+      'spend_aed',(select coalesce(sum(reveal_fee),0) from transactions where customer_id=c.id and coalesce(fee_status,'')='paid'),
+      'categories',(select coalesce(jsonb_agg(distinct category),'[]') from inquiries where customer_id=c.id),
+      -- BUYING PATTERNS (§2) — categories ORDERED BY how often the customer actually buys them,
+      -- with the count beside each. `categories` above is a set and a set is not a pattern.
+      'preferred_categories',(select coalesce(jsonb_agg(jsonb_build_object('category',k.category,'rfqs',k.n) order by k.n desc),'[]')
+         from (select category, count(*) n from inquiries where customer_id=c.id and category is not null
+               group by category order by count(*) desc limit 8) k),
+      'projects_active',(select count(*) from projects
+         where customer_id=c.id and coalesce(status,'') not in ('closed','cancelled','completed','done')),
+      'projects_total',(select count(*) from projects where customer_id=c.id),
+      -- PREFERRED SUPPLIERS (§2) — the suppliers this customer has actually paid to reveal. A
+      -- preference the customer demonstrated, not one they were asked to declare.
+      'preferred_suppliers',(select count(distinct supplier_id) from transactions
+         where customer_id=c.id and coalesce(fee_status,'')='paid' and supplier_id is not null),
+      -- (No approval_chain key since 14 Sep 2026: the Approvals tab and the organisation/policy
+      -- tables it read were removed — a company buys exactly like an individual. See
+      -- a_company_buys_like_an_individual_so_the_approval_chain_is_dropped.sql.)
+      'last_active',(select max(created_at) from inquiries where customer_id=c.id),
+      -- AI UNDERSTANDING (§2) — the share of eight profile facts held, and ONLY once the customer
+      -- has raised a request. Before that there is no buying behaviour to understand, and a tally of
+      -- sign-up fields is not understanding (see the header of this file).
+      'understanding_pct',(case when exists (select 1 from inquiries where customer_id=c.id) then
+         (select round(100.0 * (
+             (c.full_name is not null and c.full_name <> '')::int
+           + (c.phone is not null and c.phone <> '')::int
+           + coalesce(c.email_verified,false)::int
+           + (c.tos_accepted_at is not null)::int
+           + (c.locale is not null)::int
+           + (c.industry is not null and c.industry <> '')::int
+           + 1
+           + (exists (select 1 from customer_preference cp where cp.customer_id=c.id))::int
+         ) / 8.0)) end),
+      'banned',c.banned) into res from customers c where c.id::text=p_id;
+
+  elsif p_kind='rfq' then
+    select jsonb_build_object('kind','rfq','id',i.id,'category',i.category,'emirate',i.emirate,'status',i.status,
+      'completeness',i.completeness,'ready',i.rfq_ready,'budget',i.budget,
+      'quotes',(select count(*) from quotes where inquiry_id=i.id),
+      'avg_quote_quality',(select round(avg(nullif(quality->>'score','')::numeric),1) from quotes where inquiry_id=i.id),
+      'matched_suppliers',(select count(*) from inquiry_matches where inquiry_id=i.id),
+      'created',i.created_at,'completed',i.completed_at,'outcome',i.outcome) into res from inquiries i where i.id::text=p_id;
+
+  elsif p_kind='category' then
+    res := jsonb_build_object('kind','category','category',p_id,
+      'demand_rfqs',(select count(*) from inquiries where category=p_id),
+      -- The supplier's trade as REASONED from its own record (lead_trade_class, 23 Sep 2026), never a substring of
+      -- the free-text categories column (which holds company names as often as trades, measured 23 Sep 2026).
+      'approved_suppliers',(select count(*) from leads l join lead_trade_class c on c.lead_id = l.id
+         where coalesce(l.approval_status,'')='approved' and c.trade_code = lower(btrim(p_id))),
+      'supplier_pool_total',(select count(*) from lead_trade_class c where c.trade_code = lower(btrim(p_id))),
+      'supplier_pool_unclassified',(select count(*) from leads l where not exists (select 1 from lead_trade_class c where c.lead_id = l.id)),
+      'avg_quote_quality',(select round(avg(nullif(q.quality->>'score','')::numeric),1) from quotes q join inquiries i on i.id=q.inquiry_id where i.category=p_id),
+      'agent',public.fn_resolve_cat_agent(p_id));
+
+  elsif p_kind='company' then
+    res := jsonb_build_object('kind','company','name','QuotesDone',
+      'health',public.fn_health_index(),
+      'suppliers_total',(select count(*) from leads),'suppliers_approved',(select count(*) from leads where coalesce(approval_status,'')='approved'),
+      'customers',(select count(*) from customers),'rfqs',(select count(*) from inquiries),'quotes',(select count(*) from quotes),
+      'revenue_paid_aed',(select coalesce(sum(reveal_fee),0) from transactions where coalesce(fee_status,'')='paid'),
+      'eval',public.fn_eval_snapshot(30));
+  else
+    res := jsonb_build_object('error','kind must be customer|rfq|category|company');
+  end if;
+  return coalesce(res, jsonb_build_object('error','not found','kind',p_kind,'id',p_id));
+end $function$;
+revoke execute on function public.fn_twin(text, text) from public, anon, authenticated;
+grant execute on function public.fn_twin(text, text) to service_role;
+
+-- ── 3. a repeat request (sql.trg_inquiry_enrich) ────────────────────────────────────────────────────────
 create or replace function public.trg_inquiry_enrich()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -216,7 +496,7 @@ end $function$;
 revoke execute on function public.trg_inquiry_enrich() from public, anon, authenticated;
 grant execute on function public.trg_inquiry_enrich() to service_role;
 
--- ── 4. the supplier's documents: the reasoned subject (sql.fn_supplier_document_home; asked in section 8) ──
+-- ── 4. the supplier's documents: the reasoned subject (sql.fn_supplier_document_home; asked in section 8) ───
 create or replace function public.fn_supplier_document_home(p_lead_id bigint)
  RETURNS TABLE(key text, path text, name text, expiry date, source text)
  LANGUAGE sql
@@ -258,7 +538,7 @@ $function$;
 revoke execute on function public.fn_supplier_document_home(bigint) from public, anon, authenticated;
 grant execute on function public.fn_supplier_document_home(bigint) to service_role;
 
--- ── 5. escalation (sql.fn_should_escalate, sql.fn_decide) ─────────────────────────────────────────
+-- ── 5. escalation (sql.fn_should_escalate, sql.fn_decide) ───────────────────────────────────────────────
 create or replace function public.fn_should_escalate(ctx jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -310,7 +590,9 @@ begin
   -- reasoning (fn_decide files it) and read back here by its key. Until it is answered this routine says
   -- so ('needs_reasoning') and its caller waits; nothing is escalated on a word guess.
   if c_txt <> '' then
-    v_key := 'ceo.escalation:' || md5(ctx::text);   -- the whole context (decide_kind, actor, text ...): one question per decision
+    -- One question per (decision kind, actor, text): stable fields only, never a per-call id or timestamp the
+    -- caller may add to the context, so asking again never files (and pays for) a second question.
+    v_key := 'ceo.escalation:' || md5(coalesce(ctx->>'decide_kind', '') || '|' || coalesce(c_actor, '') || '|' || c_txt);
     v_choice := public.fn_reason_route_answer(v_key);
     if v_choice is null then
       select coalesce(jsonb_agg(jsonb_build_object('id', 'repeats_failure_' || m.id,
@@ -525,12 +807,11 @@ begin
       select id, company_name, coalesce(capability_score,0) cap, coalesce(app_rating,rating,0) rat, coalesce(rv_response_rate,0) resp
       from leads
       where coalesce(approval_status,'')='approved'
-        -- The supplier's declared category, exactly (23 Sep 2026): the comma list is parsed as a list and
-        -- the slug must BE one of its entries or the sub_type. A substring of the free text decided the
-        -- trade before ('tile' matched 'textile'); an exact entry is the supplier's own statement.
+        -- The supplier's trade as REASONED from its own record (lead_trade_class), exactly (23 Sep 2026). A
+        -- substring of the free-text categories column decided it before ('tile' matched 'textile'), and that
+        -- column holds company names as often as trades (measured 23 Sep 2026), so it decides nothing now.
         and (coalesce(v_ctx->>'category','')=''
-             or lower(btrim(v_ctx->>'category')) = any (select lower(btrim(x)) from unnest(string_to_array(coalesce(categories,''), ',')) x)
-             or lower(btrim(v_ctx->>'category')) = lower(btrim(coalesce(sub_type,''))))
+             or exists (select 1 from lead_trade_class c where c.lead_id = leads.id and c.trade_code = lower(btrim(v_ctx->>'category'))))
         and (coalesce(v_ctx->>'emirate','')='' or coalesce(v_ctx->>'emirate')= any(coalesce(service_emirates,array[emirate])))
       order by (coalesce(capability_score,0)*0.5 + coalesce(app_rating,rating,0)*8 + coalesce(rv_response_rate,0)*0.3) desc
       limit coalesce((v_ctx->>'n')::int, 5))
@@ -810,7 +1091,7 @@ end $function$;
 revoke execute on function public.fn_decide(text, jsonb, text) from public, anon, authenticated;
 grant execute on function public.fn_decide(text, jsonb, text) to service_role;
 
--- ── 6. the refund exclusion (sql.fn_ceo_refund_checklist) and the review that waits for it ─────────
+-- ── 6. the refund exclusion (sql.fn_ceo_refund_checklist) and the review that waits for it ──────────────
 create or replace function public.fn_ceo_refund_checklist(p_transaction_id uuid, p_phase text, p_record boolean DEFAULT true)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1157,7 +1438,7 @@ end $function$;
 revoke execute on function public.fn_ceo_refund_review(bigint, text) from public, anon, authenticated;
 grant execute on function public.fn_ceo_refund_review(bigint, text) to service_role;
 
--- ── 7. who owns a task, and which collaboration rule applies (sql.fn_task_review) ─────────────────
+-- ── 7. who owns a task, and which collaboration rule applies (sql.fn_task_review) ───────────────────────
 create or replace function public.fn_task_review(p_task_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
