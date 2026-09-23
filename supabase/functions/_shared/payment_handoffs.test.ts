@@ -50,9 +50,10 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   assert(has('marketing.report', 'marketing', 'ceo'));
   assert(has('adspend.recorded', 'marketing', 'accountant') && has('adspend.booked', 'accountant', 'marketing'));
   assert(has('delivery.request', 'marketing', 'customer_support') && has('delivery.result', 'customer_support', 'marketing'));
-  // the CEO steers marketing with the daily plan's directive (it owns the demand stage) and approves nothing;
-  // since founder_instruction 873 it may also ask marketing for a review on another model family
-  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type).sort(), ['ceo.directive', 'deliberation.review']);
+  // the CEO steers marketing with the daily plan's directive (it owns the demand stage) and approves nothing
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type), ['ceo.directive']);
+  // marketing's proposals reach the CEO as its report and, for judgement, a review on another model family (873)
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['deliberation.review', 'marketing.report']);
   // and marketing asks nobody but these three
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) assert(['ceo', 'accountant', 'customer_support'].includes(h.to), JSON.stringify(h));
 });
