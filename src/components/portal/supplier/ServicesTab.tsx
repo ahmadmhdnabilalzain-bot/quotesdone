@@ -93,6 +93,11 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   // could not name goes in under a `word:` prefix, because it is free text and nothing stops a
   // supplier typing something shaped like a service key (React review, 18 Sep 2026).
   const [dropped, setDropped] = useState<Set<string>>(new Set());
+  // WHAT THE MEANING LAYER PROPOSED AND THE SUPPLIER THEN ADDED (22 Sep 2026, finding SP-F-06).
+  // Kept apart from `dropped` deliberately: a word-rule hit and a curated implication are things the
+  // supplier SAID, ticked until struck out; a meaning proposal is our reading of what a line probably
+  // means, and it decides who receives an inquiry. It is off until the supplier says yes.
+  const [kept, setKept] = useState<Set<string>>(new Set());
   const wordKey = (text: string) => 'word:' + text;
   const [rwBusy, setRwBusy] = useState(false);
   const [rwMsg, setRwMsg] = useState('');
@@ -208,6 +213,7 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
   const removeTrade = (code: string, on: boolean) => setRemovedTrades((s) => { const n = new Set(s); if (on) n.add(code); else n.delete(code); return n; });
   const toggleRole = (c: string) => setRoles((rs) => (rs.includes(c) ? rs.filter((x) => x !== c) : [...rs, c]));
   const toggleDrop = (k: string) => setDropped((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const toggleKeep = (k: string) => setKept((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   // THE REWRITE. Nothing is saved here — the supplier is shown what we made of its words and either
   // confirms it below or edits the text and asks again.
@@ -252,8 +258,12 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
     .filter((w) => !dropped.has(wordKey(w)));
   // A key struck out in the preview is struck out even if the prepared checklist also ticks it —
   // otherwise "Remove" reads as done and the union puts the key straight back (React review, 18 Sep).
-  // A service the meaning layer proposed, and the supplier kept, is a service it stated.
-  const rwMeaning = (rw?.meaning?.proposals || []).map((p) => p.key).filter((k) => !dropped.has(k));
+  // A service the meaning layer proposed is a service it STATED only once the supplier adds it
+  // (22 Sep 2026, finding SP-F-06). It used to be ticked by default and struck out on objection —
+  // so a reading the supplier never looked at decided, silently, which inquiries reached them. The
+  // word rules and the curated implications keep their default, because those are the supplier's
+  // own words and a rule the sales engineer wrote; a nearest-meaning reading is neither.
+  const rwMeaning = (rw?.meaning?.proposals || []).map((p) => p.key).filter((k) => kept.has(k) && !dropped.has(k));
   const statedKeys = [...new Set([...liveTicks, ...rwStated, ...rwMeaning])].filter((k) => !dropped.has(k));
   // Removals travel with the save so matching can subtract them: what was already stored, plus
   // whatever was struck out in this preview, minus anything now stated or kept.
@@ -436,14 +446,15 @@ export default function ServicesTab({ token, lang, goTo }: { token: string; lang
               <p className={cn(sub, 'mt-0.5')}>{sc(lang, 'meaning_help')}</p>
               <ul className="mt-1.5 flex flex-col gap-1.5">
                 {rw.meaning!.proposals.map((p) => (
-                  <li key={p.key} className={cn(chip, 'items-start', dropped.has(p.key) && 'opacity-60')}>
+                  // OFF UNTIL THE SUPPLIER ADDS IT. Dimmed and offered, not ticked and withdrawable.
+                  <li key={p.key} className={cn(chip, 'items-start', !kept.has(p.key) && 'opacity-60')}>
                     <div className="flex min-w-0 flex-col">
                       <span className="font-medium text-foreground" dir="auto">{ar ? p.label_ar : p.label_en}</span>
                       <span className="text-[12px] text-muted-foreground" dir="auto">{sc(lang, 'meaning_because')} “{p.lines[0]}”</span>
                     </div>
-                    {dropped.has(p.key) ? <Badge variant="secondary">{sc(lang, 'removed_badge')}</Badge> : null}
-                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleDrop(p.key)}>
-                      {dropped.has(p.key) ? sc(lang, 'restore') : sc(lang, 'remove')}
+                    <Button type="button" variant="link" className="ms-auto min-h-11 px-2" onClick={() => toggleKeep(p.key)}>
+                      {/* "Add", not "Add back": the proposal starts off and was never on the list. */}
+                      {kept.has(p.key) ? sc(lang, 'remove') : sc(lang, 'add')}
                       <span className="sr-only">: {ar ? p.label_ar : p.label_en}</span>
                     </Button>
                   </li>

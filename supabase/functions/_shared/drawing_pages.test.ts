@@ -4,7 +4,7 @@
 // The storage client is a recorder: nothing reaches production storage, a database or a person.
 // deno-lint-ignore-file no-explicit-any
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { DRAWING_SIGN_ISSUE, drawingWithheld, signRedactedDrawings } from './drawing_pages.ts';
+import { DRAWING_SIGN_ISSUE, drawingWithheld, isRedactedPath, signRedactedDrawings } from './drawing_pages.ts';
 
 /** `fails` decides how each path answers: 'ok', 'error' (the shape createSignedUrl really returns), or 'throw'. */
 function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang') {
@@ -119,6 +119,27 @@ Deno.test('a token-shaped fragment in a storage error never reaches the finding'
   const written = JSON.stringify(f.rpcs[0].args);
   assert(!written.includes('LEAKED-abc123'), 'a token-shaped fragment was recorded: ' + written);
   assert(written.includes('token=[removed]'), 'the message was not recorded at all');
+});
+
+// 22 Sep 2026 (finding SP-F-05): the originals live in the SAME bucket as the redacted pages, and
+// this helper used to sign whatever string it was handed.
+Deno.test('only a redacted page is signed; an original is refused, counted and raised', async () => {
+  assertEquals(isRedactedPath('redacted/abc/page_p1.jpg'), true);
+  assertEquals(isRedactedPath('drawings/redacted/founderdemo/x_p1.png'), true);   // the demo/E2E shape
+  assertEquals(isRedactedPath('drawings/7c1f/1737000000_villa.pdf'), false);      // the customer's original
+  assertEquals(isRedactedPath('redacted/../drawings/7c1f/original.pdf'), false);  // traversal
+  assertEquals(isRedactedPath('/redacted/abc/page_p1.jpg'), false);
+
+  const f = fake(() => 'ok');
+  const out = await signRedactedDrawings(f.admin, [
+    { id: 'zz-demo-inq-9', paths: ['redacted/zz-demo-9/page_p1.jpg', 'drawings/7c1f/1737000000_villa.pdf'] },
+  ]);
+  assertEquals(out['zz-demo-inq-9'].served, 1);
+  assertEquals(out['zz-demo-inq-9'].failed, 1);
+  assertEquals(out['zz-demo-inq-9'].urls.length, 1);
+  assertEquals(f.signed, ['redacted/zz-demo-9/page_p1.jpg'], 'the original was handed to storage at all');
+  assertEquals(f.rpcs[0].name, 'fn_it_engineer_finding_upsert');
+  assert(String(f.rpcs[0].args.p_evidence.sample_errors[0].message).includes('refused'));
 });
 
 // 22 Sep 2026: a held drawing / a CAD file reached the supplier as nothing at all, with no word that it existed.

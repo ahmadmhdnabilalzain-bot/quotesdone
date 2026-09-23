@@ -12,10 +12,14 @@
 //   open ──upload──▶ reviewing ──▶ changes_requested ◀──text / upload──┐
 //                                  │ (every point answered)            │
 //                                  ▼                                   │
-//                            awaiting_choice ──"generate"──▶ submit ──▶ submitted (read-only)
-//                                  │                           │ held / refused
+//                            awaiting_choice ──"generate"──▶ the quotation is PRINTED in the thread ─┐
+//                                  │                                                                 ▼
 //                                  └──"upload"──▶ awaiting_upload ──upload──▶ ready_to_submit ──submit──▶ submitted
 //   the customer chooses before we submit ──▶ closed (read-only)
+//
+// 22 Sep 2026 (finding SP-F-07): "generate" used to go straight to submit. It now ends in
+// ready_to_submit like the other road, so the supplier reads the standardised quotation BEFORE the
+// customer does and Submit is the approval — the same shape as the spec-hold's approve step.
 //
 // WHERE THINGS LIVE. The conversation is public.quote_review_messages, the estate's registered
 // conversation store (kept, never purged, archived to PDF and Dropbox — scripts/sql/every_conversation_
@@ -33,8 +37,8 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { quoteFromExtracted, type Proposal } from '../quote_extract/quote_from_document.ts';
 import type { MissingItem } from '../_shared/line_specs/assess.ts';
 import {
-  answerSaid, applyCorrections, awaitingUploadSaid, carryOver, choiceSaid, closedSaid, fromMissing, greeting, issueKey, notUnderstoodSaid,
-  parseQty, readReply, readyToSubmitSaid, reviewQuotation, reviewSaid, SEAT, submittedSaid, tookSaid, unreadableSaid, workingFromProposal,
+  answerSaid, applyCorrections, awaitingUploadSaid, carryOver, choiceSaid, closedSaid, fromMissing, generatedSaid, greeting, issueKey, notUnderstoodSaid,
+  parseQty, readReply, readyToSubmitSaid, reviewQuotation, reviewSaid, SEAT, submittedSaid, tookSaid, typedUnreadableSaid, unreadableSaid, workingFromProposal,
   type Issue, type Lang, type Review, type SafeInquiry, type Said, type Working,
 } from './quote_review.ts';
 
@@ -296,6 +300,70 @@ export async function upload(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
   return view(repo, deps, l.inq, await repo.review(inquiryId, ctx.supplierId));
 }
 
+/**
+ * THE SUPPLIER TYPES THE QUOTATION INTO THE CHAT (22 Sep 2026, finding SP-F-03).
+ *
+ * WHAT WAS WRONG. The reader works on a document's TEXT, so a scanned or photographed quotation —
+ * the ordinary case for a small UAE contractor who prints, signs, stamps and photographs — got
+ * unreadableSaid('image') and a request for a text PDF. Under the LLM hold there is no OCR to fall
+ * back on, so the conversation had no way forward at all and the supplier's only remaining door was
+ * the bypass: the standalone quote form outside the chat, which skips this review entirely. A
+ * supplier pushed out of the reviewed path is a quotation the customer compares unreviewed.
+ *
+ * WHAT THIS IS. The same pipeline, with the supplier's own typed lines standing in for the file:
+ * the text is handed to deps.read as a text/plain document, so doc_read's readTxt and
+ * quote_from_document parse it exactly as they parse an attached CSV or text PDF — one parser, one
+ * set of rules, one review. Nothing is stored in the quote-files bucket because there is no file,
+ * and the typed text itself is the supplier's message in the thread, kept like every other.
+ */
+export async function typed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, text: unknown): Promise<ThreadView | Fail> {
+  const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
+  const bad = writableOr(l, l.r, deps.now()); if (bad) return bad;
+  const t = typeof text === 'string' ? text.trim().slice(0, 20000) : '';
+  if (!t) return fail(400, 'text_required', 'Type your quotation — one line per item, with the quantity and the price.');
+  const r0 = await ensure(repo, ctx, l);
+  const sm = await supplierSays(repo, r0.id, 'text', t.slice(0, 2000));
+  return readTyped(repo, deps, ctx, l, r0, t, sm.id);
+}
+
+/** Does this message look like a quotation someone typed out, rather than a sentence? Two or more
+ *  lines that each carry a number: the cheapest test that separates "Gypsum partition 120 sqm 95"
+ *  from "validity 30 days", and it only ever decides which READER runs — the review is the same. */
+const PRICED_LINES = 2;
+// A ONE-LINE QUOTATION IS STILL A QUOTATION (23 Sep 2026, re-review of SP-F-03). Two priced lines is
+// the right test in the middle of a review, where most messages are sentences and a false positive
+// would hijack a real reply. It is the WRONG test in the one state SP-F-03 exists to close: nothing
+// read yet, or awaiting_upload, the supplier has just been told "type it here", and a single-line
+// "Supply and install aluminium louvres, 60 sqm, 240 = 14400" fell through to "attach the new
+// version" — the dead end itself. There, one priced line is enough. A false positive there is cheap:
+// readTyped answers with typedUnreadableSaid, which tells the supplier how to type it AND that a file
+// is welcome, so it says strictly more than the awaitingUploadSaid it replaces.
+export const looksTyped = (text: string, minLines = PRICED_LINES): boolean =>
+  String(text || '').split(/\r?\n/).filter((l) => /\d/.test(l) && l.trim().length > 6).length >= minLines;
+
+async function readTyped(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r0: ReviewRow, t: string, trigger: string): Promise<ThreadView> {
+  const prior = effectiveState(r0, deps.now());
+  await repo.updateReview(r0.id, { status: 'reviewing', reviewing_since: deps.now().toISOString() });
+  try {
+    let read: FileRead;
+    try { read = await deps.read(new TextEncoder().encode(t), 'typed_quotation.txt', 'text/plain'); }
+    catch (_e) { read = { proposal: null, text: '', kind: 'error' }; }
+    const r = (await repo.review(l.inq.id, ctx.supplierId))!;
+    if (!read.proposal) {
+      await say(repo, r.id, 'notice', typedUnreadableSaid());
+      await repo.updateReview(r.id, { status: prior, reviewing_since: null });
+      return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
+    }
+    const w = carryOver(r.working, workingFromProposal(read.proposal, t), l.inq.boq_rows);
+    await repo.updateReview(r.id, { extracted: read.proposal });
+    await runReview(repo, deps, l.inq, r, w, trigger);
+  } catch (e) {
+    await repo.updateReview(r0.id, { status: prior, reviewing_since: null }).catch(() => {});
+    throw e;
+  }
+  return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
+}
+
 export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, text: unknown): Promise<ThreadView | Fail> {
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
   const bad = writableOr(l, l.r, deps.now()); if (bad) return bad;
@@ -313,6 +381,12 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     await runReview(repo, deps, l.inq, r, applyCorrections(r.working, rr.corrections, l.inq.boq_rows), sm.id);
   } else if (rr.topic) {
     await say(repo, r.id, 'text', answerSaid(rr.topic, l.inq.job_no, open, r.last_review?.boq_lines ?? l.inq.boq_rows.length));
+  } else if ((!r.working || st === 'awaiting_upload') && looksTyped(t, 1)) {
+    // THE CHAT BOX IS ALSO THE TYPED PATH (finding SP-F-03). A supplier who answers "type it here"
+    // by doing exactly that is using this action, not review_typed, and being told "attach the new
+    // version" for the third time is what sent them to the form outside the conversation. The same
+    // reader, the same review; a sentence still falls through to the answer below.
+    return readTyped(repo, deps, ctx, l, r, t, sm.id);
   } else if (!r.working || st === 'awaiting_upload') {
     await say(repo, r.id, 'text', awaitingUploadSaid());
   } else if (st === 'awaiting_choice') {
@@ -343,7 +417,19 @@ async function decide(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded, r
     await say(repo, r.id, 'text', awaitingUploadSaid());
     return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
   }
-  return doSubmit(repo, deps, ctx, l.inq, { ...r, choice }, trigger);
+  // THE SUPPLIER SEES WHAT GOES OUT IN ITS NAME, FIRST (22 Sep 2026, finding SP-F-07). "Generate it
+  // for me" used to call doSubmit here: the quotation reached the customer's comparison and the PDF
+  // was printed afterwards, so the supplier's first sight of its own standardised quotation was
+  // after the customer already had it. Both roads now end at the same door — reupload goes through
+  // awaiting_upload, generate goes through this preview, and BOTH wait in ready_to_submit for the
+  // supplier's Submit. Nothing is sent from here.
+  if (!r.working) { await say(repo, r.id, 'text', awaitingUploadSaid()); return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId)); }
+  // r.last_review IS the review runReview stored for this same Working, and submitPayload sends
+  // `rv.price_ex_vat ?? w.amount` — so the total printed here is the total that will be submitted,
+  // from one expression rather than two that can drift.
+  await say(repo, r.id, 'review', generatedSaid(l.inq.job_no, r.working, r.last_review?.price_ex_vat ?? null));
+  await repo.updateReview(r.id, { status: 'ready_to_submit' });
+  return view(repo, deps, l.inq, await repo.review(l.inq.id, ctx.supplierId));
 }
 
 export async function submit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string): Promise<ThreadView | Fail> {

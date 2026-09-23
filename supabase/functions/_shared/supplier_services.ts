@@ -29,6 +29,7 @@
 
 import { capabilityConfirm, capabilityState, tradeCode } from './supplier_capability.ts';
 import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
+import { serviceVocab } from './service_vocabulary.ts';
 import type { TradeTerm } from './trade_words.ts';
 import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
 import { meaningCandidates, parseVec, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
@@ -233,12 +234,11 @@ export async function transcribeServiceNote(supplierId: number, body: Record<str
 
 export const RAW_TEXT_MAX = 2000;
 
-/** The alias vocabulary the rewriter matches with: every active service and the phrases that name it. */
-export async function serviceVocab(admin: Admin): Promise<ServiceTerm[]> {
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases').eq('active', true).order('trade_code').order('sort');
-  return error ? [] : (data || []);
-}
+/** The alias vocabulary the rewriter matches with: every active service and the phrases that name it.
+ *  ONE OWNER (22 Sep 2026): _shared/service_vocabulary.ts, so the inquiry side of matching and this
+ *  supplier side read the same rows. Re-exported here because this module's callers already ask it
+ *  for the tab's vocabulary. */
+export { serviceVocab };
 
 /** The trade aliases, for a phrase that names a trade but no service of it. */
 export async function tradeVocab(admin: Admin): Promise<TradeTerm[]> {

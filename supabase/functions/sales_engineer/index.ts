@@ -29,6 +29,7 @@ import { requestDelivery } from '../_shared/deliver.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
+import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
@@ -86,8 +87,16 @@ async function customerContact(customerId: string | null) {
 }
 // deno-lint-ignore no-explicit-any
 async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_reply', msg: { subject: string; body: string }, lang: 'en' | 'ar', cust: any): Promise<number[]> {
-  const base = { type: 'spec_offer_' + kind, kind: 'sales_engineer_spec_offer_' + kind, to_role: 'customer', inquiry_id: o.inquiry_id,
-    subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'sales_engineer', sender: 'customer_support' };
+  // SUPPORT ASKS THE CUSTOMER (22 Sep 2026, finding SP-F-08; founder's rule "no exact spec → offer
+  // alternatives" — support asks, yes is an accepted spec and no is an apology). The DETECTION is
+  // the sales engineer's: it is the seat that compares the requested value with every eligible
+  // quote and decides an offer exists. The QUESTION is not. It goes to the customer in the voice
+  // the customer already knows, so the template and the requesting seat both name customer_support
+  // — they used to read sales_engineer_spec_offer_* / requested_by sales_engineer while the sender
+  // was customer_support, which is a message signed by one seat and asked by another. The `type`
+  // is unchanged: fn_channel_requester, founder_mail_policy and every reader key on it.
+  const base = { type: 'spec_offer_' + kind, kind: 'customer_support_spec_offer_' + kind, to_role: 'customer', inquiry_id: o.inquiry_id,
+    subject: msg.subject, body: msg.body, status: 'queued', lang, requested_by: 'customer_support', sender: 'customer_support' };
   const rows: Record<string, unknown>[] = [];
   if (cust?.email) rows.push({ ...base, channel: 'email', to_email: cust.email, dedupe_key: `spec_offer:${o.id}:${kind}:${o.reminders_sent ?? 0}:email` });
   // WhatsApp goes only to the confirmed WhatsApp number (#322): the a03 trigger addresses it by email or records the skip.
@@ -536,8 +545,10 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // WHAT WAS MEASURED, because the finding handed over said something else. The hand-over said
       // "a signed-in customer can steer which suppliers receive somebody else's inquiry". A customer
       // CANNOT reach this branch: the cutoff above (`if (caller.kind === 'customer') return 403`)
-      // refuses every portal caller before `match` is read, and `body.services` does not exist in
-      // this file at all. Nor does any caller in the repository pass criteria: the ONE runtime
+      // refuses every portal caller before `match` is read. (#866 also noted that no service list
+      // existed on the request at all; PR #859 added one on 23 Sep 2026, and it goes through the one
+      // criteria source below like every other criterion, so a named inquiry still decides its own.)
+      // Nor does any caller in the repository pass criteria: the ONE runtime
       // caller is customer_api.matchAndNotify, which sends `{action:'match', inquiry_id, persist:false}`
       // and nothing else. So the lever was reachable only with the sales_engineer credential, an
       // internal credential, or the founder's admin JWT.
@@ -568,7 +579,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
       let inq: Record<string, unknown> | null = null;
       if (inquiryId) {
         const { data } = await admin.from('inquiries')
-          .select('id,customer_id,summary,raw_input,category,keywords,trades,emirate,scope_type,role_needed,budget,expected_value,boq')
+          // BOTH SIDES KEPT on the merge of 23 Sep 2026: customer_id for #866's ownership invariant,
+          // service_keys for this branch's p_services gate.
+          .select('id,customer_id,summary,raw_input,category,keywords,trades,emirate,scope_type,role_needed,budget,expected_value,boq,service_keys')
           .eq('id', inquiryId).maybeSingle();
         if (!data) return J({ ok: false, error: 'inquiry_not_found', inquiry_id: inquiryId }, 404);
         inq = data as Record<string, unknown>;
@@ -594,6 +607,11 @@ Deno.serve(observe('sales_engineer', async (req) => {
         trades: body.trades, emirate: body.emirate, scope_type: body.project_type,
         role_needed: body.need, expected_value: body.value, budget: body.value,
         summary: body.text, raw_input: null, category: null, keywords: [],
+        // The request's own service list belongs here with every other criterion (merge of #866 and
+        // #859, 23 Sep 2026): on a NAMED inquiry `src` is the stored row, so the stored service_keys
+        // decide and the request's list is never consulted — a caller cannot narrow somebody else's
+        // match to the services it chooses. On an unnamed call there is no third party to steer.
+        service_keys: body.services,
       };
       // NO STORED EQUIVALENT, SAID OUT LOUD. `inquiries` carries no products and no brands column —
       // the select above is the whole of what this path reads. On a NAMED inquiry they are therefore
@@ -664,7 +682,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
       const floor = Number.isFinite(pol.match_relevance_floor) ? pol.match_relevance_floor : 35;
 
       const policy = { max_fanout: maxFanout, max_fanout_per_trade: perTrade, relevance_floor: floor };
-      const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate };
+      // BOTH SIDES KEPT on the merge of 23 Sep 2026: `services` is this branch's p_services record,
+      // `criteria_from` is #866's.
+      const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate, services: [] as string[] };
       // WHERE EVERY FIGURE ABOVE CAME FROM, printed rather than assumed. A reader of a match record
       // should not have to diff the body against the inquiry to know which decided.
       const criteriaFrom = inq ? 'stored_inquiry' : 'request_body_no_inquiry_named';
@@ -682,12 +702,47 @@ Deno.serve(observe('sales_engineer', async (req) => {
         });
       }
 
+      // ── THE SERVICES THE INQUIRY NAMES ────────────────────────────────────────────────────────
+      // The founder calls services "our cross matching main source" (15 Sep 2026, instruction
+      // 438/439): the supplier's CONFIRMED service list decides who receives a request, exact or
+      // none. fn_match_capability has taken p_services since 15 Sep and gates on it — and MEASURED
+      // 22 Sep 2026, NO caller passed it: this matcher, customer_api's preview, inquiry_intake's
+      // supplier count and public_site all sent 8 arguments, so every request in production was
+      // matched at TRADE level and the services a supplier spent its Services tab confirming
+      // decided nothing at all.
+      //
+      // ONE READER, THE SUPPLIER'S OWN. servicesFromText is the same exact-alias matcher
+      // _shared/service_rewrite.ts uses to turn a supplier's sentence into `<trade>.<code>` keys —
+      // no similarity, no stemmer, no nearest service. So the inquiry side and the supplier side
+      // read the same vocabulary with the same rule, which is the only way "exact match or none"
+      // can mean anything.
+      //
+      // STORED, NOT RE-DERIVED. inquiries.service_keys carries what the reader found; null means
+      // never derived (an inquiry created before this column), '{}' means derived and the brief
+      // names no service in the taxonomy. Both are safe: an empty p_services leaves every
+      // candidate through, so a brief the vocabulary does not recognise falls back to trade-level
+      // matching and NOBODY is dropped for it. The derivation is stored on first use, which is
+      // also how a pre-existing inquiry acquires its keys.
+      //
+      // NULL AND '{}' ARE DIFFERENT, and only the column itself can tell them apart — `arr` flattens
+      // both to an empty list, so the derivation is decided by Array.isArray on the stored value, not
+      // by the length. '{}' means a reader already looked and the brief names no service this taxonomy
+      // knows; re-deriving it on every match would re-read the vocabulary for nothing.
+      let serviceKeys = arr(src.service_keys);
+      if (inq && !Array.isArray(inq.service_keys)) {
+        serviceKeys = serviceKeysOf(brief, inq.boq, await serviceVocab(admin));
+        // A failed write must not stop the match; the keys are still used for this run.
+        await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
+      }
+      askedFor.services = serviceKeys;
+
       // Headroom, then trim. Asking fn_match_capability for exactly 5 would let one over-represented
       // trade fill the list before the per-trade cap could spread it.
       const headroom = Math.min(60, Math.max(maxFanout, trades.length * perTrade * 2));
       const { data: rowsRaw, error: matchErr } = await admin.rpc('fn_match_capability', {
         p_trades: trades, p_need: need, p_products: products, p_brands: brands,
         p_project_type: projectType, p_value: value, p_emirate: emirate, p_limit: headroom,
+        p_services: serviceKeys,
       });
       if (matchErr) {
         await run('match', 'error', { inquiry_id: inquiryId || null }, matchErr.message);

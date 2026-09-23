@@ -373,11 +373,17 @@ Deno.serve(observe('stripe_webhook', async (req) => {
                 await logRun('error', { quote_id: qid, session: String(s.id || '') }, 'NO INVOICE ON A PAID REVEAL - checkout.session.completed carried no invoice id, so nothing can be filed for the accountant. Check invoice_creation on stripe_checkout.');
               }
               // 3 SEP 2026: the supplier's email used to be queued HERE, which meant a reveal recorded by
-              // any other path told the supplier nothing. All four reveal messages (email + WhatsApp to
-              // both parties) are queued by trg_reveal_receipt on transactions.revealed_at — the one
-              // door every reveal goes through (scripts/sql/reveal_notifies_both_parties_on_both_channels.sql).
+              // any other path told the supplier nothing. transactions.revealed_at is still the one door
+              // every reveal goes through, but the trigger on it no longer writes the messages itself —
+              // CORRECTED 22 Sep 2026, measured on production: trg_reveal_receipt calls fn_seat_handoff
+              // ('accountant' -> 'sales_engineer', 'reveal.paid'), and the handoff's consumer composes the
+              // four messages through fn_sales_engineer_writes, which customer_support delivers
+              // (scripts/sql/payments_are_the_accountant_and_the_seats_close_every_refund_together.sql).
+              // So this count is one hop further down the chain than it used to be: it reads what the
+              // consumer actually queued, which is exactly what it should be checking. Measured on the
+              // live table: 3 reveal_receipt and 4 quote_accepted notifications, all carrying quote_id.
               const { count: queued } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('quote_id', qid).in('type', ['reveal_receipt', 'quote_accepted']);
-              await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount, reveal_messages_queued: queued || 0 }, (queued || 0) >= 2 ? '' : 'transaction recorded but fewer than 2 reveal messages were queued by trg_reveal_receipt (' + String(queued || 0) + ')');
+              await logRun('ok', { quote_id: qid, reveal_fee: fee, quote_amount: amount, reveal_messages_queued: queued || 0 }, (queued || 0) >= 2 ? '' : 'transaction recorded but fewer than 2 reveal messages were queued by the reveal.paid handoff trg_reveal_receipt opened (' + String(queued || 0) + ')');
             } else {
               // Money taken at Stripe but the quote row is gone - previously silent.
               await logRun('error', { quote_id: qid, amount_total: s.amount_total }, 'PAID BUT NOT RECORDED - quote_id not found in quotes: ' + qid);
