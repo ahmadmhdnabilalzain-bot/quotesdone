@@ -34,6 +34,7 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/every_review_class_is_judged_by_another_family_than_its_author.sql';
 const BASE = 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql';
+const FOLLOW = 'scripts/sql/a_review_is_held_rather_than_skipped_and_its_authors_are_the_rows_it_judges.sql';
 
 // Every review-shaped class the audit of 23 Sep 2026 found. Adding one is allowed; dropping one fails.
 const REQUIRED = ['ceo_judgement', 'ceo_approval_decision', 'identity_redaction_verify', 'quote_comparison',
@@ -76,7 +77,11 @@ test('the gateway refuses a review class without its author, and writes the auth
   assert.match(gw, /route\.why = String\(route\.why \?\? ''\) \+ ' \| counterpart_model=' \+/);
   assert.match(gw, /counterpart \? 0 : Number\(body\.cache_ttl_min/, 'a review is never served from cache');
   // never unreviewed: no independent reviewer => HELD and recorded; a third-family review is tagged
-  assert.match(gw, /if \(counterpart && route\.no_independent_reviewer\) \{\s*await rpcSafe\('fn_review_hold_record'/);
+  // (an unknown author is a data-defect finding, not a hold; a failed or unreachable reviewer is a hold too)
+  assert.match(gw, /if \(counterpart && route\.no_independent_reviewer && !route\.unknown_author\) \{\s*await rpcSafe\('fn_review_hold_record'/);
+  assert.match(gw, /if \(!outMsg && counterpart\) \{[\s\S]{0,200}fn_review_hold_record/, 'a failed reviewer call is held and recorded');
+  assert.match(gw, /if \(counterpart && !ladder\.length && fullLadder\.length && skipped\.some/, 'an unreachable reviewer is held and recorded');
+  assert.match(gw, /p_require_caps: caps\.length \? caps : null,\s*\}\) : await admin\.rpc\('fn_ai_route'/, 'a review carries its capabilities');
   assert.match(gw, /' \| reviewer_tier=' \+ route\.reviewer_tier/);
   assert.match(read('supabase/functions/resilience_ping/index.ts'), /rpc\('fn_it_review_independence_watch'\)/);
   const sql = read(FILE);
@@ -158,10 +163,11 @@ end $p$;`;
 test('production, one aborted transaction: no review class can route to any of its authors\' families', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review(text,text,text,text,text)') is not null base_applied,
-    exists (select 1 from information_schema.columns where table_schema='public' and table_name='model_policy' and column_name='reviews_class') applied`, { readOnly: true });
+    exists (select 1 from information_schema.columns where table_schema='public' and table_name='model_policy' and column_name='reviews_class') applied,
+    to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied`, { readOnly: true });
   const noReplay = process.env.XFAM_NO_REPLAY === '1';
   const required = Object.fromEntries(Object.entries(declared()));
-  const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n')) + probe(required);
+  const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n') + (s.follow_applied ? '' : read(FOLLOW) + '\n')) + probe(required);
   let out;
   try { await sql(body, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
@@ -177,4 +183,62 @@ test('production, one aborted transaction: no review class can route to any of i
   if (bad.length) console.log(bad.join('\n'));
   assert.ok(out.pairs >= 20, `too few author pairs evaluated (${out.pairs}): the declaration or the policy is missing`);
   assert.deepEqual(bad, [], 'a review class can route onto its author\'s family');
+});
+
+// #880 REVIEW FOLLOW-UPS (a_review_is_held_rather_than_skipped_and_its_authors_are_the_rows_it_judges.sql), one aborted transaction.
+const FOLLOW_PROBE = String.raw`
+do $p$
+declare o jsonb := '{}'; v jsonb; h bigint; w jsonb;
+begin
+  -- 1 a hold does not close on the gateway's own refusal row (model 'none', ok true)
+  h := public.fn_review_hold_record('ceo_judgement', 'zz_probe_fn', 'ceo', ' openai/gpt-5.6-sol , anthropic/claude-opus-5.5,openai/gpt-5.6-sol', 'ZZ probe');
+  o := o || jsonb_build_object('hold_counterpart', (select counterpart_model from public.review_hold where id = h));
+  update public.review_hold set last_held_at = now() - interval '1 minute' where id = h;
+  insert into public.ai_cost_log (fn, task_class, model_used, model_selected_because, ok)
+  values ('zz_probe_fn', 'ceo_judgement', 'none', 'NO INDEPENDENT REVIEWER | counterpart_model=anthropic/claude-opus-5.5,openai/gpt-5.6-sol', true);
+  w := public.fn_it_review_independence_watch();
+  o := o || jsonb_build_object('open_after_refusal_row', (select closed_at is null from public.review_hold where id = h));
+  -- ... and does close on a real independent review after it
+  insert into public.ai_cost_log (fn, task_class, model_used, model_selected_because, ok)
+  values ('zz_probe_fn', 'ceo_judgement', 'google/gemini-3.8-flash', 'x | counterpart_model=anthropic/claude-opus-5.5,openai/gpt-5.6-sol | reviewer_tier=third_family_fallback', true);
+  w := public.fn_it_review_independence_watch();
+  o := o || jsonb_build_object('closed_after_real_review', (select closed_at is not null from public.review_hold where id = h));
+  -- 3 an unknown author is a data defect, not a hold
+  v := public.fn_ai_route_review('quote_comparison', 'unknown,openai/gpt-5.6-sol');
+  o := o || jsonb_build_object('unknown_flag', v->>'unknown_author', 'unknown_why', left(v->>'why', 15));
+  insert into public.ai_cost_log (fn, task_class, model_used, model_selected_because, ok)
+  values ('zz_probe_cmp', 'quote_comparison', 'none', (v->>'why') || ' | counterpart_model=openai/gpt-5.6-sol,unknown', true);
+  o := o || jsonb_build_object('unknown_item', (select x->>'owner_seat' from jsonb_array_elements(public.fn_it_review_independence_items()) x
+                                                  where x->>'item' = 'review_author_unknown:zz_probe_cmp'));
+  -- 5 fourth last-resort family, and 7 capabilities
+  update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
+   where model_id in ('google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');
+  o := o || jsonb_build_object(
+    'text_review_qwen', public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model',
+    'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',
+                                null, null, null, array['vision'])->>'model', 'held'),
+    'ceo_authors', public.fn_ceo_judgement_counterparts(-1));
+  raise exception 'CHK<<%>>', o::text;
+end $p$;`;
+
+test('production, one aborted transaction: #880 review follow-ups hold', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied`, { readOnly: true });
+  let out;
+  try { await sql((s.follow_applied ? '' : read(FOLLOW) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
+    const mm = String(e.message).match(/CHK<<(.*?)>>/s);
+    if (!mm) throw e;
+    out = JSON.parse(mm[1].replace(/\\"/g, '"'));
+  }
+  assert.ok(out, 'the probe committed instead of rolling back');
+  console.log(JSON.stringify(out));
+  assert.equal(out.hold_counterpart, 'anthropic/claude-opus-5.5,openai/gpt-5.6-sol', 'one set of authors is one normalised string');
+  assert.equal(out.open_after_refusal_row, true, 'the gateway\'s own refusal row must not close a hold');
+  assert.equal(out.closed_after_real_review, true, 'a real independent review closes the hold');
+  assert.equal(out.unknown_flag, 'true');
+  assert.equal(out.unknown_why, 'AUTHOR UNKNOWN:');
+  assert.equal(out.unknown_item, 'it_engineer', 'an unknown author is an it_engineer data-defect finding');
+  assert.equal(out.text_review_qwen, 'qwen/qwen3.7-plus', 'qwen is the fourth last-resort family');
+  assert.equal(out.vision_review, 'held', 'a vision review never lands on a text-only reviewer');
+  assert.equal(out.ceo_authors, 'deterministic', 'no plan => no authors');
 });

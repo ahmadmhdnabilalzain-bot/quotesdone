@@ -296,18 +296,21 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // use_llm:false with no_independent_reviewer. It never falls back to the author's family. A
     // seat_deliberation_* class without counterpart_model is refused: independence cannot be proved.
     // (scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql)
+    // One set of authors is one string everywhere (route, log tag, hold): trimmed, de-duplicated, sorted.
     const counterpart = typeof body.counterpart_model === 'string' && body.counterpart_model.trim()
-      ? body.counterpart_model.trim() : null;
+      ? [...new Set(body.counterpart_model.split(',').map((x) => x.trim()).filter(Boolean))].sort().join(',') || null : null;
     if (!counterpart && /^seat_deliberation_/.test(String(body.task_class ?? ''))) {
       return J({ ok: false, used_llm: false, outcome: 'review_needs_counterpart',
                  error: 'a seat_deliberation review must name counterpart_model, the model the author wrote on', cost_usd: 0 }, 400);
     }
-    const { data: route, error: rErr } = counterpart ? await admin.rpc('fn_ai_route_review', {
+    const { data: route, error: rErr } = counterpart ? await admin.rpc('fn_ai_route_review_for', {
       p_task_class: body.task_class ?? null,
       p_counterpart_model: counterpart,
       p_agent_key: body.agent ?? null,
       p_fn: fnName,
       p_dept_key: body.dept ?? null,
+      // a vision review must land on a reviewer that can see (a_review_is_held_rather_than_skipped_...sql)
+      p_require_caps: caps.length ? caps : null,
     }) : await admin.rpc('fn_ai_route', {
       p_task_class: body.task_class ?? null,
       p_dept_key: body.dept ?? null,
@@ -343,7 +346,9 @@ Deno.serve(observe('ai_gateway', async (req) => {
     // NEVER UNREVIEWED (coordinator ruling on #880). No reviewer outside the authors' families, not even the third-family
     // last resort: the call is HELD — no model runs — and the hold is recorded; the CEO owns the finding
     // (fn_it_review_independence_watch). The caller gets used_llm:false and must not act on an answer it did not get.
-    if (counterpart && route.no_independent_reviewer) {
+    // An UNKNOWN author is a data defect in what the caller recorded, not a missing reviewer: no hold; the refusal row
+    // (because 'AUTHOR UNKNOWN: ...') is reported by the watch as its own it_engineer finding.
+    if (counterpart && route.no_independent_reviewer && !route.unknown_author) {
       await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? body.task_class ?? null, p_fn: fnName,
         p_agent_key: body.agent ?? null, p_counterpart_model: counterpart, p_why: route.why ?? null });
     }
@@ -595,6 +600,12 @@ Deno.serve(observe('ai_gateway', async (req) => {
     }
     // Every route on the ladder is open-circuit: fail CLOSED and say so, rather than retrying into
     // a wall and reporting it as a model failure.
+    // A REVIEW WHOSE REVIEWER CANNOT BE CALLED IS HELD, NOT SKIPPED (#880 review, item 6). Every route open-circuit for a
+    // reason other than the founder's hold (which holds everything, reviewed or not) is recorded as a review_hold.
+    if (counterpart && !ladder.length && fullLadder.length && skipped.some((x) => !/^(founder_hold|exception):/.test(x.reason))) {
+      await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
+        p_counterpart_model: counterpart, p_why: 'reviewer unreachable: ' + skipped.map((x) => x.route + ' (' + x.reason + ')').join('; ') });
+    }
     if (!ladder.length && fullLadder.length) {
       // A HELD ROUTE IS STILL A ROUTING DECISION, AND THE ROUTER MUST SAY SO (3 Sep 2026). The
       // policy chose a model for this task class and the kernel gate refused every route on the
@@ -864,6 +875,11 @@ Deno.serve(observe('ai_gateway', async (req) => {
       p_generation_id: genId, p_cost_usd_reported: reportedUsd,
     });
 
+    if (!outMsg && counterpart) {
+      // the chosen reviewer (and its fallback) failed: the review is held and recorded, never silently skipped
+      await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? null, p_fn: fnName, p_agent_key: body.agent ?? null,
+        p_counterpart_model: counterpart, p_why: 'reviewer call failed: ' + String(lastErr ?? (deadlineHit ? 'deadline' : 'unknown')).slice(0, 500) });
+    }
     if (!outMsg) return J({ ok: false, error: deadlineHit ? 'gateway_deadline' : 'all_models_failed',
                             detail: deadlineHit ? ('no model answered within the ' + wallBudgetMs + 'ms budget the caller waits for; last error: ' + lastErr) : lastErr,
                             ladder, caps }, 502);

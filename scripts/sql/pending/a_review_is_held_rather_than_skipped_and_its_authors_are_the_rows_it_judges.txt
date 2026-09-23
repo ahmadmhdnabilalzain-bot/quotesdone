@@ -1,0 +1,11 @@
+Committed, not applied: the builder does not apply; the release operator serialises applies (23 Sep 2026).
+Proved before apply in one aborted transaction:
+  node --test scripts/checks/no_review_class_can_route_to_its_authors_family.test.mjs   (follow-up probe + 52 pairs, 0 failures)
+  #877's probe replayed over this file: Sol->Opus, Opus->Sol, no same-family fallback, all tripped -> no independent reviewer.
+
+Moves when the operator runs (after every_review_class_is_judged_by_another_family_than_its_author.sql, which it supersedes
+for fn_ai_route_review, fn_review_hold_record, fn_it_review_independence_items/_watch and fn_ceo_judgement_counterparts):
+  node scripts/apply_sql.mjs scripts/sql/a_review_is_held_rather_than_skipped_and_its_authors_are_the_rows_it_judges.sql --apply --ddl
+then deletes this note, appends the file to the END of scripts/sql/MANIFEST.txt, and only THEN redeploys ai_gateway
+(calls fn_ai_route_review_for), ceo_agent (calls fn_ceo_judgement_counterparts(bigint); the no-argument one is dropped),
+drawing_boq, customer_api and supplier_api. Regenerate the schema mirror last. Seat: it_engineer.
