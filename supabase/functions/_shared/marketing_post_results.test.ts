@@ -4,10 +4,11 @@
 // /public/v1/posts and /public/v1/analytics/post/:id). Every metric path has a case, including refusals.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
-  campaignOf, channelOf, facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, viaPostiz, withUtm,
+  channelOf, facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, viaPostiz,
   tiktokVideo, youtubeVideo, IG_FEED, IG_REELS, YT_METRICS, type Fetch, type GraphEnv,
 } from './marketing_post_results.ts';
-import { buildPostizPayload, type PublishInput } from './marketing_channels.ts';
+// @ts-ignore: a plain .mjs module shared with the Node calendar loader
+import { tagCalendar, withUtm } from '../../../scripts/marketing/utm.mjs';
 import { captureFirstTouch, readFirstTouch, touchFromUrl, FIRST_TOUCH_KEY } from '../../../src/lib/firstTouch.ts';
 import { scorecardPeriods } from '../marketing/post_results.ts';
 
@@ -175,16 +176,19 @@ Deno.test('UTM: our links carry platform, month and post; other sites and hand-m
   assert(out.includes('https://www.quotesdone.ae/supplier?utm_source=linkedin&utm_medium=social&utm_campaign=2026-09&utm_content=zz-demo-week1.'), out);
   assert(out.includes('https://example.com/x '), 'another site was tagged');
   assert(out.includes('https://quotesdone.ae/?utm_source=manual&utm_content=zz-demo-week1'), 'a hand-made link lost its tags or gained no utm_content');
-  assertEquals(campaignOf('2026-09-30T21:00:00Z'), '2026-10');   // Dubai is UTC+4
 });
 
-Deno.test('attribution end to end: the published payload\'s link, visited, becomes the registration\'s first touch naming the post', () => {
-  const post: PublishInput = { id: 9, ingest_key: 'zz-demo-reel-1', text_en: 'ZZ DEMO — suppliers register at https://www.quotesdone.ae/supplier', text_ar: 'سجّلوا الآن',
-    channels: ['facebook', 'x'], scheduled_at: '2026-09-22T08:00:00Z', is_demo: true, media: [] };
-  const { payload } = buildPostizPayload(post, [{ id: 'i-fb', identifier: 'facebook' }, { id: 'i-x', identifier: 'x' }], []);
-  const content = (payload.posts as any[]).map((p) => p.value[0].content as string);
-  const link = content[0].match(/https:\/\/www\.quotesdone\.ae\/supplier\?\S+/)![0];
-  assert(content[1].includes('utm_source=x&'), 'each channel names itself');
+Deno.test('attribution end to end: the calendar is tagged at LOAD, so the approved caption carries the link that becomes the registration\'s first touch', () => {
+  const calendar = { campaign: { key: 'zz-demo-campaign', month: '2026-09' }, posts: [
+    { key: 'ZZ-Demo-Reel-1-facebook', platform: 'facebook', caption_en: 'ZZ DEMO — suppliers register at https://www.quotesdone.ae/supplier', caption_ar: 'سجّلوا الآن: https://www.quotesdone.ae/supplier', cta_url: 'https://www.quotesdone.ae/supplier' },
+    { key: 'zz-demo-reel-1-x', platform: 'x', caption_en: 'ZZ DEMO https://quotesdone.com/supplier', caption_ar: 'تجربة' },
+  ] };
+  const tagged = tagCalendar(calendar);
+  assertEquals(calendar.posts[0].caption_en, 'ZZ DEMO — suppliers register at https://www.quotesdone.ae/supplier', 'the input was mutated');
+  const link = tagged.posts[0].caption_en.match(/https:\/\/www\.quotesdone\.ae\/supplier\?\S+/)![0];
+  assert(tagged.posts[0].caption_ar.includes('utm_content=zz-demo-reel-1-facebook'), 'the Arabic caption link is untagged');
+  assert(tagged.posts[0].cta_url.includes('utm_content=zz-demo-reel-1-facebook'), 'cta_url is untagged');
+  assert(tagged.posts[1].caption_en.includes('utm_source=x&'), 'each platform names itself');
   // the visitor lands, the browser keeps the first touch, a later untagged visit does not overwrite it
   const mem = new Map<string, string>();
   const store = { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) };
@@ -192,10 +196,32 @@ Deno.test('attribution end to end: the published payload\'s link, visited, becom
   captureFirstTouch('https://www.quotesdone.ae/?utm_source=instagram&utm_content=other', store);
   const kept = readFirstTouch(store)!;
   assertEquals([kept.utm_source, kept.utm_medium, kept.utm_campaign, kept.utm_content, kept.landing_path],
-    ['facebook', 'social', '2026-09', 'zz-demo-reel-1', '/supplier']);
+    ['facebook', 'social', '2026-09', 'zz-demo-reel-1-facebook', '/supplier']);
   assert(mem.has(FIRST_TOUCH_KEY) && !/@|phone|email/i.test(mem.get(FIRST_TOUCH_KEY)!), 'the kept touch carries personal data');
-  // what create_company sends is exactly what fn_marketing_first_touch_record reads (utm_content = ingest_key)
-  assertEquals(kept.utm_content, post.ingest_key);
+  // what create_company / claim send is what fn_marketing_first_touch_record reads: utm_content = the post's
+  // ingest_key, which fn_marketing_calendar_load writes as lower(key)
+  assertEquals(kept.utm_content, calendar.posts[0].key.toLowerCase());
+});
+
+Deno.test('a label with no latin name is marked unavailable, never written with an empty metric name', async () => {
+  const { f } = mock([[/\/analytics\/post\/pz-ar\?date=1/, [{ label: 'المشاهدات', data: [{ total: 5, date: '2026-10-01' }] }, { label: 'Likes', data: [{ total: 2, date: '2026-10-01' }] }]]]);
+  const r = await viaPostiz(f, P, 'k', 'pz-ar', 1);
+  assertEquals(r.values, { likes: 2 });
+  assert(!('' in r.values) && r.unavailable.unnamed_1.includes('المشاهدات'));
+  for (const k of [...Object.keys(r.values), ...Object.keys(r.unavailable)]) assert(/^[a-z0-9_*]+$/.test(k), 'a key the table refuses: ' + k);
+  const g = await instagramMedia(mock([[/\?fields=media_product_type/, { media_product_type: 'FEED' }], [/\/insights/, { data: [{ name: 'مدى', values: [{ value: 1 }] }, { name: 'reach', values: [{ value: 9 }] }] }]]).f, ENV, 'm');
+  assertEquals(g.values, { reach: 9 });
+});
+
+Deno.test('a 5xx or 429 is a blip: retry, so the checkpoint stays open; a 4xx is an answer', async () => {
+  assertEquals((await viaPostiz(mock([[/analytics\/post/, { message: 'bad gateway' }, 502]]).f, P, 'k', 'p', 1)).retry, true);
+  assertEquals((await viaPostiz(mock([[/analytics\/post/, { message: 'slow down' }, 429]]).f, P, 'k', 'p', 1)).retry, true);
+  assertEquals((await viaPostiz(mock([[/analytics\/post/, { message: 'nope' }, 404]]).f, P, 'k', 'p', 1)).retry, false);
+  assertEquals((await instagramMedia(mock([[/\?fields=media_product_type/, { error: { message: 'down' } }, 503]]).f, ENV, 'm')).retry, true);
+  assertEquals((await instagramMedia(mock([[/\?fields=media_product_type/, { media_product_type: 'FEED' }], [/\/insights/, { error: { message: 'x' } }, 500]]).f, ENV, 'm')).retry, true);
+  assertEquals((await facebookPost(mock([[/video_insights/, { error: { message: 'x' } }, 500]]).f, ENV, 'v', 'pt')).retry, true);
+  assertEquals((await youtubeVideo(mock([[/youtubeanalytics/, { error: { message: 'x' } }, 503]]).f, 't', 'v', '2026-09-28', '2026-10-01')).retry, true);
+  assertEquals((await tiktokVideo(mock([[/tiktokapis/, { error: { code: 'internal_error', message: 'x' } }, 500]]).f, 't', 'v')).retry, true);
 });
 
 Deno.test('first touch refuses what is not a tag', () => {

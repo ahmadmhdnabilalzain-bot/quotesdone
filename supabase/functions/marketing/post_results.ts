@@ -8,6 +8,7 @@
 //                 (the 1st: the whole previous month) in marketing_scorecard_report. Plain SQL, no model.
 import type { Duty, DutyContext } from './duties.ts';
 import { metaPage } from '../_shared/marketing_channels.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
   facebookPost, igMediaIdByPermalink, instagramMedia, postizIdsOf, postizReleases, tiktokVideo, viaPostiz, youtubeVideo,
   CHECKPOINTS, type Checkpoint, type Fetch, type GraphEnv, type MetricsResult, type Platform,
@@ -22,7 +23,7 @@ async function graphEnv(ctx: DutyContext): Promise<GraphEnv | null> {
   return { graph: 'https://graph.facebook.com/' + (data?.value ? String(data.value) : 'v21.0'), token };
 }
 
-export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<Record<string, unknown>> {
+export async function postResults(ctx: DutyContext, f: Fetch = (u, i) => timedFetch(u, i)): Promise<Record<string, unknown>> {
   const { admin, now } = ctx;
   const postizKey = await ctx.sec('postiz_api_key');
   const postizBase = (await ctx.sec('postiz_api_url')) || POSTIZ_DEFAULT;
@@ -68,7 +69,7 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
       pageToken = (await r.json().catch(() => ({})))?.access_token ?? null;
     }
   }
-  let written = 0;
+  let written = 0; let retried = 0;
   for (const d of due as Array<{ post_id: number; platform: Platform; platform_post_id: string | null; postiz_post_id: string | null; checkpoint: Checkpoint; published_at: string }>) {
     let res: MetricsResult;
     if (d.platform === 'instagram') {
@@ -82,8 +83,10 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
     } else {
       res = !postizKey || !d.postiz_post_id ? { values: {}, unavailable: { '*': 'no Postiz key or Postiz post id' } }
         : await viaPostiz(f, postizBase, postizKey, d.postiz_post_id, CHECKPOINTS[d.checkpoint]);
-      if (!Object.keys(res.values).length && (d.platform === 'youtube' || d.platform === 'tiktok')) res = await direct(ctx, f, d, res);
+      if (!res.retry && !Object.keys(res.values).length && (d.platform === 'youtube' || d.platform === 'tiktok')) res = await direct(ctx, f, d, res);
     }
+    // a 5xx / 429 is a blip, not an answer: write nothing, so the checkpoint stays open inside its window
+    if (res.retry) { retried++; continue; }
     const base = { post_id: d.post_id, platform: d.platform, platform_post_id: d.platform_post_id, checkpoint: d.checkpoint };
     const rows = [
       ...Object.entries(res.values).map(([metric, value]) => ({ ...base, metric, value, unavailable_reason: null })),
@@ -94,7 +97,7 @@ export async function postResults(ctx: DutyContext, f: Fetch = fetch): Promise<R
     if (error) throw new Error('marketing_post_metric: ' + error.message);
     written += rows.length;
   }
-  return { due: true, tied: newlyTied, checkpoints: due.length, rows: written };
+  return { due: true, tied: newlyTied, checkpoints: due.length, rows: written, retry_later: retried };
 }
 
 /** YouTube / TikTok straight from the platform, when Postiz gave nothing and the seat holds a token. */

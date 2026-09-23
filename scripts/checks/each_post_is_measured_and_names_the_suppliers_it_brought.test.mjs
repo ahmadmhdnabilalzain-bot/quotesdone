@@ -1,8 +1,8 @@
 // EACH POST IS MEASURED AND NAMES THE SUPPLIERS IT BROUGHT (marketing + sales_engineer, 23 Sep 2026;
 // founder instruction 865). Fails if any link of the chain comes back broken:
 //   * the marketing seat's duty list loses post_results or scorecard, or a duty stops naming its seat;
-//   * the publish path stops tagging our links with UTM;
-//   * supplier registration stops handing the first touch to fn_marketing_first_touch_record;
+//   * the calendar loader stops tagging our links with UTM (or the publisher starts rewriting approved text);
+//   * create_company or claim stops handing the first touch to fn_marketing_first_touch_record;
 //   * the site stops keeping the first touch, or the cookie policy stops disclosing it (EN and AR);
 //   * a routine in the SQL loses its pinned search_path or its revoke, a table its policy, or a month-1 goal
 //     loses its cited source.
@@ -28,16 +28,21 @@ test('the marketing duty list runs post_results and scorecard, each owned by mar
   assert.match(pr, /rpc\('fn_marketing_scorecard_publish'/);
 });
 
-test('every link the seat publishes carries UTM naming platform, month and post', () => {
-  const ch = R('supabase/functions/_shared/marketing_channels.ts');
-  assert.match(ch, /withUtm\(postBody\(post\), ch, campaignOf\(post\.scheduled_at\), post\.ingest_key\)/, 'buildPostizPayload does not tag links');
-  assert.match(R('supabase/functions/marketing_channels/index.ts'), /select\('id,ingest_key,/, 'publishDue does not read ingest_key');
-  assert.match(R('supabase/functions/_shared/marketing_post_results.ts'), /utm_medium=social&utm_campaign=/);
+test('every link the seat publishes carries UTM naming the post, tagged at LOAD so the approved text includes it', () => {
+  assert.match(R('scripts/marketing/load_calendar.mjs'), /const calendar = tagCalendar\(JSON\.parse\(readFileSync\(file, 'utf8'\)\)\);/, 'the calendar loader does not tag links before the load');
+  assert.match(R('scripts/marketing/utm.mjs'), /utm_medium=social&utm_campaign=/);
+  // send time never rewrites the approved body (#874 sends it byte for byte)
+  assert.doesNotMatch(R('supabase/functions/_shared/marketing_channels.ts'), /withUtm\(/, 'the publisher rewrites the approved text');
 });
 
 test('a supplier registration records the post that brought it', () => {
-  assert.match(R('supabase/functions/supplier_api/index.ts'), /rpc\('fn_marketing_first_touch_record', \{ p_lead_id: ins!\.id, p_touch: body\.first_touch \}\)/);
-  assert.match(R('src/components/portal/SupplierPortal.tsx'), /action: 'create_company'[^}]*first_touch: /);
+  const api = R('supabase/functions/supplier_api/index.ts');
+  assert.match(api, /rpc\('fn_marketing_first_touch_record', \{ p_lead_id: leadId, p_touch: touch \}\)/);
+  assert.match(api, /setRegistration\(ins!\.id\); await recordFirstTouch\(ins!\.id, body\.first_touch\)/, 'create_company does not record the first touch');
+  assert.match(api, /setRegistration\(id\); await recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
+  const portal = R('src/components/portal/SupplierPortal.tsx');
+  assert.match(portal, /action: 'create_company'[^}]*first_touch: /);
+  assert.match(portal, /action: 'claim', t, first_touch: /);
   assert.match(R('src/app/[locale]/layout.tsx'), /<FirstTouch \/>/, 'the site does not keep the first touch');
   const legal = JSON.parse(R('src/content/legal.json'))['cookie-policy'];
   assert.match(legal.en.html, /qd-first-touch/, 'the cookie policy (EN) does not disclose qd-first-touch');
@@ -47,7 +52,7 @@ test('a supplier registration records the post that brought it', () => {
 test('the SQL: every routine pinned and revoked, every table with a policy, goals cite a source', () => {
   assert.ok(SQL, SQL_FILE + ' is missing');
   const made = [...SQL.matchAll(/create or replace function public\.(\w+)\(/g)].map((m) => m[1]);
-  assert.deepEqual(made.sort(), ['fn_marketing_first_touch_record', 'fn_marketing_post_checkpoints_due', 'fn_marketing_scorecard', 'fn_marketing_scorecard_publish']);
+  assert.deepEqual(made.sort(), ['fn_marketing_first_touch_record', 'fn_marketing_post_checkpoints_due', 'fn_marketing_scorecard', 'fn_marketing_scorecard_publish', 'fn_table_export_list']);
   for (const fn of made) {
     const body = SQL.slice(SQL.indexOf(`create or replace function public.${fn}(`)).split('$fn$')[0];
     assert.match(body, /set search_path to 'public', 'pg_temp'/, `${fn} has no pinned search_path`);
