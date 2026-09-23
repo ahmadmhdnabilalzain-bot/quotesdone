@@ -28,6 +28,7 @@ const BANK = JSON.parse(readFileSync(join(REPO, 'scripts/eval/reasoning_bank.jso
   .filter((c) => !args.seat || c.seat === args.seat).slice(0, args.limit ? Number(args.limit) : undefined);
 // Node 24 strips TypeScript types natively; think.ts uses only erasable syntax and loads Deno-only modules lazily.
 const { think, refuse } = await import(pathToFileURL(join(REPO, 'supabase/functions/_shared/think.ts')).href);
+const { SITE_OPTIONS } = await import(pathToFileURL(join(REPO, 'supabase/functions/_shared/reasoned_channels.ts')).href);
 
 const NEEDS_PERSON = [
   { id: 'needs_a_person', meaning: 'they ask for a human, or complain, dispute, demand a refund, accuse, or threaten legal action' },
@@ -37,7 +38,9 @@ const CEO_INTENTS = ['build', 'fix', 'remove', 'measure', 'decide', 'stop', 'inf
 function requestOf(c) {
   const base = { seat: c.seat, surface: c.surface ?? 'eval.answer', question: c.q, context: { audience: c.audience ?? 'internal', trade: c.trade ?? null }, queueWhenHeld: false };
   if (c.kind !== 'decision') return { ...base, stakes: c.expect?.stakes === 'high' ? 'high' : 'normal' };
-  return { ...base, decision: { name: c.surface, options: c.surface === 'ceo.command_intent' ? CEO_INTENTS : NEEDS_PERSON } };
+  // A case may carry its own options (a quote's fields, retrieved passages); the widget route uses the widget's.
+  const options = c.options ?? (c.surface === 'ceo.command_intent' ? CEO_INTENTS : c.surface === 'shared.route_question' ? SITE_OPTIONS : NEEDS_PERSON);
+  return { ...base, decision: { name: c.surface, options } };
 }
 
 // ── the scripted model (MOCK) ─────────────────────────────────────────────────────────────────────

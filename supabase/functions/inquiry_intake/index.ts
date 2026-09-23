@@ -45,7 +45,7 @@ async function llm(messages: any[], subject: { email?: string; customer_id?: str
   const input = messages.filter((m: any) => !m || m.role !== 'system');
   {
     try {
-      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, max: 4000, temperature: 0.1 }) });
+      const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'inquiry_intake', subject, sys, input, response_format: { type: 'json_object' }, max: 4000, temperature: 0.1 }) });
       if (!r.ok) return null; const jd = await r.json(); const c = jd?.content; if (c) return c;
     } catch (_e) { /* fall through to null */ }
   }
@@ -294,13 +294,13 @@ YOU ARE TALKING TO SOMEONE WHO IS PROBABLY NOT TECHNICAL, and the questions abov
 - TRANSLATE every question into plain words before you ask it. Not "specify the substrate condition and screed level" — "is the floor bare concrete at the moment, or is there already tiling or flooring down?". Not "confirm the BTU load" — "roughly how big is the room, and how many people use it?".
 - If a term has no plain equivalent, ask for the thing they CAN see or count: a room size, how many of something, a photo, what it looks like now, what they want it to look like.
 - NEVER ask them to look something up, measure something they would need equipment for, or produce a document they are unlikely to have. Ask what they know; our engineer infers the rest.
-- One idea per question, and at most 2-3 questions at a time. A wall of trade questions is how a customer abandons a request.
+- One idea per question, and no more questions at a time than rule 2 allows. A wall of trade questions is how a customer abandons a request.
 - If they answer vaguely ("normal size", "standard"), accept it and move on rather than pressing — an approximate answer with a note is worth more than an abandoned inquiry, and suppliers can flag what they still need.
 - A customer who says they do not know is telling you something useful. Record it as unknown and let the suppliers quote against an assumption, stated as an assumption.
 ${specialistKB ? `\nFIELD EXPERTISE for this trade (the specialist knowledge our expert agents use — apply it to ask the sharpest quote-critical questions and to recognise when a customer's answer implies an approval, standard or spec they haven't mentioned; do NOT lecture the customer, quote this text, or ask about things irrelevant to their specific job):\n${specialistKB}\n` : ''}
 RULES:
 1. If the message is gibberish, a test, empty, spam, or NOT a genuine request for a construction / fit-out / maintenance / supply / trade service in the UAE, set status \"rejected\" and politely ask them to describe an actual job.
-2. If genuine but missing REQUIRED details, set status \"needs_info\" and ask ONLY the most important missing questions — at most 4 total. CRITICAL ANTI-REPETITION RULE: first re-read the ENTIRE conversation and populate \"already_provided\" with every fact the customer has already given (per trade). You MUST NOT ask about — or list in \"missing\" — anything already covered in \"already_provided\". Re-asking a question the customer already answered is a serious error. Offer sensible options where helpful. Never ask for their name, phone or email (already collected).
+2. If genuine but missing REQUIRED details, set status \"needs_info\" and ask ONLY the most important missing questions — at most 4 total. First re-read the entire conversation and put every fact the customer has already given (per trade) in \"already_provided\". Do not ask about, or list in \"missing\", anything already in \"already_provided\": a customer asked twice for the same thing abandons the request. Offer sensible options where helpful. Never ask for their name, phone or email (already collected).
 3. If enough detail exists for an accurate quote (all REQUIRED items known, or a drawing/BOQ covers them), set status \"ready\" and produce a clean supplier-ready brief.
 3b. CANONICAL KEYS — this is a hard contract, not a preference. Every REQUIRED checklist item above has a key in square brackets. Put that item's answer in \"brief\".\"details\" under EXACTLY that key, spelled exactly as given. Do not rename it, do not invent your own key, do not split it across two keys. A brief that answers the question under a different name is treated as not answering it at all: dispatch is gated on these exact keys, so the request is created and then silently never sent to a supplier. If the customer has given the information anywhere in the conversation, it belongs under the canonical key even if they phrased it differently.
 4. Be warm, concise and professional. ${ar ? 'Reply in Arabic.' : 'Reply in English.'}

@@ -1,0 +1,510 @@
+{
+  "trade": "interior_fitout",
+  "entries": [
+    {
+      "id": "interior_fitout:shell-core-cat-a-cat-b",
+      "topic": "Shell & core vs Cat A vs Cat B fit-out",
+      "kind": "comparison",
+      "body_en": "These terms (from UK office practice, widely used in the UAE) describe how finished a space is. Shell & core: the landlord delivers the structure, envelope, common areas, main risers and plant; the tenant space is bare concrete with services capped at the boundary. Category A (Cat A): a basic, lettable, landlord-standard finish — typically raised floors or screed, suspended ceilings, basic lighting, HVAC distribution, fire detection and sprinklers to an open-plan layout, and finished core walls; it is functional but has no tenant identity. Category B (Cat B): the tenant's own fit-out — partitions, meeting rooms, reception, pantries, finishes, furniture, AV/IT, branding, and the adaptation of Cat A services to the new layout (relocating sprinklers, detectors, diffusers and lighting). In UAE offices, many buildings are handed over as shell & core, so a tenant may need both Cat A and Cat B works. Some landlords now offer \"Cat A+\" or plug-and-play space, pre-fitting items such as a tea point, meeting room or comms room so a tenant can move in quickly. Buyers should confirm exactly what the landlord hands over before asking contractors to price, because it changes scope and cost significantly.",
+      "body_ar": "تصف هذه المصطلحات (المأخوذة من ممارسة المكاتب البريطانية والمنتشرة في الإمارات) درجة جاهزية المساحة. الهيكل والنواة: يسلم المالك الهيكل الإنشائي والغلاف والمناطق المشتركة والمسارات الرئيسية والمعدات، وتكون مساحة المستأجر خرسانة عارية مع خدمات مغلقة عند الحدود. الفئة A: تشطيب أساسي قابل للتأجير بمعيار المالك، يشمل عادةً أرضيات مرفوعة أو صبة، وأسقفاً معلقة، وإنارة أساسية، وتوزيع التكييف، وكشف الحريق والرشاشات لتخطيط مفتوح، وجدران النواة منتهية؛ وهو عملي لكنه بلا هوية للمستأجر. الفئة B: تشطيب المستأجر الخاص، ويشمل القواطع وغرف الاجتماعات والاستقبال والمطابخ الصغيرة والتشطيبات والأثاث والأنظمة السمعية والبصرية وتقنية المعلومات والهوية، وتعديل خدمات الفئة A للتخطيط الجديد (نقل الرشاشات والكواشف والمخارج والإنارة). في مكاتب الإمارات تُسلَّم مبانٍ كثيرة كهيكل ونواة، فقد يحتاج المستأجر إلى أعمال الفئتين A وB معاً. ويسلم بعض الملاك \"فئة A+\" بعناصر أكثر. على المشتري التأكد تماماً مما يسلمه المالك قبل طلب الأسعار، لأن ذلك يغير النطاق والتكلفة كثيراً. ويقدم بعض الملاك حالياً مساحات \"الفئة أ+\" أو الجاهزة للتشغيل، مع تجهيز مسبق لعناصر مثل ركن الضيافة أو غرفة الاجتماعات أو غرفة الاتصالات لتمكين المستأجر من الانتقال سريعاً.",
+      "sources": [
+        "https://www.crowninteriors.com/insights/the-difference-between-shell-and-core-cat-a-cat-a-plug-and-play-and-cat-b-fit-out/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:design-build-vs-build-only",
+      "topic": "Design & build vs build-only (traditional) vs turnkey",
+      "kind": "comparison",
+      "body_en": "In a traditional (design-bid-build) route, the client appoints a designer or consultant who prepares full drawings, specifications and BOQ; contractors then bid on the same documents, which makes quotes comparable and gives the client design control, but it takes longer and design errors become client-paid variations. In design & build (D&B), one contractor is responsible for both design and construction, usually against the client's brief; it is faster and gives a single point of responsibility, but the client has less control over detail and quality unless the brief and specification are strong, and D&B quotes are hard to compare because each bidder designs differently. Turnkey goes further, delivering a ready-to-use space including furniture, IT/AV and sometimes approvals and moving in. In the UAE, most small and mid-size fit-outs are D&B by fit-out contractors who also handle authority approvals; larger or branded projects often use a consultant-led traditional or hybrid route. Buyers should choose based on their ability to define the brief, time available and need for price certainty. FIDIC's suite mirrors these routes: the Red Book for employer-designed works, the Yellow Book for contractor-designed works and the Silver Book for EPC/turnkey. The share of UAE fit-outs procured by each route is market practice, not a published statistic.",
+      "body_ar": "في المسار التقليدي (تصميم ثم مناقصة ثم تنفيذ) يعين العميل مصمماً أو استشارياً يعد المخططات الكاملة والمواصفات وجدول الكميات، ثم يقدم المقاولون أسعارهم على الوثائق نفسها، مما يجعل العروض قابلة للمقارنة ويمنح العميل السيطرة على التصميم، لكنه أطول زمناً وأخطاء التصميم تصبح أوامر تغييرية يدفعها العميل. أما في التصميم والتنفيذ فيتولى مقاول واحد التصميم والتنفيذ معاً، عادةً بناءً على متطلبات العميل؛ وهو أسرع ويوفر جهة مسؤولية واحدة، لكن سيطرة العميل على التفاصيل والجودة أقل ما لم تكن المتطلبات والمواصفات قوية، وتصعب مقارنة العروض لأن كل متنافس يصمم بطريقته. ويذهب التسليم المفتاح أبعد، فيسلم مساحة جاهزة للاستخدام شاملة الأثاث وتقنية المعلومات وأحياناً الموافقات والانتقال. في الإمارات تُنفذ معظم مشاريع التشطيب الصغيرة والمتوسطة بالتصميم والتنفيذ عبر مقاولي تشطيب يتولون موافقات الجهات أيضاً، بينما تستخدم المشاريع الكبيرة أو ذات العلامات التجارية مساراً تقليدياً أو مختلطاً بقيادة استشاري. على المشتري الاختيار حسب قدرته على تحديد المتطلبات والوقت المتاح والحاجة إلى يقين السعر. وتعكس عقود فيديك هذه المسارات: الكتاب الأحمر للأعمال التي يصممها صاحب العمل، والأصفر للأعمال التي يصممها المقاول، والفضي لعقود التصميم والتوريد والتنفيذ وتسليم المفتاح. أما نسبة كل مسار في سوق التشطيبات الإماراتي فهي ممارسة سوقية وليست إحصاءً منشوراً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/FIDIC"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:fitout-spec-checklist",
+      "topic": "Fit-out RFQ — what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "A fit-out request must define: location, building, unit number and area (with the landlord's handover condition — shell & core or Cat A — and the landlord's fit-out guide attached); use/occupancy (office, retail, F&B is excluded here, clinic, showroom) since it drives approvals and fire requirements; procurement route (design & build or build-only with drawings/BOQ); design brief or drawings (layout, headcount, rooms, finishes, brand guidelines); MEP scope (HVAC modification, electrical, lighting, data, fire alarm, sprinklers, plumbing); specialist items (AV, security/access control, furniture, signage, kitchen/pantry equipment); authority approvals and who obtains them (Dubai Municipality or relevant authority, Civil Defence, DEWA/utility, landlord/free-zone NOCs); programme and target handover date; working-hour restrictions; insurance required; payment terms, retention and DLP; warranty expectations; and whether furniture and IT are in or out. Also state the evaluation basis (lump sum vs re-measure, and the format of the price breakdown). Attach the existing layout, site photographs and any available as-built drawings; zone authorities such as DDA and DMCC's facilities manager ask for these, and a missing existing-layout plan is a common reason for rejection.",
+      "body_ar": "يجب أن يحدد طلب تسعير التشطيب: الموقع والمبنى ورقم الوحدة والمساحة (مع حالة التسليم من المالك، هيكل ونواة أو فئة A، وإرفاق دليل التشطيبات لدى المالك)؛ والاستخدام أو الإشغال (مكتب، محل، عيادة، معرض) لأنه يحدد الموافقات ومتطلبات الحريق؛ ومسار الشراء (تصميم وتنفيذ، أو تنفيذ فقط بمخططات وجدول كميات)؛ ومتطلبات التصميم أو المخططات (التخطيط، عدد الموظفين، الغرف، التشطيبات، دليل الهوية)؛ ونطاق الأعمال الكهروميكانيكية (تعديل التكييف، الكهرباء، الإنارة، الشبكات، إنذار الحريق، الرشاشات، السباكة)؛ والبنود المتخصصة (الأنظمة السمعية البصرية، الأمن والتحكم في الدخول، الأثاث، اللافتات، معدات المطبخ الصغير)؛ وموافقات الجهات ومن يستخرجها (البلدية أو الجهة المختصة، الدفاع المدني، هيئة الكهرباء والماء، عدم ممانعة المالك أو المنطقة الحرة)؛ والبرنامج الزمني وتاريخ التسليم المستهدف؛ وقيود ساعات العمل؛ والتأمين المطلوب؛ وشروط الدفع والمحتجزات وفترة المسؤولية عن العيوب؛ وتوقعات الضمان؛ وهل الأثاث وتقنية المعلومات ضمن النطاق. مع ذكر أساس التقييم (مبلغ مقطوع أو إعادة قياس، وشكل تفصيل الأسعار). وأرفق المخطط الحالي وصور الموقع وأي مخططات منفذة متاحة؛ فجهات المناطق مثل سلطة دبي للتطوير ومدير مرافق مركز دبي للسلع المتعددة تطلبها، وغياب مخطط الوضع الحالي سبب شائع للرفض.",
+      "required_specs": [
+        "location, building, unit, area",
+        "landlord handover condition and fit-out guide",
+        "use / occupancy",
+        "procurement route",
+        "design brief or drawings",
+        "MEP scope",
+        "specialist items (AV, security, furniture, signage)",
+        "authority approvals and responsibility",
+        "programme and handover date",
+        "working-hour restrictions",
+        "insurance",
+        "payment terms, retention, DLP",
+        "warranties",
+        "furniture and IT in or out",
+        "pricing basis and breakdown format"
+      ],
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:dubai-municipality-fitout-permit",
+      "topic": "Dubai Municipality fit-out / interior works permit",
+      "kind": "authority_approval",
+      "body_en": "For premises in Dubai outside free zones and special development areas, interior fit-out and modification works generally require a permit through Dubai Municipality's building permit system, submitted by a registered consultant and/or a registered fit-out contractor. Typical submissions include the landlord/owner NOC, trade licence and tenancy (Ejari) documents, architectural fit-out drawings, MEP drawings, and Civil Defence-related fire drawings; the Municipality then carries out inspections and issues a completion certificate. Minor works (painting, flooring replacement without layout change) may follow a simplified route or not require a permit, depending on current rules. The exact requirements, fees and classifications change over time and differ by building type, so they should be confirmed on Dubai Municipality's current services and with the consultant at the time of the project. Buyers should make the contractor or consultant responsible for obtaining permits in the contract and should not start works before the permit is issued — unauthorised works can lead to fines and stop orders. Zone permits show the pattern: Dubai Development Authority's fit-out permit, applied for by the contractor, needs the tenant's appointment letter, Ejari, owner NOC and stamped drawings, is valid for six months, and its fit-out completion certificate requires Dubai Civil Defence's completion certificate first. The Dubai Municipality equivalent was not verified from a primary page in this pass and its detail remains not established.",
+      "body_ar": "للمنشآت في دبي خارج المناطق الحرة ومناطق التطوير الخاصة، تحتاج أعمال التشطيب الداخلي والتعديل عموماً إلى تصريح عبر نظام تصاريح البناء في بلدية دبي، يقدمه استشاري مسجل و/أو مقاول تشطيب مسجل. تشمل التقديمات المعتادة عدم ممانعة المالك، والرخصة التجارية وعقد الإيجار (إيجاري)، ومخططات التشطيب المعمارية، ومخططات الأعمال الكهروميكانيكية، ومخططات الحريق الخاصة بالدفاع المدني؛ ثم تجري البلدية التفتيشات وتصدر شهادة الإنجاز. الأعمال البسيطة (الدهان، استبدال الأرضيات دون تغيير التخطيط) قد تتبع مساراً مبسطاً أو لا تحتاج تصريحاً بحسب القواعد الحالية. المتطلبات الدقيقة والرسوم والتصنيفات تتغير مع الوقت وتختلف حسب نوع المبنى، لذا يجب تأكيدها من خدمات بلدية دبي الحالية ومع الاستشاري وقت المشروع. على المشتري أن يحمّل المقاول أو الاستشاري مسؤولية استخراج التصاريح في العقد، وألا يبدأ الأعمال قبل صدور التصريح، لأن الأعمال غير المرخصة قد تؤدي إلى غرامات وأوامر إيقاف. ويتضح النمط من تصاريح المناطق: فتصريح التشطيب لدى سلطة دبي للتطوير يقدمه المقاول، ويتطلب خطاب تعيين من المستأجر وإيجاري وعدم ممانعة المالك ومخططات مختومة، ويسري ستة أشهر، ولا تصدر شهادة إنجاز التشطيب إلا بعد شهادة إنجاز الدفاع المدني في دبي. أما تفاصيل بلدية دبي المقابلة فلم يتم التحقق منها من صفحة رسمية في هذه المراجعة وتبقى غير مثبتة.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "technical"
+    },
+    {
+      "id": "interior_fitout:civil-defence-fitout",
+      "topic": "Civil Defence approvals for fit-out (fire and life safety)",
+      "kind": "authority_approval",
+      "body_en": "Almost every commercial fit-out touches fire and life safety: new partitions change escape routes and travel distances, ceilings change sprinkler and detector coverage, and finishes must meet fire classifications. The current UAE Fire and Life Safety Code of Practice is the 2018 edition issued by the General Command of Civil Defence (with Abu Dhabi's 2026 local amendments), not the 2011 edition. It defines a \"Fit-out Contractor (Décor Company)\" as a firm registered with the emirate's Civil Defence that designs and executes interior fit-out, including the space's fire and life safety, after obtaining municipality and Civil Defence approval (Chapter 18, 1.2.10). It also restricts specialist systems: fire extinguishers and emergency lighting may be installed only by Civil Defence-approved, licensed contractors, and fit-out contractors are named as not allowed unless licensed (Chapter 4, 3.2.1; Chapter 6, 5.2.1). Interior wall and ceiling finish classes by occupancy are set in the code's Table 1.12, with a one-class relaxation where an approved sprinkler system is installed (Chapter 1, 2.14). Civil Defence completion certificates are prerequisites elsewhere too: DDA, for example, will not issue its fit-out completion certificate without one. Buyers should confirm who holds the Civil Defence scope, whether the building has nominated fire contractors, and allow approval time in the programme.",
+      "body_ar": "يمس كل تشطيب تجاري تقريباً الحماية من الحريق وسلامة الأرواح: فالقواطع الجديدة تغير طرق الهروب ومسافات الانتقال، والأسقف تغير تغطية الرشاشات والكواشف، والتشطيبات يجب أن تستوفي تصنيفات الحريق. والكود الساري هو كود الإمارات للحماية من الحريق وسلامة الأرواح إصدار 2018 الصادر عن القيادة العامة للدفاع المدني (مع تعديلات أبوظبي المحلية لعام 2026)، وليس إصدار 2011. ويعرّف الكود \"مقاول التشطيب (شركة الديكور)\" بأنه جهة مسجلة لدى الدفاع المدني في الإمارة، تصمم وتنفذ أعمال التشطيب الداخلي بما فيها جوانب الحماية من الحريق للمساحة، بعد الحصول على موافقة البلدية والدفاع المدني (الفصل 18، البند 1.2.10). كما يقصر تركيب طفايات الحريق وأنظمة إنارة الطوارئ على المقاولين المعتمدين والمرخصين من الدفاع المدني، وينص على أن مقاولي التشطيب غير مسموح لهم بذلك ما لم يكونوا مرخصين (الفصل 4، البند 3.2.1؛ الفصل 6، البند 5.2.1). وتحدد فئات تشطيب الجدران والأسقف الداخلية حسب نوع الإشغال في الجدول 1.12، مع تخفيف بدرجة واحدة عند وجود نظام رشاشات معتمد (الفصل 1، البند 2.14). وشهادات إنجاز الدفاع المدني شرط مسبق في جهات أخرى أيضاً؛ فسلطة دبي للتطوير مثلاً لا تصدر شهادة إنجاز التشطيب بدونها. على المشتري التأكد ممن يتولى نطاق الدفاع المدني، ووجود مقاولي حريق مسمّين في المبنى، وإدراج وقت الاعتماد في البرنامج.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:dewa-utility-approvals",
+      "topic": "DEWA and utility approvals in fit-out",
+      "kind": "authority_approval",
+      "body_en": "Fit-outs that change electrical loads, add distribution boards, or need a new or upgraded supply involve the utility: DEWA in Dubai, and in other emirates their own distribution utilities (for example SEWA in Sharjah and the Abu Dhabi distribution companies). Verified for Dubai from DEWA's service guide: the \"Getting Electricity Fit-out Connections\" service lets DEWA-enrolled contractors and consultants obtain a power supply connection to a consumer's shell-and-core or fit-out installation, and a related Building No Objection Certificate - Electricity service lets enrolled contractors and consultants obtain DEWA's NOC for a building permit. So the application is made by a DEWA-enrolled contractor or consultant, not by the tenant. The Dubai Development Authority's fit-out permit, for example, requires NOCs from the relevant authorities, including utilities and Civil Defence, together with the building owner's NOC. Tenants in multi-tenant buildings usually work through the landlord's supply and sub-metering, so the landlord's approval comes first. District cooling and private utility providers in some master communities and free zones have their own approvals. Not established here: DEWA's required document list, fees and processing times, and the equivalent service steps at SEWA, the Abu Dhabi distribution companies and Etihad Water & Electricity; confirm with the utility and landlord. Buyers should ask the contractor to state whether utility approvals are needed, who files them (an enrolled contractor or consultant), the fees, and the time allowed before handover.",
+      "body_ar": "أعمال التجهيز الداخلي التي تغيّر الأحمال الكهربائية أو تضيف لوحات توزيع أو تحتاج تغذية جديدة أو مرفوعة تتطلب التعامل مع جهة المرافق: هيئة كهرباء ومياه دبي في دبي، وفي الإمارات الأخرى جهات التوزيع الخاصة بها (مثل هيئة كهرباء ومياه الشارقة وشركات التوزيع في أبوظبي). ما تحقق منه لدبي من دليل خدمات الهيئة: خدمة \"توصيل الكهرباء لأعمال التجهيز الداخلي\" تتيح للمقاولين والاستشاريين المسجلين لدى الهيئة الحصول على توصيل التغذية لتركيبات الهيكل والأساس أو التجهيز الداخلي للمستهلك، وخدمة \"شهادة عدم ممانعة المبنى - الكهرباء\" تتيح لهم الحصول على شهادة عدم الممانعة لرخصة البناء. فالطلب يقدمه مقاول أو استشاري مسجل لدى الهيئة لا المستأجر. ومثلاً تشترط رخصة التجهيز الداخلي لدى سلطة دبي للتطوير شهادات عدم ممانعة من الجهات المعنية ومنها المرافق والدفاع المدني، مع عدم ممانعة مالك المبنى. والمستأجرون في المباني متعددة المستأجرين يعملون عادة عبر تغذية المالك وعداداته الفرعية، فتأتي موافقة المالك أولاً. ولشركات تبريد المناطق ومزودي المرافق الخاصين في بعض المجتمعات والمناطق الحرة موافقاتهم الخاصة. غير مثبت هنا: قائمة مستندات الهيئة ورسومها ومدد المعالجة، وخطوات الخدمة المقابلة لدى هيئة الشارقة وشركات أبوظبي والاتحاد للماء والكهرباء؛ فيجب التأكد من جهة المرافق والمالك. وعلى المشتري أن يطلب من المقاول بيان ما إذا كانت موافقات المرافق لازمة، ومن يقدمها (مقاول أو استشاري مسجل)، والرسوم، والمدة المسموح بها قبل التسليم.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/about-us/service-guide/builder-services/getting-electricity-fitout-connections",
+        "https://www.dewa.gov.ae/en/about-us/service-guide/builder-services/building-no-objection-certificate-Electricity",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial",
+      "source_note": "DEWA service descriptions were read from the dewa.gov.ae service-guide search listing (the pages return 403 to direct fetch); DDA page fetched in full."
+    },
+    {
+      "id": "interior_fitout:free-zone-and-master-developer-nocs",
+      "topic": "Free zone, master developer and landlord NOCs (DMCC, DIFC, DDA, Trakhees, etc.)",
+      "kind": "authority_approval",
+      "body_en": "In Dubai many premises are regulated not by Dubai Municipality but by a zone authority: Trakhees (Ports, Customs and Free Zone Corporation) for areas such as JAFZA and Nakheel communities, Dubai Development Authority (DDA) for TECOM-type zones such as Dubai Internet City, Media City and Business Bay-related districts under its remit, DMCC for JLT and Uptown, DIFC Authority for DIFC, Dubai South, Dubai Silicon Oasis, Dubai Airport Free Zone and others. Each has its own fit-out approval process, registered contractor/consultant requirements, fit-out guide and inspections, and may still require Civil Defence and utility approvals. On top of that, the building owner or property manager issues its NOC and enforces the building's fit-out guide. Jurisdictions change, so the correct authority for a specific plot should be confirmed with the landlord. Buyers should not assume a Dubai Municipality-registered contractor can work in every zone; ask the contractor to prove registration with the specific authority. In JLT, for example, DMCC issues the unit-owner NOC while its facilities manager, Concordia, approves drawings, allows only registered contractors, inspects and issues the fit-out completion certificate.",
+      "body_ar": "في دبي لا تخضع منشآت كثيرة لبلدية دبي بل لسلطة منطقة: تراخيص (مؤسسة الموانئ والجمارك والمنطقة الحرة) لمناطق مثل جافزا ومجتمعات نخيل، وسلطة دبي للتطوير لمناطق مثل مدينة دبي للإنترنت ومدينة دبي للإعلام وغيرها ضمن اختصاصها، ومركز دبي للسلع المتعددة لأبراج بحيرات جميرا، وسلطة مركز دبي المالي العالمي، ودبي الجنوب، وواحة دبي للسيليكون، والمنطقة الحرة لمطار دبي وغيرها. لكل منها إجراء خاص لاعتماد التشطيب، ومتطلبات تسجيل المقاول والاستشاري، ودليل تشطيبات، وتفتيشات، وقد تظل موافقات الدفاع المدني والمرافق مطلوبة. وفوق ذلك يصدر مالك المبنى أو مدير العقار عدم ممانعته ويطبق دليل التشطيبات الخاص بالمبنى. الاختصاصات تتغير، لذا يجب تأكيد الجهة الصحيحة لكل قطعة مع المالك. على المشتري ألا يفترض أن المقاول المسجل في بلدية دبي يستطيع العمل في كل منطقة، بل يطلب إثبات تسجيله لدى الجهة المحددة. ففي أبراج بحيرات جميرا مثلاً يصدر مركز دبي للسلع المتعددة عدم ممانعة مالك الوحدة، بينما يعتمد مدير المرافق \"كونكورديا\" المخططات ولا يسمح إلا للمقاولين المسجلين، ويفتش ويصدر شهادة إنجاز التشطيب.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:abu-dhabi-fitout-approvals",
+      "topic": "Abu Dhabi fit-out approvals (municipality and Civil Defence)",
+      "kind": "authority_approval",
+      "body_en": "In Abu Dhabi, the Department of Municipalities and Transport (DMT) supervises municipal services in Abu Dhabi City, Al Ain and Al Dhafra, and building and work permits are applied for through TAMM, the Abu Dhabi government services platform (TAMM lists \"Request a Building Permit\", \"Building Permit Issuance\" and \"Issuing Building Work Permit\" services). Fire and life safety approvals come from Abu Dhabi Civil Defence under the UAE Fire & Life Safety Code 2018 with Abu Dhabi's 2026 amendments; Chapter 12 of the 2018 code states that no modification, alteration, extension or change of use of a building may be carried out unless Civil Defence has approved the proposal, and that no part of an under-construction building may be occupied until a completion certificate is obtained. Utility approvals come from the distribution company. Special zones (for example ADGM on Al Maryah Island, KEZAD, Masdar City and the Yas and Saadiyat master communities) apply their own procedures or developer approvals in addition. Estidama requires at least one Pearl for new developments (two for government projects); whether a given fit-out must meet Pearl requirements depends on the project. Not established here: the exact TAMM service that covers an interior fit-out (as opposed to a new building or site works), its document list, fees and processing times, because the TAMM pages could not be read in full. Buyers in Abu Dhabi should confirm with the landlord which authority applies, use a consultant or contractor registered in the emirate, and allow for approval periods in the programme.",
+      "body_ar": "في أبوظبي تشرف دائرة البلديات والنقل على الخدمات البلدية في مدينة أبوظبي والعين والظفرة، وتُقدَّم طلبات رخص البناء والعمل عبر منصة \"تم\" للخدمات الحكومية (وتدرج \"تم\" خدمات \"طلب رخصة بناء\" و\"إصدار رخصة بناء\" و\"إصدار تصريح أعمال بناء\"). وتصدر موافقات السلامة من الحرائق والأرواح عن الدفاع المدني في أبوظبي وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح 2018 مع تعديلات أبوظبي لعام 2026؛ وينص الفصل 12 من كود 2018 على عدم إجراء أي تعديل أو تغيير أو توسعة أو تغيير استخدام لمبنى إلا بعد موافقة الدفاع المدني، وعدم إشغال أي جزء من مبنى قيد الإنشاء قبل الحصول على شهادة الإنجاز. وتصدر موافقات المرافق عن شركة التوزيع. وتطبق المناطق الخاصة (مثل سوق أبوظبي العالمي في جزيرة المارية، وكيزاد، ومدينة مصدر، ومجتمعات ياس والسعديات) إجراءاتها أو موافقات مطوريها إضافة لذلك. ويشترط نظام استدامة لؤلؤة واحدة على الأقل للمشاريع الجديدة (ولؤلؤتين للمشاريع الحكومية)، وانطباق ذلك على تجهيز معيّن يعتمد على المشروع. غير مثبت هنا: الخدمة الدقيقة في \"تم\" التي تغطي التجهيز الداخلي (مقابل مبنى جديد أو أعمال الموقع) ومستنداتها ورسومها ومددها، لتعذر قراءة صفحات \"تم\" كاملة. وعلى المشتري في أبوظبي التأكد من المالك بشأن الجهة المختصة، والاستعانة باستشاري أو مقاول مسجل في الإمارة، واحتساب مدد الموافقات في البرنامج الزمني.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Abu_Dhabi_Department_of_Municipalities_and_Transport",
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.tamm.abudhabi/en/life-events/business/housing-construction/construction/RequestaNewBuildingPermit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial",
+      "source_note": "Fire rule from kb/x/uae_fire_code_2018.txt (UAE Fire & Life Safety Code of Practice, September 2018, Chapter 12). TAMM service names from a search listing of tamm.abudhabi; the pages did not render in full."
+    },
+    {
+      "id": "interior_fitout:landlord-fitout-guide-deposit",
+      "topic": "Landlord fit-out guide, fit-out deposit and fit-out period",
+      "kind": "authority_approval",
+      "body_en": "Most UAE commercial landlords issue a Tenant Fit-Out Guide (or Fit-Out Manual) defining design criteria (ceiling heights, shopfront rules in malls, signage, HVAC and electrical capacity, noisy-work hours, loading dock use), the approval process (concept and detailed design submissions, landlord review fees), approved or nominated contractors for sensitive systems (fire alarm, sprinklers, BMS), and handover/closing requirements. Landlords commonly ask for a refundable fit-out deposit or bank guarantee to cover damage to common areas and compliance, plus non-refundable fees for design review, utility connections, and sometimes nominated-contractor tie-ins. Many leases give a rent-free fit-out period; delays in approvals eat into it, so starting design early matters. Amounts and durations are negotiated per lease and are not standardised. Buyers should obtain the guide before design, list all landlord charges in the budget, and make the contractor responsible for complying with it. In JLT, for instance, the facilities manager requires contractors to lodge an undertaking and a fit-out deposit and restricts noisy work and material movement to set hours.",
+      "body_ar": "يصدر معظم الملاك التجاريين في الإمارات دليل تشطيبات للمستأجر يحدد معايير التصميم (ارتفاعات الأسقف، قواعد واجهات المحلات في المراكز التجارية، اللافتات، قدرة التكييف والكهرباء، ساعات الأعمال المزعجة، استخدام رصيف التحميل)، وإجراء الاعتماد (تقديمات التصميم المبدئي والتفصيلي، رسوم مراجعة المالك)، والمقاولين المعتمدين أو المسميين للأنظمة الحساسة (إنذار الحريق، الرشاشات، نظام إدارة المبنى)، ومتطلبات التسليم والإغلاق. يطلب الملاك عادةً تأميناً قابلاً للاسترداد أو ضماناً بنكياً لتغطية الأضرار في المناطق المشتركة والالتزام، إضافة إلى رسوم غير مستردة لمراجعة التصميم وتوصيل المرافق وأحياناً ربط أعمال المقاول المسمى. تمنح عقود إيجار كثيرة فترة تشطيب معفاة من الإيجار، وتأخر الموافقات يستهلكها، لذا يهم البدء بالتصميم مبكراً. المبالغ والمدد يُتفاوض عليها في كل عقد وليست موحدة. على المشتري الحصول على الدليل قبل التصميم، وإدراج كل رسوم المالك في الميزانية، وتحميل المقاول مسؤولية الالتزام به. ففي أبراج بحيرات جميرا مثلاً يشترط مدير المرافق على المقاولين تقديم تعهد ووديعة تشطيب، ويقصر الأعمال المزعجة ونقل المواد على ساعات محددة.",
+      "sources": [
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:boq-vs-lump-sum",
+      "topic": "BOQ re-measure vs lump sum pricing",
+      "kind": "comparison",
+      "body_en": "A lump sum (fixed price) contract prices the whole defined scope for one amount; the contractor carries quantity risk, and the client gets price certainty — provided drawings and specification are complete; changes are priced as variations. A BOQ (bill of quantities) contract lists measured items with rates; in a re-measurable contract, the final price is based on actual measured quantities, which suits projects where design is incomplete but exposes the client to quantity growth. Many UAE fit-outs are lump sum with a priced BOQ attached as a breakdown for valuing variations and interim payments. For D&B quotes, contractors often give a lump sum with a short breakdown, which is hard to compare. Measurement standards help keep BOQs consistent: RICS NRM2 is the UK detailed-measurement standard, and POMI was long used in the GCC although RICS is reported to have withdrawn it in 2017 (not established from a primary source). Buyers should request a priced breakdown in a common format for all bidders, check provisional sums and exclusions, and understand which items are fixed and which are re-measurable.",
+      "body_ar": "في عقد المبلغ المقطوع (السعر الثابت) يُسعَّر كامل النطاق المحدد بمبلغ واحد، ويتحمل المقاول مخاطر الكميات ويحصل العميل على يقين في السعر، بشرط اكتمال المخططات والمواصفات، وتُسعَّر التغييرات كأوامر تغييرية. أما عقد جدول الكميات فيسرد بنوداً مقاسة بأسعار وحدات، وفي العقد القابل لإعادة القياس يُبنى السعر النهائي على الكميات المقاسة فعلياً، وهو يناسب المشاريع ذات التصميم غير المكتمل لكنه يعرض العميل لزيادة الكميات. كثير من مشاريع التشطيب في الإمارات بمبلغ مقطوع مع جدول كميات مسعر مرفق كتفصيل لتقييم الأوامر التغييرية والدفعات المرحلية. وفي عروض التصميم والتنفيذ يقدم المقاولون غالباً مبلغاً مقطوعاً مع تفصيل مختصر يصعب مقارنته. تساعد معايير القياس (مثل NRM من RICS أو POMI في الخليج) على اتساق جداول الكميات. على المشتري طلب تفصيل مسعر بصيغة موحدة لكل المتنافسين، ومراجعة المبالغ الاحتياطية والاستثناءات، وفهم البنود الثابتة والقابلة لإعادة القياس. ومعايير القياس تحافظ على اتساق جداول الكميات: فمعيار NRM2 الصادر عن RICS هو معيار القياس التفصيلي في المملكة المتحدة، واستُخدم معيار POMI طويلاً في دول الخليج، مع تقارير عن سحبه من RICS عام 2017 (غير مثبت من مصدر رسمي).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:mep-coordination",
+      "topic": "MEP coordination in fit-out",
+      "kind": "installation",
+      "body_en": "MEP (mechanical, electrical, plumbing plus fire and ICT) is usually the largest risk in a fit-out. Typical tasks: modifying HVAC ductwork and adding VAV/FCU units or diffusers to suit new rooms, rebalancing airflow, adding thermostats; relocating sprinklers and smoke detectors so every room is covered after partitions go up; lighting layout and controls; small power and floor boxes; data cabling and comms room cooling; plumbing for pantries and toilets with drainage falls to existing stacks; and connecting to the landlord's BMS. Coordination drawings (combined services and reflected ceiling plans) prevent clashes and missing access panels. Existing building capacity limits (cooling load, electrical capacity, drainage points) can restrict the design and must be checked early with the landlord. Many landlords require nominated subcontractors for fire and BMS. Buyers should ask for an MEP survey of existing services, an MEP designer's name, and testing and commissioning with records at the end. Under the 2018 UAE Fire Code, fire extinguishers and emergency lighting must be installed by Civil Defence-licensed contractors, so these items cannot simply be folded into the general MEP package.",
+      "body_ar": "الأعمال الكهروميكانيكية (التكييف والكهرباء والسباكة إضافة إلى الحريق والاتصالات) هي عادةً أكبر مخاطر التشطيب. المهام المعتادة: تعديل مجاري الهواء وإضافة وحدات أو مخارج لتناسب الغرف الجديدة، وموازنة تدفق الهواء، وإضافة منظمات حرارة؛ ونقل الرشاشات وكواشف الدخان لتغطية كل غرفة بعد إقامة القواطع؛ وتوزيع الإنارة والتحكم فيها؛ والمقابس وعلب الأرضية؛ وكابلات الشبكات وتبريد غرفة الاتصالات؛ والسباكة للمطابخ الصغيرة ودورات المياه مع ميول الصرف إلى الأعمدة القائمة؛ والربط بنظام إدارة المبنى. مخططات التنسيق (الخدمات المجمعة ومخططات الأسقف العاكسة) تمنع التعارضات ونقص فتحات الصيانة. حدود قدرة المبنى القائمة (حمل التبريد، القدرة الكهربائية، نقاط الصرف) قد تقيد التصميم ويجب التحقق منها مبكراً مع المالك. يشترط ملاك كثيرون مقاولين من الباطن مسميين للحريق ونظام إدارة المبنى. على المشتري طلب مسح للخدمات القائمة، واسم مصمم الأعمال الكهروميكانيكية، والاختبار والتشغيل مع السجلات في النهاية. وبموجب كود الإمارات للحريق 2018 يجب تركيب طفايات الحريق وإنارة الطوارئ بواسطة مقاولين مرخصين من الدفاع المدني، فلا يمكن ضمها ببساطة إلى حزمة الأعمال الكهروميكانيكية العامة.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:fitout-programme",
+      "topic": "Fit-out programme and typical sequence",
+      "kind": "lead_time",
+      "body_en": "A fit-out programme usually runs: brief and survey; concept design; detailed design and landlord approval; authority submissions (municipality/zone authority, Civil Defence, utility); procurement of long-lead items; site mobilisation after permits; strip-out if needed; first-fix MEP and partitions; ceiling close-up after inspections; flooring, joinery, finishes; second-fix MEP; testing and commissioning; authority and landlord inspections; snagging; furniture, IT/AV; handover and completion certificates. Approvals and long-lead items (bespoke joinery, imported finishes, furniture, glass partitions, AV) often drive the end date more than site work. Durations depend on size, complexity and authority response times and are not established as fixed numbers here; ask bidders for a programme showing approvals, procurement and site phases separately. Buyers should align the programme with the rent-free period, allow float for approvals, and treat any programme without an approvals phase as unrealistic. Published zone figures illustrate the approval phase: DDA states about two working days for its fit-out permit, valid six months, and JLT guides cite about five working days for drawing approval; complete documents keep these short.",
+      "body_ar": "يسير برنامج التشطيب عادةً كالتالي: المتطلبات والمسح؛ ثم التصميم المبدئي؛ فالتصميم التفصيلي واعتماد المالك؛ ثم التقديم للجهات (البلدية أو سلطة المنطقة، الدفاع المدني، المرافق)؛ فشراء البنود طويلة التوريد؛ ثم التجهيز في الموقع بعد التصاريح؛ والهدم الداخلي إن لزم؛ ثم التمديدات الأولى والقواطع؛ فإغلاق الأسقف بعد التفتيشات؛ ثم الأرضيات والنجارة والتشطيبات؛ فالتمديدات الثانية؛ ثم الاختبار والتشغيل؛ فتفتيشات الجهات والمالك؛ ثم معالجة الملاحظات؛ فالأثاث وتقنية المعلومات والأنظمة السمعية البصرية؛ ثم التسليم وشهادات الإنجاز. الموافقات والبنود طويلة التوريد (النجارة الخاصة، التشطيبات المستوردة، الأثاث، القواطع الزجاجية، الأنظمة السمعية البصرية) كثيراً ما تحدد تاريخ الانتهاء أكثر من أعمال الموقع. المدد تعتمد على الحجم والتعقيد وسرعة استجابة الجهات، ولم نثبتها كأرقام ثابتة هنا؛ لذا يُطلب من المتنافسين برنامج يوضح مراحل الموافقات والشراء والموقع منفصلة. على المشتري مواءمة البرنامج مع فترة الإعفاء من الإيجار، وترك هامش للموافقات، واعتبار أي برنامج دون مرحلة موافقات غير واقعي. وتوضح الأرقام المنشورة مرحلة الاعتماد: إذ تذكر سلطة دبي للتطوير نحو يومي عمل لتصريح التشطيب الساري ستة أشهر، وتذكر أدلة أبراج بحيرات جميرا نحو خمسة أيام عمل لاعتماد المخططات، واكتمال المستندات يبقيها قصيرة.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:snagging-handover",
+      "topic": "Snagging, testing and handover",
+      "kind": "installation",
+      "body_en": "Near completion, the client or consultant inspects the space and issues a snag list of defects and incomplete items (damaged finishes, misaligned doors, paint touch-ups, non-working lights, HVAC balancing issues, missing access panels, silicone, labelling). The contractor fixes them before or shortly after practical completion, which is usually certified when the space is fit for use with only minor snags outstanding. Handover documents should include: authority completion certificates (municipality/zone, Civil Defence), test and commissioning records (fire alarm, sprinklers, HVAC balancing, electrical tests), as-built drawings, operation and maintenance manuals, warranties and guarantees, spare materials (attic stock), keys and access cards, and landlord closure/deposit release documents. In the UAE, the Civil Defence completion or fire safety certificate is often a prerequisite for trade licence activation or opening, so it is critical-path. Buyers should not release final payment or retention before the certificates and documents are handed over. The 2018 Fire Code lists Civil Defence NOC and completion certificates among the documents to be handed over.",
+      "body_ar": "قرب الإنجاز يفحص العميل أو الاستشاري المساحة ويصدر قائمة ملاحظات بالعيوب والأعمال غير المكتملة (تشطيبات تالفة، أبواب غير مستقيمة، لمسات دهان، إنارة لا تعمل، مشكلات موازنة التكييف، فتحات صيانة ناقصة، السيليكون، الترقيم). يصلحها المقاول قبل الإنجاز العملي أو بعده بقليل، ويُصدَّق الإنجاز العملي عادةً عندما تصبح المساحة صالحة للاستخدام مع بقاء ملاحظات بسيطة فقط. يجب أن تشمل وثائق التسليم: شهادات إنجاز الجهات (البلدية أو المنطقة، الدفاع المدني)، وسجلات الاختبار والتشغيل (إنذار الحريق، الرشاشات، موازنة التكييف، الاختبارات الكهربائية)، ومخططات التنفيذ الفعلي، وأدلة التشغيل والصيانة، والضمانات، والمواد الاحتياطية، والمفاتيح وبطاقات الدخول، ووثائق إغلاق ملف المالك واسترداد التأمين. في الإمارات كثيراً ما تكون شهادة إنجاز الدفاع المدني أو شهادة السلامة شرطاً لتفعيل الرخصة التجارية أو الافتتاح، فهي على المسار الحرج. على المشتري عدم صرف الدفعة النهائية أو المحتجزات قبل تسليم الشهادات والوثائق. ويدرج كود الحريق 2018 عدم ممانعة الدفاع المدني وشهادات الإنجاز ضمن المستندات الواجب تسليمها.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:dlp-retention",
+      "topic": "Defects liability period (DLP) and retention",
+      "kind": "warranty",
+      "body_en": "After practical completion, most UAE construction and fit-out contracts include a defects liability (or maintenance) period during which the contractor must return to fix defects that appear; 12 months is common in construction contracts, but the period is whatever the contract states. To secure this, the client typically holds back retention — a percentage of each payment (often in the 5-10% range in construction contracts, released partly at completion and the rest at the end of the DLP) — or accepts a retention bond/bank guarantee instead. Separately, decennial liability makes the contractor and engineer jointly liable for ten years from handover for total or partial collapse and defects threatening stability or safety; under the new Civil Code (Federal Decree-Law No. 25 of 2025, in force 1 June 2026) it sits in Articles 821-824 (previously Articles 880-883 of the 1985 code), cannot be excluded by agreement, and does not apply between main contractor and subcontractor; it relates to structural matters rather than typical interior finishes. Manufacturer warranties (for equipment, flooring, etc.) run independently and should be assigned to the client. Buyers should state DLP length, retention percentage and release triggers in the contract, and keep a defects log during the DLP.",
+      "body_ar": "بعد الإنجاز العملي تتضمن معظم عقود البناء والتشطيب في الإمارات فترة مسؤولية عن العيوب (أو صيانة) يلتزم خلالها المقاول بالعودة لإصلاح العيوب التي تظهر؛ و12 شهراً مدة شائعة في عقود البناء، لكن المدة هي ما ينص عليه العقد. ولضمان ذلك يحتجز العميل عادةً نسبة من كل دفعة (غالباً ضمن نطاق 5 إلى 10% في عقود البناء، يُفرج عن جزء منها عند الإنجاز والباقي عند نهاية فترة المسؤولية)، أو يقبل بدلاً منها ضماناً بنكياً. وبشكل منفصل، تجعل أحكام القانون المدني الإماراتي بشأن المسؤولية العشرية المقاولَ والمهندس مسؤولين بالتضامن لمدة عشر سنوات عن التهدم الكلي أو الجزئي والعيوب التي تهدد متانة المبنى وسلامته، وهي تتعلق بالأمور الإنشائية لا بالتشطيبات الداخلية المعتادة. ضمانات المصنّعين (للمعدات والأرضيات وغيرها) تسري مستقلة ويجب تحويلها للعميل. على المشتري تحديد مدة فترة المسؤولية ونسبة المحتجزات وشروط الإفراج في العقد، والاحتفاظ بسجل للعيوب خلال الفترة. تصحيح: المسؤولية العشرية تجعل المقاول والمهندس مسؤولين بالتضامن عشر سنوات من التسليم عن التهدم الكلي أو الجزئي والعيوب التي تهدد المتانة أو السلامة؛ وفي قانون المعاملات المدنية الجديد (المرسوم بقانون اتحادي رقم 25 لسنة 2025، النافذ من 1 يونيو 2026) تقع في المواد 821-824 (بدلاً من المواد 880-883 في قانون 1985)، ولا يجوز الإعفاء منها بالاتفاق، ولا تسري بين المقاول الرئيسي والمقاول من الباطن.",
+      "sources": [
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:variations",
+      "topic": "Variations (change orders) in fit-out",
+      "kind": "buyer_mistake",
+      "body_en": "Variations are changes to the contracted scope — added rooms, upgraded finishes, design changes, landlord-imposed changes, authority comments, or unforeseen site conditions. They are the main reason fit-out final accounts exceed the tender price. Good contracts define: who can instruct a variation (only the client or named representative in writing), how it is valued (contract rates from the priced BOQ, or new rates agreed before work starts), and time extension entitlement. Common causes in UAE fit-outs: starting with an incomplete brief under D&B; landlord or Civil Defence comments after contract award; late furniture or IT decisions changing power and data; changing finishes after procurement; and hidden conditions such as uneven slabs or existing services clashes found during strip-out. Buyers should freeze the design before signing, keep a contingency in the budget, require written instructions with agreed cost before execution, and track a variation register weekly. FIDIC contracts, widely used in the GCC, set out their own variation procedure, so check any amendments to it.",
+      "body_ar": "الأوامر التغييرية تغييرات في النطاق المتعاقد عليه، كإضافة غرف أو رفع مستوى التشطيبات أو تغيير التصميم أو تغييرات يفرضها المالك أو ملاحظات الجهات أو ظروف موقع غير متوقعة. وهي السبب الرئيسي لتجاوز الحساب الختامي لسعر المناقصة. العقد الجيد يحدد: من يحق له إصدار الأمر التغييري (العميل أو ممثله المسمى كتابياً فقط)، وكيفية تقييمه (أسعار العقد من جدول الكميات المسعر، أو أسعار جديدة يُتفق عليها قبل بدء العمل)، والحق في تمديد المدة. أسباب شائعة في مشاريع الإمارات: البدء بمتطلبات ناقصة في مسار التصميم والتنفيذ؛ وملاحظات المالك أو الدفاع المدني بعد الترسية؛ وتأخر قرارات الأثاث وتقنية المعلومات مما يغير نقاط الكهرباء والشبكات؛ وتغيير التشطيبات بعد الشراء؛ والظروف المخفية كعدم استواء البلاطات أو تعارض الخدمات القائمة التي تُكتشف أثناء الهدم الداخلي. على المشتري تجميد التصميم قبل التوقيع، والاحتفاظ باحتياطي في الميزانية، واشتراط أوامر كتابية بتكلفة متفق عليها قبل التنفيذ، ومتابعة سجل الأوامر التغييرية أسبوعياً. وعقود فيديك الشائعة في دول الخليج تحدد إجراءً خاصاً بالتغييرات، فتحقق من أي تعديلات عليه.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/FIDIC"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:insurance-car",
+      "topic": "Insurance for fit-out works: CAR, third-party and workers",
+      "kind": "standard",
+      "body_en": "Landlords and clients in the UAE typically require the fit-out contractor to hold Contractor's All Risks (CAR) insurance covering the works and materials against physical loss or damage during construction, third-party liability insurance (often a minimum limit set in the landlord's fit-out guide) covering injury or damage to others including the building and neighbours, and workers' compensation/employer's liability plus mandatory health insurance for staff. The policies usually need to name the landlord and client as additional insured or joint insured parties, run for the duration of the works plus maintenance period, and be provided before site access. Professional indemnity insurance is relevant for the design part of design & build contracts. Minimum amounts and wording vary by landlord and are not standardised. Buyers should check certificates, limits, validity dates and named parties before mobilisation, and remember that their own contents and business interruption insurance usually starts at occupation. JLT's facilities manager, for instance, requires adequate insurances before any work starts.",
+      "body_ar": "يشترط الملاك والعملاء في الإمارات عادةً أن يحمل مقاول التشطيب تأميناً ضد جميع أخطار المقاولين يغطي الأعمال والمواد من الفقد أو الضرر المادي أثناء التنفيذ، وتأمين المسؤولية تجاه الغير (بحد أدنى يحدده غالباً دليل التشطيبات لدى المالك) يغطي الإصابات أو الأضرار للآخرين بما في ذلك المبنى والجيران، وتأمين تعويض العمال ومسؤولية صاحب العمل إضافة إلى التأمين الصحي الإلزامي للموظفين. تحتاج الوثائق عادةً إلى تسمية المالك والعميل كمؤمن عليهم إضافيين أو مشتركين، وأن تسري طوال مدة الأعمال وفترة الصيانة، وأن تُقدم قبل الدخول إلى الموقع. ويهم تأمين المسؤولية المهنية لجزء التصميم في عقود التصميم والتنفيذ. الحدود الدنيا والصياغة تختلف بين الملاك وليست موحدة. على المشتري التحقق من الشهادات والحدود وتواريخ السريان والأطراف المسماة قبل التجهيز، وتذكر أن تأمين محتوياته وانقطاع أعماله يبدأ عادةً عند الإشغال. فمدير المرافق في أبراج بحيرات جميرا مثلاً يشترط تأمينات كافية قبل بدء أي عمل.",
+      "sources": [
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:contract-forms",
+      "topic": "Contract forms for fit-out in the UAE",
+      "kind": "standard",
+      "body_en": "Small fit-outs are often done on the contractor's own quotation and terms, which tend to favour the contractor (vague scope, weak delay remedies, advance payments without security). Larger projects use standard forms: FIDIC contracts (the Red Book for employer-designed works, the Yellow Book for design-build, the Silver Book for EPC/turnkey, and the Short Form \"Green Book\" for smaller works; the main books were reissued in 2017) are widely used in the GCC, often with amendments; some developers use their own bespoke contracts; JCT or NEC forms appear in some UK-led projects. Whatever the form, key clauses for a fit-out buyer are: clearly defined scope and drawings, contract sum and payment schedule tied to progress, advance payment guarantee and performance bond (for larger contracts), programme and delay damages, variation procedure, approvals responsibility, insurances, DLP and retention, warranties, termination rights, and dispute resolution (UAE courts, DIAC arbitration, or DIFC/ADGM courts where relevant). Buyers should have a lawyer or quantity surveyor review any sizeable contract.",
+      "body_ar": "كثيراً ما تُنفذ مشاريع التشطيب الصغيرة بناءً على عرض المقاول وشروطه، والتي تميل لصالحه (نطاق غامض، علاجات تأخير ضعيفة، دفعات مقدمة دون ضمان). أما المشاريع الأكبر فتستخدم نماذج قياسية: عقود فيديك (الكتاب الأحمر للأعمال التي يصممها صاحب العمل، والأصفر للتصميم والتنفيذ، والنموذج المختصر \"الكتاب الأخضر\" للأعمال الأصغر أو الأبسط) منتشرة في الخليج وغالباً مع تعديلات؛ ويستخدم بعض المطورين عقوداً خاصة؛ وتظهر نماذج JCT أو NEC في بعض المشاريع ذات القيادة البريطانية. أياً كان النموذج، فالبنود الأساسية لمشتري التشطيب هي: نطاق ومخططات محددة بوضوح، ومبلغ العقد وجدول دفعات مرتبط بالإنجاز، وضمان الدفعة المقدمة وضمان حسن التنفيذ (للعقود الأكبر)، والبرنامج وتعويضات التأخير، وإجراء الأوامر التغييرية، ومسؤولية الموافقات، والتأمينات، وفترة المسؤولية والمحتجزات، والضمانات، وحقوق الإنهاء، وتسوية النزاعات (محاكم الدولة، تحكيم مركز دبي للتحكيم، أو محاكم المراكز المالية حيث ينطبق). على المشتري الاستعانة بمحامٍ أو مهندس كميات لمراجعة أي عقد كبير. ويشمل ذلك أيضاً الكتاب الفضي لعقود التصميم والتوريد والتنفيذ وتسليم المفتاح، وقد أعيد إصدار الكتب الرئيسية عام 2017.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/FIDIC"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:payment-terms",
+      "topic": "Payment terms, advance payments and guarantees",
+      "kind": "buyer_mistake",
+      "body_en": "Typical fit-out payment structures are an advance payment (commonly requested by UAE contractors to mobilise and order materials), monthly or milestone interim payments based on work done, and a final payment after completion and handover, with retention held until the end of the DLP. Risks: large advances paid without an advance payment guarantee (a bank guarantee that returns the money if the contractor fails); milestone payments front-loaded so the contractor is overpaid relative to work done; paying for materials not yet delivered to site; and releasing the final payment before authority certificates are issued. Buyers should cap the advance and secure it with a bank guarantee on larger contracts, link payments to certified progress or clear milestones, require invoices with a valuation breakdown, keep retention, and specify VAT treatment (UAE VAT at the standard 5% rate applies to fit-out of commercial premises). For small jobs where guarantees are impractical, staged payments tied to visible progress reduce exposure.",
+      "body_ar": "هياكل الدفع المعتادة في التشطيب: دفعة مقدمة (يطلبها مقاولو الإمارات عادةً للتجهيز وطلب المواد)، ودفعات مرحلية شهرية أو حسب المراحل بناءً على الأعمال المنجزة، ودفعة نهائية بعد الإنجاز والتسليم، مع احتجاز نسبة حتى نهاية فترة المسؤولية عن العيوب. المخاطر: دفعات مقدمة كبيرة دون ضمان دفعة مقدمة (ضمان بنكي يعيد المال إذا أخفق المقاول)؛ ودفعات مراحل مقدمة الثقل تجعل المقاول يحصل على أكثر من قيمة ما أنجزه؛ والدفع مقابل مواد لم تصل الموقع؛ وصرف الدفعة النهائية قبل صدور شهادات الجهات. على المشتري تحديد سقف للدفعة المقدمة وتأمينها بضمان بنكي في العقود الأكبر، وربط الدفعات بإنجاز مصدَّق أو مراحل واضحة، واشتراط فواتير مع تفصيل التقييم، والاحتفاظ بالمحتجزات، وتحديد معاملة ضريبة القيمة المضافة (تنطبق على خدمات التشطيب في الدولة). وفي الأعمال الصغيرة حيث لا تكون الضمانات عملية، تقلل الدفعات المرحلية المرتبطة بإنجاز ظاهر من المخاطر. وتطبق ضريبة القيمة المضافة بالنسبة الأساسية 5% على تشطيب العقارات التجارية.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:fitout-price-drivers",
+      "topic": "Fit-out price drivers",
+      "kind": "price_driver",
+      "body_en": "Fit-out cost per square metre varies widely and is driven by: starting condition (shell & core needs much more than Cat A); specification level (standard vs premium finishes, bespoke joinery, feature ceilings, stone, glass partitions); density of enclosed rooms versus open plan (partitions, doors, HVAC zones, sprinkler relocation all increase with rooms); MEP scope (new HVAC units, electrical capacity upgrades, raised floors, comms rooms with dedicated cooling, pantry and toilet plumbing); specialist systems (AV, access control, CCTV, acoustic treatment); furniture and IT if included; authority and landlord fees, nominated-contractor premiums and approvals; site logistics (mall night work, high-rise access, loading dock restrictions); programme speed (fast-track needs more labour and premium supply); and design fees in D&B. Currency and import costs affect imported items. A per-square-metre benchmark is only meaningful when scope is equal; published market cost guides from quantity surveyors give indicative ranges, which are not reproduced here. Zone authority and facilities-manager fees are a real line item: one JLT guide puts them at several thousand dirhams for a small office, excluding Civil Defence and utilities (indicative, not established).",
+      "body_ar": "تتفاوت تكلفة التشطيب للمتر المربع كثيراً وتتحدد بـ: حالة البداية (الهيكل والنواة يحتاج أكثر بكثير من الفئة A)؛ ومستوى المواصفات (تشطيبات عادية أو فاخرة، نجارة خاصة، أسقف مميزة، حجر، قواطع زجاجية)؛ وكثافة الغرف المغلقة مقابل المساحات المفتوحة (القواطع والأبواب ومناطق التكييف ونقل الرشاشات تزيد كلها مع عدد الغرف)؛ ونطاق الأعمال الكهروميكانيكية (وحدات تكييف جديدة، رفع القدرة الكهربائية، أرضيات مرفوعة، غرف اتصالات بتبريد خاص، سباكة المطابخ ودورات المياه)؛ والأنظمة المتخصصة (السمعية البصرية، التحكم في الدخول، المراقبة، المعالجة الصوتية)؛ والأثاث وتقنية المعلومات إن شُملت؛ ورسوم الجهات والمالك وعلاوات المقاولين المسميين والموافقات؛ ولوجستيات الموقع (العمل الليلي في المراكز التجارية، الوصول في الأبراج، قيود رصيف التحميل)؛ وسرعة البرنامج (المسار السريع يحتاج عمالة أكثر وتوريداً بعلاوة)؛ وأتعاب التصميم في التصميم والتنفيذ. وتؤثر العملات وتكاليف الاستيراد في البنود المستوردة. المقارنة بسعر المتر المربع لا معنى لها إلا عند تساوي النطاق، وتقدم أدلة التكلفة المنشورة من شركات الكميات نطاقات استرشادية لم نعد إنتاجها هنا. ورسوم جهات المناطق ومديري المرافق بند حقيقي: إذ يقدّرها أحد أدلة أبراج بحيرات جميرا بعدة آلاف من الدراهم لمكتب صغير، دون الدفاع المدني والمرافق (رقم استرشادي غير مثبت).",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:fitout-quote-red-flags",
+      "topic": "Red flags in fit-out quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Warning signs: a single lump sum with no breakdown; scope described in general words (\"complete office fit-out as per discussion\") without drawings, finish schedule or specification; MEP described as \"as required\" with no quantities or equipment; approvals, landlord fees, nominated-contractor costs, or Civil Defence works excluded or \"by client\" without saying so; large provisional sums or PC sums hiding real scope; no programme or a programme without approval time; unusually large advance payment with no guarantee; no insurance or registration evidence for the relevant authority/zone; \"equivalent\" material substitution at the contractor's discretion; excluded items such as fire-stopping, access panels, signage, blinds, waterproofing, testing and commissioning; very short DLP or no retention; warranties limited to manufacturers only; and a price far below others, which often means missing scope and later variations. Ask each bidder to confirm inclusions and exclusions on a common scope matrix before comparing. Also check that emergency lighting and extinguishers are priced through a Civil Defence-licensed contractor, as the 2018 code requires.",
+      "body_ar": "علامات التحذير: مبلغ مقطوع واحد دون تفصيل؛ ووصف النطاق بعبارات عامة (\"تشطيب مكتب كامل حسب النقاش\") دون مخططات أو جدول تشطيبات أو مواصفات؛ ووصف الأعمال الكهروميكانيكية بعبارة \"حسب الحاجة\" دون كميات أو معدات؛ واستبعاد الموافقات أو رسوم المالك أو تكاليف المقاولين المسميين أو أعمال الدفاع المدني أو جعلها \"على العميل\" دون تصريح؛ ومبالغ احتياطية كبيرة تخفي نطاقاً حقيقياً؛ وغياب البرنامج الزمني أو برنامج دون وقت للموافقات؛ ودفعة مقدمة كبيرة بشكل غير معتاد دون ضمان؛ وعدم تقديم ما يثبت التأمين أو التسجيل لدى الجهة أو المنطقة المعنية؛ والسماح باستبدال المواد بـ\"مكافئ\" حسب تقدير المقاول؛ واستبعاد بنود مثل سدّ الحريق وفتحات الصيانة واللافتات والستائر والعزل المائي والاختبار والتشغيل؛ وفترة مسؤولية قصيرة جداً أو دون محتجزات؛ وضمانات مقتصرة على ضمانات المصنّعين؛ وسعر أقل بكثير من غيره، مما يعني غالباً نطاقاً ناقصاً وأوامر تغييرية لاحقة. يُطلب من كل متنافس تأكيد المشمولات والمستثنيات على مصفوفة نطاق موحدة قبل المقارنة. وتحقق أيضاً من تسعير إنارة الطوارئ والطفايات عبر مقاول مرخص من الدفاع المدني كما يشترط كود 2018.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:fitout-buyer-mistakes",
+      "topic": "Common buyer mistakes in fit-out",
+      "kind": "buyer_mistake",
+      "body_en": "Frequent mistakes: signing the lease before checking the landlord's handover condition, HVAC and electrical capacity, and fit-out rules; underestimating approval time and losing the rent-free period; choosing D&B on the cheapest price without a clear brief, then paying for variations; comparing quotes with different scopes; not budgeting landlord fees, deposits, nominated-contractor costs and authority fees; forgetting reinstatement obligations at lease end (many UAE leases require returning the unit to shell or Cat A); ignoring furniture, IT, AV and signage lead times; approving finishes from small samples; paying large advances without guarantees; not checking the contractor's registration for the specific free zone or authority; and not collecting completion certificates, as-built drawings and warranties at handover. Another mistake is starting works before permits, which can bring fines and stop orders from the authority or landlord. In DMCC, a lapsed annual operational fitness certificate can even hold the trade licence renewal. Check these rules before signing, not after.",
+      "body_ar": "أخطاء متكررة: توقيع عقد الإيجار قبل التحقق من حالة التسليم لدى المالك وقدرة التكييف والكهرباء وقواعد التشطيب؛ والتقليل من وقت الموافقات وخسارة فترة الإعفاء من الإيجار؛ واختيار التصميم والتنفيذ على أساس أرخص سعر دون متطلبات واضحة ثم دفع أوامر تغييرية؛ ومقارنة عروض مختلفة النطاق؛ وعدم احتساب رسوم المالك والتأمينات وتكاليف المقاولين المسميين ورسوم الجهات؛ ونسيان التزامات إعادة الحال عند نهاية الإيجار (تشترط عقود إيجار كثيرة في الإمارات إعادة الوحدة إلى حالة الهيكل أو الفئة A)؛ وتجاهل مدد توريد الأثاث وتقنية المعلومات والأنظمة السمعية البصرية واللافتات؛ واعتماد التشطيبات من عينات صغيرة؛ ودفع دفعات مقدمة كبيرة دون ضمانات؛ وعدم التحقق من تسجيل المقاول لدى المنطقة الحرة أو الجهة المحددة؛ وعدم استلام شهادات الإنجاز ومخططات التنفيذ الفعلي والضمانات عند التسليم. ومن الأخطاء أيضاً بدء الأعمال قبل التصاريح، مما قد يجلب غرامات وأوامر إيقاف من الجهة أو المالك. وفي مركز دبي للسلع المتعددة قد يؤدي انتهاء شهادة اللياقة التشغيلية السنوية إلى تعليق تجديد الرخصة التجارية. وتحقق من هذه القواعد قبل التوقيع لا بعده.",
+      "sources": [
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:reinstatement",
+      "topic": "Reinstatement (make good) at lease end",
+      "kind": "buyer_mistake",
+      "body_en": "Many UAE commercial leases require the tenant to reinstate the premises at lease expiry — removing partitions, cabling, signage and tenant installations and returning the unit to the condition defined in the lease (shell & core, Cat A, or \"original handover condition\"). Reinstatement costs, landlord inspections and the security deposit refund depend on it. Tenants often forget this cost when budgeting, or the lease wording is vague about the reinstatement standard. Some landlords accept a negotiated cash settlement or allow a new tenant to take over the fit-out. Photographs and a documented schedule of condition at handover protect the tenant. Buyers negotiating a lease should agree the reinstatement standard in writing before the fit-out design, consider designs that are easier to remove (demountable partitions), and keep as-built drawings for the eventual strip-out. Reinstatement works themselves may need landlord and authority approvals like any other works. Reinstatement standards and settlements are lease-specific commercial terms and are not published norms.",
+      "body_ar": "تشترط عقود إيجار تجارية كثيرة في الإمارات أن يعيد المستأجر المنشأة إلى حالتها عند انتهاء الإيجار، بإزالة القواطع والكابلات واللافتات وتركيبات المستأجر وإعادة الوحدة إلى الحالة المحددة في العقد (هيكل ونواة، فئة A، أو \"حالة التسليم الأصلية\"). وتعتمد عليها تكاليف إعادة الحال وتفتيشات المالك واسترداد التأمين. كثيراً ما ينسى المستأجرون هذه التكلفة عند وضع الميزانية، أو تكون صياغة العقد غامضة بشأن معيار إعادة الحال. يقبل بعض الملاك تسوية نقدية متفاوضاً عليها أو يسمحون لمستأجر جديد بتسلم التشطيب. الصور وجدول الحالة الموثق عند التسليم يحميان المستأجر. على المشتري الذي يتفاوض على إيجار الاتفاق كتابياً على معيار إعادة الحال قبل تصميم التشطيب، والتفكير في تصاميم أسهل إزالة (قواطع قابلة للفك)، والاحتفاظ بمخططات التنفيذ الفعلي للإزالة لاحقاً. وقد تحتاج أعمال إعادة الحال نفسها إلى موافقات المالك والجهات مثل أي أعمال أخرى. ومعايير إعادة الوضع والتسويات شروط تجارية خاصة بكل عقد إيجار وليست أعرافاً منشورة.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "interior_fitout:contractor-selection",
+      "topic": "Selecting and pre-qualifying a fit-out contractor",
+      "kind": "buyer_mistake",
+      "body_en": "Before inviting quotes, check: trade licence activities cover interior fit-out/decoration and, if needed, MEP; registration with the relevant authority (Dubai Municipality contractor classification, the specific free zone/master developer, Civil Defence registration for fire works via the contractor or its fire subcontractor); similar completed projects of comparable size with references and site visits; in-house capabilities versus subcontracting (joinery workshop, MEP team, design team for D&B); financial capacity (audited accounts or bank references for larger jobs — a contractor who needs a large advance to buy materials is a risk); insurance certificates; health and safety record and method statements; proposed site manager and team; and warranty/after-sales support. For D&B, review the designer's portfolio and the quality of the proposed design, not only price. Buyers should shortlist three to five qualified bidders and give them identical documents, so prices are comparable. Under the 2018 Fire Code a décor company must be registered with the emirate's Civil Defence; ask for that registration too.",
+      "body_ar": "قبل طلب العروض يُتحقق من: أن أنشطة الرخصة التجارية تشمل التشطيبات الداخلية والديكور، والأعمال الكهروميكانيكية إن لزم؛ والتسجيل لدى الجهة المعنية (تصنيف المقاولين في بلدية دبي، المنطقة الحرة أو المطور الرئيسي المحدد، والتسجيل لدى الدفاع المدني لأعمال الحريق عبر المقاول أو مقاوله من الباطن)؛ ومشاريع مماثلة منجزة بحجم مقارب مع مراجع وزيارات مواقع؛ والقدرات الداخلية مقابل التعاقد من الباطن (ورشة نجارة، فريق كهروميكانيك، فريق تصميم للتصميم والتنفيذ)؛ والقدرة المالية (حسابات مدققة أو مراجع بنكية للأعمال الأكبر، فالمقاول الذي يحتاج دفعة مقدمة كبيرة لشراء المواد يمثل مخاطرة)؛ وشهادات التأمين؛ وسجل الصحة والسلامة وبيانات طرق العمل؛ ومدير الموقع والفريق المقترح؛ ودعم الضمان وما بعد البيع. وفي التصميم والتنفيذ تُراجع أعمال المصمم وجودة التصميم المقترح لا السعر وحده. على المشتري اختيار ثلاثة إلى خمسة متنافسين مؤهلين وتزويدهم بوثائق متطابقة لتكون الأسعار قابلة للمقارنة. وبموجب كود الحريق 2018 يجب أن تكون شركة الديكور مسجلة لدى الدفاع المدني في الإمارة؛ فاطلب هذا التسجيل أيضاً.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:health-safety-site-rules",
+      "topic": "Site rules, working hours and health & safety in occupied buildings",
+      "kind": "installation",
+      "body_en": "Fit-outs in UAE malls, office towers and residential buildings run under strict site rules from the landlord or facility manager: permitted working hours (noisy and dusty works often restricted to nights or weekends in malls and occupied offices), permits-to-work for hot works (welding, cutting) with fire watch, isolation of fire alarm zones during dusty work only through the building's fire contractor, use of service lifts and loading docks by booking, protection of common areas, hoarding for shopfronts with approved graphics, debris removal routes, and PPE and contractor ID. Dubai Municipality and free-zone authorities also enforce construction safety rules, and the national midday break bans outdoor work in direct sun from 12:30 to 3:00 pm between 15 June and 15 September, with fines of AED 5,000 per worker up to AED 50,000 (outdoor works, not typical interior fit-out). Breaches can lead to fines or site closure by the landlord. Buyers should share site rules with bidders because they affect labour cost and programme, and ensure the contractor's method statements and risk assessments are approved before mobilisation.",
+      "body_ar": "تسير أعمال التشطيب في المراكز التجارية والأبراج المكتبية والمباني السكنية في الإمارات وفق قواعد موقع صارمة من المالك أو مدير المرافق: ساعات العمل المسموح بها (كثيراً ما تُقصر الأعمال المزعجة والمثيرة للغبار على الليل أو عطلات نهاية الأسبوع في المراكز التجارية والمكاتب المأهولة)، وتصاريح العمل للأعمال الساخنة (اللحام، القطع) مع مراقبة حريق، وعزل مناطق إنذار الحريق أثناء الأعمال المثيرة للغبار عبر مقاول حريق المبنى فقط، واستخدام مصاعد الخدمة وأرصفة التحميل بالحجز، وحماية المناطق المشتركة، والحواجز المؤقتة لواجهات المحلات برسومات معتمدة، ومسارات إزالة المخلفات، ومعدات الحماية الشخصية وبطاقات المقاول. كما تطبق بلدية دبي وسلطات المناطق الحرة قواعد سلامة البناء، ويسري حظر العمل وقت الظهيرة صيفاً للأعمال الخارجية على مستوى الدولة في أشد الأشهر حرارة (للأعمال المكشوفة لا التشطيب الداخلي المعتاد). وقد تؤدي المخالفات إلى غرامات أو إغلاق الموقع من المالك. على المشتري مشاركة قواعد الموقع مع المتنافسين لأنها تؤثر في تكلفة العمالة والبرنامج، والتأكد من اعتماد بيانات طرق العمل وتقييمات المخاطر قبل التجهيز. وتحظر استراحة منتصف النهار الوطنية العمل في الأماكن المكشوفة تحت الشمس من 12:30 إلى 3:00 عصراً بين 15 يونيو و15 سبتمبر، بغرامة 5,000 درهم عن كل عامل وحتى 50,000 درهم.",
+      "sources": [
+        "https://gulfnews.com/living-in-uae/ask-us/uae-what-is-the-midday-break-up-to-dh50000-fine-for-violating-ban-on-working-outdoors-during-these-hours-1.1690181189429",
+        "https://daralnaseeb.com/blog/dmcc-concordia-approval-jlt-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:green-fitout",
+      "topic": "Sustainable fit-out: Al Sa'fat, Estidama, LEED and WELL",
+      "kind": "standard",
+      "body_en": "Fit-outs can be certified or required to follow green rules. In Dubai, the Al Sa'fat green building system applies mainly to new buildings, while tenants in certified buildings may have fit-out guidelines tied to the base building rating. Abu Dhabi's Estidama Pearl Rating System includes requirements that can apply to fit-outs of certain building types. Many multinational tenants pursue LEED v4.1 Interior Design and Construction (ID+C, covering commercial, retail and hospitality interiors) or WELL certification for their offices. Typical requirements: low-emitting materials (paints, adhesives, flooring, composite wood), efficient lighting and controls, water-efficient fixtures, sub-metering, construction waste management and recycling, indoor air quality management during construction, and documentation (product data, certificates, photos). Certification adds consultant fees and documentation effort and may limit material choices. Buyers should decide early whether certification is required, include the requirements in the RFQ, and ask contractors about their experience with the specific rating system. Abu Dhabi requires at least one Pearl for new developments.",
+      "body_ar": "يمكن اعتماد أعمال التشطيب ضمن أنظمة خضراء أو إلزامها باتباع قواعدها. في دبي ينطبق نظام السعفات للأبنية الخضراء أساساً على المباني الجديدة، بينما قد تكون لدى المستأجرين في المباني المعتمدة إرشادات تشطيب مرتبطة بتصنيف المبنى الأساسي. ويتضمن نظام تقييم اللؤلؤ (استدامة) في أبوظبي متطلبات قد تنطبق على تشطيبات أنواع معينة من المباني. ويسعى كثير من المستأجرين متعددي الجنسيات إلى شهادة LEED للتصميم الداخلي والتنفيذ أو شهادة WELL لمكاتبهم. المتطلبات المعتادة: مواد منخفضة الانبعاثات (الدهانات، اللواصق، الأرضيات، الأخشاب المركبة)، وإنارة وأنظمة تحكم موفرة، وتجهيزات موفرة للمياه، وعدادات فرعية، وإدارة مخلفات البناء وإعادة تدويرها، وإدارة جودة الهواء الداخلي أثناء التنفيذ، والتوثيق (بيانات المنتجات، الشهادات، الصور). يضيف الاعتماد أتعاب استشاري وجهد توثيق وقد يحد من خيارات المواد. على المشتري أن يقرر مبكراً ما إذا كان الاعتماد مطلوباً، وإدراج المتطلبات في طلب التسعير، وسؤال المقاولين عن خبرتهم في نظام التقييم المحدد. والمقصود نظام LEED v4.1 للتصميم الداخلي والبناء (ID+C) الذي يغطي المساحات الداخلية التجارية والتجزئة والضيافة. وتشترط أبوظبي لؤلؤة واحدة على الأقل للمشاريع الجديدة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://www.usgbc.org/leed/v41"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:accessibility-fitout",
+      "topic": "Accessibility requirements in fit-out (people of determination)",
+      "kind": "standard",
+      "body_en": "Public-facing premises in the UAE must provide access for people of determination. Dubai's Universal Design Code and the accessibility sections of the Dubai Building Code, and equivalent Abu Dhabi requirements, cover items such as accessible entrances and door widths, level thresholds or ramps, clear circulation routes, accessible toilets with specified fittings and grab bars, counter heights, signage and contrast, and lift access. A fit-out that alters entrances, reception counters, toilets or circulation can trigger these requirements, and authorities review them in the permit drawings. Exact dimensions should be taken from the current code editions and are not reproduced here. Common failures include accessible toilets used as storage, door hardware that is hard to operate, and thresholds added by new flooring. Buyers should tell the designer the premises is public-facing and ask for accessibility compliance to be shown on drawings. Dubai Municipality's Wosool service assesses existing buildings against the Universal Design Code and certifies them at 75% compliance or more.",
+      "body_ar": "يجب أن توفر المنشآت التي تستقبل الجمهور في الإمارات إمكانية الوصول لأصحاب الهمم. ويغطي كود التصميم الشامل في دبي وأقسام إمكانية الوصول في كود دبي للبناء، والمتطلبات المماثلة في أبوظبي، بنوداً مثل المداخل الميسرة وعروض الأبواب، والعتبات المستوية أو المنحدرات، ومسارات الحركة الواضحة، ودورات المياه الميسرة بتجهيزات ومقابض محددة، وارتفاعات الكاونترات، واللافتات والتباين اللوني، والوصول بالمصاعد. أي تشطيب يغير المداخل أو كاونترات الاستقبال أو دورات المياه أو مسارات الحركة قد يستدعي هذه المتطلبات، وتراجعها الجهات في مخططات التصريح. يجب أخذ الأبعاد الدقيقة من الإصدارات الحالية للأكواد، ولم نعد إنتاجها هنا. من الأعطال الشائعة استخدام دورات المياه الميسرة كمخازن، وإكسسوارات أبواب يصعب تشغيلها، وعتبات تضيفها الأرضيات الجديدة. على المشتري إبلاغ المصمم بأن المنشأة تستقبل الجمهور وطلب إظهار الالتزام بإمكانية الوصول في المخططات. وتقيّم خدمة \"وصول\" لدى بلدية دبي المباني القائمة وفق كود التصميم الشامل وتمنح شهادة عند الامتثال بنسبة 75% فأكثر.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/dubai-universal-design-code/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:glossary-fitout",
+      "topic": "Interior fit-out glossary for UAE buyers",
+      "kind": "glossary",
+      "body_en": "Key terms: Shell & core — bare landlord handover. Cat A / Cat B — landlord-standard and tenant-specific fit-out. D&B — design and build. BOQ — bill of quantities. Lump sum — fixed price for defined scope. Provisional sum — allowance for undefined work. PC sum — prime cost allowance for items to be selected. Variation / change order — change to contracted scope. NOC — no-objection certificate (landlord, developer, authority). Ejari — Dubai tenancy contract registration. Fit-out guide — landlord's rules for tenant works. Nominated contractor — contractor the landlord requires for certain systems. RCP — reflected ceiling plan. MEP — mechanical, electrical, plumbing. T&C — testing and commissioning. Snag list — list of defects at completion. Practical completion — stage when works are usable. DLP — defects liability period. Retention — held-back percentage of payments. Performance bond / advance payment guarantee — bank guarantees securing the contract. As-built drawings — record of what was built. O&M manuals — operation and maintenance documents. Reinstatement — returning premises to lease-defined condition.",
+      "body_ar": "مصطلحات أساسية: الهيكل والنواة، التسليم العاري من المالك. الفئة A والفئة B، تشطيب بمعيار المالك وتشطيب خاص بالمستأجر. D&B، التصميم والتنفيذ. BOQ، جدول الكميات. المبلغ المقطوع، سعر ثابت لنطاق محدد. المبلغ الاحتياطي، مخصص لأعمال غير محددة. مبلغ التكلفة الأولية، مخصص لبنود ستُختار لاحقاً. الأمر التغييري، تغيير في النطاق المتعاقد عليه. عدم الممانعة، شهادة من المالك أو المطور أو الجهة. إيجاري، تسجيل عقود الإيجار في دبي. دليل التشطيبات، قواعد المالك لأعمال المستأجر. المقاول المسمى، مقاول يشترطه المالك لأنظمة معينة. RCP، مخطط السقف العاكس. MEP، الأعمال الميكانيكية والكهربائية والسباكة. T&C، الاختبار والتشغيل. قائمة الملاحظات، قائمة العيوب عند الإنجاز. الإنجاز العملي، مرحلة صلاحية الأعمال للاستخدام. DLP، فترة المسؤولية عن العيوب. المحتجزات، نسبة محتجزة من الدفعات. ضمان حسن التنفيذ وضمان الدفعة المقدمة، ضمانات بنكية تؤمن العقد. مخططات التنفيذ الفعلي، سجل لما نُفذ. أدلة التشغيل والصيانة، وثائق التشغيل والصيانة. إعادة الحال، إعادة المنشأة إلى الحالة المحددة في عقد الإيجار.",
+      "sources": [
+        "https://www.crowninteriors.com/insights/the-difference-between-shell-and-core-cat-a-cat-a-plug-and-play-and-cat-b-fit-out/",
+        "https://en.wikipedia.org/wiki/FIDIC"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "interior_fitout:strip-out-demolition",
+      "topic": "Strip-out and demolition of existing fit-out",
+      "kind": "installation",
+      "body_en": "When taking over a previously fitted unit, the existing fit-out may be reused, modified or stripped out. Strip-out includes removing partitions, ceilings, flooring, joinery and redundant MEP, capping services safely, and disposing of debris. It needs landlord approval and is normally part of the fit-out permit application. The UAE Fire & Life Safety Code 2018, Chapter 12 (fire safety during construction, modification, alteration and demolition), applies to this work: no construction activity is to be assumed small-scale and low-risk; no modification or alteration may be carried out unless approved by Civil Defence; the owner designates a person responsible for the fire-prevention programme and the owner and main consultant are responsible for fire safety on site; workers are briefed and trained to use extinguishers; and hot work (burning, welding and similar) is a defined risk to be controlled. Fire extinguishers may be installed only by Civil Defence-licensed contractors, not by general or fit-out contractors unless licensed; isolations of fire systems should be done by the building's fire contractor. Before strip-out, a survey should record what can be reused (ceiling grid, HVAC units, lighting, raised floor), because reuse can cut cost and time. Older buildings may contain asbestos: the UAE banned its use in 2006, and Abu Dhabi requires licensed companies to identify and remove asbestos before demolition (as reported by The National). The Dubai Municipality asbestos permit and hazardous-waste rules were not read at a primary source and are not established here. Buyers should include a site survey and a clear strip-out scope (what stays, what goes) in the RFQ, and make the contractor responsible for protection and debris disposal through licensed routes.",
+      "body_ar": "عند استلام وحدة مجهزة سابقاً يمكن إعادة استخدام التجهيز القائم أو تعديله أو إزالته. وتشمل الإزالة فك القواطع والأسقف والأرضيات والنجارة وأعمال الكهروميكانيك الزائدة، وإغلاق الخدمات بأمان، والتخلص من المخلفات. وتحتاج موافقة المالك وتكون عادة جزءاً من طلب رخصة التجهيز. ويسري على هذا العمل الفصل 12 من كود الإمارات للحماية من الحرائق وسلامة الأرواح 2018 (السلامة من الحريق أثناء الإنشاء والتعديل والتغيير والهدم): لا يُعد أي نشاط إنشائي صغيراً ومنخفض الخطورة؛ ولا يُجرى تعديل أو تغيير إلا بموافقة الدفاع المدني؛ ويعيّن المالك شخصاً مسؤولاً عن برنامج الوقاية من الحريق، والمالك والاستشاري الرئيسي مسؤولان عن السلامة في الموقع؛ ويُبلَّغ العمال ويُدرَّبون على استخدام الطفايات؛ والأعمال الساخنة (الحرق واللحام وما شابه) خطر معرَّف يجب ضبطه. ولا يركّب طفايات الحريق إلا مقاولون مرخصون من الدفاع المدني، لا المقاولون العامون أو مقاولو التجهيز ما لم يكونوا مرخصين؛ وعزل أنظمة الحريق يتولاه مقاول الحريق الخاص بالمبنى. وقبل الإزالة يُجرى مسح لتسجيل ما يمكن إعادة استخدامه (شبكة السقف، ووحدات التكييف، والإنارة، والأرضيات المرفوعة) لأن إعادة الاستخدام توفر الكلفة والوقت. وقد تحتوي المباني القديمة على الأسبستوس: حظرت الدولة استخدامه في 2006، وتشترط أبوظبي أن تحدد شركات مرخصة الأسبستوس وتزيله قبل الهدم (بحسب صحيفة ذا ناشيونال). أما تصريح الأسبستوس وقواعد النفايات الخطرة لدى بلدية دبي فلم تُقرأ من مصدر أصلي وهي غير مثبتة هنا. وعلى المشتري تضمين مسح للموقع ونطاق إزالة واضح (ما يبقى وما يُزال) في طلب العرض، وتحميل المقاول مسؤولية الحماية والتخلص من المخلفات عبر مسارات مرخصة.",
+      "sources": [
+        "https://www.thenationalnews.com/uae/health/asbestos-still-kills-six-years-after-ban-in-abu-dhabi-1.386243",
+        "https://dda.gov.ae/en/planning-development/construction/permits-nocs/fit-out-permit"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "gap_kind": "commercial",
+      "source_note": "Fire rules from kb/x/uae_fire_code_2018.txt (UAE Fire & Life Safety Code of Practice, September 2018, Chapter 12), and Chapter 4 clause 3.2.1 on extinguisher installers."
+    },
+    {
+      "id": "interior_fitout:fire-finish-classes-2018",
+      "topic": "Interior finish fire classes by occupancy and location (UAE Fire Code 2018, Table 1.12)",
+      "kind": "standard",
+      "body_en": "The UAE Fire and Life Safety Code of Practice, 2018 edition, sets interior finish classes by occupancy and location in Chapter 1, Section 2.14, Table 1.12. The classes are defined in Chapter 1, clauses 1.1.35-1.1.38. Under ASTM E84 / UL 723, Class A means flame spread 0-25, Class B 26-75 and Class C 76-200, each with smoke developed 0-450. BS 476-7 Class 1 is the best surface-spread class. Class 0 is Class 1 plus a BS 476-6 fire propagation index of 12 or less (sub-index i1 of 6 or less). For European evidence, clauses 1.1.39-1.1.40 group EN 13501-1 B-s1,d0 or B-s2,d0 as \"Class B/B1\" materials and A2-s2,d0 as \"Class A2\" materials. Table 1.12 for walls and ceilings: in assembly, education, healthcare, residential, hotel and day care buildings, exits need Class A, and corridors, other rooms and ceilings need Class A or B. In business, detention and mercantile buildings, exits, corridors and ceilings need A or B, and other rooms A, B or C. In private and commercial villas, A, B or C is allowed everywhere. In industrial and storage buildings, exits need A or B, and corridors, rooms and ceilings A, B or C. The flooring column is Class I or II in every group. Where an approved sprinkler system is fitted, the requirement drops by one class (C where B is required, B where A is required; clause 2.14.4). Clause 2.14.3 does not accept fire-retardant coatings applied to reach these classes, except in existing buildings: the material itself must pass the Section 7 tests. Not established: the printed table also lists BS/NFPA-style Class 1/2 and I/II/III in each cell without saying which ASTM class each pairs with, so the exact cell for a project should be confirmed with the fire consultant. For a fit-out, the finish schedule should state the required class for each room and escape route, together with the test evidence. Relocatable and folding partitions must meet the Chapter 1 Section 7 finish requirements (Ch.3). Kiosks (clause 7.1.14) and exhibition booths (clause 7.1.16) have their own material test lists, such as NFPA 701, NFPA 289 and FR-treated wood.",
+      "body_ar": "يحدد كود الإمارات للسلامة من الحرائق وحماية الأرواح، إصدار 2018، فئات التشطيبات الداخلية حسب نوع الإشغال والموقع في الفصل الأول، البند 2.14، الجدول 1.12. تُعرَّف الفئات في البنود 1.1.35 إلى 1.1.38: وفق ASTM E84 / UL 723 تعني الفئة A انتشار لهب من 0 إلى 25، والفئة B من 26 إلى 75، والفئة C من 76 إلى 200، مع دخان من 0 إلى 450 في كل منها. والفئة 1 وفق BS 476-7 هي أفضل فئة لانتشار اللهب السطحي. أما الفئة 0 فهي الفئة 1 مع مؤشر انتشار حريق وفق BS 476-6 لا يزيد على 12 (ومؤشر فرعي i1 لا يزيد على 6). وللأدلة الأوروبية يضع البندان 1.1.39 و1.1.40 التصنيف B-s1,d0 أو B-s2,d0 وفق EN 13501-1 ضمن مواد \"الفئة B/B1\"، والتصنيف A2-s2,d0 ضمن مواد \"الفئة A2\". الجدول 1.12 للجدران والأسقف: في مباني التجمعات والتعليم والرعاية الصحية والسكن والفنادق والحضانات تتطلب المخارج الفئة A، وتتطلب الممرات والغرف الأخرى والأسقف الفئة A أو B. وفي مباني الأعمال والاحتجاز والتجارة تتطلب المخارج والممرات والأسقف الفئة A أو B، والغرف الأخرى A أو B أو C. وفي الفلل الخاصة والتجارية يُسمح بالفئة A أو B أو C في كل المواقع. وفي المباني الصناعية والمستودعات تتطلب المخارج A أو B، والممرات والغرف والأسقف A أو B أو C. وعمود الأرضيات هو الفئة I أو II في كل المجموعات. وإذا رُكّب نظام رشاشات معتمد ينخفض المطلوب فئة واحدة (C حيث تُطلب B، وB حيث تُطلب A؛ البند 2.14.4). ولا يقبل البند 2.14.3 الطلاءات المثبطة للهب التي تُضاف للوصول إلى هذه الفئات إلا في المباني القائمة، فيجب أن تجتاز المادة نفسها اختبارات القسم 7. غير مثبت: يذكر الجدول المطبوع أيضاً الفئات 1/2 وI/II/III في كل خانة دون أن يوضح ما يقابل كل فئة ASTM، لذا يجب تأكيد الخانة الدقيقة للمشروع مع استشاري الحريق. في أعمال التجهيز الداخلي يجب أن يحدد جدول التشطيبات الفئة المطلوبة لكل غرفة ومسار هروب، مع أدلة الاختبار. ويجب أن تستوفي القواطع المتنقلة والقابلة للطي متطلبات التشطيب في القسم 7 من الفصل الأول (الفصل الثالث). وللأكشاك (البند 7.1.14) وأجنحة المعارض (البند 7.1.16) قوائم اختبار خاصة بها، مثل NFPA 701 وNFPA 289 والخشب المعالج ضد الحريق.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf",
+        "UAE Fire & Life Safety Code of Practice 2018 (CDGH-OP-25), Ch.1: s.1.1.35-1.1.40 (pp.26-27), s.2.14 + Table 1.12 (pp.114-115), s.7.1.4-7.1.10 (pp.188-190); Ch.3 folding partitions + s.7.1.14, 7.1.16 (pp.348-349)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between Cat A and Cat B fit-out, and which do I need for a shell and core unit?",
+      "q_ar": "ما الفرق بين تشطيب الفئة A والفئة B، وأيهما أحتاج لوحدة هيكل ونواة؟",
+      "expected_entry_ids": [
+        "interior_fitout:shell-core-cat-a-cat-b"
+      ]
+    },
+    {
+      "q_en": "Should I go design & build or hire a consultant first for a 400 m² office?",
+      "q_ar": "هل أختار التصميم والتنفيذ أم أعين استشارياً أولاً لمكتب مساحته 400 م²؟",
+      "expected_entry_ids": [
+        "interior_fitout:design-build-vs-build-only",
+        "interior_fitout:contractor-selection"
+      ]
+    },
+    {
+      "q_en": "Which approvals do I need to fit out an office in JLT?",
+      "q_ar": "ما الموافقات التي أحتاجها لتشطيب مكتب في أبراج بحيرات جميرا؟",
+      "expected_entry_ids": [
+        "interior_fitout:free-zone-and-master-developer-nocs",
+        "interior_fitout:civil-defence-fitout",
+        "interior_fitout:landlord-fitout-guide-deposit"
+      ]
+    },
+    {
+      "q_en": "What should I include in an RFQ to fit-out contractors so quotes are comparable?",
+      "q_ar": "ما الذي يجب أن أضمنه في طلب التسعير لمقاولي التشطيب لتكون العروض قابلة للمقارنة؟",
+      "expected_entry_ids": [
+        "interior_fitout:fitout-spec-checklist",
+        "interior_fitout:boq-vs-lump-sum"
+      ]
+    },
+    {
+      "q_en": "One contractor quoted 40% less than the others — what should I check?",
+      "q_ar": "قدّم أحد المقاولين سعراً أقل بـ40% من الآخرين، ما الذي يجب أن أتحقق منه؟",
+      "expected_entry_ids": [
+        "interior_fitout:fitout-quote-red-flags",
+        "interior_fitout:fitout-price-drivers"
+      ]
+    },
+    {
+      "q_en": "The contractor wants 50% advance — is that normal and how do I protect myself?",
+      "q_ar": "يريد المقاول دفعة مقدمة 50%، هل هذا طبيعي وكيف أحمي نفسي؟",
+      "expected_entry_ids": [
+        "interior_fitout:payment-terms",
+        "interior_fitout:contract-forms"
+      ]
+    },
+    {
+      "q_en": "What is retention and how long is the defects liability period in the UAE?",
+      "q_ar": "ما المحتجزات، وما مدة فترة المسؤولية عن العيوب في الإمارات؟",
+      "expected_entry_ids": [
+        "interior_fitout:dlp-retention"
+      ]
+    },
+    {
+      "q_en": "Why can the fit-out contractor not do the sprinkler changes himself?",
+      "q_ar": "لماذا لا يستطيع مقاول التشطيب تنفيذ تعديلات الرشاشات بنفسه؟",
+      "expected_entry_ids": [
+        "interior_fitout:civil-defence-fitout",
+        "interior_fitout:mep-coordination"
+      ]
+    },
+    {
+      "q_en": "What documents should I receive at handover before paying the final invoice?",
+      "q_ar": "ما الوثائق التي يجب أن أستلمها عند التسليم قبل دفع الفاتورة النهائية؟",
+      "expected_entry_ids": [
+        "interior_fitout:snagging-handover",
+        "interior_fitout:dlp-retention"
+      ]
+    },
+    {
+      "q_en": "Do I have to remove my fit-out when my lease ends?",
+      "q_ar": "هل يجب أن أزيل التشطيبات عند انتهاء عقد الإيجار؟",
+      "expected_entry_ids": [
+        "interior_fitout:reinstatement",
+        "interior_fitout:fitout-buyer-mistakes"
+      ]
+    },
+    {
+      "q_en": "What wall and ceiling finish classes apply to an office fit-out corridor under the 2018 UAE fire code?",
+      "q_ar": "ما فئات تشطيب الجدران والأسقف المطبقة على ممر في تجهيز مكتب وفق كود الحريق الإماراتي 2018؟",
+      "expected_entry_ids": [
+        "interior_fitout:fire-finish-classes-2018"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 16,
+    "claims_checked": 204,
+    "corrected": [
+      "interior_fitout:fire-finish-classes-2018",
+      "interior_fitout:shell-core-cat-a-cat-b",
+      "interior_fitout:civil-defence-fitout",
+      "interior_fitout:boq-vs-lump-sum",
+      "interior_fitout:dlp-retention",
+      "interior_fitout:contract-forms",
+      "interior_fitout:payment-terms",
+      "interior_fitout:health-safety-site-rules",
+      "interior_fitout:green-fitout",
+      "interior_fitout:dewa-utility-approvals",
+      "interior_fitout:abu-dhabi-fitout-approvals",
+      "interior_fitout:strip-out-demolition"
+    ],
+    "removed": [],
+    "still_unverified": [
+      "interior_fitout:boq-vs-lump-sum",
+      "interior_fitout:payment-terms",
+      "interior_fitout:fitout-price-drivers",
+      "interior_fitout:reinstatement"
+    ],
+    "note": "S3b 23 Sep 2026: second pass on dewa-utility-approvals, abu-dhabi-fitout-approvals, strip-out-demolition using DEWA service guide, DDA fit-out permit, TAMM listing, The National (asbestos) and the 2018 Fire Code Chapter 12. Remaining gaps in these three are fees/document lists/processing times (commercial) and the exact TAMM fit-out service and DM asbestos permit, stated as not established inside the entries."
+  }
+}

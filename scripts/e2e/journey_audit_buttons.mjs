@@ -403,7 +403,11 @@ async function supplierAudit(ctx) {
     try {
       const st0 = await call('supplier_api', sup.jwt, { action: 'services_state' });
       const roles = (st0.json?.capability?.roles || []).length ? st0.json.capability.roles : ['contractor'];
-      const set = await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: ['aluminium', 'glazing'], roles, services: [], implied: [], removed: [], own_words: [], raw_text: '' });
+      // #868: a confirm that ticks no service is refused (services_none_ticked), so the setup ticks one
+      // real service per trade, as a supplier must. With services: [] this step had SKIPPED since #868.
+      const ticked = (await read(`select distinct on (trade_code) trade_code || '.' || code as code from public.taxonomy_trade_service
+        where active and trade_code in ('aluminium','glazing') order by trade_code, sort, code`)).map((r) => r.code);
+      const set = await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: ['aluminium', 'glazing'], roles, services: ticked, implied: [], removed: [], own_words: [], raw_text: '' });
       const st1 = await call('supplier_api', sup.jwt, { action: 'services_state' });
       const codes1 = (st1.json?.checklist || []).map((t) => t.code);
       if (!set.json?.ok || !codes1.includes('glazing')) {

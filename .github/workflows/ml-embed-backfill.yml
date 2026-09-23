@@ -1,0 +1,44 @@
+# THE MULTILINGUAL BACKFILL NEEDS A CLOCK THAT CAN RUN FOR MINUTES. Seat: it_engineer. 23 Sep 2026.
+#
+# knowledge_vector_ml (scripts/sql/an_arabic_question_finds_the_same_knowledge_as_an_english_one.sql) holds
+# the multilingual-e5-small vectors that let an Arabic question reach the same knowledge as an English one.
+# ~165,000 rows need a vector, 150,103 of them kb_chunks. resilience_ping's 15-minute tick embeds 4 rows —
+# right for new rows, three years for the backlog — so the backlog runs here, as kb-embed-backfill.yml does.
+#
+# The embedding is done HERE, on the runner, with the same trimmed multilingual-e5-small the edge path loads
+# (from the public Storage bucket ml-models; free, not OpenRouter): an edge worker embeds at most 4 rows a call.
+# The gate (app_secrets ml_embed_golive) and the daily cap (ml_embed_daily_cap, 25,000 rows) are
+# enforced by fn_ml_embed_claim, so a manual dispatch cannot exceed them either.
+
+name: ml embedding backfill
+
+on:
+  schedule:
+    # 02:50 UTC = 06:50 Dubai, after kb-embed-backfill (02:20) and before the working day.
+    - cron: '50 2 * * *'
+  workflow_dispatch:
+    inputs:
+      minutes:
+        description: 'How long to run for'
+        required: false
+        default: '40'
+
+concurrency:
+  group: ml-embed-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install the embedder (not an app dependency)
+        run: npm i --no-save @huggingface/transformers@3.8.1
+      - name: embed the backlog, highest priority first
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/kb/run_ml_embed_backfill.mjs --minutes=${{ github.event.inputs.minutes || '40' }} --claim=64
