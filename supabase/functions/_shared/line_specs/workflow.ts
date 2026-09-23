@@ -172,7 +172,12 @@ export type Standardised = {
   /** The price EXCLUDING VAT. No VAT amount, VAT treatment or TRN is ever on this record. */
   total: number; price_basis: 'ex_vat';
   lines: { line_no: number; description: string; qty: unknown; unit: unknown; unit_price: unknown; amount: unknown; trade: string | null; spec: { code: string; label_en: string; label_ar: string; value: string; unit: string | null; unit_ar: string | null; source: string }[] }[];
-  terms: { delivery: string | null; installation: string | null; warranty: string | null; validity: string | null; payment_terms: string | null; exclusions: string | null };
+  terms: {
+    delivery: string | null;
+    /** The sentence the record shows. The document reads the two structured fields below, never this sentence. */
+    installation: string | null;
+    installation_included: boolean | null; installation_detail: string | null;
+    warranty: string | null; validity: string | null; payment_terms: string | null; exclusions: string | null };
   prepared_by: typeof SEAT; prepared_at: string;
 };
 
@@ -188,6 +193,8 @@ export function standardise(q: QuoteRow, lines: Line[], a: Assessment, ctx: Ctx)
     terms: {
       delivery: safe(a.terms.delivery.value),
       installation: a.terms.installation.applies ? (a.terms.installation.included === 'yes' ? `Included${a.terms.installation.detail ? ' — ' + safe(a.terms.installation.detail) : ''}` : 'Not included (supply only)') : null,
+      installation_included: a.terms.installation.applies ? a.terms.installation.included === 'yes' : null,
+      installation_detail: a.terms.installation.applies && a.terms.installation.included === 'yes' ? safe(a.terms.installation.detail) : null,
       warranty: a.terms.warranty.applies ? safe(`${a.terms.warranty.period} — ${a.terms.warranty.coverage}`) : safe(q.warranty),
       validity: safe(q.validity), payment_terms: safe(q.payment_terms), exclusions: safe(q.exclusions),
     },
@@ -211,15 +218,15 @@ export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: st
 }
 /** The whole quoteDocument result (body + the lines an Arabic page still needs translated by reasoning). */
 export function pdfDoc(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar'; arTexts?: ArTexts }) {
-  // The record keeps installation and warranty as one sentence each (standardise above); the document
-  // reads them as the completeness fields quoteDocument prints.
-  const inst = s.terms.installation;
+  // Installation arrives as the structured fields standardise() wrote (decision point
+  // line_specs.workflow_installation: it used to be read back off our own sentence by its first word).
+  // Warranty is still one sentence, split on the separator standardise() itself put there.
   const [wPeriod, ...wCov] = String(s.terms.warranty ?? '').split(' — ');
   const quote: DocQuote = {
     id: s.quote_id, quote_amount: s.total, price_ex_vat: s.total,
     lead_time: s.terms.delivery, validity: s.terms.validity, payment_terms: s.terms.payment_terms, exclusions: s.terms.exclusions,
-    installation_applicable: inst != null, installation_included: inst == null ? null : /^Included/.test(inst) ? true : /^Not included/.test(inst) ? false : null,
-    installation_scope: inst && /^Included — /.test(inst) ? inst.replace(/^Included — /, '') : null,
+    installation_applicable: s.terms.installation_included != null, installation_included: s.terms.installation_included,
+    installation_scope: s.terms.installation_included ? s.terms.installation_detail : null,
     warranty: wPeriod || null, warranty_coverage: wCov.join(' — ') || null,
   };
   const items: Item[] = s.lines.map((l) => ({

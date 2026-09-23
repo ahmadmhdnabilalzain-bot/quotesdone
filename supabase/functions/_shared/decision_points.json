@@ -2011,20 +2011,72 @@
   {
    "id": "documents.boq_arabic",
    "order": 81,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/boq_arabic.ts",
-   "decides": "section regex list and service-alias matching label BOQ lines in Arabic documents — found by B7"
+   "decides": "section regex list and service-alias matching label BOQ lines in Arabic documents — found by B7",
+   "held": "Under the hold an unread BOQ heading is filed once per heading text (boq_section:<key>) and shows in its original words; the replay writes the reasoned heading to boq_section_reading (fn_reason_apply_documents__boq_arabic). Line descriptions are never labelled: the supplier prices the original.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/boq_arabic.ts",
+     "must_contain": [
+      "readings[sectionKey(s)]"
+     ],
+     "must_not_contain": [
+      "SECTION_AR",
+      "servicesFromText",
+      "\\bceilings?\\b"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_documents.ts",
+     "must_contain": [
+      "await think(deps,",
+      "BOQ_ARABIC_SURFACE = 'documents.boq_arabic'"
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "boqReadings(defaultDeps(admin, 'supplier_api')"
+     ],
+     "must_not_contain": [
+      "boqWithArabic(sBoq as any, vocab)"
+     ]
+    },
+    {
+     "file": "scripts/sql/a_boq_heading_is_read_in_arabic_by_reasoning_not_by_its_words.sql",
+     "must_contain": [
+      "fn_reason_apply_documents__boq_arabic"
+     ],
+     "must_not_contain": [
+      "ilike"
+     ]
+    }
+   ]
   },
   {
    "id": "line_specs.workflow_installation",
    "order": 82,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
    "where": "supabase/functions/_shared/line_specs/workflow.ts",
-   "decides": "installation status read off text beginning \"Included\" — found by B7"
+   "decides": "installation status read off text beginning \"Included\" — found by B7",
+   "held": "No reasoning is involved and nothing is held: installation arrives as the structured fields standardise() writes (installation_included / installation_detail) from the supplier's own yes/no choice, never read back off our sentence.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "installation_included: s.terms.installation_included"
+     ],
+     "must_not_contain": [
+      "/^Included/",
+      "/^Not included/"
+     ]
+    }
+   ]
   },
   {
    "id": "documents.quote_duration_emirates",
@@ -2124,6 +2176,258 @@
    "severity": "med",
    "where": "supabase/functions/_shared/marketing_calendar_mail.ts",
    "decides": "replyIntent: a word list decides that the founder's reply approves the monthly social calendar (found by batch 8 in resend_inbound)"
+  },
+  {
+   "id": "intake.boq_open_line_answer",
+   "order": 88,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "supabase/functions/_shared/boq_open_lines.ts",
+   "decides": "readConfirmAnswer: YES / NOT_SURE regexes and a 5-letter shared-word match decide whether the customer confirmed the drawing quantities, is unsure, or changed a number, and which BOQ line the number belongs to (settleLines, inquiry_intake) — found by B9 sweep"
+  },
+  {
+   "id": "email.unsubscribe_request",
+   "order": 89,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/unsubscribe_mailbox.ts",
+   "decides": "isUnsubscribeRequest: the PHRASE regex (unsubscribe|stop|remove me|opt out|Arabic) on subject/first line decides an inbound email asks to stop mail; resend_inbound suppresses the sender — found by B9 sweep"
+  },
+  {
+   "id": "catalogue.supply_only_and_install",
+   "order": 90,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/catalogue_read.ts",
+   "decides": "SUPPLY_RE / INSTALL_RE word lists decide a supplier is supply-only and whether a catalogue line speaks of installation work (supplier_services, service_meaning) — found by B9 sweep"
+  },
+  {
+   "id": "catalogue.line_kind",
+   "order": 91,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/_shared/catalogue_read.ts",
+   "decides": "PERSON / CONTACT / ADDRESS regexes decide whether a catalogue line is a statement, a heading or contact details — found by B9 sweep"
+  },
+  {
+   "id": "services.meaning_candidates",
+   "order": 92,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/service_meaning.ts",
+   "decides": "meaningCandidates / proposeByMeaning: shared head words and alias patterns decide which catalogue lines are read and whether an embedding proposal is \"worded\" — found by B9 sweep"
+  },
+  {
+   "id": "services.from_text",
+   "order": 93,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/service_rewrite.ts",
+   "decides": "rewriteServices / servicesFromText / tradesFromText: exact-alias termPattern matching decides which services and trades a supplier's words name (beyond isInstallWork) — found by B9 sweep"
+  },
+  {
+   "id": "trades.from_text",
+   "order": 94,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/trade_words.ts",
+   "decides": "tradesFromText: alias substring hits decide the trades a supplier's documents name (supplier_doc_trades) — found by B9 sweep"
+  },
+  {
+   "id": "supplier_api.services_cross_check",
+   "order": 95,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/supplier_api/index.ts",
+   "decides": "crossCheckServices: svcTerms token overlap (>=60% agree, any partial, none conflict) decides whether typed services agree with the documents; a conflict writes a needs_review action — found by B9 sweep"
+  },
+  {
+   "id": "public_site.detect_emirate",
+   "order": 96,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "low",
+   "where": "supabase/functions/public_site/index.ts",
+   "decides": "detectEmirate (a copy of classify.ts): a regex table of the seven emirates decides the emirate of a visitor's free text — found by B9 sweep"
+  },
+  {
+   "id": "license_extract.emirate",
+   "order": 97,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/license_extract/index.ts",
+   "decides": "normEmirate: .includes on emirate names and /rak|uaq|auh/ decide a licence's emirate from the model's free-text field — found by B9 sweep"
+  },
+  {
+   "id": "drawing_boq.ocr_notes",
+   "order": 98,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/drawing_boq/drawing_from_ocr.ts",
+   "decides": "notes(): /fp 200|isol|glass|cable/ picks note lines and glass|call point + sounder + loop + have|fitted decides loop isolators are fitted (BOQ lines) — found by B9 sweep"
+  },
+  {
+   "id": "drawing_boq.sheet_kind",
+   "order": 99,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/drawing_boq/drawing_set.ts",
+   "decides": "sheet reading: /PLAN|SCHEDULE|DETAIL/ title pick then /DEMO/ /SCHEDULE/ /PLAN/ decide a sheet's kind, and /^(DEMO|REMOVE)/ marks a scope note demolition — found by B9 sweep"
+  },
+  {
+   "id": "drawing_boq.sheet_layout",
+   "order": 100,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/drawing_boq/boq_from_sheet.ts",
+   "decides": "roleOf / layoutOf SIGNS / TOTAL / HEADING: header and row words decide a column's role, the BOQ convention, and whether a row is a total or heading (borderline: label reading) — found by B9 sweep"
+  },
+  {
+   "id": "documents.expiry_from_text",
+   "order": 101,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/document_expiry.ts",
+   "decides": "expiryFromText: EN/AR expiry keywords decide which date in a licence is its expiry — found by B9 sweep"
+  },
+  {
+   "id": "sales_engineer.role_needed",
+   "order": 102,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/sales_engineer/index.ts",
+   "decides": "~line 670: .includes(\"turnkey\") and /supply|material|product/ on scope_type / role_needed decide whole_scope / supplies / executes (meaning only if role_needed holds free text) — found by B9 sweep"
+  },
+  {
+   "id": "faq.answer_intent",
+   "order": 103,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "scripts/sql/an_edited_faq_answer_is_re_embedded_and_a_quote_is_not_a_fee.sql",
+   "decides": "fn_faq_answer: greeting/thanks regexes, a \"supplier question\" regex and a full-text @@ rank fallback decide intent, which FAQ answers, and whether supplier FAQs apply (wa_inbound, site_assistant, sales_engineer, ai_gateway) — found by B9 sweep"
+  },
+  {
+   "id": "spec_offer.whatsapp_reply",
+   "order": 104,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "scripts/sql/the_whatsapp_number_is_confirmed_and_only_a_confirmed_one_is_used.sql",
+   "decides": "fn_spec_offer_whatsapp_reply: ^(no|decline|لا)$ / ^(yes|ok|نعم)$ / ^(option )?[0-9]$ regexes decide the customer accepted, declined or picked an alternative — found by B9 sweep"
+  },
+  {
+   "id": "documents.caption_class",
+   "order": 105,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql",
+   "decides": "fn_document_classify (and fn_wa_attach_document in the_agent_remembers_and_it_can_take_your_trade_licence.sql): v_cap ~ (trade|licence|رخصة) / profile|brochure / terms|agreement on the free-text caption decides the document class — found by B9 sweep"
+  },
+  {
+   "id": "support.corpus_search",
+   "order": 106,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql",
+   "decides": "fn_support_corpus_search: lexeme OR to_tsvector @@ decides which passage answers a public question (marketing_social, site_assistant) — found by B9 sweep"
+  },
+  {
+   "id": "knowledge.seat_lexeme_retrieval",
+   "order": 107,
+   "status": "pending",
+   "seat": "it_engineer",
+   "severity": "high",
+   "where": "scripts/sql/the_sales_engineer_could_not_see_the_faq_and_an_arabic_question_arrived_as_question_marks.sql",
+   "decides": "fn_sales_assist, fn_accountant_assist, fn_it_engineer_assist, fn_marketing_assist, fn_ceo_knowledge_search, fn_support_knowledge_search: lexeme = any() hit counts and @@ tsquery decide which knowledge applies to a question — found by B9 sweep"
+  },
+  {
+   "id": "org_task.faq_answered",
+   "order": 108,
+   "status": "pending",
+   "seat": "it_engineer",
+   "severity": "med",
+   "where": "scripts/sql/a_supplier_registration_record_closes_on_its_lead_not_on_a_licence_line.sql",
+   "decides": "fn_org_task_consume_tick: shared-lexeme coverage between a queued question and an FAQ question decides it is already answered and closes the task — found by B9 sweep"
+  },
+  {
+   "id": "supplier.portfolio_gaps",
+   "order": 109,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql",
+   "decides": "fn_supplier_portfolio_gaps: taxonomy_trade_service.aliases regex-prefix matched on the supplier's words decides which services the portfolio covers — found by B9 sweep"
+  },
+  {
+   "id": "accountant.stripe_bank_line",
+   "order": 110,
+   "status": "pending",
+   "seat": "accountant",
+   "severity": "med",
+   "where": "scripts/sql/a_journal_memo_never_carries_a_bank_or_iban_number.sql",
+   "decides": "fn_accountant_bank_reconcile: bl.description ilike '%stripe%' decides a bank line is Stripe money (payout matching, unexplained-credit findings) — found by B9 sweep"
+  },
+  {
+   "id": "ceo.challenge_proposal_kind",
+   "order": 111,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "low",
+   "where": "scripts/sql/challenge_reason_from_prior_outcomes.sql",
+   "decides": "fn_challenge: p_proposal ~* (fee|price|commission|campaign|customer|demand) decides a proposal is a pricing/demand change and adds challenge weight — found by B9 sweep"
+  },
+  {
+   "id": "kpi.task_goal",
+   "order": 112,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "low",
+   "where": "scripts/sql/the_measurement_spine_carries_a_signal.sql",
+   "decides": "fn_kpi_review / fn_org_task_fill_ownership: task title/detail ~ \\y goal_key \\y decides which goal a free-text task serves — found by B9 sweep"
+  },
+  {
+   "id": "knowledge.regulatory_review_date",
+   "order": 113,
+   "status": "pending",
+   "seat": "it_engineer",
+   "severity": "low",
+   "where": "scripts/sql/knowledge_review_dates_follow_source_freshness.sql",
+   "decides": "a00_agent_knowledge_metadata trigger: title ~* regulat|licen[cs]|complian|tax|vat|law|decree decides an entry is regulatory (180-day review) — found by B9 sweep"
+  },
+  {
+   "id": "competitor.pricing_change",
+   "order": 114,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "low",
+   "where": "scripts/sql/event_emitters_five_missing_classes.sql",
+   "decides": "trg_emit_competitor_pricing_changed: ~* (price|pricing|fee|commission|subscription|free) on competitor text decides a change is a pricing change — found by B9 sweep"
+  },
+  {
+   "id": "price_guidance.is_price_question",
+   "order": 115,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "scripts/sql/the_same_question_in_arabic_gets_the_same_answer.sql",
+   "decides": "fn_price_guidance: the question regex (cost|price|how much|سعر|بكم) decides whether a question is about price at all (the price-book like is a separate registered point) — found by B9 sweep"
   }
  ]
 }
