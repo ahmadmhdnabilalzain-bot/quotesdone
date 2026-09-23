@@ -901,7 +901,7 @@
   },
   {
    "id": "quote.line_specs_readerless",
-   "order": 72,
+   "order": 84,
    "status": "migrated",
    "seat": "sales_engineer",
    "severity": "critical",
@@ -913,6 +913,9 @@
      "must_contain": [
       "surface: 'quote.line_specs'",
       "surface: 'quote.spec_checklist'"
+     ],
+     "must_not_contain": [
+      "new RegExp("
      ]
     },
     {
@@ -927,7 +930,8 @@
       "admin.rpc('fn_trade_spec_checklist'"
      ]
     }
-   ]
+   ],
+   "held": "Under the hold every required spec of the pack checklist is asked of the supplier and the quote is held; it is never passed on a guess."
   }
  ]
 }
