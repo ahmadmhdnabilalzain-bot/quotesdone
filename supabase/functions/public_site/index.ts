@@ -5,8 +5,8 @@
 // without a model already exist in SQL — the bilingual router (fn_kb_route_decide), the ordered
 // interview (fn_category_questions), the per-trade compliance checklist, the matcher
 // (fn_match_capability) and the published price bands (fn_price_guidance). This function puts them
-// on the first screen. NO MODEL IS CALLED — every OpenRouter route is held and this path must work
-// regardless.
+// on the first screen. Which category a visitor's words ask for is REASONED (think(), 23 Sep 2026), and
+// under the model hold the visitor is asked to describe the job; everything else here calls no model.
 //
 // ACTIONS (POST {action, ...}):
 //   counters        -> fn_public_site_counters(): aggregates, NULL below each floor.
@@ -24,6 +24,8 @@
 // (public_site_global_day, default 5000) that does not trust the forgeable X-Forwarded-For.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { documentLine, isPageTopic } from './rules.ts';
+import { catalogueCategoryOf } from '../_shared/reasoned_matching.ts';
+import { defaultDeps } from '../_shared/think.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -67,9 +69,21 @@ export function detectEmirate(t: string): string | null {
 
 async function routeBrief(text: string, lang: 'en' | 'ar') {
   const emirate = detectEmirate(text);
-  const { data: decision, error } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000) });
+  // WHICH CATEGORY IS REASONED, NOT ALIAS-MATCHED (founder_instruction 886-903; decision point 24). The
+  // router hands back the activated categories; think() reads the visitor's words over them
+  // (reasoned_matching.ts catalogueCategoryOf) and the router is asked again with that category. Held: the
+  // visitor is asked, in plain words, to describe the job — nothing is routed on a guess.
+  const { data: open, error } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000) });
   if (error) return { ok: false, error: 'router_unavailable' };
-  const d: any = decision || {};
+  const cats = ((open as any)?.candidates || []) as { catalog_num: number; live_name: string }[];
+  // A visitor has no channel to be answered on later, so a held question is not queued: he is asked now.
+  const pick = cats.length ? await catalogueCategoryOf(defaultDeps(admin, 'public_site'), { text, categories: cats, audience: 'visitor', queue: false }) : null;
+  let d: any = open || {};
+  if (pick?.value) {
+    const { data: routed, error: re } = await admin.rpc('fn_kb_route_decide', { p_text: text.slice(0, 1000), p_catalog_num: pick.value });
+    if (re) return { ok: false, error: 'router_unavailable' };
+    d = routed || {};
+  }
   const liveSlug = d?.candidates?.[0]?.live_slug || null;
   let category: string | null = null;
   if (d.catalog_num && liveSlug) {
@@ -79,8 +93,8 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   if (!category) {
     return {
       ok: true, recognised: false, emirate,
-      clarification: d.action === 'ask_clarifying_question' && d.clarification ? String(d.clarification) : null,
-      candidates: (d.candidates || []).slice(0, 3).map((c: any) => String(c.live_name || '')).filter(Boolean),
+      clarification: d.clarification ? String(d.clarification) : null,
+      candidates: [],
     };
   }
 

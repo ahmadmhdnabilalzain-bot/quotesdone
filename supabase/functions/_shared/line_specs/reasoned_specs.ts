@@ -69,7 +69,7 @@ export function unionOf(lists: Checklist[]): ChecklistRow[] {
 /** The trade's required specs as line attributes. They read nothing themselves: reasoning fills them. */
 export function checklistAttrs(rows: ChecklistRow[]): Attr[] {
   return rows.filter((r) => r?.code && r?.label_en).map((r) => ({
-    code: r.code, en: r.label_en, ar: r.label_ar || r.label_en, type: 'text', mandatory: true, find: () => null,
+    code: r.code, en: r.label_en, ar: r.label_ar || r.label_en, type: 'text', mandatory: true,
   }));
 }
 

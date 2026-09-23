@@ -13,8 +13,16 @@
 //
 // Held quotes never appear here (they are drafts and never reach the comparison); the report is
 // told only how many are on hold. Pure: no I/O.
-import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, MATERIAL_ATTRS, readDelivery, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
-import { attrsForLine, normText, TRADES, tradeOfCategory, tradeOfLine, type Attr } from './model.ts';
+//
+// SAME VALUE, 23 Sep 2026 (founder_instruction 886-903; decision point 28 line_specs.same_value). A cell was
+// flagged ✓ when one value merely CONTAINED the other ("white" in "off-white") or when their first numbers
+// agreed whatever followed them ("10 mm" and "10 m"), and the no-exact-spec offer rested on that flag. Now
+// ✓ is exact only: the same value after format normalisation (case, spacing, punctuation, Arabic digits),
+// or the same number in the same unit. Anything else is ≠ here, and whether a ≠ is a GENUINE difference —
+// the only thing that lets the customer be offered an alternative — is decided by reasoning
+// (_shared/reasoned_matching.ts reasonedOffers), never by this comparison.
+import { assessQuote, componentAttr, componentOnLine, customerAnswer, customerRequires, lineDefs, MATERIAL_ATTRS, requestedValue, type Line, type Requirements, type Terms } from './assess.ts';
+import { attrsOf, COMPOSITE, normText, TRADES, tradeOfCategory, type Attr } from './model.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 
 // optional_not_stated: the detail applies to this product and another supplier may state it, but it is
@@ -49,13 +57,15 @@ function similarity(a: string, b: string): number {
   let n = 0; for (const w of A) if (B.has(w)) n++;
   return n / (A.size + B.size - n);
 }
-const firstNum = (s: string) => { const m = normText(s).match(/(\d+(?:\.\d+)?)/); return m ? Number(m[1]) : null; };
+// FORMAT only: case, spacing and punctuation fall away; "18 mm" and "18mm" are one value, "18" and "18 mm" too
+// (a bare number is in the attribute's own unit). Nothing is a match because it contains the other.
 const canon = (s: string) => normText(s).toLowerCase().replace(/[^\p{L}\p{N}.]+/gu, '');
+const measure = (s: string) => { const m = normText(s).toLowerCase().match(/^(\d+(?:\.\d+)?)\s*([\p{L}%²³]*)$/u); return m ? { n: Number(m[1]), u: m[2] } : null; };
 export function sameValue(a: string, b: string): boolean {
-  const x = firstNum(a), y = firstNum(b);
-  if (x != null && y != null) return Math.abs(x - y) <= Math.max(0.001, 0.01 * Math.max(Math.abs(x), Math.abs(y)));
+  const x = measure(a), y = measure(b);
+  if (x && y) return x.n === y.n && (x.u === y.u || !x.u || !y.u);
   const p = canon(a), q = canon(b);
-  return !!p && !!q && (p === q || p.includes(q) || q.includes(p));
+  return !!p && p === q;
 }
 function flagOf(applies: boolean, value: string | null, requested: string | null, noPref: boolean, same = sameValue): Flag {
   if (!applies) return 'not_applicable';
@@ -70,21 +80,20 @@ const cellOf = (quote_id: string, applies: boolean, value: string | null, reques
 };
 
 /**
- * The customer's own values per attribute for one row: from its BOQ wording (only when the row IS a
- * request line — a quote's own values are never its own baseline, or every quote would "match the
- * request" by construction), then from the intake's component answers.
+ * The customer's own values per attribute for one row: the intake's component answers on the component
+ * the quote line(s) on this row were read to name, then what the customer accepted. A BOQ line's wording
+ * is no longer read by a pattern for values (23 Sep 2026); only keyed intake answers are a baseline.
  */
-function requestedFor(rl: RequestLine, trade: string | null, attrs: Attr[], req: Requirements, fromRequest: boolean, accepted: AcceptedSpec[] = []) {
+function requestedFor(rl: RequestLine, trade: string | null, req: Requirements, onRow: Line[], accepted: AcceptedSpec[] = []) {
   const out: Record<string, { value: string; source: ReqSource }> = {};
   // Applied last (below): what the customer ACCEPTED replaces what they first asked for, so a quote
   // offering the accepted value matches and is not shown as a deviation (founder_instruction #321).
   const acceptedHere = accepted.filter((x) => x && Number(x.line_no) === Number(rl.line_no) && x.accepted);
-  if (fromRequest) for (const a of attrs) { const v = a.find(rl.description); if (v) out[a.code] = { value: v, source: 'boq' }; }
-  const base = trade ? attrsForLine(trade, rl.description) : [];
+  const base = attrsOf(trade);
   for (const m of req?.materials ?? []) {
-    if (!m?.component || (m.component !== 'main' && !componentOnLine(m, rl.description))) continue;
+    if (!m?.component || (m.component !== 'main' && !onRow.some((l) => componentOnLine(m, l)))) continue;
     const a = componentAttr(m, trade, base);
-    if (/^no[_\s-]?preference$/i.test(String(m.choice ?? ''))) { out[a.code] = { value: 'no_preference', source: 'no_preference' }; continue; }
+    if (String(m.choice ?? '').trim().toLowerCase() === 'no_preference') { out[a.code] = { value: 'no_preference', source: 'no_preference' }; continue; }
     const v = requestedValue(m);
     if (v) out[a.code] = { value: v, source: m.choice === 'other' ? 'intake_other' : 'intake' };
   }
@@ -122,13 +131,16 @@ export function technicalComparison(input: { category: string | null; request_li
     const firstPick = [...r.picks.entries()][0];
     const pickedLine = firstPick ? assessed.find((x) => x.q.quote_id === firstPick[0])!.a.lines.find((l) => l.line_no === firstPick[1]) : undefined;
     const text = r.rl?.description ?? pickedLine?.description ?? '';
-    const lt = tradeOfLine(trade, text) ?? pickedLine?.trade ?? null;
+    // The quote lines on this row, as stored: what reasoning read about each travels on its spec (assess.ts READ).
+    const onRow: Line[] = [...r.picks.entries()].map(([qid, ln]) => input.quotes.find((q) => q.quote_id === qid)?.lines.find((l) => l.line_no === ln)).filter((l): l is Line => !!l);
+    // The row's trade is what the assessment found for the line on it (the quote's trade, or what reasoning read).
+    const lt = pickedLine?.trade ?? (!COMPOSITE.has(trade) && TRADES[trade] ? trade : null);
     // The row's attributes: what this line is asked for (trade standard + the customer's components),
     // then the trade's remaining attributes so a stated extra still has a row to appear in.
-    const defs = lineDefs(lt, text, req);
+    const defs = lineDefs(lt, onRow[0] ?? { spec: null, spec_source: null }, req);
     const replaced = defs.some((d) => d.code.startsWith('component_'));
     const attrs: Attr[] = [...defs, ...(lt ? TRADES[lt].attrs.filter((a) => !defs.some((d) => d.code === a.code) && !(replaced && MATERIAL_ATTRS.includes(a.code))) : [])];
-    const requested = r.rl ? requestedFor(r.rl, lt, attrs, req, fromRequest, input.accepted ?? []) : {};
+    const requested = r.rl ? requestedFor(r.rl, lt, req, onRow, input.accepted ?? []) : {};
     const attributes: AttrRow[] = attrs.map((a) => {
       const rq = requested[a.code];
       const noPref = rq?.source === 'no_preference';
@@ -248,4 +260,4 @@ export function rankable<Q extends { lines: Line[]; terms: Terms }>(quotes: Q[],
   return { rankable: out, held };
 }
 
-export { readDelivery };
+
