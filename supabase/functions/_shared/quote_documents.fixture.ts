@@ -186,3 +186,14 @@ export function fitoutTechnical(): TechnicalComparison {
     },
   };
 }
+
+/** The reasoned Arabic, MOCKED: what reasoned_governance.arabicOf hands back once a model has answered — one
+ * Arabic line per source text. Tests never call a model; they prove the page prints what reasoning returns. */
+export function mockArabic(texts: string[]): Record<string, string> {
+  return Object.fromEntries(texts.map((t, i) => [t, `ترجمة السطر ${i + 1}`]));
+}
+/** Build a document the way nativeArabic does, with the mocked translation standing in for the model. */
+export function reasoned<T extends { untranslated: string[] }>(build: (arTexts: Record<string, string>) => T): T {
+  const first = build({});
+  return first.untranslated.length ? build(mockArabic(first.untranslated)) : first;
+}

@@ -110,7 +110,7 @@ const CATALOGUE: Record<string, Catalogue> = {
   // {{1}} is their question (shortened), {{2}} the answer; both literal-bounded. Needs submitting to Meta.
   support_reply: {
     en: 'QuotesDone support, about your question "{{1}}": {{2}}. You can reply here with anything else you need.',
-    ar: 'فريق دعم QuotesDone، بخصوص سؤالكم «{{1}}»: {{2}}. يمكنكم الرد هنا بأي استفسار آخر.',
+    ar: 'فريق دعم QuotesDone، بخصوص استفساركم «{{1}}»: {{2}}. ويسعدنا الرد على أي استفسار آخر عبر هذه المحادثة.',
     sample1_en: 'what depth can my villa pool be', sample1_ar: 'ما العمق المسموح لمسبح الفيلا',
     sample2_en: 'in Dubai a private pool needs a Dubai Municipality permit and a fence of at least 1.2 m',
     sample2_ar: 'في دبي يحتاج المسبح الخاص إلى تصريح من بلدية دبي وسياج لا يقل ارتفاعه عن 1.2 متر',
