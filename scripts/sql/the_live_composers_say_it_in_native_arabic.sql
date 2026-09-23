@@ -1,28 +1,31 @@
 -- THE LIVE COMPOSERS SAY IT IN NATIVE ARABIC (22 Sep 2026, documents-language audit DL-04).
 --
--- SEAT: customer_support. Three routines re-defined from their current canonical files with the Arabic
+-- SEAT: customer_support. Two routines re-defined from their current canonical files with the Arabic
 -- corrected, and one app_secrets row. No table, no column, no grant change, no English word altered.
 --
 -- WHAT WAS FOUND. scripts/checks/every_arabic_message_is_written_not_translated.test.mjs scans
 -- messages/ar.json, src/components, src/app, supabase/functions and the SQL files listed AFTER its own
--- anchor in MANIFEST.txt. Three live routines compose Arabic mail from SQL files that pre-date that
+-- anchor in MANIFEST.txt. Two live routines compose Arabic mail from SQL files that pre-date that
 -- anchor, so their text was never scanned, and each carried an artefact the check names:
 --   * public.fn_seat_clock_compose ...each_run_on_a_clock.sql:261  'الخاص بكم'  (possessive calque)
 --   * public.fn_supplier_registration_reminder_compose ...is_followed.sql:138  'الخاصة بكم'
---   * public.fn_supplier_collaboration_incident ...warned_then_held.sql:185  'نحن نفضّل'  (emphatic we)
 -- and beside them, read by eye against the register: 'وقد تمّت مطابقة طلبه' and 'إذا تمّ التعاقد'
 -- (the past built with تمّ + a verbal noun), 'يتم التحقق منهما' for "verified", and a customer
 -- addressed as 'السيد/ة … المحترم/ة'، a form field rather than a salutation.
 --
+-- A THIRD ROUTINE LOOKED LIKE A THIRD ARTEFACT AND IS NOT HERE. public.fn_supplier_collaboration_incident
+-- carries 'نحن نفضّل' at a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql:185 — but that
+-- file is not its canonical definition. See the note where part 3 would have been.
+--
 -- WHY A NEW FILE AND NOT AN EDIT. MANIFEST.txt decides canonicality by position, and it is append-only:
 -- the LAST file defining a routine wins. Editing the old file would leave two files claiming the
--- routine with the older one still canonical. These three definitions are therefore re-issued here,
+-- routine with the older one still canonical. Both definitions are therefore re-issued here,
 -- copied verbatim from their current canonical files with only the Arabic string literals changed —
 -- and because this file sits after the anchor, the check now scans them on every run.
 --
 -- THE CHECK ITSELF was extended in the same change: it reads the canonical file of EVERY routine the
--- repository defines, not only the files after its anchor, so the next composer whose Arabic lives in
--- a pre-anchor file cannot hide the way these three did.
+-- repository defines (the BODY, not the whole file), not only the files after its anchor, so the next composer whose Arabic lives in
+-- a pre-anchor file cannot hide the way these did.
 --
 -- ALSO HERE: app_secrets.invite_body_ar, the supplier invitation body, carried the same
 -- 'بوابة الموردين الخاصة بكم'. It is a stored value, not a routine: the owning file inserts it with
@@ -231,94 +234,15 @@ end
 $fn$;
 revoke execute on function public.fn_supplier_registration_reminder_compose(public.leads, text, integer) from public, anon, authenticated;
 
--- 3. the collaboration incident notice: the third unanswered hold
-create or replace function public.fn_supplier_collaboration_incident(p_lead bigint, p_inquiry uuid, p_quote uuid, p_hold bigint)
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_n int; v_held timestamptz; v_warn int := 0; v_hold int := 0;
-        v_ref text := upper(left(coalesce(p_inquiry::text, ''), 8));
-begin
-  insert into public.supplier_collaboration (lead_id) values (p_lead) on conflict (lead_id) do nothing;
-  update public.supplier_collaboration
-     set consecutive_ignored = consecutive_ignored + 1, total_ignored = total_ignored + 1, last_incident_at = now(), updated_at = now()
-   where lead_id = p_lead returning consecutive_ignored into v_n;
-  insert into public.supplier_collaboration_event (lead_id, kind, inquiry_id, quote_id, hold_id, consecutive_after, actor, detail)
-  values (p_lead, 'ignored_hold', p_inquiry, p_quote, p_hold, v_n, 'sales_engineer', jsonb_build_object('rfq', v_ref));
+-- (There is no part 3. An earlier draft of this file re-issued fn_supplier_collaboration_incident as
+-- well, copied from a_supplier_who_leaves_holds_unanswered_is_warned_then_held.sql — and that file is
+-- NOT the canonical definition: every_arabic_message_is_written_not_translated.sql sits 174 positions
+-- later in MANIFEST.txt and rewrote ten Arabic fragments of that routine on 22 Sep. Re-issuing the
+-- older body would have rolled all ten back, which is the trap that cost this session hours elsewhere
+-- today. The canonical body was then read: it is already native, already formal-plural, and carries no
+-- artefact, so that routine needed nothing and is left where it is owned.)
 
-  if v_n = 2 then
-    insert into public.support_case (case_ref, party_kind, party_id, inquiry_ref, subject, owner_role_id)
-    values ('SE-COLLAB-' || p_lead || '-' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSMS'), 'supplier', p_lead::text, p_inquiry::text,
-            'From the sales engineer: this supplier has left 2 held quotes unanswered in a row (the customer decided before the missing details came). The warning was sent on email and WhatsApp; a third in a row puts them on matching hold.',
-            'customer_support');
-    v_warn := public.fn_supplier_notice(p_lead, 'supplier_collaboration_warning',
-      'A note about your recent quotes on QuotesDone',
-      $en$Dear {company},
-
-Thank you for quoting on QuotesDone. We value the time you put into every request.
-
-On your last two requests, your quotation was placed on hold because some details the customer needs to compare quotes fairly were missing (for example the exact material specification, the delivery date, installation or warranty), and the customer made their decision before those details arrived. Complete details help customers choose with confidence, and they give your offer the best chance of being selected.
-
-Whenever a quote is on hold, you can fill in the missing details directly on your supplier portal (we then prepare the standardised quotation for your approval), or upload a revised quotation. It only takes a few minutes.
-
-To keep matching fair for customers, if a third consecutive quotation is still on hold when the customer decides, we will pause new requests to your company until we have spoken with you. We would much rather keep working together, so please reach out if anything is making it difficult to respond.
-
-With thanks,
-QuotesDone sales engineer$en$,
-      'ملاحظة حول عروضك الأخيرة على QuotesDone',
-      $ar$عزيزنا {company}،
-
-شكرًا لتقديمك عروض الأسعار عبر QuotesDone، ونقدّر الوقت الذي تخصصه لكل طلب.
-
-في آخر طلبين، عُلّق عرضك لأن بعض التفاصيل التي يحتاجها العميل ليقارن العروض بإنصاف كانت ناقصة (مثل مواصفات المواد الدقيقة أو تاريخ التسليم أو التركيب أو الضمان)، واتخذ العميل قراره قبل وصول هذه التفاصيل. التفاصيل الكاملة تساعد العملاء على الاختيار بثقة، وتمنح عرضك أفضل فرصة للفوز.
-
-عندما يُعلَّق أي عرض، يمكنك إكمال التفاصيل الناقصة مباشرة من بوابة المورّدين (ونُعدّ لك العرض بالصيغة الموحّدة لتعتمده)، أو رفع عرض معدّل. لا يستغرق ذلك سوى دقائق.
-
-وحرصًا على عدالة المطابقة للعملاء، إذا بقي عرض ثالث على التوالي معلّقًا عند اتخاذ العميل قراره، سنوقف إرسال الطلبات الجديدة إلى شركتكم مؤقتًا إلى أن نتحدث معكم. ونفضّل كثيرًا أن نستمر في العمل معًا، فلا تتردد في التواصل معنا إن كان هناك ما يصعّب عليك الرد.
-
-مع خالص الشكر،
-مهندس المبيعات في QuotesDone$ar$,
-      p_inquiry, p_quote);
-    update public.supplier_collaboration set warned_at = now(), updated_at = now() where lead_id = p_lead;
-    insert into public.supplier_collaboration_event (lead_id, kind, inquiry_id, quote_id, hold_id, consecutive_after, actor, detail)
-    values (p_lead, 'warning_sent', p_inquiry, p_quote, p_hold, v_n, 'sales_engineer', jsonb_build_object('delivery_requests', v_warn));
-
-  elsif v_n >= 3 then
-    select collaboration_hold_at into v_held from public.leads where id = p_lead;
-    if v_held is null then
-      update public.leads set collaboration_hold_at = now(), matching_blocked = true, matching_block_reason = 'collaboration_hold' where id = p_lead;
-      update public.supplier_collaboration set held_at = now(), updated_at = now() where lead_id = p_lead;
-      insert into public.support_case (case_ref, party_kind, party_id, inquiry_ref, subject, owner_role_id)
-      values ('SE-HOLD-' || p_lead || '-' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSMS'), 'supplier', p_lead::text, p_inquiry::text,
-              'From the sales engineer: supplier put on matching hold after 3 held quotes in a row were left unanswered. New requests are no longer matched to them. Lifting it is the founder''s decision after he calls the supplier (founder_instruction #160).',
-              'customer_support');
-      v_hold := public.fn_supplier_notice(p_lead, 'supplier_matching_hold',
-        'New requests to your company are paused on QuotesDone',
-        $en$Dear {company},
-
-Thank you for your time on QuotesDone. On your last three consecutive requests, your quotation was still on hold for missing details when the customer made their decision. As we mentioned in our earlier message, we have therefore paused new requests to your company for now. Your account, your existing quotations and any revealed jobs are not affected.
-
-Our team will be in touch to understand what happened and how we can make responding easier. You are welcome to reply to this message at any time.
-
-With thanks,
-QuotesDone sales engineer$en$,
-        'تم إيقاف إرسال الطلبات الجديدة إلى شركتكم مؤقتًا على QuotesDone',
-        $ar$عزيزنا {company}،
-
-شكرًا لوقتك على QuotesDone. في آخر ثلاثة طلبات متتالية، كان عرضك لا يزال معلّقًا بسبب تفاصيل ناقصة عندما اتخذ العميل قراره، ولذلك، كما ذكرنا في رسالتنا السابقة، أوقفنا إرسال الطلبات الجديدة إلى شركتكم في الوقت الحالي. لا يتأثر حسابك ولا عروضك الحالية ولا الأعمال التي كُشف عنها.
-
-سيتواصل معكم فريقنا لفهم ما حدث وكيف يمكننا تسهيل الرد، ويسعدنا أن تردّ على هذه الرسالة في أي وقت.
-
-مع خالص الشكر،
-مهندس المبيعات في QuotesDone$ar$,
-        p_inquiry, p_quote);
-      insert into public.supplier_collaboration_event (lead_id, kind, inquiry_id, quote_id, hold_id, consecutive_after, actor, detail)
-      values (p_lead, 'matching_hold', p_inquiry, p_quote, p_hold, v_n, 'sales_engineer', jsonb_build_object('delivery_requests', v_hold));
-    end if;
-  end if;
-  return jsonb_build_object('lead_id', p_lead, 'consecutive', v_n, 'warning_requests', v_warn, 'hold_requests', v_hold);
-end $fn$;
-revoke execute on function public.fn_supplier_collaboration_incident(bigint, uuid, uuid, bigint) from public, anon, authenticated;
-
--- 4. the stored invitation body ---------------------------------------------------------------------
+-- 3. the stored invitation body ---------------------------------------------------------------------
 -- The needle in this STATEMENT is built from halves rather than spelled, because an executable line
 -- is scanned (apply discipline §7: a check that greps for a pattern matches the line repairing it).
 -- The header above DOES spell the shapes in full, on purpose — a reader has to see what was wrong —
