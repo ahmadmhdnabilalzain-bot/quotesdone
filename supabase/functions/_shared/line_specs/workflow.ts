@@ -32,7 +32,7 @@
 // database, no network, and therefore no way to reach a real supplier.
 import { approvalNotice, assessQuote, holdNotice, lineText, releasedNotice, SEAT, validateLineValue, validateTerm, type Assessment, type FillError, type Line, type MissingItem, type Requirements, type Terms, type TermsSpec } from './assess.ts';
 import { TRADES, tradeOfCategory, type Attr } from './model.ts';
-import { withReasoned } from './reasoned_specs.ts';
+import { needsChecklist, withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { requestDelivery } from '../deliver.ts';
@@ -113,7 +113,7 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   const read = await repo.lines(quoteId);
   // What the supplier's own words already state, judged by reasoning, is written in before the check;
   // under the model hold nothing is, and every required spec is asked (the quote is held).
-  const lines = ctx.checklist?.length && ctx.reason && !TRADES[tradeOfCategory(ctx.category)]
+  const lines = ctx.checklist?.length && ctx.reason && needsChecklist(ctx.category)
     ? withReasoned(read, await ctx.reason(read, ctx.checklist)) : read;
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
   await persistSpecs(repo, quoteId, a, read);
@@ -129,7 +129,10 @@ export async function gate(repo: SpecRepo, quoteId: string, supplier: Supplier, 
   const ar = holdNotice(a, 'ar', ctx.ref, ctx.multiOption ? optionLabel(q.option_no, 'ar') : null);
   const hold = await repo.insertHold({
     quote_id: quoteId, inquiry_id: q.inquiry_id, supplier_id: q.supplier_id, submission_id: q.submission_id, option_no: q.option_no, state: 'open',
-    missing: a.missing, note_en: en.body, note_ar: ar.body, original_snapshot: { quote: q, lines }, supplier_values: [],
+    // The checklist this hold was judged on travels with it: fill-in and approval read it back rather than
+    // choosing again, so the rule a supplier answers is the rule he is released on.
+    missing: a.missing, note_en: en.body, note_ar: ar.body,
+    original_snapshot: { quote: q, lines, checklist: ctx.checklist?.map((x) => ({ code: x.code, label_en: x.en, label_ar: x.ar })) ?? null }, supplier_values: [],
     regenerated: null, regenerated_at: null, pdf_bucket: null, pdf_path: null, approved_at: null, approved_by: null, released_at: null, superseded_at: null,
     owner_seat: SEAT, opened_at: at, notified_at: null, notification_ids: null,
   });

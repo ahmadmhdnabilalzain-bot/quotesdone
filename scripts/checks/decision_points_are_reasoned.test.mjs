@@ -73,6 +73,14 @@ test('provider webhooks are acknowledged at once and handled after (reasoning ne
   assert.match(read('supabase/functions/_shared/async_webhook.test.ts'), /ms < 100/);
 });
 
+test('the pack loader and the reasoning agree on every spec code (a filled value lands where the reasoning reads)', async () => {
+  const { specCode: loaderCode } = await import(join(REPO, 'scripts/kb/load_trade_spec_checklists.mjs').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  const { specCode: engineCode } = await import(join(REPO, 'supabase/functions/_shared/line_specs/reasoned_specs.ts').replace(/\\/g, '/').replace(/^([A-Za-z]):/, 'file:///$1:'));
+  for (const s of ['cavity width and gas fill (air/argon %)', 'outer pane: thickness, type (annealed/HS/tempered)', 'Rated capacity; tonnes', 'sizes (max/min) and quantity in m²']) {
+    assert.equal(loaderCode(s), engineCode(s), s);
+  }
+});
+
 test('the migrated SQL routines read no free text for meaning: no ~*, ilike or like-on-text in their bodies', () => {
   const sql = code(MIGRATE, read(MIGRATE));
   const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };

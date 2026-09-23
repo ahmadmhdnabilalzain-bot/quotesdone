@@ -23,8 +23,8 @@ import { readExpiry } from '../_shared/document_expiry.ts';
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, formSchema, gate, pdfBody, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
-import { TRADES, tradeOfCategory, type Attr } from '../_shared/line_specs/model.ts';
-import { checklistAttrs, chooseChecklist, reasonLineSpecs, type Checklist } from '../_shared/line_specs/reasoned_specs.ts';
+import type { Attr } from '../_shared/line_specs/model.ts';
+import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
 import type { Line } from '../_shared/line_specs/assess.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
@@ -80,11 +80,26 @@ const numOrNull = (v: unknown) => { const n = Number(v); return isFinite(n) && n
 // must state (fn_trade_spec_checklist); think() judges what the supplier's lines already state
 // (_shared/line_specs/reasoned_specs.ts). Under the model hold nothing is judged and every required spec
 // is asked, so the quote is held until it is stated. A trade with a reader, or no checklist, is unchanged.
-async function specChecklist(category: string | null, quoteId: string): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
-  if (!category || TRADES[tradeOfCategory(category)]) return {};
+// mode 'gate': choose the checklist (reasoned) and judge the lines — once per submission. 'stored': the
+// live hold's own checklist, read back for fill-in and approval, no reasoning. 'preflight': no reasoning,
+// a prediction only (one checklist, or every checklist together).
+async function specChecklist(category: string | null, quoteId: string, mode: 'gate' | 'stored' | 'preflight' = 'gate'): Promise<{ checklist?: Attr[]; reason?: Ctx['reason'] }> {
+  if (!category || !needsChecklist(category)) return {};
+  if (mode === 'stored') {
+    const { data: h } = await admin.from('quote_spec_hold').select('original_snapshot').eq('quote_id', quoteId)
+      .in('state', ['open', 'awaiting_approval']).order('id', { ascending: false }).limit(1).maybeSingle();
+    const rows = ((h?.original_snapshot as { checklist?: ChecklistRow[] } | null)?.checklist ?? []) as ChecklistRow[];
+    return rows.length ? { checklist: checklistAttrs(rows) } : {};
+  }
   const { data, error } = await admin.rpc('fn_trade_spec_checklist', { p_category: category });
   const lists = (!error && Array.isArray(data) ? data : []) as Checklist[];
-  if (!lists.length) { console.warn('no spec checklist for readerless trade', category, error?.message ?? ''); return {}; }
+  if (!lists.length) {
+    // Not held on an empty list, and not silently: the missing pack is an IT finding the knowledge work closes.
+    try { await admin.rpc('fn_it_engineer_finding_upsert', { p_issue_key: 'spec_checklist_missing:' + category, p_title: 'A trade with no line reader has no spec checklist, so its quotes cannot be held for missing specs',
+      p_where: 'edge function supplier_api', p_blast: 'customer_facing', p_affected: 1, p_evidence: { category, quote_id: quoteId, error: error?.message ?? null }, p_ruled_out: [], p_undetermined: [], p_raised_by: 'sales_engineer' }); } catch (_e) { /* the gate goes on */ }
+    return {};
+  }
+  if (mode === 'preflight') return { checklist: checklistAttrs(lists.length === 1 ? lists[0].specs : unionOf(lists)) };
   const deps = defaultDeps(admin, 'supplier_api');
   const { data: lineRows } = await admin.from('quote_items').select('*').eq('quote_id', quoteId).order('line_no', { ascending: true }).limit(60);
   const picked = await chooseChecklist(deps, { checklists: lists, lines: (lineRows ?? []) as Line[], trade: category, quoteId });
@@ -1302,7 +1317,7 @@ const handle = async (req: Request): Promise<Response> => {
       // deno-lint-ignore no-explicit-any
       const spec: any = inqRow?.spec;
       const ctx = { category: inqRow?.category ?? null, requirements: requirementsOf(spec), ref: jobNo({ id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no }), multiOption: (optCount || 0) > 1,
-                    ...(await specChecklist(inqRow?.category ?? null, String(q.id))) };
+                    ...(await specChecklist(inqRow?.category ?? null, String(q.id), 'stored')) };
       const signed = async (b?: string | null, p?: string | null) => { if (!b || !p) return null; try { const { data } = await admin.storage.from(b).createSignedUrl(p, 3600); return data?.signedUrl || null; } catch (_e) { return null; } };
       if (action === 'spec_hold') {
         const { data: hs } = await admin.from('quote_spec_hold').select('id,state,missing,note_en,note_ar,regenerated,regenerated_at,pdf_bucket,pdf_path,opened_at,approved_at,released_at').eq('quote_id', qid).order('id', { ascending: false }).limit(1);
@@ -1532,7 +1547,7 @@ const handle = async (req: Request): Promise<Response> => {
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
         if (dryRun) {
           const acc = await acceptRule(qid);
-          const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements, checklist: (await specChecklist(category, qid)).checklist });
+          const a = assessQuote({ category, lines: await repo.lines(qid), terms: (await repo.quote(qid))!, requirements, checklist: (await specChecklist(category, qid, 'preflight')).checklist });
           // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
           // own ids, so anything that references a line still does). A row this check CREATED is removed.
           let restored = true;

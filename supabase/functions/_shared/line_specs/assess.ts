@@ -273,7 +273,7 @@ export function assessQuote(input: { category: string | null; lines: Line[]; ter
     // A line that names a customer's component is a material line even when no trade keyword fits.
     const namesComponent = material && (req?.materials ?? []).some((m) => m?.component && m.component !== 'main' && componentOnLine(m, text));
     // A trade with no line reader asks each material line its knowledge pack's required specs (reasoned_specs.ts).
-    const defs = lt || namesComponent ? lineDefs(lt, text, req) : (material && !TRADES[trade] && input.checklist?.length ? input.checklist : []);
+    const defs = lt || namesComponent ? lineDefs(lt, text, req) : (material && !TRADES[trade] && !(COMPOSITE.has(trade) && trade !== 'general') && input.checklist?.length ? input.checklist : []);
     for (const m of req?.materials ?? []) if (m?.component && material && componentOnLine(m, text)) named.add(m.component);
     const spec: Record<string, string> = {}; const source: Record<string, Src> = {};
     for (const a of defs) {

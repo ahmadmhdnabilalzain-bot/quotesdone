@@ -1,7 +1,7 @@
 // Exact specs for a trade with no line reader: required specs from the pack, judged by reasoning, held when missing.
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { assessQuote, type Line } from './assess.ts';
-import { checklistAttrs, chooseChecklist, reasonLineSpecs, specCode, withReasoned, type Checklist } from './reasoned_specs.ts';
+import { checklistAttrs, chooseChecklist, LINES_PER_CALL, needsChecklist, reasonLineSpecs, specCode, unionOf, withReasoned, type Checklist } from './reasoned_specs.ts';
 import type { ThinkDeps } from '../think.ts';
 
 const J = JSON.stringify;
@@ -65,6 +65,35 @@ Deno.test('a value the supplier did not write is refused by the validator, so it
   const invented = J({ answer: 'x', decision: { fields: { [`L1__${SPECS[1].code}`]: { value: 'telescopic 500 mm', evidence: 'telescopic 500 mm lip' } } } });
   const found = await reasonLineSpecs(deps({ synth: [invented, invented] }), { lines: LINES, checklist, trade: 'glazing', quoteId: 'q1' });
   assertEquals(found, null, 'refused twice: the reasoning is held, nothing is filled');
+});
+
+Deno.test('a composite trade (fit-out, MEP) is read by the trades its lines name, never the pack checklist', () => {
+  assertEquals([needsChecklist('fitout'), needsChecklist('combined-mep'), needsChecklist('gypsum'), needsChecklist('zz-demo-dock-equipment')], [false, false, false, true]);
+  const fit = assessQuote({ category: 'fitout', lines: LINES, terms: TERMS, checklist: checklistAttrs(SPECS) });
+  assert(!fit.lines[0].asked.includes(SPECS[0].code));
+});
+
+Deno.test('reasoning never overwrites a value the supplier entered', () => {
+  const entered: Line[] = [{ ...LINES[0], spec: { [SPECS[0].code]: '6.5 t' }, spec_source: { [SPECS[0].code]: 'supplier_portal' } }];
+  const out = withReasoned(entered, { 1: { [SPECS[0].code]: '6 tonne', [SPECS[1].code]: 'hinged 400 mm' } });
+  assertEquals(out[0].spec, { [SPECS[0].code]: '6.5 t', [SPECS[1].code]: 'hinged 400 mm' });
+  assertEquals(out[0].spec_source, { [SPECS[0].code]: 'supplier_portal', [SPECS[1].code]: 'reasoned' });
+});
+
+Deno.test('a long quote is reasoned a few lines at a time, so every answer fits and every line keeps its own words', async () => {
+  let synthCalls = 0;
+  const d = deps({ synth: [] });
+  const base = d.llm;
+  d.llm = (phase, sys, input, o) => { if (phase === 'synthesise') synthCalls++; return base(phase, sys, input, o); };
+  const many: Line[] = Array.from({ length: 7 }, (_, i) => ({ line_no: i + 1, description: 'Hydraulic dock leveller bay ' + (i + 1), qty: 1, unit: 'nos', amount: 1000 }));
+  await reasonLineSpecs(d, { lines: many, checklist: checklistAttrs(SPECS), trade: 'x', quoteId: 'q2' });
+  assertEquals(synthCalls >= 3, true, 'three batches of at most ' + LINES_PER_CALL + ' lines');
+});
+
+Deno.test('every checklist together names its list and the honest way out', () => {
+  const u = unionOf(LISTS);
+  assertEquals(u.length, 3);
+  assert(/^glass balustrade — rated capacity \(tonnes\) \(if you are not quoting this, write "not applicable" and why\)$/.test(u[1].label_en), u[1].label_en);
 });
 
 Deno.test('a trade that HAS a line reader is unchanged by a checklist', () => {
