@@ -1,0 +1,914 @@
+{
+  "trade": "hvac",
+  "entries": [
+    {
+      "id": "hvac:split-vs-ducted-vs-vrf",
+      "topic": "Split vs ducted split vs VRF",
+      "kind": "comparison",
+      "body_en": "Wall-mounted (mini) splits pair one indoor unit with one outdoor unit; they are cheapest per room, need no ceiling void, but each room gets a condenser position on the facade or roof and air is only recirculated, not fresh. Ducted (concealed) splits hide a fan-coil section in the false ceiling and distribute air through ducts and grilles to several rooms of one zone; they look cleaner and can take a fresh-air connection, but one thermostat serves the whole zone and the ceiling needs access panels. VRF/VRV systems connect many indoor units (cassettes, ducted, wall) to one outdoor module through refrigerant piping with branch joints; each indoor unit has its own control, the outdoor unit modulates capacity with inverter compressors, and heat-recovery versions can cool and heat simultaneously. VRF suits villas, offices and hotels where individual zone control and limited outdoor space matter; it demands certified installers, accurate pipe lengths and height differences within the manufacturer limits, careful brazing with nitrogen, and a refrigerant-leak assessment for small occupied rooms. A buyer should state which system type is wanted; quotes for \"AC for a 4-bedroom villa\" can otherwise mix all three and are not comparable.",
+      "body_ar": "المكيف الجداري (سبليت) يربط وحدة داخلية واحدة بوحدة خارجية واحدة، وهو الأرخص لكل غرفة ولا يحتاج سقفاً مستعاراً، لكنه يعيد تدوير الهواء فقط ويحتاج موقعاً لوحدة خارجية لكل غرفة. أما السبليت المخفي (الدكت) فيُركّب داخل السقف المستعار ويوزّع الهواء عبر مجارٍ وفتحات إلى عدة غرف ضمن منطقة واحدة؛ مظهره أنظف ويمكن ربطه بهواء نقي، لكن ثرموستاتاً واحداً يتحكم بالمنطقة كلها ويلزم فتحات صيانة في السقف. أنظمة VRF/VRV تربط عدداً كبيراً من الوحدات الداخلية بوحدة خارجية واحدة عبر أنابيب تبريد وموزعات، ولكل وحدة داخلية تحكم مستقل، والضاغط يعمل بتقنية الإنفرتر، وبعض الطرازات تسترجع الحرارة فتبرّد وتدفئ في آن واحد. يناسب VRF الفلل والمكاتب والفنادق حيث التحكم المستقل ومحدودية المساحة الخارجية، لكنه يتطلب مركّباً معتمداً من المصنّع والالتزام بحدود أطوال الأنابيب وفروق الارتفاع، واللحام مع تمرير النيتروجين، وتقييم تسرب غاز التبريد في الغرف الصغيرة. على المشتري تحديد نوع النظام المطلوب، وإلا ستصله عروض غير قابلة للمقارنة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:chiller-air-vs-water-cooled",
+      "topic": "Air-cooled vs water-cooled chillers",
+      "kind": "comparison",
+      "body_en": "Air-cooled chillers reject heat directly to outdoor air through finned condenser coils and fans; they need no cooling tower, no condenser-water pumps and no make-up water, so they are simpler for mid-size buildings and for sites where water is costly. Their efficiency falls as ambient temperature rises, which matters in UAE summers above 45 °C, so the chiller must be selected and rated at the real design ambient, not at the 35 °C catalogue point. Water-cooled chillers reject heat to condenser water cooled in a cooling tower; they are markedly more efficient per kW of cooling and are common in large towers, malls and district cooling plants, but add towers, condenser pumps, water treatment, Legionella control, blow-down and a large water bill (often treated sewage effluent in district plants). Compressor types include scroll (small), screw (medium) and centrifugal (large, including magnetic-bearing oil-free designs). A buyer should state capacity in kW or TR at the stated design conditions, leaving and entering chilled-water temperatures, ambient design temperature, required efficiency (full-load COP/kW per TR and part-load IPLV/ESEER), refrigerant, sound limits and whether AHRI or Eurovent certified performance is required.",
+      "body_ar": "المبرّد (التشلر) المبرّد بالهواء يطرد الحرارة مباشرة إلى الهواء الخارجي عبر ملفات مكثف ومراوح، فلا يحتاج برج تبريد ولا مضخات مياه مكثف ولا مياه تعويض، ولذلك هو أبسط للمباني المتوسطة والمواقع التي تكون فيها المياه مكلفة. لكن كفاءته تنخفض مع ارتفاع حرارة الجو، وهذا مهم في صيف الإمارات حيث تتجاوز الحرارة 45 درجة، لذا يجب اختياره وتقييم أدائه على حرارة التصميم الفعلية لا على نقطة 35 درجة في الكتالوج. أما التشلر المبرّد بالماء فيطرد الحرارة إلى مياه مكثف تُبرّد في برج تبريد، وهو أعلى كفاءة بوضوح ومنتشر في الأبراج الكبيرة والمراكز التجارية ومحطات التبريد المركزي، لكنه يضيف أبراجاً ومضخات ومعالجة مياه ومكافحة الليجيونيلا واستهلاكاً كبيراً للمياه. أنواع الضواغط: حلزوني (سكرول) للصغير، لولبي (سكرو) للمتوسط، وطارد مركزي للكبير بما فيها المحامل المغناطيسية الخالية من الزيت. على المشتري تحديد السعة بالكيلوواط أو الطن التبريدي عند ظروف التصميم، ودرجات حرارة المياه الداخلة والخارجة، وحرارة الجو التصميمية، والكفاءة المطلوبة عند الحمل الكامل والجزئي، ونوع الغاز، وحدود الضجيج، وهل يُشترط أداء معتمد من AHRI أو Eurovent.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Chiller",
+        "https://www.ahrinet.org/certification",
+        "https://www.eurovent-certification.com/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:district-cooling",
+      "topic": "District cooling (Empower, Tabreed etc.)",
+      "kind": "product",
+      "body_en": "District cooling produces chilled water in a central plant and pipes it to many buildings; each building has an energy transfer station (plate heat exchangers, valves and a BTU/energy meter) instead of its own chillers. In Dubai the sector is regulated by the Regulatory and Supervision Bureau (RSB), which approves tariffs, connection charges and fees; major providers include Empower in Dubai and Tabreed across the UAE. Customers are typically billed a capacity (demand) charge tied to contracted refrigeration tons plus a consumption charge per ton-hour, plus meter/service fees; the exact rates vary by provider and contract and should be read from the current approved tariff, not assumed. For a buyer procuring HVAC in a district-cooled building, the scope is the secondary side only: chilled-water pumps (if any), FCUs, AHUs, valves, balancing, insulation and controls. Key points to state: available supply and return temperatures and differential pressure at the ETS, the contracted TR, whether low delta-T penalties apply, and the provider's approval process for connection drawings. Mistakes include oversizing FCUs against the contracted capacity and poor valve selection that lowers delta-T and invites penalties. Verified regulatory detail: RSB regulation RD10, issued under Executive Council Resolution (6) of 2021, states that only tariffs, charges and fees it expressly authorises may be levied and that all must be disclosed to the customer. Published consumer guides report Empower rates of about AED 0.568 per ton-hour consumption and AED 750 per contracted ton per year, plus meter fees; treat these as indicative and confirm the current approved tariff.",
+      "body_ar": "التبريد المركزي (التبريد المناطقي) ينتج المياه المبردة في محطة مركزية ويضخها عبر شبكة أنابيب إلى مبانٍ عديدة، ويكون في كل مبنى محطة نقل طاقة (مبادلات حرارية لوحية وصمامات وعداد طاقة) بدلاً من تشلرات خاصة به. في دبي ينظم القطاع مكتب التنظيم والرقابة (RSB) الذي يعتمد التعرفة ورسوم التوصيل، ومن أبرز المزودين \"إمباور\" في دبي و\"تبريد\" على مستوى الدولة. تتكون الفاتورة عادة من رسم سعة مرتبط بعدد الأطنان التبريدية المتعاقد عليها، ورسم استهلاك لكل طن-ساعة، ورسوم عداد وخدمة؛ وتختلف الأسعار حسب المزود والعقد ويجب الرجوع إلى التعرفة المعتمدة الحالية. عند شراء أعمال تكييف لمبنى مرتبط بالتبريد المركزي يكون النطاق هو الجانب الثانوي فقط: المضخات إن وجدت، ووحدات ملف المروحة، ووحدات مناولة الهواء، والصمامات، والموازنة، والعزل، والتحكم. يجب تحديد درجات حرارة التغذية والراجع وفرق الضغط المتاح، والسعة المتعاقد عليها، وهل توجد غرامات على انخفاض فرق الحرارة، وإجراءات موافقة المزود على المخططات. تفصيل تنظيمي مُتحقق منه: تنص لائحة RD10 الصادرة عن مكتب التنظيم والرقابة بموجب قرار المجلس التنفيذي رقم (6) لسنة 2021 على أنه لا يجوز فرض إلا التعرفات والرسوم التي تجيزها صراحةً، وأنه يجب الإفصاح عنها جميعاً للعميل. وتذكر أدلة استهلاكية منشورة أن أسعار إمباور نحو 0.568 درهم لكل طن تبريد ساعة للاستهلاك و750 درهماً لكل طن متعاقد عليه سنوياً إضافة إلى رسوم العداد؛ اعتبرها إرشادية وتأكد من التعرفة المعتمدة الحالية.",
+      "sources": [
+        "https://rsbdubai.gov.ae/media/baufmpnp/rd10-tariffs-v14.pdf",
+        "https://gulfnews.com/living-in-uae/housing/uae-what-are-the-district-cooling-charges-in-dubai-1.1720017124527"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:package-units-rooftop",
+      "topic": "Packaged and rooftop units",
+      "kind": "product",
+      "body_en": "A packaged unit contains compressor, condenser, evaporator and supply fan in one cabinet, usually on the roof (rooftop unit) or on grade, with ducts running into the building. They suit single-storey retail, warehouses, schools, mosques and showrooms where a chiller plant is uneconomic and roof space exists. Advantages are factory assembly, a single refrigerant circuit set sealed at the factory, and simpler installation. Drawbacks: compressors sit in full sun, so the unit must be rated for high ambient (T3 climate) operation; roof penetrations need proper curbs and waterproofing; and roof load must be checked by the structural engineer. Options include economisers (limited value in the UAE climate), fresh-air sections, heat-recovery wheels, inverter or tandem compressors for part load, coated coils against salt and sand, and BMS interfaces. Specify: cooling capacity at stated ambient and indoor conditions, external static pressure the fan must overcome, airflow, fresh-air percentage, refrigerant, power supply (typically 400 V/3 ph/50 Hz), efficiency/ESMA or AHRI rating, coil coating, and sound level.",
+      "body_ar": "الوحدة المجمّعة (باكيج) تضم الضاغط والمكثف والمبخر ومروحة التغذية في هيكل واحد، وتركّب غالباً على السطح أو على الأرض مع مجارٍ هوائية تدخل المبنى. تناسب المحلات ذات الطابق الواحد والمستودعات والمدارس والمساجد وصالات العرض حيث لا تكون محطة التشلر مجدية. من مزاياها التجميع في المصنع ودائرة تبريد محكمة من المصنع وسهولة التركيب. ومن عيوبها أن الضواغط تحت الشمس المباشرة، فيجب أن تكون مصنّفة للعمل في المناخ شديد الحرارة (T3)، وأن فتحات السقف تحتاج قواعد وعزلاً مائياً صحيحاً، وأن وزنها يجب أن يتحقق منه المهندس الإنشائي. من الخيارات: أقسام الهواء النقي، وعجلات استرجاع الحرارة، وضواغط إنفرتر أو مزدوجة للحمل الجزئي، وطلاء الملفات ضد الملوحة والرمال، وربط نظام إدارة المبنى. يجب تحديد السعة عند ظروف الجو والداخل المحددة، والضغط الاستاتيكي الخارجي، وكمية الهواء، ونسبة الهواء النقي، ونوع الغاز، والتغذية الكهربائية (عادة 400 فولت ثلاثي الطور 50 هرتز)، والكفاءة، وطلاء الملفات، ومستوى الضجيج.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_handler",
+        "https://hvacsourcing.com/what-is-t3-air-conditioner-high-ambient-cooling/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:fcu-types",
+      "topic": "Fan coil units (FCU) types",
+      "kind": "product",
+      "body_en": "A fan coil unit is a small terminal with a fan, a chilled-water coil, a filter and a drain pan, fed from a chiller or district-cooling loop. Types: ceiling-concealed ducted (most common in UAE apartments and offices), cassette (exposed in the ceiling, 4-way or 1-way throw), wall-mounted/hi-wall, floor-standing and vertical riser types for hotels. Coil arrangement is 2-pipe (cooling only, the norm in the UAE) or 4-pipe (separate heating coil). Fan motors are either conventional AC multi-speed or EC motors; EC motors use noticeably less energy and allow infinite speed control and are increasingly specified for green-building credits. Valves may be 2-way (variable flow systems) or 3-way; pressure-independent control valves (PICVs) are common in modern systems to keep flow stable and protect delta-T. Specify: total and sensible capacity at stated entering air and water temperatures, airflow, external static pressure, fan motor type, row count, valve type and actuator (on/off or modulating), thermostat/BMS protocol, drain pan material (stainless or insulated), filter grade and noise rating (NC).",
+      "body_ar": "وحدة ملف المروحة (FCU) هي وحدة طرفية صغيرة تضم مروحة وملف مياه مبردة وفلتراً وصينية تصريف، وتتغذى من تشلر أو من شبكة التبريد المركزي. أنواعها: المخفية داخل السقف مع مجارٍ (الأكثر انتشاراً في شقق ومكاتب الإمارات)، والكاسيت الظاهرة في السقف، والجدارية، والأرضية، والعمودية الخاصة بالفنادق. من حيث الأنابيب: نظام أنبوبين (تبريد فقط وهو الشائع في الإمارات) أو أربعة أنابيب (ملف تدفئة منفصل). محركات المراوح إما تقليدية متعددة السرعات أو محركات EC الموفرة للطاقة التي تسمح بتحكم مستمر في السرعة، وتُطلب بشكل متزايد لنقاط المباني الخضراء. الصمامات ثنائية المسار أو ثلاثية المسار، وتنتشر حالياً الصمامات المستقلة عن الضغط (PICV) للحفاظ على ثبات التدفق وفرق الحرارة. يجب تحديد السعة الكلية والمحسوسة عند درجات حرارة الهواء والمياه المحددة، وكمية الهواء، والضغط الاستاتيكي الخارجي، ونوع المحرك، وعدد صفوف الملف، ونوع الصمام والمشغّل، وبروتوكول الثرموستات، ومادة صينية التصريف، ودرجة الفلتر، ومستوى الضجيج.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fan_coil_unit"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:ahu-fahu",
+      "topic": "AHU vs FAHU (fresh-air handling unit)",
+      "kind": "comparison",
+      "body_en": "An air handling unit (AHU) conditions and moves air for a zone, mixing return air with some outdoor air; it contains filters, a cooling coil, a fan and often dampers and sound attenuators. A fresh-air handling unit (FAHU, sometimes called a DOAS or treated fresh-air unit) handles 100% outdoor air: it cools and dehumidifies hot, humid outside air before supplying it to rooms or to FCUs, and in the UAE it usually includes an energy-recovery device (thermal wheel, plate or run-around coil) to pre-cool incoming air with exhaust air. FAHUs are central to meeting ventilation rates required by ASHRAE 62.1 and local green codes, and to controlling humidity, which ordinary FCUs cannot do well in coastal cities. Construction details that drive price and life: casing panel thickness and thermal-break construction, double-skin panels, coil rows and fin spacing, coil coating, fan type (plug/EC fan arrays vs belt-driven), filter stages (e.g. ISO 16890 ePM1/ePM10 grades), heat-recovery efficiency, and casing leakage class. Specify airflow, ESP, on-coil and off-coil conditions, recovery type and efficiency, filter grades, fan motor efficiency, controls interface and access sides.",
+      "body_ar": "وحدة مناولة الهواء (AHU) تكيّف الهواء وتحرّكه لمنطقة معينة بخلط الهواء الراجع مع جزء من الهواء الخارجي، وتضم فلاتر وملف تبريد ومروحة وغالباً بوابات هواء وكاتمات صوت. أما وحدة مناولة الهواء النقي (FAHU) فتعالج هواءً خارجياً بنسبة 100%، فتبرّد الهواء الحار الرطب وتزيل رطوبته قبل توزيعه على الغرف أو وحدات FCU، وفي الإمارات تضم عادة جهاز استرجاع طاقة (عجلة حرارية أو مبادل لوحي أو ملفات مترابطة) لتبريد الهواء الداخل مسبقاً بالهواء المطرود. هذه الوحدات أساسية لتحقيق معدلات التهوية المطلوبة وفق ASHRAE 62.1 والأنظمة الخضراء المحلية، وللتحكم في الرطوبة التي لا تستطيع وحدات FCU معالجتها جيداً في المدن الساحلية. العوامل المؤثرة في السعر والعمر: سماكة ألواح الهيكل والعزل الحراري، الألواح المزدوجة، عدد صفوف الملف والمسافة بين الزعانف، طلاء الملف، نوع المروحة، مراحل الفلترة، كفاءة الاسترجاع، وفئة تسرب الهيكل. يجب تحديد كمية الهواء، والضغط الخارجي، وظروف الهواء قبل وبعد الملف، ونوع الاسترجاع وكفاءته، ودرجات الفلاتر، وكفاءة المحرك، وواجهة التحكم.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_handler",
+        "https://en.wikipedia.org/wiki/Energy_recovery_ventilation",
+        "https://www.camfil.com/en-us/insights/standard-and-regulations/the-international-test-standard-iso-16890-for-air-filters-for-general-ventilation"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:ventilation-exhaust",
+      "topic": "Ventilation, exhaust and car-park fans",
+      "kind": "product",
+      "body_en": "Ventilation covers fresh-air supply, general exhaust (toilets, kitchens, stores) and special systems such as car-park ventilation, kitchen hood exhaust and staircase/lift-lobby pressurisation. Minimum outdoor-air rates for occupied spaces are normally taken from ASHRAE 62.1 or the local code the authority adopts; toilets and kitchens are kept under negative pressure. Car-park systems use either ducted extract or jet (impulse) fans with CO/NO2 sensors; because they often double as smoke extract, the fans must carry a high-temperature rating (e.g. EN 12101-3 class such as F300 or F400, meaning rated time at a stated temperature) and be approved by Civil Defence. Commercial kitchen exhaust must use grease-rated ductwork and, where required, fire-rated shafts and hood suppression, coordinated with the fire code. Fan types: axial, centrifugal (forward/backward curved), mixed-flow inline, and jet fans. Specify airflow, static pressure, motor rating and efficiency class, speed control (VFD/EC), smoke rating and certification, sound level, and control logic (CO sensors, fire alarm interface). EN 12101-3 temperature/time classes commonly cited: F200 (200 C for 120 min), F300 (300 C for 60 min), F400 (400 C for 120 min) and F600 (600 C); the whole fan including motor and bearings is tested. The class required comes from the fire engineering design and Civil Defence, not from the supplier.",
+      "body_ar": "تشمل التهوية تغذية الهواء النقي، والشفط العام (دورات المياه والمطابخ والمخازن)، والأنظمة الخاصة مثل تهوية مواقف السيارات، وشفط أغطية المطابخ، وتضغيط السلالم وردهات المصاعد. تؤخذ معدلات الهواء الخارجي الدنيا للأماكن المشغولة عادة من ASHRAE 62.1 أو من الكود المحلي المعتمد، وتُبقى دورات المياه والمطابخ تحت ضغط سالب. أنظمة المواقف تعتمد إما الشفط عبر مجارٍ أو المراوح النفاثة مع حساسات أول أكسيد الكربون وثاني أكسيد النيتروجين، ولأنها كثيراً ما تعمل أيضاً لشفط الدخان يجب أن تكون المراوح مصنفة لدرجات حرارة عالية (مثل تصنيفات EN 12101-3 كـ F300 أو F400 أي زمن تشغيل محدد عند حرارة محددة) ومعتمدة من الدفاع المدني. شفط المطابخ التجارية يحتاج مجارٍ مخصصة للدهون، ومناور مقاومة للحريق وأنظمة إطفاء للأغطية حيث يلزم. أنواع المراوح: محورية، طاردة مركزية، مختلطة التدفق، ونفاثة. يجب تحديد كمية الهواء، والضغط، وقدرة المحرك وفئة كفاءته، والتحكم في السرعة، وتصنيف الدخان والشهادة، والضجيج، ومنطق التحكم وربط إنذار الحريق. فئات الحرارة/الزمن في EN 12101-3 الشائعة: F200 (200 درجة لمدة 120 دقيقة)، وF300 (300 درجة لمدة 60 دقيقة)، وF400 (400 درجة لمدة 120 دقيقة)، وF600 (600 درجة)؛ ويُختبر المروحة كاملة بما فيها المحرك والمحامل. الفئة المطلوبة تحددها هندسة الحريق والدفاع المدني لا المورد.",
+      "sources": [
+        "https://ventinet.com/knowledge-base/fans-according-to-en-12101-3/",
+        "https://usmadesupply.com/resources/building-codes-standards/fire-suppression-standards/nfpa-96"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:refrigerants-r22-r410a-r32",
+      "topic": "Refrigerants: R22 vs R410A vs R32 vs low-GWP",
+      "kind": "comparison",
+      "body_en": "R22 is an HCFC with ozone-depleting potential; under the Montreal Protocol its use is being phased out, and new equipment in the UAE is no longer supplied with it, although old units still exist and servicing them is increasingly expensive because the gas is scarce. R410A is an HFC blend with zero ozone depletion but a high global-warming potential; it dominated UAE splits and VRF for about a decade. R32 is a single-component HFC with roughly one-third of R410A's GWP and good efficiency; it is mildly flammable (ASHRAE safety class A2L), so installers need correct tools, ventilation during brazing and adherence to charge limits for room size. Chillers use R134a, R513A, R1234ze or R514A among others, with low-GWP HFOs growing. The Kigali Amendment commits parties to phase down HFCs over time, so buyers should ask how long spare gas and parts will be supported. A retrofit of an R22 system to a \"drop-in\" gas is not a like-for-like fix: capacity and oil compatibility change. Never mix refrigerants; quotes must name the refrigerant and pre-charge length. Reference values: R32 has a 100-year GWP of about 677 and R410A about 2088 (R410A is a 50/50 blend of R32 and R125). The Kigali Amendment (adopted 2016, in force 2019) phases HFC consumption down in CO2-equivalent terms, with later schedules for developing-country parties.",
+      "body_ar": "غاز R22 من فئة HCFC وله أثر على طبقة الأوزون، ويجري التخلص منه تدريجياً بموجب بروتوكول مونتريال، ولم تعد الأجهزة الجديدة في الإمارات تُورّد به، لكن الأجهزة القديمة ما زالت موجودة وخدمتها مكلفة لندرة الغاز. غاز R410A خليط من فئة HFC لا يضر الأوزون لكنه مرتفع في احتمال الاحترار العالمي، وقد سيطر على أجهزة السبليت وVRF في الإمارات لنحو عقد. غاز R32 مكوّن واحد من فئة HFC، احتماله للاحترار نحو ثلث R410A وكفاءته جيدة، لكنه قابل للاشتعال بدرجة خفيفة (فئة الأمان A2L)، لذلك يحتاج المركّب أدوات مناسبة وتهوية أثناء اللحام والالتزام بحدود الشحنة حسب حجم الغرفة. التشلرات تستخدم R134a وR513A وR1234ze وغيرها، مع تزايد غازات HFO منخفضة الأثر. تعديل كيغالي يُلزم الدول بخفض استخدام HFC تدريجياً، فعلى المشتري السؤال عن مدة توفر الغاز وقطع الغيار. تحويل نظام R22 إلى غاز بديل ليس إصلاحاً مكافئاً لأن السعة وتوافق الزيت يتغيران. لا يجوز خلط الغازات، ويجب أن يذكر العرض نوع الغاز وطول الأنابيب المشمول بالشحنة المسبقة. قيم مرجعية: معامل الاحترار العالمي لغاز R32 على مدى 100 عام نحو 677، وR410A نحو 2088 (وR410A خليط بنسبة 50/50 من R32 وR125). ويخفّض تعديل كيغالي (المعتمد 2016 والنافذ 2019) استهلاك مركبات HFC بمكافئ ثاني أكسيد الكربون، مع جداول لاحقة للدول النامية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Difluoromethane",
+        "https://en.wikipedia.org/wiki/R-410A",
+        "https://ozone.unep.org/treaties/montreal-protocol/amendments/kigali-amendment-2016-amendment-montreal-protocol-agreed"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:inverter-vs-fixed-speed",
+      "topic": "Inverter vs fixed-speed (on/off) compressors",
+      "kind": "comparison",
+      "body_en": "A fixed-speed compressor runs at full capacity and cycles on and off to hold temperature; an inverter compressor varies its speed to match the load. In the UAE, most hours of the year are part-load (nights, shoulder months, partly occupied rooms), so inverter units typically use materially less energy over a year, hold temperature and humidity more steadily and start softly with lower inrush current. Fixed-speed units are cheaper to buy and simpler to repair, and can be acceptable where a unit runs near full load continuously. ESMA star ratings for household ACs are based on tested seasonal performance, so comparing star ratings is the fair way to compare an inverter against a fixed-speed model rather than relying on brochure claims. Inverter boards are sensitive to voltage fluctuation, heat and dust; outdoor units in direct sun or poorly ventilated plant rooms suffer more PCB failures, so check the manufacturer's warranty on boards and compressors separately. Also confirm the unit is rated for T3 (high ambient) conditions; some inverter models reduce capacity sharply at very high outdoor temperatures.",
+      "body_ar": "الضاغط ثابت السرعة يعمل بكامل سعته ثم يتوقف ويعود للعمل للحفاظ على الحرارة، أما ضاغط الإنفرتر فيغيّر سرعته ليتناسب مع الحمل. في الإمارات معظم ساعات السنة حمل جزئي (الليل، الأشهر المعتدلة، الغرف غير المشغولة بالكامل)، ولذلك تستهلك أجهزة الإنفرتر عادة طاقة أقل بشكل ملموس على مدار السنة، وتحافظ على الحرارة والرطوبة بثبات أكبر، وتبدأ التشغيل بتيار أقل. الأجهزة ثابتة السرعة أرخص عند الشراء وأبسط في الإصلاح، وقد تكون مقبولة حيث يعمل الجهاز قريباً من الحمل الكامل باستمرار. تصنيف النجوم من هيئة المواصفات (ESMA) للمكيفات المنزلية مبني على أداء موسمي مُختبر، لذا المقارنة بالنجوم هي الطريقة العادلة بدل الاعتماد على الكتيبات. لوحات الإنفرتر الإلكترونية حساسة لتذبذب الجهد والحرارة والغبار، والوحدات الخارجية تحت الشمس المباشرة أو في غرف سيئة التهوية تتعرض لأعطال أكثر، فيجب مراجعة ضمان اللوحات والضاغط كلاً على حدة، والتأكد أن الجهاز مصنف للعمل في مناخ T3 شديد الحرارة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:esma-energy-label",
+      "topic": "ESMA/MoIAT energy efficiency label for ACs (UAE.S 5010)",
+      "kind": "standard",
+      "body_en": "Household air conditioners sold in the UAE must carry the energy efficiency label under UAE.S 5010-1 (the 2019 revision is the current reference) administered by the former ESMA, now the Ministry of Industry and Advanced Technology (MoIAT). The label shows a star rating from one to five stars; more stars mean higher tested efficiency, and models below the minimum energy performance standard cannot be registered. From 1 January 2021 all new AC products had to comply with the updated requirements and hold a valid ECAS/EQM certificate of conformity. Related parts of UAE.S 5010 cover other appliance types (for example Part 5 for commercial/central air conditioners). For procurement this means: ask for the ECAS certificate number and label for the exact model, check the certificate is valid and matches capacity and voltage, and do not accept grey-market imports without UAE registration, since they may be refused by customs or by consultants. Tender documents often set a minimum star rating (for instance a requirement of a certain number of stars) to earn green-building points; verify the exact threshold in the project specification, as it is not fixed nationally.",
+      "body_ar": "يجب أن تحمل أجهزة التكييف المنزلية المبيعة في الإمارات بطاقة كفاءة الطاقة وفق المواصفة UAE.S 5010-1 (إصدار 2019 هو المرجع الحالي)، والتي كانت تديرها هيئة الإمارات للمواصفات والمقاييس (مواصفات) وأصبحت اليوم ضمن وزارة الصناعة والتكنولوجيا المتقدمة. تعرض البطاقة تصنيفاً من نجمة إلى خمس نجوم؛ وكلما زادت النجوم زادت الكفاءة المختبرة، ولا يُسجّل أي طراز أقل من الحد الأدنى لأداء الطاقة. منذ 1 يناير 2021 أصبح على جميع أجهزة التكييف الجديدة الالتزام بالمتطلبات المحدثة وحمل شهادة مطابقة سارية من برنامج ECAS/EQM. وتغطي أجزاء أخرى من المواصفة أجهزة أخرى، مثل الجزء الخامس للمكيفات التجارية والمركزية. عملياً: اطلب رقم شهادة ECAS والبطاقة للطراز نفسه، وتأكد من سريانها ومطابقتها للسعة والجهد، ولا تقبل أجهزة مستوردة خارج القنوات الرسمية دون تسجيل في الدولة لأنها قد تُرفض من الجمارك أو الاستشاري. كثيراً ما تحدد وثائق المناقصات حداً أدنى لعدد النجوم للحصول على نقاط المباني الخضراء، فراجع الحد في مواصفات المشروع لأنه غير ثابت على المستوى الوطني.",
+      "sources": [
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
+        "https://www.intertek.com/government/product-conformity/ecas/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:al-safat",
+      "topic": "Dubai Al Sa'fat green building system and HVAC",
+      "kind": "standard",
+      "body_en": "Al Sa'fat is Dubai Municipality's green building system; it replaced the earlier Dubai Green Building Regulations and Specifications from October 2020. All new buildings in Dubai must meet the mandatory Silver Sa'fa level, and owners can pursue Golden or Platinum Sa'fa by meeting additional requirements. For HVAC the system touches equipment minimum efficiencies (chillers, DX units, fans, pumps), ventilation and indoor air quality, energy recovery on exhaust air above certain thresholds, thermal comfort set points, refrigerant choice (no ozone-depleting refrigerants), duct leakage and insulation, metering and sub-metering, and commissioning. The exact numeric thresholds (for example chiller COP per type) should be read from the current Al Sa'fat document, as they differ by equipment class and are periodically updated; this pack does not restate them. Buildings in free zones such as those under Trakhees or DDA may follow their own authority's green rules. For suppliers, the practical effect is that consultants ask for certified performance data, ESMA/AHRI/Eurovent certificates, and material submittals demonstrating compliance before approval.",
+      "body_ar": "\"السعفات\" هو نظام المباني الخضراء لبلدية دبي، وقد حل محل لوائح ومواصفات المباني الخضراء السابقة منذ أكتوبر 2020. يجب أن تحقق جميع المباني الجديدة في دبي المستوى الفضي الإلزامي، ويمكن للمالك السعي إلى السعفة الذهبية أو البلاتينية بتلبية متطلبات إضافية. في التكييف يغطي النظام الحدود الدنيا لكفاءة المعدات (التشلرات، الوحدات ذات التمدد المباشر، المراوح، المضخات)، والتهوية وجودة الهواء الداخلي، واسترجاع الطاقة من هواء الشفط فوق حدود معينة، ونقاط الراحة الحرارية، واختيار غازات التبريد (منع الغازات المستنفدة للأوزون)، وتسرب المجاري وعزلها، والعدادات الفرعية، والتشغيل التجريبي والتسليم. يجب قراءة الأرقام الدقيقة (مثل معامل الأداء للتشلر حسب نوعه) من وثيقة السعفات الحالية لأنها تختلف حسب فئة المعدات وتُحدّث دورياً. المناطق الحرة التابعة لـ\"تراخيص\" أو سلطات أخرى قد تطبق قواعدها الخاصة. عملياً يطلب الاستشاري من المورد بيانات أداء معتمدة وشهادات ESMA أو AHRI أو Eurovent وتقديم عينات المواد لإثبات المطابقة قبل الموافقة.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:estidama",
+      "topic": "Abu Dhabi Estidama Pearl rating and HVAC",
+      "kind": "standard",
+      "body_en": "In Abu Dhabi, the Pearl Rating System (Estidama), administered by the Department of Municipalities and Transport, is mandatory for new buildings: new private buildings must reach at least 1 Pearl and government-funded buildings at least 2 Pearls. For energy performance the system references ASHRAE 90.1 (the 2007 Appendix G performance rating method in version 1.0 of the manual) as the baseline, with local code applying where more stringent. HVAC-related credits and prerequisites include minimum energy performance, ventilation quality, refrigerant impact, thermal comfort, controllability, commissioning and energy metering. Villas follow a separate Pearl Villa Rating System. The Abu Dhabi International Building Code/Energy Conservation provisions and ADDC/AADC connection rules also apply. For suppliers this means certified efficiency data, refrigerant GWP information, and product data sheets are required in submittals. Check the version of the Pearl system the project was registered under because thresholds change between versions. Verified points: the Pearl minimum (1 Pearl for all new buildings, 2 Pearls for government-funded buildings) has been mandated by the Abu Dhabi Executive Council since 2010, with separate rating systems for buildings, villas and communities, and each project must engage a Pearl Qualified Professional. Ratings are issued in stages: a design rating tied to the building permit and a construction rating tied to completion, so HVAC submittals are reviewed early.",
+      "body_ar": "في أبوظبي يعد نظام \"استدامة\" لتقييم اللؤلؤ الذي تديره دائرة البلديات والنقل إلزامياً للمباني الجديدة: يجب أن تحقق المباني الخاصة الجديدة لؤلؤة واحدة على الأقل، والمباني الممولة حكومياً لؤلؤتين على الأقل. في أداء الطاقة يعتمد النظام ASHRAE 90.1 أساساً للمقارنة (طريقة الملحق G لإصدار 2007 في النسخة الأولى من الدليل)، مع تطبيق الكود المحلي إن كان أشد. تشمل البنود المتعلقة بالتكييف: الحد الأدنى لأداء الطاقة، وجودة التهوية، وأثر غازات التبريد، والراحة الحرارية، وقابلية التحكم، والتشغيل التجريبي، وقياس الطاقة. وللفلل نظام مستقل هو نظام تقييم الفلل. كما تنطبق أحكام كود البناء وترشيد الطاقة في أبوظبي وقواعد التوصيل لدى شركات التوزيع. عملياً يحتاج المورد إلى تقديم بيانات كفاءة معتمدة، ومعلومات أثر الغاز على الاحترار، وأوراق بيانات المنتجات. يجب التحقق من إصدار النظام الذي سُجل عليه المشروع لأن الحدود تختلف بين الإصدارات. نقاط مُتحقق منها: الحد الأدنى للّآلئ (لؤلؤة واحدة لجميع المباني الجديدة ولؤلؤتان للمباني الممولة حكومياً) إلزامي بقرار من المجلس التنفيذي لأبوظبي منذ 2010، مع أنظمة تقييم مستقلة للمباني والفلل والمجتمعات، ويجب أن يستعين كل مشروع بمختص مؤهل في نظام اللآلئ. تُمنح التقييمات على مراحل: تقييم تصميم مرتبط برخصة البناء وتقييم إنشاء مرتبط بالإنجاز، لذا تُراجع تقديمات التكييف مبكراً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Estidama",
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:ashrae-62-90",
+      "topic": "ASHRAE 62.1 and 90.1 in UAE practice",
+      "kind": "standard",
+      "body_en": "ASHRAE 62.1 sets minimum ventilation rates and indoor-air-quality procedures for commercial buildings (ASHRAE 62.2 covers low-rise residential); ASHRAE 90.1 sets minimum energy efficiency requirements for building envelope, HVAC equipment, service water heating, lighting and power. UAE authorities and green systems reference these standards either directly or as the baseline: Estidama uses 90.1 for its energy model baseline, and Dubai's Al Sa'fat tables align with similar equipment minimums. The federal ministry has also reported adopting ASHRAE 62.1 and ASHRAE 241 (control of infectious aerosols) for national infrastructure projects. In practice, the design consultant calculates outdoor-air quantities per 62.1 (a per-person plus per-area rate), and equipment schedules list the minimum efficiency values; suppliers are asked to prove equipment meets or beats them with certified data. When a spec says \"comply with ASHRAE 90.1\", confirm the edition year, because minimum efficiencies tighten with each edition. For a supplier the practical questions are: which edition of 90.1 does the project baseline use, at what rating conditions are the minimum efficiencies defined (AHRI conditions differ from Eurovent and from UAE design ambient), and does the ventilation calculation assume a dedicated fresh-air unit. A unit that meets 90.1 at catalogue conditions may still fail a project requirement stated at 46 C ambient, so ask for performance at both points. The federal adoption statement mentioned above could not be confirmed on a primary source during verification and should be treated as not established.",
+      "body_ar": "تحدد مواصفة ASHRAE 62.1 الحد الأدنى لمعدلات التهوية وإجراءات جودة الهواء الداخلي في المباني التجارية (وتغطي 62.2 المباني السكنية المنخفضة)، بينما تحدد ASHRAE 90.1 الحد الأدنى لكفاءة الطاقة لغلاف المبنى ومعدات التكييف وتسخين المياه والإنارة والطاقة. تعتمد الجهات والأنظمة الخضراء في الإمارات هذه المواصفات مباشرة أو كأساس للمقارنة؛ فاستدامة تستخدم 90.1 أساساً لنموذج الطاقة، وجداول السعفات في دبي تتماشى مع حدود مشابهة للمعدات. كما أعلنت الوزارة الاتحادية اعتماد ASHRAE 62.1 وASHRAE 241 (الحد من الهباء المعدي) في مشاريع البنية التحتية الاتحادية. عملياً يحسب الاستشاري كميات الهواء الخارجي وفق 62.1 (معدل لكل شخص ومعدل لكل مساحة)، وتُدرج جداول المعدات قيم الكفاءة الدنيا، ويُطلب من المورد إثبات مطابقة معداته أو تفوقها ببيانات معتمدة. عند ورود عبارة \"مطابق لـ ASHRAE 90.1\" تأكد من سنة الإصدار لأن حدود الكفاءة تزداد صرامة مع كل إصدار. الأسئلة العملية للمورد هي: أي إصدار من 90.1 يعتمده خط الأساس في المشروع، وعند أي ظروف تقييم تُعرّف الكفاءات الدنيا (ظروف AHRI تختلف عن Eurovent وعن ظروف التصميم في الإمارات)، وهل يفترض حساب التهوية وحدة هواء نقي مخصصة. قد تستوفي وحدة ما متطلبات 90.1 عند ظروف الكتالوج لكنها تفشل في متطلب مشروع محدد عند 46 درجة، لذا اطلب الأداء عند النقطتين. أما ما ذُكر عن اعتماد اتحادي فلم يُتحقق منه من مصدر رسمي ويُعامل كغير مثبت.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:civil-defence-hvac",
+      "topic": "Civil Defence requirements for HVAC (fire code chapter on ventilation and smoke control)",
+      "kind": "authority_approval",
+      "body_en": "The UAE Fire and Life Safety Code of Practice has a dedicated chapter on mechanical ventilation and smoke control; it is enforced by Dubai Civil Defence and the other emirates' civil defence authorities and is updated regularly. HVAC items that need Civil Defence approval or listing include fire dampers and combination fire/smoke dampers where ducts cross fire-rated walls and slabs, smoke exhaust fans and car-park jet fans, stair and lift-lobby pressurisation fans, fire-rated ductwork for smoke extract and kitchen exhaust, and the interface that shuts down AHUs/FAHUs on fire alarm. Smoke-management drawings must show fan and damper locations and their automatic sequence on alarm, and a firefighters' smoke control panel is required so responders can override fans and see damper status. Products typically must be from a Civil Defence approved/listed manufacturer and supplier; check the current approved list for the exact model. Installation and maintenance of life-safety systems is normally restricted to contractors registered with Civil Defence, and systems are witness-tested before the building completion certificate.",
+      "body_ar": "يحتوي كود الإمارات للحماية من الحرائق وسلامة الأرواح على فصل خاص بالتهوية الميكانيكية والتحكم في الدخان، وتطبقه القيادة العامة للدفاع المدني في دبي وسائر الإمارات، ويُحدّث بشكل دوري. من عناصر التكييف التي تحتاج اعتماد الدفاع المدني: بوابات الحريق وبوابات الحريق والدخان المدمجة حيث تعبر المجاري الجدران والأسقف المقاومة للحريق، ومراوح شفط الدخان والمراوح النفاثة في المواقف، ومراوح تضغيط السلالم وردهات المصاعد، والمجاري المقاومة للحريق لشفط الدخان والمطابخ، وربط إيقاف وحدات مناولة الهواء عند إنذار الحريق. يجب أن توضح مخططات إدارة الدخان مواقع المراوح والبوابات وتسلسل عملها التلقائي عند الإنذار، ويلزم وجود لوحة تحكم بالدخان لرجال الإطفاء لتجاوز المراوح يدوياً ومراقبة حالة البوابات. يشترط عادة أن تكون المنتجات من مصنّع ومورد معتمدين لدى الدفاع المدني، فتحقق من القائمة المعتمدة الحالية للطراز المحدد. تركيب وصيانة أنظمة السلامة مقصوران عادة على المقاولين المسجلين لدى الدفاع المدني، وتُختبر الأنظمة بحضورهم قبل شهادة الإنجاز.",
+      "sources": [
+        "https://ventinet.com/knowledge-base/fans-according-to-en-12101-3/",
+        "https://en.wikipedia.org/wiki/Fire_damper"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:fire-smoke-dampers",
+      "topic": "Fire dampers vs smoke dampers vs combination",
+      "kind": "comparison",
+      "body_en": "A fire damper keeps a fire-rated wall or floor intact where a duct passes through it; it closes automatically when a thermal element (commonly a fusible link around 72-74 °C) melts, and is rated for a fire-resistance duration matching the barrier (for example 1 or 2 hours). A smoke damper stops smoke movement through ducts; it is motor-actuated and closed by duct smoke detectors or the fire alarm system, and is rated for leakage class and temperature. A combination fire/smoke damper does both and is used where a duct crosses a rated barrier that is also a smoke barrier. Dampers are tested to standards such as UL 555 (fire), UL 555S (smoke) or EN 1366-2/EN 15650 in Europe; the damper must be installed exactly as in its test (sleeve, angle, fixing, access door), or the rating is void. Specify: type, size, fire rating duration, leakage class, actuator voltage and fail-safe position, end switches for BMS/fire-alarm feedback, test standard and Civil Defence approval. Common error: installing a curtain fire damper in a smoke-extract duct that must stay open during a fire.",
+      "body_ar": "بوابة الحريق (Fire Damper) تحافظ على سلامة الجدار أو السقف المقاوم للحريق حيث يعبره مجرى هواء، وتُغلق تلقائياً عند ذوبان عنصر حراري (عادة وصلة تنصهر عند نحو 72 إلى 74 درجة)، وتُصنف بمدة مقاومة تساوي مدة الحاجز (مثل ساعة أو ساعتين). بوابة الدخان (Smoke Damper) تمنع انتقال الدخان عبر المجاري، وتعمل بمحرك وتُغلق بإشارة من كاشفات الدخان في المجاري أو من نظام إنذار الحريق، وتُصنف حسب فئة التسرب ودرجة الحرارة. البوابة المدمجة تجمع الوظيفتين وتستخدم حيث يكون الحاجز مقاوماً للحريق وللدخان معاً. تُختبر البوابات وفق مواصفات مثل UL 555 للحريق وUL 555S للدخان أو EN 1366-2 وEN 15650 الأوروبية، ويجب تركيبها تماماً كما في الاختبار (الغلاف والزوايا والتثبيت وباب الصيانة) وإلا سقط التصنيف. يجب تحديد النوع والمقاس ومدة المقاومة وفئة التسرب وجهد المشغل ووضع الأمان عند انقطاع الكهرباء ومفاتيح النهاية للربط مع نظام إدارة المبنى أو الإنذار، ومواصفة الاختبار، واعتماد الدفاع المدني. خطأ شائع: تركيب بوابة حريق في مجرى شفط دخان يجب أن يبقى مفتوحاً أثناء الحريق.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Fire_damper"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:ductwork-materials",
+      "topic": "Ductwork: GI sheet metal vs pre-insulated panel vs flexible vs fabric",
+      "kind": "comparison",
+      "body_en": "Galvanised-steel (GI) sheet-metal duct is the default for supply, return and exhaust; it is fabricated to SMACNA (US) or DW/144 (UK) construction standards that set gauge, joints, reinforcement and hangers according to duct size and pressure class, and it is then externally insulated. Pre-insulated aluminium-faced phenolic or PIR panel duct is lighter, arrives with insulation built in and is quicker to install, but must have fire/smoke classification accepted by the authority and is less robust mechanically. Flexible duct is used only for short final connections to diffusers; long runs raise pressure drop and trap dirt, and many specifications cap its length. Stainless steel or black-steel welded ducts are used for kitchen exhaust; fire-rated ducts or board-encased ducts for smoke extract. Fabric (textile) ducts suit warehouses and sports halls where even air distribution matters. Specify: material and gauge, construction standard and pressure class, duct leakage class and leakage testing, sealing method, insulation type and thickness, support spacing, and access doors for dampers and cleaning.",
+      "body_ar": "مجاري الهواء المصنوعة من الصاج المجلفن هي الخيار الافتراضي للتغذية والراجع والشفط، وتُصنع وفق معايير SMACNA الأمريكية أو DW/144 البريطانية التي تحدد السماكة والوصلات والتقوية والتعليقات بحسب المقاس وفئة الضغط، ثم تُعزل من الخارج. أما مجاري الألواح المعزولة مسبقاً (فينوليك أو PIR بوجه ألومنيوم) فهي أخف وتأتي بالعزل جاهزاً وأسرع تركيباً، لكن يجب أن يكون تصنيفها للحريق والدخان مقبولاً لدى الجهة المختصة، وهي أقل متانة ميكانيكياً. المجاري المرنة تستخدم فقط للوصلات القصيرة النهائية إلى المخارج، لأن الأطوال الكبيرة ترفع مقاومة الهواء وتجمع الأوساخ، وكثير من المواصفات تحدد أقصى طول لها. مجاري الفولاذ المقاوم للصدأ أو الفولاذ الأسود الملحوم تستخدم لشفط المطابخ، والمجاري المقاومة للحريق لشفط الدخان. المجاري القماشية تناسب المستودعات والصالات الرياضية. يجب تحديد المادة والسماكة ومعيار التصنيع وفئة الضغط وفئة التسرب واختباره، وطريقة الإحكام، ونوع العزل وسماكته، ومسافات التعليق، وأبواب الصيانة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Duct_(flow)",
+        "https://usmadesupply.com/resources/building-codes-standards/fire-suppression-standards/nfpa-96"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:insulation",
+      "topic": "Duct and chilled-water pipe insulation",
+      "kind": "product",
+      "body_en": "In the UAE's hot, humid climate insulation prevents condensation as much as it saves energy: a chilled-water pipe or supply duct whose outer surface falls below the dew point of surrounding air will sweat, drip and grow mould. Common materials are closed-cell elastomeric (nitrile rubber) foam for pipes and ducts, phenolic foam sections for chilled-water pipes, fibreglass with a foil (FSK) vapour barrier for ducts in conditioned spaces, and polyurethane/PIR for large pipes. Critical properties: thermal conductivity (lambda), water-vapour diffusion resistance (mu value), fire and smoke classification accepted by Civil Defence, and UV resistance or cladding for outdoor runs. Outdoor and plant-room chilled-water pipes normally need aluminium or other cladding to protect against sun and mechanical damage. Thickness depends on pipe size, fluid temperature and ambient conditions and should follow the project spec or green code; do not assume a single thickness for all sizes. Every joint, hanger and valve must be continuously sealed; broken vapour barriers are a leading cause of ceiling stains.",
+      "body_ar": "في مناخ الإمارات الحار والرطب يمنع العزل التكاثف بقدر ما يوفر الطاقة؛ فالأنبوب أو المجرى البارد الذي ينخفض سطحه الخارجي عن نقطة الندى للهواء المحيط يتعرّق ويقطر وتنمو عليه العفونة. المواد الشائعة: الرغوة المطاطية المغلقة الخلايا (نتريل) للأنابيب والمجاري، ومقاطع الفينوليك لأنابيب المياه المبردة، والصوف الزجاجي مع حاجز بخار من رقائق الألومنيوم للمجاري داخل الأماكن المكيفة، والبولي يوريثان للأنابيب الكبيرة. الخصائص الحاسمة: معامل التوصيل الحراري، ومقاومة انتشار بخار الماء، وتصنيف الحريق والدخان المقبول لدى الدفاع المدني، ومقاومة الأشعة فوق البنفسجية أو التغليف للأنابيب الخارجية. تحتاج الأنابيب الخارجية وفي غرف المعدات عادة إلى تغليف بالألومنيوم أو غيره لحمايتها من الشمس والتلف. السماكة تعتمد على قطر الأنبوب وحرارة المائع والظروف المحيطة ويجب اتباع مواصفة المشروع أو الكود الأخضر، ولا يصح افتراض سماكة واحدة لكل المقاسات. يجب إحكام كل وصلة ومعلاق وصمام بشكل متصل، فانقطاع حاجز البخار سبب رئيسي لبقع الأسقف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Duct_(flow)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:controls-bms",
+      "topic": "HVAC controls and BMS integration",
+      "kind": "product",
+      "body_en": "Controls range from simple room thermostats to a full building management system (BMS). Split and VRF systems ship with the manufacturer's wired controllers and optional central controllers; integration into a BMS usually needs a gateway (BACnet, Modbus or KNX) that may be a separate priced item. Chilled-water systems rely on DDC controllers for chillers, pumps (often with variable-frequency drives), AHUs and FCUs, plus sensors for temperature, humidity, CO2, pressure and energy metering. BACnet (ASHRAE 135) is the most common open protocol; insist that points lists and protocols are agreed before ordering, otherwise vendor lock-in and extra licence costs follow. Green codes require sub-metering and scheduling functions; hotels use occupancy/keycard interlocks to set back rooms. Specify: protocol, points list, whether graphics and trend logging are included, number of licences, integration with fire alarm (AHU shutdown), energy meters, VFDs and their harmonic limits, and who performs integration testing. Open protocols in common use are BACnet (developed by ASHRAE), Modbus, KNX and LonWorks; many projects now run BACnet/IP at supervisory level with Modbus or proprietary buses at field level. Variable-speed drives on pumps and fans are where BMS scheduling saves most energy, because fan and pump power falls steeply with speed (at about 63% speed a variable-torque load draws roughly a quarter of full power). Cyber-security of the BMS network, password policy and remote-access arrangements should be part of the specification.",
+      "body_ar": "تتراوح أنظمة التحكم من ثرموستات غرفة بسيط إلى نظام إدارة مبنى متكامل (BMS). أنظمة السبليت وVRF تأتي مع وحدات تحكم سلكية من المصنع ووحدات تحكم مركزية اختيارية، وربطها بنظام إدارة المبنى يحتاج عادة إلى بوابة (BACnet أو Modbus أو KNX) قد تُسعَّر كبند منفصل. أنظمة المياه المبردة تعتمد على وحدات تحكم رقمية للتشلرات والمضخات (غالباً مع محولات تردد) ووحدات مناولة الهواء ووحدات FCU، إضافة إلى حساسات الحرارة والرطوبة وثاني أكسيد الكربون والضغط وعدادات الطاقة. بروتوكول BACnet (ASHRAE 135) هو الأكثر انتشاراً، ويجب الاتفاق على قائمة النقاط والبروتوكول قبل الطلب وإلا ظهر الارتباط بمورد واحد ورسوم ترخيص إضافية. تتطلب الأكواد الخضراء عدادات فرعية وجدولة تشغيل، والفنادق تستخدم ربط البطاقة أو الإشغال لخفض تكييف الغرف. يجب تحديد البروتوكول، وقائمة النقاط، وهل تشمل الواجهات الرسومية وتسجيل البيانات، وعدد التراخيص، والربط مع إنذار الحريق، وعدادات الطاقة، ومحولات التردد وحدود التوافقيات، والجهة المسؤولة عن اختبار التكامل. البروتوكولات المفتوحة الشائعة هي BACnet (التي طوّرتها ASHRAE) وModbus وKNX وLonWorks، وكثير من المشاريع تعمل اليوم بـBACnet/IP على المستوى الإشرافي مع Modbus أو شبكات خاصة على المستوى الميداني. ومحركات السرعة المتغيرة للمضخات والمراوح هي حيث توفر جدولة BMS أكبر قدر من الطاقة، لأن قدرة المراوح والمضخات تنخفض بشدة مع السرعة (عند نحو 63% من السرعة يستهلك الحمل متغير العزم قرابة ربع القدرة الكاملة). ويجب أن تشمل المواصفات الأمن السيبراني لشبكة BMS وسياسة كلمات المرور وترتيبات الوصول عن بُعد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Building_management_system",
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:chilled-water-pumps-piping",
+      "topic": "Chilled-water pumps, piping and valves",
+      "kind": "product",
+      "body_en": "Chilled-water systems use primary-only variable flow, or primary-secondary arrangements, with pumps sized for the system head at design flow. Pump types: end-suction, split-case (large flows) and inline; variable-speed drives are now standard for energy savings and are required in many green codes above certain motor sizes. Piping is usually black steel (seamless or ERW to ASTM A53/A106) with welded or grooved joints for larger sizes; pre-insulated pipes are used for buried or district connections, and some projects use PP-R or HDPE for smaller lines where approved. Valves include butterfly (isolation, large sizes), gate/ball, check, strainers, balancing valves (static or dynamic) and PICVs. Accessories: air separators, expansion tanks, chemical dosing pots and flushing connections. Before handover the system should be flushed, chemically cleaned, treated, and then balanced to design flows by an independent TAB contractor. Specify: pump flow and head, motor efficiency class, VFD, pipe material and schedule, joint type, pressure rating, valve types, insulation and test pressure.",
+      "body_ar": "تستخدم أنظمة المياه المبردة إما التدفق المتغير الأولي فقط أو ترتيب الدائرة الأولية والثانوية، مع مضخات مختارة حسب ضغط النظام عند التدفق التصميمي. أنواع المضخات: شفط طرفي، ومنقسمة الغلاف للتدفقات الكبيرة، وخطية. أصبحت محولات التردد لتغيير السرعة قياسية لتوفير الطاقة، وتفرضها أكواد خضراء كثيرة فوق أحجام محركات معينة. الأنابيب عادة من الفولاذ الأسود (ملحوم أو غير ملحوم وفق ASTM A53/A106) بوصلات ملحومة أو مخددة للمقاسات الكبيرة، وتُستخدم الأنابيب المعزولة مسبقاً للخطوط المدفونة أو وصلات التبريد المركزي، وبعض المشاريع تستخدم PP-R أو HDPE للخطوط الصغيرة حيث يُسمح. الصمامات تشمل الفراشة للعزل، والكروية والبوابية، وعدم الرجوع، والمصافي، وصمامات الموازنة الثابتة أو الديناميكية، وصمامات PICV. الملحقات: فواصل الهواء، وخزانات التمدد، وأوعية الجرعات الكيميائية. قبل التسليم يجب غسل النظام وتنظيفه كيميائياً ومعالجته، ثم موازنته من مقاول موازنة مستقل. يجب تحديد تدفق المضخة وضغطها، وفئة كفاءة المحرك، ومحول التردد، ومادة الأنبوب وسماكته، ونوع الوصلة، وتصنيف الضغط، وأنواع الصمامات، والعزل، وضغط الاختبار.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable-frequency_drive"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:cooling-towers",
+      "topic": "Cooling towers and water treatment",
+      "kind": "product",
+      "body_en": "Cooling towers reject heat from water-cooled chillers by evaporating a small portion of the circulating water. Types: open (direct contact) counter-flow or cross-flow towers, and closed-circuit (fluid cooler) towers that keep the process water in a coil. Materials include FRP, galvanised or stainless steel; fill media type affects efficiency and fouling in dusty conditions. Evaporation and blow-down make towers significant water users, and many UAE authorities encourage or require treated sewage effluent (TSE) or other non-potable sources for make-up where available. Legionella control is mandatory: water treatment programmes with biocide dosing, regular sampling, drift eliminators, and cleaning/disinfection schedules are expected, and Dubai Municipality has specific public-health requirements for cooling towers. Specify: heat rejection capacity at stated wet-bulb (the UAE's high summer wet-bulb must be used), water flow and range, approach, fan motor and VFD, sound level, material, basin heaters (not usually needed), make-up water source, and a treatment contract. Dubai Municipality's Technical Guideline (44) for controlling Legionella in water systems applies to cooling towers and evaporative condensers; the treatment contractor should work to it. Towers typically run at 3 to 7 cycles of concentration, and modern drift eliminators limit drift to a few thousandths of a percent of circulating flow.",
+      "body_ar": "أبراج التبريد تطرد حرارة التشلرات المبردة بالماء بتبخير جزء صغير من المياه المتدوّرة. أنواعها: الأبراج المفتوحة ذات التدفق المعاكس أو المتقاطع، والأبراج المغلقة التي تبقي مياه العملية داخل ملف. تُصنع من الألياف الزجاجية المقواة أو الفولاذ المجلفن أو المقاوم للصدأ، ونوع حشوة التبادل يؤثر في الكفاءة والانسداد في الأجواء المغبرة. بسبب التبخر والتصريف تستهلك الأبراج كميات كبيرة من المياه، وتشجع جهات عديدة في الإمارات أو تشترط استخدام مياه الصرف المعالجة أو مصادر غير صالحة للشرب للتعويض حيث تتوفر. مكافحة الليجيونيلا إلزامية: برامج معالجة مياه مع جرعات مبيدات حيوية، وأخذ عينات دورية، ومانعات الرذاذ، وجداول تنظيف وتعقيم، ولدى بلدية دبي متطلبات صحية خاصة بأبراج التبريد. يجب تحديد سعة طرد الحرارة عند درجة البصيلة الرطبة المحددة (يجب استخدام قيمة الصيف المرتفعة في الإمارات)، وتدفق المياه وفرق الحرارة والاقتراب، ومحرك المروحة ومحول التردد، والضجيج، والمادة، ومصدر مياه التعويض، وعقد المعالجة. ينطبق الدليل الفني رقم (44) لبلدية دبي بشأن مكافحة الليجيونيلا في أنظمة المياه على أبراج التبريد والمكثفات التبخيرية، ويجب أن يعمل مقاول المعالجة وفقه. تعمل الأبراج عادةً بين 3 و7 دورات تركيز، وتحدّ مزيلات الرذاذ الحديثة الفقد إلى أجزاء من الألف من النسبة المئوية للتدفق الدائر.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Cooling_tower",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:heat-recovery",
+      "topic": "Energy recovery: thermal wheels vs plate vs run-around",
+      "kind": "comparison",
+      "body_en": "Because fresh air in UAE summer is extremely hot and humid, recovering \"coolth\" from exhaust air to pre-treat incoming air saves significant chiller or DX capacity. Thermal (enthalpy) wheels rotate a desiccant-coated matrix between exhaust and supply streams and transfer both sensible heat and moisture; they give the highest effectiveness but allow a small amount of cross-leakage, so they are not used with contaminated exhaust (kitchens, labs, hospitals isolation). Plate heat exchangers (cross-flow or counter-flow) transfer mainly sensible heat with essentially no cross-contamination; enthalpy membrane plates also move moisture. Run-around coils use a pumped glycol loop between separate coils, useful when supply and exhaust are far apart, but with lower effectiveness. Heat pipes are another option, often used for dehumidification reheat. Green codes commonly require recovery where exhaust air volume exceeds a threshold; check the project's code. Specify: type, sensible and latent effectiveness at design conditions (and whether certified, e.g. AHRI 1060 or Eurovent), pressure drop, leakage/purge, bypass for low-benefit conditions, and cleaning access.",
+      "body_ar": "لأن الهواء النقي في صيف الإمارات شديد الحرارة والرطوبة، فإن استرجاع البرودة من هواء الشفط لمعالجة الهواء الداخل مسبقاً يوفر جزءاً كبيراً من سعة التشلر أو الوحدات المباشرة. العجلات الحرارية (الإنثالبية) تدور بين تياري الشفط والتغذية بمصفوفة مغطاة بمادة ماصة، فتنقل الحرارة المحسوسة والرطوبة معاً، وهي الأعلى كفاءة لكنها تسمح بتسرب بسيط بين التيارين، فلا تستخدم مع هواء شفط ملوث (المطابخ والمختبرات وغرف العزل). المبادلات اللوحية تنقل الحرارة المحسوسة أساساً دون تلوث متبادل، وبعضها بأغشية تنقل الرطوبة أيضاً. الملفات المترابطة تستخدم دائرة جلايكول بمضخة بين ملفين منفصلين، وهي مفيدة عندما تكون وحدتا التغذية والشفط متباعدتين لكن كفاءتها أقل. الأنابيب الحرارية خيار آخر يستخدم غالباً لإعادة التسخين عند إزالة الرطوبة. تشترط الأكواد الخضراء عادة الاسترجاع عندما يتجاوز هواء الشفط حداً معيناً، فراجع كود المشروع. يجب تحديد النوع، والكفاءة المحسوسة والكامنة عند ظروف التصميم وهل هي معتمدة، وهبوط الضغط، والتسرب، وممر التجاوز، وإمكانية التنظيف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Energy_recovery_ventilation",
+        "https://www.eurovent-certification.com/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:air-distribution",
+      "topic": "Grilles, diffusers and air terminals",
+      "kind": "product",
+      "body_en": "Air terminals deliver and return air: supply diffusers (square/rectangular ceiling, round, swirl, linear slot), sidewall grilles, return and exhaust grilles, jet nozzles for high spaces, and floor swirl diffusers for raised floors. Selection depends on airflow, throw distance, noise (NC rating), ceiling height and appearance. Linear slot diffusers are favoured in villas and hotels for aesthetics but need plenum boxes and careful selection to avoid drafts and condensation at the slot. Material is usually extruded aluminium with powder coating; volume control dampers (opposed-blade) at the neck allow balancing. In humid coastal areas, diffusers supplying very cold air can sweat; selecting for correct induction and ensuring the plenum is insulated reduces this. Specify: type and size, airflow per terminal, throw and NC limit, finish colour (RAL), damper, plenum box with insulation, and mounting/ceiling type. A frequent quoting gap: grilles priced without plenum boxes or dampers, which then appear as variations. Where supply air is very cold, ask for the manufacturer's selection data showing the minimum supply temperature the diffuser handles without dumping or sweating.",
+      "body_ar": "مخارج الهواء توصل الهواء وتعيده: مخارج التغذية السقفية (مربعة أو مستطيلة أو دائرية أو دوامية أو خطية)، والفتحات الجدارية، وفتحات الراجع والشفط، والفوهات النفاثة للأماكن المرتفعة، والمخارج الأرضية الدوامية. يعتمد الاختيار على كمية الهواء ومسافة القذف ومستوى الضجيج وارتفاع السقف والمظهر. المخارج الخطية مفضلة في الفلل والفنادق جمالياً لكنها تحتاج صناديق تجميع (بلينم) واختياراً دقيقاً لتجنب تيارات الهواء المزعجة والتكاثف عند الفتحة. المادة عادة ألومنيوم مبثوق مطلي بالبودرة، مع بوابات تحكم بالكمية عند العنق للموازنة. في المناطق الساحلية الرطبة قد تتعرق المخارج التي تضخ هواءً بارداً جداً، ويقلل ذلك الاختيار الصحيح وعزل صندوق التجميع. يجب تحديد النوع والمقاس، وكمية الهواء لكل مخرج، ومسافة القذف وحد الضجيج، واللون، والبوابة، وصندوق التجميع المعزول، ونوع السقف. ثغرة شائعة في العروض: تسعير الفتحات دون صناديق التجميع أو البوابات، ثم ظهورها لاحقاً كأعمال إضافية. عندما يكون هواء التغذية شديد البرودة، اطلب بيانات الاختيار من المصنّع التي تبيّن أدنى درجة حرارة تغذية يتحملها الناشر دون هبوط الهواء أو تكثّف الرطوبة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Duct_(flow)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:spec-split-ac",
+      "topic": "Spec checklist: split / ducted split AC supply and install",
+      "kind": "spec_checklist",
+      "body_en": "To get comparable quotes for split or ducted split air conditioners the buyer must describe each unit and the installation scope precisely. Capacity should be stated in BTU/h, TR or kW (1 TR = 12,000 BTU/h ≈ 3.517 kW) together with the room use and size, or better a heat-load calculation, because quoting by square metre alone leads to wide variation. State whether inverter is required, the minimum ESMA star rating, refrigerant, voltage (single-phase 230 V or three-phase 400 V), and whether the outdoor unit must be T3 rated. Installation scope must list copper pipe length included per unit (suppliers often include only 3-5 m), insulation, drain line routing and condensate pump if needed, electrical isolator, cable, outdoor bracket or stand, core drilling, false-ceiling opening and making good, ductwork and grilles for ducted units, and removal/disposal of old units and refrigerant recovery. Ask for commissioning (vacuum and pressure test) records, warranty terms split by compressor and parts, and AMC options.",
+      "body_ar": "للحصول على عروض قابلة للمقارنة لمكيفات السبليت أو السبليت المخفي يجب وصف كل وحدة ونطاق التركيب بدقة. تُذكر السعة بوحدة BTU في الساعة أو بالطن التبريدي أو بالكيلوواط (الطن = 12,000 BTU/ساعة ≈ 3.517 كيلوواط) مع استخدام الغرفة ومساحتها، والأفضل حساب حمل حراري، لأن التسعير حسب المتر المربع وحده يسبب تفاوتاً كبيراً. حدد هل تريد إنفرتر، والحد الأدنى لنجوم ESMA، ونوع الغاز، والجهد (أحادي 230 فولت أو ثلاثي 400 فولت)، وهل يجب أن تكون الوحدة الخارجية مصنفة T3. يجب أن يذكر نطاق التركيب طول أنابيب النحاس المشمول لكل وحدة (كثير من الموردين يشملون 3 إلى 5 أمتار فقط)، والعزل، ومسار التصريف ومضخة التكاثف إن لزمت، وقاطع الكهرباء والكابل، وحامل الوحدة الخارجية، والثقب، وفتح السقف المستعار وإعادته، والمجاري والفتحات للوحدات المخفية، وإزالة الأجهزة القديمة واسترجاع الغاز. اطلب سجلات التشغيل (التفريغ واختبار الضغط)، وشروط الضمان مفصلة للضاغط والقطع، وخيارات عقد الصيانة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Ton_of_refrigeration",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
+        "https://hvacsourcing.com/what-is-t3-air-conditioner-high-ambient-cooling/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "unit type (wall split / ducted / cassette / floor)",
+        "cooling capacity (BTU/h, TR or kW) per unit",
+        "room use and area or heat-load calc",
+        "inverter or fixed speed",
+        "minimum ESMA star rating",
+        "refrigerant",
+        "power supply (phase/voltage)",
+        "T3 high-ambient rating",
+        "copper pipe length included per unit",
+        "drain routing / condensate pump",
+        "electrical isolator and cabling scope",
+        "outdoor unit mounting (bracket/stand/roof)",
+        "ductwork and grilles scope (ducted units)",
+        "false ceiling opening and making good",
+        "old unit removal and refrigerant recovery",
+        "warranty (compressor vs parts) and AMC"
+      ]
+    },
+    {
+      "id": "hvac:spec-vrf",
+      "topic": "Spec checklist: VRF/VRV system",
+      "kind": "spec_checklist",
+      "body_en": "VRF quotations differ widely unless the buyer fixes the design basis. Provide the indoor-unit schedule (type, capacity, location) and outdoor-unit location, and state whether the system is heat-pump or heat-recovery. Ask the supplier to confirm the combination ratio (total indoor to outdoor capacity), which affects diversity and performance, and to run the manufacturer's selection software showing corrected capacities at the UAE design ambient and the actual pipe lengths and height differences. Specify refrigerant piping scope: material (ACR-grade copper), insulation thickness, branch kits/headers, nitrogen-purged brazing, pressure test and vacuum standard, and additional refrigerant charge calculation. Controls: individual wired controllers, central controller, BMS gateway protocol, and billing/metering software for multi-tenant buildings. For small rooms, ask for the refrigerant-concentration check against the applicable safety standard (for example ISO 5149 or EN 378) and any leak-detection needs. Include fresh-air strategy (separate FAHU or DX fresh-air units), condensate drainage, power supply and cable sizing, commissioning by manufacturer-certified engineers and warranty conditions linked to that.",
+      "body_ar": "تتفاوت عروض أنظمة VRF كثيراً ما لم يحدد المشتري أساس التصميم. قدّم جدول الوحدات الداخلية (النوع والسعة والموقع) وموقع الوحدة الخارجية، وحدد هل النظام مضخة حرارية أم استرجاع حرارة. اطلب من المورد تأكيد نسبة التوصيل (مجموع السعات الداخلية إلى الخارجية) لأنها تؤثر في الأداء، وتشغيل برنامج الاختيار الخاص بالمصنّع لإظهار السعات المصححة عند حرارة التصميم في الإمارات وبأطوال الأنابيب وفروق الارتفاع الفعلية. حدد نطاق أنابيب التبريد: المادة (نحاس مخصص للتكييف)، وسماكة العزل، والموزعات، واللحام مع تمرير النيتروجين، واختبار الضغط ومعيار التفريغ، وحساب شحنة الغاز الإضافية. التحكم: وحدات تحكم فردية، ووحدة مركزية، وبروتوكول بوابة الربط بنظام إدارة المبنى، وبرنامج الفوترة للمباني متعددة المستأجرين. للغرف الصغيرة اطلب التحقق من تركيز الغاز وفق مواصفة السلامة المعمول بها (مثل ISO 5149 أو EN 378) وأي حاجة لكشف التسرب. أدرج استراتيجية الهواء النقي، والتصريف، والتغذية الكهربائية، والتشغيل من مهندسين معتمدين من المصنّع وشروط الضمان المرتبطة به.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "indoor unit schedule (type, capacity, location)",
+        "outdoor unit location and model",
+        "heat pump vs heat recovery",
+        "combination ratio",
+        "capacity at UAE design ambient (selection printout)",
+        "max pipe length and height difference",
+        "refrigerant piping material/insulation",
+        "branch kits/headers",
+        "pressure test and vacuum standard",
+        "additional refrigerant charge",
+        "controllers: individual, central, BMS gateway protocol",
+        "tenant billing software (if needed)",
+        "refrigerant concentration check for small rooms",
+        "fresh-air strategy",
+        "condensate drainage",
+        "commissioning by certified engineer and warranty terms"
+      ]
+    },
+    {
+      "id": "hvac:spec-chiller",
+      "topic": "Spec checklist: chiller supply",
+      "kind": "spec_checklist",
+      "body_en": "For chiller tenders the key is to fix performance at stated conditions so that bids are comparable. State the cooling capacity required (kW or TR) with entering and leaving chilled-water temperatures, the fluid (water or glycol percentage), the design ambient dry-bulb for air-cooled units or the condenser-water entering/leaving temperatures for water-cooled units, and the fouling factor. Specify minimum full-load efficiency (COP, EER or kW/TR) and part-load efficiency (IPLV/NPLV or SEER/ESEER), and whether the data must be AHRI 550/590 or Eurovent certified. Also define compressor type and number (redundancy), refrigerant, starter type (VFD, soft starter, star-delta), power supply and maximum starting current, sound pressure level at a stated distance, coil protection for air-cooled units (e.g. epoxy/e-coat), evaporator pressure rating, BMS protocol, and flow switch/controls. Commercial terms: delivery lead time, factory witness testing, start-up by manufacturer, warranty (whole unit vs compressor extended), spare parts list, and training. Performance data should be given at the UAE design point and not only at standard rating conditions: AHRI 550/590 rating points and Eurovent points are useful for comparison, but the project ambient (often 46 C or higher for air-cooled units) and the actual water temperatures decide real capacity. Air-cooled chillers are simpler while water-cooled units are more efficient but add cooling towers and water treatment, so the tender should say which is wanted. Ask for the certified directory listing for the exact model.",
+      "body_ar": "في مناقصات التشلر يجب تثبيت الأداء عند ظروف محددة لتكون العروض قابلة للمقارنة. حدد سعة التبريد المطلوبة بالكيلوواط أو الطن التبريدي مع درجتي حرارة المياه المبردة الداخلة والخارجة، ونوع السائل (ماء أو نسبة الجلايكول)، وحرارة الجو الجافة التصميمية للمبرد بالهواء أو درجتي حرارة مياه المكثف للمبرد بالماء، ومعامل الترسب. حدد الحد الأدنى للكفاءة عند الحمل الكامل (COP أو EER أو كيلوواط لكل طن) وعند الحمل الجزئي (IPLV أو ESEER)، وهل يجب أن تكون البيانات معتمدة من AHRI 550/590 أو Eurovent. حدد أيضاً نوع الضواغط وعددها، ونوع الغاز، وطريقة البدء (محول تردد أو بادئ ناعم أو نجمة-دلتا)، والتغذية الكهربائية وأقصى تيار بدء، ومستوى الضجيج على مسافة محددة، وحماية ملفات المكثف (مثل الطلاء الإيبوكسي)، وتصنيف ضغط المبخر، وبروتوكول الربط، ومفتاح التدفق. الشروط التجارية: مدة التوريد، اختبار المصنع بحضور العميل، التشغيل من المصنّع، الضمان (للوحدة كاملة وتمديد الضاغط)، قائمة قطع الغيار، والتدريب. يجب تقديم بيانات الأداء عند نقطة التصميم في الإمارات وليس عند ظروف التقييم القياسية فقط: نقاط AHRI 550/590 وEurovent مفيدة للمقارنة، لكن درجة الحرارة المحيطة للمشروع (غالباً 46 درجة أو أعلى للوحدات المبردة بالهواء) ودرجات حرارة المياه الفعلية هي التي تحدد السعة الحقيقية. المبردات الهوائية أبسط، أما المائية فأكفأ لكنها تضيف أبراج تبريد ومعالجة مياه، لذا يجب أن تحدد المناقصة النوع المطلوب. واطلب إدراج الطراز بعينه في الدليل المعتمد.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Chiller",
+        "https://www.ahrinet.org/certification",
+        "https://www.eurovent-certification.com/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "capacity (kW/TR)",
+        "chilled water entering/leaving temp",
+        "fluid (water/glycol %)",
+        "design ambient (air-cooled) or condenser water temps (water-cooled)",
+        "fouling factor",
+        "full-load efficiency (COP/EER/kW per TR)",
+        "part-load efficiency (IPLV/ESEER)",
+        "certification (AHRI/Eurovent)",
+        "compressor type and count",
+        "refrigerant",
+        "starter type and max starting current",
+        "power supply",
+        "sound pressure level at distance",
+        "coil coating",
+        "BMS protocol",
+        "factory test, start-up, warranty, spares"
+      ]
+    },
+    {
+      "id": "hvac:spec-ahu",
+      "topic": "Spec checklist: AHU/FAHU",
+      "kind": "spec_checklist",
+      "body_en": "AHUs are built to order, so each variable should be stated. Give supply airflow and external static pressure, outdoor/return air percentages, on-coil and off-coil dry-bulb and wet-bulb (or moisture) conditions, and chilled-water supply/return temperatures or DX data. Define casing construction: panel thickness, double-skin with insulation, thermal-bridging and casing-leakage classes (EN 1886 classes are commonly quoted), and outdoor weatherproofing if on the roof. Specify coil rows, fin spacing, copper/aluminium materials and coating, drain pan material (stainless steel) and slope. Fans: plug/EC fan arrays or belt-driven, motor efficiency class, VFD. Filters: stages and grades (ISO 16890 ePM ratings, or older EN 779 designations), differential-pressure gauges. Heat recovery type and effectiveness. Accessories: dampers and actuators, sound attenuators, UV lamps if required, access doors, lighting, and a controls package or BMS interface. Ask for the selection printout including fan curves and sound data, and the certification (e.g. Eurovent AHU) if required. Filter grades should be written in ISO 16890 terms (for example ISO ePM10 60% pre-filter and ISO ePM1 70% final filter), since EN 779 was withdrawn in July 2018. Where heat recovery is included, state the device type (thermal wheel, plate, run-around coil or heat pipe) and the required sensible and latent effectiveness at design conditions. If Eurovent AHU certification is demanded, ask for the certified model box and casing classes rather than a general brochure claim.",
+      "body_ar": "تصنع وحدات مناولة الهواء حسب الطلب، لذا يجب تحديد كل متغير. اذكر كمية هواء التغذية والضغط الاستاتيكي الخارجي، ونسب الهواء الخارجي والراجع، وظروف الهواء قبل الملف وبعده (البصيلة الجافة والرطبة أو الرطوبة)، ودرجتي حرارة المياه المبردة أو بيانات التمدد المباشر. حدد بنية الهيكل: سماكة الألواح، والجدار المزدوج المعزول، وفئات الجسور الحرارية وتسرب الهيكل (تستخدم عادة فئات EN 1886)، والحماية من الطقس إن كانت على السطح. حدد عدد صفوف الملف، والمسافة بين الزعانف، ومواد النحاس والألومنيوم والطلاء، ومادة صينية التصريف (فولاذ مقاوم للصدأ) وميلها. المراوح: مصفوفات مراوح EC أو مراوح بسيور، وفئة كفاءة المحرك، ومحول التردد. الفلاتر: المراحل والدرجات (تصنيف ISO 16890 أو EN 779 القديم) ومقاييس فرق الضغط. نوع استرجاع الحرارة وكفاءته. الملحقات: البوابات والمشغلات، وكاتمات الصوت، ومصابيح الأشعة فوق البنفسجية إن طُلبت، وأبواب الصيانة، والإنارة، وحزمة التحكم. اطلب نسخة الاختيار مع منحنيات المروحة وبيانات الضجيج، والشهادة إن كانت مطلوبة. يجب كتابة درجات المرشحات بصيغة ISO 16890 (مثل مرشح أولي ISO ePM10 60% ومرشح نهائي ISO ePM1 70%) لأن EN 779 سُحبت في يوليو 2018. وعند وجود استرداد حرارة حدّد نوع الجهاز (عجلة حرارية، ألواح، ملف دوّار، أو أنبوب حراري) والفعالية المحسوسة والكامنة المطلوبة عند ظروف التصميم. وإذا طُلبت شهادة Eurovent لوحدات مناولة الهواء فاطلب طراز الوحدة المعتمد وفئات الغلاف لا ادعاءً عاماً في الكتيب.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_handler",
+        "https://www.camfil.com/en-us/insights/standard-and-regulations/the-international-test-standard-iso-16890-for-air-filters-for-general-ventilation",
+        "https://www.eurovent-certification.com/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "airflow and external static pressure",
+        "outdoor/return air %",
+        "on-coil and off-coil conditions",
+        "chilled water temps or DX data",
+        "casing panel thickness and construction",
+        "casing leakage and thermal bridging class",
+        "indoor/outdoor installation",
+        "coil rows, fin spacing, coating",
+        "drain pan material",
+        "fan type, motor efficiency class, VFD",
+        "filter stages and grades",
+        "heat recovery type and effectiveness",
+        "dampers, attenuators, access",
+        "controls/BMS interface",
+        "selection printout and certification"
+      ]
+    },
+    {
+      "id": "hvac:spec-ductwork",
+      "topic": "Spec checklist: ductwork package",
+      "kind": "spec_checklist",
+      "body_en": "A ductwork package is priced by weight or area of sheet metal plus accessories, so the buyer must fix the inputs. Provide drawings or at least duct routes and sizes, and state: material (GI, stainless, black steel, pre-insulated panel), gauge by duct size or the construction standard (SMACNA or DW/144) and pressure class, joint and sealing method, and the required leakage class with a test regime (sample percentage to be tested). Insulation: type, thickness, density, vapour barrier, and whether it is internal acoustic lining or external. Accessories must be listed separately: volume control dampers, fire/smoke dampers with ratings, access doors, flexible connections at equipment, sound attenuators, grilles and diffusers with plenum boxes, and supports and hangers (including seismic or vibration isolation if specified). Also state whether cleaning/protection of open ends during construction, TAB (testing, adjusting and balancing) and Civil Defence inspection support are included. Missing these lines is how duct quotes look cheap and then grow.",
+      "body_ar": "تُسعّر حزمة مجاري الهواء حسب وزن أو مساحة الصاج إضافة إلى الملحقات، لذا يجب على المشتري تثبيت المدخلات. قدّم المخططات أو على الأقل مسارات المجاري ومقاساتها، وحدد: المادة (مجلفن، مقاوم للصدأ، فولاذ أسود، ألواح معزولة مسبقاً)، والسماكة حسب المقاس أو معيار التصنيع (SMACNA أو DW/144) وفئة الضغط، وطريقة الوصل والإحكام، وفئة التسرب المطلوبة مع نظام الاختبار (نسبة العينة المختبرة). العزل: النوع والسماكة والكثافة وحاجز البخار، وهل هو بطانة صوتية داخلية أم خارجي. يجب ذكر الملحقات منفصلة: بوابات التحكم بالكمية، وبوابات الحريق والدخان مع تصنيفها، وأبواب الصيانة، والوصلات المرنة عند المعدات، وكاتمات الصوت، والفتحات والمخارج مع صناديق التجميع، والدعامات والمعلقات (بما فيها العزل الاهتزازي إن طُلب). حدد أيضاً هل يشمل العرض حماية وتنظيف الفتحات أثناء البناء، والاختبار والموازنة، ودعم تفتيش الدفاع المدني. غياب هذه البنود هو ما يجعل العرض يبدو رخيصاً ثم يزداد لاحقاً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Duct_(flow)",
+        "https://en.wikipedia.org/wiki/Fire_damper"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "duct routes/sizes or drawings",
+        "material",
+        "construction standard and pressure class",
+        "gauge schedule",
+        "sealing method and leakage class",
+        "leakage test regime",
+        "insulation type/thickness/vapour barrier",
+        "internal acoustic lining",
+        "VCDs, fire/smoke dampers with ratings",
+        "access doors",
+        "flexible connections, attenuators",
+        "grilles/diffusers with plenums",
+        "supports/hangers/vibration isolation",
+        "TAB and Civil Defence inspection support"
+      ]
+    },
+    {
+      "id": "hvac:spec-amc",
+      "topic": "Spec checklist: HVAC annual maintenance contract (AMC)",
+      "kind": "spec_checklist",
+      "body_en": "AMC offers range from a few filter cleans to full comprehensive cover, so the scope must be written down. State the asset list (number, type, capacity and age of every unit) and the contract type: preventive only, preventive plus repair labour (non-comprehensive), or comprehensive including parts, and say explicitly whether compressors and other major components are included. Specify visit frequency, the task list per visit (filters, coil and drain cleaning, electrical checks, refrigerant pressures, annual chemical coil wash, duct cleaning if included), emergency response time and 24/7 cover, the pricing basis for spare parts, and a refrigerant policy that requires leaks to be found and repaired rather than repeatedly topped up. Require service reports and logbooks. In Dubai, Al Sa'fat (Dubai Green Building System v2.0, 2020) requires all new and existing buildings to follow Dubai Municipality's Legionella technical guidelines, under which cooling towers, evaporative condensers and other aerosol-producing water systems must be periodically maintained, cleaned, disinfected and checked; put those tasks and their records into the AMC for chilled-water and cooling-tower plant. For consumer purchases, UAE Federal Law 15 of 2020 obliges the supplier to honour warranties and provide spare parts and after-sales service. Confirm the company's trade licence and technicians' qualifications, and list exclusions (ceiling works, access equipment, power-surge damage) and credits for missed response times. Not established: any rule that an AMC contractor needs Civil Defence registration; ask the authority if fire-life-safety equipment is in scope.",
+      "body_ar": "تتراوح عروض عقود الصيانة السنوية بين تنظيف الفلاتر بضع مرات وبين التغطية الشاملة الكاملة، لذلك يجب تحديد النطاق كتابةً. اذكر قائمة الأصول (عدد كل وحدة ونوعها وقدرتها وعمرها) ونوع العقد: صيانة وقائية فقط، أو وقائية مع أجور الإصلاح (غير شامل)، أو شامل مع قطع الغيار، مع النص صراحةً على شمول الضواغط والمكونات الرئيسية أو استثنائها. حدّد عدد الزيارات، وقائمة المهام في كل زيارة (الفلاتر، تنظيف الملفات ومجاري التصريف، الفحوص الكهربائية، ضغوط غاز التبريد، الغسيل الكيميائي السنوي للملفات، تنظيف مجاري الهواء إن شُمل)، وزمن الاستجابة للطوارئ والتغطية على مدار الساعة، وأساس تسعير قطع الغيار، وسياسة لغاز التبريد تُلزم بتحديد التسريب وإصلاحه بدلاً من إعادة التعبئة المتكررة. اطلب تقارير خدمة وسجلات. في دبي يُلزم نظام السعفات (نظام دبي للمباني الخضراء، الإصدار 2.0 لعام 2020) جميع المباني الجديدة والقائمة باتباع الإرشادات الفنية لبلدية دبي بشأن الليجيونيلا، والتي تقضي بصيانة أبراج التبريد والمكثفات التبخيرية وغيرها من أنظمة المياه المولّدة للرذاذ وتنظيفها وتطهيرها وفحصها دورياً؛ لذا أدرج هذه المهام وسجلاتها في العقد لمنظومات المياه المبردة وأبراج التبريد. وفي مشتريات المستهلكين يُلزم القانون الاتحادي رقم 15 لسنة 2020 المورّد بتنفيذ الضمانات وتوفير قطع الغيار وخدمة ما بعد البيع. تحقّق من الرخصة التجارية للشركة ومؤهلات الفنيين، واذكر الاستثناءات (أعمال الأسقف، معدات الوصول، أضرار تذبذب الكهرباء) والخصومات عند التأخر في الاستجابة. غير ثابت: أي اشتراط لتسجيل مقاول الصيانة لدى الدفاع المدني؛ يُستفسر من الجهة المختصة إذا شمل النطاق معدات السلامة من الحريق.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.moet.gov.ae/documents/20121/0/Law_15_2020_pdf.pdf/b676fd26-275c-3652-e949-8b3663e7bd79?t=1715057123879"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "asset list with type/capacity/age",
+        "contract type (preventive / non-comprehensive / comprehensive)",
+        "visit frequency",
+        "task list per visit",
+        "emergency response time / 24x7",
+        "parts inclusion and pricing basis",
+        "compressor inclusion",
+        "refrigerant leak policy",
+        "reporting/logbooks",
+        "water treatment / Legionella tasks",
+        "technician qualifications and licences",
+        "exclusions and penalties"
+      ]
+    },
+    {
+      "id": "hvac:heat-load-sizing",
+      "topic": "Sizing: why 'TR per square metre' rules mislead",
+      "kind": "buyer_mistake",
+      "body_en": "A common buyer shortcut is to size air conditioning by a fixed area-per-ton rule. The real cooling load depends on walls, roof and glazing, solar gain through windows (ASHRAE notes that peak cooling load is often set by solar gain through fenestration), occupants, lighting and equipment, ventilation and infiltration air, and the outdoor design condition. ASHRAE Fundamentals chapter 18 describes the heat balance method and its simplification, the radiant time series method, which software such as HAP or Trace implements. In Dubai, Al Sa'fat section 501.03 requires the heat load of every new air-conditioned building to be calculated with fixed outdoor design parameters: 46 °C dry bulb and 29 °C wet bulb, with a 13.8 °C daily range, and it caps safety factors at 10% on sensible and 5% on latent heat. Oversizing has a cost: the US ENERGY STAR guidance explains that oversized units short-cycle, run below their optimum efficiency, remove less moisture (leaving rooms cool but clammy and encouraging mould) and wear faster. Undersized units simply cannot hold set point at peak. The correct approach is a documented load calculation stating the design conditions; for small residential replacements with no calculation, ask each supplier to state its sizing assumptions in writing and compare quotes on the same capacity. This pack gives no area-per-ton figure because such rules ignore the factors above.",
+      "body_ar": "من الاختصارات الشائعة لدى المشترين تحديد قدرة التكييف بقاعدة ثابتة للمساحة لكل طن. لكن حمل التبريد الفعلي يعتمد على الجدران والسقف والزجاج، والكسب الشمسي عبر النوافذ (تشير ASHRAE إلى أن ذروة حمل التبريد كثيراً ما يحددها الكسب الشمسي عبر الواجهات الزجاجية)، وعدد الشاغلين، والإنارة والأجهزة، وهواء التهوية والتسرب، وظروف التصميم الخارجية. يصف الفصل 18 من دليل ASHRAE للأساسيات طريقة توازن الحرارة وتبسيطها المعروف بطريقة السلاسل الزمنية الإشعاعية، وهي ما تطبقه برامج مثل HAP وTrace. وفي دبي يُلزم البند 501.03 من نظام السعفات بحساب الحمل الحراري لكل مبنى مكيّف جديد وفق معايير تصميم خارجية ثابتة: 46 درجة مئوية للبصلة الجافة و29 درجة للبصلة الرطبة مع مدى يومي 13.8 درجة، ويحدّ معامل الأمان بـ10% للحرارة المحسوسة و5% للحرارة الكامنة. وللمبالغة في القدرة ثمن: إذ يوضح دليل ENERGY STAR الأمريكي أن الوحدات الكبيرة زيادةً عن الحاجة تعمل بدورات قصيرة، وبكفاءة أقل من المثلى، وتزيل رطوبة أقل (فتبقى الغرف باردة لكن رطبة مع تشجيع العفن)، وتستهلك أسرع. أما الوحدات الصغيرة فلا تحافظ على درجة الضبط وقت الذروة. الطريقة الصحيحة حساب أحمال موثق يذكر ظروف التصميم؛ وفي استبدال الوحدات السكنية الصغيرة دون حساب، اطلب من كل مورد بيان افتراضات التحجيم كتابياً وقارن العروض على القدرة نفسها. لا يقدم هذا الدليل رقماً للمساحة لكل طن لأن هذه القواعد تتجاهل العوامل المذكورة.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://handbook.ashrae.org/Handbooks/F25/SI/F25_Ch18/f25_ch18_si.aspx",
+        "https://www.energystar.gov/ia/home_improvement/home_sealing/RightSized_AirCondFS_2005.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:mistake-t3-rating",
+      "topic": "Buying units not rated for UAE high ambient (T3)",
+      "kind": "buyer_mistake",
+      "body_en": "International standards (ISO 5151 for non-ducted units) define climate test conditions: T1 for moderate climates and T3 for hot climates with a much higher outdoor test temperature. Units designed and rated only for T1 may trip on high-pressure protection or lose a large share of capacity on UAE summer afternoons, particularly when outdoor units are clustered, placed in recesses or on hot roofs. Buyers comparing imported or online-priced units often miss this. Ask for the capacity and power input at T3 conditions from the manufacturer's data, and for the maximum outdoor operating temperature. Also consider installation practice: condensers need free air around them, should not recirculate hot discharge air, and when stacked in shafts or on balconies may need deflectors. The ESMA registration and label is a further check that the model is intended for the UAE market. This is a frequent source of \"the new AC doesn't cool\" complaints that turn into disputes about whether the fault lies with the product or the installation. Reference points: under ISO 5151 the T1 cooling rating uses 35 C outdoor dry-bulb and T3 uses 46 C; T3-designed units are typically specified to keep running at around 52 C ambient. A purchase order for the Gulf should state \"T3 rated\" and the maximum operating ambient.",
+      "body_ar": "تحدد المواصفات الدولية (ISO 5151 للوحدات غير المزودة بمجارٍ) ظروف اختبار مناخية: T1 للمناخ المعتدل وT3 للمناخ الحار بحرارة اختبار خارجية أعلى بكثير. الوحدات المصممة والمصنفة لظروف T1 فقط قد تتوقف بحماية الضغط العالي أو تفقد جزءاً كبيراً من سعتها بعد ظهر أيام الصيف في الإمارات، خاصة عند تجميع الوحدات الخارجية أو وضعها في تجاويف أو على أسطح ساخنة. كثير من المشترين الذين يقارنون أجهزة مستوردة أو معروضة بأسعار إلكترونية يغفلون هذا. اطلب السعة والقدرة الكهربائية عند ظروف T3 من بيانات المصنّع، وأقصى حرارة تشغيل خارجية. انتبه أيضاً لممارسات التركيب: تحتاج المكثفات مساحة هواء حرة حولها، ويجب ألا تعيد سحب الهواء الساخن الخارج منها، وقد تحتاج موجهات هواء عند تكديسها في المناور أو الشرفات. تسجيل الجهاز وبطاقته لدى الجهات الإماراتية دليل إضافي على أنه مخصص لسوق الإمارات. هذا سبب متكرر لشكاوى \"المكيف الجديد لا يبرد\" التي تتحول إلى نزاع حول ما إذا كان العيب في المنتج أم في التركيب. نقاط مرجعية: وفق ISO 5151 يُقيَّم التبريد في فئة T1 عند 35 درجة للبصيلة الجافة الخارجية وفي T3 عند 46 درجة، وعادةً تُحدد الوحدات المصممة لفئة T3 للاستمرار في العمل عند نحو 52 درجة. يجب أن ينص أمر الشراء للخليج على \"مصنّف T3\" وعلى أقصى حرارة تشغيل محيطة.",
+      "sources": [
+        "https://hvacsourcing.com/what-is-t3-air-conditioner-high-ambient-cooling/",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:mistake-comparing-by-price",
+      "topic": "Comparing HVAC quotes on headline price only",
+      "kind": "buyer_mistake",
+      "body_en": "Two HVAC quotes for the \"same\" job often differ in scope rather than price. Typical hidden differences: one includes a short standard length of copper pipe per split while another prices the real route; one excludes electrical works, core drilling, false-ceiling cutting and making good; ducted units are quoted without ducts, plenums or grilles; VRF is quoted without the central controller, BMS gateway or additional refrigerant charge; and AMC offers exclude parts. Capacity is another trap. Chillers are rated under AHRI 550/590, the performance-rating standard for water-chilling packages, at its standard rating conditions, whereas Dubai's Al Sa'fat requires loads to be calculated at a 46 °C dry-bulb outdoor design condition; ask every bidder for selected capacity and efficiency at the project design ambient, not just catalogue ratings. Models from the same brand may come from different factories and carry different warranties, so ask for the exact model and origin. The fair method is to issue one scope and bill of quantities to all bidders, require a line-by-line compliance statement, and normalise offers (add missing items at a stated rate) before comparing, with exclusions and assumptions listed. These points are procurement practice rather than a regulation; the specific examples are illustrative.",
+      "body_ar": "كثيراً ما يختلف عرضان لأعمال التكييف لـ\"العمل نفسه\" في النطاق لا في السعر. من الفروقات الخفية المعتادة: أحد العروض يشمل طولاً قياسياً قصيراً من أنابيب النحاس لكل وحدة سبليت بينما يسعّر الآخر المسار الفعلي؛ أو يستثني الأعمال الكهربائية وثقب الجدران وقص السقف المستعار وإعادته؛ أو تُسعّر الوحدات المخفية دون مجارٍ أو صناديق توزيع أو فتحات؛ أو يُسعّر نظام VRF دون وحدة التحكم المركزية أو بوابة نظام إدارة المبنى أو شحنة الغاز الإضافية؛ أو تستثني عروض الصيانة قطع الغيار. والقدرة فخ آخر: فالمبردات (التشيلرات) تُصنّف وفق معيار AHRI 550/590 الخاص بتقييم أداء وحدات تبريد المياه عند ظروف التصنيف القياسية، بينما يشترط نظام السعفات في دبي حساب الأحمال عند 46 درجة مئوية للبصلة الجافة؛ لذا اطلب من كل مقدّم عرض القدرة والكفاءة المختارة عند ظروف تصميم المشروع لا تصنيفات الكتالوج فقط. وقد تُصنع موديلات العلامة نفسها في مصانع مختلفة بضمانات مختلفة، فاطلب الموديل وبلد المنشأ بدقة. الطريقة العادلة إصدار نطاق وجدول كميات واحد لجميع المتقدمين، وطلب بيان مطابقة بنداً ببند، وتوحيد العروض (إضافة البنود الناقصة بسعر محدد) قبل المقارنة، مع سرد الاستثناءات والافتراضات. هذه النقاط ممارسة شرائية لا نص تنظيمي، والأمثلة توضيحية.",
+      "sources": [
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx",
+        "https://www.ahrinet.org/search-standards/ahri-550590-i-p-and-551591-si-performance-rating-water-chilling-and-heat-pump-water-heating-packages"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:red-flags-quote",
+      "topic": "Red flags in HVAC supplier quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Watch for these warning signs in HVAC quotes: capacity stated only in \"tons\" without the conditions (ambient, water temperatures) at which it is achieved; no model numbers, or \"equivalent brand\" without naming it; no ESMA/ECAS certificate for residential units, or certificates for a different model or voltage; refrigerant not stated, or R22 offered for new equipment; warranty described vaguely (\"one year\") without separating compressor, parts and labour, or with conditions like \"valid only with our AMC\" hidden in fine print; pipe length, electrical works and civil works silently excluded; very short delivery for large chillers or custom AHUs without stock evidence; no mention of commissioning, pressure/vacuum testing or TAB; fire/smoke dampers without Civil Defence approval or test standard; and prices far below market with payment of a large advance. For VRF, a missing selection printout is a red flag because capacity at real pipe lengths is unknown. Ask for clarifications in writing; an honest supplier answers them readily.",
+      "body_ar": "انتبه لهذه العلامات التحذيرية في عروض التكييف: ذكر السعة بالطن فقط دون الظروف التي تتحقق عندها (حرارة الجو، درجات حرارة المياه)؛ عدم ذكر أرقام الطرازات، أو عبارة \"علامة مكافئة\" دون تسميتها؛ غياب شهادة ESMA/ECAS للوحدات السكنية أو تقديم شهادة لطراز أو جهد مختلف؛ عدم ذكر نوع الغاز، أو عرض R22 لمعدات جديدة؛ ضمان مبهم (\"سنة واحدة\") دون فصل الضاغط والقطع والأجور، أو شروط مخفية مثل \"ساري فقط مع عقد صيانتنا\"؛ استثناء أطوال الأنابيب والأعمال الكهربائية والمدنية بصمت؛ مدد توريد قصيرة جداً لتشلرات كبيرة أو وحدات مناولة هواء مصنعة حسب الطلب دون دليل على توفرها؛ عدم ذكر التشغيل التجريبي أو اختبار الضغط والتفريغ أو الموازنة؛ بوابات حريق ودخان دون اعتماد الدفاع المدني أو مواصفة الاختبار؛ وأسعار أقل بكثير من السوق مع طلب دفعة مقدمة كبيرة. في أنظمة VRF يعد غياب نسخة برنامج الاختيار علامة تحذير لأن السعة عند الأطوال الفعلية مجهولة. اطلب التوضيحات كتابياً؛ فالمورد الأمين يجيب عنها بسهولة.",
+      "sources": [
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
+        "https://www.intertek.com/government/product-conformity/ecas/",
+        "https://en.wikipedia.org/wiki/Fire_damper"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:price-drivers",
+      "topic": "Price drivers for HVAC equipment and installation",
+      "kind": "price_driver",
+      "body_en": "HVAC prices in the UAE move with a set of drivers rather than a list price. Capacity and efficiency: higher efficiency costs more to buy but less to run, and Dubai's Al Sa'fat sets minimum efficiency and design rules that shape what can be offered. Technology: inverter versus fixed speed, VRF versus splits, magnetic-bearing centrifugal versus screw chillers. Brand and country of manufacture. Build specification: coil coatings, double-skin AHU casings, EC fans, stainless drain pans. Controls and BMS integration. Installation complexity: pipe and duct lengths, work at height, shaft access, night work in occupied buildings, crane lifts. Commodity metals: copper is a major input in coils and refrigerant piping, and industry reporting (Fastmarkets, citing Norsk Hydro, 2025) says high copper prices relative to aluminium are pushing air-conditioning makers to switch coils to aluminium, with aluminium now in roughly 40% of HVAC units globally. Currency and freight for imports, authority approvals and testing (Civil Defence, TAB), and warranty or AMC length also add cost. Seasonal demand in early summer is commonly cited but not established from a fetched source. This pack deliberately gives no AED figures; ask for itemised quotes so the dominant driver is visible.",
+      "body_ar": "تتحرك أسعار التكييف في الإمارات وفق مجموعة من العوامل لا وفق قائمة أسعار ثابتة. القدرة والكفاءة: الكفاءة الأعلى أغلى شراءً وأرخص تشغيلاً، ويضع نظام السعفات في دبي حدوداً دنيا للكفاءة وقواعد تصميم تحدد ما يمكن عرضه. التقنية: انفرتر مقابل السرعة الثابتة، وVRF مقابل السبليت، والمبردات الطاردة المركزية ذات المحامل المغناطيسية مقابل اللولبية. العلامة التجارية وبلد التصنيع. مواصفات البناء: طلاء الملفات، وهياكل وحدات مناولة الهواء مزدوجة الجدار، ومراوح EC، وأحواض التصريف من الستانلس ستيل. أنظمة التحكم والربط بنظام إدارة المبنى. تعقيد التركيب: أطوال الأنابيب والمجاري، والعمل على ارتفاع، والوصول إلى الشافتات، والعمل الليلي في المباني المشغولة، والرفع بالرافعات. المعادن الأساسية: النحاس مدخل رئيسي في الملفات وأنابيب غاز التبريد، وتذكر تقارير القطاع (Fastmarkets نقلاً عن Norsk Hydro، 2025) أن ارتفاع سعر النحاس مقارنة بالألمنيوم يدفع مصنعي المكيفات إلى التحول إلى ملفات الألمنيوم، الذي بات يُستخدم في نحو 40% من وحدات التكييف عالمياً. كما تضيف العملة والشحن للواردات، واعتمادات الجهات والفحوص (الدفاع المدني، الموازنة والاختبار)، ومدة الضمان أو عقد الصيانة إلى التكلفة. أما أثر الطلب الموسمي مطلع الصيف فيُذكر كثيراً لكنه غير ثابت من مصدر تم الاطلاع عليه. لا يقدم هذا الدليل أسعاراً بالدرهم عمداً؛ اطلب عروضاً مفصلة ليظهر العامل الغالب.",
+      "sources": [
+        "https://www.fastmarkets.com/insights/copper-shortage-is-forcing-faster-aluminium-adoption-norsk-hydro-says/",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:lead-times",
+      "topic": "Typical lead times for HVAC equipment",
+      "kind": "lead_time",
+      "body_en": "Lead time depends on whether an item is stocked locally or built to order, and no reliable durations are published, so all numbers are not established here. The pattern buyers should expect: standard wall splits, cassettes and small ducted units from major brands are commonly held by UAE distributors, but stock of popular capacities can run short; VRF outdoor units in common sizes may be stocked while large or heat-recovery configurations may need importing; AHUs and fresh-air units are built to order after submittal approval and selection; chillers, especially large water-cooled centrifugal machines, are built to order abroad, and factory witness testing adds time. Life-safety items are constrained by approvals: Civil Defence requires life-safety and fire-safety products to be listed and approved (as the CIBSE UAE guidance notes), so a delayed smoke fan or fire-rated damper cannot simply be swapped for an unapproved model. Ask every supplier to state lead time from approval of submittals rather than from order, to confirm in writing whether items are ex-stock, and to state how long that stock position is valid.",
+      "body_ar": "تعتمد مدة التوريد على ما إذا كان الصنف متوفراً في المخزون المحلي أو يُصنّع حسب الطلب، ولا توجد مدد منشورة موثوقة، لذا فإن جميع الأرقام غير ثابتة هنا. النمط الذي ينبغي أن يتوقعه المشتري: وحدات السبليت الجدارية والكاسيت والوحدات المخفية الصغيرة من العلامات الكبرى يحتفظ بها موزعو الإمارات عادة، لكن مخزون القدرات الرائجة قد ينفد؛ ووحدات VRF الخارجية بالأحجام الشائعة قد تكون متوفرة بينما قد تحتاج التشكيلات الكبيرة أو أنظمة استرجاع الحرارة إلى الاستيراد؛ ووحدات مناولة الهواء ووحدات الهواء النقي تُصنّع حسب الطلب بعد اعتماد المستندات الفنية والاختيار؛ والمبردات، ولا سيما الطاردة المركزية الكبيرة المبردة بالماء، تُصنّع حسب الطلب في الخارج، ويضيف اختبار المصنع بحضور المالك وقتاً إضافياً. وتتقيد بنود السلامة بالاعتمادات: إذ يشترط الدفاع المدني إدراج منتجات السلامة من الحريق واعتمادها (كما توضح إرشادات CIBSE للإمارات)، فلا يمكن استبدال مروحة شفط دخان أو مخمد مقاوم للحريق متأخر بموديل غير معتمد. اطلب من كل مورد بيان مدة التوريد من تاريخ اعتماد المستندات لا من تاريخ الطلب، وتأكيد توفر الأصناف من المخزون كتابياً، ومدة صلاحية هذا التأكيد.",
+      "sources": [
+        "https://www.cibse.org/media/2y5gijlb/emergency-lighting-in-the-uae-slides.pdf"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:warranty-norms",
+      "topic": "HVAC warranty norms and conditions",
+      "kind": "warranty",
+      "body_en": "HVAC warranties are usually split: a parts warranty on the whole unit, often a longer warranty on the compressor for residential and VRF products, and a separate, usually shorter, labour warranty from the installer. Durations are set by each manufacturer, not by a fixed legal term, so read the warranty card for the exact model. Common conditions: installation by an authorised dealer (especially for VRF and chillers), commissioning records sent to the manufacturer, maintenance proven by service records, genuine parts, correct voltage and protection, and registration within a set period. Common exclusions: power-fluctuation damage, corrosion of uncoated coils in coastal or sandy sites, refrigerant top-ups, filters and consequential loss. For consumers, UAE Federal Law 15 of 2020 on Consumer Protection obliges the supplier to implement all warranties, provide spare parts and maintenance, replace or refund within the specified time and provide after-sales service; the law lets the Minister set warranty terms for particular goods, and it requires a substitute item to be provided free if a warranty repair takes more than seven days. On projects the contract normally adds a defects liability period after handover whose length is set by the contract; a 12-month figure is common practice but not established from a fetched source.",
+      "body_ar": "تنقسم ضمانات أجهزة التكييف عادة إلى: ضمان قطع على الوحدة كاملة، وضمان أطول غالباً على الضاغط في المنتجات السكنية وأنظمة VRF، وضمان منفصل وأقصر عادة على أعمال التركيب من المقاول. تحدد كل شركة مصنعة المدد، ولا توجد مدة قانونية ثابتة، لذا اقرأ بطاقة الضمان للموديل المحدد. من الشروط المعتادة: التركيب بواسطة وكيل معتمد (خاصة لأنظمة VRF والمبردات)، وإرسال سجلات التشغيل الأولي إلى المصنع، وإثبات الصيانة بسجلات الخدمة، واستخدام قطع أصلية، والجهد الكهربائي والحماية الصحيحين، والتسجيل خلال مدة محددة. ومن الاستثناءات الشائعة: أضرار تذبذب الكهرباء، وتآكل الملفات غير المطلية في المواقع الساحلية أو الرملية، وإعادة تعبئة الغاز، والفلاتر، والخسائر التبعية. وبالنسبة للمستهلكين يُلزم القانون الاتحادي رقم 15 لسنة 2020 في شأن حماية المستهلك المورّد بتنفيذ جميع الضمانات وتوفير قطع الغيار والصيانة والاستبدال أو رد القيمة خلال المدة المحددة وتقديم خدمة ما بعد البيع؛ ويخوّل القانون الوزير تحديد شروط الضمان لسلع معينة، ويوجب توفير سلعة بديلة مجاناً إذا تجاوز تنفيذ الضمان سبعة أيام. أما في المشاريع فيضيف العقد عادة فترة مسؤولية عن العيوب بعد التسليم يحدد العقد مدتها؛ ومدة 12 شهراً ممارسة شائعة لكنها غير ثابتة من مصدر تم الاطلاع عليه.",
+      "sources": [
+        "https://www.moet.gov.ae/documents/20121/0/Law_15_2020_pdf.pdf/b676fd26-275c-3652-e949-8b3663e7bd79?t=1715057123879"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:installation-best-practice",
+      "topic": "Installation norms for split and VRF refrigerant piping",
+      "kind": "installation",
+      "body_en": "Good refrigerant-side installation decides the life of a split or VRF system. Use ACR-grade copper of the diameter and wall thickness the manufacturer specifies, cut with a pipe cutter (not a hacksaw), deburr, and braze with dry nitrogen flowing through the pipe to prevent internal oxide scale that later blocks expansion valves and damages compressors. Flare joints need the correct flare tool and torque. After brazing, pressure-test with dry nitrogen to the manufacturer's test pressure and hold for the stated time, then evacuate with a vacuum pump to the specified micron level and verify the vacuum holds before releasing refrigerant. Add refrigerant by weight for extra pipe length as calculated. Insulate suction and liquid lines fully, seal joints, and protect outdoor insulation from UV. Drain lines need a continuous fall, a trap where required and a test with water. Outdoor units must be level, on anti-vibration mounts, with manufacturer clearances. For A2L refrigerants like R32 follow the flammable-refrigerant guidance and use rated tools. Keep a commissioning sheet with pressures, vacuum reading, charge and electrical readings for each unit.",
+      "body_ar": "جودة تركيب جانب غاز التبريد هي ما يحدد عمر نظام السبليت أو VRF. استخدم نحاساً مخصصاً للتكييف بالقطر والسماكة التي يحددها المصنّع، واقطعه بقاطعة أنابيب لا بمنشار، وأزل الحواف، ولحّمه مع تمرير النيتروجين الجاف داخل الأنبوب لمنع تكون قشور الأكسدة التي تسد صمامات التمدد وتتلف الضواغط لاحقاً. الوصلات المفلطحة تحتاج أداة التفليط الصحيحة وعزم الشد المناسب. بعد اللحام يُختبر الضغط بالنيتروجين الجاف حتى ضغط الاختبار الذي يحدده المصنّع ويُحتفظ به للمدة المحددة، ثم يُفرّغ النظام بمضخة تفريغ حتى مستوى الميكرون المحدد مع التأكد من ثبات التفريغ قبل إطلاق الغاز. أضف الغاز بالوزن للأطوال الإضافية حسب الحساب. اعزل خطي السحب والسائل بالكامل وأحكم الوصلات واحمِ العزل الخارجي من الأشعة. تحتاج خطوط التصريف ميلاً متصلاً ومصيدة حيث يلزم واختباراً بالماء. يجب تسوية الوحدات الخارجية وتركيبها على مانعات اهتزاز مع ترك المسافات التي يحددها المصنّع. مع غازات A2L مثل R32 اتبع إرشادات الغازات القابلة للاشتعال واستخدم أدوات مناسبة. احتفظ بورقة تشغيل لكل وحدة تسجل الضغوط وقراءة التفريغ والشحنة والقراءات الكهربائية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Difluoromethane"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:tab-commissioning",
+      "topic": "Testing, adjusting and balancing (TAB) and commissioning",
+      "kind": "installation",
+      "body_en": "Testing, adjusting and balancing (TAB) measures and adjusts air and water flows so that each terminal delivers its design quantity, using dampers, valves and fan speeds while imposing as little restriction as possible. Commissioning is the wider check that systems are installed, operate and are controlled as intended. Recognised TAB bodies include NEBB, AABC and TABB, whose procedural standards set instrumentation, calibration and report content. TAB cannot start until balancing valves and test points are installed, controls work and ductwork and terminals are complete, so those items must be in the installation scope. Typical instruments are flow hoods, anemometers, pitot-tube traverses and manometers. In Dubai, Al Sa'fat section 503.01 requires commissioning of air and water distribution, lighting, central controls and BMS, refrigeration systems and boilers for every new air-conditioned building with a cooling load of 1 MW or more, carried out to the CIBSE Commissioning Codes A (air distribution) and W (water distribution) or another code approved by Dubai Municipality, and it requires ductwork leakage testing by a specialist commissioning company. Steps: pre-commissioning checks, air and water balancing, point-to-point controls checks, functional tests including fire-alarm interfaces and smoke control with Civil Defence, then TAB reports, as-builts, O&M manuals and training. Abu Dhabi Estidama commissioning credits were not checked in this pass.",
+      "body_ar": "الاختبار والضبط والموازنة (TAB) هو قياس تدفقات الهواء والماء وضبطها بحيث يوصل كل مخرج الكمية التصميمية، باستخدام المخمدات والصمامات وسرعات المراوح مع أقل مقاومة ممكنة للنظام. أما التشغيل والاختبار الشامل (Commissioning) فهو التحقق الأوسع من أن الأنظمة مركّبة وتعمل ويُتحكم بها كما صُممت. من الجهات المعترف بها في الموازنة NEBB وAABC وTABB، وتحدد معاييرها الإجرائية الأجهزة والمعايرة ومحتوى التقارير. لا يمكن بدء الموازنة قبل تركيب صمامات الموازنة ونقاط الاختبار وعمل أنظمة التحكم واكتمال المجاري والمخارج، لذا يجب أن تكون ضمن نطاق التركيب. من الأجهزة المعتادة أغطية قياس التدفق ومقاييس سرعة الهواء ومسح أنبوب بيتو ومقاييس الضغط. في دبي يشترط البند 503.01 من نظام السعفات إجراء التشغيل والاختبار لتوزيع الهواء والماء والإنارة وأنظمة التحكم المركزية وإدارة المبنى وأنظمة التبريد والغلايات في كل مبنى مكيّف جديد بحمل تبريد 1 ميغاواط أو أكثر، وفق رموز CIBSE للتشغيل A (توزيع الهواء) وW (توزيع المياه) أو رمز آخر تعتمده بلدية دبي، كما يشترط اختبار تسرب المجاري بواسطة شركة متخصصة في التشغيل. الخطوات: فحوص ما قبل التشغيل، وموازنة الهواء والماء، وفحص نقاط التحكم نقطة بنقطة، واختبارات وظيفية تشمل الربط بإنذار الحريق والتحكم بالدخان مع الدفاع المدني، ثم تقارير الموازنة والمخططات النهائية وأدلة التشغيل والصيانة والتدريب. لم تُراجع متطلبات استدامة (Estidama) في أبوظبي بهذا الشأن في هذه المرحلة.",
+      "sources": [
+        "https://www.nebb.org/wp-content/uploads/2022/04/230593-Testing_-Adjusting_-Balancing-for-HVAC-DWP-edits-2020-04-16_approved.pdf",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:dewa-connection-load",
+      "topic": "Electrical load, DEWA/ADDC and AC power supply",
+      "kind": "authority_approval",
+      "body_en": "Air conditioning is the largest electrical load in UAE buildings, so it drives the connected load declared to the utility (DEWA in Dubai; ADDC/AADC in Abu Dhabi; SEWA in Sharjah; EtihadWE in the northern emirates). New connections and load increases need an approved load schedule and, for larger loads, possibly a substation; adding many AC units to an existing villa or shop may exceed the existing connection and require a load-increase application. Units must match the supply: small splits are single-phase 230 V, larger ones and VRF/package units are three-phase 400 V, 50 Hz. Utilities and wiring regulations require proper isolators, protective devices and cable sizing; in Dubai, electrical installation work is carried out by DEWA-registered electrical contractors. Starting currents of large compressors and chillers matter for generator sizing and utility limits, so soft starters or VFDs may be required. For buyers: ask the HVAC supplier for the full electrical data (running current, MCA/MOP, starting current) so the electrical contractor can size cables and breakers, and clarify who does the electrical connection.",
+      "body_ar": "التكييف هو أكبر حمل كهربائي في مباني الإمارات، ولذلك يحدد الحمل المعلن لشركة الكهرباء (هيئة كهرباء ومياه دبي في دبي، وشركات التوزيع في أبوظبي، وهيئة كهرباء ومياه الشارقة، والاتحاد للماء والكهرباء في الإمارات الشمالية). تحتاج التوصيلات الجديدة وزيادة الأحمال جدول أحمال معتمداً، وقد تحتاج الأحمال الكبيرة محطة تحويل؛ وإضافة عدد كبير من المكيفات إلى فيلا أو محل قائم قد يتجاوز التوصيل الحالي ويتطلب طلب زيادة حمل. يجب أن تطابق الوحدات التغذية: السبليت الصغير أحادي الطور 230 فولت، والوحدات الأكبر وأنظمة VRF والوحدات المجمعة ثلاثية الطور 400 فولت و50 هرتز. تشترط الجهات ولوائح التمديدات قواطع عزل وأجهزة حماية ومقاطع كابلات صحيحة، وفي دبي تُنفذ الأعمال الكهربائية من مقاولين مسجلين لدى الهيئة. تيارات بدء الضواغط والتشلرات الكبيرة مهمة لتحديد سعة المولدات وحدود الشبكة، فقد يلزم بادئ ناعم أو محول تردد. على المشتري طلب البيانات الكهربائية كاملة من مورد التكييف (تيار التشغيل، أدنى سعة دائرة، أقصى حماية، تيار البدء) لكي يحدد المقاول الكهربائي الكابلات والقواطع، وتوضيح من يتولى التوصيل الكهربائي.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:iaq-filters",
+      "topic": "Air filtration grades (ISO 16890, MERV, HEPA)",
+      "kind": "glossary",
+      "body_en": "Filter grades tell how well a filter captures particles. ISO 16890 is the current international standard; it classifies filters by their efficiency on particle size groups: ePM1, ePM2.5, ePM10 (with a percentage), and ISO Coarse for pre-filters. The older European EN 779 classes (G1-G4 coarse, M5-M6 medium, F7-F9 fine) still appear in specifications, and US projects use ASHRAE 52.2 MERV ratings (1-16). HEPA and ULPA filters (EN 1822/ISO 29463) are for hospitals, cleanrooms and labs. In the UAE, dust and sand loading is high, so AHUs and FAHUs usually have a coarse pre-filter followed by a finer bag or rigid filter; green codes may require minimum filter classes on outdoor-air intakes. Higher grades raise fan pressure drop and energy, so fans must be selected for the dirty-filter pressure drop. Buyers should state the grade in one system (preferably ISO 16890), the filter type (panel, pleated, bag, rigid), frame size, and whether differential pressure gauges and a spare set are included. ISO 16890 formally replaced EN 779 from 1 July 2018; a filter is placed in the ePM1, ePM2.5 or ePM10 group only if it removes at least 50% of that fraction, and the result is rounded down to 5% steps (for example ePM1 60%).",
+      "body_ar": "تبين درجات الفلاتر مدى قدرتها على التقاط الجسيمات. المواصفة الدولية الحالية هي ISO 16890 وتصنف الفلاتر حسب كفاءتها على مجموعات أحجام الجسيمات: ePM1 وePM2.5 وePM10 (مع نسبة مئوية)، وفئة ISO Coarse للفلاتر الأولية. ما زالت فئات المواصفة الأوروبية القديمة EN 779 (من G1 إلى G4 خشنة، M5 وM6 متوسطة، F7 إلى F9 دقيقة) تظهر في المواصفات، وتستخدم المشاريع الأمريكية تصنيف MERV من ASHRAE 52.2 (من 1 إلى 16). فلاتر HEPA وULPA (EN 1822 أو ISO 29463) للمستشفيات والغرف النظيفة والمختبرات. في الإمارات يكون حمل الغبار والرمال مرتفعاً، لذا تضم وحدات مناولة الهواء عادة فلتراً أولياً خشناً يليه فلتر أدق من نوع الأكياس أو الصلب، وقد تشترط الأكواد الخضراء حداً أدنى لدرجة الفلتر على مداخل الهواء الخارجي. الدرجات الأعلى ترفع هبوط الضغط واستهلاك المروحة، فيجب اختيار المروحة على أساس الفلتر المتسخ. على المشتري ذكر الدرجة بنظام واحد (يفضل ISO 16890)، ونوع الفلتر، ومقاس الإطار، وهل تشمل مقاييس فرق الضغط ومجموعة احتياطية. حلّ ISO 16890 رسمياً محل EN 779 اعتباراً من 1 يوليو 2018؛ ولا يُصنّف المرشح ضمن مجموعة ePM1 أو ePM2.5 أو ePM10 إلا إذا أزال 50% على الأقل من تلك الفئة، وتُقرّب النتيجة إلى الأدنى بخطوات 5% (مثل ePM1 60%).",
+      "sources": [
+        "https://www.camfil.com/en-us/insights/standard-and-regulations/the-international-test-standard-iso-16890-for-air-filters-for-general-ventilation",
+        "https://en.wikipedia.org/wiki/Air_handler"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:units-glossary",
+      "topic": "Glossary: TR, BTU, kW, COP, EER, SEER, IPLV, kW/TR",
+      "kind": "glossary",
+      "body_en": "One refrigeration ton (TR) equals 12,000 BTU/h, approximately 3.517 kW of cooling. BTU/h is common for residential splits (e.g. 18,000 or 24,000 BTU/h units). COP (coefficient of performance) is cooling output divided by electrical input, both in kW; EER is the same ratio but with output in BTU/h and input in W, so EER ≈ 3.412 × COP. kW/TR, used for chillers and plants, is the inverse view: electrical kW per ton of cooling, where lower is better. Seasonal metrics (SEER, CSPF, ESEER) weight performance across a range of part-load conditions and better represent annual energy use than a single full-load point; for chillers IPLV (AHRI 550/590 conditions) or NPLV (at project conditions) serve the same purpose. Sensible capacity cools air temperature; latent capacity removes moisture; the sensible heat ratio matters in humid UAE coastal cities. Dry-bulb and wet-bulb temperatures describe air conditions for coil selection. Always compare efficiency metrics measured under the same standard and conditions. Exact values: 1 TR = 12,000 BTU/h = 3.516853 kW; EER (BTU/Wh) = COP x 3.41214.",
+      "body_ar": "الطن التبريدي يساوي 12,000 وحدة حرارية بريطانية في الساعة، أي نحو 3.517 كيلوواط تبريد. تُستخدم وحدة BTU/ساعة كثيراً للمكيفات المنزلية (مثل 18,000 أو 24,000). معامل الأداء (COP) هو ناتج التبريد مقسوماً على القدرة الكهربائية، وكلاهما بالكيلوواط؛ ونسبة كفاءة الطاقة (EER) هي النسبة نفسها لكن بالتبريد بوحدة BTU/ساعة والقدرة بالواط، أي أن EER يساوي تقريباً 3.412 مضروباً في COP. أما مؤشر كيلوواط لكل طن المستخدم للتشلرات والمحطات فهو المقلوب: القدرة الكهربائية لكل طن تبريد، وكلما قل كان أفضل. المؤشرات الموسمية (SEER وCSPF وESEER) تزن الأداء عبر ظروف حمل جزئي متعددة وتعكس الاستهلاك السنوي أفضل من نقطة الحمل الكامل، وللتشلرات يؤدي IPLV (عند ظروف AHRI 550/590) أو NPLV (عند ظروف المشروع) الغرض نفسه. السعة المحسوسة تخفض حرارة الهواء، والسعة الكامنة تزيل الرطوبة، ونسبة الحرارة المحسوسة مهمة في المدن الساحلية الرطبة. البصيلة الجافة والرطبة تصفان حالة الهواء لاختيار الملفات. قارن دائماً مؤشرات الكفاءة المقاسة بالمواصفة والظروف نفسها. القيم الدقيقة: طن التبريد = 12,000 وحدة حرارية بريطانية/ساعة = 3.516853 كيلوواط؛ ومعامل EER (وحدة حرارية/واط ساعة) = COP × 3.41214.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Ton_of_refrigeration",
+        "https://en.wikipedia.org/wiki/Energy_efficiency_ratio",
+        "https://www.ahrinet.org/certification"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:coil-coating-corrosion",
+      "topic": "Coil corrosion and protective coatings in UAE coastal and industrial sites",
+      "kind": "product",
+      "body_en": "Outdoor condenser coils in the UAE face salt-laden humid air near the coast, sand abrasion, and industrial pollutants near plants and highways. Standard aluminium fins on copper tubes corrode, losing heat-transfer surface and eventually leaking refrigerant. Coil coatings act as a barrier between the coil surface and that environment, and are recommended for coastal sites, commercial kitchens with airborne grease, and sites exposed to industrial chemicals; inland dry sites without chemical exposure generally do not need them. Options: factory pre-coated fin stock (limited protection because cut edges and tubes stay bare), post-fabrication electro-deposited epoxy (e-coat) that covers the whole finished coil, and spray-applied epoxy or polyurethane coatings applied after manufacture or in the field. As an example of a datasheet claim, one e-coat supplier states its coated coils pass ASTM B117 salt-spray testing beyond 6,000 hours with under 1% thermal-performance loss. Field coatings fail most often because the coil was not thoroughly cleaned first. Manufacturers' coating recommendations and warranty exclusions for uncoated coils vary; no fixed distance-from-sea rule was established. Specify coating type, salt-spray hours to ASTM B117, factory or field application, and coverage of tube sheets and headers, and include fresh-water coil washing in the AMC.",
+      "body_ar": "تتعرض ملفات المكثفات الخارجية في الإمارات لهواء رطب محمّل بالأملاح قرب الساحل، ولاحتكاك الرمال، وللملوثات الصناعية قرب المصانع والطرق السريعة. وتتآكل الزعانف الألمنيوم القياسية على أنابيب النحاس فتفقد سطح التبادل الحراري ثم يتسرب غاز التبريد. تعمل طبقات الطلاء حاجزاً بين سطح الملف وهذه البيئة، ويوصى بها للمواقع الساحلية والمطابخ التجارية ذات أبخرة الدهون والمواقع المعرضة للمواد الكيميائية الصناعية، بينما لا تحتاجها عادة المواقع الداخلية الجافة الخالية من الكيماويات. الخيارات: زعانف مطلية مسبقاً في المصنع (حماية محدودة لأن حواف القص والأنابيب تبقى مكشوفة)، والطلاء بالإيبوكسي بالترسيب الكهربائي بعد التصنيع (e-coat) الذي يغطي الملف المكتمل كله، وطلاءات الإيبوكسي أو البولي يوريثين بالرش بعد التصنيع أو في الموقع. ومثالاً على ادعاءات النشرات الفنية، يذكر أحد موردي الطلاء الكهربائي أن ملفاته المطلية تجتاز اختبار رذاذ الملح وفق ASTM B117 لأكثر من 6000 ساعة مع فقد أقل من 1% في الأداء الحراري. وأكثر ما يُفشل الطلاء الموقعي عدم تنظيف الملف جيداً قبله. تختلف توصيات المصنعين واستثناءات الضمان للملفات غير المطلية، ولم تثبت قاعدة ثابتة للمسافة من البحر. حدّد نوع الطلاء، وساعات رذاذ الملح وفق ASTM B117، وهل التطبيق في المصنع أم الموقع، وشمول ألواح الأنابيب والمجمّعات، وأدرج غسل الملفات بالماء العذب في عقد الصيانة.",
+      "sources": [
+        "https://www.campbell-sevey.com/product/electrofin-heat-transfer-coatings/",
+        "https://www.refrigtech.com/blog/hvac-coil-coatings-for-coastal-and-high-grease-applications/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:humidity-condensation",
+      "topic": "Humidity control and condensation problems",
+      "kind": "buyer_mistake",
+      "body_en": "Coastal UAE cities have very humid summers, and many HVAC complaints are about humidity rather than temperature: sweating diffusers, wet ceiling tiles, mould in wardrobes, musty smells. Causes include oversized units that cool quickly and switch off before removing moisture, lack of treated fresh air (untreated outdoor air leaking in through doors and kitchen/toilet exhaust with no make-up air), negative building pressure, broken vapour barriers on ducts and pipes, and FCUs set to maximum fan speed with warm chilled water. Remedies are design-level: provide a dedicated treated fresh-air unit (FAHU/DOAS) sized to dehumidify outdoor air, keep the building slightly positive, select coils for adequate latent capacity, use inverter or modulating control, and insulate and seal every cold surface. Buyers asking only for \"more tons\" often make humidity worse. When briefing a supplier about a humidity complaint, provide measured temperature and relative humidity, the system type, fresh-air arrangement and photographs of condensation locations.",
+      "body_ar": "صيف المدن الساحلية في الإمارات شديد الرطوبة، والكثير من شكاوى التكييف تتعلق بالرطوبة لا بالحرارة: تعرق المخارج، وتبلل ألواح السقف، والعفن في الخزائن، والروائح الكريهة. من الأسباب: وحدات أكبر من اللازم تبرد بسرعة وتتوقف قبل إزالة الرطوبة، وغياب هواء نقي معالج (دخول هواء خارجي غير معالج عبر الأبواب مع شفط المطابخ ودورات المياه دون هواء تعويض)، والضغط السالب في المبنى، وانقطاع حاجز البخار على المجاري والأنابيب، وتشغيل وحدات FCU على أعلى سرعة مع مياه مبردة غير باردة بما يكفي. العلاج يكون على مستوى التصميم: توفير وحدة هواء نقي معالج مخصصة قادرة على إزالة رطوبة الهواء الخارجي، والحفاظ على ضغط موجب خفيف في المبنى، واختيار ملفات بسعة كامنة كافية، واستخدام تحكم إنفرتر أو متدرج، وعزل وإحكام كل سطح بارد. المشتري الذي يطلب فقط \"أطناناً أكثر\" غالباً يزيد مشكلة الرطوبة سوءاً. عند وصف مشكلة رطوبة للمورد قدّم قياسات الحرارة والرطوبة النسبية، ونوع النظام، وترتيب الهواء النقي، وصوراً لمواقع التكاثف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_handler"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:kitchen-exhaust",
+      "topic": "Commercial kitchen exhaust and make-up air",
+      "kind": "product",
+      "body_en": "Commercial kitchen ventilation (restaurants, hotels, central kitchens, labour-camp kitchens) combines an exhaust hood over cooking equipment, grease filters or extractors, a dedicated grease duct to the outside, an exhaust fan rated for grease-laden air, and make-up air to replace what is extracted. Standards commonly referenced are NFPA 96 for fire safety of commercial cooking operations and the local fire code; hoods over fryers and griddles typically require a wet-chemical fire-suppression system listed to UL 300. Grease ducts must be liquid-tight welded steel (black or stainless), have cleanouts, slope toward the hood, maintain clearances to combustibles or be enclosed in a fire-rated shaft, and discharge away from air intakes. Odour and smoke control (ESP units, UV-C hoods, carbon filters) is often required in malls and mixed-use buildings. Make-up air should be tempered and roughly balance exhaust to keep the kitchen slightly negative to dining areas. Specify hood type and length, exhaust and make-up airflow, grease duct material and thickness, fan type and temperature rating, suppression system, pollution-control unit and access for cleaning. NFPA 96 details worth checking in quotes: grease duct of carbon steel at least 16 gauge or stainless at least 18 gauge with continuous liquid-tight welds (galvanised and aluminium are not allowed), cleanouts at changes of direction, clearance to combustibles or a rated enclosure, UL 300-listed wet-chemical suppression, and make-up air of roughly 90% of the exhaust volume. Confirm which NFPA 96 edition the authority applies.",
+      "body_ar": "تهوية المطابخ التجارية (المطاعم والفنادق والمطابخ المركزية ومطابخ سكن العمال) تجمع بين غطاء شفط فوق معدات الطهي، وفلاتر أو مستخلصات الدهون، ومجرى دهون مخصص إلى الخارج، ومروحة شفط مصنفة لهواء محمل بالدهون، وهواء تعويض يحل محل المسحوب. المواصفات الشائعة هي NFPA 96 للسلامة من الحريق في عمليات الطهي التجارية والكود المحلي للحريق، وتحتاج الأغطية فوق القلايات والصاجات عادة نظام إطفاء كيميائي رطب مدرجاً وفق UL 300. يجب أن تكون مجاري الدهون من فولاذ ملحوم محكم ضد السوائل (أسود أو مقاوم للصدأ)، مع فتحات تنظيف، وميل نحو الغطاء، ومسافات عن المواد القابلة للاشتعال أو داخل منور مقاوم للحريق، وأن تُطرد بعيداً عن مداخل الهواء. في المراكز التجارية والمباني متعددة الاستخدام يلزم غالباً التحكم بالروائح والدخان (وحدات ترسيب كهروستاتيكي، أغطية بالأشعة فوق البنفسجية، فلاتر كربون). يجب أن يكون هواء التعويض معالجاً ومتوازناً تقريباً مع الشفط ليبقى المطبخ بضغط سالب خفيف مقارنة بصالة الطعام. حدد نوع الغطاء وطوله، وكميات الشفط والتعويض، ومادة وسماكة مجرى الدهون، ونوع المروحة وتصنيف حرارتها، ونظام الإطفاء، ووحدة التحكم بالتلوث، وإمكانية الوصول للتنظيف. تفاصيل من NFPA 96 يجدر التحقق منها في العروض: مجرى الدهون من الفولاذ الكربوني بسماكة لا تقل عن 16 أو من الستانلس بسماكة لا تقل عن 18 مع لحامات متصلة محكمة ضد السوائل (لا يُسمح بالمجلفن ولا الألمنيوم)، وفتحات تنظيف عند تغيّر الاتجاه، ومسافة عن المواد القابلة للاشتعال أو غلاف مقاوم، ونظام إطفاء كيميائي رطب معتمد وفق UL 300، وهواء تعويضي بنحو 90% من حجم العادم. تأكد من إصدار NFPA 96 الذي تطبقه الجهة.",
+      "sources": [
+        "https://usmadesupply.com/resources/building-codes-standards/fire-suppression-standards/nfpa-96"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:pressurisation",
+      "topic": "Stair and lift-lobby pressurisation systems",
+      "kind": "product",
+      "body_en": "Pressurisation keeps escape stairs, fire-fighting lobbies and lift shafts free of smoke by supplying outdoor air to raise their pressure above the fire floor. Design follows the UAE Fire and Life Safety Code, with pressure-differential and door-opening-force limits and air-velocity criteria through open doors; relief dampers or VFD-controlled fans prevent over-pressurisation that would make doors too hard to open. Fans are usually roof-mounted axial or centrifugal units with dedicated fire-rated power supplies and cables, started automatically on fire alarm and monitored from the firefighters' smoke control panel. Intakes must be positioned to avoid drawing in smoke. Commissioning involves measuring pressure differentials and door forces with Civil Defence witnessing. Specify: stair/lobby count and heights, design airflow and pressure, fan type with Civil Defence approval, VFD or relief damper method, pressure sensors, fire-rated cable and power source, and control interface. Mistakes include using standard ventilation fans or undersized relief, leading to failed Civil Defence tests.",
+      "body_ar": "أنظمة التضغيط تُبقي سلالم الهروب وردهات مكافحة الحريق وآبار المصاعد خالية من الدخان بضخ هواء خارجي يرفع ضغطها فوق ضغط طابق الحريق. يتبع التصميم كود الإمارات للحماية من الحرائق وسلامة الأرواح، مع حدود لفرق الضغط وقوة فتح الأبواب ومعايير سرعة الهواء عبر الأبواب المفتوحة، وتمنع بوابات التنفيس أو المراوح المتحكم بها بمحولات تردد الضغطَ الزائد الذي يجعل فتح الأبواب صعباً. المراوح عادة محورية أو طاردة مركزية على السطح، بتغذية وكابلات مقاومة للحريق، وتبدأ تلقائياً عند إنذار الحريق وتُراقب من لوحة التحكم بالدخان لرجال الإطفاء. يجب وضع مداخل الهواء بحيث لا تسحب الدخان. يشمل التشغيل قياس فروق الضغط وقوة فتح الأبواب بحضور الدفاع المدني. حدد عدد السلالم والردهات وارتفاعاتها، والتدفق والضغط التصميميين، ونوع المروحة واعتماد الدفاع المدني، وطريقة التحكم (محول تردد أو بوابة تنفيس)، وحساسات الضغط، والكابلات المقاومة للحريق ومصدر الطاقة، وواجهة التحكم. من الأخطاء استخدام مراوح تهوية عادية أو بوابات تنفيس صغيرة مما يؤدي إلى رسوب اختبار الدفاع المدني.",
+      "sources": [
+        "https://ventinet.com/knowledge-base/fans-according-to-en-12101-3/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:certification-ahri-eurovent",
+      "topic": "Performance certification: AHRI, Eurovent, ECAS",
+      "kind": "standard",
+      "body_en": "Manufacturer catalogues can overstate performance, so independent certification is the buyer's protection. AHRI (US) certifies performance of chillers (AHRI 550/590), unitary and VRF equipment, fan coils and other products, and publishes a searchable directory. Eurovent Certita Certification covers chillers, AHUs (including casing classes), fan coils, heat exchangers and more for the European market, also with an online directory. In the UAE, the ECAS/EQM conformity scheme under MoIAT is mandatory for regulated products such as household air conditioners (with the energy label), whereas AHRI/Eurovent certification is usually a project specification requirement rather than a legal one. When a spec requires certification, ask for the certificate or directory listing for the exact model, check that the certified rating conditions match those asked for, and note that \"tested to AHRI standard\" in a brochure is not the same as \"AHRI certified\". Rating conditions for certification are often milder than UAE design conditions, so certified data does not replace a selection at project conditions.",
+      "body_ar": "قد تبالغ كتالوجات المصنعين في الأداء، لذا فإن الاعتماد المستقل هو حماية المشتري. يعتمد معهد AHRI الأمريكي أداء التشلرات (AHRI 550/590) والوحدات المجمعة وأنظمة VRF ووحدات FCU وغيرها، وينشر دليلاً قابلاً للبحث. وتغطي شهادة Eurovent التشلرات ووحدات مناولة الهواء (بما فيها فئات الهيكل) ووحدات FCU والمبادلات الحرارية وغيرها للسوق الأوروبي، ولها دليل إلكتروني أيضاً. في الإمارات يعد برنامج المطابقة ECAS/EQM التابع لوزارة الصناعة والتكنولوجيا المتقدمة إلزامياً للمنتجات المنظمة مثل المكيفات المنزلية (مع بطاقة الطاقة)، بينما يكون اعتماد AHRI أو Eurovent عادة شرطاً في مواصفات المشروع لا شرطاً قانونياً. عندما تشترط المواصفة الاعتماد اطلب الشهادة أو إدراج الدليل للطراز نفسه، وتأكد أن ظروف التصنيف المعتمدة تطابق المطلوب، ولاحظ أن عبارة \"مختبر وفق مواصفة AHRI\" في الكتيب ليست مثل \"معتمد من AHRI\". ظروف التصنيف للاعتماد غالباً أخف من ظروف التصميم في الإمارات، فالبيانات المعتمدة لا تغني عن الاختيار عند ظروف المشروع.",
+      "sources": [
+        "https://www.ahrinet.org/certification",
+        "https://www.eurovent-certification.com/",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
+        "https://www.intertek.com/government/product-conformity/ecas/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:replacement-vs-repair",
+      "topic": "Replace vs repair an old AC system",
+      "kind": "comparison",
+      "body_en": "Deciding whether to repair or replace depends on age, refrigerant, efficiency and failure type. Systems running on R22 are increasingly costly to service because the gas is being phased out and scarce; a major failure (compressor, leak in the indoor coil) on an old R22 unit usually justifies replacement rather than repair. Units with a low ESMA star rating (or unlabelled old units) consume noticeably more electricity than modern high-star inverter units, so running-cost savings can offset part of the replacement cost in the UAE's long cooling season; the exact payback depends on usage and tariff and should be estimated per case rather than assumed. Repair is sensible for newer units with isolated faults (capacitor, fan motor, PCB, sensor, small flare leak). When replacing splits, reusing old copper pipes is risky if the refrigerant or pipe sizes change or the pipes are contaminated; manufacturers often require new pipes or flushing. For chilled-water buildings, replacing FCUs one by one is possible, while chiller replacement is a project needing capacity review, crane lifts and shutdown planning.",
+      "body_ar": "قرار الإصلاح أو الاستبدال يعتمد على العمر ونوع الغاز والكفاءة ونوع العطل. الأنظمة التي تعمل بغاز R22 أصبحت خدمتها مكلفة لأن الغاز يُلغى تدريجياً وأصبح نادراً، والعطل الكبير (الضاغط أو تسرب في الملف الداخلي) في وحدة R22 قديمة يبرر عادة الاستبدال لا الإصلاح. الوحدات ذات النجوم المنخفضة (أو القديمة غير الحاملة للبطاقة) تستهلك كهرباء أكثر بشكل ملحوظ من وحدات الإنفرتر الحديثة ذات النجوم العالية، لذا قد يعوض التوفير في التشغيل جزءاً من تكلفة الاستبدال خلال موسم التبريد الطويل في الإمارات؛ وتعتمد مدة الاسترداد على الاستخدام والتعرفة ويجب تقديرها لكل حالة. الإصلاح منطقي للوحدات الأحدث ذات الأعطال المحدودة (المكثف الكهربائي، محرك المروحة، اللوحة الإلكترونية، الحساس، تسرب بسيط). عند استبدال السبليت فإن إعادة استخدام الأنابيب القديمة محفوفة بالمخاطر إذا تغير الغاز أو المقاسات أو كانت الأنابيب ملوثة، وكثيراً ما يشترط المصنعون أنابيب جديدة أو غسيلها. في المباني ذات المياه المبردة يمكن استبدال وحدات FCU تدريجياً، أما استبدال التشلر فمشروع يحتاج مراجعة السعة ورافعات وتخطيطاً للإيقاف.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/R-410A",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:duct-cleaning-iaq",
+      "topic": "Duct cleaning and indoor air quality services",
+      "kind": "product",
+      "body_en": "Duct cleaning removes dust, debris and microbial growth from supply and return ducts, plenums, coils and grilles. In the UAE, sand ingress and humidity make periodic cleaning common in residential towers, villas, offices and hotels. Recognised practice follows standards such as NADCA ACR (US) or BESA TR/19 (UK), which define methods (source removal with negative-pressure air collectors, mechanical agitation with brushes/air whips), post-cleaning verification (visual inspection, surface dust measurements) and hygiene reporting. Chemical sanitising or coatings should only be applied after mechanical cleaning and with products approved for HVAC use. Dubai Municipality has published requirements related to indoor air quality and approves companies working in pest control and some environmental services; confirm the current licensing needed for the service provider. Ask for before/after photos or video, access-door installation where missing, the method statement, the standard followed, and whether coil cleaning, FCU drain pans and kitchen exhaust (a separate specialism) are included. Beware very low prices that only clean grilles. Dubai Municipality publishes technical guidelines on indoor air quality (Guidelines 119 and 141) and on mould remediation (Guideline 142); consultants may cite these for hygiene reporting. Note that duct cleaning is justified by inspection findings (visible dust, mould, debris), not as a routine health cure.",
+      "body_ar": "تنظيف مجاري الهواء يزيل الغبار والأوساخ والنمو الميكروبي من مجاري التغذية والراجع وصناديق التجميع والملفات والفتحات. في الإمارات يجعل دخول الرمال والرطوبة التنظيف الدوري شائعاً في الأبراج السكنية والفلل والمكاتب والفنادق. تتبع الممارسة المعترف بها معايير مثل NADCA ACR الأمريكية أو BESA TR/19 البريطانية، والتي تحدد الأساليب (الإزالة من المصدر بجامعات هواء بضغط سالب، والتحريك الميكانيكي بالفرش وسياط الهواء)، والتحقق بعد التنظيف (الفحص البصري، قياس الغبار السطحي)، وتقارير النظافة. لا يُستخدم التعقيم الكيميائي أو الطلاءات إلا بعد التنظيف الميكانيكي وبمنتجات معتمدة لأنظمة التكييف. لدى بلدية دبي متطلبات منشورة تتعلق بجودة الهواء الداخلي وتعتمد شركات تعمل في مجالات بيئية معينة، فتأكد من الترخيص الحالي المطلوب لمقدم الخدمة. اطلب صوراً أو فيديو قبل وبعد، وتركيب أبواب صيانة حيث لا توجد، وبيان الطريقة، والمعيار المتبع، وهل يشمل تنظيف الملفات وصواني تصريف وحدات FCU وشفط المطابخ (وهو تخصص منفصل). احذر من الأسعار المنخفضة جداً التي تقتصر على تنظيف الفتحات. تنشر بلدية دبي أدلة فنية لجودة الهواء الداخلي (الدليلان 119 و141) ولمعالجة العفن (الدليل 142)، وقد يستند إليها الاستشاريون في تقارير النظافة. ولاحظ أن تنظيف الدكت يُبرَّر بنتائج الفحص (غبار ظاهر أو عفن أو مخلفات) لا كعلاج صحي روتيني.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Duct_(flow)",
+        "https://www.dm.gov.ae/municipality-business/technical-guidelines-list/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:noise-vibration",
+      "topic": "Noise and vibration control for HVAC",
+      "kind": "installation",
+      "body_en": "HVAC noise complaints (humming outdoor units, whistling diffusers, rumbling FCUs above bedrooms, chiller noise reaching neighbours) are avoidable in design and installation. Acoustic criteria are usually set as NC or NR levels per room type (bedrooms and hotel rooms strict, retail more relaxed), and Dubai Municipality and other authorities have environmental noise limits at property boundaries. Measures: select equipment and fan speeds with low sound power; limit duct velocities; add sound attenuators and internally lined duct sections near fans; use flexible connectors at fans and pumps; mount equipment on spring or rubber isolators matched to machine speed and weight; use inertia bases for large pumps; avoid placing FCUs directly above beds; and provide acoustic barriers or enclosures for rooftop chillers and condensers near residences. Specify the sound data (sound power by octave band) in submittals and ask the supplier to confirm compliance with NC targets at the stated positions. Retrofit fixes are far costlier than getting this right at selection.",
+      "body_ar": "شكاوى الضجيج من التكييف (طنين الوحدات الخارجية، صفير المخارج، هدير وحدات FCU فوق غرف النوم، وصول ضجيج التشلر للجيران) يمكن تجنبها في التصميم والتركيب. تُحدد المعايير الصوتية عادة بمستويات NC أو NR لكل نوع غرفة (صارمة لغرف النوم والفنادق وأخف للمحلات)، ولدى بلدية دبي والجهات الأخرى حدود للضجيج البيئي عند حدود العقار. الإجراءات: اختيار معدات وسرعات مراوح منخفضة القدرة الصوتية؛ الحد من سرعات الهواء في المجاري؛ إضافة كاتمات صوت ومقاطع مبطنة داخلياً قرب المراوح؛ وصلات مرنة عند المراوح والمضخات؛ تركيب المعدات على عوازل زنبركية أو مطاطية مناسبة لسرعة الآلة ووزنها؛ قواعد قصور ذاتي للمضخات الكبيرة؛ تجنب وضع وحدات FCU فوق الأسرة مباشرة؛ وحواجز أو حاويات صوتية للتشلرات والمكثفات على الأسطح القريبة من المساكن. اطلب بيانات الصوت (القدرة الصوتية لكل حزمة أوكتاف) في المستندات، واطلب من المورد تأكيد تحقيق مستويات NC المطلوبة في المواقع المحددة. تكلفة الإصلاح اللاحق أعلى بكثير من الاختيار الصحيح من البداية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Air_handler"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:trakhees-dda-freezones",
+      "topic": "Authority approvals by jurisdiction (DM, Trakhees, DDA, DCD)",
+      "kind": "authority_approval",
+      "body_en": "HVAC design and installation approvals depend on who controls the plot. DEWA's electrical regulations make the building permit issued by the authority where the plot is located a prerequisite for an electricity connection, which is why the RFQ should name that authority first. In mainland Dubai the building permit comes from Dubai Municipality, and Al Sa'fat (the Dubai Green Building System) sets mechanical design rules such as the 46 °C / 29 °C outdoor design condition and commissioning for buildings of 1 MW cooling load or more; Dubai Civil Defence approves fire-life-safety elements including smoke control. Trakhees (Ports, Customs and Free Zone Corporation) runs its own regime in its areas: its circulars require an EHS NOC and a building permit from the Trakhees Civil Engineering Department for modifications or installation of machinery, and a completion certificate afterwards, with penalties for working without them. Dubai Development Authority and other master-developer authorities have their own building-control processes; their HVAC-specific rules were not checked in this pass. Abu Dhabi, Sharjah and the northern emirates have their own municipalities and civil defence; details not established here. For buyers: state the plot's authority in the RFQ so suppliers submit the right approved products and certificates.",
+      "body_ar": "تعتمد اعتمادات تصميم وتركيب أنظمة التكييف على الجهة المسيطرة على قطعة الأرض. وتجعل لوائح الكهرباء الصادرة عن هيئة كهرباء ومياه دبي رخصة البناء الصادرة من الجهة التي تقع القطعة ضمن نطاقها شرطاً مسبقاً لتوصيل الكهرباء، ولذلك يجب أن يذكر طلب عرض السعر هذه الجهة أولاً. في دبي البر الرئيسي تصدر رخصة البناء من بلدية دبي، ويضع نظام السعفات (نظام دبي للمباني الخضراء) قواعد التصميم الميكانيكي مثل ظروف التصميم الخارجية 46/29 درجة مئوية والتشغيل والاختبار للمباني بحمل تبريد 1 ميغاواط فأكثر؛ ويعتمد الدفاع المدني في دبي عناصر السلامة من الحريق ومنها التحكم بالدخان. أما مؤسسة الموانئ والجمارك والمنطقة الحرة (تراخيص) فلها نظامها الخاص في مناطقها: إذ تشترط تعاميمها الحصول على عدم ممانعة من إدارة البيئة والصحة والسلامة ورخصة بناء من إدارة الهندسة المدنية في تراخيص لأي تعديل أو تركيب آلات، ثم شهادة إنجاز بعد ذلك، مع فرض جزاءات على العمل دونها. ولسلطة دبي للتطوير وجهات المطورين الرئيسيين الأخرى إجراءات رقابة بناء خاصة بها، ولم تُراجع قواعدها الخاصة بالتكييف في هذه المرحلة. ولأبوظبي والشارقة والإمارات الشمالية بلدياتها ودفاعها المدني؛ والتفاصيل غير ثابتة هنا. على المشتري أن يذكر الجهة المختصة بالقطعة في طلب عرض السعر ليقدم الموردون المنتجات والشهادات المعتمدة الصحيحة.",
+      "sources": [
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Environment,%20Health%20&%20Safety/Ports%20&%20Maritime/Circulars/circular02-12trakheesmandatoryapprovalrequirementsfordmcclients.pdf",
+        "https://electricalwikipedia.wordpress.com/wp-content/uploads/2018/05/dewa-regulations-for-electrical-installations-2017-edition.pdf",
+        "https://moei.gov.ae/assets/download/9fae19c8/Safat.pdf.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:dx-vs-chilled-water",
+      "topic": "DX systems vs chilled-water systems",
+      "kind": "comparison",
+      "body_en": "Direct-expansion (DX) systems (splits, VRF, packaged units) cool air by evaporating refrigerant directly in the indoor coil; chilled-water systems use a chiller (or district cooling) to cool water, which is pumped to AHUs and FCUs. DX is typically chosen for villas, small and mid-size buildings and fit-outs because of lower initial cost, no plant room and simpler maintenance, but refrigerant piping lengths are limited and a large building would contain a large refrigerant inventory. Chilled water scales better for large buildings, towers, malls, hospitals and campuses: central plant efficiency, easier redundancy, long service life of central equipment, and no refrigerant inside occupied spaces; its drawbacks are plant space, pumps, water treatment, and higher initial cost. In district-cooled areas the choice is often made by the master developer. Both approaches must meet the same green-code efficiency and ventilation rules. When a buyer is unsure, the decision should come from the MEP consultant based on building size, phasing, tenancy, and whether district cooling is available.",
+      "body_ar": "أنظمة التمدد المباشر (DX) مثل السبليت وVRF والوحدات المجمعة تبرّد الهواء بتبخير غاز التبريد مباشرة في الملف الداخلي، أما أنظمة المياه المبردة فتستخدم تشلراً (أو التبريد المركزي) لتبريد المياه التي تُضخ إلى وحدات مناولة الهواء ووحدات FCU. تُختار أنظمة DX عادة للفلل والمباني الصغيرة والمتوسطة وأعمال التجهيز الداخلي بسبب انخفاض التكلفة الأولية وعدم الحاجة لغرفة معدات وبساطة الصيانة، لكن أطوال أنابيب الغاز محدودة، والمبنى الكبير سيحتوي كمية كبيرة من الغاز. أما المياه المبردة فتناسب المباني الكبيرة والأبراج والمراكز التجارية والمستشفيات والمجمعات: كفاءة المحطة المركزية، وسهولة توفير الاحتياط، وعمر طويل للمعدات المركزية، وعدم وجود غاز داخل الأماكن المشغولة؛ وعيوبها المساحة والمضخات ومعالجة المياه وارتفاع التكلفة الأولية. في المناطق المرتبطة بالتبريد المركزي يحدد المطور الرئيسي الخيار غالباً. يجب أن يلتزم النظامان بقواعد الكفاءة والتهوية نفسها في الأكواد الخضراء. إذا كان المشتري غير متأكد فالقرار للاستشاري الميكانيكي بناءً على حجم المبنى ومراحله ونوع الإشغال وتوفر التبريد المركزي.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Chiller",
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow",
+        "https://rsbdubai.gov.ae/media/baufmpnp/rd10-tariffs-v14.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:brands-origins",
+      "topic": "Common HVAC brands and origins in the UAE (neutral)",
+      "kind": "glossary",
+      "body_en": "The UAE market carries equipment from Japanese, Korean, American, European, Chinese and regional manufacturers. Examples frequently seen in UAE projects (listed neutrally, without endorsement) include Daikin, Mitsubishi Electric, Mitsubishi Heavy Industries, Toshiba-Carrier, Hitachi/Johnson Controls-Hitachi, Fujitsu General and Panasonic (Japanese origin); LG and Samsung (Korean); Carrier, Trane, York/Johnson Controls and McQuay/Daikin Applied (US origin chillers and applied systems); Gree, Midea, Haier and TCL (Chinese); and regional manufacturers such as Zamil (Saudi Arabia) and Petra (Jordan), plus several UAE-based AHU, FCU and duct/accessory factories. A brand name does not fix origin: many models are made in factories in Thailand, Malaysia, China, India or the region, and the country of manufacture, local distributor strength, parts stock and service network affect real-life performance and warranty experience. Buyers should ask for model number, country of manufacture, the authorised UAE distributor, and parts/service support commitments, and compare on these rather than brand alone. For procurement, compare brands on the things that matter in the UAE rather than on the logo: the certified performance at high ambient (T3), ECAS registration for regulated residential units, AHRI or Eurovent listing for applied equipment, the local distributor's stock of compressors and PCBs, the number of authorised service engineers in the emirate, and the written warranty terms for the specific model and factory. Ask each supplier to state the factory and country of manufacture on the quotation.",
+      "body_ar": "يضم سوق الإمارات معدات من مصنعين يابانيين وكوريين وأمريكيين وأوروبيين وصينيين وإقليميين. من الأمثلة المنتشرة في مشاريع الإمارات (مذكورة بحياد ودون تزكية): دايكن، وميتسوبيشي إلكتريك، وميتسوبيشي للصناعات الثقيلة، وتوشيبا-كاريير، وهيتاشي، وفوجيتسو جنرال، وباناسونيك (منشأ ياباني)؛ وإل جي وسامسونج (كوريا)؛ وكاريير وترين ويورك/جونسون كنترولز وماكواي/دايكن أبلايد (منشأ أمريكي للتشلرات والأنظمة التطبيقية)؛ وجري وميديا وهاير وTCL (الصين)؛ ومصنعون إقليميون مثل الزامل (السعودية) وبترا (الأردن)، إضافة إلى عدة مصانع في الإمارات لوحدات مناولة الهواء ووحدات FCU والمجاري والملحقات. اسم العلامة لا يحدد المنشأ؛ فكثير من الطرازات تُصنع في تايلاند أو ماليزيا أو الصين أو الهند أو المنطقة، وبلد التصنيع وقوة الموزع المحلي ومخزون القطع وشبكة الخدمة تؤثر في الأداء الفعلي وتجربة الضمان. على المشتري طلب رقم الطراز وبلد التصنيع والموزع المعتمد في الإمارات والتزامات دعم القطع والخدمة، والمقارنة على أساسها لا على العلامة وحدها. عند الشراء قارن العلامات التجارية بما يهم في الإمارات لا بالشعار: الأداء المعتمد عند الحرارة العالية (T3)، وتسجيل ECAS للوحدات السكنية الخاضعة للتنظيم، والإدراج في AHRI أو Eurovent للمعدات التطبيقية، ومخزون الموزع المحلي من الضواغط واللوحات الإلكترونية، وعدد مهندسي الخدمة المعتمدين في الإمارة، وشروط الضمان المكتوبة للطراز والمصنع المحددين. واطلب من كل مورد ذكر المصنع وبلد الصنع في عرض السعر.",
+      "sources": [
+        "https://hvacsourcing.com/what-is-t3-air-conditioner-high-ambient-cooling/",
+        "https://www.intertek.com/government/product-conformity/ecas/",
+        "https://www.ahrinet.org/certification",
+        "https://www.eurovent-certification.com/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:refrigerant-leak-safety",
+      "topic": "Refrigerant charge limits and leak safety (ISO 5149 / EN 378)",
+      "kind": "standard",
+      "body_en": "Refrigerant systems that serve occupied rooms must limit how much refrigerant could leak into the smallest room, because high concentrations can displace oxygen and, for A2L refrigerants such as R32, create a flammability risk. International standards such as ISO 5149 and EN 378 (and IEC 60335-2-40 for appliances) define practical limits per refrigerant, calculation methods based on room volume, and mitigation measures: leak detectors with alarms and shut-off valves, mechanical ventilation, or splitting the system into smaller circuits. This is most relevant to VRF systems, where one outdoor unit may hold a large charge but serve a small hotel room, office or bathroom. Plant rooms with chillers need refrigerant detection, alarm and emergency ventilation in line with these standards and the fire code. The UAE fire code and project specifications may reference these standards; confirm which apply. Buyers should ask the VRF supplier for the charge calculation per system and the room check, and for chiller plant rooms ask for the detection and ventilation design.",
+      "body_ar": "يجب أن تحد أنظمة التبريد التي تخدم غرفاً مشغولة من كمية الغاز التي قد تتسرب إلى أصغر غرفة، لأن التركيزات العالية قد تزيح الأكسجين، ومع غازات A2L مثل R32 قد تسبب خطر اشتعال. تحدد المواصفات الدولية مثل ISO 5149 وEN 378 (وIEC 60335-2-40 للأجهزة) حدوداً عملية لكل غاز، وطرق حساب مبنية على حجم الغرفة، وإجراءات تخفيف: كاشفات تسرب مع إنذار وصمامات إغلاق، وتهوية ميكانيكية، أو تقسيم النظام إلى دوائر أصغر. هذا مهم خاصة في أنظمة VRF حيث قد تحمل وحدة خارجية واحدة شحنة كبيرة وتخدم غرفة فندقية أو مكتباً أو حماماً صغيراً. غرف التشلرات تحتاج كشف غاز وإنذاراً وتهوية طوارئ وفق هذه المواصفات وكود الحريق. قد يشير كود الحريق في الإمارات ومواصفات المشروع إلى هذه المعايير، فتأكد من المعيار المطبق. على المشتري طلب حساب الشحنة لكل نظام والتحقق من الغرف من مورد VRF، وطلب تصميم الكشف والتهوية لغرف التشلرات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Difluoromethane",
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "hvac:thermostat-setpoints-energy",
+      "topic": "Set points, scheduling and energy-saving measures",
+      "kind": "glossary",
+      "body_en": "Much of an HVAC system's energy use is decided by how it is operated. UAE utilities and green programmes encourage moderate cooling set points (DEWA campaigns have promoted around 24 °C) rather than very low settings; each degree lower increases compressor energy. Useful measures: occupancy-based setback in offices and hotel rooms, time schedules on BMS, CO2-based demand-controlled ventilation in variable-occupancy spaces (meeting rooms, mosques, halls), VFDs on pumps and fans, chilled-water temperature reset, keeping condenser coils clean, sealing building leaks, and shading of outdoor units where it does not restrict airflow. Sub-metering lets tenants see and manage their own consumption, and green codes require energy meters above certain thresholds. For procurement, controls that enable these strategies (programmable thermostats, sensors, BMS points) should be specified up front; adding them later is costly. Energy-efficiency retrofits in existing buildings are also offered by energy service companies (ESCOs), with Etihad ESCO in Dubai as an example of the ESCO model. DEWA's \"Set your AC to 24C\" campaign, first aimed at homes, was extended to commercial customers and is tied to the Dubai Integrated Energy Strategy target of reducing energy demand.",
+      "body_ar": "يتحدد جزء كبير من استهلاك نظام التكييف للطاقة بطريقة تشغيله. تشجع شركات الكهرباء والبرامج الخضراء في الإمارات على ضبط حرارة معتدلة (روّجت حملات هيئة كهرباء ومياه دبي لنحو 24 درجة) بدلاً من الإعدادات المنخفضة جداً، فكل درجة أقل تزيد طاقة الضاغط. من الإجراءات المفيدة: خفض التكييف حسب الإشغال في المكاتب وغرف الفنادق، وجداول التشغيل عبر نظام إدارة المبنى، والتهوية المتحكم بها حسب ثاني أكسيد الكربون في الأماكن متغيرة الإشغال (قاعات الاجتماعات والمساجد والقاعات)، ومحولات التردد على المضخات والمراوح، وإعادة ضبط حرارة المياه المبردة، والحفاظ على نظافة ملفات المكثف، وإحكام تسربات المبنى، وتظليل الوحدات الخارجية دون إعاقة الهواء. العدادات الفرعية تمكّن المستأجرين من رؤية استهلاكهم وإدارته، وتشترط الأكواد الخضراء عدادات طاقة فوق حدود معينة. في الشراء يجب تحديد عناصر التحكم التي تمكّن هذه الاستراتيجيات (ثرموستات قابل للبرمجة، حساسات، نقاط نظام إدارة المبنى) من البداية لأن إضافتها لاحقاً مكلفة. كما تقدم شركات خدمات الطاقة مشاريع تحسين الكفاءة في المباني القائمة، ومثال ذلك نموذج \"الاتحاد لخدمات الطاقة\" في دبي. امتدت حملة ديوا \"اضبط مكيفك على 24 درجة\"، التي استهدفت المنازل أولاً، لتشمل العملاء التجاريين، وهي مرتبطة بهدف استراتيجية دبي المتكاملة للطاقة لخفض الطلب على الطاقة.",
+      "sources": [
+        "https://www.khaleejtimes.com/uae/dewa-takes-ac-at-24c-campaign-to-businesses",
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://en.wikipedia.org/wiki/Building_management_system"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What's the difference between a ducted split and VRF for a 5-bedroom villa, and which should I choose?",
+      "q_ar": "ما الفرق بين السبليت المخفي ونظام VRF لفيلا من خمس غرف، وأيهما أختار؟",
+      "expected_entry_ids": [
+        "hvac:split-vs-ducted-vs-vrf",
+        "hvac:spec-vrf",
+        "hvac:dx-vs-chilled-water"
+      ]
+    },
+    {
+      "q_en": "Supplier quoted a chiller as 300 TR but didn't say at what conditions — is that a problem?",
+      "q_ar": "المورد عرض تشلر بسعة 300 طن دون ذكر الظروف، هل هذه مشكلة؟",
+      "expected_entry_ids": [
+        "hvac:red-flags-quote",
+        "hvac:spec-chiller",
+        "hvac:chiller-air-vs-water-cooled"
+      ]
+    },
+    {
+      "q_en": "Should I pick an air-cooled or water-cooled chiller for a 20-storey tower in Dubai?",
+      "q_ar": "هل أختار تشلر مبرداً بالهواء أم بالماء لبرج من 20 طابقاً في دبي؟",
+      "expected_entry_ids": [
+        "hvac:chiller-air-vs-water-cooled",
+        "hvac:cooling-towers",
+        "hvac:district-cooling"
+      ]
+    },
+    {
+      "q_en": "My old AC uses R22 and the compressor failed. Repair or replace?",
+      "q_ar": "مكيفي القديم يعمل بغاز R22 وتعطل الضاغط، هل أصلحه أم أستبدله؟",
+      "expected_entry_ids": [
+        "hvac:replacement-vs-repair",
+        "hvac:refrigerants-r22-r410a-r32"
+      ]
+    },
+    {
+      "q_en": "What do the ESMA stars on an AC mean and do I need the certificate?",
+      "q_ar": "ماذا تعني نجوم ESMA على المكيف وهل أحتاج الشهادة؟",
+      "expected_entry_ids": [
+        "hvac:esma-energy-label",
+        "hvac:certification-ahri-eurovent"
+      ]
+    },
+    {
+      "q_en": "What's the difference between a fire damper and a smoke damper, and who approves them?",
+      "q_ar": "ما الفرق بين بوابة الحريق وبوابة الدخان، ومن يعتمدها؟",
+      "expected_entry_ids": [
+        "hvac:fire-smoke-dampers",
+        "hvac:civil-defence-hvac"
+      ]
+    },
+    {
+      "q_en": "Why are my ceilings wet and the flat feels humid even though the AC is cold?",
+      "q_ar": "لماذا تتبلل الأسقف وأشعر برطوبة في الشقة رغم أن التكييف بارد؟",
+      "expected_entry_ids": [
+        "hvac:humidity-condensation",
+        "hvac:insulation",
+        "hvac:ahu-fahu"
+      ]
+    },
+    {
+      "q_en": "What should an HVAC AMC include and what's usually excluded?",
+      "q_ar": "ماذا يجب أن يشمل عقد صيانة التكييف السنوي وما المستثنى عادة؟",
+      "expected_entry_ids": [
+        "hvac:spec-amc",
+        "hvac:warranty-norms"
+      ]
+    },
+    {
+      "q_en": "Two quotes for 10 split units differ by 30%. How do I compare them fairly?",
+      "q_ar": "عرضان لعشر وحدات سبليت يختلفان بنسبة 30%، كيف أقارنهما بعدل؟",
+      "expected_entry_ids": [
+        "hvac:mistake-comparing-by-price",
+        "hvac:spec-split-ac",
+        "hvac:red-flags-quote"
+      ]
+    },
+    {
+      "q_en": "Is R32 safe? The installer said it's flammable.",
+      "q_ar": "هل غاز R32 آمن؟ المركّب قال إنه قابل للاشتعال.",
+      "expected_entry_ids": [
+        "hvac:refrigerants-r22-r410a-r32",
+        "hvac:refrigerant-leak-safety",
+        "hvac:installation-best-practice"
+      ]
+    },
+    {
+      "q_en": "What green building rules affect HVAC in Dubai vs Abu Dhabi?",
+      "q_ar": "ما قواعد المباني الخضراء التي تؤثر على التكييف في دبي مقارنة بأبوظبي؟",
+      "expected_entry_ids": [
+        "hvac:al-safat",
+        "hvac:estidama",
+        "hvac:ashrae-62-90"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 43,
+    "claims_checked": 165,
+    "corrected": [
+      "hvac:ashrae-62-90",
+      "hvac:spec-amc",
+      "hvac:heat-load-sizing",
+      "hvac:mistake-comparing-by-price",
+      "hvac:price-drivers",
+      "hvac:lead-times",
+      "hvac:warranty-norms",
+      "hvac:tab-commissioning",
+      "hvac:coil-coating-corrosion",
+      "hvac:trakhees-dda-freezones"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "second_pass_A1b": {
+      "entries": 9,
+      "fetched_urls": 12,
+      "note": "Each entry now cites >=1 fetched source; unsupported claims rewritten as \"not established\". DEWA regs read via a public mirror of the 2017 edition (dewa.gov.ae 403)."
+    }
+  }
+}

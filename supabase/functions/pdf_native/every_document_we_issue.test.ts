@@ -60,7 +60,7 @@ const REGEN: Standardised = {
   total: 25920, price_basis: 'ex_vat',
   lines: [{ line_no: 1, description: 'ZZ DEMO split AC unit', qty: 4, unit: 'nos', unit_price: 6480, amount: 25920, trade: 'hvac',
     spec: [{ code: 'capacity', label_en: 'Capacity', label_ar: 'السعة', value: '2.5', unit: 'TR', unit_ar: 'طن تبريد', source: 'supplier_portal' }] }],
-  terms: { delivery: '21 days', installation: 'Included', warranty: '2 years — parts and labour', validity: '30 days', payment_terms: '50% advance', exclusions: null },
+  terms: { delivery: '21 days', installation: 'Included', installation_included: true, installation_detail: null, warranty: '2 years — parts and labour', validity: '30 days', payment_terms: '50% advance', exclusions: null },
   prepared_by: 'sales_engineer', prepared_at: '2026-09-22T08:00:00Z',
 };
 const HASH = '94151f940a4567944ff04f362e8c8c3ae6ad87d96cbb7ef280f505420aa11bb2';

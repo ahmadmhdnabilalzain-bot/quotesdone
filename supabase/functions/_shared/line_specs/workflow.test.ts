@@ -168,6 +168,25 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
   nobodyReal(repo);
 });
 
+// Decision point line_specs.workflow_installation: the document reads the structured installation fields,
+// never the record's sentence. A sentence saying "Included" with installation_included false prints Not included.
+import { pdfBody as pdfBody82, type Standardised as Std82 } from './workflow.ts';
+Deno.test('pdfBody reads installation from the structured fields, not from the sentence', () => {
+  const rec = (inc: boolean | null, detail: string | null, sentence: string | null): Std82 => ({
+    contract: 'standardised_quotation', version: 1, quote_id: 'zzdemo00-0000-4000-8000-000000000082', option_no: 1, category: 'hvac', trade: 'hvac', currency: 'AED',
+    total: 1000, price_basis: 'ex_vat', lines: [],
+    terms: { delivery: null, installation: sentence, installation_included: inc, installation_detail: detail, warranty: null, validity: null, payment_terms: null, exclusions: null },
+    prepared_by: 'sales_engineer', prepared_at: '2026-09-23T08:00:00Z',
+  });
+  const inq = { id: 'zzdemo00-0000-4000-8000-00000000008a', rfq_no: 990082, category: 'hvac', emirate: 'Dubai' };
+  const text = (r: Std82) => JSON.stringify(pdfBody82(r, { inquiry: inq, letter: 'A', lang: 'en' }));
+  const no = text(rec(false, null, 'Included — ZZ DEMO full install'));
+  assert(no.includes('Not included') && !no.includes('ZZ DEMO full install'));
+  assert(text(rec(true, 'ZZ DEMO two fitters', 'Not included (supply only)')).includes('ZZ DEMO two fitters'));
+  const na = text(rec(null, null, 'Included'));
+  assert(na.includes('N/A') || !na.includes('Not included'));
+});
+
 Deno.test('an Arabic quotation waiting for its reasoned translation is never sent for approval without its PDF; the replay renders it and asks', async () => {
   const repo = new Fake();
   repo.quotes.set('q9', q('q9', SUP_AR.id, { warranty: '2 years' }));
