@@ -1,0 +1,1 @@
+Committed, not applied. Apply after every_seat_duty_has_an_owner_a_clock_and_a_check.sql (public.seat_duty, fn_seat_duty_reason, fn_seat_duty_cross_review); then delete this note and append the file to the END of MANIFEST.txt in the same commit. Proved in an aborted transaction by scripts/checks/ceo_reviews_pricing_and_forecast_act.test.mjs.
