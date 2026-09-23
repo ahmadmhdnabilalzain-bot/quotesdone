@@ -1,0 +1,7 @@
+Committed, not applied. Apply AFTER a_reasoned_answer_is_applied_by_its_own_surface.sql (itself after #884's
+every_seat_reasons_before_it_answers.sql and meaning_is_decided_by_reasoning_not_by_word_lists.sql, both live on
+production unrecorded as of 23 Sep 17:45). Clears every expires_at, puts 'expired' rows back to 'held', redefines
+fn_reason_hold / fn_reason_held_due without expiry, adds fn_reason_held_escalate. Deploy resilience_ping IN THE SAME
+STEP (its reasoning_escalate step calls fn_reason_held_escalate; before the apply that step records an error per tick
+and nothing else changes). Proved by node --test scripts/checks/decision_points_are_reasoned.test.mjs.
+Seat: it_engineer.
