@@ -27,7 +27,7 @@ const heldCall = (m: ReturnType<typeof mock>) => m.rpcs.find(([f]) => f === 'fn_
 
 Deno.test('escalation: reasoned legal / repeat / neither; held files ceo.escalation_meaning and guesses nothing', async () => {
   const cands = [{ id: 12, headline: 'ZZ we paid a supplier before the licence check' }];
-  const base = { text: 'ZZ the supplier kept the deposit and we will go to court', kind: 'escalate', actor: 'sales_engineer', legalTriggers: ['dispute', 'liability'], candidates: cands, dedupeKey: 'ceo.escalation:abc' };
+  const base = { text: 'ZZ the supplier kept the deposit and we will go to court', kind: 'escalate', actor: 'sales_engineer', ctx: { text: 'ZZ the supplier kept the deposit and we will go to court' }, legalTriggers: ['dispute', 'liability'], candidates: cands, dedupeKey: 'ceo.escalation:abc' };
   assertEquals((await escalationMeaning(mock({ choice: ESCALATION_LEGAL }).deps, base)).value, 'legal_matter');
   assertEquals((await escalationMeaning(mock({ choice: ESCALATION_REPEAT + 12 }).deps, base)).value, 'repeats_failure_12');
   assertEquals((await escalationMeaning(mock({ choice: ESCALATION_NEITHER }).deps, base)).value, 'neither');
@@ -38,12 +38,12 @@ Deno.test('escalation: reasoned legal / repeat / neither; held files ceo.escalat
   assertEquals(m.llmCalls(), 0, 'no model is called under the hold');
   const h = heldCall(m)!;
   assertEquals([h.p_seat, h.p_surface, h.p_dedupe_key], ['ceo', 'ceo.escalation_meaning', 'ceo.escalation:abc']);
-  assertEquals(h.p_subject, { kind: 'escalate', actor: 'sales_engineer' });
+  assertEquals(h.p_subject, { kind: 'escalate', ctx: { text: 'ZZ the supplier kept the deposit and we will go to court' }, actor: 'sales_engineer' });
   assertEquals(escalationOptions(['dispute'], cands).map((x) => x.id), ['legal_matter', 'repeats_failure_12', 'neither']);
 });
 
 Deno.test('an option the model invents is refused, never taken', async () => {
-  const r = await escalationMeaning(mock({ choice: 'dispute' }).deps, { text: 'ZZ x', kind: 'approve', actor: 'ceo', legalTriggers: [], candidates: [], dedupeKey: 'k' });
+  const r = await escalationMeaning(mock({ choice: 'dispute' }).deps, { text: 'ZZ x', kind: 'approve', actor: 'ceo', ctx: {}, legalTriggers: [], candidates: [], dedupeKey: 'k' });
   assertEquals(r.value, null);
   assertEquals(r.result.status, 'held');
 });
@@ -100,7 +100,10 @@ Deno.test('the SQL that files these questions uses the same surfaces and option 
   const sql = Deno.readTextFileSync(new URL('../../../scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql', import.meta.url));
   const ids = [...DOCUMENT_SUBJECT, ...REFUND_OFF_PLATFORM, ...SAME_REQUEST, ...collaborationRuleOptions('x')].map((x) => x.id)
     .concat([ESCALATION_LEGAL, ESCALATION_NEITHER, ESCALATION_REPEAT, TASK_RESPONSIBILITY_NONE]);
-  for (const id of ids) assert(sql.includes(`'${id}`), `the SQL has no option ${id}`);
+  for (const id of ids) assert(sql.includes(`'id', '${id}`), `the SQL files no option with id ${id}`);
+  // and the SQL offers no option the TS does not define (surfaces with a fixed option list)
+  const fixed = new Set([...DOCUMENT_SUBJECT, ...REFUND_OFF_PLATFORM, ...SAME_REQUEST, ...collaborationRuleOptions('x')].map((x) => x.id).concat([ESCALATION_LEGAL, ESCALATION_NEITHER, TASK_RESPONSIBILITY_NONE]));
+  for (const m of sql.matchAll(/'id', '([a-z_]+)'/g)) assert(fixed.has(m[1]) || m[1] === ESCALATION_REPEAT, `the SQL offers ${m[1]}, which reasoned_routing.ts does not define`);
   for (const s of ['ceo.escalation_meaning', 'ceo.refund_off_platform', 'supplier_documents.subject', 'inquiry.same_request', 'ceo.task_responsibility', 'ceo.task_collaboration_rule']) {
     assert(sql.includes(`'${s}'`), `the SQL files no ${s}`);
   }

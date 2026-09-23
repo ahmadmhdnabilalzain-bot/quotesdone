@@ -335,7 +335,7 @@ test('B6: the routing and CEO routines read no free text for meaning', () => {
   const sql = code(B6, read(B6));
   const body = (name) => { const a = sql.indexOf('function public.' + name + '('); const b = sql.indexOf('$function$;', a); assert.ok(a > 0 && b > a, name); return sql.slice(a, b); };
   for (const n of ['fn_resolve_cat_agent', 'trg_inquiry_enrich', 'fn_supplier_document_home', 'fn_should_escalate', 'fn_task_review']) {
-    assert.doesNotMatch(body(n), /~\*|~ '|ilike|\blike\b|position\(|similar to/i, `${n} matches text again`);
+    assert.doesNotMatch(body(n), /~\*|~ '|ilike|\blike\b|position\(|strpos\(|similar to|regexp_(match|matches|like|split|substr|count|instr)|substring\([^)]*\bfrom\b/i, `${n} matches text again`);
   }
   // fn_decide and the refund checklist keep format guards on OUR keys and addresses (ilike 'supplier@%',
   // a ':'-suffixed source_ref); no pattern may touch the category text or the refund notes.
@@ -399,15 +399,37 @@ begin
     -- failures are remediable work and the unread note — the checklist's own shape, stubbed inside a
     -- rolled-back savepoint. The refund must WAIT: no cycle, no handoff, no decline, no founder page.
     begin
-      create or replace function public.fn_ceo_refund_checklist(p_transaction_id uuid, p_phase text, p_record boolean default true)
-      returns jsonb language sql as $s$ select jsonb_build_object('ok', false, 'items', '[]'::jsonb, 'failed', jsonb_build_array(
-        jsonb_build_object('item', 'day3_chase_happened', 'passed', false, 'remediable', true, 'owner', 'sales_engineer', 'remedy_key', 'chase', 'kind', 'process'),
-        jsonb_build_object('item', 'off_platform_engagement_reasoned', 'passed', false, 'remediable', true, 'owner', 'ceo', 'remedy_key', 'reasoning', 'kind', 'needs_reasoning',
-                           'evidence', jsonb_build_object('held_question_id', 0)))) $s$;
+      -- the REAL checklist, over the live payment with its non-remediable facts taken away (all rolled back)
+      update public.transactions set supplier_ack_at = null where id = v_tx;
+      update public.messages set blocked = true where inquiry_id = (select inquiry_id from public.transactions where id = v_tx) and sender = 'supplier';
+      delete from public.reviews where transaction_id = v_tx;
+      delete from public.refund_ladder_evidence where transaction_id = v_tx;
+      update public.supplier_response_watch set first_response_at = null where transaction_id = v_tx;
+      delete from public.transactions x where x.id <> v_tx and x.customer_id = (select customer_id from public.transactions where id = v_tx)
+        and x.supplier_id = (select supplier_id from public.transactions where id = v_tx);
+      update public.inquiries set status = 'open' where id = (select inquiry_id from public.transactions where id = v_tx) and status in ('completed', 'closed');
+      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+      o := o || jsonb_build_object('rf2_failed', (select jsonb_agg(i->>'item' order by i->>'item') from jsonb_array_elements(v->'failed') i),
+        'rf2_nonrem', (select count(*) from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false)));
       select count(*) into n from public.refund_ceo_review where refund_id = v_ref;
-      o := o || jsonb_build_object('rf2_review', public.fn_ceo_refund_review(v_ref, 'probe')->>'outcome',
+      -- the review runs in its own statement, so the counts below see what it wrote
+      v := public.fn_ceo_refund_review(v_ref, 'probe');
+      o := o || jsonb_build_object('rf2_review', v->>'outcome',
         'rf2_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref) - n,
-        'rf2_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text));
+        'rf2_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text),
+        'rf2_reasoning_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text and a.detail->>'remedy_key' = 'reasoning'));
+      -- Now the ladder is complete too, so the unread note is the ONLY failure: the refund must rest.
+      delete from public.agent_actions where detail->>'type' = 'refund.remediate' and detail->>'refund_id' = v_ref::text;
+      delete from public.refund_ceo_review where refund_id = v_ref;
+      insert into public.refund_ladder_evidence (transaction_id, refund_id, step, result, delivered)
+      values (v_tx, v_ref, 'chase', 'no_response_confirmation', true), (v_tx, v_ref, 'final_call', 'no_response_confirmation', true);
+      v := public.fn_ceo_refund_checklist(v_tx, 'approve', false);
+      o := o || jsonb_build_object('rf3_failed', (select jsonb_agg(i->>'item') from jsonb_array_elements(v->'failed') i),
+        'rf3_review', null);
+      v := public.fn_ceo_refund_review(v_ref, 'probe');
+      o := o || jsonb_build_object('rf3_review', v->>'outcome',
+        'rf3_cycles', (select count(*) from public.refund_ceo_review where refund_id = v_ref),
+        'rf3_handoffs', (select count(*) from public.agent_actions a where a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = v_ref::text));
       raise exception 'zz_b6_rollback';
     exception when others then if sqlerrm <> 'zz_b6_rollback' then raise; end if;
     end;
@@ -496,9 +518,16 @@ end $p$;`);
       assert.equal(out.rf_review, 'waiting_on_reasoning');
       assert.equal(out.rf_cycles, 0, 'a question still being reasoned spends no cycle and pages nobody');
     }
-    assert.equal(out.rf2_review, 'waiting_on_reasoning', 'a refund whose note is unread waits');
-    assert.equal(out.rf2_cycles, 0, 'no cycle is spent, so three of them can never page the founder');
-    assert.equal(out.rf2_handoffs, 0, 'no remediation task is handed to anyone for a question only reasoning answers');
+    // the real checklist: only remediable work fails besides the unread note
+    assert.equal(out.rf2_nonrem, 0, 'the savepoint left no non-remediable finding: ' + JSON.stringify(out.rf2_failed));
+    assert.ok(out.rf2_failed.includes('off_platform_engagement_reasoned'));
+    assert.equal(out.rf2_review, 'rejected', 'the other remediable work still goes to its owners while the note is reasoned');
+    assert.ok(out.rf2_handoffs > 0);
+    assert.equal(out.rf2_reasoning_handoffs, 0, 'no person is handed a question only reasoning answers');
+    assert.deepEqual(out.rf3_failed, ['off_platform_engagement_reasoned'], 'the real checklist: only the unread note fails');
+    assert.equal(out.rf3_review, 'waiting_on_reasoning', 'a refund whose note is unread waits');
+    assert.equal(out.rf3_cycles, 0, 'no cycle is spent, so three of them can never page the founder');
+    assert.equal(out.rf3_handoffs, 0);
     assert.equal(out.rf_offp_after, true);
     assert.equal(out.rf_reasoned_item_gone, true);
     assert.equal(out.rf_row, 'applied');

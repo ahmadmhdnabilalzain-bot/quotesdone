@@ -39,8 +39,10 @@ export function escalationOptions(legalTriggers: string[], candidates: { id: num
     { id: ESCALATION_NEITHER, meaning: 'neither a legal exposure nor a repeat of an attempt that ended worse' },
   ];
 }
-export function escalationMeaning(deps: ThinkDeps, o: { text: string; kind: string; actor: string; legalTriggers: string[]; candidates: { id: number; headline: string }[]; dedupeKey: string }) {
-  return pick(deps, 'ceo', 'ceo.escalation_meaning', o.text, escalationOptions(o.legalTriggers, o.candidates), o.dedupeKey, { kind: o.kind, actor: o.actor });
+/** dedupeKey must be the SQL's: 'ceo.escalation:' + md5 of the jsonb text of ctx || {actor, decide_kind} (fn_should_escalate), so the
+ *  replay (fn_reason_apply_ceo__escalation_meaning re-runs fn_decide with subject.ctx) finds its own answer. */
+export function escalationMeaning(deps: ThinkDeps, o: { text: string; kind: string; actor: string; ctx: Record<string, unknown>; legalTriggers: string[]; candidates: { id: number; headline: string }[]; dedupeKey: string }) {
+  return pick(deps, 'ceo', 'ceo.escalation_meaning', o.text, escalationOptions(o.legalTriggers, o.candidates), o.dedupeKey, { kind: o.kind, ctx: o.ctx, actor: o.actor });
 }
 
 // ── ceo.refund_off_platform (sql.fn_ceo_refund_checklist) ─────────────────────────────────────────

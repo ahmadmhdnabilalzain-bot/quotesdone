@@ -24,7 +24,8 @@
 --      resilience_ping each tick) reasons the question the moment a model may run; fn_reason_held_resolve
 --      then calls the surface's own fn_reason_apply_<surface> below, which re-runs the waiting step.
 --      The questions of this file never expire (expires_at null): what waits on them is money, an
---      escalation or an owner, not a chat that goes stale. An expired row (none can exist) would reopen.
+--      escalation or an owner, not a chat that goes stale. A row that expired or failed (five model
+--      failures) is reopened the next time the waiting step asks, so nothing waits on a dead question.
 --   2. Each routine reads the reasoned answer and never the text: escalation (ceo.escalation_meaning),
 --      refund exclusion (ceo.refund_off_platform), task ownership (ceo.task_responsibility,
 --      ceo.task_collaboration_rule), supplier document (supplier_documents.subject), repeat request
@@ -75,7 +76,7 @@ begin
           jsonb_build_object('pending', jsonb_build_array('decompose', 'resolve', 'retrieve', 'decide'), 'filed_by', 'sql'),
           p_subject, 'awaiting_reasoning', p_dedupe_key, null)
   on conflict (dedupe_key) do update set status = 'held', attempts = 0, last_attempt_at = null, expires_at = null
-   where reasoning_held_question.status = 'expired'
+   where reasoning_held_question.status in ('expired', 'failed')
   returning id into v_id;
   if v_id is null then
     select id into v_id from public.reasoning_held_question where dedupe_key = p_dedupe_key;
@@ -307,7 +308,7 @@ begin
   -- reasoning (fn_decide files it) and read back here by its key. Until it is answered this routine says
   -- so ('needs_reasoning') and its caller waits; nothing is escalated on a word guess.
   if c_txt <> '' then
-    v_key := 'ceo.escalation:' || md5(c_txt);
+    v_key := 'ceo.escalation:' || md5(ctx::text);   -- the whole context (decide_kind, actor, text ...): one question per decision
     v_choice := public.fn_reason_route_answer(v_key);
     if v_choice is null then
       select coalesce(jsonb_agg(jsonb_build_object('id', 'repeats_failure_' || m.id,
@@ -474,7 +475,7 @@ begin
   -- seat's queue (reasoning_held_question) and NOTHING is recorded, routed or escalated — to the founder
   -- least of all. fn_reason_apply_ceo__escalation_meaning re-runs this decision once it is answered.
   if p_kind in ('escalate', 'approve') then
-    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor));
+    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor, 'decide_kind', p_kind));
     if jsonb_typeof(res->'needs_reasoning') = 'object' then
       v_held := public.fn_reason_route_ask('ceo', 'ceo.escalation_meaning',
                   'The ' || p_kind || ' decision requested by ' || p_actor || ' concerns: ' || (res->'needs_reasoning'->>'question'),
@@ -490,7 +491,7 @@ begin
   if p_kind='escalate' then
     -- p_actor goes IN. Without it the router has no line to send the escalation up and answers
     -- every caller with the same company-wide owner; see fn_should_escalate's reporting-line rung.
-    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor));
+    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor, 'decide_kind', p_kind));
     decision := case when (res->>'escalate')::boolean then 'escalate' else 'proceed' end;
     reasons := res->'reasons'; route := res->>'route_to';
     conf := case when (res->>'escalate')::boolean then 0.9 else 0.8 end;
@@ -540,7 +541,7 @@ begin
     v_alt_why := 'invite every approved supplier instead of the ranked shortlist — more coverage, worse response rate';
 
   elsif p_kind='approve' then
-    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor));
+    res := public.fn_should_escalate(v_ctx || jsonb_build_object('actor', p_actor, 'decide_kind', p_kind));
     if (res->>'escalate')::boolean then decision:='human_review'; conf:=0.9; reasons:=res->'reasons';
     else decision:='auto_approve'; conf:=0.85; reasons:=jsonb_build_array('within autonomous thresholds'); end if;
     route := res->>'route_to';
@@ -907,7 +908,7 @@ begin
     v_offp_text := nullif(concat_ws(E'\n',
         case when btrim(coalesce(r.reason_note, '')) not in ('', 'The customer reported that the revealed supplier has not responded.')
              then 'Refund note: ' || btrim(r.reason_note) end,
-        (select string_agg('Support note on the supplier''s response: ' || btrim(w.close_reason), E'\n')
+        (select string_agg('Support note on the supplier''s response: ' || btrim(w.close_reason), E'\n' order by w.id)
            from public.supplier_response_watch w where w.transaction_id = t.id and btrim(coalesce(w.close_reason, '')) <> '')), '');
     if v_offp_text is null then
       v_offp := false;
@@ -1074,6 +1075,7 @@ AS $function$
 declare
   r public.refunds; v jsonb; v_cycle int; v_nonrem jsonb; v_rev bigint; v_dec bigint; x record; v_task bigint;
   v_tasks jsonb := '[]'::jsonb; v_rat text; v_deadline timestamptz; v_chase int; v_adv jsonb;
+  v_wait boolean := false;   -- a check still being reasoned (23 Sep 2026)
 begin
   select * into r from public.refunds where id = p_refund_id for update;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund'); end if;
@@ -1114,12 +1116,15 @@ begin
   -- rejected cycle would hand work to nobody who can do it and, after three cycles, page the founder over a
   -- question no person needs to answer. So the refund rests, visible, with no cycle spent; the reasoned
   -- answer re-runs this review (fn_reason_apply_ceo__refund_off_platform).
-  if exists (select 1 from jsonb_array_elements(v->'failed') i where i->>'kind' = 'needs_reasoning') then
+  -- Only the unread note fails: the refund rests. Other remediable failures still go to their owners below
+  -- (the day-3 chase, the final call, the amount), but no founder page is raised while reasoning is pending.
+  v_wait := exists (select 1 from jsonb_array_elements(v->'failed') i where i->>'kind' = 'needs_reasoning');
+  if v_wait and not exists (select 1 from jsonb_array_elements(v->'failed') i where coalesce(i->>'kind', '') <> 'needs_reasoning') then
     return jsonb_build_object('ok', false, 'outcome', 'waiting_on_reasoning',
       'held', (select jsonb_agg(i->'evidence') from jsonb_array_elements(v->'failed') i where i->>'kind' = 'needs_reasoning'));
   end if;
 
-  if v_cycle > 3 then
+  if v_cycle > 3 and not v_wait then
     insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, trigger, sealed)
     values (r.id, r.transaction_id, v_cycle, 'escalated', v->'failed', p_trigger, true);
     perform public.fn_ceo_founder_summary('Refund approval loop stuck: refund #' || r.id,
@@ -1136,7 +1141,7 @@ begin
   v_deadline := public.fn_add_working_days(now(), coalesce(v_chase, 3));
   for x in
     select i->>'owner' as owner, i->>'remedy_key' as rk, jsonb_agg(i->>'item') as checks, jsonb_agg(i) as items
-      from jsonb_array_elements(v->'failed') i group by 1, 2 order by 1, 2
+      from jsonb_array_elements(v->'failed') i where coalesce(i->>'kind', '') <> 'needs_reasoning' group by 1, 2 order by 1, 2
   loop
     v_task := public.fn_seat_handoff('ceo', x.owner, 'refund.remediate', 'refunds', r.id || ':c' || v_cycle || ':' || x.rk,
       jsonb_build_object('refund_id', r.id, 'transaction_id', r.transaction_id, 'cycle', v_cycle, 'review_id', v_rev,
@@ -1176,6 +1181,7 @@ declare
   v_own_os      text;
   v_own_agent   text;
   v_own jsonb; v_resp_key text; v_resp_choice text; v_rule_key text; v_rule_choice text; v_held bigint;
+  v_block_wait boolean := false;
   v_awaiting jsonb := '[]'::jsonb;   -- meaning questions filed with the CEO seat (23 Sep 2026)
 begin
   select o.id, o.dept_key, o.title, o.detail, o.action_class, o.result, o.tier, o.assigned_agent
@@ -1240,8 +1246,8 @@ begin
   loop
     -- WHETHER THE RULE'S SITUATION IS THIS TASK, REASONED (23 Sep 2026). Two shared long words decided it
     -- before. Measured 23 Sep 2026: collaboration_rule holds 0 rows, so this loop runs for nobody today.
-    -- ponytail: a rule reasoned to apply AFTER this review ran is recorded by its apply routine as a
-    -- collaboration row; its challenge is not replayed. Replay fn_challenge there if rules are ever written.
+    -- A rule reasoned to apply AFTER this review ran is recorded, with its challenges, by its apply routine;
+    -- a BLOCKING one still waiting holds publication (v_block_wait below).
     v_rule_key := 'task_rule:' || p_task_id || ':' || v_rule.id || ':' || md5(v_text);
     v_rule_choice := public.fn_reason_route_answer(v_rule_key);
     if v_rule_choice is null then
@@ -1250,6 +1256,7 @@ begin
                           jsonb_build_object('id', 'does_not_apply', 'meaning', 'the task is not that situation')),
         jsonb_build_object('task_id', p_task_id, 'rule_id', v_rule.id, 'dept_key', t.dept_key, 'author', v_author), v_rule_key);
       v_awaiting := v_awaiting || jsonb_build_object('surface', 'ceo.task_collaboration_rule', 'rule_id', v_rule.id, 'held_id', v_held);
+      if v_rule.blocking then v_block_wait := true; end if;
       continue;
     end if;
     if v_rule_choice <> 'applies' then continue; end if;
@@ -1299,6 +1306,12 @@ begin
       end if;
     end loop;
   end loop;
+
+  -- A BLOCKING rule whose situation is still being reasoned holds publication: the task rests until the
+  -- answer (fn_reason_apply_ceo__task_collaboration_rule) records the rule and its challenges.
+  if v_block_wait and not v_blocked and v_outcome in ('published', 'approve') then
+    v_outcome := 'awaiting_reasoning';
+  end if;
 
   if v_blocked and v_outcome in ('published', 'approve') then
     v_outcome := 'request_revision';
@@ -1484,13 +1497,14 @@ end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__task_responsibility(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_reason_apply_ceo__task_responsibility(bigint, jsonb) to service_role;
 
--- A collaboration rule reasoned to apply is recorded against the task (see the ponytail note in fn_task_review).
+-- A collaboration rule reasoned to apply is recorded against the task, and its challenges are replayed.
+-- ponytail: the task already rests (awaiting_reasoning) if the rule blocks; it is re-reviewed by its lane, not here.
 create or replace function public.fn_reason_apply_ceo__task_collaboration_rule(p_id bigint, p_result jsonb)
 returns jsonb
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare r public.reasoning_held_question; c public.collaboration_rule;
+declare r public.reasoning_held_question; c public.collaboration_rule; v_text text; v_dept text; v_ch jsonb; v_n int := 0;
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   select * into c from public.collaboration_rule where id::text = r.subject->>'rule_id';
@@ -1505,7 +1519,24 @@ begin
            || '; review by ' || coalesce(array_to_string(c.must_review, ', '), '(none)')
            || '. Why this rule exists: ' || c.reason, 1.0
 ;
-  return jsonb_build_object('rule_id', c.id, 'applies', true, 'task_id', r.subject->>'task_id');
+  -- Each department the rule permits to challenge challenges, as fn_task_review does; never the author, once.
+  select coalesce(o.title,'') || ' ' || coalesce(o.detail,'') || ' ' || coalesce(o.action_class,'') into v_text
+    from org_tasks o where o.id::text = r.subject->>'task_id';
+  foreach v_dept in array coalesce(c.may_challenge, array[]::text[]) loop
+    continue when v_dept is not distinct from r.subject->>'author'
+      or exists (select 1 from review_chain rc where rc.subject_type = 'org_task' and rc.subject_id = r.subject->>'task_id'
+                   and rc.stage = 'challenge' and rc.reviewer_agent = v_dept);
+    v_ch := fn_challenge(coalesce(v_text, ''), r.subject->>'dept_key', v_dept);
+    if (v_ch->>'stance') <> 'support' then
+      insert into review_chain (subject_type, subject_id, dept_key, author_agent, reviewer_agent, stage, decision, reason, violated_rule, confidence)
+      values ('org_task', r.subject->>'task_id', r.subject->>'dept_key', r.subject->>'author', v_dept, 'challenge',
+              case when c.blocking and (v_ch->>'stance') = 'recommend_against' then 'reject' else 'dissent' end,
+              upper(v_ch->>'stance') || ' from ' || v_dept || ': ' || coalesce(v_ch->>'reasoning',''),
+              v_ch->>'conflicts_with', (v_ch->>'confidence')::numeric);
+      v_n := v_n + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('rule_id', c.id, 'applies', true, 'task_id', r.subject->>'task_id', 'challenges', v_n);
 end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__task_collaboration_rule(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_reason_apply_ceo__task_collaboration_rule(bigint, jsonb) to service_role;
