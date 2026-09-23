@@ -19,6 +19,6 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
   // FAQPage from the same html FaqInner renders, so the markup can never disagree with the page.
   return (<>
     <script type="application/ld+json" dangerouslySetInnerHTML={ldHtml(faqLd(faqPairs(doc(locale).html), locale))} />
-    <SiteHeader /><FaqInner /><SiteFooter />
+    <SiteHeader /><FaqInner locale={locale} /><SiteFooter />
   </>);
 }

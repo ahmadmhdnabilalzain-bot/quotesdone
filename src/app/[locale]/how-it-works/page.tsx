@@ -6,15 +6,17 @@ import { SiteFooter } from '@/components/SiteFooter';
 import { WorkedCase } from '@/components/WorkedCase';
 import { AnonymityFlow } from '@/components/visual/slots';
 import { PageHero, CtaPanel } from '@/components/DocFrame';
-import { ComparisonReport, SealedQuote } from '@/components/visual/product';
 import { Kicker, LedgerList, SectionHead } from '@/components/ui/sealed';
 import { Button } from '@/components/ui/button';
 
 // /how-it-works — the process distilled from the 150-answer FAQ, with the two-way anonymity table
 // (website audit "Months" row). The worked-case slot renders only from a real closed deal.
 // Founder, 14 Sep 2026: the top three are a technical comparison REPORT; every other quote is still
-// listed and can be chosen. The hero shows that report (ComparisonReport, labelled sample), and the
-// anonymity intro shows one quote sealed on arrival and the same quote opened once chosen.
+// listed and can be chosen.
+// THE PRODUCT VISUALS ARE GONE (founder instruction 70, 14 Sep 2026: "i dont like the product visuals
+// at all. cancel that idea"). The hero mock-up report and the sealed/opened quote pair rendered here
+// until 22 Sep 2026; src/components/visual/product.tsx was deleted with them. The page says it in
+// words and in the anonymity table instead.
 type Step = { title: string; body: string };
 type Row = { who: string; before: string; after: string };
 
@@ -47,7 +49,6 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
           title={t('title')}
           lead={t('sub')}
           actions={<Button asChild size="xl" className="qd-magnet"><Link href="/#brief">{t('finalCta')}</Link></Button>}
-          aside={<ComparisonReport locale={lang} />}
         />
 
         <section className="container-x py-beat-s md:py-beat">
@@ -58,13 +59,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
 
         <section className="border-y border-line bg-navy-deep/40">
           <div className="container-x py-beat-s md:py-beat">
-            <div className="grid items-center gap-10 lg:grid-cols-[1fr_auto]">
-              <SectionHead kicker={x.maskKicker} title={t('maskTitle')} lead={t('maskSub')} />
-              <div className="grid gap-4 sm:grid-cols-2 lg:w-[620px]">
-                <SealedQuote locale={lang} />
-                <SealedQuote locale={lang} open />
-              </div>
-            </div>
+            <SectionHead kicker={x.maskKicker} title={t('maskTitle')} lead={t('maskSub')} />
             <div className="mt-10 empty:hidden">
               <AnonymityFlow locale={lang} />
             </div>
