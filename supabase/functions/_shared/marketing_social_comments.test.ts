@@ -2,7 +2,7 @@
 // The marketing seat answers public comments with no person approving a reply (instruction 866, 23 Sep 2026).
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { call, classify, guard, hideRequest, LIMIT, linkedinTarget, normalise, processComment, replyRequest, unhideRequest,
+import { call, classify, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
   type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
@@ -260,14 +260,6 @@ Deno.test('Instagram, Facebook and YouTube: replies, hides and un-hides go to th
   assert(!LIMIT['x' as Platform], 'X is removed (founder, 23 Sep 2026)');
 });
 
-Deno.test('LinkedIn: only the company page integration the founder named; a personal profile is refused', () => {
-  const page = { id: 'int_page_1', identifier: 'linkedin-page' };
-  assert(linkedinTarget(page, 'int_page_1'));
-  assert(!linkedinTarget({ id: 'int_page_1', identifier: 'linkedin' }, 'int_page_1'), 'a personal profile with the same id is refused');
-  assert(!linkedinTarget({ id: 'int_person', identifier: 'linkedin' }, 'int_page_1'));
-  assert(!linkedinTarget({ id: 'int_other_page', identifier: 'linkedin-page' }, 'int_page_1'), 'another page is refused');
-  assert(!linkedinTarget(page, null) && !linkedinTarget(page, ''), 'no id configured: nothing is allowed');
-});
 
 Deno.test('the duty: one platform failing never stops the others, and a credential failure is a skip, not a failure', async () => {
   const { isolated, Skip } = await import('../marketing/duties.ts');

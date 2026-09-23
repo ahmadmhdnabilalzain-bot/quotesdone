@@ -1,7 +1,7 @@
 // deno test supabase/functions/_shared/marketing_social_oauth.test.ts
 // The founder's connect links (instructions 919-920): company scopes only, sealed tokens, QuotesDone's account only.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { accessToken, authorizeUrl, open, pickLinkedin, pickYoutube, sameString, scopesAreCompanyOnly, SCOPES, seal, type TokenSet } from './marketing_social_oauth.ts';
+import { accessToken, authorizeUrl, open, pickYoutube, sameString, scopesAreCompanyOnly, SCOPES, seal, verifyLinkedinOrg, type TokenSet } from './marketing_social_oauth.ts';
 
 const MASTER = 'x'.repeat(40);
 
@@ -25,14 +25,18 @@ Deno.test('tokens are sealed: unreadable without the key, tamper-evident', async
   assertEquals(await open(MASTER, flipped), null);
 });
 
-Deno.test('only the QuotesDone channel / page is accepted, and a pinned id wins over the name', () => {
+Deno.test('only the QuotesDone channel / page is accepted, and a pinned id wins over the name', async () => {
   assert(pickYoutube([{ id: 'UC1', snippet: { title: 'QuotesDone' } }], null).ok);
   assert(!pickYoutube([{ id: 'UC2', snippet: { title: 'Ahmad personal' } }], null).ok);
   assert(!pickYoutube([{ id: 'UC3', snippet: { title: 'QuotesDone (fake)' } }], 'UC1').ok, 'the pin refuses a look-alike name');
   assert(!pickYoutube([], null).ok);
-  assert(pickLinkedin([{ id: '1', name: 'Other Co' }, { id: '2', name: 'Quotes Done' }], null).id === '2');
-  assert(!pickLinkedin([{ id: '1', name: 'Other Co' }], null).ok);
-  assert(!pickLinkedin([{ id: '2', name: 'QuotesDone' }], '9').ok);
+  const seen: string[] = [];
+  const li = (status: number) => async (u: string) => { seen.push(u); return new Response('{}', { status }); };
+  assert((await verifyLinkedinOrg(li(200), 'T', '123')).ok);
+  assert(seen[0].includes('author=urn%3Ali%3Aorganization%3A123'), 'the pinned page, and only it, is probed');
+  assert(!(await verifyLinkedinOrg(li(403), 'T', '123')).ok, 'no admin role on our page: refused');
+  assert(!(await verifyLinkedinOrg(li(200), 'T', null)).ok, 'no pinned page id: refused, never discovered');
+  assert(!(await verifyLinkedinOrg(li(200), 'T', '12 OR 1')).ok);
 });
 
 Deno.test('state comparison is exact', () => {

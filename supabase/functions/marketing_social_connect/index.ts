@@ -6,17 +6,17 @@
 //       A fresh state (CSRF) and PKCE verifier are bound to the row; the state also goes into an HttpOnly,
 //       Secure, SameSite=Lax cookie scoped to this function, then 302 to Google / LinkedIn consent.
 //   GET /marketing_social_connect/{platform}/callback?code&state
-//       The state must match the cookie (constant time) AND an unfinished row of the same platform started in the
+//       The state must match the cookie AND an unfinished row of the same platform started in the
 //       last 15 minutes; the row is closed in the same UPDATE that reads it, so a replayed callback finds nothing.
-//       The code is exchanged, the account is read and must be QuotesDone's (marketing_social_oauth.ts pickYoutube /
-//       pickLinkedin) — otherwise nothing is stored and the page says why. On success the token set is sealed
+//       The code is exchanged, the account is read and must be QuotesDone's (marketing_social_oauth.ts pickYoutube:
+//       exact title or the pinned id; verifyLinkedinOrg: the pinned page, proved by reading its posts) — otherwise nothing is stored and the page says why. On success the token set is sealed
 //       (AES-GCM) into app_secrets.<platform>_oauth and the account id pinned.
 // Deployed with verify_jwt = false: the founder's browser carries no Supabase JWT; the single-use link is the key.
 // No token, code or secret is ever written to a page, a log or agent_runs.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
-  authorizeUrl, pickLinkedin, pickYoutube, pkceChallenge, randomToken, readLinkedinOrgs, readYoutubeChannels, redirectUri,
+  authorizeUrl, pickYoutube, pkceChallenge, randomToken, readYoutubeChannels, redirectUri, verifyLinkedinOrg,
   sameString, seal, SECRET_KEYS, sha256Hex, tokenRequest, type SocialPlatform, type TokenSet,
 } from '../_shared/marketing_social_oauth.ts';
 
@@ -46,8 +46,8 @@ const cookiePath = '/functions/v1/marketing_social_connect';
 
 async function start(p: SocialPlatform, url: URL): Promise<Response> {
   const t = url.searchParams.get('t') || '';
-  const [id] = await Promise.all([sec(SECRET_KEYS[p].id)]);
-  if (!id || !(await sec(SECRET_KEYS[p].secret))) return page(503, LABEL[p] + ' is not ready yet', 'The OAuth client for ' + LABEL[p] + ' has not been stored. Nothing happened; the link is still valid.');
+  const [id, secret, pinned] = await Promise.all([sec(SECRET_KEYS[p].id), sec(SECRET_KEYS[p].secret), sec(SECRET_KEYS[p].expected)]);
+  if (!id || !secret || (p === 'linkedin' && !pinned)) return page(503, LABEL[p] + ' is not ready yet', 'The OAuth client (or, for LinkedIn, the QuotesDone page id) has not been stored. Nothing happened; the link is still valid.');
   if (!/^[A-Za-z0-9_-]{40,64}$/.test(t)) return page(400, 'This link is not valid', 'Ask for a new connect link.');
   const state = randomToken(), verifier = randomToken(48);
   const { data, error } = await admin.from('social_connect_link')
@@ -81,12 +81,12 @@ async function callback(p: SocialPlatform, url: URL, req: Request): Promise<Resp
     const j = await r.json().catch(() => ({})) as any;
     if (!r.ok || !j.access_token) { await finish('exchange_failed:' + r.status); return page(502, 'The sign-in could not be completed', LABEL[p] + ' refused the code (HTTP ' + r.status + '). Open a new link.', clear); }
     const granted = String(j.scope || '').split(/[ ,]+/).filter(Boolean);
-    if (p === 'linkedin' && granted.length && !granted.every((s) => s === 'r_organization_social' || s === 'w_organization_social')) {
+    if (p === 'linkedin' && (!granted.length || !granted.every((s) => s === 'r_organization_social' || s === 'w_organization_social'))) {
       await finish('refused_scope'); return page(400, 'Nothing was stored', 'LinkedIn granted a scope beyond the company page. Nothing was kept.', clear);
     }
     const expected = (await sec(SECRET_KEYS[p].expected)) || null;
     const who = p === 'youtube' ? pickYoutube(await readYoutubeChannels(timedFetch, j.access_token), expected)
-                                : pickLinkedin(await readLinkedinOrgs(timedFetch, j.access_token), expected);
+                                : await verifyLinkedinOrg(timedFetch, j.access_token, expected);
     if (!who.ok) { await finish('refused_identity'); return page(403, 'Nothing was connected', who.why!, clear); }
     if (p === 'youtube' && !j.refresh_token) { await finish('no_refresh_token'); return page(502, 'Nothing was stored', 'Google returned no refresh token. Open a new link and approve again.', clear); }
     const now = Date.now();

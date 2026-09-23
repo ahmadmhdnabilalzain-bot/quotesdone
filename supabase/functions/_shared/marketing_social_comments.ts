@@ -168,13 +168,6 @@ export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' 
   return [...new Set(f)];
 }
 
-// ── LINKEDIN: the company page, and nothing else (founder, 23 Sep 2026) ─────────────────────────────
-// A reply may go out through a LinkedIn integration only when it is the Postiz 'linkedin-page' integration
-// whose id app_secrets.linkedin_company_page_integration_id names. A personal profile ('linkedin') is refused
-// whatever its id, and so is every page but ours (scripts/checks/linkedin_is_never_automated.test.mjs).
-export function linkedinTarget(integration: { id: string; identifier: string } | null | undefined, companyPageId: string | null | undefined): boolean {
-  return !!integration && !!companyPageId && integration.identifier === 'linkedin-page' && String(integration.id) === String(companyPageId);
-}
 
 // ── THE STORE, injected so tests replay every platform with no network and no database ─────────────
 export interface Decided { kind: string; key: string | null; text: string }

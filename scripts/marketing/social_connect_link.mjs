@@ -30,6 +30,8 @@ if (!want.length) { console.error('name youtube and/or linkedin'); process.exitC
 let bad = 0;
 for (const p of want) {
   const missing = CLIENT[p].filter((k) => !present.has(k));
+  // LinkedIn's page is never discovered (that would need r_organization_admin): its id is pinned first.
+  if (p === 'linkedin' && !present.has('linkedin_organization_id')) missing.push('linkedin_organization_id');
   if (missing.length) { console.error(`${p}: not ready — store ${missing.join(' and ')} in app_secrets first.`); bad++; continue; }
   const [{ t }] = await sql(`select public.fn_marketing_social_connect_link('${p}') as t`);
   console.log(`${p}: https://${PROD_REF}.supabase.co/functions/v1/marketing_social_connect/${p}/start?t=${t}`);

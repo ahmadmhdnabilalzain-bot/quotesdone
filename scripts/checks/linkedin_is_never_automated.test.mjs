@@ -83,29 +83,16 @@ test('the morning list and the article cadence read the switch before acting', (
 });
 
 // Founder, 23 Sep 2026: the marketing seat may answer comments on LinkedIn ONLY on the QuotesDone company page.
-// The one gate is linkedinTarget in _shared/marketing_social_comments.ts: exactly the Postiz 'linkedin-page'
-// integration whose id app_secrets.linkedin_company_page_integration_id names. A personal profile ('linkedin')
-// is refused whatever its id. Behaviour is replayed in marketing_social_comments.test.ts; this pins the gate.
-test('LinkedIn comment replies are narrowed to the company page integration id, and a personal profile is refused', () => {
-  const src = read('supabase/functions/_shared/marketing_social_comments.ts');
-  const at = src.indexOf('export function linkedinTarget(');
-  const gate = at < 0 ? '' : src.slice(at, src.indexOf('\n}', at) + 2);
-  assert.ok(gate.length > 30, 'linkedinTarget is missing');
-  assert.match(gate, /integration\.identifier === 'linkedin-page'/, 'only a company page integration');
-  assert.match(gate, /String\(integration\.id\) === String\(companyPageId\)/, 'only the one page id the founder named');
-  assert.match(gate, /!!companyPageId/, 'no configured id means nothing is allowed');
-  // the personal-profile identifier can never satisfy the gate
-  const identifierIsPage = (identifier) => identifier === 'linkedin-page';
-  assert.equal(identifierIsPage('linkedin'), false, 'a personal-profile integration is refused');
-  // Comments (instructions 919-920): the duty reads only the organization the connect flow verified and pinned,
-  // and every reply's actor is that organization URN — never a member.
+// Instructions 919-920: the page id is pinned (app_secrets.linkedin_organization_id) and proved at connect time;
+// the duty reads only that page and every reply's actor is that organization URN, never a member.
+test('LinkedIn comments are read and answered only as the pinned company page', () => {
   const duty = read('supabase/functions/marketing/duties.ts');
   assert.match(duty, /linkedinComments\(timedFetch, t\.access_token, t\.account_id, since\)/, 'the duty reads only the connected page');
   const lib = read('supabase/functions/_shared/marketing_social_comments.ts');
   assert.match(lib, /const org = 'urn:li:organization:' \+ orgId;/);
   assert.match(lib, /actor: ev\.accountId/, 'the page is the actor of every reply');
   const connect = read('supabase/functions/marketing_social_connect/index.ts');
-  assert.match(connect, /pickLinkedin\(await readLinkedinOrgs/, 'the connected page is verified as QuotesDone\'s');
+  assert.match(connect, /verifyLinkedinOrg\(timedFetch, j\.access_token, expected\)/, 'the connected page is verified as QuotesDone\'s pinned page');
   assert.match(connect, /s === 'r_organization_social' \|\| s === 'w_organization_social'/, 'a broader grant is refused');
 });
 

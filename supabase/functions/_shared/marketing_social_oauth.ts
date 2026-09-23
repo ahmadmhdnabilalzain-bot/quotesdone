@@ -31,7 +31,7 @@ export const SECRET_KEYS: Record<SocialPlatform, { id: string; secret: string; t
   youtube: { id: 'google_oauth_client_id', secret: 'google_oauth_client_secret', token: 'youtube_oauth', expected: 'youtube_channel_id' },
   linkedin: { id: 'linkedin_oauth_client_id', secret: 'linkedin_oauth_client_secret', token: 'linkedin_oauth', expected: 'linkedin_organization_id' },
 };
-export const LINKEDIN_VERSION = '202509';
+export const LINKEDIN_VERSION = '202609';   // versioned API; 202510 is the oldest still served (sunset 15 Oct 2026)
 export const LI_REST = 'https://api.linkedin.com/rest/';
 const LI = LI_REST;
 export const liHeaders = (token: string) => ({ Authorization: 'Bearer ' + token, 'LinkedIn-Version': LINKEDIN_VERSION, 'X-Restli-Protocol-Version': '2.0.0' });
@@ -67,7 +67,7 @@ export async function sha256Hex(s: string): Promise<string> {
 export async function pkceChallenge(verifier: string): Promise<string> {
   return b64u(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier))));
 }
-/** Constant-time string comparison (the state cookie against the stored state). */
+/** Equal-length comparison without early exit (the state cookie against the callback state; length is not secret). */
 export function sameString(a: string, b: string): boolean {
   if (!a || !b || a.length !== b.length) return false;
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
@@ -99,7 +99,7 @@ export async function open<T = Record<string, unknown>>(master: string, sealed: 
 // ── WHO did the founder connect? It must be QuotesDone's, or nothing is stored ──────────────────────
 // expected: the id pinned in app_secrets (youtube_channel_id / linkedin_organization_id). With no pin, the name
 // must read "QuotesDone"; the first accepted id is then pinned, so a later link can only reconnect THAT one.
-const OURS = /quotes\s*done/i;
+const OURS = /^\s*quotes\s*done\s*$/i;   // the whole title, not a substring: "I hate QuotesDone" is refused
 export interface Identity { ok: boolean; id?: string; name?: string; why?: string }
 export function pickYoutube(channels: Array<{ id: string; snippet?: { title?: string; customUrl?: string } }>, expected: string | null): Identity {
   if (!channels.length) return { ok: false, why: 'This Google account has no YouTube channel. Sign in with the account that owns the QuotesDone channel (for a brand channel, choose it on Google\'s account picker).' };
@@ -107,11 +107,15 @@ export function pickYoutube(channels: Array<{ id: string; snippet?: { title?: st
   if (!c) return { ok: false, why: 'The channel you chose (' + channels.map((x) => x.snippet?.title || x.id).join(', ') + ') is not the QuotesDone channel' + (expected ? ' (' + expected + ')' : '') + '. Nothing was stored. Open a new link and pick the QuotesDone channel.' };
   return { ok: true, id: c.id, name: c.snippet?.title };
 }
-export function pickLinkedin(orgs: Array<{ id: string; name: string }>, expected: string | null): Identity {
-  if (!orgs.length) return { ok: false, why: 'This LinkedIn member is not an approved administrator of any company page. Sign in as an admin of the QuotesDone page.' };
-  const o = expected ? orgs.find((x) => x.id === expected) : orgs.find((x) => OURS.test(x.name));
-  if (!o) return { ok: false, why: 'None of the pages you administer (' + orgs.map((x) => x.name || x.id).join(', ') + ') is the QuotesDone company page. Nothing was stored.' };
-  return { ok: true, id: o.id, name: o.name };
+// LinkedIn: listing a member's pages (organizationAcls) needs r_organization_admin, which the founder's rule does not
+// grant. So the page is NOT discovered: its id must be pinned first (app_secrets.linkedin_organization_id, from the
+// page's admin URL), and the token must prove it can read THAT page's posts — r_organization_social answers only for
+// a page where the member holds ADMINISTRATOR, CONTENT_ADMIN or DIRECT_SPONSORED_CONTENT_POSTER (Posts API docs).
+export async function verifyLinkedinOrg(f: Fetch, token: string, orgId: string | null): Promise<Identity> {
+  if (!orgId || !/^\d+$/.test(orgId)) return { ok: false, why: 'The QuotesDone page id is not configured (app_secrets.linkedin_organization_id). Nothing was stored.' };
+  const r = await f(LI + 'posts?q=author&count=1&author=' + encodeURIComponent('urn:li:organization:' + orgId), { headers: liHeaders(token) });
+  if (r.ok) return { ok: true, id: orgId, name: 'QuotesDone' };
+  return { ok: false, why: 'This LinkedIn member has no admin role on the QuotesDone company page (LinkedIn answered ' + r.status + '). Sign in as a page admin. Nothing was stored.' };
 }
 
 export async function readYoutubeChannels(f: Fetch, token: string) {
@@ -119,21 +123,6 @@ export async function readYoutubeChannels(f: Fetch, token: string) {
   const j = await r.json().catch(() => ({})) as any;
   if (!r.ok) throw new Error('YouTube channels HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 160));
   return (j.items || []) as Array<{ id: string; snippet?: { title?: string; customUrl?: string } }>;
-}
-/** The company pages this token may act for: approved ADMINISTRATOR roles only, each named. */
-export async function readLinkedinOrgs(f: Fetch, token: string) {
-  const r = await f(LI + 'organizationAcls?q=roleAssignee&role=ADMINISTRATOR&state=APPROVED', { headers: liHeaders(token) });
-  const j = await r.json().catch(() => ({})) as any;
-  if (!r.ok) throw new Error('LinkedIn organizationAcls HTTP ' + r.status + ': ' + String(j?.message || '').slice(0, 160));
-  const out: Array<{ id: string; name: string }> = [];
-  for (const e of j.elements || []) {
-    const id = String(e.organization || e.organizationTarget || '').split(':').pop() || '';
-    if (!id) continue;
-    const o = await f(LI + 'organizations/' + encodeURIComponent(id), { headers: liHeaders(token) });
-    const oj = await o.json().catch(() => ({})) as any;
-    out.push({ id, name: String(oj?.localizedName || oj?.vanityName || '') });
-  }
-  return out;
 }
 
 // ── the stored token set, and a fresh access token from it ───────────────────────────────────────
