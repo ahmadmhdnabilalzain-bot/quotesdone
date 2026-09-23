@@ -25,6 +25,11 @@ const read = (f) => readFileSync(join(REPO, f), 'utf8');
 const LI = 'linked' + 'in';
 const MEMBER_API = new RegExp([`api\\.${LI}\\.com`, `${LI}\\.com/voyager`, `${LI}_api`, `${LI}-api`, `from ['"]${LI}`].join('|'), 'i');
 const BROWSER = /puppeteer|playwright|selenium|webdriver|chromium\.launch/i;
+// Founder, instructions 919-920 (23 Sep 2026): the company PAGE is connected through our own OAuth. ONE file may
+// name LinkedIn's REST host, for organization endpoints only, and it may request only the two organization scopes.
+// Every member endpoint and personal scope still fails, there and everywhere.
+const ORG_API_FILE = 'supabase/functions/_shared/marketing_social_oauth.ts';
+const MEMBER_ENDPOINT = new RegExp([`${LI}\\.com/v2/`, `/rest/(people|me|messages|connections|invitations|memberSnapshot)`, `/v2/(me|userinfo)\\b`, 'voyager'].join('|'), 'i');
 
 function* walk(dir) {
   if (!existsSync(dir)) return;
@@ -43,6 +48,12 @@ test('no code talks to LinkedIn as a member or drives a browser at it', () => {
       const rel = relative(REPO, f).split(sep).join('/');
       if (rel.startsWith('scripts/checks/')) continue;
       const body = readFileSync(f, 'utf8');
+      if (rel === ORG_API_FILE) {
+        if (MEMBER_ENDPOINT.test(body)) hits.push(`${rel}: names a LinkedIn member endpoint`);
+        const scopes = body.match(/linkedin:\s*\[([^\]]*)\]/);
+        if (!scopes || scopes[1].replace(/\s/g, '') !== "'r_organization_social','w_organization_social'") hits.push(`${rel}: LinkedIn scopes are not exactly the two organization scopes`);
+        continue;
+      }
       if (MEMBER_API.test(body)) hits.push(`${rel}: names a LinkedIn member/Voyager API`);
       if (BROWSER.test(body) && new RegExp(`${LI}\\.com`, 'i').test(body)) hits.push(`${rel}: drives a browser and names ${LI}.com`);
     }
@@ -86,9 +97,16 @@ test('LinkedIn comment replies are narrowed to the company page integration id, 
   // the personal-profile identifier can never satisfy the gate
   const identifierIsPage = (identifier) => identifier === 'linkedin-page';
   assert.equal(identifierIsPage('linkedin'), false, 'a personal-profile integration is refused');
+  // Comments (instructions 919-920): the duty reads only the organization the connect flow verified and pinned,
+  // and every reply's actor is that organization URN — never a member.
   const duty = read('supabase/functions/marketing/duties.ts');
-  assert.match(duty, /linkedinTarget\(x, ours\)/, 'the duty selects LinkedIn only through the gate');
-  assert.match(duty, /sec\('linkedin_company_page_integration_id'\)/);
+  assert.match(duty, /linkedinComments\(timedFetch, t\.access_token, t\.account_id, since\)/, 'the duty reads only the connected page');
+  const lib = read('supabase/functions/_shared/marketing_social_comments.ts');
+  assert.match(lib, /const org = 'urn:li:organization:' \+ orgId;/);
+  assert.match(lib, /actor: ev\.accountId/, 'the page is the actor of every reply');
+  const connect = read('supabase/functions/marketing_social_connect/index.ts');
+  assert.match(connect, /pickLinkedin\(await readLinkedinOrgs/, 'the connected page is verified as QuotesDone\'s');
+  assert.match(connect, /s === 'r_organization_social' \|\| s === 'w_organization_social'/, 'a broader grant is refused');
 });
 
 test('the edge function sends nothing to the founder except through the routine', () => {

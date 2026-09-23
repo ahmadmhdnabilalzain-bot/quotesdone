@@ -8,10 +8,12 @@
 // MEASURED 23 Sep 2026 (read-only, htdblwldjkcgjvmqkbeh + docs.postiz.com/llms.txt): Postiz's public API
 // publishes, lists posts and reads analytics; it has no endpoint that reads or answers a comment.
 //   instagram / facebook — Meta webhook (marketing_social_inbox) delivers the comment; reply and hide via Graph
-//   youtube              — through the Postiz YouTube connection only (founder, 23 Sep: no own Google OAuth
-//                          keys). Until the founder connects YouTube in Postiz the duty skips it and says so.
-//   linkedin             — ONLY the QuotesDone company page (founder, 23 Sep): linkedinTarget() refuses any
-//                          integration but the one app_secrets.linkedin_company_page_integration_id names.
+//   youtube              — our own OAuth (instructions 919-920 replace the earlier "Postiz only" ruling): the
+//                          founder's one link (marketing_social_connect) stores the channel's token; the duty reads
+//                          commentThreads and answers through the Data API. Not connected: skipped, and says so.
+//   linkedin             — ONLY the QuotesDone company page, through the Community Management API with the
+//                          organization scopes the same link grants; the actor of every reply is the page, never
+//                          a member (never a personal profile).
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
 // THE POLICY, deterministic first (processComment):
@@ -30,8 +32,9 @@
 // thread takes at most 3 seat replies in 10 minutes. Nothing is sent unless app_secrets.social_send_enabled
 // = 'on' (the emergency stop) and the author is not a ZZDEMO fixture.
 import { langOf, type Lang } from './chat_answers.ts';
+import { LI_REST, liHeaders } from './marketing_social_oauth.ts';
 
-export type Platform = 'facebook' | 'instagram' | 'youtube';
+export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin';
 export type Class = 'question' | 'praise' | 'complaint' | 'spam_abuse' | 'sales_lead' | 'supplier_enquiry' | 'sensitive_legal' | 'off_topic';
 
 export interface CommentEvent {
@@ -106,7 +109,7 @@ export const FACTS = {
   domains: /^(www\.)?quotesdone\.(com|ae)$/,
   emails: ['management@quotesdone.com'],
 };
-export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500 };
+export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500 };
 const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
 const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
@@ -235,7 +238,8 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson = f
       sent = r.ok;
       o.send_status = r.ok ? 'hidden' : 'failed'; o.send_error = r.error ?? null;
       // Every hide is reviewed by a person-facing seat, who can reverse it (unhideRequest).
-      if (r.ok) await escalate('social.escalation', { hidden: true, review: 'un-hide if this was not abuse' });
+      // Every hide is reviewed; a hide that could not be done is reviewed too, so abuse is never left unseen.
+      await escalate('social.escalation', r.ok ? { hidden: true, review: 'un-hide if this was not abuse' } : { hidden: false, review: 'could not hide: ' + (r.error || '') });
       return await done(r.ok ? 'hidden' : 'hide_failed');
     }
 
@@ -288,25 +292,72 @@ export function replyRequest(ev: CommentEvent, text: string, token: string): Req
     case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId) + '/comments', method: 'POST', headers: auth, body: JSON.stringify({ message: text }) };
     case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments?part=snippet', method: 'POST', headers: auth,
       body: JSON.stringify({ snippet: { parentId: ev.commentId, textOriginal: text } }) };
+    // The actor is the company page (ev.accountId is its organization URN) — never a member.
+    case 'linkedin': return { url: LI_REST + 'socialActions/' + encodeURIComponent(ev.commentId) + '/comments', method: 'POST',
+      headers: { ...J, ...liHeaders(token) },
+      body: JSON.stringify({ actor: ev.accountId, object: ev.threadId, parentComment: ev.commentId, message: { text } }) };
   }
 }
 /** Hides (hidden = true) or restores (hidden = false) a comment. Every hide can be reversed by the reviewing seat. */
-export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req {
+export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req | null {
   const auth = { ...J, Authorization: 'Bearer ' + token };
   switch (ev.platform) {
     case 'instagram': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ hide: hidden }) };
     case 'facebook': return { url: GRAPH + encodeURIComponent(ev.commentId), method: 'POST', headers: auth, body: JSON.stringify({ is_hidden: hidden }) };
     case 'youtube': return { url: 'https://www.googleapis.com/youtube/v3/comments/setModerationStatus?id=' + encodeURIComponent(ev.commentId)
       + '&moderationStatus=' + (hidden ? 'heldForReview' : 'published'), method: 'POST', headers: auth };
+    // LinkedIn offers only DELETE, which cannot be reversed: nothing is hidden, the comment goes to review.
+    case 'linkedin': return null;
   }
 }
 export const unhideRequest = (ev: CommentEvent, token: string) => hideRequest(ev, token, false);
 
-export async function call(f: Fetch, r: Req): Promise<SendResult> {
+export async function call(f: Fetch, r: Req | null): Promise<SendResult> {
+  if (!r) return { ok: false, error: 'this platform has no reversible hide' };
   try {
     const res = await f(r.url, { method: r.method, headers: r.headers, body: r.body });
     const j = await res.json().catch(() => ({})) as any;
     if (!res.ok) return { ok: false, error: String(j?.error?.message || j?.detail || j?.title || res.status).slice(0, 300) };
     return { ok: true, id: j?.data?.id ?? j?.id ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+}
+
+// ── READING the comments on our own YouTube channel and LinkedIn company page ──────────────────────────
+// Only comments newer than `since` are read, so connecting does not answer a year of history. The author is kept
+// as the platform's opaque id; no member profile is ever fetched.
+export async function youtubeComments(f: Fetch, token: string, channelId: string, since: Date): Promise<CommentEvent[]> {
+  const r = await f('https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=50&order=time&moderationStatus=published&allThreadsRelatedToChannelId='
+    + encodeURIComponent(channelId), { headers: { Authorization: 'Bearer ' + token } });
+  const j = await r.json().catch(() => ({})) as any;
+  if (!r.ok) throw new Error('youtube commentThreads HTTP ' + r.status + ': ' + String(j?.error?.message || '').slice(0, 120));
+  const out: CommentEvent[] = [];
+  for (const it of j.items || []) {
+    const c = it?.snippet?.topLevelComment; const s = c?.snippet || {};
+    const at = new Date(s.publishedAt || 0);
+    if (!c?.id || at < since) continue;
+    out.push({ platform: 'youtube', accountId: channelId, commentId: c.id, authorId: String(s.authorChannelId?.value || ''), handle: s.authorDisplayName ?? null,
+      text: String(s.textOriginal || ''), at, threadId: String(it.snippet.videoId || c.id) });
+  }
+  return out;
+}
+export async function linkedinComments(f: Fetch, token: string, orgId: string, since: Date): Promise<CommentEvent[]> {
+  const org = 'urn:li:organization:' + orgId;
+  const r = await f(LI_REST + 'posts?q=author&count=10&sortBy=LAST_MODIFIED&author=' + encodeURIComponent(org), { headers: liHeaders(token) });
+  const j = await r.json().catch(() => ({})) as any;
+  if (!r.ok) throw new Error('linkedin posts HTTP ' + r.status + ': ' + String(j?.message || '').slice(0, 120));
+  const out: CommentEvent[] = [];
+  for (const p of j.elements || []) {
+    const post = String(p.id || ''); if (!post) continue;
+    const c = await f(LI_REST + 'socialActions/' + encodeURIComponent(post) + '/comments?count=50', { headers: liHeaders(token) });
+    const cj = await c.json().catch(() => ({})) as any;
+    if (!c.ok) throw new Error('linkedin comments HTTP ' + c.status + ': ' + String(cj?.message || '').slice(0, 120));
+    for (const e of cj.elements || []) {
+      const at = new Date(Number(e?.created?.time || 0));
+      const urn = String(e?.['$URN'] || e?.commentUrn || '');
+      if (!urn || at < since) continue;
+      out.push({ platform: 'linkedin', accountId: org, commentId: urn, authorId: String(e.actor || ''), handle: null,
+        text: String(e?.message?.text || ''), at, threadId: post });
+    }
+  }
+  return out;
 }

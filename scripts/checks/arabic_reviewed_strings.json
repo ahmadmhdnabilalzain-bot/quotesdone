@@ -3641,6 +3641,9 @@
   "87f92710186c",
   "bd5193070aaa"
  ],
+ "supabase/functions/marketing/profile_text.ts": [
+  "16e51f0d9e83"
+ ],
  "supabase/functions/messages_api/index.ts": [
   "2ab8d7bf7b54",
   "5b52ac04d364",

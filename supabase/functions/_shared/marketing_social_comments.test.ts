@@ -245,12 +245,18 @@ Deno.test('Instagram, Facebook and YouTube: replies, hides and un-hides go to th
   assert(replyRequest(ig, 'a', 'T').url.endsWith('/' + ig.commentId + '/replies'));
   assert(replyRequest(fb, 'a', 'T').url.endsWith('/' + fb.commentId + '/comments'));
   assertEquals(JSON.parse(replyRequest(yt, 'a', 'T').body!).snippet.parentId, yt.commentId);
-  assertEquals(JSON.parse(hideRequest(ig, 'T').body!), { hide: true });
-  assertEquals(JSON.parse(unhideRequest(ig, 'T').body!), { hide: false });
-  assertEquals(JSON.parse(hideRequest(fb, 'T').body!), { is_hidden: true });
-  assertEquals(JSON.parse(unhideRequest(fb, 'T').body!), { is_hidden: false });
-  assert(hideRequest(yt, 'T').url.endsWith('moderationStatus=heldForReview') && unhideRequest(yt, 'T').url.endsWith('moderationStatus=published'));
+  assertEquals(JSON.parse(hideRequest(ig, 'T')!.body!), { hide: true });
+  assertEquals(JSON.parse(unhideRequest(ig, 'T')!.body!), { hide: false });
+  assertEquals(JSON.parse(hideRequest(fb, 'T')!.body!), { is_hidden: true });
+  assertEquals(JSON.parse(unhideRequest(fb, 'T')!.body!), { is_hidden: false });
+  assert(hideRequest(yt, 'T')!.url.endsWith('moderationStatus=heldForReview') && unhideRequest(yt, 'T')!.url.endsWith('moderationStatus=published'));
   assertEquals(await call(mock({ id: '20' }), replyRequest(ig, 'a', 'T')), { ok: true, id: '20' });
+  const li = ev('x', { platform: 'linkedin', accountId: 'urn:li:organization:9', commentId: 'urn:li:comment:(urn:li:activity:1,2)', threadId: 'urn:li:share:1' });
+  const lr = replyRequest(li, 'a', 'T');
+  assertEquals(JSON.parse(lr.body!).actor, 'urn:li:organization:9', 'the page answers, never a member');
+  assertEquals(JSON.parse(lr.body!).parentComment, li.commentId);
+  assertEquals(hideRequest(li, 'T'), null, 'LinkedIn has no reversible hide');
+  assertEquals((await call(mock({}), hideRequest(li, 'T'))).ok, false);
   assert(!LIMIT['x' as Platform], 'X is removed (founder, 23 Sep 2026)');
 });
 
