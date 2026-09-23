@@ -1086,7 +1086,9 @@ Deno.serve(observe('customer_api', async (req) => {
         if (t.value === null) {
           await admin.from('inquiry_intake').update({ status: 'held', updated_at: new Date().toISOString() }).eq('id', intake.id);
           return J({ ok: false, held: true, error: 'trade_being_confirmed', held_id: t.result.held_id ?? null,
-            message: 'Thank you — our sales engineer is confirming exactly which trade this request belongs to. We will continue here as soon as that is done; there is no need to type anything again.' }, 202);
+            message: asLocale((cust as { locale?: string })?.locale) === 'ar'
+              ? 'شكرًا لكم. استلمنا طلبكم، ويراجعه الآن مهندس المبيعات لدينا لتحديد التخصص المناسب بدقة. سنكمل معكم هنا فور الانتهاء، ولا حاجة إلى إعادة كتابة أي شيء.'
+              : 'Thank you — our sales engineer is confirming exactly which trade this request belongs to. We will continue here as soon as that is done; there is no need to type anything again.' }, 202);
         }
         category = t.value !== NONE && (specs || []).some((r: { category: string }) => r.category === t.value) ? t.value : 'general';
       }
