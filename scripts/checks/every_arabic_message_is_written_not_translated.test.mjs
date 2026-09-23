@@ -35,7 +35,8 @@
 // والتقدير — the formal plural (كم) throughout. UI and short notices: concise, polite, the formal
 // plural or the imperative without a pronoun. "QuotesDone" stays in Latin letters.
 //
-// SURFACES (what the company sends or shows a customer or supplier): messages/ar.json; the portal and
+// SURFACES (what the company sends or shows a customer or supplier): messages/ar.json; the social
+// calendars in docs/marketing/*.json; the portal and
 // site components under src/components and src/app; the edge functions that compose mail, WhatsApp,
 // chat replies and API notices; every scripts/sql file appended to MANIFEST.txt after this check's own
 // SQL file; and — added 22 Sep 2026 after the documents-language audit found three live composers
@@ -177,7 +178,10 @@ export function canonicalRoutineBodies() {
 export function surfaces() {
   const code = [...walk('src/components', []), ...walk('src/app', []), ...walk('supabase/functions', [])]
     .filter((f) => !NOT_A_MESSAGE.some((re) => re.test(f)));
-  return [...new Set(['messages/ar.json', ...code, ...sqlAfterAnchor()])]
+  // docs/marketing/*.json: the social calendars the marketing seat publishes (added 23 Sep 2026, #870).
+  const calendars = fs.existsSync(path.join(ROOT, 'docs/marketing'))
+    ? fs.readdirSync(path.join(ROOT, 'docs/marketing')).filter((n) => n.endsWith('.json')).map((n) => 'docs/marketing/' + n) : [];
+  return [...new Set(['messages/ar.json', ...calendars, ...code, ...sqlAfterAnchor()])]
     .filter((f) => fs.existsSync(path.join(ROOT, f))).sort();
 }
 
