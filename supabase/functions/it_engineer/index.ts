@@ -28,6 +28,7 @@
 // wrong" when it meant "nothing looks".
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
+import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -356,12 +357,30 @@ Deno.serve(async (req) => {
         return J({ error: error.message }, 500);
       }
       const r = (data || {}) as Record<string, unknown>;
+      // Past findings like this one (23 Sep 2026): what fixed it last time, and did the fix hold?
+      const memory = await recallCases(admin, { seat: 'it_engineer', path: 'assist', situation: text,
+        ...(Array.isArray(body.embedding) ? { embedding: body.embedding as number[] } : {}) });
       await run('assist', 'ok', {
         answered: r.answered ?? null,
         cited: Array.isArray(r.cited) ? r.cited.length : 0,
         company_block: (r.company as Record<string, unknown> | undefined)?.chars ?? 0,
+        precedent: recallTrace(memory),
       });
-      return J({ ok: true, seat: 'it_engineer', ...r });
+      return J({ ok: true, seat: 'it_engineer', ...r, precedent: memory });
+    }
+
+    // TRIAGE ONE FINDING (23 Sep 2026). Before the seat works an open finding it asks: have we closed
+    // one like this before, what was the fix, and was it reopened? Exact issue_key dedup cannot see a
+    // repeat that arrives under a different key; meaning can.
+    if (action === 'triage') {
+      const key = String(body.issue_key || '').trim();
+      if (!key) return J({ error: 'issue_key_required' }, 400);
+      const { data: f } = await admin.from('it_engineer_finding').select('issue_key,title,where_it_is,blast').eq('issue_key', key).maybeSingle();
+      if (!f) return J({ error: 'finding_not_found' }, 404);
+      const memory = await recallCases(admin, { seat: 'it_engineer', path: 'triage', caseKind: 'it_finding', otherSeats: false,
+        situation: `${f.title} | where: ${f.where_it_is} | blast: ${f.blast}`, exclude: { table: 'it_engineer_finding', id: key } });
+      await run('triage', 'ok', { issue_key: key, precedent: recallTrace(memory) });
+      return J({ ok: true, seat: 'it_engineer', issue_key: key, precedent: memory });
     }
 
     if (action === 'authority') {
