@@ -235,6 +235,14 @@ Deno.test('what reasoning read is written onto the quote, marked reasoned, befor
   assertEquals(repo.quotes.get('q6')!.terms_spec?.installation?.source, 'reasoned');
 });
 
+Deno.test('the fill-in form offers the installation scope beside "is installation included?" — one round, not two', async () => {
+  const { termItem } = await import('./assess.ts');
+  const a = { lines: [], missing: [termItem('delivery'), termItem('installation_included'), termItem('warranty_coverage')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(a, []).terms.map((t) => t.attr), ['delivery', 'installation_included', 'installation_detail', 'warranty_coverage']);
+  const b = { lines: [], missing: [termItem('installation_detail')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(b, []).terms.map((t) => t.attr), ['installation_detail'], 'never offered twice');
+});
+
 // Post-deploy smoke, 23 Sep 2026 ("filling in the details regenerates the quotation": still missing
 // installation_detail). Under the hold nothing reads the scope from his prose, so the form asked "Is
 // installation included?" alone, his "yes" opened a second round for the scope. The form asks both at once.

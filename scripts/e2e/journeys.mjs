@@ -1038,7 +1038,9 @@ export async function journeySignupWhatsApp(ctx) {
   }
 
   // NO — English and Arabic. Part 1 proves the refusal; part 2 (harness-only) continues the screens.
-  const SEND = { en: 'Send code', ar: 'أرسل الرمز' };
+  // src/components/portal/whatsappChoiceText.ts send_code. The Arabic had drifted ('أرسل الرمز'): the click waited
+  // out its timeout, the response wait below rejected unhandled and the process died before teardown (23 Sep 2026).
+  const SEND = { en: 'Send code', ar: 'إرسال الرمز' };
   for (const lang of ['en', 'ar']) {
     const no = await makeDemoCustomer(run, { label: `WA no ${lang}`, locale: lang, stopBeforeWhatsApp: true });
     const other = demoMobile();
@@ -1058,6 +1060,7 @@ export async function journeySignupWhatsApp(ctx) {
       await q2.locator('input[type=radio][value="other"]').check();
       await q2.locator('input[type=tel]').fill(other);
       const resp = s.page.waitForResponse((r) => r.url().includes('/functions/v1/kyc') && (r.request().postData() || '').includes('whatsapp_send_code'), { timeout: 20000 });
+      resp.catch(() => {});   // observed below; never an unhandled rejection that kills the run before teardown
       await q2.getByRole('button', { name: SEND[lang] }).click();
       const body = await (await resp).json().catch(() => null);
       const ev = await refusalEvidence(no.email, other, since);
