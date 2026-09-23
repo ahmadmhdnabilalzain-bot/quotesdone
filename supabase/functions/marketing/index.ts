@@ -20,6 +20,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { signedInUser } from '../_shared/signed_in_user.ts';
 import { DUTIES } from './duties.ts';
+import { recallCases } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -129,9 +130,12 @@ Deno.serve(observe('marketing', async (req) => {
 
   if (action === 'assist') {
     const q = String(body.question || body.text || '').slice(0, 2000);
-    const { data, error } = await admin.rpc('fn_marketing_assist', { p_text: q, p_embedding: q ? await embed(q) : null });
+    const vec = q ? await embed(q) : null;
+    const { data, error } = await admin.rpc('fn_marketing_assist', { p_text: q, p_embedding: vec });
+    // Past cases before the answer (23 Sep 2026): the plans he approved, the replies that worked.
+    const memory = await recallCases(admin, { seat: 'marketing', path: 'assist', situation: q, embedding: vec });
     await run('assist', error ? 'error' : 'ok', { answered: (data as { answered?: boolean })?.answered ?? null }, error?.message);
-    return error ? J({ error: error.message }, 500) : J(data);
+    return error ? J({ error: error.message }, 500) : J({ ...(data as Record<string, unknown>), precedent: memory });
   }
 
   return J({ error: 'unknown action', actions: ['health', 'duties', 'assist'] }, 400);
