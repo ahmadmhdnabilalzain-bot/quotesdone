@@ -4,7 +4,7 @@
 // reached its own Arabic knowledge row 0-8% of the time). This runs the trimmed multilingual-e5-small
 // (ml_embed_recipe.ts) with transformers.js, in ONE small function of its own (embed_ml), never in ai_gateway.
 //
-// WHY THIS IMPORT AND THESE OPTIONS (measured 24 Sep 2026 on htdblwldjkcgjvmqkbeh, zz_test_ml_embed, deleted after):
+// WHY THIS IMPORT AND THESE OPTIONS (measured 24 Sep 2026 on production, zz_test_ml_embed, deleted after):
 //   npm:@huggingface/transformers   the deploy fails, 500 "internal error", in a function of its own as in ai_gateway
 //   jsDelivr +esm, no device        "Unsupported device: wasm": the web build defaults to wasm, which the edge
 //                                   runtime does not offer; it exposes its native ONNX under Symbol.for('onnxruntime')
