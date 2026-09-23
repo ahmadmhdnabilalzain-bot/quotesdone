@@ -4,8 +4,9 @@
 // §22 asks for an AI workspace rather than "sidebar + tables + forms": floating windows, drag and
 // drop, context menus, interactive graphs, animated charts, live updates. Those are not decoration
 // here — they are what makes a board the supplier ARRANGES instead of a dashboard they receive.
-// Cards can be reordered by dragging, hidden or pinned from a right-click menu, and opened into a
-// floating detail window. The arrangement is theirs and is remembered.
+// Cards can be reordered by dragging, hidden or pinned from a menu — reachable by right-click on a
+// desktop AND from a visible per-card button, because neither drag nor right-click exists on a
+// phone — and opened into a floating detail window. The arrangement is theirs and is remembered.
 //
 // ── EVERY NUMBER ON THIS BOARD IS COMPUTED, NONE IS INVENTED ────────────────────────────────────
 // The payload is fn_supplier_twin, the same routine the Digital Twin reads. The four honesty rules
@@ -21,40 +22,38 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { scaleLinear } from 'd3-scale';
 import { line as d3line, curveMonotoneX } from 'd3-shape';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+import { PanelError, panelErrorCode } from './PanelState';
 import { Skeleton } from '@/components/ui/skeleton';
 
 type Lang = 'en' | 'ar';
 type Metric = { key: string; label: string; value: number | null; note?: string };
 
-const ANON = SUPA_ANON;
 const LIVE_MS = 60_000;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
-    title: 'Insight board', hint: 'Drag to rearrange. Right-click a card for options.',
+    title: 'Insight board', hint: 'Drag to rearrange, or use the card menu for options.',
     strength: 'Company strength', health: 'Health signals', reach: 'Where you can win',
     notRated: 'not rated yet', noData: 'nothing to chart yet', live: 'updated',
     pin: 'Pin to top', hide: 'Hide this card', open: 'Open detail', restore: 'Show all cards',
     close: 'Close', products: 'Products', certs: 'Certifications', countries: 'Markets served',
     emptyHealth: 'No health signal has been earned yet. Ratings come from completed jobs.',
+    cardMenu: 'Options for', // + the card's own title, so the accessible name names the card
+    // SP-I-02: these five were the raw identifiers the chart is keyed on, printed to the supplier.
+    mQuality: 'Quality', mResponse: 'Response', mReliability: 'Reliability',
+    mStrength: 'Strength', mScore: 'Intelligence',
   },
   ar: {
-    title: 'لوحة الرؤى', hint: 'اسحبوا البطاقات لإعادة ترتيبها، وانقروا بالزر الأيمن لمزيد من الخيارات.',
+    title: 'لوحة الرؤى', hint: 'اسحبوا البطاقات لإعادة ترتيبها، أو افتحوا قائمة البطاقة للمزيد من الخيارات.',
     strength: 'قوة الشركة', health: 'مؤشرات الأداء', reach: 'أين يمكنكم الفوز',
     notRated: 'لم يُقيَّم بعد', noData: 'لا توجد بيانات للرسم بعد', live: 'آخر تحديث',
     pin: 'تثبيت في الأعلى', hide: 'إخفاء البطاقة', open: 'عرض التفاصيل', restore: 'إظهار كل البطاقات',
     close: 'إغلاق', products: 'المنتجات', certs: 'الشهادات', countries: 'الأسواق المخدومة',
     emptyHealth: 'لم يُكتسب أي مؤشر أداء بعد. تأتي التقييمات من الأعمال المنجزة.',
+    cardMenu: 'خيارات بطاقة',
+    mQuality: 'الجودة', mResponse: 'الاستجابة', mReliability: 'الالتزام',
+    mStrength: 'قوة الشركة', mScore: 'مؤشر التقييم',
   },
 };
 const t = (lang: Lang) => T[lang] || T.en;
@@ -155,11 +154,25 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
   // `loaded` is the FIRST answer, success or not — not `twin`. Keyed off twin the board would sit in
   // bars forever when the read fails, and zero cannot tell a dead read from an unrated supplier.
   const [loaded, setLoaded] = useState(false);
+  const [err, setErr] = useState('');
   const dragged = useRef<CardId | null>(null);
+  // A ref, not `twin`: `load` is the effect's dependency, and reading twin through state would
+  // rebuild the poller's interval on every successful poll.
+  const everLoaded = useRef(false);
 
+  // SP-C-06, 22 Sep 2026: this read `if (d && !d.error)` and called that SUCCESS. The gateway's own
+  // 401 body is `{"code":"UNAUTHORIZED_INVALID_JWT_FORMAT"}` — it carries no `error` key — so an
+  // expired session was stored as the twin and the board charted a rejection as a company profile.
+  // The success test is now the shape the board actually needs: `ok` AND a twin.
   const load = useCallback(async () => {
-    const d = await call('supplier_portal', { action: 'twin' }, token).catch(() => null);
-    if (d && !d.error) { setTwin(d.twin || d); setSeenAt(new Date().toLocaleTimeString()); }
+    const d = await call('supplier_portal', { action: 'twin' }, token);
+    if (d && d.ok && d.twin) {
+      everLoaded.current = true;
+      setErr(''); setTwin(d.twin); setSeenAt(new Date().toLocaleTimeString());
+    } else if (!everLoaded.current) {
+      // A poll that fails does not blank a board that is already up; only a first read can.
+      setErr(panelErrorCode(d));
+    }
     setLoaded(true);
   }, [token]);
 
@@ -183,12 +196,12 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
 
   const health = (twin?.health || {}) as Record<string, unknown>;
   const metrics: Metric[] = useMemo(() => ([
-    { key: 'quality', label: 'Quality', value: num(health.quality) },
-    { key: 'response', label: 'Response', value: num(health.response_rate ?? health.response) },
-    { key: 'reliability', label: 'Reliability', value: num(health.reliability) },
-    { key: 'strength', label: 'Strength', value: num(twin?.company_strength) },
-    { key: 'score', label: 'Intelligence', value: num(twin?.intelligence_score) },
-  ]), [health, twin]);
+    { key: 'quality', label: L.mQuality, value: num(health.quality) },
+    { key: 'response', label: L.mResponse, value: num(health.response_rate ?? health.response) },
+    { key: 'reliability', label: L.mReliability, value: num(health.reliability) },
+    { key: 'strength', label: L.mStrength, value: num(twin?.company_strength) },
+    { key: 'score', label: L.mScore, value: num(twin?.intelligence_score) },
+  ]), [health, twin, L]);
 
   const onDrop = (target: CardId) => {
     const from = dragged.current;
@@ -240,6 +253,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
   // FIRST READ (18 Sep 2026): with no indicator the board rendered its empty states — "not rated yet",
   // three zeroes — while the twin was still in flight, so an arriving board was indistinguishable from
   // an unrated one. Redaction bars until the first answer lands, then the real states.
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
   if (!loaded) return (
     <div className="flex flex-col gap-3" aria-busy="true" aria-live="polite">
       <Skeleton className="h-4 w-40" />
@@ -259,7 +273,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
       </header>
 
       {!!hidden.length && (
-        <button type="button" className="qd-link self-start text-xs" onClick={() => setHidden([])}>{L.restore}</button>
+        <button type="button" className="qd-link inline-flex min-h-11 min-w-11 items-center self-start text-xs" onClick={() => setHidden([])}>{L.restore}</button>
       )}
 
       <div className="grid gap-3 md:grid-cols-3">
@@ -277,9 +291,29 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onDrop(id)}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ id, x: e.clientX, y: e.clientY }); }}
-              className="qd-panel qd-panel-hover cursor-grab p-5 active:cursor-grabbing"
+              className="qd-panel qd-panel-hover relative cursor-grab p-5 active:cursor-grabbing"
             >
-              <h3 className="mb-3 font-mono text-label uppercase tracking-caps text-muted-foreground">{CARDS[id].title}</h3>
+              {/* SP-M-02, 22 Sep 2026: pin, open and hide were reachable ONLY by right-click, and
+                  reordering only by drag — neither exists on a touch screen, so every action on
+                  this board was unreachable from a phone. This button opens the same menu at the
+                  card's own corner. Drag and right-click still work; this is an addition. The
+                  click is stopped so the window-level listener that closes the menu does not
+                  close the one this click just opened. */}
+              <button
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menu?.id === id}
+                aria-label={`${L.cardMenu} ${CARDS[id].title}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                  setMenu((m) => (m?.id === id ? null : { id, x: r.left, y: r.bottom + 4 }));
+                }}
+                className="absolute end-1 top-1 grid min-h-11 min-w-11 place-items-center rounded-lg text-muted-foreground hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span aria-hidden className="text-[17px] leading-none">⋯</span>
+              </button>
+              <h3 className="mb-3 pe-11 font-mono text-label uppercase tracking-caps text-muted-foreground">{CARDS[id].title}</h3>
               {CARDS[id].body}
             </motion.section>
           ))}
@@ -293,11 +327,11 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
           style={{ left: menu.x, top: menu.y }}
           role="menu"
         >
-          <button type="button" role="menuitem" className="w-full rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
+          <button type="button" role="menuitem" className="flex min-h-11 w-full items-center rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
             onClick={() => { setOrder((o) => [menu.id, ...o.filter((c) => c !== menu.id)]); setMenu(null); }}>{L.pin}</button>
-          <button type="button" role="menuitem" className="w-full rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
+          <button type="button" role="menuitem" className="flex min-h-11 w-full items-center rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
             onClick={() => { setDetail({ title: CARDS[menu.id].title, body: CARDS[menu.id].detail }); setMenu(null); }}>{L.open}</button>
-          <button type="button" role="menuitem" className="w-full rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
+          <button type="button" role="menuitem" className="flex min-h-11 w-full items-center rounded px-3 py-2 text-start text-xs text-white hover:bg-white/10"
             onClick={() => { setHidden((h) => [...h, menu.id]); setMenu(null); }}>{L.hide}</button>
         </div>
       )}
@@ -312,7 +346,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
           >
             <h4 className="mb-1.5 text-[13.5px] font-semibold text-white">{detail.title}</h4>
             <p className="text-xs leading-[1.7] text-muted-foreground">{detail.body}</p>
-            <button type="button" className="qd-link mt-3 text-xs" onClick={() => setDetail(null)}>{L.close}</button>
+            <button type="button" className="qd-link mt-3 inline-flex min-h-11 min-w-11 items-center text-xs" onClick={() => setDetail(null)}>{L.close}</button>
           </motion.aside>
         )}
       </AnimatePresence>

@@ -32,7 +32,7 @@ export default function SupplierCommandPalette({ tabs, labels, onGo, lang = 'en'
   return (
     <>
       <button type="button" onClick={() => setOpen(true)}
-        className="qd-link hidden text-xs text-muted-foreground sm:inline">{L.hint}</button>
+        className="qd-link hidden min-h-11 min-w-11 items-center text-xs text-muted-foreground sm:inline-flex">{L.hint}</button>
 
       {open && (
         <div className="fixed inset-0 z-[60] flex items-start justify-center bg-black/50 pt-[12vh] backdrop-blur-sm"

@@ -17,7 +17,12 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+// Amounts and codes are left-to-right runs inside Arabic text; src/lib/Ltr.tsx holds the rule.
+import { Ltr } from '@/lib/Ltr';
 import { call } from './api';
+// One money format for the portal: /ar reads "1,200 د.إ", /en "AED 1,200". `num` is the same named
+// locale without a currency — the local `nf` here was a second copy of it (review of PR #858).
+import { aed, num } from './money';
 
 // avg_lead_time_days is the mean of the lead_time this supplier WROTE on its own quotations
 // (fn_supplier_stats: avg of the digits in quotes.lead_time) — not a measured delivery time.
@@ -38,7 +43,6 @@ type Summary = {
   hints: { code: string; severity: 'high' | 'medium' | 'low'; params: Record<string, string | number>; action: string | null }[];
 };
 
-const nf = (n: number) => Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 });
 const monthLabel = (m: string, lang: Lang) => { const d = new Date(m + '-01T00:00:00Z'); return isNaN(d.getTime()) ? m : d.toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { month: 'short', timeZone: 'UTC' }); };
 const signed = (v: number) => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)) + '%';
 
@@ -46,7 +50,15 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
   return (
     <div className="qd-panel qd-ticks p-4 pt-5">
       <div className="text-[12px] font-semibold text-muted-foreground">{label}</div>
-      <div className="mt-2 font-head text-[26px] font-semibold leading-none text-foreground tabular-nums"><bdi dir="ltr">{value}</bdi></div>
+      {/* NOT `dir="ltr"`: the revenue tile's value is `aed(lang, …)`, which on /ar carries the
+          Arabic dirham mark after the digits. Forced LTR, the bidi algorithm moves that mark to the
+          RIGHT of the number, where Arabic reads it on the left. <Ltr> (src/lib/Ltr.tsx) is the
+          portal's existing answer: it keeps a digits-only value LTR and lets a value carrying
+          Arabic script take its own direction.
+          The currency mark is deliberately NOT written out here — a comment quoting it is counted
+          as an unreviewed Arabic message by every_arabic_message_is_written_not_translated, which
+          strips `//` comments but not JSX ones. */}
+      <div className="mt-2 font-head text-[26px] font-semibold leading-none text-foreground tabular-nums"><Ltr>{value}</Ltr></div>
       {sub ? <div className="mt-1.5 text-[11.5px] text-muted-foreground">{sub}</div> : null}
     </div>
   );
@@ -89,7 +101,7 @@ function Funnel({ f, lang }: { f: Summary['funnel']; lang: Lang }) {
           <div className="flex items-baseline justify-between gap-3">
             <span className="text-[13px] text-foreground">{ws(lang, 'st_' + st.key)}</span>
             <span className="flex items-baseline gap-2">
-              <b className="text-[14px] text-foreground tabular-nums"><bdi dir="ltr">{nf(st.count)}</bdi></b>
+              <b className="text-[14px] text-foreground tabular-nums"><bdi dir="ltr">{num(st.count)}</bdi></b>
               {st.conversion_pct != null && <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground"><bdi dir="ltr" aria-hidden>{st.conversion_pct}%</bdi><span className="sr-only">{ws(lang, 'conv_of_prev', { pct: st.conversion_pct + '%' })}</span></span>}
             </span>
           </div>
@@ -130,10 +142,10 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
         <p className="mt-1 max-w-[70ch] text-[13px] leading-[1.65] text-muted-foreground">{ws(lang, 'in_sub')}</p>
       </div>
       <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
-        <Tile label={ws(lang, 'tot_received')} value={nf(t.inquiries_received)} />
-        <Tile label={ws(lang, 'tot_quoted')} value={nf(t.quotations_submitted)} />
-        <Tile label={ws(lang, 'tot_won')} value={nf(t.jobs_won)} />
-        <Tile label={ws(lang, 'tot_revenue')} value={'AED ' + nf(t.revenue_aed)} />
+        <Tile label={ws(lang, 'tot_received')} value={num(t.inquiries_received)} />
+        <Tile label={ws(lang, 'tot_quoted')} value={num(t.quotations_submitted)} />
+        <Tile label={ws(lang, 'tot_won')} value={num(t.jobs_won)} />
+        <Tile label={ws(lang, 'tot_revenue')} value={aed(lang, t.revenue_aed)} />
       </div>
       {!s.has_data && <p className="rounded-md border border-dashed border-border px-3.5 py-2.5 text-[12.5px] text-muted-foreground">{ws(lang, 'in_empty_note')}</p>}
 
@@ -151,7 +163,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
           {rates.some(([, v]) => v != null) && (
             <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-border pt-3.5">
               {rates.filter(([, v]) => v != null).map(([k, v]) => (
-                <div key={k} className="flex items-baseline justify-between gap-2"><dt className="text-[12.5px] text-muted-foreground">{k === 'r_lead' ? LEAD_LABEL[lang === 'ar' ? 'ar' : 'en'] : ws(lang, k)}</dt><dd className="text-[13px] font-bold text-foreground tabular-nums"><bdi dir="ltr">{v}</bdi></dd></div>
+                <div key={k} className="flex items-baseline justify-between gap-2"><dt className="text-[12.5px] text-muted-foreground">{k === 'r_lead' ? LEAD_LABEL[lang === 'ar' ? 'ar' : 'en'] : ws(lang, k)}</dt><dd className="text-[13px] font-bold text-foreground tabular-nums"><Ltr>{v}</Ltr></dd></div>
               ))}
             </dl>
           )}

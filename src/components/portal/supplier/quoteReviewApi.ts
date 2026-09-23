@@ -59,8 +59,11 @@ export type Failure = { ok?: false; error: string; code?: string; message?: stri
 export type Result<T> = T | Failure;
 export const failed = <T extends { ok: true }>(r: Result<T> | null | undefined): r is Failure | null | undefined => !r || (r as { ok?: boolean }).ok !== true;
 
+// No `.catch` here: since 22 Sep 2026 ./api.ts's `call` RESOLVES every failure as
+// `{ ok: false, code: 'network' | 'timeout' | 'bad_response' | 'load_failed' }` and never rejects,
+// so a catch on it is unreachable. `failed()` above is the test; do not add one back.
 const post = <T>(body: Record<string, unknown>, token: string): Promise<Result<T>> =>
-  call('supplier_api', body, token).catch(() => ({ error: 'network', code: 'network' }));
+  call('supplier_api', body, token);
 
 export const qr = {
   inquiries: (token: string) => post<InquiriesList>({ action: 'inquiries_list' }, token),
@@ -102,6 +105,9 @@ export function saveInline(name: string, content: string, mime: string) {
   const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+// `aedIn(lang, n)` lived here until 22 Sep 2026 (audit SP-I-10). It was the second of three money
+// formatters on the same supplier's screen; ./money.ts `aed(lang, n, decimals)` is now the only one,
+// and its two importers here (InquiriesTab, QuotationsTab) call that instead.
 export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: 'ok' | 'warn' | 'secondary' | 'outline' }> = {
   none: { en: 'Not started', ar: 'لم يبدأ', tone: 'outline' },
   open: { en: 'Waiting for your file', ar: 'بانتظار ملفكم', tone: 'outline' },
@@ -113,6 +119,3 @@ export const REVIEW_STATE: Record<ReviewState, { en: string; ar: string; tone: '
   submitted: { en: 'Submitted', ar: 'تم التقديم', tone: 'ok' },
   closed: { en: 'Closed', ar: 'مغلق', tone: 'secondary' },
 };
-
-/** A price in the UI language: 'AED 30,400' / '30,400 د.إ'. Digits stay Latin (wrap in <Ltr>). Audit 21 Sep 2026, finding 26. */
-export const aedIn = (lang: Lang, n: number | null | undefined) => { const v = Number(n || 0).toLocaleString('en-AE', { maximumFractionDigits: 0 }); return lang === 'ar' ? v + ' د.إ' : 'AED ' + v; };

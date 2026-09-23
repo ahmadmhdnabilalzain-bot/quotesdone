@@ -22,9 +22,10 @@
 // supplier reading "not yet" waits for an advantage that is never coming, and may chase the ladder
 // to get it. It states the settled position instead. The three §20 benefit requirements are
 // therefore permanently unmet BY DECISION, not by omission, and must never be quietly satisfied.
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 
 type Lang = 'en' | 'ar';
 type Rung = { tier: string; needs: string; needs_ar?: string };
@@ -34,17 +35,6 @@ type Payload = {
   progress?: { quotes_submitted?: number; quotes_won?: number; quality_rating?: number | null; response_rate?: number | null };
   benefits_active?: boolean; affects_matching?: boolean; benefits_note?: string; benefits_note_ar?: string;
 };
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -66,6 +56,18 @@ const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || 
 
 // The metals, in order, so the ladder always renders as a ladder even if the payload reorders.
 const ORDER = ['bronze', 'silver', 'gold', 'platinum'];
+// SP-I-02, 22 Sep 2026: the tier CODE was rendered to the supplier — an Arabic reader saw the bare
+// English word "platinum" as their own ranking, and as every rung of the ladder. A code is an
+// internal key; the reader gets a name. An unknown code falls back to the code, not to a blank.
+const TIER_LABEL: Record<string, { en: string; ar: string }> = {
+  bronze: { en: 'Bronze', ar: 'برونزي' },
+  silver: { en: 'Silver', ar: 'فضي' },
+  gold: { en: 'Gold', ar: 'ذهبي' },
+  platinum: { en: 'Platinum', ar: 'بلاتيني' },
+  unranked: { en: 'Unranked', ar: 'غير مصنّف' },
+};
+const tierName = (lang: Lang, code: string): string =>
+  (TIER_LABEL[code] ? TIER_LABEL[code][lang === 'ar' ? 'ar' : 'en'] : code);
 const STYLE: Record<string, string> = {
   bronze: 'text-amber-600', silver: 'text-slate-300', gold: 'text-yellow-400', platinum: 'text-cyan-200',
 };
@@ -74,17 +76,16 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
   const [d, setD] = useState<Payload | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'tier' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setD(j); else setErr((j && (j.error || j.hint)) || 'load_err');
-    }).catch(() => { if (live) setErr('load_err'); });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'tier' }, token);
+    if (j && j.ok) setD(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="p-4 text-xs opacity-60">{err}</div>;
-  if (!d) return <div className="p-4 text-xs opacity-60">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!d) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const ranked = d.available === true;
   const tier = String(d.tier || 'unranked');
@@ -102,9 +103,9 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
         <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t(lang, 'yourTier')}</div>
         <motion.div
           initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}
-          className={'mt-0.5 text-2xl font-semibold capitalize ' + (ranked ? (STYLE[tier] || 'text-white') : 'text-muted-foreground')}
+          className={'mt-0.5 text-2xl font-semibold ' + (ranked ? (STYLE[tier] || 'text-white') : 'text-muted-foreground')}
         >
-          {ranked ? tier : t(lang, 'unranked')}
+          {ranked ? tierName(lang, tier) : t(lang, 'unranked')}
         </motion.div>
         {/* The reason, always. "Unranked" without it reads as a bad score. */}
         <p className="mt-1.5 text-xs leading-[1.7] text-muted-foreground">{(ar && d.basis_ar) || d.basis}</p>
@@ -115,7 +116,7 @@ export default function SupplierTier({ token, lang = 'en' }: { token?: string | 
         <ol className="flex flex-col gap-1.5">
           {ladder.map((r) => (
             <li key={r.tier} className="flex items-baseline gap-2 text-[12.5px]">
-              <span className={'w-[4.5rem] shrink-0 font-medium capitalize ' + (STYLE[r.tier] || 'text-white')}>{r.tier}</span>
+              <span className={'w-[4.5rem] shrink-0 font-medium ' + (STYLE[r.tier] || 'text-white')}>{tierName(lang, r.tier)}</span>
               <span className={r.tier === tier ? 'text-white' : 'text-muted-foreground'}>{(ar && r.needs_ar) || r.needs}</span>
               {r.tier === tier && <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ok" />}
             </li>

@@ -9,6 +9,7 @@
 // reads correctly — `srvText` never returns an empty string when the server sent a sentence.
 
 import { arDays } from '@/lib/durationLabel';
+import { price } from './money';
 type P = Record<string, any>;
 type L = 'en' | 'ar';
 type Entry = { en: (p: P) => string; ar: (p: P) => string };
@@ -90,14 +91,24 @@ const plural = (n: number, one: string, many: string) => (Number(n) === 1 ? one 
 
 const COPY: Record<string, Entry> = {
   // ── Documents tab hints (supplier_portal DOC_KINDS) ─────────────────────────────────────────────
-  doc_hint_license: s('Required. Your current DED / free-zone trade licence.', 'مطلوب. رخصتكم التجارية السارية الصادرة عن دائرة التنمية الاقتصادية أو المنطقة الحرة.'),
+  // "DED" NAMED ONE EMIRATE'S MAINLAND REGISTRAR (audit 22 Sep 2026, SP-I-06; agent: customer_support).
+  // A free-zone supplier, and a mainland supplier outside Dubai, is not licensed by "دائرة التنمية
+  // الاقتصادية" at all, so the hint told most of the estate to upload something they do not hold.
+  // The phrase now names the class of issuer, not one of its members; supplier_portal DOC_KINDS says
+  // the same in English.
+  doc_hint_license: s('Required. Your current trade licence from your licensing authority (Economic Department or free-zone authority).',
+    'مطلوب. رخصتكم التجارية السارية الصادرة عن جهة الترخيص (الدائرة الاقتصادية أو سلطة المنطقة الحرة).'),
   doc_hint_profile: s('Required. Your company introduction deck or PDF. Shown to customers after a reveal.', 'مطلوب. العرض التعريفي لشركتكم أو ملف PDF، ويطّلع عليه العملاء بعد الكشف.'),
   doc_hint_catalogs: s('Product or project catalogues. Upload as many as you like — new files are added, never replaced.', 'كتالوجات المنتجات أو المشاريع. ارفعوا منها ما تشاؤون؛ تُضاف الملفات الجديدة دون أن تحلّ محل السابقة.'),
-  doc_hint_vat: s('Your TRN certificate. Needed before you can invoice with VAT.', 'شهادة التسجيل الضريبي (TRN)، وهي مطلوبة قبل إصدار فواتير تتضمن ضريبة القيمة المضافة.'),
+  // ONE NAME FOR EACH NUMBER (audit 22 Sep 2026, SP-I-07): the TRN is «رقم التسجيل الضريبي» and the
+  // EGR is «بطاقة المنشأة» everywhere on the supplier surface — «الرقم الضريبي» and «السجل الاقتصادي»
+  // read as two different documents to a supplier holding one of each.
+  doc_hint_vat: s('Your Tax Registration Number (TRN) certificate. Needed before you can invoice with VAT.',
+    'شهادة رقم التسجيل الضريبي (TRN)، وهي مطلوبة قبل إصدار فواتير تتضمن ضريبة القيمة المضافة.'),
   doc_hint_insurance: s('Public liability or contractor all-risk cover.', 'تأمين المسؤولية العامة أو تأمين جميع أخطار المقاول.'),
   doc_hint_iso: s('Any ISO certificate you hold. Strengthens your capability score.', 'أي شهادة ISO تحملونها، وهي تعزّز تقييم قدراتكم.'),
   doc_hint_manufacturer: s('Authorised-dealer letters from the brands you carry.', 'خطابات الوكالة المعتمدة من العلامات التجارية التي تتعاملون بها.'),
-  doc_hint_egr: s('Your establishment card (EGR), issued with your trade licence.', 'بطاقة المنشأة (EGR) الصادرة مع رخصتكم التجارية.'),
+  doc_hint_egr: s('Your Economic Register (EGR) card, issued with your trade licence.', 'بطاقة المنشأة (EGR) الصادرة مع رخصتكم التجارية.'),
 
   // ── Overview alerts (supplier_portal buildAlerts) ───────────────────────────────────────────────
   doc_expiry_title: s((p) => `${p.doc} ${p.expired ? 'has expired' : 'expires soon'}`, (p) => (p.expired ? `انتهت صلاحية ${docAr(p.doc)}` : `أوشكت صلاحية ${docAr(p.doc)} على الانتهاء`)),
@@ -188,7 +199,15 @@ const COPY: Record<string, Entry> = {
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,
     (p) => `لم يُتحقَّق من تسجيلكم بعد${p.reason ? ': ' + (COPY[p.reason]?.ar({}) || p.reason) : ''}. ارفعوا رخصة تجارية واضحة وسارية في تبويب المستندات، وسيُعاد فحصها تلقائيًا فور حفظها.`),
-  registration_due: s((p) => `Your ${p.currency || 'AED'} ${p.fee} yearly registration is due. Pay it in Billing to send quotes.`, (p) => `رسوم التسجيل السنوية (${p.fee} ${p.currency === 'AED' || !p.currency ? 'درهم' : p.currency}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
+  // ONE FEE, ONE NAME (review of #858, 22 Sep 2026). The signed Supplier Agreement v12 clause 2 defines it:
+  // "Subscription Fee — the annual supplier subscription fee described in clause 6" / «رسوم الاشتراك». This entry
+  // said "yearly registration", the tax documents said a third thing again. scripts/checks/one_fee_has_one_name.test.mjs
+  // reads the name out of the agreement itself and refuses any other one here.
+  // THE FEE AMOUNT GOES THROUGH THE ONE FORMATTER TOO (review of #858, 23 Sep 2026). This line built
+  // its own: `${p.fee}` with no grouping printed "AED 1000" where the invoice says "AED 1,000", and
+  // درهم where every other Arabic amount in the portal reads د.إ. `price` keeps the currency the
+  // server named, so a fee quoted in another currency still reads correctly.
+  registration_due: s((p) => `Your ${price('en', Number(p.fee), String(p.currency || 'AED'))} annual Subscription Fee is due. Pay it in Billing to send quotes.`, (p) => `رسوم الاشتراك السنوية (${price('ar', Number(p.fee), String(p.currency || 'AED'))}) مستحقة. يُرجى سدادها من تبويب الفواتير لتتمكّنوا من إرسال العروض.`),
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
   invalid_amount: s('Enter a valid amount.', 'أدخلوا مبلغًا صحيحًا.'),
@@ -207,6 +226,7 @@ const COPY: Record<string, Entry> = {
   reg_paid: s((p) => `Your registration is paid${p.until ? ' until ' + p.until : ''}.`, (p) => `رسوم تسجيلكم مدفوعة${p.until ? ' حتى ' + p.until : ''}.`),
   // ── The sales engineer's hold desk (14 Sep 2026) ────────────────────────────────────────────────
   spec_hold: s('Your quote is on hold until the exact details listed are stated. Fill them in here or upload a revised quote.', 'عرضكم معلّق إلى حين ذكر التفاصيل الدقيقة المبيّنة. أكملوها هنا أو ارفعوا عرضًا معدّلًا.'),
+  quote_review_changes: s('Your quote needs the changes listed in the review before we can send it to the customer.', '\u064a\u062d\u062a\u0627\u062c \u0639\u0631\u0636\u0643\u0645 \u0625\u0644\u0649 \u0627\u0644\u062a\u0639\u062f\u064a\u0644\u0627\u062a \u0627\u0644\u0648\u0627\u0631\u062f\u0629 \u0641\u064a \u0627\u0644\u0645\u0631\u0627\u062c\u0639\u0629 \u0642\u0628\u0644 \u0625\u0631\u0633\u0627\u0644\u0647 \u0625\u0644\u0649 \u0627\u0644\u0639\u0645\u064a\u0644.'),
   options_split: s((p) => `Your submission carried ${p.count} options; each is now its own quotation.`, (p) => `تضمّن عرضكم ${p.count} خيارات، وأصبح كل خيار منها عرضًا مستقلًا.`),
   option_total_missing: s((p) => `Enter the total for option ${p.option}.`, (p) => `أدخلوا الإجمالي للخيار ${p.option}.`),
   too_many_options: s('A quote can carry at most 20 options.', 'يمكن أن يتضمن العرض 20 خيارًا كحدّ أقصى.'),
@@ -217,6 +237,87 @@ const COPY: Record<string, Entry> = {
   no_hold: s('This quote is not on hold.', 'هذا العرض غير معلّق.'),
   not_found: s('That quote was not found.', 'لم يُعثر على هذا العرض.'),
   payment_unavailable: s('Online payment is not available right now. Please try again later.', 'الدفع الإلكتروني غير متاح حاليًا. يُرجى المحاولة لاحقًا.'),
+
+  // ── SIGN-IN, IDENTITY, DOCUMENTS, CHAT AND PAYMENT REFUSALS (audit 22 Sep 2026, SP-I-03) ───────
+  // About sixteen supplier-facing refusals in kyc, login_otp, messages_api, supplier_api and
+  // supplier_pay carried English prose and NO code, so the Arabic portal printed them in English —
+  // and a supplier whose code was rate-limited, whose licence upload failed or whose chat was shut
+  // read an English sentence at the exact moment they needed to understand it. Every Arabic line
+  // below says what its English line says; none of them is a generic apology.
+
+  // supplier_portal read/write failures (SP-I-01). The real Postgres message is in the function log.
+  load_failed: s('Could not load this section. Please try again.', 'تعذّر تحميل هذا القسم. يُرجى المحاولة مرة أخرى.'),
+  remove_failed: s('We could not remove that document. Please try again.', 'تعذّرت إزالة هذا المستند. يُرجى المحاولة مرة أخرى.'),
+  expiry_save_failed: s('We could not save that expiry date. Please try again.', 'تعذّر حفظ تاريخ الانتهاء. يُرجى المحاولة مرة أخرى.'),
+  unexpected_error: s('Something went wrong. Please try again.', 'حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى.'),
+
+  // Identity: the mobile, the e-mail and the six-digit codes (kyc, login_otp).
+  enter_name: s('Please enter your name.', 'يُرجى إدخال اسمكم.'),
+  // TWIN: src/components/portal/supplier/uaeMobile.ts and supabase/functions/_shared/uae_mobile.ts
+  // hold the one rule — +9715XXXXXXXX — that the sign-up form and kyc send_sms both apply (SP-A-05).
+  bad_mobile: s('Enter a valid UAE mobile number, for example 05X XXX XXXX.', 'يُرجى إدخال رقم جوال إماراتي صحيح، مثل 05X XXX XXXX.'),
+  bad_phone: s('That phone number is not valid.', 'رقم الهاتف غير صحيح.'),
+  bad_identifier: s('Enter a valid email address or UAE mobile number.', 'يُرجى إدخال بريد إلكتروني صحيح أو رقم جوال إماراتي.'),
+  enter_code: s('Enter the 6-digit code.', 'يُرجى إدخال الرمز المكوّن من ستة أرقام.'),
+  wrong_code: s('Incorrect or expired code.', 'الرمز غير صحيح أو انتهت صلاحيته.'),
+  code_expired: s('That code has expired. Please request a new one.', 'انتهت صلاحية هذا الرمز. يُرجى طلب رمز جديد.'),
+  too_many_attempts: s('Too many attempts. Please request a new code.', 'تجاوزتم عدد المحاولات المسموح به. يُرجى طلب رمز جديد.'),
+  code_burned: s('Too many incorrect attempts. Please request a new code.', 'تكرّر إدخال رمز غير صحيح فلم يعد صالحًا. يُرجى طلب رمز جديد.'),
+  verify_failed: s('We could not check that code. Please try again.', 'تعذّر التحقق من الرمز. يُرجى المحاولة مرة أخرى.'),
+  session_failed: s('Could not start your session. Please try again.', 'تعذّر بدء جلستكم. يُرجى المحاولة مرة أخرى.'),
+  not_signed_in: s('Please sign in first.', 'يُرجى تسجيل الدخول أولًا.'),
+  // The rate limits say WHICH limit was hit — "try again later" alone tells a supplier nothing.
+  rate_limited: s('Too many code requests. Please try again later.', 'طلبتم رموزًا كثيرة خلال وقت قصير. يُرجى المحاولة لاحقًا.'),
+  sms_rate_limited: s('Too many SMS codes were requested for this number in the last hour. Please wait and request a new one.',
+    'طُلب عدد كبير من رموز الرسائل النصية لهذا الرقم خلال الساعة الماضية. يُرجى الانتظار قليلًا ثم طلب رمز جديد.'),
+  email_not_sent: s('Could not send the email code. Please try again in a minute.', 'تعذّر إرسال رمز التحقق إلى بريدكم. يُرجى المحاولة بعد دقيقة.'),
+  email_suppressed: s('We cannot email this address — it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.',
+    'لا يمكننا الإرسال إلى هذا البريد الإلكتروني لأنه مُدرَج في قائمة عدم الإرسال بعد ارتداد رسائل سابقة أو إلغاء الاشتراك. يُرجى مراسلتنا على info@quotesdone.com لإعادة تفعيله.'),
+  sms_unavailable: s('SMS is not configured. Please contact us.', 'خدمة الرسائل النصية غير مهيّأة حاليًا. يُرجى التواصل معنا.'),
+  sms_send_failed: s('Could not send the code. Please try again in a minute.', 'تعذّر إرسال الرمز. يُرجى المحاولة بعد دقيقة.'),
+  send_failed: s('Could not send the code. Please try again.', 'تعذّر إرسال الرمز. يُرجى المحاولة مرة أخرى.'),
+  sms_signin_unavailable: s('SMS sign-in is not enabled yet. Please sign in with your email.', 'تسجيل الدخول برسالة نصية غير مفعّل بعد. يُرجى تسجيل الدخول ببريدكم الإلكتروني.'),
+  sms_not_available_for_number: s('SMS codes are not available for this number. Please sign in with your email.', 'لا تتوفر رموز الرسائل النصية لهذا الرقم. يُرجى تسجيل الدخول ببريدكم الإلكتروني.'),
+  sms_signup_refused: s('We cannot create an account from a mobile number — your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.',
+    'لا يمكن إنشاء حساب برقم الجوال وحده؛ فالبريد الإلكتروني هو ما يعرّف حسابكم. يُرجى التسجيل ببريدكم الإلكتروني، ثم إضافة رقم جوالكم بعد ذلك مباشرة.'),
+  no_account_for_number: s("This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.",
+    'هذا الرقم غير مرتبط بأي حساب لدى QuotesDone. يُرجى تسجيل الدخول بالبريد الإلكتروني المسجّل، أو إنشاء حسابكم أولًا.'),
+  ambiguous_phone: s('More than one account carries this mobile number, so it cannot identify you. Please sign in with your email.',
+    'هذا الرقم مسجّل على أكثر من حساب، فلا يمكن أن يحدّد هويتكم. يُرجى تسجيل الدخول ببريدكم الإلكتروني.'),
+
+  // Date of birth (_shared/account_rule.ts returns these three codes verbatim).
+  dob_required: s('Please enter your date of birth.', 'يُرجى إدخال تاريخ ميلادكم.'),
+  dob_invalid: s('Please enter a valid date of birth.', 'يُرجى إدخال تاريخ ميلاد صحيح.'),
+  under_18: s('You must be 18 or over to use QuotesDone.', 'يجب أن يكون عمركم 18 عامًا فأكثر لاستخدام QuotesDone.'),
+
+  // The WhatsApp question inside sign-up (kyc whatsapp_*, _shared/whatsapp_choice.ts).
+  bad_opt: s('Please choose one of the options.', 'يُرجى اختيار أحد الخيارات المتاحة.'),
+  mobile_not_verified: s('Verify your mobile number first.', 'يُرجى توثيق رقم جوالكم أولًا.'),
+  whatsapp_unavailable: s('WhatsApp verification is not available right now. Please try again later.', 'التحقق عبر WhatsApp غير متاح حاليًا. يُرجى المحاولة لاحقًا.'),
+  whatsapp_unanswered: s('Tell us whether your mobile is also your WhatsApp number first.', 'يُرجى إخبارنا أولًا ما إذا كان رقم جوالكم هو نفسه رقم WhatsApp.'),
+
+  // Documents, registration checks and PDFs (supplier_api).
+  document_not_found: s('We could not find that document in our records. Please upload it again.', 'لم نعثر على هذا المستند في سجلاتنا. يُرجى رفعه مرة أخرى.'),
+  receipt_not_found: s('That receipt was not found.', 'لم يُعثر على هذا الإيصال.'),
+  no_terms_version: s('The current agreement version is not set. Please contact us.', 'إصدار الاتفاقية الحالي غير محدّد. يُرجى التواصل معنا.'),
+  check_failed: s('We could not check your registration. Please try again.', 'تعذّر التحقق من تسجيلكم. يُرجى المحاولة مرة أخرى.'),
+  verification_failed: s('Your profile was saved, but we could not check your registration. Please try again.', 'حُفظ ملفكم، لكن تعذّر التحقق من تسجيلكم. يُرجى المحاولة مرة أخرى.'),
+  pdf_failed: s('We could not produce that PDF. Please try again.', 'تعذّر إنشاء ملف PDF. يُرجى المحاولة مرة أخرى.'),
+  invalid_transaction: s('That transaction reference is not valid.', 'رقم العملية غير صحيح.'),
+  temporarily_unavailable: s('This is temporarily unavailable. Please try again shortly.', 'هذه الخدمة غير متاحة مؤقتًا. يُرجى المحاولة بعد قليل.'),
+
+  // Messages (messages_api).
+  account_suspended: s('Your account is suspended.', 'حسابكم موقوف.'),
+  suspended_offplatform: s('Your account is suspended for sharing contact details off-platform.', 'حسابكم موقوف بسبب مشاركة بيانات التواصل خارج المنصة.'),
+  chat_banned: s('This chat is closed due to a policy violation.', 'أُغلقت هذه المحادثة بسبب مخالفة للسياسات.'),
+  chat_not_open: s('Chat is not open. Request a chat first.', 'المحادثة غير مفتوحة. يُرجى طلب فتح محادثة أولًا.'),
+  account_sanctioned: s('This conversation is closed.', 'هذه المحادثة مغلقة.'),
+  empty_message: s('Write a message before sending.', 'يُرجى كتابة رسالة قبل الإرسال.'),
+  message_send_failed: s('We could not send that message. Please try again.', 'تعذّر إرسال رسالتكم. يُرجى المحاولة مرة أخرى.'),
+
+  // Payment (supplier_pay).
+  payment_failed: s('We could not start the payment. Please try again shortly.', 'تعذّر بدء عملية الدفع. يُرجى المحاولة بعد قليل.'),
+  no_payable_dues: s('There is nothing payable in what you selected.', 'لا توجد مستحقات قابلة للسداد ضمن اختياركم.'),
 };
 
 export function srvText(lang: string, code: string | undefined | null, params?: P, fallback?: string): string {

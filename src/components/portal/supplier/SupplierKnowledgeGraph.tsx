@@ -13,8 +13,11 @@
 // shared with 118 of the companies in your categories" is a fact about 17,107 rows, not a
 // similarity score. Pairs below five are not drawn at all — two companies overlapping is a
 // coincidence, and a line for it would be decoration.
-import React, { useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useState } from 'react';
+import { call } from './api';
+// The one count formatter: a bare toLocaleString() follows the VIEWER's browser, not the page.
+import { num } from './money';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 import { categoryLabel } from '@/lib/categoryLabel';
 
 type Lang = 'en' | 'ar';
@@ -30,17 +33,6 @@ type Graph = {
   my_categories?: Cat[]; adjacent?: Adj[];
   population?: { category_nodes?: number; adjacency_edges?: number; listed_companies?: number };
 };
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -83,17 +75,16 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
   const [g, setG] = useState<Graph | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'knowledge_graph' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok) setG(j); else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'knowledge_graph' }, token);
+    if (j && j.ok) setG(j); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!g) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!g) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const mine = g.my_categories || [];
   const adj = g.adjacent || [];
@@ -106,7 +97,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
         <div className="flex justify-between items-baseline mb-3">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
           <span className="text-[10px] opacity-40">
-            {t(lang, 'graphOf')} {p.category_nodes ?? 0} {t(lang, 'cats')} · {p.adjacency_edges ?? 0} {t(lang, 'edges')} · {(p.listed_companies ?? 0).toLocaleString()} {t(lang, 'listed')}
+            {t(lang, 'graphOf')} {p.category_nodes ?? 0} {t(lang, 'cats')} · {p.adjacency_edges ?? 0} {t(lang, 'edges')} · {num(p.listed_companies ?? 0)} {t(lang, 'listed')}
           </span>
         </div>
 
@@ -125,7 +116,7 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
                       : 'border-white/12 bg-white/[0.03] opacity-80')}
                 >
                   {(lang === 'ar' && c.label_ar) || categoryLabel(c.label || c.slug, lang)}
-                  {c.companies != null && <span className="opacity-55 ms-1.5 tabular-nums">{c.companies.toLocaleString()}</span>}
+                  {c.companies != null && <span className="opacity-55 ms-1.5 tabular-nums">{num(c.companies)}</span>}
                   {c.primary ? <span className="opacity-50 ms-1">· {t(lang, 'primary')}</span> : null}
                   {c.source === 'confirmed_trade' ? <span className="opacity-50 ms-1">· {t(lang, 'confirmed')}</span> : null}
                 </span>
@@ -147,8 +138,8 @@ export default function SupplierKnowledgeGraph({ token, lang = 'en' }: { token?:
                   <div className="flex justify-between items-baseline gap-3 text-[12px]">
                     <span className="truncate pe-2">{categoryLabel(a.label || a.slug, lang)}</span>
                     <span className="shrink-0 tabular-nums opacity-60">
-                      {(a.shared_companies ?? 0).toLocaleString()} {t(lang, 'shared')}
-                      <span className="opacity-45"> / {(a.companies ?? 0).toLocaleString()} {t(lang, 'companies')}</span>
+                      {num(a.shared_companies ?? 0)} {t(lang, 'shared')}
+                      <span className="opacity-45"> / {num(a.companies ?? 0)} {t(lang, 'companies')}</span>
                     </span>
                   </div>
                   <Share n={a.shared_companies || 0} max={maxShared} />

@@ -13,7 +13,8 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
 import { SpecHoldPanel } from './SpecHold';
 import { QuoteReviewChat } from './QuoteReviewChat';
-import { aedIn, failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { failed, openPdf, qr, REVIEW_STATE, type InquiryListItem, type Lang } from './quoteReviewApi';
+import { aed } from './money';
 import { Ltr } from '@/lib/Ltr';
 
 const COPY = {
@@ -101,7 +102,7 @@ export function QuotationsTab({ token, lang, focus = null, onFocused, openInquir
                       {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : null}
                       {i.quotes.map((q) => (
                         <span key={q.id} className="inline-flex items-center gap-1.5 rounded-chip border border-[var(--line2)] px-2 py-0.5 text-[11.5px] text-foreground">
-                          {i.quotes.length > 1 ? t.option(q.option_no) + ' · ' : ''}<span className="font-mono tabular-nums"><Ltr>{aedIn(lang, q.quote_amount)}</Ltr></span>
+                          {i.quotes.length > 1 ? t.option(q.option_no) + ' · ' : ''}<span className="font-mono tabular-nums"><Ltr>{aed(lang, q.quote_amount)}</Ltr></span>
                           <span className="text-muted-foreground">· {t.qst[q.status] || q.status}</span>
                         </span>
                       ))}

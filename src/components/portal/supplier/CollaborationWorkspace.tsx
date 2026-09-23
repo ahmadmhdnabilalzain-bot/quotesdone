@@ -19,7 +19,18 @@
 // timeline.pct is NULL before anything has happened, not 0%. A relationship that has not started is
 // not a relationship that is 0% complete.
 import React, { useCallback, useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+import { PanelError, PanelLoading, panelErrorCode, panelErrorText } from './PanelState';
+// SP-I-04: a counted noun in Arabic takes four forms, not one. The population line reads
+// "{n} طلبًا" for every n without this, which is right only from eleven upwards.
+import { AR_NOUN, arCount } from '@/lib/countedNoun';
+
+// «استفسار», not «طلب»: PR #858 settled on one Arabic word for an RFQ across the whole supplier
+// surface (workspaceCopy.ts says الاستفسارات everywhere), and two words for one thing on one screen
+// reads as two different objects. Nominative dual — nothing governs the count in «{n} على المنصة».
+
+// The adjective agrees with the noun it follows, so "matched" cannot be a suffix bolted onto the
+// line above — a dual noun needs a dual adjective and a plural needs a plural.
 
 type FileRow = { name?: string | null; kind?: string | null; category?: string; created_at?: string };
 type Workspace = {
@@ -38,17 +49,6 @@ type Payload = {
 };
 type Lang = 'en' | 'ar';
 
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
-
 const T = {
   en: {
     title: 'Customer Workspaces', loading: 'Opening your workspaces…',
@@ -62,6 +62,7 @@ const T = {
     send: 'Send', sending: 'Sending…', sendFailed: 'Could not send. Try again.',
     composerPlaceholder: 'Reply to this customer…',
     composerBlocked: 'Messaging opens once this relationship has a supplier record.',
+    popInquiries: (n: number) => n + ' enquiries on the platform', popMatched: (n: number) => n + ' matched to you',
   },
   ar: {
     title: 'مساحات عمل العملاء', loading: 'جارٍ فتح مساحات العمل…',
@@ -75,11 +76,16 @@ const T = {
     send: 'إرسال', sending: 'جارٍ الإرسال…', sendFailed: 'تعذّر الإرسال. يُرجى المحاولة مرة أخرى.',
     composerPlaceholder: 'اكتبوا ردّكم على هذا العميل…',
     composerBlocked: 'تُفتح المراسلة بعد إنشاء سجل المورّد لهذه العلاقة.',
+    popInquiries: (n: number) => arCount(n, AR_NOUN.inquiry) + ' على المنصة', popMatched: (n: number) => arCount(n, AR_NOUN.matchedInquiry),
   },
 };
-const t = (lang: Lang, k: keyof typeof T.en): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// Two entries of T are functions of a count, so `t` must not offer them: it returns a string.
+type StrKey = { [K in keyof typeof T.en]: (typeof T.en)[K] extends string ? K : never }[keyof typeof T.en];
+const t = (lang: Lang, k: StrKey): string => (T[lang] || T.en)[k] || T.en[k] || String(k);
+// The two population labels are counted, so they are functions of n, not strings.
+const pop = (lang: Lang, k: 'popInquiries' | 'popMatched', n: number): string => (T[lang] || T.en)[k](n);
 
-const STAGES: (keyof typeof T.en)[] = ['matched', 'messaged', 'quoted', 'awarded'];
+const STAGES: StrKey[] = ['matched', 'messaged', 'quoted', 'awarded'];
 
 // ── §18: THE CONVERSATION HAPPENS IN THE WORKSPACE, NOT SOMEWHERE ELSE ──────────────────────────
 // The card used to carry a message COUNT and a button that navigated away to the global messages
@@ -110,7 +116,9 @@ function WorkspaceComposer({ token, inquiryId, supplierId, lang, onSent }: {
       .catch(() => null);
     setBusy(false);
     if (j && j.ok) { setText(''); onSent(); }
-    else setMsg((j && (j.warning || j.error)) || t(lang, 'sendFailed'));
+    // `warning` is moderation copy the server already wrote for the supplier to read; anything else
+    // is a failure, and its raw text is not for them (SP-I-01).
+    else setMsg((j && j.warning) || (j ? panelErrorText(lang, panelErrorCode(j)) : t(lang, 'sendFailed')));
   };
 
   return (
@@ -125,7 +133,7 @@ function WorkspaceComposer({ token, inquiryId, supplierId, lang, onSent }: {
       />
       <button
         type="button" disabled={busy || !text.trim()} onClick={() => void send()}
-        className="mt-1 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] disabled:opacity-40 hover:bg-white/10"
+        className="mt-1 min-h-11 min-w-11 rounded-lg border border-white/20 px-2.5 py-1 text-[11px] disabled:opacity-40 hover:bg-white/10"
       >
         {busy ? t(lang, 'sending') : t(lang, 'send')}
       </button>
@@ -143,20 +151,21 @@ export default function CollaborationWorkspace({
   // Re-readable, because sending a message from the card changes the message count and can move the
   // timeline stage. A composer that posts and leaves the card showing the old numbers teaches the
   // supplier not to trust the card.
-  const load = useCallback(() => call('supplier_portal', { action: 'workspaces' }, token).then((j) => {
-    if (j && j.ok) setD(j);
-    else setErr((j && (j.error || j.hint)) || 'load_err');
-  }).catch(() => setErr('load_err')), [token]);
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'workspaces' }, token);
+    if (j && j.ok) setD(j); else setErr(panelErrorCode(j));
+  }, [token]);
 
   useEffect(() => { void load(); }, [load]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!d) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!d) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const list = d.workspaces || [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       <section className="rounded-2xl border border-white/10 bg-white/[0.03] backdrop-blur-xl p-4">
         <div className="flex justify-between items-baseline">
           <h3 className="text-xs uppercase tracking-wide opacity-60">{t(lang, 'title')}</h3>
@@ -166,9 +175,10 @@ export default function CollaborationWorkspace({
           <div className="mt-3 text-[11px] opacity-60 leading-relaxed">
             <p>{t(lang, 'empty')}</p>
             <p className="opacity-70 mt-1">{t(lang, 'emptyWhy')}</p>
-            {/* The population behind the empty list — never a silent nothing. */}
+            {/* The population behind the empty list — never a silent nothing. SP-I-02: it was the
+                one line on this panel still written in English on /ar. */}
             <p className="opacity-40 mt-1.5">
-              {d.population?.inquiries ?? 0} inquiries · {d.population?.matches_for_me ?? 0} matched to you
+              {pop(lang, 'popInquiries', d.population?.inquiries ?? 0)} · {pop(lang, 'popMatched', d.population?.matches_for_me ?? 0)}
             </p>
           </div>
         )}
@@ -248,7 +258,7 @@ export default function CollaborationWorkspace({
                   <button
                     type="button"
                     onClick={() => goTo('messages')}
-                    className="mt-1.5 text-[10.5px] underline underline-offset-2 opacity-55 hover:opacity-90"
+                    className="mt-1.5 inline-flex min-h-11 min-w-11 items-center text-[10.5px] underline underline-offset-2 opacity-55 hover:opacity-90"
                   >
                     {t(lang, 'open')}
                   </button>

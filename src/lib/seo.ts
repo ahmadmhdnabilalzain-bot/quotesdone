@@ -107,7 +107,9 @@ const SHELL: Record<'me' | 'portal', { en: [string, string]; ar: [string, string
   },
   portal: {
     en: ['Supplier portal — QuotesDone', 'Quote on jobs from anywhere in the UAE, matched to your licence and trade.'],
-    ar: ['بوابة الموردين — QuotesDone', 'قدّم عروض أسعارك على طلبات من أي مكان في الإمارات تطابق رخصتك ونشاطك.'],
+    // Formal plural, like every other supplier-facing line (audit 22 Sep 2026, SP-I-05): the portal
+    // addresses a company, and the singular «رخصتك» read as though it were writing to a friend.
+    ar: ['بوابة المورّدين — QuotesDone', 'قدّموا عروض أسعاركم على طلبات من أي مكان في الإمارات تطابق رخصتكم ونشاطكم.'],
   },
 };
 export function appShellMeta(locale: string, shell: keyof typeof SHELL): Metadata {

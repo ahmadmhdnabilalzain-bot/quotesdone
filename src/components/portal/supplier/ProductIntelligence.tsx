@@ -18,7 +18,10 @@
 // "not recorded", never "0 units", because 0 units means out of stock and that is a different claim.
 import React, { useEffect, useState } from 'react';
 import SupplierCatalogUpload from './SupplierCatalogUpload';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import { call } from './api';
+// The one count formatter: a bare toLocaleString() follows the VIEWER's browser, not the page.
+import { num } from './money';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 import { arDays } from '@/lib/durationLabel';
 
 type Variant = {
@@ -39,17 +42,6 @@ type Payload = {
   catalogs?: { id: string; status?: string; version?: number; extracted_at?: string | null; source?: string | null }[];
 };
 type Lang = 'en' | 'ar';
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -145,7 +137,7 @@ export function ProductCard({ p, lang }: { p: Product; lang: Lang }) {
         {/* ABSENT IS NOT ZERO. "0 units" means out of stock; "not recorded" means we do not know. */}
         <span className="tabular-nums">
           {p.available_units != null
-            ? `${Number(p.available_units).toLocaleString()} ${t(lang, 'units')}`
+            ? `${num(p.available_units)} ${t(lang, 'units')}`
             : t(lang, 'notRecorded')}
           {lead != null && <span className="opacity-50"> · {t(lang, 'leadTime')} {lang === 'ar' ? arDays(lead) : `${lead} ${t(lang, 'days')}`}</span>}
         </span>
@@ -166,15 +158,16 @@ export default function ProductIntelligence({ token, lang = 'en' }: { token?: st
     const id = setTimeout(() => {
       call('supplier_portal', { action: 'products', q }, token).then((j) => {
         if (!live) return;
-        if (j && j.ok) setData(j);
-        else setErr((j && (j.error || j.hint)) || 'load_err');
+        if (j && j.ok) { setErr(''); setData(j); }
+        else setErr(panelErrorCode(j));
       });
     }, q ? 250 : 0);
     return () => { live = false; clearTimeout(id); };
   }, [token, q, reload]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!data) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  // Retrying is a re-run of the same debounced read: `reload` is the effect's own trigger.
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { setErr(''); setReload((n) => n + 1); }} />;
+  if (!data) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const products = data.products || [];
 

@@ -248,11 +248,11 @@ Deno.serve(observe('login_otp', async (req) => {
         // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
         if (await isSuppressed(email)) {
           await log('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
-          return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
+          return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', code: 'email_suppressed', suppressed: true }, 403);
         }
         const since = new Date(Date.now() - 3600e3).toISOString();
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
-        if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.' }, 429);
+        if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
         const c = code6();
         await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'login', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
         const codeAr = (await registeredLocale(admin, { role: kind, email }, body.lang)) === 'ar';
@@ -266,7 +266,7 @@ Deno.serve(observe('login_otp', async (req) => {
         return J({ ok: true, channel: 'email', identifier: email });
       }
       const e164 = toE164(idRaw);
-      if (!e164) return J({ error: 'Enter a valid email address or UAE mobile number.' }, 400);
+      if (!e164) return J({ error: 'Enter a valid email address or UAE mobile number.', code: 'bad_identifier' }, 400);
       // WHO owns this number is decided BEFORE whether we can text it. Resolution is one indexed
       // query and needs no Twilio; running the credential check first meant a project without SMS
       // configured answered 503 to everything, so neither the ambiguity refusal nor the
@@ -284,7 +284,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // the metric excludes it, so the refusal is still on the record and no longer counted as
         // a fault. The note is unchanged - the reasoning is the point of writing it down.
         await log('skipped', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
-        return annotate(J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409), { ambiguous_phone: 1 });
+        return annotate(J({ error: AMBIGUOUS_MSG, code: 'ambiguous_phone', ambiguous: true }, 409), { ambiguous_phone: 1 });
       }
       const acctEmail = owner ? owner.email : null;
       // AN UNKNOWN NUMBER IS REFUSED WHETHER OR NOT THE CALLER SAID "SIGN ME UP" (13 Aug 2026).
@@ -307,21 +307,21 @@ Deno.serve(observe('login_otp', async (req) => {
           // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
           // not a fault. This one fires every time somebody tries to sign up with a phone number.
           await log('skipped', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
-          return annotate(J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404), { sms_signup_refused: 1 });
+          return annotate(J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', code: 'sms_signup_refused', no_account: true, signup_by_email: true }, 404), { sms_signup_refused: 1 });
         }
         // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
-        return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", no_account: true }, 404);
+        return J({ error: "This mobile number isn't linked to a QuotesDone account yet. Please sign in with the email you registered with, or create your account first.", code: 'no_account_for_number', no_account: true }, 404);
       }
       // After the identity refusals (so a fixture number still answers 404/409 exactly as a real one
       // does) and before anything reaches Twilio: a fixture number is never texted.
       if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
-      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
+      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.', code: 'sms_signin_unavailable' }, 503);
 
       // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
       const pb = await prefixBlocked(admin, e164);
       if (pb.blocked) {
         await log('skipped', { prefix_blocked: 1 }, 'login_otp sent no SMS: the number is under a prefix the IT engineer blocked for OTP pumping. No Twilio charge was incurred.');
-        return J({ error: 'SMS codes are not available for this number. Please sign in with your email.' }, 403);
+        return J({ error: 'SMS codes are not available for this number. Please sign in with your email.', code: 'sms_not_available_for_number' }, 403);
       }
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
       // Read from public.it_threshold so the IT engineer's playbook can tighten them; the constants are
@@ -335,12 +335,12 @@ Deno.serve(observe('login_otp', async (req) => {
           !ipOk
             ? ('login_otp blocked a caller that asked for more than ' + perIp + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
             : ('login_otp hit the global hourly ceiling of ' + perHour + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise it_threshold otp_signup_global_hour - do not remove the ceiling.'));
-        return J({ error: 'Too many code requests. Please try again later.' }, 429);
+        return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
       }
 
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count } = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('phone', e164).gte('created_at', since);
-      if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.' }, 429);
+      if ((count || 0) >= 6) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
       try {
         // Locale: Twilio Verify writes the SMS in the account holder's registered language.
         const smsLocale = await registeredLocale(admin, { role: kind, email: acctEmail }, body.lang);
@@ -360,7 +360,7 @@ Deno.serve(observe('login_otp', async (req) => {
         };
         const wantsWa = await confirmedWhatsApp(kind, acctEmail, e164);
         const res = wantsWa ? await sendWhatsAppFirst(send) : await smsOnly();
-        if (!res.ok) return J({ error: res.jd?.message || 'Could not send the sign-in code.' }, 502);
+        if (!res.ok) return J({ error: 'Could not send the sign-in code. Please try again in a minute.', code: 'sms_send_failed' }, 502);
         // The delivered channel is recorded in phone_verifications.code (the column only ever held the
         // marker 'twilio'; no reader compares it), the same convention kyc's whatsapp_send_code uses,
         // so the day WhatsApp starts carrying sign-in codes is visible in the table with no code change.
@@ -374,18 +374,18 @@ Deno.serve(observe('login_otp', async (req) => {
         // nor SupplierPortal reads `channel`). The field is DROPPED rather than hard-coded to 'sms':
         // a payload that names the wrong channel is a lie, and an absent field is not.
         return J({ ok: true, identifier: e164, known: !!acctEmail });
-      } catch (e) { return J({ error: 'Could not send the SMS code.', detail: String((e as Error)?.message || e) }, 502); }
+      } catch (e) { console.error('login_otp: SMS send threw —', String((e as Error)?.message || e)); return J({ error: 'Could not send the SMS code.', code: 'sms_send_failed' }, 502); }
     }
 
     if (action === 'verify') {
       const code = String(body.code || '').replace(/\D/g, '');
-      if (!code) return J({ error: 'Enter the code you received.' }, 400);
+      if (!code) return J({ error: 'Enter the code you received.', code: 'enter_code' }, 400);
       if (emailOk(idRaw)) {
         const email = idRaw.toLowerCase();
         // Cap guesses per caller before touching the row at all.
         if (!(await rl('login_otp_verify_ip:' + ip, EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
           await log('error', { rate_limited: 1, scope: 'verify_ip' }, 'login_otp blocked a caller making more than ' + EMAIL_VERIFY_PER_IP_HOUR + ' code-verification attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
-          return J({ error: 'Too many attempts. Please request a new code.' }, 429);
+          return J({ error: 'Too many attempts. Please request a new code.', code: 'too_many_attempts' }, 429);
         }
         // Fetch the newest live code for this email, then compare in code so a
         // wrong guess can be counted (a WHERE on the token cannot be).
@@ -396,18 +396,18 @@ Deno.serve(observe('login_otp', async (req) => {
         // login lockout. limit(1) deterministically takes the newest.
         const { data: rows } = await admin.from('email_verifications').select('*').eq('email', email).eq('purpose', 'login').is('used_at', null).order('created_at', { ascending: false }).limit(1);
         const row = rows && rows[0];
-        if (!row) return J({ error: 'Incorrect or expired code.' }, 400);
-        if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired. Please request a new one.' }, 400);
+        if (!row) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+        if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired. Please request a new one.', code: 'code_expired' }, 400);
         if ((row.attempts || 0) >= EMAIL_VERIFY_MAX_ATTEMPTS) {
           await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
-          return J({ error: 'Too many incorrect attempts. Please request a new code.' }, 429);
+          return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
         }
         const givenHash = await otpHash(code);
         // row.token is only set for codes issued before hashing shipped
         const match = row.token_hash ? eqConstantTime(givenHash, row.token_hash) : (!!row.token && eqConstantTime(code, row.token));
         if (!match) {
           await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id);
-          return J({ error: 'Incorrect or expired code.' }, 400);
+          return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
         }
         await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
         // A FIRST-TIME CUSTOMER HAS NO ROW TO UPDATE (12 Aug 2026). This recorded proof of email
@@ -440,33 +440,37 @@ Deno.serve(observe('login_otp', async (req) => {
         // kind === 'admin' writes neither: the founder is not a customers row and not a claimed
         // lead. Before the third kind existed /os sent 'customer', so an admin email sign-in fell
         // into the else and ran an UPDATE on leads.claimed_by for the admin address.
-        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
+        const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
-      const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
+      const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.', code: 'bad_mobile' }, 400);
       if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
-      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
+      const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.', code: 'sms_signin_unavailable' }, 503);
       try {
+        // main's timedFetch (CONN-01..09) bounds the Twilio leg; #858's stable codes let the portal
+        // translate the refusal; and the thrown message is logged SERVER-SIDE rather than returned as
+        // `detail`, which is the leak SP-I-03 closed in thirteen other places — a Twilio exception
+        // string is not for the browser. All three kept.
         const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });
-        const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.' }, 400);
-      } catch (e) { return J({ error: 'Verification failed, please try again.', detail: String((e as Error)?.message || e) }, 502); }
+        const jd = await r.json(); if (jd?.status !== 'approved') return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+      } catch (e) { console.error('login_otp: Verify check threw —', String((e as Error)?.message || e)); return J({ error: 'Verification failed, please try again.', code: 'verify_failed' }, 502); }
       // HISTORY IS NOT IDENTITY. This used to take the newest phone_verifications row for the
       // number and sign the caller in as whoever that row named — so on a shared handset you were
       // logged in as the last person who had asked for a code on it. That is the second half of
       // the same defect as the admin short-circuit, and it is gone: the account tables are the
       // only authority on who owns an address, and an ambiguous number is refused, not guessed.
       const owner = await resolveEmailByPhone(kind, e164);
-      if (owner && 'ambiguous' in owner) return annotate(J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409), { ambiguous_phone: 1 });
+      if (owner && 'ambiguous' in owner) return annotate(J({ error: AMBIGUOUS_MSG, code: 'ambiguous_phone', ambiguous: true }, 409), { ambiguous_phone: 1 });
       const email = owner ? owner.email : '';
-      if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.' }, 404);
+      if (!email) return J({ error: 'No account is registered with this number. Please sign in with your email, or sign up first.', code: 'no_account_for_number' }, 404);
       if (kind === 'customer') await admin.from('customers').update({ phone_verified: true }).eq('email', email);
       await admin.from('phone_verifications').update({ used_at: new Date().toISOString() }).eq('phone', e164).is('used_at', null);
-      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.' }, 500);
+      const s = await mintSession(email); if (s === 'sanctioned') return J(SANCTIONED_REFUSAL, 403); if (!s) return J({ error: 'Could not start your session. Please try again.', code: 'session_failed' }, 500);
       return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
     }
 
     return J({ error: 'Unknown action' }, 400);
-  } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
+  } catch (e) { console.error('login_otp: unhandled —', String((e as Error)?.message || e)); return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
 // EVERY SIGN-IN IS LOGGED, NOT ONE A MINUTE (22 Sep 2026). observe() samples successes at one per 60 s per
 // isolate and logs every refusal, and refusal_rate divides refusals by the rows it finds -- so on a busy
 // minute the successes it could not see made the share of people turned away read higher than it was.

@@ -22,9 +22,15 @@
 // production row. A bar that renders null as 0% tells a supplier their pricing is rated zero, which
 // is a false statement about a real business. Null renders as an explicit "not rated yet" with no
 // bar at all.
-import React, { useEffect, useState } from 'react';
-import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
+import React, { useCallback, useEffect, useState } from 'react';
+import { call } from './api';
+// The one count formatter: a bare toLocaleString() follows the VIEWER's browser, not the page.
+import { num } from './money';
+import { PanelError, PanelLoading, panelErrorCode } from './PanelState';
 import { emirateLabel } from './serverCopy';
+// SP-I-02: the documents list printed `kind` and `doc_status` exactly as the routine returns them —
+// "trade_licence", "VALID" — in both languages. SupplierDocumentImpact already owns those names.
+import { docKindLabel, docStatusLabel } from './SupplierDocumentImpact';
 
 // The twin payload as fn_supplier_twin actually returns it. Every numeric field is nullable on
 // purpose: price_index is null on all 20,464 production rows, and a type that pretended otherwise
@@ -47,17 +53,6 @@ type Twin = {
   capability_map?: CapMapShape; documents?: Doc[];
 };
 type CapMapShape = { root?: string; children?: { name: string }[] } | null;
-
-const ANON = SUPA_ANON;
-
-async function call(path: string, body: unknown, token?: string | null) {
-  const r = await fetch(fnUrl(path), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
-    body: JSON.stringify(body),
-  });
-  return r.json();
-}
 
 const T = {
   en: {
@@ -163,18 +158,16 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
   const [twin, setTwin] = useState<Twin | null>(null);
   const [err, setErr] = useState('');
 
-  useEffect(() => {
-    let live = true;
-    call('supplier_portal', { action: 'twin' }, token).then((j) => {
-      if (!live) return;
-      if (j && j.ok && j.twin) setTwin(j.twin);
-      else setErr((j && (j.error || j.hint)) || 'load_err');
-    });
-    return () => { live = false; };
+  const load = useCallback(async () => {
+    setErr('');
+    const j = await call('supplier_portal', { action: 'twin' }, token);
+    if (j && j.ok && j.twin) setTwin(j.twin); else setErr(panelErrorCode(j));
   }, [token]);
 
-  if (err) return <div className="text-xs opacity-60 p-4">{err}</div>;
-  if (!twin) return <div className="text-xs opacity-60 p-4">{t(lang, 'loading')}</div>;
+  useEffect(() => { void load(); }, [load]);
+
+  if (err) return <PanelError lang={lang} code={err} onRetry={() => { void load(); }} />;
+  if (!twin) return <PanelLoading lang={lang} text={t(lang, 'loading')} />;
 
   const h = twin.health || {};
   const caps = (twin.capabilities || []).filter((c) => c.has);
@@ -244,7 +237,7 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
           <Stat
             label={t(lang, 'capacity')}
             value={cap.estimated != null
-              ? `${Number(cap.estimated).toLocaleString()} ${t(lang, 'perYear')} (${t(lang, 'estimate')})`
+              ? `${num(cap.estimated)} ${t(lang, 'perYear')} (${t(lang, 'estimate')})`
               : t(lang, 'unknown')}
           />
           <Stat label={t(lang, 'certifications')} value={certs.length ? certs.join(', ') : t(lang, 'none')} />
@@ -297,12 +290,12 @@ export default function SupplierTwin({ token, lang = 'en' }: { token?: string | 
             <div className="space-y-1">
               {(twin.documents || []).map((d) => (
                 <div key={d.kind} className="flex justify-between text-[11px]">
-                  <span className="opacity-70">{d.kind}</span>
+                  <span className="opacity-70">{docKindLabel(lang, d.kind)}</span>
                   <span className={
                     d.doc_status === 'VALID' ? 'text-ok-fg'
                       : d.doc_status === 'EXPIRED' ? 'text-danger-fg' : 'opacity-50'
                   }>
-                    {d.doc_status}{d.expiry ? ' · ' + String(d.expiry).slice(0, 10) : ''}
+                    {docStatusLabel(lang, d.doc_status)}{d.expiry ? ' · ' + String(d.expiry).slice(0, 10) : ''}
                   </span>
                 </div>
               ))}
