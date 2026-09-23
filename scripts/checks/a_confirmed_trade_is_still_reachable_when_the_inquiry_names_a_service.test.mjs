@@ -128,9 +128,30 @@ test('production: a multi-trade inquiry still reaches a supplier that is trade l
               and (s.trade_code || '.' || s.code) = any(
                     public.fn_services_effective(sc.services, sc.trades, sc.services_removed)))
     ),
+    -- ONE TRADE NO CONFIRMED SUPPLIER DECLARES. Finding C's shape needs the named trades to be DISJOINT
+    -- from the candidate's own trades, and a pair drawn from the declared set cannot guarantee that:
+    -- 23 Sep 2026 production held one confirmed matchable row declaring {gypsum, painting}, which
+    -- declares BOTH trades of every such pair, so "never asked" was never reached and removing the
+    -- fourth arm of the gate left this test green. Pairing a declared trade with an UNDECLARED one makes
+    -- the disjointness hold by construction, whatever the fixture set is doing: the trade gate still
+    -- admits the candidate through trade a, and nothing it declares is asked about. 40 such trades today.
+    outside as (
+      select t.code as tr from public.taxonomy_trade t
+       where t.active
+         and not exists (select 1 from public.supplier_capabilities sc, unnest(coalesce(sc.trades, '{}'::text[])) x
+                          where sc.confirmed_at is not null and x = t.code)
+       order by t.code limit 1
+    ),
     ask as (
-      -- finding C's shape: the services named are all in b, so a supplier declaring only a is asked
-      -- about nothing of its own. Ordered, because {a,b} and {b,a} ask different things here.
+      -- finding C's shape, guaranteed: every service named belongs to a trade NO candidate declares.
+      select a.tr as a, o.tr as b, 'services of ' || o.tr || ' only, a trade nobody declares' as mode,
+             array(select s.trade_code || '.' || s.code from public.taxonomy_trade_service s
+                    where s.active and s.trade_code = o.tr order by 1) as keys
+        from declared a, outside o
+      union all
+      -- finding C's shape as far as the declared set can carry it: the services named are all in b, so a
+      -- supplier declaring only a is asked about nothing of its own. Ordered, because {a,b} and {b,a}
+      -- ask different things here. Vacuous for "never asked" when one row declares both trades.
       select a.tr as a, b.tr as b, 'services of ' || b.tr || ' only' as mode,
              array(select u.key from unheld u where u.tr = b.tr order by 1) as keys
         from declared a join declared b on b.tr <> a.tr
@@ -188,8 +209,8 @@ test('production: a multi-trade inquiry still reaches a supplier that is trade l
                 `naming services ${r.naming_services}, must survive ${r.must_survive}` +
                 (r.lost.length ? `  LOST ${r.lost.join(', ')}` : ''));
   }
-  if (!rows.length) return nothing(t, 'NOT_VERIFIED_NO_TWO_DECLARED_TRADES',
-    'fewer than two trades are declared by confirmed suppliers, or every service of them is already held, so no multi-trade ask can be formed');
+  if (!rows.length) return nothing(t, 'NOT_VERIFIED_NO_MULTI_TRADE_ASK_CAN_BE_FORMED',
+    'no confirmed supplier declares a trade, or the taxonomy carries no active service to ask for, so no multi-trade ask can be formed');
   const lost = rows.filter((r) => r.lost.length)
     .map((r) => `p_trades {${r.a}, ${r.b}} asking ${r.mode}: ${r.lost.join(', ')} — reached at trade level and trade level for this ask, yet the service gate dropped them`);
   assert.deepEqual(lost, [], 'the gate dropped a supplier that is trade level for this inquiry: either it read the named trades as one union, or it consulted only the trades the supplier declares');

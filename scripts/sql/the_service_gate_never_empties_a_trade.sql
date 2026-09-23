@@ -106,6 +106,23 @@
 -- older transcript: aluminium.tensile_structures is NOT an active taxonomy key, so the `named` filter
 -- above discards it and it cannot serve as an exclusion-arm case at all; aluminium.curtain_wall can.
 --
+-- THE GUARD BITES ON EVERY ARM IT PROTECTS, and that was checked by removing each arm rather than
+-- assumed. A first version of the guard's multi-trade case paired two DECLARED trades, so "never asked"
+-- required a candidate declaring only one of them; production's single confirmed row declares both
+-- trades of every such pair, so the fourth arm was never exercised and deleting it left the guard green.
+-- The guard now also pairs a declared trade with a trade NO confirmed supplier declares (40 of them on
+-- 23 Sep 2026), which makes the named trades disjoint from every candidate's own by construction,
+-- whatever the fixture set is doing. Measured on production the same day, this file's body run read-only
+-- against the guard's own ask set, once whole and once with `or c.never_asked` deleted:
+--   {gypsum, aluminium} services of aluminium only   trade level 1, live 0, THREE-ARM 0 (loses 126512,
+--                                                    never asked), FOUR-ARM 1
+--   {painting, aluminium} services of aluminium only trade level 1, live 0, THREE-ARM 0 (loses 126512),
+--                                                    FOUR-ARM 1
+--   {gypsum, painting} services of both trades       trade level 1, live 0, three-arm 1, four-arm 1
+--   {gypsum, painting} services of painting only     trade level 1, live 0, three-arm 1, four-arm 1
+-- Four asks, the three-arm gate loses a supplier on two of them, this file loses none. The ask COUNT
+-- moves with the fixture set and is not a property; which arm each ask exercises is.
+--
 -- POST-APPLY PROBE, TWO HALVES, because zero cannot tell a dead guard from an idle system. After step 3
 -- of the apply order, 126512 holds painting.interior and painting.repainting and three painting services
 -- become unheld:
@@ -310,7 +327,11 @@ select r.supplier_id, r.company_name, r.score_v as score,
            then 'trade level in ' || array_to_string(r.silent_in, '+') end,
     -- The never-asked arm populates neither silent_in nor service_hits, so it needs its own line or the
     -- audit trail would show a candidate with no reason at all (re-review finding C).
-    case when (select k from n) > 0 and r.never_asked
+    -- ...and only when there was no hit. fn_services_effective adds implied keys through the curated map,
+    -- and an implication can land in a trade the supplier does not declare, so a row CAN be admitted on a
+    -- genuine hit while never_asked is also true. Without this clause `why` printed "1/1 services" and
+    -- "no service named in this supplier's trades" on the same line, which contradicts itself.
+    case when (select k from n) > 0 and r.never_asked and cardinality(r.service_hits) = 0
            then 'trade level (no service named in this supplier''s trades)' end,
     case when cardinality(r.via_implication) > 0 then 'implied: ' || array_to_string(r.via_implication, ', ') end,
     case when r.product_hits > 0 then r.product_hits||'/'||cardinality(p_products)||' products' end,

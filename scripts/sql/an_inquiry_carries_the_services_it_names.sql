@@ -31,7 +31,12 @@ alter table public.inquiries add column if not exists service_keys text[];
 comment on column public.inquiries.service_keys is
   'The taxonomy service keys (<trade>.<code>) this inquiry names, read by the exact-alias matcher in '
   '_shared/service_vocabulary.ts and passed to fn_match_capability as p_services. null = never derived; '
-  '{} = derived and no service named (trade-level matching). Written by sales_engineer''s match action.';
+  '{} = derived and no service named (trade-level matching). Written by sales_engineer''s match action. '
+  'The derivation happens ONCE: null is derived and stored on the first match, and {} is then kept as the '
+  'answer, so an inquiry stored as {} stays trade-level even after taxonomy_trade_service gains a service '
+  'its brief would now name (211 active rows, added to during Sep 2026). To force a re-read, set the '
+  'column back to null -- update public.inquiries set service_keys = null where id = ... -- and the next '
+  'match derives it again against the current vocabulary.';
 
 -- ── BACKFILL ────────────────────────────────────────────────────────────────────────────────────
 -- Every inquiry that existed when this column was added: 3 rows, all ZZ DEMO founder-tour requests
