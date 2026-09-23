@@ -45,7 +45,7 @@ export type ServiceRow = { trade_code: string; code: string; label_en: string; l
 export type ChecklistService = { key: string; label_en: string; label_ar: string };
 export type ChecklistTrade = {
   code: string; label_en: string; label_ar: string | null;
-  source: 'confirmed' | 'on_file' | 'documents';
+  source: 'confirmed' | 'on_file' | 'documents' | 'refine';
   services: ChecklistService[];
 };
 export type VoiceConfig = { enabled: boolean; max_seconds: number; max_bytes: number; mime: readonly string[] };
@@ -90,12 +90,25 @@ export const langOf = (text: string): '' | 'ar' | 'en' => !text.trim() ? '' : /[
 
 /** Which trades the checklist opens with, and why. Confirmed wins; before a confirm it is what we
  *  hold on file plus what the supplier's own documents name (supplier_doc_trades.ts). */
-export function preparedTrades(cap: Record<string, unknown> | null, confirmed: boolean): { code: string; source: ChecklistTrade['source'] }[] {
+export function preparedTrades(cap: Record<string, unknown> | null, confirmed: boolean,
+  umbrellaOf: Record<string, string | null | undefined> = {}): { code: string; source: ChecklistTrade['source'] }[] {
   const held = Array.isArray(cap?.trades) ? (cap!.trades as string[]) : [];
-  if (confirmed) return held.map((code) => ({ code, source: 'confirmed' as const }));
-  const docs = Array.isArray(cap?.proposed_trades) ? (cap!.proposed_trades as string[]) : [];
-  const out: { code: string; source: ChecklistTrade['source'] }[] = held.map((code) => ({ code, source: 'on_file' }));
-  for (const code of docs) if (!held.includes(code)) out.push({ code, source: 'documents' });
+  const out: { code: string; source: ChecklistTrade['source'] }[] = confirmed
+    ? held.map((code) => ({ code, source: 'confirmed' as const }))
+    : held.map((code) => ({ code, source: 'on_file' as const }));
+  if (!confirmed) {
+    const docs = Array.isArray(cap?.proposed_trades) ? (cap!.proposed_trades as string[]) : [];
+    for (const code of docs) if (!held.includes(code)) out.push({ code, source: 'documents' });
+  }
+  // SPLITS ARE OFFERED, NEVER APPLIED (founder instructions 895/899/900, 23 Sep 2026). A trade split out of
+  // one the checklist already shows (taxonomy_trade.umbrella_code: corrugated_packaging out of packaging)
+  // is listed after it, unticked, as 'refine'. The umbrella stays his and keeps every inquiry naming it;
+  // the specific trade becomes his only through a service he ticks in it (ServicesTab sends a 'refine'
+  // trade only when one of its services is ticked). Nobody is moved from one code to another.
+  const shown = new Set(out.map((t) => t.code));
+  for (const [child, parent] of Object.entries(umbrellaOf)) {
+    if (parent && shown.has(parent) && !shown.has(child)) { out.push({ code: child, source: 'refine' }); shown.add(child); }
+  }
   return out;
 }
 
@@ -119,9 +132,9 @@ export async function servicesState(admin: Admin, supplierId: number) {
   const known = new Set(rows.map((r) => serviceKey(r.trade_code, r.code)));
   const cap = base.capability as Record<string, unknown> | null;
   const { selected, extras } = splitServices(cap?.services, known);
-  const vocab = base.vocabulary.trades as { code: string; label: string; label_ar?: string | null }[];
+  const vocab = base.vocabulary.trades as { code: string; label: string; label_ar?: string | null; umbrella_code?: string | null }[];
   const labelOf = (code: string) => vocab.find((t) => t.code === code);
-  const prepared = preparedTrades(cap, base.confirmed);
+  const prepared = preparedTrades(cap, base.confirmed, Object.fromEntries(vocab.map((t) => [t.code, t.umbrella_code])));
   // FIRST RUN STARTS UNTICKED (founder_instruction 862, 23 Sep 2026: "for suppliers it's as I told you
   // it start unticked"). It used to tick every service of every prepared trade — including trades the
   // sales engineer only INFERRED ('on_file', 'documents') — and one press of Confirm saved all of it as

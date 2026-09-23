@@ -66,3 +66,20 @@ Deno.test('installation and warranty applicability is decided per trade, never g
   assert(!warrantyApplies('cleaning', '') && !warrantyApplies('movers', '') && !warrantyApplies('interiordesign', ''));
   assert(warrantyApplies('pestcontrol', 'Pre-construction termite treatment') && !warrantyApplies('pestcontrol', 'Cockroach gel treatment'));
 });
+
+// THE TAXONOMY TRADES OF 23 SEP 2026 (founder instructions 895/899/900). An exact new code is decided by
+// taxonomy_trades.ts before any category pattern: a hotel-furniture quote is not held on joinery's board
+// thickness, and a pump quote is held until each line states its brand and model.
+Deno.test('a new taxonomy code resolves exactly: branded goods on brand + model, the rest on no line attribute', () => {
+  assertEquals(tradeOfCategory('pumps'), 'branded_goods');
+  assertEquals(tradeOfCategory('vehicles_fleet'), 'branded_goods');
+  for (const c of ['hotel_furniture', 'cleaning_chemicals', 'fencing_shades', 'corrugated_packaging', 'legal_services']) {
+    assertEquals(tradeOfCategory(c), c, c);
+    assert(!TRADES[c] && !COMPOSITE.has(c), `${c} must not borrow another trade's attributes`);
+  }
+  assert(!installApplies('branded_goods'), 'a supply of branded goods is not an installation');
+  const t = TRADES.branded_goods;
+  assertEquals(t.attrs.filter((a) => a.mandatory).map((a) => a.code).sort(), ['brand', 'model']);
+  assertEquals(find('branded_goods', 'Centrifugal pump, Brand: Grundfos, Model: CR 10-4, 5.5 kW'), { brand: 'Grundfos', model: 'CR 10-4' });
+  assertEquals(find('branded_goods', 'Centrifugal pump 5.5 kW'), {});
+});

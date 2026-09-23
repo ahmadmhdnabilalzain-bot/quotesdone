@@ -32,6 +32,17 @@ Deno.test('preparedTrades: confirmed wins; before a confirm, on file then docume
   assertEquals(preparedTrades(null, false), []);
 });
 
+Deno.test('preparedTrades: a trade split from one he holds is offered after it as refine, never in its place', () => {
+  const umbrellaOf = { corrugated_packaging: 'packaging', flexible_packaging: 'packaging', pumps: 'oilfield', packaging: null };
+  const cap = { trades: ['packaging', 'flexible_packaging'] };
+  assertEquals(preparedTrades(cap, true, umbrellaOf), [
+    { code: 'packaging', source: 'confirmed' }, { code: 'flexible_packaging', source: 'confirmed' },
+    { code: 'corrugated_packaging', source: 'refine' },
+  ]);
+  // the umbrella not shown: nothing is offered for it
+  assertEquals(preparedTrades({ trades: ['hvac'] }, true, umbrellaOf), [{ code: 'hvac', source: 'confirmed' }]);
+});
+
 const wav = 'UklGR' + 'A'.repeat(400);
 Deno.test('checkVoice: type, size and length limits', () => {
   assertEquals(checkVoice({ audio_b64: wav, mime: 'audio/webm' }), { ok: false, code: 'voice_bad_type', status: 415 });

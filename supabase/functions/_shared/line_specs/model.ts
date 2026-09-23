@@ -26,6 +26,7 @@
 // the portal, the hold decision and the comparison all import them from here. A copy in a table would
 // be a second source that drifts. The trade keys ARE the database's spec groups, and a test pins that
 // every category in category_specs and src/content/categories.json resolves to a trade here.
+import { BRANDED_GOODS, NO_LINE_SPECS_YET } from './taxonomy_trades.ts';
 
 export type AttrType = 'text' | 'number';
 export type Attr = {
@@ -394,6 +395,10 @@ export const TRADES: Record<string, Trade> = Object.fromEntries([
       A('method', 'Method', 'الطريقة', true, oneOf([['Mechanical (excavator / breaker)', /mechanical|excavator|breaker|jcb|آلي|حفار/i], ['Manual', /manual|hand|يدوي/i], ['Controlled / diamond cutting', /controlled|diamond|wire\s*saw|core|قص/i]])),
       A('disposal', 'Debris disposal', 'التخلص من المخلفات', true, (t) => { const m = normText(t).match(/((?:debris|waste|rubble)\s*(?:disposal|removal)[\w .,]{0,30})|((?:municipality|dm)\s*-?\s*approved\s*(?:dump|landfill|site))|(approved\s*(?:dump|landfill|disposal)\s*site)|(ترحيل المخلفات[^,;]{0,20})|(مكب معتمد)/i); return m ? clean(m.slice(1).find(Boolean)!) : null; }),
     ]),
+  // The taxonomy trades of 23 Sep 2026 whose lines are products named by make and model (taxonomy_trades.ts
+  // BRANDED_GOODS: pumps, compressors, forklifts, phones, vehicles, medical equipment...). No brand lexicon:
+  // the supplier states it ("Brand: Grundfos", "Model: CR 10-4") and the portal's per-line fields take it.
+  T('branded_goods', 'Branded equipment & parts', 'المعدات وقطع الغيار ذات العلامة التجارية', /\S/, [BRAND([]), MODEL(), STANDARD]),
 ].map((t) => [t.code, t]));
 
 // Trades whose quotes mix many kinds of line. Each LINE of such a quote is read as the trade its own
@@ -411,6 +416,9 @@ export const NON_MATERIAL = /^(?:\d+[.)]\s*)?(?:labou?r(?:\s*charges?)?|installa
 /** The trade of a quote, from its category — the same vocabulary as fn_quote_spec_group. */
 export function tradeOfCategory(category: string | null | undefined): string {
   const c = String(category ?? '').toLowerCase();
+  // An exact taxonomy code of 23 Sep 2026 is decided before any pattern below can misread it (taxonomy_trades.ts).
+  if (BRANDED_GOODS.has(c)) return 'branded_goods';
+  if (NO_LINE_SPECS_YET.has(c)) return c;
   const rules: [RegExp, string][] = [
     [/duct.?clean|ac.?duct/, 'acduct'], [/facade.?clean/, 'facade'], [/water.?tank/, 'watertank'],
     [/cctv|surveillance|security|access.?control|intercom|alarm/, 'security'], [/fire|safety|sprinkler|extinguisher|civil.?defen/, 'fire'],
@@ -452,7 +460,7 @@ export function tradeOfLine(quoteTrade: string, text: string): string | null {
 //     demolition, design and consultancy), and applies to pest control only for termite work.
 // ---------------------------------------------------------------------------------------------
 const NO_INSTALL = new Set(['cleaning', 'facade', 'watertank', 'acduct', 'pestcontrol', 'movers', 'demolition', 'consultancy', 'interiordesign',
-  'painting', 'waterproofing', 'masonry', 'concrete', 'landscaping', 'scaffolding']);
+  'painting', 'waterproofing', 'masonry', 'concrete', 'landscaping', 'scaffolding', 'branded_goods']);
 const NO_WARRANTY = new Set(['cleaning', 'facade', 'watertank', 'acduct', 'movers', 'scaffolding', 'demolition', 'consultancy', 'interiordesign']);
 const WARRANTY_ONLY_IF: Record<string, RegExp> = { pestcontrol: /termite|نمل أبيض|أرضة/i };
 
