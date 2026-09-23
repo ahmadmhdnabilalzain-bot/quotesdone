@@ -92,7 +92,7 @@ test('production: no judgement without its recall; outcomes, lessons, the metric
   const probe = `
 do $p$
 declare v_live jsonb; v_rogue jsonb; v_j bigint; v_it jsonb; v_c bigint[] := '{}'; v_id bigint; v_clusters jsonb; v_key text;
-        v_apply jsonb; v_ak int; v_days int; v_body text; i int;
+        v_apply jsonb; v_ak int; v_days int; v_body text; i int; v_a int; v_b int; v_h bigint;
 begin
   v_live := public.fn_judgement_without_recall();
   insert into public.seat_judgement (seat, surface, question) values ('it_engineer', 'zz_demo_check', 'ZZ DEMO a judgement with no recall');
@@ -124,10 +124,17 @@ begin
   select count(*) into v_ak from public.agent_knowledge where source_ref = 'lesson:' || (v_apply->>'candidate_id');
   perform public.fn_seat_learning_measure();
   select count(*) into v_days from public.seat_learning_daily where day = (now() at time zone 'Asia/Dubai')::date;
+  -- A held attempt is not a decision: it must not enter the denominators.
+  select outcomes_30d into v_a from public.seat_learning_daily where seat = 'it_engineer' and day = (now() at time zone 'Asia/Dubai')::date;
+  v_h := public.fn_judgement_record('it_engineer', 'triage', '{"issue_key":"zz_demo_check:held"}'::jsonb, 'ZZ DEMO held', '{"available":true,"cases":[]}'::jsonb);
+  perform public.fn_judgement_decided(v_h, 'held', 'model_hold', null, null);
+  perform public.fn_judgement_outcome('it_engineer_finding', 'zz_demo_check:held', 'resolved', true, true, null);
+  perform public.fn_seat_learning_measure();
+  select outcomes_30d into v_b from public.seat_learning_daily where seat = 'it_engineer' and day = (now() at time zone 'Asia/Dubai')::date;
   insert into public.ceo_weekly_report (iso_year, iso_week, week_start, week_end, report_key, body)
   values (2099, 1, date '2099-01-05', date '2099-01-11', 'zz_demo_check:learning', 'ZZ DEMO body') returning body into v_body;
   raise exception 'CHK<<%>>', jsonb_build_object('live', v_live, 'rogue', v_rogue, 'it', v_it, 'cluster', v_key,
-    'apply', v_apply, 'agent_knowledge', v_ak, 'days', v_days, 'learning_section', v_body like '%THE SEATS, LEARNING%',
+    'apply', v_apply, 'agent_knowledge', v_ak, 'held_counted', v_b - v_a, 'days', v_days, 'learning_section', v_body like '%THE SEATS, LEARNING%',
     'lessons_on_cases', (select count(*) from public.seat_case_memory where id = any(v_c) and cardinality(lessons) > 0))::text;
 end $p$;`;
   let r;
@@ -147,5 +154,6 @@ end $p$;`;
   assert.equal(r.agent_knowledge, 1, 'an approved lesson was not promoted into the seat\'s knowledge');
   assert.equal(r.lessons_on_cases, 3, 'the lesson did not reach the cases it came from');
   assert.equal(r.days, 6, 'the daily metric does not cover all six seats');
+  assert.equal(r.held_counted, 0, 'a held attempt entered the accuracy denominators');
   assert.equal(r.learning_section, true, 'the CEO weekly report has no LEARNING section');
 });

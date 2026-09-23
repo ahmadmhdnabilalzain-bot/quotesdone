@@ -388,8 +388,13 @@ begin
           case when v_status <> 'pending_review' then now() end)
   on conflict (finding_sha) do nothing
   returning id into v_cand;
+  -- The same lesson text from another group is the same lesson: link this group to it, never to nothing.
+  if v_cand is null then
+    select id into v_cand from public.reasoning_knowledge_candidate where finding_sha = md5(lower(btrim(left(v_answer, 4000))));
+  end if;
   update public.seat_lesson_cluster set candidate_id = v_cand, verdict = v_ver where cluster_key = c.cluster_key;
-  if v_status = 'approved' and v_cand is not null then
+  if v_status = 'approved' and v_cand is not null
+     and not exists (select 1 from public.agent_knowledge a where a.source_ref = 'lesson:' || v_cand) then
     insert into public.agent_knowledge (agent_key, topic, content, layer, source_ref, owner_agent, version, validation_status, supporting_evidence)
     values (c.seat, 'Lesson from ' || cardinality(c.case_ids) || ' cases [lesson#' || v_cand || ']', left(v_answer, 4000), 'experience',
             'lesson:' || v_cand, c.seat, 1, 'author_verified',
@@ -447,7 +452,9 @@ comment on table public.seat_learning_daily is
   'Per seat, per day: trailing-30-day decision accuracy against real outcomes (seat_judgement), recall coverage, cases and approved lessons. The proof a seat is improving, or the finding that it is not.';
 
 -- 10 points on at least 10 outcomes each side: below that a single outcome swings the figure by more
--- than the threshold, and a finding would be noise.
+-- than the threshold, and a finding would be noise. A 'held' row is not counted: it is an attempt the
+-- model could not complete (a held question replayed three times opens three rows, and only the attempt
+-- that answered is a decision — independent review of this PR).
 create or replace function public.fn_seat_learning_measure(p_day date default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_day date := coalesce(p_day, (now() at time zone 'Asia/Dubai')::date); r public.seat_learning_daily; p public.seat_learning_daily;
@@ -456,12 +463,12 @@ begin
   insert into public.seat_learning_daily as d (seat, day, judgements_30d, outcomes_30d, correct_30d, accuracy_30d,
          recall_available_30d, cases_total, cases_with_outcome, lessons_approved)
   select s.seat, v_day,
-         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.made_at >= v_day - 30 and j.made_at < v_day + 1),
-         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.outcome_correct is not null and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
-         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.outcome_correct and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
+         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and j.made_at >= v_day - 30 and j.made_at < v_day + 1),
+         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and j.outcome_correct is not null and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
+         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and j.outcome_correct and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
          (select round(avg(case when j.outcome_correct then 1.0 else 0.0 end), 4) from public.seat_judgement j
-           where j.seat = s.seat and j.outcome_correct is not null and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
-         (select count(*) from public.seat_judgement j where j.seat = s.seat and (j.recall->>'available')::boolean and j.made_at >= v_day - 30 and j.made_at < v_day + 1),
+           where j.seat = s.seat and j.status <> 'held' and j.outcome_correct is not null and j.outcome_at >= v_day - 30 and j.outcome_at < v_day + 1),
+         (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and (j.recall->>'available')::boolean and j.made_at >= v_day - 30 and j.made_at < v_day + 1),
          (select count(*) from public.seat_case_memory m where m.seat = s.seat),
          (select count(*) from public.seat_case_memory m where m.seat = s.seat and m.outcome is not null),
          (select count(*) from public.reasoning_knowledge_candidate k join public.seat_lesson_cluster c on c.candidate_id = k.id
@@ -503,8 +510,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     'accuracy_now',      (select x.accuracy_30d from public.seat_learning_daily x where x.seat = s.seat and x.day <= d.t order by x.day desc limit 1),
     'accuracy_week_ago', (select x.accuracy_30d from public.seat_learning_daily x where x.seat = s.seat and x.day <= d.t - 7 order by x.day desc limit 1),
     'accuracy_4w_ago',   (select x.accuracy_30d from public.seat_learning_daily x where x.seat = s.seat and x.day <= d.t - 28 order by x.day desc limit 1),
-    'judgements_week',   (select count(*) from public.seat_judgement j where j.seat = s.seat and j.made_at >= d.t - 6),
-    'outcomes_week',     (select count(*) from public.seat_judgement j where j.seat = s.seat and j.outcome_at >= d.t - 6),
+    'judgements_week',   (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and j.made_at >= d.t - 6),
+    'outcomes_week',     (select count(*) from public.seat_judgement j where j.seat = s.seat and j.status <> 'held' and j.outcome_at >= d.t - 6),
     'cases_with_outcome',(select count(*) from public.seat_case_memory m where m.seat = s.seat and m.outcome is not null),
     'lessons_approved_week', (select count(*) from public.reasoning_knowledge_candidate k join public.seat_lesson_cluster c on c.candidate_id = k.id
                                where k.seat = s.seat and k.status = 'approved' and k.reviewed_at >= d.t - 6),
