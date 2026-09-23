@@ -107,9 +107,10 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
   if (uniq.length > MAX_ROWS) missing.push(`Only the first ${MAX_ROWS} lines were kept.`);
   if (!lines.length) missing.push('No line stating a quantity was found in the document.');
   // The set is checked as a surveyor would (boq_validate.ts). A null qty is already an open line the
-  // customer is asked about (boq_open_lines), so only the other doubts become missing_info sentences.
+  // customer is asked about (boq_open_lines), and a unit we cannot convert is our limit, not the customer's
+  // doubt; only the remaining findings become missing_info sentences.
   const validation = validateBoq(lines);
-  for (const f of validation) if (f.check !== 'missing_qty') missing.push(f.say);
+  for (const f of validation) if (f.check === 'bad_qty' || f.check === 'conflict') missing.push(f.say);
   const withQty = lines.filter((b) => b.qty != null).length;
   const tb = dr && isDrawing ? dr.title_block : null;
   return {

@@ -12,32 +12,32 @@
 //   bad_qty        qty is not a finite number above zero; nobody prices -3 sqm or NaN.
 //   unknown_unit   the unit is not one whose physical dimension we know, so the line cannot be
 //                  compared or converted (the table below is a units table, not a meaning table).
-//   conflict       the SAME item (same section, same normalised description) is stated twice with
+//   conflict       the SAME item (same section, item ref, specification and normalised description) twice with
 //                  amounts that disagree once converted to one unit, or in units of different
 //                  dimensions (a length and an area). Exact repeats are deduplicated upstream, so a
 //                  repeat that survives to here is a disagreement.
 //
-// WHAT IT NEVER DOES. It changes no line and drops no line; the findings travel beside the BOQ and
-// each becomes one missing_info sentence, so the customer and the supplier see the doubt. It reads
+// WHAT IT NEVER DOES. It changes no line and drops no line; the findings travel beside the BOQ, and
+// bad quantities and conflicts each become one missing_info sentence the customer and supplier see. It reads
 // no price (none reaches it: boq_from_document strips them).
 
 export type Dim = 'length' | 'area' | 'volume' | 'count' | 'mass' | 'lump';
 // unit (lower-case, spaces and dots removed) -> [dimension, factor to that dimension's SI base]
 const UNITS: Record<string, [Dim, number]> = {
   m: ['length', 1], lm: ['length', 1], rm: ['length', 1], mm: ['length', 0.001], cm: ['length', 0.01], km: ['length', 1000],
-  ft: ['length', 0.3048], lf: ['length', 0.3048], 'م': ['length', 1], 'مط': ['length', 1],
+  ft: ['length', 0.3048], lf: ['length', 0.3048], rft: ['length', 0.3048], rmt: ['length', 1], yd: ['length', 0.9144], 'م': ['length', 1], 'مط': ['length', 1],
   sqm: ['area', 1], m2: ['area', 1], 'm²': ['area', 1], sm: ['area', 1], sqft: ['area', 0.09290304], sf: ['area', 0.09290304],
-  ft2: ['area', 0.09290304], 'م2': ['area', 1], 'م²': ['area', 1],
+  ft2: ['area', 0.09290304], sqyd: ['area', 0.83612736], 'م2': ['area', 1], 'م²': ['area', 1],
   cum: ['volume', 1], m3: ['volume', 1], 'm³': ['volume', 1], cbm: ['volume', 1], l: ['volume', 0.001], ltr: ['volume', 0.001],
-  litre: ['volume', 0.001], 'م3': ['volume', 1], 'م³': ['volume', 1],
+  litre: ['volume', 0.001], cft: ['volume', 0.0283168466], gal: ['volume', 0.00378541], 'م3': ['volume', 1], 'م³': ['volume', 1],
   nos: ['count', 1], no: ['count', 1], nr: ['count', 1], pcs: ['count', 1], pc: ['count', 1], ea: ['count', 1], each: ['count', 1],
-  set: ['count', 1], sets: ['count', 1], unit: ['count', 1], units: ['count', 1], 'عدد': ['count', 1],
+  set: ['count', 1], sets: ['count', 1], pair: ['count', 1], pr: ['count', 1], roll: ['count', 1], bag: ['count', 1], bundle: ['count', 1], unit: ['count', 1], units: ['count', 1], 'عدد': ['count', 1],
   kg: ['mass', 1], t: ['mass', 1000], ton: ['mass', 1000], tonne: ['mass', 1000], tons: ['mass', 1000], 'كغ': ['mass', 1], 'طن': ['mass', 1000],
   lot: ['lump', 1], ls: ['lump', 1], item: ['lump', 1], sum: ['lump', 1],
 };
 export const unitOf = (u: string): [Dim, number] | null => UNITS[String(u || '').toLowerCase().replace(/[\s.]+/g, '')] ?? null;
 
-export type Line = { section?: string; description: string; qty: number | null; unit: string };
+export type Line = { section?: string; item?: string; specification?: string; description: string; qty: number | null; unit: string };
 export type Finding = { check: 'missing_qty' | 'bad_qty' | 'unknown_unit' | 'conflict'; lines: number[]; say: string };
 
 const norm = (s: string) => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -51,7 +51,7 @@ export function validateBoq(lines: Line[]): Finding[] {
     if (l.qty == null) out.push({ check: 'missing_qty', lines: [i], say: `"${d}" states no quantity.` });
     else if (typeof l.qty !== 'number' || !Number.isFinite(l.qty) || l.qty <= 0) out.push({ check: 'bad_qty', lines: [i], say: `"${d}" states a quantity of ${l.qty}, which cannot be priced.` });
     if (l.unit && !unitOf(l.unit)) out.push({ check: 'unknown_unit', lines: [i], say: `"${d}" is measured in "${String(l.unit).slice(0, 20)}", a unit we cannot compare or convert.` });
-    if (norm(l.description)) { const k = `${norm(l.section || '')}|${norm(l.description)}`; groups.set(k, [...(groups.get(k) || []), i]); }
+    if (norm(l.description)) { const k = [l.section, l.item, l.specification, l.description].map((s) => norm(s || '')).join('|'); groups.set(k, [...(groups.get(k) || []), i]); }
   });
   for (const idx of groups.values()) {
     if (idx.length < 2) continue;

@@ -52,3 +52,11 @@ Deno.test('boqFromExtracted carries the findings: a ZZ DEMO IFC and its sheet di
   assertEquals(r.validation, [{ check: 'conflict', lines: [0, 1] }]);
   assertEquals(r.missing_info.some((m: string) => m.includes('different quantities')), true);
 });
+
+Deno.test('two schedule rows with one description but different item refs are two items (review of #docbar)', () => {
+  assertEquals(validateBoq([
+    { section: 'ZZ DEMO Doors', item: 'D1', description: 'Timber door', qty: 4, unit: 'nos' },
+    { section: 'ZZ DEMO Doors', item: 'D2', description: 'Timber door', qty: 9, unit: 'nos' },
+    { description: 'ZZ DEMO tile adhesive', qty: 12, unit: 'bag' }, { description: 'ZZ DEMO blockwork', qty: 30, unit: 'cft' },
+  ]), []);
+});
