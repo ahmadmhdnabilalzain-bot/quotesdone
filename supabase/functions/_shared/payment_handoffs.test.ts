@@ -54,6 +54,12 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type), ['ceo.directive']);
   // marketing's month plan reaches the CEO for judgement as a review on another model family (866, 873)
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['deliberation.review', 'marketing.report']);
-  // and marketing asks nobody but these three
-  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) assert(['ceo', 'accountant', 'customer_support'].includes(h.to), JSON.stringify(h));
+  // and marketing asks nobody else; the one exception is a public comment's lead, handed to sales_engineer
+  // (instruction 866, 23 Sep 2026), and the escalation of a comment that must not be answered in public
+  assert(has('social.lead', 'marketing', 'sales_engineer') && has('social.escalation', 'marketing', 'customer_support'));
+  for (const h of HANDOFF_TYPES.filter((x) => x.from === 'marketing')) {
+    assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || (h.type === 'social.lead' && h.to === 'sales_engineer'), JSON.stringify(h));
+  }
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
+    ['adspend.recorded>accountant', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.report>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });

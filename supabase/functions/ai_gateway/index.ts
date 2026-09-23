@@ -325,6 +325,28 @@ Deno.serve(observe('ai_gateway', async (req) => {
     if (rErr || !route) {
       return J({ ok: false, error: 'route_failed', detail: String(rErr?.message || 'no route') }, 500);
     }
+    // EVERY REVIEW CLASS, NOT ONLY seat_deliberation_ (founder instruction ~891, 23 Sep 2026). A class whose
+    // model_policy.reviews_class is non-empty judges another class's output; without the author's model its
+    // independence cannot be proved, so it is refused before any model is chosen. With one, the route came from
+    // fn_ai_route_review, and the counterpart is written into the log line the DB backstop reads
+    // (trg_ai_cost_log_review_family). scripts/sql/every_review_class_is_judged_by_another_family_than_its_author.sql
+    if (!counterpart && route.task_class) {
+      const { data: rc } = await admin.from('model_policy').select('reviews_class').eq('task_class', route.task_class).maybeSingle();
+      if (Array.isArray(rc?.reviews_class) && rc.reviews_class.length) {
+        return J({ ok: false, used_llm: false, outcome: 'review_needs_counterpart',
+                   error: `${route.task_class} reviews ${rc.reviews_class.join(', ')}: name counterpart_model, the model (or 'deterministic') that wrote what it reviews`,
+                   cost_usd: 0 }, 400);
+      }
+    }
+    if (counterpart) route.why = String(route.why ?? '') + ' | counterpart_model=' + counterpart.replace(/[\s|]+/g, '')
+      + (route.reviewer_tier ? ' | reviewer_tier=' + route.reviewer_tier : '');
+    // NEVER UNREVIEWED (coordinator ruling on #880). No reviewer outside the authors' families, not even the third-family
+    // last resort: the call is HELD — no model runs — and the hold is recorded; the CEO owns the finding
+    // (fn_it_review_independence_watch). The caller gets used_llm:false and must not act on an answer it did not get.
+    if (counterpart && route.no_independent_reviewer) {
+      await rpcSafe('fn_review_hold_record', { p_task_class: route.task_class ?? body.task_class ?? null, p_fn: fnName,
+        p_agent_key: body.agent ?? null, p_counterpart_model: counterpart, p_why: route.why ?? null });
+    }
 
     // ---- 4 & 5. REFUSALS: deterministic work, a department over budget, or no capable model ---
     if (route.use_llm === false) {
@@ -335,7 +357,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
       });
       return J({ ok: true, used_llm: false,
-                 outcome: route.no_independent_reviewer ? 'no_independent_reviewer'
+                 outcome: route.no_independent_reviewer ? 'review_held_no_independent_reviewer'
                         : route.halted ? 'budget_halted' : 'refused_deterministic',
                  why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
                  caps, cost_usd: 0 });
@@ -368,7 +390,8 @@ Deno.serve(observe('ai_gateway', async (req) => {
     //
     // The caller keeps the override and keeps precedence, which is what lets a call site that
     // knows its own request is unrepeatable pass 0 and opt out.
-    const ttlMin = Number(body.cache_ttl_min ?? route.cache_ttl_min ?? 0);
+    // A review is never replayed from cache: a replayed review was not judged by the model now routed to it.
+    const ttlMin = counterpart ? 0 : Number(body.cache_ttl_min ?? route.cache_ttl_min ?? 0);
     const cacheable = ttlMin > 0 && !hasBinary && !(body.tools && body.tools.length);
     let cacheKey: string | null = null;
     let promptEmb: string | null = null;
@@ -391,7 +414,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
           p_cache_key: cacheKey, p_latency_ms: Date.now() - t0, p_ok: true,
           p_confidence: selfReportedConfidence(hit.response),
         });
-        return J({ ok: true, used_llm: false, outcome: 'cache_' + hit.kind,
+        return J({ ok: true, used_llm: false, outcome: 'cache_' + hit.kind, model: hit.model ?? model,
                    content: hit.response, similarity: hit.similarity, cost_usd: 0 });
       }
     }

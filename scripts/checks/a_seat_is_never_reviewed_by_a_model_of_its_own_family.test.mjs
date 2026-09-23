@@ -113,6 +113,20 @@ begin
   exception when others then e := left(sqlerrm, 15); end;
   o := o || jsonb_build_object('proposal_in_evidence', e);
   begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO multi-line',
+              v_ev || jsonb_build_object('note', 'ZZ DEMO spend AED 900' || chr(10) || 'on search,' || chr(9) || '300 on social'), v_pr, c_sol, null, null, null, true);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 15); end;
+  o := o || jsonb_build_object('multi_line', e);
+  insert into public.ai_cost_log (fn, agent_key, task_class, model_used, cost_aed, ok, occurred_at) values
+    ('marketing', 'marketing', 'marketing_copy', c_sol, 0, true, now() - interval '2 hours'),
+    ('marketing', 'marketing', 'marketing_copy', c_opus, 0, true, now() - interval '1 hour');
+  begin
+    perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'Real plan?', v_ev, v_pr, c_sol, 'marketing_copy', null, null, false);
+    e := 'OPENED';
+  exception when others then e := left(sqlerrm, 21); end;
+  o := o || jsonb_build_object('author_not_latest', e);
+  begin
     perform public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO copied field', v_ev || jsonb_build_object('notes', jsonb_build_array('ok', jsonb_build_object('line', upper('zz demo spend aed 900 on search,   300 on social!')))), v_pr, c_sol, null, null, null, true);
     e := 'OPENED';
   exception when others then e := left(sqlerrm, 15); end;
@@ -197,7 +211,7 @@ begin
     'monitor_marketing', (select jsonb_build_object('reviews', x->'evidence'->'reviews', 'approvals', x->'evidence'->'approvals') from jsonb_array_elements(v) x where x->>'item' = 'rubber_stamp:ceo:marketing'));
 
   -- UNHEALTHY OTHER FAMILY: Opus's breaker tripped by a real failure class -> no fallback to Sol
-  update public.llm_route_health set opened_class = 'provider_error' where model_id = c_opus;
+  update public.llm_route_health set opened_class = 'provider_error' where model_id in (c_opus, 'google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');  -- every family but the author's (third-family last resort, #880)
   v := public.fn_ai_route_review('seat_deliberation_blind', c_sol, 'ceo');
   o := o || jsonb_build_object('tripped_route', concat_ws(':', v->>'use_llm', v->>'no_independent_reviewer', coalesce(v->>'model', 'none')));
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO tripped', v_ev, v_pr, c_sol, null, null, null, true);
@@ -206,14 +220,21 @@ begin
     'escalated_finding', (select count(*) from public.it_engineer_finding where issue_key = 'duty:deliberation_independence_demo:no_independent_reviewer:ceo:marketing' and closed_at is null));
 
   -- THE PAIR CEILING: marketing -> ceo has spent AED 60 of 50 this month (a rolled-back row)
-  update public.llm_route_health set opened_class = null where model_id = c_opus;
+  update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
   v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO over budget', v_ev, v_pr, c_sol, null, null, null, true);
   o := o || jsonb_build_object('over_ceiling_turn', (select status || ':' || left(why, 27) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
     'budget_ok', public.fn_seat_deliberation_budget('marketing', 'ceo')->'ok', 'no_ceil', public.fn_seat_deliberation_budget('accountant', 'ceo')->'ok', 'budget_dept', public.fn_seat_deliberation_budget('marketing', 'ceo')->>'dept');
+  -- A DEMO NEVER REACHES call_model, even with the hold lifted (inside this rolled-back transaction only)
+  delete from public.ai_cost_log where task_class = 'seat_deliberation_blind' and agent_key = 'ceo' and cost_aed = 60;
+  update public.llm_route_health set open_until = null;
+  v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO no hold', v_ev, v_pr, c_sol, null, null, null, true);
+  o := o || jsonb_build_object('demo_unheld', (select left(why, 32) from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'));
   o := o || jsonb_build_object('real_deliberations_untouched', (select count(*) from public.seat_deliberation where not demo) = n_before);
-  raise exception 'CHK<<%>>', o::text;
+  -- abbreviated because the management API returns only the first 2,000 characters of an error
+  raise exception 'CHK<<%>>', replace(replace(replace(replace(replace(o::text, 'MALFORMED_REVIEW', '~MR'), 'BLIND_PASS_LEAK', '~BL'),
+    'AUTHOR_MODEL_UNPROVEN', '~AU'), 'SAME_FAMILY_REVIEW', '~SF'), 'held, not run: ', '~H ');
 end $p$;`;
 
 test('production, in one aborted transaction: independence, blind first, steelman, monitor, and the hold', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
@@ -226,7 +247,8 @@ test('production, in one aborted transaction: independence, blind first, steelma
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
-    out = JSON.parse(m[1].replace(/\\"/g, '"'));
+    const full = { '~MR': 'MALFORMED_REVIEW', '~BL': 'BLIND_PASS_LEAK', '~AU': 'AUTHOR_MODEL_UNPROVEN', '~SF': 'SAME_FAMILY_REVIEW', '~H ': 'held, not run: ' };
+    out = JSON.parse(m[1].replace(/\\"/g, '"').replace(/~MR|~BL|~AU|~SF|~H /g, (k) => full[k]));
   }
   assert.ok(out, 'the probe committed instead of rolling back');
   console.log(JSON.stringify(out, null, 1));
@@ -255,6 +277,9 @@ test('production, in one aborted transaction: independence, blind first, steelma
     assert.equal(out[k], 'BLIND_PASS_LEAK', k);
   assert.equal(out.author_unproven_demo_flag_only, 'AUTHOR_MODEL_UNPROVEN');
   assert.equal(out.author_unproven_not_demo, 'AUTHOR_MODEL_UNPROVEN');
+  assert.equal(out.author_not_latest, 'AUTHOR_MODEL_UNPROVEN', 'the latest call on the class decides the author model');
+  assert.equal(out.multi_line, 'BLIND_PASS_LEAK', 'a multi-line copy is caught');
+  assert.equal(out.demo_unheld, 'held, not run: demo deliberation');
   for (const k of ['steelman_placeholder', 'steelman_too_short', 'steelman_not_a_string', 'compare_repeats_blind_steelman'])
     assert.equal(out[k], 'MALFORMED_REVIEW', k);
   assert.equal(out.over_ceiling_turn, 'held_not_run:held, not run: pair_ceiling');

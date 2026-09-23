@@ -94,7 +94,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     const MAX_COMPARE = 120;
     const MAX_ITEMS_PER_QUOTE = 40;
     const MAX_ITEMS_TOTAL = 1200;
-    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
+    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
     let qs = live.slice(0, MAX_COMPARE);
@@ -272,9 +272,15 @@ Deno.serve(observe('quote_compare', async (req) => {
       // The request's own clock. T0 is module scope, so on a warm worker it is the worker's age,
       // not this request's: the wall would read as spent and the call would go out with no time.
       const leftMs = COMPARE_WALL_MS - (Date.now() - reqStart);
+      // THE COMPARISON IS NEVER ON THE READER'S FAMILY (founder instruction ~891, 23 Sep 2026). quote_comparison is a
+      // review class over document_extraction; its authors are the models that read these quotations. A typed quote has
+      // none ('deterministic'); an upload with no recorded reader is 'unknown', and the gateway then answers "no
+      // independent reviewer", so the customer gets the deterministic ranking below rather than a same-family verdict.
+      const authors = [...new Set(qs.map((q: any) => typeof q.extracted_by_model === 'string' && q.extracted_by_model
+        ? q.extracted_by_model : (q.source === 'upload' ? 'unknown' : 'deterministic')))].sort().join(',');
       try {
         attempts++;
-        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'quote_compare', subject: { inquiry_id, customer_id: inq.customer_id }, sys, input: JSON.stringify(payload), max: 10000, temperature: 0.2, client_timeout_ms: Math.min(leftMs, 100000) }) });
+        const r = await fetch(Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: key, fn: 'quote_compare', subject: { inquiry_id, customer_id: inq.customer_id }, counterpart_model: authors, sys, input: JSON.stringify(payload), max: 10000, temperature: 0.2, client_timeout_ms: Math.min(leftMs, 100000) }) });
         const jd = await r.json().catch(() => null);
         const model = String(jd?.model || 'ai_gateway');
         const content = r.ok ? (jd?.content || '') : '';

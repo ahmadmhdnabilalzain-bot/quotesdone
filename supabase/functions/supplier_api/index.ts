@@ -157,6 +157,15 @@ async function setRegistration(leadId: number) {
 // runs afterwards), so owner_email_verified stayed false for every self-registered and every invited
 // supplier, and the e-mail item of the mandatory six could never be ticked. The durable proof is the
 // used login OTP in email_verifications; it is read once when the company becomes this account's.
+
+// THE POST THAT BROUGHT THEM (sales_engineer with marketing, 23 Sep 2026, instruction 865). When a company
+// becomes an account's (create_company or claim), the first visit's UTM the browser kept (src/lib/firstTouch.ts)
+// is validated and stored by fn_marketing_first_touch_record. Attribution never blocks a registration.
+async function recordFirstTouch(leadId: number, touch: unknown): Promise<void> {
+  if (!touch || typeof touch !== 'object') return;
+  const r = await admin.rpc('fn_marketing_first_touch_record', { p_lead_id: leadId, p_touch: touch }).then((x) => x, (e) => ({ error: { message: String(e) } }));
+  if (r.error) console.error('first touch not recorded for lead ' + leadId + ': ' + r.error.message);
+}
 async function emailProven(email: string) {
   const { data } = await admin.from('email_verifications').select('id').eq('email', email).eq('purpose', 'login').not('used_at', 'is', null).limit(1);
   return !!(data && data.length);
@@ -338,7 +347,7 @@ const handle = async (req: Request): Promise<Response> => {
     // answered with the value we already hold.
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); return J({ ok: true, id: ins?.id, registration: reg }); }
+    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -349,7 +358,7 @@ const handle = async (req: Request): Promise<Response> => {
     // token is the proof of invitation, so the token is now the LOOKUP KEY. leads_id is accepted
     // only as a cross-check: if it is sent and disagrees with the row the token resolves to, the
     // call is rejected rather than silently trusting either one.
-    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); const { data: row } = await admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...((await emailProven(email)) ? { owner_email_verified: true } : {}) }).eq('id', id); const reg = await setRegistration(id); return J({ ok: true, id, registration: reg }); }
+    if (action === 'claim') { const token = String(body.claim_token || body.token || body.t || '').trim(); if (!UUID_RE.test(token)) return J({ error: 'invalid_link', message: 'This claim link is not valid. Please use the link from your invitation, or contact management@quotesdone.com.' }, 400); const { data: row } = await admin.from('leads').select('id,claimed,claimed_by').eq('claim_token', token).maybeSingle(); if (!row) return J({ error: 'not found' }, 404); const id = Number(row.id); const askedId = Number(body.leads_id); if (body.leads_id != null && isFinite(askedId) && askedId !== id) return J({ error: 'invalid_link', message: 'This claim link does not match the company you selected. Please use the link from your invitation.' }, 400); if (row.claimed && row.claimed_by !== email) return J({ error: 'This company is already claimed by another account.' }, 409); const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing && existing.id !== id) return J({ error: 'Your account already manages another company.' }, 409); await admin.from('leads').update({ claimed: true, claimed_by: email, portal_updated_at: new Date().toISOString(), ...((await emailProven(email)) ? { owner_email_verified: true } : {}) }).eq('id', id); const reg = await setRegistration(id); await recordFirstTouch(id, body.first_touch); return J({ ok: true, id, registration: reg }); }
 
     // WHAT THIS COMPANY CAN QUOTE FOR (12 Aug 2026; answered here since 14 Sep 2026).
     //
@@ -1253,6 +1262,11 @@ const handle = async (req: Request): Promise<Response> => {
       // Under the OpenRouter hold quote_extract has no model to call, so this is the expected path:
       // the code tells the portal to say "fill in the form", which is a complete way to quote.
       if (!jd?.ok) return J({ error: jd?.error || 'Could not read the quotation. Please fill the form instead.', code: 'quote_read_failed', detail: jd?.detail || null }, 502);
+      // WHO READ IT (founder instruction ~891). The model quote_extract read this quotation with, kept per supplier and
+      // inquiry so the quote submitted from it carries its author and quote_compare can be routed to another family.
+      const readBy = typeof jd.extracted_by_model === 'string' && jd.extracted_by_model ? jd.extracted_by_model : 'unknown';
+      const { error: xmErr } = await admin.from('quote_extraction_model').upsert({ subject_key: `${sup.id}:${inquiry_id}`, model: readBy, extracted_at: new Date().toISOString() });
+      if (xmErr) console.error('quote_extraction_model: ' + xmErr.message);
       return J({ ok: true, proposal: jd.proposal, original_file_path, original_file_name });
     }
     // THE TWO WAYS OUT OF A HOLD (founder, 14 Sep 2026). (a) fill in the missing details here: the
@@ -1442,6 +1456,13 @@ const handle = async (req: Request): Promise<Response> => {
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
       const reviewMessage = reviewIssues ? rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') : null;
 
+      // The quote's author for quote_compare's independence routing: a typed quote has no model author; an uploaded one
+      // carries the model quote_extract read it with (recorded at 'extract'), or 'unknown', which fails closed.
+      let quoteAuthor = 'deterministic';
+      if (isUpload) {
+        const { data: xm } = await admin.from('quote_extraction_model').select('model').eq('subject_key', `${sup.id}:${inquiryId}`).maybeSingle();
+        quoteAuthor = typeof xm?.model === 'string' && xm.model ? xm.model : 'unknown';
+      }
       const submission_id = crypto.randomUUID();
       const repo = supabaseRepo(admin, { dispatch: kickDelivery });
       const supplier = supplierOf(sup, email);
@@ -1453,7 +1474,7 @@ const handle = async (req: Request): Promise<Response> => {
         const vat = readVat({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat) });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, quote_amount: vat.price_ex_vat ?? p.amount, price_ex_vat: vat.price_ex_vat, vat_treatment: vat.treatment, vat_amount: vat.vat_amount, supplier_trn: trn, amount_as_stated: p.amount,
-          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: clip(body.lead_time, 200), validity: clip(body.validity, 200), payment_terms: clip(body.payment_terms, 400), warranty: clip(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: allMasked.length ? allMasked : null, structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
