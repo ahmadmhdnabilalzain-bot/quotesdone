@@ -32,7 +32,48 @@ export function parseReviewOutput(text: string | null): ReviewOutput | null {
  * Advance one deliberation by at most `maxSteps` model steps (blind, then compare). Never throws:
  * a refusal by the database (malformed, same family) is recorded as a 'failed' turn with its reason.
  */
-export async function advanceDeliberation(admin: Admin, id: number, maxSteps = 2): Promise<unknown[]> {
+// THE REVIEWER SEES THE IMAGES, NOT THEIR PATHS. Evidence may carry storage paths of images under
+// `key_frames` (paths in DEFAULT_IMAGE_BUCKET, the bucket name in front optional). The runner downloads them with the
+// service role and sends them as image parts on the blind and the compare call alike (Sol and Opus both read
+// images). Capped; a missing or oversized image is named in the text, never fatal.
+// ponytail: 6 images of <= 1.5 MB each; raise when a real deliberation needs more.
+export const DEFAULT_IMAGE_BUCKET = 'marketing-media';
+export const MAX_IMAGES = 6;
+export const MAX_IMAGE_BYTES = 1_500_000;
+
+export type ImagePart = { type: 'image_url'; image_url: { url: string } };
+
+function b64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+
+/** Download the evidence's key frames as image parts; returns the parts and what could not be attached. */
+export async function evidenceImages(admin: Admin, evidence: unknown): Promise<{ parts: ImagePart[]; missing: string[] }> {
+  const frames = (evidence as { key_frames?: unknown })?.key_frames;
+  const paths = Array.isArray(frames) ? frames.filter((p): p is string => typeof p === 'string' && p.trim() !== '') : [];
+  const parts: ImagePart[] = [];
+  const missing: string[] = paths.slice(MAX_IMAGES).map((p) => p + ' (over the ' + MAX_IMAGES + '-image cap)');
+  for (const p of paths.slice(0, MAX_IMAGES)) {
+    // A path inside the bucket, with or without the bucket's own name in front of it.
+    const path = p.startsWith(DEFAULT_IMAGE_BUCKET + '/') ? p.slice(DEFAULT_IMAGE_BUCKET.length + 1) : p.replace(/^\/+/, '');
+    try {
+      const { data, error } = await admin.storage.from(DEFAULT_IMAGE_BUCKET).download(path);
+      if (error || !data) { missing.push(p + ' (' + (error?.message ?? 'not found') + ')'); continue; }
+      const bytes = new Uint8Array(await data.arrayBuffer());
+      if (bytes.length > MAX_IMAGE_BYTES) { missing.push(p + ' (' + bytes.length + ' bytes, over the cap)'); continue; }
+      const mime = (data as Blob).type && (data as Blob).type.startsWith('image/') ? (data as Blob).type : 'image/jpeg';
+      parts.push({ type: 'image_url', image_url: { url: `data:${mime};base64,${b64(bytes)}` } });
+    } catch (e) { missing.push(p + ' (' + String((e as Error)?.message ?? e).slice(0, 80) + ')'); }
+  }
+  return { parts, missing };
+}
+
+// deno-lint-ignore no-explicit-any
+type LlmFactory = (models: string[], def: any) => (sys: string, input: any, max?: number, stable?: string, opts?: any) => Promise<any>;
+
+export async function advanceDeliberation(admin: Admin, id: number, maxSteps = 2, makeLlm?: LlmFactory): Promise<unknown[]> {
   const out: unknown[] = [];
   for (let i = 0; i < maxSteps; i++) {
     const { data: step, error } = await admin.rpc('fn_seat_deliberation_step', { p_id: id });
@@ -40,14 +81,19 @@ export async function advanceDeliberation(admin: Admin, id: number, maxSteps = 2
     out.push({ action: step?.action, phase: step?.phase, why: step?.why });
     if (step?.action !== 'call_model') break;
 
-    // Imported here, not at the top: llm.ts opens a client at load, and parseReviewOutput is tested without one.
-    const { makeLlmRich } = await import('./llm.ts');
-    const llm = makeLlmRich([], {
+    // Imported here, not at the top: llm.ts opens a client at load, and this file is tested without one.
+    const factory: LlmFactory = makeLlm ?? (await import('./llm.ts')).makeLlmRich;
+    const llm = factory([], {
       fn: 'resilience_ping', taskClass: step.task_class, agent: step.reviewer_seat, dept: step.dept,
       max: step.max_tokens, timeoutMs: 60_000, cacheTtlMin: 0,
     });
-    const r = await llm(step.system, JSON.stringify(step.payload), step.max_tokens, '',
-      { counterpartModel: step.counterpart_model });
+    const img = await evidenceImages(admin, step.payload?.evidence);
+    const text = JSON.stringify(img.missing.length ? { ...step.payload, images_not_attached: img.missing } : step.payload);
+    const r = await llm(step.system, text, step.max_tokens, '', {
+      counterpartModel: step.counterpart_model,
+      ...(img.parts.length ? { messages: [{ role: 'system', content: step.system },
+                                           { role: 'user', content: [{ type: 'text', text }, ...img.parts] }] } : {}),
+    });
     const record = (status: string, output: Record<string, unknown>, why: string | null) =>
       admin.rpc('fn_seat_deliberation_record', {
         p_id: id, p_phase: step.phase, p_model: r.model ?? step.model, p_output: output,
