@@ -45,6 +45,7 @@
 // llm.ts is imported lazily (defaultDeps) because it opens a client at load; think() itself takes its
 // model, embedder and database as `deps`, so think.test.ts runs every path with a mocked model.
 import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
+import { recallCases } from './case_recall.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -263,6 +264,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const ctx = req.context ?? {};
   const audience = ctx.audience ?? 'internal';
   const deciding = !!req.decision;
+  let judgementId: number | null = null;
+  // The judgement row (opened by the recall in step b) is closed with what was decided, or with 'held'.
+  const settle = async (status: 'answered' | 'held', o: { decision?: string | null; confidence?: number; model?: string | null; reason?: string }) => {
+    if (judgementId == null) return;
+    try { await deps.rpc('fn_judgement_decided', { p_id: judgementId, p_status: status, p_decision: (o.decision ?? o.reason ?? '').slice(0, 2000) || null, p_confidence: o.confidence ?? null, p_model: o.model ?? null }); } catch (_e) { /* recording never fails the answer */ }
+  };
   const base = {
     context_used: { audience, language: ctx.language ?? 'en', profile: ctx.profile ?? null, case: ctx.case ?? null, trade: ctx.trade ?? null },
     missing_context: [] as Fact[], sources: [] as Source[],
@@ -279,6 +286,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
       held_id = error ? null : Number(data) || null;
       steps.push({ id: 'queue', kind: 'hold', goal: `filed in the ${req.seat} seat's queue`, status: error ? 'failed' : 'done', detail: error?.message ?? { held_id } });
     }
+    await settle('held', { reason });
     return { status: 'held', answer: '', decision: null, steps, ...base, confidence: 0, asked_back: null, verified: null, model: null, held_id, reason };
   };
 
@@ -314,14 +322,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   })).filter((f) => f.name);
   const sources: Source[] = [];
   const qVec = await deps.embed(req.question);
-  if (qVec) {
-    const { data, error } = await deps.rpc('fn_case_recall', { p_seat: req.seat, p_embedding: vec(qVec), p_trade: ctx.trade ?? null, p_k: 3, p_case_kind: null, p_other_seats: true, p_exclude_source_table: null, p_exclude_source_id: null });
-    const cases = !error && Array.isArray(data?.cases) ? data.cases : [];
-    for (const c of cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
-    steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: cases.length, recall: error ? error.message : 'ok' } });
-  } else {
-    steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), recall: 'embedding_unavailable' } });
-  }
+  // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
+  // public.seat_judgement carrying what was recalled — the recall record the outcome is later written onto.
+  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, embedding: qVec, subject: req.subject ?? null });
+  judgementId = memory.judgement_id ?? null;
+  for (const c of memory.cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome, c.correction && 'CORRECTED: ' + c.correction].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
+  steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: memory.cases.length, recall: memory.available ? 'ok' : memory.reason, judgement_id: judgementId } });
 
   // c. RETRIEVE PER STEP, d. RESEARCH where knowledge is thin
   const thin: typeof planSteps = [];
@@ -406,6 +412,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
 
   const fields: Record<string, { value: string; evidence: string }> = {};
   for (const [k, f] of Object.entries(draft.decision?.fields ?? {})) fields[k] = { value: String(f?.value ?? ''), evidence: String(f?.evidence ?? '') };
+  await settle('answered', { decision: deciding ? (draft.decision?.choice ? String(draft.decision.choice) : JSON.stringify(fields)) : String(draft.answer), confidence, model });
   return {
     status: 'answered', answer: String(draft.answer).trim(),
     decision: deciding ? { choice: draft.decision?.choice ? String(draft.decision.choice) : null, fields } : null,
