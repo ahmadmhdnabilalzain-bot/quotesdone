@@ -43,6 +43,12 @@
 -- painting reaches its supplier again through the trade-level path, on the UNPATCHED row, which is the
 -- point: the gate no longer needs a data fix to stop emptying a trade.
 --
+-- THE ROWS THEMSELVES CHURN, because every confirmed capability in production today is a ZZ DEMO
+-- rehearsal supplier that a later rehearsal replaces. A second reading twenty minutes after the one
+-- above found a different set (one confirmed supplier per trade instead of four aluminium ones) and
+-- read: before, aluminium 1 -> 0, doors 1 -> 0, gypsum 1 -> 1, painting 1 -> 0; after, all four 1 -> 1.
+-- The numbers move, the property does not, and the property is what the check asserts.
+--
 -- The guard is
 -- scripts/checks/a_confirmed_trade_is_still_reachable_when_the_inquiry_names_a_service.test.mjs,
 -- which measures the two columns above per trade against production and fails if they differ.
