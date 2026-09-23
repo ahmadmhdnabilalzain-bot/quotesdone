@@ -795,7 +795,7 @@
      "must_contain": [
       "row.surface === 'marketing_social.comment_needs_a_person'",
       "io.socialCommentHandoff(subject)",
-      "eq('target_id', m.platform + ':' + m.meta_message_id)"
+      "eq('target_id', 'social.escalation:' + m.platform + ':' + m.meta_message_id)"
      ]
     }
    ]
@@ -808,6 +808,96 @@
    "severity": "high",
    "where": "supabase/functions/_shared/marketing_social_comments.ts",
    "decides": "classify: the RULES regex lists (sensitive_legal, complaint, supplier_enquiry, sales_lead, question, praise) and ABUSE/ASKS decide what a public comment is, whether it is hidden, answered or handed off (#866)"
+  },
+  {
+   "id": "wa_inbound.figures_command",
+   "order": 74,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "high",
+   "where": "supabase/functions/wa_inbound/founder_queries.ts",
+   "decides": "isFiguresCommand: a word list decides a WhatsApp message asks for the company figures (and so what a non-founder is answered) — found by batch B2"
+  },
+  {
+   "id": "wa_inbound.menu_choice",
+   "order": 75,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/wa_inbound/menu.ts",
+   "decides": "menuChoice: a typed menu TITLE matched as words picks the menu branch (exact menu ids / digits stay as format parsing; free text is reasoned) — found by B2"
+  },
+  {
+   "id": "wa_inbound.founder_command",
+   "order": 76,
+   "status": "pending",
+   "seat": "ceo",
+   "severity": "med",
+   "where": "supabase/functions/wa_inbound/menu.ts",
+   "decides": "founderCommand: a command grammar read from the founder's free text; stays only if it is exact-token structured commands, otherwise reasoned — found by B2"
+  },
+  {
+   "id": "sql.fn_kb_route_decide",
+   "order": 77,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "high",
+   "where": "scripts/sql/route_decide_activation_and_target_role_models.sql",
+   "decides": "fn_kb_route_decide: alias substring matching routes an intake to a catalogue category — found by B2"
+  },
+  {
+   "id": "shared.quote_answer",
+   "order": 78,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "high",
+   "where": "supabase/functions/_shared/chat_answers.ts",
+   "decides": "quoteAnswer: FIELD_RE / QUOTE_RE and a shared-word score decide which quote field a question asks about — found by B1"
+  },
+  {
+   "id": "sales_engineer.on_topic",
+   "order": 79,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/sales_engineer/index.ts",
+   "decides": "onTopic passage filter (~line 377): a shared word decides a knowledge passage answers the question — found by B1"
+  },
+  {
+   "id": "site_assistant.passage_and_faq_scoring",
+   "order": 80,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/site_assistant/index.ts",
+   "decides": "the top-passage shared-word check and tok() FAQ scoring decide which answer the widget gives — found by B1"
+  },
+  {
+   "id": "documents.boq_arabic",
+   "order": 81,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/_shared/boq_arabic.ts",
+   "decides": "section regex list and service-alias matching label BOQ lines in Arabic documents — found by B7"
+  },
+  {
+   "id": "line_specs.workflow_installation",
+   "order": 82,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/_shared/line_specs/workflow.ts",
+   "decides": "installation status read off text beginning \"Included\" — found by B7"
+  },
+  {
+   "id": "documents.quote_duration_emirates",
+   "order": 83,
+   "status": "pending",
+   "seat": "sales_engineer",
+   "severity": "low",
+   "where": "supabase/functions/_shared/quote_documents.ts",
+   "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
   }
  ]
 }

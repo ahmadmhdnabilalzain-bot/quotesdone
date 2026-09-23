@@ -34,8 +34,10 @@ const DISPATCH = 'scripts/sql/a_reasoned_answer_is_applied_by_its_own_surface.sq
 // Every SQL file a migrated point's proof names, in registry order after the three the engine needs:
 // the batch files replay in this order inside a probe, and each must be replay-safe (the test below).
 const BATCH_SQL = [...new Set(REGISTRY.points.filter((p) => p.status === 'migrated').flatMap((p) => (p.proof ?? []).map((x) => x.file))
-  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH].includes(f)))];
-const CHAIN = [ENGINE, MIGRATE, DISPATCH, ...BATCH_SQL];
+  .filter((f) => f.startsWith('scripts/sql/') && f.endsWith('.sql') && ![ENGINE, MIGRATE, DISPATCH, 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql'].includes(f)))];
+// A held question never expires; at 48 hours it is escalated to its seat (applies after DISPATCH).
+const LIFECYCLE = 'scripts/sql/a_held_question_never_expires_it_is_escalated_at_48_hours.sql';
+const CHAIN = [ENGINE, MIGRATE, DISPATCH, LIFECYCLE, ...BATCH_SQL];
 
 /** Code only: SQL `--` comments and TS `//` line comments removed (a check that greps source matches its own comment). */
 function code(path, text) {
@@ -126,13 +128,30 @@ test('the SQL files replay safely: no begin/commit, a revoke per routine, RLS an
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 /** Every file of the chain still pending (a note in scripts/sql/pending, no MANIFEST line), in order: what a probe
- *  replays inside its aborted transaction so it measures the committed code, not only what production has. */
-const pendingReplay = () => CHAIN.filter((f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt'))))
-  .map((f) => read(f)).join('\n') + '\n';
+ *  replays inside its aborted transaction so it measures the committed code, not only what production has.
+ *  A pending file whose every routine production ALREADY carries verbatim (prosrc) is not replayed: re-running it
+ *  would test nothing new and can fail on a privileged SET the probe role may not issue (measured 23 Sep 17:45:
+ *  #884's two files were live on production, unrecorded, and replaying them failed 42723 / 42501). */
+async function pendingReplay() {
+  const { sql } = await import('../lib/db.mjs');
+  const out = [];
+  for (const f of CHAIN.filter((x) => existsSync(join(REPO, 'scripts/sql/pending', x.split('/').pop().replace(/\.sql$/, '.txt'))))) {
+    const text = read(f);
+    const bodies = [...text.matchAll(/create (?:or replace )?function public\.([a-z0-9_]+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3].trim()]);
+    let live = false;
+    if (bodies.length) {
+      const names = [...new Set(bodies.map(([n]) => n))];
+      const rows = await sql(`select proname, prosrc from pg_proc where pronamespace = 'public'::regnamespace and proname = any(array[${names.map((n) => `'${n}'`).join(',')}])`, { readOnly: true });
+      live = bodies.every(([n, b]) => rows.some((r) => r.proname === n && String(r.prosrc).trim() === b));
+    }
+    if (!live) out.push(text);
+  }
+  return out.join('\n') + '\n';
+}
 /** Runs a DO block that ends in raise exception 'CHK<<json>>' after the pending chain; returns the json. Nothing commits. */
 async function probe(block, prefix = '') {
   const { sql } = await import('../lib/db.mjs');
-  try { await sql(prefix + pendingReplay() + block, { retry: false }); }
+  try { await sql(prefix + (await pendingReplay()) + block, { retry: false }); }
   catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message).slice(0, 600));
@@ -210,13 +229,18 @@ begin
   o := o || jsonb_build_object('intake_after', (select status || ':' || (brief->>'category_by') from public.inquiry_intake where id = v_intake),
                                'intake_expires', (select expires_at is null from public.reasoning_held_question where id = v_id));
   v_id := public.fn_reason_hold('customer_support', 'wa_inbound.needs_a_person', 'ZZ DEMO', '{"seat":"customer_support"}'::jsonb, '{}'::jsonb, null, 'model_hold', 'zz-demo-probe-3');
-  o := o || jsonb_build_object('channel_expires_days', (select round(extract(epoch from expires_at - now()) / 86400) from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('channel_expires', (select expires_at is not null from public.reasoning_held_question where id = v_id));
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"needs_a_person"}}'::jsonb);
   perform public.fn_reason_held_delivered(v_id, '{"delivered":true,"via":"whatsapp_template"}'::jsonb);
   o := o || jsonb_build_object('delivered_row', (select status || ':' || (result->'delivery'->>'via') from public.reasoning_held_question where id = v_id));
-  update public.reasoning_held_question set status = 'held', expires_at = now() - interval '1 minute' where id = v_id;
+  -- Held 49 hours: never expired; escalated once to its seat as a pending item, and still held for the replay.
+  update public.reasoning_held_question set status = 'held', created_at = now() - interval '49 hours' where id = v_id;
   perform public.fn_reason_held_due(1);
-  o := o || jsonb_build_object('expired_status', (select status from public.reasoning_held_question where id = v_id));
+  o := o || jsonb_build_object('old_status', (select status from public.reasoning_held_question where id = v_id),
+    'escalated', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id),
+    'escalated_again', (select count(*) from jsonb_array_elements(public.fn_reason_held_escalate(100)) x where (x->>'id')::bigint = v_id));
+  -- its own statement: a subquery in the statement that escalated would read the snapshot before the insert
+  o := o || jsonb_build_object('seat_item', (select agent || ':' || status from public.agent_actions where kind = 'held_question' and target_id = v_id::text));
 
   -- 6. Only service_role executes.
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
@@ -235,7 +259,7 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   const before = 'create temporary table zz_rfq_before on commit drop as select i.id, coalesce((public.fn_rfq_required_check(i)->>\'required_ok\')::boolean, true) ok from public.inquiries i;\n';
   // Every pending file replays, whether or not the engine is already applied (a later file may still be pending).
   void r;
-  const body = before + pendingReplay() + PROBE;
+  const body = before + (await pendingReplay()) + PROBE;
   let out;
   try {
     await sql(body, { retry: false });
@@ -285,9 +309,12 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   console.log('already-dispatched inquiries whose readiness the text scan had supplied:', out.rfq_flipped_after_dispatch);
   assert.equal(out.intake_after, 'needs_info:reasoning', 'the held intake reopens with the reasoned trade');
   assert.equal(out.intake_expires, true, 'a held intake never expires');
-  assert.equal(out.channel_expires_days, 7);
+  assert.equal(out.channel_expires, false, 'a held question never expires (the hold lasts a while)');
   assert.equal(out.delivered_row, 'applied:whatsapp_template');
-  assert.equal(out.expired_status, 'expired', 'an expired channel question is closed, not replayed');
+  assert.equal(out.old_status, 'held', 'a 49-hour-old question is still held for the replay, never expired');
+  assert.equal(out.escalated, 1, 'at 48 hours it is escalated to its seat');
+  assert.equal(out.escalated_again, 0, 'once');
+  assert.equal(out.seat_item, 'customer_support:pending', 'a human-visible pending item in the owning seat queue');
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
 });
