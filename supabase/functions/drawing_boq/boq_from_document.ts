@@ -24,6 +24,7 @@ import { boqFromLines, scrubIdentity, type BoqItem } from './boq_from_text.ts';
 import { boqFromRows, MAX_ROWS } from './boq_from_sheet.ts';
 import { readDrawing, type Counts, type OcrLine } from './drawing_from_ocr.ts';
 import { deviceTypeOf } from './legend_vocabulary.ts';
+import { validateBoq } from '../_shared/boq_validate.ts';
 
 export type DrawingInput = { lines?: OcrLine[]; width?: number; counts?: Counts };
 
@@ -105,6 +106,10 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
   const lines = uniq.slice(0, MAX_ROWS);
   if (uniq.length > MAX_ROWS) missing.push(`Only the first ${MAX_ROWS} lines were kept.`);
   if (!lines.length) missing.push('No line stating a quantity was found in the document.');
+  // The set is checked as a surveyor would (boq_validate.ts). A null qty is already an open line the
+  // customer is asked about (boq_open_lines), so only the other doubts become missing_info sentences.
+  const validation = validateBoq(lines);
+  for (const f of validation) if (f.check !== 'missing_qty') missing.push(f.say);
   const withQty = lines.filter((b) => b.qty != null).length;
   const tb = dr && isDrawing ? dr.title_block : null;
   return {
@@ -115,7 +120,7 @@ export function boqFromExtracted(ex: Extracted, hint = '', ocrText = '', drawing
     boq: lines, keywords: isDrawing ? [...new Set(dr!.legend.map((e) => e.en.toLowerCase()))].slice(0, 12) : [] as string[],
     assumptions: [...assumptions], missing_info: [...new Set(missing.map((m) => scrubValues(m, identity)))],
     confidence: (lines.length && withQty === lines.length && lines.every((b) => b.confidence === 'medium') ? 'medium' : 'low') as 'low' | 'medium',
-    method: 'document', kinds, layout: [...layouts].join(',') || null, rows_read: lines.length,
+    method: 'document', validation: validation.map((f) => ({ check: f.check, lines: f.lines })), kinds, layout: [...layouts].join(',') || null, rows_read: lines.length,
     // The identity values themselves are deliberately NOT returned: this object is posted back by the
     // portal and stored on the RFQ, so carrying them "for redaction" would carry them to suppliers.
   };
