@@ -346,6 +346,4 @@ order by r.score_v desc, cardinality(r.service_hits) desc, r.in_emirate desc, r.
 limit greatest(1, p_limit);
 $function$
 ;
-[INFO] Recording command outcome: printf
 
-[OK] Command outcome recorded

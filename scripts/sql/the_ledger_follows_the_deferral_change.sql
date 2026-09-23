@@ -33,6 +33,4 @@ update public.kernel_routine_ownership set
  where schema_name = 'public' and routine_name = 'fn_phase_a_deferred_items'
    and coalesce(identity_args,'') = '';
 
-[INFO] Recording command outcome: cat
 
-[OK] Command outcome recorded
