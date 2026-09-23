@@ -1,9 +1,9 @@
 ---
 name: quotesdone-work-is-assigned
-description: ALWAYS APPLY on the QuotesDone repository. There are exactly two agents — ceo and customer_support — and no departments. Every change names the agent accountable for it before the work starts. No task exists unless the founder confirmed it. Load this with quotesdone-session at the start of every session.
+description: ALWAYS APPLY on the QuotesDone repository. Work belongs to a seat that exists (read the live seats), and there are no departments. Every change names the agent accountable for it before the work starts. No task exists unless the founder confirmed it. Load this with quotesdone-session at the start of every session.
 ---
 
-# Two agents, no departments, no unconfirmed tasks
+# A real seat, no departments, no unconfirmed tasks
 
 Founder rulings, 7 September 2026, in his words:
 
