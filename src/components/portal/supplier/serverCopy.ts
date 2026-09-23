@@ -219,6 +219,9 @@ const COPY: Record<string, Entry> = {
   missing_required: s((p) => 'Still needed to register: ' + (p.missing || []).map((c: string) => COPY[c]?.en({}) || c).join(', ') + '.',
     (p) => 'ما زال مطلوبًا لإتمام التسجيل: ' + (p.missing || []).map((c: string) => COPY[c]?.ar({}) || c).join('، ') + '.'),
   capability_need_trade_role: s('Choose at least one trade and one role.', 'يُرجى اختيار تخصص واحد ودور واحد على الأقل.'),
+  // Founder_instructions 857 and 862: a confirm with nothing ticked is refused rather than stored as a
+  // complete, empty portfolio. Returned by capabilityConfirm for every route that confirms.
+  services_none_ticked: s('Tick at least one service you do before confirming. A service you do not tick is one you have not confirmed, so inquiries that name it will not reach you.', 'يُرجى تحديد خدمة واحدة على الأقل من الخدمات التي تقدّمونها قبل التأكيد، فالخدمة التي لا تحدّدونها تُعدّ غير مؤكَّدة، ولن تصلكم الاستفسارات التي تطلبها.'),
   capability_bad_range: s('The project value range is not valid.', 'نطاق قيمة المشاريع غير صالح.'),
   capability_write_failed: s('We could not save your scope. Please try again.', 'تعذّر حفظ نطاق عملكم. يُرجى المحاولة مرة أخرى.'),
   reg_exempt: s((p) => `Your registration is permanently free — you are supplier number ${p.rank}, inside the founding 1,000. There is no fee, now or in future.`, (p) => `تسجيلكم مجاني بصفة دائمة، فأنتم المورّد رقم ${p.rank} ضمن أول 1,000 مورّد مؤسِّس. لا رسوم عليكم الآن ولا مستقبلًا.`),
