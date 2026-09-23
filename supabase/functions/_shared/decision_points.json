@@ -1134,74 +1134,296 @@
   {
    "id": "sql.fn_task_is_demand",
    "order": 55,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "action_class regex -> demand"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "action_class regex -> demand",
+   "held": "No model is involved: the revenue path is an exact action_class key in action_class_demand. A class nobody registered is not on the revenue path (capped as reflection) until a row says so; its spelling decides nothing.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "from public.action_class_demand d where d.action_class = p_action_class"
+     ],
+     "must_not_contain": [
+      "'(invite|quote|rfq|inquir"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_challenge",
    "order": 56,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "challenge_heuristic.pattern on proposal text"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "challenge_heuristic.pattern on proposal text",
+   "held": "The challenge is filed in the ceo seat's queue (surface ceo.challenge) and returns stance 'held': the board abstains with verdict HELD, the task review records a non-blocking held dissent. When the replay reasons it, fn_reason_apply_ceo__challenge writes the challenge_record.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "public.fn_reason_hold('ceo', 'ceo.challenge'",
+      "function public.fn_reason_apply_ceo__challenge(",
+      "when v_held then 'HELD"
+     ],
+     "must_not_contain": [
+      "p_proposal ~* pattern",
+      "substring(headline from '\\w+')",
+      "'(fee|price|commission|campaign|customer|demand)'"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_what_if",
    "order": 57,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "question regex -> scenario branch"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "question regex -> scenario branch",
+   "held": "The question is filed in the ceo seat's queue (surface ceo.what_if) and fn_what_if returns status 'held' with no simulation and no approval row; the replay picks the scenario by reasoning and fn_reason_apply_ceo__what_if runs the simulation with that key.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "public.fn_reason_hold('ceo', 'ceo.what_if'",
+      "p_scenario = 'reveal_fee_discount'",
+      "function public.fn_reason_apply_ceo__what_if("
+     ],
+     "must_not_contain": [
+      "p_question ~* 'reveal fee",
+      "p_question ~*"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_notifications_founder_mail_policy",
    "order": 58,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "subject ~* 'critical...' -> founder mail policy"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "subject ~* 'critical...' -> founder mail policy",
+   "held": "No model is involved: the routed task's level is the severity the producer stated (notifications.severity, or fn_notify_founder's p_level); unstated is filed at the normal level. An unregistered kind is never mailed to the founder: it is routed to its owner's task.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "v_level := coalesce(NEW.severity, case when NEW.type = 'founder_alert' then 'high' end, 'warn');",
+      "insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, severity)"
+     ],
+     "must_not_contain": [
+      "NEW.subject, '') ~* 'critical|urgent'",
+      "~* '\\[(HIGH|ERROR)\\]"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_notifications_digest",
    "order": 59,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "low",
-   "where": "scripts/sql",
-   "decides": "type/subject regex -> digest grouping"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "type/subject regex -> digest grouping",
+   "held": "No model is involved: severity is what the producer stated — fn_notify_founder from its p_level, a direct producer by its type (notification_type_severity) — and high/critical goes at once; only types listed by name fold into the digest. Nothing is read from the type's or the subject's words.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "if NEW.severity in ('high', 'critical') then return NEW; end if;",
+      "NEW.severity := public.fn_notification_severity(NEW.severity, NEW.type);"
+     ],
+     "must_not_contain": [
+      "~* 'money|refund",
+      "~* 'critical|urgent|fraud"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_governance_stamp",
    "order": 60,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "low",
-   "where": "scripts/sql",
-   "decides": "agent/kind ~* 'legal...'"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "agent/kind ~* 'legal...'",
+   "held": "No model is involved: an agent_actions row is escalated for human review when its agent or kind is registered in governance_sensitive (exact key) or its confidence is below 0.60; a kind nobody registered is not sensitive because of how it is spelled.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "from public.governance_sensitive g"
+     ],
+     "must_not_contain": [
+      "~* 'legal|financ"
+     ]
+    }
+   ]
   },
   {
    "id": "sql.fn_kb_purge_clause",
    "order": 61,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "med",
-   "where": "scripts/sql",
-   "decides": "citation regex -> jurisdiction, purge/keep (fn_kb_is_us_code)"
+   "where": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+   "decides": "citation regex -> jurisdiction, purge/keep (fn_kb_is_us_code)",
+   "held": "A citation's jurisdiction is reasoned (surface ceo.kb_jurisdiction, filed by fn_kb_jurisdiction_file) and stored in kb_citation_jurisdiction; until it is, the knowledge is KEPT (clause 4) — never deleted on a guess. US law is out of scope and deleted only once reasoned 'us'.",
+   "proof": [
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "when p_jurisdiction in ('us', 'other_foreign') then 5",
+      "public.fn_reason_hold('ceo', 'ceo.kb_jurisdiction'",
+      "function public.fn_reason_apply_ceo__kb_jurisdiction("
+     ],
+     "must_not_contain": [
+      "ilike '%QD-KB%'",
+      "p_citation ~*",
+      "public.fn_kb_is_us_code(p_citation)"
+     ]
+    },
+    {
+     "file": "scripts/checks/the_knowledge_library_holds_no_foreign_bulk.mjs",
+     "must_contain": [
+      "from public.kb_citation_jurisdiction j where j.citation_md5 = md5(k.citation)"
+     ],
+     "must_not_contain": [
+      "fn_kb_purge_clause(k.source_kind, k.category, k.citation)"
+     ]
+    },
+    {
+     "file": "scripts/kb/purge_kb_bulk.mjs",
+     "must_contain": [
+      "from public.kb_citation_jurisdiction j where j.citation_md5 = md5(k.citation)"
+     ],
+     "must_not_contain": [
+      "fn_kb_purge_clause(k.source_kind, k.category, k.citation)"
+     ]
+    }
+   ]
   },
   {
    "id": "trade_glossary_ar",
    "order": 62,
-   "status": "pending",
+   "status": "migrated",
    "seat": "ceo",
    "severity": "low",
    "where": "supabase/functions/_shared/trade_glossary_ar.ts",
-   "decides": "Arabic glossary substitution on documents"
+   "decides": "Arabic glossary substitution on documents",
+   "held": "A person's words on an Arabic document or message are reasoned (surface sales_engineer.document_arabic) and cached. A document with any line not yet translated is HELD (202 arabic_held; a regenerated quotation stays arabic_pending and is never sent for approval without its PDF). An Arabic message is never sent with English: sales_engineer retries it next tick, customer_api / wa_inbound park it (arabic_outbound_hold) and fn_arabic_outbound_flush sends it once the Arabic exists; wa_inbound answers at once only with a fixed acknowledgement.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/reasoned_governance.ts",
+     "must_contain": [
+      "await think(deps, req)",
+      "surface: ARABIC_SURFACE"
+     ],
+     "must_not_contain": [
+      "arTrade("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/trade_glossary_ar.ts",
+     "must_contain": [
+      "return ATTRIBUTES_AR[k] ?? null;"
+     ],
+     "must_not_contain": [
+      "export function arTrade(",
+      "const GLOSSARY = new Map"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/quote_documents.ts",
+     "must_contain": [
+      "untranslated.add(s);"
+     ],
+     "must_not_contain": [
+      "arTrade(",
+      "arPayment(",
+      "for (const [re, ar] of CATEGORIES)"
+     ]
+    },
+    {
+     "file": "supabase/functions/customer_api/index.ts",
+     "must_contain": [
+      "await nativeArabic(defaultDeps(admin, 'customer_api')"
+     ],
+     "must_not_contain": [
+      "arTrade("
+     ]
+    },
+    {
+     "file": "supabase/functions/supplier_api/index.ts",
+     "must_contain": [
+      "await nativeArabic(defaultDeps(admin, 'supplier_api')",
+      "await arabicOf(defaultDeps(admin, 'supplier_api')",
+      "admin.rpc('fn_arabic_document_wait'"
+     ],
+     "must_not_contain": [
+      "arTrade("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/no_exact_spec.ts",
+     "must_contain": [
+      "if (arTexts[s]) return arTexts[s];"
+     ],
+     "must_not_contain": [
+      "arTrade(",
+      "'«' + s + '»'"
+     ]
+    },
+    {
+     "file": "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql",
+     "must_contain": [
+      "function public.fn_reason_apply_sales_engineer__document_arabic("
+     ]
+    },
+    {
+     "file": "supabase/functions/sales_engineer/index.ts",
+     "must_contain": [
+      "if (msg.untranslated?.length) { out.arabic_held++; continue; }"
+     ],
+     "must_not_contain": [
+      "'«' + s + '»'"
+     ]
+    },
+    {
+     "file": "supabase/functions/customer_api/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_arabic_outbound_park'"
+     ]
+    },
+    {
+     "file": "supabase/functions/wa_inbound/index.ts",
+     "must_contain": [
+      "admin.rpc('fn_arabic_outbound_park'"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/line_specs/workflow.ts",
+     "must_contain": [
+      "if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };",
+      "export async function finishArabic("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/reasoned_delivery.ts",
+     "must_contain": [
+      "if (row.surface === 'sales_engineer.document_arabic') {",
+      "admin.rpc('fn_arabic_waiters_ready'"
+     ]
+    }
+   ]
   },
   {
    "id": "accountant.receipt_parse",
@@ -1544,11 +1766,26 @@
   {
    "id": "documents.quote_duration_emirates",
    "order": 83,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "low",
    "where": "supabase/functions/_shared/quote_documents.ts",
-   "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
+   "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7",
+   "held": "A duration is parsed only as a number and its unit (format); every other word a supplier wrote around it (\"immediate\", \"from order\") is reasoned with the rest of the document (loc -> nativeArabic), and under the hold the Arabic document is held, never substituted. The emirate is an exact key lookup of our own emirate value.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/quote_documents.ts",
+     "must_contain": [
+      "export function arDuration(s: unknown): string | null {",
+      "return ar ? (arDuration(c) ?? loc(c).text) : c;"
+     ],
+     "must_not_contain": [
+      "asap|ex[- ]?stock",
+      "order confirmation|purchase order",
+      "(?: (?:warranty|validity|guarantee))?"
+     ]
+    }
+   ]
   },
   {
    "id": "quote.line_specs_readerless",

@@ -13,6 +13,7 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
+    arabicFinishReady: () => { log.push('arabic ready'); return Promise.resolve({ ok: true }); },
     socialCommentClassified: (s, c) => { log.push('classified ' + s.platform + ' ' + s.message_id + ' ' + c); return Promise.resolve({ ok: true }); },
   };
   return { x, log };
@@ -79,6 +80,16 @@ Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same win
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
   assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+});
+
+Deno.test('a held Arabic translation: a waiting regenerated quotation is rendered and asked for approval; anything else was already stored', async () => {
+  const { x, log } = io(true);
+  const r = (subject: Record<string, unknown>): HeldRow => ({ id: 9, seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', subject, request: { seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', question: 'x' } });
+  // whoever filed the lines first (another document, another quote), every waiting quotation is looked up by its own id
+  const d = await deliverReasoned(r({ sources: ['a'], inquiry_id: 'zz-other-document' }), answered(null, '{"1":"أ"}'), x);
+  assertEquals([d.delivered, log], [true, ['arabic ready']]);
+  const { x: bare } = io(true); delete (bare as Partial<DeliveryIO>).arabicFinishReady;
+  assertEquals((await deliverReasoned(r({ sources: ['a'] }), answered(null), bare)).delivered, false);
 });
 
 Deno.test('a public comment whose CLASS was held runs through the comment policy with the reasoned class, once', async () => {
