@@ -88,8 +88,21 @@ export const socialComments: Duty = {
           .lt('created_at', new Date(now.getTime() - 10 * 60_000).toISOString())
           .gt('created_at', new Date(now.getTime() - 24 * 3600_000).toISOString()).limit(50);
         if (error) throw new Error('unfinished comments: ' + error.message);
+        // A replay of a held comment that died mid-way leaves outcome 'replaying:<when>'. After 10 minutes it is
+        // taken back (compare-and-set, so a live replay is never overtaken) and processed here like any unfinished
+        // comment, whatever its age: the held question itself is already closed, so this sweep is its only retry.
+        const { data: stale } = await admin.from('social_message')
+          .select('id,outcome,meta_message_id,platform,body,parent_id,occurred_at,conversation:social_conversation(user_id,handle,account_id)')
+          .eq('direction', 'in').eq('channel', 'comment').like('outcome', 'replaying:%').limit(50);
+        const revived = [];
+        for (const r of stale || []) {
+          const at = Date.parse(String(r.outcome).slice('replaying:'.length));
+          if (!(at < now.getTime() - 10 * 60_000)) continue;
+          const { data: won } = await admin.from('social_message').update({ outcome: null }).eq('id', r.id).eq('outcome', r.outcome).select('id');
+          if (won?.length) revived.push(r);
+        }
         const counts: Record<string, number> = {};
-        for (const r of data || []) {
+        for (const r of [...(data || []), ...revived]) {
           const ev: CommentEvent = { platform: r.platform, accountId: r.conversation?.account_id, commentId: r.meta_message_id,
             authorId: r.conversation?.user_id, handle: r.conversation?.handle ?? null, text: r.body, at: new Date(r.occurred_at), threadId: r.parent_id || r.meta_message_id };
           // A person check is REASONED (think()); held, it is queued under the same dedupe key the webhook used.

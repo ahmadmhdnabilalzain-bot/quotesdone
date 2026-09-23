@@ -319,7 +319,6 @@ test('production, in one aborted transaction: escalation, commands, exact spec, 
   assert.equal(out.escalated_again, 0, 'once');
   assert.equal(out.seat_item, 'customer_support:pending', 'a human-visible pending item in the owning seat queue');
   assert.equal(out.anon_can, false);
-  assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
   assert.equal(out.service_can, true);
 });
 
@@ -384,5 +383,6 @@ end $p$;`);
   assert.equal(out.sector_none, null, "'none' writes no sector");
   assert.equal(out.reads_text, false);
   assert.equal(out.anon_can, false);
+  assert.equal(out.keywords_routine, false, 'create_inquiry needs no replay routine: its trade is the intake\'s own');
   assert.equal(out.service_can, true);
 });

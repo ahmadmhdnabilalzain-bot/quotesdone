@@ -42,10 +42,10 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
           .eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
         if (!old) return null;
         if (old.outcome === 'held_classify') {
-          // A comment whose class was held is taken over by ONE replay: a compare-and-set to 'replaying', so a
+          // A comment whose class was held is taken over by ONE replay: a compare-and-set to 'replaying:<when>', so a
           // concurrent replay or redelivery gets nothing and cannot reply twice. The row is never emptied, so a
           // failed send cannot delete it; release() hands it back to 'held_classify'.
-          const { data: won } = await admin.from('social_message').update({ outcome: 'replaying' })
+          const { data: won } = await admin.from('social_message').update({ outcome: 'replaying:' + new Date().toISOString() })
             .eq('id', old.id).eq('outcome', 'held_classify').select('id');
           if (!won?.length) return null;
         } else if (old.outcome != null) return null;
@@ -58,7 +58,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       // Nothing was sent: the row is removed so the next delivery (or the duty's sweep) processes it afresh.
       await admin.from('social_message').delete().eq('id', inId).is('outcome', null);
       // A replay that failed before a send gives the comment back to the held state (never deleted, never stuck).
-      await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', inId).eq('outcome', 'replaying');
+      await admin.from('social_message').update({ outcome: 'held_classify' }).eq('id', inId).like('outcome', 'replaying:%');
     },
     async threadAllowed(ev) {
       try { const { data, error } = await admin.rpc('rl_check', { p_key: 'social_thread:' + ev.platform + ':' + ev.threadId, p_limit: 3, p_seconds: 600 }); return error ? false : data !== false; }

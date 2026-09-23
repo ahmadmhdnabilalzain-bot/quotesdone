@@ -362,7 +362,7 @@
    "severity": "critical",
    "where": "supabase/functions/_shared/reasoned_trades.ts",
    "decides": "KW map, tradeHits, detectCat, detectTrades, COMPONENT_OF (also customer_api create_inquiry fallback)",
-   "held": "Held: no trade is read off words anywhere. The intake's trade is reasoned by tradeOf (held: the intake is held, point 18); create_inquiry and inbound_email reason via tradeOfText (points 20, 22); the model path's trade stands with no keyword override. _shared/trade_classify.ts (KW, tradeHits, detectCat, detectTrades, COMPONENT_OF) is deleted.",
+   "held": "Held: no trade is read off words anywhere. The intake's trade is the stored one, the model's, or reasoned by tradeOf (held: the intake is held, point 18); the operational router (fn_kb_route_decide, alias matching) no longer decides it or asks from it. create_inquiry takes the intake's trade (point 20) and inbound_email reasons via tradeOfText (point 22). _shared/trade_classify.ts (KW, tradeHits, detectCat, detectTrades, COMPONENT_OF) is deleted.",
    "proof": [
     {
      "file": "supabase/functions/inquiry_intake/index.ts",
@@ -372,7 +372,9 @@
      "must_not_contain": [
       "detectCat(",
       "detectTrades(",
-      "trade_classify.ts'"
+      "trade_classify.ts'",
+      "rpc('fn_kb_route_decide'",
+      "routeClarification"
      ]
     },
     {
@@ -409,7 +411,8 @@
      "file": "supabase/functions/customer_api/index.ts",
      "must_contain": [
       "if (!category && intake?.category) category = String(intake.category).trim();",
-      "if (!category) category = 'general';"
+      "if (!category) category = 'general';",
+      ".from('category_specs').select('category').eq('category', category).maybeSingle();"
      ],
      "must_not_contain": [
       "from './keywords.ts'",
@@ -1069,7 +1072,8 @@
     {
      "file": "supabase/functions/wa_inbound/index.ts",
      "must_contain": [
-      "menu: menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown')"
+      ".find((x) => x.id === i.id)",
+      "menu: offerMenu ?"
      ]
     }
    ]
@@ -1165,6 +1169,29 @@
    "severity": "low",
    "where": "supabase/functions/_shared/quote_documents.ts",
    "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
+  },
+  {
+   "id": "inquiry_intake.specialist",
+   "order": 84,
+   "status": "migrated",
+   "seat": "sales_engineer",
+   "severity": "med",
+   "where": "supabase/functions/inquiry_intake/index.ts",
+   "decides": "category_agents specialist chosen by a shared-token score over slug/name/label (a nearest persona) — found by the B2 re-review",
+   "held": "Nothing to hold: the specialist is the category_agents row whose key equals the (already reasoned) category; no exact key means the generic sales engineer answers. No word scoring remains.",
+   "proof": [
+    {
+     "file": "supabase/functions/inquiry_intake/index.ts",
+     "must_contain": [
+      ".eq('active', true).eq('slug', category).maybeSingle();"
+     ],
+     "must_not_contain": [
+      "bestScore",
+      "const STOP = new Set(",
+      "catToks"
+     ]
+    }
+   ]
   }
  ]
 }

@@ -1077,6 +1077,12 @@ Deno.serve(observe('customer_api', async (req) => {
       // posts from a 'ready' intake (above), and inquiry_intake always saves a trade on it — the model's, the one
       // tradeOf reasoned (held: the intake itself is held and never reaches 'ready', point 18), or 'general' when
       // no listed trade is exactly the job. 'general' here is only that same no-trade answer, never a guess.
+      // A category the body or the drawing names is data from outside: only an exact category_specs key is kept;
+      // anything else is ignored and the intake's reasoned trade decides (never a nearest match).
+      if (category && category !== 'general') {
+        const { data: known } = await admin.from('category_specs').select('category').eq('category', category).maybeSingle();
+        if (!known) category = intake?.category ? String(intake.category).trim() : '';
+      }
       if (!category) category = 'general';
       const emirate = body.emirate || (briefObj?.emirate || null) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};

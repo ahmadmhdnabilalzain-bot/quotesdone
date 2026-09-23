@@ -575,9 +575,10 @@ async function handleInbound(req: Request): Promise<Response> {
       meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
         (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
           // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
-          menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i, k) => {
-            const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown')[k];
-            return { id: i.id, title: i.item + ' / ' + ar.item, description: i.description + ' / ' + ar.description };
+          // Paired by option id, never by position, so the two languages cannot drift onto each other's option.
+          menu: offerMenu ? menuItems('en', audience === 'supplier' ? 'supplier' : 'unknown').map((i) => {
+            const ar = menuItems('ar', audience === 'supplier' ? 'supplier' : 'unknown').find((x) => x.id === i.id);
+            return { id: i.id, title: i.item + (ar ? ' / ' + ar.item : ''), description: i.description + (ar ? ' / ' + ar.description : '') };
           }) : undefined })).value,
       autoreplyEnabled: async () => (await sec('wa_autoreply_enabled')) === 'true',
       recentTurns: async (from: string): Promise<Turn[]> => {
