@@ -13,7 +13,7 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
-    accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true }); },
+    accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
     receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
     outreachPage: () => Promise.resolve({ full_name: 'ZZ DEMO Sara', language: 'en' as const }),
     outreachReasoned: (t, c, f) => { log.push(`outreach ${t} ${c} ${f ? 'draft' : 'none'}`); return Promise.resolve({ ok: true }); },
@@ -75,16 +75,16 @@ Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same win
 });
 
 // Batch 8 (accountant + marketing): the effect of an expense or outreach reasoning, reached through deliverReasoned.
-Deno.test('an expenses-mailbox email reasoned to be a receipt re-runs the accountant sweep; one reasoned "other" does nothing', async () => {
+Deno.test('an expenses-mailbox email reasoned to be a receipt re-runs the accountant sweep; one reasoned "other" goes to the bookkeeper', async () => {
   const { x, log } = io(true);
   const sub = { email_id: 'zz-demo-e1', mailbox: 'expenses', provider_email_id: 'zz-demo-e1' };
   const yes = await deliverReasoned(row('accountant.document_kind', 'Fw: receipt', sub), answered('receipt_monthly', 'A monthly subscription receipt.'), x);
   assertEquals([yes.delivered, yes.via], [true, 'accountant_sweep']);
   const no = await deliverReasoned(row('accountant.document_kind', 'Fw: hello', sub), answered('other', 'Not an expense.'), x);
-  assertEquals([no.delivered, no.via], [false, 'none']);
+  assertEquals([no.delivered, no.via], [true, 'bookkeeper'], 'an expenses-mailbox email reasoned "other" still reaches a person');
   const other = await deliverReasoned(row('accountant.receipt_vendor', 'Fw: invoice', { email_id: 'zz-demo-e2', mailbox: 'other', provider_email_id: 'zz-demo-e2' }), answered('Apify', 'Apify issued it.'), x);
   assertEquals([other.delivered, other.via], [true, 'bookkeeper']);
-  assertEquals(log, ['sweep zz-demo-e1', 'bookkeeper zz-demo-e2']);
+  assertEquals(log, ['sweep zz-demo-e1', 'bookkeeper zz-demo-e1', 'bookkeeper zz-demo-e2']);
 });
 
 Deno.test('a LinkedIn reply reasoned after the hold gets its class and its drafted follow-up', async () => {

@@ -149,7 +149,7 @@ Deno.test({ name: 'a statement that does not add up is ingested empty with a fin
   noReceiptPath();
 } });
 
-Deno.test({ name: 'under the model hold a statement is not taken in on a word guess: it is held for the bookkeeper and queued', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+Deno.test({ name: 'under the model hold a statement is not taken in on a word guess: it is kept and queued, and handed over once', sanitizeOps: false, sanitizeResources: false, fn: async () => {
   KIND.held = true; calls.length = 0;
   try {
     const out = await (await handler(await delivery(statementPdf(LINES)))).json();
@@ -157,7 +157,8 @@ Deno.test({ name: 'under the model hold a statement is not taken in on a word gu
     assertEquals(ingests().length, 0);
     const hold = calls.find((c) => c.url === 'think:fn_reason_hold')!;
     assertEquals(JSON.parse(hold.body).p_dedupe_key, 'expense_kind:zz-demo-0001');
-    assert(calls.some((c) => /fn_receipt_hand_to_bookkeeper/.test(c.url)));
+    // one owner while it waits: the accountant's queue, not also a bookkeeper task
+    assertEquals(calls.filter((c) => /fn_receipt_hand_to_bookkeeper/.test(c.url)).length, 0);
     assert(calls.some((c) => /inbound_messages/.test(c.url) && /\[HELD — nothing booked: What this document is waits for reasoning/.test(c.body)));
     assertEquals(calls.filter((c) => /expense_entries|ai_gateway/.test(c.url) && c.method !== 'GET').length, 0);
   } finally { KIND.held = false; }

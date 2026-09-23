@@ -41,9 +41,9 @@ Deno.serve(observe('transcribe', async (req) => {
     const secret = await sec('cred_fn_ai'); if (!secret) return J({ error: 'transcription_not_configured' }, 500);
 
     const content = [ { type: 'text', text: PROMPT }, { type: 'input_audio', input_audio: { data: b64, format } } ];
-    let text: string | null = null; let lastErr = '';
+    let text: string | null = null; let lastErr = ''; let unreadable = false;
     try {
-      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'transcribe', temperature: 0, max: 1024, input: [{ role: 'user', content }] }) });
+      const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, fn: 'transcribe', temperature: 0, max: 1024, response_format: { type: 'json_object' }, input: [{ role: 'user', content }] }) });
       const j = await r.json();
       if (!r.ok || j?.ok === false) { lastErr = JSON.stringify(j?.detail || j?.error || j).slice(0, 220); }
       else {
@@ -51,9 +51,11 @@ Deno.serve(observe('transcribe', async (req) => {
         // ({speech, text}, _shared/provider_signals.ts), never a placeholder regex over its words. A reply that is
         // not that object is unreadable: the caller is asked to try again rather than handed a guess.
         const read = readTranscript(j?.content);
-        if (read) text = read.text; else lastErr = 'transcription_unreadable: the model did not return {speech, text}';
+        if (read) text = read.text; else unreadable = true;
       }
     } catch (e) { lastErr = String((e as Error)?.message || e); }
+    // Not the structured answer (a truncated or malformed reply): no guess, the user is simply asked to record again.
+    if (unreadable) return J({ ok: false, error: 'transcription_unreadable', text: '', message: 'We could not read that recording clearly. Please record it again.' }, 200);
     if (text === null) return J({ error: 'transcription_failed', detail: lastErr }, 502);
     return J({ ok: true, text });
   } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }

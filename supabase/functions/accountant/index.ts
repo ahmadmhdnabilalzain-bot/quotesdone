@@ -942,7 +942,7 @@ Deno.serve(observe('accountant', async (req) => {
         // WHAT IS IT (23 Sep 2026, founder_instruction 886-903): reasoned over the envelope, the note and the
         // document's rows (_shared/reasoned_books.ts documentKind), never a word test. Held: not booked, held.
         const rowText = att && att.mime === 'application/pdf' ? await statementRowText(att) : '';
-        const mail: ExpenseMail = { emailId, from, to, subject, text, docText: (rowText || docText).slice(0, 4000),
+        const mail: ExpenseMail = { emailId, from, to, subject, text, docText: [rowText || docText, csvText.slice(0, 2000)].filter(Boolean).join('\n').slice(0, 4000),
           filenames: atts.map((a) => String(a.filename || a.name || '')), mailbox: 'expenses', providerEmailId: emailId, dryRun };
         const kind = (await documentKind(booksDeps, mail, booksRenewals, booksRegister)).value;
         if (kind === 'bank_statement') {
@@ -953,7 +953,9 @@ Deno.serve(observe('accountant', async (req) => {
           say(stIn.error ? 'bank_statement_failed' : 'bank_statement', { ...stIn, files: fileNotes });
           continue;
         }
-        if (kind === null) readNote += "What this document is waits for reasoning: the model is held, so it is not booked on a guess; the accountant's queue replays it. ";
+        // Waiting for reasoning: the accountant's queue owns it (expense_kind:<email id>) and replays this sweep for it.
+        // Nothing is recorded or handed over twice meanwhile, however often the sweep runs.
+        if (kind === null) { held++; say('awaiting_reasoning', { files: fileNotes }); continue; }
         else if (kind === 'other') readNote += "Reasoned: this is not a document of the company's own spending. ";
         // The PDF text is APPENDED, so the forwarded "From:" header still names the original vendor
         // and a figure in the covering note still wins over one in the file.
@@ -965,7 +967,7 @@ Deno.serve(observe('accountant', async (req) => {
         if (reading && (parseAmount(parseBody) || parseAmount(subject))) {
           const vendor = (await receiptVendor(booksDeps, { ...mail, docText: docText.slice(0, 4000) }, booksVendors)).value;
           if (vendor) det = parseReceipt({ subject, body: parseBody, vendor, period: reading.period });
-          else readNote += 'Who issued this waits for reasoning: the model is held, so it is not booked on a guess. ';
+          else { held++; say('awaiting_reasoning', { files: fileNotes }); continue; }
         } else if (reading) {
           readNote += 'No amount could be read beside a currency mark. ';
         }
@@ -1133,7 +1135,9 @@ Deno.serve(observe('accountant', async (req) => {
 
       return J({
         ok: true, seat: 'accountant', caller: caller.kind, mailbox: EXPENSE_MAILBOX, ...counts, messages: results,
-        basis: 'Every figure above was read from the forwarded message by supabase/functions/_shared/receipt_parse.ts and, where a PDF carried a text layer, supabase/functions/_shared/pdf_text.ts. No model was called on this path. A message whose amount could not be read is counted as held and named in `messages`; it is never booked at zero and never estimated.',
+        // body.email_id that matched no message to the mailbox is said, so a replay never reads "delivered" for nothing
+        found: only ? mine.length > 0 : undefined,
+        basis: 'What each message is and who issued it were reasoned (supabase/functions/_shared/reasoned_books.ts, through think()); every figure was read from the message by supabase/functions/_shared/receipt_parse.ts and, where a PDF carried a text layer, supabase/functions/_shared/pdf_text.ts. A message whose meaning waits for reasoning, or whose amount could not be read, is counted as held and named in `messages`; it is never booked at zero and never estimated.',
       });
     }
     // ── SPEND_REPORT ───────────────────────────────────────────────────────────────────────────

@@ -315,10 +315,16 @@ export const handler = observe('resend_inbound', async (req) => {
     // An email to any OTHER mailbox: is it the company's own spending at all? Reasoned over the envelope and
     // the note. Held: it takes the supplier-document path below, which stores and classifies nothing on a guess,
     // and the replay hands it to the bookkeeper if it is reasoned to be an expense document.
+    // Only mail that could carry a document of our spending is asked at all: it has an attachment, or it comes from
+    // a permitted expense forwarder (structured facts, no word read). Anything else is plain correspondence.
     let kind: string | null = null;
-    if (!receiptish) {
+    // true while what the email is, or who issued it, waits for reasoning: the accountant's queue owns it then, and
+    // it is NOT also handed to the bookkeeper (one owner, no double path); the replay re-runs the sweep for it.
+    let reasoningHeld = false;
+    if (!receiptish && (atts.length > 0 || expenseSenderOk)) {
       kind = (await documentKind(booksDeps, mail, renewals, register)).value;
       receiptish = kind !== null && kind !== 'other';
+      reasoningHeld = kind === null;
     }
 
     let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;
@@ -351,23 +357,26 @@ export const handler = observe('resend_inbound', async (req) => {
         } else if (att) {
           receiptReason = 'The receipt is an image, which has no text layer; reading it needs a vision model and every paid route is held. ';
         }
+        // A CSV export (the .csv extension is a file-format fact) is read as text; it is used only if the message is
+        // reasoned to be a statement, and the reasoning reads it too.
+        let csvText = '';
+        for (const a of atts.slice(0, 8)) {
+          if (!/\.csv$/i.test(String(a.filename || a.name || ''))) continue;
+          const by = await attachmentBytes(a, emailId, rkey);
+          if (by && by.length <= 5 * 1024 * 1024) { csvText = new TextDecoder().decode(by); break; }
+        }
         // WHAT IS IT, read with the document: the real Mashreq statement names its bank only inside the PDF, so
-        // the reasoning reads the rows statementRowText rebuilds from it (or pdf_text's text layer).
+        // the reasoning reads the rows statementRowText rebuilds from it (or pdf_text's text layer, or the CSV).
         const rowText = att && att.mime === 'application/pdf' ? await statementRowText(att) : '';
         if (kind === null) {
-          kind = (await documentKind(booksDeps, { ...mail, docText: (rowText || docText).slice(0, 4000) }, renewals, register)).value;
+          kind = (await documentKind(booksDeps, { ...mail, docText: [rowText || docText, csvText.slice(0, 2000)].filter(Boolean).join('\n').slice(0, 4000) }, renewals, register)).value;
+          reasoningHeld = kind === null;
           if (kind === null) receiptReason += 'What this document is waits for reasoning: the model is held, so it is not booked on a guess; the accountant\x27s queue replays it. ';
           else if (kind === 'other') receiptReason += 'Reasoned: this is not a document of the company\x27s own spending, so nothing was booked. ';
         }
         // 15 SEP 2026 — A BANK STATEMENT IS NOT A RECEIPT. Taken in by the SAME routine the accountant's
         // expense_sweep uses (_shared/bank_statement_intake.ts), before any receipt handling.
         if (kind === 'bank_statement' && isExpenseMailbox && expenseSenderOk) {
-          let csvText = '';
-          for (const a of atts.slice(0, 8)) {
-            if (!/\.csv$/i.test(String(a.filename || a.name || ''))) continue;
-            const by = await attachmentBytes(a, emailId, rkey);
-            if (by && by.length <= 5 * 1024 * 1024) { csvText = new TextDecoder().decode(by); break; }
-          }
           const stRef = emailId ? 'resend:' + emailId : 'svix:' + svixKey;
           const stIn = await takeInStatement(admin, {
             from, subject, filenames: atts.map((a) => String(a.filename || a.name || '')),
@@ -399,6 +408,7 @@ export const handler = observe('resend_inbound', async (req) => {
             ex = { is_receipt: true, vendor: det.vendor, amount: det.amount, currency: det.currency, date: det.date, period: det.period, recurring: det.recurring, vat: det.vat, trn: det.trn,
                    read_as: reading.readAs, renews_item: reading.renewsItem, note: subject + ' [reasoned: ' + kind + '; ' + det.basis + (docText ? ' src=pdf_text' : '') + ']' };
           } else if (!vendor) {
+            reasoningHeld = true;
             receiptReason += 'Who issued this waits for reasoning: the model is held, so it is not booked on a guess; the accountant\x27s queue replays it. ';
           }
         }
@@ -637,7 +647,7 @@ export const handler = observe('resend_inbound', async (req) => {
         body: `[HELD — nothing booked: ${(receiptReason || 'no amount could be read').slice(0, 200)}]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
         attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
       }).select('id').maybeSingle();
-      await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
+      if (!reasoningHeld) await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
       await logRun('ok', { expenses_mailbox: 1, receipt: true, booked: false, held: true, doc_archived: !!heldPath, from, subject }, 'receipt HELD for review, not guessed at: ' + (receiptReason || 'no amount could be read').slice(0, 300));
       return J({ ok: true, receipt: true, booked: false, held: true, reason: kind === null ? 'awaiting_reasoning' : kind === 'other' ? 'not_an_expense_document' : 'amount_unreadable', doc: heldPath });
     }
@@ -735,7 +745,7 @@ export const handler = observe('resend_inbound', async (req) => {
     const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
     // 6 Sep 2026: a receipt-ish email that reached this path was NOT booked. It is finance's work from here —
     // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
-    if (receiptish && !lead) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
+    if (receiptish && !lead && !reasoningHeld) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
     if (lead && appliedSummary.length) {
       try{ await requestDelivery(admin, { type:'supplier_doc_applied', to_email: owner, to_role:'admin', lead_id: lead.id, channel:'email', subject:`Supplier record auto-updated: ${lead.company_name||('Lead #'+lead.id)}`, body:`A document from ${from} was read and applied to ${lead.company_name||('Lead #'+lead.id)}:\n\n${appliedSummary.join('\n')}\n\nReview it in the CRM if needed.` }); }catch(_e){}
     }

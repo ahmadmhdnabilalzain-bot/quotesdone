@@ -10,25 +10,33 @@
 //     (/^(no speech|silence|inaudible|no audio|blank|empty)$/) — so a caller who SAID "silence" got an empty result.
 // NOW:
 //   * Twilio returns a numeric `code` beside its message on every rejection (its REST error object). The code is the
-//     signal; the codes that mean "not deliverable YET, keep it queued" are the two the old regex already named.
-//     A rejection that carries NO code is not guessed at either way: it is unknown, and the row is retried.
+//     signal: 63042 = the template is not usable YET (stay queued); 63016 = freeform outside the 24-hour window (a
+//     retry never helps: it fails, and the founder fallback / email twin carries it). A rejection with NO code is not
+//     guessed at either way: it is unknown and retried, at most UNKNOWN_RETRY_CAP times, then failed and surfaced.
 //   * the transcriber is asked for ONE JSON object {"speech": boolean, "text": string}; `speech` is the model's own
 //     structured answer. A reply that is not that object is unreadable, and the caller asks the user to try again —
 //     never a placeholder guessed off the words.
 
-/** Twilio error codes after which the WhatsApp row stays queued (the template is not deliverable yet). */
-export const TWILIO_NOT_YET_CODES = new Set([63016, 63042]);
+/** 63042: the template is not approved / usable YET — the row stays queued until it is. */
+export const TWILIO_NOT_YET_CODES = new Set([63042]);
+/** 63016: a freeform body outside the 24-hour customer window. Retrying never helps; it needs a template or email. */
+export const TWILIO_OUTSIDE_WINDOW_CODES = new Set([63016]);
+/** A rejection with no code is retried this many times, then treated as failed (and so surfaced). */
+export const UNKNOWN_RETRY_CAP = 5;
 
-export type TwilioVerdict = 'not_yet' | 'rejected' | 'unknown';
+export type TwilioVerdict = 'not_yet' | 'outside_window' | 'rejected' | 'unknown';
 /** A failed Twilio send, judged by its structured code only. */
 export function twilioVerdict(code: unknown): TwilioVerdict {
   const n = typeof code === 'number' ? code : (typeof code === 'string' && /^\d+$/.test(code) ? Number(code) : NaN);
   if (!Number.isFinite(n)) return 'unknown';
-  return TWILIO_NOT_YET_CODES.has(n) ? 'not_yet' : 'rejected';
+  if (TWILIO_NOT_YET_CODES.has(n)) return 'not_yet';
+  if (TWILIO_OUTSIDE_WINDOW_CODES.has(n)) return 'outside_window';
+  return 'rejected';
 }
 
 /** The transcriber's structured reply: {speech, text}. null = unreadable (the caller answers transcription_unreadable). */
 export function readTranscript(content: unknown): { speech: boolean; text: string } | null {
+  if (content && typeof content === 'object' && !Array.isArray(content)) content = JSON.stringify(content);   // a json response_format may arrive parsed
   const raw = typeof content === 'string' ? content : Array.isArray(content) ? content.map((p: { text?: string }) => p?.text || '').join('') : '';
   const m = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   let o: unknown;

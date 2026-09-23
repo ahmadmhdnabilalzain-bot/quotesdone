@@ -93,15 +93,23 @@ Deno.test('a bank line: reasoned, recorded; under the hold its kind stays empty 
   assert(owner.systems.some((s) => /ZZ DEMO OWNER/.test(s)));
 });
 
-Deno.test('the replay: the expenses mailbox re-runs the sweep; another mailbox goes to the bookkeeper; "other" does nothing', async () => {
-  const log: string[] = [];
-  const io = { accountantSweep: (id: string) => { log.push('sweep ' + id); return Promise.resolve({ ok: true }); },
+Deno.test('the replay: delivered only when the sweep took the email in; "other" goes to the bookkeeper; a svix id never to the sweep', async () => {
+  const log: string[] = []; let sweep: { ok: boolean; found?: boolean; verdict?: string | null } = { ok: true, found: true, verdict: 'booked' };
+  const io = { accountantSweep: (id: string) => { log.push('sweep ' + id); return Promise.resolve(sweep); },
                receiptToBookkeeper: (id: string) => { log.push('bk ' + id); return Promise.resolve({ ok: true }); } };
   const res = (choice: string) => ({ status: 'answered' as const, answer: 'x', decision: { choice, fields: {} }, steps: [], context_used: {}, missing_context: [], sources: [], confidence: 1 });
   const row = (surface: string, subject: Record<string, unknown>) => ({ id: 1, seat: 'accountant', surface, subject, request: { seat: 'accountant' as const, surface, question: 'q' } });
-  assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'e1', mailbox: 'expenses' }), res('receipt_one_off'), io))?.via, 'accountant_sweep');
+  const exp = { email_id: 'e1', mailbox: 'expenses', provider_email_id: 'e1' };
+  assertEquals((await deliverBooks(row('accountant.document_kind', exp), res('receipt_one_off'), io))?.delivered, true);
+  sweep = { ok: true, found: false, verdict: null };
+  const nf = await deliverBooks(row('accountant.document_kind', exp), res('receipt_one_off'), io);
+  assertEquals([nf?.delivered, nf?.detail], [false, 'the sweep found no such email']);
+  sweep = { ok: true, found: true, verdict: 'held' };
+  assertEquals((await deliverBooks(row('accountant.receipt_vendor', exp), res('Apify'), io))?.delivered, false, 'a sweep that only held it again is not a delivery');
+  assertEquals((await deliverBooks(row('accountant.document_kind', exp), res('other'), io))?.via, 'bookkeeper');
   assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'e2', mailbox: 'other', provider_email_id: 'p2' }), res('meta_ads_invoice'), io))?.via, 'bookkeeper');
-  assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'e3', mailbox: 'expenses' }), res('other'), io))?.via, 'none');
+  assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'e3', mailbox: 'other' }), res('other'), io))?.via, 'none');
+  assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'svix:s1', mailbox: 'expenses', provider_email_id: null }), res('receipt_one_off'), io))?.via, 'none');
   assertEquals(await deliverBooks(row('wa_inbound.needs_a_person', {}), res('x'), io), null);
-  assertEquals(log, ['sweep e1', 'bk p2']);
+  assertEquals(log, ['sweep e1', 'sweep e1', 'sweep e1', 'bk e1', 'bk p2']);
 });

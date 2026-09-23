@@ -40,7 +40,7 @@
 //     rather than retiring the row — not being able to ask Twilio is not Meta refusing.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { twilioVerdict } from '../_shared/provider_signals.ts';
+import { twilioVerdict, UNKNOWN_RETRY_CAP } from '../_shared/provider_signals.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
@@ -478,11 +478,21 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // 23 SEP 2026 (founder_instruction 886-903): judged by Twilio's structured error CODE (_shared/provider_signals.ts),
       // never by reading its English message. A rejection with no code at all is unknown, and is retried, not dropped.
       const verdict = res.ok ? null : twilioVerdict(res.code);
-      if (verdict === 'not_yet' || verdict === 'unknown') {
-        lastErr = (verdict === 'not_yet' ? 'template not deliverable yet (Twilio ' + res.code + '): ' : 'rejected with no Twilio error code, retried: ') + String(res.error || '').slice(0, 160);
+      // an unknown rejection is retried a bounded number of times, then falls through to 'failed' below
+      const tries = Number((n as { attempts?: number }).attempts || 0) + 1;
+      if (verdict === 'unknown' && tries < UNKNOWN_RETRY_CAP) {
+        lastErr = 'rejected with no Twilio error code, retry ' + tries + '/' + UNKNOWN_RETRY_CAP + ': ' + String(res.error || '').slice(0, 160);
+        await admin.from('notifications').update({ attempts: tries, last_error: lastErr.slice(0, 500) }).eq('id', n.id);
         if (await tryFallback(n, lastErr)) continue;
         skipped++; requeued++; continue;
       }
+      if (verdict === 'not_yet') {
+        lastErr = 'template not usable yet (Twilio ' + res.code + '): ' + String(res.error || '').slice(0, 160);
+        if (await tryFallback(n, lastErr)) continue;
+        skipped++; requeued++; continue;
+      }
+      if (verdict === 'outside_window') res.error = 'outside the 24-hour WhatsApp window (Twilio 63016), a retry cannot deliver it: ' + String(res.error || '');
+      if (verdict === 'unknown') res.error = 'rejected with no Twilio error code ' + UNKNOWN_RETRY_CAP + ' times: ' + String(res.error || '');
       if (!res.ok) {
         // Twilio rejected it outright. For anyone else that is a failed row; for the founder it is
         // the exact case the fallback exists for — the alert still has to reach him.

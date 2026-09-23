@@ -3,7 +3,7 @@ import { assertEquals } from 'jsr:@std/assert@1';
 import { readTranscript, twilioVerdict } from './provider_signals.ts';
 
 Deno.test('Twilio: the code decides, not the message', () => {
-  assertEquals(twilioVerdict(63016), 'not_yet');
+  assertEquals(twilioVerdict(63016), 'outside_window');   // freeform outside 24h: not "pending approval", a retry never helps
   assertEquals(twilioVerdict('63042'), 'not_yet');
   assertEquals(twilioVerdict(21211), 'rejected');          // invalid number: a real rejection, whatever the prose says
   // no code at all: unknown, retried, never read off "template not approved" in the message
@@ -22,4 +22,6 @@ Deno.test('transcribe: "was there speech" is the model\'s structured answer', ()
   assertEquals(readTranscript('(silence)'), null);
   assertEquals(readTranscript('{"text": "hi"}'), null);
   assertEquals(readTranscript(null), null);
+  assertEquals(readTranscript('{"speech": true, "text": "two co'), null, 'a truncated reply is unreadable, never half a guess');
+  assertEquals(readTranscript({ speech: true, text: 'hi' }), { speech: true, text: 'hi' });
 });

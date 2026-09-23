@@ -148,8 +148,8 @@ export async function reasonBankLines(deps: ThinkDeps, limit = 10): Promise<{ re
 
 // ── the replay: a held expense question, reasoned after the hold lifts ──────────────────────────
 export interface BooksIO {
-  /** POST accountant {action:'expense_sweep', email_id} under the seat's own credential. */
-  accountantSweep(emailId: string): Promise<{ ok: boolean; err?: string }>;
+  /** POST accountant {action:'expense_sweep', email_id} under the seat's own credential; the verdict for that email. */
+  accountantSweep(emailId: string): Promise<{ ok: boolean; found?: boolean; verdict?: string | null; err?: string }>;
   /** A non-expenses-mailbox email reasoned to be an expense document: the bookkeeper takes it. */
   receiptToBookkeeper(providerEmailId: string, why: string): Promise<{ ok: boolean; err?: string }>;
 }
@@ -161,11 +161,20 @@ export async function deliverBooks(row: HeldRow, r: ThinkResult, io: BooksIO): P
   const s = row.subject ?? {};
   const choice = r.decision?.choice ?? null;
   if (row.surface === 'accountant.document_kind' && (choice === 'other' || choice === null)) {
+    // Mail to the expenses mailbox that is not an expense document still needs a person's eye (it was held, not handed
+    // over, while it waited); mail to another mailbox already took the supplier-document path.
+    if (s.mailbox === 'expenses' && s.provider_email_id) {
+      const x = await io.receiptToBookkeeper(String(s.provider_email_id), 'Reasoned after the model hold: this email to the expenses mailbox is not a document of the company\'s own spending. ' + r.answer.slice(0, 300));
+      return { delivered: x.ok, via: 'bookkeeper', detail: x.err };
+    }
     return { delivered: false, via: 'none', detail: 'reasoned: not an expense document; it stays where it was filed' };
   }
-  if (s.mailbox === 'expenses' && s.email_id) {
+  // A webhook with no Resend id (svix:<id>) cannot be found by the sweep, which walks Resend's history by id.
+  if (s.mailbox === 'expenses' && s.email_id && !String(s.email_id).startsWith('svix:')) {
     const x = await io.accountantSweep(String(s.email_id));
-    return { delivered: x.ok, via: 'accountant_sweep', detail: x.err };
+    // delivered only when the sweep found the email and took it in; anything else is said, never counted as done
+    const done = x.ok && x.found !== false && ['booked', 'already_booked', 'bank_statement'].includes(String(x.verdict));
+    return { delivered: done, via: 'accountant_sweep', detail: done ? undefined : (x.err ?? (x.found === false ? 'the sweep found no such email' : 'sweep verdict: ' + x.verdict)) };
   }
   if (s.provider_email_id) {
     const x = await io.receiptToBookkeeper(String(s.provider_email_id), 'Reasoned after the model hold: this email is ' + (choice ?? 'an expense document') + '. ' + r.answer.slice(0, 300));
@@ -187,7 +196,9 @@ export function liveBooksIO(admin: Admin): BooksIO {
         body: JSON.stringify({ __secret: await sec('cred_fn_accountant'), action: 'expense_sweep', email_id: emailId }),
       }, 55_000);
       const j = await r.json().catch(() => ({}));
-      return r.ok && j?.ok !== false ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+      if (!r.ok || j?.ok === false) return { ok: false, err: String(j?.error ?? r.status) };
+      const m = Array.isArray(j?.messages) ? j.messages.find((x: { email_id?: string }) => x.email_id === emailId) : null;
+      return { ok: true, found: j?.found !== false && !!m, verdict: m?.verdict ?? null };
     },
     receiptToBookkeeper: async (providerEmailId, why) => {
       const { data: row } = await admin.from('inbound_messages').select('id').eq('provider_email_id', providerEmailId).order('id', { ascending: false }).limit(1).maybeSingle();
