@@ -59,7 +59,8 @@ test('finding 25: the canonical matcher honours a stated emirate limit', () => {
   const defs = files.filter((f) => { try { return /create or replace function public\.fn_match_capability\(/i.test(read(f)); } catch { return false; } });
   const last = read(defs[defs.length - 1]).replace(/--[^\n]*/g, '');
   assert.match(last, /cardinality\(loc\.stated\) = 0/, `${defs[defs.length - 1]}: no stated limit = UAE-wide`);
-  assert.match(last, /exists \(select 1 from unnest\(loc\.stated\) e where e ilike p_emirate\)\)/, 'a stated limit is a GATE, not only a tie-break');
+  // Compared EXACTLY since 23 Sep 2026 (decision point 25: no ilike decides a match); still a GATE in cand.
+  assert.match(last, /or \(select emirate from q\) = any\(loc\.stated\)\)/, 'a stated limit is a GATE, not only a tie-break');
 });
 
 test('finding 30: asking the customer stays open after a quote exists', () => {

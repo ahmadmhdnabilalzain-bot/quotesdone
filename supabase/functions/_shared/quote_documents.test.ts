@@ -47,7 +47,8 @@ Deno.test('every fixed label in the Arabic comparison is Arabic, a material name
   const terms = { lead_time: '21 days', warranty: '2 years — materials and workmanship', scope: 'Supply and install', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 118500 };
   // The line does NOT name the glass: that is the case that printed the bare key (a line naming it
   // maps to the trade's own glass attributes, which were always Arabic).
-  const line = { line_no: 1, description: 'Aluminium windows supply and install', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500 };
+  // Reasoning read the line as naming the customer's glass (reasoned_matching.ts; compare.ts adds a component to the rows whose lines name it).
+  const line = { line_no: 1, description: 'Aluminium windows supply and install', qty: 40, unit: 'nos', unit_price: 2962, amount: 118500, spec: { '_names:glass': 'windows' }, spec_source: { '_names:glass': 'reasoned' } };
   const q = (id: string, letter: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [line], terms: { ...terms, price_ex_vat: price } });
   // The REQUEST line names the glass (compare.ts adds a customer's component to the lines that name it).
   const tech = technicalComparison({ category: 'aluminium', request_lines: [{ line_no: 1, description: 'Aluminium windows, double glazed glass', qty: 40, unit: 'nos' }],
@@ -136,8 +137,10 @@ Deno.test('no document the customer receives tells them to ask or contact a supp
 // State (c) on the page: an optional detail one supplier left out is SHOWN as "Not stated (optional)",
 // in both languages, and is never turned into a risk line (it is not chased).
 Deno.test('an optional detail left out is shown as not stated (optional) and never listed as a risk', () => {
+  // What reasoning read from each line, as the gate stores it.
+  const rd = (desc: string): Record<string, string> => ({ material: 'MR MDF', thickness_mm: '18', finish: 'HPL', ...(/edge/.test(desc) ? { edge_band: '2mm PVC' } : {}) });
   const terms = { lead_time: '21 days', warranty: '2 years on workmanship', scope: 'Supply and installation of wardrobes by our team', exclusions: null, conditions: null, notes: null, terms_spec: null, price_ex_vat: 6000 };
-  const q = (id: string, letter: string, desc: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [{ line_no: 1, description: desc, amount: price }], terms: { ...terms, price_ex_vat: price } });
+  const q = (id: string, letter: string, desc: string, price: number) => ({ quote_id: id, label_en: `Supplier ${letter}`, label_ar: `المورّد ${letter}`, supplier_letter: letter, option_no: 0, lines: [{ line_no: 1, description: desc, amount: price, spec: rd(desc), spec_source: Object.fromEntries(Object.keys(rd(desc)).map((k) => [k, 'reasoned'])) }], terms: { ...terms, price_ex_vat: price } });
   const tech = technicalComparison({ category: 'joinery', request_lines: [{ line_no: 1, description: 'Wardrobe 18mm MDF HPL finish', qty: 4, unit: 'nos' }], requirements: null as never, on_hold: 0, now: new Date('2026-09-14'),
     quotes: [q('q1', 'A', 'Wardrobes 18mm MR MDF, HPL finish, 2mm PVC edge banding', 6000), q('q2', 'B', 'Wardrobes 18mm MR MDF, HPL finish', 5500)] as never });
   for (const lang of ['en', 'ar'] as Lang[]) {

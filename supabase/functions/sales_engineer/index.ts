@@ -33,6 +33,7 @@ import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
 import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
+import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
 import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
@@ -109,7 +110,7 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
 }
 async function specOfferSweep(limit: number) {
-  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, arabic_held: 0, errors: [] as string[], precedent: [] as unknown[] };
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, arabic_held: 0, errors: [] as string[], precedent: [] as unknown[], held_for_reasoning: 0 };
   const secret = await sec('cred_fn_sales_engineer');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
@@ -133,7 +134,14 @@ async function specOfferSweep(limit: number) {
         body: JSON.stringify({ __secret: secret, inquiry_id: c.inquiry_id, lang: 'en', technical_only: true }), signal: AbortSignal.timeout(45000) });
       const j = await r.json().catch(() => null);
       if (!r.ok || !j) { await failed(c.inquiry_id, `quote_compare HTTP ${r.status}`); continue; }
-      const offers = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
+      // AN OFFER ONLY ON A REASONED DIFFERENCE (founder_instruction 886-903; decision point 28). The comparison
+      // proposes where no quote is textually the customer's spec; reasoning decides whether each quoted value
+      // is GENUINELY different (reasoned_matching.ts reasonedOffers). Held: nothing opens for this inquiry and
+      // the customer is told nothing now — the sweep asks again next tick, and nobody is offered on a guess.
+      const proposed = j.ok && j.analysis ? noExactSpec(j.analysis.technical_detail) : [];
+      const rs = await reasonedOffers(defaultDeps(admin, 'sales_engineer'), proposed, c.inquiry_id);
+      if (rs.held) { out.held_for_reasoning++; continue; }
+      const offers = rs.offers;
       // HOW DID THE LAST OFFER LIKE THIS END? (23 Sep 2026.) Recalled before the offer opens, per
       // offer, and returned with the sweep so the seat sees "we offered this before and it was declined".
       // ponytail: the first 2 offers per inquiry, sequential gte-small runs inside the sweep's budget.

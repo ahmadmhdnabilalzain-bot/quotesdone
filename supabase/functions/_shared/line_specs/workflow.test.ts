@@ -12,6 +12,14 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { SEAT, SEAT_LABEL, type Line } from './assess.ts';
 import { optionAmount, splitOptions } from './options.ts';
 import { approve, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
+import type { QuoteReading } from '../reasoned_matching.ts';
+
+// What reasoning read from each quotation (reasoned_matching.ts readQuote, mocked here): the gate writes it in
+// before the check. A quote with no entry is read as nothing — the model hold.
+const reads = (m: Record<string, QuoteReading>) => (qr: QuoteRow) => Promise.resolve(m[qr.id] ?? null);
+const INSTALLED = { installation: { included: 'yes' as const, detail: 'by our own team', source: 'reasoned' as const } };
+const WARRANTED = { warranty: { period: '2 years', coverage: 'workmanship and hardware', source: 'reasoned' as const } };
+const WARDROBE_READ = { material: 'MDF', thickness_mm: '18mm', finish: 'HPL' };
 
 class Fake implements SpecRepo {
   quotes = new Map<string, QuoteRow>(); items = new Map<string, Line[]>(); holds: HoldRow[] = []; sent: NotificationRow[] = []; runs: string[] = []; dispatched = 0;
@@ -49,7 +57,8 @@ Deno.test('held → notified at once on email and WhatsApp → fill in → regen
     { line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 3000, amount: 6000 },
     { line_no: 2, description: 'Kitchen base cabinets 18mm plywood, lacquer finish', qty: 1, unit: 'lot', unit_price: 6000, amount: 6000 },
   ]);
-  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO01', now: NOW };
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO01', now: NOW,
+    read: reads({ q1: { lines: { 1: { material: 'MDF', finish: 'HPL' }, 2: { material: 'plywood', thickness_mm: '18mm', finish: 'lacquer' } }, terms: INSTALLED } }) };
   const g = await gate(repo, 'q1', SUP_AR, ctx);
   assert(g.held);
   assertEquals(g.missing.map((m) => (m.scope === 'line' ? `${m.line_no}:${m.attr}` : m.attr)), ['1:thickness_mm', 'warranty_coverage']);
@@ -92,7 +101,7 @@ Deno.test('held → a revised quote is resubmitted → the old hold is supersede
   const repo = new Fake();
   repo.quotes.set('q2', q('q2', SUP_EN.id, { lead_time: 'ASAP' }));
   repo.items.set('q2', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000 }]);
-  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO02', now: NOW };
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO02', now: NOW, read: reads({ q2: { lines: { 1: WARDROBE_READ }, terms: { ...INSTALLED, ...WARRANTED } } }) };
   assert((await gate(repo, 'q2', SUP_EN, ctx)).held);
   Object.assign(repo.quotes.get('q2')!, { lead_time: '3 weeks from drawing approval' });
   const again = await gate(repo, 'q2', SUP_EN, ctx);
@@ -106,7 +115,8 @@ Deno.test('the customer\'s inquiry decides what is required: "supply only" and "
   repo.quotes.set('q3', q('q3', SUP_EN.id, { scope: '', warranty: '' }));
   repo.items.set('q3', [{ line_no: 1, description: 'Dining table legs, 40mm, lacquer finish', amount: 900 }]);
   const requirements = { version: 1, installation: { required: 'no' }, warranty: { required: 'no' }, materials: [{ component: 'legs_base', label_en: 'Legs or base', label_ar: 'الأرجل أو القاعدة', choice: 'steel', choice_en: 'Steel' }] };
-  const g = await gate(repo, 'q3', SUP_EN, { category: 'custom-furniture', requirements, ref: 'ZZDEMO05', now: NOW });
+  const g = await gate(repo, 'q3', SUP_EN, { category: 'custom-furniture', requirements, ref: 'ZZDEMO05', now: NOW,
+    read: reads({ q3: { lines: { 1: { thickness_mm: '40mm', finish: 'lacquer', '_names:legs_base': 'Dining table legs' } }, terms: {} } }) });
   assertEquals(g.missing.map((m) => `${m.line_no}:${m.attr}`), ['1:component_legs_base']);
   const done = await fillIn(repo, 'q3', SUP_EN, { lines: { '1': { component_legs_base: 'Powder-coated steel' } } }, { category: 'custom-furniture', requirements, ref: 'ZZDEMO05', now: NOW });
   assert(done.ok && done.complete);
@@ -125,7 +135,10 @@ Deno.test('two options from one submission: each its own quote with the shared t
     repo.quotes.set(id, q(id, SUP_EN.id, { ...shared, option_no: o.option_no, submission_id: 'sub-zz-2', quote_amount: optionAmount(o)!, price_ex_vat: optionAmount(o)! }));
     repo.items.set(id, o.lines.map((l, i) => ({ line_no: i + 1, description: l.description, amount: l.amount ?? null })));
   }
-  const ctx = { category: 'hvac', requirements: null, ref: 'ZZDEMO03', multiOption: true, now: NOW };
+  const hvacTerms = { ...INSTALLED, warranty: { period: '5 years', coverage: 'compressor, parts and labour', source: 'reasoned' as const } };
+  const ctx = { category: 'hvac', requirements: null, ref: 'ZZDEMO03', multiOption: true, now: NOW, read: reads({
+    opt1: { lines: { 1: { brand: 'Daikin', model: 'FDMRN30', capacity_tr: '2.5 TR', refrigerant: 'R410A' } }, terms: hvacTerms },
+    opt2: { lines: { 1: { capacity_tr: '2.5 TR', refrigerant: 'R410A' } }, terms: hvacTerms } }) };
   const g1 = await gate(repo, 'opt1', SUP_EN, ctx), g2 = await gate(repo, 'opt2', SUP_EN, ctx);
   assertEquals([g1.held, g2.held], [false, true]);
   assertEquals(g2.missing.map((m) => `${m.line_no}:${m.attr}`), ['1:brand', '1:model']);
@@ -138,7 +151,7 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
   const repo = new Fake();
   repo.quotes.set('q4', q('q4', SUP_EN.id, { lead_time: '', price_ex_vat: null, quote_amount: 12600, payment_terms: '50% advance, TRN 100 2345 6789 0003' }));
   repo.items.set('q4', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000 }]);
-  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO04', now: NOW };
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO04', now: NOW, read: reads({ q4: { lines: { 1: WARDROBE_READ }, terms: { ...INSTALLED, ...WARRANTED } } }) };
   const g = await gate(repo, 'q4', SUP_EN, ctx);
   assertEquals(g.missing.map((m) => m.attr), ['delivery', 'price_ex_vat']);
   assertEquals(repo.holds[0].owner_seat, 'sales_engineer');
@@ -159,7 +172,7 @@ Deno.test('an Arabic quotation waiting for its reasoned translation is never sen
   const repo = new Fake();
   repo.quotes.set('q9', q('q9', SUP_AR.id, { warranty: '2 years' }));
   repo.items.set('q9', [{ line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 3000, amount: 6000 }]);
-  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO09', now: NOW };
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO09', now: NOW, read: reads({ q9: { lines: { 1: { material: 'MDF', finish: 'HPL' } }, terms: INSTALLED } }) };
   assert((await gate(repo, 'q9', SUP_AR, ctx)).held);
   const done = await fillIn(repo, 'q9', SUP_AR, { lines: { '1': { thickness_mm: '18' } }, terms: { warranty_coverage: 'Hinges and workmanship' } }, ctx, async () => 'arabic_pending');
   assert(done.ok && done.complete);
@@ -179,4 +192,26 @@ Deno.test('an Arabic quotation waiting for its reasoned translation is never sen
   assertEquals((await finishArabic(repo, 'q9', SUP_AR, ctx, async () => ({ bucket: 'b', path: 'p' })) as { code?: string }).code, 'not_pending', 'rendered once');
   assert((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo))).ok);
   nobodyReal(repo);
+});
+Deno.test('UNDER THE HOLD the reading is null: the quote is held, every detail asked, and his own statement releases it', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q5', q('q5', SUP_EN.id));
+  repo.items.set('q5', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000 }]);
+  const ctx = { category: 'joinery', requirements: { version: 1, installation: { required: 'not_needed' }, warranty: { required: 'not_needed' } }, ref: 'ZZDEMO06', now: NOW, read: reads({}) };
+  const g = await gate(repo, 'q5', SUP_EN, ctx);
+  assertEquals([g.held, g.missing.map((m) => `${m.line_no}:${m.attr}`)], [true, ['1:material', '1:thickness_mm', '1:finish']]);
+  const done = await fillIn(repo, 'q5', SUP_EN, { lines: { '1': { material: 'MDF', thickness_mm: '18', finish: 'HPL' } } }, ctx);
+  assert(done.ok && done.complete, 'the supplier stating the details releases it without any reasoning');
+  nobodyReal(repo);
+});
+
+Deno.test('what reasoning read is written onto the quote, marked reasoned, before the check', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q6', q('q6', SUP_EN.id));
+  repo.items.set('q6', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000 }]);
+  const g = await gate(repo, 'q6', SUP_EN, { category: 'joinery', requirements: null, ref: 'ZZDEMO07', now: NOW, read: reads({ q6: { lines: { 1: WARDROBE_READ }, terms: { ...INSTALLED, ...WARRANTED } } }) });
+  assertEquals(g.held, false);
+  const l = (await repo.lines('q6'))[0];
+  assertEquals([l.spec?.thickness_mm, l.spec_source?.thickness_mm], ['18mm', 'reasoned']);
+  assertEquals(repo.quotes.get('q6')!.terms_spec?.installation?.source, 'reasoned');
 });
