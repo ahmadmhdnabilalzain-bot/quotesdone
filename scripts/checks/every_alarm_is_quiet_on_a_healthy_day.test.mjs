@@ -108,6 +108,13 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
     asOf: { inbound_messages: 'created_at', wa_messages: 'created_at', assistant_logs: 'created_at' },
   },
+  // 23 Sep 2026 (sales_engineer, #869). Raises two findings: a reminder whose handler failed three times,
+  // and a reminder whose delivery never became final in 3 days. Both read handoffs and leads that existed
+  // at the instant; p_include_fixtures false, so a healthy day with no failing or stuck reminder is quiet.
+  fn_supplier_portfolio_reminder_tick: {
+    replay: 'pg_temp.qd_replay_fn_supplier_portfolio_reminder_tick(false)',
+    asOf: { agent_actions: 'created_at', leads: 'created_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },

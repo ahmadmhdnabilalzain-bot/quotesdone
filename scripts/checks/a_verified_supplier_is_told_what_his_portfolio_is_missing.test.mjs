@@ -99,7 +99,11 @@ test('live: no trade gap while the matcher still reaches silent suppliers; an al
 });
 
 test('send_whatsapp re-reads the portfolio before this reminder leaves', () => {
-  assert.match(WA, /supplier_portfolio_incomplete'[\s\S]{0,400}fn_supplier_portfolio_reminder_still_due/, 'a WhatsApp copy can leave after the supplier completed his portfolio');
+  assert.match(WA, /supplier_portfolio_incomplete'\)\s*\{\s*const g = await portfolioGate\(/, 'a WhatsApp copy can leave after the supplier completed his portfolio');
+  const GATE = R('supabase/functions/send_whatsapp/portfolio_gate.ts');
+  assert.match(GATE, /fn_supplier_portfolio_reminder_still_due/, 'the gate does not ask the database');
+  assert.match(GATE, /if \(r\.data === true\) return \{ action: 'send' \}/, 'only an explicit "still due" may send');
+  assert.ok(WA.indexOf('portfolioGate(') > WA.indexOf('heldStale++; continue;'), 'the re-check must follow the staleness bar, or a held row never expires');
 });
 
 test('the rolled-back rehearsal on production answers PROBE OK', { skip: SKIP }, async () => {

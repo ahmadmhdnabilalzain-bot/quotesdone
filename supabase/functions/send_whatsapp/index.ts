@@ -47,6 +47,7 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 // wa_status). 'sent' with a SID now means only "Twilio accepted it"; whether it ARRIVED is the
 // provider_status that callback (or its 30-minute backstop poll) writes onto the row.
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
+import { portfolioGate } from './portfolio_gate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -360,18 +361,6 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // queued (zzzz_notifications_demo_capture); this is the second, independent lock at the only
       // place a WhatsApp message can leave.
       if (isDemoPhone(to)) { await admin.from('notifications').update({ status: 'suppressed', last_error: FIXTURE_CAPTURE_NOTE }).eq('id', n.id); skipped++; continue; }
-      // 23 Sep 2026 (instruction 858, review of #869): the portfolio reminder is re-read when its WhatsApp
-      // copy actually leaves, not only when the email was written. A supplier who completed his portfolio
-      // after the email must not get a WhatsApp telling him he is still incomplete. An unreadable answer
-      // leaves the row to the normal path rather than guessing.
-      if (String(n.type || '') === 'supplier_portfolio_incomplete' && n.lead_id) {
-        const { data: due, error: dueErr } = await admin.rpc('fn_supplier_portfolio_reminder_still_due', { p_lead_id: n.lead_id });
-        if (!dueErr && due === false) {
-          await admin.from('notifications').update({ status: 'cancelled', last_error:
-            'cancelled: the supplier completed his portfolio after the email was sent, so this WhatsApp copy would no longer be true' }).eq('id', n.id);
-          skipped++; continue;
-        }
-      }
       // A STALE ALERT IS A LIE, NOT A BACKLOG. Nothing drained this queue between 7 Sep 2026 (when
       // pg_cron was removed and its wa_flush job with it) and 9 Sep, so a 'SCHEDULER DOWN' message
       // sat here for two days while the scheduler was in fact fine. Delivering it on the first tick
@@ -385,6 +374,16 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         await admin.from('notifications').update({ status: 'held', last_error:
           ('held: this WhatsApp message was ' + Math.round(ageH) + 'h old when the queue was drained, past the ' + staleH + 'h staleness bar. An alert this old describes a situation that has probably changed, so it is retained and NOT delivered.').slice(0,500) }).eq('id', n.id);
         heldStale++; continue;
+      }
+      // 23 Sep 2026 (instruction 858, review of #869): after the staleness bar (so a held row still expires at 24h), the portfolio reminder is re-read when its WhatsApp
+      // copy actually leaves, not only when the email was written. A supplier who completed his portfolio
+      // after the email must not get a WhatsApp telling him he is still incomplete. FAILS CLOSED
+      // (portfolio_gate.ts): an error or a timeout leaves the row queued with its reason, never sends it.
+      if (String(n.type || '') === 'supplier_portfolio_incomplete') {
+        const g = await portfolioGate((fn, args) => admin.rpc(fn, args), n.lead_id);
+        if (g.action === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: g.reason }).eq('id', n.id); skipped++; continue; }
+        // held like a row waiting on its template: the claim lapses and the next run re-checks it
+        if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
       }
       // A capped row is NOT a requeue caused by a template. Counting it as one is what made three
       // founder alerts read as "templates_not_ready" for a day while the template was approved.

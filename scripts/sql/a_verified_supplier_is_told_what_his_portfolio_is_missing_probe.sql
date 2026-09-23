@@ -211,6 +211,29 @@ begin
     select count(*) into v_n from public.agent_actions where kind = 'handoff' and detail->>'type' = 'supplier.portfolio_incomplete' and detail->>'lead_id' = v_a::text;
     if v_n <> 1 then f := f || ('(e) ' || v_n || ' handoffs for one verification'); end if;
 
+    -- ── the guard fails CLOSED on an error (review of #869, MUST 2) ──
+    perform set_config('qd.probe_match_reads_ticks', 'not-a-boolean', true);
+    if public.fn_supplier_portfolio_match_reads_ticks() then f := f || text 'the guard opened on an error'; end if;
+    if public.fn_supplier_portfolio_reminder_still_due(v_e) then f := f || text 'an erroring guard still raised the trade-only gap'; end if;
+    perform set_config('qd.probe_match_reads_ticks', 'true', true);
+
+    -- ── a leg that never becomes final closes after 3 days, with a finding (review of #869, SHOULD 3) ──
+    update public.notifications set status = 'sending' where lead_id = v_e and type = 'supplier_portfolio_incomplete' and channel = 'email';
+    v := public.fn_supplier_portfolio_reminder_tick(true, v_tue + interval '1 day', v_e);
+    if (v->>'closed')::int <> 0 then f := f || ('closed a 1-day-old handoff whose email was still sending: ' || v::text); end if;
+    v := public.fn_supplier_portfolio_reminder_tick(true, now() + interval '4 days', v_e);
+    if (v->>'closed')::int <> 1
+       or (select evidence->>'reverified' from public.agent_actions where kind = 'handoff' and detail->>'lead_id' = v_e::text
+             and detail->>'type' = 'supplier.portfolio_incomplete') is distinct from 'a leg never reached a final state'
+       or not exists (select 1 from public.it_engineer_finding where issue_key like 'portfolio_reminder_unfinished:%' || v_e || ':%' and closed_at is null) then
+      f := f || ('a handoff stuck on a non-final leg was not closed after 3 days with a finding: ' || v::text); end if;
+
+    -- ── own words: a whole word names every service it names; a phrase is never named (SHOULD 4) ──
+    update public.supplier_capabilities set services = array['painting.interior', 'نقوم بأعمال الجبس والأسقف المستعارة والدهانات'] where supplier_id = v_b;
+    v_ev := public.fn_supplier_portfolio_gaps(v_b);
+    if v_ev @> '[{"code":"own_word_is_a_service"}]' or not v_ev @> '[{"code":"own_words"}]' then
+      f := f || ('a multi-word phrase was named as one service: ' || v_ev::text); end if;
+
     -- the heartbeat step runs clean with the new duty in it
     v := public.fn_seat_clocks_tick();
     if not coalesce((v#>>'{portfolio_reminder,ok}')::boolean, false) then f := f || ('fn_seat_clocks_tick did not run the portfolio reminder: ' || left(v::text, 300)); end if;

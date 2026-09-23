@@ -34,10 +34,11 @@
 --     queued, but its staleness bar (app_secrets.wa_stale_hours = 24) runs FIRST: a row older than 24
 --     hours is moved to 'held' for good. So the WhatsApp copy is ATTEMPTED FOR 24 HOURS AND THEN EXPIRES,
 --     with its reason on the row. While that template waits at Meta, the email is what reaches him.
---   * fn_match_capability, as deployed today, still reaches a supplier who declares a trade and ticked
---     nothing in it (its silent_in arm, #859). Until #868 removes that arm, "inquiries in this trade do
---     not reach you" is false, so that gap is not raised at all (fn_supplier_portfolio_match_reads_ticks,
---     which reads the deployed body and opens by itself once the arm is gone).
+--   * fn_match_capability as main defines it (#859) still reaches a supplier who declares a trade and
+--     ticked nothing in it (its silent_in arm). While a deployed body has that arm, "inquiries in this
+--     trade do not reach you" is false, so that gap is not raised (fn_supplier_portfolio_match_reads_ticks
+--     reads the deployed body). Measured 23 Sep 2026: production already runs #868's body (no silent_in,
+--     never_asked present), so the guard is open there today.
 --
 -- WHAT "MISSING" MEANS (fn_supplier_portfolio_gaps), each named in words a supplier understands:
 --   1. services_not_confirmed  — no confirmed services list at all: no request of any kind reaches him.
@@ -85,16 +86,33 @@ on conflict (key) do update set description = excluded.description;
 -- supplier silent in a trade is reached at trade level, so telling him otherwise would be false. The
 -- deployed body is read, not a flag somebody must remember to flip: #868 removing the arm opens this by
 -- itself. qd.probe_match_reads_ticks lets the rolled-back probe drive both states; nothing else sets it.
+--
+-- FAILS CLOSED (review of #869). The routine is found by NAME, and exactly one overload must exist;
+-- comments are stripped before reading, so a comment that mentions the arm decides nothing; it opens only
+-- when the code has no silent_in AND has the 857 shape's never_asked arm; and ANY error (no such routine,
+-- two overloads, an unreadable setting) answers CLOSED, so a trade gap is never raised on a guess and the
+-- gaps function, the email handler and send_whatsapp's re-check never inherit an exception from here.
+-- ponytail: still a reading of the source, not a run of the matcher (running it needs supplier rows);
+-- if the arm ever came back under a new name this would open wrongly -- key it on a fixture run then.
 create or replace function public.fn_supplier_portfolio_match_reads_ticks()
 returns boolean
-language sql
+language plpgsql
 stable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select coalesce(nullif(current_setting('qd.probe_match_reads_ticks', true), '')::boolean,
-                  position('silent_in' in pg_get_functiondef(
-                    'public.fn_match_capability(text[],text,text[],text[],text,numeric,text,integer,text[])'::regprocedure)) = 0)
+declare v_set text := nullif(current_setting('qd.probe_match_reads_ticks', true), ''); v_def text; v_n int;
+begin
+  if v_set is not null then return v_set::boolean; end if;
+  select count(*), min(pg_get_functiondef(p.oid)) into v_n, v_def
+    from pg_proc p join pg_namespace s on s.oid = p.pronamespace
+   where s.nspname = 'public' and p.proname = 'fn_match_capability';
+  if v_n <> 1 then return false; end if;
+  v_def := regexp_replace(v_def, '--[^\n]*', '', 'g');
+  return position('silent_in' in v_def) = 0 and position('never_asked' in v_def) > 0;
+exception when others then
+  return false;
+end
 $fn$;
 revoke execute on function public.fn_supplier_portfolio_match_reads_ticks() from public, anon, authenticated;
 
@@ -125,22 +143,31 @@ as $fn$
       from sc, unnest(coalesce(sc.services, '{}'::text[])) w
      where nullif(btrim(w), '') is not null and btrim(w) not in (select k from keys)
   ),
-  named as (   -- the first active service an alias of which names the word
-    select o.w, x.key, x.label_en, x.label_ar, x.trade_en, x.trade_ar
+  -- EVERY service a word names, and only a WHOLE word (review of #869): the alias must cover the word
+  -- from its start (Arabic proclitics and ال allowed) to its END, so a short alias cannot claim a longer
+  -- word. A phrase of more than one word is never named: «نقوم بأعمال الجبس والأسقف المستعارة والدهانات»
+  -- names several services and one line could not say which he meant, so it takes the "not on our list"
+  -- line, which is true of it as written.
+  hits as (
+    select distinct o.w, s.trade_code || '.' || s.code as key, s.sort, s.label_en, s.label_ar,
+           t.label as trade_en, coalesce(t.label_ar, t.label) as trade_ar
       from own o
-      cross join lateral (
-        select s.trade_code || '.' || s.code as key, s.label_en, s.label_ar, t.label as trade_en, coalesce(t.label_ar, t.label) as trade_ar
-          from public.taxonomy_trade_service s
-          join public.taxonomy_trade t on t.code = s.trade_code
-          cross join lateral unnest(s.aliases) a
-         where s.active and length(public.fn_ar_norm(a)) >= 3
-           and public.fn_ar_norm(o.w) ~* ('\m' || case
-                 when public.fn_ar_norm(a) ~ '^[ء-ي]'
-                   then '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?'
-                        || replace(replace(regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g'), ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?')
-                 else regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g')
-               end)
-         order by s.sort, s.trade_code, s.code limit 1) x
+      join public.taxonomy_trade_service s on s.active
+      join public.taxonomy_trade t on t.code = s.trade_code
+      cross join lateral unnest(s.aliases) a
+     where o.w !~ '\s' and length(public.fn_ar_norm(a)) >= 3
+       and public.fn_ar_norm(o.w) ~* ('^' || case
+             when public.fn_ar_norm(a) ~ '^[ء-ي]'
+               then '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?'
+                    || replace(replace(regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g'), ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?')
+             else regexp_replace(public.fn_ar_norm(a), '([.*+?^${}()|\[\]\\])', '\\\1', 'g')
+           end || '$')
+  ),
+  named as (
+    select h.w, array_agg(h.key order by h.sort, h.key) as keys,
+           string_agg('"' || h.label_en || '" under ' || h.trade_en, '; ' order by h.sort, h.key) as en_list,
+           string_agg('«' || h.label_ar || '» ضمن ' || h.trade_ar, '، ' order by h.sort, h.key) as ar_list
+      from hits h group by h.w
   ),
   unnamed as (select o.w from own o where o.w not in (select w from named)),
   proposed as (   -- said "under review" only when a review row really exists
@@ -160,11 +187,11 @@ as $fn$
           'ar', s.label_ar || ': لم تحدّدوا أي خدمة فيه بعد، ولذلك لا تصلكم الاستفسارات التي تذكر خدمة في هذا التخصص.')
           order by s.code) from silent s), '[]'::jsonb)
       || coalesce((select jsonb_agg(jsonb_build_object(
-          'code', 'own_word_is_a_service', 'word', n.w, 'service', n.key,
-          'en', '«' || n.w || '» is on our list as "' || n.label_en || '" under ' || n.trade_en
-                || '. Tick it in the Services tab so the inquiries that name it reach you.',
-          'ar', '«' || n.w || '» مدرجة في قائمتنا باسم «' || n.label_ar || '» ضمن ' || n.trade_ar
-                || '. يُرجى تحديدها في تبويب «الخدمات» لتصلكم الاستفسارات التي تذكرها.')
+          'code', 'own_word_is_a_service', 'word', n.w, 'services', to_jsonb(n.keys),
+          'en', '«' || n.w || '» is on our list as ' || n.en_list
+                || '. Tick the ones you provide in the Services tab so the inquiries that name them reach you.',
+          'ar', '«' || n.w || '» مدرجة في قائمتنا باسم ' || n.ar_list
+                || '. يُرجى تحديد ما تقدّمونه منها في تبويب «الخدمات» لتصلكم الاستفسارات التي تذكرها.')
           order by n.w) from named n), '[]'::jsonb)
       || coalesce((select jsonb_build_array(jsonb_build_object(
           'code', 'own_words', 'words', jsonb_agg(u.w order by u.w),
@@ -385,9 +412,25 @@ begin
       e := null; w := null;
       select * into e from public.notifications n where n.id = (v_ev->>'notification_id')::bigint;
       select * into w from public.notifications n where n.id = (v_ev#>>'{whatsapp,notification_id}')::bigint;
-      if e.id is null or e.status in ('queued', 'pending', 'sending', 'claimed')
-         or (w.id is not null and w.status in ('queued', 'pending', 'sending', 'claimed')) then
-        v_waiting := v_waiting + 1; continue;   -- stays open: a leg has not reached a final state
+      if e.id is null or e.status is null or e.status in ('queued', 'pending', 'sending', 'claimed')
+         or (w.id is not null and (w.status is null or w.status in ('queued', 'pending', 'sending', 'claimed'))) then
+        -- BOUNDED (review of #869): a leg that is still not final after 3 days never will be by itself
+        -- (the WhatsApp copy expires at 24h, the email outbox holds stale mail sooner). Waiting forever
+        -- would be as one-way as closing early, so it closes saying so, and sales_engineer gets a finding.
+        if h.created_at > p_now - interval '3 days' then v_waiting := v_waiting + 1; continue; end if;
+        v_ev := v_ev || jsonb_build_object('reverified', 'a leg never reached a final state',
+          'email_state', coalesce(e.status, case when e.id is null then 'no email row recorded' end),
+          'whatsapp_state', coalesce(w.status, v_ev#>>'{whatsapp,state}'));
+        perform public.fn_it_engineer_finding_upsert('portfolio_reminder_unfinished:' || h.target_id,
+          left('A portfolio reminder for supplier ' || coalesce(h.detail->>'lead_id', '?') || ' never reached a final delivery state in 3 days', 300),
+          'fn_supplier_portfolio_reminder_tick', 'agent_facing', 1,
+          jsonb_build_object('handoff_id', h.id, 'owner_seat', 'sales_engineer', 'email_state', v_ev->'email_state',
+                             'whatsapp_state', v_ev->'whatsapp_state'),
+          '{}'::text[], '{}'::text[], 'sales_engineer');
+        perform set_config('qd.handoff_closer', 'sales_engineer', true);
+        perform public.fn_seat_handoff_complete(h.id, v_ev || jsonb_build_object('reverified_by', 'sales_engineer', 'reverified_at', p_now));
+        perform set_config('qd.handoff_closer', '', true);
+        v_closed := v_closed + 1; continue;
       end if;
       v_ev := v_ev || jsonb_build_object(
         'reverified', 'both legs reached a final state',
@@ -402,7 +445,8 @@ begin
   end loop;
 
   -- 2. DETECT, in Dubai working hours only (09:00-18:00 on a working day): a message about his account
-  --    lands while his office is open, not at midnight.
+  --    lands while his office is open. So a supplier due Friday 17:50 is reached on Monday's first tick
+  --    after 09:00 (the window, then the 30-minute clock), which is accepted.
   v_open_hours := public.fn_is_working_day(v_local::date) and v_local::time >= time '09:00' and v_local::time < time '18:00';
   if not v_open_hours then
     return jsonb_build_object('ok', true, 'opened', 0, 'outside_working_hours', true, 'closed', v_closed, 'awaiting_final_state', v_waiting);
@@ -412,7 +456,10 @@ begin
               and public.fn_add_working_days(x.approved_at, v_days) <= p_now
               and public.fn_add_working_days(x.approved_at, v_days) > p_now - interval '14 days'
               and (p_lead_id is null or x.id = p_lead_id)
-              and (p_include_fixtures or not public.fn_seat_clock_lead_is_fixture(x))
+              -- fn_seat_clock_lead_is_fixture's own test, on the columns: the healthy-day replay reads leads
+              -- through a view whose row type the leads-typed function does not accept.
+              and (p_include_fixtures or not (coalesce(x.is_demo, false) or coalesce(x.company_name, '') ~* '^\s*zz\s*demo'
+                                              or public.fn_is_demo_email(x.email) or public.fn_is_demo_email(x.claimed_by)))
               and not exists (select 1 from public.agent_actions a
                                where a.kind = 'handoff' and a.agent = 'customer_support' and a.status <> 'failed'
                                  and a.target_id = 'supplier.portfolio_incomplete:' || x.id || ':' || extract(epoch from x.approved_at)::bigint)
@@ -422,7 +469,7 @@ begin
     select count(*) into v_failed from public.agent_actions a
      where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'failed' and a.target_id = v_key;
     if v_failed >= 3 then
-      if not exists (select 1 from public.it_engineer_finding where issue_key = 'portfolio_reminder_failed:' || v_key) then
+      if not exists (select 1 from public.it_engineer_finding where issue_key = 'portfolio_reminder_failed:' || v_key and closed_at is null) then
         perform public.fn_it_engineer_finding_upsert('portfolio_reminder_failed:' || v_key,
           left('The portfolio reminder for supplier ' || l.id || ' failed ' || v_failed || ' times and is no longer retried', 300),
           'fn_supplier_portfolio_reminder_tick', 'agent_facing', 1,
