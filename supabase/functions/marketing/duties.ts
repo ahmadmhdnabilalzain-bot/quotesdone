@@ -28,7 +28,8 @@ export interface Duty {
 // A page's VISIBLE text, so a rotated script nonce or tracking tag is not a "change" — only the words are.
 export function visibleText(html: string): string {
   return html.replace(/<(script|style|noscript)[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ')
-    .replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+    // Google's help pages carry a fresh random 10+ digit token on every load; it is not a word of the page.
+    .replace(/&[a-z#0-9]+;/gi, ' ').replace(/\b\d{10,}\b/g, ' ').replace(/\s+/g, ' ').trim();
 }
 async function sha256(s: string): Promise<string> {
   const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));

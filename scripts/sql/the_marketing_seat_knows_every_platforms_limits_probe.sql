@@ -7,6 +7,20 @@ with v(name, variant, expect_attr) as (values
   ('x url counts 23',        jsonb_build_object('platform','x','surface','post','caption', repeat('a',257) || ' https://quotesdone.ae/' || repeat('p',38)), 'caption_max'),
   ('x url at the limit',     jsonb_build_object('platform','x','surface','post','caption', repeat('a',256) || ' https://quotesdone.ae/' || repeat('p',38)), null),
   ('x bare domain counts 23', jsonb_build_object('platform','x','surface','post','caption', repeat('a',257) || ' quotesdone.ae'), 'caption_max'),
+  -- X URLs: brackets and an Arabic comma stay outside the URL; Arabic glued to a domain stays text (1 each)
+  ('x url in brackets',      jsonb_build_object('platform','x','surface','post','caption', repeat('a',254) || ' (https://quotesdone.ae)'), null),
+  ('x url in brackets 281',  jsonb_build_object('platform','x','surface','post','caption', repeat('a',255) || ' (https://quotesdone.ae)'), 'caption_max'),
+  ('x url then arabic 280',  jsonb_build_object('platform','x','surface','post','caption', repeat('a',245) || ' https://quotesdone.ae/' || repeat('ب',10) || '،'), null),
+  ('x url then arabic 281',  jsonb_build_object('platform','x','surface','post','caption', repeat('a',246) || ' https://quotesdone.ae/' || repeat('ب',10) || '،'), 'caption_max'),
+  ('x glued arabic is text', jsonb_build_object('platform','x','surface','post','caption', repeat('ب',255) || 'quotesdone.ae'), null),
+  ('x glued arabic 281',     jsonb_build_object('platform','x','surface','post','caption', repeat('ب',258) || 'quotesdone.ae'), 'caption_max'),
+  -- X: a keycap and a VS16 © are emoji (2 each)
+  ('x keycaps 141',          jsonb_build_object('platform','x','surface','post','caption', repeat('1️⃣',141)), 'caption_max'),
+  ('x keycaps 140',          jsonb_build_object('platform','x','surface','post','caption', repeat('1️⃣',140)), null),
+  ('x emoji copyright 141',  jsonb_build_object('platform','x','surface','post','caption', repeat('©️',141)), 'caption_max'),
+  ('x text copyright 280',   jsonb_build_object('platform','x','surface','post','caption', repeat('©',280)), null),
+  -- YouTube: < or > in the description is refused
+  ('yt description <',       jsonb_build_object('platform','youtube','surface','video','caption','a <b> c','title','ok'), 'caption_characters'),
   -- X, Arabic weighs 1: 280 letters pass, 281 fail
   ('x arabic 280',           jsonb_build_object('platform','x','surface','post','caption', repeat('ب',280)), null),
   ('x arabic 281',           jsonb_build_object('platform','x','surface','post','caption', repeat('ب',281)), 'caption_max'),

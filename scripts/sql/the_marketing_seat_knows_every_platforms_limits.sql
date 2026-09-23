@@ -78,7 +78,7 @@ with src(k, url) as (values
   ('FBR', 'https://developers.facebook.com/docs/video-api/guides/reels-publishing'),
   ('XC',  'https://docs.x.com/fundamentals/counting-characters'),
   ('XU',  'https://docs.x.com/x-api/media/quickstart/media-upload-chunked'),
-  ('XP',  'https://help.x.com/en/using-x/x-premium'),
+  ('TTX', 'https://raw.githubusercontent.com/twitter/twitter-text/master/config/v3.json'),
   ('YTV', 'https://developers.google.com/youtube/v3/docs/videos'),
   ('YTS', 'https://support.google.com/youtube/answer/15424877'),
   ('YTH', 'https://support.google.com/youtube/answer/6390658'),
@@ -87,14 +87,14 @@ with src(k, url) as (values
   ('LIP', 'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/posts-api'),
   ('LIS', 'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/post-api-schema'),
   ('LIV', 'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api'),
-  ('PZX', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/x.provider.ts'),
-  ('PZI', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts'),
-  ('PZF', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/facebook.provider.ts'),
-  ('PZL', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts'),
+  ('PZX', 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/x.provider.ts'),
+  ('PZI', 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/instagram.provider.ts'),
+  ('PZF', 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/facebook.provider.ts'),
+  ('PZL', 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/linkedin.provider.ts'),
   ('TTM', 'https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide'),
   ('TTD', 'https://developers.tiktok.com/doc/content-posting-api-reference-direct-post'),
   ('TTP', 'https://developers.tiktok.com/doc/content-posting-api-reference-photo-post'),
-  ('PZT', 'https://github.com/gitroomhq/postiz-app/blob/main/libraries/nestjs-libraries/src/integrations/social/tiktok.provider.ts')
+  ('PZT', 'https://raw.githubusercontent.com/gitroomhq/postiz-app/main/libraries/nestjs-libraries/src/integrations/social/tiktok.provider.ts')
 ), r(platform, surface, attribute, value_num, value_text, unit, counted_as, source_kind, k, confidence, note) as (values
   -- INSTAGRAM (Graph API content publishing, ig-user/media) — feed image, carousel, Reels
   ('instagram','feed_image','caption_max', 2200, null, 'characters', 'utf16_units', 'official', 'IG', 'high', 'Counted as UTF-16 units, the stricter reading and the one Postiz (JavaScript) applies; an emoji outside the BMP counts 2.'),
@@ -144,8 +144,9 @@ with src(k, url) as (values
   ('facebook','reel','max_file_bytes', null, null, null, null, 'official', 'FBR', 'high', 'The Reels guide is silent on file size.'),
   ('facebook','reel','cover', null, 'A custom cover may be set', null, null, 'official', 'FBR', 'high', 'No cover dimensions or size are given.'),
   -- X
-  ('x','post','caption_max', 280, null, 'weighted characters', 'x_weighted', 'official', 'XC', 'high', 'Weighted: Latin, Arabic and punctuation 1; emoji and CJK 2; ANY URL 23 whatever its length; text NFC-normalised first. Premium accounts may post longer (next row) but only 280 show before "Show more".'),
-  ('x','post','caption_max_premium', 25000, null, 'weighted characters', null, 'official', 'XP', 'medium', 'Read from the help page summary. Postiz allows only 4,000 for a verified account (x.provider.ts), so 4,000 binds through Postiz. Not enforced: the company account is not known to be Premium.'),
+  ('x','post','caption_max', 280, null, 'weighted characters', 'x_weighted', 'official', 'XC', 'high', 'Weighted: ANY URL 23 whatever its length; emoji 2; text NFC-normalised first. docs.x.com says only Latin-1 and some punctuation weigh 1 and other Unicode 2; the exact ranges (which include Arabic at 1) are twitter-text config/v3.json, the next row. Premium accounts may post longer but only 280 show before "Show more".'),
+  ('x','post','weight_ranges', null, 'Weight 1: U+0000-10FF (Latin, Greek, Cyrillic, Hebrew, ARABIC and more), U+2000-200D, U+2010-201F, U+2032-2037; everything else 2; emoji 2; URLs 23; scale 100, max weighted length 280', null, null, 'official', 'TTX', 'high', 'twitter-text is X''s own open-source counting library; fn_marketing_caption_length implements this table.'),
+  ('x','post','caption_max_premium', 4000, null, 'weighted characters', null, 'postiz', 'PZX', 'high', 'Postiz allows 4,000 for a verified (Premium) account. X''s own Premium figure is on help.x.com, which refuses automated reads, so it is not cited here. Not enforced: the company account is not known to be Premium.'),
   ('x','post','link_in_caption', null, 'Every URL is shortened to t.co and counts 23', null, null, 'official', 'XC', 'high', null),
   ('x','video','max_file_bytes', 8589934592, '8 GB (Premium 16 GB)', 'bytes', null, 'official', 'XU', 'high', 'Uploaded in chunks of 5 MB or less.'),
   ('x','video','max_duration_s', 1200, '20 min (Premium 7500 s)', 'seconds', null, 'official', 'XU', 'high', null),
@@ -254,12 +255,19 @@ begin
     raise exception 'fn_marketing_caption_length: unknown counting rule %', p_counted_as;
   end if;
   v := normalize(v, NFC);
-  select count(*) into v_urls
-    from regexp_matches(v, '(https?://[^[:space:]]+|www\.[^[:space:]]+|[[:alnum:]-]+(\.[[:alnum:]-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[^[:space:]]*)?)', 'gi');
-  v := regexp_replace(v, '(https?://[^[:space:]]+|www\.[^[:space:]]+|[[:alnum:]-]+(\.[[:alnum:]-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[^[:space:]]*)?)', '', 'gi');
-  -- fold each emoji sequence to its first code point: drop variation selectors, skin tones, keycap marks,
-  -- and every ZWJ with the code point it joins; a flag (two regional indicators) keeps one.
-  v := regexp_replace(v, '[' || chr(65038) || chr(65039) || chr(8419) || chr(127995) || '-' || chr(127999) || ']', '', 'g');
+  -- A URL is ASCII only ([!-~]) and never ends in trailing punctuation, so "(https://quotesdone.ae)" keeps its
+  -- brackets outside, an Arabic comma after a link is not swallowed, and Arabic glued to a domain stays text.
+  select count(*) into v_urls from regexp_matches(v,
+    '(https?://[!-~]*[A-Za-z0-9/#=_&%+~-]|www\.[!-~]*[A-Za-z0-9/#=_&%+~-]|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[!-~]*[A-Za-z0-9/#=_&%+~-])?)', 'gi');
+  v := regexp_replace(v,
+    '(https?://[!-~]*[A-Za-z0-9/#=_&%+~-]|www\.[!-~]*[A-Za-z0-9/#=_&%+~-]|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.(com|ae|net|org|io|co|app|me|ly|gl)(/[!-~]*[A-Za-z0-9/#=_&%+~-])?)', '', 'gi');
+  -- A keycap (digit, optional VS16, U+20E3) and any character shown as emoji (followed by VS16, e.g. ©️) are
+  -- emoji and weigh 2: replace each with one astral stand-in before the folding below.
+  v := regexp_replace(v, '.' || chr(65039) || '?' || chr(8419), chr(128512), 'g');
+  v := regexp_replace(v, '.' || chr(65039), chr(128512), 'g');
+  -- fold each emoji sequence to its first code point: drop text selectors, skin tones, and every ZWJ with the
+  -- code point it joins; a flag (two regional indicators) keeps one.
+  v := regexp_replace(v, '[' || chr(65038) || chr(127995) || '-' || chr(127999) || ']', '', 'g');
   v := regexp_replace(v, chr(8205) || '.', '', 'g');
   v := regexp_replace(v, '([' || chr(127462) || '-' || chr(127487) || '])[' || chr(127462) || '-' || chr(127487) || ']', '\1', 'g');
   for ch in select c from regexp_split_to_table(v, '') c loop
@@ -320,10 +328,14 @@ begin
                           s.value_num, coalesce(s.unit, ''), s.source_url));
     end if;
   end loop;
-  -- YouTube title: < and > are refused by the API regardless of length.
+  -- YouTube: < and > are refused by the API in the title and the description regardless of length.
   if v_pf = 'youtube' and coalesce(p_variant->>'title', '') ~ '[<>]' then
     v_out := v_out || jsonb_build_object('attribute', 'title_characters', 'actual', p_variant->>'title',
       'source_url', 'https://developers.google.com/youtube/v3/docs/videos', 'message', 'A YouTube title may not contain < or >.');
+  end if;
+  if v_pf = 'youtube' and v_cap ~ '[<>]' then
+    v_out := v_out || jsonb_build_object('attribute', 'caption_characters', 'actual', left(v_cap, 200),
+      'source_url', 'https://developers.google.com/youtube/v3/docs/videos', 'message', 'A YouTube description may not contain < or >.');
   end if;
   return v_out;
 end $fn$;
@@ -466,7 +478,8 @@ begin
     into v_items
     from public.marketing_platform_spec_source s
    where (seen_hash is distinct from verified_hash)
-      or (checked_at is not null and (last_status is null or last_status >= 400) and last_error is not null);
+      -- a timeout or network error leaves status 0; an HTTP error leaves its code. Both are reported.
+      or (checked_at is not null and (coalesce(last_status, 0) = 0 or last_status >= 400));
   return public.fn_it_duty_settle('marketing_platform_spec_freshness', v_items);
 end $fn$;
 revoke execute on function public.fn_marketing_platform_spec_freshness() from public, anon, authenticated;
