@@ -56,7 +56,7 @@ export type WLine = {
   description: string; qty: string; unit: string; unit_price: number | null; amount: number | null; option?: number;
   /** The file's own "Specification" column for this line, read with the description by every spec reader. */
   specification?: string;
-  spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal'>;
+  spec?: Record<string, string>; spec_source?: Record<string, 'extracted' | 'supplier_portal' | 'reasoned'>;
 };
 /** The quotation under review: what the file said, plus every detail the supplier confirmed in the chat. */
 export type Working = {

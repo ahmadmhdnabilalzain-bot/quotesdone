@@ -28,7 +28,7 @@ export type CmpQuote = { quote_id: string; label_en: string; label_ar: string; s
 // figure is part of this dataset at all: price_ex_vat is the only price.
 const safe = (v: string | null) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
 export type RequestLine = { line_no: number; description: string; qty?: number | string | null; unit?: string | null };
-export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | null; quote_line_no: number | null; flag: Flag; marker: string };
+export type Cell = { quote_id: string; value: string | null; source: 'extracted' | 'supplier_portal' | 'reasoned' | null; quote_line_no: number | null; flag: Flag; marker: string };
 // 'accepted': the customer accepted this value in place of their own when no supplier could quote
 // their exact spec (founder_instruction #321; inquiries.accepted_alternatives). It is then the request.
 export type ReqSource = 'boq' | 'intake' | 'intake_other' | 'no_preference' | 'accepted';
