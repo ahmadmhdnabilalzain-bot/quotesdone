@@ -30,7 +30,7 @@
 // records it, so this restores a file that re-splits identically.
 import { readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { mgmtRead, PROD_REF } from './staging/qd_guard.mjs';
+import { mgmtRead, PROD_REF } from './lib/qd_guard.mjs';
 
 const MIG = join(process.cwd(), 'supabase', 'migrations');
 const WRITE = process.argv.includes('--write');

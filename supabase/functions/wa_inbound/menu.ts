@@ -111,15 +111,19 @@ export function contentKey(lang: Lang, audience: Audience): string {
 // same words are held here and menu.test.ts fails the moment the two differ (founder, instruction 763:
 // "response times / working hours from company knowledge — don't invent").
 export const HOURS: Record<Lang, string> = {
-  en: 'Sunday to Thursday, 9am to 6pm (GST), excluding UAE public holidays',
-  ar: 'من الأحد إلى الخميس، من 9 صباحًا إلى 6 مساءً (بتوقيت الخليج)، باستثناء العطلات الرسمية في الإمارات',
+  en: 'Monday to Friday, 9am to 6pm (GST), excluding UAE public holidays',
+  ar: 'من الاثنين إلى الجمعة، من 9 صباحًا إلى 6 مساءً (بتوقيت الخليج)، باستثناء العطلات الرسمية في الإمارات',
 };
 
-/** True inside those hours (Dubai, Sunday to Thursday, 09:00 to 18:00). Public holidays are not known here. */
+/** True inside those hours (Dubai, Monday to Friday, 09:00 to 18:00). Public holidays are not known here. */
 export function withinHours(now: Date = new Date()): boolean {
   const d = new Date(now.getTime() + 4 * 3600e3);          // Asia/Dubai is UTC+4 all year
   const day = d.getUTCDay(); const h = d.getUTCHours();
-  return day >= 0 && day <= 4 && h >= 9 && h < 18;
+  // Monday(1) to Friday(5) — the founder's working week, the one workingDays.ts counts and the one
+  // the whole site now prints (WEB-04, 22 Sep 2026). This read 0–4 (Sunday to Thursday) while it
+  // was telling the sender the hours were Sunday to Thursday; both are corrected together, so the
+  // "outside those hours" branch fires on the days the sentence names.
+  return day >= 1 && day <= 5 && h >= 9 && h < 18;
 }
 
 /** A name to greet with, or null. NEVER an address: on 22 Sep the founder was greeted as

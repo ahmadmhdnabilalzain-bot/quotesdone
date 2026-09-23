@@ -21,11 +21,11 @@
 //
 //     node scripts/staging/verify_matching.mjs           zero spend
 //     node scripts/staging/verify_matching.mjs --live    + one real dispatch (1 rfq_routing call)
-import { mgmtRead, mgmtWrite } from './qd_guard.mjs';
+import { mgmtRead, mgmtWrite } from '../lib/qd_guard.mjs';
 import {
   REF, withRun, makeBulkCorpus, makeCustomer, makeInquiry, makeRequirement,
   makeSupplier, capabilityProfile, internalCred, call, TRADES, TRADE_CODES, arr, q, num,
-} from './demo_factory.mjs';
+} from '../lib/demo_factory.mjs';
 
 const LIVE = process.argv.includes('--live');
 const checks = [];

@@ -27,8 +27,8 @@
 //     what they are.
 //
 //   QD_FIXTURES=1 node scripts/staging/rehearse_change_deployment_loop.mjs
-import { withRun, REF, q, jb } from './demo_factory.mjs';
-import { mgmtRead, mgmtFixture } from './qd_guard.mjs';
+import { withRun, REF, q, jb } from '../lib/demo_factory.mjs';
+import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 
 const BUDGET_MS = Number(process.env.QD_BUDGET_MINUTES || 110) * 60000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

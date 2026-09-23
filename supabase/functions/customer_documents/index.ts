@@ -149,6 +149,22 @@ Deno.serve(observe('customer_documents', async (req) => {
       if (error) return J({ error: 'document_read_failed', detail: error.message }, 500);
       if (!row) return J({ error: 'not_found', detail: 'No document with that id is in your vault.' }, 404);
 
+      // A SUPPLIER'S OWN FILE IS NOT HANDED OVER BEFORE THE REVEAL IS PAID (customer-portal audit
+      // CP-02, 22 Sep 2026). The RLS policy now refuses it too — fn_customer_document_refs() only
+      // returns a quote the customer has paid to reveal — so this branch should be unreachable;
+      // it is written anyway because this action is the one that SIGNS a storage URL and returns
+      // documents.extracted, and the door that hands over identity states its own rule rather
+      // than inheriting it silently from a policy in another file. Measured before the fix: a
+      // quotation PDF whose file name carried the supplier's company name, downloadable for free.
+      if (String(row.ref_table || '') === 'quotes') {
+        const { data: paid } = await admin.from('transactions').select('id')
+          .eq('quote_id', String(row.ref_id)).eq('customer_id', cust.id).not('revealed_at', 'is', null).maybeSingle();
+        if (!paid) return J({ error: 'reveal_required', code: 'reveal_required',
+          detail: 'This is the supplier\'s own quotation file. It becomes available once you reveal that quote.',
+          message: 'This is the supplier\'s own quotation file. It becomes available once you reveal that quote.',
+          message_ar: 'هذا ملف عرض السعر الخاص بالمورّد، ويصبح متاحًا بعد كشف ذلك العرض.' }, 403);
+      }
+
       // the metadata view of the same row, so supplier / expiry / coverage come from one place —
       // read beside the signing, not before it: the two do not depend on each other, and "Open file"
       // waited on both in turn.

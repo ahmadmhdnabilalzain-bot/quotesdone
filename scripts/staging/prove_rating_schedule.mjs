@@ -7,7 +7,9 @@
 // read, and (2) the selector's answer changes with the moment it is asked about — which is why
 // fn_rating_due takes p_now as a parameter instead of calling now(). Asking "what would be due in
 // two hours" is a question; editing revealed_at so something looks due is falsifying the record.
-import { mgmtRead } from 'file:///C:/Users/Opera/quotesdone/scripts/staging/qd_guard.mjs';
+// 23 Sep 2026: this imported the guard by absolute file:// url into one person's checkout, so it
+// ran nowhere else and no path-rewriting sweep could see it. Relative, like every other importer.
+import { mgmtRead } from '../lib/qd_guard.mjs';
 
 const ref = process.argv[2];
 if (!ref) { console.error('usage: prove_rating_schedule.mjs <ref>'); process.exit(2); }

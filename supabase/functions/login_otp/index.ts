@@ -203,9 +203,32 @@ Deno.serve(observe('login_otp', async (req) => {
   // OUR OWN TRAFFIC IS MARKED BY THE SERVER, NOT BY THE CALLER (22 Sep 2026). Every harness and probe
   // signs in on the reserved fixture block (+971 50 000 00xx, isDemoPhone), which no real person can
   // hold. This function sees the number, so it tags the run row `fixture: 1` and fn_it_detect's
-  // refusal_rate leaves it out: the 58-of-69 "customers turned away" on 22 Sep were all fixture calls.
+  // refusal_rate leaves it out.
+  // WHAT WAS ACTUALLY MEASURED, AS AT 22 SEP 2026 20:00Z — the Dubai day was still running, so the totals
+  // below are a reading of that moment and will have grown; the invariants after them are what matter.
+  // Re-derived over the Dubai day of 22 Sep (21 Sep 20:00Z - 22 Sep 20:00Z, agent 'fn:login_otp'):
+  // 566 runs, 415 status 'warn'. 249 of those warns carry `fixture`; 166 do
+  // NOT — and every one of the 166 is before 06:31:54Z, while the FIRST fixture-marked row is 06:50:31Z,
+  // which is when this marking reached production. Classified: 159 sit in a burst of five or more calls
+  // within 60 s (the 1x200 + 4x404 + 1x409 signature of
+  // scripts/checks/a_phone_cannot_select_an_account.test.mjs, across ap-south-1, eu-central-1 and
+  // ap-southeast-1) and 7 are lone 404s within two minutes of a resilience_ping tick (its launch-path
+  // probe asks for a code for +971 50 000 0099). 0 unexplained. That is a burst heuristic, not an
+  // identity: it says no refusal in the day has a shape a single person could produce, and the marking
+  // below is what answers the question properly from here on.
+  // EVERY ROW NAMES ITS CALLER CLASS (22 Sep 2026, UNSOLVED-04). Before, only the telemetry row of a fixture
+  // call said so; the semantic row this function writes itself (logRun) carried nothing, so a refusal on
+  // the email path or a semantic row without a twin could not be told from a person. `caller` is 'fixture'
+  // (the reserved block / a reserved test address, decided here from the identifier) or 'person' (anything
+  // else, counted as a person). `fixture: 1` stays alongside because fn_it_detect D9 keys on it.
   let fixture = false;
-  const J = (o: unknown, s = 200) => fixture ? annotate(reply(o, s), { fixture: 1 }) : reply(o, s);
+  const cls = () => fixture ? { caller: 'fixture', fixture: 1 } : { caller: 'person' };
+  const J = (o: unknown, s = 200) => annotate(reply(o, s), cls());
+  // The parameter is `counts`, never `c`: `c` is the issued OTP a few lines below, and
+  // a_sign_in_code_goes_on_one_channel_and_is_never_logged.test.mjs reads a bare `c` inside a log call as
+  // the code being written to a run row. It was a shadowed name, not a leak — and the check is right to
+  // refuse a spelling that cannot be told apart from one.
+  const log = (st: string, counts: Record<string, unknown>, n: string) => logRun(st, { ...counts, ...cls() }, n);
   try {
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
     // Three kinds, not two. 'admin' is /os and is the ONLY kind that resolves a phone through
@@ -223,7 +246,7 @@ Deno.serve(observe('login_otp', async (req) => {
         const email = idRaw.toLowerCase();
         // Checked BEFORE the row is inserted so we never mint a code that cannot be delivered.
         if (await isSuppressed(email)) {
-          await logRun('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
+          await log('error', { suppressed: 1, channel: 'email' }, 'login_otp refused to email a sign-in code to ' + email + ' - it is in email_suppressions (hard bounce, spam complaint or a guardrail block - an unsubscribe never refuses a code). No code was issued and no Resend call was made. If this is a real user, confirm the mailbox works and delete their email_suppressions row; do not remove this check.');
           return J({ error: 'We cannot email this address - it is on our do-not-send list because mail to it bounced or was unsubscribed. Please contact info@quotesdone.com and we will restore it.', suppressed: true }, 403);
         }
         const since = new Date(Date.now() - 3600e3).toISOString();
@@ -236,7 +259,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // A code that did not leave is not "sent" (21 Sep 2026). The result was discarded, so a Resend
         // refusal answered ok:true and the person waited on a code screen for an email that never came.
         if (!(await sendEmail(email, mail.subject, mail.html))) {
-          await logRun('error', { channel: 'email', not_sent: 1 }, 'login_otp could not hand a sign-in code to Resend (refused after one retry, or the key is missing). The caller was told to try again.');
+          await log('error', { channel: 'email', not_sent: 1 }, 'login_otp could not hand a sign-in code to Resend (refused after one retry, or the key is missing). The caller was told to try again.');
           return J({ error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502);
         }
         return J({ ok: true, channel: 'email', identifier: email });
@@ -259,7 +282,7 @@ Deno.serve(observe('login_otp', async (req) => {
         // system working. 'skipped' already exists in this column alongside info and warn, and
         // the metric excludes it, so the refusal is still on the record and no longer counted as
         // a fault. The note is unchanged - the reasoning is the point of writing it down.
-        await logRun('skipped', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
+        await log('skipped', { ambiguous_phone: 1, kind }, 'login_otp refused an SMS sign-in because more than one ' + kind + ' account carries this mobile number. No SMS was sent and no Twilio charge was incurred. This is the guard working, not a fault: a shared number cannot select a person. The caller was asked to sign in with their email instead.');
         return annotate(J({ error: AMBIGUOUS_MSG, ambiguous: true }, 409), { ambiguous_phone: 1 });
       }
       const acctEmail = owner ? owner.email : null;
@@ -282,7 +305,7 @@ Deno.serve(observe('login_otp', async (req) => {
         if (allowSignup) {
           // 'skipped' for the same reason as the ambiguity refusal above: expected, routine, and
           // not a fault. This one fires every time somebody tries to sign up with a phone number.
-          await logRun('skipped', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
+          await log('skipped', { sms_signup_refused: 1, kind }, 'login_otp refused to send a sign-up SMS to a number with no account. No SMS was sent and no Twilio charge was incurred. This is deliberate: email is the identity, so a phone alone cannot create an account, and letting this through only produced a paid-for code that verify would refuse. Sign-up is by email.');
           return annotate(J({ error: 'We cannot create an account from a mobile number - your email address is what identifies your account. Please sign up with your email, and you can add your mobile straight afterwards.', no_account: true, signup_by_email: true }, 404), { sms_signup_refused: 1 });
         }
         // Do not send (and pay for) an SMS to a number that has no account. Tell the user first.
@@ -290,13 +313,13 @@ Deno.serve(observe('login_otp', async (req) => {
       }
       // After the identity refusals (so a fixture number still answers 404/409 exactly as a real one
       // does) and before anything reaches Twilio: a fixture number is never texted.
-      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, fixture: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
+      if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1 }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet. Please sign in with your email.' }, 503);
 
       // A prefix the IT engineer blocked for pumping gets no code (public.otp_blocked_prefix, duty 11).
       const pb = await prefixBlocked(admin, e164);
       if (pb.blocked) {
-        await logRun('skipped', { prefix_blocked: 1 }, 'login_otp sent no SMS: the number is under a prefix the IT engineer blocked for OTP pumping. No Twilio charge was incurred.');
+        await log('skipped', { prefix_blocked: 1 }, 'login_otp sent no SMS: the number is under a prefix the IT engineer blocked for OTP pumping. No Twilio charge was incurred.');
         return J({ error: 'SMS codes are not available for this number. Please sign in with your email.' }, 403);
       }
       // Caller-level and global ceilings. Checked BEFORE the Twilio call so a blocked attempt costs nothing.
@@ -307,7 +330,7 @@ Deno.serve(observe('login_otp', async (req) => {
       const ipOk = await rl('login_otp_sms_ip:' + ip, perIp, 3600);
       const globalOk = (!acctEmail && allowSignup) ? await rl('login_otp_sms_signup_global', perHour, 3600) : true;
       if (!ipOk || !globalOk) {
-        await logRun('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0, guard_error: pb.error ?? null },
+        await log('error', { rate_limited: 1, scope: !ipOk ? 'ip' : 'signup_global', signup_path: !acctEmail && allowSignup ? 1 : 0, guard_error: pb.error ?? null },
           !ipOk
             ? ('login_otp blocked a caller that asked for more than ' + perIp + ' SMS codes in an hour from one address. No SMS was sent and no Twilio charge was incurred. A real person signing in never reaches this - sustained hits mean someone is walking a list of numbers.')
             : ('login_otp hit the global hourly ceiling of ' + perHour + ' sign-up SMS messages. Further sign-up codes are refused this hour to cap Twilio spend. If genuine sign-ups are being turned away, raise it_threshold otp_signup_global_hour - do not remove the ceiling.'));
@@ -360,7 +383,7 @@ Deno.serve(observe('login_otp', async (req) => {
         const email = idRaw.toLowerCase();
         // Cap guesses per caller before touching the row at all.
         if (!(await rl('login_otp_verify_ip:' + ip, EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
-          await logRun('error', { rate_limited: 1, scope: 'verify_ip' }, 'login_otp blocked a caller making more than ' + EMAIL_VERIFY_PER_IP_HOUR + ' code-verification attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
+          await log('error', { rate_limited: 1, scope: 'verify_ip' }, 'login_otp blocked a caller making more than ' + EMAIL_VERIFY_PER_IP_HOUR + ' code-verification attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
           return J({ error: 'Too many attempts. Please request a new code.' }, 429);
         }
         // Fetch the newest live code for this email, then compare in code so a
@@ -420,7 +443,7 @@ Deno.serve(observe('login_otp', async (req) => {
         return J({ ok: true, ...s, user_kind: kind, email, locale: await registeredLocale(admin, { role: kind, email }, body.lang) });
       }
       const e164 = toE164(idRaw); if (!e164) return J({ error: 'Enter a valid mobile number.' }, 400);
-      if (isDemoPhone(e164)) { await logRun('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
+      if (isDemoPhone(e164)) { await log('skipped', { kind, captured: 1, fixture: 1, action: 'verify' }, FIXTURE_CAPTURE_NOTE); return J(FIXTURE_REFUSAL); }
       const tw = await twilioAuth(); if (!tw) return J({ error: 'SMS sign-in is not enabled yet.' }, 503);
       try {
         const r = await fetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: e164, Code: code }) });

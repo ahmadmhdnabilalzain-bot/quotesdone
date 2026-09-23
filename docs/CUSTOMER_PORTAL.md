@@ -36,9 +36,15 @@ Browser (Next.js on Vercel)                    Supabase (edge functions + Postgr
                                                  fn_refund_state / fn_notify_supplier / fn_*_working_day(s)
 ```
 
-Every edge function runs `verify_jwt = false` and implements its own auth. **Never
-redeploy one with JWT verification on** — the gateway would 401 every caller before
-the function body runs. (When deploying via the Supabase CLI, use `--no-verify-jwt`.)
+**Auth posture is pinned per function in `supabase/config.toml`, not blanket-off.**
+This section used to say every edge function runs `verify_jwt = false` and that one
+must never be redeployed with JWT verification on; that stopped being true on
+3 Aug 2026 (decision D1), and it was wrong for the portal's own backend when the
+customer-portal audit read it on 22 Sep 2026. Today `customer_api` and
+`quote_compare` are `verify_jwt = true`; `stripe_checkout`, `stripe_confirm` and
+`customer_documents` are `verify_jwt = false` and check the caller's JWT themselves.
+The generated config is the source of truth — read it there rather than here, and
+never pass a blanket `--no-verify-jwt` on a deploy.
 
 ---
 
@@ -90,23 +96,34 @@ CustomerPortal            root: language, session/token, sign-out → Login | Au
 
 ## 3. Backends and every action
 
-`customer_api` **v35** (58,450 bytes, deployed == repo, byte-verified). All 14
-actions are live and used by the portal — **no dead or legacy actions remain**.
+`customer_api` carries **26 actions** (counted from the source on 22 Sep 2026; this
+section said 14, which was the count after the July cull and has not been true for
+months — count them with `grep -o "action === '[a-z_]*'"` rather than trusting a
+number in prose). No dead or legacy actions remain.
 
 | Action | Purpose |
 |---|---|
-| `me` / `my_inquiries` | Load customer; all requests + quotes + `matched_suppliers` |
+| `me` / `my_inquiries` | Load customer; all requests + quotes + `matched_suppliers`, `on_hold`, `guarantee_terms` |
 | `create_inquiry` | Post a request (single / multi-split / turnkey) |
-| `edit_inquiry` / `cancel_inquiry` | 1-hour edit window; cancel an open request |
-| `complete_inquiry` | Mark a supplier hired (notifies the others) |
-| `reveal` | Reveal a supplier (returns contact if already paid) |
-| `request_refund` | Set `refund_status='requested'` → founder queue |
+| `edit_inquiry` / `cancel_inquiry` | 1-hour edit window (summary, budget, emirate only); cancel an open request |
+| `complete_inquiry` | Mark a supplier hired — idempotent; notifies the others once |
+| `reveal` | Reveal a supplier (returns contact if already paid) — `_shared/reveal_guard.ts` |
+| `request_refund` | Open the refund case through `fn_refund_open_from_customer` |
 | `rate_supplier` | 1–5 rating; blocks a later refund |
 | `supplier_history` | Revealed supplier profile + past projects |
-| `analyze_drawing` | Uploaded drawing/photo → BOQ |
-| `brief_pdf` / `quote_pdf` / `compare_pdf` | Branded PDFs via `pdf_native` |
+| `analyze_drawing` / `analyze_boq` / `analyze_document` / `cad_read_status` | Intake readers: drawing, spreadsheet, document, CAD queue |
+| `rfq_note` / `spec_offer_reply` | Add detail to a live RFQ; answer "no supplier quoted your exact spec" |
+| `brief_pdf` / `quote_pdf` / `compare_pdf` / `compare_csv` | Branded documents via `pdf_native`, and the comparison as a spreadsheet |
+| `activity` / `discover` / `trades` / `preferences` / `save_preferences` / `set_locale` | Portal furniture: history, suggestions, trade list, standing preferences, language |
 
-Other functions (all `verify_jwt=false`): `customer_portal` v2 (`overview` only),
+**Every reveal door calls one guard.** `_shared/reveal_guard.ts` (`canReveal`) decides
+ownership, the quote's status, the request's status, the sanctions ban
+(instruction 516) and the completeness hold, and `customer_api reveal`,
+`stripe_checkout` and `stripe_confirm` all go through it, so a charge can never be
+taken for a supplier who could not then be disclosed. The same file holds
+`heldQuoteIds`, the predicate `quote_compare` ranks on and `my_inquiries` lists on.
+
+Other functions (auth per `supabase/config.toml`, see §0): `customer_portal` v2 (`overview` only),
 `refund_flow` v2 (`state`/`notify`/`list`), `kyc` v5, `messages_api` v5, `login_otp`
 v5, `role_guard` v2, `stripe_checkout` v3, `stripe_confirm` v2, `quote_compare` v20,
 `inquiry_intake` v9, `transcribe` v4.
@@ -132,7 +149,7 @@ server-side on every action.
 `customers`, `inquiries` (`status`/`outcome`/`hired_supplier_id`/`matched_suppliers`),
 `quotes`, `transactions` (`revealed_at`/`refund_deadline`/`customer_notified_at`/
 `refund_status`/`fee_status`), `reviews`, `notifications`, `pricing_config`
-(`refund_window_working_days`=3), `decision_policy`
+(`refund_window_working_days`=5 on 22 Sep 2026 — read the row, never this page), `decision_policy`
 (`refund_call_after_working_days`=3, `refund_claim_after_call_working_days`=3),
 `public_holidays` (16 rows to Dec 2027).
 
@@ -172,13 +189,13 @@ original 3-wd window.
 | Item | Value | Where |
 |---|---|---|
 | Reveal fee | `pricing_config` rate/cap | `customer_api.reveal` → `stripe_checkout` → `stripe_confirm` |
-| Refund window (no escalation) | 3 working days | `pricing_config.refund_window_working_days` |
+| Refund window (no escalation) | **5 working days** (measured 22 Sep 2026; this page said 3) | `pricing_config.refund_window_working_days` — the only authority; the portal and every email read it |
 | Late fee on recovery | 9% **per annum** (Fed. Decree-Law 50/2022) | `src/content/legal.json` |
 | Admin/collection fee | **AED 250 per claim** | `src/content/legal.json` |
 | Refund processing deduction | 3% | Refund policy |
 | Refund payout time (after approval) | 7–14 working days | Refund policy §6 |
 
-Two clocks, do not conflate them: **3 working days** is the window for the supplier
+Two clocks, do not conflate them: the **refund window** (5 working days today) is the window for the supplier
 to respond / the customer to become eligible; **7–14 working days** is how long the
 payout itself takes after approval. Code and legal text now agree on the working-day
 definition (§4) — the refund policy and complaints page previously carried the pre-2022

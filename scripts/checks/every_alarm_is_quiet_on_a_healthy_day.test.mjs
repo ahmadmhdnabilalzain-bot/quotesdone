@@ -91,6 +91,18 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_restore_table_overdue()',
     asOf: { agent_runs: 'started_at' },
   },
+  // 22 Sep 2026 (it_engineer, SEATS-01). Replayed with p_dry_run FALSE on purpose: the dry run does
+  // not call the finding upsert at all, so registering it would be a replay that cannot fire —
+  // quiet proving nothing. With false it takes its real branch and the transaction's raise rolls
+  // every write back, exactly as it does for the other replays.
+  // CEILING, stated rather than hidden: a report's status and next_review_at are PRESENT state, so
+  // a report still accepted today reads as accepted at the instant (the same ceiling as
+  // fn_support_reply_watch_tick below). asOf limits which reports and notifications EXISTED then,
+  // which is what decides whether this alarm had anything to be loud about.
+  fn_it_accepted_report_review: {
+    replay: 'pg_temp.qd_replay_fn_it_accepted_report_review(false)',
+    asOf: { support_ceo_report: 'created_at', notifications: 'created_at' },
+  },
   // A reply is present state (replied_at, sent): one answered after the instant reads as answered then.
   fn_support_reply_watch_tick: {
     replay: 'pg_temp.qd_replay_fn_support_reply_watch_tick()',
