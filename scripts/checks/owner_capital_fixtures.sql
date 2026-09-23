@@ -1,4 +1,7 @@
--- PROBE: bank credits are classified deterministically (14 Sep 2026; review of b06d251). A transfer from the
+-- 23 SEP 2026: what a credit IS is bank_statement_line.kind, REASONED upstream (reasoned_books.ts bankLineKind) — the
+-- owner_transfer / interest word patterns are gone. The probe sets the kinds a reasoning would record and proves the
+-- booking reads ONLY the kind (a line with no kind books nothing, whatever its words), plus the loan ruling.
+-- PROBE: bank credits are booked from their kind (14 Sep 2026; review of b06d251). A transfer from the
 -- licence holder's own account is Dr 1000 / Cr 3000 Owner Capital (founder_instruction 357); the bank's
 -- month-end interest is Dr 1000 / Cr 7000 Bank Interest Income; nothing is guessed; no revenue total counts
 -- either; a bad pattern is a finding that leaves the rest of the tick running; a line is booked once.
@@ -30,6 +33,9 @@ begin
   execute ins into v_g using date '2026-07-12', 'TRANSFER IN - ZZ DEMO OWNER PERSON JUNIOR - P_2_P -', 700.00, 'zz_probe_oc_g';
   execute ins into v_h using date '2026-07-13', 'TRANSFER IN - MRS ZZ DEMO OWNER PERSON - P_2_P -', 800.00, 'zz_probe_oc_h';
   insert into public.bank_line_owner_ruling (line_id, ruling) values (v_c, 'loan');
+  update public.bank_statement_line set kind = 'owner_transfer' where id in (v_a, v_c);
+  update public.bank_statement_line set kind = 'bank_interest' where id = v_e;
+  update public.bank_statement_line set kind = 'other' where id in (v_b, v_d, v_f, v_g, v_h);
 
   r := public.fn_accountant_book_bank_credits();
   r2 := public.fn_accountant_book_bank_credits();   -- review 3: a double run books nothing more
@@ -69,26 +75,23 @@ begin
     raise exception 'the findings are wrong: %', r;
   end if;
 
-  -- review 2: a bad pattern is ONE finding naming the setting; that rule books nothing; the tick still books
-  -- the bank charges and the interest.
-  update public.gl_settings set txt_value = '(' where key = 'owner_transfer_pattern';
+  -- review 2 (retired 23 Sep 2026 with the patterns it tested): a line with NO reasoned kind books nothing,
+  -- however its words read, and the tick still books the lines that are reasoned.
   execute ins into v_i using date '2026-07-31', 'ZZ DEMO MONTHLY MAINTENANCE FEE', -15.00, 'zz_probe_oc_i';
   execute ins into v_j using date '2026-07-31', 'Interest 000111222333 0ZZCIDAED 00002', 1.11, 'zz_probe_oc_j';
   execute ins into v_n using date '2026-07-30', 'TRANSFER IN - ZZ DEMO OWNER PERSON - P_2_P - SECOND', 90.00, 'zz_probe_oc_k';
+  update public.bank_statement_line set kind = 'bank_charge' where id = v_i;
+  update public.bank_statement_line set kind = 'bank_interest' where id = v_j;
   t := public.fn_accountant_cost_booking_tick();
-  if not exists (select 1 from public.it_engineer_finding where issue_key = 'acct:bank_credits:setting:owner_transfer_pattern' and closed_at is null) then
-    raise exception 'a bad owner_transfer_pattern raised no finding: %', t;
-  end if;
   if not exists (select 1 from public.gl_journal where source = 'bank_charge' and source_ref = v_i::text) then
-    raise exception 'a bad pattern stopped the bank charges: %', t;
+    raise exception 'a reasoned bank charge was not booked: %', t;
   end if;
   if not exists (select 1 from public.gl_journal where source = 'bank_interest' and source_ref = v_j::text) then
-    raise exception 'a bad owner pattern stopped the interest rule: %', t;
+    raise exception 'reasoned interest was not booked: %', t;
   end if;
   if exists (select 1 from public.gl_journal where source = 'owner_capital' and source_ref = v_n::text) then
-    raise exception 'the owner rule booked with its pattern invalid';
+    raise exception 'an UNREASONED line was booked from its words';
   end if;
-  update public.gl_settings set txt_value = 'transfer|p_?2_?p' where key = 'owner_transfer_pattern';
 
   -- review 1: POSTED interest and capital change no revenue total — month close, finance_kpis, gl_pnl, VAT watch
   mc0 := (public.fn_accountant_month_close_figures(v_m)->'profit_and_loss'->>'revenue_aed')::numeric;

@@ -517,10 +517,18 @@ begin
   values ('zz_demo_licence', 'licence', current_date + 30, 'it_engineer', 'accountant', 'ZZ DEMO probe');
   perform public.fn_accountant_renewals_tick();
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:renewals:unbudgeted:zz_demo_licence'), 'renewals: a licence 30 days from expiry with no booked fee raised no finding');
-  update public.decision_policy set value = value || '[{"item": "^zz_demo_licence$", "vendor": "^ZZ DEMO Licensing"}]'::jsonb
-   where key = 'accountant_renewal_vendor_patterns';
-  insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_path, doc_kind)
-  values ('ZZ DEMO Licensing', 'Licences', 500, 'AED', current_date - 300, 'receipt', 'ZZ DEMO probe', 'zz/demo_licence.pdf', 'vendor_document');
+  -- 23 Sep 2026: which expense renews an item is REASONED at booking (expense_entries.renews_item), never a vendor
+  -- pattern. Until the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql is applied the live routine still
+  -- reads the old pattern, so the fixture feeds whichever the live schema has (the column decides, not a word).
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'expense_entries' and column_name = 'renews_item') then
+    execute $x$insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_path, doc_kind, read_as, renews_item)
+      values ('ZZ DEMO Licensing', 'Licences', 500, 'AED', current_date - 300, 'receipt', 'ZZ DEMO probe', 'zz/demo_licence.pdf', 'vendor_document', 'renewal', 'zz_demo_licence')$x$;
+  else
+    update public.decision_policy set value = value || '[{"item": "^zz_demo_licence$", "vendor": "^ZZ DEMO Licensing"}]'::jsonb
+     where key = 'accountant_renewal_vendor_patterns';
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note, doc_path, doc_kind)
+    values ('ZZ DEMO Licensing', 'Licences', 500, 'AED', current_date - 300, 'receipt', 'ZZ DEMO probe', 'zz/demo_licence.pdf', 'vendor_document');
+  end if;
   h := public.fn_seat_handoff('it_engineer', 'accountant', 'renewal.due', 'it_expiry', 'zz_demo_licence@' || (current_date + 30),
                               jsonb_build_object('item', 'zz_demo_licence'));
   perform pg_temp.zz_assert((select status <> 'failed' and detail ? 'awaiting' and evidence->>'reply' like 'accountant: AED 500%'

@@ -11,7 +11,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { SEAT, SEAT_LABEL, type Line } from './assess.ts';
 import { optionAmount, splitOptions } from './options.ts';
-import { approve, fillIn, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
+import { approve, fillIn, finishArabic, formSchema, gate, supabaseRepo, type HoldRow, type NotificationRow, type QuoteRow, type SpecRepo } from './workflow.ts';
 import type { QuoteReading } from '../reasoned_matching.ts';
 
 // What reasoning read from each quotation (reasoned_matching.ts readQuote, mocked here): the gate writes it in
@@ -168,6 +168,50 @@ Deno.test('every record the desk writes is the sales engineer\'s; customer_suppo
   nobodyReal(repo);
 });
 
+// Decision point line_specs.workflow_installation: the document reads the structured installation fields,
+// never the record's sentence. A sentence saying "Included" with installation_included false prints Not included.
+import { pdfBody as pdfBody82, type Standardised as Std82 } from './workflow.ts';
+Deno.test('pdfBody reads installation from the structured fields, not from the sentence', () => {
+  const rec = (inc: boolean | null, detail: string | null, sentence: string | null): Std82 => ({
+    contract: 'standardised_quotation', version: 1, quote_id: 'zzdemo00-0000-4000-8000-000000000082', option_no: 1, category: 'hvac', trade: 'hvac', currency: 'AED',
+    total: 1000, price_basis: 'ex_vat', lines: [],
+    terms: { delivery: null, installation: sentence, installation_included: inc, installation_detail: detail, warranty: null, validity: null, payment_terms: null, exclusions: null },
+    prepared_by: 'sales_engineer', prepared_at: '2026-09-23T08:00:00Z',
+  });
+  const inq = { id: 'zzdemo00-0000-4000-8000-00000000008a', rfq_no: 990082, category: 'hvac', emirate: 'Dubai' };
+  const text = (r: Std82) => JSON.stringify(pdfBody82(r, { inquiry: inq, letter: 'A', lang: 'en' }));
+  const no = text(rec(false, null, 'Included — ZZ DEMO full install'));
+  assert(no.includes('Not included') && !no.includes('ZZ DEMO full install'));
+  assert(text(rec(true, 'ZZ DEMO two fitters', 'Not included (supply only)')).includes('ZZ DEMO two fitters'));
+  const na = text(rec(null, null, 'Included'));
+  assert(na.includes('N/A') || !na.includes('Not included'));
+});
+
+Deno.test('an Arabic quotation waiting for its reasoned translation is never sent for approval without its PDF; the replay renders it and asks', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q9', q('q9', SUP_AR.id, { warranty: '2 years' }));
+  repo.items.set('q9', [{ line_no: 1, description: 'Wardrobe MDF carcass, HPL finish', qty: 2, unit: 'nos', unit_price: 3000, amount: 6000 }]);
+  const ctx = { category: 'joinery', requirements: null, ref: 'ZZDEMO09', now: NOW, read: reads({ q9: { lines: { 1: { material: 'MDF', finish: 'HPL' } }, terms: INSTALLED } }) };
+  assert((await gate(repo, 'q9', SUP_AR, ctx)).held);
+  const done = await fillIn(repo, 'q9', SUP_AR, { lines: { '1': { thickness_mm: '18' } }, terms: { warranty_coverage: 'Hinges and workmanship' } }, ctx, async () => 'arabic_pending');
+  assert(done.ok && done.complete);
+  assertEquals((done as { arabic_pending?: boolean }).arabic_pending, true);
+  assertEquals([repo.holds[0].state, repo.holds[0].pdf_path], ['awaiting_approval', null]);
+  assertEquals(byType(repo, 'quote_spec_regenerated'), [], 'no approval request without the PDF');
+  assertEquals((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo))).ok, false);
+  assertEquals((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo)) as { code?: string }).code, 'arabic_pending');
+  // still untranslated at the replay: stays pending
+  assertEquals((await finishArabic(repo, 'q9', SUP_AR, ctx, async () => 'arabic_pending') as { code?: string }).code, 'still_pending');
+  assertEquals(byType(repo, 'quote_spec_regenerated'), []);
+  // translated: rendered, the approval request goes, and approval now works
+  const fin = await finishArabic(repo, 'q9', SUP_AR, ctx, async () => ({ bucket: 'quote-files', path: 'quotes/zz/q9.pdf' }));
+  assert(fin.ok);
+  assertEquals(repo.holds[0].pdf_path, 'quotes/zz/q9.pdf');
+  assertEquals(byType(repo, 'quote_spec_regenerated'), ['email', 'whatsapp']);
+  assertEquals((await finishArabic(repo, 'q9', SUP_AR, ctx, async () => ({ bucket: 'b', path: 'p' })) as { code?: string }).code, 'not_pending', 'rendered once');
+  assert((await approve(repo, 'q9', SUP_AR, SUP_AR.email, true, ctx, accept(repo))).ok);
+  nobodyReal(repo);
+});
 Deno.test('UNDER THE HOLD the reading is null: the quote is held, every detail asked, and his own statement releases it', async () => {
   const repo = new Fake();
   repo.quotes.set('q5', q('q5', SUP_EN.id));
@@ -189,4 +233,36 @@ Deno.test('what reasoning read is written onto the quote, marked reasoned, befor
   const l = (await repo.lines('q6'))[0];
   assertEquals([l.spec?.thickness_mm, l.spec_source?.thickness_mm], ['18mm', 'reasoned']);
   assertEquals(repo.quotes.get('q6')!.terms_spec?.installation?.source, 'reasoned');
+});
+
+Deno.test('the fill-in form offers the installation scope beside "is installation included?" — one round, not two', async () => {
+  const { termItem } = await import('./assess.ts');
+  const a = { lines: [], missing: [termItem('delivery'), termItem('installation_included'), termItem('warranty_coverage')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(a, []).terms.map((t) => t.attr), ['delivery', 'installation_included', 'installation_detail', 'warranty_coverage']);
+  const b = { lines: [], missing: [termItem('installation_detail')], terms: {} } as unknown as Parameters<typeof formSchema>[0];
+  assertEquals(formSchema(b, []).terms.map((t) => t.attr), ['installation_detail'], 'never offered twice');
+});
+
+// Post-deploy smoke, 23 Sep 2026 ("filling in the details regenerates the quotation": still missing
+// installation_detail). Under the hold nothing reads the scope from his prose, so the form asked "Is
+// installation included?" alone, his "yes" opened a second round for the scope. The form asks both at once.
+Deno.test('UNDER THE HOLD "is installation included?" is asked with its scope, so one fill-in completes the quote', async () => {
+  const repo = new Fake();
+  repo.quotes.set('q6', q('q6', SUP_EN.id));
+  repo.items.set('q6', [{ line_no: 1, description: 'Wardrobe 18mm MDF carcass, HPL finish', amount: 6000, spec: WARDROBE_READ, spec_source: { material: 'supplier_portal', thickness_mm: 'supplier_portal', finish: 'supplier_portal' } }]);
+  const ctx = { category: 'joinery', requirements: { version: 1, installation: { required: 'yes' }, warranty: { required: 'not_needed' } }, ref: 'ZZDEMO07', now: NOW, read: reads({}) };
+  const g = await gate(repo, 'q6', SUP_EN, ctx);
+  assertEquals(g.missing.map((m) => m.attr), ['installation_included']);
+  const asked = formSchema(g.assessment!, []).terms.map((m) => m.attr);
+  assertEquals(asked, ['installation_included', 'installation_detail'], 'the scope is asked with the question, not in a second round');
+  const done = await fillIn(repo, 'q6', SUP_EN, { terms: { installation_included: 'yes', installation_detail: 'Installation within 10 working days of delivery' } }, ctx);
+  assert(done.ok && done.complete, `one fill-in did not complete it: ${JSON.stringify(done.ok && !done.complete ? done.missing : done)}`);
+  // "Supply only": the scope stays blank and is not required.
+  const repo2 = new Fake();
+  repo2.quotes.set('q6', q('q6', SUP_EN.id));
+  repo2.items.set('q6', structuredClone(repo.items.get('q6')!));
+  await gate(repo2, 'q6', SUP_EN, ctx);
+  const no = await fillIn(repo2, 'q6', SUP_EN, { terms: { installation_included: 'no', installation_detail: '' } }, ctx);
+  assert(no.ok && no.complete, 'a supply-only answer is asked for no scope');
+  nobodyReal(repo); nobodyReal(repo2);
 });

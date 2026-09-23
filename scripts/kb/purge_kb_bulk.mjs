@@ -98,7 +98,9 @@ const ms = (t) => `${((Date.now() - t) / 1000).toFixed(1)}s`;
 
 // The clause-2 join, spelled once here and once in the SQL file — the same text.
 const CITED = `(select split_part(x, ':', 2)::bigint from public.sales_decision_log s, unnest(s.cited) x where x ~ '^kb_chunks:[0-9]+$')`;
-const CLAUSE = `public.fn_kb_purge_clause(k.source_kind, k.category, k.citation)`;
+// The third argument is the REASONED jurisdiction of the citation (kb_citation_jurisdiction, surface
+// ceo.kb_jurisdiction), never the citation text: an undecided citation is clause 4 and kept.
+const CLAUSE = `public.fn_kb_purge_clause(k.source_kind, k.category, (select j.jurisdiction from public.kb_citation_jurisdiction j where j.citation_md5 = md5(k.citation)))`;
 const VERDICT = `case when c = 1 then 'KEEP' when c = 2 then 'KEEP' when c = 3 then 'KEEP' when c = 4 then 'UNSURE' else 'DELETE' end`;
 
 // ── 1. Preflight ─────────────────────────────────────────────────────────────────────────────

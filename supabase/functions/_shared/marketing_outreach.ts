@@ -82,18 +82,9 @@ export function composeFirst(p: Prospect): Composed {
 }
 
 export type ReplyClass = 'decline' | 'later' | 'positive' | 'question';
-// Order matters: "not interested" contains "interested"; a decline is read first.
-const CLASSES: Array<[ReplyClass, RegExp]> = [
-  ['decline', /\b(not interested|no,? thank|no thanks|not for us|please remove|unsubscribe|don't contact|do not contact|not relevant)\b|غير مهتم|لا شكرا|لا، شكرا|لا نحتاج|لا حاجة لنا/i],
-  ['later', /\b(not now|not available|later|next (month|quarter|year)|busy|maybe in|circle back|after (eid|ramadan|the summer))\b|لاحق|ليس الآن|مشغول|بعد العيد|بعد رمضان|في وقت آخر/i],
-  ['positive', /\b(yes|sure|interested|sounds good|happy to|let's|please share|send (me )?(the )?details|call me|book|when are you free|available)\b|نعم|أكيد|بكل سرور|مهتم|أرسل|ارسل|تفضل|يسعدني|متى يناسبك|نتواصل/i],
-];
-export function classifyReply(reply: string): ReplyClass {
-  // Harakat and tanween removed first: "شكرًا" and "شكرا" are the same word to the reader.
-  const r = String(reply || '').replace(/[ً-ْ]/g, '');
-  for (const [c, re] of CLASSES) if (re.test(r)) return c;
-  return 'question';
-}
+// WHAT A REPLY MEANS is reasoned (_shared/reasoned_outreach.ts replyClass, through think()); the regex lists that
+// read it (classifyReply) are gone (23 Sep 2026, founder_instruction 886-903). This file only writes the follow-up
+// for a class already decided.
 
 const F = {
   en: {
@@ -110,8 +101,7 @@ const F = {
   },
 } as const;
 
-export function composeFollowUp(p: Pick<Prospect, 'full_name' | 'language'>, reply: string): { cls: ReplyClass; message: string; lint: Finding[] } {
-  const cls = classifyReply(reply);
+export function composeFollowUp(p: Pick<Prospect, 'full_name' | 'language'>, cls: ReplyClass): { cls: ReplyClass; message: string; lint: Finding[] } {
   const message = F[p.language][cls](firstName(p.full_name));
   return { cls, message, lint: lintDraft(message, 'message') };
 }

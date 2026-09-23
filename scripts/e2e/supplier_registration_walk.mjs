@@ -61,7 +61,7 @@ try {
       const seen = await p.getByText(company).first().waitFor({ timeout: 20000 }).then(() => true).catch(() => false);
       step(m, 'the invitation names the company on landing', seen, `${Date.now() - t0} ms`);
       const h1 = await p.locator('#qd-supplier-signin h1').innerText().catch(() => '');
-      step(m, 'the form opens on create-account, not "Welcome back"', AR(lang) ? /سجّل/.test(h1) : /Register/.test(h1), h1);
+      step(m, 'the form opens on create-account, not "Welcome back"', (AR(lang) ? /سجّل|التسجيل|إنشاء حساب/.test(h1) && !/بعودت/.test(h1) : /Register/.test(h1) && !/Welcome back/i.test(h1)), h1);
       await ctx.close(); }
 
     // 2. sign-up (see header: OTP seeded, verified through login_otp), then the portal with the claim token

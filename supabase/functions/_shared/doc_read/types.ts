@@ -46,6 +46,11 @@ export type Extracted = {
    * $PROJECTNAME, xref paths, party attributes) reaches a BOQ line. Never serialised to a client.
    */
   dxf_text?: string;
+  /**
+   * IFC reader only (23 Sep 2026): the names, phones, e-mails and addresses the model states about its
+   * own job and authors. drawing_boq hands them to _shared/drawing_identity_gate.ts. Never serialised.
+   */
+  identity_terms?: string[];
 };
 
 export type Refusal = { ok: false; error: string; detail: string };

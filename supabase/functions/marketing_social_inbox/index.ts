@@ -43,7 +43,8 @@ import { observe } from '../_shared/observe.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import type { FaqRow } from '../_shared/chat_answers.ts';
 import { clip, handshake, maxLen, OUR_METADATA, parseEvents, pickPage, sendRequest, tokenExpired, verifySignature, withinWindow, type InboundEvent, type PageAccount } from './meta.ts';
-import { decide, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
+import { decide, passagesFor, unknown, type CorpusRow, type Decision, type LibraryRow } from './reply.ts';
+import { socialMeaning } from '../_shared/reasoned_channels.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { ackThenWork } from '../_shared/async_webhook.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -86,6 +87,13 @@ Deno.serve(observe('marketing_social_inbox', async (req) => {
       const out = await reasonedHandoff(String(j.platform || ''), String(j.message_id || ''));
       return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
     }
+    // A DM's meaning held under the hold, reasoned later: the grounded reply it was owed is sent here.
+    if (j.action === 'reasoned_reply') {
+      const auth = await requireInternal(admin, j.__secret, 'marketing_social_inbox');
+      if (!auth.ok) return new Response(JSON.stringify({ ok: false, error: 'forbidden' }), { status: 403 });
+      const out = await reasonedReply(String(j.platform || ''), String(j.message_id || ''), String(j.meaning || ''), (Array.isArray(j.passages) ? j.passages : []) as CorpusRow[]);
+      return new Response(JSON.stringify(out), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    }
   }
   if (!(await verifySignature(raw, req.headers.get('x-hub-signature-256'), await sec('meta_app_secret')))) {
     return new Response('invalid signature', { status: 403 });
@@ -120,11 +128,20 @@ async function reasonedHandoff(platform: string, messageId: string): Promise<{ o
   if (already && already.length) return { ok: true, outcome: 'already_handed_off' };
   const { data: conv } = await admin.from('social_conversation').select('id,platform,user_id,account_id,handle').eq('id', m.conversation_id).single();
   if (!conv) return { ok: false, error: 'conversation_not_found' };
+  // EXACTLY ONE MESSAGE PER HELD DM. When its meaning replayed first and a grounded reply already went
+  // (reasonedReply, which in turn stands down after a handoff), the conversation is handed to a person
+  // WITHOUT a second text: the person picks it up; the customer never gets a reply and then a handoff line.
+  const { data: grounded } = await admin.from('social_message').select('id').eq('in_reply_to', m.id)
+    .in('reply_kind', ['standard', 'faq', 'knowledge']).neq('send_status', 'failed').limit(1);
+  if (grounded && grounded.length) {
+    await admin.rpc('fn_marketing_social_hand_to_human', { p_conversation_id: conv.id, p_reason: String(m.body || '') });
+    return { ok: true, outcome: 'handed_to_human:reply_already_sent' };
+  }
   const ev: InboundEvent = { platform: conv.platform, channel: m.channel, accountId: conv.account_id, userId: conv.user_id, handle: conv.handle,
     messageId, text: String(m.body || ''), at: new Date(m.occurred_at), parentId: m.parent_id, echo: false, echoAppId: null, echoMetadata: null };
   // Meta's own window decides whether a reply may still be sent (meta.ts); outside it the founder is still told.
   const { data: lib } = await admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true);
-  const d = decide(ev.text, (lib || []) as LibraryRow[], [], [], true);
+  const d = decide(ev.text, (lib || []) as LibraryRow[], [], [], true, null);
   await admin.rpc('fn_marketing_social_hand_to_human', { p_conversation_id: conv.id, p_reason: ev.text });
   if (!withinWindow(ev.at)) return { ok: true, outcome: 'handed_to_human:outside_window' };
   const text = clip(d.text, maxLen(ev.platform, ev.channel));
@@ -135,6 +152,38 @@ async function reasonedHandoff(platform: string, messageId: string): Promise<{ o
   if (error || !out) return { ok: false, error: error?.message ?? 'no reply row' };
   await send(ev, out.id as number, text);
   return { ok: true, outcome: 'handed_to_human' };
+}
+
+/** Send the grounded reply a held DM was owed, once its meaning is reasoned. Idempotent per message: a grounded
+ *  reply already sent to it (standard / faq / knowledge / handoff) means nothing more goes. */
+async function reasonedReply(platform: string, messageId: string, meaning: string, passages: CorpusRow[]): Promise<{ ok: boolean; error?: string; outcome?: string }> {
+  const { data: m } = await admin.from('social_message').select('id,conversation_id,channel,body,occurred_at')
+    .eq('platform', platform).eq('meta_message_id', messageId).eq('direction', 'in').maybeSingle();
+  if (!m) return { ok: false, error: 'message_not_found' };
+  const { data: already } = await admin.from('social_message').select('id').eq('in_reply_to', m.id)
+    .in('reply_kind', ['standard', 'faq', 'knowledge', 'handoff']).limit(1);
+  if (already && already.length) return { ok: true, outcome: 'already_answered' };
+  const { data: conv } = await admin.from('social_conversation').select('id,platform,user_id,account_id,handle,status').eq('id', m.conversation_id).single();
+  if (!conv) return { ok: false, error: 'conversation_not_found' };
+  if (conv.status !== 'auto') return { ok: true, outcome: 'human_holds_conversation' };
+  const [{ data: lib }, { data: faqs }] = await Promise.all([
+    admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true),
+    admin.from('company_faq').select('id,question,answer,language').eq('public', true).eq('status', 'approved'),
+  ]);
+  const d = decide(String(m.body || ''), (lib || []) as LibraryRow[], (faqs || []) as FaqRow[], passages, false, meaning);
+  if (d.kind === 'unknown') return { ok: true, outcome: 'reasoned:no_grounded_reply' };
+  // Meta's own window decides whether a reply may still be sent (meta.ts).
+  if (!withinWindow(new Date(m.occurred_at))) return { ok: true, outcome: 'outside_window' };
+  const ev: InboundEvent = { platform: conv.platform, channel: m.channel, accountId: conv.account_id, userId: conv.user_id, handle: conv.handle,
+    messageId, text: String(m.body || ''), at: new Date(m.occurred_at), parentId: null, echo: false, echoAppId: null, echoMetadata: null };
+  const text = clip(d.text, maxLen(ev.platform, ev.channel));
+  const { data: out, error } = await admin.from('social_message').insert({
+    conversation_id: conv.id, platform: ev.platform, channel: ev.channel, direction: 'out', author: 'seat',
+    in_reply_to: m.id, body: text, reply_kind: d.kind, reply_key: d.key, send_status: 'pending', occurred_at: new Date().toISOString(),
+  }).select('id').single();
+  if (error || !out) return { ok: false, error: error?.message ?? 'no reply row' };
+  await send(ev, out.id as number, text);
+  return { ok: true, outcome: 'answered:' + d.kind };
 }
 
 async function handle(ev: InboundEvent): Promise<string> {
@@ -225,11 +274,20 @@ async function answer(ev: InboundEvent): Promise<Decision> {
   // the FAQ and the knowledge; only the person check waits in the marketing seat's queue, and when it is
   // reasoned to need a person the handoff is sent on this platform (reasoned_handoff above, via
   // _shared/reasoned_delivery.ts). Nobody is paged on a guess, and nobody goes unanswered.
-  const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+  const deps = defaultDeps(admin, 'marketing_social_inbox');
+  const person = await needsAPerson(deps, {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
     dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
   });
-  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
+  // WHAT THEY ASK is reasoned once among every grounded reply (_shared/reasoned_channels.ts socialMeaning): a
+  // standard library reply, the size statement, a cost/count/timeline FAQ, or one retrieved passage. Held, the
+  // honest 'unknown' goes now (a gap recorded, a person offered) and the meaning waits in the marketing queue;
+  // the replay sends the grounded reply on this platform (reasoned_reply above, via _shared/reasoned_delivery.ts).
+  const passages = passagesFor(ev.text, corpus);
+  const meaning = person.value === true ? null : (await socialMeaning(deps, {
+    message: ev.text, library, passages, platform: ev.platform, messageId: ev.messageId, userId: ev.userId,
+  })).value;
+  const d = decide(ev.text, library, (faqs || []) as FaqRow[], passages, person.value === true, meaning);
   if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
 
   // THE MODEL, SAME DOOR AS THE WEBSITE ASSISTANT (ai_gateway), and only over the passages retrieved

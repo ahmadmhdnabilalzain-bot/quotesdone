@@ -87,6 +87,9 @@ verify_jwt = false
 [functions.dropbox_backup]
 verify_jwt = false
 
+[functions.embed_ml]
+verify_jwt = false
+
 [functions.email_cron]
 verify_jwt = false
 

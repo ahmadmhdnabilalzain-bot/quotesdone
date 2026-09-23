@@ -207,7 +207,7 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
   warranty_coverage: ['What the warranty covers', 'ما يغطيه الضمان', 'text'],
   price_ex_vat: ['Total price excluding VAT', 'السعر الإجمالي غير شامل ضريبة القيمة المضافة', 'number'],
 };
-const termItem = (attr: string, label?: [string, string]): MissingItem => {
+export const termItem = (attr: string, label?: [string, string]): MissingItem => {
   const [en, ar, type] = label ? [label[0], label[1], 'text' as const] : TERM_LABEL[attr];
   return { scope: 'quote', line_no: null, description: null, attr, label_en: en, label_ar: ar, type, ...(type === 'choice' ? { options: ['yes', 'no'] } : {}), ...(attr === 'price_ex_vat' ? { unit: 'AED', unit_ar: 'درهم' } : {}) };
 };

@@ -144,7 +144,13 @@ number and the counts are written to the audit ledger before any delete.
    anything related to US standards or laws unless its related to UAE"***).** A row whose citation
    names a US code or law (NFPA, NEC, UPC/IPC/IBC and the other ICC codes, ASHRAE, ASTM, SMACNA, ANSI,
    UL, ASME, API, AWS, FM Global, CFR, US Code, OSHA, EPA, FDA, FAA, NIST) is deleted unless clause 3
-   already kept it for citing a UAE/GCC authority. Tested in `fn_kb_is_us_code()`. Measured: 15,998
+   already kept it for citing a UAE/GCC authority. **Since 23 Sep 2026 (founder_instruction 890, no word
+   matching) the jurisdiction of a citation is REASONED, not read by a citation regex:** `fn_kb_is_us_code()` is
+   dropped, `fn_kb_jurisdiction_file()` files each undecided citation for the ceo seat to reason
+   (quotesdone / uae / gcc / international / us / other_foreign), the answer is kept in
+   `kb_citation_jurisdiction`, and `fn_kb_purge_clause(source_kind, category, jurisdiction)` reads it. A citation
+   not yet reasoned is clause 4 and KEPT — never deleted on a guess
+   (scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql). Measured before that change: 15,998
    `code` rows move from UNSURE to DELETE. Non-US foreign codes (BS EN, Eurocodes, IEC, ISO, EU/WHO
    GMP, IETF RFCs) stay UNSURE for the founder. Clause 3 also now knows DIFC, ADGM and ADNOC (DIFC
    Companies Law, 257 rows, is UAE law and is kept).

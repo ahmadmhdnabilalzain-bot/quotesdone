@@ -1825,6 +1825,9 @@ function AccountSettings({ token, lang, onChanged }) {
   const [me, setMe] = useState(null); const [err, setErr] = useState('');
   const [name, setName] = useState(''); const [phone, setPhone] = useState(''); const [dob, setDob] = useState('');
   const [busy, setBusy] = useState(''); const [msg, setMsg] = useState('');
+  // A refusal was printed in the same muted grey as "Saved" and never announced (e2e forms probe, 23 Sep
+  // 2026: name emptied -> kyc 400 enter_name -> a grey line). An error is an alert now.
+  const [msgErr, setMsgErr] = useState(false);
   const load = () => call('customer_api', { action: 'me' }, token)
     .then((j) => { if (j && j.customer) { setMe(j.customer); setName(j.customer.full_name || ''); setPhone(j.customer.phone || ''); setDob(String(j.customer.date_of_birth || '').slice(0, 10)); } else setErr(t(lang, 'acct_failed')); })
     .catch(() => setErr(t(lang, 'acct_failed')));
@@ -1856,11 +1859,12 @@ function AccountSettings({ token, lang, onChanged }) {
   const phoneOk = !!me.phone_verified && !!digits(me.phone);
   const badge = (ok) => <span className={ok ? 'text-primary font-bold' : ''}>{t(lang, ok ? 'verified' : 'acct_unverified')}</span>;
   const saveProfile = async () => {
-    if (isUnder18(dob)) { setMsg(t(lang, 'err_under_18')); return; }
+    if (isUnder18(dob)) { setMsgErr(true); setMsg(t(lang, 'err_under_18')); return; }
     setBusy('save'); setMsg('');
     // kyc save_customer already validates dob (dob_required / dob_invalid / under_18, answered by errText).
     const j = await call('kyc', { action: 'save_customer', full_name: name, phone, dob: dob || me.date_of_birth || '' }, token);
     setBusy('');
+    setMsgErr(!(j && j.ok));
     if (j && j.ok) { setMsg(t(lang, j.phone_reverify_required ? 'acct_reverify' : 'acct_saved')); load(); if (onChanged) onChanged(); }
     else setMsg(errText(j, lang, 'acct_failed'));
   };
@@ -1868,6 +1872,7 @@ function AccountSettings({ token, lang, onChanged }) {
     setBusy('loc'); setMsg('');
     const j = await call('customer_api', { action: 'set_locale', locale: loc }, token);
     setBusy('');
+    setMsgErr(!(j && j.ok));
     if (j && j.ok) { setMsg(t(lang, 'acct_saved')); load(); } else setMsg(errText(j, lang, 'acct_failed'));
   };
   return (<div className="flex flex-col gap-4">
@@ -1911,7 +1916,7 @@ function AccountSettings({ token, lang, onChanged }) {
       <Row label={t(lang, 'acct_since')}><div className="text-[13px] text-foreground">{since || '—'}</div></Row>
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3.5">
         <Button size="sm" disabled={!dirty || busy === 'save'} onClick={saveProfile}>{busy === 'save' ? t(lang, 'saving') : t(lang, 'save_details')}</Button>
-        {msg ? <span className="text-[12.5px] text-muted-foreground">{msg}</span> : null}
+        {msg ? (msgErr ? <span role="alert" className={S.err}>{msg}</span> : <span role="status" className="text-[12.5px] text-muted-foreground">{msg}</span>) : null}
       </div>
     </Card>
     <p className={S.hint}>{t(lang, 'acct_device_note')}</p>
