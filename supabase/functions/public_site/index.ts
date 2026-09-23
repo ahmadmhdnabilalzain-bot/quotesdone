@@ -5,8 +5,9 @@
 // without a model already exist in SQL — the bilingual router (fn_kb_route_decide), the ordered
 // interview (fn_category_questions), the per-trade compliance checklist, the matcher
 // (fn_match_capability) and the published price bands (fn_price_guidance). This function puts them
-// on the first screen. NO MODEL IS CALLED — every OpenRouter route is held and this path must work
-// regardless.
+// on the first screen. Every path works under the model hold. The ONE exception to "no model" is
+// price_guidance: which trade a question asks the price of is reasoned (23 Sep 2026, founder_instruction
+// 886-903), and under the hold it answers reason 'held' rather than a band chosen by matching words.
 //
 // ACTIONS (POST {action, ...}):
 //   counters        -> fn_public_site_counters(): aggregates, NULL below each floor.
@@ -24,6 +25,8 @@
 // (public_site_global_day, default 5000) that does not trust the forgeable X-Forwarded-For.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { documentLine, isPageTopic } from './rules.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -140,10 +143,11 @@ async function routeBrief(text: string, lang: 'en' | 'ar') {
   };
 }
 
+// WHICH TRADE A QUESTION IS ABOUT, AND WHETHER IT ASKS A PRICE AT ALL, IS REASONED (think(),
+// _shared/reasoned_suppliers.ts priceGuidanceFor; founder_instruction 886-903) — fn_price_guidance no
+// longer reads the question. Held (the model hold): no band is offered on a guess; reason 'held'.
 async function priceGuidance(question: string) {
-  const { data: pg, error } = await admin.rpc('fn_price_guidance', { p_question: question.slice(0, 300), p_limit: 6 });
-  if (error || !pg) return { ok: false, reason: 'unavailable' };
-  const p: any = pg;
+  const p: any = await priceGuidanceFor(defaultDeps(admin, 'public_site'), question.slice(0, 300), 6, 'visitor');
   if (p.ok && Array.isArray(p.bands)) {
     // Only the band itself. The evidence text and the kb_chunk/blog source ids stay server-side.
     const bands = p.bands.slice(0, 4).map((b: any) => ({
@@ -151,7 +155,8 @@ async function priceGuidance(question: string) {
       unit: b.unit && b.unit !== 'none' ? String(b.unit) : null, as_of: b.as_of || null,
     })).filter((b: any) => Number.isFinite(b.low) || Number.isFinite(b.high));
     const asOf = bands.map((b: any) => b.as_of).filter(Boolean).sort().pop() || null;
-    return { ok: true, trade: p.trade, bands, as_of: asOf, unmatched_terms: p.unmatched_terms || [] };
+    // unmatched_terms stays empty: whether a band is for the item asked is not decided by matching its words.
+    return { ok: true, trade: p.trade, bands, as_of: asOf, asked_item: p.asked_item ?? null, unmatched_terms: [] };
   }
   if (p.reason === 'trade_has_a_recorded_gap') return { ok: false, reason: 'gap', trade: p.trade || null };
   return { ok: false, reason: String(p.reason || 'no_match') };

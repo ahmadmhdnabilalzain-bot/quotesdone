@@ -145,6 +145,12 @@ Deno.test('what submit_quote receives from the chat is cleaned of contact detail
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 const INCOMPLETE_CSV = 'Description,Qty,Unit,Rate,Amount\nJotun Fenomastic emulsion 2 coats internal walls,450,m2,20,9000\nTotal,,,,9000\n';
 const COMPLETE_CSV = INCOMPLETE_CSV + 'Validity: 30 days\nLead time: 3 weeks\nWarranty: 2 years materials and workmanship\nPrices exclude VAT\n';
+// THE TERMS ARE REASONED in production (reasoned_suppliers.ts quoteTerms, founder_instruction 886-903); here the
+// model is mocked: each fixture gets the answer a model gives it, selected by which fixture it is.
+const COMPLETE_TERMS = { validity: '30 days', lead_time: '3 weeks', warranty: '2 years materials and workmanship' };
+const PDF_TERMS = { validity: '30 days', lead_time: '4 weeks from LPO', payment_terms: '50% advance, 50% on completion' };
+const mockedModel = (text: string) => Promise.resolve(text.includes('Validity: 30 days') ? COMPLETE_TERMS : {});
+const pdfModel = () => Promise.resolve(PDF_TERMS);
 function harness(inq = inquiry()) {
   const mem = memoryReviewRepo(() => new Date('2026-09-15T10:00:00Z'));
   const submitted: Record<string, unknown>[] = [];
@@ -154,7 +160,7 @@ function harness(inq = inquiry()) {
       const s = sanitizeUpload({ input: data, declaredMime: mime, filename, allow: SAFE_DOCS });
       return Promise.resolve(s.ok ? { ok: true as const, bytes: s.bytes, mime: s.mime, name: filename } : { ok: false as const, status: 415, code: String(s.error), message: 'refused' });
     },
-    read: (bytes, name, mime) => readQuotationFile(bytes, name, mime, ['ZZ DEMO Paint Co']),
+    read: (bytes, name, mime) => readQuotationFile(bytes, name, mime, ['ZZ DEMO Paint Co'], mockedModel),
     submit(p) { submitted.push(p); return Promise.resolve({ status: 200, json: { ok: true, accepted: true, quote: { id: 'q-1', option_no: 1, status: 'submitted' } } }); },
     quotePdf: () => Promise.resolve({ url: 'https://example.invalid/q.pdf', ref: 'QD-3F2A9C1E-S' }),
     now: () => new Date('2026-09-15T10:00:00Z'),
@@ -392,11 +398,19 @@ const gypsumInquiry = (): SafeInquiry => ({
     { section: 'Ceilings', description: 'Gypsum bulkhead, 300mm drop, painted finish', qty: 64, unit: 'm' },
   ], boq_withheld: false, concluded: false, revealed: false,
 });
-const gypsumHarness = () => { const h = harness(gypsumInquiry()); h.deps.read = (b, n, m) => readQuotationFile(b, n, m, ['ZZ DEMO Interiors gypsum founderdemo']); return h; };
+const gypsumHarness = () => { const h = harness(gypsumInquiry()); h.deps.read = (b, n, m) => readQuotationFile(b, n, m, ['ZZ DEMO Interiors gypsum founderdemo'], pdfModel); return h; };
+
+Deno.test('held: with no reasoned terms the prices are still read, and the terms are asked, never read off a label', async () => {
+  const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo'], () => Promise.resolve(null));
+  assertEquals(read.proposal!.price_ex_vat, 65960);
+  assertEquals([read.proposal!.validity, read.proposal!.lead_time, read.proposal!.payment_terms], ['', '', '']);
+  const codes = reviewQuotation(gypsumInquiry(), workingFromProposal(read.proposal!, read.text)).issues.map((i) => i.code);
+  assert(codes.includes('validity') && codes.includes('delivery'), JSON.stringify(codes));
+});
 
 Deno.test('finding 1: the auditor\'s text PDF is read — every line priced, VAT, validity and lead time seen; only what it does not say is asked', async () => {
   const pdf = await fixture('ZZDEMO_quotation_D958E1EA.pdf');
-  const read = await readQuotationFile(pdf, 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo']);
+  const read = await readQuotationFile(pdf, 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo'], pdfModel);
   assert(read.proposal, 'the PDF must yield a proposal');
   assertEquals(read.proposal.line_items.map((l) => l.amount), [30400, 27880, 7680]);
   assertEquals(read.proposal.price_ex_vat, 65960); assertEquals(read.proposal.vat_treatment, 'exclusive'); assertEquals(read.proposal.vat_amount, 3298);
@@ -560,7 +574,7 @@ Deno.test('finding 4 + 28: the generated quotation says what the approval said �
 
 Deno.test('finding 4: a BOQ line excluded in the chat leaves the quotation and the total — never "excluded" and priced at once', async () => {
   const inq = gypsumInquiry();
-  const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo']);
+  const read = await readQuotationFile(await fixture('ZZDEMO_quotation_D958E1EA.pdf'), 'ZZDEMO_quotation_D958E1EA.pdf', 'application/pdf', ['ZZ DEMO Interiors gypsum founderdemo'], pdfModel);
   const w0 = workingFromProposal(read.proposal!, read.text);
   const open = reviewQuotation(inq, w0).issues;
   const w1 = applyCorrections(w0, readReply('BOQ line 3 excluded — by others. line 1 thickness: 12.5mm', open).corrections, inq.boq_rows);

@@ -25,6 +25,8 @@ import { observe } from '../_shared/observe.ts';
 import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -326,14 +328,15 @@ Deno.serve(observe('site_assistant', async (req) => {
     // a published company cost guide at AED 35-70/sqm dated 28 June 2026. Exactly one routine and
     // one edge function read that table, and neither was the seat a customer actually talks to.
     //
-    // fn_price_guidance refuses rather than reaching for a nearest neighbour: a substantive word
-    // from the visitor's own question must appear in the trade or the item, the four trades with a
-    // deliberate `gap` row return that gap instead of a substituted trade, and any word it found
-    // nothing for comes back in unmatched_terms so the answer can say so out loud.
+    // fn_price_guidance refuses rather than reaching for a nearest neighbour: it is given the trade the
+    // reasoning chose (never a word match), the four trades with a deliberate `gap` row return that gap
+    // instead of a substituted trade, and a question about no published trade gets no band at all.
     let priceCtx = '';
     let priceBands: any = null;
     try {
-      const { data: pg } = await admin.rpc('fn_price_guidance', { p_question: message, p_limit: 6 });
+      // Which trade (if any) the visitor asks the price of is REASONED (think(), reasoned_suppliers.ts;
+      // founder_instruction 886-903). Held: no price block, and the visitor is answered from the FAQ and corpus.
+      const pg: any = await priceGuidanceFor(defaultDeps(admin, 'site_assistant'), message, 6, audience === 'unknown' ? 'visitor' : audience);
       priceBands = pg || null;
       if (pg && pg.ok) {
         priceCtx = 'PRICE GUIDANCE (published UAE ranges held by QuotesDone, for the trade "'
