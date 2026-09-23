@@ -258,7 +258,7 @@ begin
             from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
             ('fn_wa_route', 'fn_ceo_command_submit', 'fn_ceo_command_interpret', 'fn_rfq_required_check', 'fn_reason_retrieve',
              'fn_reason_hold', 'fn_reason_held_due', 'fn_reason_held_resolve', 'fn_reason_propose_knowledge', 'fn_reason_held_delivered')),
-    'service_can', has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean)', 'execute'));
+    'service_can', has_function_privilege('service_role', 'public.fn_wa_route(text,text,boolean,boolean,text)', 'execute'));
 
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;

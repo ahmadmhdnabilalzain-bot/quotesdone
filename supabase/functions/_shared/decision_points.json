@@ -224,7 +224,7 @@
     {
      "file": "supabase/functions/wa_inbound/menu_flow.ts",
      "must_contain": [
-      "coverageReply(meaning, await d.trades(), langOf(text))"
+      "coverageReply(intent, await d.trades(), langOf(text))"
      ],
      "must_not_contain": [
       "mightBeCoverage("
@@ -291,7 +291,7 @@
     {
      "file": "supabase/functions/wa_inbound/menu_flow.ts",
      "must_contain": [
-      "(await d.meaning(body)) === 'size'"
+      "(await d.intent(body)) === 'size'"
      ],
      "must_not_contain": [
       "isSizeQuestion("
@@ -2212,7 +2212,7 @@
      "file": "supabase/functions/wa_inbound/menu_flow.ts",
      "must_contain": [
       "if (inp.audience === 'founder' && isFiguresCommand(body)) {",
-      "  if (isSizeQuestion(body)) {"
+      "  if (!choice && (await d.intent(body)) === 'size') {"
      ],
      "must_not_contain": [
       "isSizeQuestion(body) || isFiguresCommand(body)",
