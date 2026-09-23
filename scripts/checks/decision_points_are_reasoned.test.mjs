@@ -518,3 +518,16 @@ end $p$;`);
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
 });
+
+// Batch 8, the gate the pending note names: once the vector columns exist, no runtime-eligible support or CEO record may
+// be without one (it would be invisible: those packs are read by meaning only). Before the apply the columns do not
+// exist and there is nothing to measure yet; the check says so rather than passing silently.
+test('production: no eligible support or ceo record is without its gte-small vector', { skip: hasToken ? false : 'no Supabase management token' }, async (t) => {
+  const { sql } = await import('../lib/db.mjs');
+  const [c] = await sql(`select count(*)::int n from information_schema.columns where table_schema = 'public'
+                           and table_name in ('support_knowledge', 'ceo_knowledge') and column_name = 'embedding_gte'`, { readOnly: true });
+  if (c.n < 2) { t.skip('the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql is not applied yet'); return; }
+  const [r] = await sql(`select (select count(*) from public.support_knowledge where runtime_index_eligible and embedding_gte is null)::int s,
+                                 (select count(*) from public.ceo_knowledge where runtime_index_eligible and embedding_gte is null)::int c`, { readOnly: true });
+  assert.deepEqual(r, { s: 0, c: 0 }, 'run node scripts/kb/embed_sales_knowledge.mjs --table=support_knowledge and --table=ceo_knowledge');
+});

@@ -1160,6 +1160,24 @@
    "severity": "low",
    "where": "supabase/functions/_shared/quote_documents.ts",
    "decides": "arDuration / EMIRATES: duration and emirate read from free text (format parsing if the text is a structured value; meaning if free text) — found by B7"
+  },
+  {
+   "id": "resend_inbound.unsubscribe_request",
+   "order": 84,
+   "status": "pending",
+   "seat": "customer_support",
+   "severity": "med",
+   "where": "supabase/functions/_shared/unsubscribe_mailbox.ts",
+   "decides": "isUnsubscribeRequest: words in the subject/body decide that an email asks to be unsubscribed (found by batch 8 in resend_inbound)"
+  },
+  {
+   "id": "marketing.calendar_reply_intent",
+   "order": 85,
+   "status": "pending",
+   "seat": "marketing",
+   "severity": "med",
+   "where": "supabase/functions/_shared/marketing_calendar_mail.ts",
+   "decides": "replyIntent: a word list decides that the founder's reply approves the monthly social calendar (found by batch 8 in resend_inbound)"
   }
  ]
 }
