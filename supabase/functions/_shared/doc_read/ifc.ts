@@ -261,5 +261,39 @@ export async function readIfc(bytes: Uint8Array, _ctx: ReadContext, maxEntities 
   else if (!sums.size) notes.push('The model states no IfcElementQuantity (exported without base quantities): element counts only; areas and volumes would need its geometry measured.');
   if (bad) notes.push(`${bad} malformed instances were skipped.`);
   if (capped) notes.push(`The model has more than ${maxEntities} instances; reading stopped there, so counts are partial.`);
-  return ok({ ...empty('ifc', notes), text: text.join('').trimEnd(), quantities });
+  return ok({ ...empty('ifc', notes), text: text.join('').trimEnd(), quantities, identity_terms: identityTermsOf(src, insts) });
+}
+
+// ── IDENTITY TERMS (23 Sep 2026, sales_engineer; founder 696/698/701/703) ─────────────────────────────
+// What the model says about its own job and authors, returned as identity_terms so drawing_boq's gate
+// (_shared/drawing_identity_gate.ts) redacts and re-reads the take-off with them. Computed HERE, from the
+// instances already parsed, so an IFC is decoded and parsed once per request (independent review: a second pass
+// over a 24 MB model doubled CPU on an edge function with a hard CPU cap). Sources (ISO 16739):
+//   HEADER FILE_NAME        author list, organisation list, authorisation
+//   IfcProject / IfcSite / IfcBuilding   Name, Description, LongName
+//   IfcPerson, IfcOrganization, IfcActorRole, IfcPostalAddress, IfcTelecomAddress, IfcPersonAndOrganization
+//   (every string: names, ids, address lines, phones, e-mails, web addresses)
+// A storey or a type is not a SOURCE (usually "Level 1" / "Basic Wall 200mm") but the gate SCANS it, so a
+// storey named after the project is caught by the project's own terms.
+const PARTY_TYPES = new Set(['IFCPERSON', 'IFCORGANIZATION', 'IFCACTORROLE', 'IFCPOSTALADDRESS', 'IFCTELECOMADDRESS', 'IFCPERSONANDORGANIZATION']);
+const GENERIC_PLACE = /^(?:default|site|building|project|my\s+project|unnamed|project\s+name|level\s*\d*|n\/?a)$/i;
+const allStrings = (v: StepValue | undefined, out: string[] = []): string[] => {
+  if (typeof v === 'string') out.push(v);
+  else if (Array.isArray(v)) v.forEach((x) => allStrings(x, out));
+  else if (v && typeof v === 'object' && 't' in v) allStrings((v as { v: StepValue }).v, out);
+  return out;
+};
+function identityTermsOf(src: string, insts: Map<number, Inst>): string[] {
+  const out = new Set<string>();
+  const add = (v: string) => { const t = v.replace(/\s+/g, ' ').trim(); if (t.length >= 3 && !GENERIC_PLACE.test(t)) out.add(t); };
+  const fn = /FILE_NAME\s*\(([\s\S]*?)\)\s*;/i.exec(src.slice(0, 16384))?.[1] ?? '';
+  const q = (s: string) => [...s.matchAll(/'((?:[^']|'')*)'/g)].map((m) => decodeStepString(m[1].replace(/''/g, "'")));
+  for (const g of (fn.match(/\(([^()]*)\)/g) ?? []).slice(0, 2)) q(g).forEach(add);
+  const auth = q(fn).pop(); if (auth) add(auth);
+  for (const [, x] of insts) {
+    if (PARTY_TYPES.has(x.t)) allStrings(x.a).forEach(add);
+    else if (x.t === 'IFCPROJECT') [2, 3, 5].forEach((i) => allStrings(x.a[i]).forEach(add));
+    else if (x.t === 'IFCSITE' || x.t === 'IFCBUILDING') [2, 3, 7].forEach((i) => allStrings(x.a[i]).forEach(add));
+  }
+  return [...out];
 }
