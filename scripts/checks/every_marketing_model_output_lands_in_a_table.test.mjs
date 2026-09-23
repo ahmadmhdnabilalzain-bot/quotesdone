@@ -35,7 +35,7 @@ function acceptBody() {
 
 test('every model step names a table, a registered class, and the accept routine writes that table', () => {
   const s = steps();
-  assert.ok(s.length >= 7, `marketing_judgement.ts STEPS has ${s.length} steps; the seat's judgement is not built`);
+  assert.ok(s.length >= 6, `marketing_judgement.ts STEPS has ${s.length} steps; the seat's judgement is not built`);
   const body = acceptBody();
   assert.ok(body, 'fn_marketing_step_accept is not defined in any scripts/sql file');
   const bad = [];

@@ -99,22 +99,21 @@ export const DUTIES: Duty[] = [
   },
   {
     // Items 6 (perception), 7 (synthesis), 8 (quality review), 9 (verdict, plan, defence): whatever is due, at
-    // most 1 per beat. The CEO's turn is never run here — it is the CEO's, in ceo_agent; this only reports it due
-    // so resilience_ping hands it to the CEO's own function.
+    // most 1 per beat. The CEO's review is never run here: it is a seat_deliberation (founder_instruction 873),
+    // advanced by resilience_ping on another model family, and 'plan_loop' below reads its verdict back.
     name: 'judgement',
     run: async (ctx) => {
       const { data, error } = await ctx.admin.rpc('fn_marketing_steps_due', { p_at: ctx.now.toISOString() });
       if (error) throw new Error('fn_marketing_steps_due: ' + error.message);
-      const due = (data || []) as Array<{ step: Step; subject: string; seat: string }>;
-      const deps = marketingDeps(ctx);
+      const due = (data || []) as Array<{ step: Step; subject: string }>;
       const ran = [];
-      for (const d of due.filter((x) => x.seat === 'marketing').slice(0, 1)) ran.push(await runStep(deps, 'marketing', d.step, d.subject));
-      const ceo = due.find((d) => d.seat === 'ceo');
-      return { due: due.length, ran, ceo_turn_due: ceo ? ceo.subject : null };
+      for (const d of due.slice(0, 1)) ran.push(await runStep(marketingDeps(ctx), 'marketing', d.step, d.subject));
+      return { due: due.length, ran };
     },
   },
   {
-    // Item 9, the originator's side: close an agreed review with the CEO and send the brief to the founder once.
+    // Item 9, the author's side: send a waiting plan into the CEO's review (seat_deliberation), take each CEO
+    // verdict back into marketing_plan_review_turn, close the deliberation once agreed, send the brief once.
     name: 'plan_loop',
     run: async (ctx) => {
       const { data, error } = await ctx.admin.rpc('fn_marketing_plan_loop_tick');

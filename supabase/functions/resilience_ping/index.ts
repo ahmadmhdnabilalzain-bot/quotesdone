@@ -13,6 +13,7 @@ import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
+import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -447,22 +448,8 @@ async function marketingTick(): Promise<unknown> {
     });
     // deno-lint-ignore no-explicit-any
     const j = await r.json().catch(() => null) as any;
-    // THE CEO'S TURN on the marketing plan (founder instruction 866) is the CEO's, so it runs in ceo_agent under
-    // the CEO's credential — never inside the marketing seat. The marketing duty only reports it due.
-    const month = j?.result?.results?.judgement?.ceo_turn_due;
-    let ceoTurn: unknown = null;
-    if (month) {
-      const c = await fetch(FN + '/ceo_agent', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'marketing_plan_review', month }),
-        signal: AbortSignal.timeout(50000),
-      });
-      // deno-lint-ignore no-explicit-any
-      const cj = await c.json().catch(() => null) as any;
-      ceoTurn = { status: c.status, outcome: cj?.review?.outcome ?? null };
-    }
     return { status: r.status, ok: r.ok && j?.ok !== false, duties: j?.result?.duties ?? null,
-             failing: j?.result?.failing ?? null, report: j?.result?.tick?.report ?? null, ceo_marketing_turn: ceoTurn,
+             failing: j?.result?.failing ?? null, report: j?.result?.tick?.report ?? null,
              ...(r.ok ? {} : { error: 'marketing ' + r.status }) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
@@ -1018,6 +1005,12 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   });
   // Its own step, never behind fn_it_restore_table_due: a drill that stops completing is a finding.
   await step('restore_overdue', async () => rpc('fn_it_restore_table_overdue'));
+  // Two seats never agree on one model family (founder_instruction 873). The review steps are routed and
+  // held in the database (a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql): under the hold each
+  // one records "held, not run" once and costs nothing. Then the agreement monitor: a reviewer approving
+  // >= 90% of >= 10 proposals, or a review with no independent model, is a finding for the CEO.
+  await step('deliberations', async () => advanceOpenDeliberations(admin, 3));
+  await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');

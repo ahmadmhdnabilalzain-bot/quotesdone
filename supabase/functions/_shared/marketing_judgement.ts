@@ -1,4 +1,5 @@
-// marketing_judgement — THE ONE PLACE a marketing-seat model step (or the CEO's turn on the marketing plan) is run.
+// marketing_judgement — THE ONE PLACE a marketing-seat model step is run. (The CEO's review of the monthly plan is
+// NOT here: it is a seat_deliberation on another model family, founder_instruction 873 — see the SQL file's adapter.)
 // marketing, 23 Sep 2026; founder instructions 865, 866, 867.
 // scripts/sql/the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql
 //
@@ -8,7 +9,7 @@
 //      "held, not run" row per step, subject and day, and nothing else is written. No gateway round trip.
 //   3. ONE gateway call through _shared/llm.ts with the step's own task_class and dept 'marketing' (the ceiling),
 //      then fn_marketing_step_accept validates the JSON and writes the step's table, or records why not.
-// The seat is checked twice: here (a seat cannot run the other seat's step) and in the accept routine.
+// The seat is checked twice: here and in the accept routine.
 //
 // WATCHING (867). gpt-5.6-sol cannot hear or watch video, so the 'watch' step sends the WHOLE master (with its
 // soundtrack) to marketing_watch (google/gemini-3.8-flash) as a base64 data URL — OpenRouter's Gemini providers
@@ -17,8 +18,8 @@
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export type Seat = 'marketing' | 'ceo';
-export type Step = 'watch' | 'quality_review' | 'research' | 'evaluate' | 'plan' | 'plan_defend' | 'ceo_review';
+export type Seat = 'marketing';
+export type Step = 'watch' | 'quality_review' | 'research' | 'evaluate' | 'plan' | 'plan_defend';
 
 /** step -> who runs it, its model_policy class, and the table its answer lands in. The check
  *  scripts/checks/every_marketing_model_output_lands_in_a_table.test.mjs reads this map. */
@@ -29,7 +30,6 @@ export const STEPS: Record<Step, { seat: Seat; taskClass: string; table: string 
   evaluate:       { seat: 'marketing', taskClass: 'marketing_evaluate',       table: 'marketing_month_plan' },
   plan:           { seat: 'marketing', taskClass: 'marketing_plan',           table: 'marketing_plan_review_turn' },
   plan_defend:    { seat: 'marketing', taskClass: 'marketing_plan_defend',    table: 'marketing_plan_review_turn' },
-  ceo_review:     { seat: 'ceo',       taskClass: 'ceo_marketing_review',     table: 'marketing_plan_review_turn' },
 };
 
 export const MAX_VIDEO_BYTES = 8 * 1024 * 1024; // the 12 masters are 3.0-4.1 MB; a bigger file is refused, not sent
@@ -96,8 +96,6 @@ export async function runStep(deps: Deps, seat: Seat, step: Step, subject: strin
   if (error || !req) throw new Error('fn_marketing_step_request: ' + (error?.message || 'nothing'));
   // deno-lint-ignore no-explicit-any
   const r = req as any;
-  // a class over its own monthly ceiling (the CEO's review: AED 50) is recorded "capped, not run"
-  if (r.capped) return { step, subject, ...(await accept(null, 'capped', String(r.reason || 'class ceiling reached'))) };
   if (r.task_class !== def.taskClass) throw new Error(`request class ${r.task_class} is not ${def.taskClass}`);
 
   let msgs;

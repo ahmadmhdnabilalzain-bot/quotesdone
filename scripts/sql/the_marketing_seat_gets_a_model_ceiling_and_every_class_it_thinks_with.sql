@@ -16,7 +16,7 @@
 -- WHAT THIS CHANGES
 --   1. The ceiling: AED 150/month (degrade 70 %, halt 85 % unchanged). Arithmetic below.
 --   2. The orphan: marketing_draft carries dept_key 'marketing'.
---   3. Seven task classes in model_policy, each with its reason (the founder's ruling: customer-facing or a
+--   3. Six task classes in model_policy, each with its reason (the founder's ruling: customer-facing or a
 --      judgement -> openai/gpt-5.6-sol, purely internal -> z-ai/glm-5.3-flash; 867: perception -> a model that
 --      can watch AND listen).
 --   4. fn.marketing may present its credential to ai_gateway (widened, not a second credential -- the same
@@ -37,20 +37,18 @@
 --   marketing_research (weekly)           20,000    2,000     0.0600      4.3      0.95      2.53
 --   marketing_evaluate (monthly)          15,000    3,000     0.0600      1        0.22      0.55
 --   marketing_plan + _defend (<=3 turns)  15,000    3,000     0.0600      3        0.66      1.65
---   ceo_marketing_review, opus (<=3)      15,000    3,000     0.1200      3        1.32      3.30   (class cap AED 50)
---                                                                     TOTAL      5.15     12.51
+--   the CEO's review, opus (<=3 rounds)  14,000    2,000     0.0960      3        1.06      2.10   (873's own class and cap)
+--                                                                     TOTAL      4.89     11.31
 -- Worst case: every call fails over once to opus-5.5 (2x price) and reasoning triples output: ~AED 25/month.
 -- The audit's ~AED 28 (sol, before reasoning overhead) assumed daily copy drafting as well; with that added
 -- the realistic bound is ~AED 55-85. AED 150 leaves the degrade line (AED 105) above the worst case measured
--- here, so the ceiling bounds a runaway loop, not normal work. The CEO's review turn is charged to 'marketing'
--- (ceo_agent passes dept 'marketing'): the whole month's planning conversation sits under ONE ceiling.
+-- here, so the ceiling bounds a runaway loop, not normal work.
 --
--- THE CEO'S REVIEW MODEL (founder_instruction 873 + the founder's approval, 23 Sep 2026): the reviewer runs on a
--- DIFFERENT model family from the author. Marketing thinks on openai/ and watches on google/, so the CEO's
--- ceo_marketing_review runs on anthropic/claude-opus-5.5 (fallback anthropic/claude-sonnet-5), capped at AED 50 a
--- month for the class (fn_marketing_class_ceiling, in the other file) inside the marketing ceiling. The general
--- cross-seat review build (it_engineer, seat_deliberation) will enforce the family rule for every seat; this row
--- already satisfies it.
+-- THE CEO'S REVIEW IS NOT A CLASS OF THIS SEAT (founder_instruction 873 and the founder's approval, 23 Sep 2026).
+-- It runs on the company's one review machine (it_engineer, a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql,
+-- applied BEFORE this file): blind first, on a DIFFERENT family from the author (marketing writes on Sol -> the CEO
+-- reviews on anthropic/claude-opus-5.5), capped at AED 50/month for marketing -> ceo, charged to marketing. Its row
+-- above is priced from that file's own estimate (USD 0.096 a round) so the ceiling here covers it.
 
 -- ── 1. THE CEILING ───────────────────────────────────────────────────────────────────────────────
 update public.department_budget set monthly_aed = 150, updated_at = now() where dept_key = 'marketing';
@@ -73,9 +71,7 @@ insert into public.model_policy (task_class, tier, model_primary, model_fallback
  ('marketing_plan', 'large', 'openai/gpt-5.6-sol', 'anthropic/claude-opus-5.5', 4000,
   'The next month''s plan and content brief (topics, formats, music, voice-over, length, count, cadence), proposed to the CEO with its reasons and evidence (866). A JUDGEMENT; the brief is what the founder produces the videos from. 4000 tokens: the plan plus its reasoning, bounded.', null, true, 0),
  ('marketing_plan_defend', 'large', 'openai/gpt-5.6-sol', 'anthropic/claude-opus-5.5', 3000,
-  'Marketing''s answer to EACH of the CEO''s asks: concede and adjust, or defend with evidence (866). A JUDGEMENT, same row as the plan it defends.', null, true, 0),
- ('ceo_marketing_review', 'xlarge', 'anthropic/claude-opus-5.5', 'anthropic/claude-sonnet-5', 3000,
-  'The CEO judging marketing''s plan on five criteria (goal, evidence strength, production cost, truth and brand fit, risk if wrong) from the same videos, frames and results marketing used (866, 867). THE FOUNDER APPROVED THIS MODEL, 23 Sep 2026: anthropic/claude-opus-5.5, because ruling 873 requires the reviewer to run on a DIFFERENT model family from the author (marketing thinks on openai/ and watches on google/). The fallback stays anthropic (sonnet-5) for the same reason: a fallback onto openai/ would review marketing with marketing''s own model. Capped at AED 50/month for this class (fn_marketing_class_ceiling), inside the marketing ceiling; spend is logged by ai_gateway through fn_llm_log into ai_cost_log.', null, true, 0)
+  'Marketing''s answer to EACH of the CEO''s asks: concede and adjust, or defend with evidence (866). A JUDGEMENT, same row as the plan it defends.', null, true, 0)
 on conflict (task_class) do update set tier = excluded.tier, model_primary = excluded.model_primary,
   model_fallback = excluded.model_fallback, max_tokens = excluded.max_tokens, rationale = excluded.rationale,
   deterministic_alternative = excluded.deterministic_alternative, active = excluded.active, cache_ttl_min = excluded.cache_ttl_min;
@@ -92,10 +88,8 @@ select case
   when exists (select 1 from public.fn_task_class where (fn like 'marketing%' or task_class like 'marketing%') and dept_key is distinct from 'marketing')
     then 'PROBE FAILED: a marketing task class is still outside the marketing ceiling'
   when (select count(*) from public.model_policy where active and task_class in ('marketing_watch','marketing_quality_review',
-        'marketing_research','marketing_evaluate','marketing_plan','marketing_plan_defend','ceo_marketing_review')) <> 7
-    then 'PROBE FAILED: not all seven classes are active in model_policy'
-  when (select model_primary from public.model_policy where task_class = 'ceo_marketing_review') not like 'anthropic/%'
-    then 'PROBE FAILED: the CEO reviewer is not on a different family from the marketing author (873)'
+        'marketing_research','marketing_evaluate','marketing_plan','marketing_plan_defend')) <> 6
+    then 'PROBE FAILED: not all six classes are active in model_policy'
   when not exists (select 1 from public.internal_credential where context = 'fn.marketing' and active and scope @> array['ai_gateway'])
     then 'PROBE FAILED: fn.marketing cannot present to ai_gateway'
   when exists (select 1 from public.llm_route_health where open_until is null or open_until < now() + interval '50 years')
