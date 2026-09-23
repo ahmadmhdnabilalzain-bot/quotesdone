@@ -1,6 +1,6 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { deliverReasoned, type DeliveryIO } from './reasoned_delivery.ts';
+import { deliverReasoned, holdingNotice, type DeliveryIO } from './reasoned_delivery.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
 
 function io(windowOpen: boolean) {
@@ -63,6 +63,16 @@ Deno.test('a public comment reasoned to need a person gets the private handoff; 
   const no = await deliverReasoned(row('marketing_social.comment_needs_a_person', 'is it legal to paint a villa blue?', { platform: 'youtube', message_id: 'c2' }), answered('no_person'), x);
   assertEquals([no.delivered, no.via], [false, 'none']);
   assertEquals(log, ['comment youtube c1']);
+});
+
+Deno.test('escalated at 48 hours: a WhatsApp customer is told a person is handling it; a row with no customer channel sends nothing', async () => {
+  const { x, log } = io(true);
+  const d = await holdingNotice({ id: 9, surface: 'wa_inbound.needs_a_person', question: 'where is my quote?', subject: { phone: '+971500000001' } }, x);
+  assertEquals([d.delivered, d.via], [true, 'whatsapp_text']);
+  assertMatch(log[0], /^text \+971500000001 Thank you for your patience\. Your question is now with our team/);
+  const none = await holdingNotice({ id: 10, surface: 'ceo.command_intent', question: 'stop the campaign', subject: { command_id: 1 } }, x);
+  assertEquals([none.delivered, none.via], [false, 'none']);
+  assertEquals(log.length, 1);
 });
 
 Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same window rule', async () => {
