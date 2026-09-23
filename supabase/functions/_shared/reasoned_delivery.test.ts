@@ -13,6 +13,12 @@ function io(windowOpen: boolean) {
     reportToCeo: (k) => { log.push('ceo ' + k); return Promise.resolve(); },
     socialHandoff: (s) => { log.push('social ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
     socialCommentHandoff: (s) => { log.push('comment ' + s.platform + ' ' + s.message_id); return Promise.resolve({ ok: true }); },
+    accountantSweep: (id) => { log.push('sweep ' + id); return Promise.resolve({ ok: true, found: true, verdict: 'booked' }); },
+    receiptToBookkeeper: (id) => { log.push('bookkeeper ' + id); return Promise.resolve({ ok: true }); },
+    outreachPage: () => Promise.resolve({ full_name: 'ZZ DEMO Sara', language: 'en' as const }),
+    outreachReasoned: (t, c, f) => { log.push(`outreach ${t} ${c} ${f ? 'draft' : 'none'}`); return Promise.resolve({ ok: true }); },
+    arabicFinishReady: () => { log.push('arabic ready'); return Promise.resolve({ ok: true }); },
+    socialCommentClassified: (s, c) => { log.push('classified ' + s.platform + ' ' + s.message_id + ' ' + c); return Promise.resolve({ ok: true }); },
   };
   return { x, log };
 }
@@ -78,4 +84,54 @@ Deno.test('a held ANSWER on WhatsApp goes back as the answer, under the same win
     answered(null, 'In Dubai private pools need a DM permit; which emirate is the villa in?'), x);
   assertEquals(d.via, 'whatsapp_template');
   assertMatch(log[0], /\[what depth can my pool be\?\] In Dubai/);
+});
+
+// Batch 8 (accountant + marketing): the effect of an expense or outreach reasoning, reached through deliverReasoned.
+Deno.test('an expenses-mailbox email reasoned to be a receipt re-runs the accountant sweep; one reasoned "other" goes to the bookkeeper', async () => {
+  const { x, log } = io(true);
+  const sub = { email_id: 'zz-demo-e1', mailbox: 'expenses', provider_email_id: 'zz-demo-e1' };
+  const yes = await deliverReasoned(row('accountant.document_kind', 'Fw: receipt', sub), answered('receipt_monthly', 'A monthly subscription receipt.'), x);
+  assertEquals([yes.delivered, yes.via], [true, 'accountant_sweep']);
+  const no = await deliverReasoned(row('accountant.document_kind', 'Fw: hello', sub), answered('other', 'Not an expense.'), x);
+  assertEquals([no.delivered, no.via], [true, 'bookkeeper'], 'an expenses-mailbox email reasoned "other" still reaches a person');
+  const other = await deliverReasoned(row('accountant.receipt_vendor', 'Fw: invoice', { email_id: 'zz-demo-e2', mailbox: 'other', provider_email_id: 'zz-demo-e2' }), answered('Apify', 'Apify issued it.'), x);
+  assertEquals([other.delivered, other.via], [true, 'bookkeeper']);
+  assertEquals(log, ['sweep zz-demo-e1', 'bookkeeper zz-demo-e1', 'bookkeeper zz-demo-e2']);
+});
+
+Deno.test('a LinkedIn reply reasoned after the hold gets its class and its drafted follow-up', async () => {
+  const { x, log } = io(true);
+  const d = await deliverReasoned(row('marketing.outreach_reply', 'thanks, not for now', { mark_token: 'zz-tok' }), answered('later', 'Not now, not a refusal.'), x);
+  assertEquals([d.delivered, d.via], [true, 'outreach_follow_up']);
+  assertEquals(log, ['outreach zz-tok later draft']);
+});
+
+Deno.test('a held Arabic translation: a waiting regenerated quotation is rendered and asked for approval; anything else was already stored', async () => {
+  const { x, log } = io(true);
+  const r = (subject: Record<string, unknown>): HeldRow => ({ id: 9, seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', subject, request: { seat: 'sales_engineer', surface: 'sales_engineer.document_arabic', question: 'x' } });
+  // whoever filed the lines first (another document, another quote), every waiting quotation is looked up by its own id
+  const d = await deliverReasoned(r({ sources: ['a'], inquiry_id: 'zz-other-document' }), answered(null, '{"1":"أ"}'), x);
+  assertEquals([d.delivered, log], [true, ['arabic ready']]);
+  const { x: bare } = io(true); delete (bare as Partial<DeliveryIO>).arabicFinishReady;
+  assertEquals((await deliverReasoned(r({ sources: ['a'] }), answered(null), bare)).delivered, false);
+});
+
+Deno.test('a public comment whose CLASS was held runs through the comment policy with the reasoned class, once', async () => {
+  const { x, log } = io(true);
+  const d = await deliverReasoned(row('marketing_social.comment_classify', 'I need a quote for my villa', { platform: 'instagram', message_id: 'c9' }), answered('sales_lead'), x);
+  assertEquals([d.delivered, d.via], [true, 'social']);
+  assertEquals(log, ['classified instagram c9 sales_lead']);
+  const none = await deliverReasoned(row('marketing_social.comment_classify', 'x', { platform: 'instagram', message_id: 'c10' }), answered(null), x);
+  assertEquals([none.delivered, none.via], [false, 'none']);
+  assertEquals(log.length, 1);
+});
+
+Deno.test('the website widget: a visitor reasoned to have asked for a person is reported to the CEO; otherwise nothing', async () => {
+  const { x, log } = io(true);
+  const yes = await deliverReasoned(row('site_assistant.person', 'can I talk to someone real please', { path: '/pricing' }), answered('needs_a_person'), x);
+  assertEquals([yes.delivered, yes.via], [true, 'none']);
+  assertEquals(log, ['ceo widget:person:held:7']);
+  const no = await deliverReasoned(row('site_assistant.person', 'how do fees work?', { path: '/' }), answered('no_person'), x);
+  assertEquals(no.delivered, false);
+  assertEquals(log.length, 1);
 });

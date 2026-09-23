@@ -37,7 +37,7 @@ import { needsChecklist, withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { requestDelivery } from '../deliver.ts';
-import { quoteDocument, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
+import { quoteDocument, type ArTexts, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
 
 export type QuoteRow = Terms & {
   id: string; inquiry_id: string; supplier_id: number; status: string; option_no: number; submission_id: string | null;
@@ -213,7 +213,11 @@ export function standardise(q: QuoteRow, lines: Line[], a: Assessment, ctx: Ctx)
  * pdf_url for approval. Prevented by pdf_native/every_document_we_issue.test.ts and
  * scripts/checks/every_pdf_we_issue_is_on_our_template.mjs (renders this body and asserts content).
  */
-export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar' }) {
+export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar'; arTexts?: ArTexts }) {
+  return pdfDoc(s, args).body;
+}
+/** The whole quoteDocument result (body + the lines an Arabic page still needs translated by reasoning). */
+export function pdfDoc(s: Standardised, args: { inquiry: InquiryRow; letter: string; lang: 'en' | 'ar'; arTexts?: ArTexts }) {
   // Installation arrives as the structured fields standardise() wrote (decision point
   // line_specs.workflow_installation: it used to be read back off our own sentence by its first word).
   // Warranty is still one sentence, split on the separator standardise() itself put there.
@@ -230,11 +234,16 @@ export function pdfBody(s: Standardised, args: { inquiry: InquiryRow; letter: st
     unit_price: l.unit_price == null ? null : Number(l.unit_price), amount: l.amount == null ? null : Number(l.amount),
     specs: Object.fromEntries(l.spec.map((x) => [x.code, `${x.value}${x.unit ? ' ' + (args.lang === 'ar' ? x.unit_ar ?? x.unit : x.unit) : ''}`])),
   }));
-  const { body } = quoteDocument({ quote, inquiry: { ...args.inquiry, summary: null }, items, letter: args.letter, lang: args.lang });
-  return body;
+  return quoteDocument({ quote, inquiry: { ...args.inquiry, summary: null }, items, letter: args.letter, lang: args.lang, arTexts: args.arTexts });
 }
 
-export type Render = (s: Standardised) => Promise<{ bucket: string; path: string } | null>;
+/** 'arabic_pending': an Arabic quotation whose lines are not all translated by reasoning yet (decision point
+ * trade_glossary_ar). The quotation is NOT sent for approval without its PDF: the hold keeps state
+ * 'awaiting_approval' (every live-hold reader stays correct) with regenerated.arabic_pending = true, no approval
+ * notice goes out, approve() refuses it, and finishArabic() renders it and sends the notice when the Arabic exists. */
+export type Render = (s: Standardised) => Promise<{ bucket: string; path: string } | 'arabic_pending' | null>;
+/** True while a regenerated quotation waits for its reasoned Arabic. */
+export const arabicPending = (h: HoldRow | null | undefined) => !!(h?.regenerated && (h.regenerated as { arabic_pending?: boolean }).arabic_pending === true);
 
 /** WAY OUT (a): the supplier fills in what was missing on the portal. */
 export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier, values: FillValues, ctx: Ctx, render?: Render) {
@@ -294,12 +303,35 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   }
   // Complete: the sales engineer regenerates the standardised quotation and asks the supplier to approve it.
   const record = standardise(q1, next, a1, ctx);
-  let pdf: { bucket: string; path: string } | null = null;
-  try { pdf = render ? await render(record) : null; } catch (_e) { pdf = null; }
+  let rendered: Awaited<ReturnType<Render>> = null;
+  try { rendered = render ? await render(record) : null; } catch (_e) { rendered = null; }
+  if (rendered === 'arabic_pending') {
+    await repo.updateHold(hold.id, { state: 'awaiting_approval', missing: [], supplier_values: history, regenerated: { ...record, arabic_pending: true }, regenerated_at: record.prepared_at, pdf_bucket: null, pdf_path: null });
+    await repo.log({ signal: 'spec_hold_arabic_pending', quote_id: quoteId, hold_id: hold.id }, `Supplier completed every required detail on quote ${quoteId}; the Arabic quotation waits for its reasoned translation, so no approval request was sent without its PDF.`);
+    return { ok: true as const, complete: true as const, regenerated: record, pdf: null, arabic_pending: true as const };
+  }
+  const pdf = rendered;
   await repo.updateHold(hold.id, { state: 'awaiting_approval', missing: [], supplier_values: history, regenerated: record, regenerated_at: record.prepared_at, pdf_bucket: pdf?.bucket ?? null, pdf_path: pdf?.path ?? null });
   const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_regenerated', approvalNotice(langOf(supplier), ctx.ref)));
   await repo.log({ signal: 'spec_hold_regenerated', quote_id: quoteId, hold_id: hold.id, pdf: pdf ? 1 : 0, delivery_requests: ids.length }, `Supplier completed every required detail on quote ${quoteId}; the standardised quotation was regenerated${pdf ? ' with its PDF' : ' (PDF not produced)'} and the approval request went to customer_support for email and WhatsApp.`);
   return { ok: true as const, complete: true as const, regenerated: record, pdf };
+}
+
+/** The replay's effect for a regenerated quotation that waited for its Arabic: render it now (the reasoned Arabic
+ * is in the cache), then send the approval request exactly as fillIn would have. Still missing → stays pending. */
+export async function finishArabic(repo: SpecRepo, quoteId: string, supplier: Supplier, ctx: Ctx, render: Render) {
+  const q = await repo.quote(quoteId);
+  if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
+  const hold = await repo.liveHold(quoteId);
+  if (!hold || hold.state !== 'awaiting_approval' || !arabicPending(hold)) return { ok: false as const, code: 'not_pending' as const };
+  const { arabic_pending: _p, ...record } = hold.regenerated as Standardised & { arabic_pending?: boolean };
+  let pdf: Awaited<ReturnType<Render>> = null;
+  try { pdf = await render(record as Standardised); } catch (_e) { pdf = null; }
+  if (!pdf || pdf === 'arabic_pending') return { ok: false as const, code: 'still_pending' as const };
+  await repo.updateHold(hold.id, { regenerated: record, pdf_bucket: pdf.bucket, pdf_path: pdf.path });
+  const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_regenerated', approvalNotice(langOf(supplier), ctx.ref)));
+  await repo.log({ signal: 'spec_hold_regenerated', quote_id: quoteId, hold_id: hold.id, pdf: 1, delivery_requests: ids.length }, `The Arabic quotation for quote ${quoteId} was rendered once its reasoned translation existed, and the approval request went to customer_support.`);
+  return { ok: true as const, pdf };
 }
 
 /**
@@ -319,6 +351,8 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
   if (!hold || hold.state !== 'awaiting_approval') return { ok: false as const, code: 'not_awaiting_approval' as const };
+  // Nothing is approved that the supplier has not been shown: the Arabic quotation is still being translated.
+  if (arabicPending(hold)) return { ok: false as const, code: 'arabic_pending' as const };
   if (confirm !== true) return { ok: false as const, code: 'confirm_required' as const };
   const lines = await repo.lines(quoteId);
   const a = assessQuote({ category: ctx.category, lines, terms: q, requirements: ctx.requirements, checklist: ctx.checklist });
