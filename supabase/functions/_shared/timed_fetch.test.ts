@@ -10,7 +10,17 @@ import { DEFAULT_TIMEOUT_MS, timedFetch } from './timed_fetch.ts';
 // abort-shaped rejection (Deno names it TimeoutError; an older runtime or a polyfill says AbortError),
 // and a 20 s ceiling that only a genuine hang can exceed — 20x the budget, so scheduler noise inside a
 // loaded suite cannot reach it.
-Deno.test('a far end that never answers rejects instead of hanging', async () => {
+// The permission is declared PER TEST rather than by widening the runner's flags. scripts/checks/run.mjs
+// passes a deliberately scoped set (--allow-env, --allow-read and nothing else) and records every
+// widening in its comments; adding --allow-net there would hand network access to all 1,096 tests to
+// satisfy one. Deno grants a test-scoped permission on top of the runner's, so this asks for exactly
+// what the listener below needs and nothing more. Without it CI failed with
+// `NotCapable: Requires net access to "127.0.0.1:0"` while `deno test -A` passed locally — the reason
+// this was not caught before the merge queue.
+Deno.test({
+  name: 'a far end that never answers rejects instead of hanging',
+  permissions: { net: ['127.0.0.1'] },
+  fn: async () => {
   const ln = Deno.listen({ hostname: '127.0.0.1', port: 0 });
   const accepting = (async () => { for await (const c of ln) { void c; /* hold it open, answer nothing */ } })();
   const began = Date.now();
@@ -22,7 +32,8 @@ Deno.test('a far end that never answers rejects instead of hanging', async () =>
   ln.close();
   await accepting.catch(() => {});
   if (!/TimeoutError|AbortError/.test(name)) throw new Error('expected an abort, got: ' + name);
-  if (waited > 20_000) throw new Error('waited ' + waited + 'ms against a 1000ms budget: the timeout did not bound it');
+    if (waited > 20_000) throw new Error('waited ' + waited + 'ms against a 1000ms budget: the timeout did not bound it');
+  },
 });
 
 Deno.test('a caller that brought its own signal keeps it', () => {
