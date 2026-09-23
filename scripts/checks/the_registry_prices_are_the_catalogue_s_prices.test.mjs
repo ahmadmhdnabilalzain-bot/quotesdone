@@ -56,6 +56,11 @@ const claimed = () => {
     out.set(m[1], { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]) });
   }
 
+  // Every file must contribute what it registers. The size floor alone cannot see a later file's row
+  // stop parsing: the first file clears 10 on its own, so a reshaped Sol row would vanish silently
+  // and this check would stay green (measured in the review of PR #867).
+  assert.ok(out.has('openai/gpt-5.6-sol'),
+    'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
     + 'check stopped reading them, which would make it pass by finding nothing');

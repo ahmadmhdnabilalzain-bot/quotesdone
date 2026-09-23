@@ -1667,3 +1667,7 @@ scripts/sql/finding_a_lead_by_its_email_or_its_handset_uses_an_index.sql
 # the identity-hidden verify; gemini-3.8-flash replaces 3.5 flash and flash-lite; the three seat
 # catch-alls move to 844's audience split; ceilings re-derived to AED 1,600/month. Data only.
 scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql
+
+# 23 Sep 2026 (review of #867): the three retired models deactivated so the capability search cannot
+# fall back to them; a model_rate row for every routed model so the ceilings count real spend.
+scripts/sql/the_retired_models_cannot_be_called_and_the_ceilings_count_real_spend.sql

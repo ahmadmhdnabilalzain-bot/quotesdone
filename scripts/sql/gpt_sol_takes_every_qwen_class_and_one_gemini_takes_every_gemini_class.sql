@@ -13,7 +13,7 @@
 --      llm_route_health, and trg_model_policy_names_a_known_route refuses any policy naming such a
 --      model. Read live from https://openrouter.ai/api/v1/models on 23 Sep 2026: USD 2.00 in /
 --      10.00 out per Mtok, cache read 0.20, context 1,050,000, input text+image+file, NO audio and
---      NO video. OpenAI charges no cache-write surcharge, so cache write = the input price.
+--      NO video. Cache write USD 2.50 per the catalogue (corrected in review: an earlier draft said 2.00).
 --      TIER large, exactly as qwen3.8-max was: fn_ai_route degrades one band, so large degrades to
 --      the cheapest medium row (gemini-3.8-flash). At medium it would drop about 20x in one step on
 --      the classes that rank quotes and decide approvals.
@@ -96,7 +96,7 @@ insert into public.model_registry
    context_len, approved, active, quality_score, supports_vision, supports_audio, supports_tools, note)
 values
   ('openai/gpt-5.6-sol', 'openai', 'large', 2.00, 10.00,
-   0.20, 2.00, true, true, 1050000, true, true, 0.9700, true, false, true,
+   0.20, 2.50, true, true, 1050000, true, true, 0.9700, true, false, true,
    'Founder''s ruling 23 Sep 2026 (instruction 854): PLAN A for every class instruction 844 put on '
    || 'the customer-facing, Arabic, document-reading and judgement side - it replaces '
    || 'qwen/qwen3.8-max-0902 on all 36. Live 23 Sep 2026: $2.00/$10.00 per Mtok, 1,050,000 context, '
