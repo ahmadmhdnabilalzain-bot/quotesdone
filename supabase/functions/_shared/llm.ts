@@ -92,6 +92,7 @@ export interface LlmCallOpts {
   tools?: any[];               // OpenAI-shape function definitions
   toolChoice?: any;
   messages?: any[];            // full OpenAI array; required to replay assistant tool_calls verbatim
+  requireCaps?: string[];      // e.g. ['vision','audio'] for a video part the gateway cannot infer (video_url)
   // THE MODEL THAT WROTE WHAT THIS CALL REVIEWS (founder_instruction 873). When set, ai_gateway routes
   // through fn_ai_route_review and the answer comes from a model of ANOTHER family, or not at all.
   counterpartModel?: string;
@@ -263,6 +264,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           ...(opts.tools && opts.tools.length ? { tools: opts.tools, want_message: true } : {}),
           ...(opts.toolChoice != null ? { tool_choice: opts.toolChoice } : {}),
           ...(opts.messages && opts.messages.length ? { messages: opts.messages } : {}),
+          ...(opts.requireCaps && opts.requireCaps.length ? { require_caps: opts.requireCaps } : {}),
           ...(opts.counterpartModel ? { counterpart_model: opts.counterpartModel } : {}),
         }),
         signal: ac.signal,
