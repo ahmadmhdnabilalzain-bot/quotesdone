@@ -15,7 +15,12 @@ import { boqFromDrawingSet, lengthsForSet, mergeLengths, type ScheduleTable } fr
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { cadSupplierBoq } from '../_shared/cad_identity.ts';
+import { DRAWING_KINDS, drawingIdentityTerms, gateDrawingBoq } from '../_shared/drawing_identity_gate.ts';
+
+/** The STEP text of an IFC upload (the reader's `text` holds only names, not the file). */
+function stepTextOf(b64: string): string {
+  try { return new TextDecoder('utf-8').decode(Uint8Array.from(atob(b64.replace(/^data:[^;]+;base64,/, '').slice(0, 64 * 1024 * 1024)), (c) => c.charCodeAt(0))); } catch (_e) { return ''; }
+}
 import { empty } from '../_shared/doc_read/types.ts';
 import { drawingInput } from './drawing_input.ts';
 import { CONFIRM_MAX_TOKENS, CONFIRM_ROUTE, CONFIRM_SYS, confirmUserText, mergeConfirm, parseConfirm, redactedPageFor, type ConfirmReply, type RedactedPage, type RedactionRun } from './confirm.ts';
@@ -134,7 +139,14 @@ Deno.serve(observe('drawing_boq', async (req) => {
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
       const boq = boqFromExtracted(r, hint, ocrText, drawing);
-      return J({ ok: true, boq: withCodeAuthor(r.dxf_text !== undefined ? cadSupplierBoq(boq, r.dxf_text) : boq), kind: r.kind, needs: r.needs });
+      // 23 Sep 2026 (founder 696/698/701/703): a DRAWING's take-off (DXF, DWG, IFC, PDF, DGN, RVT) is redacted
+      // with the terms the file states about itself, then RE-READ; a line still naming a party is dropped and
+      // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
+      const cad = r.dxf_text !== undefined;
+      if (!cad && !DRAWING_KINDS.has(r.kind)) return J({ ok: true, boq: withCodeAuthor(boq), kind: r.kind, needs: r.needs });
+      const raw = r.kind === 'ifc' ? stepTextOf(String(body.file_b64 || '')) : r.text;
+      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.kind, raw, r.dxf_text), cad);
+      return J({ ok: true, boq: g.boq ? withCodeAuthor(g.boq) : null, kind: r.kind, needs: r.needs, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below
     // returned ai_error on every drawing and the customer's file never informed the brief (website
