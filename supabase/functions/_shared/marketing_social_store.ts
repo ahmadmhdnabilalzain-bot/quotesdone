@@ -40,7 +40,9 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
         // finished, so this delivery takes it over — a comment is never left unanswered for ever.
         const { data: old } = await admin.from('social_message').select('id,conversation_id,outcome')
           .eq('platform', ev.platform).eq('meta_message_id', ev.commentId).eq('direction', 'in').maybeSingle();
-        if (!old || old.outcome != null) return null;
+        // A comment whose class was held (outcome held_classify) is taken over by the replay with its reasoned
+        // class; the row is never emptied first, so a failed send cannot delete it (release only removes outcome-null rows).
+        if (!old || (old.outcome != null && old.outcome !== 'held_classify')) return null;
         row = old;
       }
       inRows.set(row.id, { conv: row.conversation_id, platform: ev.platform });

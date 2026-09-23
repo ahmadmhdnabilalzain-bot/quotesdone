@@ -403,13 +403,14 @@
    "severity": "high",
    "where": "supabase/functions/customer_api/index.ts",
    "decides": "keyword trade reading on create_inquiry",
-   "held": "Held: a request with no stated trade goes out as 'general' (none, never the nearest) and the question waits in the sales engineer's queue (dedupe create_inquiry_trade:<inquiry id>); fn_reason_apply_customer_api__keywords sets the reasoned category_specs trade on that inquiry while it is still 'general'. customer_api/keywords.ts (KW, detect) is deleted.",
+   "held": "Held: nothing is posted to suppliers on a guess — the intake goes back to 'held', the customer is told the sales engineer is confirming the trade (202 trade_being_confirmed), the question waits in the sales engineer's queue (dedupe create_inquiry_trade:<intake id>), and fn_reason_apply_customer_api__keywords reopens the intake ('ready' with the reasoned trade, 'needs_info' for none). customer_api/keywords.ts (KW, detect) is deleted.",
    "proof": [
     {
      "file": "supabase/functions/customer_api/index.ts",
      "must_contain": [
       "surface: 'customer_api.keywords'",
-      "dedupeKey: 'create_inquiry_trade:' + inq!.id"
+      "dedupeKey: 'create_inquiry_trade:' + intake.id",
+      "error: 'trade_being_confirmed'"
      ],
      "must_not_contain": [
       "from './keywords.ts'",
@@ -421,7 +422,7 @@
      "file": "scripts/sql/a_reasoned_trade_is_set_on_the_row_it_was_held_for.sql",
      "must_contain": [
       "create or replace function public.fn_reason_apply_customer_api__keywords(p_id bigint, p_result jsonb)",
-      "and i.category = 'general'"
+      "and i.status = 'held'"
      ]
     }
    ]

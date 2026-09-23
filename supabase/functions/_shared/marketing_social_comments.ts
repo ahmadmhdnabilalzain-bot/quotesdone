@@ -160,7 +160,7 @@ export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
 export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // null: the class is still being reasoned   // null: already answered (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // cls null: still being reasoned; returns null: already answered (idempotency)
   release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;

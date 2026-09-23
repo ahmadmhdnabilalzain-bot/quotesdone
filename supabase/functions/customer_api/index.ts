@@ -1072,10 +1072,24 @@ Deno.serve(observe('customer_api', async (req) => {
       let summary = String(body.summary || '').slice(0, 500);
       if (!summary && briefObj?.summary) summary = String(briefObj.summary).slice(0, 500);
       if (!summary && boqObj?.summary) summary = String(boqObj.summary).slice(0, 500);
-      // No stated trade anywhere (body, intake, drawing): it is REASONED after the request is saved (below), never
-      // read off its words. Until then it is 'general' — no trade, never the nearest one.
-      const tradeUnstated = !category;
-      if (!category) category = 'general';
+      // No stated trade anywhere (body, intake, drawing): it is REASONED among the category_specs trades, never read
+      // off its words (decision point customer_api.keywords). Answered 'none': 'general' — no trade, never the nearest.
+      // HELD: nothing is posted to suppliers on a guess. The intake goes back to 'held', the customer is told the sales
+      // engineer is confirming the trade, and fn_reason_apply_customer_api__keywords reopens it with the reasoned trade.
+      if (!category) {
+        const { data: specs } = await admin.from('category_specs').select('category,label');
+        const t = await tradeOfText(defaultDeps(admin, 'customer_api'), {
+          surface: 'customer_api.keywords', text: [raw, summary].filter(Boolean).join('\n'), audience: 'customer',
+          options: (specs || []).map((r: { category: string; label: string | null }) => ({ slug: r.category, label: r.label || r.category })),
+          dedupeKey: 'create_inquiry_trade:' + intake.id, subject: { intake_id: String(intake.id) },
+        });
+        if (t.value === null) {
+          await admin.from('inquiry_intake').update({ status: 'held', updated_at: new Date().toISOString() }).eq('id', intake.id);
+          return J({ ok: false, held: true, error: 'trade_being_confirmed', held_id: t.result.held_id ?? null,
+            message: 'Thank you — our sales engineer is confirming exactly which trade this request belongs to. We will continue here as soon as that is done; there is no need to type anything again.' }, 202);
+        }
+        category = t.value !== NONE && (specs || []).some((r: { category: string }) => r.category === t.value) ? t.value : 'general';
+      }
       const emirate = body.emirate || (briefObj?.emirate || null) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
       const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
@@ -1271,21 +1285,6 @@ Deno.serve(observe('customer_api', async (req) => {
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
-      if (tradeUnstated) {
-        // Which category_specs trade is this, exactly, or none? REASONED (decision point customer_api.keywords). Held:
-        // the request goes out as 'general' and fn_reason_apply_customer_api__keywords sets the reasoned trade on
-        // this inquiry the moment the hold lifts (only while it is still 'general').
-        const { data: specs } = await admin.from('category_specs').select('category,label');
-        const t = await tradeOfText(defaultDeps(admin, 'customer_api'), {
-          surface: 'customer_api.keywords', text: [raw, summary].filter(Boolean).join('\n'), audience: 'customer',
-          options: (specs || []).map((r: { category: string; label: string | null }) => ({ slug: r.category, label: r.label || r.category })),
-          dedupeKey: 'create_inquiry_trade:' + inq!.id, subject: { inquiry_id: String(inq!.id) },
-        });
-        if (t.value && t.value !== NONE && (specs || []).some((r: { category: string }) => r.category === t.value)) {
-          category = t.value;
-          await admin.from('inquiries').update({ category, keywords: Array.from(new Set([category, ...keywords])), compliance_checklist: await checklistFor(category) }).eq('id', inq!.id).eq('category', 'general');
-        }
-      }
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
       return J(postedSingle(String(inq!.id), 'single', matches, routing));
     }

@@ -628,9 +628,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
     const hour = new Date().toISOString().slice(0, 13);
     const personWork = (async () => {
+      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
+      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
       const person = await needsAPerson(defaultDeps(admin, 'site_assistant'), {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
-        dedupeKey: 'widget:person:' + ip + ':' + hour, subject: { path },
+        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
       });
       if (person.value !== true) return;
       await admin.rpc('fn_support_report_to_ceo', {

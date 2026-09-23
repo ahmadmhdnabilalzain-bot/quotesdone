@@ -139,8 +139,7 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
         .eq('platform', String(subject.platform ?? '')).eq('meta_message_id', String(subject.message_id ?? '')).eq('direction', 'in').maybeSingle();
       if (!m) return { ok: false, err: 'comment_not_found' };
       if (m.outcome !== 'held_classify') return { ok: true, err: 'already_processed:' + String(m.outcome) };
-      // Give the row back (outcome null) so processComment's own idempotent insert takes it over, exactly as a retry does.
-      await admin.from('social_message').update({ outcome: null }).eq('id', m.id).eq('outcome', 'held_classify');
+      // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
       const { processComment } = await import('./marketing_social_comments.ts');
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
       const { timedFetch } = await import('./timed_fetch.ts');

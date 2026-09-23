@@ -312,38 +312,49 @@ end $p$;`);
 });
 
 // ── batch B2 (menus, comments, trades): the replay writes the reasoned trade on the row it was held for ─────────────
-test('production, aborted: a held create_inquiry trade and a held lead sector are set by their own routines — exact slug or nothing, placeholder rows only',
+test('production, aborted: a held create_inquiry trade reopens its intake and a held lead sector is set — exact slug or nothing, held/empty rows only',
   { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const out = await probe(String.raw`
 do $p$
-declare o jsonb := '{}'::jsonb; v_slug text; v_inq uuid; v_inq2 uuid; v_lead bigint; v_id bigint;
+declare o jsonb := '{}'::jsonb; v_slug text; v_in uuid; v_in2 uuid; v_lead bigint; v_lead2 bigint; v_id bigint;
 begin
   select category into v_slug from public.category_specs order by category limit 1;
-  insert into public.inquiries (category, raw_input, summary, keywords, status, role_needed)
-    values ('general', 'ZZ DEMO probe: aluminium windows for a villa', 'ZZ DEMO', array['general'], 'draft', 'supplier') returning id into v_inq;
-  insert into public.inquiries (category, raw_input, summary, status, role_needed)
-    values ('general', 'ZZ DEMO probe two', 'ZZ DEMO', 'draft', 'supplier') returning id into v_inq2;
-  -- the reasoned trade is set on a 'general' inquiry
+  insert into public.inquiry_intake (email, status, turns, raw_input) values ('zz-b2-probe@example.invalid', 'held', '[]'::jsonb, 'ZZ DEMO aluminium windows')
+    returning id into v_in;
+  insert into public.inquiry_intake (email, status, turns, raw_input) values ('zz-b2-probe2@example.invalid', 'held', '[]'::jsonb, 'ZZ DEMO bake a cake')
+    returning id into v_in2;
+  -- the reasoned trade reopens a held intake, ready to post
   v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('inquiry_id', v_inq::text), 'model_hold', 'zz-b2-kw-1');
+            jsonb_build_object('intake_id', v_in::text), 'model_hold', 'zz-b2-kw-1');
   o := o || jsonb_build_object('kw_resolve', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug))));
-  o := o || jsonb_build_object('kw_row', (select category = v_slug and v_slug = any(keywords) from public.inquiries where id = v_inq));
-  -- a row no longer 'general' is never overwritten
+  o := o || jsonb_build_object('kw_row', (select status || ':' || (category = v_slug) from public.inquiry_intake where id = v_in));
+  -- an intake no longer held is never touched
   v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('inquiry_id', v_inq::text), 'model_hold', 'zz-b2-kw-2');
-  o := o || jsonb_build_object('kw_again', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)))->'effect'->'set');
-  -- a choice that is not a category_specs slug writes nothing (no nearest mapping)
+            jsonb_build_object('intake_id', v_in::text), 'model_hold', 'zz-b2-kw-2');
+  o := o || jsonb_build_object('kw_again', public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb)->'effect'->'reopened');
+  -- 'none' (no nearest mapping): back to the questions, as general
   v_id := public.fn_reason_hold('sales_engineer', 'customer_api.keywords', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
-            jsonb_build_object('inquiry_id', v_inq2::text), 'model_hold', 'zz-b2-kw-3');
+            jsonb_build_object('intake_id', v_in2::text), 'model_hold', 'zz-b2-kw-3');
   perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb);
-  o := o || jsonb_build_object('kw_none', (select category from public.inquiries where id = v_inq2));
+  o := o || jsonb_build_object('kw_none', (select status || ':' || category from public.inquiry_intake where id = v_in2));
 
   insert into public.leads (company_name, email, source, business_role) values ('ZZ DEMO probe lead', 'zz-b2-probe@example.invalid', 'email_inbound', 'supplier')
     returning id into v_lead;
+  insert into public.leads (company_name, email, source, business_role, sector) values ('ZZ DEMO probe lead 2', 'zz-b2-probe3@example.invalid', 'email_inbound', 'supplier', 'zz-set-by-a-person')
+    returning id into v_lead2;
   v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
             jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-1');
   o := o || jsonb_build_object('sector_status', public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)))->>'status');
   o := o || jsonb_build_object('sector_row', (select sector = v_slug from public.leads where id = v_lead));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead2), 'model_hold', 'zz-b2-sector-2');
+  perform public.fn_reason_held_resolve(v_id, jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_slug)));
+  o := o || jsonb_build_object('sector_kept', (select sector from public.leads where id = v_lead2));
+  v_id := public.fn_reason_hold('sales_engineer', 'inbound_email.infer_sector', 'ZZ DEMO', '{"seat":"sales_engineer"}'::jsonb, '{}'::jsonb,
+            jsonb_build_object('lead_id', v_lead), 'model_hold', 'zz-b2-sector-3');
+  update public.leads set sector = null where id = v_lead;
+  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"none"}}'::jsonb);
+  o := o || jsonb_build_object('sector_none', (select sector from public.leads where id = v_lead));
 
   -- the routines read no free text, and only service_role executes them
   o := o || jsonb_build_object('reads_text', (select bool_or(p.prosrc ~ '(raw_input|summary|~\*|ilike)') from pg_proc p
@@ -355,12 +366,14 @@ begin
 end $p$;`);
   console.log(JSON.stringify(out));
   assert.equal(out.kw_resolve.status, 'applied');
-  assert.equal(out.kw_resolve.effect.set, true);
-  assert.equal(out.kw_row, true, 'the reasoned trade and its keyword are on the inquiry');
-  assert.equal(out.kw_again, false, 'an inquiry that is no longer general is never overwritten');
-  assert.equal(out.kw_none, 'general', "'none' writes nothing — no nearest mapping");
+  assert.equal(out.kw_resolve.effect.reopened, true);
+  assert.equal(out.kw_row, 'ready:true', 'the held intake reopens ready, with the reasoned trade');
+  assert.equal(out.kw_again, false, 'an intake no longer held is never touched');
+  assert.equal(out.kw_none, 'needs_info:general', "'none' goes back to the questions — no nearest mapping");
   assert.equal(out.sector_status, 'applied');
   assert.equal(out.sector_row, true);
+  assert.equal(out.sector_kept, 'zz-set-by-a-person', 'a sector already set is never overwritten');
+  assert.equal(out.sector_none, null, "'none' writes no sector");
   assert.equal(out.reads_text, false);
   assert.equal(out.anon_can, false);
   assert.equal(out.service_can, true);
