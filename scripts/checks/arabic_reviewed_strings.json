@@ -3641,6 +3641,17 @@
   "87f92710186c",
   "bd5193070aaa"
  ],
+ "supabase/functions/marketing/profile_text.json": [
+  "155a28462ac9",
+  "2b9905e0ffa1",
+  "4c308be7ae85",
+  "5a82e41a7945",
+  "800d4e0c6238",
+  "8e1ee64ea59a",
+  "8e3ba613cc20",
+  "a3eb2c64c1ad",
+  "ca4a2b6d94c4"
+ ],
  "supabase/functions/marketing/profile_text.ts": [
   "16e51f0d9e83"
  ],
