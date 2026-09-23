@@ -19,15 +19,16 @@ const keysOf = (name) => {
   return [...body[1].matchAll(/(?:^|[\s,{])([a-z_]+):\s*'/g)].map((m) => m[1]);
 };
 
-test('TRADE_EN and TRADE_AR carry the same 42 taxonomy_trade codes', () => {
+// 42 -> 195 on 23 Sep 2026 (founder instructions 895/899/900, the_missing_trades_join_the_taxonomy_under_twelve_groups.sql).
+test('TRADE_EN and TRADE_AR carry the same 195 taxonomy_trade codes', () => {
   const en = keysOf('TRADE_EN'); const ar = keysOf('TRADE_AR');
-  assert.equal(en.length, 42, 'TRADE_EN should mirror the 42 active taxonomy_trade codes');
+  assert.equal(en.length, 195, 'TRADE_EN should mirror the 195 active taxonomy_trade codes');
   assert.deepEqual([...en].sort(), [...ar].sort());
 });
 
 test('the sign-up form offers codes, not the old free-text suggestions', () => {
   assert.ok(!/const CATEGORIES = \[/.test(portal), 'the 29-item free-text list is back');
-  assert.ok(/TRADE_CODES/.test(portal) && /trade_not_listed/.test(portal), 'the code picker or its "not listed" answer is missing');
+  assert.ok(/TRADE_(?:CODES|GROUPS)/.test(portal) && /trade_not_listed/.test(portal), 'the code picker or its "not listed" answer is missing');
 });
 
 test('accept_terms follows the checkbox and the certificate failure is shown', () => {

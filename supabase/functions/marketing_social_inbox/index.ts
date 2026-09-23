@@ -143,13 +143,13 @@ async function handle(ev: InboundEvent): Promise<string> {
   if (ev.channel === 'comment' && !ev.echo) {
     // Does this commenter want a person? REASONED (think()), never a phrase list; held, the comment is still
     // classified and answered from the policy, and the person check waits in the marketing queue.
-    const person = await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
+    const person = async () => (await needsAPerson(defaultDeps(admin, 'marketing_social_inbox'), {
       seat: 'marketing', surface: 'marketing_social.comment_needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
       dedupeKey: 'social_comment:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
-    });
+    })).value === true;
     return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
-      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person.value === true);
+      text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, person);
   }
   // THE CONVERSATION, one per person per platform, owned by the marketing seat.
   const convRow: Record<string, unknown> = { platform: ev.platform, user_id: ev.userId, account_id: ev.accountId };
@@ -221,11 +221,11 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     seat: 'marketing', surface: 'marketing_social.needs_a_person', message: ev.text.slice(0, 4000), audience: 'visitor',
     dedupeKey: 'social:' + ev.platform + ':' + ev.messageId, subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId },
   });
+  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
   // HAVE WE ANSWERED A MESSAGE LIKE THIS BEFORE, AND HOW DID IT GO? (23 Sep 2026.) Recalled before
   // the decision, by meaning; the model path is told to stay consistent with a finalised reply.
   // Public surface: marketing's own social replies only, never another seat's cases.
   const memory = await recallCases(admin, { seat: 'marketing', path: 'social_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
-  const d = decide(ev.text, library, (faqs || []) as FaqRow[], corpus, person.value === true);
   if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
 
   // THE MODEL, SAME DOOR AS THE WEBSITE ASSISTANT (ai_gateway), and only over the passages retrieved
