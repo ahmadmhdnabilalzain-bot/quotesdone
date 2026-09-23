@@ -165,6 +165,20 @@ export const REGISTER = {
     // the instant is never 45 days old at it, so leaving it visible cannot make the replay louder.
     asOf: {},
   },
+  // 24 Sep 2026 (accountant, #904). sanctions_list_stale: the newest good list of some source is over 8 days old at
+  // the instant. Screening runs that existed then; a healthy day has fresh lists.
+  fn_accountant_sanctions_rescreen: {
+    replay: 'pg_temp.qd_replay_fn_accountant_sanctions_rescreen()',
+    // Not filtered: the first ok list postdates the healthy instants, and with none visible the routine raises
+    // (never fetched). A later list seen at the instant can only make it quieter (the ceiling in the header).
+    asOf: {},
+  },
+  // 24 Sep 2026 (customer_support, #904). A post-reveal dispute past its decision date. Disputes that existed at
+  // the instant; a healthy day has none overdue.
+  fn_customer_support_disputes_tick: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_disputes_tick()',
+    asOf: { post_reveal_dispute: 'opened_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
