@@ -1,2 +1,0 @@
-Committed, not applied: the release operator applies it (seat: marketing, PR for instructions 919-920) together with deploying
-marketing_social_connect and marketing. When applied, delete this note and append the file to the END of MANIFEST.txt.

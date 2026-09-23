@@ -70,11 +70,14 @@ insert into public.function_owner (function_slug, owner, note) values
 on conflict (function_slug) do update set owner = excluded.owner, note = excluded.note;
 
 -- PROBE (cleans up after itself, returns a verdict row): a minted link is stored only as its hash, expires in 24 h.
+-- The link is minted in its OWN statement: a row a function inserts is not visible to the statement that called it,
+-- so minting inside the verdict query joined nothing and returned no verdict (release of #883, 23 Sep 2026).
+create temp table probe_883_link on commit drop as select public.fn_marketing_social_connect_link('youtube') as tok;
 select case when h.token_hash = encode(extensions.digest(t.tok, 'sha256'), 'hex')
              and h.expires_at between now() + interval '23 hours' and now() + interval '25 hours'
              and not exists (select 1 from public.social_connect_link x where x.token_hash = t.tok)
             then 'PROBE OK' else 'PROBE FAILED: link row wrong' end as verdict
-  from (select public.fn_marketing_social_connect_link('youtube') as tok) t
+  from probe_883_link t
   join public.social_connect_link h on h.token_hash = encode(extensions.digest(t.tok, 'sha256'), 'hex');
 delete from public.social_connect_link where started_at is null and created_at = now();   -- now() is this transaction's: only the probe's row
 
