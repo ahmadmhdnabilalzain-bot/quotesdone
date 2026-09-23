@@ -113,7 +113,9 @@ if (existsSync(REGISTER)) {
 // below would never see it. The ceiling closes that: the register may shrink freely (which is the
 // whole point), and cannot grow without editing this number, which is an edit a reviewer can see and
 // has to agree with. Found in review of this change; it was the register's one way to rot.
-const REGISTER_CEILING_MEASURED_18_SEP_2026 = 35;
+// 23 Sep 2026 (#896, ceo): raised to 36 for fn_decide_reads_its_prior_outcomes_inline.sql, a live-defect restatement
+// whose two warnings are fn_decide's runtime messages, not a probe verdict; see its register line for the debt.
+const REGISTER_CEILING_MEASURED_18_SEP_2026 = 36;
 
 test('the register cannot grow: adding a file to it is a decision, not a side effect', () => {
   assert.ok(registered.size <= REGISTER_CEILING_MEASURED_18_SEP_2026,
