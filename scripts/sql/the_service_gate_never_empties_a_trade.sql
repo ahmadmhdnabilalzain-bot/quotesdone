@@ -136,9 +136,10 @@
 -- read: before, aluminium 1 -> 0, doors 1 -> 0, gypsum 1 -> 1, painting 1 -> 0; after, all four 1 -> 1.
 -- The numbers move, the property does not, and the property is what the check asserts.
 --
--- The guard is
--- scripts/checks/a_confirmed_trade_is_still_reachable_when_the_inquiry_names_a_service.test.mjs,
--- which measures the two columns above per trade against production and fails if they differ.
+-- SUPERSEDED IN PART, 23 Sep 2026. The founder ruled against this file's silent-in-a-declared-trade
+-- arm (founder_instruction 857); a_supplier_receives_a_service_inquiry_only_for_what_he_ticked.sql
+-- removes it and is the canonical body. This file's guard was rewritten to the ruled policy and renamed
+-- scripts/checks/a_service_inquiry_reaches_only_suppliers_who_ticked_what_it_names.test.mjs.
 --
 -- CREATE OR REPLACE, so every existing EXECUTE grant is kept and no new revoke is owed; search_path
 -- stays pinned as before. Signature, argument order and return columns are unchanged, so no caller

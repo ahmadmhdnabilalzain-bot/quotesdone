@@ -4,7 +4,8 @@
 // the quote he reveals. Measured 8-22 Sep 2026: 2,455 of the 3,207 calls the estate has ever routed
 // were this one class, and it is ~92% of the projected monthly bill. On 23 Sep 2026
 // (founder_instruction 841) its model moved from anthropic/claude-sonnet-5 to
-// qwen/qwen3.8-max-0902, which has never been measured on this estate for anything.
+// qwen/qwen3.8-max-0902, and on 23 Sep 2026 again (founder_instruction 854) to openai/gpt-5.6-sol.
+// Neither has ever been measured on this estate for anything.
 //
 // The failure that costs money is not a crash. It is a model handed two quotations whose scopes do
 // not overlap — supply only against supply-and-install, 120 m2 against 300 m2, a rate against a
@@ -25,7 +26,7 @@
 //   3. a ZZ DEMO fixture pair of genuinely non-comparable quotes EXISTS in the repository, so the
 //      refusal can be replayed by a human or by the nightly journey rather than invented then.
 //
-// IT DOES NOT MEASURE that qwen3.8-max actually refuses. Nothing in this repository can, while the
+// IT DOES NOT MEASURE that gpt-5.6-sol actually refuses. Nothing in this repository can, while the
 // hold stands. That is the honest boundary: this check guarantees the contract and the fail-closed
 // handling are present, not that the model honours them. The first real non-comparable pair is the
 // measurement, and the fixture below is what makes replaying it a minute's work.
