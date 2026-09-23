@@ -1,0 +1,1 @@
+Committed, not applied. Apply after every_seat_duty_has_an_owner_a_clock_and_a_check.sql and the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql (public.supply_gap); then delete this note and append the file to the END of MANIFEST.txt in the same commit. Proved in an aborted transaction by scripts/checks/sales_engineer_and_marketing_duties_act.test.mjs.

@@ -4972,5 +4972,20 @@
   "b081c5467b60",
   "d7028cd29b51",
   "d9a9b884d813"
+ ],
+ "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql": [
+  "25831966a970",
+  "3fbfc9c44cae",
+  "50d6d400e862",
+  "71425d07f632",
+  "a88f17897251",
+  "d5286ce9f7f2"
+ ],
+ "scripts/sql/the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql": [
+  "70b5a40fe07a",
+  "859798d5f8bb",
+  "9a13507c3538",
+  "d230862d2dc2",
+  "fc89cb827cc1"
  ]
 }
