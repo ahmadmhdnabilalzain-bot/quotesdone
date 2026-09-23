@@ -209,10 +209,10 @@ export const handler = observe('resend_inbound', async (req) => {
     // (replyIntent) -- and fn_marketing_calendar_reply decides: founder + authenticated + this calendar's token
     // + content unchanged since it was sent + month not over + "approve". It answers him itself.
     if (isCalendarReply({ to, subject })) {
-      const hdrs = d.headers?.['authentication-results'] ? d.headers
+      const calHdrs = d.headers?.['authentication-results'] ? d.headers
         : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
       const verdict = { token: calendarTokenOf({ to, subject }) || '', from_email: from,
-        authenticated: fromDomainAuthenticated(hdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText) };
+        authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText) };
       const { data: out, error: cErr } = await admin.rpc('fn_marketing_calendar_reply', { p: verdict });
       await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
         body: '[MONTHLY CALENDAR REPLY: ' + (cErr ? 'error ' + cErr.message : String((out as any)?.outcome)) + '; authenticated ' + verdict.authenticated + ', read as ' + verdict.intent + ']\n\n' + fullText,
