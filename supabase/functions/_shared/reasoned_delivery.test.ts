@@ -1,8 +1,8 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { deliverReasoned, holdingNotice, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
+import { casSecrets, deliverReasoned, holdingNotice, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
 import { call, processComment, replyRequest, type CommentEvent, type Store } from './marketing_social_comments.ts';
-import { accessToken, seal, type SocialPlatform } from './marketing_social_oauth.ts';
+import { accessToken, open, seal, type SocialPlatform } from './marketing_social_oauth.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
 
 function io(windowOpen: boolean) {
@@ -309,4 +309,91 @@ Deno.test('the held-comment delivery reports the skip by name and does not count
   x.socialCommentClassified = (subject) => replayHeldComment(heldComment(subject.platform as CommentEvent['platform']), rig.rio(heldComment(subject.platform as CommentEvent['platform'])));
   const d = await deliverReasoned(row('marketing_social.comment_classify', 'nice', { platform: 'linkedin', message_id: 'c11' }), answered('praise'), x);
   assertEquals(d, { delivered: false, via: 'social', detail: 'skipped: linkedin token missing' });
+});
+
+// ── THE LIVE WIRING (review of PR #969): liveDeliveryIO.socialCommentClassified reads the platform's own key through
+// accessToken, opened with the service-role key, and re-seals a refresh compare-and-set. A fake service-role client
+// holds app_secrets and the held comment; every other table answers with an error, so a run that gets past the token
+// stops at the store and never reaches a platform.
+function fakeAdmin(secrets: Record<string, string>, comment: Record<string, unknown>) {
+  const asked: string[] = []; const writes: { key: string; expected: string; wrote: boolean }[] = [];
+  const from = (table: string) => {
+    const f: Record<string, unknown> = {}; let op = 'select'; let payload: Record<string, unknown> = {};
+    const q = {
+      select() { return q; },
+      eq(c: string, v: unknown) { f[c] = v; return q; },
+      update(v: Record<string, unknown>) { op = 'update'; payload = v; return q; },
+      upsert() { op = 'upsert'; return q; },
+      maybeSingle() {
+        if (table === 'app_secrets') { const k = String(f.key); asked.push(k); return Promise.resolve({ data: k in secrets ? { value: secrets[k] } : null }); }
+        if (table === 'social_message') return Promise.resolve({ data: comment });
+        return Promise.resolve({ data: null, error: { message: 'fake: no ' + table } });
+      },
+      single() { return Promise.resolve({ data: null, error: { message: 'fake: no ' + table } }); },
+      then(res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) {
+        let out: unknown = { data: null, error: { message: 'fake: no ' + table } };
+        if (table === 'app_secrets' && op === 'update') {
+          const k = String(f.key); const hit = secrets[k] === f.value;
+          writes.push({ key: k, expected: String(f.value), wrote: hit });
+          if (hit) secrets[k] = String(payload.value);
+          out = { data: hit ? [{ key: k }] : [], error: null };
+        }
+        return Promise.resolve(out).then(res, rej);
+      },
+    };
+    return q;
+  };
+  return { admin: { from }, secrets, asked, writes };
+}
+const heldRow = (platform: string) => ({ id: 5, meta_message_id: 'cmt-9', platform, body: 'Great work on this project', parent_id: 'post-9',
+  occurred_at: new Date().toISOString(), outcome: 'held_classify', conversation: { user_id: 'author-9', handle: null, account_id: 'urn:li:organization:111' } });
+const noNetwork = () => Promise.reject(new Error('no network in this test'));
+
+Deno.test('live wiring: a LinkedIn comment with no stored token reads linkedin_oauth and skips by name', async () => {
+  const { admin, asked } = fakeAdmin({}, heldRow('linkedin'));
+  const s = await liveDeliveryIO(admin, { master: MASTER, fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  assertEquals(s, { ok: false, skipped: 'linkedin token missing' });
+  assertEquals(asked, ['linkedin_oauth']);
+});
+
+Deno.test('live wiring: a stored LinkedIn token is opened with the key and the replay goes on to the policy; a wrong key opens nothing', async () => {
+  const sealed = await seal(MASTER, { platform: 'linkedin', account_id: '111', access_token: 'li-token', expires_at: Date.now() + 3600_000, connected_at: '' });
+  const a = fakeAdmin({ linkedin_oauth: sealed }, heldRow('linkedin'));
+  const s = await liveDeliveryIO(a.admin, { master: MASTER, fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  // Past the token: the fake store refuses the conversation row, so the run stops there. Not skipped, not sent.
+  assertEquals(s, { ok: false, err: 'conversation: fake: no social_conversation' });
+  assertEquals(a.asked, ['linkedin_oauth']);
+  const b = fakeAdmin({ linkedin_oauth: sealed }, heldRow('linkedin'));
+  const w = await liveDeliveryIO(b.admin, { master: 'a-different-key-of-enough-length', fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  assertEquals(w, { ok: false, skipped: 'linkedin token missing' });
+});
+
+Deno.test('live wiring: a lapsed YouTube token is refreshed and re-sealed only over the value that was read', async () => {
+  const lapsed = { platform: 'youtube', account_id: 'UC1', access_token: 'yt-old', expires_at: Date.now() - 1000, refresh_token: 'yt-refresh', connected_at: '' };
+  const refreshed = () => new Response(JSON.stringify({ access_token: 'yt-refreshed', expires_in: 3600 }), { status: 200 });
+  const client = { google_oauth_client_id: 'gid', google_oauth_client_secret: 'gs' };
+  // Unchanged since the read: the refreshed set replaces it.
+  const old = await seal(MASTER, lapsed);
+  const a = fakeAdmin({ youtube_oauth: old, ...client }, heldRow('youtube'));
+  const s = await liveDeliveryIO(a.admin, { master: MASTER, fetch: (u) => Promise.resolve(u === 'https://oauth2.googleapis.com/token' ? refreshed() : new Response('{}', { status: 500 })) })
+    .socialCommentClassified({ platform: 'youtube', message_id: 'cmt-9' }, 'praise');
+  assertEquals(s.skipped, undefined);
+  assertEquals(a.asked, ['youtube_oauth', 'google_oauth_client_id', 'google_oauth_client_secret']);
+  assertEquals(a.writes, [{ key: 'youtube_oauth', expected: old, wrote: true }]);
+  assertEquals((await open<{ access_token: string }>(MASTER, a.secrets.youtube_oauth))?.access_token, 'yt-refreshed');
+  // The founder reconnects while the refresh is in flight: the newer token set is kept, not overwritten.
+  const b = fakeAdmin({ youtube_oauth: old, ...client }, heldRow('youtube'));
+  const reconnected = await seal(MASTER, { ...lapsed, access_token: 'yt-reconnected', expires_at: Date.now() + 3600_000, refresh_token: 'new' });
+  await liveDeliveryIO(b.admin, { master: MASTER, fetch: (u) => {
+    if (u === 'https://oauth2.googleapis.com/token') { b.secrets.youtube_oauth = reconnected; return Promise.resolve(refreshed()); }
+    return Promise.resolve(new Response('{}', { status: 500 }));
+  } }).socialCommentClassified({ platform: 'youtube', message_id: 'cmt-9' }, 'praise');
+  assertEquals(b.writes, [{ key: 'youtube_oauth', expected: old, wrote: false }], 'the save found a newer value and wrote nothing');
+  assertEquals(b.secrets.youtube_oauth, reconnected, 'the reconnected token set stands');
+});
+
+Deno.test('casSecrets: nothing read, nothing written', async () => {
+  const { admin, writes } = fakeAdmin({ youtube_oauth: 'v1.stored' }, {});
+  await casSecrets(admin).save('youtube_oauth', 'v1.other');
+  assertEquals(writes, []);
 });

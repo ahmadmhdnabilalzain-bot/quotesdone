@@ -17,8 +17,11 @@
 //   * a held comment CLASS (marketing_social.comment_classify): the comment policy runs now, and its reply or hide
 //     is posted with THAT platform's own credential (replayHeldComment below). Until 24 Sep 2026 the replay handed a
 //     LinkedIn comment to the Meta page-token lookup and YouTube no token at all, so neither could post (found in
-//     the review of PR #898). A missing token is a named skip that leaves the comment 'held_classify' for a later
-//     run, never a throw and never a send.
+//     the review of PR #898). A missing token (or a refused refresh) is a named skip: nothing runs, nothing is sent,
+//     nothing throws, and the comment stays 'held_classify'. The held question itself was already closed by
+//     replayHeld, so the marketing duty's retry_unfinished sweep is what picks it up again — and that sweep checks the
+//     same token BEFORE reasoning and asks a comment's class at most MAX_CLASS_QUESTIONS times (marketing/duties.ts
+//     reviveHeldComments), so a skipped comment waits without a model call instead of being re-reasoned every sweep.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
 import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
@@ -171,8 +174,9 @@ export interface CommentReplayIO {
 export async function replayHeldComment(ev: Pick<CommentEvent, 'platform' | 'accountId'>, io: CommentReplayIO): Promise<Sent> {
   let tokenFor: (ev: CommentEvent) => Promise<string | null>;
   if (ev.platform === 'youtube' || ev.platform === 'linkedin') {
-    // Resolved BEFORE the policy runs: with no token nothing is recorded, so the comment stays 'held_classify' and the
-    // marketing duty's sweep (retry_unfinished) runs it again once the platform is connected.
+    // Resolved BEFORE the policy runs: with no token nothing is recorded, so the comment stays 'held_classify'. The
+    // marketing duty's sweep (reviveHeldComments) re-checks the token before any reasoning and runs it once the
+    // platform is connected again.
     let token: string | null;
     try { token = String((await io.ownToken(ev.platform))?.access_token ?? '').trim() || null; }
     catch (e) { return { ok: false, skipped: ev.platform + ' token refresh failed: ' + String((e as Error)?.message || e).slice(0, 160) }; }
@@ -217,7 +221,32 @@ export async function sendHeldNotices(rows: { id: number; surface: string; quest
 // ── the live io ──────────────────────────────────────────────────────────────────────────────────
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export function liveDeliveryIO(admin: Admin): DeliveryIO {
+type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
+
+/** app_secrets for a token refresh, with a COMPARE-AND-SET save: a refreshed token set is written only while the stored
+ *  sealed value is still the one this run read. If the founder reconnected in between (a new token set stored), the
+ *  newer one is kept and this run's refresh is used for its own send only. Never an upsert over what was not read. */
+export function casSecrets(admin: Admin) {
+  const read = new Map<string, string>();
+  const sec = async (k: string) => {
+    const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
+    const v = (data?.value as string) || '';
+    read.set(k, v);
+    return v;
+  };
+  const save = async (k: string, v: string) => {
+    const was = read.get(k);
+    if (!was) return;   // nothing was read, so there is nothing this run may replace
+    const { data, error } = await admin.from('app_secrets').update({ value: v }).eq('key', k).eq('value', was).select('key');
+    if (error) throw new Error('app_secrets ' + k + ': ' + error.message);
+    if (data?.length) read.set(k, v);   // else: changed since the read; the newer value stands
+  };
+  return { sec, save };
+}
+
+/** seams: the key material and fetch the token path uses (default: the function's service-role key and timedFetch);
+ *  reasoned_delivery.test.ts passes a test key and a stubbed fetch. */
+export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: Fetch } = {}): DeliveryIO {
   const sec = async (k: string) => { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; };
   const digits = (p: string) => p.replace(/[^0-9]/g, '');
   return {
@@ -300,17 +329,18 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
       const { accessToken } = await import('./marketing_social_oauth.ts');
       const { timedFetch } = await import('./timed_fetch.ts');
+      const f = seams.fetch ?? timedFetch;
       const ev: CommentEvent = {
         platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
         handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
       };
-      // A refreshed YouTube token is re-sealed where it was read, as the marketing duty does (marketing/duties.ts).
-      const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
+      // A refreshed YouTube token is re-sealed where it was read, compare-and-set (casSecrets above).
+      const secrets = casSecrets(admin);
       return await replayHeldComment(ev, {
-        ownToken: (p) => accessToken(timedFetch, p, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', sec, save),
-        metaPageToken: (p, accountId) => metaPageToken(admin, timedFetch, p, accountId),
+        ownToken: (p) => accessToken(f, p, seams.master ?? (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''), secrets.sec, secrets.save),
+        metaPageToken: (p, accountId) => metaPageToken(admin, f, p, accountId),
         // deno-lint-ignore no-explicit-any
-        process: (tokenFor) => processComment(adminStore(admin, timedFetch, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
+        process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
       });
     },
     socialCommentHandoff: async (subject) => {
