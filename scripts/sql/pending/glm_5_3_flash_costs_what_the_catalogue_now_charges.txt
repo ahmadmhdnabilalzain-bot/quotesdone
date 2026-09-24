@@ -1,0 +1,2 @@
+Not applied. Written 24 Sep 2026 because OpenRouter re-priced z-ai/glm-5.3-flash to USD 0.045 in / 0.60 out (was 0.15 / 0.50), measured by the_registry_prices_are_the_catalogue_s_prices in CI. It corrects model_registry, model_rate and 12 model_policy rationales; no other model, no routing, no ceiling changes.
+What moves it: apply with node scripts/apply_sql.mjs scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql --apply --ddl (it must print PROBE OK), then delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: it_engineer.
