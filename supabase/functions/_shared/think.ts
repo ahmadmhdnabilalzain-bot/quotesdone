@@ -260,13 +260,29 @@ You are reading pages from UAE authorities to answer one research question. Extr
 {"findings":[{"statement":"<one fact, as the page states it>","url":"<the page it came from>"}]}
 Return {"findings":[]} if the pages do not answer it.`;
 
-function taskClassFor(phase: Phase, audience: string, deciding: boolean): string {
-  // Existing model_policy classes (scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql); no new rows.
+// THE 23 SEP MODEL RULING (founder_instruction 841/844): internal work runs on GLM (routine_employee_reasoning,
+// z-ai/glm-5.3-flash, about 15x cheaper than gpt-5.6-sol); only customer-facing, supplier-facing and Arabic
+// replies keep the qwen/sol classes. Planning (decompose), reading pages (research) and an internal decision
+// are internal steps whoever the final reader is. Verify stays knowledge_validation: it is routed through
+// counterpart_model to a reviewer of ANOTHER family than the author, which GLM authorship does not change.
+// A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question
+// HELD for a fixture was filed in the seat queue and replayed later without its caller, so the replay paid for it:
+// measured 24 Sep, 26 inquiry_intake.trade rows in two days from the e2e journey (scripts/e2e/journeys.mjs, a customer
+// at @example.invalid whose intake the harness deletes). A caller that knows its subject is a fixture says so
+// (subject.fixture = true) and nothing is filed. Rows whose text carries the ZZ DEMO / @example.invalid convention are
+// expired by fn_reason_held_due before any claim (a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql),
+// so they are never replayed either; the unit tests here may keep using fixture text and still see the queue work.
+export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
+  return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
+}
+
+export function taskClassFor(phase: Phase, audience: string, _deciding: boolean, language = 'en'): string {
   if (phase === 'verify') return 'knowledge_validation';
-  if (phase === 'decompose' || phase === 'research' || deciding) return 'agent_reasoning';
+  if (phase === 'decompose' || phase === 'research') return 'routine_employee_reasoning';
   if (audience === 'customer' || audience === 'visitor') return 'customer_communication';
   if (audience === 'supplier') return 'supplier_communication';
-  return 'agent_reasoning';
+  if (language === 'ar') return 'customer_communication';   // Arabic wording stays on the qwen/sol class
+  return 'routine_employee_reasoning';                      // internal answer or internal decision
 }
 
 const vec = (v: number[]) => '[' + v.join(',') + ']';
@@ -291,7 +307,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
 
   const hold = async (reason: string, plan: Record<string, unknown>): Promise<ThinkResult> => {
     let held_id: number | null = null;
-    if (req.queueWhenHeld !== false) {
+    if (isFixtureRequest(req)) steps.push({ id: 'queue', kind: 'hold', goal: 'a fixture question is never queued', status: 'skipped', detail: 'subject.fixture' });
+    else if (req.queueWhenHeld !== false) {
       const { data, error } = await deps.rpc('fn_reason_hold', {
         p_seat: req.seat, p_surface: req.surface, p_question: req.question.slice(0, 8000),
         p_request: JSON.parse(JSON.stringify({ ...req, question: req.question.slice(0, 8000) })),
@@ -401,7 +418,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding), seat: req.seat, max: 900 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     refusal = refuse(draft, { missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
@@ -425,7 +442,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding), seat: req.seat, max: 900 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
       const fixed = parseJson<Draft>(r.content);
       if (fixed && !refuse(fixed, { missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };
