@@ -23,7 +23,8 @@
 //      identity string the first pass found anywhere on the page.
 // Only a page that passes all four is returned. The caller encodes it as a JPEG (from pixels: no metadata),
 // uploads it and records the run, exactly as the CAD path does.
-import { residualScan, stripSeeds, titleBlockBoxes } from './anonymise.ts';
+import { residualScan, seedTerms, stripSeeds, titleBlockBoxes } from './anonymise.ts';
+import { COMPANY, LICENCE, seedHit } from './drawing_text_policy.ts';
 import { ID_LABEL, ID_TEXT, textLayerBoxes } from './drawing_identity_text.ts';
 import type { PdfPage, TextRun } from './pdf_text_positions.ts';
 
@@ -40,6 +41,24 @@ export const MIN_TITLE_CONF = 70;
 export const MIN_WORDS = 8;
 /** Padding added round each box, as a share of the page (drawing_redact_page SERVER_MARGIN). */
 const PAD = 0.004;
+/** A word read below this confidence within NEAR of the title strip's edge holds the page. */
+export const MIN_NEAR_CONF = 60;
+const NEAR = 0.04;
+
+/**
+ * x positions (0..1) of long vertical ruled lines: columns whose longest dark run is at least half the page
+ * height. A title block is a ruled box; its inner edge is one of these (review of #967: the strip was cut 1% left
+ * of the leftmost evidence, so a firm name printed further left in the same ruled block was published).
+ */
+export function verticalRules(img: Rgba): number[] {
+  const out: number[] = [];
+  for (let x = 0; x < img.w; x++) {
+    let run = 0, best = 0;
+    for (let y = 0; y < img.h; y++) { const k = (y * img.w + x) * 4; if (img.rgba[k] < 110) { run++; if (run > best) best = run; } else run = 0; }
+    if (best >= img.h * 0.5 && (!out.length || x - out[out.length - 1] * img.w > 3)) out.push(x / img.w);
+  }
+  return out;
+}
 
 /** RGBA to a 24-bit BMP: an uncompressed format every OCR engine reads, with no codec needed to write it. */
 export function rgbaToBmp(img: Rgba): Uint8Array {
@@ -87,17 +106,34 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[]): Promise<
   const tb = titleBlockBoxes([page], seeds);
   const strip = tb.strips[0];
   if (!strip || tb.confidence !== 'medium') return { ok: false, held: 'no_title_block_found', detail: { confidence: tb.confidence, residual: tb.residual.slice(0, 5) } };
+  // THE TITLE BLOCK IS THE RULED BOX, not just the evidence column: its left edge moves to the nearest long ruled
+  // line within 35% of the sheet to the left of the evidence (only for a right-hand strip).
+  if (strip.x > 0.5 && strip.y === 0 && strip.h === 1) {
+    const rule = verticalRules(img).filter((x) => x < strip.x && strip.x - x <= 0.35 && x > 0.4).sort((a, b) => b - a)[0];
+    if (rule !== undefined) { const x = Math.max(0, rule - 0.004); strip.w += strip.x - x; strip.x = x; tb.boxes[0].push({ ...strip }); }
+  }
+  // A word OCR could barely read right beside the strip may be the title block's own text, misread: hold.
+  const nearLow = ws.filter((x) => x.conf < MIN_NEAR_CONF && x.bbox.x1 / img.w >= strip.x - NEAR && x.bbox.x0 / img.w < strip.x);
+  if (nearLow.length) return { ok: false, held: 'title_block_low_confidence', detail: { near_strip_low_conf_words: nearLow.length } };
   const inStrip = ws.filter((x) => inside(strip, x, img.w, img.h));
   if (!inStrip.length) return { ok: false, held: 'title_block_unread', detail: { strip } };
   const titleConf = inStrip.reduce((n, x) => n + x.conf, 0) / inStrip.length;
   if (titleConf < MIN_TITLE_CONF) return { ok: false, held: 'title_block_low_confidence', detail: { title_conf: Math.round(titleConf), words_in_title: inStrip.length } };
-  const boxes = [...tb.boxes[0], ...textLayerBoxes([page], 0).boxes];
+  // PAGE-WIDE: the names the title block prints (its words, tokenised) join the customer's seeds, and every line
+  // anywhere that carries a company word, a licence number or one of those names - fuzzily - is boxed too.
+  const stripTerms = [...new Set([...stripSeeds(page, strip), ...seedTerms({ extra: stripSeeds(page, strip) })])];
+  const terms = [...new Set([...seeds, ...stripTerms])];
+  const party = (t: string) => COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || !!seedHit(t, terms);
+  const pageWide = page.runs.filter((r) => party(r.text)).map((r) => ({ x: r.x, y: r.y, w: r.w, h: r.h }));
+  const boxes = [...tb.boxes[0], ...textLayerBoxes([page], 0).boxes, ...pageWide];
   // Every string the first pass saw as identity is looked for again on the painted page.
   const found = page.runs.filter((r) => ID_TEXT.test(r.text) || ID_LABEL.test(r.text) || residualScan(r.text, seeds).length > 0).map((r) => r.text);
-  const again = [...new Set([...seeds, ...stripSeeds(page, strip), ...found.filter((t) => t.length >= 6).map((t) => t.toLowerCase())])];
+  const again = [...new Set([...terms, ...found.filter((t) => t.length >= 6).map((t) => t.toLowerCase())])];
   const painted = paint(img, boxes);
   const second = await ocr(rgbaToBmp(painted));
-  const left = pageOf(second, img.w, img.h).runs.filter((r) => ID_TEXT.test(r.text) || ID_LABEL.test(r.text) || residualScan(r.text, again).length > 0);
+  // The re-read: patterns, company words and licence numbers, and every seed matched FUZZILY (edit distance up to 2
+  // after squashing), since the second OCR may shift a letter of a name the first read cleanly.
+  const left = pageOf(second, img.w, img.h).runs.filter((r) => ID_TEXT.test(r.text) || ID_LABEL.test(r.text) || COMPANY.test(r.text) || LICENCE.test(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again));
   if (left.length) return { ok: false, held: 'identity_survived_reocr', detail: { lines: left.length } };
   return { ok: true, image: painted, boxes, detail: { method: 'scan_ocr', words: ws.length, title_conf: Math.round(titleConf), boxes: boxes.length, reocr_lines: second.length } };
 }

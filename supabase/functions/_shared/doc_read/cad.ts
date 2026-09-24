@@ -264,16 +264,29 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   // LEGEND SAMPLES ARE NOT WORK (24 Sep 2026, sales_engineer; founder instruction 580: "make sure that he's
   // doing the count properly"). A legend draws one of each symbol beside its description, and those are
   // block INSERTs like every device on the plan: counted as they stood, the ZZ DEMO plan's 7 smoke detectors
-  // read 8 and its 5 sockets 6. An insert is a legend sample when it lies under a LEGEND / KEY / SYMBOLS
-  // heading (within 40 heading heights below it, 80 across) AND a description sits beside it on its own
-  // line (within 1.5 heading heights up or down, 12 to the right). Anything else is counted, and what was
-  // set aside is said in the notes, so a surprising count can be checked.
+  // read 8 and its 5 sockets 6. An insert is a legend sample only when ALL of these hold:
+  //   * it lies under a LEGEND / KEY / SYMBOLS heading, inside a window that is bounded ABSOLUTELY - at most
+  //     1.5 m across and 3 m down in real units (review of #967: a window of 80 x 40 heading heights was
+  //     10 m x 20 m under a 250 mm heading and swallowed five real detectors beside CORRIDOR tags);
+  //   * a DESCRIPTION sits beside it on its own row, within 1 m: text that names the block, or reads as a legend
+  //     entry ("SD - SMOKE DETECTOR", "SKT = SOCKET"), not a room or a tag;
+  //   * it stands in the legend's COLUMN: within 0.3 m of the column's median x.
+  // Anything else is counted, and what was set aside is said in the notes, so a surprising count can be checked.
+  const legendToM = insunits && UNIT_M[insunits] ? UNIT_M[insunits][0] : extent > 500 ? 0.001 : 1;
+  const within = (m: number, h: number, k: number) => Math.min(k * h, m / legendToM);
+  const describes = (w: { s: string }, block: string) => w.s.toUpperCase().startsWith(block.toUpperCase()) || /\S\s*[-–=:]\s+\S/.test(w.s);
   const anchors = words.filter((w) => w.h > 0 && LEGEND_HEADING.test(w.s));
+  const candidates = new Set<(typeof placed)[number]>();
+  for (const a of anchors) {
+    const inWindow = placed.filter((p) => p.y <= a.y + a.h && a.y - p.y <= within(3, a.h, 40) && p.x >= a.x - within(0.2, a.h, 3) && p.x - a.x <= within(1.5, a.h, 80)
+      && words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x <= within(1, a.h, 12) && describes(w, p.name)));
+    if (!inWindow.length) continue;
+    const xs = inWindow.map((p) => p.x).sort((u, v) => u - v), mid = xs[Math.floor(xs.length / 2)];
+    for (const p of inWindow) if (Math.abs(p.x - mid) <= 0.3 / legendToM) candidates.add(p);
+  }
   let samples = 0;
   for (const p of placed) {
-    const sample = anchors.some((a) => p.y <= a.y + a.h && p.y >= a.y - 40 * a.h && p.x >= a.x - 3 * a.h && p.x <= a.x + 80 * a.h &&
-      words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x <= 12 * a.h));
-    if (sample) { samples++; continue; }
+    if (candidates.has(p)) { samples++; continue; }
     inserts.set(p.name, (inserts.get(p.name) ?? 0) + 1);
   }
   if (samples) notes.push(`${samples} block insert(s) drawn as legend samples beside their descriptions were not counted.`);

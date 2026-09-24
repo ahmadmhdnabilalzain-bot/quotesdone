@@ -105,7 +105,7 @@ export function cadIdentityTerms(dxfText: string): string[] {
 // CAD vocabulary: the words a layer or block name may keep. AIA CAD Layer Guidelines major/minor groups,
 // ISO 13567 element words, trades and devices a supplier prices. Codes of 3 characters or fewer and
 // numbers are always kept (discipline letters, sizes, tags like D-900) — they identify nobody.
-const VOCAB = new Set(`
+export const VOCAB = new Set(`
   wall walls door doors glaz glazing wind window windows flor floor floors clng ceiling ceilings roof roofs
   strs stair stairs ramp elev elevator lift lifts furn furniture fixt fixture fixtures eqpm equip equipment
   duct ducts ductwork pipe pipes piping hvac plmb plumbing fire sprk spkl sprinkler sprinklers elec electrical

@@ -211,7 +211,7 @@ export const zzPdfScan = () => pdfOf(['scan'], INFO, true);
 // scanner returns a sheet. `titleNoise` smears the title block alone, to make a page OCR cannot read there.
 export const SCAN_TITLE = ['ZZ DEMO ORBIT CONSULTING ENGINEERS LLC', 'TEL +971 4 000 0017', 'ZZ.ORBIT@EXAMPLE.INVALID', 'CLIENT: ZZ DEMO RASHID KAREEM', 'PROJECT: ZZ DEMO HARBOUR TOWER', 'DRAWING NO: ZZ-2026-0142', 'DRAWN BY: ZZ DEMO DRAFTER'];
 export const SCAN_CONTENT = ['OFFICE 101', 'MEETING ROOM 102', 'STORE 103', '6000', '4000', 'LEGEND'];
-export function zzScanRgba(o: { rotateDeg?: number; noise?: number; titleNoise?: number; noTitle?: boolean; seed?: number } = {}): { w: number; h: number; rgba: Uint8ClampedArray } {
+export function zzScanRgba(o: { rotateDeg?: number; noise?: number; titleNoise?: number; noTitle?: boolean; leftFirm?: boolean; seed?: number } = {}): { w: number; h: number; rgba: Uint8ClampedArray } {
   const w = 2600, h = 1400, rgba = new Uint8ClampedArray(w * h * 4).fill(255);
   let s = o.seed ?? 7; const rnd = () => ((s = (s * 1103515245 + 12345) >>> 0) / 4294967296);
   const th = (o.rotateDeg ?? 0) * Math.PI / 180, cx = w / 2, cy = h / 2;
@@ -230,8 +230,38 @@ export function zzScanRgba(o: { rotateDeg?: number; noise?: number; titleNoise?:
   if (!o.noTitle) seg(1940, 40, 1940, 1360);
   if (!o.noTitle) SCAN_TITLE.forEach((t, i) => text(1970, 140 + i * 90, 15, t));
   if (!o.noTitle) { text(1970, 1000, 20, 'SCALE 1:100'); text(1970, 1200, 40, 'E-1.01'); }
+  // The review's case (#967): the firm printed LEFT of the title column, on the DRAWN BY row, outside the ruled box.
+  if (o.leftFirm) text(1660, 680, 15, 'ZZ ORBIT ENGINEERING');
   // The scanner's speckle, and (for the low-confidence case) a smeared title block.
   for (let i = 0; i < w * h * (o.noise ?? 0); i++) { const k = (Math.floor(rnd() * h) * w + Math.floor(rnd() * w)) * 4; rgba[k] = rgba[k + 1] = rgba[k + 2] = rnd() < 0.5 ? 0 : 255; }
   if (o.titleNoise) for (let y = 40; y < 1360; y++) for (let x = 1945; x < 2560; x++) if (rnd() < o.titleNoise) { const k = (y * w + x) * 4; rgba[k] = rgba[k + 1] = rgba[k + 2] = rnd() < 0.5 ? 0 : 160; }
   return { w, h, rgba };
+}
+
+// ── the review's leak cases (#967, 24 Sep 2026) ─────────────────────────────────────────────────────
+// Every party here reached a supplier's page through the first CAD renderer: an ATTRIB tagged CLIENT_NAME in a block
+// called ISO_A1, firm names with no label, a dimension override, a licence number, the customer's name letter-spaced
+// and split one letter per TEXT. Rooms, a room tag and a dimension sit beside them and must still be drawn.
+export function zzLeakyDxf(): Uint8Array {
+  type P = [number, string | number][];
+  const txt = (x: number, y: number, s: string, h = 200): P => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  return dxfFrom([
+    ...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]),
+    ...dxfSection('BLOCKS', [[0, 'BLOCK'], [8, '0'], [2, 'ISO_A1'], [70, 2], [10, 0], [20, 0], [30, 0], [0, 'LINE'], [8, '0'], [10, 0], [20, 0], [11, 3000], [21, 0], [0, 'ENDBLK'], [8, '0']]),
+    ...dxfSection('ENTITIES', [
+      [0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 12000], [20, 0], [10, 12000], [20, 8000], [10, 0], [20, 8000],
+      ...txt(2000, 6000, 'OFFICE 101'), ...txt(6000, 6000, 'MEETING ROOM 102'), ...txt(9000, 6000, 'CORRIDOR'), ...txt(3000, 500, '6000'),
+      [0, 'INSERT'], [8, 'A-ANNO'], [2, 'ISO_A1'], [10, 13000], [20, 0], [30, 0], [66, 1],
+      [0, 'ATTRIB'], [8, 'A-ANNO'], [10, 13100], [20, 400], [30, 0], [40, 150], [1, 'ZZ HARBOUR HOLDINGS'], [2, 'CLIENT_NAME'], [70, 0],
+      [0, 'ATTRIB'], [8, 'A-ANNO'], [10, 13100], [20, 700], [30, 0], [40, 150], [1, 'SHEET 4 OF 9'], [2, 'SHEET_NO'], [70, 0],
+      // A value that reads as drawing content under a neutral tag: withheld only because its INSERT carries a party tag.
+      [0, 'ATTRIB'], [8, 'A-ANNO'], [10, 13100], [20, 1000], [30, 0], [40, 150], [1, 'GROUND FLOOR'], [2, 'LINE2'], [70, 0],
+      [0, 'SEQEND'], [8, 'A-ANNO'],
+      ...txt(500, 3000, 'ZZ ORBIT ENGINEERING'), ...txt(500, 2500, 'ORBIT HOLDINGS'), ...txt(500, 2000, 'DM LIC 123456'),
+      [0, 'DIMENSION'], [8, 'A-DIMS'], [10, 0], [20, 1000], [30, 0], [11, 6000], [21, 1200], [31, 0], [70, 32], [1, 'BY ZZ ORBIT'],
+      ...txt(500, 1500, 'R A S H I D   K A R E E M', 180),
+      ...[...'KAREEM'].flatMap((c, i) => txt(7000 + i * 170, 1500, c, 180)),
+    ]),
+    [0, 'EOF'],
+  ]);
 }

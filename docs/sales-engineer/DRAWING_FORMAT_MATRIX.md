@@ -160,6 +160,53 @@ Evidence (AFTER):
   raises `cad_read_worker:job_failed` through `fn_it_engineer_finding_upsert` after the third attempt.
 - **Nightly**: `.github/workflows/nightly-journey.yml` now walks the three drawing e2e scripts.
 
+## Independent review of #967 (24 Sep 2026): three leaks, fixed and proved
+
+The reviewer ran our own code on crafted inputs and got identity onto a supplier's page. Each case is now a
+test, and each guard was broken once locally to confirm its test fails.
+
+1. **Parties no rule recognised were drawn** (CAD). The inputs were:
+   - an ATTRIB tagged `CLIENT_NAME` in block `ISO_A1`;
+   - the bare firm names "ZZ ORBIT ENGINEERING" and "ORBIT HOLDINGS";
+   - a dimension override "BY ZZ ORBIT";
+   - "DM LIC 123456";
+   - the customer's name letter-spaced, and split one letter per TEXT.
+
+   The fixes are in `_shared/drawing_text_policy.ts`:
+   - The default is now **withhold**. A word is drawn only if it reads as drawing content: numbers,
+     dimensions, codes, or the trade's vocabulary.
+   - A company word, a licence/plot/Makani/DM/TRN number or a party tag is withheld on sight.
+   - Every attribute of an INSERT that carries any party-like tag is withheld.
+   - Runs on one line are joined and squashed, then matched against the seeds, exactly and with an edit
+     distance of up to 2.
+   - The re-read of what is drawn now checks the drawn lines as they stand. The old re-read asked the same
+     question as the selection and could never fail.
+
+   Proof: `cad_render.test.ts`: every case is withheld, and OFFICE 101, MEETING ROOM 102, CORRIDOR and 6000 are
+   drawn. `scan_redact.check.ts` OCRs the rendered PIXELS of that drawing: the rooms are readable and no party is.
+2. **A title layer spanning the sheet had its linework drawn.** Nothing on a title layer is drawn now.
+   Everything inside its border is blacked out. A title layer that is most of the sheet even inside its border is
+   held (`title_unbounded`). Proof: `cad_render.test.ts`. The logo adds no pixel outside the box, the box is
+   solid black, no border line is drawn, and a crossing title layer is held.
+3. **A firm printed left of a scan's title column was published.** The fixes:
+   - The title strip extends to the ruled box's edge (long vertical runs in the raster).
+   - A word read below 60% confidence right beside the strip holds the page.
+   - Company words, licence numbers and the title block's own names (tokenised) are boxed page-wide.
+   - The re-read matches seeds fuzzily.
+
+   Proof: `scan_redact.check.ts`, the review case. It publishes with the firm covered (15 boxes), and a second
+   OCR reads neither ORBIT nor ENGINEERING.
+
+The review also found these, now fixed:
+- **Legend window.** It is bounded at 1.5 m × 3 m in real units. A sample needs a legend-style description and
+  must stand in the legend's column. Test: five detectors beside CORRIDOR tags, plus one 5 m down beside
+  "SD - NORTH WALL", are all counted.
+- **Edge render cap.** It is now 120k segments, and customer_api queues a denser drawing to the CAD worker.
+- **Nightly reporting.** The drawing journeys now run BEFORE the nightly report, and their results reach the
+  sales engineer as journey `f-drawings/...`.
+- **Demo exemption.** A demo page is signed only while its rehearsal window is open, or for the founder's
+  standing demo.
+
 ## Still not done, and why
 
 - **Scanned PDF and photo redaction**: built in the second commit (note 5). It is not live until the queue-reason

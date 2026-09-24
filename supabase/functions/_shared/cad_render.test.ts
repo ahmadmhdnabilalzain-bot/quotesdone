@@ -13,7 +13,7 @@ import { renderCadForSupplier, frameKind, MAX_TITLE_SHARE } from './cad_render.t
 import { seedTerms } from './anonymise.ts';
 import { dwgToDxf } from './doc_read/dwg.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
-import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
 const lower = (s: string) => s.toLowerCase();
@@ -69,20 +69,53 @@ Deno.test('frame kinds: a title block, logo or revision box is blacked out; a bo
   for (const n of ['SD', 'SKT', 'A-WALL', 'E-FIRE', 'TBL-SCHEDULE']) assertEquals(frameKind(n), null, n);
 });
 
-Deno.test('a title-block LAYER that spans the sheet is not blacked out: its words are withheld, its lines drawn', async () => {
-  const src = dxfFrom([
-    ...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]),
-    ...dxfSection('ENTITIES', [
-      [0, 'LWPOLYLINE'], [8, 'TITLE'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 10000], [20, 0], [10, 10000], [20, 7000], [10, 0], [20, 7000],
-      [0, 'TEXT'], [8, 'TITLE'], [10, 8000], [20, 300], [40, 150], [1, 'ZZ DEMO Harbour Tower'],
-      [0, 'TEXT'], [8, 'A-ANNO'], [10, 2000], [20, 3000], [40, 250], [1, 'OFFICE 101'],
-    ]),
-    [0, 'EOF'],
-  ]);
+// Review of #967: a title layer that spans the sheet (the border is on it) had its LINES drawn, so a vector logo
+// and SHX-exploded text reached the supplier. Now nothing on a title layer is drawn: everything inside the border
+// is blacked out tight, and a title layer that is most of the sheet even inside its border is HELD.
+type P = [number, string | number][];
+const titleSheet = (logo: boolean, extra: P = []) => dxfFrom([
+  ...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]),
+  ...dxfSection('ENTITIES', [
+    [0, 'LWPOLYLINE'], [8, 'TITLE'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 10000], [20, 0], [10, 10000], [20, 7000], [10, 0], [20, 7000],
+    ...(logo ? [[0, 'LWPOLYLINE'], [8, 'TITLE'], [90, 5], [70, 1], [10, 8500], [20, 300], [10, 9500], [20, 300], [10, 9000], [20, 1300], [10, 8700], [20, 700], [10, 9300], [20, 700]] as P : []),
+    [0, 'TEXT'], [8, 'TITLE'], [10, 8000], [20, 1500], [40, 150], [1, 'ZZ DEMO Harbour Tower'],
+    [0, 'TEXT'], [8, 'A-ANNO'], [10, 2000], [20, 3000], [40, 250], [1, 'OFFICE 101'],
+    ...extra,
+  ]),
+  [0, 'EOF'],
+]);
+Deno.test('a title LAYER spanning the sheet: its logo linework is never drawn, everything inside the border is black', async () => {
+  const withLogo = await render(titleSheet(true)), noLogo = await render(titleSheet(false));
+  assertEquals(withLogo.drawn_texts, ['OFFICE 101']);
+  const title = withLogo.regions_px.filter((r) => r.kind === 'title');
+  assertEquals(title.length, 1, 'the title layer was not blacked out');
+  const t = title[0];
+  const inT = (i: number) => { const x = (i / 4) % withLogo.width, y = Math.floor(i / 4 / withLogo.width); return x >= t.x && x < t.x + t.w && y >= t.y && y < t.y + t.h; };
+  // Outside the title box, the page with the logo and the page without it are the same pixels: the logo drew nothing.
+  let differ = 0;
+  for (let i = 0; i < withLogo.rgba.length; i += 4) if (!inT(i) && withLogo.rgba[i] !== noLogo.rgba[i]) differ++;
+  assertEquals(differ, 0, 'the logo linework reached the page outside the black box');
+  for (let i = 0; i < withLogo.rgba.length; i += 4) if (inT(i)) assertEquals(withLogo.rgba[i], 0, 'a pixel of the title box is not black');
+  // The border itself (on the title layer, framing the page) is not drawn either: no column carries a line
+  // running most of the page's height.
+  const tall = [];
+  for (let x = 0; x < withLogo.width; x++) { let n = 0; for (let y = 0; y < withLogo.height; y++) if (withLogo.rgba[(y * withLogo.width + x) * 4] === 32) n++; if (n > 0.8 * withLogo.height) tall.push(x); }
+  assertEquals(tall, [], 'the title layer\'s border linework was drawn');
+  // The same layer reaching across the sheet inside its border (a cross of long lines) is held, not guessed at.
+  const held = await renderCadForSupplier(titleSheet(true, [[0, 'LINE'], [8, 'TITLE'], [10, 100], [20, 100], [11, 9900], [21, 6900], [0, 'LINE'], [8, 'TITLE'], [10, 100], [20, 6900], [11, 9900], [21, 100]]), { seeds });
+  assertEquals(held.ok ? 'drawn' : held.reason, 'title_unbounded');
+});
+
+// Review of #967: every one of these reached a supplier's page through the first version. The default is now
+// withhold (drawing_text_policy.ts), runs on a line are read together, and the drawn page is re-read before it goes.
+Deno.test('parties no rule used to recognise are withheld; rooms and dimensions are still drawn', async () => {
+  const src = zzLeakyDxf();
   const g = await render(src);
-  assertEquals(g.withheld.regions, 0);
-  assert(g.notes.some((n) => /covers \d+% of the sheet/.test(n)), JSON.stringify(g.notes));
-  assertEquals(g.drawn_texts, ['OFFICE 101']);
+  for (const c of ['OFFICE 101', 'MEETING ROOM 102', 'CORRIDOR', '6000']) assert(g.drawn_texts.includes(c), `content lost: ${c} (drawn ${JSON.stringify(g.drawn_texts)})`);
+  const drawn = g.drawn_texts.join(' | ');
+  for (const bad of [/ORBIT/i, /HARBOUR/i, /HOLDINGS/i, /123456/, /R\s*A\s*S\s*H\s*I\s*D/i, /SHEET 4/, /GROUND FLOOR/]) assert(!bad.test(drawn), `${bad} was drawn: ${drawn}`);
+  assert(!g.drawn_texts.join('').toLowerCase().includes('kareem'), 'the name split one letter per TEXT was drawn');
+  assert(!g.drawn_texts.some((t) => /^[KAREM]$/.test(t)), `a letter of the split name was drawn: ${drawn}`);
 });
 
 Deno.test('too dense for the budget is HELD, never half-drawn; not a DXF is refused', async () => {

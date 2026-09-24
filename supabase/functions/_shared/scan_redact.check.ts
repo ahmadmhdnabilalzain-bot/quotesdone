@@ -15,7 +15,8 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { redactScan, rgbaToBmp, type Rgba } from './scan_redact.ts';
 import { seedTerms } from './anonymise.ts';
-import { CUSTOMER, FILE_NAME, zzScanRgba } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CUSTOMER, FILE_NAME, zzLeakyDxf, zzScanRgba } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { renderCadForSupplier } from './cad_render.ts';
 import { tesseractOcr } from '../../../scripts/lib/scan_ocr.ts';
 import { scanDrawing } from '../../../scripts/cad_read_worker.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
@@ -110,4 +111,36 @@ Deno.test({ name: 'the CAD worker publishes a proved-clean scan as one recorded 
     assertEquals(calls.filter((c) => c.method === 'POST' && c.url.includes('/storage/')).length, 0, 'a held page was uploaded');
     assert(!calls.some((c) => String(c.body || '').includes('insert into public.drawing_redaction_runs')), 'a held page was recorded as a run');
   } finally { globalThis.fetch = real; }
+} });
+
+// Review of #967: a firm printed left of the title column, on the DRAWN BY row, was published and a re-OCR still
+// read it. Company words, licence numbers and the title block's own names are now boxed page-wide, and the re-read
+// matches seeds fuzzily. Either the firm is covered, or the page is held; it is never published readable.
+Deno.test({ name: 'the review case: a firm left of the title column is covered (or the page held), never published readable', sanitizeResources: false, sanitizeOps: false, fn: async () => {
+  const e = await tesseractOcr('eng+ara');
+  try {
+    // Measured 24 Sep 2026: with page-wide boxing the page PUBLISHES with the firm covered (15 boxes); without it the
+    // fuzzy re-read holds it. Publishing is asserted, so a lost page-wide rule fails here rather than hiding in a hold.
+    const r = await redactScan(zzScanRgba({ rotateDeg: 0.6, noise: 0.002, leftFirm: true }), e.ocr, seeds);
+    assert(r.ok, `held: ${!r.ok && r.held} ${!r.ok && JSON.stringify(r.detail)}`);
+    if (!r.ok) return;
+    const text = (await e.ocr(rgbaToBmp(r.image))).map((l) => l.text).join('\n');
+    assert(!/ORBIT|ENGINEERING/i.test(text), `the firm is still readable on the published page:\n${text}`);
+    for (const c of ['OFFICE', 'LEGEND']) assert(text.includes(c), `"${c}" was lost`);
+  } finally { await e.done(); }
+} });
+
+// The CAD page, re-read from its PIXELS by OCR: an independent extraction of what a supplier would see, on the
+// review's crafted drawing (a CLIENT_NAME attribute in block ISO_A1, bare firm names, a dimension override, a
+// licence number, a letter-spaced name and a name split one letter per TEXT).
+Deno.test({ name: 'the CAD page of the review\'s crafted drawing, read back by OCR, shows the rooms and no party', sanitizeResources: false, sanitizeOps: false, fn: async () => {
+  const g = await renderCadForSupplier(zzLeakyDxf(), { seeds });
+  assert(g.ok, `the crafted drawing was held: ${!g.ok && g.reason}`);
+  if (!g.ok) return;
+  const e = await tesseractOcr('eng');
+  try {
+    const text = (await e.ocr(rgbaToBmp({ w: g.width, h: g.height, rgba: g.rgba }))).map((l) => l.text).join('\n');
+    assert(/OFFICE/.test(text) && /CORRIDOR/.test(text), `the rooms are not readable:\n${text}`);
+    assert(!/ORBIT|HARBOUR|HOLDING|123456|RASHID|KAREEM|K\s*A\s*R\s*E\s*E\s*M/i.test(text), `a party is readable on the CAD page:\n${text}`);
+  } finally { await e.done(); }
 } });

@@ -49,7 +49,8 @@ test('the signer signs only a page a recorded run produced, and a lookup failure
   const src = readFileSync(PAGES, 'utf8');
   assert.match(src, /export async function recordedPaths\(/, 'the provenance lookup is gone');
   assert.match(src, /\.from\('drawing_redaction_runs'\)\.select\('output_paths'\)\.overlaps\('output_paths', runPaths\)\.neq\('status', 'held'\)/);
-  assert.match(src, /\.from\('rehearsal_window'\)\.select\('run_tag'\)\.in\('run_tag', tags\.map\(\(t\) => 'qd_run:' \+ t\)\)/);
+  assert.match(src, /\.from\('rehearsal_window'\)\.select\('run_tag'\)\.in\('run_tag', tags\.map\(\(t\) => 'qd_run:' \+ t\)\)\s*\.or\(`ended_at\.is\.null,ended_at\.gt\./, 'the demo exemption no longer expires with its rehearsal window');
+  assert.match(src, /export const STANDING_DEMO_TAGS = new Set\(\['founderdemo'\]\);/, 'the standing-demo allow-list grew or vanished');
   const sign = src.slice(src.indexOf('async function signOne'), src.indexOf('export async function signRedactedDrawings'));
   assert.match(sign, /if \(!provenance\.ok\) return \{ url: null/, 'a failed lookup no longer refuses');
   assert.match(sign, /if \(!provenance\.allowed\.has\(path\)\) return \{ url: null/, 'a page with no run behind it is signed');
@@ -73,7 +74,9 @@ test('production: every stored drawing page was produced by a recorded run or a 
   const rows = await sql(`select i.id::text as id, p as path
                             from public.inquiries i, unnest(coalesce(i.drawing_redacted_paths, '{}'::text[])) p
                            where not exists (select 1 from public.drawing_redaction_runs r where p = any(r.output_paths) and r.status <> 'held')
+                             and split_part(p, '/', 3) <> 'founderdemo'
                              and not exists (select 1 from public.rehearsal_window w
-                                              where p like 'drawings/redacted/%' and w.run_tag = 'qd_run:' || split_part(p, '/', 3))`);
+                                              where p like 'drawings/redacted/%' and w.run_tag = 'qd_run:' || split_part(p, '/', 3)
+                                                and (w.ended_at is null or w.ended_at > now()))`);
   assert.deepEqual(rows.map((r) => `${r.id} -> ${r.path}`), [], 'a stored page has no provenance: the supplier inbox will refuse it');
 });

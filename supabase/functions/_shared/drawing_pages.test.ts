@@ -31,7 +31,7 @@ function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang', prov: 
       select: (_cols: string) => {
         let vals: string[] = [];
         const q: any = {
-          overlaps: (_k: string, v: string[]) => { vals = v; return q; }, neq: () => q, in: (_k: string, v: string[]) => { vals = v; return q; },
+          overlaps: (_k: string, v: string[]) => { vals = v; return q; }, neq: () => q, in: (_k: string, v: string[]) => { vals = v; return q; }, or: () => q,
           then: (res: (x: unknown) => unknown) => res(prov.lookupError ? { data: null, error: { message: 'lookup down' } }
             : table === 'drawing_redaction_runs' ? { data: [{ output_paths: vals.filter((p) => (prov.recorded ?? (() => true))(p)) }], error: null }
             : { data: vals.filter((t) => (prov.demoTags ?? []).includes(t.replace(/^qd_run:/, ''))).map((run_tag) => ({ run_tag })), error: null }),
@@ -166,12 +166,14 @@ Deno.test('a customer file with no shareable page is reported as withheld, never
 // no redaction run names. A redacted-shaped path is now signed only when a recorded run (or a registered E2E run)
 // produced it; a failed lookup refuses every page, and the refusal is counted and raised like any failure.
 Deno.test('a redacted-shaped path with no run behind it is refused; a registered demo run is served; a failed lookup serves nothing', async () => {
-  const f = fake(() => 'ok', { recorded: (p) => p.includes('ran'), demoTags: ['founderdemo'] });
+  // 'zzopen' has an open rehearsal window (the fake answers only open ones); 'zzended' ended; 'founderdemo' is standing.
+  const f = fake(() => 'ok', { recorded: (p) => p.includes('ran'), demoTags: ['zzopen'] });
   const out = await signRedactedDrawings(f.admin, [{ id: 'zz-demo-inq-7', paths: [
-    'redacted/ran-1/page_p0.jpg', 'redacted/forged-2/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png', 'drawings/redacted/zzforged/x_p1.png'] }]);
-  assertEquals(out['zz-demo-inq-7'].served, 2);
-  assertEquals(out['zz-demo-inq-7'].failed, 2);
-  assertEquals(f.signed, ['redacted/ran-1/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png'], 'a page with no provenance reached storage');
+    'redacted/ran-1/page_p0.jpg', 'redacted/forged-2/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png', 'drawings/redacted/zzforged/x_p1.png',
+    'drawings/redacted/zzopen/x_p1.png', 'drawings/redacted/zzended/x_p1.png'] }]);
+  assertEquals(out['zz-demo-inq-7'].served, 3);
+  assertEquals(out['zz-demo-inq-7'].failed, 3);
+  assertEquals(f.signed, ['redacted/ran-1/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png', 'drawings/redacted/zzopen/x_p1.png'], 'a page with no provenance reached storage');
   assert(String(f.rpcs[0].args.p_evidence.sample_errors[0].message).includes('no redaction run'));
 
   const down = fake(() => 'ok', { lookupError: true });

@@ -34,6 +34,9 @@ test('both CAD entry points draw the original through drawing_redact mode cad, a
     assert.match(b, /drawingHandoff\((?:cadRed|red)\.meta, path, (?:cadRed|red)\.redacted\)/, `${name}: the hold is not decided by drawingHandoff`);
   }
   assert.doesNotMatch(api, /functions\/v1\/cad_convert/, 'customer_api calls the paid raster converter again');
+  // Review of #967: the edge dies (546) near 150k segments, so the cap is 120k and a denser drawing goes to the worker.
+  assert.ok(read('supabase/functions/_shared/cad_render.ts').includes('export const RENDER_MAX_SEGMENTS = 120_000;'), 'the edge render cap moved');
+  assert.equal((api.match(/reason === 'cad_render_too_dense' && path/g) || []).length, 2, 'a too-dense CAD drawing is not queued for the worker on both paths');
 });
 
 test('drawing_redact draws, uploads, records, and removes the upload when the record fails', () => {
@@ -59,8 +62,21 @@ test('the CAD worker draws what the edge cannot, records it, and raises a job th
 });
 
 test('the drawing journeys run every night, and the pixel proof runs on every push', () => {
-  for (const s of ['drawing_reaches_suppliers.mjs', 'cad_identity_reaches_no_supplier.mjs', 'every_drawing_format_is_read.mjs']) {
-    assert.match(nightly, new RegExp(`run: node scripts/e2e/${s.replace('.', '\\.')}\\n\\s+continue-on-error: true`), `${s} is not in the nightly journey`);
-  }
+  // Review of #967: the journeys ran AFTER the report, so a failure reached nobody. They now run before it, and
+  // their results are written into the run's steps.json (journey 'f-...', owned by the sales engineer).
+  const drawings = nightly.indexOf('run: node scripts/e2e/drawing_journeys_into_report.mjs e2e-out');
+  const report = nightly.indexOf('run: node scripts/e2e/report_to_it_engineer.mjs e2e-out');
+  assert.ok(drawings > 0 && report > drawings, 'the drawing journeys do not run before the nightly report');
+  const runner = read('scripts/e2e/drawing_journeys_into_report.mjs');
+  for (const s of ['drawing_reaches_suppliers.mjs', 'cad_identity_reaches_no_supplier.mjs', 'every_drawing_format_is_read.mjs']) assert.ok(runner.includes(`'${s}'`), `${s} is not walked`);
+  assert.ok(read('scripts/e2e/cad_identity_reaches_no_supplier.mjs').includes('matched.every((m) => m.is_demo === true)'), 'the CAD journey no longer proves it matched only demo suppliers');
   assert.match(checks, /--allow-net=deno\.land\s+supabase\/functions\/_shared\/drawing_redact_page\.check\.ts/);
+});
+
+test('a drawing journey\'s lines become report steps the sales engineer owns; a silent crash is a failure', async () => {
+  const { stepsOf } = await import('../e2e/drawing_journeys_into_report.mjs');
+  const out = stepsOf('cad_identity_reaches_no_supplier.mjs', 'PASS  read the DXF - 3 lines\nFAIL  no name from the file - ["ORBIT"]\nINFO  x', 1);
+  assert.deepEqual(out.map((s) => [s.journey[0], s.status]), [['f', 'PASS'], ['f', 'FAIL']]);
+  const dead = stepsOf('every_drawing_format_is_read.mjs', 'Error: boom', 1);
+  assert.equal(dead.length, 1); assert.equal(dead[0].status, 'FAIL');
 });

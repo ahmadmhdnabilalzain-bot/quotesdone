@@ -117,3 +117,27 @@ Deno.test('redactDxf on a BINARY DXF: the supplier gets a redacted ASCII DXF wit
 Deno.test('MTEXT formatting codes', () => {
   assertEquals(stripMtext('{\\H2.5;\\C1;A}\\PB\\LC\\l \\S1^2; %%d'), 'A\nBC 1/2 °');
 });
+
+// Review of #967 (24 Sep 2026): the legend window scaled with the heading's height, so a 250 mm LEGEND heading
+// opened a 10 m x 20 m window and five real detectors beside CORRIDOR tags were dropped as "samples". The window
+// is now bounded in real units, a sample needs a legend-style description, and it must stand in the column.
+Deno.test('legend samples: a big heading does not swallow real detectors beside room tags', async () => {
+  const ins = (x: number, y: number): [number, string | number][] => [[0, 'INSERT'], [8, 'E-FIRE'], [2, 'SD'], [10, x], [20, y], [30, 0]];
+  const txt = (x: number, y: number, h: number, s: string): [number, string | number][] => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  const real: [number, number][] = [[2000, -2500], [4500, -4000], [7000, -6000], [3000, -9000], [8500, -12000]];
+  // And one 5 m below the heading whose neighbour even reads like a legend entry: outside 3 m, it is work.
+  const described: [number, number] = [300, -5000];
+  const src = dxfFrom([
+    [0, 'SECTION'], [2, 'HEADER'], [9, '$INSUNITS'], [70, 4], [0, 'ENDSEC'],
+    [0, 'SECTION'], [2, 'ENTITIES'],
+    ...txt(0, 0, 250, 'LEGEND'),
+    ...ins(100, -400), ...txt(500, -450, 160, 'SD - SMOKE DETECTOR'),
+    ...real.flatMap(([x, y]) => [...ins(x, y), ...txt(x + 400, y - 50, 160, 'CORRIDOR')]),
+    ...ins(described[0], described[1]), ...txt(described[0] + 400, described[1] - 50, 160, 'SD - NORTH WALL'),
+    [0, 'ENDSEC'], [0, 'EOF'],
+  ]);
+  const r = await readDxf(src, { filename: 'plan.dxf', depth: 0 });
+  if (!r.ok) throw new Error(r.error);
+  assertEquals(r.quantities.find((q) => q.description === 'block SD')?.qty, 6);
+  assert(r.notes.some((n) => n.startsWith('1 block insert(s) drawn as legend samples')), r.notes.join(' | '));
+});

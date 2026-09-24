@@ -37,7 +37,8 @@
 // columns or word-wrap, or letter non-Latin text (stroke_font.ts draws such characters as boxes and counts
 // them). Those are said in `notes`, which become what the customer is told.
 import { binaryDxfToAscii, stripMtext } from './doc_read/cad.ts';
-import { cadIdentityTerms, FRAME, PARTY_TAG, tokens } from './cad_identity.ts';
+import { cadIdentityTerms, FRAME, tokens } from './cad_identity.ts';
+import { COMPANY, isDrawingContent, LICENCE, partyTag, seedHit } from './drawing_text_policy.ts';
 import { residualScan, seedTerms } from './anonymise.ts';
 import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
 import { textStrokes } from './stroke_font.ts';
@@ -50,8 +51,10 @@ type BBox = { x0: number; y0: number; x1: number; y1: number };
 
 /** The page a supplier sees: the long edge in pixels. drawing_redact keeps portal pages at the same 2600. */
 export const RENDER_LONG_EDGE = 2600;
-/** Past this many drawn segments the edge would run out of CPU; the page is held, never half-drawn. */
-export const RENDER_MAX_SEGMENTS = 400_000;
+/** Past this many drawn segments the edge would run out of CPU; the page is held, never half-drawn, and customer_api
+ *  queues the drawing for the CAD worker (which draws with a 5,000,000 budget). Review of #967, measured on the edge:
+ *  ~1.35 s of CPU at 150k segments and 3.1 s at 390k before the JPEG, against a 2 s cap - so 120k, not 400k. */
+export const RENDER_MAX_SEGMENTS = 120_000;
 /** Block nesting and exploded-entity ceilings (a block that inserts itself must not loop). */
 const MAX_DEPTH = 8, MAX_EXPANDED = 250_000;
 /** A title region larger than this share of the sheet is not blacked out (it would take the drawing
@@ -175,7 +178,7 @@ type Ctx = { m: M; layer: string; depth: number; frame: 'border' | null; title: 
 
 export type CadRenderResult =
   | { ok: true; rgba: Uint8ClampedArray; width: number; height: number; drawn_texts: string[]; withheld: { texts: number; regions: number; samples_redacted: number }; counts: Record<string, number>; notes: string[]; regions_px: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[] }
-  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual'; detail: string };
+  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual' | 'title_unbounded'; detail: string };
 
 const bboxOf = (pts: number[]): BBox => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (let i = 0; i + 1 < pts.length; i += 2) { x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]); } return { x0, y0, x1, y1 }; };
 const grow = (a: BBox, b: BBox): BBox => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) });
@@ -330,8 +333,11 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
           const cm: Ctx = { ...sub, m: mul(ctx.m, im) };
           for (const be of blk.ents) { if (be.type === 'ATTDEF') continue; drawEnt(be, cm, blocks); }
         }
-        // ATTRIBs are in world (OCS) coordinates already; they belong to the insert's frame kind.
-        for (const a of e.attribs) drawEnt1(a, sub, blocks, ocs(a), layer);
+        // ATTRIBs are in world (OCS) coordinates already; they belong to the insert's frame kind. An INSERT with ANY
+        // party-like tag (CLIENT_NAME, PROJECT_TITLE, DWG_NO, DATE ...) is a title block by what it carries, whatever
+        // its block is called (review of #967: "ISO_A1"), so every one of its values is withheld.
+        const attrCtx: Ctx = e.attribs.some((a) => partyTag(str(a, 2).trim())) && !sub.title ? { ...sub, frame: 'border' } : sub;
+        for (const a of e.attribs) drawEnt1(a, attrCtx, blocks, ocs(a), layer);
         break;
       }
       case 'HATCH': case 'MPOLYGON': counts.hatch_skipped++; break;
@@ -354,9 +360,23 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
 
   // ── which words may be drawn ───────────────────────────────────────────────────────────────────────
   const withheldBoxes: BBox[] = [];
-  const identity = (t: TextItem) => t.frame || (t.tag && PARTY_TAG.test(t.tag)) || ID_TEXT.test(t.s) || ID_LABEL.test(t.s) || residualScan(t.s, seeds).length > 0;
+  // THE DEFAULT IS WITHHOLD (review of #967, drawing_text_policy.ts): a word is drawn only when it reads as drawing
+  // content - numbers, dimensions, codes, the trade's vocabulary - and names no seed, even fuzzily.
+  const identity = (t: TextItem) => t.frame || partyTag(t.tag) || !isDrawingContent(t.s) || residualScan(t.s, seeds).length > 0 || !!seedHit(t.s, seeds);
   const out = new Set<TextItem>();
   for (const t of texts) if (identity(t)) out.add(t);
+  // Runs on one line are read TOGETHER: a name split one letter per TEXT, or spread across runs, is caught joined.
+  const linesOf = (items: TextItem[]) => {
+    const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
+    const groups: TextItem[][] = [];
+    for (const t of sorted) {
+      const g = groups.find((x) => { const last = x[x.length - 1]; return Math.abs(last.y - t.y) <= 0.6 * Math.max(last.h, t.h) && t.box.x0 - last.box.x1 <= 2 * Math.max(last.h, t.h) && t.box.x0 >= last.box.x0; });
+      if (g) g.push(t); else groups.push([t]);
+    }
+    return groups.filter((g) => g.length > 1).map((g) => g.sort((a, b) => a.x - b.x));
+  };
+  const lineLeaks = (g: TextItem[]) => { const joined = g.map((t) => t.s).join(' '); return !!seedHit(g.map((t) => t.s).join(''), seeds) || COMPANY.test(joined) || LICENCE.test(joined) || ID_TEXT.test(joined); };
+  for (const g of linesOf(texts)) if (lineLeaks(g)) for (const t of g) out.add(t);
   // A label takes its value with it: the words to its right on the same line, and the cell under it.
   for (const l of texts) {
     if (!l.label) continue;
@@ -373,23 +393,40 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   const drawingBox = [...ink.map(bboxOf), ...texts.map((t) => t.box), ...titleRegions.map((r) => r.box).filter(finite)].reduce(grow, EMPTY);
   const sheetArea = finite(drawingBox) ? Math.max(1e-9, (drawingBox.x1 - drawingBox.x0) * (drawingBox.y1 - drawingBox.y0)) : 1;
   const blackRegions: BBox[] = [];
+  const area = (b: BBox) => (b.x1 - b.x0) * (b.y1 - b.y0);
   for (const r of titleRegions) {
     if (!finite(r.box)) continue;
-    const share = ((r.box.x1 - r.box.x0) * (r.box.y1 - r.box.y0)) / sheetArea;
+    const share = area(r.box) / sheetArea;
     if (share <= MAX_TITLE_SHARE) { blackRegions.push(r.box); continue; }
-    notes.push(`A title-block layer or block covers ${Math.round(share * 100)}% of the sheet, so its lines are drawn and its words withheld rather than blacked out.`);
-    for (const p of r.parts) ink.push(p);
-    for (const t of r.texts) { texts.push(t); out.add(t); }
+    // A title layer that spans the sheet usually does so because the SHEET BORDER is on it. Its linework is never
+    // drawn (review of #967: a vector logo and SHX-exploded text reached a supplier that way): the region is
+    // blacked out tight round everything on it except the outer border; if even that is most of the sheet, HOLD.
+    // The border is a large AXIS-ALIGNED outline (every edge horizontal or vertical); a long diagonal or a cross
+    // on the title layer is not a border and stays inside what must be covered.
+    const isBorder = (p: number[]) => {
+      const b = bboxOf(p), tol = 0.005 * Math.max(b.x1 - b.x0, b.y1 - b.y0);
+      if (p.length < 8 || area(b) < 0.6 * area(r.box)) return false;
+      for (let i = 0; i + 3 < p.length; i += 2) if (Math.abs(p[i + 2] - p[i]) > tol && Math.abs(p[i + 3] - p[i + 1]) > tol) return false;
+      return true;
+    };
+    const inner = [...r.parts.filter((p) => !isBorder(p)).map(bboxOf), ...r.texts.map((t) => t.box)].reduce(grow, EMPTY);
+    if (!finite(inner)) continue;                               // the border alone: nothing to cover, nothing drawn
+    if (area(inner) / sheetArea > MAX_TITLE_SHARE) return { ok: false, reason: 'title_unbounded', detail: `the title layer covers ${Math.round(100 * area(inner) / sheetArea)}% of the sheet inside its border` };
+    blackRegions.push(inner);
+    notes.push(`A title-block layer spans the sheet (its border); everything on it inside the border is blacked out and none of its lines are drawn.`);
   }
   // A kept word whose middle lies inside a blacked-out title region is under the box anyway; not drawn.
   const inside = (b: BBox, t: TextItem) => { const cx = (t.box.x0 + t.box.x1) / 2, cy = (t.box.y0 + t.box.y1) / 2; return cx >= b.x0 && cx <= b.x1 && cy >= b.y0 && cy <= b.y1; };
   for (const t of texts) if (!out.has(t) && blackRegions.some((b) => inside(b, t))) out.add(t);
-  for (const t of out) if (!t.frame || t.label || identity(t)) withheldBoxes.push(t.box);
+  for (const t of out) withheldBoxes.push(t.box);
   const kept = texts.filter((t) => !out.has(t));
-  // The residual check: what will be drawn is scanned again, all of it, as the supplier would read it.
+  // THE RE-READ, of what will actually be drawn, and only that (review of #967: the old re-scan asked the same
+  // question as the selection above, so it could never fail). The drawn strings are joined line by line AS THEY
+  // WILL STAND on the page, squashed, and looked for against every seed fuzzily, plus company words and licence
+  // numbers. Any hit holds the page. The pixels are re-read by OCR in scan_redact.check.ts.
   const drawnTexts = kept.map((t) => t.s);
-  const leak = drawnTexts.filter((s) => ID_TEXT.test(s) || residualScan(s, seeds).length > 0);
-  if (leak.length) return { ok: false, reason: 'residual', detail: `${leak.length} drawn text(s) still read as identity` };
+  const leak = [...kept.map((t) => [t]), ...linesOf(kept)].filter(lineLeaks);
+  if (leak.length) return { ok: false, reason: 'residual', detail: `${leak.length} drawn line(s) still read as identity` };
   for (const t of kept) counts.unknown_glyphs += t.unknown;
   if (counts.unknown_glyphs) notes.push(`${counts.unknown_glyphs} character(s) outside the Latin stroke font (for example Arabic) are drawn as boxes; the take-off still reads them.`);
   if (counts.paper_space_skipped) notes.push(`${counts.paper_space_skipped} paper-space entities (sheet layouts, where title blocks live) are not drawn.`);
@@ -401,6 +438,8 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   for (const p of ink) for (let i = 0; i < p.length; i += Math.max(2, 2 * Math.floor(p.length / 64))) pts.push(p[i], p[i + 1]);
   for (const t of kept) pts.push(t.box.x0, t.box.y0, t.box.x1, t.box.y1);
   for (const b of blackRegions) pts.push(b.x0, b.y0, b.x1, b.y1);
+  // The title layer's full extent (its sheet border) still frames the page, though none of it is drawn.
+  for (const r of titleRegions) if (finite(r.box)) pts.push(r.box.x0, r.box.y0, r.box.x1, r.box.y1);
   if (pts.length < 4) return { ok: false, reason: 'empty', detail: 'nothing drawable in model space' };
   let ext = bboxOf(pts);
   if (pts.length > 200) {

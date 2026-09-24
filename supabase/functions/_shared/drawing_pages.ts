@@ -75,6 +75,11 @@ export const isRedactedPath = (p: string): boolean =>
 //                                   opens for every harness run (founderdemo is one).
 // A lookup that fails refuses every page of the request: counted, logged and raised like any other failure.
 const DEMO_PAGE = /^drawings\/redacted\/([A-Za-z0-9_-]{1,64})\//;
+// THE DEMO EXEMPTION EXPIRES (review of #967, 24 Sep 2026). A registered tag used to count for ever, so a
+// harness run that ended months ago still vouched for its pages. Now a demo page is signed only while its
+// run's rehearsal window is OPEN (ended_at null or in the future), or for the founder's standing demo, which
+// the founder asked to be left in place (instruction 571; scripts/e2e/fixtures.mjs NEVER_SWEPT).
+export const STANDING_DEMO_TAGS = new Set(['founderdemo']);
 export async function recordedPaths(admin: any, paths: string[]): Promise<{ ok: true; allowed: Set<string> } | { ok: false; error: string }> {
   const allowed = new Set<string>();
   const runPaths = [...new Set(paths.filter((p) => isRedactedPath(p) && !DEMO_PAGE.test(p)))];
@@ -87,7 +92,9 @@ export async function recordedPaths(admin: any, paths: string[]): Promise<{ ok: 
       for (const r of data || []) for (const p of (r.output_paths || [])) if (want.has(String(p))) allowed.add(String(p));
     }
     if (tags.length) {
-      const { data, error } = await admin.from('rehearsal_window').select('run_tag').in('run_tag', tags.map((t) => 'qd_run:' + t));
+      for (const p of paths) { const t = DEMO_PAGE.exec(p)?.[1]; if (t && STANDING_DEMO_TAGS.has(t)) allowed.add(p); }
+      const { data, error } = await admin.from('rehearsal_window').select('run_tag').in('run_tag', tags.map((t) => 'qd_run:' + t))
+        .or(`ended_at.is.null,ended_at.gt.${new Date().toISOString()}`);
       if (error) return { ok: false, error: 'demo page provenance lookup failed: ' + String(error.message || error) };
       const ok = new Set((data || []).map((r: any) => String(r.run_tag).slice('qd_run:'.length)));
       for (const p of paths) { const t = DEMO_PAGE.exec(p)?.[1]; if (t && ok.has(t)) allowed.add(p); }
