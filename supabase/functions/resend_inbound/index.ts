@@ -43,6 +43,7 @@ import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_sh
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
+import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -738,7 +739,10 @@ export const handler = observe('resend_inbound', async (req) => {
       if (lead && inbSecret) {
         if (cat === 'trade_license') {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
-          if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString() };
+          if (ex && ex.doc) { extracted = ex.doc; const dc = ex.doc; const u:any = { license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+              // The name printed on this licence (a scan is read by the vision model); null = not read, and the
+              // sales engineer's review then holds the registration for a human (licence_name_unread).
+              licence_legal_name: licenceNameFromModel(dc) };
             if (dc.confidence !== 'low') {
               if (dc.license_number) { u.trade_license_no = dc.license_number; fields.push('licence no '+dc.license_number); }
               if (dc.license_authority) { u.license_authority = dc.license_authority; fields.push('authority'); }

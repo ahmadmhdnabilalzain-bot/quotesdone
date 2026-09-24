@@ -17,6 +17,7 @@
 import { COMPOSITE, TRADES, tradeOfCategory, type Attr } from './model.ts';
 import { lineText, type Line } from './assess.ts';
 import { think, type ThinkDeps } from '../think.ts';
+import { shapeDecides } from './field_format.ts';
 
 export type ChecklistRow = { code: string; label_en: string; label_ar?: string | null };
 
@@ -87,15 +88,38 @@ const lineWords = (l: Line) => lineText(l);
 // A few lines per reasoning call, each batch carrying its own text: the answer must fit the gateway's
 // output cap (~900 tokens), and a line cut off the question could never have verbatim evidence.
 export const LINES_PER_CALL = 3;
+// WHAT NEEDS NO MODEL (it_engineer, 24 Sep 2026: line_specs was the largest paid surface, ~AED 15/day):
+//   * what a line's FORMAT settles (a number beside the unit its label names) is read by field_format.ts;
+//   * a line (its text + the checklist codes) already settled is reused by a sha-256 key (public.line_spec_reading),
+//     so a re-send of an unchanged line is never paid for twice.
+// Only what stays ambiguous goes to think(), exactly as before.
+async function sha256(s: string): Promise<string> {
+  return [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function reasonLineSpecs(deps: ThinkDeps, o: { lines: Line[]; checklist: Attr[]; trade: string; quoteId: string }): Promise<Record<number, Record<string, string>> | null> {
   const material = o.lines.filter((l) => lineWords(l).trim());
   if (!material.length || !o.checklist.length) return {};
   const out: Record<number, Record<string, string>> = {};
+  const codes = o.checklist.map((a) => a.code).sort().join(',');
+  const keyOf = new Map<number, string>();
+  for (const l of material) keyOf.set(l.line_no, await sha256(lineWords(l) + '|' + codes));
+  // a failed read is simply no reuse: the line is reasoned as before
+  const got = await deps.rpc('fn_line_spec_reading_get', { p_keys: [...keyOf.values()] }).catch(() => ({ data: null, error: null }));
+  const cached = (got?.data && typeof got.data === 'object' ? got.data : {}) as Record<string, Record<string, string>>;
+  const toAsk: { line: Line; ask: Attr[] }[] = [];
+  for (const l of material) {
+    const hit = cached[keyOf.get(l.line_no)!];
+    if (hit) { if (Object.keys(hit).length) out[l.line_no] = { ...hit }; continue; }
+    const d = shapeDecides(lineWords(l), o.checklist);
+    if (Object.keys(d.present).length) out[l.line_no] = { ...d.present };
+    if (d.ambiguous.length) toAsk.push({ line: l, ask: d.ambiguous });
+  }
   let answered = 0;
-  for (let i = 0; i < material.length; i += LINES_PER_CALL) {
-    const batch = material.slice(i, i + LINES_PER_CALL);
-    const text = batch.map((l) => `LINE ${l.line_no}: ${lineWords(l).slice(0, 1500)}`).join('\n');
-    const fields = batch.flatMap((l) => o.checklist.map((a) => ({ key: `L${l.line_no}__${a.code}`, question: `line ${l.line_no}: ${a.en}` })));
+  for (let i = 0; i < toAsk.length; i += LINES_PER_CALL) {
+    const batch = toAsk.slice(i, i + LINES_PER_CALL);
+    const text = batch.map(({ line: l }) => `LINE ${l.line_no}: ${lineWords(l).slice(0, 1500)}`).join('\n');
+    const fields = batch.flatMap(({ line: l, ask }) => ask.map((a) => ({ key: `L${l.line_no}__${a.code}`, question: `line ${l.line_no}: ${a.en}` })));
     const r = await think(deps, {
       seat: 'sales_engineer', surface: 'quote.line_specs', question: text,
       dedupeKey: 'quote_specs:' + o.quoteId + ':' + i, subject: { quote_id: o.quoteId },
@@ -109,8 +133,12 @@ export async function reasonLineSpecs(deps: ThinkDeps, o: { lines: Line[]; check
       if (!m || !v?.value) continue;
       (out[Number(m[1])] ??= {})[m[2]] = v.value;
     }
+    // what this batch settled (shape + reasoning; an empty answer too) is kept for the same line text
+    const rows = batch.map(({ line: l }) => ({ key: keyOf.get(l.line_no)!, found: out[l.line_no] ?? {} }));
+    await deps.rpc('fn_line_spec_reading_put', { p_rows: rows }).catch(() => null);
   }
-  return answered ? out : null;
+  // Shape and reuse settle a line on their own; a line that needed the model and got none leaves the quote asked in full.
+  return toAsk.length && !answered ? null : out;
 }
 
 /** The lines with what the reasoning found written in as their spec, marked 'reasoned'. */

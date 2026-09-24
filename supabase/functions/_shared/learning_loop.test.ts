@@ -19,7 +19,7 @@ function deps(gateOpen: boolean) {
     embed: () => Promise.resolve([0.1, 0.2]),
     rpc: (fn, args) => {
       rpcs.push([fn, args]);
-      if (fn === 'fn_lesson_clusters') return Promise.resolve({ data: CLUSTER, error: null });
+      if (fn === 'fn_lesson_clusters' || fn === 'fn_lesson_clusters_to_reason') return Promise.resolve({ data: CLUSTER, error: null });
       if (fn === 'fn_lesson_unembedded') return Promise.resolve({ data: [{ id: 5, finding: 'x' }], error: null });
       if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
       if (fn === 'fn_reason_retrieve') return Promise.resolve({ data: [], error: null });
@@ -47,4 +47,20 @@ Deno.test('under the hold the group is queued for reasoning, and nothing is appl
   assertEquals(r.rows[0].status, 'held');
   assert(m.rpcs.some(([f, a]) => f === 'fn_reason_hold' && a.p_surface === 'learning.distil'));
   assertEquals(m.rpcs.filter(([f]) => f === 'fn_reason_apply_learning__distil').length, 0);
+});
+
+// 24 Sep 2026 (it_engineer): the hourly run is routine work. It groups in SQL and must never reach the model.
+Deno.test('the hourly grouping run never calls the model and never files a question', async () => {
+  const m = deps(true);
+  const r = await distilLessons({}, m.d, 2, { reason: false }) as { grouped: number; reasoned: number };
+  assertEquals(m.phases.length, 0, 'the hourly run called the model: ' + m.phases.join(','));
+  assertEquals(r.grouped, 1);
+  assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold' || f === 'fn_lesson_clusters_to_reason' || f === 'fn_reason_apply_learning__distil'));
+});
+
+Deno.test('the weekly run reasons only what crossed the threshold', async () => {
+  const m = deps(true);
+  await distilLessons({}, m.d, 2, { reason: true, minCases: 5, reasonLimit: 3 });
+  const ask = m.rpcs.find(([f]) => f === 'fn_lesson_clusters_to_reason')!;
+  assertEquals(ask[1], { p_min_cases: 5, p_limit: 3 });
 });

@@ -133,7 +133,10 @@ test('production: the IT kinds that reach the founder at once are exactly the em
   const { sql } = await import('../lib/db.mjs');
   const r = await sql(`select coalesce(array_agg(kind order by kind), '{}') k from public.founder_mail_policy where owner_role = 'it_engineer' and allowed_to_email`);
   if (!r[0].k.includes('it_daily_digest')) { t.skip(`${FILE} is not applied yet`); return; }
-  assert.deepEqual(r[0].k, ['backup_failed_after_retry', 'it_daily_digest', 'platform_down', 'security_critical', 'uptime_alert']);
+  // integration_reauth_needed joined on founder instruction 979 (24 Sep 2026): an integration only he can restore,
+  // sent once per failure and only when the company could not fix it
+  // (the_it_engineer_watches_every_integration_and_fixes_what_it_can.sql). Any other addition still fails here.
+  assert.deepEqual(r[0].k, ['backup_failed_after_retry', 'integration_reauth_needed', 'it_daily_digest', 'platform_down', 'security_critical', 'uptime_alert']);
 });
 
 test('production: one digest a day carries only decisions and day-old faults, and reaches nobody in a test', { skip: SKIP }, async () => {
