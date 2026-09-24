@@ -20,6 +20,23 @@ export function certFields(rec: Record<string, unknown>, kind: string): Pick<Cer
   return { full_name: full, signatory: kind === 'supplier' ? (s(rec.signatory_name) || s(rec.contact_name) || full) : '' };
 }
 
+// THE CERTIFICATE CERTIFIES THE ACCEPTANCE ROW, NOT TODAY'S SECRETS (sales_engineer, 24 Sep 2026).
+// Measured on lead 126512 (ZZ DEMO, v13): leads.accepted_terms_sha256 = 0d99185f... (SHA-256 of the
+// exported v13 EN+AR text, _shared/supplier_terms.ts), while the certificate printed the SHA-256 of
+// app_secrets supplier_terms_html = fd487a4f... - two different fingerprints for one acceptance. The
+// version label also came from the live secret, so a supplier who accepted v12 and is re-certified
+// after v14 would be printed as having accepted v14. The stored version, hash and user agent win;
+// the live values are used only where the row has none (older acceptances).
+export function supplierEvidence(rec: Record<string, unknown>, liveLabel: string, liveHash: string): { terms_label: string; hash: string; ua: string } {
+  const s = (v: unknown) => (v == null ? '' : String(v)).trim();
+  const n = (s(rec.accepted_terms_version).match(/^v?(\d+)$/i) || [])[1];
+  return {
+    terms_label: n ? `Supplier Agreement — Version ${n}` : liveLabel,
+    hash: s(rec.accepted_terms_sha256) || liveHash,
+    ua: s(rec.accepted_terms_user_agent),
+  };
+}
+
 export const certLang = (rec: Record<string, unknown>): Lang => (String(rec.locale || '').toLowerCase() === 'ar' ? 'ar' : 'en');
 
 const L = {
@@ -27,7 +44,7 @@ const L = {
     title: 'Certificate of Acceptance — Terms & Conditions',
     full: 'Full name', company: 'Company', signatory: 'Authorised signatory', dob: 'Date of birth', mobile: 'Mobile', email: 'Email',
     type: 'Account type', supplier: 'Supplier', customer: 'Customer', terms: 'Terms accepted', utc: 'Accepted at (UTC)', local: 'Accepted at (local)',
-    ip: 'IP address', notRecorded: 'Not recorded', method: 'Method', methodV: 'Click-to-accept checkbox at registration', hash: 'Document integrity (SHA-256)',
+    ip: 'IP address', ua: 'Browser (user agent)', notRecorded: 'Not recorded', method: 'Method', methodV: 'Click-to-accept checkbox at registration', hash: 'Document integrity (SHA-256)',
     field: 'Field', detail: 'Detail', hTerms: 'Terms accepted', hPen: 'Penalties for breach',
     docS: 'QuotesDone Supplier Agreement &amp; Platform Terms', docC: 'QuotesDone Customer Terms &amp; Conditions',
     intro: (doc: string) => `This certificate records the electronic acceptance of the ${doc} by the party identified below. Acceptance was given by ticking the &quot;I accept&quot; box during registration on the QuotesDone platform, which under the laws of the United Arab Emirates (including the Electronic Transactions and Trust Services Law) constitutes a valid and binding electronic acceptance.`,
@@ -45,7 +62,7 @@ const L = {
     title: 'شهادة قبول — الشروط والأحكام',
     full: 'الاسم الكامل', company: 'الشركة', signatory: 'المفوّض بالتوقيع', dob: 'تاريخ الميلاد', mobile: 'الجوال', email: 'البريد الإلكتروني',
     type: 'نوع الحساب', supplier: 'مورّد', customer: 'عميل', terms: 'الشروط المقبولة', utc: 'وقت القبول (UTC)', local: 'وقت القبول (بتوقيت الإمارات)',
-    ip: 'عنوان IP', notRecorded: 'غير مسجَّل', method: 'طريقة القبول', methodV: 'وضع علامة في خانة «أوافق» عند التسجيل', hash: 'بصمة المستند (SHA-256)',
+    ip: 'عنوان IP', ua: 'المتصفح (وكيل المستخدم)', notRecorded: 'غير مسجَّل', method: 'طريقة القبول', methodV: 'وضع علامة في خانة «أوافق» عند التسجيل', hash: 'بصمة المستند (SHA-256)',
     field: 'الحقل', detail: 'التفاصيل', hTerms: 'الشروط المقبولة', hPen: 'الجزاءات عند الإخلال',
     docS: 'اتفاقية المورّد وشروط منصة QuotesDone', docC: 'الشروط والأحكام للعملاء لدى QuotesDone',
     intro: (doc: string) => `تُثبت هذه الشهادة القبول الإلكتروني ${doc.startsWith("ال") ? "لل" + doc.slice(2) : "ل" + doc} من قِبَل الطرف المبيَّن أدناه. تمّ القبول بوضع علامة في خانة «أوافق» أثناء التسجيل على منصة QuotesDone، وهو قبول إلكتروني صحيح وملزم بموجب قوانين دولة الإمارات العربية المتحدة، بما فيها قانون المعاملات الإلكترونية وخدمات الثقة.`,
@@ -78,7 +95,10 @@ export function certificate(fields: CertFields, kind: string, hash: string, term
   if (fields.dob) rows.push([t.dob, fields.dob]);
   rows.push([t.mobile, fields.phone], [t.email, fields.email], [t.type, kind === 'supplier' ? t.supplier : t.customer],
     [t.terms, t.label(kind, fields.terms_label)], [t.utc, fields.accepted_utc], [t.local, t.local_(fields.accepted_iso)],
-    [t.ip, fields.ip || t.notRecorded], [t.method, t.methodV], [t.hash, hash]);
+    [t.ip, fields.ip || t.notRecorded]);
+  // Only the supplier acceptance records a user agent; a customer certificate keeps its former rows.
+  if (kind === 'supplier') rows.push([t.ua, fields.ua || t.notRecorded]);
+  rows.push([t.method, t.methodV], [t.hash, hash]);
   const doc = kind === 'supplier' ? t.docS : t.docC;
   const trs = rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td>${esc(v)}</td></tr>`).join('');
   const clauses = '<ul>' + (kind === 'supplier' ? t.clausesS : t.clausesC).map((c) => `<li>${c}</li>`).join('') + '</ul>';

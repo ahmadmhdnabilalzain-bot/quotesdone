@@ -510,6 +510,9 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
+  "f1b2f677e087"
+ ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
  ],
@@ -1044,6 +1047,11 @@
   "f8dddaab5755",
   "fd666cd4a8ef",
   "fe93b75ba546"
+ ],
+ "scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql": [
+  "0e3944a15f96",
+  "3fbfc9c44cae",
+  "50d6d400e862"
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
@@ -3132,6 +3140,7 @@
   "1336c9d7e82b",
   "13418e9d55f0",
   "137895ad951a",
+  "139f11fd3f80",
   "1745c7367850",
   "17d6313b7fd9",
   "180e85f23dfd",
@@ -3238,6 +3247,7 @@
   "596377a4e142",
   "598ed715a1e2",
   "59c9a95379b9",
+  "5b0ed52584d7",
   "5b7035f7e911",
   "5cdc5d0faf58",
   "5e88bb40b671",
@@ -3255,6 +3265,7 @@
   "657cdd36f628",
   "65a353cf8042",
   "65e25ef5fabe",
+  "65e604f57a2c",
   "667b9fba4503",
   "66f3deb6ab33",
   "67ad975a8654",
@@ -3823,6 +3834,7 @@
   "3606137d7007",
   "390d23edb8ab",
   "3a1490edc4b4",
+  "3a25c7d31b16",
   "3bb20716fc51",
   "3d9f3e116460",
   "4186c6691252",
@@ -3943,6 +3955,7 @@
   "ddde980fe772",
   "de0f41194812",
   "e0cc77dfb9cb",
+  "e1502368a718",
   "e1f538311cd0",
   "e25ff149e285",
   "e808f7d697b0",
@@ -4236,7 +4249,8 @@
  ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_identity_gate.ts": [
   "a53833277648"
@@ -4806,18 +4820,19 @@
   "8f271de90913",
   "dcb2b157dc51",
   "e8e6ef1e27d3",
-  "f06cedd91ce3"
+  "f06cedd91ce3",
+  "f55501d5e0a7"
  ],
  "supabase/functions/send_outbox/index.ts": [
-  "84b06f5517d4",
+  "4cfd9c088124",
   "b2745742abfa"
  ],
  "supabase/functions/send_outbox/payload.ts": [
   "50898d11004b"
  ],
  "supabase/functions/send_outbox/supplier_mail.ts": [
-  "4cd3834955bb",
-  "863ca970d217"
+  "35bc37c06f43",
+  "4cd3834955bb"
  ],
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",

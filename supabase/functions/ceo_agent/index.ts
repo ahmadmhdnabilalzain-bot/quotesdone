@@ -389,7 +389,6 @@ Deno.serve(observe('ceo_agent', async (req) => {
       const held: Record<string, string> = {
         review_held_no_independent_reviewer: 'held: no reviewer outside the seats\' model families (review_hold)',
         review_author_unknown: 'withheld: a seat\'s author model is not in model_registry (review_author_unknown finding, no review_hold)',
-        budget_halted: 'held: the budget halt refused the call',
         refused_deterministic: 'held: the route refused a model for this class',
       };
       const why = (r.outcome && held[r.outcome]) ? held[r.outcome]
