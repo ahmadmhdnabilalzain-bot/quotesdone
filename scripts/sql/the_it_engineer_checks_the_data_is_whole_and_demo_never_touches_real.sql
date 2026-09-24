@@ -24,9 +24,9 @@ returns jsonb
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare v_items jsonb := '[]'::jsonb; n int; ids jsonb; c record; v_counts jsonb := '{}'::jsonb;
+declare v_items jsonb := '[]'::jsonb; n int; ids jsonb; v_chk record; v_counts jsonb := '{}'::jsonb;
 begin
-  for c in
+  for v_chk in
     select * from (values
       ('demo_quote_crosses_real', 'sales_engineer', 'quotes join a ZZ DEMO party to a real one (customer and supplier disagree on demo)',
        $q$select q.id from public.quotes q join public.inquiries i on i.id = q.inquiry_id
@@ -53,12 +53,12 @@ begin
     ) v(cls, owner, what, q)
   loop
     execute 'select count(*), coalesce(jsonb_agg(id) filter (where rn <= 20), ''[]'') from (select id, row_number() over (order by id) rn from ('
-            || c.q || ') s) z' into n, ids;
-    v_counts := v_counts || jsonb_build_object(c.cls, n);
+            || v_chk.q || ') s) z' into n, ids;
+    v_counts := v_counts || jsonb_build_object(v_chk.cls, n);
     if n > 0 then
-      v_items := v_items || jsonb_build_object('item', c.cls, 'owner_seat', c.owner, 'subject', c.cls, 'affected', n,
-        'blast', case when c.owner = 'accountant' then 'customer_facing' else 'internal' end,
-        'title', n || ' ' || c.what, 'evidence', jsonb_build_object('ids', ids, 'count', n));
+      v_items := v_items || jsonb_build_object('item', v_chk.cls, 'owner_seat', v_chk.owner, 'subject', v_chk.cls, 'affected', n,
+        'blast', case when v_chk.owner = 'accountant' then 'customer_facing' else 'internal' end,
+        'title', n || ' ' || v_chk.what, 'evidence', jsonb_build_object('ids', ids, 'count', n));
     end if;
   end loop;
 
