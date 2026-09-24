@@ -87,6 +87,10 @@ $fn$;
 
 revoke execute on function public.fn_invite_same_day_brake() from public, anon, authenticated;
 
+-- The brake counts today's invitations on every bounce/complaint; leads had no index on invited_at
+-- (measured 24 Sep 2026, independent review). ~18k rows: builds in well under a second.
+create index if not exists leads_invited_at_idx on public.leads (invited_at) where invited_at is not null;
+
 drop trigger if exists z80_invite_same_day_brake on public.leads;
 create trigger z80_invite_same_day_brake
   after update of invite_status on public.leads
