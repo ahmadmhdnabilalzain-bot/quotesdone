@@ -20,7 +20,7 @@
 //
 // What this does NOT do: it sends nothing, files nothing and writes no row. It is a pure function from
 // a case record to renderer bodies; the caller (the accountant seat) owns delivery and the ledger.
-import { computeCharge, money, addDays, type Charge } from './supplier_charge.ts';
+import { computeCharge, adminFeeAed, money, addDays, type Charge } from './supplier_charge.ts';
 import { FALLBACK } from './doc_template.ts';
 import { arDays } from './ar_days.ts';
 
@@ -79,21 +79,25 @@ const FORMULA = {
   ar: (c: Charge) => `الفائدة = أصل المبلغ غير المسدَّد × ${pct(c.rate_pa)} × عدد الأيام بعد تاريخ الاستحقاق ÷ 365 (فائدة بسيطة غير مركّبة). الاستحقاق اليومي على ${money(c.unpaid_principal, 'ar')}: ${money(c.daily_interest, 'ar')}.`,
 };
 
+const feeOf = (c: CaseFile) => adminFeeAed(c.acceptance.version, c.acceptance.accepted_at, c.reveal.paid_at);
 function chargeOf(c: CaseFile, asOf = c.as_of): Charge {
-  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, payments: c.payments });
+  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, payments: c.payments, admin_fee_aed: feeOf(c) });
 }
 
 // deno-lint-ignore no-explicit-any
 type Block = Record<string, any>;
 function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
   const ar = lang === 'ar';
-  const rows = ar
-    ? [['1', 'رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
-      ['2', 'رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')],
-      ['3', 'الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
-    : [['1', 'Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
-      ['2', 'Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)],
-      ['3', 'Administrative fee (b)', money(ch.admin_fee)]];
+  // A card processing line appears only for a reveal paid before 24 Sep 2026, when buyers still paid one; since then
+  // no buyer is charged a card fee (Cabinet Res. 66/2023 Art. 5(3)), so nothing of the kind is refunded or owed.
+  const lines = ar
+    ? [['رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
+      ...(ch.refunded_processing_fee > 0 ? [['رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')]] : []),
+      ['الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
+    : [['Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
+      ...(ch.refunded_processing_fee > 0 ? [['Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)]] : []),
+      ['Administrative fee (b)', money(ch.admin_fee)]];
+  const rows = lines.map((l, i) => [String(i + 1), ...l]);
   const tot: (string | boolean)[][] = [[ar ? 'أصل المبلغ المستحق' : 'Principal due', money(ch.principal, lang), !withInterest]];
   if (ch.paid > 0) tot.push([ar ? 'المسدَّد' : 'Paid', '− ' + money(ch.paid, lang), false]);
   if (withInterest) {
@@ -118,10 +122,10 @@ function parties(c: CaseFile, lang: Lang, roleTo: string, roleFrom: string): Blo
 function basisBlocks(c: CaseFile, lang: Lang): Block[] {
   const ar = lang === 'ar';
   return ar ? [
-    { t: 'p', label: 'الأساس التعاقدي', text: `قَبِل المورّد اتفاقية المورّد لدى QuotesDone (الإصدار ${c.acceptance.version}) إلكترونيًا بتاريخ ${fmtDate(c.acceptance.accepted_at, 'ar')}، وهو قبول مُلزِم وفقًا لـ${LEGAL.etl.ar}. ويُلزم البند 33 منها المورّد، إذا لم يستجب للعميل بعد الكشف وردّت QuotesDone المبلغ إلى العميل، بأن يدفع: (أ) رسم عدم استجابة يعادل المبلغ المستردّ بالضبط، و(ب) رسمًا إداريًا قدره 250 درهمًا، و(ج) فائدة بسيطة بسعر البند 31 البالغ 9% سنويًا من تاريخ الاستحقاق حتى السداد. وتستحق هذه المبالغ خلال سبعة (7) أيام من إشعار QuotesDone.` },
+    { t: 'p', label: 'الأساس التعاقدي', text: `قَبِل المورّد اتفاقية المورّد لدى QuotesDone (الإصدار ${c.acceptance.version}) إلكترونيًا بتاريخ ${fmtDate(c.acceptance.accepted_at, 'ar')}، وهو قبول مُلزِم وفقًا لـ${LEGAL.etl.ar}. ويُلزم البند 33 منها المورّد، إذا لم يستجب للعميل بعد الكشف وردّت QuotesDone المبلغ إلى العميل، بأن يدفع: (أ) رسم عدم استجابة يعادل المبلغ المستردّ بالضبط، و(ب) رسمًا إداريًا قدره ${feeOf(c).toLocaleString('en-US')} درهم إماراتي، و(ج) فائدة بسيطة بسعر البند 31 البالغ 9% سنويًا من تاريخ الاستحقاق حتى السداد. وتستحق هذه المبالغ خلال سبعة (7) أيام من إشعار QuotesDone.` },
     { t: 'p', label: 'الوقائع', text: `كشف العميل عن بيانات المورّد بشأن الطلب "${c.inquiry.summary_ar}" بتاريخ ${fmtDate(c.reveal.paid_at, 'ar')}، ولم يستجب المورّد رغم المتابعة في اليوم الثالث (${fmtDate(c.ladder.chase_day3_at, 'ar')}) والاتصال الأخير في اليوم الخامس (${fmtDate(c.ladder.final_call_day5_at, 'ar')})، فردّت QuotesDone إلى العميل كامل ما دفعه بتاريخ ${fmtDate(c.refund.refunded_at, 'ar')} (مرجع الاسترداد ${c.refund.refund_id}).` },
   ] : [
-    { t: 'p', label: 'Contractual basis', text: `The Supplier accepted the QuotesDone Supplier Agreement (version ${c.acceptance.version}) electronically on ${fmtDate(c.acceptance.accepted_at, 'en')}, a binding acceptance under ${LEGAL.etl.en}. Clause 33 obliges the Supplier, where it does not respond to a Customer after a Reveal and QuotesDone refunds the Customer, to pay: (a) a non-response charge equal to the exact amount refunded, (b) an administrative fee of AED 250, and (c) simple interest at the clause 31 rate of 9% per annum from the due date until settled. These amounts are payable within seven (7) days of QuotesDone's notice.` },
+    { t: 'p', label: 'Contractual basis', text: `The Supplier accepted the QuotesDone Supplier Agreement (version ${c.acceptance.version}) electronically on ${fmtDate(c.acceptance.accepted_at, 'en')}, a binding acceptance under ${LEGAL.etl.en}. Clause 33 obliges the Supplier, where it does not respond to a Customer after a Reveal and QuotesDone refunds the Customer, to pay: (a) a non-response charge equal to the exact amount refunded, (b) an administrative fee of AED ${feeOf(c).toLocaleString('en-US')}, and (c) simple interest at the clause 31 rate of 9% per annum from the due date until settled. These amounts are payable within seven (7) days of QuotesDone's notice.` },
     { t: 'p', label: 'Facts', text: `The Customer revealed the Supplier for the request "${c.inquiry.summary}" on ${fmtDate(c.reveal.paid_at, 'en')}. The Supplier did not respond despite the day-3 chase (${fmtDate(c.ladder.chase_day3_at, 'en')}) and the day-5 final call (${fmtDate(c.ladder.final_call_day5_at, 'en')}), and QuotesDone refunded the Customer in full on ${fmtDate(c.refund.refunded_at, 'en')} (refund reference ${c.refund.refund_id}).` },
   ];
 }
@@ -248,7 +252,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'section', n: 6, text: 'الأساس القانوني' },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_po_arts.ar} (أمر الأداء).` },
     { t: 'li', text: `${LEGAL.ctl.ar}، ${LEGAL.ctl_arts.ar}.` },
-    { t: 'li', text: `${LEGAL.civil.ar}، المادة (340) البند (1) (التعويض الاتفاقي — أساس الرسم الإداري البالغ 250 درهمًا المنصوص عليه في البند 33): ${LEGAL.civil_340_1.ar}` },
+    { t: 'li', text: `${LEGAL.civil.ar}، المادة (340) البند (1) (التعويض الاتفاقي — أساس الرسم الإداري المنصوص عليه في البند 33): ${LEGAL.civil_340_1.ar}` },
     { t: 'li', text: `${LEGAL.cpl.ar}، ${LEGAL.cpl_service.ar}، والبند 21 من اتفاقية المورّد (الإشعارات).` },
     { t: 'li', text: `${LEGAL.etl.ar} (حجية القبول والتوقيع الإلكترونيين).` },
     { t: 'li', text: 'اتفاقية المورّد، البنود 21 (الإشعارات) و22 (النص العربي هو المعتمد أمام المحاكم) و31 و33 و34 (الاختصاص الحصري لمحاكم دبي).' },
@@ -272,7 +276,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'section', n: 6, text: 'Legal basis' },
     { t: 'li', text: `${LEGAL.cpl.en}, ${LEGAL.cpl_po_arts.en} (payment orders).` },
     { t: 'li', text: `${LEGAL.ctl.en}, ${LEGAL.ctl_arts.en}.` },
-    { t: 'li', text: `${LEGAL.civil.en}, Article 340(1) (agreed compensation — the basis of the AED 250 administrative fee stipulated in clause 33): ${LEGAL.civil_340_1.en}` },
+    { t: 'li', text: `${LEGAL.civil.en}, Article 340(1) (agreed compensation — the basis of the administrative fee stipulated in clause 33): ${LEGAL.civil_340_1.en}` },
     { t: 'li', text: `${LEGAL.cpl.en}, ${LEGAL.cpl_service.en}, and Supplier Agreement clause 21 (Notices).` },
     { t: 'li', text: `${LEGAL.etl.en} (validity of electronic acceptance and signature).` },
     { t: 'li', text: 'Supplier Agreement clauses 21 (notices), 22 (the Arabic text prevails before the courts), 31, 33 and 34 (exclusive jurisdiction of the Dubai courts).' },

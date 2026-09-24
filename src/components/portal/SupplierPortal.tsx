@@ -839,7 +839,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -858,6 +858,24 @@ const AGREEMENT_CHANGES = {
   12: {
     en: ['WhatsApp notices go to the WhatsApp number you confirm in the portal with a verification code, or to your registered mobile if you confirm it is your WhatsApp. SMS stays on your registered mobile (clause 21).'],
     ar: ['تصلكم إشعارات واتساب على رقم الواتساب الذي تؤكّدونه في البوابة برمز تحقق، أو على رقم هاتفكم المحمول المسجَّل إذا أكّدتم أنه رقمكم على واتساب. وتبقى الرسائل النصية على رقم هاتفكم المحمول المسجَّل (البند 21).'],
+  },
+  // v13, 23 Sep 2026 (ceo; founder: every legal document at full UAE compliance, penalties at the lawful maximum).
+  // The figures are src/content/company_facts.json's; company_facts_agree_everywhere keeps them equal.
+  13: {
+    en: [
+      'Taking a customer introduced through the Platform off the Platform: agreed compensation of AED 20,000 per incident or five (5) times the fee avoided, whichever is higher; the sum includes the fee on that job (clause 24). Sharing contact details during anonymised stages stays AED 10,000 per incident, and never on top of clause 24 (clause 10).',
+      'Reusing or reselling Platform data: agreed compensation of AED 25,000 per incident (clause 25).',
+      'The administrative fee for a non-response refund is AED 500 for a customer who reveals you after you accept this version (clause 33).',
+      'New: fake, duplicate or impersonating accounts and fraudulent quotations — AED 20,000 per account or incident, closure of the accounts and a report to the authorities (clause 36).',
+      'New: every agreed sum is a genuine pre-estimate of loss, charged once for any one act, and the court keeps its powers over it (clause 37). Nothing limits liability for fraud or gross negligence (clause 18).',
+    ],
+    ar: [
+      'التعامل خارج المنصة مع عميل جرى التعريف به من خلالها: تعويض اتفاقي قدره 20,000 درهم إماراتي عن كل واقعة أو خمسة (5) أضعاف الرسوم التي تم تجنّبها، أيهما أعلى، ويشمل المبلغ رسوم ذلك العمل (البند 24). وتبقى مشاركة بيانات الاتصال خلال المراحل مجهولة الهوية بمبلغ 10,000 درهم إماراتي عن كل واقعة، ولا تُضاف أبدًا إلى البند 24 (البند 10).',
+      'إعادة استخدام بيانات المنصة أو بيعها: تعويض اتفاقي قدره 25,000 درهم إماراتي عن كل واقعة (البند 25).',
+      'الرسم الإداري عن الاسترداد بسبب عدم الاستجابة 500 درهم إماراتي إذا كشف عنكم عميل بعد قبولكم هذا الإصدار (البند 33).',
+      'جديد: الحسابات الوهمية أو المكررة أو المنتحلة وعروض الأسعار الاحتيالية — 20,000 درهم إماراتي عن كل حساب أو واقعة، وإغلاق الحسابات، وإبلاغ السلطات (البند 36).',
+      'جديد: كل مبلغ متفق عليه تقدير حقيقي مسبق للضرر، ويُستحق مرة واحدة عن الفعل الواحد، وتحتفظ المحكمة بصلاحياتها بشأنه (البند 37). ولا يحدّ أي حكم من المسؤولية عن الغش أو الخطأ الجسيم (البند 18).',
+    ],
   },
 };
 export function agreementChanges(accepted, current, ar) {

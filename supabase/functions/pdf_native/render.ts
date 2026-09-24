@@ -208,7 +208,23 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // deno-lint-ignore no-explicit-any
   function fontFor(s: any, b: boolean) { return hasAr(s) ? (b ? arBold : arReg) : (b ? bold : font); }
   // deno-lint-ignore no-explicit-any
-  function W(text: string, f: any, s: number) { try { return f.widthOfTextAtSize(text, s); } catch (_e) { return text.length * s * 0.5; } }
+  // 24 Sep 2026 (marketing): widthOfTextAtSize runs fontkit's full OpenType layout on every call, and wrapWords
+  // measures every growing line prefix, so a 60-post calendar spent ~3 s of CPU here and the edge CPU cap killed the
+  // marketing beat (publishing included). Widths are now cached per font and word at unit size and a spaced string
+  // is the sum of its words and spaces. ponytail: ignores kerning across a space (none in the brand fonts' pairs that
+  // matter); measure whole strings again if a font ever kerns against the space glyph.
+  const wCache = new Map<any, Map<string, number>>();
+  function W1(text: string, f: any): number {
+    let m = wCache.get(f); if (!m) { m = new Map(); wCache.set(f, m); }
+    let v = m.get(text);
+    if (v === undefined) { try { v = f.widthOfTextAtSize(text, 1000) / 1000; } catch (_e) { v = text.length * 0.5; } m.set(text, v); }
+    return v as number;
+  }
+  function W(text: string, f: any, s: number) {
+    if (!text.includes(' ')) return W1(text, f) * s;
+    let w = 0; for (const part of text.split(' ')) w += part ? W1(part, f) : 0;
+    return (w + (text.split(' ').length - 1) * W1(' ', f)) * s;
+  }
   // ── LINKS (9 Sep 2026). A PDF link is a /Annot dictionary on the page whose /Rect must be
   // computed from the same x, baseline, width and size the draw used. http(s) only.
   let linkCount = 0;

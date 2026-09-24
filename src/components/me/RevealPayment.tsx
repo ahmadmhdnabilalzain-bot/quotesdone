@@ -82,7 +82,7 @@ export function RevealPayment({ q, token, lang, call, onPaid, onFallback, onCanc
     {quote && (phase === 'confirm' || phase === 'paying') ? (
       <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
         <div className="text-[15px] font-semibold text-foreground">{tf(lang, 'pay_final', { total: aed(quote.total_charged) })}</div>
-        <div className="mt-1 text-[12px] text-muted-foreground">{tf(lang, 'pay_lines', { fee: aed(quote.base_fee), proc: aed(quote.processing_fee) })} · {t(lang, quote.fee_basis === 'domestic' ? 'pay_basis_dom' : 'pay_basis_intl')}</div>
+        <div className="mt-1 text-[12px] text-muted-foreground">{tf(lang, 'pay_lines', { fee: aed(quote.base_fee) })}</div>
       </div>) : null}
     {msg ? <div className="mt-2 text-[12.5px] text-danger" role="alert">{msg}</div> : null}
     <div className="mt-3 flex flex-wrap gap-2">
