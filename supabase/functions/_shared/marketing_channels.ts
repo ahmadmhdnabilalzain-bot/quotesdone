@@ -6,7 +6,7 @@
 //
 // THREE PROPERTIES THE TESTS HOLD, because each one is a way this seat could hurt the company:
 //   1. publishPost never POSTs to Postiz unless `live` is true -- and the caller passes live only when
-//      app_secrets.marketing_golive is 'true', the post is not a ZZ DEMO post (flag OR text), and the
+//      the emergency stop app_secrets.marketing_publishing_enabled is not 'false', the post is not a ZZ DEMO post (flag OR text), and the
 //      database's publish gate (fn_marketing_post_refusal: the founder's approval of the month) says yes.
 //      Switched off, it returns the payload it WOULD have sent, which is the dry run the founder can read.
 //   2. Nothing an access token can hide in is returned. Graph puts the token into every paging.next URL
