@@ -1,0 +1,1 @@
+Not applied: written by an it_engineer worktree agent barred from production writes. The serial release operator applies it with --apply --ddl, confirms the PROBE OK verdict (handoff 58198 done), deletes this note and appends the .sql to the END of MANIFEST.txt.
