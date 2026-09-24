@@ -37,8 +37,14 @@ test('every repository surface states each company figure as company_facts.json 
   }
   const files = [...F.surfaces.repo.filter((p) => p !== 'src/content/legal.json'), ...walk(join(root, 'supabase/functions'))]
     .filter((p) => !F.surfaces.history.includes(p));
+  // 24 SEP 2026 (ceo): SupplierPortal.tsx was excluded WHOLE as "history" for its AGREEMENT_CHANGES list (what each
+  // past version changed), and that hid its live non-response rule, which still said AED 250, the card fee and 9%
+  // a day after v13. Only the history block is history: the rest of the file is read like any other surface.
+  const HISTORY_BLOCK = /const AGREEMENT_CHANGES = \{[\s\S]*?\nexport function agreementChanges/;
+  files.push('src/components/portal/SupplierPortal.tsx');
   for (const p of files) {
     let t; try { t = read(p); } catch { continue; }
+    if (p === 'src/components/portal/SupplierPortal.tsx') { assert.match(t, HISTORY_BLOCK, 'the history block moved: update HISTORY_BLOCK'); t = t.replace(HISTORY_BLOCK, ''); }
     for (const f of findings(t)) bad.push(`${p}: ${f.fact} says ${f.got}, source says ${f.want}: "${f.text}"`);
     for (const w of wrongWordings(t)) bad.push(`${p}: ${w.rule} worded "${w.text}"; the one wording is: ${w.say}`);
   }
@@ -122,4 +128,25 @@ test('every archived agreement version is still readable and linked', () => {
   }
   const cur = Number(F.documents['supplier-agreement'].version.slice(1));
   assert.match(portal, new RegExp(`\\n  ${cur}: \\{`), `AGREEMENT_CHANGES has no entry for v${cur}`);
+});
+
+// 24 SEP 2026 (ceo, Supplier Agreement v14): the charge ARITHMETIC is a surface too. supplier_charge.ts states the
+// rates as decimals (0.12) and the fees as bare numbers, which no prose pattern above reads, so a figure changed in
+// company_facts.json could leave the invoice, the demand and the court claim charging the old one. Read them here.
+export function chargeArithmeticFindings(src, facts = F.facts) {
+  const num = (name) => { const m = src.match(new RegExp(`export const ${name} = ([0-9.]+);`)); return m ? Number(m[1]) : null; };
+  const i = facts.late_interest_pct_pa, a = facts.nonresponse_admin_fee_aed, bad = [];
+  const want = [['INTEREST_RATE_PA_FROM_V14', i.value / 100], ['INTEREST_RATE_PA', i.legacy.value / 100],
+                ['ADMIN_FEE_AED_FROM_V13', a.value], ['ADMIN_FEE_AED', a.legacy.value]];
+  for (const [k, v] of want) if (num(k) !== v) bad.push(`supplier_charge.ts ${k} = ${num(k)}, company_facts.json says ${v}`);
+  return bad;
+}
+test('the clause 33 arithmetic charges the rates and fees company_facts.json states, per signed version', () => {
+  assert.deepEqual(chargeArithmeticFindings(read('supabase/functions/_shared/supplier_charge.ts')), []);
+  // the SQL that seeds the v14 rate agrees too (the generated sync file sets it again from the same source)
+  const seed = read('scripts/sql/the_nonresponse_charge_is_the_maximum_uae_law_safely_allows.sql')
+    .match(/'supplier_nonresponse_interest_apr_from_v14', to_jsonb\(([\d.]+)::numeric\)/);
+  assert.equal(Number(seed?.[1]), F.facts.late_interest_pct_pa.value / 100, 'the v14 rate the SQL seeds is not the source\'s');
+  // not vacuous: a stale rate is caught
+  assert.equal(chargeArithmeticFindings('export const INTEREST_RATE_PA_FROM_V14 = 0.09;\nexport const INTEREST_RATE_PA = 0.09;\nexport const ADMIN_FEE_AED_FROM_V13 = 500;\nexport const ADMIN_FEE_AED = 250;').length, 1);
 });
