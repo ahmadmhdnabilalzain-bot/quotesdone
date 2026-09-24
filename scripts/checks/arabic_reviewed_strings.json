@@ -1045,6 +1045,11 @@
   "fd666cd4a8ef",
   "fe93b75ba546"
  ],
+ "scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql": [
+  "0e3944a15f96",
+  "3fbfc9c44cae",
+  "50d6d400e862"
+ ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
  ],
