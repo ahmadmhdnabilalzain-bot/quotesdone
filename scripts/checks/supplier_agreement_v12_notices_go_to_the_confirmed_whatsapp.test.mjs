@@ -16,7 +16,12 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const legal = JSON.parse(read('src/content/legal.json'));
-const sa = legal['supplier-agreement'], v11 = legal['supplier-agreement-v11'];
+// v13 replaced v12 on 23 Sep 2026 (company_facts_agree_everywhere.test.mjs); v12's text is now the archive, kept word
+// for word with one "superseded" line, so the v12 assertions read it there with that line removed.
+const V12_SUPERSEDED = { en: '<div class="meta">Superseded on 23 September 2026 by version v13. This copy is kept for the record.</div>', ar: '<div class="meta">حلّ محلّها الإصدار v13 بتاريخ 23 سبتمبر 2026. تُحفظ هذه النسخة للسجل.</div>' };
+const v12 = legal['supplier-agreement-v12'];
+const sa = { en: { html: v12.en.html.replace(V12_SUPERSEDED.en, '') }, ar: { html: v12.ar.html.replace(V12_SUPERSEDED.ar, '') } };
+const v11 = legal['supplier-agreement-v11'];
 const text = (h) => h.replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/\s+/g, ' ');
 const clauses = (h) => Object.fromEntries(h.split(/(?=<h2>\d+\.)/).filter((s) => /^<h2>\d+\./.test(s)).map((s) => [Number(/^<h2>(\d+)/.exec(s)[1]), s.split(/<\/div>\n<div class="note">/)[0]]));
 const SQL_FILE = 'scripts/sql/the_supplier_agreement_v12_whatsapp_notices_go_to_the_number_the_supplier_confirmed.sql';
@@ -67,8 +72,10 @@ test('the identity is the Trader License only: the old register number appears i
   assert.match(sa.en.html, /Trader License No\. 1633275/); assert.match(sa.ar.html, /رخصة تاجر رقم 1633275/);
 });
 
-test('the exported text is v12 and the registry SQL carries the signed body of this text', () => {
-  assert.match(read('supabase/functions/_shared/supplier_agreement.ts'), /SUPPLIER_AGREEMENT_VERSION = "v12"/);
+test('the v12 archive is the text v12 suppliers signed, and the registry SQL carries the signed body of this text', () => {
+  assert.ok(v12.en.html.includes(V12_SUPERSEDED.en) && v12.ar.html.includes(V12_SUPERSEDED.ar), 'the v12 archive has no superseded line');
+  // the SHA-256 supplier_api stored for v12 acceptances (EN + '\n' + AR), from _shared/supplier_agreement.ts at v12
+  assert.equal(createHash('sha256').update(sa.en.html + '\n' + sa.ar.html, 'utf8').digest('hex'), 'a18594ece25b97bb7c51aeade5e2ae19e2e97a9fa072dfcf63848f092873ad69');
   const r = spawnSync(process.execPath, [join(ROOT, 'scripts/legal/export_supplier_agreement.mjs'), '--check'], { encoding: 'utf8' });
   assert.equal(r.status, 0, r.stdout + r.stderr);
   // the signed-body rule (reproduces v11's registered body, sha 0510081a…): each <div class="body">, the version

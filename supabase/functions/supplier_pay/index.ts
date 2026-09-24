@@ -6,7 +6,7 @@
 //
 //   1. REFUND CLAWBACK - a customer was refunded because the supplier did not respond. QuotesDone
 //      pays that refund out of its own balance immediately so the customer is not left waiting,
-//      then recovers it from the supplier: the 3% reveal fee + a AED 250 admin fee, plus monthly
+//      then recovers it from the supplier: the exact amount refunded (3% reveal fee + card processing fee) + the clause 33(b) administrative fee of the version the supplier signed, plus monthly
 //      interest once past due. Unpaid for 90 days -> ban + legal escalation.
 //   2. ANNUAL SUBSCRIPTION - AED 1,000/year from 1 Aug 2027, except the first 1,000 registrants,
 //      who are exempt permanently. Handled by fn_subscription_billing_run, not by this endpoint.
