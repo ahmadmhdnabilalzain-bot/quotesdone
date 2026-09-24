@@ -11,11 +11,14 @@
 //   node --test scripts/checks/routine_work_never_goes_back_to_the_model.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+// A file carries a pending note until it is applied, then its MANIFEST line instead.
+const pendingOrApplied = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt'))) ||
+  readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim()).includes(f);
 const FILE = 'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql';
 const code = (p) => readFileSync(join(REPO, p), 'utf8').split('\n').map((l) => l.replace(/--.*$/, '').replace(/\/\/.*$/, '')).join('\n');
 const SQL = code(FILE);
@@ -75,7 +78,7 @@ test('replay-safe: revokes, pinned search_path, a probe, a pending note', () => 
   }
   assert.ok(!/^\s*(begin|commit)\s*;/im.test(SQL));
   assert.match(SQL, /then 'PROBE OK' else 'PROBE FAILED' end as verdict;\s*$/);
-  readFileSync(join(REPO, 'scripts/sql/pending', FILE.split('/').pop().replace(/\.sql$/, '.txt')), 'utf8');
+  assert.ok(pendingOrApplied(FILE), `${FILE} has neither a pending note nor a MANIFEST line`);
 });
 
 // The model exam's replacement (24 Sep 2026): the daily exam exists, is registered, and never reaches a model.
@@ -99,7 +102,7 @@ test('the daily knowledge exam exists, scores by retrieval, raises a finding, an
   }
   assert.match(x, /revoke execute on function public\.fn_it_engineer_knowledge_recall_exam\(\) from public, anon, authenticated;/);
   assert.match(x, /then 'PROBE OK' else 'PROBE FAILED' end as verdict;\s*$/);
-  readFileSync(join(REPO, 'scripts/sql/pending', EXAM.split('/').pop().replace(/\.sql$/, '.txt')), 'utf8');
+  assert.ok(pendingOrApplied(EXAM), `${EXAM} has neither a pending note nor a MANIFEST line`);
   const loader = code('scripts/kb/load_knowledge_eval_questions.mjs');
   assert.match(loader, /makeEmbedder/, 'the loader does not embed by the free gte-small path');
   assert.ok(!/think\(|chat|completion/i.test(loader), 'the loader calls a model');
