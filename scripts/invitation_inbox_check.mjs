@@ -25,9 +25,13 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 const PROJECT_URL = `https://${REF}.supabase.co`;
 // Inbox-placement test services only. A subdomain of one of these is accepted (srv1.mail-tester.com).
 export const SEED_DOMAINS = ['mail-tester.com', 'glockapps.com', 'mailgenius.com', 'dkimvalidator.com', 'appmaildev.com', 'learndmarc.com'];
+// The founder's OWN inboxes, exact match only (marketing, ledger 993, 24 Sep 2026: placement is read in
+// his Gmail and his Outlook). Never a domain: a colleague at quotesdone.com is still a real person.
+export const FOUNDER_INBOXES = ['ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com'];
 export function seedAddressAllowed(addr) {
   const m = /^[a-z0-9._+-]+@([a-z0-9.-]+)$/i.exec(String(addr || '').trim());
   if (!m) return false;
+  if (FOUNDER_INBOXES.includes(String(addr).trim().toLowerCase())) return true;
   const host = m[1].toLowerCase();
   return SEED_DOMAINS.some((d) => host === d || host.endsWith('.' + d));
 }
