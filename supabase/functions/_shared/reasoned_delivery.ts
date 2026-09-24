@@ -14,17 +14,24 @@
 //   * a held MEANING (wa_inbound.intent_table, marketing_social.library_match — _shared/reasoned_channels.ts):
 //     the answer the reasoned meaning selects — the database's intent reply, the trade list, the size statement
 //     on WhatsApp; the library / FAQ / passage reply on the platform. Nothing when the meaning selects nothing.
+//   * a held comment CLASS (marketing_social.comment_classify): the comment policy runs now, and its reply or hide
+//     is posted with THAT platform's own credential (replayHeldComment below). Until 24 Sep 2026 the replay handed a
+//     LinkedIn comment to the Meta page-token lookup and YouTube no token at all, so neither could post (found in
+//     the review of PR #898). A missing token is a named skip that leaves the comment 'held_classify' for a later
+//     run, never a throw and never a send.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
 import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
 import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
+import type { CommentEvent } from './marketing_social_comments.ts';
 // Batch 8 (accountant + marketing): an expense email's reasoned kind or vendor re-runs the accountant's sweep, and
 // a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
 import { deliverBooks, liveBooksIO, type BooksIO } from './reasoned_books.ts';
 import { deliverOutreach, liveOutreachIO, type OutreachIO } from './reasoned_outreach.ts';
 
-export type Sent = { ok: boolean; err?: string };
+/** skipped: nothing was attempted and the subject is left as it was, for a later run (e.g. 'linkedin token missing'). */
+export type Sent = { ok: boolean; err?: string; skipped?: string };
 export interface DeliveryIO extends BooksIO, OutreachIO {
   waWindowOpen(phone: string): Promise<boolean>;
   sendWaText(phone: string, body: string): Promise<Sent>;
@@ -130,7 +137,7 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     // Nothing was hidden, said or handed off while the class was held; the policy runs now, once.
     if (!choice) return { delivered: false, via: 'none', detail: 'no class on the reasoned result' };
     const s = await io.socialCommentClassified(subject, choice);
-    return { delivered: s.ok, via: 'social', detail: s.err };
+    return { delivered: s.ok, via: 'social', detail: s.skipped ? 'skipped: ' + s.skipped : s.err };
   }
 
   if (row.surface === 'site_assistant.person') {
@@ -147,6 +154,36 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return await whatsapp(io, String(subject.phone), question, r.answer);
   }
   return { delivered: false, via: 'none', detail: 'no channel effect for ' + row.surface };
+}
+
+// ── a held comment, replayed with its own platform's credential ─────────────────────────────────────────────────
+// The same credentials the live comment path uses (marketing/duties.ts socialComments): YouTube and the LinkedIn
+// company page post with the token set the founder's one link stored (marketing_social_oauth.ts accessToken, which
+// refreshes it when due); Instagram and Facebook with the page's own token (marketing_social_store.ts metaPageToken).
+export interface CommentReplayIO {
+  /** accessToken(): the connected YouTube / LinkedIn token set, refreshed when due; null = not connected. */
+  ownToken(p: 'youtube' | 'linkedin'): Promise<{ access_token: string } | null>;
+  /** metaPageToken(): the Instagram / Facebook page's own token; null = not derivable. */
+  metaPageToken(platform: 'facebook' | 'instagram', accountId: string): Promise<string | null>;
+  /** processComment over the live store, which posts every reply and hide with tokenFor(ev). */
+  process(tokenFor: (ev: CommentEvent) => Promise<string | null>): Promise<string>;
+}
+export async function replayHeldComment(ev: Pick<CommentEvent, 'platform' | 'accountId'>, io: CommentReplayIO): Promise<Sent> {
+  let tokenFor: (ev: CommentEvent) => Promise<string | null>;
+  if (ev.platform === 'youtube' || ev.platform === 'linkedin') {
+    // Resolved BEFORE the policy runs: with no token nothing is recorded, so the comment stays 'held_classify' and the
+    // marketing duty's sweep (retry_unfinished) runs it again once the platform is connected.
+    let token: string | null;
+    try { token = String((await io.ownToken(ev.platform))?.access_token ?? '').trim() || null; }
+    catch (e) { return { ok: false, skipped: ev.platform + ' token refresh failed: ' + String((e as Error)?.message || e).slice(0, 160) }; }
+    if (!token) return { ok: false, skipped: ev.platform + ' token missing' };
+    tokenFor = () => Promise.resolve(token);
+  } else {
+    // Meta: looked up at the send, exactly as before (a comment the policy ignores never derives a page token).
+    tokenFor = (e) => io.metaPageToken(e.platform as 'facebook' | 'instagram', e.accountId);
+  }
+  try { return { ok: true, err: await io.process(tokenFor) }; }
+  catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
 }
 
 /** A question held 48 hours (or failed) was escalated to its seat (fn_reason_held_escalate). A WhatsApp customer
@@ -261,17 +298,20 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       // processComment's own insert takes a held_classify row over (marketing_social_store.ts); the row is never emptied.
       const { processComment } = await import('./marketing_social_comments.ts');
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
+      const { accessToken } = await import('./marketing_social_oauth.ts');
       const { timedFetch } = await import('./timed_fetch.ts');
-      // deno-lint-ignore no-explicit-any
-      const tokenFor = (ev: any) => ev.platform === 'youtube' ? Promise.resolve(null) : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);
-      try {
-        const out = await processComment(adminStore(admin, timedFetch, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), {
-          platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
-          handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
+      const ev: CommentEvent = {
+        platform: m.platform, accountId: m.conversation?.account_id, commentId: m.meta_message_id, authorId: m.conversation?.user_id,
+        handle: m.conversation?.handle ?? null, text: String(m.body || ''), at: new Date(m.occurred_at), threadId: m.parent_id || m.meta_message_id,
+      };
+      // A refreshed YouTube token is re-sealed where it was read, as the marketing duty does (marketing/duties.ts).
+      const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
+      return await replayHeldComment(ev, {
+        ownToken: (p) => accessToken(timedFetch, p, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', sec, save),
+        metaPageToken: (p, accountId) => metaPageToken(admin, timedFetch, p, accountId),
         // deno-lint-ignore no-explicit-any
-        }, cls as any);
-        return { ok: true, err: out };
-      } catch (e) { return { ok: false, err: String((e as Error)?.message || e).slice(0, 200) }; }
+        process: (tokenFor) => processComment(adminStore(admin, timedFetch, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
+      });
     },
     socialCommentHandoff: async (subject) => {
       const { data: m } = await admin.from('social_message')
