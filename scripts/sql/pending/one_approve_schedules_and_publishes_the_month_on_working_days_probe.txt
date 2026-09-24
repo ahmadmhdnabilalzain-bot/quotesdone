@@ -1,1 +1,0 @@
-Committed, not applied: the aborted-transaction probe of one_approve_schedules_and_publishes_the_month_on_working_days.sql; run it right after that file is applied (it commits nothing). Moves to MANIFEST when run.

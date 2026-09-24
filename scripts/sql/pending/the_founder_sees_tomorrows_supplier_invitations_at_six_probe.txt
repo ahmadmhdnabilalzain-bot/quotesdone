@@ -1,1 +1,0 @@
-Committed, not applied: the aborted-transaction probe (ZZ DEMO lead, no email leaves) of the_founder_sees_tomorrows_supplier_invitations_at_six.sql; run right after that file is applied. Moves to MANIFEST when run.
