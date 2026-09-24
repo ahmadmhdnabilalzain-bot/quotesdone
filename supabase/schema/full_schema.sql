@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T17:42:18.854Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T17:56:28.723Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (649) =====
+-- ===== TABLES (650) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2406,6 +2406,14 @@ CREATE TABLE IF NOT EXISTS public.customer_score (
   churn_risk numeric,
   last_active timestamp with time zone,
   computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.customer_support_case_review (
+  week_ending date NOT NULL,
+  metrics jsonb NOT NULL,
+  knowledge_filed integer DEFAULT 0 NOT NULL,
+  fixture boolean DEFAULT false NOT NULL,
+  reviewed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.customer_support_duty_message (
@@ -9136,6 +9144,7 @@ ALTER TABLE public.customer_layout ADD CONSTRAINT customer_layout_pkey PRIMARY K
 ALTER TABLE public.customer_phone_otps ADD CONSTRAINT customer_phone_otps_pkey PRIMARY KEY (id);
 ALTER TABLE public.customer_preference ADD CONSTRAINT customer_preference_pkey PRIMARY KEY (customer_id);
 ALTER TABLE public.customer_score ADD CONSTRAINT customer_score_pkey PRIMARY KEY (customer_id);
+ALTER TABLE public.customer_support_case_review ADD CONSTRAINT customer_support_case_review_pkey PRIMARY KEY (week_ending);
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_pkey PRIMARY KEY (stage, subject_key);
 ALTER TABLE public.customers ADD CONSTRAINT customers_pkey PRIMARY KEY (id);
 ALTER TABLE public.dead_letter ADD CONSTRAINT dead_letter_pkey PRIMARY KEY (id);
@@ -9910,6 +9919,7 @@ ALTER TABLE public.critical_capability ADD CONSTRAINT critical_capability_test_k
 ALTER TABLE public.crm_stages ADD CONSTRAINT crm_stages_probability_check CHECK (((probability >= 0) AND (probability <= 100)));
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_direction_check CHECK ((direction = ANY (ARRAY['inbound'::text, 'outbound'::text])));
 ALTER TABLE public.customer_calls ADD CONSTRAINT customer_calls_status_check CHECK ((status = ANY (ARRAY['completed'::text, 'missed'::text, 'voicemail'::text, 'failed'::text, 'scheduled'::text])));
+ALTER TABLE public.customer_support_case_review ADD CONSTRAINT customer_support_case_review_knowledge_filed_check CHECK ((knowledge_filed >= 0));
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_stage_check CHECK ((stage ~ '^[a-z_]+\.[a-z_]+$'::text));
 ALTER TABLE public.customer_support_duty_message ADD CONSTRAINT customer_support_duty_message_subject_key_check CHECK ((btrim(subject_key) <> ''::text));
 ALTER TABLE public.customers ADD CONSTRAINT customers_locale_chk CHECK ((locale = ANY (ARRAY['en'::text, 'ar'::text]))) NOT VALID;
@@ -34197,6 +34207,113 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_support_case_review_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_from timestamptz := now() - interval '7 days';
+  v_week date := (now() at time zone 'Asia/Dubai')::date;
+  v_founder text[]; v_email jsonb; v_wa jsonb; v_chat jsonb; v_repeat jsonb; v_complaints jsonb; v_knowledge jsonb;
+  v_metrics jsonb; g record; v_gap jsonb; v_filed int := 0;
+  -- a machine is not a person: bounces and auto-senders are neither a support contact nor a repeat one
+  v_robot text := '^(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)([+.-][^@]*)?@';
+begin
+  select coalesce(array_agg(right(regexp_replace(value, '[^0-9]', '', 'g'), 9)), '{}') into v_founder
+    from public.app_secrets where key in ('founder_mobile', 'founder_public_phone', 'admin_mfa_phone')
+     and length(regexp_replace(coalesce(value, ''), '[^0-9]', '', 'g')) >= 9;
+
+  -- email: the same mailbox scope as fn_support_reply_watch_tick (not the expenses mailbox, not the accountant's)
+  select jsonb_build_object(
+           'received', count(*), 'replied', count(*) filter (where m.replied_at is not null),
+           'unanswered', count(*) filter (where m.replied_at is null),
+           'median_first_reply_minutes', round((percentile_cont(0.5) within group (order by extract(epoch from m.replied_at - m.created_at) / 60))::numeric),
+           'p90_first_reply_minutes', round((percentile_cont(0.9) within group (order by extract(epoch from m.replied_at - m.created_at) / 60))::numeric))
+    into v_email
+    from public.inbound_messages m
+   where m.created_at >= v_from and coalesce(m.from_email, '') !~* v_robot
+     and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
+     and public.fn_is_demo_email(m.from_email) = v_fx;
+
+  select jsonb_build_object(
+           'received', count(*), 'replied', count(*) filter (where w.reply is not null and coalesce(w.sent, false)),
+           'unanswered', count(*) filter (where w.reply is null or not coalesce(w.sent, false)),
+           'first_reply_minutes', null,
+           'first_reply_minutes_note', 'not recorded: wa_messages writes the reply on the inbound''s row with no reply time')
+    into v_wa
+    from public.wa_messages w
+   where w.created_at >= v_from and coalesce(btrim(w.inbound), '') <> ''
+     and not (right(regexp_replace(coalesce(w.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (v_founder))
+     and (coalesce(w.profile_name, '') like 'ZZ DEMO%') = v_fx;
+
+  select jsonb_build_object('questions', count(*), 'answered', count(*) filter (where g2.answered),
+                            'not_answered', count(*) filter (where not g2.answered))
+    into v_chat
+    from public.assistant_logs g2
+   where g2.created_at >= v_from and (coalesce(g2.message, '') like 'ZZ DEMO%') = v_fx;
+
+  -- repeat contact: the same person on two or more distinct Dubai days of the week
+  select jsonb_build_object('people', count(*), 'contacts', coalesce(sum(r.days), 0))
+    into v_repeat
+    from (select who, count(distinct d) days from (
+            select 'email:' || lower(btrim(m.from_email)) who, (m.created_at at time zone 'Asia/Dubai')::date d
+              from public.inbound_messages m
+             where m.created_at >= v_from and coalesce(btrim(m.from_email), '') <> '' and m.from_email !~* v_robot
+               and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
+               and public.fn_is_demo_email(m.from_email) = v_fx
+            union all
+            select 'whatsapp:' || right(regexp_replace(w.wa_from, '[^0-9]', '', 'g'), 9), (w.created_at at time zone 'Asia/Dubai')::date
+              from public.wa_messages w
+             where w.created_at >= v_from and coalesce(btrim(w.inbound), '') <> '' and coalesce(btrim(w.wa_from), '') <> ''
+               and not (right(regexp_replace(w.wa_from, '[^0-9]', '', 'g'), 9) = any (v_founder))
+               and (coalesce(w.profile_name, '') like 'ZZ DEMO%') = v_fx) c
+          group by who having count(distinct d) >= 2) r;
+
+  select jsonb_build_object('opened', count(*) filter (where t.created_at >= v_from),
+                            'final_response_given', count(*) filter (where t.final_response_at >= v_from),
+                            'past_respond_due', count(*) filter (where t.final_response_at is null and t.respond_due < now()))
+    into v_complaints
+    from public.complaint_tickets t
+   where public.fn_is_demo_email(t.email) = v_fx
+     and (t.created_at >= v_from or t.final_response_at >= v_from or t.final_response_at is null);
+
+  -- UNANSWERED QUESTIONS BECOME KNOWLEDGE REQUESTS, through the one door, once.
+  for g in select a.id, a.message from public.assistant_logs a
+            where a.answered = false and a.gap_task_id is null and a.created_at >= v_from
+              and coalesce(btrim(a.message), '') <> '' and (coalesce(a.message, '') like 'ZZ DEMO%') = v_fx
+            order by a.id for update of a skip locked loop
+    v_gap := public.fn_support_knowledge_gap(g.message, 'weekly_case_review', 'website_widget');
+    if coalesce((v_gap->>'ok')::boolean, false) and v_gap->>'task_id' is not null then
+      update public.assistant_logs set gap_task_id = (v_gap->>'task_id')::bigint where id = g.id;
+      v_filed := v_filed + 1;
+    end if;
+  end loop;
+
+  select jsonb_build_object('opened_this_week', count(*) filter (where k.first_asked_at >= v_from),
+                            'asked_again_this_week', count(*) filter (where k.first_asked_at < v_from and k.last_asked_at >= v_from),
+                            'still_open', count(*) filter (where k.status = 'open'),
+                            'filed_by_this_review', v_filed)
+    into v_knowledge
+    from public.sales_knowledge_gap k
+   where (k.question like 'ZZ DEMO%') = v_fx and (k.last_asked_at >= v_from or k.status = 'open');
+
+  v_metrics := jsonb_build_object('from', v_from, 'to', now(), 'email', v_email, 'whatsapp', v_wa, 'chat', v_chat,
+                                  'repeat_contacts', v_repeat, 'complaints', v_complaints, 'knowledge', v_knowledge);
+  -- a fixture run never overwrites the real week's row
+  if not v_fx or not exists (select 1 from public.customer_support_case_review where week_ending = v_week and not fixture) then
+    insert into public.customer_support_case_review (week_ending, metrics, knowledge_filed, fixture)
+    values (v_week, v_metrics, v_filed, v_fx)
+    on conflict (week_ending) do update
+      set metrics = excluded.metrics, knowledge_filed = customer_support_case_review.knowledge_filed + excluded.knowledge_filed,
+          fixture = excluded.fixture, reviewed_at = now();
+  end if;
+  return jsonb_build_object('week_ending', v_week, 'knowledge_filed', v_filed, 'fixture', v_fx) || v_metrics;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_support_delivery_watch(p_request_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -34490,52 +34607,6 @@ begin
       case when role = 'customer' then t.customer_id end, case when role = 'supplier' then t.supplier_id end, t.inquiry_id)
     from (values ('customer', c.email, c.locale), ('supplier', s.email, s.locale)) p(role, email, locale);
   return jsonb_build_object('dispute_id', d.id, 'opened', true, 'evidence_due', d.evidence_due);
-end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_customer_support_disputes_tick()
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; d record; v_q bigint;
-  v_review int := 0; v_overdue int := 0;
-begin
-  for d in select p.*, (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) as demo
-             from public.post_reveal_dispute p left join public.customers c on c.id = p.customer_id
-            where p.stage = 'evidence'
-              and ((p.customer_evidence is not null and p.supplier_evidence is not null) or now() > p.evidence_due)
-              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
-            order by p.id for update of p skip locked loop
-    v_q := public.fn_seat_duty_reason('customer_support', 'customer_support.dispute_fault',
-      case when d.demo then 'ZZ DEMO ' else '' end
-      || 'A customer and a supplier disagree about a job after the supplier''s details were revealed. On the statements and evidence of both parties, which finding does the evidence support?',
-      jsonb_build_array(
-        jsonb_build_object('id', 'customer_upheld', 'meaning', 'the customer''s complaint is supported: the supplier fell short of what was agreed'),
-        jsonb_build_object('id', 'supplier_upheld', 'meaning', 'the supplier''s position is supported: the supplier did what was agreed'),
-        jsonb_build_object('id', 'shared', 'meaning', 'both parties contributed to the problem'),
-        jsonb_build_object('id', 'no_fault', 'meaning', 'the evidence shows no fault by either party, or is too thin to find one')),
-      jsonb_build_object('raised_by', d.raised_by, 'opened_at', d.opened_at, 'evidence_due', d.evidence_due,
-                         'customer', d.customer_evidence, 'supplier', d.supplier_evidence),
-      jsonb_build_object('dispute_id', d.id), 'dispute_fault:' || d.id);
-    update public.post_reveal_dispute set stage = 'review', fault_question_id = v_q where id = d.id;
-    v_review := v_review + 1;
-  end loop;
-
-  for d in select p.id, p.decision_due, p.finding from public.post_reveal_dispute p
-             left join public.customers c on c.id = p.customer_id
-            where p.stage = 'ceo_decision' and now() > p.decision_due
-              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx loop
-    perform public.fn_it_engineer_finding_upsert('dispute_decision_overdue:' || d.id,
-      'Post-reveal dispute QD-D-' || lpad(d.id::text, 5, '0') || ' is past its decision date',
-      'public.post_reveal_dispute / fn_ceo_decides_post_reveal_dispute', 'agent_facing', 1,
-      jsonb_build_object('dispute_id', d.id, 'decision_due', d.decision_due, 'owner_seat', 'ceo'),
-      '{}'::text[], array['the CEO''s decision: select public.fn_ceo_decides_post_reveal_dispute(<id>, <outcome>, <note>)'],
-      'customer_support');
-    v_overdue := v_overdue + 1;
-  end loop;
-  return jsonb_build_object('to_review', v_review, 'decision_overdue', v_overdue);
 end $function$
 
 
@@ -43349,7 +43420,13 @@ begin
                                '(query text unavailable)') q,
                       -- An operator's session, not the product (21 Sep 2026): the management API
                       -- stamps every statement it runs with its own route in a trailing comment.
-                      bool_and(coalesce(ss.query, '') like '%/v1/projects/:ref/database/query%') operator_session
+                      bool_and(coalesce(ss.query, '') like '%/v1/projects/:ref/database/query%') operator_session,
+                      -- A schema change, not the product (24 Sep 2026): the stamp above is a
+                      -- TRAILING comment, so in an applied multi-statement file only the last
+                      -- statement carries it. A statement whose first word after its leading
+                      -- comments is a DDL verb is an apply or a CI dry run, never product traffic.
+                      bool_and(regexp_replace(coalesce(ss.query, ''), '^(\s*--[^\n]*)*\s*', '')
+                               ~* '^(create|alter|drop|grant|revoke|comment)\s') schema_change
                  from extensions.pg_stat_statements ss
                 where ss.queryid is not null
                 group by ss.queryid)
@@ -43361,7 +43438,7 @@ begin
                from s
                join public.it_query_stat_snapshot p
                  on p.queryid = s.queryid and p.calls <= s.calls and p.total_exec_time <= s.total_exec_time
-              where not s.operator_session
+              where not s.operator_session and not s.schema_change
                 and (s.total_exec_time - p.total_exec_time) / nullif(s.calls - p.calls, 0)
                     > public.fn_it_threshold('slow_query_mean_ms')
                 -- Either the interval carried the call volume the threshold asks for, OR the
@@ -56954,6 +57031,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -57124,16 +57211,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -58288,36 +58365,6 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__dispute_fault(p_id bigint, p_result jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare h public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; d public.post_reveal_dispute; v_rev jsonb;
-begin
-  select * into h from public.reasoning_held_question where id = p_id;
-  if v_choice is null or v_choice not in ('customer_upheld', 'supplier_upheld', 'shared', 'no_fault') then
-    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
-    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
-  end if;
-  select * into d from public.post_reveal_dispute where id = (h.subject->>'dispute_id')::bigint and stage = 'review' for update;
-  if not found then return jsonb_build_object('applied', false, 'reason', 'the dispute is not awaiting a finding'); end if;
-  update public.post_reveal_dispute
-     set stage = 'ceo_decision', finding = v_choice, finding_reasoning = left(p_result->>'answer', 8000),
-         finding_model = p_result->>'model', decision_due = public.fn_add_working_days(now(), 3)
-   where id = d.id;
-  -- the question and evidence are abstract and factual; the finding travels only in the proposal
-  v_rev := public.fn_seat_duty_cross_review('post_reveal_dispute', 'customer_support', 'ceo',
-    case when h.question like 'ZZ DEMO%' then 'ZZ DEMO ' else '' end
-      || 'Review a finding on a post-reveal dispute between a customer and a supplier.',
-    jsonb_build_object('dispute_id', d.id, 'raised_by', d.raised_by, 'customer', d.customer_evidence, 'supplier', d.supplier_evidence),
-    jsonb_build_object('finding', v_choice), p_result, 'post_reveal_dispute', d.id::text);
-  update public.post_reveal_dispute set review = v_rev where id = d.id;
-  return jsonb_build_object('applied', true, 'dispute_id', d.id, 'finding', v_choice, 'review', v_rev);
-end $function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__dispute_intake(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -58652,6 +58699,36 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__root_cause(p_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select public.fn_ceo_root_cause_applies(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__dispute_fault(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; d public.post_reveal_dispute; v_rev jsonb;
+begin
+  select * into h from public.reasoning_held_question where id = p_id;
+  if v_choice is null or v_choice not in ('customer_upheld', 'supplier_upheld', 'shared', 'no_fault') then
+    -- fn_reason_held_resolve marks a row applied whenever its apply returns, so a non-answer RAISES and is reasoned again.
+    raise exception 'CHOICE_NOT_AN_OPTION: % (held question %)', coalesce(v_choice, 'no choice'), p_id;
+  end if;
+  select * into d from public.post_reveal_dispute where id = (h.subject->>'dispute_id')::bigint and stage = 'review' for update;
+  if not found then return jsonb_build_object('applied', false, 'reason', 'the dispute is not awaiting a finding'); end if;
+  update public.post_reveal_dispute
+     set stage = 'ceo_decision', finding = v_choice, finding_reasoning = left(p_result->>'answer', 8000),
+         finding_model = p_result->>'model', decision_due = public.fn_add_working_days(now(), 3)
+   where id = d.id;
+  -- the question and evidence are abstract and factual; the finding travels only in the proposal
+  v_rev := public.fn_seat_duty_cross_review('post_reveal_dispute', 'sales_engineer', 'ceo',
+    case when h.question like 'ZZ DEMO%' then 'ZZ DEMO ' else '' end
+      || 'Review a finding on a post-reveal dispute between a customer and a supplier.',
+    jsonb_build_object('dispute_id', d.id, 'raised_by', d.raised_by, 'customer', d.customer_evidence, 'supplier', d.supplier_evidence),
+    jsonb_build_object('finding', v_choice), p_result, 'post_reveal_dispute', d.id::text);
+  update public.post_reveal_dispute set review = v_rev where id = d.id;
+  return jsonb_build_object('applied', true, 'dispute_id', d.id, 'finding', v_choice, 'review', v_rev);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__document_arabic(p_id bigint, p_result jsonb)
@@ -61624,7 +61701,8 @@ begin
        and not public.fn_seat_clock_asked('reveal_outcome_check:' || t.quote_id)
      order by t.revealed_at
   loop
-    v := public.fn_seat_clock_deliver('customer_support', 'reveal_outcome_check', 'customer', d.cemail, d.fixture, d.clocale,
+    -- 24 Sep 2026: the sales_engineer asks (it owns reveals); customer_support delivers through its door.
+    v := public.fn_seat_clock_deliver('sales_engineer', 'reveal_outcome_check', 'customer', d.cemail, d.fixture, d.clocale,
            'reveal_outcome_check',
            jsonb_build_object('name', d.cname, 'supplier', d.company_name, 'category', d.category),
            'reveal_outcome_check:' || d.quote_id, d.inquiry_id, d.quote_id, d.supplier_id);
@@ -63409,6 +63487,52 @@ begin
     if v_ref is not null then v_rev := public.fn_ceo_refund_review(v_ref, 'final_call_result'); end if;
   end if;
   return jsonb_build_object('attached', true, 'ladder_evidence_id', v_ev, 'result', d->>'result', 'delivered', v_delivered, 'ceo_review', v_rev);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_disputes_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; d record; v_q bigint;
+  v_review int := 0; v_overdue int := 0;
+begin
+  for d in select p.*, (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) as demo
+             from public.post_reveal_dispute p left join public.customers c on c.id = p.customer_id
+            where p.stage = 'evidence'
+              and ((p.customer_evidence is not null and p.supplier_evidence is not null) or now() > p.evidence_due)
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+            order by p.id for update of p skip locked loop
+    v_q := public.fn_seat_duty_reason('sales_engineer', 'sales_engineer.dispute_fault',
+      case when d.demo then 'ZZ DEMO ' else '' end
+      || 'A customer and a supplier disagree about a job after the supplier''s details were revealed. On the statements and evidence of both parties, which finding does the evidence support?',
+      jsonb_build_array(
+        jsonb_build_object('id', 'customer_upheld', 'meaning', 'the customer''s complaint is supported: the supplier fell short of what was agreed'),
+        jsonb_build_object('id', 'supplier_upheld', 'meaning', 'the supplier''s position is supported: the supplier did what was agreed'),
+        jsonb_build_object('id', 'shared', 'meaning', 'both parties contributed to the problem'),
+        jsonb_build_object('id', 'no_fault', 'meaning', 'the evidence shows no fault by either party, or is too thin to find one')),
+      jsonb_build_object('raised_by', d.raised_by, 'opened_at', d.opened_at, 'evidence_due', d.evidence_due,
+                         'customer', d.customer_evidence, 'supplier', d.supplier_evidence),
+      jsonb_build_object('dispute_id', d.id), 'dispute_fault:' || d.id);
+    update public.post_reveal_dispute set stage = 'review', fault_question_id = v_q where id = d.id;
+    v_review := v_review + 1;
+  end loop;
+
+  for d in select p.id, p.decision_due, p.finding from public.post_reveal_dispute p
+             left join public.customers c on c.id = p.customer_id
+            where p.stage = 'ceo_decision' and now() > p.decision_due
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx loop
+    perform public.fn_it_engineer_finding_upsert('dispute_decision_overdue:' || d.id,
+      'Post-reveal dispute QD-D-' || lpad(d.id::text, 5, '0') || ' is past its decision date',
+      'public.post_reveal_dispute / fn_ceo_decides_post_reveal_dispute', 'agent_facing', 1,
+      jsonb_build_object('dispute_id', d.id, 'decision_due', d.decision_due, 'owner_seat', 'ceo'),
+      '{}'::text[], array['the CEO''s decision: select public.fn_ceo_decides_post_reveal_dispute(<id>, <outcome>, <note>)'],
+      'sales_engineer');
+    v_overdue := v_overdue + 1;
+  end loop;
+  return jsonb_build_object('to_review', v_review, 'decision_overdue', v_overdue);
 end $function$
 
 
@@ -81541,6 +81665,7 @@ ALTER TABLE public.customer_layout ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_phone_otps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_preference ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_score ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_support_case_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_support_duty_message ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dead_letter ENABLE ROW LEVEL SECURITY;
@@ -82067,6 +82192,7 @@ CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask 
 CREATE POLICY competitor_scan_service_role_only ON public.competitor_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY customer_support_case_review_service_role_only ON public.customer_support_case_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_support_duty_message_service_role_only ON public.customer_support_duty_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
