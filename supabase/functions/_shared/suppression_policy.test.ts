@@ -19,6 +19,24 @@ Deno.test('an unsubscribe stops only the invitation and its reminders; a bounce 
   }
 });
 
+// The founder's Outlook "Approve" to the September calendar, 24 Sep 2026 (inbound_messages 162), exactly as
+// Resend returned the header: SES's verdict plus Microsoft 365's own internal stamp, as one JSON-encoded array.
+const M365_REPLY = JSON.stringify([
+  'amazonses.com; spf=pass (spfCheck: domain of quotesdone.com designates 40.107.54.86 as permitted sender) client-ip=40.107.54.86; envelope-from=management@quotesdone.com; helo=DXZP273CU001.outbound.protection.outlook.com; dmarc=pass header.from=quotesdone.com;',
+  'dkim=none (message not signed) header.d=none;dmarc=none action=none header.from=quotesdone.com;',
+]);
+
+Deno.test("an Outlook reply carrying Microsoft's own second header is authenticated by SES's verdict", () => {
+  assert(fromDomainAuthenticated(M365_REPLY, 'management@quotesdone.com'));
+  assert(!fromDomainAuthenticated(M365_REPLY, 'owner@example.invalid'));                          // SES passed quotesdone.com only
+  const forged = 'amazonses.com; dmarc=pass header.from=example.invalid;';
+  const real = 'amazonses.com; spf=fail; dkim=none; dmarc=fail header.from=example.invalid;';
+  assert(!fromDomainAuthenticated(JSON.stringify([forged, real, 'x; dmarc=none']), 'owner@example.invalid')); // two SES verdicts, any order
+  assert(!fromDomainAuthenticated(JSON.stringify(['mx.attacker.invalid; dmarc=pass header.from=example.invalid;']), 'owner@example.invalid'));
+  assert(!fromDomainAuthenticated('["not json', 'management@quotesdone.com'));
+  assert(!fromDomainAuthenticated(JSON.stringify([{ v: 'amazonses.com; dmarc=pass header.from=quotesdone.com;' }]), 'management@quotesdone.com'));
+});
+
 // The exact header Resend's receiving MTA added to a real inbound mail on 21 Sep 2026 (from our own sender).
 const SES_PASS = 'amazonses.com; spf=pass (spfCheck: domain of send.quotesdone.com designates 54.240.14.56 as permitted sender) client-ip=54.240.14.56; envelope-from=0100@send.quotesdone.com; helo=a14-56.smtp-out.amazonses.com; dkim=pass header.i=@quotesdone.com; dkim=pass header.i=@amazonses.com; dmarc=pass header.from=quotesdone.com;';
 

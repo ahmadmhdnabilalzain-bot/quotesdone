@@ -179,6 +179,10 @@ export async function integrationItems(f: Fetch, sec: Sec, env: Env, now = new D
       ({ integration: key, state: 'not_measured', tried: [], detail: String((err as Error)?.message || err) }) as Outcome);
     outcomes.push(o);
     if (o.state === 'not_measured') { items.push({ ...base, title: 'not measured this beat', evidence: {}, carried: true }); return; }
+    // A SUCCESSFUL RE-PROBE is the only proof of recovery. It is sent as a recovered item (never a failure):
+    // fn_it_integration_settle strips it before settling and stamps evidence.recovered = true on the closed
+    // finding, which is the one thing allowed to close a known external cause (review of #935).
+    if (o.state === 'ok' || o.state === 'fixed') { items.push({ ...base, title: 'answers again', evidence: { recovered: true }, recovered: true }); return; }
     if (o.state === 'failing') {
       items.push({ ...base,
         title: `${key} (${e.what}): ${o.what_broke}. Tried: ${o.tried.length ? o.tried.join('; ') : 'nothing the company can do itself'}. Needs: ${e.action || 'see the registry'}${e.link ? ' ' + e.link : ''}`,

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T13:41:35.234Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T15:05:07.300Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (635) =====
+-- ===== TABLES (636) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4012,6 +4012,13 @@ CREATE TABLE IF NOT EXISTS public.it_integration_external_cause (
   closed_at timestamp with time zone,
   close_note text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_model_consumer (
+  consumer text NOT NULL,
+  owner_seat text NOT NULL,
+  why_a_model text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_playbook (
@@ -9119,6 +9126,7 @@ ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_integration_external_cause ADD CONSTRAINT it_integration_external_cause_pkey PRIMARY KEY (id);
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_pkey PRIMARY KEY (consumer);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
 ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_pkey PRIMARY KEY (queryid);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
@@ -9833,6 +9841,8 @@ ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text, 'token'::text])));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_never_expires_ck CHECK ((NOT (never_expires AND (expires_on IS NOT NULL))));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((cardinality(warn_days) > 0) AND (0 < ALL (warn_days))));
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_consumer_check CHECK ((consumer ~ '^[a-z0-9_]+[:.][a-z0-9_]+$'::text));
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_why_a_model_check CHECK ((btrim(why_a_model) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_check CHECK (((COALESCE(btrim(remedy), ''::text) <> ''::text) OR (COALESCE(btrim(not_automatable_reason), ''::text) <> ''::text)));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_failure_class_check CHECK ((failure_class ~ '^[a-z0-9_]+$'::text));
@@ -10509,6 +10519,7 @@ ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_owner_seat_fk FOREIGN KEY (owner_seat) REFERENCES org_agents(agent_key);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES agent_actions(id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_playbook_class_fkey FOREIGN KEY (playbook_class) REFERENCES it_playbook(failure_class);
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
@@ -14754,7 +14765,7 @@ begin
                 where supplier_id = (d->>'supplier_id')::bigint and coalesce(status, '') not in ('cancelled')
                 order by id loop
         v_lines := v_lines || ('Charge #' || x.id || ' (reveal of ' || coalesce(x.reveal_date::text, '?') || '): AED '
-          || coalesce(x.amount_due, 0) || ' refunded to the customer + AED ' || coalesce(x.admin_fee, 0) || ' administration + AED '
+          || coalesce(x.amount_due, 0) || ' non-response charge (the refund to the customer and, from v14, the processor fee not recovered) + AED ' || coalesce(x.admin_fee, 0) || ' administration + AED '
           || coalesce(x.interest_amount, 0) || ' interest = AED ' || coalesce(x.total_claim, coalesce(x.amount_due, 0) + coalesce(x.admin_fee, 0) + coalesce(x.interest_amount, 0))
           || ', due ' || coalesce(x.due_date::text, '?') || ', ' || case when x.paid_at is not null then 'paid' else coalesce(x.status, 'open') end || '.');
       end loop;
@@ -14789,12 +14800,13 @@ begin
     select * into du from public.supplier_dues where id = coalesce((d->>'due_id')::bigint, (d->>'subject_id')::bigint);
     v := public.fn_accountant_nonresponse_charge(du.transaction_id, null);
     v_match := coalesce((v->>'ok')::boolean, false)
-               and du.amount_due = (v->>'refunded_aed')::numeric
+               and du.amount_due = (v->>'charge_aed')::numeric
                and du.admin_fee = (v->>'admin_fee_aed')::numeric
                and du.due_date = (v->>'due_date')::date;
     v_lines := array[
       'Charged: AED ' || coalesce(du.amount_due, 0) || ' + AED ' || coalesce(du.admin_fee, 0) || ' administration, due ' || coalesce(du.due_date::text, '?') || '.',
-      'Payment record: ' || coalesce('AED ' || (v->>'refunded_aed') || ' refunded to the customer (' || (v->>'refund_source') || ') + AED '
+      'Payment record: ' || coalesce('AED ' || (v->>'refunded_aed') || ' refunded to the customer (' || (v->>'refund_source') || ')'
+                                     || case when coalesce((v->>'processor_fee_aed')::numeric, 0) > 0 then ' + AED ' || (v->>'processor_fee_aed') || ' processor fee not recovered' else '' end || ' + AED '
                                      || (v->>'admin_fee_aed') || ' administration, due ' || (v->>'due_date') || '.', coalesce(v->>'reason', 'unreadable')),
       'Interest to date: AED ' || coalesce(v->>'interest_aed', '0') || ' at ' || coalesce(round((v->>'interest_apr')::numeric * 100, 2)::text, '?') || '% a year over '
         || coalesce(v->>'interest_days', '0') || ' day(s).'];
@@ -14975,7 +14987,7 @@ begin
       return jsonb_build_object('waiting', 'the charge cannot be recomputed: ' || coalesce(v->>'reason', '?'));
     end if;
     update public.supplier_dues
-       set amount_due = (v->>'refunded_aed')::numeric, admin_fee = (v->>'admin_fee_aed')::numeric,
+       set amount_due = (v->>'charge_aed')::numeric, admin_fee = (v->>'admin_fee_aed')::numeric,
            interest_amount = (v->>'interest_aed')::numeric, total_claim = (v->>'total_aed')::numeric,
            due_date = (v->>'due_date')::date, due_date_30 = (v->>'due_date')::date + 23,
            status = case when status = 'cancelled' then 'due' else status end
@@ -17108,7 +17120,7 @@ declare
   t public.transactions; c public.pricing_config; v_n int; v_sum bigint;
   v_refunded numeric; v_approved numeric; v_base numeric; v_settled timestamptz; v_src text;
   v_cap numeric; v_apr numeric; v_due_days int; v_due date; v_as_of date; v_days int; v_int numeric;
-  v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text; v_due_id bigint; v_notice timestamptz; v_due_basis text;
+  v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text; v_signed int; v_proc numeric := 0; v_apr_basis text; v_due_id bigint; v_notice timestamptz; v_due_basis text;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
@@ -17175,26 +17187,44 @@ begin
   -- else (v12 or earlier, v13 accepted after the reveal, unknown dates) -> pricing_config's AED 250 of clauses v6-v12.
   -- Never retroactive. supplier_charge.ts adminFeeAed() is the same rule for the documents.
   select l.accepted_terms_version, l.accepted_terms_at into v_ver, v_acc from public.leads l where l.id = t.supplier_id;
-  if coalesce(nullif(regexp_replace(coalesce(v_ver, ''), '\D', '', 'g'), '')::int, 0) >= 13
-     and v_acc is not null and t.revealed_at is not null and v_acc <= t.revealed_at then
+  -- 24 SEP 2026 (ceo): the version the supplier had SIGNED at the reveal, 0 when either date is unknown. One number, so
+  -- every head below reads the same version (supplier_charge.ts termsAt() is the same rule for the documents).
+  v_signed := case when v_acc is not null and t.revealed_at is not null and v_acc <= t.revealed_at
+                   then coalesce(nullif(regexp_replace(coalesce(v_ver, ''), '\D', '', 'g'), '')::int, 0) else 0 end;
+  if v_signed >= 13 then
     v_fee := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_admin_fee_from_v13_aed'), c.supplier_nonresponse_admin_fee_aed);
     v_fee_basis := 'Supplier Agreement ' || v_ver || ' clause 33(b), accepted ' || v_acc || ' before the reveal';
   else
     v_fee := c.supplier_nonresponse_admin_fee_aed;
     v_fee_basis := 'Supplier Agreement ' || coalesce(v_ver, '(no version recorded)') || ' clause 33(b) as signed before this reveal';
   end if;
-  v_int      := round((v_base + v_fee) * v_apr * v_days / 365.0, 2);
+  -- 24 SEP 2026 (ceo): SUPPLIER AGREEMENT v14 (founder instruction 990: the maximum UAE law safely allows).
+  -- For a supplier who had accepted v14 or later before the reveal:
+  --   33(b) the processor fee QuotesDone paid on the refunded reveal and could not recover. Stripe keeps its fee on a
+  --         refund; transactions.stripe_fee_fils is that fee as Stripe reported it. An ACTUAL loss, charged at cost,
+  --         so Civil Transactions Law 25/2025 Art. 340(2) ("the estimate was excessive") does not reach it.
+  --   33(d) interest at the AGREED 12% (Commercial Transactions Law 50/2022 Arts. 72, 73, 84: 9% is only the ceiling
+  --         where no rate is agreed), decision_policy.supplier_nonresponse_interest_apr_from_v14.
+  -- Everyone else keeps the 9% and no processor-fee head (never retroactive). docs/legal/NONRESPONSE_MAX_V14.md.
+  if v_signed >= 14 then
+    v_proc      := round(coalesce(t.stripe_fee_fils, 0) / 100.0, 2);
+    v_apr       := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_interest_apr_from_v14'), v_apr);
+    v_apr_basis := 'the agreed rate of Supplier Agreement ' || v_ver || ' clauses 31 and 33(d)';
+  else
+    v_apr_basis := 'the lower of pricing_config''s APR and the lawful maximum, clause 31 as signed before this reveal';
+  end if;
+  v_int      := round((v_base + v_proc + v_fee) * v_apr * v_days / 365.0, 2);
 
   return jsonb_build_object(
     'ok', true, 'transaction_id', t.id, 'supplier_id', t.supplier_id,
-    'refunded_aed', v_base, 'actually_refunded_aed', v_refunded, 'approved_aed', v_approved, 'refund_source', v_src,
+    'refunded_aed', v_base, 'processor_fee_aed', v_proc, 'charge_aed', v_base + v_proc, 'signed_version', v_signed, 'actually_refunded_aed', v_refunded, 'approved_aed', v_approved, 'refund_source', v_src,
     'admin_fee_aed', v_fee, 'admin_fee_basis', v_fee_basis,
-    'interest_apr', v_apr, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
+    'interest_apr', v_apr, 'interest_apr_basis', v_apr_basis, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
     'due_date', v_due, 'due_basis', v_due_basis, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
-    'total_aed', round(v_base + v_fee + v_int, 2),
+    'total_aed', round(v_base + v_proc + v_fee + v_int, 2),
     'basis', 'base = the amount refunded to the customer, read from the refund record and capped at the amount the CEO approved; '
-          || '+ the administration fee of the agreement version the supplier had signed at the reveal; + simple interest on (base + admin fee) at the lower of pricing_config''s APR and '
-          || 'the lawful maximum, from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date. Nothing is typed.');
+          || '+ from v14, the processor fee QuotesDone could not recover (transactions.stripe_fee_fils); + the administration fee of the agreement version the supplier had signed at the reveal; '
+          || '+ simple interest on (base + processor fee + admin fee) at that version''s rate (v14: the agreed 12%; earlier: the lower of pricing_config''s APR and the lawful maximum), from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date. Nothing is typed.');
 end $function$
 
 
@@ -17606,7 +17636,7 @@ begin
                                       amount_due, admin_fee, interest_amount, total_claim, currency,
                                       reveal_date, due_date, due_date_30, status)
     values (t.id, t.supplier_id, t.quote_id, t.quote_amount, null,
-            (v->>'refunded_aed')::numeric, (v->>'admin_fee_aed')::numeric, (v->>'interest_aed')::numeric, (v->>'total_aed')::numeric, 'AED',
+            (v->>'charge_aed')::numeric, (v->>'admin_fee_aed')::numeric, (v->>'interest_aed')::numeric, (v->>'total_aed')::numeric, 'AED',
             (t.revealed_at at time zone 'Asia/Dubai')::date, (v->>'due_date')::date, (v->>'due_date')::date + 23, 'due')
     returning id into v_due;
     update public.leads
@@ -20664,16 +20694,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -20699,6 +20719,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -28621,7 +28651,7 @@ begin
            and (n.status = 'sent' or n.sent_at is not null));
       v_items := v_items || jsonb_build_object('item', 'supplier_charge_raised_correctly',
         'passed', du.id is not null and coalesce((v_charge->>'ok')::boolean, false)
-                  and du.amount_due = (v_charge->>'refunded_aed')::numeric and du.admin_fee = (v_charge->>'admin_fee_aed')::numeric
+                  and du.amount_due = (v_charge->>'charge_aed')::numeric and du.admin_fee = (v_charge->>'admin_fee_aed')::numeric
                   and du.due_date = (v_charge->>'due_date')::date,
         'evidence', jsonb_build_object('due_id', du.id, 'charged', jsonb_build_object('amount_due', du.amount_due, 'admin_fee', du.admin_fee, 'due_date', du.due_date),
                                        'expected', v_charge, 'charge_message_sent', v_sent),
@@ -30560,7 +30590,7 @@ begin
     ||'Suppliers pay NO commission on won jobs. '
     ||regline
     ||'CATEGORY OPENING: a category is OPEN once it has '||coalesce(c.category_open_min_suppliers,10)||' verified registered suppliers (public.v_category_open); matching an RFQ still needs at least one confirmed supplier. '
-    ||'Non-response window: '||c.refund_window_working_days||' working days from the customer''s payment - if a revealed supplier stays silent through the chase and the CEO''s final call, EVERYTHING the customer paid (reveal fee + card processing fee) is refunded and QuotesDone bears the Stripe fee; the supplier is charged the exact amount refunded + an AED 250 administrative fee + simple interest at 9% a year (or the maximum lawful rate) from the due date, and is blocked from matching until paid. '
+    ||'Non-response window: '||c.refund_window_working_days||' working days from the customer''s payment - if a revealed supplier stays silent through the chase and the CEO''s final call, EVERYTHING the customer paid (the reveal fee) is refunded; the supplier is charged under the Supplier Agreement version it had accepted at the reveal (fn_accountant_nonresponse_charge): under v14 the exact amount refunded + the payment processor fee QuotesDone could not recover + an AED 500 administrative fee + simple interest at 12% a year (the agreed rate) from the due date + if unpaid the official recovery fees; under v13 the refund + AED 500 + 9%; under v12 or earlier the refund + AED 250 + 9%. It is blocked from matching until paid. '
     ||'There is NO 2% fee and NO supplier commission - never quote those. (Auto-updated '||to_char(now(),'YYYY-MM-DD HH24:MI')||' UTC.)';
 
   update agent_knowledge set content=txt, priority=100, updated_at=now()
@@ -30626,7 +30656,7 @@ begin
     ||'3. SUPPLIER NON-RESPONSE: a revealed supplier must begin responding within '||coalesce(v_days, v_win::text)||' working days of the customer''s PAYMENT (UAE week: Mon-Fri, Sat+Sun off, public holidays excluded). '
     ||'THE LADDER (founder ruling 6 Sep 2026, final; pricing_config): the supplier has '||v_win||' working days from payment. No response by working day '||v_chase||' - the Customer Success Director chases the supplier, customer copied; still silent on working day '||v_win||' - the CEO is notified for the final call; no response to that - the refund is issued. '
     ||'Every refund of any amount is the CEO''s decision and never automatic (founder, 8 Sep 2026: "refunds belong to the CEO from now on" and "all approvals are from CEO. nothing goes to me" - this SUPERSEDES the 6 Sep ruling; public.refunds enforces it with triggers z00_refund_ceo_approval_only and z05_refund_execution_requires_ceo_approval, which refuse a refund with no matching ceo_approval row). The customer gets the FULL reveal fee back (the '||v_pct||'% paid, nothing deducted) and is told banks take '||coalesce(v_bmin,7)||'-'||coalesce(v_bmax,14)||' working days. '
-    ||'The supplier then owes that reveal fee ('||v_pct||'%) + AED '||v_admin||' administrative fee + '||v_int||'% per annum simple interest (UAE statutory maximum), and is blocked from matching until it is paid. Never ask the founder about any of this again.'||E'\n'
+    ||'The supplier then owes the exact amount refunded (the '||v_pct||'%) + from Supplier Agreement v14 the payment processor fee QuotesDone could not recover + AED '||v_admin||' administrative fee + '||v_int||'% per annum simple interest (the rate AGREED in v14 clauses 31 and 33, Commercial Transactions Law 50/2022 Arts. 73 and 84; a supplier charged under v13 or earlier pays 9%, under v12 or earlier AED 250) + if unpaid the official recovery fees, and is blocked from matching until it is paid. Never ask the founder about any of this again.'||E'\n'
     ||'4. ANTI-CIRCUMVENTION: identities stay anonymous until the reveal and there is no off-platform contact before it. A supplier that takes an introduced customer off-platform within 24 months owes AED '||coalesce(v_aed, '15,000')||' per incident OR '||coalesce(v_mult, 'three (3)')||' times the fee, whichever is higher, plus the unpaid fee.'||E'\n'
     ||'5. CATEGORY OPENING (founder''s standing decision, 6 Sep 2026): a category is OPEN once it has '||v_cat_min||' verified registered suppliers (public.v_category_open); matching an RFQ still needs at least one confirmed supplier. Never ask the founder about any figure in these five lines.'||E'\n';
 end $function$
@@ -31027,9 +31057,9 @@ begin
         'REFUNDS: the supplier has ' || coalesce(v_refund_wd::text,'5') || ' UAE working days from the customer''s payment (Mon-Fri; Sat+Sun off; public holidays excluded). '
         'No response by working day ' || coalesce(v_chase_wd::text,'3') || ': the Customer Success Director chases the supplier, customer copied. Still silent on working day ' || coalesce(v_refund_wd::text,'5') ||
         ': the founder is notified for his final call. No response to that: the customer is refunded the FULL reveal fee (the 3% paid, no deduction) - EVERY refund of any amount is the founder''s approval - and told banks take '
-        || coalesce(v_bank_min::text,'7') || '-' || coalesce(v_bank_max::text,'14') || ' working days. The supplier then owes that fee + AED ' || v_admin::text || ' administrative fee + '
-        || v_pct::text || '% p.a. simple interest (fn_refund_amount_aed). Full record: qd-company:refunds.' || E'\n' ||
-        'LATE FEE on overdue recoverables: 9% per annum (UAE Federal Decree-Law 50/2022).'),
+        || coalesce(v_bank_min::text,'7') || '-' || coalesce(v_bank_max::text,'14') || ' working days. The supplier then owes the exact amount refunded (the 3%) + from Supplier Agreement v14 the payment processor fee QuotesDone could not recover + AED ' || v_admin::text || ' administrative fee + '
+        || v_pct::text || '% p.a. simple interest (the agreed rate of v14; 9% under v13 or earlier), per the Supplier Agreement version it had accepted at the reveal (fn_accountant_nonresponse_charge). Full record: qd-company:refunds.' || E'\n' ||
+        'LATE FEE on overdue recoverables: ' || v_pct::text || '% per annum simple, the rate agreed in Supplier Agreement v14 clause 31 (Federal Decree-Law 50/2022 Arts. 73 and 84; 9% for amounts due under v13 or earlier).'),
 
     jsonb_build_object('rid','comparison-report','module','comparison_report',
       'title','QuotesDone — The Top-3 Comparison Report',
@@ -31127,7 +31157,7 @@ begin
         '  Working day ' || coalesce(v_refund_wd::text,'5') || ' with still no response: the refund request is filed through fn_refund_request (the ONE door) and the founder is notified for his FINAL CALL (founder_mail_policy kind refund_final_call - one of only two refund signals that reach his inbox; the other is the approval itself).' || E'\n' ||
         '  No response to his call: he approves the refund in the OS (fn_refund_decide; every refund, any amount, is his decision, never automatic).' || E'\n' ||
         '  The customer is refunded the FULL fee paid - no deduction - and told that banks take ' || coalesce(v_bank_min::text,'7') || '-' || coalesce(v_bank_max::text,'14') || ' working days to show it.' || E'\n' ||
-        '  The supplier whose silence caused it owes: the refunded fee (the 3%) + AED ' || v_admin::text || ' administrative fee + ' || v_pct::text || '% per annum simple interest (the UAE statutory maximum), and is blocked from matching until settled. One function states the arithmetic: fn_refund_amount_aed(paid, paid_at, refund_at).' || E'\n' ||
+        '  The supplier whose silence caused it owes: the exact amount refunded (the 3%) + from Supplier Agreement v14 the payment processor fee QuotesDone could not recover + AED ' || v_admin::text || ' administrative fee + ' || v_pct::text || '% per annum simple interest (the rate agreed in v14; 9% under v13 or earlier), and is blocked from matching until settled. One function states the arithmetic: fn_refund_amount_aed(paid, paid_at, refund_at).' || E'\n' ||
         '  Working days are Monday to Friday, UAE public holidays excluded (fn_is_working_day). fn_refund_state(transaction) says where any case stands.' || E'\n' ||
         'WHO OWNS WHAT: chase = Customer Success Director (existing owner of supplier follow-up); final call + approval = the founder; execution on Stripe = Payments & Billing Manager; reconciliation = Financial Controller; recovery from the supplier = Accounts Receivable via collections_legal. No new employee was created for this.' || E'\n' ||
         'THE FOUNDER''S WORDS (verbatim, 6 Sep 2026 - never ask him about refunds again): "' || coalesce(v_founder_words, '(decision_policy.refund_policy_founder_decision_2026_09_06)') || '"'),
@@ -42870,6 +42900,54 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_data_quality()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; n int; ids jsonb; v_chk record; v_counts jsonb := '{}'::jsonb;
+begin
+  for v_chk in
+    select * from (values
+      ('demo_quote_crosses_real', 'sales_engineer', 'quotes join a ZZ DEMO party to a real one (customer and supplier disagree on demo)',
+       $q$select q.id from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+            join public.customers cu on cu.id = i.customer_id join public.leads l on l.id = q.supplier_id
+          where cu.is_demo is distinct from l.is_demo$q$),
+      ('demo_transaction_crosses_real', 'accountant', 'transactions join a ZZ DEMO party to a real one (customer and supplier disagree on demo)',
+       $q$select t.id from public.transactions t join public.customers cu on cu.id = t.customer_id join public.leads l on l.id = t.supplier_id
+          where cu.is_demo is distinct from l.is_demo$q$),
+      ('orphan_quotes', 'sales_engineer', 'quotes point at an inquiry or a supplier that no longer exists',
+       $q$select q.id from public.quotes q where not exists (select 1 from public.inquiries i where i.id = q.inquiry_id)
+            or (q.supplier_id is not null and not exists (select 1 from public.leads l where l.id = q.supplier_id))$q$),
+      ('orphan_inquiries', 'sales_engineer', 'inquiries point at a customer that no longer exists',
+       $q$select i.id from public.inquiries i where i.customer_id is not null and not exists (select 1 from public.customers c where c.id = i.customer_id)$q$),
+      ('orphan_transactions', 'accountant', 'transactions point at a quote, inquiry, customer or supplier that no longer exists',
+       $q$select t.id from public.transactions t
+          where (t.quote_id is not null and not exists (select 1 from public.quotes q where q.id = t.quote_id))
+             or (t.inquiry_id is not null and not exists (select 1 from public.inquiries i where i.id = t.inquiry_id))
+             or (t.customer_id is not null and not exists (select 1 from public.customers c where c.id = t.customer_id))
+             or (t.supplier_id is not null and not exists (select 1 from public.leads l where l.id = t.supplier_id))$q$),
+      ('transaction_quote_mismatch', 'accountant', 'transactions disagree with the quote they were revealed from (amount, inquiry or supplier)',
+       $q$select t.id from public.transactions t join public.quotes q on q.id = t.quote_id
+          where t.quote_amount is distinct from q.quote_amount or t.inquiry_id is distinct from q.inquiry_id
+             or t.supplier_id is distinct from q.supplier_id$q$)
+    ) v(cls, owner, what, q)
+  loop
+    execute 'select count(*), coalesce(jsonb_agg(id) filter (where rn <= 20), ''[]'') from (select id, row_number() over (order by id) rn from ('
+            || v_chk.q || ') s) z' into n, ids;
+    v_counts := v_counts || jsonb_build_object(v_chk.cls, n);
+    if n > 0 then
+      v_items := v_items || jsonb_build_object('item', v_chk.cls, 'owner_seat', v_chk.owner, 'subject', v_chk.cls, 'affected', n,
+        'blast', case when v_chk.owner = 'accountant' then 'customer_facing' else 'internal' end,
+        'title', n || ' ' || v_chk.what, 'evidence', jsonb_build_object('ids', ids, 'count', n));
+    end if;
+  end loop;
+
+  return jsonb_build_object('counts', v_counts, 'settled', public.fn_it_duty_settle('data_quality', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
  RETURNS jsonb
  LANGUAGE sql
@@ -43138,12 +43216,12 @@ begin
           'The ' || s.seat || ' seat''s knowledge pass rate is ' || round(r30 * 100) || '% over the last 30 days'
             || case when rprev is not null then ' (was ' || round(rprev * 100) || '%)' else '' end,
           'public.seat_knowledge_exam', 'agent_facing', (s.n30 - s.ok30)::int,
-          jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'rate_prev_30d', rprev, 'graded_30d', s.n30, 'owner_seat', s.seat),
+          jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'rate_prev_30d', rprev, 'graded_30d', s.n30, 'owner_seat', 'ceo'),
           '{}'::text[], array['which items it answered wrong and why'], 'it_engineer');
-        perform public.fn_seat_handoff('it_engineer', s.seat, 'it.finding', 'seat_knowledge_exam',
+        perform public.fn_seat_handoff('it_engineer', 'ceo', 'it.finding', 'seat_knowledge_exam',
           'knowledge_pass_rate:' || s.seat || ':' || to_char(now(), 'IYYY-IW'),
           jsonb_build_object('duty', 'knowledge_pass_rate', 'issue_key', 'knowledge_pass_rate:' || s.seat, 'subject', s.seat || ' knowledge',
-                             'title', 'Your knowledge pass rate dropped to ' || round(r30 * 100) || '%; the items you missed are filed for re-research'));
+                             'title', 'The ' || replace(s.seat, '_', ' ') || ' seat''s knowledge pass rate dropped to ' || round(r30 * 100) || '%; its missed items are filed for re-research in its queue, and holding the seat to the bar is yours'));
         -- THE SEAT ACTS: every item it missed in the window is re-researched in its own queue.
         for e in select * from public.seat_knowledge_exam
                   where seat = s.seat and verdict in ('wrong', 'partial', 'not_covered') and graded_at > now() - interval '30 days' and refiled_at is null loop
@@ -43340,6 +43418,46 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_slo()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_site numeric; v_site_n int;
+begin
+  for x in
+    select substring(r.agent from 4) fn, max((r.counts->>'budget_ms')::int) budget, count(*) n,
+           percentile_cont(0.95) within group (order by (r.counts->>'ms')::numeric) p95
+      from public.agent_runs r
+     where r.agent like 'fn:%' and r.started_at > now() - interval '24 hours'
+       and r.counts ? 'budget_ms' and r.status = 'ok'
+       and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
+       and coalesce(r.counts->>'region', '') not like 'us-%'
+     group by 1
+  loop
+    v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget);
+    if x.n >= 30 and x.p95 > x.budget then
+      v_items := v_items || jsonb_build_object('item', x.fn, 'subject', x.fn, 'blast', 'customer_facing', 'affected', x.n,
+        'owner_seat', coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer'),
+        'title', x.fn || ' answered in ' || round(x.p95) || ' ms at p95 over the last 24 h (' || x.n || ' runs); the budget is ' || x.budget || ' ms',
+        'evidence', jsonb_build_object('p95_ms', round(x.p95), 'runs', x.n, 'budget_ms', x.budget, 'window', '24 hours'));
+    end if;
+  end loop;
+
+  select percentile_cont(0.95) within group (order by site_ms), count(site_ms) into v_site, v_site_n
+    from public.it_watch_tick where ran_at > now() - interval '24 hours' and site_ms is not null;
+  if v_site_n >= 30 and v_site > 2500 then
+    v_items := v_items || jsonb_build_object('item', 'site_home', 'subject', 'website', 'blast', 'customer_facing', 'owner_seat', 'it_engineer',
+      'title', 'The website home page answered in ' || round(v_site) || ' ms at p95 over the last 24 h; the budget is 2500 ms',
+      'evidence', jsonb_build_object('p95_ms', round(v_site), 'samples', v_site_n));
+  end if;
+
+  return jsonb_build_object('functions', v_out, 'site_p95_ms', round(v_site), 'site_samples', v_site_n,
+                            'settled', public.fn_it_duty_settle('latency_slo', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_licence_expiry_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43372,6 +43490,125 @@ begin
   end if;
   return jsonb_build_object('renewal_asks', v_asks - 'sample', 'expired_matchable_before', v_before,
                             'paused', v_fix, 'expired_matchable_after', v_after);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_model_spend()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb;
+begin
+  -- a think() surface is listed by construction (it lives in reasoning_held_question); ai_cost_log fn:task_class must be registered
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, count(*) n, max(a.seat) seat from public.ai_cost_log a
+            where a.occurred_at > now() - interval '24 hours' and a.fn is not null
+              and not public.fn_it_model_consumer_listed(a.fn, a.task_class)
+            group by 1 loop
+    v_items := v_items || jsonb_build_object('item', 'unlisted:' || x.k, 'owner_seat', 'ceo', 'subject', x.k, 'blast', 'internal', 'affected', x.n,
+      'title', x.k || ' called a model ' || x.n || ' time(s) in 24 h and is not in the model-consumer inventory (it_model_consumer)',
+      'evidence', jsonb_build_object('calls_24h', x.n, 'seat', x.seat));
+  end loop;
+
+  for x in with h as (select a.fn || ':' || coalesce(a.task_class, 'unclassified') k,
+                             count(*) filter (where a.occurred_at > now() - interval '1 hour') last_hour,
+                             count(*) filter (where a.occurred_at <= now() - interval '1 hour') / 168.0 mean_hour
+                        from public.ai_cost_log a where a.occurred_at > now() - interval '7 days 1 hour' and a.fn is not null group by 1)
+           select h.*, c.owner_seat from h left join public.it_model_consumer c on c.consumer = h.k
+            where h.last_hour > greatest(30, 5 * h.mean_hour) loop
+    v_items := v_items || jsonb_build_object('item', 'runaway:' || x.k, 'owner_seat', coalesce(x.owner_seat, 'ceo'), 'subject', x.k,
+      'blast', 'internal', 'affected', x.last_hour,
+      'title', x.k || ' made ' || x.last_hour || ' model calls in the last hour against a usual ' || round(x.mean_hour, 1) || ' an hour: a loop until shown otherwise',
+      'evidence', jsonb_build_object('last_hour', x.last_hour, 'mean_hour_7d', round(x.mean_hour, 2)));
+  end loop;
+
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, a.cache_hit_key key, count(*) n, max(c.owner_seat) owner_seat
+             from public.ai_cost_log a left join public.it_model_consumer c on c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified')
+            where a.occurred_at > now() - interval '1 hour' and not a.cached and a.cache_hit_key is not null
+            group by 1, 2 having count(*) >= 5 loop
+    v_items := v_items || jsonb_build_object('item', 'repeat:' || x.k || ':' || left(md5(x.key), 12), 'owner_seat', coalesce(x.owner_seat, 'ceo'),
+      'subject', x.k, 'blast', 'internal', 'affected', x.n,
+      'title', x.k || ' paid for the same uncached call ' || x.n || ' times in the last hour',
+      'evidence', jsonb_build_object('cache_hit_key', x.key, 'calls', x.n));
+  end loop;
+
+  return jsonb_build_object('settled', public.fn_it_duty_settle('model_spend', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
+        v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
+begin
+  select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
+  v_since := coalesce(v_since, now());
+
+  for h in
+    select a.* from public.agent_actions a
+     where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
+       and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
+       and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     order by a.id limit 50
+  loop
+    v_inc := public.fn_it_incident_open(h.id);
+    n_open := n_open + 1;
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    update public.it_incident set ended_at = coalesce(ended_at, f.closed_at, h.decided_at, now()),
+           fix = coalesce(fix, 'Closed: ' || coalesce(f.close_note, 'the ' || h.agent || ' answered and the finding cleared')),
+           updated_at = now() where id = v_inc;
+    select * into p from public.it_playbook where (h.detail->>'issue_key') like issue_prefix || '%'
+     order by length(issue_prefix) desc limit 1;
+    if found then
+      update public.it_incident set playbook_class = p.failure_class,
+             cause = coalesce(cause, p.typical_cause, 'Known failure class ' || p.failure_class || ': ' || coalesce(p.remedy, p.not_automatable_reason)),
+             regression_check = coalesce(regression_check, p.regression_check), recorded_by = 'it_engineer.postmortem', updated_at = now()
+       where id = v_inc;
+      n_play := n_play + 1;
+    end if;
+  end loop;
+
+  -- A class the playbook has never seen: its root cause is asked once, three incidents a run, oldest first. Asked from
+  -- the incident (not the pass that opened it) so an incident past one run's cap is asked on the next.
+  for h in
+    select i.id inc_id, a.detail, a.evidence from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+     where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
+       and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+     order by i.id limit 3
+  loop
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+      'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+      jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
+        'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+        'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
+          'finding', to_jsonb(f) - 'evidence')),
+        'subject', jsonb_build_object('incident_id', h.inc_id), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id), 'seat_duty', 'postmortem:' || h.inc_id);
+    n_asked := n_asked + 1;
+  end loop;
+
+  select count(*) into v_hist from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.detail->>'severity' in ('critical', 'high')
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+
+  select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
+    from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+           where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+  if v_late > 0 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
+      'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
+      'evidence', jsonb_build_object('incident_ids', v_ids)));
+  end if;
+
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked,
+                            'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
 
@@ -43657,7 +43894,7 @@ declare
   x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; f public.it_engineer_finding;
   v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
   v_link text; v_detail text; v_dedupe text; v_note jsonb; n_mail int := 0; n_fixed int := 0;
-  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record;
+  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record; v_recovered text[] := '{}';
 begin
   if p_duty not in ('integration', 'integration_social') then
     raise exception 'fn_it_integration_settle: duty must be integration or integration_social, not %', p_duty;
@@ -43666,7 +43903,9 @@ begin
     raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
   end if;
   -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
+  -- A RECOVERED item is a successful re-probe, not a failure: it is kept out of the settle and remembered.
   for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce((x->>'recovered')::boolean, false) then v_recovered := v_recovered || (x->>'item'); continue; end if;
     if coalesce((x->>'carried')::boolean, false) and not exists (select 1 from public.it_engineer_finding
          where issue_key = 'duty:' || p_duty || ':' || (x->>'item') and closed_at is null) then
       continue;
@@ -43674,6 +43913,12 @@ begin
     v_items := v_items || x;
   end loop;
   v_res := public.fn_it_duty_settle(p_duty, v_items);
+  -- The closed finding of an integration that answered its probe this beat says so. The evidence is replaced
+  -- whenever the finding reopens, so the mark never outlives the closure it describes.
+  update public.it_engineer_finding
+     set evidence = evidence || jsonb_build_object('recovered', true, 'recovered_at', now())
+   where closed_at is not null
+     and issue_key = any (select 'duty:' || p_duty || ':' || r from unnest(v_recovered) r);
 
   -- What the company fixed itself: the IT daily line, never the founder.
   for x in select e from jsonb_array_elements(coalesce(p_fixed, '[]'::jsonb)) e loop
@@ -43683,11 +43928,14 @@ begin
     n_fixed := n_fixed + 1;
   end loop;
 
-  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause once the integration answers again.
+  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause ONLY on a genuine recovery: the finding
+  -- is closed AND a successful re-probe stamped it recovered. Any other closure (a sweep, a manual close) keeps
+  -- the cause open, or the founder path would re-open without the provider having fixed anything.
   for c in select * from public.it_integration_external_cause where closed_at is null loop
     continue when not exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration);
     if exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration
-                  and closed_at is not null and closed_at >= c.created_at) then
+                  and closed_at is not null and closed_at >= c.created_at
+                  and coalesce((evidence->>'recovered')::boolean, false)) then
       perform public.fn_it_external_cause_close(c.integration, 'the integration answers again; ' || c.external_party || ' ticket ' || c.ticket_ref || ' can be closed');
       continue;
     end if;
@@ -43695,7 +43943,9 @@ begin
     select i.created_at, coalesce(i.subject, '') || E'\n' || coalesce(i.body, '') txt into m
       from public.inbound_messages i
      where i.created_at > greatest(coalesce(c.last_reply_at, c.opened_on::timestamptz), c.opened_on::timestamptz)
-       and (i.subject ilike '%' || c.ticket_ref || '%' or i.body ilike '%' || c.ticket_ref || '%')
+       -- A literal substring, case-blind: a pattern match would read % and _ in a provider's reference as wildcards.
+       and (strpos(lower(coalesce(i.subject, '')), lower(c.ticket_ref)) > 0
+            or strpos(lower(coalesce(i.body, '')), lower(c.ticket_ref)) > 0)
      order by i.created_at desc limit 1;
     if found then perform public.fn_it_external_cause_reply(c.integration, m.created_at, m.txt); end if;
     update public.it_integration_external_cause set last_checked_at = now() where id = c.id;
@@ -44127,6 +44377,41 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_model_consumer_inventory()
+ RETURNS TABLE(consumer text, owner_seat text, listed boolean, why_a_model text, calls_30d bigint, cost_aed_30d numeric, last_call timestamp with time zone, held_waiting bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with seen as (
+    select a.fn || ':' || coalesce(a.task_class, 'unclassified') consumer, count(*) n, sum(coalesce(a.cost_aed, 0)) aed,
+           max(a.occurred_at) last, max(a.seat) seat, bool_and(public.fn_it_model_consumer_listed(a.fn, a.task_class)) listed
+      from public.ai_cost_log a where a.occurred_at > now() - interval '30 days' and a.fn is not null group by 1),
+  held as (
+    select h.surface consumer, count(*) n, max(h.seat) seat from public.reasoning_held_question h
+     where h.applied_at is null and h.status is distinct from 'expired' group by 1),
+  keys as (select c.consumer from public.it_model_consumer c union select consumer from seen union select consumer from held)
+  select k.consumer, coalesce(c.owner_seat, s.seat, h.seat), c.consumer is not null or h.consumer is not null or coalesce(s.listed, false),
+         coalesce(c.why_a_model, case when h.consumer is not null then 'a think() surface: reasoned in its seat''s queue' end),
+         coalesce(s.n, 0), coalesce(s.aed, 0), s.last, coalesce(h.n, 0)
+    from keys k left join public.it_model_consumer c using (consumer) left join seen s using (consumer) left join held h using (consumer)
+   order by coalesce(s.n, 0) + coalesce(h.n, 0) desc, 1;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_model_consumer_listed(p_fn text, p_class text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.it_model_consumer c
+                  where c.consumer = p_fn || ':' || coalesce(p_class, 'unclassified')
+                     or (c.consumer = p_fn || ':think'
+                         and p_class in ('agent_reasoning', 'knowledge_validation', 'customer_communication', 'supplier_communication')))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_open_findings()
  RETURNS SETOF it_engineer_finding
  LANGUAGE sql
@@ -44256,6 +44541,44 @@ AS $function$
      order by length(b.issue_prefix) desc, b.failure_class limit 1) p
    where coalesce(btrim(p.typical_cause), '') <> '';
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_watch(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x jsonb; v_items jsonb := '[]'::jsonb; fw jsonb := coalesce(p_r->'firewall', '{}'::jsonb); v_res jsonb;
+begin
+  for x in select e from jsonb_array_elements(coalesce(p_r->'providers', '[]'::jsonb)) e loop
+    if x->>'basis' = 'unavailable' then
+      v_items := v_items || jsonb_build_object('item', 'unreadable:' || (x->>'provider'), 'config', true, 'owner_seat', 'it_engineer',
+        'title', 'The ' || (x->>'provider') || ' status page could not be read: ' || coalesce(x->>'reason', '?'), 'blast', 'monitor',
+        'subject', x->>'provider', 'evidence', x);
+    elsif x->>'indicator' in ('major', 'critical') then
+      v_items := v_items || jsonb_build_object('item', x->>'provider', 'owner_seat', 'it_engineer', 'subject', x->>'provider',
+        'title', initcap(x->>'provider') || ' reports a ' || (x->>'indicator') || ' incident on its status page: ' || coalesce(x->>'description', ''),
+        'blast', case when x->>'provider' = 'dropbox' then 'internal' else 'customer_facing' end, 'evidence', x);
+    end if;
+  end loop;
+
+  if fw->>'basis' = 'unavailable' or fw->'config'->>'basis' = 'unavailable' then
+    v_items := v_items || jsonb_build_object('item', 'firewall:unreadable', 'config', true, 'owner_seat', 'it_engineer', 'blast', 'monitor',
+      'title', 'The Vercel firewall could not be read: ' || coalesce(fw->>'reason', fw->'config'->>'reason', '?'), 'evidence', fw);
+  elsif (fw->'config'->>'enabled')::boolean is false then
+    v_items := v_items || jsonb_build_object('item', 'firewall:off', 'owner_seat', 'it_engineer', 'blast', 'security',
+      'title', 'The Vercel firewall is switched off for the site', 'evidence', fw);
+  end if;
+  if fw->'attack'->>'basis' = 'measured' and (fw->'attack'->>'under_attack')::boolean then
+    v_items := v_items || jsonb_build_object('item', 'firewall:attack', 'owner_seat', 'it_engineer', 'blast', 'security',
+      'title', 'Vercel reports an active attack on the site', 'evidence', fw);
+  end if;
+
+  v_res := public.fn_it_duty_settle('provider_status', v_items);
+  perform public.fn_it_duty_ran('provider_status', v_res);
+  return v_res;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_refusal_is_policy(p_subject text, p_counts jsonb)
@@ -56989,6 +57312,24 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_refresh
 AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__postmortem(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_inc bigint; v_ans text := btrim(coalesce(p_result->>'answer', ''));
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_inc := (r.subject->>'incident_id')::bigint;
+  if v_ans = '' then raise exception 'EMPTY_ANSWER: postmortem question % came back empty', p_id; end if;
+  update public.it_incident set cause = coalesce(nullif(btrim(cause), ''), left(v_ans, 2000)),
+         recorded_by = coalesce(recorded_by, 'it_engineer.postmortem (' || coalesce(p_result->>'model', 'model') || ')'), updated_at = now()
+   where id = v_inc;
+  return jsonb_build_object('applied', found, 'incident_id', v_inc);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__root_cause(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql
@@ -58373,7 +58714,9 @@ begin
   -- The customer's refund is the fee actually paid, in full: the published Refund Policy promises no
   -- administrative deduction and fn_refund_amount_is_the_fee_paid enforces it on the refunds row.
   v_paid  := round(coalesce(p_paid_aed, 0), 2);
-  -- The AED 250 administrative fee and the 9% p.a. (UAE statutory maximum) are what the SUPPLIER whose
+  -- 24 SEP 2026 (ceo): REFERENCE figures for the knowledge texts only; the charge a supplier actually owes is
+  -- fn_accountant_nonresponse_charge, by the Supplier Agreement version it had signed (v14: + processor fee, agreed 12%).
+  -- The administrative fee and the annual rate (decision_policy) are what the SUPPLIER whose
   -- silence caused the refund owes on top of the fee: founder decision 6 Sep 2026, verbatim in
   -- decision_policy.refund_policy_founder_decision_2026_09_06.
   v_admin := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'refund_admin_fee_aed'), 250);
@@ -58393,7 +58736,7 @@ begin
     'interest_aed', v_interest,
     'supplier_charge_aed', round(v_paid + v_admin + v_interest, 2),
     'bank_settlement_working_days', coalesce(v_min, 7)::text || '-' || coalesce(v_max, 14)::text,
-    'basis', 'customer: the reveal fee paid, refunded in full, no deduction; supplier: that fee + AED '
+    'basis', 'customer: the reveal fee paid, refunded in full, no deduction; supplier (reference, current version; the exact charge is fn_accountant_nonresponse_charge): that fee + from v14 the processor fee not recovered + AED '
              || v_admin::text || ' administrative fee + ' || v_pct::text
              || '% p.a. simple interest for ' || v_days::text || ' calendar day(s)');
 end $function$
@@ -61576,10 +61919,10 @@ begin
           || '. Please respond promptly — under the Supplier Agreement you must respond within ' || v_window::text
           || ' working days of the reveal. If you have not responded after ' || v_chase::text
           || ' working days we chase you with the customer copied; if there is still no response on working day ' || v_window::text
-          || ' our chief executive decides the case, the customer is refunded, and the amount refunded plus an AED 250 administrative fee and 9% p.a. interest is recovered from your account.',
+          || ' our chief executive decides the case, the customer is refunded, and the amount refunded, with the administrative fee, interest and other amounts set out in clause 33 of the Supplier Agreement you accepted, is recovered from your account.',
         'كشف أحد العملاء عن عرضكم على QuotesDone',
         'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم بشأن: ' || coalesce(v_inq, '') || '. نرجو المبادرة بالرد، إذ تُلزم اتفاقية المورّد بالرد خلال '
-          || v_window::text || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه، ويُسترد المبلغ من حسابكم مع رسوم إدارية قدرها 250 درهمًا وفائدة 9% سنويًا.',
+          || v_window::text || ' أيام عمل من تاريخ الكشف، وإلا فسيُردّ إلى العميل كامل ما دفعه، ويُسترد من حسابكم المبلغ المردود مع الرسم الإداري والفائدة وسائر المبالغ المبيّنة في البند 33 من اتفاقية المورّد التي قبلتموها.',
         '{}', 'quote_accepted:' || (d->>'subject_id'), null, jsonb_build_object('transaction_id', d->>'subject_id'));
     end if;
     return jsonb_build_object('customer_reachable', v_cust.email is not null,
@@ -61675,10 +62018,14 @@ begin
   elsif t in ('nonresponse.charge_raised', 'charge.corrected') then
     if coalesce(v_sup.email, '') not like '%@%' then return jsonb_build_object('supplier_reachable', false); end if;
     v_lines := '  Amount refunded to the customer: AED ' || (d->>'refunded_aed') || E'\n'
+            || case when coalesce((d->>'processor_fee_aed')::numeric, 0) > 0
+                    then '  Payment processor fee we could not recover (clause 33(b)): AED ' || (d->>'processor_fee_aed') || E'\n' else '' end
             || '  Administration fee: AED ' || (d->>'admin_fee_aed') || E'\n'
             || '  Interest: ' || round((d->>'interest_apr')::numeric * 100, 2) || '% a year, simple, on AED '
-            || round((d->>'refunded_aed')::numeric + (d->>'admin_fee_aed')::numeric, 2) || ' from ' || (d->>'due_date') || ' until paid' || E'\n'
-            || '  Due by: ' || (d->>'due_date');
+            || round(coalesce((d->>'charge_aed')::numeric, (d->>'refunded_aed')::numeric) + (d->>'admin_fee_aed')::numeric, 2) || ' from ' || (d->>'due_date') || ' until paid' || E'\n'
+            || '  Due by: ' || (d->>'due_date')
+            || case when coalesce((d->>'signed_version')::int, 0) >= 14
+                    then E'\n  If it is not paid by then, the official fees of recovering it (court, payment-order, execution and notary fees) are added at cost (clause 33).' else '' end;
     if t = 'nonresponse.charge_raised' then
       v_req := public.fn_sales_engineer_writes('nonresponse_charge', 'supplier', v_sup.email, v_sup.id, null,
         (d->>'inquiry_id')::uuid, (d->>'quote_id')::uuid,
@@ -61690,8 +62037,12 @@ begin
           || 'Matching is paused until this is settled. You can pay it from the Billing section of your supplier portal. If you believe it is wrong, use "Dispute this charge" there or reply to this email and we will check the figures against the payment record.',
         'رسوم بموجب اتفاقية المورّد',
         'سدّد أحد العملاء رسوم الكشف عن بيانات التواصل معكم ولم يتلقَّ ردًّا خلال ' || v_window::text || ' أيام عمل رغم التذكيرات، فرُدّ إليه كامل ما دفعه بموجب اتفاقية المورّد، ويُسترد من حسابكم ما يلي: المبلغ المسترد '
-          || (d->>'refunded_aed') || ' درهم، ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، وفائدة بسيطة ' || round((d->>'interest_apr')::numeric * 100, 2)
-          || '% سنويًا من ' || (d->>'due_date') || ' حتى السداد. ويمكنكم السداد أو الاعتراض من قسم الفواتير في بوابتكم.',
+          || (d->>'refunded_aed') || ' درهم، '
+          || case when coalesce((d->>'processor_fee_aed')::numeric, 0) > 0 then 'ورسوم مزوّد خدمة الدفع التي لم نتمكن من استردادها ' || (d->>'processor_fee_aed') || ' درهم، ' else '' end
+          || 'ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، وفائدة بسيطة ' || round((d->>'interest_apr')::numeric * 100, 2)
+          || '% سنويًا من ' || (d->>'due_date') || ' حتى السداد.'
+          || case when coalesce((d->>'signed_version')::int, 0) >= 14 then ' وإن لم يُسدَّد المبلغ في موعده، تُضاف بالتكلفة الرسوم الرسمية لتحصيله (رسوم المحكمة وأمر الأداء والتنفيذ والتوثيق) (البند 33).' else '' end
+          || ' ويمكنكم السداد أو الاعتراض من قسم الفواتير في بوابتكم.',
         '{}', 'nonresponse_charge:' || (d->>'subject_id'));
     else
       -- THE CORRECTION MUST REACH WHOEVER GOT THE ORIGINAL: its To and every Cc, not today's address book.
@@ -61703,7 +62054,7 @@ begin
           || ' about this charge, which carried the wrong figures. Please disregard it. The correct figures are:' || E'\n\n' || v_lines,
         'تصحيح: رسوم بموجب اتفاقية المورّد',
         'هذه الرسالة تحلّ محلّ رسالتنا السابقة التي تضمنت أرقامًا غير صحيحة. الأرقام الصحيحة: المبلغ المسترد ' || (d->>'refunded_aed')
-          || ' درهم، ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، مستحقة في ' || (d->>'due_date') || '.',
+          || ' درهم، ' || case when coalesce((d->>'processor_fee_aed')::numeric, 0) > 0 then 'ورسوم مزوّد خدمة الدفع ' || (d->>'processor_fee_aed') || ' درهم، ' else '' end || 'ورسوم إدارية ' || (d->>'admin_fee_aed') || ' درهم، مستحقة في ' || (d->>'due_date') || '.',
         coalesce(v_orig.cc_emails, '{}'), 'charge_corrected:' || (d->>'subject_id'));
     end if;
     return jsonb_build_object('delivery_request', v_req);
@@ -61954,6 +62305,14 @@ begin
   end if;
   raise exception 'no such ladder step %', p_step;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_licence_expiry_watch()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_licence_expiry_watch() $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_raises_undecided_submissions(p_include_fixtures boolean DEFAULT false)
@@ -62569,7 +62928,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -62587,6 +62946,8 @@ begin
   v_expired := l.license_expiry is not null and l.license_expiry < current_date;
   -- 24 Sep 2026: the licence must be this company's. Unread name = not a mismatch (nothing guessed).
   v_name_mismatch := public.fn_supplier_licence_name_mismatch(l);
+  -- ...and an unread name is not a match: no name match, no automatic approval.
+  v_name_unread := public.fn_company_name_norm(coalesce(l.licence_legal_name, '')) = '';
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
                    when v_name_mismatch then 'licence_name_mismatch'
@@ -62597,6 +62958,7 @@ begin
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
   elsif v_reason is not null then v_decision := 'action_required';
+  elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_name_unread';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -62615,22 +62977,25 @@ begin
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
   if v_changed > 0 or p_source <> 'mandatory_item_changed' then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', 'auto_done',
-          case when v_decision = 'action_required' then 'medium' else 'low' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_name_unread' then 'needs_review' else 'auto_done' end,
+          case when v_decision = 'action_required' or v_reason = 'licence_name_unread' then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.'
+            when 'pending' then case when v_reason = 'licence_name_unread'
+              then 'Review: complete, but the company name on the trade licence could not be read (a scan the document model could not read, or the model is held). Compare the licence with the registered name, then approve or ask for the right licence. It is never approved automatically without a name match.'
+              else 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.' end
             else 'No action required. The supplier was told exactly what is missing; the verification re-runs when it arrives, and the registration closes after 14 days.' end,
           jsonb_build_object('supplier_id', l.id, 'decision', v_decision, 'previous_status', l.approval_status,
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
-                             'licence_name_mismatch', v_name_mismatch, 'licence_legal_name', l.licence_legal_name,
+                             'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
+                             'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
           'leads', l.id::text);
   end if;
 
   return jsonb_build_object('ok', true, 'decision', v_decision, 'approval_status', v_decision, 'missing', to_jsonb(v_missing),
-                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch,
+                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$
 
@@ -80009,6 +80374,7 @@ ALTER TABLE public.it_founder_decision_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_integration_external_cause ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_model_consumer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
@@ -80423,6 +80789,7 @@ CREATE POLICY it_founder_decision_class_service_role_only ON public.it_founder_d
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_integration_external_cause_service_role_only ON public.it_integration_external_cause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_model_consumer_service_role_only ON public.it_model_consumer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
