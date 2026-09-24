@@ -195,9 +195,13 @@ Deno.serve(observe('quote_compare', async (req) => {
       for (const q of qs) {
         const qid = String(q.id);
         try {
+          const keep: string[] = [];
           for (const cells of chunks(differingCells(technical, qid))) {
-            await admin.rpc('fn_glm_judgement_enqueue', { p_kind: 'quote_spec_match', p_subject_key: qid + ':' + (await sha256hex(JSON.stringify(cells))).slice(0, 32), p_input: { quote_id: qid, inquiry_id, cells } });
+            const key = qid + ':' + (await sha256hex(JSON.stringify(cells))).slice(0, 32); keep.push(key);
+            await admin.rpc('fn_glm_judgement_enqueue', { p_kind: 'quote_spec_match', p_subject_key: key, p_input: { quote_id: qid, inquiry_id, cells } });
           }
+          // The cells of this run are the quote's cells now: anything older (a cell since corrected) stops counting.
+          await admin.rpc('fn_glm_quote_spec_supersede', { p_quote_id: qid, p_keep: keep });
           const { data } = await admin.rpc('fn_quote_spec_mismatches', { p_quote_id: qid });
           if (data) specMismatches[qid] = data;
         } catch (_e) { /* the report is served without the judged cells; the queue retries */ }

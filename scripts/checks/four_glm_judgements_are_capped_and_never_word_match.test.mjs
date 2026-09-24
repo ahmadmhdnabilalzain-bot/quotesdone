@@ -83,3 +83,10 @@ test('the terminal state (three failed readings) hands every kind back to its ow
   // spec cells: reported unread, never as meeting the request
   assert.match(body('fn_quote_spec_mismatches'), /'unread',[\s\S]*g\.status = 'failed'/);
 });
+
+test('a corrected cell stops counting: each comparison supersedes the quote\'s older cells', () => {
+  assert.match(body('fn_glm_quote_spec_supersede'), /set status = 'superseded'[\s\S]*not \(subject_key = any/);
+  assert.doesNotMatch(body('fn_quote_spec_mismatches'), /superseded/, 'the report must not read superseded rows');
+  const qc = strip(read('supabase/functions/quote_compare/index.ts'));
+  assert.ok(qc.indexOf("'fn_glm_quote_spec_supersede'") > qc.indexOf("p_kind: 'quote_spec_match'"), 'quote_compare must supersede after it enqueues the current cells');
+});

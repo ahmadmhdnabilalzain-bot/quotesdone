@@ -41,7 +41,7 @@ create table if not exists public.glm_judgement (
   kind text not null check (kind in ('quote_spec_match', 'repeat_request', 'supplier_trade_words', 'unknown_sender_mail')),
   subject_key text not null check (btrim(subject_key) <> ''),
   input jsonb not null,
-  status text not null default 'queued' check (status in ('queued', 'done', 'failed')),
+  status text not null default 'queued' check (status in ('queued', 'done', 'failed', 'superseded')),
   result jsonb,
   model text,
   attempts integer not null default 0,
@@ -235,6 +235,24 @@ end $fn$;
 revoke execute on function public.fn_glm_judgement_resolve(bigint, jsonb, text) from public, anon, authenticated;
 grant execute on function public.fn_glm_judgement_resolve(bigint, jsonb, text) to service_role;
 
+-- A NEW COMPARISON SUPERSEDES THE OLD CELLS (review of this PR). quote_compare enqueues the quote's CURRENT ≠ cells
+-- under content keys and then names them here; every other quote_spec_match row of that quote is superseded, so a
+-- cell the supplier corrected (now ✓, or changed) stops counting. p_keep empty = no ≠ cell remains.
+create or replace function public.fn_glm_quote_spec_supersede(p_quote_id text, p_keep text[])
+returns integer language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare n integer;
+begin
+  update public.glm_judgement set status = 'superseded', leased_until = null, decided_at = now()
+   where kind = 'quote_spec_match' and input->>'quote_id' = p_quote_id
+     and status in ('queued', 'done', 'failed') and not (subject_key = any(coalesce(p_keep, '{}'::text[])));
+  get diagnostics n = row_count;
+  return n;
+end $fn$;
+revoke execute on function public.fn_glm_quote_spec_supersede(text, text[]) from public, anon, authenticated;
+grant execute on function public.fn_glm_quote_spec_supersede(text, text[]) to service_role;
+
 -- What the comparison report and the quote review read: the judged ≠ cells of one quote.
 create or replace function public.fn_quote_spec_mismatches(p_quote_id text)
 returns jsonb language sql stable security definer
@@ -355,6 +373,9 @@ begin
   perform public.fn_glm_judgement_defer(v_id2, 'probe', true);
   if v_fail is null and (select status from public.glm_judgement where id = v_id2) <> 'failed' then v_fail := 'three failed readings did not fail the row'; end if;
   if v_fail is null and (public.fn_quote_spec_mismatches('zz-probe-quote2')->>'unread')::int <> 1 then v_fail := 'a failed judgement is not reported unread'; end if;
+  -- A corrected cell stops counting: a new run that no longer carries v_id's cells supersedes it.
+  perform public.fn_glm_quote_spec_supersede('zz-probe-quote', array['zz-probe-other']);
+  if v_fail is null and jsonb_array_length(public.fn_quote_spec_mismatches('zz-probe-quote')->'mismatches') <> 0 then v_fail := 'a superseded (corrected) cell still counts'; end if;
   delete from public.glm_judgement where id in (v_id, v_id2);
   if v_fail is null and (select count(*) from public.glm_judgement) <> v_before then v_fail := 'probe left rows behind'; end if;
   insert into glm_probe_verdict values (case when v_fail is null then 'PROBE OK' else 'PROBE FAILED: ' || v_fail end);
