@@ -62,3 +62,21 @@ test('invitations leave from 10:00 Dubai and the 18:00 email states the window f
   assert.match(tick, /'window_start_hour'\)::int, 9\), 0, 0\), 'HH24:MI'\)/);
   assert.match(tick, /', sent from ' \|\| v_win/);
 });
+
+test('generic platform exclusions are never silent, and a blank warm-up row is never overwritten', () => {
+  assert.match(SQL, /set generic = true\s+where domain in \('hub\.com', 'atom\.com', 'tyler\.com', 'doe\.com', 'company\.com', 'business\.com', 'info\.com', 'hello\.com'\)/);
+  const tick = body('fn_customer_support_campaign_list_tick');
+  assert.match(tick, /on g\.generic and g\.domain = split_part\(lower\(btrim\(l\.email\)\), '@', 2\)/);
+  assert.match(tick, /coalesce\(E'\\n\\n' \|\| v_gen, ''\)/);
+  assert.match(tick, /coalesce\(v_gen, 'No lead held back on a generic platform domain\.'\)/);
+  assert.match(SQL, /key = 'invite_warmup' and value is not null and btrim\(value\) <> ''/);
+});
+
+test('the warm-up never counts a fixture as a send', () => {
+  const ramp = body('fn_invite_ramp');
+  for (const q of [/into v_sent_total, v_last_sent from leads where invited_at is not null and not coalesce\(is_demo, false\) and not public\.fn_is_demo_email\(email\)/,
+                   /interval '48 hours' and not coalesce\(is_demo, false\)/,
+                   /into v_last_day from leads where invited_at is not null and not coalesce\(is_demo, false\)/,
+                   /= v_last_day and not coalesce\(is_demo, false\)/]) assert.match(ramp, q);
+  assert.match(body('fn_supplier_campaign_next_list'), /max\(l\.invited_at\) from public\.leads l where not coalesce\(l\.is_demo, false\) and not public\.fn_is_demo_email\(l\.email\)/);
+});

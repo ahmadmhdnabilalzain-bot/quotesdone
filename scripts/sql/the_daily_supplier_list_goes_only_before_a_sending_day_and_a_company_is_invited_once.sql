@@ -17,8 +17,13 @@
 --   4. Addresses on a directory, marketplace, hosting, template or placeholder domain (buildclub.com, hub.com ...)
 --      were eligible. Now public.email_platform_domain (maintained, exact domains) excludes them from
 --      fn_supplier_invite_eligible, unless the lead's own website is that domain.
+--      The eight generic ones (hub.com, info.com ...) are marked generic, and every lead they hold back is counted
+--      and named in the 18:00 email, so that exclusion is never silent.
 --   5. The founder's ruling: invitations leave from about 10:00 Dubai. invite_warmup.window_start_hour 9 -> 10
---      (the end stays 17:00), and the 18:00 email states the window from the same setting.
+--      (the end stays 17:00; a blank setting row is never overwritten), and the 18:00 email states the window.
+--   6. fn_invite_ramp counted ZZ DEMO fixtures as sends (an E2E lead invited 24 Sep 15:27 Dubai made the cold
+--      domain look warm, so day 1 would have gone at the stored 50, not base 30). Fixtures are no longer counted,
+--      in the ramp and in the list's prediction.
 --
 -- prevented by: scripts/checks/the_daily_supplier_list_goes_only_before_a_sending_day.test.mjs
 --   node scripts/apply_sql.mjs scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql --apply --ddl
@@ -38,6 +43,7 @@ comment on table public.email_platform_domain is
   'Email domains that are not a supplier''s own mailbox (directories, marketplaces, hosting, template vendors, placeholders, disposable, typos). An address on one is never invited unless the lead''s own website is that domain. Exact match only. Owner: marketing. Add a row when a scraped address is found on such a domain.';
 alter table public.email_platform_domain enable row level security;
 drop policy if exists email_platform_domain_service_role_only on public.email_platform_domain;
+alter table public.email_platform_domain add column if not exists generic boolean not null default false;
 create policy email_platform_domain_service_role_only on public.email_platform_domain as permissive for all to public using (false) with check (false);
 revoke all on public.email_platform_domain from anon, authenticated;
 
@@ -72,10 +78,15 @@ insert into public.email_platform_domain (domain, kind, reason) values
   ('mailinator.com', 'disposable', 'disposable inbox'),
   ('gmai.com', 'typo', 'misspelt gmail.com: a typo domain is a spam-trap risk')
 on conflict (domain) do nothing;
+-- Plain words a real company could own: still excluded (the lead's own website still wins), and every lead held
+-- back by one is counted and named in the 18:00 email, so the exclusion is never silent.
+update public.email_platform_domain set generic = true
+ where domain in ('hub.com', 'atom.com', 'tyler.com', 'doe.com', 'company.com', 'business.com', 'info.com', 'hello.com')
+   and not generic;
 
 -- ── THE SENDING WINDOW OPENS AT 10:00 DUBAI (founder's ruling; window end stays 17:00) ────────────
 update public.app_secrets set value = jsonb_set(nullif(value, '')::jsonb, '{window_start_hour}', '10'::jsonb)::text
- where key = 'invite_warmup' and coalesce((nullif(value, '')::jsonb->>'window_start_hour')::int, -1) <> 10;
+ where key = 'invite_warmup' and value is not null and btrim(value) <> '' and coalesce((nullif(value, '')::jsonb->>'window_start_hour')::int, -1) <> 10;
 
 create or replace function public.fn_supplier_invite_eligible(p leads)
 returns boolean
@@ -255,7 +266,7 @@ begin
   v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
   -- fn_invite_ramp runs before the batch on the sending day; with nothing sent in the 3 days before it, it resets
   -- the cap to invite_warmup.base_cap (a cold domain restarts). Show that number, not the stale stored cap.
-  if coalesce((select max(l.invited_at) from public.leads l), '-infinity'::timestamptz) < (v_day::timestamp at time zone 'Asia/Dubai') - interval '3 days' then
+  if coalesce((select max(l.invited_at) from public.leads l where not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)), '-infinity'::timestamptz) < (v_day::timestamp at time zone 'Asia/Dubai') - interval '3 days' then
     v_cap := coalesce((select (nullif(value, '')::jsonb->>'base_cap')::int from public.app_secrets where key = 'invite_warmup'), 30);
   end if;
   select count(*) into v_pool from public.leads l where public.fn_supplier_invite_eligible(l);
@@ -276,7 +287,7 @@ create or replace function public.fn_customer_support_campaign_list_tick(p_now t
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_local timestamp := coalesce(p_now, now()) at time zone 'Asia/Dubai'; v_at time; r public.supplier_campaign_daily_list;
-  v_l jsonb; v_c jsonb; v_win text; v_subj text; v_body text; v_blocks jsonb; v_state text; v_send text;
+  v_l jsonb; v_c jsonb; v_win text; v_gen_n int := 0; v_gen_d text; v_gen text; v_subj text; v_body text; v_blocks jsonb; v_state text; v_send text;
 begin
   begin
     select coalesce(nullif(btrim(value), ''), '18:00')::time into v_at from public.app_secrets where key = 'supplier_campaign_list_local_time';
@@ -301,6 +312,17 @@ begin
            || to_char(make_time(coalesce((nullif(value, '')::jsonb->>'window_end_hour')::int, 17), 0, 0), 'HH24:MI') || ' Dubai'
       into v_win from public.app_secrets where key = 'invite_warmup';
     v_win := coalesce(v_win, '09:00 to 17:00 Dubai');
+    -- NEVER SILENT (ledger 993): leads held back only because their address is on a GENERIC platform domain (a plain
+    -- word a real company could own) are counted and named in this email. Same rule as fn_supplier_invite_eligible.
+    select count(*), string_agg(distinct g.domain, ', ') into v_gen_n, v_gen_d
+      from public.leads l join public.email_platform_domain g
+        on g.generic and g.domain = split_part(lower(btrim(l.email)), '@', 2)
+     where l.invite_status is null and coalesce(l.claimed, false) = false and coalesce(l.is_demo, false) = false
+       and g.domain is distinct from lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(l.website), ''), l.maps_website, '')),
+                                          '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi'));
+    v_gen := case when v_gen_n > 0 then 'Held back, possibly a company''s own address: ' || v_gen_n
+                  || ' lead(s) on a generic domain treated as a platform (' || v_gen_d
+                  || '). If one is the company''s own, set its website to that domain and it becomes eligible.' end;
     v_send := to_char((v_l->>'send_day')::date, 'FMDay DD FMMonth YYYY');
     v_state := case when (v_l->>'switch_on')::boolean
                     then 'The campaign is ON: these ' || (v_l->>'planned') || ' supplier(s) will be invited on ' || v_send || ', sent from ' || v_win || ', evenly spaced.'
@@ -314,6 +336,7 @@ begin
       || 'The attached PDF lists each supplier: company, emirate, language and email (masked). It is produced by code from the same '
       || 'selection the sender uses (cap ' || (v_l->>'cap') || ', eligible pool ' || (v_l->>'pool') || '). The morning warm-up may move the cap, '
       || 'and a supplier who registers, bounces or unsubscribes overnight drops out.'
+      || coalesce(E'\n\n' || v_gen, '')
       || coalesce(E'\n\nNo sending on: ' || (select string_agg(to_char((s->>'day')::date, 'Dy DD Mon') || ' (' || (s->>'why') || ')', ', ')
                                                from jsonb_array_elements(v_l->'skipped') s), '');
     v_blocks := jsonb_build_array(
@@ -323,6 +346,7 @@ begin
                                               || ', unsubscribed ' || (v_c->>'unsubscribed') || ', registered ' || (v_c->>'registered') || '.'),
         jsonb_build_object('t', 'note', 'text', 'Selection: fn_supplier_invite_candidates(' || (v_l->>'planned') || '), the sender''s own; cap ' || (v_l->>'cap')
                                               || ', eligible pool ' || (v_l->>'pool') || '. Emails are masked. Prepared by customer_support, by code.'),
+        jsonb_build_object('t', 'note', 'text', coalesce(v_gen, 'No lead held back on a generic platform domain.')),
         jsonb_build_object('t', 'space', 'h', 6),
         jsonb_build_object('t', 'table', 'head', jsonb_build_array('#', 'Company', 'Emirate', 'Language', 'Email'),
           'widths', jsonb_build_array(0.06, 0.44, 0.14, 0.1, 0.26),
@@ -338,5 +362,134 @@ begin
                             'planned', r.planned, 'switch_on', r.switch_on);
 end $fn$;
 revoke execute on function public.fn_customer_support_campaign_list_tick(timestamptz) from public, anon, authenticated;
+
+create or replace function public.fn_invite_ramp()
+returns integer
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare
+  c jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
+  v_base int     := coalesce((c->>'base_cap')::int, 30);
+  v_ceiling int  := coalesce((c->>'ceiling_cap')::int, 200);
+  v_growth numeric := coalesce((c->>'growth_factor')::numeric, 1.5);
+  v_used_pct numeric := coalesce((c->>'grow_if_used_pct')::numeric, 0.8);
+  v_ok_b numeric := coalesce((c->>'grow_max_bounce_rate')::numeric, 0.02);
+  v_ok_c numeric := coalesce((c->>'grow_max_complaint_rate')::numeric, 0.001);
+  v_back_b numeric := coalesce((c->>'backoff_bounce_rate')::numeric, 0.035);
+  v_back_n int   := coalesce((c->>'backoff_min_sends')::int, 20);
+  v_pause_c numeric := coalesce((c->>'pause_complaint_rate')::numeric, 0.003);
+  v_pause_n int  := coalesce((c->>'pause_min_complaints')::int, 2);
+  v_cur int; v_new int; v_note text; v_status text := 'ok';
+  v_sent_total int; v_last_sent timestamptz; v_last_day date; v_last_day_sent int;
+  v_s48 int; v_b48 int; v_c48 int; v_br numeric; v_cr numeric;
+  v_restart boolean := false; v_prev_restart boolean; v_grew_since boolean; v_uncontacted int;
+begin
+  v_cur := coalesce((select nullif(value,'')::int from app_secrets where key = 'invite_daily_cap'), v_base);
+
+  -- PAUSED IS A REPORTABLE STATE: a paused campaign files a row and leaves the cap alone. The daily tick
+  -- calls this only on open days, so the previous body's daily "campaign paused" warning (which, called
+  -- every day of a founder's deliberate hold, would page him daily) is not carried over.
+  if coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') <> 'true' then
+    select count(*) into v_uncontacted from leads where invited_at is null and coalesce(btrim(email),'') <> '';
+    insert into agent_runs(agent, status, counts, note, finished_at)
+    values ('invite_ramp', 'ok', jsonb_build_object('paused', true, 'cap', v_cur, 'uncontacted_with_email', v_uncontacted),
+            'PAUSED: invite_enabled is false; cap left at ' || v_cur || '.', now());
+    return v_cur;
+  end if;
+
+  select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  select count(*),
+         count(*) filter (where invite_status = 'bounced'),
+         count(*) filter (where invite_status = 'complained')
+    into v_s48, v_b48, v_c48
+    from leads where invited_at > now() - interval '48 hours' and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  v_br := v_b48::numeric / greatest(v_s48, 1);
+  v_cr := v_c48::numeric / greatest(v_s48, 1);
+
+  if v_c48 >= v_pause_n and v_cr >= v_pause_c then
+    -- SPAM COMPLAINTS STOP THE CAMPAIGN. Gmail and Yahoo reject bulk senders above 0.3%; two people
+    -- pressing "spam" inside 48 hours is not noise at this volume.
+    update app_secrets set value = 'false' where key = 'invite_enabled';
+    v_new := v_base; v_status := 'error';
+    v_note := 'PAUSED ON COMPLAINTS: ' || v_c48 || ' spam complaint(s) on ' || v_s48 || ' invitation(s) in 48 h ('
+              || round(v_cr * 100, 2) || '% >= ' || round(v_pause_c * 100, 2) || '%). invite_enabled set to false; cap reset to base '
+              || v_base || '.';
+    if not exists (select 1 from founder_alerts where event = 'invite_paused_complaints' and created_at > now() - interval '24 hours') then
+      insert into founder_alerts(level, event, detail, channel)
+      values ('crit', 'invite_paused_complaints', 'Supplier invites AUTO-PAUSED: ' || v_note || ' Read the complaints before resuming.', 'system');
+    end if;
+  elsif v_last_sent is null or v_last_sent < now() - interval '3 days' then
+    -- A RESTART, NOT A STALL. After days of silence the domain is cold again, so it starts at the base.
+    -- It is a stall only if the previous run was ALSO a restart and still nothing has been issued.
+    v_restart := true; v_new := v_base;
+    select coalesce((a.counts->>'restart')::boolean, false) into v_prev_restart
+      from agent_runs a where a.agent = 'invite_ramp' and coalesce((a.counts->>'paused')::boolean, false) = false
+     order by a.id desc limit 1;
+    v_note := 'restart: nothing issued since ' || coalesce(to_char(v_last_sent at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z', 'ever')
+              || '; cap set to the base ' || v_base || '.';
+    if coalesce(v_prev_restart, false) then
+      v_status := 'error';
+      v_note := 'STALLED: the previous run was already a restart and nothing has been issued since. ' || v_note;
+      if not exists (select 1 from founder_alerts where event = 'invite_sender_stalled' and created_at > now() - interval '24 hours') then
+        insert into founder_alerts(level, event, detail, channel)
+        values ('crit', 'invite_sender_stalled', 'Supplier invites: ' || v_note || ' invite_enabled is true, so the enqueuer or the outbox is failing.', 'system');
+      end if;
+    end if;
+  elsif v_s48 >= v_back_n and (v_br >= v_back_b or v_c48 >= 1) then
+    v_new := greatest(v_base, floor(v_cur * 0.5)::int);
+    v_note := 'back off: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaints ' || v_c48
+              || '; cap ' || v_cur || '->' || v_new || '.';
+    if v_new = v_cur then
+      v_status := 'error';
+      if not exists (select 1 from founder_alerts where event = 'invite_throttle_exhausted' and created_at > now() - interval '24 hours') then
+        insert into founder_alerts(level, event, detail, channel)
+        values ('crit', 'invite_throttle_exhausted', 'Supplier invites: ' || v_note || ' The cap is already at its base; the hard brake pauses at '
+                || round(coalesce((select nullif(value,'')::numeric from app_secrets where key = 'invite_max_bounce_rate'), 0.05) * 100, 1) || '%.', 'system');
+      end if;
+    end if;
+  elsif v_br >= v_ok_b or v_cr >= v_ok_c then
+    v_new := v_cur;
+    v_note := 'hold: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaint ' || round(v_cr * 100, 2)
+              || '% — growth needs bounce < ' || round(v_ok_b * 100, 1) || '% and complaint < ' || round(v_ok_c * 100, 2) || '%.';
+  else
+    -- GROW ON VOLUME ISSUED, ONCE PER SEND DAY. Weekends and holidays run no batch, so a calendar-based
+    -- ladder would ratchet on days the domain sent nothing.
+    select max((invited_at at time zone 'Asia/Dubai')::date) into v_last_day from leads where invited_at is not null and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select count(*) into v_last_day_sent from leads where (invited_at at time zone 'Asia/Dubai')::date = v_last_day and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select exists (select 1 from agent_runs a where a.agent = 'invite_ramp' and a.finished_at > v_last_sent
+                     and (a.counts->>'new_cap')::int > (a.counts->>'old_cap')::int) into v_grew_since;
+    if v_grew_since then
+      v_new := v_cur; v_note := 'hold: already grew once since the last send day.';
+    elsif v_last_day_sent < ceil(v_cur * v_used_pct) then
+      v_new := v_cur; v_note := 'hold: the last send day (' || v_last_day || ') issued ' || v_last_day_sent || ' of a cap of ' || v_cur
+                                || '; growth needs ' || round(v_used_pct * 100) || '%.';
+    else
+      v_new := least(v_ceiling, ceil(v_cur * v_growth)::int);
+      v_note := 'healthy: 48 h bounce ' || round(v_br * 100, 1) || '% (' || v_b48 || '/' || v_s48 || '), complaints ' || v_c48
+                || '; last send day issued ' || v_last_day_sent || '; cap ' || v_cur || '->' || v_new || '.';
+    end if;
+  end if;
+
+  v_new := greatest(v_base, least(v_new, v_ceiling));
+  if v_new <> v_cur then
+    update app_secrets set value = v_new::text where key = 'invite_daily_cap';
+  end if;
+
+  insert into agent_runs(agent, status, counts, note, finished_at)
+  values ('invite_ramp', v_status,
+          jsonb_build_object('old_cap', v_cur, 'new_cap', v_new, 'sent_total', v_sent_total, 'restart', v_restart,
+                             'sent_48h', v_s48, 'bounced_48h', v_b48, 'complained_48h', v_c48,
+                             'bounce_pct_48h', round(v_br * 100, 2), 'complaint_pct_48h', round(v_cr * 100, 3)),
+          v_note, now());
+  if v_new < v_cur and not v_restart then
+    insert into founder_alerts(level, event, detail, channel)
+    values ('warn', 'invite_cap_throttled', 'Supplier-invite cap reduced ' || v_cur || '->' || v_new || ' — ' || v_note, 'system');
+  end if;
+  return v_new;
+end
+$fn$;
+revoke execute on function public.fn_invite_ramp() from public, anon, authenticated;
 
 commit;
