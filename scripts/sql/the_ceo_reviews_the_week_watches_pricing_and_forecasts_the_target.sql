@@ -90,7 +90,7 @@ begin
                                          'remaining', v->'remaining_outcome', 'days_remaining', v->'days_remaining',
                                          'required_run_rate_per_day', v->'required_run_rate_per_day', 'binding_stage', v->>'binding_stage',
                                          'what_must_change', v->'what_must_change');
-    if c.contract_key = 'REVEAL_FEES_BASE_PATH_BY_2027_08_31' then v_rev := v; end if;   -- the target in force (the AED 1M was withdrawn, instruction 962)
+    if c.contract_key like 'REVENUE_AED_1M%' then v_rev := v; end if;
   end loop;
 
   insert into public.ceo_review (kind, period, facts) values ('target_forecast', v_week, jsonb_build_object('verdicts', v_all))
@@ -99,7 +99,7 @@ begin
   if v_rev is not null and coalesce(v_rev->>'verdict', '') <> 'ON_TRACK'
      and (select held_id from public.ceo_review where kind = 'target_forecast' and period = v_week) is null then
     v_held := public.fn_seat_duty_reason('ceo', 'ceo.target_forecast',
-      'This week''s forecast says the revenue target in force (the base-case path: AED 244,801 of collected reveal fees by 31 August 2027) is not on track. '
+      'This week''s forecast says the AED 1,000,000 revenue target (collected reveal fees by 31 August 2027) is not on track. '
         || 'As the chief executive, decide the company''s response, and say what must change and who owns it.',
       ('[{"id":"hold_course","meaning":"the plan in force is right; the gap is expected at this stage and closes as it runs"},'
       || '{"id":"change_plan","meaning":"the plan must change: a different binding constraint, channel or sequence"},'
@@ -259,7 +259,7 @@ begin
   if (v_kind = 'pricing_monitor' and v_choice = 'propose_change') or (v_kind = 'target_forecast' and v_choice = 'tell_founder') then
     v_notice := public.fn_ceo_review_tells_founder(v_kind, v_period,
       case when v_kind = 'pricing_monitor' then 'CEO pricing proposal (evidence-based) for the week of ' || v_period
-           else 'CEO: the revenue forecast needs your decision (week of ' || v_period || ')' end,
+           else 'CEO: the AED 1M revenue forecast needs your decision (week of ' || v_period || ')' end,
       left(coalesce(v_fields->>'proposal', '') || E'\n\n' || coalesce(v_fields->>'evidence', '') || E'\n\n' || coalesce(p_result->>'answer', ''), 4000)
         || E'\n\nThe accountant is challenging this on a model of another family (seat_deliberation '
         || coalesce(v_review->>'deliberation_id', 'not opened: ' || coalesce(v_review->>'error', '?')) || ').',

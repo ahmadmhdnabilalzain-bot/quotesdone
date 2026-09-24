@@ -20,19 +20,20 @@
 //     knowledge gap (fn_support_knowledge_gap) when we cannot answer, and a visibility report to
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { langOf, pickFaq, routeQuestion, type FaqRow } from '../_shared/chat_answers.ts';
+import { langOf, pickFaq, type FaqRow, type QuestionType } from '../_shared/chat_answers.ts';
 import { observe } from '../_shared/observe.ts';
-import { capabilityStatement, isSizeQuestion } from '../_shared/size_question.ts';
+import { capabilityStatement } from '../_shared/size_question.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { widgetMeaning } from '../_shared/reasoned_channels.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
-import { defaultDeps } from '../_shared/think.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string){ const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-const MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-4.8'];
+const MODELS = ['anthropic/claude-sonnet-5','anthropic/claude-opus-5.5'];
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 
 // --- model telemetry (never allowed to break the request) ---
@@ -70,9 +71,9 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
 
 const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- SCOPE: we cover ALL trades and product categories - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- You can describe a job by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or the contact page /contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, DET Dubai Trader License No. 1633275.`;
 
-const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee plus the card processing fee (both shown in full before payment) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job free at /me`;
+const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee (shown in full before payment; no card fee is ever added) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job free at /me`;
 
-const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this request. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at /portal with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised.`;
+const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this request. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee), an AED 500 administrative fee (AED 250 for a supplier still on Supplier Agreement v12 or earlier), and simple interest at 9% a year on that total from the due date, never compounded) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at /portal with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised.`;
 
 // `match` returns RegExpMatchArray | null, so `|| []` produced RegExpMatchArray | never[] and every
 // downstream .includes(someString) was a type error. Naming the type collapses the union.
@@ -80,7 +81,6 @@ const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIEN
 // Arabic message produced an empty token list and the FAQ scoring below returned nothing at all.
 // This is the same class wa_inbound has used on WhatsApp since it shipped -- the widget simply
 // never got it. ؀-ۿ is the Arabic block. toLowerCase() is a no-op on Arabic script.
-function tok(s: string): string[] { return (String(s||'').toLowerCase().match(/[a-z0-9؀-ۿ]{3,}/g) || []); }
 
 function audienceFromPath(p: string): 'customer' | 'supplier' | 'unknown' {
   const s = String(p || '').toLowerCase();
@@ -88,14 +88,9 @@ function audienceFromPath(p: string): 'customer' | 'supplier' | 'unknown' {
   if (/(^|\/)(me|app|customer|my-requests?)(\/|$|\?)/.test(s)) return 'customer';
   return 'unknown';
 }
-const SUP_RE = /(trade licen|register (as|my)|sign ?up as a? ?(supplier|vendor|contractor)|become a supplier|join as a supplier|my company|our company|we supply|we manufacture|we install|receive (jobs|leads|rfq)|get leads|supplier (account|portal|registration|subscription)|as a supplier|i am a supplier|i'?m a supplier|مورد|رخصة تجارية|التسجيل كمورد)/i;
-const CUS_RE = /(i need a (quote|price)|need quotes?|get quotes?|post a job|how much (would|will|does)|price for my|my project|i want to (buy|order|get)|looking for a (supplier|price|quote)|as a customer|i am a customer|أريد عرض سعر|أحتاج عرض|طلب عروض)/i;
-function audienceFromText(t: string): 'customer' | 'supplier' | 'unknown' {
-  const sup = SUP_RE.test(t), cus = CUS_RE.test(t);
-  if (sup && !cus) return 'supplier';
-  if (cus && !sup) return 'customer';
-  return 'unknown';
-}
+// Customer or supplier, from what they WROTE, is reasoned (visitorSide, 23 Sep 2026, founder_instruction
+// 886-903); SUP_RE / CUS_RE, two phrase lists, decided it until then. Held, the audience stays unknown and the
+// prompt's own rule applies: answer what holds for both sides and ask one short question if it matters.
 
 // WHO IS ASKING. Measured on production 13 Aug 2026: the founder, SIGNED IN, ON /me, asked "what
 // is my email registered" and "do i have any inquiries" and was told twice to go and log in. This
@@ -194,11 +189,9 @@ Deno.serve(observe('site_assistant', async (req) => {
     // wording is what you do when you do not know; when you know, you do not guess.
     let audience: 'customer' | 'supplier' | 'unknown' = who ? who.audience : audienceFromPath(path);
     let source = who ? 'session' : (audience !== 'unknown' ? 'path' : 'none');
-    if (audience === 'unknown') {
-      const blob = history.map((h:any)=>h.content).join(' ') + ' ' + message;
-      audience = audienceFromText(blob);
-      if (audience !== 'unknown') source = 'text';
-    }
+    // Unknown from both: the side is read from what they WROTE, in the one reasoned decision below (widgetMeaning).
+    const askSide = audience === 'unknown';
+    const blob = history.map((h:any)=>h.content).join(' ') + ' ' + message;
 
     // THE LIVE BLOCK. Identical scoping to the WhatsApp channel, because it is the same function:
     // fn_wa_context resolves the caller's OWN rows in SQL and applies the pre-reveal rule there -
@@ -262,6 +255,30 @@ Deno.serve(observe('site_assistant', async (req) => {
       seatForSurface = typeof s === 'string' ? s : null;
     } catch (_e) { seatForSurface = null; }
 
+    // THE SUPPORT PACK, WHICH THIS AGENT WAS NEVER GIVEN. Until 8 Sep 2026 the widget answered from
+    // company_faq and the FACTS strings above and nothing else, while public.support_knowledge — 407
+    // records written for this exact agent — sat unread by anything deployed. fn_support_corpus_search
+    // reads the combined body (FAQ + support pack + operations knowledge) as ONE corpus.
+    //
+    // p_public IS PASSED EXPLICITLY AND IS ALWAYS TRUE HERE. The function takes it with no default
+    // precisely so this call site has to state what it is: a stranger on the public home page. Most of
+    // that corpus is internal — estate architecture, escalation mechanics, founder decisions — and
+    // only rows with a recorded promotion in support_public_override come back for a public caller.
+    // Relying on the prompt to keep internal content out of an answer would make the model
+    // responsible for not leaking, which is not a control.
+    let packCtx = '';
+    let packRows: Array<{ content: string; citation: string; rank: number }> = [];
+    try {
+      const { data: pack } = await admin.rpc('fn_support_corpus_search', {
+        p_query: message, p_public: true, p_limit: 6,
+      });
+      packCtx = (pack || []).map((r: any) => `${r.citation}\n${r.content}`).join('\n\n');
+      packRows = (pack || []) as typeof packRows;
+    } catch (_e) {
+      // A retrieval failure must not take the widget down: the FAQ route and the gateway still answer, and a
+      // thinner answer beats no answer. It is deliberately not logged as an error the founder sees.
+      packCtx = '';
+    }
     const { data: faqs } = await admin.from('company_faq').select('id,question,answer,tags,language').eq('public', true).eq('status','approved');
 
     // ── THE QUESTION THAT WAS ASKED IS ANSWERED FIRST (21 Sep 2026, seat customer_support) ──────
@@ -275,13 +292,21 @@ Deno.serve(observe('site_assistant', async (req) => {
     // How big are we (instruction 777, 22 Sep 2026): what we do, never a number. Measured before this:
     // "how many suppliers do you have" took the count route to FAQ 13 ("How many suppliers receive my
     // RFQ?") — no count, but not the question asked; "how big are you" reached the model.
-    if (isSizeQuestion(message)) {
+    // WHAT THEY ASK, WHICH PASSAGE ANSWERS IT, AND WHICH SIDE THEY ARE ON — ONE reasoned decision (widgetMeaning,
+    // 23 Sep 2026, founder_instruction 886-903). It replaces isSizeQuestion's and routeQuestion's regexes, SUP_RE /
+    // CUS_RE, the tok() FAQ scoring and the one-shared-word passage gate. Held (the model hold), nothing is guessed
+    // and nothing is queued (an anonymous visitor cannot be answered later): the gateway, the price guide, or a
+    // recorded knowledge gap (fn_support_knowledge_gap) answers.
+    const wm = await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
+    const asked = wm.question;
+    if (wm.side) { audience = wm.side; source = 'text'; }
+    if (asked === 'size') {
       const reply = capabilityStatement(langOf(message, uiLang));
       try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
       return J({ reply, scope: live ? audience : 'public', routed: 'capability' });
     }
     {
-      const qType = routeQuestion(message);
+      const qType = (['cost', 'count', 'timeline'].includes(String(asked)) ? asked : null) as QuestionType;
       const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
       if (faq) {
         const reply = String(faq.answer || '').trim();
@@ -294,35 +319,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     // were refused with circuit_open because they reached ai_gateway at all).
     const key = await sec('cred_fn_ai');
     if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.' });
-    const qtok = tok(message);
-    const scored = (faqs||[]).map((f:any)=>{ const hay = tok(f.question+' '+f.answer+' '+((f.tags||[]).join(' '))); let sc=0; for(const t of qtok){ if(hay.includes(t)) sc++; } return { f, sc }; }).sort((a,b)=>b.sc-a.sc).slice(0,8).filter(x=>x.sc>0);
-    const ctx0 = scored.map(x=>`Q: ${x.f.question}\nA: ${x.f.answer}`).join('\n\n');
-    const matchedIds = scored.map(x=>x.f.id);
+    // The model's context is the retrieved pack (FAQ + support pack + operations knowledge, by fn_support_corpus_search)
+    // — no longer the FAQs that shared the most tokens with the question.
+    const chosen = asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))] ?? null : null;
+    // assistant_logs.matched_ids is bigint[] (FAQ ids); a pack passage is cited in the reply itself, not there.
+    const matchedIds: number[] = [];
 
-    // THE SUPPORT PACK, WHICH THIS AGENT WAS NEVER GIVEN. Until 8 Sep 2026 the widget answered from
-    // company_faq and the FACTS strings above and nothing else, while public.support_knowledge — 407
-    // records written for this exact agent — sat unread by anything deployed. fn_support_corpus_search
-    // reads the combined body (FAQ + support pack + operations knowledge) as ONE corpus.
-    //
-    // p_public IS PASSED EXPLICITLY AND IS ALWAYS TRUE HERE. The function takes it with no default
-    // precisely so this call site has to state what it is: a stranger on the public home page. Most of
-    // that corpus is internal — estate architecture, escalation mechanics, founder decisions — and
-    // only rows with a recorded promotion in support_public_override come back for a public caller.
-    // Relying on the prompt to keep internal content out of an answer would make the model
-    // responsible for not leaking, which is not a control.
-    let packCtx = '';
-    let packTop: { content: string; citation: string; rank: number } | null = null;
-    try {
-      const { data: pack } = await admin.rpc('fn_support_corpus_search', {
-        p_query: message, p_public: true, p_limit: 6,
-      });
-      packCtx = (pack || []).map((r: any) => `${r.citation}\n${r.content}`).join('\n\n');
-      packTop = (pack || [])[0] || null;
-    } catch (_e) {
-      // A retrieval failure must not take the widget down: the FAQ context above still answers, and a
-      // thinner answer beats no answer. It is deliberately not logged as an error the founder sees.
-      packCtx = '';
-    }
     // WHAT IT COSTS, WHICH THIS AGENT ALSO WAS NEVER GIVEN. Measured 10 Sep 2026: a visitor asked
     // "what should a gypsum false ceiling cost per square metre in Dubai", the widget refused, and
     // it was filed as knowledge gap #12 — while public.price_benchmark held 27 gypsum rows including
@@ -354,7 +356,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       priceCtx = '';
     }
 
-    const ctx = [ctx0, packCtx, priceCtx].filter(Boolean).join('\n\n');
+    const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
 
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: this visitor is on a SUPPLIER page${path ? ' (' + path + ')' : ''} or is writing as a supplier. Treat them as a SUPPLIER.`
@@ -364,7 +366,7 @@ Deno.serve(observe('site_assistant', async (req) => {
 
     // The block the four failed answers needed. Present ONLY for a verified session; absent for a
     // visitor, whose questions are about the product rather than about themselves.
-    const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN AND THIS IS THEIR OWN LIVE ACCOUNT DATA, read from the database seconds ago and scoped in SQL to them alone:\n${JSON.stringify(live)}\n\nHOW TO USE IT:\n- You DO know who they are. Never say you cannot see their account, never tell them to log in, and never tell them to check somewhere else for something that is in the object above. They are already signed in.\n- Answer questions about their own account, requests, quotes and verification state directly from that object, and say the actual value.\n- If the object does not contain something they asked for, say plainly that you do not hold it, and name where in the portal it lives.\n- price_band before a reveal is a ROUNDED band and a count on purpose. Never present it as an exact price, never guess the individual quotes, and never name or describe a supplier before a reveal — that anonymity is the product. Say that the exact figures and the supplier's identity unlock when they choose to reveal, for the 3% reveal fee plus the card processing fee.\n- profile.can_post_request is the real gate on posting a request. If it is false, say which of the three steps is outstanding (mobile verification, email verification, accepting the terms) instead of a general encouragement.\n- Amounts are in AED. Dates are in Gulf Standard Time.\n- They are ALREADY INSIDE the portal${path ? ' (on ' + path + ')' : ''}. Never send them to /me or tell them to log in or open the portal — they are looking at it. Name the section or the button instead.\n- THE PORTAL THEY ARE LOOKING AT IS IN ${uiLang === 'ar' ? 'ARABIC. Its buttons read "طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب" — name them in ARABIC exactly as printed on the screen, never in English' : 'ENGLISH. Its buttons read "New request", "My requests", "Documents", "Messages", "Account" — name them exactly as printed on the screen'}.` : '';
+    const liveBlock = live ? `\n\nTHIS PERSON IS SIGNED IN AND THIS IS THEIR OWN LIVE ACCOUNT DATA, read from the database seconds ago and scoped in SQL to them alone:\n${JSON.stringify(live)}\n\nHOW TO USE IT:\n- You DO know who they are. Never say you cannot see their account, never tell them to log in, and never tell them to check somewhere else for something that is in the object above. They are already signed in.\n- Answer questions about their own account, requests, quotes and verification state directly from that object, and say the actual value.\n- If the object does not contain something they asked for, say plainly that you do not hold it, and name where in the portal it lives.\n- price_band before a reveal is a ROUNDED band and a count on purpose. Never present it as an exact price, never guess the individual quotes, and never name or describe a supplier before a reveal — that anonymity is the product. Say that the exact figures and the supplier's identity unlock when they choose to reveal, for the 3% reveal fee, with no card fee on top.\n- profile.can_post_request is the real gate on posting a request. If it is false, say which of the three steps is outstanding (mobile verification, email verification, accepting the terms) instead of a general encouragement.\n- Amounts are in AED. Dates are in Gulf Standard Time.\n- They are ALREADY INSIDE the portal${path ? ' (on ' + path + ')' : ''}. Never send them to /me or tell them to log in or open the portal — they are looking at it. Name the section or the button instead.\n- THE PORTAL THEY ARE LOOKING AT IS IN ${uiLang === 'ar' ? 'ARABIC. Its buttons read "طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب" — name them in ARABIC exactly as printed on the screen, never in English' : 'ENGLISH. Its buttons read "New request", "My requests", "Documents", "Messages", "Account" — name them exactly as printed on the screen'}.` : '';
 
     // PAST CASES BEFORE THE REPLY (23 Sep 2026). Has support met this question before, and how did it
     // end? Recalled by meaning, masked at write. The visitor is never told about another customer's
@@ -553,35 +555,13 @@ Deno.serve(observe('site_assistant', async (req) => {
       answered = true;
     }
 
-    // The support pack is 407 records written for this agent and it needs no model to be read. If
-    // retrieval found something confident, say it, and say where it came from. A cited, deterministic
-    // answer is worth more than a phone number, and it costs nothing while the hold is on.
-    //
-    // ── AND IT MUST SHARE A WORD WITH THE QUESTION (10 Sep 2026) ────────────────────────────────
-    //
-    // `rank > 0.05` alone is not a relevance test, it is a "something came back" test, and measured
-    // over HTTP against the live endpoint it produced two confidently wrong answers in a row: a
-    // question about the cost of a gypsum false ceiling was answered with the QuotesDone company
-    // overview, and a question about the cost of an elevator installation was answered with an
-    // explanation of the Dropbox document backup. Neither shared a single content word with what was
-    // asked. This is the estate's own recorded lens — a nearest neighbour is always found — landing
-    // on the one surface a stranger actually talks to.
-    //
-    // Requiring one substantive shared word is a weak test on purpose: it is not trying to judge
-    // relevance, only to refuse the answers that are unrelated on their face. An honest "I do not
-    // have that" routes into fn_support_knowledge_gap below, which is how the corpus learns what it
-    // is missing; a wrong answer teaches it nothing and costs the visitor's trust.
-    if (!reply && !live && packTop && packTop.rank > 0.05) {
-      const stop = new Set(['what','how','does','much','with','that','this','have','need','your','you','the','and','for','from','about','when','where','which','are','can','will','would','should','cost','price']);
-      const words = (s: string) => new Set(String(s || '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 4 && !stop.has(w)));
-      const asked = words(message);
-      const offered = words(String(packTop.content || '') + ' ' + String(packTop.citation || ''));
-      let shared = 0; for (const w of asked) if (offered.has(w)) shared++;
-      if (shared > 0) {
-        reply = String(packTop.content || '').trim().slice(0, 700)
-          + '\n\nIf that does not cover it, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
-        answered = true;                     // cited, deterministic, from the corpus — a real answer
-      }
+    // The support pack needs no model to be read: when the reasoning chose a retrieved passage (kb:<n>) as the
+    // answer, it is said, with where it came from. Which passage answers was decided by a shared word until
+    // 23 Sep 2026 (a nearest neighbour is always found; one shared word is not relevance): it is reasoned now.
+    if (!reply && !live && chosen?.content) {
+      reply = String(chosen.content).trim().slice(0, 700)
+        + '\n\nIf that does not cover it, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
+      answered = true;                       // cited, deterministic, from the corpus — a real answer
     }
 
     // ── THERE IS NO ESCALATION TO A HUMAN (founder instruction 17, 9 Sep 2026) ──────────────────

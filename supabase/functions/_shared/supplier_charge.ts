@@ -2,8 +2,10 @@
 //
 // 14 Sep 2026, agent: accountant. Supplier Agreement clause 33 (v10, and v11 with the same numbering): when a supplier never answers a
 // customer who paid the reveal fee, QuotesDone refunds the customer and the supplier owes
-//   (a) the exact amount refunded (3% reveal fee + the card processing fee charged on it),
-//   (b) an administrative fee of AED 250, and
+//   (a) the exact amount refunded (the 3% reveal fee, and any card fee on a reveal paid before 24 Sep
+//       2026, when buyers still paid one),
+//   (b) an administrative fee — the amount in the version the supplier had accepted when the customer revealed
+//       it (see adminFeeAed below), and
 //   (c) simple interest on the unpaid total at the clause 31 rate — 9% per annum, "or the maximum
 //       permitted by UAE law if lower" — from the due date (7 days after QuotesDone's notice) until paid.
 // Every document in supplier_charge_documents.ts takes its figures from here, so the invoice, the
@@ -14,13 +16,24 @@
 // Simple, never compounded: the clause says "simple interest", and the base is the unpaid total of
 // (a)+(b) — interest is never charged on interest.
 
+// SUPPLIER AGREEMENT v13 (23 Sep 2026, ceo; founder instruction B: penalties at the lawful maximum) raised the
+// clause 33(b) administrative fee to the amount in src/content/company_facts.json (nonresponse_admin_fee_aed).
+// A charge is owed under the version the supplier had accepted WHEN the customer revealed it: a supplier on v12 or
+// earlier, or one who accepted v13 only after that reveal, owes that earlier version's fee. Never retroactive; when
+// either date is unknown the lower fee applies. fn_accountant_nonresponse_charge applies the same rule in SQL.
 export const ADMIN_FEE_AED = 250;
+export const ADMIN_FEE_AED_FROM_V13 = 500;
+export function adminFeeAed(acceptedVersion?: string | null, acceptedAt?: string | null, revealedAt?: string | null): number {
+  const v = Number(String(acceptedVersion ?? '').replace(/\D/g, '')) || 0;
+  const a = acceptedAt ? Date.parse(acceptedAt) : NaN, r = revealedAt ? Date.parse(revealedAt) : NaN;
+  return v >= 13 && Number.isFinite(a) && Number.isFinite(r) && a <= r ? ADMIN_FEE_AED_FROM_V13 : ADMIN_FEE_AED;
+}
 export const INTEREST_RATE_PA = 0.09;
 export const DAYS_IN_YEAR = 365;
 export const DUE_AFTER_NOTICE_DAYS = 7;
 
 export type ChargeInput = {
-  /** What the customer was refunded, in AED: reveal fee + card processing fee (refunds_api record). */
+  /** What the customer was refunded, in AED: the reveal fee, and any card processing fee a pre-24-Sep-2026 reveal carried. */
   refunded_reveal_fee: number;
   refunded_processing_fee: number;
   /** ISO date the charge notice (the invoice) was sent. The due date is 7 days later. */
@@ -29,6 +42,8 @@ export type ChargeInput = {
   as_of: string;
   /** Payments received, each reducing the principal from its own date (AED, ISO date). */
   payments?: { date: string; amount: number }[];
+  /** Clause 33(b) fee of the version the supplier had accepted at the reveal: adminFeeAed(). Default: the lower fee. */
+  admin_fee_aed?: number;
 };
 
 export type Charge = {
@@ -51,7 +66,9 @@ export function computeCharge(i: ChargeInput): Charge {
   const reveal = fils(i.refunded_reveal_fee), proc = fils(i.refunded_processing_fee);
   if (!(reveal > 0) || proc < 0) throw new Error('a non-response charge needs a positive refunded reveal fee');
   const charge = reveal + proc;
-  const principal = charge + fils(ADMIN_FEE_AED);
+  const fee = i.admin_fee_aed ?? ADMIN_FEE_AED;
+  if (fee !== ADMIN_FEE_AED && fee !== ADMIN_FEE_AED_FROM_V13) throw new Error('an administrative fee no signed version names: ' + fee);
+  const principal = charge + fils(fee);
   const due = addDays(i.notice_date, DUE_AFTER_NOTICE_DAYS);
   const dueT = isoDay(due), asT = isoDay(i.as_of);
   const days = Math.max(0, Math.floor((asT - dueT) / DAY));
@@ -73,7 +90,7 @@ export function computeCharge(i: ChargeInput): Charge {
   const unpaid = outstanding;
   return {
     refunded_reveal_fee: aed(reveal), refunded_processing_fee: aed(proc), non_response_charge: aed(charge),
-    admin_fee: ADMIN_FEE_AED, principal: aed(principal), paid: aed(paid), unpaid_principal: aed(unpaid),
+    admin_fee: fee, principal: aed(principal), paid: aed(paid), unpaid_principal: aed(unpaid),
     due_date: due, as_of: i.as_of, days_overdue: days,
     rate_pa: INTEREST_RATE_PA, daily_interest: Math.round(unpaid * INTEREST_RATE_PA / DAYS_IN_YEAR) / 100,
     interest: aed(interest), total_due: aed(unpaid + interest),

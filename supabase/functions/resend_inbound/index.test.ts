@@ -53,7 +53,18 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   return one ? json(row) : json([row]);
 }) as typeof fetch;
 
-const { handler } = await import('./index.ts');
+const { handler, useThinkDeps } = await import('./index.ts');
+// The reasoning engine, MOCKED (23 Sep 2026): KIND.v is what the email is reasoned to be; KIND.held puts the model on
+// hold. What the email IS was a /mashreq/ + /statement/ word test until then; now it is this decision.
+const KIND = { v: 'bank_statement', held: false };
+useThinkDeps({
+  gate: () => Promise.resolve(KIND.held ? { allowed: false, rule: 'founder_hold' } : { allowed: true, rule: 'ok' }),
+  llm: (phase) => Promise.resolve({ content: phase === 'decompose'
+    ? JSON.stringify({ steps: [{ id: 's1', goal: 'read the document', needs_knowledge: false }], facts: [] })
+    : JSON.stringify({ answer: 'Reasoned over the envelope and the document rows.', reasoning: ['s1'], decision: { choice: KIND.v } }) }),
+  embed: () => Promise.resolve(null),
+  rpc: (fn, args) => { calls.push({ url: 'think:' + fn, method: 'RPC', body: JSON.stringify(args), prefer: '' }); return Promise.resolve({ data: 1, error: null }); },
+});
 
 // An invented e-statement in the real layout; the bank is named ONLY inside the document.
 const LINES = [
@@ -136,6 +147,30 @@ Deno.test({ name: 'a statement that does not add up is ingested empty with a fin
   assert(/does not add up/.test(ing.p_note));
   assertEquals(calls.filter((c) => /fn_accountant_bank_balance_record/.test(c.url)).length, 0);
   noReceiptPath();
+} });
+
+Deno.test({ name: 'under the model hold a statement is not taken in on a word guess: it is kept and queued, and handed over once', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  KIND.held = true; calls.length = 0;
+  try {
+    const out = await (await handler(await delivery(statementPdf(LINES)))).json();
+    assertEquals([out.bank_statement, out.booked, out.held, out.reason], [undefined, false, true, 'awaiting_reasoning']);
+    assertEquals(ingests().length, 0);
+    const hold = calls.find((c) => c.url === 'think:fn_reason_hold')!;
+    assertEquals(JSON.parse(hold.body).p_dedupe_key, 'expense_kind:zz-demo-0001');
+    // one owner while it waits: the accountant's queue, not also a bookkeeper task
+    assertEquals(calls.filter((c) => /fn_receipt_hand_to_bookkeeper/.test(c.url)).length, 0);
+    assert(calls.some((c) => /inbound_messages/.test(c.url) && /\[HELD — nothing booked: What this document is waits for reasoning/.test(c.body)));
+    assertEquals(calls.filter((c) => /expense_entries|ai_gateway/.test(c.url) && c.method !== 'GET').length, 0);
+  } finally { KIND.held = false; }
+} });
+
+Deno.test({ name: 'a PDF reasoned to be something other than a statement is never taken in as one', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  KIND.v = 'other'; calls.length = 0;
+  try {
+    const out = await (await handler(await delivery(statementPdf(LINES)))).json();
+    assertEquals([out.bank_statement, out.reason], [undefined, 'not_an_expense_document']);
+    assertEquals(ingests().length, 0);
+  } finally { KIND.v = 'bank_statement'; }
 } });
 
 // 21 Sep 2026 (customer_support): the supplier mail's List-Unsubscribe mailto and footer now name
@@ -240,22 +275,37 @@ Deno.test({ name: 'a calendar reply goes to fn_marketing_calendar_reply with the
   calls.length = 0;
   let out = await (await handler(await calReply('Approve\n\nOn Tue QuotesDone wrote:\n> the calendar', SES('example.invalid')))).json();
   assertEquals(out.calendar_reply, true);
-  assertEquals(calCalls(), [{ token: CAL_TOKEN, from_email: 'management@example.invalid', authenticated: true, message_id: calCalls()[0].message_id, intent: 'approve' }]);
+  assertEquals(calCalls(), [{ token: CAL_TOKEN, from_email: 'management@example.invalid', authenticated: true, message_id: calCalls()[0].message_id, intent: 'approve', text: 'Approve' }]);
   assertEquals(calls.filter((c) => /ai_gateway|fn_receipt_hand_to_bookkeeper|fn_accountant|email_suppressions|\/leads/.test(c.url) && c.method !== 'GET').length, 0);
   // forged: no SES pass -> authenticated false (the function refuses it)
   calls.length = 0;
   await handler(await calReply('approve'));
   assertEquals(calCalls()[0].authenticated, false);
-  // Arabic approval; an ambiguous reply is 'unclear'
+  // Arabic approval; anything else he writes is a change request carrying his own words (quote cut off)
   calls.length = 0;
   await handler(await calReply('موافق', SES('example.invalid')));
   assertEquals(calCalls()[0].intent, 'approve');
   calls.length = 0;
   await handler(await calReply('looks fine but change the third video', SES('example.invalid')));
-  assertEquals(calCalls()[0].intent, 'unclear');
+  assertEquals([calCalls()[0].intent, calCalls()[0].text], ['change', 'looks fine but change the third video']);
   // the token also comes from the subject when the client replied to another address
   calls.length = 0;
   out = await (await handler(await signed({ email_id: 'zz-demo-cal-s', from: 'management@example.invalid', to: ['info@quotesdone.com'],
     subject: `Re: Social calendar [ref ${CAL_TOKEN}]`, text: 'approved', headers: SES('example.invalid') }))).json();
   assertEquals([out.calendar_reply, calCalls()[0].token], [true, CAL_TOKEN]);
+} });
+
+// THE MONTHLY IDEA PLAN (24 Sep 2026, marketing): his reply to plan+<token>@ goes to fn_marketing_month_plan_reply
+// with his own words and the attachment names, and to nothing else (never a receipt, never a calendar approval).
+const planCalls = () => calls.filter((c) => c.url.endsWith('/rpc/fn_marketing_month_plan_reply')).map((c) => JSON.parse(c.body).p);
+Deno.test({ name: 'a reply to the monthly idea plan is filed for the marketing seat, and nowhere else', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  const out = await (await handler(await calReply('Videos for November attached. Swap idea 4 for a fit-out one.\n\nOn Wed QuotesDone wrote:\n> the plan',
+    SES('example.invalid'), `plan+${CAL_TOKEN}@mail.quotesdone.com`))).json();
+  assertEquals(out.plan_reply, true);
+  const p = planCalls();
+  assertEquals(p.length, 1);
+  assertEquals([p[0].token, p[0].authenticated, p[0].text], [CAL_TOKEN, true, 'Videos for November attached. Swap idea 4 for a fit-out one.']);
+  assertEquals(calCalls().length, 0, 'a plan reply is never read as a calendar approval');
+  assertEquals(calls.filter((c) => /ai_gateway|fn_receipt_hand_to_bookkeeper|fn_accountant|\/leads/.test(c.url) && c.method !== 'GET').length, 0);
 } });

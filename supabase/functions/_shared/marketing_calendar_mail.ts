@@ -26,10 +26,9 @@ export function isCalendarReply(m: { to?: string | null; subject?: string | null
 /**
  * What the reply says, from its OWN words only: the quoted email below it is cut off (lines starting '>',
  * and everything from an "On ... wrote:" / "From:" / "-----Original Message-----" / Arabic "كتب" header on).
- * 'approve' only when the whole reply is an approval and nothing else -- "looks fine but change X" is
- * 'unclear', because a month of public posts is not approved on a sentence that also asks for a change.
+ * Used by replyIntent and, as the text of a change request, by fn_marketing_calendar_reply.
  */
-export function replyIntent(text: string | null | undefined): 'approve' | 'unclear' {
+export function ownWords(text: string | null | undefined): string {
   const own: string[] = [];
   const all = String(text || '').replace(/\r/g, '').split('\n');
   for (let i = 0; i < all.length; i++) {
@@ -42,9 +41,26 @@ export function replyIntent(text: string | null | undefined): 'approve' | 'uncle
     if (/^-- ?$/.test(l)) break;                       // signature delimiter
     if (l) own.push(l);
   }
-  const said = own.join(' ').toLowerCase()
+  return own.join('\n');
+}
+
+/**
+ * 'approve' only when his own words are an approval and nothing else: an EXACT reply keyword, English or
+ * Arabic ("approve", "approved", "ok approve", "موافق", "أوافق"...). Anything else he writes is a change
+ * request the marketing seat acts on (fn_marketing_calendar_reply files it); an empty reply is 'unclear'.
+ */
+export function replyIntent(text: string | null | undefined): 'approve' | 'change' | 'unclear' {
+  const said = ownWords(text).replace(/\n/g, ' ').toLowerCase()
     .replace(/[,،]/g, ' ').replace(/[.!؛;:\s]+$/g, '').replace(/^[\s.!]+/, '').replace(/\s+/g, ' ');
   const EN = /^(ok(ay)? )?(i )?(approve|approved)( it)?( thanks?| thank you)?$/;
   const AR = /^(نعم )?(موافق|أوافق|اوافق|تمت الموافقة|موافقة)( شكرا| شكراً)?$/;
-  return EN.test(said) || AR.test(said) ? 'approve' : 'unclear';
+  return EN.test(said) || AR.test(said) ? 'approve' : said ? 'change' : 'unclear';
+}
+
+/** The token of a reply to the monthly VIDEO IDEA PLAN email (plan+<token>@mail.quotesdone.com or "[plan <token>]"). */
+export function planTokenOf(m: { to?: string | null; subject?: string | null }): string | null {
+  const t = String(m.to || '').toLowerCase().match(/^plan\+([0-9a-f]{32})@mail\.quotesdone\.com$/);
+  if (t) return t[1];
+  const s = String(m.subject || '').toLowerCase().match(/\[plan ([0-9a-f]{32})\]/);
+  return s ? s[1] : null;
 }

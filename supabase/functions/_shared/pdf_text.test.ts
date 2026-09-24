@@ -55,14 +55,14 @@ Deno.test('a FlateDecode PDF text layer is read (positive control for the inflat
 
 Deno.test('a UAE tax invoice read out of the PDF books its amount, VAT and TRN', async () => {
   const body = await pdfText(await makePdf(UAE_INVOICE, 'flate'));
-  const r = parseReceipt({ from: 'accounts@desertsupplies.ae', subject: 'FW: Invoice', body, today: '2026-09-09' });
+  const r = parseReceipt({ subject: 'FW: Invoice', body, vendor: 'Desert Supplies', period: 'one_off', today: '2026-09-09' });
   assert(r, 'the receipt should parse');
   assertEquals(r!.amount, 105);
   assertEquals(r!.currency, 'AED');
   assertEquals(r!.vat, 5);
   assertEquals(r!.trn, '100123456700003');
   assertEquals(r!.date, '2026-09-03');
-  assertEquals(r!.vendor, 'Desertsupplies');
+  assertEquals(r!.vendor, 'Desert Supplies');   // reasoned upstream and carried, never derived from the domain
 });
 
 Deno.test('VAT is read, never computed, and a TRN is never inferred from a bare number', () => {
