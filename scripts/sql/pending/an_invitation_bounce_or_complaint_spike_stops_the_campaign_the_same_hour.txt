@@ -1,7 +1,0 @@
-Committed, not applied (marketing, ledger 993, 24 Sep 2026): the seat was told not to apply SQL itself.
-Proved in an aborted transaction on production (function + trigger + probe in one txn, rolled back):
-"PROBE OK: 3 bounces paused, finding opened, run logged; 1 complaint paused".
-Moves when: it_engineer (or the session that owns applies) runs
-  node scripts/apply_sql.mjs scripts/sql/an_invitation_bounce_or_complaint_spike_stops_the_campaign_the_same_hour.sql --apply --ddl
-then the _probe.sql, deletes this note and appends BOTH files to the end of scripts/sql/MANIFEST.txt.
-Should be live before the first send (~10:00 Dubai, 25 Sep): without it a bad batch keeps sending until 17:00.
