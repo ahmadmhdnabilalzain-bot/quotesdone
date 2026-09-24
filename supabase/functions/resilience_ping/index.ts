@@ -284,6 +284,22 @@ async function ceoWeeklyTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE FOUNDER'S 18:00 SUPPLIER LIST (24 Sep 2026, customer_support). fn_customer_support_campaign_list_tick
+// builds, by code, the list of suppliers the campaign invites on the next sending day from the sender's own
+// fn_supplier_invite_candidates, with the day's counts; this renders it on the company template and
+// fn_customer_support_campaign_list_attach mails it (founder_mail_policy supplier_campaign_daily_list). A failed
+// render is retained and retried next beat. scripts/sql/the_founder_sees_tomorrows_supplier_invitations_at_six.sql
+async function supportCampaignListTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_customer_support_campaign_list_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    return await renderPdfAndAttach(t, 'customer_support/supplier_list', 'supplier_list', false, 'fn_customer_support_campaign_list_attach');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE CEO'S TEN DECISION RULES, EVALUATED ON THE SAME HEARTBEAT (21 Sep 2026, ceo).
 // public.ceo_decision held ten active rules and ceo_decision_log had never held a row: nothing in the
 // database evaluated a rule. fn_ceo_decisions_evaluate is deterministic, writes one evidenced row per
@@ -1353,6 +1369,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },
   marketingChannels: { run: marketingChannelsTick },
+  supportCampaignList: { run: supportCampaignListTick },
   whatsapp: { run: whatsappTick },
   itdetect: { run: itDetectTick },
   itduties: { run: itDutiesTick },
