@@ -3132,6 +3132,7 @@
   "1336c9d7e82b",
   "13418e9d55f0",
   "137895ad951a",
+  "139f11fd3f80",
   "1745c7367850",
   "17d6313b7fd9",
   "180e85f23dfd",
@@ -3238,6 +3239,7 @@
   "596377a4e142",
   "598ed715a1e2",
   "59c9a95379b9",
+  "5b0ed52584d7",
   "5b7035f7e911",
   "5cdc5d0faf58",
   "5e88bb40b671",
@@ -4233,7 +4235,8 @@
  ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_identity_gate.ts": [
   "a53833277648"
