@@ -188,8 +188,8 @@ export const REGISTER = {
   },
   // 24 Sep 2026 (customer_support, #904). A post-reveal dispute past its decision date. Disputes that existed at
   // the instant; a healthy day has none overdue.
-  fn_customer_support_disputes_tick: {
-    replay: 'pg_temp.qd_replay_fn_customer_support_disputes_tick()',
+  fn_sales_engineer_disputes_tick: {
+    replay: 'pg_temp.qd_replay_fn_sales_engineer_disputes_tick()',
     asOf: { post_reveal_dispute: 'opened_at' },
   },
   // 24 Sep 2026 (marketing, #905). recruitment:pool_empty when a trade marked for recruitment has no leads left to
