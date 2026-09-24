@@ -31,8 +31,8 @@ Deno.serve(observe('email_triage', async (req) => {
       .eq('needs_review', true).is('triaged_at', null).is('replied_at', null).or('ai_category.is.null,ai_category.neq.glm_queued').order('created_at', { ascending: true }).limit(20);
     for (const m of (msgs || [])) {
       // AN UNKNOWN SENDER IS JUDGED ON GLM (24 Sep 2026, founder's approval; _shared/glm_judgements.ts). A sender who is
-      // no lead, customer or staff address (fn_glm_sender_known, exact address) is queued for GLM 5.3 Flash behind its
-      // daily cap; known senders keep the path below unchanged. A row already queued is not queued again.
+      // no lead, customer or staff address (fn_glm_sender_known, exact address) is queued for GLM 5.3 Flash (no
+      // per-day limit, founder_instruction 987); known senders keep the path below unchanged. A row already queued is not queued again.
       const { data: relation, error: relErr } = await admin.rpc('fn_glm_sender_known', { p_email: String(m.from_email || '') });
       if (!relErr && !relation) {
         const { data: gid } = await admin.rpc('fn_glm_judgement_enqueue', { p_kind: 'unknown_sender_mail', p_subject_key: String(m.id),
@@ -66,7 +66,7 @@ Deno.serve(observe('email_triage', async (req) => {
         await admin.from('agent_actions').insert({ agent: 'email', kind: 'inbound_review', status: 'pending', risk: 'low', title: 'Inbox: ' + String(m.subject||'(no subject)').slice(0,70) + ' — ' + category, recommendation: 'Review the AI draft in the Inbox and send (or edit) it.', target_table: 'inbound_messages', target_id: String(m.id), detail: { from: m.from_email, category, summary, draft: reply } });
       }
     }
-    // Judge the unknown senders now; any held (the hold, the cap) stay queued for resilience_ping. Never a word list.
+    // Judge the unknown senders now; any held (the model hold) stay queued for resilience_ping. Never a word list.
     const glm = glmIds.length ? await drainGlm(defaultDeps(admin, 'email_triage'), glmIds.length, glmIds) : null;
     if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'ok', counts: { ...counts, glm } }).eq('id', run.id);
     return J({ ok: true, counts });

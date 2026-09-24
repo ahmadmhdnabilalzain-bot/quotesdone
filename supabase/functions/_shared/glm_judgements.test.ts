@@ -1,4 +1,4 @@
-// glm_judgements with a MOCKED model and database: each judgement answered each way; the cap, the hold and a reading
+// glm_judgements with a MOCKED model and database: each judgement answered each way; the hold and a reading
 // outside the format all leave the row queued (never a word-list answer); every model step is billed to GLM.
 //   deno test --no-lock supabase/functions/_shared/glm_judgements.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
@@ -10,7 +10,7 @@ const J = (x: unknown) => JSON.stringify(x);
 const PLAN = J({ steps: [{ id: 's1', goal: 'read what was given', needs_knowledge: false }], facts: [] });
 const HOLD = { allowed: false, rule: 'founder_hold', held: 1, routes: 8 };
 
-function mock(o: { rows: Row[]; hold?: boolean; cap?: boolean; synth?: unknown[]; taxonomy?: { code: string; label: string }[] }) {
+function mock(o: { rows: Row[]; hold?: boolean; synth?: unknown[]; taxonomy?: { code: string; label: string }[] }) {
   const rpcs: [string, Record<string, unknown>][] = [];
   const classes: string[] = [];
   const synth = [...(o.synth ?? [])].map((x) => J(x));
@@ -25,7 +25,6 @@ function mock(o: { rows: Row[]; hold?: boolean; cap?: boolean; synth?: unknown[]
     rpc: (fn, args) => {
       rpcs.push([fn, args]);
       if (fn === 'fn_glm_judgement_due') return Promise.resolve({ data: o.rows, error: null });
-      if (fn === 'fn_glm_judgement_take') return Promise.resolve({ data: o.cap !== false, error: null });
       if (fn === 'fn_glm_taxonomy_trades') return Promise.resolve({ data: o.taxonomy ?? [], error: null });
       if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
       if (fn === 'fn_reason_retrieve') return Promise.resolve({ data: [], error: null });
@@ -109,19 +108,24 @@ Deno.test('mail: a category from the fixed list and a summary', async () => {
 });
 
 // ── held paths ──
-Deno.test('the cap: no model call, the row deferred without counting', async () => {
-  const m = mock({ cap: false, rows: [row('repeat_request', { earlier: 'a', later: 'b' })] });
+Deno.test('the model hold: no model call, deferred without counting (waiting is not a failure)', async () => {
+  const m = mock({ hold: true, rows: [row('unknown_sender_mail', { body: 'hello' })] });
   const r = await drain(m.deps);
   assertEquals(r, { done: 0, held: 1, failed_reading: 0 });
   assertEquals(m.classes.length, 0);
   assertEquals(m.calls('fn_glm_judgement_defer')[0].p_counts, false);
 });
-Deno.test('the model hold: no slot taken, no model call, deferred without counting', async () => {
-  const m = mock({ hold: true, rows: [row('unknown_sender_mail', { body: 'hello' })] });
+Deno.test('no daily cap: nothing asks for a slot before the model', async () => {
+  const m = mock({ rows: [row('unknown_sender_mail', { message_id: 3, body: 'hello' })], synth: [{ answer: 'A greeting.', decision: { choice: 'other' } }] });
+  await drain(m.deps);
+  assertEquals(m.rpcs.filter(([n]) => /take|cap|budget/.test(n)).length, 0);
+  assertEquals(m.calls('fn_glm_judgement_resolve').length, 1);
+});
+Deno.test('a reading outside the format counts toward the three tries (the loop bound)', async () => {
+  const m = mock({ rows: [row('unknown_sender_mail', { message_id: 3, body: 'hello' })], synth: [{ answer: 'x', decision: { choice: 'not-a-category' } }, { answer: 'x', decision: { choice: 'not-a-category' } }] });
   const r = await drain(m.deps);
-  assertEquals(r.held, 1);
-  assertEquals(m.calls('fn_glm_judgement_take').length, 0);
-  assertEquals(m.classes.length, 0);
+  assertEquals(r.failed_reading, 1);
+  assertEquals(m.calls('fn_glm_judgement_defer')[0].p_counts, true);
 });
 
 // ── pure helpers ──
@@ -138,4 +142,10 @@ Deno.test('differingCells takes only ≠ cells of the quote that have a request;
   assertEquals(differingCells(t, 'q1'), [{ line_no: 4, attr: 'Grade', requested: 'SS316', quoted: 'SS304' }]);
   assertEquals(differingCells(t, 'q2'), []);
   assertEquals(chunks([1, 2, 3, 4, 5], 2).length, 3);
+});
+Deno.test('a refused draft (model_failed) counts toward the three tries; only the model hold waits uncounted', async () => {
+  const m = mock({ rows: [row('repeat_request', { earlier: 'a', later: 'b' })], synth: [] });
+  const r = await drain(m.deps);
+  assertEquals(r, { done: 0, held: 0, failed_reading: 1 });
+  assertEquals(m.calls('fn_glm_judgement_defer')[0].p_counts, true);
 });

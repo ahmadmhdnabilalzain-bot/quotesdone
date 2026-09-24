@@ -188,7 +188,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     // SPEC MATCH ON GLM (24 Sep 2026, _shared/glm_judgements.ts). Code decided which cells are not an exact match (≠);
     // whether each ≠ is a GENUINE mismatch (SS304 quoted for SS316) is judged by GLM 5.3 Flash. This function only
     // enqueues the cells (idempotent per quote and cell set) and reads what is already judged; resilience_ping judges
-    // the queue behind the per-kind daily cap. A cell not judged yet is reported as pending, never guessed.
+    // the queue (no per-day limit). A cell not judged yet is reported as pending, never guessed.
     // deno-lint-ignore no-explicit-any
     const specMismatches: Record<string, any> = {};
     if (technical) {

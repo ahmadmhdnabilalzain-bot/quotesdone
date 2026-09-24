@@ -1,9 +1,0 @@
-Committed, not applied (24 Sep 2026, it_engineer). Stacked on it_engineer/openrouter-ready-cheap-and-capped, which
-must be applied and merged first: this file's caps sit under that PR's fn_llm_budget_gate AED ceiling, and
-think()'s GLM routing of internal steps is that PR's change (this PR also forces GLM on its own four judgements,
-so it does not depend on it for the model choice).
-
-What moves it: apply after the base PR, then deploy quote_compare, email_triage and resilience_ping in the same
-window (the functions call fn_glm_judgement_* and would log an rpc error per call until the file is live; they
-fall back to "queued/held", never to a word match). Dry run passes its guards (10 routines, all dependencies live).
-When applied: delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt in the same commit.

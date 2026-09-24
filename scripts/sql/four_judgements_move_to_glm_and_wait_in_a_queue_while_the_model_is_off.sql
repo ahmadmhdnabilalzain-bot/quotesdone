@@ -1,10 +1,10 @@
--- FOUR JUDGEMENTS MOVE TO GLM 5.3 FLASH, EACH WITH ITS OWN DAILY CAP, AND QUEUED - NEVER WORD-MATCHED - WHEN HELD.
--- Seat: it_engineer (the queue, the caps), for the sales_engineer (quote spec match, repeat requests, supplier trade
+-- FOUR JUDGEMENTS MOVE TO GLM 5.3 FLASH, AND WAIT IN A QUEUE - NEVER WORD-MATCHED - WHILE THE MODEL IS OFF.
+-- Seat: it_engineer (the queue), for the sales_engineer (quote spec match, repeat requests, supplier trade
 -- words) and the accountant/customer_support inbox (mail from unknown senders). 24 Sep 2026.
 --
 -- THE FOUNDER'S APPROVAL (24 Sep 2026): four judgements move from code to GLM 5.3 Flash, the cheap internal class
 -- (model_policy routine_employee_reasoning -> z-ai/glm-5.3-flash, $0.15 / $0.50 per 1M tokens, list price, checked
--- the same day: it is not a promotion), each capped:
+-- the same day: it is not a promotion):
 --   1. quote_spec_match       - each quoted value the technical comparison marks as differing (≠) from the customer's
 --                               requested spec is judged: a genuine mismatch (SS304 quoted for SS316) or not. Exact
 --                               matches never reach the model (line_specs/compare.ts decides ✓ by code).
@@ -20,19 +20,20 @@
 --
 -- HOW IT WORKS. Every judgement is a row in public.glm_judgement. The caller enqueues it
 -- (fn_glm_judgement_enqueue, idempotent on (kind, subject_key)), may judge it inline, and resilience_ping drains
--- the rest (step 'glm_judgements'). Before any model call the caller takes a slot from fn_glm_judgement_take(kind):
--- per-kind daily call caps (app_secrets.llm_cap_glm_<kind> overrides the defaults below), counted in
--- public.glm_judgement_day. The gateway's own AED ceiling (fn_llm_budget_gate, the base PR) still applies on top.
--- HELD (the model hold, the cap, a model that failed or answered outside the format): the row stays queued and is
+-- the rest (step 'glm_judgements').
+-- NO DAILY CAP, ON PURPOSE. The founder, 24 Sep 2026 (founder_instruction 987): no caps on LLM spend; idle spend
+-- stays low because the code is correct. An earlier draft of this PR limited each kind per day; that was removed.
+-- What bounds the volume is correctness: a judgement is enqueued once per (kind, subject_key); only the cells, mail
+-- and requests that code could not decide reach it; and three failed readings end a row (no infinite retry).
+-- HELD (the model hold, a model that failed or answered outside the format): the row stays queued and is
 -- tried again - never answered by a word list. Three failed readings mark it failed and the seat's existing manual
 -- path owns it (it is exactly what happens today).
 --
--- DEFAULT CAPS, judgements per day (one judgement = one think(): a decompose and a synthesis call on GLM):
---   quote_spec_match 200, repeat_request 60, supplier_trade_words 120, unknown_sender_mail 100.
---   Upper bound at every cap full: 480 judgements x ~AED 0.0045 = ~AED 2.2 a day (cost estimate in the PR).
+-- COST: one judgement = one think() (a decompose and a synthesis call on GLM), about AED 0.0045. At 0 customers and
+-- 0 suppliers none of the four has a subject except unknown-sender mail; the idle rate is in the PR (IDLE_PROOF).
 --
--- Pending: scripts/sql/pending/four_judgements_move_to_glm_each_capped_and_queued_when_held.txt
--- Prevented by: scripts/checks/four_glm_judgements_are_capped_and_never_word_match.test.mjs and
+-- Pending: scripts/sql/pending/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.txt
+-- Prevented by: scripts/checks/four_glm_judgements_run_on_glm_and_never_word_match.test.mjs and
 --               supabase/functions/_shared/glm_judgements.test.ts
 
 -- ── the queue ───────────────────────────────────────────────────────────────────────────────────────────
@@ -56,52 +57,6 @@ alter table public.glm_judgement enable row level security;
 drop policy if exists glm_judgement_service_role_only on public.glm_judgement;
 create policy glm_judgement_service_role_only on public.glm_judgement as permissive for all to public using (false) with check (false);
 revoke all on public.glm_judgement from anon, authenticated;
-
-create table if not exists public.glm_judgement_day (
-  kind text not null,
-  day date not null,
-  calls integer not null default 0,
-  primary key (kind, day)
-);
-alter table public.glm_judgement_day enable row level security;
-drop policy if exists glm_judgement_day_service_role_only on public.glm_judgement_day;
-create policy glm_judgement_day_service_role_only on public.glm_judgement_day as permissive for all to public using (false) with check (false);
-revoke all on public.glm_judgement_day from anon, authenticated;
-
--- ── the cap ─────────────────────────────────────────────────────────────────────────────────────────────
-create or replace function public.fn_glm_judgement_cap(p_kind text)
-returns integer language plpgsql stable security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_raw text;
-begin
-  select value into v_raw from public.app_secrets where key = 'llm_cap_glm_' || p_kind;
-  if v_raw ~ '^\s*[0-9]+\s*$' then return v_raw::integer; end if;
-  return case p_kind
-    when 'quote_spec_match' then 200
-    when 'repeat_request' then 60
-    when 'supplier_trade_words' then 120
-    when 'unknown_sender_mail' then 100
-    else 0 end;
-end $fn$;
-revoke execute on function public.fn_glm_judgement_cap(text) from public, anon, authenticated;
-grant execute on function public.fn_glm_judgement_cap(text) to service_role;
-
--- One slot per judgement, taken atomically: the upsert increments only while under the cap (Dubai day).
-create or replace function public.fn_glm_judgement_take(p_kind text)
-returns boolean language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_cap integer := public.fn_glm_judgement_cap(p_kind); v_day date := (now() at time zone 'Asia/Dubai')::date; v_calls integer;
-begin
-  if v_cap <= 0 then return false; end if;
-  insert into public.glm_judgement_day as d (kind, day, calls) values (p_kind, v_day, 1)
-  on conflict (kind, day) do update set calls = d.calls + 1 where d.calls < v_cap
-  returning calls into v_calls;
-  return v_calls is not null;
-end $fn$;
-revoke execute on function public.fn_glm_judgement_take(text) from public, anon, authenticated;
-grant execute on function public.fn_glm_judgement_take(text) to service_role;
 
 -- ── enqueue / due / defer / resolve ─────────────────────────────────────────────────────────────────────
 create or replace function public.fn_glm_judgement_enqueue(p_kind text, p_subject_key text, p_input jsonb)
@@ -136,7 +91,7 @@ end $fn$;
 revoke execute on function public.fn_glm_judgement_due(integer, bigint[]) from public, anon, authenticated;
 grant execute on function public.fn_glm_judgement_due(integer, bigint[]) to service_role;
 
--- Not judged this time. p_counts = a failed reading (counts toward the three); a hold or a cap does not.
+-- Not judged this time. p_counts = a failed reading (counts toward the three); the model hold does not.
 create or replace function public.fn_glm_judgement_defer(p_id bigint, p_error text, p_counts boolean)
 returns void language plpgsql security definer
 set search_path to 'public', 'pg_temp'
@@ -364,7 +319,6 @@ begin
   if v_fail is null and not coalesce((v_res->>'ok')::boolean, false) then v_fail := 'resolve refused a queued row: ' || v_res::text; end if;
   v_n := jsonb_array_length(public.fn_quote_spec_mismatches('zz-probe-quote')->'mismatches');
   if v_fail is null and v_n <> 1 then v_fail := 'fn_quote_spec_mismatches read ' || v_n || ' mismatches, expected 1'; end if;
-  if v_fail is null and public.fn_glm_judgement_cap('no_such_kind') <> 0 then v_fail := 'an unknown kind has a cap'; end if;
   -- The terminal state: three failed readings mark the row failed and the report counts its cells unread.
   v_id2 := public.fn_glm_judgement_enqueue('quote_spec_match', 'zz-probe-fail:' || txid_current(), jsonb_build_object('quote_id', 'zz-probe-quote2', 'cells', jsonb_build_array(jsonb_build_object('line_no', 1))));
   perform public.fn_glm_judgement_defer(v_id2, 'probe', true); perform public.fn_glm_judgement_defer(v_id2, 'probe', true);

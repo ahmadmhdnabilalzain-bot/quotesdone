@@ -1,16 +1,18 @@
-// THE FOUR GLM JUDGEMENTS ARE CAPPED, RUN ON GLM, AND NEVER WORD-MATCH (24 Sep 2026, it_engineer; founder's approval of
-// the same day: quote spec match, repeat requests, supplier trade words, unknown-sender mail move to GLM 5.3 Flash,
-// each capped; held = queued, never word-matched).
+// THE FOUR GLM JUDGEMENTS RUN ON GLM, WAIT IN A QUEUE WHILE THE MODEL IS OFF, AND NEVER WORD-MATCH (24 Sep 2026,
+// it_engineer; founder's approval of the same day: quote spec match, repeat requests, supplier trade words,
+// unknown-sender mail move to GLM 5.3 Flash; held = queued, never word-matched). NO per-kind daily limit: the
+// founder, 24 Sep 2026 (founder_instruction 987), no caps on LLM spend - the volume is bounded by correct code.
 //
 // WHAT FAILS IF THE CAUSE RETURNS (static, over the committed SQL and TypeScript):
-//   * a kind loses its daily cap, or the cap is not asked before the model;
+//   * a per-kind daily limit comes back, or the hold is not asked before the model;
+//   * the three-failed-readings bound is lost (a row could be retried forever);
 //   * a judgement's model step is billed to a class other than the GLM one;
 //   * pg_trgm stops going first for repeats (a row it already flagged reaches the model);
 //   * a supplier-trade code outside the taxonomy can be written;
 //   * a held judgement is answered by a pattern (ilike / regex) instead of staying queued;
 //   * email_triage sends an unknown sender to its old model path instead of the GLM queue.
 //
-//   node --test scripts/checks/four_glm_judgements_are_capped_and_never_word_match.test.mjs
+//   node --test scripts/checks/four_glm_judgements_run_on_glm_and_never_word_match.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const strip = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '').replace(/\/\/.*$/, '')).join('\n');
-const SQL = strip(read('scripts/sql/four_judgements_move_to_glm_each_capped_and_queued_when_held.sql'));
+const SQL = strip(read('scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql'));
 const TS = strip(read('supabase/functions/_shared/glm_judgements.ts'));
 function body(name) {
   const i = SQL.indexOf(`create or replace function public.${name}(`);
@@ -30,17 +32,17 @@ function body(name) {
 }
 const KINDS = ['quote_spec_match', 'repeat_request', 'supplier_trade_words', 'unknown_sender_mail'];
 
-test('every kind has a positive default daily cap, and an unknown kind has none', () => {
-  const b = body('fn_glm_judgement_cap');
-  for (const k of KINDS) assert.match(b, new RegExp(`when '${k}' then [1-9][0-9]*`), `${k} has no positive default cap`);
-  assert.match(b, /else 0 end/);
-  assert.match(body('fn_glm_judgement_take'), /where d\.calls < v_cap/, 'the cap is not enforced atomically');
+test('no per-kind daily limit exists, and three failed readings end a row', () => {
+  assert.doesNotMatch(SQL, /glm_judgement_take|glm_judgement_cap|glm_judgement_day|llm_cap_/, 'a per-kind daily limit is back');
+  assert.doesNotMatch(TS, /glm_judgement_take|daily cap/, 'judge() asks for a slot');
+  assert.match(body('fn_glm_judgement_defer'), /attempts \+ 1 >= 3 then 'failed'/, 'the three-try loop bound is gone');
+  for (const k of KINDS) assert.match(SQL, new RegExp(`'${k}'`), `${k} is not a queue kind`);
 });
 
-test('the hold and the cap are asked before the model, and every model step is on the GLM class', () => {
+test('the hold is asked before the model, and every model step is on the GLM class', () => {
   const j = TS.slice(TS.indexOf('export async function judge'));
-  const gate = j.indexOf('deps.gate()'), take = j.indexOf("'fn_glm_judgement_take'"), model = j.indexOf('specMatch(');
-  assert.ok(gate > 0 && take > gate && model > take, 'judge() must ask the hold, then the cap, then the model');
+  const gate = j.indexOf('deps.gate()'), model = j.indexOf('specMatch(');
+  assert.ok(gate > 0 && model > gate, 'judge() must ask the hold, then the model');
   assert.match(TS, /export const GLM_CLASS = 'routine_employee_reasoning';/);
   assert.match(TS, /taskClass: phase === 'verify' \? o\.taskClass : GLM_CLASS/);
   const policy = read('scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql');

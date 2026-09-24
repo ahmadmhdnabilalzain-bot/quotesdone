@@ -1,6 +1,6 @@
-// glm_judgements — four judgements moved from code to GLM 5.3 Flash, each capped per day and queued when held.
-// Seat: it_engineer (queue and caps) for the sales_engineer and customer_support call sites. 24 Sep 2026.
-// The SQL half (queue, caps, effects): scripts/sql/four_judgements_move_to_glm_each_capped_and_queued_when_held.sql.
+// glm_judgements — four judgements moved from code to GLM 5.3 Flash, queued while the model is off.
+// Seat: it_engineer (the queue) for the sales_engineer and customer_support call sites. 24 Sep 2026.
+// The SQL half (queue, effects): scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql.
 //
 //   quote_spec_match      a ≠ cell of the technical comparison (line_specs/compare.ts decided it is not an exact
 //                         match by code) -> is it a GENUINE mismatch (SS304 quoted for SS316) or does it meet the
@@ -13,8 +13,8 @@
 //   unknown_sender_mail   mail from a sender who is no lead, customer or staff -> its category and a summary.
 //
 // EVERY JUDGEMENT RUNS ON think() WITH THE GLM CLASS FORCED (glmOnly): the decompose and synthesis calls go to
-// model_policy routine_employee_reasoning (z-ai/glm-5.3-flash). Before the model is asked, one slot is taken from
-// fn_glm_judgement_take(kind), the per-kind daily cap. HELD — the model hold, the cap, a failed reading, an answer
+// model_policy routine_employee_reasoning (z-ai/glm-5.3-flash). There is no per-day limit (founder_instruction 987,
+// 24 Sep 2026: no caps on LLM spend). HELD — the model hold, a failed reading, an answer
 // outside the format — leaves the row queued. Nothing here reads meaning from words: the only string handling is
 // parsing the format the model was told to answer in, and exact set membership of taxonomy codes.
 import { think, type ThinkDeps } from './think.ts';
@@ -40,6 +40,10 @@ export function glmOnly(deps: ThinkDeps): ThinkDeps {
 }
 
 const held = (reason: string, counts: boolean): Outcome => ({ status: 'held', reason, counts });
+// A think() that came back held for any reason but the model hold made (or tried) paid model calls and failed: that is
+// a failed reading and counts toward the three tries. Before 24 Sep review it was deferred uncounted, so a refused
+// draft (model_failed) was re-judged every tick for ever - an unbounded paid loop with no customer behind it.
+export const heldFrom = (reason: string | undefined): Outcome => held(reason ?? 'held', (reason ?? '') !== 'model_hold');
 
 // WHERE THE VERDICT TRAVELS. think()'s decision FIELDS are extraction only (the value must sit inside words copied
 // from the conversation), and a verdict is not an extraction. So each judgement is a decision over OPTIONS (checked
@@ -72,7 +76,7 @@ async function specMatch(deps: ThinkDeps, input: Record<string, unknown>): Promi
       { id: 'all_meet', meaning: 'every cell meets the request' },
       { id: 'some_mismatch', meaning: 'at least one cell is a genuine mismatch with the request' }] },
   });
-  if (r.status !== 'answered') return held(r.reason ?? 'held', false);
+  if (r.status !== 'answered') return heldFrom(r.reason);
   const ln = answerLines(r.answer);
   const out = [];
   for (let i = 0; i < cells.length; i++) {
@@ -96,7 +100,7 @@ async function sameRequest(deps: ThinkDeps, input: Record<string, unknown>): Pro
       { id: 'same', meaning: 'the later request asks for the same job as the earlier one - reworded, shortened, or in another language (English / Arabic)' },
       { id: 'different', meaning: 'the later request is a different job (another item, place, scope or quantity)' }] },
   });
-  if (r.status !== 'answered') return held(r.reason ?? 'held', false);
+  if (r.status !== 'answered') return heldFrom(r.reason);
   const c = r.decision?.choice;
   if (c !== 'same' && c !== 'different') return held('no option chosen', true);
   return { status: 'done', result: { verdict: c, inquiry_id: input.inquiry_id, earlier_id: input.earlier_id, why: r.answer.slice(0, 300) }, model: r.model ?? null };
@@ -117,7 +121,7 @@ async function tradeWords(deps: ThinkDeps, input: Record<string, unknown>, taxon
       { id: 'several', meaning: 'the words name more than one of the listed trades (e.g. combined MEP)' },
       { id: 'none', meaning: 'the words name none of the listed trades, or are too vague to tell - never the nearest' }] },
   });
-  if (r.status !== 'answered') return held(r.reason ?? 'held', false);
+  if (r.status !== 'answered') return heldFrom(r.reason);
   const choice = String(r.decision?.choice ?? ''); const ln = answerLines(r.answer);
   let codes: string[] = [];
   if (known.has(choice)) codes = [choice];
@@ -135,22 +139,19 @@ async function mailKind(deps: ThinkDeps, input: Record<string, unknown>): Promis
     context: { audience: 'internal', conversation: [{ role: 'visitor', text: `From: ${input.from ?? ''}\nSubject: ${input.subject ?? ''}\n\n${String(input.body ?? '').slice(0, 4000)}` }] },
     decision: { name: 'unknown_sender_mail', options: MAIL_CATEGORIES.map((c) => ({ id: c, meaning: c.replace(/_/g, ' ') })) },
   });
-  if (r.status !== 'answered') return held(r.reason ?? 'held', false);
+  if (r.status !== 'answered') return heldFrom(r.reason);
   const c = r.decision?.choice ?? '';
   if (!(MAIL_CATEGORIES as readonly string[]).includes(c)) return held('no category chosen', true);
   return { status: 'done', result: { category: c, summary: r.answer.slice(0, 500), message_id: input.message_id }, model: r.model ?? null };
 }
 
 // ── one row ───────────────────────────────────────────────────────────────────────────────────────
-/** Judge one queued row: the model hold first (costs no slot), then the cap, then GLM. Never throws. */
+/** Judge one queued row: the model hold first (waiting is not a failure), then GLM. Never throws. */
 export async function judge(deps: ThinkDeps, row: Row, taxonomy: () => Promise<{ code: string; label: string }[]>): Promise<Outcome> {
   try {
-    // The hold is asked first, so a held day spends no slot of the cap.
+    // The hold is asked first: while the model is off the row waits and no try is counted.
     let gate = null; try { gate = await deps.gate(); } catch (_e) { gate = null; }
     if (heldFromGate(gate)) return held('model_hold', false);
-    const g = await deps.rpc('fn_glm_judgement_take', { p_kind: row.kind });
-    if (g.error) return held('cap unreadable: ' + g.error.message, false);
-    if (g.data !== true) return held('daily cap reached for ' + row.kind, false);
     const d = glmOnly(deps);
     switch (row.kind) {
       case 'quote_spec_match': return await specMatch(d, row.input);

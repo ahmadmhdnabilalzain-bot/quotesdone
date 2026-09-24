@@ -1103,8 +1103,8 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // returns nothing and no model is asked, so this step costs one gate read.
   await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
   // The four GLM judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
-  // their callers and not judged inline: five a tick, each behind its per-kind daily cap. Held rows stay queued
-  // (scripts/sql/four_judgements_move_to_glm_each_capped_and_queued_when_held.sql).
+  // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
+  // (scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql).
   await step('glm_judgements', async () => drainGlmJudgements(defaultDeps(admin, 'resilience_ping'), 5));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
