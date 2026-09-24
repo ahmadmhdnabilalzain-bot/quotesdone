@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T11:37:53.212Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T12:00:34.034Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (633) =====
+-- ===== TABLES (634) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -7411,6 +7411,14 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall (
   measured_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall_answer (
+  day date NOT NULL,
+  question_id bigint NOT NULL,
+  seat text NOT NULL,
+  lang text NOT NULL,
+  recall numeric NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_refresh (
   seat text NOT NULL,
   quarter date NOT NULL,
@@ -9337,6 +9345,7 @@ ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_recall ADD CONSTRAINT seat_knowledge_recall_pkey PRIMARY KEY (day, seat);
+ALTER TABLE public.seat_knowledge_recall_answer ADD CONSTRAINT seat_knowledge_recall_answer_pkey PRIMARY KEY (day, question_id);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
@@ -42901,7 +42910,8 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_recall_exam()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare
-  v_day date := (now() at time zone 'Asia/Dubai')::date; s record; p public.seat_knowledge_recall; v_bad text; v_out jsonb := '[]'::jsonb; v_raised int := 0;
+  v_day date := (now() at time zone 'Asia/Dubai')::date; s record; p public.seat_knowledge_recall; v_bad text; v_out jsonb := '[]'::jsonb;
+  v_raised int := 0; v_scored int; v_left int;
 begin
   if not exists (select 1 from public.seat_knowledge_eval_question) then
     perform public.fn_it_engineer_finding_upsert('knowledge_recall:no_questions',
@@ -42913,17 +42923,33 @@ begin
   update public.it_engineer_finding set closed_at = now(), close_note = 'questions are loaded (knowledge_recall)'
    where issue_key = 'knowledge_recall:no_questions' and closed_at is null;
 
+  -- today already aggregated: nothing to do
+  if exists (select 1 from public.seat_knowledge_recall where day = v_day) then
+    return jsonb_build_object('day', v_day, 'done', true);
+  end if;
+
+  -- one slice of today's unscored questions
+  insert into public.seat_knowledge_recall_answer (day, question_id, seat, lang, recall)
+  select v_day, q.id, q.seat, q.lang,
+         (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
+            from jsonb_array_elements(public.fn_reason_retrieve(q.seat, q.embedding, 6)) with ordinality t(x, n)
+           where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
+         / (select count(distinct e) from unnest(q.expected) e)
+    from (select * from public.seat_knowledge_eval_question q
+           where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id)
+           order by q.id limit 150) q
+  on conflict do nothing;
+  get diagnostics v_scored = row_count;
+  select count(*) into v_left from public.seat_knowledge_eval_question q
+   where not exists (select 1 from public.seat_knowledge_recall_answer a where a.day = v_day and a.question_id = q.id);
+  if v_left > 0 then
+    return jsonb_build_object('day', v_day, 'scored', v_scored, 'left', v_left);
+  end if;
+
   for s in
-    with scored as (
-      select q.seat, q.lang,
-             (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
-                from jsonb_array_elements(public.fn_reason_retrieve(q.seat, q.embedding, 6)) with ordinality t(x, n)
-               where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
-             / (select count(distinct e) from unnest(q.expected) e) as recall
-        from public.seat_knowledge_eval_question q)
     select seat, count(*) filter (where lang = 'en') as questions,
            round(avg(recall) filter (where lang = 'en'), 3) as en, round(avg(recall) filter (where lang = 'ar'), 3) as ar
-      from scored group by seat
+      from public.seat_knowledge_recall_answer where day = v_day group by seat
   loop
     select * into p from public.seat_knowledge_recall where seat = s.seat and day < v_day order by day desc limit 1;
     insert into public.seat_knowledge_recall (day, seat, questions, recall_en, recall_ar) values (v_day, s.seat, s.questions, s.en, s.ar)
@@ -42944,6 +42970,7 @@ begin
     end if;
     v_out := v_out || jsonb_build_object('seat', s.seat, 'questions', s.questions, 'recall_en', s.en, 'recall_ar', s.ar, 'raised', v_bad is not null);
   end loop;
+  delete from public.seat_knowledge_recall_answer where day < v_day - 7;
   return jsonb_build_object('day', v_day, 'seats', v_out, 'raised', v_raised);
 end $function$
 
@@ -79759,6 +79786,7 @@ ALTER TABLE public.seat_judgement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_eval_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_exam ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_recall ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_recall_answer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_refresh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
@@ -80022,6 +80050,7 @@ CREATE POLICY seat_judgement_service_role_only ON public.seat_judgement AS PERMI
 CREATE POLICY seat_knowledge_eval_question_service_role_only ON public.seat_knowledge_eval_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_exam_service_role_only ON public.seat_knowledge_exam AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_recall_service_role_only ON public.seat_knowledge_recall AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_recall_answer_service_role_only ON public.seat_knowledge_recall_answer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_refresh_service_role_only ON public.seat_knowledge_refresh AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -80067,6 +80096,21 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$
     headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
     body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
   );
+$CRON$);
+select cron.schedule('knowledge_recall_exam_daily','20 0 * * *',$CRON$
+do $do$
+declare v jsonb;
+begin
+  update public.seat_duty set last_started_at = now() where duty = 'it_engineer.knowledge_recall';
+  begin
+    v := public.fn_it_engineer_knowledge_recall_exam();
+    update public.seat_duty set last_ok_at = now(), last_result = v, last_error = null, failures = 0
+     where duty = 'it_engineer.knowledge_recall';
+  exception when others then
+    update public.seat_duty set last_error = left(sqlerrm, 1000), failures = failures + 1
+     where duty = 'it_engineer.knowledge_recall';
+  end;
+end $do$;
 $CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
