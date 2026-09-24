@@ -78,10 +78,19 @@ function kindRows() {
         rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
       }
     }
+    // 24 Sep 2026 (#913): the mirror shape, several seats to one — SELECT 'type', s, 'to', '<meaning>', 'fn_handler'
+    // ... FROM unnest(array[...]) s — registers the root-cause reviews each seat sends the CEO.
+    for (const t of m[0].matchAll(/select\s+'([a-z_.]+)',\s*s,\s*'([a-z_]+)',\s*'(?:[^']|'')*'(?:,\s*'(fn_[a-z0-9_]+)')?[\s\S]*?from\s+unnest\(array\[([^\]]*)\]\)\s+s\b/g)) {
+      const [, type, to, named, seats] = t;
+      for (const [, from] of seats.matchAll(/'([a-z_]+)'/g)) {
+        rows.push({ type, from, to, handler: named ?? `fn_${to}_acts_on_handoff` });
+      }
+    }
   }
   return rows;
 }
-const sqlRegistry = () => kindRows().map((r) => `${r.type}|${r.from}|${r.to}`).sort();
+// A pair two files register (the second insert is on conflict do nothing) is one conversation.
+const sqlRegistry = () => [...new Set(kindRows().map((r) => `${r.type}|${r.from}|${r.to}`))].sort();
 function fnBody(name) {
   const d = definitions(sqlText).filter((x) => x.name === name).pop();
   assert.ok(d, `${name} has no canonical definition`);
@@ -132,10 +141,22 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
       // the CEO's daily plan addresses each directive to the seat the plan names
       || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"))
+      // a target miss asks the metric's owning seat (#913); the month directive and an improvement go to the seat
+      // the year-one plan names (#923)
+      || (type === 'ceo.root_cause' && allSql.includes("fn_seat_handoff('ceo', p.owner_seat, 'ceo.root_cause'"))
+      || (type === 'ceo.month_directive' && allSql.includes("fn_seat_handoff('ceo', s, 'ceo.month_directive'"))
+      || (type === 'ceo.improvement' && allSql.includes("fn_seat_handoff('ceo', p_seat, 'ceo.improvement'"))
       // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
       // proves nothing about which pairs anything opens
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)
-          || new RegExp(`p_author_seat: '${from}',\\s*p_reviewer_seat: '${to}'`).test(ts)));
+          || new RegExp(`p_author_seat: '${from}',\\s*p_reviewer_seat: '${to}'`).test(ts)
+          // a seat duty opens its review through fn_seat_duty_cross_review, whose call names the pair the same way (#901)
+          // (the kind may be built, e.g. 'ceo.' || v_kind; the author and reviewer must still be written literally)
+          || new RegExp(`fn_seat_duty_cross_review\\(\\s*[^,]+,\\s*'${from}',\\s*'${to}'`).test(allSql)
+          // the CEO's root-cause challenge (#913): the author is the seat that owns the metric, the reviewer the CEO
+          // (the accountant when the CEO is the author). Only for the non-CEO seats that registration names.
+          || (to === 'ceo' && from !== 'ceo'
+              && allSql.includes("fn_seat_duty_cross_review(r.seat || '.root_cause', r.seat, case when r.seat = 'ceo' then 'accountant' else 'ceo' end"))));
     if (!produced) missing.push(`${k}: nothing starts it`);
   }
   assert.deepEqual(missing, []);

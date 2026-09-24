@@ -254,3 +254,13 @@ Deno.test('the Dubai date is UTC+4', () => {
   assertEquals(dubaiDate(new Date('2026-09-21T20:30:00Z')), '2026-09-22');
   assertEquals(dubaiDate(new Date('2026-09-21T19:30:00Z'), -1), '2026-09-20');
 });
+
+Deno.test('a beat that sent a live post does nothing heavier after it; an idle or dry-run beat goes on (gap 1, the CPU cap)', async () => {
+  const { publishSpentTheBeat, MAX_LIVE_PER_BEAT } = await import('./marketing_channels.ts');
+  assertEquals(MAX_LIVE_PER_BEAT, 1);
+  assertEquals(publishSpentTheBeat({ published: 1 }), true);
+  assertEquals(publishSpentTheBeat({ failed: 1 }), true);
+  assertEquals(publishSpentTheBeat({ unconfirmed: 1 }), true);
+  assertEquals(publishSpentTheBeat({ published: 0, failed: 0 }), false);
+  assertEquals(publishSpentTheBeat(null), false);
+});

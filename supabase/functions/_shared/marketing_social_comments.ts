@@ -19,18 +19,16 @@
 //                          AS the QuotesDone account. Not connected: skipped, and says so.
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
-// WHAT A COMMENT IS, is REASONED (founder, 23 Sep 2026: never keyword matching): Store.classOf asks think()
-// (reasoned_decisions.commentClass). Held (the model hold, or no answer), the comment is stored with no class
-// and no outcome and NOTHING is said or hidden; the duty's sweep (retry_unfinished) asks again. No word list
-// ever stands in for the reasoning. The action each reasoned class takes:
+// THE POLICY, applied to the REASONED class (processComment; the class itself is reasoned, reasoned_social.ts):
 //   spam_abuse       -> hidden where the platform allows it, AND handed to customer_support to review
 //                       (unhideRequest reverses it); never hidden when the comment also asks or wants to join
 //   complaint, sensitive_legal, a request for a person
 //                    -> handed to customer_support ('social.escalation') + a fixed acknowledgement
 //   sales_lead / supplier_enquiry -> handed to sales_engineer ('social.lead') + the fixed reply
 //   praise           -> the fixed thanks
-//   question         -> the reasoned answer over the company knowledge (think(), with its cross-family review);
-//                       while the model is held: recorded 'held_not_run', nothing sent.
+//   question         -> the comment library / FAQ / knowledge answer (which one fits is reasoned, socialMeaning);
+//                       only when none fits, the reasoned answer over the company knowledge (think(), with its
+//                       cross-family review). While the model is held: recorded 'held_not_run', nothing sent.
 //   off_topic        -> ignored
 // EVERY text that would be sent — library, FAQ, knowledge or model — passes guard() and the platform's
 // length limit, or it is NOT sent: the comment is escalated and the fixed acknowledgement goes instead. A
@@ -75,6 +73,14 @@ export function normalise(s: string): string {
     .replace(/[ئى]/g, 'ي').replace(/ؤ/g, 'و').replace(/[أإآٱ]/g, 'ا').replace(/ء/g, '')
     .normalize('NFD').replace(/\p{Mn}/gu, '').normalize('NFC');
 }
+
+// ── CLASSIFY: REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903) ────────────────────────
+// The RULES / ABUSE / ASKS regex lists that decided what a public comment IS — hidden, answered, handed off —
+// are deleted. The class arrives already reasoned (_shared/reasoned_social.ts commentClass, decision point
+// marketing_social.comment_classify); null means that reasoning is held, and processComment then hides nothing,
+// says nothing and hands nothing off: the comment is recorded 'held_classify' and the replay
+// (_shared/reasoned_delivery.ts) runs it through this same policy with the reasoned class. guard() below stays:
+// it vets OUR outgoing text, never what a person meant.
 
 // ── THE GUARDS every outgoing text passes before it can be sent (founder, 23 Sep 2026) ────────────────
 // The facts are the company's published ones (site FAQ, supplier agreement v12, portal copy): customers pay
@@ -150,17 +156,18 @@ export function guard(draft: string, ev: Pick<CommentEvent, 'platform' | 'text' 
 
 
 // ── THE STORE, injected so tests replay every platform with no network and no database ─────────────
+export interface Decided { kind: string; key: string | null; text: string }
 export interface SendResult { ok: boolean; id?: string | null; error?: string }
 export type HandoffType = 'social.escalation' | 'social.lead';
 export interface Store {
-  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // null: already answered (idempotency)
+  insertInbound(ev: CommentEvent, cls: Class | null): Promise<number | null>;   // cls null: still being reasoned; returns null: already answered (idempotency)
   release(inId: number): Promise<void>;                                  // processing failed before a send: retry later
   threadAllowed(ev: CommentEvent): Promise<boolean>;
   record(inId: number, row: Outcome): Promise<void>;
   handoff(type: HandoffType, ev: CommentEvent, cls: Class, extra?: Record<string, unknown>): Promise<number | null>;
   switchOn(key: 'social_send_enabled' | 'social_model_enabled'): Promise<boolean>;
   library(key: string, lang: Lang): Promise<string>;
-  classOf(ev: CommentEvent): Promise<Class | null>;                  // REASONED (think()); null = held, nothing is done
+  deterministic(ev: CommentEvent): Promise<Decided>;                 // comment_* library rows, FAQ, knowledge
   draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // think() over the knowledge, cross-family reviewed
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
@@ -168,7 +175,7 @@ export interface Store {
   seen?(ev: CommentEvent): Promise<boolean>;
 }
 export interface Outcome {
-  classification: Class;
+  classification: Class | null;
   outcome: string;
   reply: string | null;
   decided_by: 'rule' | 'model' | 'guard_fallback' | null;
@@ -183,18 +190,20 @@ export const isFixture = (ev: CommentEvent) => /^ZZDEMO/i.test(ev.authorId) || /
 const SEAT: Record<HandoffType, string> = { 'social.escalation': 'customer_support', 'social.lead': 'sales_engineer' };
 export const seatFor = (t: HandoffType) => SEAT[t];
 
-/** wantsPerson may be a function: the reasoned person check (think()) then runs only for a comment that is
- *  not our own and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
-export async function processComment(s: Store, ev: CommentEvent, wantsPerson: boolean | (() => Promise<boolean>) = false): Promise<string> {
+type Lazy<T> = T | (() => Promise<T>);
+/** The comment policy for a comment whose class was REASONED (`reasoned`; null while that reasoning is held).
+ *  Either argument may be a function: the reasoning (think()) then runs only for a comment that is not our own
+ *  and not empty, and never for one the store already recorded (a redelivery or sweep retry). */
+export async function processComment(s: Store, ev: CommentEvent, reasoned: Lazy<Class | null>, wantsPerson: Lazy<boolean> = false): Promise<string> {
   if (!ev.text.trim() || ev.authorId === ev.accountId) return 'own_or_empty';
-  if (typeof wantsPerson === 'function' && s.seen && (await s.seen(ev))) return 'duplicate';
+  const lazy = typeof reasoned === 'function' || typeof wantsPerson === 'function';
+  if (lazy && s.seen && (await s.seen(ev))) return 'duplicate';
+  const klass = typeof reasoned === 'function' ? await reasoned() : reasoned;
   const person = typeof wantsPerson === 'function' ? await wantsPerson() : wantsPerson;
-  const reasoned: Class | null = person ? 'complaint' : await s.classOf(ev);
-  const inId = await s.insertInbound(ev, reasoned);
+  // A reasoned request for a person is handled as a complaint — except abuse, which is hidden and reviewed anyway.
+  const cls: Class | null = person && klass !== 'spam_abuse' ? 'complaint' : klass;
+  const inId = await s.insertInbound(ev, cls);
   if (inId == null) return 'duplicate';
-  // Held: the row stays with no class and no outcome, so the sweep asks the reasoning again. Nothing is guessed.
-  if (reasoned == null) return 'held_class';
-  const cls: Class = reasoned;
   let sent = false;
   try {
     return await run();
@@ -208,9 +217,12 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson: bo
     const lang = langOf(ev.text);
     const o: Outcome = { classification: cls, outcome: '', reply: null, decided_by: 'rule', send_status: 'not_sent', guard_failures: [], handoff_id: null };
     const done = async (outcome: string) => { o.outcome = outcome; await s.record(inId!, o); return outcome; };
-    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification, extra); };
+    const escalate = async (type: HandoffType, extra?: Record<string, unknown>) => { o.handoff_id = await s.handoff(type, ev, o.classification as Class, extra); };
     const ack = async () => { if (!o.handoff_id) await escalate('social.escalation'); return await s.library('comment_escalated_ack', lang); };
 
+    // HELD: what this comment is has not been reasoned yet. Nothing is hidden, said or handed off on a guess;
+    // the replay applies the policy the moment the hold lifts. (The person check has its own queue, point 72.)
+    if (cls === null) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_classify'); }
     if (cls === 'off_topic') return await done('ignored_off_topic');
     if (cls === 'spam_abuse') {
       if (isFixture(ev)) { o.send_status = 'held_fixture'; return await done('hide_held'); }
@@ -230,9 +242,14 @@ export async function processComment(s: Store, ev: CommentEvent, wantsPerson: bo
     else if (cls === 'sales_lead') { await escalate('social.lead'); text = await s.library('comment_lead', lang); }
     else if (cls === 'praise') text = await s.library('comment_praise', lang);
     else {
-      if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
-      text = String((await s.draft(ev, lang)) || '').trim();
-      o.decided_by = 'model';
+      const d = await s.deterministic(ev);
+      if (d.kind === 'handoff') { o.classification = 'complaint'; text = await ack(); }
+      else if (d.kind !== 'unknown' && d.text) text = d.text;
+      else {
+        if (!(await s.switchOn('social_model_enabled'))) { o.decided_by = null; o.send_status = 'held_model'; return await done('held_not_run'); }
+        text = String((await s.draft(ev, lang)) || '').trim();
+        o.decided_by = 'model';
+      }
     }
     // EVERY text, whatever produced it, passes the guards and fits the platform — or it is not sent: the
     // subject goes to the seat that owns it and the fixed acknowledgement goes instead. Never truncated.

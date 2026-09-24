@@ -149,10 +149,13 @@ test('English still returns exactly what it returned before Arabic existed', { s
 
 test('the widget sends the language and the function can tokenise it', () => {
   const fn = readFileSync(join(ROOT, 'supabase', 'functions', 'site_assistant', 'index.ts'), 'utf8');
+  // 23 Sep 2026 (founder_instruction 886-903, decision point site_assistant.passage_and_faq_scoring): the tok()
+  // FAQ scoring this pinned is retired with its subject. What a message asks, in either language, is REASONED
+  // (widgetMeaning), so no token list can score Arabic at zero again; if a tokeniser ever returns, it must read Arabic.
   const tokLine = fn.split('\n').find((l) => l.includes('function tok('));
-  assert.ok(tokLine, 'site_assistant lost its tok() helper');
-  assert.match(tokLine, /\\u0600-\\u06FF|؀-ۿ/,
+  if (tokLine) assert.match(tokLine, /\\u0600-\\u06FF|؀-ۿ/,
     'site_assistant.tok() still matches Latin only — every Arabic message scores zero tokens');
+  else assert.match(fn, /widgetMeaning\(/, 'site_assistant neither tokenises Arabic nor reasons the message');
 
   const widget = readFileSync(join(ROOT, 'src', 'components', 'ChatWidget.tsx'), 'utf8');
   const body = widget.split('\n').find((l) => l.includes('JSON.stringify({ message'));

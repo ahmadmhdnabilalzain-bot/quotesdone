@@ -31,11 +31,18 @@ export async function pdfFactsFromBytes(input) {
   const doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, verbosity: 0 }).promise;
   const meta = await doc.getMetadata().catch(() => ({ info: {} }));
   let text = '';
-  for (let i = 1; i <= Math.min(doc.numPages, 4); i++) text += (await (await doc.getPage(i)).getTextContent()).items.map((x) => x.str).join(' ') + '\n';
+  const runs = [];
+  for (let i = 1; i <= Math.min(doc.numPages, 4); i++) {
+    const items = (await (await doc.getPage(i)).getTextContent()).items;
+    text += items.map((x) => x.str).join(' ') + '\n';
+    // Where each run sits, so the money can be read in the page's reading order (moneyOf below).
+    // pdfjs's y grows upward; it is negated so lines sort top to bottom.
+    for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0 });
+  }
   await doc.destroy().catch(() => {});
   const letters = text.match(/\p{L}/gu) || [];
   const arabic = letters.filter(isArabic).length;
-  return { ok: true, bytes, sha256, creator: String(meta.info?.Creator || ''), pages: doc.numPages, text, arabicShare: letters.length ? arabic / letters.length : 0 };
+  return { ok: true, bytes, sha256, creator: String(meta.info?.Creator || ''), pages: doc.numPages, text, runs, arabicShare: letters.length ? arabic / letters.length : 0 };
 }
 
 /** Fetch a URL and read it as a PDF. */
@@ -65,11 +72,51 @@ export const amounts = (f) => String(f?.text || '').match(/\d[\d,]*\.\d\d/g) || 
  * numbers must not. This is the assertion that "not the same file" alone cannot make: a translation
  * that quietly re-prices, drops a line or loses the total is a different document AND wrong.
  */
+/**
+ * The money a page states IN ITS READING ORDER (23 Sep 2026). pdf_native draws a right-to-left line as
+ * visual runs from left to right (render.ts drawRTL), so an extractor reads an Arabic line's figures
+ * backwards: the nightly of 23 Sep 00:40Z read the Arabic quotation's note "the line amounts add up to
+ * 118,520.00 while the quoted total is 118,500.00" as 118,500.00 then 118,520.00 and reported that the
+ * Arabic quotation states different money: same figures, same labels, read in the wrong direction.
+ * Figures are grouped into lines (page, then baseline within `tol`), lines top to bottom, each line's
+ * figures left to right, or right to left on an Arabic page. A figure's place inside one run is its
+ * share of the run's width. Nothing is sorted by value, so a swapped subtotal and total still fail.
+ */
+export function amountsInReadingOrder(runs, rtl, tol = 2) {
+  const hits = [];
+  for (const r of runs || []) {
+    const t = String(r.text || '');
+    for (const m of t.matchAll(/\d[\d,]*\.\d\d/g)) hits.push({ v: m[0], page: r.page ?? 0, y: r.y, x: r.x + (t.length ? (m.index / t.length) * (r.w || 0) : 0) });
+  }
+  hits.sort((a, b) => a.page - b.page || a.y - b.y);
+  const lines = [];
+  for (const h of hits) { const last = lines[lines.length - 1]; if (last && last[0].page === h.page && Math.abs(last[0].y - h.y) <= tol) last.push(h); else lines.push([h]); }
+  return lines.flatMap((l) => l.sort((a, b) => (rtl ? b.x - a.x : a.x - b.x)).map((h) => h.v));
+}
+/** A read PDF's money: in reading order when its runs are known, else in extraction order. */
+export const moneyOf = (f) => (Array.isArray(f?.runs) && f.runs.length ? amountsInReadingOrder(f.runs, languageOf(f) === 'ar') : amounts(f));
+
 export function sameMoney(a, b) {
-  const [x, y] = [amounts(a), amounts(b)];
+  const [x, y] = [moneyOf(a), moneyOf(b)];
   if (!x.length || !y.length) return { comparable: false, same: null, why: `no amounts read: ${x.length} and ${y.length}` };
   const same = x.length === y.length && x.every((v, i) => v === y[i]);
   return { comparable: true, same, why: same ? `${x.length} amounts agree (total ${x[x.length - 1]})` : `amounts differ: [${x.join(' ')}] vs [${y.join(' ')}]` };
+}
+
+/**
+ * The journey's verdict on "the Arabic quotation states the same money as the English one".
+ * 24 Sep 2026 (finding duty:journey:c customer audit:the_Arabic_quotation_states_the_same_money_as_the_English_one,
+ * seen 3 nights): customer_api answered the Arabic request HTTP 202 arabic_held (its translation not yet
+ * reasoned), so no Arabic file existed, and this step filed "no amounts read: 6 and 0" as a money
+ * disagreement. Money cannot differ on a document never issued; the hold is its own FAIL
+ * ("quotation PDF is ours and in ar"). A side that did not open is SKIP naming why; a side that opened
+ * with no figures, or with other figures, stays FAIL. Prevented by: scripts/e2e/pdf_facts.test.mjs.
+ */
+export function moneyVerdict(en, ar) {
+  const shut = [['en', en], ['ar', ar]].filter(([, f]) => !f?.ok).map(([l, f]) => `${l}: ${f?.why || 'did not open'}`);
+  if (shut.length) return { status: 'SKIP', why: `no document to compare (${shut.join('; ')})` };
+  const m = sameMoney(en, ar);
+  return { status: m.comparable && m.same === true ? 'PASS' : 'FAIL', why: m.why };
 }
 
 export function sameDocument(a, b) {

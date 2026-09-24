@@ -32,8 +32,8 @@ export async function sec(k: string) {
 }
 
 // Kept so existing imports keep compiling. These are now hints only - see the header.
-export const OPUS_FIRST = ['anthropic/claude-opus-4.8', 'anthropic/claude-sonnet-5'];
-export const SONNET_FIRST = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-4.8'];
+export const OPUS_FIRST = ['anthropic/claude-opus-5.5', 'anthropic/claude-sonnet-5'];
+export const SONNET_FIRST = ['anthropic/claude-sonnet-5', 'anthropic/claude-opus-5.5'];
 
 export type Msg = { role: string; content: string };
 export interface LlmDefaults {
@@ -50,6 +50,9 @@ export interface LlmDefaults {
   rateKey?: string;     // public surfaces: bucket to rate-limit on
   rateLimit?: number;
   rateWindowS?: number;
+  // The caller parses one JSON object. ai_gateway turns this into response_format only where the
+  // routed model supports it (_shared/request_shape.ts); the caller's own parser stays the fallback.
+  json?: boolean;
 }
 
 // V3 REMEDIATION (14 Aug 2026) — WHY THIS FILE GREW A SECOND ENTRY POINT.
@@ -86,7 +89,7 @@ export interface LlmResult {
   http_status: number;
   error: string | null;        // set when the call failed; distinguishes refusal from breakage
   model?: string | null;       // the route that actually answered (a deliberation records it per turn)
-  outcome?: string | null;     // the gateway's own outcome (review_held_no_independent_reviewer, budget_halted, ...)
+  outcome?: string | null;     // the gateway's own outcome (review_held_no_independent_reviewer, ...)
 }
 export interface LlmCallOpts {
   tools?: any[];               // OpenAI-shape function definitions
@@ -256,6 +259,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           rate_window_s: def.rateWindowS ?? null,
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
+          ...(def.json ? { response_format: { type: 'json_object' } } : {}),
           // TOOLS. The gateway has always accepted these three; nothing that reached it through
           // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model
           // (inferCaps), and want_message asks for the assistant message back intact so a loop can
@@ -379,7 +383,7 @@ export function makeLlm(models: string[] = SONNET_FIRST, def: LlmDefaults = {}) 
         fnName + ' received a TRUNCATED model answer (finish_reason=length); retrying once with an '
         + 'explicit brevity instruction before failing closed.');
       const brief = sys
-        + '\n\nIMPORTANT: your previous answer was cut off by the output limit. Answer the same '
+        + '\n\nYour previous answer was cut off by the output limit. Answer the same '
         + 'question again, complete, and materially shorter. Lead with the decision or the refusal. '
         + 'Omit preamble, restatement and worked reasoning.';
       res = await rich(brief, input, max as number, sysStable);

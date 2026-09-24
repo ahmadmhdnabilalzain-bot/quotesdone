@@ -45,6 +45,7 @@
 // llm.ts is imported lazily (defaultDeps) because it opens a client at load; think() itself takes its
 // model, embedder and database as `deps`, so think.test.ts runs every path with a mocked model.
 import { heldFromGate, HOLD_PROBE_MODEL, type GateAnswer } from './llm_hold.ts';
+import { recallCases } from './case_recall.ts';
 
 export const SEATS = ['customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'] as const;
 export type Seat = typeof SEATS[number];
@@ -98,10 +99,14 @@ export interface ThinkResult {
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
 // deno-lint-ignore no-explicit-any
 type RpcResult = { data: any; error: { message: string } | null };
+export type EmbedSpace = 'gte' | 'ml';
 export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
   llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number }): Promise<LlmReply>;
-  embed(text: string): Promise<number[] | null>;
+  // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
+  embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
+  /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
+  space?(): Promise<EmbedSpace>;
   rpc(fn: string, args: Record<string, unknown>): Promise<RpcResult>;
   search?(query: string): Promise<{ url: string; title: string }[]>;
   read?(url: string): Promise<string | null>;
@@ -112,6 +117,16 @@ export interface ThinkDeps {
 // unrelated 0.760-0.816; scripts/sql/every_seat_remembers_its_cases_and_recalls_them_by_meaning.sql).
 // A step whose best knowledge is below it is not answered from knowledge alone; it is researched.
 export const CORROBORATION_FLOOR = 0.84;
+// The same bar in the multilingual space, where similarities sit on a different scale: the multilingual cosine
+// below which the SAME share of English eval questions' best row falls as falls below 0.84 under gte-small.
+// Measured by scripts/eval/multilingual_recall_eval.mjs on 23 Sep 2026: 0.833 in both runs (1,094 English
+// questions; with and without kb_chunks in the pool). The bar is moved to its equivalent, not lowered.
+export const CORROBORATION_FLOOR_ML = 0.833;
+// The routines each space reads. A vector is only ever put to the routine of its own space.
+const ROUTINES = {
+  gte: { retrieve: 'fn_reason_retrieve', recall: 'fn_case_recall', floor: CORROBORATION_FLOOR },
+  ml: { retrieve: 'fn_reason_retrieve_ml', recall: 'fn_case_recall_ml', floor: CORROBORATION_FLOOR_ML },
+} as const;
 export const MAX_STEPS = 5;
 export const MAX_SYNTH_PASSES = 3;         // the first draft + two forced re-passes
 export const MAX_RESEARCH_PAGES = 3;
@@ -204,7 +219,7 @@ export function parseJson<T = Record<string, unknown>>(text: string | null | und
 // ── the prompts ──────────────────────────────────────────────────────────────────────────────────
 const RULINGS = `Standing rulings of the founder of QuotesDone (a UAE procurement marketplace):
 - Every question from a customer or a supplier about any category, detail or specification (food and beverage excepted) is ANSWERED. "No", "I need to check and get back to you", or any excuse is not an answer. Published prices may be used; never invent an unpublished price.
-- Reason in steps before answering: which emirate / area / free zone? which authorities and standards govern it (e.g. Dubai Municipality, Civil Defence, the community developer)? are the limits area-specific or emirate-wide? then answer.
+- An answer depends on which emirate / area / free zone it concerns, which authorities and standards govern it (e.g. Dubai Municipality, Civil Defence, the community developer), and whether the limits are area-specific or emirate-wide; establish these before stating a limit.
 - Ask back only for a missing fact that CHANGES the answer, and still give everything that can already be said (e.g. "In Dubai it is X, in Abu Dhabi Y — which emirate is your villa in?").
 - Never decide what a message means by spotting a word; read what the person is actually saying.
 - UAE and GCC law only; United States law is out of scope.`;
@@ -231,7 +246,7 @@ export function synthesisPrompt(seat: Seat, audience: string, language: string, 
 You are the ${seat} seat, answering a ${audience} in ${language === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}.
 You are given the question, the plan, the facts known and missing, and numbered SOURCES. Answer from the sources; cite every source you rely on by its id. Where sources are thin, reason as a senior UAE practitioner would and say which authority governs it.${dec}
 Return ONE JSON object:
-{"answer":"<the reply>","reasoning":["<step>: <what it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}}`;
+{"answer":"<the reply>","reasoning":["<plan step id>: <the fact from the sources it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}}`;
 }
 
 export const VERIFY_PROMPT = `${RULINGS}
@@ -245,13 +260,29 @@ You are reading pages from UAE authorities to answer one research question. Extr
 {"findings":[{"statement":"<one fact, as the page states it>","url":"<the page it came from>"}]}
 Return {"findings":[]} if the pages do not answer it.`;
 
-function taskClassFor(phase: Phase, audience: string, deciding: boolean): string {
-  // Existing model_policy classes (scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql); no new rows.
+// THE 23 SEP MODEL RULING (founder_instruction 841/844): internal work runs on GLM (routine_employee_reasoning,
+// z-ai/glm-5.3-flash, about 15x cheaper than gpt-5.6-sol); only customer-facing, supplier-facing and Arabic
+// replies keep the qwen/sol classes. Planning (decompose), reading pages (research) and an internal decision
+// are internal steps whoever the final reader is. Verify stays knowledge_validation: it is routed through
+// counterpart_model to a reviewer of ANOTHER family than the author, which GLM authorship does not change.
+// A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question
+// HELD for a fixture was filed in the seat queue and replayed later without its caller, so the replay paid for it:
+// measured 24 Sep, 26 inquiry_intake.trade rows in two days from the e2e journey (scripts/e2e/journeys.mjs, a customer
+// at @example.invalid whose intake the harness deletes). A caller that knows its subject is a fixture says so
+// (subject.fixture = true) and nothing is filed. Rows whose text carries the ZZ DEMO / @example.invalid convention are
+// expired by fn_reason_held_due before any claim (a_held_row_is_tried_three_times_and_the_build_test_backlog_is_expired.sql),
+// so they are never replayed either; the unit tests here may keep using fixture text and still see the queue work.
+export function isFixtureRequest(req: Pick<ThinkRequest, 'subject'>): boolean {
+  return !!req.subject && (req.subject as Record<string, unknown>).fixture === true;
+}
+
+export function taskClassFor(phase: Phase, audience: string, _deciding: boolean, language = 'en'): string {
   if (phase === 'verify') return 'knowledge_validation';
-  if (phase === 'decompose' || phase === 'research' || deciding) return 'agent_reasoning';
+  if (phase === 'decompose' || phase === 'research') return 'routine_employee_reasoning';
   if (audience === 'customer' || audience === 'visitor') return 'customer_communication';
   if (audience === 'supplier') return 'supplier_communication';
-  return 'agent_reasoning';
+  if (language === 'ar') return 'customer_communication';   // Arabic wording stays on the qwen/sol class
+  return 'routine_employee_reasoning';                      // internal answer or internal decision
 }
 
 const vec = (v: number[]) => '[' + v.join(',') + ']';
@@ -263,6 +294,12 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const ctx = req.context ?? {};
   const audience = ctx.audience ?? 'internal';
   const deciding = !!req.decision;
+  let judgementId: number | null = null;
+  // The judgement row (opened by the recall in step b) is closed with what was decided, or with 'held'.
+  const settle = async (status: 'answered' | 'held', o: { decision?: string | null; confidence?: number; model?: string | null; reason?: string }) => {
+    if (judgementId == null) return;
+    try { await deps.rpc('fn_judgement_decided', { p_id: judgementId, p_status: status, p_decision: (o.decision ?? o.reason ?? '').slice(0, 2000) || null, p_confidence: o.confidence ?? null, p_model: o.model ?? null }); } catch (_e) { /* recording never fails the answer */ }
+  };
   const base = {
     context_used: { audience, language: ctx.language ?? 'en', profile: ctx.profile ?? null, case: ctx.case ?? null, trade: ctx.trade ?? null },
     missing_context: [] as Fact[], sources: [] as Source[],
@@ -270,7 +307,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
 
   const hold = async (reason: string, plan: Record<string, unknown>): Promise<ThinkResult> => {
     let held_id: number | null = null;
-    if (req.queueWhenHeld !== false) {
+    if (isFixtureRequest(req)) steps.push({ id: 'queue', kind: 'hold', goal: 'a fixture question is never queued', status: 'skipped', detail: 'subject.fixture' });
+    else if (req.queueWhenHeld !== false) {
       const { data, error } = await deps.rpc('fn_reason_hold', {
         p_seat: req.seat, p_surface: req.surface, p_question: req.question.slice(0, 8000),
         p_request: JSON.parse(JSON.stringify({ ...req, question: req.question.slice(0, 8000) })),
@@ -279,6 +317,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
       held_id = error ? null : Number(data) || null;
       steps.push({ id: 'queue', kind: 'hold', goal: `filed in the ${req.seat} seat's queue`, status: error ? 'failed' : 'done', detail: error?.message ?? { held_id } });
     }
+    await settle('held', { reason });
     return { status: 'held', answer: '', decision: null, steps, ...base, confidence: 0, asked_back: null, verified: null, model: null, held_id, reason };
   };
 
@@ -313,31 +352,46 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     value: f.value == null || String(f.value).trim() === '' || String(f.value) === 'null' ? null : String(f.value), from: f.from ? String(f.from) : null,
   })).filter((f) => f.name);
   const sources: Source[] = [];
-  const qVec = await deps.embed(req.question);
-  if (qVec) {
-    const { data, error } = await deps.rpc('fn_case_recall', { p_seat: req.seat, p_embedding: vec(qVec), p_trade: ctx.trade ?? null, p_k: 3, p_case_kind: null, p_other_seats: true, p_exclude_source_table: null, p_exclude_source_id: null });
-    const cases = !error && Array.isArray(data?.cases) ? data.cases : [];
-    for (const c of cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
-    steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: cases.length, recall: error ? error.message : 'ok' } });
-  } else {
-    steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), recall: 'embedding_unavailable' } });
-  }
+  // The space is asked once per run. If the multilingual embedder cannot answer, this run falls back to
+  // gte-small and the gte routines: a slower-to-improve answer, never a vector put to the wrong space.
+  let space: EmbedSpace = deps.space ? await deps.space().catch(() => 'gte' as EmbedSpace) : 'gte';
+  const embedIn = async (t: string): Promise<{ v: number[] | null; r: typeof ROUTINES[EmbedSpace] }> => {
+    if (space === 'ml') {
+      const v = await deps.embed(t, 'ml');
+      if (v) return { v, r: ROUTINES.ml };
+      space = 'gte';
+    }
+    return { v: await deps.embed(t, 'gte'), r: ROUTINES.gte };
+  };
+  const q0 = await embedIn(req.question);
+  const qVec = q0.v;
+  // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
+  // public.seat_judgement carrying what was recalled — the recall record the outcome is later written onto.
+  const memory = await recallCases(deps, { seat: req.seat, path: req.surface, situation: req.question, trade: ctx.trade ?? null, k: 3, ...(q0.r === ROUTINES.ml ? { embeddingMl: qVec } : { embedding: qVec }), subject: req.subject ?? null });
+  judgementId = memory.judgement_id ?? null;
+  for (const c of memory.cases) sources.push({ id: 'case#' + c.case_id, kind: 'case_memory', title: `${c.seat}/${c.case_kind} ${c.finalised ? 'FINALISED' : 'not finalised'}`, excerpt: [c.situation, c.decision && 'decided: ' + c.decision, c.outcome && 'outcome: ' + c.outcome, c.correction && 'CORRECTED: ' + c.correction].filter(Boolean).join(' | ').slice(0, 900), citation: null, similarity: c.similarity ?? null, trust: 'case_memory' });
+  steps.push({ id: 'resolve', kind: 'resolve', goal: 'fill the deciding facts from the conversation, profile, case and case memory', status: 'done', detail: { known: facts.filter((f) => f.value).map((f) => f.name), missing: facts.filter((f) => !f.value).map((f) => f.name), recalled: memory.cases.length, recall: memory.available ? 'ok' : memory.reason, judgement_id: judgementId, space: q0.r === ROUTINES.ml ? 'ml' : 'gte' } });
 
   // c. RETRIEVE PER STEP, d. RESEARCH where knowledge is thin
   const thin: typeof planSteps = [];
   for (const s of planSteps) {
     if (!s.needs) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'skipped' }); continue; }
-    const v = await deps.embed(s.query);
+    const { v, r: rt } = await embedIn(s.query);
     if (!v) { steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: 'failed', detail: 'embedding_unavailable' }); thin.push(s); continue; }
-    const { data, error } = await deps.rpc('fn_reason_retrieve', { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
+    // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
+    // without one it ranks by the multilingual space alone.
+    const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
+      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6 }
+      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
     const rows = !error && Array.isArray(data) ? data : [];
     for (const r of rows) {
       const id = `${r.source}:${r.id}`;
       if (!sources.some((x) => x.id === id)) sources.push({ id, kind: String(r.source), title: String(r.title ?? ''), excerpt: String(r.excerpt ?? '').slice(0, 1200), citation: r.citation ?? null, similarity: Number(r.similarity), trust: r.trust === 'pending_review' ? 'pending_review' : 'reviewed' });
     }
     const best = rows.reduce((m: number, r: { similarity?: number }) => Math.max(m, Number(r.similarity) || 0), 0);
-    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, error: error?.message } });
-    if (best < CORROBORATION_FLOOR) thin.push(s);
+    steps.push({ id: s.id, kind: 'retrieve', goal: s.goal, status: error ? 'failed' : 'done', detail: { rows: rows.length, best: Math.round(best * 1000) / 1000, space: rt.retrieve === ROUTINES.ml.retrieve ? 'ml' : 'gte', error: error?.message } });
+    if (best < rt.floor) thin.push(s);
   }
   const doResearch = (req.research ?? !deciding) && thin.length > 0 && deps.search && deps.read;
   const researched: Source[] = [];
@@ -364,7 +418,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     const r = await deps.llm('synthesise', synthSys + (refusal ? `\n\nYOUR PREVIOUS DRAFT WAS REFUSED: ${refusal}. Write it again, correctly.` : ''),
-      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding), seat: req.seat, max: 900 });
+      JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
     draft = parseJson<Draft>(r.content); model = r.model ?? model;
     if (!r.content) { steps.push({ id: 'synthesise.' + pass, kind: 'synthesise', goal: 'write the answer', status: 'failed', detail: r.error }); refusal = 'no reply'; break; }
     refusal = refuse(draft, { missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true });
@@ -388,7 +442,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     } else {
       // One corrective pass with the reviewer's problems; the second reading is final and marked.
       const r = await deps.llm('synthesise', synthSys + `\n\nAN INDEPENDENT REVIEWER FOUND PROBLEMS: ${(vj.problems ?? []).join(' | ')}. Correct them.`,
-        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding), seat: req.seat, max: 900 });
+        JSON.stringify(payload), { taskClass: taskClassFor('synthesise', audience, deciding, ctx.language ?? 'en'), seat: req.seat, max: 900 });
       const fixed = parseJson<Draft>(r.content);
       if (fixed && !refuse(fixed, { missing, sourceIds, decision: req.decision, conversationText: textOf(ctx) + '\n' + req.question, requireTrail: true })) { draft = fixed; model = r.model ?? model; }
       verified = { status: 'disagreed', by: v.model ?? null, notes: (vj.problems ?? []).join(' | ').slice(0, 1000) };
@@ -406,6 +460,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
 
   const fields: Record<string, { value: string; evidence: string }> = {};
   for (const [k, f] of Object.entries(draft.decision?.fields ?? {})) fields[k] = { value: String(f?.value ?? ''), evidence: String(f?.evidence ?? '') };
+  await settle('answered', { decision: deciding ? (draft.decision?.choice ? String(draft.decision.choice) : JSON.stringify(fields)) : String(draft.answer), confidence, model });
   return {
     status: 'answered', answer: String(draft.answer).trim(),
     decision: deciding ? { choice: draft.decision?.choice ? String(draft.decision.choice) : null, fields } : null,
@@ -423,11 +478,16 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     gate: async () => (await admin.rpc('fn_kernel_paid_provider_gate', { p_model: HOLD_PROBE_MODEL })).data,
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
-      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, temperature: phase === 'verify' ? 0 : 0.2 });
+      const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
       const r = await call(system, input, o.max ?? 900, '', o.counterpartModel ? { counterpartModel: o.counterpartModel } : {});
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
-    embed: async (t) => { const { embedLine } = await import('./gte_embed.ts'); return await embedLine(t); },
+    embed: async (t, space) => {
+      // The model runs in embed_ml, never in this worker (ml_embed_client.ts); 8 s covers its cold start (1.2-2.6 s).
+      if (space === 'ml') { const { embedQueryMlRemote } = await import('./ml_embed_client.ts'); return await embedQueryMlRemote(admin, t, fn, 8000); }
+      const { embedLine } = await import('./gte_embed.ts'); return await embedLine(t);
+    },
+    space: async () => { const { readSpace } = await import('./ml_embed_client.ts'); return await readSpace(admin); },
     rpc: async (f, args) => { const r = await admin.rpc(f, args); return { data: r.data, error: r.error }; },
     search: webSearch,
     read: readPage,

@@ -1,0 +1,528 @@
+{
+  "trade": "office_equipment",
+  "entries": [
+    {
+      "id": "office_equipment:laser-vs-inkjet",
+      "topic": "Laser vs inkjet printers",
+      "kind": "comparison",
+      "body_en": "Laser (electrophotographic) printers fuse dry toner onto paper with a heated fuser; inkjets spray liquid ink. For an office printing mostly text in volume, laser is the default: faster output (production mono lasers exceed 200 ppm), larger-yield consumables and usually a lower running cost per page, though colour laser photo quality is limited by 600-1200 dpi resolution. Inkjet wins on photo and graphic quality, on low power draw (no fuser), and dominates large-format and home use. Business ink-tank inkjets have narrowed the running-cost gap, so the decision should be made on total cost of ownership at the buyer's real monthly volume, not purchase price. Both technologies follow the cheap-device, costly-consumable model, so a quote that is cheap on hardware but silent on consumable price and yield is incomplete. In UAE offices with heat and dust, ask about recommended operating temperature and how the device handles idle periods (inkjet heads can dry and clog if unused).",
+      "body_ar": "تعمل طابعات الليزر بتثبيت مسحوق الحبر (التونر) على الورق بواسطة وحدة تسخين (فيوزر)، بينما تعتمد الطابعات النافثة للحبر على رش حبر سائل. للمكاتب التي تطبع نصوصاً بكميات كبيرة يبقى الليزر الخيار الافتراضي: سرعة أعلى، وعبوات حبر بمردود صفحات أكبر، وتكلفة تشغيل للصفحة غالباً أقل، مع أن جودة الصور في الليزر الملوّن محدودة بدقة 600-1200 نقطة في البوصة. أما النافثة للحبر فتتفوق في جودة الصور والرسومات، وتستهلك طاقة أقل لعدم وجود فيوزر، وهي السائدة في الطباعة العريضة والاستخدام المنزلي. وقد قلّصت طابعات خزانات الحبر المخصصة للأعمال فارق التكلفة، لذا يجب أن يُبنى القرار على التكلفة الإجمالية للملكية وفق الحجم الشهري الفعلي لا على سعر الجهاز. وكلا النوعين يقوم على جهاز رخيص ومستهلكات مرتفعة الثمن، فأي عرض سعر يغفل سعر المستهلكات ومردودها يُعد ناقصاً. وفي بيئة الإمارات الحارة والمغبرة يُستحسن السؤال عن درجة حرارة التشغيل الموصى بها وعن انسداد رؤوس الطباعة عند التوقف الطويل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Laser_printing"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:mfp-a3-vs-a4",
+      "topic": "A3 vs A4 multifunction printers (MFP)",
+      "kind": "comparison",
+      "body_en": "An MFP combines print, copy, scan and often fax. A4 MFPs handle paper up to 210x297 mm; A3 MFPs handle up to 297x420 mm and, on production models, often SRA3. A3 devices are floor-standing or large desktop units with bigger paper trays, higher duty cycles and finishing options (staple, punch, booklet), and are typically placed as departmental copiers under lease or managed print. A4 MFPs are cheaper, smaller and increasingly fast, and suit teams that never print A3 drawings, spreadsheets or posters. Buyers often over-buy A3 just in case; check actual A3 usage from existing device counters first. Conversely, architects, engineers, schools and legal/finance teams printing A3 schedules genuinely need A3. When specifying, state the maximum paper size, whether colour is needed, scan requirements (single-pass duplex scanning, scan-to-email/folder, OCR), finishing, paper capacity and monthly volume. Also compare footprint and power: an A3 floor unit with finisher needs clear floor space, service access on the sides and often a dedicated socket, while an A4 desktop unit fits on a cabinet. For multi-site offices, a mix of one A3 device per floor plus A4 units near users is common, and pull printing lets users collect jobs from any device. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "تجمع الطابعة متعددة الوظائف بين الطباعة والنسخ والمسح الضوئي وغالباً الفاكس. تدعم أجهزة A4 ورقاً حتى 210×297 مم، بينما تدعم أجهزة A3 حتى 297×420 مم، وغالباً مقاس SRA3 في الموديلات الإنتاجية. أجهزة A3 أرضية أو مكتبية كبيرة، بأدراج ورق أكبر ودورة تشغيل أعلى وخيارات تشطيب (تدبيس، تخريم، كتيبات)، وتُوضع عادة كآلات تصوير للأقسام بنظام التأجير أو خدمات الطباعة المُدارة. أما أجهزة A4 فأرخص وأصغر وأصبحت سريعة، وتناسب الفرق التي لا تطبع مخططات أو جداول أو ملصقات بمقاس A3. كثير من المشترين يشترون A3 احتياطاً دون حاجة، فينبغي أولاً مراجعة عدادات الأجهزة الحالية لمعرفة الاستخدام الفعلي. في المقابل يحتاج المهندسون والمعماريون والمدارس وفرق المالية والقانون فعلاً إلى A3. وعند الطلب يجب تحديد أكبر مقاس ورق، والحاجة إلى الألوان، ومتطلبات المسح (مسح مزدوج بتمريرة واحدة، مسح إلى البريد أو المجلد، تعرّف ضوئي على النصوص)، والتشطيب، وسعة الورق، والحجم الشهري. قارن أيضاً المساحة والكهرباء: جهاز A3 الأرضي مع وحدة التشطيب يحتاج إلى مساحة خالية ومنفذ للصيانة على جانبيه وغالباً مقبس مخصص، بينما يوضع جهاز A4 على خزانة. وفي المكاتب متعددة المواقع يشيع وضع جهاز A3 واحد في كل طابق مع أجهزة A4 قرب المستخدمين، وتتيح الطباعة المعلّقة استلام المهام من أي جهاز. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO_216"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:ppm-duty-cycle",
+      "topic": "Print speed (ppm), duty cycle and recommended monthly volume",
+      "kind": "glossary",
+      "body_en": "ppm (pages per minute) is the rated A4 single-sided speed; duplex and colour speeds may be lower, and first-page-out time matters for small jobs. Duty cycle is the maximum pages a device can theoretically produce in a month; it demonstrates robustness and is not a usage target. Recommended monthly print volume (RMPV) is the sustainable figure around which service intervals and consumables are designed; a fixed ratio between the two figures is not established (the fetched managed-print source gives none), so always obtain the manufacturer's stated RMPV for the exact model. Size a device to RMPV, not duty cycle: a printer run near its duty cycle wears rollers, fusers and drums early, and warranty or service terms may exclude over-use. Ask suppliers for RMPV in writing and compare it with the buyer's measured volume from existing meter reads, allowing headroom for growth. Speed claims should be compared under the same conditions: A4 versus Letter, simplex versus duplex, and mono versus colour. For shared departmental devices, peak demand matters more than the monthly total, so also consider queue time at busy hours and warm-up time from sleep.",
+      "body_ar": "سرعة ppm هي عدد الصفحات في الدقيقة لمقاس A4 على وجه واحد، وقد تكون سرعة الطباعة على الوجهين أو بالألوان أقل، كما أن زمن خروج الصفحة الأولى مهم للمهام الصغيرة. دورة التشغيل هي الحد الأقصى النظري للصفحات التي يستطيع الجهاز إنتاجها شهرياً، وهي مؤشر على المتانة لا هدف للاستخدام. أما الحجم الشهري الموصى به فهو الرقم المستدام الذي تُصمَّم عليه فترات الصيانة والمستهلكات، ولم تثبت نسبة ثابتة بين الرقمين (فالمصدر الذي تم الاطلاع عليه لا يذكر نسبة)، لذا اطلب دائماً الحجم الموصى به من الشركة المصنعة للطراز المحدد. يجب اختيار الجهاز وفق الحجم الموصى به لا وفق دورة التشغيل، فتشغيله قرب حدّه الأقصى يستهلك البكرات والفيوزر والأسطوانة مبكراً، وقد تستثني شروط الضمان أو الخدمة سوء الاستخدام. اطلب من المورد الحجم الموصى به كتابياً وقارنه بالحجم المقاس من عدادات الأجهزة الحالية مع هامش للنمو. يجب مقارنة ادعاءات السرعة في الظروف نفسها: A4 مقابل Letter، وجه واحد مقابل وجهين، وأحادي مقابل ملون. وفي الأجهزة المشتركة بين الأقسام يكون الطلب في ساعات الذروة أهم من المجموع الشهري، لذا ضع في الاعتبار زمن الانتظار في أوقات الازدحام وزمن الإحماء من وضع السكون.",
+      "sources": [
+        "https://managedprint.com/optimizing-printers-duty-cycle-vs-monthly-volume"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:cost-per-page",
+      "topic": "Cost per page (CPP) and total cost of ownership",
+      "kind": "price_driver",
+      "body_en": "Cost per page is the consumable cost of one printed page: cartridge price divided by its rated yield, plus drum, fuser, maintenance-kit and waste-toner costs where those are separate parts; colour pages sum all four colours. Yields must be compared on the ISO basis (ISO/IEC 19752 mono toner, 19798 colour toner, 24711/24712 inkjet), which use standard test documents, several printers and cartridges and defined end-of-life rules; the traditional 5% coverage description is only a rough proxy. Real office coverage (logos, forms, slides) is often higher, so real CPP is higher than advertised. Total cost of ownership = device price or lease + CPP x volume + service + power + paper over the planned life (commonly 3-5 years). Main price drivers: mono vs colour, device class, cartridge capacity (standard vs high-yield), genuine vs compatible supplies, and contract length. A practical test: ask each bidder to fill the same table with cartridge price, ISO yield, drum and fuser life and price, and computed mono and colour CPP, then multiply by the buyer's measured volumes over the contract life. The lowest device price often turns out not to be the lowest total.",
+      "body_ar": "تكلفة الصفحة هي تكلفة المستهلكات لطباعة صفحة واحدة: سعر الخرطوشة مقسوماً على مردودها المعتمد، مضافاً إليه تكلفة الأسطوانة والفيوزر وطقم الصيانة وعلبة الحبر المهدر إن كانت قطعاً منفصلة، وفي الصفحة الملونة تُجمع تكلفة الألوان الأربعة. يجب مقارنة المردود على أساس معايير ISO (‏19752 للتونر الأحادي، و19798 للتونر الملون، و24711/24712 للحبر السائل) التي تستخدم مستندات اختبار قياسية وعدة طابعات وخراطيش وقواعد محددة لنهاية العمر، أما وصف «تغطية 5%» فتقريب فقط. التغطية الفعلية في المكاتب (شعارات، نماذج، عروض) أعلى غالباً، فتكون التكلفة الحقيقية أعلى من المعلنة. التكلفة الإجمالية للملكية = سعر الجهاز أو الإيجار + تكلفة الصفحة × الحجم + الخدمة + الكهرباء + الورق طوال العمر المخطط (عادة 3-5 سنوات). أهم محددات السعر: أحادي أو ملون، فئة الجهاز، سعة الخرطوشة (عادية أو عالية المردود)، أصلية أو متوافقة، ومدة العقد. اختبار عملي: اطلب من كل مورد تعبئة الجدول نفسه بسعر الخرطوشة ومردودها وفق ISO وعمر الأسطوانة والفيوزر وسعرهما وتكلفة الصفحة الأحادية والملونة المحسوبة، ثم اضربها في الأحجام المقاسة للمشتري طوال مدة العقد. وكثيراً ما يتبين أن أرخص جهاز ليس الأقل تكلفة إجمالية.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752",
+        "https://en.wikipedia.org/wiki/Laser_printing"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:iso-yield-standards",
+      "topic": "ISO/IEC page-yield standards for cartridges",
+      "kind": "standard",
+      "body_en": "ISO/IEC 19752 (introduced 2004) defines how monochrome laser toner yield is measured; ISO/IEC 19798 covers colour toner, and ISO/IEC 24711 with test suite 24712 covers inkjet. The method prints standard test pages in a controlled environment, with defined paper and print mode, on at least three printers with three cartridges each, stopping at a defined end-of-life condition. The resulting declared yield is what manufacturers print on the box. Use it to compare cartridges fairly: a compatible cartridge that claims a yield without citing the ISO method, or claims a higher yield than the OEM for the same fill, is a red flag. Declared yield is not a guarantee for the buyer's own documents; heavy graphics, many small jobs and cleaning cycles reduce it. When a supplier quotes a yield, record the exact standard and cartridge code; standard and high-yield versions of the same model can differ greatly. Many devices also ship with lower-capacity starter cartridges, so the first cartridge in the box should not be used to judge running cost. ISO/IEC 19752 was introduced in June 2004 and revised in 2017; the method also requires the test cartridges to be bought from the open market rather than supplied by the manufacturer.",
+      "body_ar": "يحدد المعيار ISO/IEC 19752 (صدر عام 2004) طريقة قياس مردود تونر الليزر الأحادي، ويغطي ISO/IEC 19798 التونر الملون، ويغطي ISO/IEC 24711 مع حزمة الاختبار 24712 الحبر السائل. تقوم الطريقة على طباعة صفحات اختبار قياسية في بيئة مضبوطة بورق ووضع طباعة محددين، على ثلاث طابعات على الأقل بثلاث خراطيش لكل منها، والتوقف عند شرط محدد لنهاية العمر. والمردود المعلن الناتج هو ما يطبعه المصنّع على العبوة. استخدمه لمقارنة الخراطيش بعدالة؛ فالخرطوشة المتوافقة التي تعلن مردوداً دون ذكر طريقة ISO، أو تعلن مردوداً أعلى من الأصلية لنفس كمية الحبر، علامة تحذير. والمردود المعلن ليس ضماناً لمستندات المشتري، فالرسومات الكثيفة والمهام الصغيرة الكثيرة ودورات التنظيف تقلله. عند ذكر المورد للمردود سجّل المعيار الدقيق ورمز الخرطوشة، فقد تختلف النسخة العادية وعالية المردود للموديل نفسه اختلافاً كبيراً. كما تُشحن أجهزة كثيرة بخراطيش بدء تشغيل ذات سعة أقل، فلا يُحكم على تكلفة التشغيل من الخرطوشة الأولى في العلبة. صدر معيار ISO/IEC 19752 في يونيو 2004 وحُدِّث عام 2017، ويشترط أيضاً شراء خراطيش الاختبار من السوق المفتوحة لا أن يوفرها المصنّع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:genuine-vs-compatible-toner",
+      "topic": "Genuine (OEM) vs compatible vs remanufactured toner",
+      "kind": "comparison",
+      "body_en": "Genuine/OEM cartridges are made by the printer brand; compatible cartridges are new third-party builds; remanufactured cartridges are used OEM shells refilled and refurbished. Compatibles and remans are cheaper per cartridge, but quality varies widely by factory: risks include lower real yield, toner leaks, poor fusing, chip rejection after firmware updates, and ghosting. Damage caused by a faulty third-party cartridge is usually excluded from the OEM repair cover, and many managed-print contracts require genuine supplies. For UAE procurement ask: brand and origin of the compatible, whether yield is declared per ISO/IEC 19752/19798, a written replacement guarantee for defective cartridges and for any printer damage, chip compatibility with current firmware, and whether the quote is for a high-yield or standard cartridge. Counterfeit OEM-branded cartridges also circulate; buy from authorised channels and check security labels. A sensible policy is to trial a compatible brand on a few devices, track yield and print quality over several cartridges, and keep genuine supplies for devices under manufacturer service contracts. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "الخرطوشة الأصلية تصنعها الشركة المصنّعة للطابعة، والمتوافقة جديدة من طرف ثالث، والمعاد تصنيعها هيكل أصلي مستعمل أُعيدت تعبئته وتجديده. المتوافقة والمعاد تصنيعها أرخص، لكن جودتها تتفاوت كثيراً بحسب المصنع، ومن مخاطرها: مردود فعلي أقل، تسرب الحبر، ضعف التثبيت، رفض الشريحة بعد تحديث البرنامج الثابت، وظهور ظلال على الطباعة. الأضرار الناتجة عن خرطوشة غير أصلية معيبة تُستثنى عادة من تغطية المصنّع، وكثير من عقود الطباعة المُدارة تشترط المستهلكات الأصلية. في المشتريات بالإمارات اسأل عن: علامة المنتج المتوافق ومنشئه، هل المردود معلن وفق ISO/IEC 19752/19798، ضمان مكتوب لاستبدال الخراطيش المعيبة وتعويض أي ضرر بالطابعة، توافق الشريحة مع البرنامج الثابت الحالي، وهل العرض لخرطوشة عالية المردود أم عادية. كما تنتشر خراطيش مقلدة تحمل علامات أصلية، فاشترِ من القنوات المعتمدة وتحقق من ملصقات الأمان. السياسة المعقولة هي تجربة علامة متوافقة على عدد قليل من الأجهزة، ومتابعة المردود وجودة الطباعة عبر عدة خراطيش، والإبقاء على المستهلكات الأصلية للأجهزة المشمولة بعقود خدمة المصنّع. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:managed-print-services",
+      "topic": "Managed print services (MPS) and click contracts",
+      "kind": "product",
+      "body_en": "Under managed print services a provider places and maintains the printer fleet and bills per page (a click) instead of the buyer purchasing toner and repairs separately. A typical contract has a device charge or monthly base fee; separate mono and colour click rates; sometimes a minimum monthly click allowance (use it or lose it) with overage above it; and inclusions ranging from toner only to all parts, labour and consumables except paper and staples. Remote meter-reading software reports volumes for billing and triggers automatic toner delivery. MPS suits organisations with many devices and poor visibility of print spend, and a fleet assessment (device count, volumes, locations) should come first. Check: what is included, response-time and uptime SLA, minimum volumes, how A3 clicks are counted (often as two A4), annual price escalation, term and early-termination fees, and end-of-term return or buy-out. Before signing, request a sample monthly invoice and a sample fleet report so the buyer knows exactly how volumes, overage and credits will appear.",
+      "body_ar": "في خدمات الطباعة المُدارة يوفّر المزوّد أسطول الطابعات ويصونه ويحاسب على كل صفحة («نقرة») بدلاً من أن يشتري العميل الحبر والإصلاحات منفصلة. يتضمن العقد النموذجي رسوم الجهاز أو رسماً شهرياً أساسياً؛ وسعر نقرة منفصلاً للأحادي وللملون؛ وأحياناً حداً أدنى شهرياً للنقرات مع رسوم للتجاوز؛ ونطاق تغطية يتراوح بين الحبر فقط وكل القطع والعمالة والمستهلكات ما عدا الورق والدبابيس. يقرأ برنامج عن بُعد العدادات للفوترة ويطلب الحبر آلياً. تناسب هذه الخدمة الجهات ذات الأجهزة الكثيرة التي لا تعرف إنفاقها على الطباعة، ويجب أن يسبقها تقييم للأسطول (عدد الأجهزة، الأحجام، المواقع). تحقق من: ما المشمول، زمن الاستجابة ونسبة التشغيل في اتفاقية مستوى الخدمة، الحد الأدنى للأحجام، طريقة احتساب نقرة A3 (غالباً نقرتان A4)، الزيادة السنوية في السعر، المدة ورسوم الإنهاء المبكر، وإعادة الأجهزة أو شراؤها في نهاية العقد. قبل التوقيع اطلب نموذج فاتورة شهرية ونموذج تقرير للأسطول حتى يعرف المشتري بدقة كيف ستظهر الأحجام والتجاوزات والأرصدة.",
+      "sources": [
+        "https://www.parmetech.com/managed-print-services-contract-basics/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:printer-quote-checklist",
+      "topic": "What to state when requesting a printer / MFP / MPS quote",
+      "kind": "spec_checklist",
+      "body_en": "A supplier can only quote exactly when the request fixes the device class and the commercial model. State: purchase, lease or MPS; number of devices and locations; mono or colour; A4 or A3 (and SRA3 if needed); required speed and measured monthly volume per device (mono and colour separately); functions (print/copy/scan/fax); scan needs (single-pass duplex, scan-to-email/folder/cloud, OCR); paper trays, capacity, media weights and envelopes; finishing (staple, punch, booklet); connectivity (Ethernet, Wi-Fi, mobile print) and security (secure pull printing with card release, disk encryption and erase, user authentication); Arabic panel/font needs; consumables policy (genuine only or not); service SLA (response time, uptime); contract term; installation, network setup and user training. For MPS also state click inclusions and whether minimum volumes are acceptable. Attach existing meter reads or print-management reports if available; they turn guesses into measured volumes. Ask every bidder to answer the same fields in the same order, including model number, ISO cartridge yields and cost per page, so offers can be compared line by line. Requests that omit volume or commercial model usually return quotes that are not comparable.",
+      "body_ar": "لا يستطيع المورد تقديم عرض دقيق إلا إذا حدد الطلب فئة الجهاز والنموذج التجاري. اذكر: شراء أم تأجير أم طباعة مُدارة؛ عدد الأجهزة والمواقع؛ أحادي أم ملون؛ A4 أم A3 (وSRA3 إن لزم)؛ السرعة المطلوبة والحجم الشهري المقاس لكل جهاز (الأحادي والملون كلٌّ على حدة)؛ الوظائف (طباعة/نسخ/مسح/فاكس)؛ احتياجات المسح (مسح مزدوج بتمريرة واحدة، مسح إلى البريد أو مجلد أو السحابة، تعرّف ضوئي)؛ أدراج الورق وسعتها وأوزان الورق والأظرف؛ التشطيب (تدبيس، تخريم، كتيبات)؛ الاتصال (إيثرنت، واي فاي، طباعة من الجوال) والأمان (طباعة آمنة بالبطاقة، تشفير القرص ومسحه، مصادقة المستخدم)؛ الحاجة إلى لوحة أو خطوط عربية؛ سياسة المستهلكات (أصلية فقط أم لا)؛ اتفاقية مستوى الخدمة (زمن الاستجابة ونسبة التشغيل)؛ مدة العقد؛ والتركيب والربط بالشبكة وتدريب المستخدمين. وفي الطباعة المُدارة حدد أيضاً ما تشمله النقرة وهل الحد الأدنى للأحجام مقبول. أرفق قراءات العدادات الحالية أو تقارير إدارة الطباعة إن توفرت، فهي تحوّل التخمين إلى أحجام مقاسة. واطلب من كل مورد الإجابة على البنود نفسها بالترتيب نفسه، بما فيها رقم الموديل ومردود الخراطيش وفق ISO وتكلفة الصفحة، لمقارنة العروض بنداً ببند. والطلبات التي تغفل الحجم أو النموذج التجاري تنتج عادة عروضاً غير قابلة للمقارنة.",
+      "sources": [
+        "https://www.parmetech.com/managed-print-services-contract-basics/",
+        "https://managedprint.com/optimizing-printers-duty-cycle-vs-monthly-volume",
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "commercial model (purchase/lease/MPS)",
+        "number of devices and locations",
+        "mono or colour",
+        "max paper size (A4/A3/SRA3)",
+        "print speed ppm",
+        "monthly volume per device (mono/colour)",
+        "functions (print/copy/scan/fax)",
+        "scan requirements",
+        "paper capacity and media weights",
+        "finishing",
+        "connectivity",
+        "security features",
+        "consumables policy",
+        "service SLA",
+        "contract term",
+        "installation and training"
+      ]
+    },
+    {
+      "id": "office_equipment:leasing-vs-buying",
+      "topic": "Leasing vs buying office printers and copiers",
+      "kind": "comparison",
+      "body_en": "Buying outright suits low-volume A4 devices whose price is small and which will be run to end of life. Leasing or rental over typically 3-5 years suits A3 departmental MFPs and fleets: it spreads cost, often bundles service and toner, and allows technology refresh at term end. Hidden costs of leasing: total payments usually exceed the cash price; long terms lock in pricing and volumes; early termination and upgrade buy-outs can be expensive; and devices must be returned in agreed condition, sometimes at the lessee's freight cost. Compare total payments over the term plus click charges against cash price plus a separate service contract. Clarify who owns the device at end of term, whether a nominal buy-out applies, and how data on the internal hard disk is securely erased before return. Accounting treatment should be confirmed with the buyer's accountant. Also ask whether a lease can absorb growth, for example adding devices mid-term with a common end date. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "يناسب الشراء المباشر أجهزة A4 منخفضة الحجم الرخيصة التي ستُستخدم حتى نهاية عمرها. أما التأجير أو الاستئجار لمدة 3-5 سنوات عادة فيناسب أجهزة A3 متعددة الوظائف للأقسام والأساطيل: يوزع التكلفة، ويشمل غالباً الخدمة والحبر، ويتيح تحديث التقنية عند نهاية المدة. من تكاليفه الخفية: مجموع الأقساط يتجاوز عادة سعر الشراء النقدي؛ المدد الطويلة تُثبّت الأسعار والأحجام؛ الإنهاء المبكر أو الترقية قد يكون مكلفاً؛ ويجب إعادة الأجهزة بحالة متفق عليها وأحياناً على نفقة المستأجر. قارن مجموع الأقساط ورسوم النقرات طوال المدة بسعر الشراء النقدي مع عقد خدمة منفصل. ووضّح من يملك الجهاز في نهاية المدة، وهل يوجد خيار شراء رمزي، وكيف تُمسح البيانات المخزنة على القرص الداخلي بأمان قبل الإعادة. أما المعالجة المحاسبية فيؤكدها محاسب المشتري. واسأل أيضاً هل يمكن للعقد استيعاب النمو، كإضافة أجهزة خلال المدة بتاريخ انتهاء موحد. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://www.parmetech.com/managed-print-services-contract-basics/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:large-format-plotters",
+      "topic": "Large-format printers and plotters",
+      "kind": "product",
+      "body_en": "Wide-format printers take roll media, commonly from about 24 inches (610 mm) upward; the category spans roughly 18 to 100 inches, with wider machines called grand format. Two very different families exist. CAD/technical plotters (typically 24, 36 or 44 inch, aqueous inkjet or toner-based) print A1/A0 drawings, GIS maps and posters for engineering and architecture offices; key specs are width, A1 prints per minute, line accuracy, roll count, integrated scanner for copy, and stacker. Graphics/signage printers use solvent, eco-solvent, UV-curable, latex or dye-sublimation inks for banners, vinyl, vehicle wraps, backlit film and textiles; aqueous prints generally need lamination for outdoor use, while solvent and UV prints are water-resistant. Specify the application first, then width, ink type, media types, outdoor durability expectation, ventilation needs for solvent inks, and whether a cutter or laminator is required. Running cost depends heavily on ink cartridge size and printhead life, so ask for cost per square metre at the buyer's typical coverage. Media availability locally and whether the machine accepts third-party media also affect long-term cost.",
+      "body_ar": "تعمل الطابعات العريضة بلفافات وسائط، عادة من نحو 24 بوصة (610 مم) فأكثر، ويمتد النطاق تقريباً من 18 إلى 100 بوصة، وما هو أعرض يسمى الطباعة الضخمة. وتوجد عائلتان مختلفتان تماماً: راسمات المخططات الهندسية (عادة 24 أو 36 أو 44 بوصة، بحبر مائي أو تونر) لطباعة مخططات A1/A0 والخرائط والملصقات لمكاتب الهندسة والعمارة، وأهم مواصفاتها العرض وعدد لوحات A1 في الدقيقة ودقة الخطوط وعدد اللفافات ووجود ماسح مدمج ومجمّع للمخرجات. أما طابعات الإعلانات واللوحات فتستخدم أحباراً مذيبة أو صديقة للبيئة أو بالأشعة فوق البنفسجية أو اللاتكس أو التسامي الحراري للّافتات والفينيل وتغليف السيارات والأفلام المضاءة خلفياً والأقمشة؛ والمطبوعات بالحبر المائي تحتاج غالباً إلى تغليف للاستخدام الخارجي، بينما تقاوم مطبوعات الحبر المذيب والأشعة فوق البنفسجية الماء. حدد التطبيق أولاً، ثم العرض ونوع الحبر وأنواع الوسائط ومتانة الاستخدام الخارجي المطلوبة والتهوية اللازمة للأحبار المذيبة، والحاجة إلى قاطعة أو جهاز تغليف. تعتمد تكلفة التشغيل كثيراً على حجم خراطيش الحبر وعمر رؤوس الطباعة، لذا اطلب التكلفة لكل متر مربع عند التغطية المعتادة للمشتري. كما يؤثر توفر الوسائط محلياً وقبول الجهاز لوسائط طرف ثالث في التكلفة على المدى الطويل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Wide-format_printer"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:offset-vs-digital-printing",
+      "topic": "Commercial printing: offset vs digital",
+      "kind": "comparison",
+      "body_en": "Offset lithography transfers ink from a plate to a rubber blanket to paper. It requires plates (made by computer-to-plate) and press make-ready, so each job carries a fixed setup cost, but the unit cost falls steeply with quantity; it is the cheapest route to high-quality prints in commercial quantities, and web-fed offset is generally used for runs above about five to ten thousand impressions. Offset also handles Pantone spot colours and a wide range of papers well. Digital printing (toner or inkjet presses) has almost no setup, so it wins on short runs, fast turnaround, proofs and variable data (names, numbers, QR codes per piece), but unit cost stays roughly flat with quantity. For a buyer the crossover quantity depends on size, colours and stock, so ask printers to quote both methods at the actual quantity and at a higher break (e.g. 500 vs 5,000). State whether exact brand colour matching (Pantone) is required.",
+      "body_ar": "تنقل الطباعة الأوفست الحبر من لوح معدني إلى بطانية مطاطية ثم إلى الورق. وتتطلب ألواحاً (تُصنع بتقنية الحاسوب إلى اللوح) وتجهيزاً للمطبعة، لذا تحمل كل مهمة تكلفة إعداد ثابتة، لكن تكلفة الوحدة تنخفض بشدة مع زيادة الكمية؛ فهي أرخص طريق لطباعة عالية الجودة بكميات تجارية، وتُستخدم مطابع الأوفست الدوّارة عادة لأكثر من خمسة إلى عشرة آلاف طبعة. كما تتعامل الأوفست جيداً مع ألوان بانتون الخاصة ومع تشكيلة واسعة من الورق. أما الطباعة الرقمية (مطابع تونر أو نفث حبر) فشبه خالية من الإعداد، فتتفوق في الكميات الصغيرة والتسليم السريع والنماذج التجريبية والبيانات المتغيرة (أسماء أو أرقام أو رموز QR لكل قطعة)، لكن تكلفة الوحدة تبقى ثابتة تقريباً مع الكمية. ونقطة التعادل تعتمد على المقاس والألوان والورق، لذا اطلب من المطابع التسعير بالطريقتين عند الكمية الفعلية وعند كمية أعلى (مثل 500 مقابل 5,000)، وحدد هل يلزم مطابقة ألوان العلامة التجارية بدقة (بانتون).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Offset_printing"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:paper-gsm",
+      "topic": "Paper weight (GSM) and stock choice",
+      "kind": "glossary",
+      "body_en": "Grammage is paper mass per square metre (g/m2, gsm), the metric measure of paper weight (the fetched source does not name the ISO test standard, so the ISO 536 reference is not established here). Standard office copy paper is 80 gsm; an A4 sheet of it weighs about 5 g. Higher gsm means a heavier, usually thicker and stiffer sheet, though thickness (caliper, microns) also depends on the paper type. Common trade practice (not a standard): letterheads 90-120 gsm; flyers and leaflets 130-170 gsm; brochure text pages 115-170 gsm with covers 250-350 gsm; business cards and postcards 300-400 gsm or heavier. Also specify finish (uncoated/offset, silk/matt coated, gloss coated), brightness/colour, whether FSC-certified or recycled stock is required, and for printers and copiers the device's supported media weight range, since heavy stock may need a bypass tray. The US uses basis weight in pounds per ream, so convert quotes from US-sourced stock to gsm before comparing. For bulk office paper, also state sheet count per ream (normally 500), reams per box, and whether the paper is rated for laser and inkjet use. The US basis-weight system is expressed in pounds per ream of 500 sheets of a basis sheet size, which differs by paper category.",
+      "body_ar": "الغراماج هو كتلة الورق لكل متر مربع (غرام/م²)، ويُعرَّف وفق ISO 536. ورق التصوير المكتبي القياسي 80 غرام/م²، وتزن ورقة A4 منه نحو 5 غرامات. كلما زاد الغراماج كان الورق أثقل وعادة أسمك وأصلب، مع أن السماكة بالميكرون تعتمد أيضاً على نوع الورق. والممارسة الشائعة في السوق (وليست معياراً): الورق الرسمي ذو الترويسة 90-120 غ؛ النشرات 130-170 غ؛ صفحات الكتيبات الداخلية 115-170 غ وأغلفتها 250-350 غ؛ بطاقات العمل والبطاقات البريدية 300-400 غ أو أكثر. حدد أيضاً السطح (غير مطلي، مطلي مطفأ أو حريري، مطلي لامع)، ودرجة البياض واللون، وهل يلزم ورق معتمد من FSC أو معاد تدويره، وفي الطابعات وآلات التصوير نطاق أوزان الورق المدعومة، إذ قد يحتاج الورق الثقيل إلى درج التغذية اليدوية. وتستخدم الولايات المتحدة الوزن الأساسي بالرطل لكل رزمة، فحوّل العروض إلى غرام/م² قبل المقارنة. في ورق المكاتب بالجملة حدد أيضاً عدد الأوراق في الرزمة (عادة 500)، وعدد الرزم في الصندوق، وهل الورق مناسب لطابعات الليزر والنافثة للحبر. يُعبَّر عن الوزن الأساسي الأمريكي بالرطل لكل رزمة من 500 ورقة بمقاس أساسي يختلف حسب فئة الورق، أما الإشارة إلى معيار ISO 536 فلم تثبت من المصدر الذي تم الاطلاع عليه.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Grammage",
+        "https://en.wikipedia.org/wiki/ISO_216"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:business-card-specs",
+      "topic": "Business card print specifications",
+      "kind": "spec_checklist",
+      "body_en": "There is no single world standard for business card size; common regional sizes are 85x55 mm (Western Europe), 88.9x50.8 mm (3.5x2 in, US/Canada), 91x55 mm (Japan) and 90x54 mm (China/Hong Kong); a dominant UAE size is not established, so state the finished size explicitly. Cards are printed digitally for short runs and by offset for large runs, sometimes with specialty processes. For an exact quote the buyer must state: finished size and corner shape; quantity per name and number of names; single or double-sided; colours (CMYK, Pantone spot); stock weight and finish; lamination (matt, gloss, soft-touch); special finishes (spot UV, foil, embossing/debossing, letterpress, edge painting); bilingual English/Arabic layout and who supplies artwork; bleed (commonly 3 mm) and safe zone; proof approval method; and delivery date and location. A price per box without these fields is not comparable. Order a single hard proof for premium finishes, because foil and soft-touch lamination look very different on screen. Keep a master file per employee so reorders use identical specs, and confirm how names and titles are checked in both languages before printing, since reprints for spelling errors are at the buyer's cost.",
+      "body_ar": "لا يوجد مقاس عالمي موحد لبطاقات العمل؛ فالمقاسات الإقليمية الشائعة هي 85×55 مم (أوروبا الغربية)، و88.9×50.8 مم (3.5×2 بوصة، الولايات المتحدة وكندا)، و91×55 مم (اليابان)، و90×54 مم (الصين وهونغ كونغ)؛ ولم يثبت مقاس سائد في الإمارات، لذا يجب تحديد المقاس النهائي صراحة. تُطبع البطاقات رقمياً للكميات الصغيرة وبالأوفست للكميات الكبيرة، مع عمليات خاصة أحياناً. وللحصول على عرض دقيق يجب أن يحدد المشتري: المقاس النهائي وشكل الزوايا؛ الكمية لكل اسم وعدد الأسماء؛ وجه واحد أم وجهان؛ الألوان (CMYK أو بانتون)؛ وزن الورق وسطحه؛ التغليف (مطفأ، لامع، ملمس مخملي)؛ التشطيبات الخاصة (UV موضعي، رقائق معدنية، نقش بارز أو غائر، طباعة بارزة، تلوين الحواف)؛ تصميم ثنائي اللغة عربي/إنجليزي ومن يوفر التصميم؛ هامش القص (عادة 3 مم) والمنطقة الآمنة؛ طريقة اعتماد النموذج التجريبي؛ وموعد التسليم ومكانه. أي سعر للعلبة دون هذه البيانات لا يمكن مقارنته. اطلب نموذجاً مطبوعاً واحداً للتشطيبات الفاخرة، لأن الرقائق المعدنية والتغليف المخملي يختلف مظهرها كثيراً عن الشاشة. واحتفظ بملف رئيسي لكل موظف لتكرار الطلب بالمواصفات نفسها، وأكّد طريقة مراجعة الأسماء والمسميات باللغتين قبل الطباعة، إذ تكون إعادة الطباعة بسبب الأخطاء الإملائية على نفقة المشتري.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Business_card"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "finished size",
+        "quantity per name and number of names",
+        "single/double sided",
+        "colours (CMYK/Pantone)",
+        "paper stock gsm and finish",
+        "lamination",
+        "special finishes",
+        "languages and artwork source",
+        "bleed and proof method",
+        "delivery date/location"
+      ]
+    },
+    {
+      "id": "office_equipment:brochure-specs",
+      "topic": "Brochure, flyer and booklet print specifications",
+      "kind": "spec_checklist",
+      "body_en": "To quote a brochure or booklet exactly a printer needs: quantity (and price breaks); finished size (A4, A5, DL 99x210 mm, square) and open/flat size; page count (booklets must be in multiples of 4 for saddle stitching); binding (saddle-stitch, perfect bound, wire-o); fold type for leaflets (half, tri-fold/roll, z-fold, gate); text and cover stocks with gsm and finish; colours for cover and text (4/4, 4/0, Pantone); lamination or varnish; special finishes; artwork status (print-ready PDF with 3 mm bleed and embedded fonts, or design required including Arabic typesetting); proof type (PDF or hard proof); packing; and delivery date and address. Offset usually wins at higher quantities and digital at short runs, so ask for both where quantity is near the crossover. Arabic and English bilingual layouts affect page count and binding direction, since Arabic reads right-to-left; decide this before requesting quotes. Ask whether the price includes colour correction, file checking and a hard proof, and state if a sample of the chosen paper is needed before approval, because the same gsm can look very different between suppliers and finishes. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "لتسعير الكتيب أو المطوية بدقة تحتاج المطبعة إلى: الكمية (وشرائح الأسعار)؛ المقاس النهائي (A4 أو A5 أو DL ‏99×210 مم أو مربع) والمقاس المفتوح؛ عدد الصفحات (يجب أن يكون من مضاعفات 4 في التدبيس السلكي)؛ نوع التجليد (تدبيس، تجليد حراري، سلك حلزوني)؛ نوع الطي للمطويات (نصفي، ثلاثي، على شكل Z، بوابي)؛ ورق الصفحات والغلاف بالغراماج والسطح؛ الألوان للغلاف والصفحات (4/4، 4/0، بانتون)؛ التغليف أو الورنيش؛ التشطيبات الخاصة؛ حالة التصميم (ملف PDF جاهز للطباعة بهامش قص 3 مم وخطوط مضمنة، أو الحاجة إلى تصميم يشمل التنضيد العربي)؛ نوع النموذج التجريبي (PDF أو مطبوع)؛ التعبئة؛ وموعد التسليم وعنوانه. غالباً تكون الأوفست أوفر في الكميات الكبيرة والرقمية في الصغيرة، فاطلب التسعير بالطريقتين إذا كانت الكمية قرب نقطة التعادل. تؤثر التصاميم ثنائية اللغة عربي/إنجليزي في عدد الصفحات واتجاه التجليد لأن العربية تُقرأ من اليمين؛ فقرر ذلك قبل طلب العروض. واسأل هل يشمل السعر تصحيح الألوان وفحص الملفات ونموذجاً مطبوعاً، وحدد إن كانت تلزم عينة من الورق المختار قبل الاعتماد، لأن الغراماج نفسه قد يبدو مختلفاً جداً بين الموردين والتشطيبات. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Offset_printing",
+        "https://en.wikipedia.org/wiki/ISO_216"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "quantity and price breaks",
+        "finished and flat size",
+        "page count",
+        "binding or fold type",
+        "text and cover stock gsm/finish",
+        "colours per side",
+        "lamination/varnish",
+        "special finishes",
+        "artwork status and bleed",
+        "proof type",
+        "delivery date/address"
+      ]
+    },
+    {
+      "id": "office_equipment:paper-sizes",
+      "topic": "ISO paper sizes (A-series, SRA)",
+      "kind": "standard",
+      "body_en": "ISO 216 defines the A-series: A0 is one square metre and each smaller size halves the previous, keeping the 1:sqrt(2) ratio, so A4 is 210x297 mm, A3 297x420 mm and A5 148x210 mm. Because of this, A3 is exactly two A4 pages, which is why many click contracts bill an A3 page as two A4 clicks. ISO 217 defines the RA and SRA untrimmed series used by printers: SRA sheets are oversized so that A-size work can print with bleed and be trimmed. When ordering copiers or print, confirm the maximum sheet size the device accepts (A4, A3, SRA3 or banner lengths) and the size of the finished product. US Letter (8.5x11 in) and Legal are different from A4; imported US devices and templates may default to Letter and should be reset to A4 in UAE offices. For envelopes, the C-series (C4 fits an unfolded A4, C5 a once-folded A4) and DL are the common office sizes. Note: the ISO 217 RA/SRA definitions and the DL envelope size were not confirmed from a fetched source here; A0 = 841x1189 mm (one square metre), and an 80 g/m2 A4 sheet weighs 5 g.",
+      "body_ar": "يعرّف المعيار ISO 216 سلسلة A: مقاس A0 يساوي متراً مربعاً واحداً، وكل مقاس أصغر نصف الذي قبله مع الحفاظ على النسبة 1:√2، فيكون A4 ‏210×297 مم، وA3 ‏297×420 مم، وA5 ‏148×210 مم. ولذلك فإن A3 يساوي تماماً صفحتي A4، وهذا سبب احتساب كثير من عقود النقرات صفحة A3 كنقرتي A4. ويعرّف ISO 217 سلسلتي RA وSRA غير المقصوصتين اللتين تستخدمهما المطابع، فأوراق SRA أكبر حتى يمكن طباعة أعمال مقاس A مع هامش قص ثم تشذيبها. عند طلب آلات تصوير أو طباعة تأكد من أكبر مقاس ورق يقبله الجهاز (A4 أو A3 أو SRA3 أو أطوال اللافتات) ومن مقاس المنتج النهائي. ومقاس Letter الأمريكي (8.5×11 بوصة) وLegal يختلفان عن A4، وقد تكون الأجهزة والقوالب المستوردة من أمريكا مضبوطة على Letter فيجب إعادتها إلى A4 في مكاتب الإمارات. وفي الأظرف تُعد سلسلة C (يتسع C4 لورقة A4 غير مطوية، وC5 لورقة A4 مطوية مرة واحدة) ومقاس DL المقاسات المكتبية الشائعة. ملاحظة: تعريفات سلسلتي RA وSRA في ISO 217 ومقاس ظرف DL لم تُؤكَّد من مصدر تم الاطلاع عليه هنا؛ ومقاس A0 هو 841×1189 مم (متر مربع واحد)، وورقة A4 بوزن 80 غ/م² تزن 5 غرامات.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO_216",
+        "https://en.wikipedia.org/wiki/Paper_size"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:shredder-din-66399",
+      "topic": "Shredder security levels: DIN 66399 (P-1 to P-7)",
+      "kind": "standard",
+      "body_en": "DIN 66399 (also published as ISO/IEC 21964) classifies shredding by material and security level. Material classes: P paper, F film/microfilm, O optical media, T magnetic media, E electronic media (e.g. SSDs, cards), H hard drives. For paper, maximum particle area and strip width are: P-1 2,000 mm2; P-2 800 mm2 (both strip-cut); P-3 320 mm2; P-4 160 mm2; P-5 30 mm2; P-6 10 mm2; P-7 5 mm2. The standard also defines three protection classes: 1 normal, 2 high (confidential/personal data), 3 very high (secret). Cross-cut P-3 is a common office minimum for internal documents; the fetched summary maps protection class 1 (internal) to P-1 to P-3, class 2 (confidential) to P-3 to P-5 and class 3 (secret) to P-4 to P-7, so P-4 is a reasonable choice for personal data such as HR and customer files; P-5 to P-7 are for highly confidential or classified material. A shredder must also be specified for the right material: a paper-only unit cannot securely destroy SSDs or hard disks. Higher levels shred more slowly and hold fewer sheets per pass, so match the level to the data rather than choosing the highest by default. The maximum strip widths per level and the ISO/IEC 21964 equivalence were not confirmed from a fetched source here (the ISO page refused access).",
+      "body_ar": "يصنّف المعيار DIN 66399 (المنشور أيضاً باسم ISO/IEC 21964) الإتلاف حسب المادة ومستوى الأمان. فئات المواد: P ورق، F أفلام وميكروفيلم، O وسائط بصرية، T وسائط مغناطيسية، E وسائط إلكترونية (مثل أقراص SSD والبطاقات)، H أقراص صلبة. وللورق تكون المساحة القصوى للقطعة وعرض الشريط: P-1 ‏2,000 مم² (شريط 12 مم)؛ P-2 ‏800 مم² (6 مم)؛ P-3 ‏320 مم² (شريط 2 مم)؛ P-4 ‏160 مم²؛ P-5 ‏30 مم²؛ P-6 ‏10 مم²؛ P-7 ‏5 مم². ويحدد المعيار ثلاث فئات حماية: 1 عادية، 2 عالية (بيانات سرية أو شخصية)، 3 عالية جداً (سرية للغاية). يُعد التقطيع المتقاطع P-3 حداً أدنى شائعاً للمستندات الداخلية، ويُوصى بـ P-4 على نطاق واسع للبيانات الشخصية كملفات الموظفين والعملاء، أما P-5 إلى P-7 فللمواد شديدة السرية. ويجب تحديد الجهاز للمادة الصحيحة، فآلة الورق وحدها لا تتلف أقراص SSD أو الأقراص الصلبة بأمان. المستويات الأعلى أبطأ وتقبل أوراقاً أقل في المرة الواحدة، لذا طابق المستوى مع نوع البيانات بدلاً من اختيار الأعلى افتراضياً. تصحيح: تربط المصادر فئة الحماية 1 (البيانات الداخلية) بالمستويات P-1 إلى P-3، والفئة 2 (السرية) بالمستويات P-3 إلى P-5، والفئة 3 (السرية جداً) بالمستويات P-4 إلى P-7. ولم تُؤكَّد أقصى عروض الشرائط لكل مستوى ولا التكافؤ مع ISO/IEC 21964 من مصدر تم الاطلاع عليه.",
+      "sources": [
+        "https://www.recycling.com/paper-shredder-security-levels-din-66399/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:shredder-spec-checklist",
+      "topic": "What to state when buying a shredder",
+      "kind": "spec_checklist",
+      "body_en": "State: DIN 66399 security level (P-level) and material classes needed (paper only, or also CDs, cards, hard drives); cut type (strip, cross-cut, micro-cut); sheet capacity per pass at 70/80 gsm; number of users and daily volume; continuous run time and cool-down (duty cycle); bin volume in litres; whether it must accept staples, paper clips and credit cards; auto-feed capacity if unattended shredding is wanted; noise level for open offices; safety features (auto-stop when bin open, touch-sensitive safety); jam prevention/reverse; cutter warranty (cutting shafts are often warranted longer than the motor); and whether a secure on-site or off-site shredding service with a certificate of destruction is a better fit for large archive clearances. Sheet capacity and run time are the two figures most often overstated: capacity is quoted at a specific paper weight, so heavier paper or stapled sets reduce it, and a small personal shredder with a short continuous run time will overheat if a whole department feeds it. Match the machine class (personal, departmental, central/industrial) to the real daily volume. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "اذكر: مستوى الأمان وفق DIN 66399 وفئات المواد المطلوبة (ورق فقط، أم أيضاً أقراص مدمجة وبطاقات وأقراص صلبة)؛ نوع القطع (شرائح، متقاطع، دقيق)؛ عدد الأوراق في المرة الواحدة بوزن 70/80 غرام؛ عدد المستخدمين والحجم اليومي؛ مدة التشغيل المتواصل وفترة التبريد؛ سعة سلة المهملات باللتر؛ هل يجب أن يقبل الدبابيس ومشابك الورق وبطاقات الائتمان؛ سعة التغذية الآلية إن كان المطلوب إتلافاً دون مراقبة؛ مستوى الضوضاء في المكاتب المفتوحة؛ ميزات السلامة (توقف تلقائي عند فتح السلة، حساس اللمس)؛ منع الانحشار والتشغيل العكسي؛ ضمان شفرات القطع (غالباً أطول من ضمان المحرك)؛ وهل تكون خدمة إتلاف آمنة في الموقع أو خارجه مع شهادة إتلاف أنسب لتصفية الأرشيف الكبير. وأكثر رقمين يُبالغ فيهما هما سعة الأوراق ومدة التشغيل: فالسعة تُذكر عند وزن ورق محدد، والورق الأثقل أو الرزم المدبّسة تقللها، وآلة الإتلاف الشخصية الصغيرة ذات مدة التشغيل القصيرة ترتفع حرارتها إذا استخدمها قسم كامل. اختر فئة الجهاز (شخصي، للأقسام، مركزي/صناعي) وفق الحجم اليومي الفعلي. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://www.recycling.com/paper-shredder-security-levels-din-66399/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "DIN 66399 security level",
+        "material classes",
+        "cut type",
+        "sheets per pass",
+        "users and daily volume",
+        "continuous run time",
+        "bin capacity (L)",
+        "staples/clips/cards acceptance",
+        "auto-feed capacity",
+        "noise level",
+        "safety features",
+        "cutter warranty"
+      ]
+    },
+    {
+      "id": "office_equipment:laminators",
+      "topic": "Laminators: pouch vs roll, micron and temperature",
+      "kind": "product",
+      "body_en": "Pouch laminators seal a document inside a pre-cut pouch and suit offices, schools and low-volume ID or signage work; roll laminators feed film from rolls for continuous or wide output in print shops. Hot laminators use heated rollers; cold (pressure-sensitive) laminators suit heat-sensitive items such as photos and some inkjet prints. Film thickness is given in microns per side (commonly 75, 100, 125, 175, 250), where thicker film gives a stiffer, more durable result; the machine must be rated for the thickest film to be used. Specify maximum width (A4, A3 or roll width), film thickness range, warm-up time, speed, number of rollers (more rollers, better finish), cold mode, jam release, and whether the buyer also needs matching pouches or film (price and availability of consumables). Large-format roll laminators for signage are a separate product class, usually bought with the wide-format printer. Consumable pouches and film are a recurring cost, so compare the price per pouch and check that film sizes are available locally. Pouch film is sold in mils as well as microns: 3, 5, 7 and 10 mil correspond to about 76, 127, 178 and 254 microns.",
+      "body_ar": "تُغلّف أجهزة التغليف بالجيوب المستند داخل جيب مقصوص مسبقاً، وتناسب المكاتب والمدارس وأعمال البطاقات واللافتات الصغيرة، بينما تغذي أجهزة التغليف باللفافات الفيلم من لفافات للإنتاج المتواصل أو العريض في المطابع. تستخدم الأجهزة الحرارية بكرات مسخنة، وتناسب الأجهزة الباردة (بالضغط) المواد الحساسة للحرارة كالصور وبعض مطبوعات الحبر النافث. تُذكر سماكة الفيلم بالميكرون لكل وجه (شائع 75 و100 و125 و175 و250)، والفيلم الأسمك يعطي نتيجة أصلب وأكثر متانة، ويجب أن يكون الجهاز مصمماً لأسمك فيلم سيُستخدم. حدد أقصى عرض (A4 أو A3 أو عرض اللفافة)، ونطاق سماكة الفيلم، وزمن التسخين، والسرعة، وعدد البكرات (كلما زادت كان التشطيب أفضل)، ووضع التغليف البارد، وتحرير الانحشار، وهل يحتاج المشتري إلى الجيوب أو الفيلم المناسب (السعر والتوفر). أما أجهزة التغليف العريضة للافتات ففئة منفصلة تُشترى عادة مع الطابعة العريضة. الجيوب والأفلام تكلفة متكررة، لذا قارن سعر الجيب الواحد وتأكد من توفر مقاسات الفيلم محلياً. تُباع أغلفة التغليف بالميل أيضاً إلى جانب الميكرون: 3 و5 و7 و10 ميل تعادل نحو 76 و127 و178 و254 ميكروناً.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Lamination"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:interactive-panels",
+      "topic": "Interactive flat panels (IFP) for classrooms and meeting rooms",
+      "kind": "product",
+      "body_en": "Interactive flat panels are large touch LCD/LED displays with built-in whiteboard software, screen-sharing and an Android system, used instead of projector-based smartboards. Key specs: size matched to the room (65 inch for small rooms, 75 inch a common classroom default, 86 inch or larger for rooms over about 30 people); 4K UHD resolution; brightness of about 350 nits or more for bright rooms, with anti-glare toughened glass; touch technology (infrared or capacitive), number of touch points (20-40 common) and writing latency; built-in chipset, RAM and storage (low-end chipsets slow down); OPS slot for a plug-in Windows PC module; ports (multiple HDMI, front USB-C with power delivery, USB, LAN); cameras/microphones for video meetings; software licences and whether they become paid after year one; mounting (wall, mobile stand, height-adjustable); and warranty length, on-site service and OS update commitment in writing. Ask for a live demonstration with the buyer's own content, because writing feel, edge accuracy and palm rejection matter more than headline specifications. Room guidance from the fetched buying guide: 65 inch for about 2-4 m viewing distance, 75 inch for 3-5 m, 86 inch for 4-6 m and 98 inch or larger for lecture halls, with touch latency below 10 ms.",
+      "body_ar": "الشاشات التفاعلية المسطحة شاشات لمس كبيرة مزودة ببرنامج سبورة ومشاركة الشاشة ونظام أندرويد، وتحل محل السبورات الذكية العاملة بالبروجكتور. أهم المواصفات: مقاس يناسب القاعة (65 بوصة للقاعات الصغيرة، و75 بوصة خيار شائع للفصول، و86 بوصة أو أكبر للقاعات التي تتجاوز نحو 30 شخصاً)؛ دقة 4K؛ سطوع 350 شمعة/م² تقريباً أو أكثر للقاعات المضيئة مع زجاج مقوى مضاد للانعكاس؛ تقنية اللمس (أشعة تحت حمراء أو سعوية) وعدد نقاط اللمس (الشائع 20-40) وزمن استجابة الكتابة؛ المعالج والذاكرة والتخزين المدمج (المعالجات الضعيفة تبطئ مع الاستخدام)؛ منفذ OPS لوحدة حاسوب ويندوز قابلة للتركيب؛ المنافذ (عدة HDMI، ومنفذ USB-C أمامي مع شحن، وUSB، وشبكة)؛ كاميرا وميكروفونات للاجتماعات المرئية؛ تراخيص البرامج وهل تصبح مدفوعة بعد السنة الأولى؛ طريقة التركيب (جداري، حامل متنقل، قابل لتعديل الارتفاع)؛ ومدة الضمان والخدمة في الموقع والالتزام بتحديثات النظام كتابياً. اطلب عرضاً حياً بمحتوى المشتري نفسه، لأن إحساس الكتابة ودقة الحواف ورفض راحة اليد أهم من المواصفات المعلنة. إرشاد المقاس من دليل الشراء: 65 بوصة لمسافة مشاهدة 2-4 أمتار تقريباً، و75 بوصة لمسافة 3-5 أمتار، و86 بوصة لمسافة 4-6 أمتار، و98 بوصة فأكثر لقاعات المحاضرات، مع زمن استجابة للمس أقل من 10 أجزاء من الثانية.",
+      "sources": [
+        "https://www.riotouch.com/en/blog/what-to-look-for-buying-interactive-flat-panel-display-ifpd.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "screen size",
+        "resolution",
+        "brightness and glass",
+        "touch technology and points",
+        "chipset/RAM/storage",
+        "OPS slot/PC module",
+        "ports",
+        "camera/mic",
+        "software licences",
+        "mounting",
+        "warranty and on-site service"
+      ]
+    },
+    {
+      "id": "office_equipment:uae-energy-labels",
+      "topic": "UAE energy efficiency labels (MoIAT/ESMA EESL) and office equipment",
+      "kind": "authority_approval",
+      "body_en": "The UAE Energy Efficiency Standardization and Labelling (EESL) programme, originally run by ESMA (the 2013 launch year was not confirmed from a fetched source) and now run by the Ministry of Industry and Advanced Technology (MoIAT), requires regulated products to carry a star label from 1 star (least efficient) to 5 stars (most efficient), enforced through ECAS certification (1-year certificate) or the Emirates Quality Mark (3-year validity); labels carry individual RFID/serial numbers registered batch-wise with MoIAT. As checked on 23 Sep 2026 via a MoIAT-appointed certification body, the regulated list covers air conditioners, refrigerating appliances, washing machines and dryers, water heaters, dishwashers, televisions and lighting, with vacuum cleaners and electric motors in the pipeline. Printers, copiers and MFPs were not on that list, so a star label is not established as mandatory for them; interactive panels are displays, and whether a given model falls under the television category should be confirmed with the supplier's certificate. For printers, efficiency is usually evidenced by ENERGY STAR or equivalent international declarations. Do not accept a supplier claim that a printer 'has ESMA 5 stars' without the certificate.",
+      "body_ar": "أطلقت هيئة الإمارات للمواصفات والمقاييس برنامج ترشيد الطاقة والملصقات (ولم يثبت عام الإطلاق 2013 من مصدر تم الاطلاع عليه)، وتديره الآن وزارة الصناعة والتكنولوجيا المتقدمة، ويُلزم المنتجات الخاضعة له بملصق نجوم من نجمة واحدة (الأقل كفاءة) إلى خمس نجوم (الأعلى كفاءة)، ويُطبَّق عبر شهادة المطابقة ECAS (صالحة سنة واحدة) أو علامة الجودة الإماراتية (صالحة ثلاث سنوات)، وتحمل الملصقات أرقاماً تسلسلية أو شرائح RFID فردية تُسجَّل لدى الوزارة لكل دفعة. ووفق ما تم التحقق منه في 23 سبتمبر 2026 عبر جهة اعتماد معيّنة من الوزارة، تشمل القائمة المكيفات والثلاجات والغسالات والمجففات وسخانات المياه وغسالات الصحون والتلفزيونات والإنارة، مع المكانس الكهربائية والمحركات الكهربائية قيد الإضافة. ولم تكن الطابعات وآلات التصوير والأجهزة متعددة الوظائف ضمن القائمة، لذا لم يثبت إلزامية ملصق النجوم لها؛ أما الشاشات التفاعلية فهي شاشات عرض، ويجب التأكد من شهادة المورد هل يندرج الموديل ضمن فئة التلفزيونات. وفي الطابعات تُثبت الكفاءة عادة بشهادة ENERGY STAR أو إقرارات دولية مماثلة. لا تقبل ادعاء المورد بأن الطابعة «حاصلة على خمس نجوم من الهيئة» دون الشهادة.",
+      "sources": [
+        "https://www.tuv.com/market-access-services/en/certification-filter/uae-moiat-energy-efficiency-standardization-labeling-(eesl).html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:energy-star-imaging",
+      "topic": "ENERGY STAR for printers and MFPs (TEC)",
+      "kind": "standard",
+      "body_en": "ENERGY STAR's imaging equipment programme covers electrophotographic (laser/LED) and inkjet printers, copiers, fax machines and MFPs. The current specification took effect in October 2019 and sets efficiency, power-management, sleep and auto-off requirements, with automatic duplexing required for certain models; ENERGY STAR states certified models can use up to 35 percent less energy than conventional equipment. (The detailed TEC calculation method was not re-confirmed from a fetched source here.) For a buyer this is a practical proxy for running-power efficiency and sleep behaviour where the UAE star label does not apply to printers. Also look at sleep-mode power, default time to sleep, and duplex-by-default settings, which save paper. Fuser-based lasers draw high power when printing and warming up, so large MFPs need a dedicated socket; check the device's rated power and plug type (UAE uses BS 1363 type G sockets) at the quote stage. Request the device's official energy data sheet in the tender and compare typical weekly consumption, not only peak power, since most office printers spend most of the day idle or asleep.",
+      "body_ar": "يغطي برنامج ENERGY STAR لأجهزة التصوير طابعات الليزر وLED والطابعات النافثة للحبر وآلات التصوير والفاكس والأجهزة متعددة الوظائف. وتُقيَّم الأجهزة بمعيار الاستهلاك الكهربائي النموذجي (TEC)، وهو رقم طاقة أسبوعي يُقارن بحد مسموح يتناسب مع السرعة القصوى للجهاز، مع إضافات لميزات مثل الربط الشبكي والذاكرة، ويجب أن تُختبر المنتجات المعتمدة في مختبرات أو جهات اعتماد معتمدة. وبالنسبة للمشتري فهو مؤشر عملي على كفاءة الطاقة وسلوك وضع السكون حيث لا ينطبق ملصق النجوم الإماراتي على الطابعات. انظر أيضاً إلى استهلاك وضع السكون، والمدة الافتراضية للدخول فيه، وتفعيل الطباعة على الوجهين افتراضياً لتوفير الورق. وتستهلك طابعات الليزر قدرة عالية أثناء الطباعة والتسخين، لذا تحتاج الأجهزة الكبيرة إلى مقبس مخصص؛ تحقق من القدرة المقننة ونوع القابس (تستخدم الإمارات مقابس BS 1363 من النوع G) عند التسعير. اطلب ورقة بيانات الطاقة الرسمية للجهاز في المناقصة وقارن الاستهلاك الأسبوعي النموذجي لا القدرة القصوى فقط، إذ تقضي معظم طابعات المكاتب أغلب اليوم في وضع الخمول أو السكون. تحديث: المواصفة الحالية لبرنامج ENERGY STAR للطباعة سارية منذ أكتوبر 2019، وتشمل متطلبات الكفاءة وإدارة الطاقة والسكون والإطفاء التلقائي، والطباعة على الوجهين تلقائياً لبعض الطرازات، ويذكر البرنامج أن الطرازات المعتمدة قد توفر حتى 35% من الطاقة. أما تفاصيل طريقة حساب الاستهلاك الأسبوعي النموذجي فلم تُؤكَّد هنا. والمقبس المعتمد في الإمارات هو BS 1363 (النوع G).",
+      "sources": [
+        "https://www.energystar.gov/products/imaging_equipment",
+        "https://en.wikipedia.org/wiki/BS_1363"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:mfp-data-security",
+      "topic": "Data security on MFPs: hard disks, secure print, end-of-life",
+      "kind": "buyer_mistake",
+      "body_en": "Office MFPs store scanned and printed jobs, address books and network credentials on internal hard disks or SSDs. A common mistake is returning a leased copier or selling an old one without wiping that storage. Specify: disk encryption; overwrite or cryptographic erase at end of job and at end of life; a certificate of data erasure (or physical destruction of the drive, using DIN 66399 class H or E methods) when devices leave the premises; secure pull printing, where jobs are released only when the user authenticates with a card or PIN at the device, which also cuts uncollected prints; user authentication and audit logs; firmware update commitments; and disabling unused protocols. For regulated sectors (health, finance, government) confirm the supplier's process matches the buyer's information-security policy before signing. Write these requirements into the purchase order or lease so that data erasure at return is a contractual obligation with evidence, not a verbal promise. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "تخزن الأجهزة متعددة الوظائف في المكاتب المستندات الممسوحة والمطبوعة ودفاتر العناوين وبيانات الدخول إلى الشبكة على أقراص صلبة أو SSD داخلية. ومن الأخطاء الشائعة إعادة آلة تصوير مستأجرة أو بيع جهاز قديم دون مسح هذا التخزين. حدد: تشفير القرص؛ الكتابة فوق البيانات أو المسح التشفيري بعد كل مهمة وعند نهاية العمر؛ شهادة مسح البيانات (أو إتلاف القرص فعلياً بطرق DIN 66399 للفئة H أو E) عند خروج الأجهزة من المبنى؛ الطباعة الآمنة المعلّقة، حيث لا تُطبع المهمة إلا عند تعريف المستخدم ببطاقة أو رمز عند الجهاز، مما يقلل أيضاً المطبوعات المتروكة؛ مصادقة المستخدم وسجلات التدقيق؛ الالتزام بتحديثات البرنامج الثابت؛ وتعطيل البروتوكولات غير المستخدمة. وفي القطاعات المنظمة (الصحة، المالية، الحكومة) تأكد أن إجراءات المورد تطابق سياسة أمن المعلومات لدى المشتري قبل التوقيع. اكتب هذه المتطلبات في أمر الشراء أو عقد التأجير حتى يكون مسح البيانات عند الإعادة التزاماً تعاقدياً موثقاً لا وعداً شفهياً. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://www.recycling.com/paper-shredder-security-levels-din-66399/"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:buyer-mistakes",
+      "topic": "Common buyer mistakes in office printing procurement",
+      "kind": "buyer_mistake",
+      "body_en": "1) Choosing on device price and ignoring cost per page and consumable yield. 2) Sizing to duty cycle instead of recommended monthly volume, or guessing volume instead of reading existing counters. 3) Buying A3 or colour that is rarely used, or the reverse, forcing A3 jobs to an outside printer. 4) Comparing a standard-yield cartridge price with a competitor's high-yield price. 5) Signing a long lease or MPS with minimum click volumes above real usage, or without checking escalation and termination fees. 6) Ignoring service coverage outside the main city (response time to other emirates). 7) Forgetting installation, network setup, scan-to-email configuration, Arabic support and user training. 8) Returning or selling devices without wiping internal storage. 9) Buying shredders below the needed DIN 66399 level for personal data, or paper-only units for media. 10) Ordering print without stating stock, finish and quantity breaks, so quotes cannot be compared. Most of these are avoided by a written requirement and a like-for-like comparison table. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "1) الاختيار على أساس سعر الجهاز وتجاهل تكلفة الصفحة ومردود المستهلكات. 2) اختيار الجهاز وفق دورة التشغيل بدلاً من الحجم الشهري الموصى به، أو تخمين الحجم بدلاً من قراءة العدادات الحالية. 3) شراء A3 أو طباعة ملونة نادراً ما تُستخدم، أو العكس فتُرسل أعمال A3 إلى مطبعة خارجية. 4) مقارنة سعر خرطوشة عادية المردود بسعر خرطوشة عالية المردود لدى منافس. 5) توقيع عقد تأجير أو طباعة مُدارة طويل بحد أدنى للنقرات يفوق الاستخدام الفعلي، أو دون التحقق من الزيادات ورسوم الإنهاء. 6) تجاهل تغطية الخدمة خارج المدينة الرئيسية (زمن الاستجابة في الإمارات الأخرى). 7) إغفال التركيب والربط بالشبكة وإعداد المسح إلى البريد ودعم العربية وتدريب المستخدمين. 8) إعادة الأجهزة أو بيعها دون مسح التخزين الداخلي. 9) شراء آلات إتلاف بمستوى أقل من المطلوب وفق DIN 66399 للبيانات الشخصية، أو آلات ورق فقط لإتلاف الوسائط. 10) طلب الطباعة التجارية دون تحديد الورق والتشطيب وشرائح الكميات، فلا يمكن مقارنة العروض. ومعظم هذه الأخطاء يُتجنب بمتطلبات مكتوبة وجدول مقارنة متماثل البنود. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://managedprint.com/optimizing-printers-duty-cycle-vs-monthly-volume",
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752",
+        "https://www.recycling.com/paper-shredder-security-levels-din-66399/",
+        "https://www.parmetech.com/managed-print-services-contract-basics/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:quote-red-flags",
+      "topic": "Red flags in office equipment and print quotes",
+      "kind": "quote_red_flag",
+      "body_en": "Treat these as reasons to hold or clarify a quote: no model number or a vague 'equivalent'; cartridge yield stated without ISO/IEC basis, or a compatible claiming more pages than the OEM; lease quote showing only the monthly payment, not term, total payable, escalation and end-of-term terms; MPS quote without a list of inclusions (parts, labour, drums, fusers), SLA response time, or with click rates but no minimum-volume disclosure; A3 clicks not defined; grey-import devices without local manufacturer warranty or Arabic/UK-plug configuration; 'free printer' offers tied to expensive consumable contracts; shredder described as 'high security' without a DIN 66399 P-level; interactive panel quote without warranty length, on-site service or software licence terms; commercial print quote without stock gsm, finish, size and proof method; delivery and installation excluded but not stated; and prices valid for an unrealistically short period. When a flag appears, ask the supplier to correct the quote in writing rather than accepting verbal clarification. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "اعتبر ما يلي أسباباً لتعليق عرض السعر أو طلب توضيح: غياب رقم الموديل أو عبارة «مكافئ» غامضة؛ مردود خرطوشة دون أساس ISO/IEC، أو خرطوشة متوافقة تدعي صفحات أكثر من الأصلية؛ عرض تأجير يذكر القسط الشهري فقط دون المدة والمجموع والزيادات وشروط نهاية العقد؛ عرض طباعة مُدارة دون قائمة المشمولات (القطع، العمالة، الأسطوانات، الفيوزر) أو زمن الاستجابة، أو بأسعار نقرات دون إفصاح عن الحد الأدنى؛ عدم تعريف نقرة A3؛ أجهزة استيراد موازٍ دون ضمان محلي من المصنّع أو دون إعداد عربي أو قابس بريطاني؛ عروض «طابعة مجانية» مرتبطة بعقود مستهلكات باهظة؛ آلة إتلاف توصف بأنها «عالية الأمان» دون مستوى P وفق DIN 66399؛ عرض شاشة تفاعلية دون مدة الضمان أو الخدمة في الموقع أو شروط ترخيص البرامج؛ عرض طباعة تجارية دون غراماج الورق والسطح والمقاس وطريقة النموذج التجريبي؛ استبعاد التوصيل والتركيب دون ذكر ذلك صراحة؛ ومدة صلاحية أسعار قصيرة بشكل غير واقعي. عند ظهور علامة تحذير اطلب من المورد تصحيح العرض كتابياً بدلاً من قبول توضيح شفهي. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/ISO/IEC_19752",
+        "https://www.recycling.com/paper-shredder-security-levels-din-66399/",
+        "https://www.parmetech.com/managed-print-services-contract-basics/",
+        "https://www.riotouch.com/en/blog/what-to-look-for-buying-interactive-flat-panel-display-ifpd.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:warranty-service",
+      "topic": "Warranty and service norms for office equipment",
+      "kind": "warranty",
+      "body_en": "Printers and MFPs usually carry a manufacturer warranty of about one year, sometimes extendable by paid care packs; larger A3 devices are normally supported through a dealer service contract (parts and labour, often excluding consumables and paper-path damage) or are covered inside MPS/lease. Wear parts such as fusers, drums, transfer belts and rollers have rated page lives and are often excluded from basic warranty once their life is reached. Interactive panels commonly advertise multi-year warranties, but terms differ on panel versus internal PC module and on on-site versus return-to-base. Shredder makers often warrant cutting shafts longer than motors. In the UAE, check that the warranty is honoured locally by the brand's authorised distributor (grey imports may not be), the service response time for the buyer's emirate, loan-unit availability, and spare-parts availability period. Exact warranty periods vary by brand and model: not established generically, confirm per quote. Get the warranty terms and service contact in writing with the quote. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "تحمل الطابعات والأجهزة متعددة الوظائف عادة ضمان مصنّع لنحو سنة، يمكن أحياناً تمديده بحزم رعاية مدفوعة، بينما تُدعم أجهزة A3 الكبيرة عادة بعقد خدمة من الوكيل (قطع وعمالة، مع استثناء المستهلكات غالباً وأضرار مسار الورق) أو تُغطى ضمن عقد الطباعة المُدارة أو التأجير. وللقطع المستهلكة كالفيوزر والأسطوانات وأحزمة النقل والبكرات عمر مقنن بالصفحات، وغالباً تُستثنى من الضمان الأساسي عند بلوغ عمرها. وتعلن الشاشات التفاعلية عادة ضمانات متعددة السنوات، لكن الشروط تختلف بين الشاشة ووحدة الحاسوب الداخلية وبين الخدمة في الموقع والإرجاع إلى المركز. وكثير من مصنّعي آلات الإتلاف يضمنون شفرات القطع لمدة أطول من المحرك. في الإمارات تحقق من أن الضمان يُنفّذ محلياً لدى الموزع المعتمد (قد لا تُغطى أجهزة الاستيراد الموازي)، ومن زمن الاستجابة في إمارة المشتري، وتوفر جهاز بديل مؤقت، ومدة توفر قطع الغيار. ومدد الضمان الدقيقة تختلف حسب العلامة والموديل، فلم تُحدد بشكل عام ويجب تأكيدها في كل عرض. احصل على شروط الضمان وجهة الاتصال بالخدمة كتابياً مع العرض. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://www.riotouch.com/en/blog/what-to-look-for-buying-interactive-flat-panel-display-ifpd.html"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:lead-times",
+      "topic": "Typical lead times for office equipment and print",
+      "kind": "lead_time",
+      "body_en": "Not established as fixed numbers; they depend on stock and brand. Practical guidance: A4 printers, shredders and laminators from distributor stock are often available within days; A3 MFPs and production devices may need configuration (finishers, trays, Arabic setup), delivery with access checks and installation, and can take longer if the exact configuration is not in regional stock. Large-format printers and interactive panels may also require site survey (wall strength, power, network points) before installation. Commercial print: digital jobs can be turned around quickly after proof approval, while offset needs plate-making, press scheduling and drying, and specialty finishes (foil, embossing, perfect binding) add days. Always ask the supplier to state lead time from order or artwork approval, whether stock is local, and what installation and training are included. For event or launch dates, work backwards from the deadline and include proof rounds, since each round of artwork changes resets the production clock. For equipment, confirm whether the quoted lead time covers delivery only or also installation and user training. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "لا توجد أرقام ثابتة مؤكدة، فهي تعتمد على المخزون والعلامة التجارية. إرشاد عملي: الطابعات A4 وآلات الإتلاف والتغليف من مخزون الموزع تتوفر غالباً خلال أيام؛ أما أجهزة A3 متعددة الوظائف والأجهزة الإنتاجية فقد تحتاج إلى تهيئة (وحدات تشطيب، أدراج، إعداد عربي) وتوصيل مع التحقق من إمكانية الوصول ثم التركيب، وقد تتأخر إذا لم تكن التهيئة المطلوبة متوفرة إقليمياً. وقد تتطلب الطابعات العريضة والشاشات التفاعلية مسحاً للموقع (متانة الجدار، الكهرباء، نقاط الشبكة) قبل التركيب. في الطباعة التجارية يمكن إنجاز الأعمال الرقمية سريعاً بعد اعتماد النموذج، بينما تحتاج الأوفست إلى تجهيز الألواح وجدولة المطبعة والتجفيف، وتضيف التشطيبات الخاصة (الرقائق المعدنية، النقش، التجليد الحراري) أياماً. اطلب دائماً من المورد تحديد مدة التسليم من تاريخ الطلب أو اعتماد التصميم، وهل المخزون محلي، وما يشمله التركيب والتدريب. في مواعيد الفعاليات أو الإطلاق احسب عكسياً من الموعد النهائي مع احتساب جولات النماذج التجريبية، إذ تعيد كل جولة تعديل على التصميم توقيت الإنتاج من البداية. وفي الأجهزة تأكد هل تشمل مدة التسليم المعلنة التوصيل فقط أم التركيب وتدريب المستخدمين أيضاً. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Offset_printing"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "office_equipment:commercial-print-price-drivers",
+      "topic": "Price drivers in commercial printing",
+      "kind": "price_driver",
+      "body_en": "The main drivers of a print quote are: quantity (offset setup is fixed, so unit price falls sharply with volume; digital unit price is almost flat); method (offset vs digital); size and how many pieces fit a press sheet; number of colours and any Pantone spot colours (extra plates and ink make-ready in offset); stock type, gsm and finish; page count and binding; lamination, varnish and special finishes such as spot UV, foil, embossing, die-cutting; number of versions or variable data; proofing (hard proofs cost more); artwork and Arabic typesetting services; packing; and delivery. Paper is a significant share of the cost and follows market prices, so ask for quote validity. Compare quotes only when all these fields are identical. Ask printers to show price breaks at two or three quantities; the jump reveals whether the job is priced as offset or digital. Rush turnaround, weekend work and split deliveries to several addresses also add cost and should be stated upfront so quotes stay comparable. Not established: the practice guidance in this entry (typical scope lists, habits and commercial norms) was not confirmed against a fetched primary source as of 23 Sep 2026; treat it as experienced-practitioner guidance and confirm project specifics with the consultant or authority.",
+      "body_ar": "أهم محددات سعر الطباعة: الكمية (تكلفة إعداد الأوفست ثابتة فينخفض سعر الوحدة بشدة مع زيادة الكمية، بينما يبقى سعر الوحدة الرقمية شبه ثابت)؛ الطريقة (أوفست أو رقمية)؛ المقاس وعدد القطع التي تتسع لها ورقة الطباعة؛ عدد الألوان وأي ألوان بانتون خاصة (ألواح وإعداد حبر إضافي في الأوفست)؛ نوع الورق وغراماجه وسطحه؛ عدد الصفحات والتجليد؛ التغليف والورنيش والتشطيبات الخاصة كـ UV الموضعي والرقائق المعدنية والنقش والقص بالقوالب؛ عدد النسخ المختلفة أو البيانات المتغيرة؛ النماذج التجريبية (المطبوعة أغلى)؛ خدمات التصميم والتنضيد العربي؛ التعبئة؛ والتوصيل. ويمثل الورق حصة كبيرة من التكلفة ويتبع أسعار السوق، فاسأل عن مدة صلاحية العرض. ولا تقارن العروض إلا إذا تطابقت جميع هذه البنود. اطلب من المطابع إظهار الأسعار عند كميتين أو ثلاث، فالفارق يكشف هل سُعّر العمل كأوفست أم رقمي. كما يضيف التسليم العاجل والعمل في عطلة نهاية الأسبوع وتقسيم التوصيل إلى عدة عناوين تكلفة، ويجب ذكرها مسبقاً لتبقى العروض قابلة للمقارنة. لم يثبت: الإرشادات العملية في هذا البند (قوائم النطاق المعتادة والممارسات والأعراف التجارية) لم تُؤكَّد من مصدر أولي تم الاطلاع عليه حتى 23 سبتمبر 2026، فتُعامل كإرشاد من واقع الخبرة، ويُتحقق من تفاصيل كل مشروع مع الاستشاري أو الجهة المختصة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Offset_printing",
+        "https://en.wikipedia.org/wiki/Grammage"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should we buy a laser or an inkjet for an office printing 3,000 text pages a month?",
+      "q_ar": "هل نشتري طابعة ليزر أم نافثة للحبر لمكتب يطبع 3,000 صفحة نصية شهرياً؟",
+      "expected_entry_ids": [
+        "office_equipment:laser-vs-inkjet",
+        "office_equipment:cost-per-page",
+        "office_equipment:ppm-duty-cycle"
+      ]
+    },
+    {
+      "q_en": "The printer says 50,000 pages duty cycle, so can we print 40,000 a month on it?",
+      "q_ar": "دورة تشغيل الطابعة 50,000 صفحة، فهل يمكن طباعة 40,000 صفحة شهرياً عليها؟",
+      "expected_entry_ids": [
+        "office_equipment:ppm-duty-cycle"
+      ]
+    },
+    {
+      "q_en": "Do we really need an A3 copier or is an A4 MFP enough?",
+      "q_ar": "هل نحتاج فعلاً إلى آلة تصوير A3 أم يكفي جهاز A4 متعدد الوظائف؟",
+      "expected_entry_ids": [
+        "office_equipment:mfp-a3-vs-a4",
+        "office_equipment:paper-sizes"
+      ]
+    },
+    {
+      "q_en": "Compatible toner is half the price of original. Is it safe for our printers and warranty?",
+      "q_ar": "الحبر المتوافق بنصف سعر الأصلي، فهل هو آمن للطابعات والضمان؟",
+      "expected_entry_ids": [
+        "office_equipment:genuine-vs-compatible-toner",
+        "office_equipment:iso-yield-standards"
+      ]
+    },
+    {
+      "q_en": "What is a click charge and why is an A3 page billed twice?",
+      "q_ar": "ما رسم النقرة ولماذا تُحتسب صفحة A3 مرتين؟",
+      "expected_entry_ids": [
+        "office_equipment:managed-print-services",
+        "office_equipment:paper-sizes"
+      ]
+    },
+    {
+      "q_en": "Is it better to lease or buy 10 multifunction copiers?",
+      "q_ar": "هل الأفضل تأجير أم شراء 10 آلات تصوير متعددة الوظائف؟",
+      "expected_entry_ids": [
+        "office_equipment:leasing-vs-buying",
+        "office_equipment:managed-print-services"
+      ]
+    },
+    {
+      "q_en": "Which shredder security level do we need for HR files with personal data?",
+      "q_ar": "ما مستوى أمان آلة الإتلاف المطلوب لملفات الموظفين التي تحتوي بيانات شخصية؟",
+      "expected_entry_ids": [
+        "office_equipment:shredder-din-66399",
+        "office_equipment:shredder-spec-checklist"
+      ]
+    },
+    {
+      "q_en": "We need 2,000 brochures - offset or digital, and what details does the printer need?",
+      "q_ar": "نحتاج 2,000 كتيب، أوفست أم رقمي، وما التفاصيل التي تحتاجها المطبعة؟",
+      "expected_entry_ids": [
+        "office_equipment:offset-vs-digital-printing",
+        "office_equipment:brochure-specs",
+        "office_equipment:commercial-print-price-drivers"
+      ]
+    },
+    {
+      "q_en": "Does a copier need an ESMA energy star label in the UAE?",
+      "q_ar": "هل تحتاج آلة التصوير إلى ملصق نجوم كفاءة الطاقة من الهيئة في الإمارات؟",
+      "expected_entry_ids": [
+        "office_equipment:uae-energy-labels",
+        "office_equipment:energy-star-imaging"
+      ]
+    },
+    {
+      "q_en": "What should we check when buying 86-inch interactive panels for classrooms?",
+      "q_ar": "ما الذي يجب التحقق منه عند شراء شاشات تفاعلية 86 بوصة للفصول؟",
+      "expected_entry_ids": [
+        "office_equipment:interactive-panels",
+        "office_equipment:warranty-service",
+        "office_equipment:quote-red-flags"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 16,
+    "claims_checked": 126,
+    "corrected": [
+      "office_equipment:ppm-duty-cycle",
+      "office_equipment:iso-yield-standards",
+      "office_equipment:paper-gsm",
+      "office_equipment:business-card-specs",
+      "office_equipment:paper-sizes",
+      "office_equipment:shredder-din-66399",
+      "office_equipment:laminators",
+      "office_equipment:interactive-panels",
+      "office_equipment:uae-energy-labels",
+      "office_equipment:energy-star-imaging"
+    ],
+    "removed": [],
+    "still_unverified": [
+      "office_equipment:mfp-a3-vs-a4",
+      "office_equipment:genuine-vs-compatible-toner",
+      "office_equipment:leasing-vs-buying",
+      "office_equipment:brochure-specs",
+      "office_equipment:shredder-spec-checklist",
+      "office_equipment:mfp-data-security",
+      "office_equipment:buyer-mistakes",
+      "office_equipment:quote-red-flags",
+      "office_equipment:warranty-service",
+      "office_equipment:lead-times",
+      "office_equipment:commercial-print-price-drivers"
+    ],
+    "note": "still_unverified = entries whose practice-guidance claims are explicitly marked \"Not established\" (confidence lowered where no direct source); every other claim was checked against the listed fetched URLs. Batch A5, 2026-09-23."
+  }
+}

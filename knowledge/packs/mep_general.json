@@ -1,0 +1,502 @@
+{
+  "trade": "mep_general",
+  "entries": [
+    {
+      "id": "mep_general:what-is-mep",
+      "topic": "What an MEP contractor covers",
+      "kind": "glossary",
+      "body_en": "MEP stands for mechanical, electrical and plumbing, and in the UAE an MEP contractor is usually engaged for all three together so one party owns coordination and handover. Mechanical normally means HVAC (chillers or DX units, fan coil units, ductwork, ventilation, kitchen and car-park extract, smoke control fans), and often fire fighting (sprinklers, hydrants, fire pumps) where the fire scope is not let separately. Electrical covers the LV distribution from the utility intake or substation, main and sub-main boards, cabling and containment, small power, lighting and controls, earthing and lightning protection, and often ELV systems such as fire alarm, CCTV, access control, data and public address. Plumbing covers water supply, storage tanks, pumps, water heaters, drainage, soil and waste, rainwater and sometimes gas. On larger projects a BMS integrates the systems. Scope boundaries vary widely: one MEP quote may include fire alarm and ELV while another excludes them, and utility connection works (DEWA or ADDC substation, water meter) may be by the utility or a specialist. The buyer must therefore state which systems are in scope, rather than assuming 'MEP' means the same thing to every contractor. Verification note (23 Sep 2026): The general scope is standard; the UAE-specific inclusion of fire fighting and ELV varies by project and is not established as a rule.",
+      "body_ar": "تعني MEP الأعمال الميكانيكية والكهربائية والصحية، ويُكلَّف مقاول MEP في الإمارات عادةً بالثلاثة معاً حتى يتحمل طرف واحد التنسيق والتسليم. تشمل الأعمال الميكانيكية عادةً التكييف والتهوية (مبردات مياه أو وحدات تمدد مباشر، ووحدات ملف المروحة، ومجاري الهواء، والتهوية، وشفط المطابخ والمواقف، ومراوح التحكم بالدخان)، وكثيراً ما تشمل مكافحة الحريق (رشاشات، حنفيات حريق، مضخات) إذا لم تُطرح منفصلة. وتشمل الكهرباء توزيع الجهد المنخفض من نقطة تغذية الجهة الموزعة أو المحطة الفرعية، واللوحات الرئيسية والفرعية، والكابلات ومساراتها، والمآخذ والإنارة وأنظمة التحكم، والتأريض والحماية من الصواعق، وغالباً أنظمة التيار الخفيف كإنذار الحريق وكاميرات المراقبة والتحكم بالدخول والشبكات والإذاعة الداخلية. وتشمل الأعمال الصحية تغذية المياه والخزانات والمضخات والسخانات والصرف الصحي ومياه الأمطار وأحياناً الغاز. وفي المشاريع الكبيرة يربط نظام إدارة المباني هذه الأنظمة. حدود النطاق تختلف كثيراً: عرض يشمل إنذار الحريق والتيار الخفيف وآخر يستثنيهما، وأعمال توصيل الخدمات (محطة ديوا أو أدّك، عداد المياه) قد تنفذها الجهة نفسها أو مقاول متخصص. لذلك يجب على المشتري تحديد الأنظمة المشمولة بدلاً من افتراض أن كلمة MEP تعني الشيء نفسه لكل مقاول. ملاحظة تحقق (23 سبتمبر 2026): النطاق العام معروف؛ أما شمول مكافحة الحريق والتيار الخفيف في الإمارات فيختلف حسب المشروع وليس قاعدة مثبتة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Mechanical,_electrical,_and_plumbing"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:design-vs-dnb",
+      "topic": "Build-only vs design-and-build MEP",
+      "kind": "comparison",
+      "body_en": "Under a traditional (build-only) arrangement the employer's consultant designs the MEP systems, issues tender drawings, specifications and a BOQ, and the contractor prices and builds to that design; design risk stays with the employer and the consultant, while the contractor carries workmanship and shop-drawing risk. FIDIC's Red Book is the common template for this model. Under design-and-build (FIDIC Yellow Book style, or simpler lump-sum D&B for fit-outs and villas), the contractor takes the employer's requirements or a concept design and develops the detailed design, obtains authority approvals, and builds, carrying design responsibility and fitness-for-purpose risk as the contract words it. D&B is faster and gives one point of responsibility, but the employer controls less, and a loose brief lets the contractor choose the cheapest compliant equipment. In Dubai, D&B contractors must be qualified with Dubai Municipality under the published D&B requirements and must use or employ a licensed design consultant for authority submissions. When requesting quotes, the buyer must say which model applies; a build-only price and a D&B price for the same project are not comparable because the D&B price includes design fees, approval fees and design risk.",
+      "body_ar": "في الترتيب التقليدي (تنفيذ فقط) يصمم استشاري المالك أنظمة MEP ويصدر مخططات المناقصة والمواصفات وجدول الكميات، ويسعّر المقاول وينفذ وفق هذا التصميم؛ فتبقى مخاطر التصميم على المالك والاستشاري، ويتحمل المقاول مخاطر جودة التنفيذ ومخططات الورشة. والكتاب الأحمر من فيديك هو النموذج الشائع لذلك. أما في التصميم والتنفيذ (على نمط الكتاب الأصفر من فيديك، أو عقد مقطوع مبسط لأعمال التشطيب الداخلي والفلل) فيأخذ المقاول متطلبات المالك أو التصميم المبدئي ويطور التصميم التفصيلي ويستخرج موافقات الجهات وينفذ، متحملاً مسؤولية التصميم وملاءمته للغرض حسب صياغة العقد. هذا النموذج أسرع ويعطي جهة مسؤولية واحدة، لكن تحكم المالك أقل، والمتطلبات الفضفاضة تسمح للمقاول باختيار أرخص معدات مطابقة. وفي دبي يجب أن يكون مقاول التصميم والتنفيذ مؤهلاً لدى بلدية دبي وفق المتطلبات المنشورة، وأن يستعين باستشاري تصميم مرخص لتقديمات الجهات. عند طلب العروض يجب أن يحدد المشتري النموذج المطبق، فسعر التنفيذ فقط وسعر التصميم والتنفيذ للمشروع نفسه غير قابلين للمقارنة لأن الثاني يشمل أتعاب التصميم ورسوم الموافقات ومخاطر التصميم.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:drawings-lifecycle",
+      "topic": "Tender drawings, shop drawings, IFC and as-built",
+      "kind": "glossary",
+      "body_en": "MEP drawings pass through distinct stages and a quote should say which the contractor will produce. Tender or design drawings, prepared by the consultant, show system concepts, equipment schedules and routes diagrammatically. Issued for Construction (IFC) drawings are the consultant's released set that the contractor is permitted to build from; building from anything marked 'not for construction' is a common source of disputes. Shop drawings are the contractor's detailed, dimensioned drawings showing exact routes, sizes, levels, supports and sleeves, coordinated with structure and other trades; they are submitted to the consultant for approval before installation, together with material submittals (datasheets, samples, compliance statements) for each product. Builder's work drawings show openings and plinths the civil contractor must provide. As-built drawings record what was actually installed, including changes made on site, and are handed over with operation and maintenance manuals; authorities and FM teams rely on them, and final payment and retention release often depend on their acceptance. Buyers should check the quote includes shop drawings, submittals, coordination and as-builts in native CAD or BIM format, not just PDF, and how many revisions are included.",
+      "body_ar": "تمر مخططات MEP بمراحل متميزة، ويجب أن يذكر العرض ما سينتجه المقاول منها. مخططات المناقصة أو التصميم يعدها الاستشاري وتبين مفاهيم الأنظمة وجداول المعدات والمسارات بشكل تخطيطي. ومخططات «معتمدة للتنفيذ» (IFC) هي المجموعة التي يصدرها الاستشاري ويُسمح للمقاول بالتنفيذ بموجبها، والتنفيذ من مخطط مكتوب عليه «ليس للتنفيذ» مصدر شائع للنزاعات. ومخططات الورشة هي مخططات المقاول التفصيلية المُقيّسة التي تبين المسارات والأحجام والمناسيب والحوامل والجلب بدقة، منسقة مع الهيكل والتخصصات الأخرى، وتُقدَّم للاستشاري للاعتماد قبل التركيب، مع تقديمات المواد (أوراق البيانات، العينات، بيانات المطابقة) لكل منتج. ومخططات أعمال البناء تبين الفتحات والقواعد التي يجب أن يوفرها مقاول الأعمال المدنية. أما مخططات «كما نُفِّذ» فتسجل ما رُكِّب فعلاً بما فيه التغييرات الموقعية، وتُسلَّم مع أدلة التشغيل والصيانة، وتعتمد عليها الجهات وفرق إدارة المرافق، وكثيراً ما يرتبط الدفع النهائي والإفراج عن المحتجزات بقبولها. على المشتري التأكد أن العرض يشمل مخططات الورشة والتقديمات والتنسيق ومخططات «كما نُفِّذ» بصيغة CAD أو BIM الأصلية لا PDF فقط، وعدد المراجعات المشمولة.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:bim-clash",
+      "topic": "MEP coordination, BIM and clash detection",
+      "kind": "installation",
+      "body_en": "Ceiling voids in UAE buildings are crowded: supply and return ducts, chilled water pipes with thick insulation, drainage that must fall by gravity, sprinkler mains, cable trays and busbars all compete for the same space above a false ceiling. Coordination is the process of fixing each service's route and level so they fit, respect maintenance access and keep the architect's ceiling height. Traditionally this was done with overlaid 2D combined services drawings; today most sizeable projects use a federated 3D BIM model where clash detection software flags hard clashes (two objects occupying the same space) and soft clashes (insufficient clearance for insulation, access or maintenance). The model's level of development (LOD) and the BIM Execution Plan define who models what and to what detail; ISO 19650 is the international framework for information management. Dubai Municipality introduced BIM through Circular 196 (2013) and widened it by Circular 207 (2015); from 1 January 2024 it requires BIM with permit applications for buildings over 20 floors, complexes over 20,000 m2, hospitals, universities and government projects, so the consultant should confirm whether the project falls under it. Clashes found on site instead of in the model mean rework, ceiling height losses and variations. Buyers should state whether BIM coordination is required, the LOD, software format and who leads coordination between MEP and other trades.",
+      "body_ar": "الفراغات فوق الأسقف المستعارة في مباني الإمارات مزدحمة: مجاري هواء الإمداد والراجع، وأنابيب المياه المبردة بعزلها السميك، والصرف الذي يجب أن ينحدر بالجاذبية، وخطوط الرشاشات، وحوامل الكابلات وقضبان التوزيع، كلها تتنافس على المساحة نفسها. التنسيق هو تثبيت مسار ومنسوب كل خدمة بحيث تتسع كلها مع مراعاة الوصول للصيانة والحفاظ على ارتفاع السقف الذي حدده المعماري. تقليدياً كان يتم بمخططات خدمات مجمعة ثنائية الأبعاد، واليوم تستخدم أغلب المشاريع الكبيرة نموذج BIM ثلاثي الأبعاد مدمجاً تكشف فيه البرامج التعارضات الصلبة (جسمان في المكان نفسه) والتعارضات اللينة (خلوص غير كافٍ للعزل أو الوصول أو الصيانة). ويحدد مستوى تطوير النموذج (LOD) وخطة تنفيذ BIM من ينمذج ماذا وبأي تفصيل، والمواصفة ISO 19650 هي الإطار الدولي لإدارة المعلومات. وقد أدخلت بلدية دبي BIM بالتعميم 196 لسنة 2013 ووسعته بالتعميم 207 لسنة 2015، ومنذ 1 يناير 2024 تشترط نموذج BIM مع طلبات التراخيص للمباني فوق 20 طابقاً والمجمعات فوق 20 ألف متر مربع والمستشفيات والجامعات والمشاريع الحكومية، فيجب أن يؤكد الاستشاري انطباق ذلك على المشروع. التعارضات المكتشفة في الموقع بدل النموذج تعني إعادة عمل وفقداً في ارتفاع السقف وأوامر تغيير. على المشتري تحديد هل التنسيق بـBIM مطلوب، ومستوى التطوير، وصيغة البرنامج، ومن يقود التنسيق بين MEP والتخصصات الأخرى.",
+      "sources": [
+        "https://cms.law/en/int/expert-guides/cms-expert-guide-to-building-information-modelling-bim/united-arab-emirates",
+        "https://www.globalconstructionreview.com/dubai-mandates-bim-for-new-buildings/",
+        "https://en.wikipedia.org/wiki/ISO_19650"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:testing-commissioning",
+      "topic": "Testing, commissioning and handover",
+      "kind": "installation",
+      "body_en": "Testing and commissioning (T&C) proves that installed MEP systems work as designed, and it is the stage most often under-priced. It runs in sequence: pre-commissioning checks (installation complete, flushed, cleaned, labelled), static tests (pressure tests on pipework, insulation resistance and continuity tests on cables, duct leakage tests), then setting to work, then balancing (air and water flow rates adjusted to design values at each terminal), then functional and performance testing, including integrated systems testing where fire alarm, smoke control, lifts, BMS and power failure scenarios are tested together. References such as CIBSE Commissioning Codes and ASHRAE guidelines are widely used in the UAE, and the specification may require an independent commissioning agent or a third-party testing and balancing specialist. Authority witnessing follows: civil defence tests fire and life-safety systems, and the utility inspects the electrical installation before energisation. Handover includes test certificates, O&M manuals, as-built drawings, spare parts, warranties and training of the operator. A quote that says 'T&C included' without stating balancing, integrated testing, third-party involvement and witnessing attendance should be clarified. CIBSE publishes separate codes for air (A), water (W), controls (C), refrigeration (R), lighting (L) and commissioning management (M).",
+      "body_ar": "الاختبار والتشغيل التجريبي يثبت أن أنظمة MEP المركبة تعمل كما صُممت، وهو المرحلة الأكثر تعرضاً للتسعير الناقص. ويسير بتسلسل: فحوص ما قبل التشغيل (اكتمال التركيب، الغسيل، التنظيف، الترقيم)، ثم الاختبارات الساكنة (اختبار ضغط الأنابيب، واختبار مقاومة العزل والاستمرارية للكابلات، واختبار تسرب مجاري الهواء)، ثم التشغيل، ثم الموازنة (ضبط تدفقات الهواء والماء على القيم التصميمية عند كل مخرج)، ثم الاختبارات الوظيفية والأدائية، بما فيها اختبار الأنظمة المتكاملة حيث تُختبر معاً سيناريوهات إنذار الحريق والتحكم بالدخان والمصاعد ونظام إدارة المبنى وانقطاع الكهرباء. وتُستخدم في الإمارات على نطاق واسع مراجع مثل أكواد التشغيل التجريبي من CIBSE وإرشادات ASHRAE، وقد تشترط المواصفة وكيل تشغيل مستقلاً أو متخصصاً طرفاً ثالثاً في الاختبار والموازنة. ثم تأتي معاينة الجهات: يختبر الدفاع المدني أنظمة الحريق وسلامة الأرواح، وتفتش الجهة الموزعة التمديدات الكهربائية قبل التوصيل. ويشمل التسليم شهادات الاختبار وأدلة التشغيل والصيانة ومخططات «كما نُفِّذ» وقطع الغيار والضمانات وتدريب المشغل. والعرض الذي يقول «الاختبار والتشغيل مشمول» دون ذكر الموازنة والاختبار المتكامل ومشاركة الطرف الثالث وحضور المعاينات يجب استيضاحه. وتصدر CIBSE رموزاً منفصلة للهواء (A) والمياه (W) والتحكم (C) والتبريد (R) والإنارة (L) وإدارة التشغيل (M).",
+      "sources": [
+        "https://www.cibse.org/knowledge-research/knowledge-resources/engineering-guidance/cibse-commissioning-codes/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:bms",
+      "topic": "Building Management System (BMS)",
+      "kind": "product",
+      "body_en": "A BMS (also called BAS) is the control and monitoring system that supervises HVAC plant, pumps, fans, lighting, energy meters and often interfaces with fire alarm, lifts, generators and water tanks. Architecture is typically three tiers: field devices (sensors, actuators, valves, VFDs), controllers (DDC controllers running the control sequences), and a supervisory server and graphics workstation. Open protocols matter: BACnet (ASHRAE 135) and Modbus are the common languages, and specifying open protocols avoids being locked to one vendor for future expansions and service. Interfaces to third-party equipment such as chillers, VRF systems and meters need integration cards or gateways, and each interface should be listed. Green building rules in Dubai and Abu Dhabi push energy sub-metering and monitoring, which the BMS commonly delivers. A BMS quote must be read against a points schedule: the list of every monitored and controlled point (digital and analogue inputs and outputs) and every integration. Without a points schedule, two quotes can differ several-fold and neither is wrong. Also specify graphics, trending and alarm requirements, remote access and cyber security, operator training and whether the software licences are perpetual or subscription. Verification note (23 Sep 2026): BACnet is also published as ISO 16484-5; the statement that Dubai and Abu Dhabi green-building rules push sub-metering is not established from a fetched source.",
+      "body_ar": "نظام إدارة المباني (BMS أو BAS) هو نظام التحكم والمراقبة الذي يشرف على معدات التكييف والمضخات والمراوح والإنارة وعدادات الطاقة، ويرتبط غالباً بإنذار الحريق والمصاعد والمولدات وخزانات المياه. بنيته عادةً ثلاث طبقات: الأجهزة الميدانية (حساسات، مشغلات، صمامات، محولات تردد)، ووحدات التحكم الرقمية المباشرة التي تنفذ تسلسلات التحكم، وخادم إشرافي مع محطة رسومات. البروتوكولات المفتوحة مهمة: BACnet (مواصفة ASHRAE 135) وModbus هما اللغتان الشائعتان، وتحديد بروتوكول مفتوح يجنّب الارتهان لمورد واحد في التوسعات والصيانة مستقبلاً. والربط مع معدات الأطراف الأخرى كالمبردات وأنظمة VRF والعدادات يحتاج بطاقات تكامل أو بوابات، ويجب سرد كل ربط. وتدفع أنظمة المباني الخضراء في دبي وأبوظبي نحو العدادات الفرعية للطاقة ومراقبتها، وهو ما يوفره النظام عادةً. يجب قراءة عرض BMS مقابل جدول النقاط: قائمة بكل نقطة مراقبة وتحكم (مداخل ومخارج رقمية وتناظرية) وكل ربط. ودون هذا الجدول قد يختلف عرضان أضعافاً دون أن يكون أي منهما خاطئاً. وحدد كذلك الرسومات والتسجيل والإنذارات والوصول عن بُعد والأمن السيبراني وتدريب المشغلين وهل تراخيص البرامج دائمة أم باشتراك. ملاحظة تحقق (23 سبتمبر 2026): وBACnet منشور أيضاً كمواصفة ISO 16484-5؛ أما القول بأن قواعد المباني الخضراء في دبي وأبوظبي تدفع نحو العدادات الفرعية فغير مثبت من مصدر مفحوص.",
+      "sources": [
+        "https://bacnet.org/about-bacnet-standard/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:dubai-approvals",
+      "topic": "Dubai MEP authority approvals: DM, DEWA, DCD and others",
+      "kind": "authority_approval",
+      "body_en": "In Dubai, which authority approves MEP work depends on where the plot is. On mainland Dubai, Dubai Municipality issues building permits through its building permit system, and MEP drawings are reviewed as part of the permit and green-building compliance; DEWA approves the electrical load, the substation or connection, and water connection, then inspects and energises; Dubai Civil Defence (DCD) approves fire and life-safety drawings, and later tests and issues the completion certificate for fire systems. Many zones have their own regulator instead of DM: Trakhees (Ports, Customs and Free Zone Corporation) covers JAFZA, Nakheel areas such as the Palm and other PCFC zones; Dubai Development Authority covers TECOM clusters such as Media City and Internet City; DIFC, Dubai South, Dubai Silicon Oasis and others have their own processes, and master developers (Emaar, Nakheel, Meraas and others) usually require an NOC before authority submission. Fit-out work in malls and towers also needs landlord or building management NOC. Approvals are submitted by the registered consultant or contractor; buyers should ask who is responsible for each NOC and whether authority fees are included or paid at cost. Civil defence approval runs in parallel with the planning authority, and Dubai South and DIFC have their own authorities.",
+      "body_ar": "في دبي تعتمد الجهة التي توافق على أعمال MEP على موقع قطعة الأرض. في دبي البرية تصدر بلدية دبي تراخيص البناء عبر نظامها، وتُراجع مخططات MEP ضمن الترخيص والتزام اشتراطات المباني الخضراء؛ وتوافق هيئة كهرباء ومياه دبي (ديوا) على الحمل الكهربائي والمحطة الفرعية أو التوصيل وتوصيل المياه، ثم تفتش وتوصل التيار؛ ويوافق الدفاع المدني في دبي على مخططات الحريق وسلامة الأرواح، ثم يختبر ويصدر شهادة الإنجاز لأنظمة الحريق. وكثير من المناطق لها جهة تنظيمية خاصة بدلاً من البلدية: تراخيص (مؤسسة الموانئ والجمارك والمنطقة الحرة) تغطي جافزا ومناطق نخيل كالنخلة وغيرها، وسلطة دبي للتطوير تغطي مجمعات تيكوم كمدينة الإعلام ومدينة الإنترنت، ولمركز دبي المالي العالمي ودبي الجنوب وواحة دبي للسيليكون وغيرها إجراءاتها الخاصة، وعادةً يشترط المطور الرئيسي (إعمار، نخيل، ميراس وغيرهم) شهادة عدم ممانعة قبل التقديم للجهات. وأعمال التشطيب الداخلي في المراكز التجارية والأبراج تحتاج أيضاً عدم ممانعة من المالك أو إدارة المبنى. يقدم الموافقات الاستشاري أو المقاول المسجل، وعلى المشتري أن يسأل من المسؤول عن كل شهادة عدم ممانعة وهل رسوم الجهات مشمولة أم تُدفع بالتكلفة. وتسير موافقة الدفاع المدني بالتوازي مع جهة التخطيط، ولدبي الجنوب ومركز دبي المالي العالمي سلطاتهما الخاصة.",
+      "sources": [
+        "https://daralnaseeb.com/blog/authority-approvals-dubai-complete-guide-2026"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:abudhabi-sharjah-approvals",
+      "topic": "Abu Dhabi and Sharjah MEP approvals",
+      "kind": "authority_approval",
+      "body_en": "In Abu Dhabi, building permits are issued through the Department of Municipalities and Transport and the relevant city municipality (Abu Dhabi City, Al Ain, Al Dhafra), with Estidama Pearl compliance checked as part of design and construction. Electricity and water connections are handled by the distribution companies, Abu Dhabi Distribution Company (ADDC) and Al Ain Distribution Company (AADC), now operating under the TAQA distribution umbrella, which approve the load, connection and metering and inspect before energisation. Abu Dhabi Civil Defence approves fire and life-safety systems; Abu Dhabi has issued its own amendments to the UAE Fire and Life Safety Code, so the edition in force must be confirmed. Free zones and master developers such as KEZAD, Masdar City or Aldar communities add their own NOCs. In Sharjah, the municipality issues building permits, Sharjah Electricity, Water and Gas Authority (SEWA) handles power, water and piped gas connections, and Sharjah Civil Defence covers fire systems. The northern emirates are largely served by Etihad Water and Electricity. Because each emirate's forms, load calculations and inspection sequences differ, an MEP contractor experienced in Dubai is not automatically familiar with Abu Dhabi or Sharjah processes; buyers should ask for recent approvals in the same emirate.\n\nAbu Dhabi Civil Defence Authority released 54 formal local amendments to the UAE Fire and Life Safety Code 2018 on 12 March 2026. Reported points include: sprinklers no longer mandatory on residential balconies; industrial buildings exempt from private hydrants where a public hydrant is within 100 m; clean-agent systems not mandatory in panel-only electrical rooms with adequate firestopping; firefighter phone-jack systems only above 90 m; smoke barriers need no fire rating in fully sprinklered buildings; mobile fire pumps and landing valves in corridors accepted subject to approval; louvred natural ventilation allowed in pump, generator and control rooms.",
+      "body_ar": "في أبوظبي تصدر تراخيص البناء عبر دائرة البلديات والنقل والبلدية المختصة (مدينة أبوظبي، العين، الظفرة)، ويُفحص الالتزام بنظام استدامة (تقييم اللؤلؤ) ضمن التصميم والتنفيذ. وتتولى توصيلات الكهرباء والمياه شركات التوزيع: شركة أبوظبي للتوزيع (أدّك) وشركة العين للتوزيع، العاملتان حالياً تحت مظلة التوزيع في طاقة، فتوافقان على الحمل والتوصيل والعدادات وتفتشان قبل التوصيل. ويوافق الدفاع المدني في أبوظبي على أنظمة الحريق وسلامة الأرواح، وقد أصدرت أبوظبي تعديلاتها الخاصة على كود الإمارات للحريق وسلامة الأرواح، فيجب التأكد من الإصدار النافذ. وتضيف المناطق الحرة والمطورون الرئيسيون مثل كيزاد ومدينة مصدر ومجتمعات الدار شهادات عدم ممانعة خاصة بهم. وفي الشارقة تصدر البلدية تراخيص البناء، وتتولى هيئة كهرباء ومياه وغاز الشارقة (سيوا) توصيلات الكهرباء والمياه والغاز بالأنابيب، ويغطي الدفاع المدني في الشارقة أنظمة الحريق. وتخدم الاتحاد للماء والكهرباء الإمارات الشمالية بمعظمها. ولأن النماذج وحسابات الأحمال وتسلسل التفتيش تختلف بين الإمارات، فالمقاول الخبير في دبي ليس بالضرورة ملماً بإجراءات أبوظبي أو الشارقة، وعلى المشتري أن يطلب موافقات حديثة في الإمارة نفسها.\n\nأصدرت هيئة أبوظبي للدفاع المدني في 12 مارس 2026 أربعةً وخمسين تعديلاً محلياً رسمياً على كود الإمارات للحماية من الحريق وسلامة الأرواح 2018. ومن النقاط المنشورة: لم تعد الرشاشات إلزامية في شرفات المباني السكنية؛ وتُعفى المباني الصناعية من شبكة الحنفيات الخاصة إذا وُجدت حنفية عامة ضمن 100 م؛ ولم تعد أنظمة الإطفاء بالعوامل النظيفة إلزامية في غرف اللوحات الكهربائية فقط مع إحكام عزل الحريق؛ ولا تلزم مقابس هاتف رجال الإطفاء إلا في المباني التي تتجاوز 90 م؛ ولا يلزم تصنيف مقاومة للحريق لحواجز الدخان في المباني المرشوشة بالكامل؛ ويُقبل استخدام مضخات حريق متنقلة ووضع صمامات الهبوط في الممرات بعد الموافقة؛ ويُسمح بالتهوية الطبيعية عبر فتحات الشيش في غرف المضخات والمولدات والتحكم.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)",
+        "https://vortexfire.com/insights/amendments-to-the-uae-fire-and-life-safety-code-of-practice-2018",
+        "https://firemiddleeastmag.com/engineering-codes-compliance/abu-dhabi-updates-fire-safety-code-with-new-amendments-aimed-at-flexibility-and-sustainability/",
+        "https://butlerme.com/theuaefirecodeisevolving/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:contractor-licence",
+      "topic": "Contractor licence classes and registration",
+      "kind": "authority_approval",
+      "body_en": "An MEP contractor in the UAE needs a trade licence carrying the right activities (for example electromechanical equipment installation, air-conditioning and ventilation contracting, plumbing and sanitary contracting, electrical fitting) and, to work on permitted projects, registration with the building authority. Dubai Municipality classifies contractors by grade, and the grade limits the value and type of project the company may take; industry guides describe grades from third class up to unlimited tied to capital and project value, but the thresholds should be verified on the DM register rather than taken from secondary sources. Specialist MEP and fit-out categories are registered separately from main building contractors. Registration in Dubai does not carry into Trakhees, DDA or other emirates, which keep their own registers. For electrical work, the utility maintains its own list of approved or registered electrical contractors and requires licensed electricians for connection works; civil defence keeps a list of approved fire contractors, and only those can install and maintain fire systems. Before awarding, ask for the trade licence, the authority registration certificate and grade, the DCD approval if fire work is included, and confirm they are valid and match the legal name on the quote. Verification note (23 Sep 2026): Dubai Municipality confirms binding standards for classifying contracting activities and technical staff; the utility and civil defence approved-contractor lists are not quoted from a fetched source here.",
+      "body_ar": "يحتاج مقاول MEP في الإمارات رخصة تجارية تحمل الأنشطة الصحيحة (مثل تركيب المعدات الكهروميكانيكية، ومقاولات التكييف والتهوية، ومقاولات السباكة والأدوات الصحية، والتمديدات الكهربائية)، والتسجيل لدى جهة البناء للعمل في المشاريع المرخصة. تصنف بلدية دبي المقاولين بدرجات تحدد قيمة ونوع المشاريع المسموح بها؛ وتذكر أدلة القطاع درجات من الثالثة حتى غير المحدودة مرتبطة برأس المال وقيمة المشروع، لكن يجب التحقق من الحدود في سجل البلدية لا من مصادر ثانوية. وتُسجَّل فئات MEP والتشطيب المتخصصة منفصلة عن مقاولي المباني الرئيسيين. والتسجيل في دبي لا ينتقل إلى تراخيص أو سلطة دبي للتطوير أو الإمارات الأخرى، فلكل منها سجلها. وفي الأعمال الكهربائية تحتفظ الجهة الموزعة بقائمتها الخاصة للمقاولين الكهربائيين المعتمدين وتشترط كهربائيين مرخصين لأعمال التوصيل؛ ويحتفظ الدفاع المدني بقائمة مقاولي الحريق المعتمدين، ولا يجوز لغيرهم تركيب أنظمة الحريق وصيانتها. قبل الترسية اطلب الرخصة التجارية وشهادة التسجيل ودرجته لدى الجهة، واعتماد الدفاع المدني إذا شمل العمل الحريق، وتأكد من سريانها ومطابقتها للاسم القانوني في العرض. ملاحظة تحقق (23 سبتمبر 2026): وتؤكد بلدية دبي وجود معايير ملزمة لتصنيف أنشطة المقاولات والكوادر الفنية؛ أما قوائم المقاولين المعتمدين لدى الجهة الموزعة والدفاع المدني فغير منقولة من مصدر مفحوص هنا.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/consultants-and-contractors-licensing-standards/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:green-building",
+      "topic": "Green building rules: Al Sa'fat, Estidama, DEWA regulations",
+      "kind": "standard",
+      "body_en": "MEP design in the UAE is shaped by mandatory green building rules. In Dubai, Al Sa'fat, the Dubai Green Building System administered by Dubai Municipality, grades buildings Silver, Gold and Platinum, with Silver as the minimum for new permits; its requirements touch MEP directly through minimum HVAC efficiencies, lighting power density, water-efficient fixtures and flow rates, energy and water sub-metering, condensate recovery in some building types, and commissioning. DEWA also applies its own green building regulations and specifications to connections. Areas regulated by Trakhees follow comparable green building regulations. In Abu Dhabi, the Estidama Pearl Rating System requires at least 1 Pearl for all new buildings and 2 Pearls for government-funded buildings, with credits for energy, water, materials and commissioning, and a Pearl Qualified Professional involved in the project. For fit-outs, a simplified compliance checklist often applies when MEP is altered. The practical effect for procurement is that equipment must meet stated efficiency levels (EER, COP, fixture flow rates), and cheaper non-compliant items get rejected at submittal stage. Suppliers should confirm compliance per item with datasheets, not with a general statement.",
+      "body_ar": "يتشكل تصميم MEP في الإمارات وفق قواعد إلزامية للمباني الخضراء. في دبي يصنف نظام السعفات (نظام دبي للمباني الخضراء) الذي تديره بلدية دبي المباني إلى فضي وذهبي وبلاتيني، والفضي هو الحد الأدنى للتراخيص الجديدة؛ وتمس متطلباته MEP مباشرة عبر الحد الأدنى لكفاءة التكييف، وكثافة قدرة الإنارة، والتركيبات الموفرة للمياه ومعدلات التدفق، والعدادات الفرعية للطاقة والمياه، واستعادة مياه التكثيف في بعض أنواع المباني، والتشغيل التجريبي. وتطبق ديوا كذلك لوائحها ومواصفاتها للمباني الخضراء على التوصيلات، والمناطق التابعة لتراخيص تتبع لوائح مماثلة. وفي أبوظبي يشترط نظام استدامة لتقييم اللؤلؤ لؤلؤة واحدة على الأقل لجميع المباني الجديدة ولؤلؤتين للمباني الممولة حكومياً، مع نقاط للطاقة والمياه والمواد والتشغيل التجريبي، ومشاركة مختص معتمد في نظام اللؤلؤ. وفي أعمال التشطيب الداخلي تنطبق غالباً قائمة التزام مبسطة عند تعديل MEP. والأثر العملي في الشراء أن المعدات يجب أن تحقق مستويات كفاءة محددة (EER وCOP ومعدلات تدفق التركيبات)، وتُرفض البنود الأرخص غير المطابقة عند مرحلة التقديم. ويجب أن يؤكد الموردون المطابقة لكل بند بأوراق بيانات لا ببيان عام.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://en.wikipedia.org/wiki/Pearl_Rating_System_(Abu_Dhabi)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:mep-spec-checklist",
+      "topic": "MEP package specification checklist",
+      "kind": "spec_checklist",
+      "body_en": "An MEP contractor can only price exactly when the scope is fixed on paper. The minimum is a clear list of included systems (HVAC, ventilation, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS), the drawings and specification revision the price is based on, and whether the work is build-only or design-and-build. Area, number of floors or units, building use and location (emirate and regulator) drive approvals and design standards. The buyer should state preferred or approved equipment makes or say that the consultant's approved list applies, since equipment brand is the largest price variable. Scope interfaces must be explicit: who provides the chiller or district cooling connection, the substation, the water tank civil works, the false ceiling access panels, the core drilling and builder's work, and utility connection fees. Programme and phasing, working hours restrictions (malls and occupied buildings often allow night work only) and site logistics affect labour cost. Finally, state what documents are expected: shop drawings, BIM, submittals, T&C with third party, as-builts, O&M manuals, and the warranty and DLP terms. Missing any of these means the quote should be held until clarified.",
+      "body_ar": "لا يستطيع مقاول MEP التسعير بدقة إلا إذا ثُبِّت النطاق كتابةً. الحد الأدنى قائمة واضحة بالأنظمة المشمولة (تكييف، تهوية، مكافحة حريق، إنذار حريق، كهرباء، إنارة، تيار خفيف، تغذية مياه، صرف، غاز، نظام إدارة المبنى)، ورقم مراجعة المخططات والمواصفات التي بُني عليها السعر، وهل العمل تنفيذ فقط أم تصميم وتنفيذ. والمساحة وعدد الطوابق أو الوحدات واستخدام المبنى وموقعه (الإمارة والجهة التنظيمية) تحدد الموافقات ومعايير التصميم. ويجب أن يذكر المشتري ماركات المعدات المفضلة أو المعتمدة أو أن قائمة الاستشاري المعتمدة تنطبق، لأن ماركة المعدات أكبر متغير في السعر. ويجب أن تكون حدود النطاق صريحة: من يوفر المبرد أو توصيل التبريد المركزي، والمحطة الفرعية، والأعمال المدنية لخزانات المياه، وفتحات الوصول في الأسقف، والتخريم وأعمال البناء، ورسوم توصيل الخدمات. والبرنامج الزمني والمراحل وقيود ساعات العمل (المراكز التجارية والمباني المأهولة كثيراً ما تسمح بالعمل الليلي فقط) ولوجستيات الموقع تؤثر في كلفة العمالة. وأخيراً حدد المستندات المتوقعة: مخططات الورشة، BIM، التقديمات، الاختبار والتشغيل مع طرف ثالث، مخططات «كما نُفِّذ»، أدلة التشغيل والصيانة، وشروط الضمان وفترة المسؤولية عن العيوب. أي نقص فيها يعني تعليق العرض حتى الاستيضاح.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "Systems in scope (HVAC, fire fighting, fire alarm, electrical, lighting, ELV, plumbing, drainage, gas, BMS)",
+        "Drawing/specification set and revision the price is based on",
+        "Build-only or design-and-build",
+        "Location: emirate, zone, regulator and master developer",
+        "Building use, built-up area, floors/units",
+        "Approved/preferred equipment makes or consultant's approved list",
+        "Interfaces: chiller/district cooling, substation, civil/builder's work, ceilings, utility fees",
+        "Programme, phasing and working-hour restrictions",
+        "Deliverables: shop drawings, BIM/LOD, submittals, T&C (third party?), as-builts, O&M",
+        "Payment terms, retention %, DLP length, warranties per system"
+      ]
+    },
+    {
+      "id": "mep_general:boq-vs-lumpsum",
+      "topic": "BOQ (remeasured) vs lump-sum MEP pricing",
+      "kind": "comparison",
+      "body_en": "MEP work is priced either against a bill of quantities (BOQ) or as a lump sum. In a BOQ contract the consultant's quantity surveyor measures each item (metres of pipe by size, number of fan coil units, points of lighting, metres of cable by size) using a method of measurement such as RICS NRM or POMI, and the contractor inserts rates; quantities may be remeasured, so the final price follows what was actually installed. This protects both parties when design is incomplete, but the employer carries quantity risk. In a lump-sum contract the contractor offers one price for the defined scope and carries quantity risk, which suits fixed designs and fit-outs; the danger is that ambiguous drawings lead to later claims that something was 'not shown'. Many UAE MEP packages mix both: lump sum with a priced BOQ used only for valuing variations and interim payments. Buyers comparing quotes should check that all contractors priced the same BOQ without deleting or altering lines, that provisional sums and prime-cost items are identical, and that 'rate only' items were not left unpriced. A breakdown by system and floor is essential for payment certification and variation valuation.",
+      "body_ar": "تُسعَّر أعمال MEP إما مقابل جدول كميات أو كمبلغ مقطوع. في عقد جدول الكميات يقيس مهندس الكميات لدى الاستشاري كل بند (أمتار الأنابيب حسب القطر، عدد وحدات ملف المروحة، نقاط الإنارة، أمتار الكابلات حسب المقطع) بطريقة قياس معتمدة مثل NRM من RICS أو POMI، ويضع المقاول الأسعار؛ وقد يُعاد القياس فيتبع السعر النهائي ما رُكِّب فعلاً. هذا يحمي الطرفين حين يكون التصميم غير مكتمل، لكن المالك يتحمل مخاطر الكميات. وفي العقد المقطوع يقدم المقاول سعراً واحداً للنطاق المحدد ويتحمل مخاطر الكميات، وهو يناسب التصاميم الثابتة وأعمال التشطيب؛ والخطر أن المخططات الغامضة تؤدي لاحقاً إلى مطالبات بأن شيئاً «لم يكن ظاهراً». وكثير من حزم MEP في الإمارات تمزج الاثنين: مبلغ مقطوع مع جدول كميات مسعَّر يُستخدم فقط لتقييم أوامر التغيير والدفعات المرحلية. وعند مقارنة العروض يجب التحقق من أن جميع المقاولين سعّروا جدول الكميات نفسه دون حذف أو تعديل بنود، وأن المبالغ الاحتياطية وبنود التكلفة الأساسية متطابقة، وأن بنود «السعر فقط» لم تُترك دون تسعير. والتفصيل حسب النظام والطابق ضروري لاعتماد الدفعات وتقييم التغييرات.",
+      "sources": [
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:variations",
+      "topic": "Variations and change orders in MEP contracts",
+      "kind": "buyer_mistake",
+      "body_en": "Variations are the main reason MEP final accounts exceed the tender price. They arise from design changes by the employer or consultant, from coordination problems discovered late, from authority comments that add equipment (for example, extra smoke extract or fire alarm devices after civil defence review), from tenant changes in fit-outs, and from scope gaps between trades. Under FIDIC-style contracts, a variation should be instructed in writing by the engineer or employer before the work is done, then valued using contract rates where applicable, rates derived from them, or new fair rates; time extension may also be due. Common buyer mistakes include giving verbal instructions on site, accepting 'we will discuss the cost later', and failing to fix unit rates for likely changes (extra points, extra metres of duct) in the original contract. Contractors, in turn, sometimes under-price the tender and recover through variations. Protections are: a complete scope before signing, a priced BOQ or schedule of rates for valuation, a clause requiring written instruction and a quotation before execution, time limits for submitting variation claims, and an agreed daywork rate. Every variation should reference the drawing or instruction that caused it.",
+      "body_ar": "أوامر التغيير هي السبب الرئيسي لتجاوز الحساب الختامي لأعمال MEP سعر المناقصة. وتنشأ من تغييرات التصميم من المالك أو الاستشاري، ومن مشاكل تنسيق تُكتشف متأخرة، ومن ملاحظات الجهات التي تضيف معدات (مثلاً شفط دخان أو أجهزة إنذار إضافية بعد مراجعة الدفاع المدني)، ومن تغييرات المستأجرين في التشطيبات، ومن فجوات النطاق بين التخصصات. في العقود على نمط فيديك يجب أن يصدر أمر التغيير كتابةً من المهندس أو المالك قبل التنفيذ، ثم يُقيَّم بأسعار العقد حيث تنطبق، أو بأسعار مشتقة منها، أو بأسعار عادلة جديدة، وقد يستحق تمديد زمني. ومن أخطاء المشترين الشائعة إعطاء تعليمات شفهية في الموقع، وقبول عبارة «نتفاهم على الكلفة لاحقاً»، وعدم تثبيت أسعار وحدات للتغييرات المرجحة (نقاط إضافية، أمتار مجاري هواء إضافية) في العقد الأصلي. وفي المقابل يلجأ بعض المقاولين إلى تخفيض سعر المناقصة ثم التعويض عبر التغييرات. وسبل الحماية: نطاق كامل قبل التوقيع، وجدول كميات أو جدول أسعار مسعَّر للتقييم، وبند يشترط أمراً كتابياً وعرض سعر قبل التنفيذ، ومهل لتقديم مطالبات التغيير، وسعر يومية متفق عليه. ويجب أن يشير كل أمر تغيير إلى المخطط أو التعليمات التي سببته.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:retention-dlp",
+      "topic": "Retention, defects liability and decennial liability",
+      "kind": "warranty",
+      "body_en": "Most UAE MEP contracts withhold retention from each interim payment, commonly 5 to 10 percent of the certified value, often capped at 5 percent of the contract sum. Typically half is released at practical completion or handover and the other half at the end of the defects liability period (DLP), which for MEP is commonly 12 months from handover, sometimes 24 months for major plant; a retention bond can sometimes replace cash retention. During the DLP the contractor must return to fix defects at no cost; for MEP this usually includes seasonal performance (proving air-conditioning through a full summer) and may be tied to a maintenance obligation. The DLP is contractual and separate from manufacturers' equipment warranties, which may start at delivery rather than handover, so the buyer should require warranties to start from handover or be extended. Separately, UAE civil law imposes decennial (ten-year) liability on contractors and supervising engineers for defects threatening the stability or safety of a building; it cannot be excluded by contract. The 1985 Civil Code covered this in Articles 880 to 883, and the new Civil Code of 2025 restates it in Articles 821 to 824, keeping the rule that any agreement to exclude or limit it is void and clarifying its application to subcontractors; whether a particular MEP defect falls within it is a legal question for counsel.",
+      "body_ar": "تحتجز أغلب عقود MEP في الإمارات نسبة من كل دفعة مرحلية، عادةً من 5 إلى 10% من القيمة المعتمدة، وكثيراً بسقف 5% من قيمة العقد. وعادةً يُفرج عن نصفها عند الإنجاز العملي أو التسليم وعن النصف الآخر في نهاية فترة المسؤولية عن العيوب، وهي في أعمال MEP غالباً 12 شهراً من التسليم وأحياناً 24 شهراً للمعدات الرئيسية، ويمكن أحياناً استبدال الاحتجاز النقدي بضمان بنكي. خلال هذه الفترة يلتزم المقاول بالعودة لإصلاح العيوب دون مقابل، ويشمل ذلك في MEP عادةً الأداء الموسمي (إثبات عمل التكييف خلال صيف كامل)، وقد يرتبط بالتزام صيانة. وهذه الفترة تعاقدية ومنفصلة عن ضمانات المصنعين للمعدات التي قد تبدأ من التوريد لا التسليم، فيجب أن يشترط المشتري بدء الضمانات من التسليم أو تمديدها. وبصورة مستقلة يفرض القانون المدني الإماراتي مسؤولية عشرية على المقاولين والمهندسين المشرفين عن العيوب التي تهدد متانة المبنى أو سلامته، ولا يجوز استبعادها بالعقد. وقد نظمها القانون المدني لعام 1985 في المواد 880 إلى 883، وأعاد القانون المدني الجديد ترقيمها وصياغتها؛ أما انطباقها على عيب معين في أعمال MEP فمسألة قانونية يُرجع فيها إلى محامٍ. وقد أعاد القانون المدني الجديد لسنة 2025 تنظيم هذه المسؤولية في المواد من 821 إلى 824، مع الإبقاء على بطلان أي اتفاق يعفي منها أو يحد منها، وتوضيح انطباقها على المقاولين من الباطن.",
+      "sources": [
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/",
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:amc-ppm-reactive",
+      "topic": "MEP AMC / FM: PPM vs reactive maintenance",
+      "kind": "comparison",
+      "body_en": "After handover, MEP systems are maintained under an annual maintenance contract (AMC) or a broader facilities management contract. Planned preventive maintenance (PPM) follows a schedule of tasks per asset, such as monthly filter cleaning on fan coil units, quarterly chiller checks, annual pump and motor servicing, periodic tank cleaning and disinfection, and thermographic surveys of electrical boards; SFG20 in the UK is a widely used library of task schedules, and ISO 41001 frames FM management systems. Reactive (corrective or breakdown) maintenance responds to faults as they are reported, measured by response and rectification times by priority. A comprehensive AMC includes parts and labour; a non-comprehensive or labour-only AMC covers visits and labour while parts are charged, often with a cap per item. Fire and life-safety systems have statutory maintenance by civil-defence-approved contractors, and water tank cleaning and legionella control have their own municipal requirements. When comparing AMC quotes, ask for the asset list, PPM frequencies per asset, what consumables are included, response times, 24/7 cover, technician deployment (resident or visiting), reporting through a CAFM system, and exclusions. A low AMC price usually means fewer visits or excluded parts. Verification note (23 Sep 2026): SFG20 holds over 1,500 schedules and marks statutory tasks red; the municipal tank-cleaning requirement is not established from a fetched source.",
+      "body_ar": "بعد التسليم تُصان أنظمة MEP بموجب عقد صيانة سنوي أو عقد إدارة مرافق أشمل. الصيانة الوقائية المخططة تتبع جدول مهام لكل أصل، مثل تنظيف مرشحات وحدات ملف المروحة شهرياً، وفحص المبردات ربع سنوياً، وصيانة المضخات والمحركات سنوياً، وتنظيف الخزانات وتعقيمها دورياً، والمسح الحراري للوحات الكهربائية؛ ومكتبة SFG20 البريطانية مرجع واسع الاستخدام لجداول المهام، وتؤطر ISO 41001 أنظمة إدارة المرافق. أما الصيانة التفاعلية (التصحيحية أو عند العطل) فتستجيب للأعطال عند الإبلاغ، وتُقاس بأزمنة الاستجابة والإصلاح حسب الأولوية. العقد الشامل يغطي القطع والعمالة، والعقد غير الشامل أو للعمالة فقط يغطي الزيارات والعمالة وتُحتسب القطع، غالباً بسقف لكل بند. ولأنظمة الحريق وسلامة الأرواح صيانة إلزامية بواسطة مقاولين معتمدين من الدفاع المدني، ولتنظيف خزانات المياه ومكافحة الليجيونيلا اشتراطات بلدية خاصة. عند مقارنة عروض الصيانة اطلب قائمة الأصول، وتكرار الصيانة الوقائية لكل أصل، والمستهلكات المشمولة، وأزمنة الاستجابة، والتغطية على مدار الساعة، وطريقة توزيع الفنيين (مقيم أو زائر)، والتقارير عبر نظام CAFM، والاستثناءات. والسعر المنخفض عادةً يعني زيارات أقل أو قطعاً مستثناة. ملاحظة تحقق (23 سبتمبر 2026): وتضم SFG20 أكثر من 1500 جدول وتلوّن المهام الإلزامية بالأحمر؛ أما اشتراط البلدية لتنظيف الخزانات فغير مثبت من مصدر مفحوص.",
+      "sources": [
+        "https://www.sfg20.co.uk/what-is-sfg20",
+        "https://en.wikipedia.org/wiki/Facility_management"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:fitout-vs-villa",
+      "topic": "Commercial fit-out MEP vs villa MEP",
+      "kind": "comparison",
+      "body_en": "Fit-out MEP and villa MEP are different businesses. A commercial fit-out (office, shop, restaurant, clinic) modifies an existing base build: the landlord provides chilled water or DX capacity, a power allocation, sprinkler and fire alarm infrastructure and drainage points, and the fit-out contractor extends and relocates them to suit the new layout. The key risks are working within landlord rules, getting landlord and authority NOCs, matching the base-build fire alarm and BMS brands (often mandated by the landlord), and night-shift working in occupied malls; the landlord's tenant fit-out guide is the controlling document. Villa MEP is new-build: the contractor installs the entire system, typically ducted split or VRF air-conditioning, a DEWA or ADDC meter connection, water tanks and pumps, water heaters or solar water heating, drainage to the municipal sewer or a septic tank, and often a small ELV package. Villa risks include authority approvals for the whole building, green building compliance, coordination with the main contractor, and owner-driven changes. Many firms do one well but not the other; a buyer should ask for comparable references and confirm whether the quote assumes existing landlord infrastructure or a complete new installation.",
+      "body_ar": "أعمال MEP في التشطيب التجاري وأعمال MEP في الفلل نشاطان مختلفان. التشطيب التجاري (مكتب، محل، مطعم، عيادة) يعدّل مبنى قائماً: يوفر المالك قدرة المياه المبردة أو التمدد المباشر، وحصة كهرباء، وبنية الرشاشات وإنذار الحريق، ونقاط الصرف، ويمددها مقاول التشطيب ويعيد توزيعها وفق التصميم الجديد. أهم المخاطر العمل ضمن قواعد المالك، والحصول على عدم ممانعة المالك والجهات، ومطابقة ماركات إنذار الحريق ونظام إدارة المبنى القائمة (التي يفرضها المالك غالباً)، والعمل الليلي في المراكز التجارية المأهولة؛ ودليل تشطيب المستأجرين الصادر عن المالك هو المستند الحاكم. أما MEP الفلل فبناء جديد: يركب المقاول النظام كاملاً، عادةً تكييف سبليت بمجاري هواء أو VRF، وتوصيل عداد ديوا أو أدّك، وخزانات ومضخات مياه، وسخانات أو تسخين شمسي، وصرفاً إلى شبكة البلدية أو خزان تحليل، وغالباً حزمة تيار خفيف صغيرة. ومخاطر الفلل تشمل موافقات الجهات للمبنى كاملاً، والتزام المباني الخضراء، والتنسيق مع المقاول الرئيسي، والتغييرات التي يطلبها المالك. كثير من الشركات تتقن أحدهما دون الآخر، فعلى المشتري أن يطلب مراجع مماثلة ويتأكد هل يفترض العرض بنية المالك القائمة أم تركيباً جديداً كاملاً.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:price-drivers",
+      "topic": "What drives an MEP price",
+      "kind": "price_driver",
+      "body_en": "MEP cost is driven far more by scope and specification than by area alone, so a price per square foot is only a rough screening tool. The main drivers are: the HVAC system type (district cooling connection, chiller plant, VRF, or ducted splits differ greatly in cost and in who supplies the plant); equipment makes and origin, since European, Japanese, American and Asian brands for the same duty vary widely; the density of services (a restaurant or clinic needs far more extract, drainage and power per square metre than an office); fire fighting and fire alarm requirements set by occupancy and height; ELV and BMS extent; copper, steel and aluminium commodity prices, which move cable, pipe and duct costs; authority and utility fees, including DEWA connection and substation charges, which can be large for new loads; working restrictions such as night shifts, occupied buildings and high-rise logistics; the programme, since acceleration adds labour cost; design responsibility and insurance under D&B; and the payment terms and retention, which affect the contractor's financing cost. Comparing quotes requires the same scope, the same approved makes and the same assumptions on fees and interfaces.",
+      "body_ar": "تتحدد كلفة MEP بالنطاق والمواصفات أكثر بكثير من المساحة وحدها، لذا فسعر القدم المربع أداة فرز تقريبية فقط. أبرز المحددات: نوع نظام التكييف (توصيل تبريد مركزي، أو محطة مبردات، أو VRF، أو سبليت بمجاري هواء، تختلف كثيراً في الكلفة وفي من يوفر المعدات الرئيسية)؛ وماركات المعدات ومنشؤها، إذ تتفاوت الماركات الأوروبية واليابانية والأمريكية والآسيوية كثيراً للقدرة نفسها؛ وكثافة الخدمات (المطعم أو العيادة يحتاج شفطاً وصرفاً وكهرباء لكل متر مربع أكثر بكثير من المكتب)؛ ومتطلبات مكافحة الحريق وإنذاره حسب الإشغال والارتفاع؛ ومدى التيار الخفيف ونظام إدارة المبنى؛ وأسعار النحاس والحديد والألمنيوم التي تحرك كلفة الكابلات والأنابيب ومجاري الهواء؛ ورسوم الجهات والخدمات، بما فيها رسوم توصيل ديوا والمحطات الفرعية التي قد تكون كبيرة للأحمال الجديدة؛ وقيود العمل كالعمل الليلي والمباني المأهولة ولوجستيات الأبراج؛ والبرنامج الزمني، إذ يضيف التسريع كلفة عمالة؛ ومسؤولية التصميم والتأمين في التصميم والتنفيذ؛ وشروط الدفع والمحتجزات التي تؤثر في كلفة تمويل المقاول. ومقارنة العروض تتطلب النطاق نفسه والماركات المعتمدة نفسها والافتراضات نفسها للرسوم وحدود العمل.",
+      "sources": [
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:red-flags",
+      "topic": "Red flags in MEP quotations",
+      "kind": "quote_red_flag",
+      "body_en": "Several patterns in MEP quotes signal risk. A single lump sum with no breakdown by system prevents comparison and makes variation valuation impossible. Vague equipment descriptions such as 'split AC 2 ton, reputed make' or 'or equivalent' without naming the approved list allow the cheapest substitution. Exclusions hidden at the end, commonly authority fees, DEWA or ADDC charges, builder's work, core drilling, testing and commissioning, third-party balancing, as-builts, fire alarm or BMS integration, or civil defence approval, can add a large share of the price back later. Quantities lower than the drawings suggest, or deleted BOQ lines, indicate the contractor intends to claim later. An unusually low price with a very high advance payment, or payment tied to material delivery rather than installed work, shifts risk to the buyer. Missing trade licence activities, no authority registration, or no DCD approval for a quote that includes fire systems means the work may not be approvable. A programme that ignores authority inspection durations or long-lead items is unrealistic. No mention of DLP, retention or warranty start date, or a validity of only a few days to force a decision, are further warning signs. Each should be clarified in writing before award.",
+      "body_ar": "هناك أنماط في عروض MEP تنذر بالمخاطر. المبلغ المقطوع الواحد دون تفصيل حسب النظام يمنع المقارنة ويجعل تقييم التغييرات مستحيلاً. والأوصاف المبهمة للمعدات مثل «مكيف سبليت 2 طن ماركة معروفة» أو «أو ما يعادله» دون ذكر القائمة المعتمدة تسمح بإحلال الأرخص. والاستثناءات المخفية في نهاية العرض، كرسوم الجهات، ورسوم ديوا أو أدّك، وأعمال البناء، والتخريم، والاختبار والتشغيل، والموازنة بطرف ثالث، ومخططات «كما نُفِّذ»، وربط إنذار الحريق أو نظام إدارة المبنى، وموافقة الدفاع المدني، قد تعيد جزءاً كبيراً من السعر لاحقاً. والكميات الأقل مما توحي به المخططات أو حذف بنود من جدول الكميات يدلان على نية المطالبة لاحقاً. والسعر المنخفض بشكل غير عادي مع دفعة مقدمة عالية جداً، أو ربط الدفع بتوريد المواد لا بالأعمال المركبة، ينقل المخاطر إلى المشتري. وغياب أنشطة الرخصة التجارية أو التسجيل لدى الجهة أو اعتماد الدفاع المدني في عرض يشمل أنظمة الحريق يعني أن العمل قد لا يُعتمد. والبرنامج الذي يتجاهل مدد تفتيش الجهات أو البنود طويلة التوريد غير واقعي. وعدم ذكر فترة المسؤولية عن العيوب أو المحتجزات أو تاريخ بدء الضمان، أو صلاحية العرض لأيام قليلة لفرض القرار، علامات تحذير إضافية. ويجب استيضاح كل ذلك كتابةً قبل الترسية.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:buyer-mistakes",
+      "topic": "Common buyer mistakes when buying MEP work",
+      "kind": "buyer_mistake",
+      "body_en": "The most expensive MEP mistakes happen before the contract is signed. Buyers often request quotes on a verbal description or an architectural layout without MEP drawings, so each contractor designs a different system and the prices are not comparable. Many choose on the lowest total without checking exclusions, then pay for authority fees, builder's work and commissioning separately. Others accept the contractor's own design in a fit-out without a consultant, only to find the landlord or civil defence rejects it. Specifying equipment by capacity only (for example tonnage) ignores efficiency, noise, refrigerant and green building compliance. Buyers underestimate the time for approvals and long-lead items such as chillers, switchgear, generators and fire pumps, then pressure the contractor, which leads to shortcuts. On handover, they fail to insist on as-built drawings, O&M manuals, test certificates and training, and discover the gap when the first fault arrives. Finally, they skip a maintenance contract during the DLP, which can void equipment warranties that require documented servicing. The remedy is a written scope with drawings, an approved makes list, a clear inclusions and exclusions schedule, a realistic programme, and defined handover deliverables.",
+      "body_ar": "أغلى أخطاء MEP تقع قبل توقيع العقد. كثيراً ما يطلب المشترون عروضاً بناءً على وصف شفهي أو مخطط معماري دون مخططات MEP، فيصمم كل مقاول نظاماً مختلفاً ولا تصبح الأسعار قابلة للمقارنة. ويختار كثيرون الأقل سعراً دون فحص الاستثناءات، ثم يدفعون رسوم الجهات وأعمال البناء والتشغيل التجريبي منفصلة. ويقبل آخرون تصميم المقاول نفسه في التشطيب دون استشاري، ليكتشفوا أن المالك أو الدفاع المدني يرفضه. وتحديد المعدات بالقدرة وحدها (مثل الأطنان) يتجاهل الكفاءة والضجيج ونوع غاز التبريد والتزام المباني الخضراء. ويستهين المشترون بمدة الموافقات والبنود طويلة التوريد كالمبردات ولوحات التوزيع والمولدات ومضخات الحريق، ثم يضغطون على المقاول فيلجأ إلى الاختصارات. وعند التسليم لا يصرون على مخططات «كما نُفِّذ» وأدلة التشغيل والصيانة وشهادات الاختبار والتدريب، فيكتشفون النقص عند أول عطل. وأخيراً يتجاوزون عقد الصيانة خلال فترة المسؤولية عن العيوب، مما قد يُبطل ضمانات المعدات التي تشترط صيانة موثقة. والعلاج نطاق مكتوب مع مخططات، وقائمة ماركات معتمدة، وجدول واضح للمشمولات والاستثناءات، وبرنامج زمني واقعي، ومخرجات تسليم محددة.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:lead-times",
+      "topic": "MEP long-lead items and programme",
+      "kind": "lead_time",
+      "body_en": "MEP programmes are usually governed by a handful of long-lead items and by authority sequences rather than by site labour. Typical long-lead equipment includes chillers and large air-handling units, main LV switchgear and MDBs, transformers and ring main units where the project procures them, generators, fire pumps with their controllers (which must be of listed or approved types), lifts where they sit in the MEP package, busbar trunking and large VRF systems. Actual lead times depend on manufacturer, origin, stock and market conditions, so there is no reliable universal figure; buyers should ask each supplier for a committed lead time from approval of submittal, not from order. Approval sequences add their own durations: consultant submittal review, authority drawing approval, DEWA or ADDC load approval and substation construction, civil defence inspection and the building completion certificate. Energisation by the utility is often the critical path for occupation. A realistic MEP programme shows submittal dates, procurement windows, installation by floor, testing, authority inspections and snagging, with float for re-inspection. A contractor who promises occupation without allowing for these steps is either very experienced in that jurisdiction or has not planned it. Verification note (23 Sep 2026): This entry gives planning advice only; no lead time or approval duration in it is established from a fetched source.",
+      "body_ar": "تتحكم في برنامج MEP عادةً بضعة بنود طويلة التوريد وتسلسلات الجهات أكثر من العمالة الموقعية. من المعدات طويلة التوريد النموذجية: المبردات ووحدات مناولة الهواء الكبيرة، ولوحات الجهد المنخفض الرئيسية، والمحولات ووحدات الحلقة الرئيسية حين يشتريها المشروع، والمولدات، ومضخات الحريق مع لوحات تحكمها (التي يجب أن تكون من أنواع مدرجة أو معتمدة)، والمصاعد حين تكون ضمن حزمة MEP، وقضبان التوزيع المغلقة، وأنظمة VRF الكبيرة. وتعتمد مدد التوريد الفعلية على المصنّع والمنشأ والمخزون وظروف السوق، فلا يوجد رقم عام موثوق؛ وعلى المشتري أن يطلب من كل مورد مدة توريد ملزمة تبدأ من اعتماد التقديم لا من أمر الشراء. وتضيف تسلسلات الموافقات مددها الخاصة: مراجعة الاستشاري للتقديمات، واعتماد الجهة للمخططات، واعتماد ديوا أو أدّك للحمل وإنشاء المحطة الفرعية، وتفتيش الدفاع المدني، وشهادة إنجاز المبنى. وكثيراً ما يكون توصيل التيار من الجهة الموزعة هو المسار الحرج للإشغال. البرنامج الواقعي لأعمال MEP يبين تواريخ التقديمات، ونوافذ الشراء، والتركيب حسب الطابق، والاختبارات، وتفتيش الجهات، ومعالجة الملاحظات، مع هامش لإعادة التفتيش. والمقاول الذي يعد بالإشغال دون حساب هذه الخطوات إما خبير جداً في تلك الجهة أو لم يخطط. ملاحظة تحقق (23 سبتمبر 2026): هذا البند نصيحة تخطيطية فقط، ولا توجد فيه مدة توريد أو موافقة مثبتة من مصدر مفحوص.",
+      "sources": [],
+      "confidence": "low",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:district-cooling-vs-chiller",
+      "topic": "District cooling vs own chiller plant vs VRF",
+      "kind": "comparison",
+      "body_en": "The cooling source is the largest MEP decision in a UAE building. District cooling, supplied by providers such as Empower, Tabreed and others in master-planned areas, delivers chilled water through an energy transfer station (heat exchangers, meters, control valves); the building avoids a chiller plant and roof space, but pays a connection or capacity charge plus consumption and fixed charges, and whether connection is mandatory depends on the community (not established as a general rule). An own chiller plant (air-cooled or water-cooled chillers with pumps, and cooling towers for water-cooled) gives the owner control and can be more efficient at scale, but requires plant space, maintenance and capital. VRF (variable refrigerant flow) systems use outdoor condensing units serving many indoor units through refrigerant piping; they suit villas, low-rise and fit-outs without chilled water, offer zoning and relatively simple installation, but have limits on piping length, refrigerant charge in occupied spaces, and very high ambient performance should be checked. Ducted and wall-mounted splits suit small spaces. The choice affects the whole MEP quote, so buyers must state which applies and, for district cooling, who pays the provider's connection fees. Verification note (23 Sep 2026): Empower, for example, bills a capacity charge per refrigeration ton per year plus metered consumption per RT-hour.",
+      "body_ar": "مصدر التبريد هو أكبر قرار في MEP لمبنى في الإمارات. التبريد المركزي الذي يوفره مزودون مثل إمباور وتبريد وغيرهما في المناطق المخططة يوصل المياه المبردة عبر محطة نقل الطاقة (مبادلات حرارية، عدادات، صمامات تحكم)؛ فيستغني المبنى عن محطة المبردات ومساحة السطح، لكنه يدفع رسوم توصيل أو سعة إضافة إلى الاستهلاك والرسوم الثابتة، وإلزامية التوصيل تعتمد على المجتمع السكني (غير مثبتة كقاعدة عامة). ومحطة المبردات الخاصة (مبردات بالهواء أو بالماء مع مضخات، وأبراج تبريد للمبردات المائية) تمنح المالك التحكم وقد تكون أكفأ في الأحجام الكبيرة، لكنها تتطلب مساحة وصيانة ورأس مال. وأنظمة VRF (تدفق غاز التبريد المتغير) تستخدم وحدات خارجية تخدم وحدات داخلية كثيرة عبر أنابيب غاز التبريد؛ وتناسب الفلل والمباني المنخفضة والتشطيبات دون مياه مبردة، وتوفر تقسيماً للمناطق وتركيباً بسيطاً نسبياً، لكن لها حدود في طول الأنابيب وكمية غاز التبريد في الأماكن المشغولة، ويجب التحقق من أدائها في الحرارة المحيطة العالية جداً. وأجهزة السبليت بمجاري أو الجدارية تناسب المساحات الصغيرة. ويؤثر هذا الاختيار في عرض MEP بأكمله، فيجب أن يحدد المشتري ما ينطبق، وفي التبريد المركزي من يدفع رسوم توصيل المزود. ملاحظة تحقق (23 سبتمبر 2026): فمثلاً تحتسب إمباور رسوم سعة لكل طن تبريد سنوياً إضافة إلى استهلاك مقاس لكل طن تبريد في الساعة.",
+      "sources": [
+        "https://gulfnews.com/living-in-uae/housing/uae-what-are-the-district-cooling-charges-in-dubai-1.1720017124527",
+        "https://en.wikipedia.org/wiki/Variable_refrigerant_flow"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:dewa-load-noc",
+      "topic": "DEWA / ADDC load approval and connection",
+      "kind": "authority_approval",
+      "body_en": "Any new building or significant load increase needs the utility's approval before construction progresses far. The electrical consultant or contractor calculates the connected load and demand (maximum) load using the utility's rules and diversity factors, and submits the load schedule and single-line diagram. In Dubai, DEWA reviews the submission, decides whether the supply is from an existing network or needs a new substation, sets connection charges, and later inspects the installation before energisation; similar steps apply with ADDC or AADC in Abu Dhabi and SEWA in Sharjah. Large loads usually need a substation room built to the utility's specification and handed over, and its construction can take months. Green building rules and utility regulations also require measures such as energy-efficient equipment and metering. Water connection follows a parallel process. For fit-outs, a load increase above the landlord's allocation needs landlord approval and possibly a utility application. Buyers should know that utility connection charges can be significant and are often excluded from MEP contractor prices, and that energisation dates depend on the utility, not the contractor. The quote should say who prepares the load calculation and submissions and whether utility charges are included. Verification note (23 Sep 2026): DEWA's regulations tie permitted maximum demand to transformer size and energise only after inspection and testing; the ADDC and SEWA steps are assumed similar, not established.",
+      "body_ar": "أي مبنى جديد أو زيادة كبيرة في الحمل تحتاج موافقة الجهة الموزعة قبل تقدم البناء كثيراً. يحسب الاستشاري الكهربائي أو المقاول الحمل الموصول والحمل الأقصى وفق قواعد الجهة ومعاملات التباين، ويقدم جدول الأحمال والمخطط الأحادي. في دبي تراجع ديوا التقديم وتقرر هل التغذية من شبكة قائمة أم تحتاج محطة فرعية جديدة، وتحدد رسوم التوصيل، ثم تفتش التمديدات قبل توصيل التيار؛ وتنطبق خطوات مماثلة مع أدّك أو شركة العين للتوزيع في أبوظبي وسيوا في الشارقة. والأحمال الكبيرة تحتاج عادةً غرفة محطة فرعية تُبنى وفق مواصفات الجهة وتُسلَّم لها، وقد يستغرق إنشاؤها أشهراً. وتشترط قواعد المباني الخضراء ولوائح الجهة كذلك إجراءات مثل المعدات الموفرة للطاقة والعدادات. ويسير توصيل المياه في مسار موازٍ. وفي التشطيبات تحتاج زيادة الحمل فوق حصة المالك موافقته وربما طلباً لدى الجهة الموزعة. وعلى المشتري أن يعلم أن رسوم التوصيل قد تكون كبيرة وكثيراً ما تُستثنى من أسعار مقاولي MEP، وأن مواعيد التوصيل تعتمد على الجهة لا المقاول. ويجب أن يذكر العرض من يعد حساب الأحمال والتقديمات وهل رسوم الجهة مشمولة. ملاحظة تحقق (23 سبتمبر 2026): وتربط لوائح ديوا الحمل الأقصى المسموح بسعة المحول ولا توصل التغذية إلا بعد التفتيش والاختبار؛ أما خطوات أدّك وسيوا فمفترض تشابهها وغير مثبتة.",
+      "sources": [
+        "https://idoc.pub/documents/dewa-regulations-for-electrical-installations-pon25gw2pmn0"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:dcd-fire-interface",
+      "topic": "Civil defence approval for MEP fire and life-safety",
+      "kind": "authority_approval",
+      "body_en": "Fire and life-safety systems sit inside most MEP packages and are the part most tightly controlled. The UAE Fire and Life Safety Code of Practice sets requirements for sprinklers, hydrants and hose reels, fire pumps and tanks, fire alarm and voice evacuation, emergency lighting and exit signs, smoke control and stair pressurisation, and fire-rated cabling for life-safety circuits. Only civil-defence-approved fire contractors may design submissions, install and maintain these systems, and most components (detectors, panels, sprinkler heads, pumps, fire-rated cables) must be of listed or civil-defence-approved products; in Dubai, approved products and contractors are listed through the DCD systems. Drawings are approved before installation, and on completion the civil defence inspects and witnesses tests before issuing its completion certificate, without which the building or fit-out cannot be occupied. Abu Dhabi and Sharjah have their own civil defence authorities, and Abu Dhabi has issued local amendments. MEP interfaces matter: fans must shut down or switch to smoke mode on alarm, lifts home, and door access releases. Buyers should confirm the fire subcontractor's approval, that products are on the approved list, and that inspection fees and any rework after inspection are addressed in the price.",
+      "body_ar": "أنظمة الحريق وسلامة الأرواح جزء من أغلب حزم MEP، وهي الجزء الأشد رقابة. يحدد كود الإمارات للحريق وسلامة الأرواح اشتراطات الرشاشات، وحنفيات الحريق وبكرات الخراطيم، ومضخات وخزانات الحريق، وإنذار الحريق والإخلاء الصوتي، وإنارة الطوارئ ولوحات المخارج، والتحكم بالدخان وضغط السلالم، والكابلات المقاومة للحريق لدوائر سلامة الأرواح. ولا يجوز إلا لمقاولي الحريق المعتمدين من الدفاع المدني إعداد التقديمات وتركيب هذه الأنظمة وصيانتها، ويجب أن تكون أغلب المكونات (الكواشف، اللوحات، رؤوس الرشاشات، المضخات، الكابلات المقاومة للحريق) من منتجات مدرجة أو معتمدة من الدفاع المدني؛ وفي دبي تُدرج المنتجات والمقاولون المعتمدون عبر أنظمة الدفاع المدني. تُعتمد المخططات قبل التركيب، وعند الإنجاز يفتش الدفاع المدني ويعاين الاختبارات قبل إصدار شهادة الإنجاز، ودونها لا يمكن إشغال المبنى أو المحل. ولأبوظبي والشارقة جهات دفاع مدني خاصة، وقد أصدرت أبوظبي تعديلات محلية. وحدود التداخل مع MEP مهمة: يجب أن تتوقف المراوح أو تتحول لوضع الدخان عند الإنذار، وتعود المصاعد للطابق الأرضي، وتُفتح أقفال الأبواب. وعلى المشتري التأكد من اعتماد مقاول الحريق من الباطن، وأن المنتجات في القائمة المعتمدة، وأن رسوم التفتيش وأي إعادة عمل بعد التفتيش معالجة في السعر.",
+      "sources": [
+        "https://vortexfire.com/insights/amendments-to-the-uae-fire-and-life-safety-code-of-practice-2018"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:submittals-approved-makes",
+      "topic": "Material submittals and approved makes",
+      "kind": "spec_checklist",
+      "body_en": "Before any MEP material is ordered, the contractor submits it for the consultant's approval. A complete material submittal contains the manufacturer's datasheet with the selected model highlighted, a compliance statement against each clause of the specification, test certificates and third-party listings (for example UL, FM, BSI, CE or ESMA/MoIAT conformity where required), civil defence or utility approval where the item needs it, country of origin, the local agent's authorisation letter, warranty terms, and samples for visible items such as fixtures and diffusers. Many specifications list approved makes, often three per item, and 'or approved equal' substitutions require proof of equivalence in performance, quality and local support. Submittals rejected late delay procurement, so the contractor's quoted makes should already be from the approved list. For the buyer, the approved-makes schedule is also the key to comparing quotes: two prices that name different brands for chillers, switchgear or pumps are not the same offer. A useful practice is to require each tenderer to fill a schedule of proposed makes and origins for every major item as part of the quote, so that later substitution needs formal approval.",
+      "body_ar": "قبل طلب أي مادة لأعمال MEP يقدمها المقاول لاعتماد الاستشاري. التقديم الكامل يتضمن ورقة بيانات المصنّع مع تمييز الطراز المختار، وبيان مطابقة لكل بند من المواصفات، وشهادات الاختبار والإدراج لدى طرف ثالث (مثل UL أو FM أو BSI أو CE أو مطابقة هيئة التقييس ووزارة الصناعة حيث يلزم)، واعتماد الدفاع المدني أو الجهة الموزعة حين يحتاجه البند، وبلد المنشأ، وخطاب تفويض الوكيل المحلي، وشروط الضمان، وعينات للبنود الظاهرة كالتركيبات الصحية وفتحات الهواء. وكثير من المواصفات تسرد ماركات معتمدة، غالباً ثلاثاً لكل بند، والإحلال بعبارة «أو ما يعادله المعتمد» يتطلب إثبات التكافؤ في الأداء والجودة والدعم المحلي. والتقديمات المرفوضة متأخراً تؤخر الشراء، لذا يجب أن تكون الماركات في العرض من القائمة المعتمدة أصلاً. وبالنسبة للمشتري فجدول الماركات المعتمدة هو مفتاح مقارنة العروض: سعران يذكران ماركات مختلفة للمبردات أو اللوحات أو المضخات ليسا العرض نفسه. ومن الممارسات المفيدة أن يُشترط على كل متقدم ملء جدول بالماركات والمنشأ المقترحة لكل بند رئيسي ضمن العرض، بحيث يحتاج أي إحلال لاحق إلى اعتماد رسمي.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "Manufacturer and model per major item",
+        "Country of origin",
+        "Compliance statement per specification clause",
+        "Third-party listings/certificates (UL/FM/CE/ECAS-EQM as applicable)",
+        "DCD or utility approval where required",
+        "Local agent authorisation",
+        "Warranty terms and start date",
+        "Samples for visible items"
+      ]
+    },
+    {
+      "id": "mep_general:handover-docs",
+      "topic": "Handover documents: O&M, as-builts, warranties, training",
+      "kind": "spec_checklist",
+      "body_en": "Handover is where MEP contracts are frequently closed badly. A complete handover package lets the owner or FM company operate, maintain and later modify the systems without the original contractor. It should contain as-built drawings in native format and PDF, the operation and maintenance manuals organised by system with equipment datasheets, maintenance schedules and spare parts lists, all test and commissioning records including balancing reports and integrated systems test results, authority certificates (civil defence completion, utility energisation and inspection reports), manufacturers' warranty certificates with start dates and the local contact for claims, the asset register with tag numbers matching labels on site, BMS points list, graphics and software licences with passwords, a spare parts and tools handover list, and records of operator training with attendance. Retention release and final payment are usually conditional on acceptance of this package. For fit-outs, the landlord often requires its own handover set before returning the security deposit. Buyers should define the handover content in the contract, not leave it to the end, and should verify that asset tags, warranties and manuals actually correspond to the installed equipment. BSRIA guide BG 79/2020 treats the O&M manual, record drawings, certificates and BIM models as the core handover deliverables.",
+      "body_ar": "التسليم هو المرحلة التي كثيراً ما تُغلق فيها عقود MEP بشكل سيئ. حزمة التسليم الكاملة تمكّن المالك أو شركة إدارة المرافق من تشغيل الأنظمة وصيانتها وتعديلها لاحقاً دون المقاول الأصلي. ويجب أن تتضمن مخططات «كما نُفِّذ» بالصيغة الأصلية وPDF، وأدلة التشغيل والصيانة مرتبة حسب النظام مع أوراق بيانات المعدات وجداول الصيانة وقوائم قطع الغيار، وجميع سجلات الاختبار والتشغيل بما فيها تقارير الموازنة ونتائج اختبار الأنظمة المتكاملة، وشهادات الجهات (إنجاز الدفاع المدني، تقارير توصيل وتفتيش الجهة الموزعة)، وشهادات ضمان المصنعين بتواريخ بدئها وجهة الاتصال المحلية للمطالبات، وسجل الأصول بأرقام ترميز مطابقة للملصقات في الموقع، وقائمة نقاط نظام إدارة المبنى ورسوماته وتراخيص برامجه مع كلمات المرور، وقائمة تسليم قطع الغيار والأدوات، وسجلات تدريب المشغلين مع الحضور. وعادةً يكون الإفراج عن المحتجزات والدفعة النهائية مشروطاً بقبول هذه الحزمة. وفي التشطيبات كثيراً ما يشترط المالك حزمة تسليم خاصة قبل رد التأمين. وعلى المشتري تحديد محتوى التسليم في العقد لا تركه للنهاية، والتحقق من أن الترميز والضمانات والأدلة تطابق المعدات المركبة فعلاً. ويعد دليل BSRIA رقم BG 79/2020 دليل التشغيل والصيانة والمخططات النهائية والشهادات ونماذج BIM أساس مستندات التسليم.",
+      "sources": [
+        "https://www.designingbuildings.co.uk/wiki/BSRIA_Handover_Information_and_O&M_Manuals_guidance"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23",
+      "required_specs": [
+        "As-built drawings (native + PDF)",
+        "O&M manuals per system",
+        "T&C and balancing records, integrated test results",
+        "Authority certificates (DCD, utility)",
+        "Warranty certificates with start dates",
+        "Asset register with tags",
+        "BMS points list, software and passwords",
+        "Spare parts/tools list",
+        "Training records"
+      ]
+    },
+    {
+      "id": "mep_general:payment-terms",
+      "topic": "MEP payment terms, advance and bonds",
+      "kind": "price_driver",
+      "body_en": "Payment structure changes both risk and price. Larger MEP contracts in the UAE commonly use an advance payment (often 10 to 20 percent) secured by an advance payment guarantee from a UAE bank that reduces as the advance is recovered from interim payments; a performance bond, typically around 10 percent of the contract value, valid until completion or the end of the DLP; monthly interim payments against the value of work installed plus, where the contract allows, a percentage of materials delivered to site; retention as described separately; and a final account after the DLP. Payment periods of 30 to 60 days after certification are common, and slow payment is reflected in higher tender prices. Small fit-out and villa jobs often run on milestone payments without bonds, which is where buyers take most risk: large deposits before any material is on site, and milestones defined by the contractor rather than by measurable installed work. Cheques and post-dated cheques remain common; bank transfers against invoices with a VAT registration number are cleaner. Buyers should tie payments to verified progress, secure any significant advance with a guarantee, and keep retention until handover documents are accepted.",
+      "body_ar": "يغير هيكل الدفع المخاطر والسعر معاً. تستخدم عقود MEP الأكبر في الإمارات عادةً دفعة مقدمة (غالباً 10 إلى 20%) مضمونة بضمان دفعة مقدمة من بنك في الدولة يتناقص مع استرداد الدفعة من الدفعات المرحلية؛ وضمان حسن تنفيذ يقارب عادةً 10% من قيمة العقد، ساري حتى الإنجاز أو نهاية فترة المسؤولية عن العيوب؛ ودفعات شهرية مرحلية مقابل قيمة الأعمال المركبة، ونسبة من المواد الموردة للموقع حين يسمح العقد؛ والمحتجزات كما هو موضح منفصلاً؛ وحساباً ختامياً بعد فترة المسؤولية عن العيوب. ومدد الدفع من 30 إلى 60 يوماً بعد الاعتماد شائعة، والدفع البطيء ينعكس في أسعار مناقصة أعلى. أما أعمال التشطيب والفلل الصغيرة فكثيراً ما تسير بدفعات مرحلية دون ضمانات، وهنا يتحمل المشتري أكبر المخاطر: دفعات مقدمة كبيرة قبل وصول أي مواد، ومراحل يحددها المقاول بدلاً من أعمال مركبة قابلة للقياس. ولا تزال الشيكات والشيكات المؤجلة شائعة، والتحويلات البنكية مقابل فواتير تحمل رقم التسجيل الضريبي أنظف. وعلى المشتري ربط الدفعات بالتقدم المتحقق منه، وتأمين أي دفعة مقدمة كبيرة بضمان، والإبقاء على المحتجزات حتى قبول مستندات التسليم.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book",
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/construction-engineering-and-projects/2026/decennial-liability-and-subcontractors-under-the-new-uae-civil-code-articles-821-to-824/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:mep-vs-separate-trades",
+      "topic": "Single MEP contractor vs separate trade packages",
+      "kind": "comparison",
+      "body_en": "Owners can award MEP as one package to a single MEP contractor or split it into separate packages (HVAC, electrical, plumbing, fire, ELV, BMS) let to specialists. A single MEP contractor gives one point of responsibility for coordination, programme, testing and handover; interfaces between systems, such as fire alarm to smoke fans or BMS to chillers, are the contractor's problem rather than the owner's; and the owner manages fewer contracts. The contractor adds overhead and profit on subcontracted parts, and its in-house strength may be uneven, strong in HVAC but weak in ELV, for example. Separate packages can lower cost and give access to the best specialist per system, but the owner or its consultant or main contractor must coordinate interfaces, and gaps between packages become the owner's variations. In the UAE, fire systems are often subcontracted to a civil-defence-approved fire contractor even inside a single MEP package, and BMS and ELV frequently go to specialists. The right choice depends on the owner's project management capacity: owners without a consultant or project manager are usually better served by one accountable MEP contractor with a clearly defined scope.",
+      "body_ar": "يمكن للمالك ترسية MEP كحزمة واحدة على مقاول MEP واحد أو تقسيمها إلى حزم منفصلة (تكييف، كهرباء، سباكة، حريق، تيار خفيف، نظام إدارة المبنى) تُسند لمتخصصين. المقاول الواحد يعطي جهة مسؤولية واحدة عن التنسيق والبرنامج والاختبار والتسليم؛ وحدود التداخل بين الأنظمة، مثل ربط إنذار الحريق بمراوح الدخان أو نظام إدارة المبنى بالمبردات، تصبح مشكلة المقاول لا المالك؛ ويدير المالك عقوداً أقل. لكن المقاول يضيف مصاريفه وأرباحه على الأجزاء المسندة من الباطن، وقد تكون قدراته الداخلية متفاوتة، قوية في التكييف وضعيفة في التيار الخفيف مثلاً. والحزم المنفصلة قد تخفض الكلفة وتتيح أفضل متخصص لكل نظام، لكن يجب على المالك أو استشاريه أو المقاول الرئيسي تنسيق حدود التداخل، وتصبح الفجوات بين الحزم أوامر تغيير على المالك. وفي الإمارات كثيراً ما تُسند أنظمة الحريق من الباطن إلى مقاول حريق معتمد من الدفاع المدني حتى داخل حزمة MEP واحدة، وكثيراً ما يذهب نظام إدارة المبنى والتيار الخفيف إلى متخصصين. ويعتمد الاختيار الصحيح على قدرة المالك في إدارة المشاريع: فالمالك الذي لا يملك استشارياً أو مدير مشروع يُخدم عادةً بشكل أفضل بمقاول MEP واحد مسؤول بنطاق محدد بوضوح.",
+      "sources": [
+        "https://fidic.org/books/construction-contract-2nd-ed-2017-red-book"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    },
+    {
+      "id": "mep_general:snagging-inspection",
+      "topic": "MEP snagging and quality inspection",
+      "kind": "installation",
+      "body_en": "Snagging is the systematic inspection of completed work to list defects before handover, and MEP defects are often hidden once ceilings close. Good practice is staged inspection: before ceilings close, the consultant or client representative checks pipe and duct supports, insulation continuity (gaps in chilled water insulation cause condensation drips and ceiling stains, a very common UAE complaint), fire-stopping of penetrations through fire-rated walls and slabs, access to valves, dampers and fan coil units, cable tray fill and segregation, and completed pressure test records. After ceilings close, inspection covers operation: temperatures and airflow in each room, noise from fan coil units and diffusers, drainage falls and traps (odours often come from dry traps or missing vent pipes), water pressure and hot water delivery time, lighting levels, labelling of boards and circuits, and correct operation on power failure and fire alarm. Each snag should be logged with location, photo, responsible trade and close-out date. Holding a small portion of payment or retention until snag lists are closed is standard. Buyers without technical staff can hire an independent snagging inspector, which is common for villas and apartment handovers in Dubai. Above-ceiling close-out checklists also cover fire damper access and labels, and separation of power and data cables.",
+      "body_ar": "معالجة الملاحظات (السناجنج) هي الفحص المنهجي للأعمال المنجزة لحصر العيوب قبل التسليم، وعيوب MEP كثيراً ما تختفي بعد إغلاق الأسقف. والممارسة الجيدة هي الفحص على مراحل: قبل إغلاق الأسقف يتحقق الاستشاري أو ممثل العميل من حوامل الأنابيب ومجاري الهواء، واستمرارية العزل (الفجوات في عزل أنابيب المياه المبردة تسبب تقطير التكثف وبقع الأسقف، وهي شكوى شائعة جداً في الإمارات)، وسد الاختراقات في الجدران والبلاطات المقاومة للحريق، وإمكانية الوصول إلى الصمامات والمخمدات ووحدات ملف المروحة، وامتلاء حوامل الكابلات والفصل بينها، واكتمال سجلات اختبار الضغط. وبعد إغلاق الأسقف يشمل الفحص التشغيل: الحرارة وتدفق الهواء في كل غرفة، وضجيج وحدات ملف المروحة وفتحات الهواء، وانحدارات الصرف والسيفونات (الروائح تأتي غالباً من سيفونات جافة أو غياب أنابيب التهوية)، وضغط المياه وزمن وصول الماء الساخن، ومستويات الإنارة، وترقيم اللوحات والدوائر، والتشغيل الصحيح عند انقطاع الكهرباء وإنذار الحريق. ويُسجَّل كل عيب بموقعه وصورته والتخصص المسؤول وتاريخ الإغلاق. واحتجاز جزء صغير من الدفعة أو المحتجزات حتى إغلاق قوائم الملاحظات ممارسة معتادة. ويمكن للمشترين الذين لا يملكون كوادر فنية الاستعانة بمفتش مستقل، وهذا شائع في تسليم الفلل والشقق في دبي. وتشمل قوائم الفحص قبل إغلاق الأسقف أيضاً الوصول إلى مخمدات الحريق وملصقاتها والفصل بين كابلات الكهرباء والبيانات.",
+      "sources": [
+        "https://hvac-blog.cfn-hvac.com/2026/07/above-ceiling-close-out-inspection.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-23"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Two MEP quotes for my office fit-out differ by 40%, how do I compare them?",
+      "q_ar": "عرضان لأعمال MEP لتشطيب مكتبي يختلفان بنسبة 40%، كيف أقارن بينهما؟",
+      "expected_entry_ids": [
+        "mep_general:price-drivers",
+        "mep_general:red-flags",
+        "mep_general:boq-vs-lumpsum"
+      ]
+    },
+    {
+      "q_en": "Should I go design-and-build or have a consultant design the MEP first?",
+      "q_ar": "هل أختار التصميم والتنفيذ أم يصمم استشاري أعمال MEP أولاً؟",
+      "expected_entry_ids": [
+        "mep_general:design-vs-dnb"
+      ]
+    },
+    {
+      "q_en": "What's the difference between shop drawings and as-built drawings?",
+      "q_ar": "ما الفرق بين مخططات الورشة ومخططات كما نُفِّذ؟",
+      "expected_entry_ids": [
+        "mep_general:drawings-lifecycle",
+        "mep_general:handover-docs"
+      ]
+    },
+    {
+      "q_en": "My villa is in Abu Dhabi — who approves the MEP and the power connection?",
+      "q_ar": "فيلتي في أبوظبي، من يعتمد أعمال MEP وتوصيل الكهرباء؟",
+      "expected_entry_ids": [
+        "mep_general:abudhabi-sharjah-approvals",
+        "mep_general:dewa-load-noc"
+      ]
+    },
+    {
+      "q_en": "Our unit is on the Palm; does Dubai Municipality approve the fit-out MEP?",
+      "q_ar": "وحدتنا في النخلة، هل تعتمد بلدية دبي أعمال MEP للتشطيب؟",
+      "expected_entry_ids": [
+        "mep_general:dubai-approvals",
+        "mep_general:fitout-vs-villa"
+      ]
+    },
+    {
+      "q_en": "How much retention should I hold and when do I release it?",
+      "q_ar": "كم أحتجز من المستحقات ومتى أفرج عنها؟",
+      "expected_entry_ids": [
+        "mep_general:retention-dlp",
+        "mep_general:payment-terms"
+      ]
+    },
+    {
+      "q_en": "Comprehensive AMC or PPM-only — which is better for a 12-floor building?",
+      "q_ar": "عقد صيانة شامل أم صيانة وقائية فقط، أيهما أفضل لمبنى من 12 طابقاً؟",
+      "expected_entry_ids": [
+        "mep_general:amc-ppm-reactive"
+      ]
+    },
+    {
+      "q_en": "What do you need from me to get an exact MEP quote?",
+      "q_ar": "ما المعلومات التي تحتاجها مني للحصول على عرض MEP دقيق؟",
+      "expected_entry_ids": [
+        "mep_general:mep-spec-checklist",
+        "mep_general:submittals-approved-makes"
+      ]
+    },
+    {
+      "q_en": "Is it cheaper to hire separate HVAC, electrical and plumbing contractors?",
+      "q_ar": "هل الأرخص التعاقد مع مقاولين منفصلين للتكييف والكهرباء والسباكة؟",
+      "expected_entry_ids": [
+        "mep_general:mep-vs-separate-trades"
+      ]
+    },
+    {
+      "q_en": "Does Al Sa'fat affect which AC units and fixtures I can buy?",
+      "q_ar": "هل يؤثر نظام السعفات على أجهزة التكييف والتركيبات التي أستطيع شراءها؟",
+      "expected_entry_ids": [
+        "mep_general:green-building",
+        "mep_general:submittals-approved-makes"
+      ]
+    },
+    {
+      "q_en": "The contractor says T&C is included — what should that cover?",
+      "q_ar": "المقاول يقول إن الاختبار والتشغيل مشمول، ماذا يجب أن يغطي؟",
+      "expected_entry_ids": [
+        "mep_general:testing-commissioning",
+        "mep_general:handover-docs"
+      ]
+    },
+    {
+      "q_en": "How do I check the MEP contractor is licensed for the job?",
+      "q_ar": "كيف أتحقق أن مقاول MEP مرخص لهذا العمل؟",
+      "expected_entry_ids": [
+        "mep_general:contractor-licence",
+        "mep_general:dcd-fire-interface"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 21,
+    "claims_checked": 116,
+    "corrected": [
+      "mep_general:retention-dlp",
+      "mep_general:bim-clash",
+      "mep_general:district-cooling-vs-chiller",
+      "mep_general:abudhabi-sharjah-approvals"
+    ],
+    "removed": [],
+    "still_unverified": [],
+    "not_established_marked": [
+      "mep_general:what-is-mep",
+      "mep_general:bms",
+      "mep_general:contractor-licence",
+      "mep_general:amc-ppm-reactive",
+      "mep_general:lead-times",
+      "mep_general:district-cooling-vs-chiller",
+      "mep_general:dewa-load-noc"
+    ],
+    "passes": "A3 + A3b (23 Sep 2026)",
+    "notes": "FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf). FC (2026-09-23): fire-code facts re-checked against the UAE Fire & Life Safety Code 2018 text (https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf)."
+  }
+}

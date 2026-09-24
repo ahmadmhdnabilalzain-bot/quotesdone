@@ -97,6 +97,12 @@ export async function runStep(deps: Deps, seat: Seat, step: Step, subject: strin
   // deno-lint-ignore no-explicit-any
   const r = req as any;
   if (r.task_class !== def.taskClass) throw new Error(`request class ${r.task_class} is not ${def.taskClass}`);
+  // THE TRENDS FEED THE PLAN (24 Sep 2026, GAPS.md marketing gap 3): the relevant trends think() judged, each with
+  // its "why it matters" line (fn_marketing_trends_for_plan), go into the plan and its defence as input.
+  if ((step === 'plan' || step === 'plan_defend') && r.input && typeof r.input === 'object') {
+    const { data: trends } = await deps.admin.rpc('fn_marketing_trends_for_plan', { p_month: r.input.month });
+    r.input.trends = trends ?? [];
+  }
 
   let msgs;
   try { msgs = await messagesFor(deps, r); }

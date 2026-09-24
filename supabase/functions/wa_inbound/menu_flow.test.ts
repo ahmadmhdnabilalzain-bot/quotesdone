@@ -5,12 +5,12 @@
 //
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/wa_inbound/menu_flow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
+import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, type MenuInput, type MenuMeaning, menuTurn, reofferMenu, type Turn, unanswered, welcomeFirstContact } from './menu_flow.ts';
 import { type Figures, isFiguresCommand } from './founder_queries.ts';
-import { coverageIntent, coverageReply, groupedTrades, type Trade, tradeNamed } from './coverage.ts';
+import { coverageReply, groupedTrades, type Trade } from './coverage.ts';
 import {
-  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, isGreeting, type Lang, MENU_BUTTON, sorryLead,
-  MENU_IDS, menuChoice, type MenuContext, menuItems, optionReply, WELCOME_TAIL, welcomeText, withinHours,
+  type Audience, caseConfirm, cleanName, contentKey, founderCommand, greetLine, HOURS, humanAlert, type Lang, MENU_BUTTON, sorryLead,
+  MENU_IDS, menuChoice, type MenuContext, type MenuId, menuItems, optionReply, WELCOME_TAIL, welcomeText, withinHours,
 } from './menu.ts';
 
 const FROM = 'whatsapp:+971500000021'; // reserved ZZ DEMO fixture block
@@ -109,11 +109,27 @@ function accountsForEveryTrade(body: string, lang: 'en' | 'ar') {
 for (const t of TRADES) { const g = GROUP_OF[t.code]; if (g) t.group = { code: g, label_en: G[g][0], label_ar: G[g][1], sort: G[g][2] }; }
 
 type Sent = { to: string; body: string; content?: Content };
+// THE REASONED MEANING, MOCKED (the real one is think(): _shared/reasoned_menus.ts, tested in reasoned_menus.test.ts).
+// These are the readings a model returns for the fixtures below; the routing is what this file proves.
+const READ: Record<string, MenuMeaning | MenuId> = { 'Follow up my request': 'qd_follow', 'Report a problem': 'qd_problem', 'Hi': 'greeting', 'Hello': 'greeting', 'hello': 'greeting', 'menu': 'greeting', 'MENU': 'greeting', 'السلام عليكم': 'salam' };
 function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>; contentFails?: boolean; faq?: string | null;
-                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean } = {}) {
+                      enabled?: boolean; history?: Turn[]; weWrote?: boolean; held?: boolean; appended?: boolean; gapOk?: boolean;
+                      reasoningHeld?: boolean;
+                      /** The reasoned INTENT think() would return (reasoned_channels.ts); null = held. Default 'none'. */
+                      meaning?: string | null } = {}) {
   const sent: Sent[] = []; const rows: Array<Record<string, unknown>> = []; const cases: string[] = []; const notified: string[] = []; const closed: string[] = []; const gaps: string[] = [];
   const history: Turn[] = [...(o.history || [])];
+  const meanings: Array<[string, boolean]> = []; const offered: boolean[] = [];
+  const reasoned: string[] = []; const queued: string[] = [];
   const d: MenuDeps = {
+    meaning: (text, awaitingProblem, offerMenu) => {
+      meanings.push([text, awaitingProblem]);
+      offered.push(offerMenu);
+      if (o.reasoningHeld) return Promise.resolve(null);
+      return Promise.resolve(READ[text] ?? (awaitingProblem ? 'problem' : 'other'));
+    },
+    intent: (text) => { reasoned.push(text); return Promise.resolve(o.meaning === undefined ? 'none' : o.meaning); },
+    queueIntent: (text) => { queued.push(text); return Promise.resolve(); },
     autoreplyEnabled: () => Promise.resolve(o.enabled ?? true),
     recentTurns: () => Promise.resolve([...history]),
     weWroteRecently: () => Promise.resolve(o.weWrote ?? false),
@@ -138,7 +154,7 @@ function harness(o: { ctx?: Partial<MenuContext>; sids?: Record<string, string>;
       return Promise.resolve();
     },
   };
-  return { d, sent, rows, cases, notified, closed, gaps };
+  return { d, sent, rows, cases, notified, closed, gaps, meanings, offered, reasoned, queued };
 }
 const msg = (body: string, audience: Audience = 'unknown', extra: Partial<MenuInput> = {}): MenuInput => ({ from: FROM, body, audience, ...extra });
 
@@ -156,9 +172,37 @@ Deno.test('the list fits WhatsApp: 6 items, titles <= 24, descriptions <= 72, bu
   }
 });
 
-Deno.test('greetings are recognised in English and Arabic, and a question is not a greeting', () => {
-  for (const g of ['Hi', 'hi!', 'Hello there', 'السلام عليكم', 'السلام عليكم ورحمة الله وبركاته', 'مرحبا', 'مرحبًا', 'Good morning']) assert(isGreeting(g), g);
-  for (const q of ['hi, what are your fees?', 'how do I register', 'أريد عرض سعر']) assert(!isGreeting(q), q);
+Deno.test('greeting_state: the menu opens only on a REASONED hello; held, nothing is guessed and the other handlers answer', async () => {
+  // reasoned 'other' (a question beside the hello): not taken as a greeting
+  const q = harness({ history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(q.d, msg('hi, what are your fees?'))).handled, false);
+  assertEquals(q.meanings, [['hi, what are your fees?', false]]);
+  // held: even a bare "Hi" mid-conversation is left to the handlers, whose last word is the menu (reofferMenu)
+  const h = harness({ reasoningHeld: true, history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('Hi'))).handled, false);
+  assertEquals(h.sent.length, 0);
+  // a list reply is structured: no reasoning is asked for at all
+  const l = harness();
+  await menuTurn(l.d, msg('x', 'unknown', { listId: 'qd_general' }));
+  assertEquals(l.meanings, []);
+});
+
+Deno.test('problem_state: after "Report a problem" a reasoned hello is not filed; held, the words are kept as the case', async () => {
+  const at = [{ route: 'menu_qd_problem', await: 'problem', lang: 'en' as Lang }];
+  const g = harness({ history: at });
+  assertEquals((await menuTurn(g.d, msg('Hi'))).route, 'menu_welcome');
+  assertEquals(g.cases, []);
+  assertEquals(g.meanings, [['Hi', true]]);
+  const o = harness({ history: at, reasoningHeld: true });
+  const r = await menuTurn(o.d, msg('the supplier never came'));
+  assertEquals(r.route, 'menu_case');
+  assertEquals(o.cases, ['the supplier never came']);
+  assertEquals((o.rows[0].extra as Record<string, unknown>).meaning, 'held');
+  // reasoned 'other' in the problem state (not a problem, not a hello) goes to its own handler
+  const x = harness({ history: at });
+  x.d.meaning = () => Promise.resolve('other');
+  assertEquals((await menuTurn(x.d, msg('what are your fees?'))).handled, false);
+  assertEquals(x.cases, []);
 });
 
 Deno.test('first "Hi" from an unknown number: English welcome signed QuotesDone, sent as the interactive list', async () => {
@@ -204,15 +248,41 @@ Deno.test('the interactive list is refused: the numbered menu goes instead, nobo
   assertEquals((h.rows[0].extra as Record<string, unknown>).via, 'text_fallback');
 });
 
-Deno.test('a list reply (ListId), a typed title and a bare number after the menu each select the option', () => {
+Deno.test('a list reply (ListId), a button and a bare number after the menu select the option structurally; a typed title is not matched', () => {
   assertEquals(menuChoice({ listId: 'qd_follow' }), 'qd_follow');
   assertEquals(menuChoice({ buttonPayload: 'qd_person' }), 'qd_person');
-  assertEquals(menuChoice({ body: 'Report a problem' }), 'qd_problem');
-  assertEquals(menuChoice({ body: 'الإبلاغ عن مشكلة' }), 'qd_problem');
+  // menu_choice (point 75): a TYPED title is free text — never matched here, its meaning is reasoned (next test)
+  assertEquals(menuChoice({ body: 'Report a problem' }), null);
+  assertEquals(menuChoice({ body: 'الإبلاغ عن مشكلة' }), null);
   assertEquals(menuChoice({ body: '2', numbers: true }), 'qd_follow');
   assertEquals(menuChoice({ body: '٥', numbers: true }), 'qd_problem');
   assertEquals(menuChoice({ body: '2' }), null, 'a bare number means nothing unless we just offered the menu');
   assertEquals(menuChoice({ listId: 'qd_drop_tables' }), null);
+});
+
+Deno.test('menu_choice: a typed option is REASONED to that option; held, it is not picked on a word and the handlers answer', async () => {
+  const h = harness({ history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(h.d, msg('Report a problem'))).route, 'menu_qd_problem');
+  assertEquals(h.meanings, [['Report a problem', false]]);
+  const held = harness({ reasoningHeld: true, history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  assertEquals((await menuTurn(held.d, msg('Report a problem'))).handled, false);
+  assertEquals(held.sent.length, 0);
+  // Mid-conversation (no menu just shown) the options are not offered, and a reading of "qd_person" pages nobody.
+  const mid = harness({ history: [{ route: 'deterministic', await: null, lang: 'en' }] });
+  mid.d.meaning = (_t, _p, offer) => { mid.offered.push(offer); return Promise.resolve(offer ? 'qd_person' : 'other'); };
+  assertEquals((await menuTurn(mid.d, msg('can someone call me about my quote'))).handled, false);
+  assertEquals([mid.offered, mid.notified], [[false], []]);
+  // While a problem is being described, the menu is not offered either: the description is filed.
+  const pr = harness({ history: [{ route: 'menu_qd_problem', await: 'problem', lang: 'en' }] });
+  // (menuMeaning only ever returns an option it offered: without the menu the reading is 'problem')
+  pr.d.meaning = (_t, _p, offer) => { pr.offered.push(offer); return Promise.resolve(offer ? 'qd_follow' : 'problem'); };
+  assertEquals((await menuTurn(pr.d, msg('I followed up twice and nobody answered'))).route, 'menu_case');
+  assertEquals(pr.offered, [false]);
+  // The founder is never offered the menu options, even right after it.
+  const f = harness({ history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  f.d.meaning = (_t, _p, offer) => { f.offered.push(offer); return Promise.resolve('qd_person'); };
+  await menuTurn(f.d, msg('Talk to a person', 'founder'));
+  assertEquals([f.offered, f.notified], [[false], []]);
 });
 
 Deno.test('every option routes to its own flow', async () => {
@@ -236,7 +306,7 @@ Deno.test('every option routes to its own flow', async () => {
 
 Deno.test('follow-up: an unknown number is told plainly nothing is registered on it, never shown anyone\'s requests', async () => {
   // fn_wa_menu_context lists requests only for a CONFIRMED customer number; the reply trusts that.
-  const h = harness({ ctx: { audience: 'unknown', requests: [] } });
+  const h = harness({ ctx: { audience: 'unknown', requests: [] }, history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
   await menuTurn(h.d, msg('Follow up my request'));
   assertMatch(h.sent[0].body, /^There is no request registered under this mobile number \(or its email\)/);
   assertMatch(h.sent[0].body, /https:\/\/quotesdone\.com\/me\?new=1/);
@@ -466,7 +536,7 @@ Deno.test('763/5 wa_inbound asks the FAQ with the gte-small embedding, never tex
 const INTERNAL = /\bHTTP\b|brain|agent_|\bfn_[a-z]|edge function|ai_gateway|supabase|stack trace|exception|undefined|\bnull\b|\b[45]0\d\b|could not reach|returned no reply/i;
 
 Deno.test('271: the founder\'s exact message after the menu gets the grouped coverage answer from the live list', async () => {
-  const h = harness({ ctx: { audience: 'founder' }, history: [{ route: 'menu_answer', await: null, lang: 'en' }] });
+  const h = harness({ ctx: { audience: 'founder' }, history: [{ route: 'menu_answer', await: null, lang: 'en' }], meaning: 'coverage:list' });
   assertEquals((await menuTurn(h.d, msg('What sectors you cover', 'founder'))).handled, false); // not a menu choice
   assertEquals(await answerFromFaq(h.d, msg('What sectors you cover', 'founder')), true);
   const body = h.sent[0].body;
@@ -487,49 +557,70 @@ Deno.test('271: the founder\'s exact message after the menu gets the grouped cov
   assertEquals(h.gaps.length, 0);
 });
 
-Deno.test('coverage questions in other words, in English and formal Arabic, and the named-trade answers', () => {
-  for (const q of ['what trades do you cover?', 'Which categories do you support', 'what industries do you serve', 'what services do you offer',
-                   'ما هي القطاعات التي تغطونها', 'ما هي التخصصات التي تغطونها؟', 'ما هي الخدمات التي تقدمونها']) {
-    assertEquals(coverageIntent(q, TRADES)?.kind, 'list', q);
-  }
-  const ar = coverageReply('ما هي القطاعات التي تغطونها', TRADES, 'ar')!;
+// WHETHER a message is a coverage question, and which trade it names, is REASONED (think(): the coverage:* and
+// trade:<code> options of _shared/reasoned_channels.ts, 23 Sep 2026). The phrasings this file used to pin against
+// regexes are what the reasoning is asked; here: each reasoned meaning gets its answer from the live list.
+Deno.test('a reasoned coverage question gets the list, in English and formal Arabic, and a named trade its answer', () => {
+  const ar = coverageReply('coverage:list', TRADES, 'ar')!;
   assertMatch(ar, /^نطابق طلبات عروض الأسعار مع موردين موثّقين في الإمارات/);
   accountsForEveryTrade(ar, 'ar');
   assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/supplier\n/); // a link on its own line in RTL text
   assertMatch(ar, /\nhttps:\/\/quotesdone\.com\/ar\/me\?new=1$/);
   assert(ar.length <= 1500, 'Arabic fits one WhatsApp message: ' + ar.length);
-
-  const cases: Array<[string, string]> = [['do you do MEP?', 'mep_general'], ['Do you do fit-out', 'interior_fitout'],
-    ['do you cover landscaping', 'landscaping'], ['can you do swimming pools?', 'landscaping'], ['هل تغطون تنسيق الحدائق؟', 'landscaping'],
-    ['هل تقدمون أعمال التكييف', 'hvac']];
-  for (const [q, code] of cases) {
-    assertEquals(coverageIntent(q, TRADES)?.kind, 'trade', q);
-    assertEquals(tradeNamed(q, TRADES)?.code, code, q);
-  }
-  assertMatch(coverageReply('do you do MEP?', TRADES, 'en')!, /^Yes, MEP \(combined\) is one of the trades we match quotation requests to\./);
-  assertMatch(coverageReply('هل تغطون تنسيق الحدائق؟', TRADES, 'ar')!, /^نعم، تنسيق الحدائق والمسابح من التخصصات/);
+  assertMatch(coverageReply('trade:mep_general', TRADES, 'en')!, /^Yes, MEP \(combined\) is one of the trades we match quotation requests to\./);
+  assertMatch(coverageReply('trade:landscaping', TRADES, 'ar')!, /^نعم، تنسيق الحدائق والمسابح من التخصصات/);
+  // A trade we do not list (reasoned coverage:other) gets the list and the welcome — never a claim.
+  assertEquals(coverageReply('coverage:other', TRADES, 'en'), coverageReply('coverage:list', TRADES, 'en'));
 });
 
-Deno.test('the exact-trade rule: a trade we do not match is never claimed, and fee or place questions are not coverage', () => {
-  for (const q of ['do you do catering?', 'do you cover Abu Dhabi?', 'do you charge suppliers for marble?', 'what are your fees',
-                   'What suppliers you have', 'هل تغطون دبي؟', 'ما هي رسوم الخدمات', 'hello', 'can you call me']) {
-    assertEquals(coverageReply(q, TRADES, /[؀-ۿ]/.test(q) ? 'ar' : 'en'), null, q);
-  }
-  // "door" is a doors alias; it must not fire inside "outdoor".
-  assertEquals(tradeNamed('do you do outdoor events', TRADES.filter((t) => t.code === 'doors')), null);
+Deno.test('the exact-trade rule: only a reasoned coverage meaning is answered from the list, and nothing is claimed otherwise', () => {
+  for (const m of ['none', 'size', 'intent:pricing', 'intent:how_to_register', '']) assertEquals(coverageReply(m, TRADES, 'en'), null, m);
+  // A trade:<code> no longer on the live list is not claimed: the list is sent instead.
+  assertMatch(coverageReply('trade:zz_demo_gone', TRADES, 'en')!, /^We match quotation requests to verified UAE suppliers in these trades:/);
   // A trade registered tomorrow is listed at once, under "Other trades", never dropped.
   const more = [...TRADES, { code: 'zz_demo_trade', label: 'ZZ DEMO Trade', label_ar: 'تخصص تجريبي', aliases: [] }];
   assertEquals(groupedTrades(more, 'en').at(-1), { title: 'Other trades', labels: ['ZZ DEMO Trade'] });
   // Twenty more trades registered: every group still appears, counts replace names, the links survive.
   const grown = [...TRADES, ...Array.from({ length: 20 }, (_, i) => ({ code: 'zz_demo_' + i, label: 'ZZ DEMO Trade number ' + i, label_ar: 'تخصص تجريبي رقم ' + i, aliases: [] }))];
   for (const lang of ['en', 'ar'] as Lang[]) {
-    const r = coverageReply(lang === 'ar' ? 'ما هي القطاعات التي تغطونها' : 'what trades do you cover', grown, lang)!;
+    const r = coverageReply('coverage:list', grown, lang)!;
     assert(r.length <= 1430, lang + ' grown list overflows: ' + r.length);
     assertMatch(r, /me\?new=1$/);
     assertMatch(r, lang === 'ar' ? /تخصصات أخرى: .* و\d+ أخرى/ : /Other trades: .* and \d+ more/);
   }
   // No rows readable: no list is invented.
-  assertEquals(coverageReply('What sectors you cover', [], 'en'), null);
+  assertEquals(coverageReply('coverage:list', [], 'en'), null);
+});
+
+Deno.test('held (the model hold): a coverage question is not guessed at; unanswered, its meaning is filed for replay', async () => {
+  const h = harness({ meaning: null });
+  assertEquals(await answerFromFaq(h.d, msg('what trades do you cover?')), false, 'no meaning, no FAQ: nothing answered on a guess');
+  await unanswered(h.d, msg('what trades do you cover?'), 'no_grounded_answer');
+  assertEquals(h.queued, ['what trades do you cover?']);
+  assertEquals(h.rows[0].route, 'menu_reoffer'); // the courteous line and the menu went now
+  // Reasoned to be nothing we hold: filed as a gap, never queued for a replay that has nothing to send.
+  const n = harness({ meaning: 'none' });
+  await unanswered(n.d, msg('what is your opinion of the new metro line'), 'no_grounded_answer');
+  assertEquals(n.queued, []);
+});
+
+Deno.test('held: a first contact gets the welcome AND its meaning is queued, so the question is answered on replay', async () => {
+  const h = harness({ meaning: null });
+  assertEquals(await welcomeFirstContact(h.d, msg('what trades do you cover?')), true);
+  assertEquals(h.queued, ['what trades do you cover?']);
+  const a = harness({ meaning: 'coverage:list' });
+  await welcomeFirstContact(a.d, msg('what trades do you cover?'));
+  assertEquals(a.queued, [], 'answered now: nothing to replay');
+});
+
+Deno.test('held: a size question is not guessed to be one (no capability answer), and a menu choice is never reasoned', async () => {
+  const h = harness({ meaning: null });
+  assertEquals((await menuTurn(h.d, msg('how many suppliers do you have'))).handled, false);
+  assertEquals(h.sent.length, 0);
+  const c = harness({ meaning: 'size', history: [{ route: 'menu_welcome', await: null, lang: 'en' }] });
+  const r = await menuTurn(c.d, msg('2'));
+  assert(r.route?.startsWith('menu_qd_'), 'a bare number after the menu is the option: ' + r.route);
+  assertEquals(c.reasoned, [], 'a menu choice is structured data, not text to reason over');
 });
 
 Deno.test('an unknown question gets the courteous fallback and the menu, is filed for the team, and carries no internal text', async () => {
@@ -559,7 +650,7 @@ Deno.test('no reply text the menu, the options, the cases or the coverage answer
   for (const lang of ['en', 'ar'] as Lang[]) {
     for (const c of ctxs) for (const id of MENU_IDS) texts.push(optionReply(id, lang, c));
     texts.push(welcomeText(lang, 'unknown', null), caseConfirm(lang, { ref: 'QD-S-ZZ2345', slaHours: 24 }), caseConfirm(lang, { ref: null }),
-               sorryLead(lang, true), sorryLead(lang, false), coverageReply(lang === 'ar' ? 'ما هي القطاعات التي تغطونها' : 'what trades do you cover', TRADES, lang)!);
+               sorryLead(lang, true), sorryLead(lang, false), coverageReply('coverage:list', TRADES, lang)!);
   }
   for (const t of texts) assert(!INTERNAL.test(t), 'internal wording in a reply: ' + t.match(INTERNAL) + ' in ' + t.slice(0, 80));
 });
@@ -586,8 +677,8 @@ const FIG: Figures = {
   support: { open_cases: 51, waiting_for_person: 52 }, it: { open_findings: 61 },
   marketing_7d: { posts_published: 71, posts_scheduled: 72, ad_spend_aed: 73 }, brief: { local_time: '20:00', sent_today: false },
 };
-function founderHarness(audience: Audience = 'founder', figures: Figures = FIG) {
-  const h = harness({ ctx: { audience } });
+function founderHarness(audience: Audience = 'founder', figures: Figures = FIG, meaning: string | null = 'none') {
+  const h = harness({ ctx: { audience }, meaning });
   const asked: string[] = [];
   h.d.founderFigures = (from) => { asked.push(from); return Promise.resolve(figures); };
   return { ...h, asked };
@@ -603,7 +694,7 @@ Deno.test('777: a size question from ANY number gets the capability answer, neve
   ];
   for (const aud of ['founder', 'customer', 'supplier', 'unknown'] as Audience[]) {
     for (const [q, lang] of asks) {
-      const h = founderHarness(aud);
+      const h = founderHarness(aud, FIG, 'size'); // reasoned: a size question (reasoned_channels.ts SIZE)
       const r = await menuTurn(h.d, msg(q, aud));
       assertEquals(r.route, 'capability_answer', aud + ': ' + q);
       assertEquals(h.sent.length, 1);
@@ -620,7 +711,7 @@ Deno.test('777: a size question from ANY number gets the capability answer, neve
   }
 });
 
-Deno.test('777: FIGURES from the founder is his internal reading; from anyone else it is the capability answer', async () => {
+Deno.test('777: FIGURES from the founder is his internal reading; from anyone else it is ordinary text that reads nothing', async () => {
   for (const cmd of ['FIGURES', 'figures', 'Figures.', 'أرقام', 'الأرقام']) {
     const h = founderHarness('founder');
     assertEquals((await menuTurn(h.d, msg(cmd, 'founder'))).route, 'founder_figures', cmd);
@@ -638,12 +729,14 @@ Deno.test('777: FIGURES from the founder is his internal reading; from anyone el
   const refused = founderHarness('founder', { ok: false });
   await menuTurn(refused.d, msg('FIGURES', 'founder'));
   assertEquals(refused.sent[0].body, 'The internal figures could not be read just now; please try again shortly.');
-  // Anyone else: the command word reads nothing and gets the capability answer.
+  // Anyone else (figures_command, point 74): the command word is ordinary text — never matched as a command,
+  // never reads the figures, and nothing sent carries a count.
   for (const aud of ['customer', 'supplier', 'unknown'] as Audience[]) {
     const h = founderHarness(aud);
-    assertEquals((await menuTurn(h.d, msg('FIGURES', aud))).route, 'capability_answer', aud);
+    // Not matched as a command: the menu turn leaves it to the reasoned handlers, sends nothing itself, reads nothing.
+    assertEquals(await menuTurn(h.d, msg('FIGURES', aud)), { handled: false }, aud);
     assertEquals(h.asked.length, 0, aud + ' must not read the figures');
-    assert(noCount(h.sent[0].body));
+    assertEquals(h.sent.length, 0, aud);
   }
   // Only the whole message is the command.
   for (const t of ['figures please', 'send figures', 'the figures for the quote']) assertEquals(isFiguresCommand(t), false, t);
@@ -668,7 +761,8 @@ Deno.test('777: the figures are read in exactly one place, behind the command wo
   assert(guard > 0 && at - guard < 200, 'the only read sits directly behind the founder + FIGURES guard');
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
   assert(!src.includes('answerFounder('), 'the natural-question figures path must not return');
-  // The size question is decided before any other handler in the turn.
-  assert(flow.indexOf('isSizeQuestion(body)') < flow.indexOf('// 1. The message after "Report a problem"'));
+  // The size question is decided (by reasoning) before any other handler in the turn.
+  const sizeAt = flow.indexOf("(await d.intent(body)) === 'size'");
+  assert(sizeAt > 0 && sizeAt < flow.indexOf('// 1. The message after "Report a problem"'));
   assert(src.indexOf('menuTurn(menuDeps, menuIn)') < src.indexOf("if (audience === 'founder') {\n      const question"));
 });

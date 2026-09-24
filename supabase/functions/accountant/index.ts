@@ -52,7 +52,9 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 // reimplemented here: receipt_parse reads the text, pdf_text reads the PDF's text layer,
 // attachment.ts sanitises by magic bytes, safe_url refuses an SSRF target, and the ledger posting
 // is fn_expense_post_to_gl. This file only walks the history and hands each message to them.
-import { parseReceipt } from '../_shared/receipt_parse.ts';
+import { parseAmount, parseReceipt } from '../_shared/receipt_parse.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { documentKind, readingOf, reasonBankLines, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { pdfText } from '../_shared/pdf_text.ts';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. The historical sweep pulls attachments out of
@@ -68,10 +70,11 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 // 14 Sep 2026 — the duties (founder: "yea add them all", "yea add them"). Nothing is re-implemented:
 // the charge audit uses the #616 formula itself, the statement reader and the dispute form are pure
 // modules with their own tests.
-import { revealChargeFor, shortfallAfterPayment } from '../_shared/reveal_fee.ts';
-import { isBankStatement, readStatement } from '../_shared/bank_statement_parse.ts';
-import { takeInStatement } from '../_shared/bank_statement_intake.ts';
+import { revealChargeFor, absorbedStripeCost } from '../_shared/reveal_fee.ts';
+import { readStatement } from '../_shared/bank_statement_parse.ts';
+import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
 import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
+import { type InboundItem, type MailboxMessage, mailboxMessages, registerRowsFor } from '../_shared/expense_mailbox.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -819,6 +822,13 @@ Deno.serve(observe('accountant', async (req) => {
       const mine = history.filter((m) => toList(m.to).some((a) => a === EXPENSE_MAILBOX || a.split('@')[0] === 'expenses'))
         .filter((m) => !only || String(m.id) === only);
 
+      // The reasoning's context, once per sweep: the vendors and register the books carry, and the renewals.
+      const booksDeps = defaultDeps(admin, 'accountant');
+      const { data: booksCtx } = await admin.rpc('fn_accountant_reading_context');
+      const booksVendors: string[] = Array.isArray(booksCtx?.vendors) ? booksCtx.vendors : [];
+      const booksRegister = Array.isArray(booksCtx?.register) ? booksCtx.register : [];
+      const booksRenewals = Array.isArray(booksCtx?.renewals) ? booksCtx.renewals : [];
+
       const results: Record<string, unknown>[] = [];
       let booked = 0, already = 0, held = 0, refused = 0, failed = 0;
 
@@ -882,14 +892,14 @@ Deno.serve(observe('accountant', async (req) => {
         let att: { bytes: Uint8Array; name: string; mime: string; ext: string } | null = null;
         const fileNotes: string[] = [];
         // A BANK STATEMENT IS NOT A RECEIPT (14 Sep 2026, duty 1). It is read into bank_statement_line
-        // for the payout reconciliation and never booked as an expense. A CSV export is read as text
-        // only (it is parsed, not stored); the PDF goes through the same sanitiser as any receipt.
-        const stmt = isBankStatement(from, subject, atts.map((a) => String(a.filename || a.name || '')));
+        // for the payout reconciliation and never booked as an expense. A CSV export (the .csv extension is a
+        // file-format fact) is read as text only (it is parsed, not stored) and used only if the message is
+        // REASONED to be a statement; the PDF goes through the same sanitiser as any receipt.
         let csvText = '';
         for (const a of atts.slice(0, 8)) {
           const fn = String(a.filename || a.name || '');
           const mm = String(a.content_type || a.contentType || '');
-          if (stmt && /\.csv$/i.test(fn)) {
+          if (/\.csv$/i.test(fn) && !csvText) {
             const car = await R('https://api.resend.com/emails/inbound/' + emailId + '/attachments/' + a.id);
             // deno-lint-ignore no-explicit-any
             const caj: any = car.ok ? await car.json().catch(() => ({})) : {};
@@ -930,29 +940,43 @@ Deno.serve(observe('accountant', async (req) => {
         // looksLikeText), and its filename and forwarder name no bank. The positioned reader rebuilds the rows;
         // that text is used ONLY to recognise and read a statement — a receipt keeps pdf_text's guard.
         // One recogniser and one intake for this sweep AND the live webhook (_shared/bank_statement_intake.ts).
-        const stIn = await takeInStatement(admin, {
-          from, subject, filenames: atts.map((a) => String(a.filename || a.name || '')),
-          pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, readNote,
-          sourceRef: msgKey, archivePath: 'bank/' + seenAt.slice(0, 10) + '/' + emailId, dryRun });
-        if (stIn) {
+        // WHAT IS IT (23 Sep 2026, founder_instruction 886-903): reasoned over the envelope, the note and the
+        // document's rows (_shared/reasoned_books.ts documentKind), never a word test. Held: not booked, held.
+        const rowText = att && att.mime === 'application/pdf' ? await statementRowText(att) : '';
+        const mail: ExpenseMail = { emailId, from, to, subject, text, docText: [rowText || docText, csvText.slice(0, 2000)].filter(Boolean).join('\n').slice(0, 4000),
+          filenames: atts.map((a) => String(a.filename || a.name || '')), mailbox: 'expenses', providerEmailId: emailId, dryRun };
+        const kind = (await documentKind(booksDeps, mail, booksRenewals, booksRegister)).value;
+        if (kind === 'bank_statement') {
+          const stIn = await takeInStatement(admin, {
+            from, subject, filenames: mail.filenames,
+            pdf: att && att.mime === 'application/pdf' ? att : null, csvText, docText, rowText, readNote,
+            sourceRef: msgKey, archivePath: 'bank/' + seenAt.slice(0, 10) + '/' + emailId, dryRun });
           say(stIn.error ? 'bank_statement_failed' : 'bank_statement', { ...stIn, files: fileNotes });
           continue;
         }
+        // Waiting for reasoning: the accountant's queue owns it (expense_kind:<email id>) and replays this sweep for it.
+        // Nothing is recorded or handed over twice meanwhile, however often the sweep runs.
+        if (kind === null) { held++; say('awaiting_reasoning', { files: fileNotes }); continue; }
+        else if (kind === 'other') readNote += "Reasoned: this is not a document of the company's own spending. ";
         // The PDF text is APPENDED, so the forwarded "From:" header still names the original vendor
         // and a figure in the covering note still wins over one in the file.
         const parseBody = docText ? (text + '\n' + docText) : text;
 
-        let det = parseReceipt({ from, subject, body: parseBody });
-        if (det && det.period === 'one_off') {
-          const { data: known } = await admin.from('expenses').select('cadence').ilike('vendor', det.vendor).eq('active', true).limit(1);
-          const cad0 = String(known?.[0]?.cadence || '');
-          if (cad0 === 'monthly' || cad0 === 'annual') det = parseReceipt({ from, subject, body: parseBody, knownCadence: cad0 }) || det;
+        // Who issued it and how often it bills are REASONED; the figures are parsed. No amount: no model call.
+        const reading = kind ? readingOf(kind) : null;
+        let det: ReturnType<typeof parseReceipt> = null;
+        if (reading && (parseAmount(parseBody) || parseAmount(subject))) {
+          const vendor = (await receiptVendor(booksDeps, { ...mail, docText: docText.slice(0, 4000) }, booksVendors)).value;
+          if (vendor) det = parseReceipt({ subject, body: parseBody, vendor, period: reading.period });
+          else { held++; say('awaiting_reasoning', { files: fileNotes }); continue; }
+        } else if (reading) {
+          readNote += 'No amount could be read beside a currency mark. ';
         }
 
         // 4a. HELD. Named, archived, owned. Never a number.
         if (!det) {
           held++;
-          const why = readNote + 'The deterministic parser read no amount from this message. It is NOT booked and NOT estimated.';
+          const why = readNote + 'It is NOT booked and NOT estimated.';
           if (dryRun) { say('held', { reason: why, files: fileNotes }); continue; }
           let heldPath: string | null = null;
           if (att) {
@@ -962,7 +986,7 @@ Deno.serve(observe('accountant', async (req) => {
           }
           const { data: heldRow } = await admin.from('inbound_messages').insert({
             from_email: from, to_email: to, subject,
-            body: '[HELD — no amount could be read, nothing booked] accountant historical sweep, Resend inbound id ' + emailId + (heldPath ? ', document: receipt-files/' + heldPath : ' (no readable attachment)') + '\n\n' + text.slice(0, 8000),
+            body: '[HELD — nothing booked: ' + readNote.slice(0, 200) + '] accountant historical sweep, Resend inbound id ' + emailId + (heldPath ? ', document: receipt-files/' + heldPath : ' (no readable attachment)') + '\n\n' + text.slice(0, 8000),
             attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
           }).select('id').maybeSingle();
           if (heldRow?.id) {
@@ -1051,7 +1075,7 @@ Deno.serve(observe('accountant', async (req) => {
               + (precedentCase ? ' precedent=#' + precedentCase.case_id : '') + ']').slice(0, 300),
             source: 'receipt', doc_path: docPath, doc_name: docName.slice(0, 180), doc_content_type: docType,
             doc_kind: docPath ? docKind : null, doc_note: docPath ? docNote : null,
-            source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn,
+            source_msg_id: msgKey, vat_amount: vatAmt, vendor_trn: trn, read_as: reading?.readAs ?? null, renews_item: reading?.renewsItem ?? null,
           }, { onConflict: 'source_msg_id', ignoreDuplicates: true })
           .select('id').maybeSingle();
         let entryId: number | null = (insRow?.id as number | undefined) ?? null;
@@ -1080,7 +1104,8 @@ Deno.serve(observe('accountant', async (req) => {
         }
         if (recurring) {
           const erow = { vendor, category: 'Subscription', description: subject.slice(0, 300), amount, currency, cadence: cad, expense_date: charged, active: true, source: 'email_forward', confidence: 'medium', note: 'from the accountant historical sweep of the expenses mailbox' };
-          const { data: ex0 } = await admin.from('expenses').select('id,expense_date').ilike('vendor', vendor).eq('active', true).limit(1);
+          // The register row is the SAME vendor (identity of the reasoned name), never a LIKE pattern (instr 890).
+          const ex0 = await registerRowsFor(admin, vendor);
           // The register holds the CURRENT schedule, so only a LATER receipt may move it. The
           // history arrives newest-first, so without this an August receipt would overwrite September.
           if (ex0 && ex0.length) { if (!ex0[0].expense_date || String(ex0[0].expense_date) <= charged) await admin.from('expenses').update(erow).eq('id', ex0[0].id); }
@@ -1112,7 +1137,9 @@ Deno.serve(observe('accountant', async (req) => {
 
       return J({
         ok: true, seat: 'accountant', caller: caller.kind, mailbox: EXPENSE_MAILBOX, ...counts, messages: results,
-        basis: 'Every figure above was read from the forwarded message by supabase/functions/_shared/receipt_parse.ts and, where a PDF carried a text layer, supabase/functions/_shared/pdf_text.ts. No model was called on this path. A message whose amount could not be read is counted as held and named in `messages`; it is never booked at zero and never estimated.',
+        // body.email_id that matched no message to the mailbox is said, so a replay never reads "delivered" for nothing
+        found: only ? mine.length > 0 : undefined,
+        basis: 'What each message is and who issued it were reasoned (supabase/functions/_shared/reasoned_books.ts, through think()); every figure was read from the message by supabase/functions/_shared/receipt_parse.ts and, where a PDF carried a text layer, supabase/functions/_shared/pdf_text.ts. A message whose meaning waits for reasoning, or whose amount could not be read, is counted as held and named in `messages`; it is never booked at zero and never estimated.',
       });
     }
     // ── SPEND_REPORT ───────────────────────────────────────────────────────────────────────────
@@ -1362,13 +1389,17 @@ Deno.serve(observe('accountant', async (req) => {
           quote_amount: Number(c.quote_amount), rate: Number(c.rate),
           expected_total: exp.total_charged, expected_processing: exp.processing_fee,
           actual_total: actualTotal, actual_fee_fils: bt.fee,
-          shortfall_aed: shortfallAfterPayment({ processing_fee: Math.round((actualTotal - exp.base_fee) * 100) / 100, total_charged: actualTotal, actual_card_fee_fils: Number(bt.fee) }),
-          evidence: { payment_intent: pi.id, balance_transaction: bt.id, currency: bt.currency, fee_details: bt.fee_details,
+          // No shortfall exists any more: the buyer pays the 3% only and QuotesDone absorbs Stripe (24 Sep 2026).
+          // diff_aed (actual - expected) > 0 is the finding that matters: a buyer charged more than the 3%.
+          evidence: { absorbed_stripe_cost_aed: absorbedStripeCost({ total_charged: actualTotal, actual_card_fee_fils: Number(bt.fee) }), payment_intent: pi.id, balance_transaction: bt.id, currency: bt.currency, fee_details: bt.fee_details,
                       basis_source: pi.metadata?.fee_basis ? 'payment metadata' : 'no fee_basis on the payment: the Checkout Session flow prices at the international basis' },
         });
       }
 
-      const { data: out, error: dErr } = await admin.rpc('fn_accountant_duties', { p_r: { stripe, charge_audit: chargeAudit } });
+      // WHAT EACH NEW STATEMENT LINE IS, reasoned before the duties book it (decision point sql.accountant_bank_lines):
+      // a line not yet reasoned has kind NULL and every booking routine skips it; under the hold it waits in the queue.
+      const bankLines = await reasonBankLines(defaultDeps(admin, 'accountant'));
+      const { data: out, error: dErr } = await admin.rpc('fn_accountant_duties', { p_r: { stripe, charge_audit: chargeAudit, bank_lines: bankLines } });
       if (dErr) { await run('duties', 'error', {}, 'fn_accountant_duties raised: ' + dErr.message); return J({ ok: false, error: dErr.message }, 500); }
 
       // DISPUTES (duty 7). SUBMITTING IS FINAL — Stripe takes one submission — so it happens in two steps
@@ -1473,9 +1504,41 @@ Deno.serve(observe('accountant', async (req) => {
         }
       }
 
-      await run('duties', 'ok', { disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
+      // IS THE EXPENSES MAILBOX QUIET, OR IS THE INTAKE SILENT? (ledger 983, 24 Sep 2026, GAPS Accountant 1.)
+      // One page of Resend's inbound list, newest first, the last 14 days; the verdict and findings are SQL's.
+      let mailbox: unknown = null;
+      {
+        const rkey = await sec('resend_api_key');
+        let listErr: string | null = rkey ? null : 'app_secrets.resend_api_key is unreadable';
+        let msgs: MailboxMessage[] = [];
+        if (rkey) {
+          // The list covers every mailbox, newest first: page until a page reaches past the window, at most 10.
+          const since = Date.now() - 14 * 86400000;
+          try {
+            let after = ''; let pages = 0;
+            for (;;) {
+              const r = await fetch('https://api.resend.com/emails/inbound?limit=100' + (after ? '&after=' + encodeURIComponent(after) : ''),
+                { headers: { Authorization: 'Bearer ' + rkey }, signal: AbortSignal.timeout(15000) });
+              // deno-lint-ignore no-explicit-any
+              const j: any = await r.json().catch(() => ({}));
+              if (!r.ok) { listErr = 'HTTP ' + r.status; break; }
+              const items = (j.data || j.items || []) as InboundItem[];
+              msgs.push(...mailboxMessages(items, EXPENSE_MAILBOX, since));
+              pages++;
+              const oldest = Date.parse(String(items[items.length - 1]?.created_at || ''));
+              if (!j.has_more || !items.length || (Number.isFinite(oldest) && oldest < since)) break;
+              if (pages >= 10) { listErr = 'more than 1,000 inbound messages in 14 days; the list was not read to the end of the window'; break; }
+              after = String(items[items.length - 1].id);
+            }
+          } catch (e) { listErr = String((e as Error)?.message || e).slice(0, 200); }
+        }
+        const { data: mb, error: mbErr } = await admin.rpc('fn_accountant_mailbox_check_record', { p_messages: msgs, p_list_error: listErr });
+        mailbox = mbErr ? { error: mbErr.message } : mb;
+      }
+
+      await run('duties', 'ok', { mailbox: (mailbox as Record<string, unknown>)?.verdict ?? null, bank_lines: bankLines, disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
         stripe_live: (stripe.live as Record<string, unknown>)?.basis, stripe_test: (stripe.test as Record<string, unknown>)?.basis });
-      return J({ ok: true, seat: 'accountant', result: out, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
+      return J({ ok: true, seat: 'accountant', result: out, mailbox, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
     }
 
     // ── BANK_STATEMENT: a statement handed in directly (CSV export or text) ───────────────────────

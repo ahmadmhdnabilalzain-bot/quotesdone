@@ -30,11 +30,13 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
-import { noExactSpec, offerMessage, apologyMessage, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
-import { reasonedOffers } from '../_shared/reasoned_matching.ts';
+import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { defaultDeps } from '../_shared/think.ts';
+import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
+import { reasonedOffers } from '../_shared/reasoned_matching.ts';
 import { supplierLabel } from '../_shared/quote_documents.ts';
-import { langOf, notYet, onTopic, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { langOf, notYet, quoteAnswer, type QuoteForAnswer } from '../_shared/chat_answers.ts';
+import { portalPassage, quoteQuestion } from '../_shared/reasoned_channels.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -109,7 +111,7 @@ async function tellCustomer(o: any, kind: 'offer' | 'reminder' | 'apology_no_rep
   return (data || []).map((d) => d.notification_id).filter((x): x is number => typeof x === 'number');
 }
 async function specOfferSweep(limit: number) {
-  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, errors: [] as string[], precedent: [] as unknown[], held_for_reasoning: 0 };
+  const out = { checked: 0, offers_opened: 0, offers_sent: 0, reminders: 0, lapsed: 0, arabic_held: 0, errors: [] as string[], precedent: [] as unknown[], held_for_reasoning: 0 };
   const secret = await sec('cred_fn_sales_engineer');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const { data: cands, error: cErr } = await admin.rpc('fn_spec_offer_candidates', { p_limit: limit });
@@ -160,7 +162,13 @@ async function specOfferSweep(limit: number) {
       // deno-lint-ignore no-explicit-any
       for (const o of opened as any[]) {
         if (o.last_sent_at) continue;
-        const ids = await tellCustomer(o, 'offer', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id) }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, c.inquiry_id), arTexts });
+        // An Arabic message never goes out with an untranslated line: it is not marked sent, so the next tick
+        // retries it — by then the replay has put the reasoned Arabic in the cache (decision point trade_glossary_ar).
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }
+        await admin.rpc('fn_spec_offer_restart_clock', { p_offer: o.id });   // a late first send gets its full window
+        const ids = await tellCustomer(o, 'offer', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'sent', p_notification_ids: ids });
         out.offers_sent++;
       }
@@ -176,7 +184,10 @@ async function specOfferSweep(limit: number) {
       const lang = await registeredLocale(admin, { role: 'customer', customerId: o.customer_id });
       const { data: inq } = await admin.from('inquiries').select('rfq_no').eq('id', o.inquiry_id).maybeSingle();
       if (d.action === 'remind') {
-        const ids = await tellCustomer(o, 'reminder', offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final }), lang, cust);
+        const arTexts = await arabicTextsFor(defaultDeps(admin, 'sales_engineer'), lang, offerTexts(o as OfferForText));
+        const msg = offerMessage(o as OfferForText, lang, { rfqNo: inq?.rfq_no, portalUrl: portalLink(lang, o.inquiry_id), reminder: d.reminder_no, final: d.final, arTexts });
+        if (msg.untranslated?.length) { out.arabic_held++; continue; }   // retried next tick, never sent half-translated
+        const ids = await tellCustomer(o, 'reminder', msg, lang, cust);
         await admin.rpc('fn_spec_offer_mark', { p_offer: o.id, p_action: 'remind', p_notification_ids: ids });
         out.reminders++;
       } else if (d.action === 'close_no_reply') {
@@ -267,7 +278,12 @@ async function answerFromOwnQuotes(customerId: string, message: string, lang: 'e
         lead_time: q.lead_time, payment_terms: q.payment_terms, validity: q.validity, notes: q.notes, items,
       };
     });
-    return quoteAnswer(message, quotes, lang);
+    // WHICH quote and field the question is about — and whether a threshold line applies — is REASONED
+    // (quoteQuestion, decision point shared.quote_answer), never FIELD_RE / QUOTE_RE / a shared-word score. Held,
+    // null: the question falls through to the corpora, where the held passage choice ends in the honest notYet.
+    const shown = quotes.slice(0, 15);
+    const choice = (await quoteQuestion(defaultDeps(admin, 'sales_engineer'), { message, quotes: shown })).value;
+    return quoteAnswer(choice, shown, lang, message);
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }
 
@@ -377,19 +393,23 @@ Deno.serve(observe('sales_engineer', async (req) => {
       if (error) return J({ ok: false, error: 'retrieval_failed', detail: error.message }, 503);
 
       const r = data as Record<string, unknown>;
-      // ON TOPIC OR NOT AT ALL (21 Sep 2026). A cited passage must share a substantive word with the
-      // question — the estate's own lens, "a nearest neighbour is always found", applied at the
-      // last step so that a floor slip in any corpus still cannot put an unrelated passage in front
-      // of a customer. What survives is answered; when nothing does, the gap is recorded and the
-      // honest sentence goes out in the asker's language.
-      const recs = ((r.records || []) as Array<Record<string, unknown>>)
-        .filter((x) => onTopic(message, String(x.title || '') + ' ' + String(x.content || '')));
+      // ON TOPIC OR NOT AT ALL (21 Sep 2026): a nearest neighbour is always found, so a cited passage must be
+      // one that answers the question, applied at the last step so a floor slip in any corpus cannot put an
+      // unrelated passage in front of a customer. What survives is answered; otherwise the gap is recorded.
+      // WHICH retrieved passage answers is REASONED (portalPassage, decision point sales_engineer.on_topic) — one
+      // shared word decided it until 23 Sep 2026. Held (the model hold), none is chosen: the gap is recorded and
+      // the honest sentence goes out with its task number; nothing is guessed.
+      const all = (r.records || []) as Array<Record<string, unknown>>;
+      const pick = r.answered === true && all.length
+        ? (await portalPassage(defaultDeps(admin, 'sales_engineer'), { message, passages: all.map((x) => ({ content: String(x.title || '') + '\n' + String(x.content || '') })) })).value
+        : null;
+      const recs = pick?.startsWith('kb:') && all[Number(pick.slice(3))] ? [all[Number(pick.slice(3))]] : [];
       let answered = r.answered === true && recs.length > 0;
       let taskId: number | null = (r.task_id as number | undefined) ?? null;
       if (!answered && r.answered === true) {
         // the routine cited something; every citation was off topic, so it recorded no gap. Record it.
         try {
-          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: 'cited_off_topic', p_surface: 'customer_portal' });
+          const { data: g } = await admin.rpc('fn_support_knowledge_gap', { p_question: message, p_refusal: pick === null ? 'not_reasoned_yet' : 'cited_off_topic', p_surface: 'customer_portal' });
           taskId = ((g as Record<string, unknown> | null)?.task_id as number | undefined) ?? null;
         } catch { /* the honest sentence still goes out */ }
       }
@@ -990,7 +1010,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
 
     // ── SECTORS ────────────────────────────────────────────────────────────────────────────────
     if (action === 'sectors') {
-      const q = String(body.q || '').trim();
+      // A lookup box over the sector catalogue, not a matching judgement. Characters that are PostgREST filter
+      // syntax are dropped so the caller's text cannot add conditions to the or() below.
+      const q = String(body.q || '').replace(/[,()*%\\:."]/g, ' ').trim();
       let query = admin.from('sales_sector').select('sector_id,group_key,title,scope');
       if (q) query = query.or(`title.ilike.%${q}%,scope.ilike.%${q}%,sector_id.ilike.%${q}%`);
       const { data, error } = await query.order('sector_id').limit(Number(body.limit ?? 50));

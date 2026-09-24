@@ -11,12 +11,16 @@ import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
+import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
+import { integrationItems } from '../_shared/integration_watch.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { replayHeld } from '../_shared/think.ts';
-import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
+import { defaultDeps, replayHeld } from '../_shared/think.ts';
+import { drain as drainGlmJudgements } from '../_shared/glm_judgements.ts';
+import { distilLessons } from '../_shared/learning_loop.ts';
+import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -54,7 +58,7 @@ async function digestTick(): Promise<unknown> {
     let path: string | null = null, err: string | null = null;
     try {
       const r = await fetch(FN + '/pdf_native', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({
           __secret: await sec('cred_fn_resilience_ping'), title: t.pdf_title, blocks: t.pdf_blocks,
           bucket: 'agent-docs', folder: 'ceo/daily_brief',
@@ -134,7 +138,7 @@ async function archiveTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/conversation_archive', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, action: 'sweep', limit: 4 }), signal: AbortSignal.timeout(50000),
     });
     return { status: r.status, result: await r.json().catch(() => null) };
@@ -221,11 +225,23 @@ async function seatClocksTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// EVERY SEAT DUTY ON ITS OWN CLOCK (23 Sep 2026, it_engineer; founder_instruction 898). public.seat_duty holds each
+// seat's registered duties with their interval; fn_seat_duties_tick runs the due ones, each in its own
+// sub-transaction, and files a finding for any duty that is overdue or failing
+// (every_seat_duty_has_an_owner_a_clock_and_a_check.sql). Duties queue mail, so it runs before the outbox drain.
+async function seatDutiesTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_duties_tick', { p_limit: 8 });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_outbox', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 20 }), signal: AbortSignal.timeout(20000),
     });
     return { flushed: true, status: r.status, result: await r.json().catch(() => null) };
@@ -271,6 +287,22 @@ async function ceoWeeklyTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE FOUNDER'S 18:00 SUPPLIER LIST (24 Sep 2026, customer_support). fn_customer_support_campaign_list_tick
+// builds, by code, the list of suppliers the campaign invites on the next sending day from the sender's own
+// fn_supplier_invite_candidates, with the day's counts; this renders it on the company template and
+// fn_customer_support_campaign_list_attach mails it (founder_mail_policy supplier_campaign_daily_list). A failed
+// render is retained and retried next beat. scripts/sql/the_founder_sees_tomorrows_supplier_invitations_at_six.sql
+async function supportCampaignListTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_customer_support_campaign_list_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    return await renderPdfAndAttach(t, 'customer_support/supplier_list', 'supplier_list', false, 'fn_customer_support_campaign_list_attach');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE CEO'S TEN DECISION RULES, EVALUATED ON THE SAME HEARTBEAT (21 Sep 2026, ceo).
 // public.ceo_decision held ten active rules and ceo_decision_log had never held a row: nothing in the
 // database evaluated a rule. fn_ceo_decisions_evaluate is deterministic, writes one evidenced row per
@@ -300,7 +332,7 @@ async function ceoPlanTick(): Promise<unknown> {
     const t = data as any;
     if (!t?.judgement?.call_model || !t?.plan_id) return t;
     const r = await fetch(FN + '/ceo_agent', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
       signal: AbortSignal.timeout(45000),
     });
@@ -318,7 +350,7 @@ async function renderPdfAndAttach(t: any, folder: string, fallbackName: string, 
   let path: string | null = null, url: string | null = null, bytes: number | null = null, err: string | null = null;
   try {
     const r = await fetch(FN + '/pdf_native', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({
         __secret: await sec('cred_fn_resilience_ping'), title: t.subject, blocks: t.pdf_blocks,
         bucket: 'agent-docs', folder,
@@ -395,6 +427,40 @@ async function caseMemoryEmbedTick(): Promise<unknown> {
     // A claim that could not embed anything is a failure, never a quiet zero.
     return { ok: failed === 0 || embedded > 0, claimed: (data || []).length, embedded, failed };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE MULTILINGUAL SPACE'S TRICKLE (23 Sep 2026, it_engineer). knowledge_vector_ml rows that are new or whose
+// text changed are embedded by the embed_ml function (action 'tick'), not here: the model loads only in that
+// function's workers. Four rows a tick (ML_TICK_MAX, measured); the backlog is drained by
+// .github/workflows/ml-embed-backfill.yml. The gate and the daily cap are fn_ml_embed_claim's.
+async function mlEmbedTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_ai');
+    if (!secret) return { ok: false, error: 'cred_fn_ai is not in app_secrets' };
+    const r = await fetch(FN + '/embed_ml', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'tick', limit: 4 }), signal: AbortSignal.timeout(50000),
+    });
+    const j = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+// THE LEARNING LOOP (23 Sep 2026, it_engineer; scripts/sql/every_judgement_learns_from_its_outcome.sql).
+// Daily: per-seat accuracy against real outcomes into seat_learning_daily (a fall opens a finding).
+// Weekly: cases with outcomes, grouped by meaning, distilled into cross-family-verified lessons
+// (_shared/learning_loop.ts); held under the model hold, never written from words.
+async function learningMeasureTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_learning_measure', {});
+    return error ? { ok: false, error: error.message } : data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+// Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+async function learningGroupTick(): Promise<unknown> {
+  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+async function learningDistilTick(): Promise<unknown> {
+  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -517,7 +583,7 @@ async function dropboxVerifyTick(): Promise<unknown> {
     if (!(data as any)?.reconcile?.due) return data;
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/dropbox_backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, mode: 'reconcile', limit: 20 }), signal: AbortSignal.timeout(55000),
     });
     const reconcile_run = { status: r.status, result: await r.json().catch(() => null) };
@@ -540,7 +606,7 @@ async function dropboxHealthTick(): Promise<unknown> {
     let status = 0; let recorded: string | null = null; let why = '';
     try {
       const r = await fetch(FN + '/dropbox_backup', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), op: 'health' }), signal: AbortSignal.timeout(55000),
       });
       status = r.status;
@@ -577,7 +643,7 @@ async function backupTick(): Promise<unknown> {
     // The pass still reports itself — dropbox_backup writes its own agent_runs rows, fn_it_backup_tick
     // and fn_dropbox_backup_due both read them, so a chain that stops is still a finding.
     const started = fetch(FN + '/dropbox_backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 25 }),
     }).then((r) => r.body?.cancel()).catch(() => {});
     // deno-lint-ignore no-explicit-any
@@ -660,7 +726,7 @@ async function orphanTick(): Promise<unknown> {
     const call = async (slug: string, ms = 20000, body: Record<string, unknown> = {}, cred: string = secret) => {
       try {
         const r = await fetch(FN + '/' + slug, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
           body: JSON.stringify({ __secret: cred, ...body }), signal: AbortSignal.timeout(ms),
         });
         const b = await r.json().catch(() => null);
@@ -738,7 +804,7 @@ async function tableExportTick(): Promise<unknown> {
     if (!d?.due) return { due: false, stamp: d?.stamp, status: d?.status ?? null };
     const secret = await sec('cred_fn_resilience_ping');
     const started = fetch(FN + '/backup', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, stamp: d.stamp, kind: d.kind, since: d.since ?? null, state: d.resume ?? null }),
     }).then((r) => r.body?.cancel()).catch(() => {});
     // deno-lint-ignore no-explicit-any
@@ -763,7 +829,7 @@ async function backupPruneTick(): Promise<unknown> {
     if (!d?.storage_pending && !d?.dropbox_pending) return out;
     const secret = await sec('cred_fn_resilience_ping');
     const call = async (fn: string) => {
-      const r = await fetch(FN + '/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await fetch(FN + '/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: secret, op: 'prune' }), signal: AbortSignal.timeout(55000) });
       await r.body?.cancel().catch(() => {});
       return r.status;
@@ -807,7 +873,7 @@ async function whatsappTick(): Promise<unknown> {
     // tick and the subject has a real pulse to be measured against.
     const secret = await sec('cred_fn_resilience_ping');
     const r = await fetch(FN + '/send_whatsapp', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, limit: 25 }), signal: AbortSignal.timeout(30000),
     });
     const sent = { queued: count ?? 0, status: r.status, result: await r.json().catch(() => null) };
@@ -817,7 +883,7 @@ async function whatsappTick(): Promise<unknown> {
     let backstop: unknown;
     try {
       const b = await fetch(FN + '/wa_status', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({ __secret: secret, poll: true }), signal: AbortSignal.timeout(30000),
       });
       backstop = { status: b.status, result: await b.json().catch(() => null) };
@@ -849,7 +915,7 @@ async function accountantWeeklyTick(): Promise<unknown> {
     let path: string | null = null, url: string | null = null, bytes: number | null = null, err: string | null = null;
     try {
       const r = await fetch(FN + '/pdf_native', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
         body: JSON.stringify({
           __secret: secret, title: t.subject, blocks: t.pdf_blocks,
           bucket: 'agent-docs', folder: 'accountant/weekly',
@@ -976,6 +1042,21 @@ async function itDutiesTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// EVERY EXTERNAL INTEGRATION, EVERY 15 MINUTES (it_engineer, 24 Sep 2026, founder instruction 979). The list is
+// _shared/integration_registry.json; _shared/integration_watch.ts probes each due entry, retries once and makes
+// the fixes it can (a Stripe webhook Stripe disabled is re-enabled), and fn_it_integration_settle files one
+// finding per integration, closes it by its exact key on recovery, mails the founder only what the company could
+// not fix, and counts what it did fix for the IT daily line. Only counts come back: this endpoint is public.
+async function itIntegrationsTick(): Promise<unknown> {
+  try {
+    const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
+    const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
+    if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
+    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
+             settled: (data as Record<string, unknown> | null)?.failing ?? null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
 // fn_it_scheduled_due names what is due; only those readings are taken; fn_it_duties_scheduled decides.
 async function itScheduledTick(): Promise<unknown> {
@@ -1042,16 +1123,24 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read.
   await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // The four GLM judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
+  // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
+  // (scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql).
+  await step('glm_judgements', async () => drainGlmJudgements(defaultDeps(admin, 'resilience_ping'), 5));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
   await step('reasoning_escalate', async () => {
-    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
-    const io = liveDeliveryIO(admin);
-    const told = [];
-    for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
+    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
+    // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
+    // from the escalate call's return, so a failure is retried (a_customer_notice_that_failed_is_sent_again.sql).
+    const owed = (await rpc('fn_reason_held_notice_due', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
+    const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
   });
+  // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
+  // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
+  await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');
@@ -1061,6 +1150,13 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // The sales engineer's daily document duty, on this heartbeat because pg_cron is not coming back:
   // expiry reconcile and final notice, approved suppliers re-verified, 14-day incomplete registrations
   // closed (the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql). Counts only.
+  // Provider status pages and the Vercel firewall (24 Sep 2026, it_engineer; seat audit IT gaps 3 and 5). Measured
+  // here, decided by fn_it_provider_watch, hourly by it_duty_schedule 'provider_status'.
+  await step('provider_status', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('provider_status')) return { due: false };
+    const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
+    return { due: true, failing: r?.failing ?? null };
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
@@ -1299,13 +1395,19 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
+  mlEmbed: { run: mlEmbedTick },
+  learningMeasure: { run: learningMeasureTick },
+  learningGroup: { run: learningGroupTick },
+  learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },
   marketingChannels: { run: marketingChannelsTick },
+  supportCampaignList: { run: supportCampaignListTick },
   whatsapp: { run: whatsappTick },
   itdetect: { run: itDetectTick },
   itduties: { run: itDutiesTick },
+  itintegrations: { run: itIntegrationsTick },
   itscheduled: { run: itScheduledTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   specoffer: { run: specOfferTick },
@@ -1313,6 +1415,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
+  seatDuties: { run: seatDutiesTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.

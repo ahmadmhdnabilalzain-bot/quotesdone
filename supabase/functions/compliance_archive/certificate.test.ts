@@ -1,6 +1,25 @@
 // Run: deno test -A supabase/functions/compliance_archive/certificate.test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert';
-import { certFields, certLang, certificate, identityRows } from './certificate.ts';
+import { certFields, certLang, certificate, identityRows, supplierEvidence } from './certificate.ts';
+
+// 24 Sep 2026: lead 126512 stored accepted_terms_sha256 0d99185f... while the certificate printed the
+// SHA-256 of the live supplier_terms_html secret (fd487a4f...). The certificate certifies the ROW.
+Deno.test('a supplier certificate prints the version, hash and user agent the acceptance row recorded', () => {
+  const row = { accepted_terms_version: 'v12', accepted_terms_sha256: 'aa'.repeat(32), accepted_terms_user_agent: 'Mozilla/5.0 ZZ' };
+  const ev = supplierEvidence(row, 'Supplier Agreement — Version 99', 'ff'.repeat(32));
+  assertEquals(ev, { terms_label: 'Supplier Agreement — Version 12', hash: 'aa'.repeat(32), ua: 'Mozilla/5.0 ZZ' });
+  const c = certificate({ ...fields, terms_label: ev.terms_label, ua: ev.ua }, 'supplier', ev.hash, 'https://quotesdone.com/supplier-agreement', 'en');
+  assertStringIncludes(c.body_html, 'Browser (user agent)</td><td>Mozilla/5.0 ZZ');
+  assertStringIncludes(c.body_html, 'Supplier Agreement — Version 12');
+  assertStringIncludes(c.body_html, 'aa'.repeat(32));
+  assert(!c.body_html.includes('ff'.repeat(32)) && !c.body_html.includes('Version 99'), 'live values never override the row');
+});
+
+Deno.test('an older acceptance without stored evidence falls back to the live label and hash; no UA reads Not recorded', () => {
+  assertEquals(supplierEvidence({}, 'Supplier Agreement — Version 13', 'bb'), { terms_label: 'Supplier Agreement — Version 13', hash: 'bb', ua: '' });
+  const c = certificate({ ...fields, ua: '' }, 'supplier', 'bb', 'https://quotesdone.com/supplier-agreement', 'en');
+  assertStringIncludes(c.body_html, 'Browser (user agent)</td><td>Not recorded');
+});
 import { renderPdf } from '../pdf_native/render.ts';
 
 const rec = { contact_name: 'ZZ DEMO Contact', signatory_name: 'ZZ DEMO Signatory', company_name: 'ZZ DEMO Co', locale: 'ar' };

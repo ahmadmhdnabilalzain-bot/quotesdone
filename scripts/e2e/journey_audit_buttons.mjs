@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { call, read, write } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry, keys, BASE } from '../lib/demo_factory.mjs';
-import { pdfFacts, isArabic, languageOf, sameDocument, sameMoney } from './pdf_facts.mjs';
+import { pdfFacts, isArabic, languageOf, sameDocument, moneyVerdict } from './pdf_facts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_PDF = join(HERE, '..', '..', 'supabase', 'functions', 'supplier_api', 'fixtures', 'ZZDEMO_quotation_D958E1EA.pdf');
@@ -86,9 +86,8 @@ async function customerAudit(ctx) {
     // the property the customer cares about: the Arabic version must quote the same money, line for
     // line, as the English one. Measured on production pair QD-8B287960-A - both renders read
     // 95.00 / 17,100.00 / 42.00 / 8,820.00 / 25,920.00 / 25,920.00 (pdf_facts.mjs amounts()).
-    const m = sameMoney(pdfs.en, pdfs.ar);
-    rep.step(C, 'the Arabic quotation states the same money as the English one',
-      m.comparable && m.same === true ? 'PASS' : 'FAIL', m.why);
+    const m = moneyVerdict(pdfs.en, pdfs.ar);
+    rep.step(C, 'the Arabic quotation states the same money as the English one', m.status, m.why);
   } else rep.step(C, 'quotation PDF in both languages', 'SKIP', 'no live quote (journey b)');
   // 2. THE COMPARISON IN BOTH LANGUAGES (journey c proves %PDF-; this proves the template and the language).
   if (ctx.inquiryId) {
@@ -403,7 +402,11 @@ async function supplierAudit(ctx) {
     try {
       const st0 = await call('supplier_api', sup.jwt, { action: 'services_state' });
       const roles = (st0.json?.capability?.roles || []).length ? st0.json.capability.roles : ['contractor'];
-      const set = await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: ['aluminium', 'glazing'], roles, services: [], implied: [], removed: [], own_words: [], raw_text: '' });
+      // #868: a confirm that ticks no service is refused (services_none_ticked), so the setup ticks one
+      // real service per trade, as a supplier must. With services: [] this step had SKIPPED since #868.
+      const ticked = (await read(`select distinct on (trade_code) trade_code || '.' || code as code from public.taxonomy_trade_service
+        where active and trade_code in ('aluminium','glazing') order by trade_code, sort, code`)).map((r) => r.code);
+      const set = await call('supplier_api', sup.jwt, { action: 'services_save_rewrite', trades: ['aluminium', 'glazing'], roles, services: ticked, implied: [], removed: [], own_words: [], raw_text: '' });
       const st1 = await call('supplier_api', sup.jwt, { action: 'services_state' });
       const codes1 = (st1.json?.checklist || []).map((t) => t.code);
       if (!set.json?.ok || !codes1.includes('glazing')) {

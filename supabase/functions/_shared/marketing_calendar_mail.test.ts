@@ -1,7 +1,7 @@
 // The founder's reply to the monthly calendar, read without a network (marketing, 23 Sep 2026).
 //   deno test supabase/functions/_shared/marketing_calendar_mail.test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { calendarTokenOf, isCalendarReply, replyIntent } from './marketing_calendar_mail.ts';
+import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from './marketing_calendar_mail.ts';
 
 const TOK = '0123456789abcdef0123456789abcdef';
 
@@ -28,10 +28,28 @@ Deno.test('approve in English and Arabic, with the quoted email below ignored', 
   }
 });
 
-Deno.test('anything that is not only an approval approves nothing', () => {
+Deno.test('anything that is not only an approval approves nothing: it is a change request for the seat', () => {
   for (const t of ['looks fine but change X', 'approve but move post 3 to Friday', "don't approve", 'not approved', 'ok',
-                   'thanks', '', 'approve?', 'موافق لكن غيّر الفيديو الثالث', 'غير موافق', '> approve',
-                   'On second thought, do not approve', '_____\napprove']) {
+                   'thanks', 'approve?', 'موافق لكن غيّر الفيديو الثالث', 'غير موافق',
+                   'On second thought, do not approve']) {
+    assertEquals(replyIntent(t), 'change', JSON.stringify(t));
+  }
+  // nothing of his own above the quote: neither an approval nor something to act on
+  for (const t of ['', '> approve', '_____\napprove', '\n\nOn Tue, 23 Sep 2026 X wrote:\n> approve']) {
     assertEquals(replyIntent(t), 'unclear', JSON.stringify(t));
   }
+});
+
+Deno.test('the change request the seat receives is his own words, without the quoted calendar', () => {
+  assertEquals(ownWords('Move video 3 to Monday.\nAnd drop TikTok for video 5.\n\nOn Tue, 23 Sep 2026 X wrote:\n> approve'),
+    'Move video 3 to Monday.\nAnd drop TikTok for video 5.');
+});
+
+Deno.test('a reply to the monthly idea plan is found by its address or its subject, never confused with a calendar', () => {
+  const tok = '0123456789abcdef0123456789abcdef';
+  assertEquals(planTokenOf({ to: 'plan+' + tok + '@mail.quotesdone.com' }), tok);
+  assertEquals(planTokenOf({ to: 'info@quotesdone.com', subject: 'Re: November video ideas [plan ' + tok + ']' }), tok);
+  assertEquals(planTokenOf({ to: 'calendar+' + tok + '@mail.quotesdone.com' }), null);
+  assertEquals(planTokenOf({ to: 'plan+' + tok + '@evil.example' }), null);
+  assertEquals(isCalendarReply({ to: 'plan+' + tok + '@mail.quotesdone.com' }), false);
 });

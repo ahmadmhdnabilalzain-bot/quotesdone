@@ -6,7 +6,7 @@
 //
 //   1. REFUND CLAWBACK - a customer was refunded because the supplier did not respond. QuotesDone
 //      pays that refund out of its own balance immediately so the customer is not left waiting,
-//      then recovers it from the supplier: the 3% reveal fee + a AED 250 admin fee, plus monthly
+//      then recovers it from the supplier: the exact amount refunded (the 3% reveal fee) + the clause 33(b) administrative fee of the version the supplier signed, plus monthly
 //      interest once past due. Unpaid for 90 days -> ban + legal escalation.
 //   2. ANNUAL SUBSCRIPTION - AED 1,000/year from 1 Aug 2027, except the first 1,000 registrants,
 //      who are exempt permanently. Handled by fn_subscription_billing_run, not by this endpoint.
@@ -142,6 +142,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       await logRun('ok', { supplier_id: lead.id, outstanding: outstanding.length, total_owed: totalOwed }, '');
       return J({ ok: true, company: lead.company_name, currency: 'AED', total_owed: totalOwed,
         dues: outstanding.map((d) => ({ id: d.id, amount: owed(d),
+          // clause 33(a)+(b): the refund and, from v14, the unrecovered processor fee (the key name is the portal's)
           refunded_fee: Number(d.amount_due || 0),
           admin_fee: Number(d.admin_fee || 0),
           interest: Number(d.interest_amount || 0) + Number(d.fine_amount || 0),

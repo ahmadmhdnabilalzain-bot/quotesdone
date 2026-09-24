@@ -341,7 +341,7 @@ const T = {
     // `admin_fee` and `interest` (supplier_pay/index.ts). Every outstanding due therefore printed
     // "Refunded amount recovered AED 0", and the AED 250 administrative fee and the 9% interest of
     // clause 33 were invisible. These three keys are those three fields, named as clause 33 names them.
-    bill_refund:'Refund recovered', bill_admin:'Administrative fee', bill_interest:'Late interest and fines', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
+    bill_refund:'Non-response charge (refund and unrecovered processor fee)', bill_admin:'Administrative fee', bill_interest:'Late interest and fines', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
     
     
     
@@ -375,7 +375,7 @@ const T = {
     conflict_customer:'هذا البريد مسجّل كعميل. يُرجى استخدام تطبيق العملاء لتسجيل الدخول.',
     setup_title:'إنشاء حساب المورّد', setup_sub_company:'سجّلوا شركتكم ثم أكملوا ملف الشركة.', setup_sub_profile:'أكملوا ملف الشركة لتبدأوا استقبال الاستفسارات وتقديم عروض الأسعار.',
     onboard_title:'تسجيل الشركة', onboard_sub:'أدخلوا اسم شركتكم وتخصصها الرئيسي. التسجيل مجاني لأول 1,000 مورّد يسجّلون، إعفاءً دائمًا؛ واعتبارًا من التسجيل رقم 1,001 تكون الرسوم 1,000 درهم إماراتي سنويًا.', company_name:'اسم الشركة', emirate:'الإمارة', create_company:'إنشاء الشركة', enter_company:'يُرجى إدخال اسم الشركة.', err_generic:'حدث خطأ ما.', something_wrong:'حدث خطأ ما',
-    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_refund:'استرداد المبلغ المردود للعميل', bill_admin:'رسوم إدارية', bill_interest:'فوائد ورسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'الاستفسارات', approved:'معتمد', pending:'قيد المراجعة',
+    bill_title:'المبالغ المستحقة', bill_none:'لا توجد مبالغ مستحقة، ولا نتقاضى أي عمولة على الأعمال التي تفوزون بها.', bill_total:'إجمالي المستحق', bill_pay:'الدفع الآن', bill_paying:'جارٍ فتح صفحة الدفع الآمنة…', bill_err:'تعذّر تحميل رصيدكم. يُرجى المحاولة مرة أخرى.', bill_refund:'رسم عدم الاستجابة (المبلغ المردود ورسوم مزوّد الدفع غير المستردّة)', bill_admin:'رسوم إدارية', bill_interest:'فوائد ورسوم التأخير', bill_due:'تاريخ الاستحقاق', bill_retry:'إعادة المحاولة', bill_secure:'ستنتقلون إلى صفحة الدفع الآمنة في Stripe، ولا تطّلع QuotesDone على بيانات بطاقتكم. ولا تنشأ هذه المبالغ إلا عند ردّ مبلغ إلى العميل لتعذّر التواصل معكم \u2014 ولا عمولة على الأعمال المنجزة.', t_rfqs:'الاستفسارات', approved:'معتمد', pending:'قيد المراجعة',
     
     
     
@@ -571,10 +571,17 @@ export function SupplierPortal() {
     // into "this is your listing, claim it".
     try {
       const t = new URLSearchParams(window.location.search).get('t') || '';
+      // A LINK THAT DOES NOT RESOLVE SAYS SO (24 Sep 2026, sales_engineer, ledger 993). Measured: a
+      // mistyped or out-of-date ?t= opened the generic page on "Welcome back", with nothing telling the
+      // supplier the invitation link was the problem. claim_lookup answers invalid_link / not_found for
+      // exactly that; a network failure or a 503 stays silent, because the link may well be fine.
       if (UUID_RE.test(t)) {
         sessionStorage.setItem(CLAIM_KEY, t);
-        call('claim_lookup', { t }).then((j) => { if (j && j.ok) setInvite(j); }).catch(() => {});
-      }
+        call('claim_lookup', { t }).then((j) => {
+          if (j && j.ok) setInvite(j);
+          else if (j && (j.error === 'invalid_link' || j.error === 'not_found')) setInvite({ invalid: true });
+        }).catch(() => {});
+      } else if (t) setInvite({ invalid: true });
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
@@ -693,7 +700,7 @@ export function SupplierPortal() {
         {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
-        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
+        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && (invite.claimable || invite.invalid) ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
           : <>
@@ -711,6 +718,17 @@ export function SupplierPortal() {
 // at the end with "This company is already claimed by another account."
 function InviteBanner({ invite, lang, onStart }) {
   const ar = lang === 'ar';
+  if (invite.invalid) return (
+    <section className="mx-auto w-full max-w-3xl px-4 pt-6" dir={ar ? 'rtl' : 'ltr'}>
+      <Card className="qd-panel p-5" role="status">
+        <div className="text-[15px] font-bold text-foreground">{ar ? 'رابط الدعوة هذا غير صالح أو انتهت صلاحيته.' : 'This invitation link is not valid or has expired.'}</div>
+        <div className={cn(S.sub, 'mt-2 max-w-[62ch]')}>
+          {ar ? 'يمكنكم إنشاء حساب أدناه وتسجيل شركتكم مباشرةً، أو مراسلتنا على management@quotesdone.com.'
+              : 'You can still create an account below and register your company, or write to management@quotesdone.com.'}
+        </div>
+      </Card>
+    </section>
+  );
   const name = invite.company_name || (ar ? 'شركتكم' : 'your company');
   const taken = !invite.claimable;
   return (
@@ -839,7 +857,7 @@ const TAB_ALIAS = { overview: 'services', scope: 'services', projects: 'messages
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -858,6 +876,38 @@ const AGREEMENT_CHANGES = {
   12: {
     en: ['WhatsApp notices go to the WhatsApp number you confirm in the portal with a verification code, or to your registered mobile if you confirm it is your WhatsApp. SMS stays on your registered mobile (clause 21).'],
     ar: ['تصلكم إشعارات واتساب على رقم الواتساب الذي تؤكّدونه في البوابة برمز تحقق، أو على رقم هاتفكم المحمول المسجَّل إذا أكّدتم أنه رقمكم على واتساب. وتبقى الرسائل النصية على رقم هاتفكم المحمول المسجَّل (البند 21).'],
+  },
+  // v13, 23 Sep 2026 (ceo; founder: every legal document at full UAE compliance, penalties at the lawful maximum).
+  // The figures are src/content/company_facts.json's; company_facts_agree_everywhere keeps them equal.
+  13: {
+    en: [
+      'Taking a customer introduced through the Platform off the Platform: agreed compensation of AED 20,000 per incident or five (5) times the fee avoided, whichever is higher; the sum includes the fee on that job (clause 24). Sharing contact details during anonymised stages stays AED 10,000 per incident, and never on top of clause 24 (clause 10).',
+      'Reusing or reselling Platform data: agreed compensation of AED 25,000 per incident (clause 25).',
+      'The administrative fee for a non-response refund is AED 500 for a customer who reveals you after you accept this version (clause 33).',
+      'New: fake, duplicate or impersonating accounts and fraudulent quotations — AED 20,000 per account or incident, closure of the accounts and a report to the authorities (clause 36).',
+      'New: every agreed sum is a genuine pre-estimate of loss, charged once for any one act, and the court keeps its powers over it (clause 37). Nothing limits liability for fraud or gross negligence (clause 18).',
+    ],
+    ar: [
+      'التعامل خارج المنصة مع عميل جرى التعريف به من خلالها: تعويض اتفاقي قدره 20,000 درهم إماراتي عن كل واقعة أو خمسة (5) أضعاف الرسوم التي تم تجنّبها، أيهما أعلى، ويشمل المبلغ رسوم ذلك العمل (البند 24). وتبقى مشاركة بيانات الاتصال خلال المراحل مجهولة الهوية بمبلغ 10,000 درهم إماراتي عن كل واقعة، ولا تُضاف أبدًا إلى البند 24 (البند 10).',
+      'إعادة استخدام بيانات المنصة أو بيعها: تعويض اتفاقي قدره 25,000 درهم إماراتي عن كل واقعة (البند 25).',
+      'الرسم الإداري عن الاسترداد بسبب عدم الاستجابة 500 درهم إماراتي إذا كشف عنكم عميل بعد قبولكم هذا الإصدار (البند 33).',
+      'جديد: الحسابات الوهمية أو المكررة أو المنتحلة وعروض الأسعار الاحتيالية — 20,000 درهم إماراتي عن كل حساب أو واقعة، وإغلاق الحسابات، وإبلاغ السلطات (البند 36).',
+      'جديد: كل مبلغ متفق عليه تقدير حقيقي مسبق للضرر، ويُستحق مرة واحدة عن الفعل الواحد، وتحتفظ المحكمة بصلاحياتها بشأنه (البند 37). ولا يحدّ أي حكم من المسؤولية عن الغش أو الخطأ الجسيم (البند 18).',
+    ],
+  },
+  // v14, 24 Sep 2026 (ceo; founder instruction 990: the non-response charge at the maximum UAE law safely allows).
+  // Reasoning and citations: docs/legal/NONRESPONSE_MAX_V14.md. Never retroactive (clause 33, last sentence).
+  14: {
+    en: [
+      'Non-response refund (clause 33): the payment processor fee on the refunded reveal that we could not recover is now charged at its recorded amount, in addition to the refunded amount and the AED 500 administrative fee.',
+      'Interest on any overdue amount is simple interest at 12% a year, the rate agreed under the Commercial Transactions Law, never compounded (clauses 31 and 33). An amount that fell due under an earlier version keeps that version\x27s rate.',
+      'If a charge stays unpaid, the official fees of recovering it (court, payment-order, execution and notary fees) are added at cost; we may set off what you owe against anything we owe you (clauses 9 and 33).',
+    ],
+    ar: [
+      'الاسترداد بسبب عدم الاستجابة (البند 33): تُحتسب الآن رسوم مزوّد خدمة الدفع على رسوم الكشف المستردّة التي لم نتمكن من استردادها بمبلغها المسجَّل، إضافةً إلى المبلغ المستردّ والرسم الإداري البالغ 500 درهم إماراتي.',
+      'تُحتسب على أي مبلغ متأخر فائدة بسيطة بنسبة 12% سنويًا، وهو السعر المتفق عليه وفقًا لقانون المعاملات التجارية، ولا تُركَّب (البندان 31 و33). ويبقى على المبلغ الذي استُحق في ظل إصدار سابق سعرُ ذلك الإصدار.',
+      'إذا بقي رسم دون سداد، تُضاف بالتكلفة الرسوم الرسمية لتحصيله (رسوم المحكمة وأمر الأداء والتنفيذ والتوثيق)، ويجوز لنا إجراء المقاصة بين ما تدينون به وأي مبلغ ندين به لكم (البندان 9 و33).',
+    ],
   },
 };
 export function agreementChanges(accepted, current, ar) {
@@ -1576,8 +1626,8 @@ function Projects({ token, lang, openChat, onExpired }) {
   if (data.error || data.ok !== true) return <Card role="alert" className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
   const list = data.projects || [];
   const rule = ar
-    ? 'عندما يكشف العميل عن عرضكم يجب أن تتواصلوا معه خلال 5 أيام عمل من تاريخ الكشف. وإن لم تتواصلوا خلال 3 أيام عمل نتابع معكم ونُشرك العميل في المراسلة، وإن لم يصل منكم أي رد يُردّ إلى العميل كل ما دفعه، وتُستحق عليكم رسوم عدم الاستجابة: المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3% مضافًا إليها رسوم معالجة البطاقة)، ورسم إداري قدره 250 درهمًا، وفائدة بسيطة بنسبة 9% سنويًا (أو الحد الأقصى الذي يسمح به القانون) من تاريخ الاستحقاق (البند 33 من اتفاقية المورّد).'
-    : 'When a customer reveals your quote you must respond to them within 5 working days of the reveal. If you have not responded within 3 working days we chase you with the customer copied; if you stay silent everything the customer paid is refunded and the non-response charge applies: the exact amount refunded (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date (Supplier Agreement, clause 33).';
+    ? 'عندما يكشف العميل عن عرضكم يجب أن تتواصلوا معه خلال 5 أيام عمل من تاريخ الكشف. وإن لم تتواصلوا خلال 3 أيام عمل نتابع معكم ونُشرك العميل في المراسلة، وإن لم يصل منكم أي رد يُردّ إلى العميل كل ما دفعه، وتُستحق عليكم رسوم عدم الاستجابة: المبلغ الذي رُدّ إلى العميل بالضبط (رسوم الكشف البالغة 3%)، ورسوم مزوّد خدمة الدفع عليه التي لم نتمكن من استردادها، ورسم إداري قدره 500 درهم، وفائدة بسيطة بنسبة 12% سنويًا (أو الحد الأقصى الذي يسمح به القانون) من تاريخ الاستحقاق؛ وإن بقي دون سداد، فالرسوم الرسمية لتحصيله أيضًا. ويُحتسب الكشف الذي تم قبل قبولكم الإصدار v14 من اتفاقية المورّد وفقًا للإصدار الذي كنتم قد قبلتموه آنذاك (البند 33).'
+    : 'When a customer reveals your quote you must respond to them within 5 working days of the reveal. If you have not responded within 3 working days we chase you with the customer copied; if you stay silent everything the customer paid is refunded and the non-response charge applies: the exact amount refunded (the 3% reveal fee), the payment processor fee on it that we could not recover, an AED 500 administrative fee, and simple interest at 12% a year (or the maximum lawful rate) from the due date; if it stays unpaid, the official fees of recovering it too. A reveal made before you accepted Supplier Agreement v14 is charged under the version you had accepted then (clause 33).';
   if (!list.length) return <Card className="qd-panel p-5"><div className={S.h2}>{t(lang, 'no_projects_h')}</div><div className={S.sub}>{t(lang, 'no_projects_sub')}</div><div className={cn(S.sub, 'mt-2')}>{rule}</div></Card>;
   const now = Date.now();
   return <div className={S.list}>

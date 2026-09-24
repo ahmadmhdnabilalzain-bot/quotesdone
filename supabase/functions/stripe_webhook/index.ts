@@ -3,7 +3,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { CHECKOUT_EVENTS, FAILED_CHECKOUT_EVENTS, REFUND_EVENTS, INVOICE_EVENTS, DISPUTE_EVENTS, stripeEventMode, signingSecretFor, refundsInEvent } from '../_shared/stripe_events.ts';
 import { handleRevealInvoiceEvent } from './invoice_event.ts';
 import { recordRevealSale } from '../_shared/reveal_sale.ts';
-import { shortfallAfterPayment } from '../_shared/reveal_fee.ts';
+import { absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { observe } from '../_shared/observe.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
@@ -93,8 +93,8 @@ async function captureInvoice(
   }
 }
 
-// WHAT STRIPE ACTUALLY KEPT (14 Sep 2026, agent: accountant). The customer is charged the 3% plus a
-// card-processing line grossed up at the conservative published rate (_shared/reveal_fee.ts). The
+// WHAT STRIPE ACTUALLY KEPT (14 Sep 2026, agent: accountant). Since 24 Sep 2026 the customer pays the 3% only and
+// QuotesDone bears Stripe's fee (Cabinet Res. 66/2023 Art. 5(3); _shared/reveal_fee.ts). The
 // real fee depends on the card, and is only known from the balance transaction, so it is read here
 // and stored beside the sale. Best-effort and write-once: it is a record, never a reason to fail.
 async function recordStripeFee(sk: string, txId: string, pi: string,
@@ -111,24 +111,12 @@ async function recordStripeFee(sk: string, txId: string, pi: string,
     }
     await admin.from('transactions').update({ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null })
       .eq('id', txId).is('stripe_fee_fils', null);
-    // NOTHING ON US (founder, 14 Sep 2026: "make sure any service charge is added to the customer
-    // invoice. nothing on us"). The card fee Stripe actually took, plus the Invoicing fee and its VAT
-    // that Stripe bills separately, against the processing line the customer paid. A shortfall is an
-    // incident for the CEO with the numbers on it - never absorbed and never only a log line.
-    const { data: sale } = await admin.from('transactions').select('processing_fee,total_charged').eq('id', txId).maybeSingle();
-    if (sale?.total_charged != null && sale?.processing_fee != null) {
-      const short = shortfallAfterPayment({ processing_fee: Number(sale.processing_fee), total_charged: Number(sale.total_charged), actual_card_fee_fils: Number(bt.fee) });
-      if (short > 0) {
-        await admin.from('agent_actions').insert({
-          agent: 'ceo', kind: 'finance_alert', status: 'pending', risk: 'medium',
-          title: 'Reveal fee shortfall: Stripe cost AED ' + short.toFixed(2) + ' more than the customer paid for processing',
-          recommendation: 'Check the rates in _shared/reveal_fee.ts against this balance transaction; the customer must cover every Stripe cost.',
-          detail: { from: 'accountant', transaction_id: txId, payment_intent: pi, shortfall_aed: short, processing_fee: sale.processing_fee,
-            total_charged: sale.total_charged, actual_card_fee_fils: bt.fee, fee_details: bt.fee_details || null },
-          target_table: 'transactions', target_id: txId,
-        });
-        await logRun('error', { transaction: txId, shortfall_aed: short }, 'REVEAL FEE SHORTFALL - raised to the CEO as a finance_alert');
-      }
+    // ABSORBED, NOT RECOVERED (24 Sep 2026). The card fee plus Stripe's separately billed Invoicing fee is
+    // QuotesDone's cost, booked to 6100 by fn_gl_sync_business from stripe_fee_fils. Recorded here, never an incident.
+    const { data: sale } = await admin.from('transactions').select('total_charged').eq('id', txId).maybeSingle();
+    if (sale?.total_charged != null) {
+      await logRun('ok', { transaction: txId, absorbed_stripe_cost_aed: absorbedStripeCost({ total_charged: Number(sale.total_charged), actual_card_fee_fils: Number(bt.fee) }) },
+        'Stripe fee absorbed (expense 6100); the customer paid the reveal fee only');
     }
   } catch (e) {
     await logRun('error', { transaction: txId }, 'stripe fee read threw: ' + String((e as Error)?.message || e));

@@ -1,15 +1,17 @@
-// THE REVEAL CHARGE, IN ONE PLACE (14 Sep 2026, agent: accountant).
+// THE REVEAL CHARGE, IN ONE PLACE (agent: accountant).
 //
-// Founder, 14 Sep 2026, in order:
-//   "make sure its 3% plus stripe fees included."
-//   "charge as per the safest, but in most cases its gonna be UAE based card ... if it can be
-//    automated during deduction then its better."
-//   "make sure any service charge is added to the customer invoice. nothing on us"
-// So the customer pays the 3% reveal fee plus EVERY Stripe cost of taking that payment, on one line
-// called "Card processing", and QuotesDone nets the full 3%. No VAT is charged to the customer: "our
-// company is not vat registered so for our reveal fee there is no vat". A refund returns everything
-// the customer paid; QuotesDone absorbs Stripe's fee only then.
+// 24 SEP 2026 — NO CARD SURCHARGE ON ANY BUYER. Founder: "we must be fully compliant with UAE law, and nobody may
+// be able to sue us". Cabinet Resolution 66/2023 (executive regulation of the Consumer Protection Law, Federal
+// Law 15/2020), Art. 5(3): the supplier shall "Not add any further amounts on the value of commodity, if credit
+// cards are used in the purchase of commodities and services." Law 15/2020 Art. 1 defines the consumer as every
+// natural OR juristic person who obtains a good or service for his own needs or those of others, so a company
+// buying for itself is a consumer too: no account type can safely be charged the fee. The customer therefore
+// pays the 3% reveal fee and NOTHING else; QuotesDone bears every Stripe cost, booked to expense 6100 from the
+// balance transaction (fn_gl_sync_business). The 14 Sep ruling "3% plus stripe fees included ... nothing on us"
+// is superseded by the law, which the founder's 24 Sep instruction puts first.
 //
+// The Stripe rates below no longer price the customer. They estimate what QuotesDone absorbs (stripeCostFor), for
+// the books' fallback and for the revenue-impact figure, until the balance transaction gives the real fee.
 // EVERY STRIPE COST OF ONE REVEAL, AND WHERE EACH NUMBER CAME FROM (read 14 Sep 2026):
 //   card processing   stripe.com/ae/pricing: "2.9% + AED1.00 per successful transaction for domestic
 //                     cards", "+ 1% for international cards". Amex is not priced separately there.
@@ -27,9 +29,7 @@
 //                     services. Tax is charged based on your location and/or your business/tax status."
 //                     UAE VAT is 5%. It was not possible to establish that it does NOT apply to this
 //                     account, so 5% is charged on top of every Stripe fee above.
-// Every rate here is the conservative end of what could apply. The ACTUAL card fee is read from the
-// balance transaction after payment (stripe_webhook recordStripeFee), compared with what was collected,
-// and any shortfall is raised to the CEO as an incident: never absorbed silently.
+// Every rate here is the conservative end of what could apply.
 export const STRIPE_DOMESTIC_PCT = 0.029;
 export const STRIPE_CARD_PCT = 0.039;            // international: 2.9% + 1%
 export const STRIPE_CARD_FIXED_AED = 1.0;
@@ -62,23 +62,20 @@ export function stripeCostFor(totalAed: number, basis: FeeBasis['basis']): numbe
   return Math.ceil((totalAed * stripePctFor(basis) + STRIPE_FIXED_WITH_VAT) * 100 - 1e-9) / 100;
 }
 
-/**
- * base = round(rate x quote), total = ceil_to_fils((base + fixed) / (1 - pct)), where pct and fixed
- * carry every Stripe cost above. base + processing === total exactly, to the fils.
- */
-export function revealCharge(quoteAmount: number, rate: number,
-  pct = stripePctFor('international'), fixed = STRIPE_FIXED_WITH_VAT): RevealCharge {
+/** Never true: Cabinet Res. 66/2023 Art. 5(3). reveal_fee.test.ts fails if a charge ever carries a card fee. */
+export const CARD_FEE_CHARGED_TO_BUYER = false as const;
+
+/** base = round(rate x quote) to the fils; that is the whole charge. processing_fee is always 0. */
+export function revealCharge(quoteAmount: number, rate: number): RevealCharge {
   const amount = Number(quoteAmount), r = Number(rate);
   if (!(amount > 0) || !(r > 0)) return { base_fee: 0, processing_fee: 0, total_charged: 0 };
   const baseF = fils(amount * r);
-  // ceil on an integer number of fils; the tiny epsilon stops 1234.0000000002 from rounding up a fils.
-  const totalF = Math.ceil((baseF + fixed * 100) / (1 - pct) - 1e-9);
-  return { base_fee: baseF / 100, processing_fee: (totalF - baseF) / 100, total_charged: totalF / 100 };
+  return { base_fee: baseF / 100, processing_fee: 0, total_charged: baseF / 100 };
 }
 
 /**
- * Which rate the card in a ConfirmationToken's payment_method_preview costs us. Anything that is not
- * a card whose issuing country Stripe reports falls to the international (safest) rate, and says why.
+ * Which Stripe rate the card in a ConfirmationToken's payment_method_preview will cost QuotesDone. Anything that
+ * is not a card whose issuing country Stripe reports falls to the international (higher) rate, and says why.
  */
 export function feeBasisFromPreview(preview: Record<string, any> | null | undefined): FeeBasis {
   const method = String(preview?.type || 'unknown');
@@ -92,19 +89,20 @@ export function feeBasisFromPreview(preview: Record<string, any> | null | undefi
     return { basis: 'international', card_country: country, wallet, method, reason: 'card issued in ' + country };
   }
   return { basis: 'international', card_country: null, wallet, method,
-    reason: 'card country not reported for ' + method + ' - charged at the safest rate' };
+    reason: 'card country not reported for ' + method + ' - costed at the higher rate' };
 }
 
-export function revealChargeFor(quoteAmount: number, rate: number, basis: FeeBasis['basis']): RevealCharge {
-  return revealCharge(quoteAmount, rate, stripePctFor(basis), STRIPE_FIXED_WITH_VAT);
+/** The charge does not depend on the card: the basis is kept only so callers record what Stripe will cost us. */
+export function revealChargeFor(quoteAmount: number, rate: number, _basis: FeeBasis['basis']): RevealCharge {
+  return revealCharge(quoteAmount, rate);
 }
 
 /**
- * After payment: what Stripe actually took on the card (the balance transaction's fee), plus the
- * Invoicing fee and its VAT that Stripe bills separately, against the processing line we collected.
- * A positive shortfall means the customer did not cover every Stripe cost.
+ * After payment: every Stripe cost QuotesDone bears on this reveal, in AED — the card fee Stripe actually took
+ * (balance transaction, VAT included) plus the Invoicing fee and its VAT that Stripe bills separately. Booked to
+ * 6100. Not a shortfall and not an incident: absorbing it is the law (Cabinet Res. 66/2023 Art. 5(3)).
  */
-export function shortfallAfterPayment(a: { processing_fee: number; total_charged: number; actual_card_fee_fils: number }): number {
+export function absorbedStripeCost(a: { total_charged: number; actual_card_fee_fils: number }): number {
   const invoicingF = Math.ceil(a.total_charged * 100 * STRIPE_INVOICING_PCT * (1 + VAT_ON_STRIPE_FEES) - 1e-9);
-  return (a.actual_card_fee_fils + invoicingF - fils(a.processing_fee)) / 100;
+  return (a.actual_card_fee_fils + invoicingF) / 100;
 }

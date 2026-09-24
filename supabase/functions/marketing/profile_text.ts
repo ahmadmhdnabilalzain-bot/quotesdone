@@ -1,7 +1,7 @@
 // ONE COMPANY DESCRIPTION ON EVERY PROFILE (marketing, 23 Sep 2026; founder instruction 920: "WhatsApp profile
 // description and any social media profile should all match, within each platform's limit").
 //
-// profile_text.json holds the canonical sentences (EN + Gulf Arabic) and, per platform field, WHICH sentences make
+// profile_text.json holds the canonical sentences (English only, founder rule of 23 Sep 2026) and, per platform field, WHICH sentences make
 // the variant. A variant is rendered from canonical sentences only, so it cannot claim anything the canonical text
 // does not. violations() is the check (profile_text.test.ts runs it in CI): every part exists, every rendered
 // variant fits its limit (counted in code points), and the canonical text carries none of the retired claims.
@@ -20,10 +20,10 @@
 import data from './profile_text.json' with { type: 'json' };
 
 export interface Variant { platform: string; field: string; limit: number; api: 'twilio' | 'graph' | 'youtube' | 'manual'; join: string; parts: string[]; source: string }
-const CANON = data.canonical as Record<'en' | 'ar', Record<string, string>>;
+const CANON = data.canonical as Record<'en', Record<string, string>>;
 export const VARIANTS = data.variants as Variant[];
 
-const sentence = (id: string) => { const [l, k] = id.split('.'); return CANON[l as 'en' | 'ar']?.[k]; };
+const sentence = (id: string) => { const [l, k] = id.split('.'); return CANON[l as 'en']?.[k]; };
 export const render = (v: Variant) => v.parts.map(sentence).join(v.join);
 export const length = (s: string) => [...s].length;
 export const text = (platform: string, field: string) => render(VARIANTS.find((v) => v.platform === platform && v.field === field)!);
@@ -31,6 +31,14 @@ export const text = (platform: string, field: string) => render(VARIANTS.find((v
 // Claims the company corrected and must never make again (the retired copy): licence-activity matching, a blanket
 // "free", the "E-Trader" name.
 const RETIRED = /licen[cs]e activit|activit(y|ies) on (your|the) licen|نشاط الرخص|free for (all|everyone|ever)|always free|مجاني للجميع|مجانا للجميع|e-?trader|اي ?تريدر/i;
+
+// The founder's standing rules for every public profile and bio (23 Sep 2026): English only; never the trade
+// licence number; never the word "AI" (say "smart").
+export const PROFILE_RULES: [string, RegExp][] = [
+  ['contains Arabic script', /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/],
+  ['shows a licence number', /licen[cs]e\D{0,20}\d|\bDET\b/i],
+  ['uses the word "AI"', /\bAI\b/],
+];
 
 export function violations(): string[] {
   const out: string[] = [];
@@ -41,6 +49,7 @@ export function violations(): string[] {
     if (!v.parts.length) out.push(`${id}: empty`);
     const n = length(render(v));
     if (n > v.limit) out.push(`${id}: ${n} characters, limit ${v.limit}`);
+    for (const [rule, re] of PROFILE_RULES) if (re.test(render(v))) out.push(`${id}: ${rule}`);
   }
   return out;
 }
