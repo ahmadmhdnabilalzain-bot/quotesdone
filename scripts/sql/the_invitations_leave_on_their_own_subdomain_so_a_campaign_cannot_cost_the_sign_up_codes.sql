@@ -23,11 +23,17 @@
 --   2. trg_invite_lane_since: the moment invite_lane_enabled turns 'true', invite_lane_since is stamped now().
 --      Every activation restamps: a restart only ever costs volume, never reputation.
 --   3. fn_invite_lane_since(): the stamp while the lane is ON, '-infinity' while it is OFF.
---   4. fn_invite_ramp: the SAME ramp (no second ramp), with every read of leads.invited_at scoped to
---      invited_at >= fn_invite_lane_since(). With the lane ON, the history that info@ built does not count
---      toward the new subdomain: on the first run after activation there is no lane send, so the ramp's own
---      restart branch sets the cap to invite_warmup.base_cap (day 1), and growth, back-off and the 48 h rates
---      read only lane sends from then on. OFF: '-infinity' makes every scope a no-op, i.e. today's ramp.
+--   4. fn_invite_ramp: the SAME ramp (no second ramp). Its restart and growth reads (last send, send total, last
+--      send day and its volume) are scoped to invited_at >= fn_invite_lane_since() AND an invitation that was
+--      actually sent (fn_invite_lane_sent; a held lane invitation has invited_at but never left). With the lane
+--      ON, the history info@ built does not count toward the new subdomain: the first run after activation finds
+--      no lane send, so the ramp's own restart branch sets the cap to invite_warmup.base_cap (day 1).
+--      The 48 h health read behind the complaint PAUSE and the bounce BACK-OFF stays UNSCOPED: complaints reflect
+--      the list and the copy, not the domain, and activation must never hide them. OFF: '-infinity' makes every
+--      scope a no-op and agent_runs.counts carries no lane key, i.e. today's ramp and today's run log.
+--      KNOWN UNDERCOUNT, ACCEPTED: a row queued just before activation and sent after it leaves on the lane but
+--      has invited_at < the stamp, so it is not counted. At most one day's batch (the rows queued before the
+--      flip); the ramp is conservative for that one day, never generous.
 --      Non-destructive: no lead, no invited_at and no ramp history is rewritten; turning the lane off returns
 --      the ramp to reading the whole history.
 --   5. fn_supplier_campaign_next_list (the 18:00 list): the same scope on its cold-domain check, so the list
@@ -39,8 +45,12 @@
 -- bounce), and invite_warmup.
 --
 -- The lane cannot go live until the founder adds hello.quotesdone.com in Resend and its DNS verifies:
--- send_outbox asks Resend (GET /domains) before using it, and on anything but verified + sending enabled it
--- sends exactly as OFF and files the it_engineer finding 'invite_lane_domain_unverified'.
+-- send_outbox asks Resend (GET /domains) before using it. With the flag ON and anything but verified + sending
+-- enabled (or Resend unreachable), lane invitations are HELD, never sent from info@ (that would put the cold
+-- campaign back on the sign-up codes' identity), and the it_engineer finding 'invite_lane_domain_unverified' is
+-- filed; every other mail is untouched. Held rows stay queued with not_before moved out, so they never take the
+-- claim slots of other mail, and on the lane no more than invite_daily_cap invitations leave in a UTC day
+-- however many were held; send_outbox's email_stale_hours guard retires any held longer than that.
 --
 -- prevented by: scripts/checks/the_invitations_leave_on_their_own_subdomain.test.mjs
 --               supabase/functions/send_outbox/invite_lane.test.ts
@@ -99,6 +109,21 @@ end
 $fn$;
 revoke execute on function public.fn_invite_lane_since() from public, anon, authenticated;
 
+-- A lane invitation counts toward the lane's warm-up only once it has actually LEFT. leads.invited_at is written
+-- when enqueue_supplier_invites QUEUES the row; send_outbox holds a lane invitation while the subdomain is not
+-- verified, and a held invitation must not warm a ramp for mail nobody received.
+create or replace function public.fn_invite_lane_sent(p_lead_id bigint)
+returns boolean
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select exists (select 1 from public.notifications n
+                  where n.lead_id = p_lead_id and n.type = 'supplier_invite' and n.status = 'sent')
+$fn$;
+revoke execute on function public.fn_invite_lane_sent(bigint) from public, anon, authenticated;
+
 -- ── 4. THE EXISTING RAMP, SCOPED TO THE LANE ────────────────────────────────────────────────────────────
 create or replace function public.fn_invite_ramp()
 returns integer
@@ -139,12 +164,14 @@ begin
     return v_cur;
   end if;
 
-  select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  select count(*), max(invited_at) into v_sent_total, v_last_sent from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+  -- THE 48 h HEALTH READ IS NOT LANE-SCOPED (review of #963): complaints and bounces reflect the list and the
+  -- copy, not the domain, so switching the lane on must never hide yesterday's complaints from the pause.
   select count(*),
          count(*) filter (where invite_status = 'bounced'),
          count(*) filter (where invite_status = 'complained')
     into v_s48, v_b48, v_c48
-    from leads where invited_at > now() - interval '48 hours' and invited_at >= v_since and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    from leads where invited_at > now() - interval '48 hours' and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
   v_br := v_b48::numeric / greatest(v_s48, 1);
   v_cr := v_c48::numeric / greatest(v_s48, 1);
 
@@ -199,8 +226,8 @@ begin
   else
     -- GROW ON VOLUME ISSUED, ONCE PER SEND DAY. Weekends and holidays run no batch, so a calendar-based
     -- ladder would ratchet on days the domain sent nothing.
-    select max((invited_at at time zone 'Asia/Dubai')::date) into v_last_day from leads where invited_at is not null and invited_at >= v_since and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
-    select count(*) into v_last_day_sent from leads where (invited_at at time zone 'Asia/Dubai')::date = v_last_day and invited_at >= v_since and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select max((invited_at at time zone 'Asia/Dubai')::date) into v_last_day from leads where invited_at is not null and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
+    select count(*) into v_last_day_sent from leads where (invited_at at time zone 'Asia/Dubai')::date = v_last_day and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id)) and not coalesce(is_demo, false) and not public.fn_is_demo_email(email);
     select exists (select 1 from agent_runs a where a.agent = 'invite_ramp' and a.finished_at > v_last_sent
                      and (a.counts->>'new_cap')::int > (a.counts->>'old_cap')::int) into v_grew_since;
     if v_grew_since then
@@ -224,8 +251,8 @@ begin
   values ('invite_ramp', v_status,
           jsonb_build_object('old_cap', v_cur, 'new_cap', v_new, 'sent_total', v_sent_total, 'restart', v_restart,
                              'sent_48h', v_s48, 'bounced_48h', v_b48, 'complained_48h', v_c48,
-                             'bounce_pct_48h', round(v_br * 100, 2), 'complaint_pct_48h', round(v_cr * 100, 3),
-                             'lane_since', case when v_since > '-infinity'::timestamptz then v_since end),
+                             'bounce_pct_48h', round(v_br * 100, 2), 'complaint_pct_48h', round(v_cr * 100, 3))
+          || case when v_since > '-infinity'::timestamptz then jsonb_build_object('lane_since', v_since) else '{}'::jsonb end,
           v_note, now());
   if v_new < v_cur and not v_restart then
     insert into founder_alerts(level, event, detail, channel)
@@ -260,7 +287,7 @@ begin
   -- fn_invite_ramp runs before the batch on the sending day; with nothing sent in the 3 days before it, it resets
   -- the cap to invite_warmup.base_cap (a cold domain restarts). Show that number, not the stale stored cap.
   -- Scoped to the invitation lane exactly as the ramp is (fn_invite_lane_since; '-infinity' while it is off).
-  if coalesce((select max(l.invited_at) from public.leads l where l.invited_at >= public.fn_invite_lane_since() and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)), '-infinity'::timestamptz) < (v_day::timestamp at time zone 'Asia/Dubai') - interval '3 days' then
+  if coalesce((select max(l.invited_at) from public.leads l where l.invited_at >= public.fn_invite_lane_since() and (public.fn_invite_lane_since() = '-infinity'::timestamptz or public.fn_invite_lane_sent(l.id)) and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)), '-infinity'::timestamptz) < (v_day::timestamp at time zone 'Asia/Dubai') - interval '3 days' then
     v_cap := coalesce((select (nullif(value, '')::jsonb->>'base_cap')::int from public.app_secrets where key = 'invite_warmup'), 30);
   end if;
   select count(*) into v_pool from public.leads l where public.fn_supplier_invite_eligible(l);
