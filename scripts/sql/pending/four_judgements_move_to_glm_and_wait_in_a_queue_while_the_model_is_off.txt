@@ -1,8 +1,0 @@
-Committed, not applied (24 Sep 2026, it_engineer). Carries NO per-kind daily cap (founder_instruction 987: no caps on
-LLM spend). think()'s GLM routing of internal steps is it_engineer/openrouter-ready-cheap-and-capped; this PR forces GLM
-on its own four judgements, so it does not depend on that PR.
-
-What moves it: apply, then deploy quote_compare, email_triage and resilience_ping in the same window (the functions
-call fn_glm_judgement_* and would log an rpc error per call until the file is live; they fall back to "queued/held",
-never to a word match). When applied: delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt in
-the same commit.
