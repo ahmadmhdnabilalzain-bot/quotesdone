@@ -132,6 +132,11 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'incident.fix' && sqlText.includes("fn_seat_handoff('ceo', 'accountant', 'incident.fix'"))
       // the CEO's daily plan addresses each directive to the seat the plan names
       || (type === 'ceo.directive' && allSql.includes("fn_seat_handoff('ceo', dr->>'seat', 'ceo.directive'"))
+      // a target miss asks the metric's owning seat (#913); the month directive and an improvement go to the seat
+      // the year-one plan names (#923)
+      || (type === 'ceo.root_cause' && allSql.includes("fn_seat_handoff('ceo', p.owner_seat, 'ceo.root_cause'"))
+      || (type === 'ceo.month_directive' && allSql.includes("fn_seat_handoff('ceo', s, 'ceo.month_directive'"))
+      || (type === 'ceo.improvement' && allSql.includes("fn_seat_handoff('ceo', p_seat, 'ceo.improvement'"))
       // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
       // proves nothing about which pairs anything opens
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)

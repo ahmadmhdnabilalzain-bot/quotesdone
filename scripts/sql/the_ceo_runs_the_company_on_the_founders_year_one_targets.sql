@@ -1005,13 +1005,16 @@ grant execute on function public.fn_ceo_month_plan_now() to service_role;
 -- ═════════════════════════════════════════════════════════════════════════════════════════════════════
 -- 6. THE CONVERSATIONS, THE DUTIES AND THE SEAT'S OWN RECORD
 -- ═════════════════════════════════════════════════════════════════════════════════════════════════════
+-- one statement per kind, in the INSERT ... SELECT ... FROM unnest shape payments_are_the_accountant.test.mjs reads
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
-select k.type, 'ceo', s, k.meaning, k.handler, interval '1 day', true,
+select 'ceo.month_directive', 'ceo', s, 'The seat''s month from the year-one plan: its targets (a cumulative one carries last month''s shortfall) and its actions. The CEO closes it at month end, met or missed.', 'fn_seat_takes_ceo_month_directive', interval '1 day', true,
        'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'
   from unnest(array['sales_engineer', 'customer_support', 'marketing', 'accountant', 'it_engineer']) s
-  cross join (values
-    ('ceo.month_directive', 'The seat''s month from the year-one plan: its targets (a cumulative one carries last month''s shortfall) and its actions. The CEO closes it at month end, met or missed.', 'fn_seat_takes_ceo_month_directive'),
-    ('ceo.improvement', 'An improvement the CEO assigns from a recurring miss, a lesson or a recurring finding. The CEO closes it when its source shows it worked.', 'fn_seat_takes_ceo_improvement')) k(type, meaning, handler)
+on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning, handler = excluded.handler, owner_file = excluded.owner_file;
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+select 'ceo.improvement', 'ceo', s, 'An improvement the CEO assigns from a recurring miss, a lesson or a recurring finding. The CEO closes it when its source shows it worked.', 'fn_seat_takes_ceo_improvement', interval '1 day', true,
+       'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'
+  from unnest(array['sales_engineer', 'customer_support', 'marketing', 'accountant', 'it_engineer']) s
 on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning, handler = excluded.handler, owner_file = excluded.owner_file;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
