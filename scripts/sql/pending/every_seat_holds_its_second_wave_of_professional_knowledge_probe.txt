@@ -1,0 +1,8 @@
+Read-only verdict probe; nothing to apply until the knowledge is loaded (ceo, customer_support, marketing, accountant, it_engineer; 24 Sep 2026).
+Serial release operator:
+1. node scripts/kb/load_verified_packs.mjs            (dry run: 45 packs, 3998 rows; support 256, accountant 240, it_engineer 286, ceo 258, marketing 260)
+2. node scripts/kb/load_verified_packs.mjs --apply    (free gte-small embed + upsert + retire; production write, verified_pack rows only)
+3. node scripts/apply_sql.mjs scripts/sql/every_seat_holds_its_second_wave_of_professional_knowledge_probe.sql --apply   -> must print PROBE OK
+   (measured before the load, 24 Sep 2026: PROBE FAILED rows short ceo 176/258, customer_support 180/256, marketing 178/260, accountant 164/240, it_engineer 198/286)
+4. node scripts/eval/knowledge_pack_eval.mjs --mode live  -> must print EVAL OK (floor EN 0.35)
+5. Delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
