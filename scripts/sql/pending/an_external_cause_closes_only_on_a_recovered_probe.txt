@@ -1,5 +1,0 @@
-Committed, not applied (session rule: no SQL applies or deploys; the serial release operator applies).
-To release: 1) node scripts/apply_sql.mjs scripts/sql/an_external_cause_closes_only_on_a_recovered_probe.sql --apply --ddl
-(verdict PROBE OK); 2) THEN deploy resilience_ping (it now sends recovered items, which the previous function body
-would settle as failures); 3) delete this note and append the file to the END of MANIFEST.txt; 4) regenerate the
-schema mirror; 5) node --test scripts/checks/an_external_cause_closes_only_on_a_recovered_probe.test.mjs scripts/checks/the_it_engineer_waits_on_an_external_ticket.test.mjs (the second fails against the pre-apply body by design: its recovery step now sends a recovered item).
