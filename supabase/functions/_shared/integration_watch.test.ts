@@ -56,6 +56,15 @@ Deno.test('an unreachable custom probe is NOT a reading: the item is carried, so
   assertEquals(r.items[0].carried, true);
 });
 
+Deno.test('a passing probe is sent as RECOVERED, never as a failure or a carried item', async () => {
+  const reg = { integrations: { stripe: REGISTRY.integrations.stripe } };
+  const r = await integrationItems(() => Promise.resolve(reply(200, {})), sec({ stripe_secret_key: 'sk' }), env, new Date(0), noWait, reg);
+  assertEquals(r.items.length, 1);
+  assertEquals(r.items[0].recovered, true);
+  assertEquals((r.items[0].evidence as Record<string, unknown>).recovered, true);
+  assertEquals(r.items[0].carried, undefined);
+});
+
 Deno.test('an hourly entry runs on one beat in four; a 15-minute entry on every beat', () => {
   const beats = [0, 1, 2, 3].map((i) => new Date(i * 900_000));
   assertEquals(beats.filter((d) => isDue({ kind: 'http', every_minutes: 60 }, d)).length, 1);
