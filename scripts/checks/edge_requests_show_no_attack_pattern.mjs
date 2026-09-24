@@ -72,7 +72,8 @@ async function logsOnce(query) {
   // default window and returns [] — which reads exactly like "no attacks" and is not.
   const end = new Date().toISOString();
   const start = new Date(Date.now() - HOURS * 3600e3).toISOString();
-  const u = `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs.all`
+  // 24 Sep 2026: Supabase removed logs.all (HTTP 410, "Use GET /v1/projects/{ref}/analytics/endpoints/logs").
+  const u = `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`
           + `?sql=${encodeURIComponent(query)}`
           + `&iso_timestamp_start=${encodeURIComponent(start)}&iso_timestamp_end=${encodeURIComponent(end)}`;
   const r = await fetch(u, { headers: { Authorization: `Bearer ${token()}` } });
@@ -84,11 +85,12 @@ async function logsOnce(query) {
   return j.result;
 }
 
-const FROM = `from edge_logs t
-  cross join unnest(t.metadata) m
-  cross join unnest(m.response) r
-  cross join unnest(m.request) req
-  cross join unnest(req.headers) h`;
+// 24 Sep 2026: the replacement endpoint takes ClickHouse SQL over ONE table, `logs`, filtered by source,
+// with the old nested metadata flattened into the log_attributes map (keys measured live that day:
+// request.headers.cf_connecting_ip, request.path, response.status_code).
+const FROM = `from logs where source = 'edge_logs'`;
+const IP = `log_attributes['request.headers.cf_connecting_ip']`;
+const STATUS = `toInt32OrZero(log_attributes['response.status_code'])`;
 
 let total, authBursts, sweeps;
 try {
@@ -103,14 +105,14 @@ try {
     process.exit(2);
   }
   authBursts = await logs(
-    `select h.cf_connecting_ip as ip, timestamp_trunc(t.timestamp, HOUR) as hr, count(*) as n
-     ${FROM} where r.status_code in (401, 403)
+    `select ${IP} as ip, toStartOfHour(timestamp) as hr, count(*) as n
+     ${FROM} and ${STATUS} in (401, 403)
      group by ip, hr having count(*) >= ${AUTH_FAILURES_PER_HOUR} order by n desc limit 50`);
   sweeps = await logs(
-    `select h.cf_connecting_ip as ip, timestamp_trunc(t.timestamp, HOUR) as hr,
-            count(distinct req.path) as paths, count(*) as n
-     ${FROM} where r.status_code = 404
-     group by ip, hr having count(distinct req.path) >= ${MISSING_PATHS_PER_HOUR}
+    `select ${IP} as ip, toStartOfHour(timestamp) as hr,
+            uniqExact(log_attributes['request.path']) as paths, count(*) as n
+     ${FROM} and ${STATUS} = 404
+     group by ip, hr having paths >= ${MISSING_PATHS_PER_HOUR}
      order by paths desc limit 50`);
 } catch (e) {
   console.error(String(e.message || e));

@@ -96,7 +96,8 @@ const nextConfig = {
   async rewrites() {
     const origin = `https://${SUPA}`;
     return [
-      { source: '/u/unsubscribe', destination: `${origin}/functions/v1/unsubscribe` },
+      // /u/unsubscribe is a route handler (src/app/u/unsubscribe/route.ts) since 24 Sep 2026: a rewrite
+      // passed Supabase's forced text/plain through, and the page showed as raw HTML source.
       { source: '/m/brand/:path*', destination: `${origin}/storage/v1/object/public/brand/:path*` },
     ];
   },
