@@ -24,7 +24,7 @@ const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/')
 
 test('static: both WhatsApp classes carry a cause and a regression check', () => {
   const src = read(FILE);
-  assert.match(src, /\('whatsapp_delivery', 'duty:whatsapp_delivery:',[\s\S]{0,900}'scripts\/checks\/every_twilio_send_reports_its_status\.test\.mjs[\s\S]{0,200}'A WhatsApp or SMS that Twilio accepted/);
+  assert.match(src, /\('whatsapp_delivery', 'duty:whatsapp_delivery:no_final_status:',[\s\S]{0,900}'scripts\/checks\/every_twilio_send_reports_its_status\.test\.mjs[\s\S]{0,200}'A WhatsApp or SMS that Twilio accepted/);
   assert.match(src, /update public\.it_playbook\s+set typical_cause = 'A WhatsApp template[\s\S]{0,400}where failure_class = 'whatsapp_template'/);
   assert.ok(existsSync(join(REPO, 'scripts/checks/every_twilio_send_reports_its_status.test.mjs')), 'the named regression check does not exist');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
@@ -45,18 +45,20 @@ test('production, aborted: the playbook completes a parked, cleared WhatsApp han
   }
   assert.ok(o, 'the probe committed instead of rolling back');
   assert.deepEqual([o.delivery_class, o.template_class], ['whatsapp_delivery', 'whatsapp_template']);
+  assert.equal(o.rate_class ?? null, null, 'the no-final-report cause would be written onto a failure-rate incident');
   assert.equal(o.learned, o.parked, `${o.parked} parked WhatsApp handoff(s), ${o.learned} completed from the playbook`);
 });
 
 const PROBE = String.raw`
 do $$ declare o jsonb := '{}'; h record; v_parked int := 0; v_learned int := 0;
 begin
+  o := o || jsonb_build_object('rate_class', (fn_it_playbook_for('duty:whatsapp_delivery:failure_rate:whatsapp')).failure_class);
   o := o || jsonb_build_object('delivery_class', (fn_it_playbook_for('duty:whatsapp_delivery:no_final_status:whatsapp')).failure_class,
                                'template_class', (fn_it_playbook_for('duty:sender:template:login_code_ar')).failure_class);
   for h in select a.id from agent_actions a
             join it_engineer_finding f on f.issue_key = a.detail->>'issue_key'
            where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status in ('pending', 'failed')
-             and a.detail->>'issue_key' like 'duty:whatsapp\_delivery:%' and a.detail ? 'awaiting_learning'
+             and a.detail->>'issue_key' like 'duty:whatsapp\_delivery:no\_final\_status:%' and a.detail ? 'awaiting_learning'
              and f.closed_at is not null loop
     v_parked := v_parked + 1;
     if fn_it_learning_from_playbook(h.id) = 'whatsapp_delivery' then v_learned := v_learned + 1; end if;

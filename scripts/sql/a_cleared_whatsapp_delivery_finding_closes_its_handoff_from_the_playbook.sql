@@ -11,7 +11,7 @@
 --     now without a final status. customer_support replied inside its window.
 --   * The handoff is still pending because fn_it_loop_reverify parked it at awaiting_learning: its it_incident
 --     (#320) has no cause, fix or regression_check, and it_playbook has NO row whose issue_prefix covers
---     duty:whatsapp_delivery: -- so fn_it_learning_from_playbook returns null and the handoff waits for a human
+--     duty:whatsapp_delivery:no_final_status: -- so fn_it_learning_from_playbook returns null and the handoff waits for a human
 --     that no clock or addressee ever reaches. The same trap holds for duty:sender:template: (whatsapp_template has
 --     no typical_cause), which parks the four template handoffs #48400-#48403 the day their templates are approved.
 --
@@ -28,7 +28,9 @@
 --   node scripts/apply_sql.mjs scripts/sql/a_cleared_whatsapp_delivery_finding_closes_its_handoff_from_the_playbook.sql --apply --ddl
 
 insert into public.it_playbook (failure_class, issue_prefix, remedy, remedy_routine, not_automatable_reason, regression_check, typical_cause, added_by) values
-  ('whatsapp_delivery', 'duty:whatsapp_delivery:',
+  -- The prefix names the no_final_status item only: failure_rate:* and status_unreadable:* have other causes and
+  -- must keep waiting for their own learning rather than inherit this one (review of this file, 24 Sep 2026).
+  ('whatsapp_delivery', 'duty:whatsapp_delivery:no_final_status:',
    'customer_support owns the send; the finding closes itself when every Twilio-accepted message has a final report (wa_status callback or its 30-minute backstop poll, fn_twilio_status_poll_claim) or is marked unreadable, and a failed one comes back to the seat that asked as failed with Twilio''s code in plain words.',
    null, null,
    'scripts/checks/every_twilio_send_reports_its_status.test.mjs, with scripts/sql/every_whatsapp_says_whether_it_arrived_probe.sql',

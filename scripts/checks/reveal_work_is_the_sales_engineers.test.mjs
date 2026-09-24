@@ -63,7 +63,8 @@ test('production, aborted: the sales_engineer asks the 7-day question and suppor
     o = JSON.parse(m[1].replace(/\\"/g, '"'));
   }
   assert.ok(o, 'the probe committed instead of rolling back');
-  assert.equal(o.r1.asked, 1, 'the outcome check did not ask: ' + JSON.stringify(o.r1));
+  // asked counts every ZZ DEMO reveal in production (include_fixtures); this probe's own quote is judged by req below
+  assert.ok(o.r1.asked >= 1, 'the outcome check did not ask: ' + JSON.stringify(o.r1));
   assert.equal(o.r2.asked, 0, 'the outcome check asked twice');
   assert.deepEqual(o.req, [{ agent: 'customer_support', from: 'sales_engineer' }], 'the delivery request is not the sales_engineer\'s, held by support');
   assert.deepEqual(o.duties, ['sales_engineer.disputes'], 'the dispute clock is not the sales_engineer\'s alone');

@@ -66,6 +66,8 @@ declare
   v_week date := (now() at time zone 'Asia/Dubai')::date;
   v_founder text[]; v_email jsonb; v_wa jsonb; v_chat jsonb; v_repeat jsonb; v_complaints jsonb; v_knowledge jsonb;
   v_metrics jsonb; g record; v_gap jsonb; v_filed int := 0;
+  -- a machine is not a person: bounces and auto-senders are neither a support contact nor a repeat one
+  v_robot text := '^(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)([+.-][^@]*)?@';
 begin
   select coalesce(array_agg(right(regexp_replace(value, '[^0-9]', '', 'g'), 9)), '{}') into v_founder
     from public.app_secrets where key in ('founder_mobile', 'founder_public_phone', 'admin_mfa_phone')
@@ -79,7 +81,7 @@ begin
            'p90_first_reply_minutes', round((percentile_cont(0.9) within group (order by extract(epoch from m.replied_at - m.created_at) / 60))::numeric))
     into v_email
     from public.inbound_messages m
-   where m.created_at >= v_from
+   where m.created_at >= v_from and coalesce(m.from_email, '') !~* v_robot
      and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
      and public.fn_is_demo_email(m.from_email) = v_fx;
 
@@ -106,7 +108,7 @@ begin
     from (select who, count(distinct d) days from (
             select 'email:' || lower(btrim(m.from_email)) who, (m.created_at at time zone 'Asia/Dubai')::date d
               from public.inbound_messages m
-             where m.created_at >= v_from and coalesce(btrim(m.from_email), '') <> ''
+             where m.created_at >= v_from and coalesce(btrim(m.from_email), '') <> '' and m.from_email !~* v_robot
                and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
                and public.fn_is_demo_email(m.from_email) = v_fx
             union all

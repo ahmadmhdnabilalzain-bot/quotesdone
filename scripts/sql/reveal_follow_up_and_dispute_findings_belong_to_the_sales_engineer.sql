@@ -32,6 +32,10 @@
 --     it decides nothing (the CEO decides, the accountant pays). Moving it would contradict his words.
 --   * The rating ask 21 days after a reveal: support sends it, which is delivery.
 --
+-- DO NOT RE-APPLY customer_support_activates_wins_back_and_settles_disputes.sql after this file: it would recreate
+-- the two dropped routines and the customer_support.disputes duty row (memory: applying an old file resurrects a
+-- superseded routine). Its activation and win-back routines are unchanged; this file owns the dispute clock.
+--
 -- ON APPLY, IN THE SAME COMMIT AS THE MANIFEST LINE (scripts/sql/pending/<this>.txt says so too):
 --   scripts/checks/every_alarm_is_quiet_on_a_healthy_day.test.mjs REGISTER key fn_customer_support_disputes_tick
 --   becomes fn_sales_engineer_disputes_tick, and both dropped routines get a DROPPED.txt line.
@@ -171,7 +175,10 @@ grant execute on function public.fn_reason_apply_sales_engineer__dispute_fault(b
 -- A question already held on the old surface (0 measured on 24 Sep) is carried over rather than orphaned: its
 -- applier is dropped below, and a held question with no applier would never be applied.
 update public.reasoning_held_question
-   set seat = 'sales_engineer', surface = 'sales_engineer.dispute_fault'
+   set seat = 'sales_engineer', surface = 'sales_engineer.dispute_fault',
+       -- the reasoner reads the request, not the columns: its seat and decision name move too
+       request = jsonb_set(jsonb_set(jsonb_set(request, '{seat}', '"sales_engineer"'), '{surface}', '"sales_engineer.dispute_fault"'),
+                           '{decision,name}', '"sales_engineer.dispute_fault"')
  where surface = 'customer_support.dispute_fault' and applied_at is null;
 
 delete from public.seat_duty where duty = 'customer_support.disputes';
