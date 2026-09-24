@@ -35,7 +35,22 @@ export function renderBody(raw: string) {
   closeList();
   return html;
 }
-export function tmpl(opts: { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string }) {
+// THE PREHEADER (24 Sep 2026, marketing, ledger 993). The line an inbox shows beside the subject. With
+// none, Gmail and Outlook fill it with the first words of the body ("Dear <company>,"), which says
+// nothing. Hidden in the rendered mail and placed first inside <body>, where clients read it; the run
+// of &zwnj;&nbsp; stops the client pulling body text in after it.
+export function preheaderHtml(text: string): string {
+  const t = String(text || '').trim();
+  if (!t) return '';
+  return `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#06121B;opacity:0">${esc(t)}${'&zwnj;&nbsp;'.repeat(40)}</div>`;
+}
+type FrameOpts = { body: string; logo: string; name: string; title: string; channelEmail: string; unsub: string; wrapper?: string; internal?: boolean; subject?: string };
+export function tmpl(opts: FrameOpts & { preheader?: string }) {
+  const html = frame(opts);
+  const pre = preheaderHtml(opts.preheader || '');
+  return pre ? html.replace(/(<body[^>]*>)/i, `$1${pre}`) : html;
+}
+function frame(opts: FrameOpts) {
   const { body, logo, name, title, channelEmail, unsub, wrapper, internal, subject } = opts;
   // v17 (8 Sep 2026): the logo is the horizontal OnDark lockup, not the 192px PWA app tile, so
   // 34x34 with a border-radius would squash a wordmark into a square and round its corners off.
@@ -71,7 +86,7 @@ export function tmpl(opts: { body: string; logo: string; name: string; title: st
   const sig = `<div style="margin-top:26px;padding-top:18px;border-top:1px solid ${RULE};font-size:13px;color:${MUTED};line-height:1.6"><div style="font-weight:700;color:#FFFFFF">${esc(name)}</div><div style="color:${INK}">${esc(title)}, QuotesDone</div><div style="margin-top:3px">${esc(channelEmail)} &middot; <a href="https://quotesdone.com" style="color:${DLINK};text-decoration:none">quotesdone.com</a></div></div>`;
   const footer = internal
     ? `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone OS &middot; internal operations report &middot; Dubai, UAE<br>You're receiving this because you're an administrator of QuotesDone.</div>`
-    : `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone &middot; Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
+    : `<div style="text-align:center;color:${MUTED};font-size:12px;margin-top:16px;line-height:1.55">QuotesDone &middot; Al Furjan, Dubai, UAE<br>You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.${unsubLine}</div>`;
   // bgcolor AND inline background on every coloured cell: different clients read different ones,
   // and Outlook is unreliable about background-color on a div.
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head><body style="margin:0;padding:0;background:${GROUND};font-family:Arial,Helvetica,sans-serif"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${GROUND}" style="background:${GROUND};padding:28px 12px"><tr><td align="center"><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="${SURFACE}" style="max-width:600px;width:100%;background:${SURFACE};border:1px solid ${RULE};border-radius:14px"><tr><td style="padding:30px">${header}${titleBlock}${content}${sig}</td></tr></table><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%"><tr><td>${footer}</td></tr></table></td></tr></table></body></html>`;
