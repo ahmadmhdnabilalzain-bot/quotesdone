@@ -1,1 +1,0 @@
-Applied by the release queue (founder asked it to go first, 24 Sep 2026): corrects the activation and win-back customer e-mails of #904 (any number of suppliers quote; the report recommends the top three by value) and sends customers to /me instead of the supplier /portal. Moves to MANIFEST when the coordinator applies it.
