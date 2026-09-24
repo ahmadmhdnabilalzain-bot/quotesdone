@@ -61,3 +61,14 @@ test('a fixture row is never replayed: fn_reason_held_due expires it before any 
   assert.match(think, /if \(isFixtureRequest\(req\)\)[^\n]*\n\s*else if \(req\.queueWhenHeld !== false\)/);
   assert.match(readFileSync('supabase/functions/inquiry_intake/index.ts', 'utf8'), /endsWith\('@example\.invalid'\) \? \{ fixture: true \}/);
 });
+
+test('no department budget halt and no pair ceiling: fn_ai_route never refuses or degrades on spend', () => {
+  const f = readFileSync('scripts/sql/model_calls_are_never_halted_by_a_department_or_pair_budget.sql', 'utf8');
+  const route = code(f.slice(f.indexOf('CREATE OR REPLACE FUNCTION public.fn_ai_route('), f.indexOf('CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(')));
+  assert.ok(route.length > 1000, 'fn_ai_route is redefined');
+  assert.doesNotMatch(route, /halt_at_pct|degrade_at_pct|'halted'/);
+  const pair = code(f.slice(f.indexOf('CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(')));
+  assert.doesNotMatch(pair, /cap_aed_month/);
+  assert.match(pair, /'ok', true/);
+  assert.doesNotMatch(code(readFileSync('supabase/functions/ai_gateway/index.ts', 'utf8')), /budget_halted/);
+});
