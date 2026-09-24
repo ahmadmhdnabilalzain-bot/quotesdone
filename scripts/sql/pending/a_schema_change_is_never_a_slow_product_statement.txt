@@ -1,0 +1,5 @@
+Committed, not applied (24 Sep 2026, it_engineer): the serial release operator holds the apply lock.
+Redefines fn_it_duties_scheduled from its canonical file a_registration_day_is_not_an_otp_pumping_attack.sql
+with one change: duty 14 leaves schema-change statements (CREATE/ALTER/DROP/GRANT/REVOKE/COMMENT) out of the
+slow-statement reading. Moves when the release operator applies it; then delete this note and append the file
+to the END of MANIFEST.txt in the same commit. Closes monitor:ceo_accepted_report_review_overdue (report 6016).
