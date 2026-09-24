@@ -45,8 +45,13 @@ test('the fail-closed rules stand: no title block, a low-confidence title block,
   assert.ok(scan.includes('export const MIN_TITLE_CONF = 70;'));
   assert.ok(scan.includes("if (!strip || tb.confidence !== 'medium') return { ok: false, held: 'no_title_block_found'"));
   assert.ok(scan.includes("if (titleConf < MIN_TITLE_CONF) return { ok: false, held: 'title_block_low_confidence'"));
-  assert.ok(scan.includes('const second = await ocr(rgbaToBmp(painted));'));
+  assert.ok(scan.includes('const second = standing(await readAllWays(painted, ocr));'), 'the painted page is no longer re-read every way up');
   assert.ok(scan.includes("if (left.length) return { ok: false, held: 'identity_survived_reocr'"));
+  // Second review of #967: fail closed. Every quarter turn is read, a word outside the vocabulary is boxed, and
+  // text-like ink no read word covers holds the page.
+  assert.ok(scan.includes('for (const q of [0, 1, 2, 3])'), 'the page is no longer OCRed at all four orientations');
+  assert.ok(scan.includes('const pageWide = standing(all).filter((l) => party(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
+  assert.ok(scan.includes("if (unread.length) return { ok: false, held: 'unread_ink'"), 'unread text-like ink no longer holds the page');
   assert.match(checks, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
 });
 

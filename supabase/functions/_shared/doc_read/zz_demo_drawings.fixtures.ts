@@ -238,10 +238,35 @@ export function zzScanRgba(o: { rotateDeg?: number; noise?: number; titleNoise?:
   return { w, h, rgba };
 }
 
+/**
+ * Words drawn onto a scanned page (zzScanRgba) at an angle, optionally speckled round them: the second review's
+ * (#967, 25 Sep 2026) stamps and body notes. `deg` turns the text about its start, clockwise on the page.
+ */
+export function zzScanText(img: { w: number; h: number; rgba: Uint8ClampedArray }, x: number, y: number, size: number, s: string, deg = 0, noise = 0): void {
+  const th = deg * Math.PI / 180, c = Math.cos(th), sn = Math.sin(th);
+  const dot = (px: number, py: number) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.round(px) + dx, Y = Math.round(py) + dy; if (X >= 0 && Y >= 0 && X < img.w && Y < img.h) { const k = (Y * img.w + X) * 4; img.rgba[k] = img.rgba[k + 1] = img.rgba[k + 2] = 20; } } };
+  let minx = Infinity, maxx = -Infinity, miny = Infinity, maxy = -Infinity;
+  for (const st of textStrokes(s).strokes) for (let i = 0; i + 1 < st.length; i++) {
+    const [u0, v0] = st[i], [u1, v1] = st[i + 1];
+    const n = Math.ceil(Math.hypot(u1 - u0, v1 - v0) * size) + 1;
+    for (let j = 0; j <= n; j++) {
+      const u = (u0 + (u1 - u0) * j / n) * size, v = (v0 + (v1 - v0) * j / n) * size;
+      const px = x + u * c + v * sn, py = y + u * sn - v * c;
+      dot(px, py); minx = Math.min(minx, px); maxx = Math.max(maxx, px); miny = Math.min(miny, py); maxy = Math.max(maxy, py);
+    }
+  }
+  if (!noise) return;
+  let r = 3; const rnd = () => ((r = (r * 1103515245 + 12345) >>> 0) / 4294967296);
+  for (let yy = Math.floor(miny) - 3; yy < maxy + 3; yy++) for (let xx = Math.floor(minx) - 3; xx < maxx + 3; xx++) {
+    if (rnd() < noise) { const k = (yy * img.w + xx) * 4; img.rgba[k] = img.rgba[k + 1] = img.rgba[k + 2] = rnd() < 0.5 ? 0 : 255; }
+  }
+}
+
 // ── the review's leak cases (#967, 24 Sep 2026) ─────────────────────────────────────────────────────
 // Every party here reached a supplier's page through the first CAD renderer: an ATTRIB tagged CLIENT_NAME in a block
-// called ISO_A1, firm names with no label, a dimension override, a licence number, the customer's name letter-spaced
-// and split one letter per TEXT. Rooms, a room tag and a dimension sit beside them and must still be drawn.
+// called ISO_A1, firm names with no label, a dimension override, a licence number, the customer's name letter-spaced.
+// Rooms, a room tag and a dimension sit beside them and must still be drawn. (The name split one letter per TEXT
+// now HOLDS the sheet as glyph_per_text; that case is zzGlyphSheetDxf and cad_render.test.ts.)
 export function zzLeakyDxf(): Uint8Array {
   type P = [number, string | number][];
   const txt = (x: number, y: number, s: string, h = 200): P => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
@@ -260,7 +285,24 @@ export function zzLeakyDxf(): Uint8Array {
       ...txt(500, 3000, 'ZZ ORBIT ENGINEERING'), ...txt(500, 2500, 'ORBIT HOLDINGS'), ...txt(500, 2000, 'DM LIC 123456'),
       [0, 'DIMENSION'], [8, 'A-DIMS'], [10, 0], [20, 1000], [30, 0], [11, 6000], [21, 1200], [31, 0], [70, 32], [1, 'BY ZZ ORBIT'],
       ...txt(500, 1500, 'R A S H I D   K A R E E M', 180),
-      ...[...'KAREEM'].flatMap((c, i) => txt(7000 + i * 170, 1500, c, 180)),
+    ]),
+    [0, 'EOF'],
+  ]);
+}
+
+// ── the second review's sheet (#967, 25 Sep 2026) ───────────────────────────────────────────────────
+// A PDF converted to DWG writes every glyph as its own TEXT on layer 0, with no title layer or block: the renderer
+// used to draw "CLIENT: ZZ OMEGA", "CONSULTANT: ZZ ORBIT ENGINEERING", "TEL 04 123 4567" and "DWG NO E-101" from it.
+// `lines` lets a test put any words on such a sheet; the rooms are ordinary TEXT beside it.
+export function zzGlyphSheetDxf(lines = ['CLIENT: ZZ OMEGA', 'CONSULTANT: ZZ ORBIT ENGINEERING', 'TEL 04 123 4567', 'PROJECT: ZZ HARBOUR TOWER', 'DWG NO E-101']): Uint8Array {
+  type P = [number, string | number][];
+  const A = 5.2 / 6;
+  const txt = (x: number, y: number, s: string, h = 200, layer = 'A-ANNO'): P => [[0, 'TEXT'], [8, layer], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  const glyphs = lines.flatMap((l, i) => [...l].flatMap((c, k) => (c === ' ' ? [] : txt(14500 + k * 200 * A, 5000 - i * 400, c, 200, '0'))));
+  return dxfFrom([
+    ...dxfSection('ENTITIES', [
+      [0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 20000], [20, 0], [10, 20000], [20, 14000], [10, 0], [20, 14000],
+      ...txt(1000, 12500, 'KITCHEN'), ...txt(1000, 10000, 'OFFICE 101'), ...glyphs,
     ]),
     [0, 'EOF'],
   ]);

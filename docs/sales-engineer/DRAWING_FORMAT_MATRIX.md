@@ -70,11 +70,11 @@ Evidence (BEFORE):
 
 | format | read | count | BOQ PDF EN | BOQ PDF AR | redact | send |
 |---|---|---|---|---|---|---|
-| DWG | S | S | S | S¹ | S | P² |
-| DXF ascii | S | S | S | S¹ | S | P² |
-| DXF binary | S | S | S | S¹ | S | P² |
+| DWG | S | S | S | S¹ | P⁶ | P² |
+| DXF ascii | S | S | S | S¹ | P⁶ | P² |
+| DXF binary | S | S | S | S¹ | P⁶ | P² |
 | PDF vector | S | S | S | S¹ | S³ | P² |
-| PDF scanned | P | P | P | P | S⁵ | P² |
+| PDF scanned | P | P | P | P | P⁵ ⁶ | P² |
 | PDF multi-sheet | S | S | S | S¹ | S³ | P² |
 | RVT | P | M | M | M | H | M |
 | DGN | P | M | M | M | H | M |
@@ -95,6 +95,12 @@ Evidence (BEFORE):
 4. The counter itself is proven on pixels: 7 smoke detectors and 3 call points against the drawing's own legend.
    The legend's words come from the customer's browser OCR, which the server never re-reads, so the count stays an
    estimate the customer confirms.
+6. Downgraded from S after the second independent review (25 Sep 2026, section below). Every case that review
+   probed is now a test that passes. Two kinds of case are not proven, so the cells are P:
+   - a party whose whole name is trade words ("NORTH GATE"), is not the customer's, and stands outside a title
+     block. It is drawn, because nothing tells it apart from a label.
+   - a scan the OCR engine misreads as ordinary content at every orientation, with a confidence high enough to
+     count as read.
 
 5. **OCR redaction, second commit (founder instruction 579, "OCR for scanned drawings")**:
    `_shared/scan_redact.ts` runs on the CAD worker, with no model and no paid service. The engine is tesseract.js
@@ -207,12 +213,70 @@ The review also found these, now fixed:
 - **Demo exemption.** A demo page is signed only while its rehearsal window is open, or for the founder's
   standing demo.
 
+## Second independent review of #967 (25 Sep 2026): fail closed
+
+The second review found identity still reaching a supplier's page, from layouts the rules did not anticipate.
+The lesson it drew: a rule that recognises identity keeps losing to new layouts. So the posture is now **fail
+closed**. Text that cannot be positively read and cleared is withheld, or the page is held. Over-holding is
+accepted; a leak is not. Every probe in the review's evidence (`cad_attack.ts`, `cad2.ts`, `fuzzy.ts`,
+`legend.ts`, `over.ts`, `title.ts`, `scan.ts`) is now a test case.
+
+**Blocking, fixed:**
+1. **Glyph-per-TEXT sheets** (CAD). A PDF converted to DWG drew "CLIENT: ZZ OMEGA", "TEL 04 123 4567" and
+   "DWG NO E-101", and the customer's name was drawn rotated, stacked, or spaced three heights apart.
+   - A sheet with more than 20 single-character TEXTs, or more than 30% of its texts single characters (and at
+     least 4), is now **held** as `glyph_per_text`. It is never reassembled.
+   - Runs are now grouped along their own baseline and angle, not by y alone.
+   - Each line is judged spaced by the full policy, and abutting by every identity rule.
+   - Two lines stacked within 2.4 heights are also joined, so a phone or an e-mail split over two lines is read whole.
+   - Tests (`cad_render.test.ts`): 9 glyph cases are held; a 20-bubble structural grid is not.
+2. **Short words passed** ("DAR", "WSP", "ZZ" + "ORB" + "IT", "<> BY DAR"). A word of 3 letters or fewer now passes
+   only from a closed list of codes (`_shared/drawing_vocabulary.ts` `CODES`). Tests: 42 of the review's cases on
+   an ordinary plan. None is drawn and every room is still drawn.
+3. **Rotated and unknown text in scans** (`_shared/scan_redact.ts`):
+   - OCR runs at 0, 90, 180 and 270 degrees. The language data has no orientation model, so every quarter turn is
+     read.
+   - Every line, at any orientation, whose read words are not drawing content is boxed.
+   - A reading is set aside only when another orientation reads the same place at least 10 points better.
+   - The painted page is read all four ways again.
+   - Text-like ink that no read word covers **holds** the page (`unread_ink`).
+   - Tests: `scan_redact.test.ts`, 5 new decision tests. `scan_redact.check.ts` runs the real engine on the
+     review's six body cases. Each is held, or published unreadable at all four orientations.
+
+**Should-fix, fixed:**
+4. **Seed matching.**
+   - Matching is on whole tokens (adjacent tokens may run together) after a transliteration fold, so "RASHEED
+     KARIM" is "Rashid Kareem".
+   - It allows 1 edit at 5 letters and 2 from 6 letters. Two edits also need the same first and last letter.
+   - A seed word that is a trade word never matches alone.
+   - Test: `drawing_text_policy.test.ts`. All of fuzzy.ts's 27 spellings are caught, and 70 drawing phrases (its 68 and 2 more)
+     match none of the 6 customers' seeds.
+5. **Over-withholding.** The vocabulary gained rooms, fixtures, MEP terms and instruction phrases. "CONTRACTOR TO
+   VERIFY" is an instruction, not a label. `cadIdentityTerms` no longer turns a trade-only view title ("LIGHTING
+   LAYOUT", "GROUND FLOOR", "ELECTRICAL WORKS") into a seed. Test: all 49 labels from over.ts plus 4 more are drawn
+   beside a title block that prints those titles.
+6. **Legend.** The window walks down the legend's column while its description rows continue: the first row within
+   1.5 m, each next row within 1.2 m. Test: a 10-row legend at 400 mm and at 600 mm pitch. All 10 samples are set
+   aside and the plan counts 4 of each.
+7. **Border as LINEs.** A title-layer border drawn as four LINEs, or as loose segments along the outline, is a
+   border and is no longer held as `title_unbounded`. A cross through the layer is still held.
+- **Nit, phone forms.** `ID_TEXT` now reads "(04) 123-4567", "04.123.4567", "050 1234 567" and "0 5 0 1 2 3 4 5 6 7".
+
+**Broken once to see each fail:** 15 guards were each broken locally, and each broke at least one of the tests
+above. They are glyph hold, closed short list, baseline groups, stacked lines, transliteration fold, trade-word
+seeds, view-title seeds, legend walk, border outline, phone forms, four orientations, unknown-word boxing,
+unread-ink hold, standing readings and the `@` rule.
+
+**Cost:** a scanned page is now OCR'd eight times, about 60 s for the ZZ page. `SCAN_JOB_MS` is 30 minutes (up to
+20 pages) and the worker workflow's timeout is 75.
+
 ## Still not done, and why
 
 - **Scanned PDF and photo redaction**: built in the second commit (note 5). It is not live until the queue-reason
-  SQL is applied and deployed. Camera photos with perspective are untested. A scan whose identity sits outside the
-  title block in a form OCR misreads both times would pass. The re-read uses the same engine, so that residual risk
-  remains, and it is stated here rather than hidden.
+  SQL is applied and deployed. Camera photos with perspective are untested. Since the second review, text OCR
+  cannot read is held, not passed. The residual risk is text OCR misreads as ordinary content, at every orientation
+  and with confidence high enough to count as read. The re-read uses the same engine, so that risk remains, and it
+  is stated here rather than hidden. More scans will be held than before; that is the accepted cost.
 - **Revit (RVT)**: no free library reads Revit geometry or schedules; the format is closed. What is certain is read
   (version, family or project, workshared, the embedded preview), and the customer is asked for an IFC export in
   English and Arabic. IFC is then read fully. No paid Autodesk service is used (instruction 696).

@@ -13,7 +13,7 @@ import { renderCadForSupplier, frameKind, MAX_TITLE_SHARE } from './cad_render.t
 import { seedTerms } from './anonymise.ts';
 import { dwgToDxf } from './doc_read/dwg.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
-import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzGlyphSheetDxf, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
 const lower = (s: string) => s.toLowerCase();
@@ -114,8 +114,133 @@ Deno.test('parties no rule used to recognise are withheld; rooms and dimensions 
   for (const c of ['OFFICE 101', 'MEETING ROOM 102', 'CORRIDOR', '6000']) assert(g.drawn_texts.includes(c), `content lost: ${c} (drawn ${JSON.stringify(g.drawn_texts)})`);
   const drawn = g.drawn_texts.join(' | ');
   for (const bad of [/ORBIT/i, /HARBOUR/i, /HOLDINGS/i, /123456/, /R\s*A\s*S\s*H\s*I\s*D/i, /SHEET 4/, /GROUND FLOOR/]) assert(!bad.test(drawn), `${bad} was drawn: ${drawn}`);
-  assert(!g.drawn_texts.join('').toLowerCase().includes('kareem'), 'the name split one letter per TEXT was drawn');
-  assert(!g.drawn_texts.some((t) => /^[KAREM]$/.test(t)), `a letter of the split name was drawn: ${drawn}`);
+  assert(!g.drawn_texts.join('').toLowerCase().includes('kareem'), 'the letter-spaced name was drawn');
+});
+
+// ── SECOND REVIEW OF #967 (25 Sep 2026): every probe the reviewer ran is a case here ─────────────────────────────
+// Evidence: the reviewer's probe scripts cad_attack.ts, cad2.ts, over.ts, title.ts (scratch, not committed). Each case
+// sits on an ordinary plan (rooms, a dimension) that must still be drawn, and the party must not be.
+type Q = [number, string | number][];
+const A = 5.2 / 6;
+const tx = (x: number, y: number, s: string, h = 200, layer = 'A-ANNO', rot = 0): Q => [[0, 'TEXT'], [8, layer], [10, x], [20, y], [30, 0], [40, h], [1, s], ...(rot ? [[50, rot]] as Q : [])];
+const mtx = (x: number, y: number, s: string): Q => [[0, 'MTEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, 200], [71, 1], [1, s]];
+const PLAN_WORDS = ['OFFICE 101', 'MEETING ROOM 102', 'CORRIDOR', 'MASTER BEDROOM', 'KITCHEN', 'MAJLIS', 'MAID ROOM', 'TOILET 2', '6000', '4500'];
+const plan = (): Q => [
+  [0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 20000], [20, 0], [10, 20000], [20, 14000], [10, 0], [20, 14000],
+  ...tx(2000, 12000, 'OFFICE 101'), ...tx(6000, 12000, 'MEETING ROOM 102'), ...tx(10000, 12000, 'CORRIDOR'), ...tx(14000, 12000, 'MASTER BEDROOM'),
+  ...tx(2000, 10000, 'KITCHEN'), ...tx(6000, 10000, 'MAJLIS'), ...tx(10000, 10000, 'MAID ROOM'), ...tx(14000, 10000, 'TOILET 2'),
+  ...tx(3000, 500, '6000'), ...tx(8000, 500, '4500'),
+];
+const onPlan = (extra: Q, blocks: Q = []) => renderCadForSupplier(dxfFrom([...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]), ...dxfSection('BLOCKS', blocks), ...dxfSection('ENTITIES', [...plan(), ...extra])]), { seeds, longEdge: 1200 });
+const symBlock = (name: string): Q => [[0, 'BLOCK'], [8, '0'], [2, name], [70, 2], [10, 0], [20, 0], [0, 'LINE'], [8, '0'], [10, 0], [20, 0], [11, 100], [21, 0], [0, 'ENDBLK'], [8, '0']];
+
+Deno.test('second review: a sheet drawn one glyph per TEXT is HELD, never reassembled or drawn', async () => {
+  const perGlyph = (x: number, y: number, s: string, step = 200 * A, rot = 0): Q => [...s].flatMap((c, i) => (c === ' ' ? [] : tx(rot ? x : x + i * step, rot ? y + i * step : y, c, 200, 'A-ANNO', rot)));
+  const cases: [string, Q][] = [
+    ['the PDF-converted title block', []],
+    ['ORBIT stacked vertically', [...'ORBIT'].flatMap((c, i) => tx(16000, 8000 - i * 260, c))],
+    ['ORBIT one letter per TEXT, 2.5 heights apart', [...'ORBIT'].flatMap((c, i) => tx(4000 + i * 700, 7000, c))],
+    ['ORBIT one letter per TEXT, rotated 90', perGlyph(16000, 3000, 'ORBIT', 180, 90)],
+    ['KAREEM stacked vertically', [...'KAREEM'].flatMap((c, i) => tx(17000, 8000 - i * 260, c))],
+    ['KAREEM one letter per TEXT, 3 heights apart', [...'KAREEM'].flatMap((c, i) => tx(4000 + i * 600, 7000, c))],
+    ['ZZ ORBIT ENGINEERING per glyph', perGlyph(4000, 7000, 'ZZ ORBIT ENGINEERING')],
+    ['DM LIC 123456 per glyph', perGlyph(4000, 7000, 'DM LIC 123456')],
+    ['info@orbit.ae per glyph', perGlyph(4000, 7000, 'info@orbit.ae')],
+  ];
+  for (const [name, ents] of cases) {
+    const g = name.startsWith('the PDF') ? await renderCadForSupplier(zzGlyphSheetDxf(), { seeds }) : await onPlan(ents);
+    assertEquals(g.ok ? `drawn ${JSON.stringify(g.drawn_texts)}` : g.reason, 'glyph_per_text', name);
+  }
+  // A structural grid's bubbles (A-H, 1-12: 20 single characters on a busy plan) are not a glyph-per-TEXT sheet.
+  const grid = [...'ABCDEFGH', ...Array.from({ length: 12 }, (_, i) => String(i + 1))].flatMap((c, i) => tx(500 + i * 900, 13500, c));
+  const busy = Array.from({ length: 60 }, (_, i) => tx(500 + (i % 6) * 3000, 9000 - Math.floor(i / 6) * 800, `OFFICE ${100 + i}`));
+  const ok = await onPlan([...grid, ...busy.flat()]);
+  assert(ok.ok, `a plan with a 20-bubble grid was held: ${!ok.ok && ok.detail}`);
+});
+
+Deno.test('second review: short firm names, split and abutting words, phones, e-mails and look-alikes are never drawn', async () => {
+  const cases: [string, Q, Q?][] = [
+    ['plain ZZ ORBIT', tx(4000, 7000, 'ZZ ORBIT')], ['lower case', tx(4000, 7000, 'zz orbit')],
+    ['DAR', tx(4000, 7000, 'DAR')], ['WSP', tx(4000, 7000, 'WSP')], ['ARUP', tx(4000, 7000, 'ARUP')],
+    ['ORB|IT abutting', [...tx(4000, 7000, 'ORB'), ...tx(4000 + 3 * 200 * A, 7000, 'IT')]],
+    ['ZZ|ORB|IT abutting', [...tx(4000, 7000, 'ZZ '), ...tx(4000 + 3 * 200 * A, 7000, 'ORB'), ...tx(4000 + 6 * 200 * A, 7000, 'IT')]],
+    ['DM LIC 123456', tx(4000, 7000, 'DM LIC 123456')],
+    ['050 123 4567', tx(4000, 7000, '050 123 4567')], ['(04) 123-4567', tx(4000, 7000, '(04) 123-4567')], ['04.123.4567', tx(4000, 7000, '04.123.4567')],
+    ['0 5 0 1 2 3 4 5 6 7', tx(4000, 7000, '0 5 0 1 2 3 4 5 6 7')], ['050 1234 567', tx(4000, 7000, '050 1234 567')],
+    ['phone split on one line', [...tx(4000, 7000, '050 123'), ...tx(4000 + 8 * 200, 7000, '4567')]],
+    ['phone split over two lines', [...tx(4000, 7000, 'T 050'), ...tx(4000, 6700, '123 4567')]],
+    ['e-mail split on one line', [...tx(4000, 7000, 'al@'), ...tx(4000 + 3 * 173, 7000, 'kx.ae')]],
+    ['e-mail split over two lines', [...tx(4000, 7000, 'al@'), ...tx(4000, 6700, 'kx.ae')]],
+    ['Makani 12345 67890', tx(4000, 7000, '12345 67890')], ['PLOT NO 345-0123', tx(4000, 7000, 'PLOT NO 345-0123')], ['VILLA 12 JUMEIRAH', tx(4000, 7000, 'VILLA 12 JUMEIRAH')],
+    ['Arabic with a firm', tx(4000, 7000, 'ORBIT \u0645\u0643\u062a\u0628')],
+    ['MTEXT codes', mtx(4000, 7000, '{\\fArial|b1;ZZ}\\PORB{\\C1;IT}\\PKITCHEN')], ['MTEXT unicode escapes', mtx(4000, 7000, '\\U+004F\\U+0052\\U+0042\\U+0049\\U+0054')],
+    ['a name beside a room label', [...tx(2000, 8000, 'KITCHEN'), ...tx(2000 + 7 * 180, 8000, 'ALI')]],
+    ['KAREM beside a room label', [...tx(2000, 8000, 'KITCHEN'), ...tx(2000 + 8 * 180, 8000, 'KAREM')]],
+    ['tiny ORBIT', tx(4000, 7000, 'ORBIT', 5)], ['tiny DAR', tx(4000, 7000, 'DAR', 5)], ['layer 0 ZZ ORBIT', tx(4000, 7000, 'ZZ ORBIT', 200, '0')],
+    ['dimension override BY ZZ ORBIT', [[0, 'DIMENSION'], [8, 'A-DIM'], [2, '*DNONE'], [10, 0], [20, 0], [11, 4000], [21, 7000], [1, 'BY ZZ ORBIT']]],
+    ['dimension override <> BY DAR', [[0, 'DIMENSION'], [8, 'A-DIM'], [2, '*DNONE'], [10, 0], [20, 0], [11, 4000], [21, 7000], [1, '<> BY DAR']]],
+    ['nested block ORBIT + DAR', [[0, 'INSERT'], [8, 'A-ANNO'], [2, 'OUTER'], [10, 4000], [20, 7000]],
+      [[0, 'BLOCK'], [8, '0'], [2, 'INNER'], [70, 0], [10, 0], [20, 0], ...tx(0, 0, 'ORBIT'), ...tx(0, 400, 'DAR'), [0, 'ENDBLK'], [8, '0'],
+       [0, 'BLOCK'], [8, '0'], [2, 'OUTER'], [70, 0], [10, 0], [20, 0], [0, 'INSERT'], [8, '0'], [2, 'INNER'], [10, 0], [20, 0], [0, 'ENDBLK'], [8, '0']]],
+    ['ATTRIB DAR under a neutral tag', [[0, 'INSERT'], [8, 'A-ANNO'], [2, 'SYM'], [10, 4000], [20, 7000], [66, 1], [0, 'ATTRIB'], [8, 'A-ANNO'], [10, 4000], [20, 7000], [40, 200], [1, 'DAR'], [2, 'TAG1'], [70, 0], [0, 'SEQEND']], symBlock('SYM')],
+    ['ATTRIB CLIENT_NAME in ISO_A1', [[0, 'INSERT'], [8, 'A-ANNO'], [2, 'ISO_A1'], [10, 4000], [20, 7000], [66, 1], [0, 'ATTRIB'], [8, 'A-ANNO'], [10, 4000], [20, 7000], [40, 200], [1, 'ZZ OMEGA'], [2, 'CLIENT_NAME'], [70, 0], [0, 'SEQEND']], symBlock('ISO_A1')],
+    ['ZZ ORBIT ENGINEERING', tx(4000, 7000, 'ZZ ORBIT ENGINEERING')], ['ORBIT HOLDINGS', tx(4000, 7000, 'ORBIT HOLDINGS')],
+    ['K A R E E M', tx(4000, 7000, 'K A R E E M')], ['KAREM', tx(4000, 7000, 'KAREM')], ['RASHEED', tx(4000, 7000, 'RASHEED')], ['RASHEED KARIM', tx(4000, 7000, 'RASHEED KARIM')],
+    ['accented ORB\u00cdT', tx(4000, 7000, 'ORB\u00cdT')], ['leet 0RB1T', tx(4000, 7000, '0RB1T')], ['OR BI T', tx(4000, 7000, 'OR BI T')],
+  ];
+  for (const [name, ents, blocks] of cases) {
+    const g = await onPlan(ents, blocks ?? []);
+    assert(g.ok, `${name}: held (${!g.ok && g.reason}), the plan should still be drawn`);
+    if (!g.ok) continue;
+    const extra = g.drawn_texts.filter((t) => !PLAN_WORDS.includes(t));
+    assertEquals(extra, [], `${name}: drawn`);
+    for (const w of PLAN_WORDS) assert(g.drawn_texts.includes(w), `${name}: the plan lost "${w}"`);
+  }
+});
+
+Deno.test('second review: ordinary room, fixture, MEP and instruction labels are drawn; a title block\'s view title is not a seed', async () => {
+  const body = ['OFFICE 101', 'MASTER BEDROOM', 'POWDER ROOM', 'WALK-IN CLOSET', 'ELECTRICAL ROOM', 'LIGHTING', 'LIGHTING SCHEDULE', 'GROUND FLOOR', 'FFL +0.150', 'DB-01', '63A TPN', '12 WAYS', '2x13A', 'L1', 'SKT - DOUBLE SOCKET OUTLET', 'SD - SMOKE DETECTOR', 'LEGEND',
+    'ALL SOCKETS AT 300MM AFFL UNLESS OTHERWISE NOTED', 'REFER TO MEP SPECIFICATION', 'CONTRACTOR TO VERIFY ON SITE', 'CABLE SIZE 4C x 16 SQMM XLPE/SWA', 'WATERPROOFING', 'FALSE CEILING', 'EXHAUST FAN 150 CFM', 'FIRE ALARM CONTROL PANEL', 'ACCESS PANEL 600x600', 'KITCHEN HOOD', 'WATER HEATER 80L', 'SPLIT AC 2.5 TR', 'DATA OUTLET CAT6', 'PUSH BUTTON', 'DOOR BELL', 'SHOWER', 'VANITY', 'BATHROOM 2', 'TERRACE', 'LANDSCAPE', 'DRIVEWAY', 'SWIMMING POOL', 'PUMP ROOM', 'SERVANT QUARTER', 'ENTRANCE LOBBY', 'MAIN ENTRANCE', 'NOTES:', '1. ALL DIMENSIONS IN MM', 'DO NOT SCALE', 'TYP.', 'EXISTING WALL TO BE DEMOLISHED', 'NEW BLOCKWORK WALL', 'BALCONY', 'MAID ROOM', 'PANTRY', 'LOBBY'];
+  // The sheet's title block (an INSERT of A1_TITLEBLOCK) prints the view title and the discipline beside the firm.
+  const blocks: Q = [[0, 'BLOCK'], [8, '0'], [2, 'A1_TITLEBLOCK'], [70, 0], [10, 0], [20, 0], ...tx(0, 0, 'LIGHTING LAYOUT'), ...tx(0, 400, 'GROUND FLOOR'), ...tx(0, 800, 'ELECTRICAL WORKS'), ...tx(0, 1200, 'ZZ ORBIT ENGINEERING'), [0, 'ENDBLK'], [8, '0']];
+  const ents: Q = [[0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 24000], [20, 0], [10, 24000], [20, 16000], [10, 0], [20, 16000],
+    ...body.flatMap((s, i) => tx(500 + (i % 3) * 8000, 15000 - Math.floor(i / 3) * 900, s)), [0, 'INSERT'], [8, 'A-ANNO'], [2, 'A1_TITLEBLOCK'], [10, 25000], [20, 0]];
+  const g = await renderCadForSupplier(dxfFrom([...dxfSection('BLOCKS', blocks), ...dxfSection('ENTITIES', ents)]), { seeds, longEdge: 1600 });
+  assert(g.ok, `held: ${!g.ok && g.reason} ${!g.ok && g.detail}`);
+  if (!g.ok) return;
+  assertEquals(body.filter((b) => !g.drawn_texts.includes(b)), [], 'ordinary labels were withheld');
+  assert(!g.drawn_texts.some((t) => /ORBIT/.test(t)), 'the title block\'s firm was drawn');
+  assertEquals(g.withheld.regions, 1, 'the title block is one black region');
+});
+
+Deno.test('second review: a sheet border drawn as four LINEs on the title layer is a border, not a reason to hold', async () => {
+  const ln = (x1: number, y1: number, x2: number, y2: number): Q => [[0, 'LINE'], [8, 'TITLE'], [10, x1], [20, y1], [11, x2], [21, y2]];
+  const sheet = (border: Q) => dxfFrom(dxfSection('ENTITIES', [
+    ...border,
+    [0, 'LWPOLYLINE'], [8, 'TITLE'], [90, 4], [70, 1], [10, 7000], [20, 0], [10, 10000], [20, 0], [10, 10000], [20, 2000], [10, 7000], [20, 2000],
+    [0, 'CIRCLE'], [8, 'TITLE'], [10, 7400], [20, 1600], [40, 250],
+    ...tx(7200, 800, 'ZZ ORBIT', 150, 'TITLE'), ...tx(800, 8000, 'KITCHEN'), ...tx(800, 6000, 'OFFICE 101'),
+    [0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 500], [20, 5000], [10, 3500], [20, 5000], [10, 3500], [20, 9000], [10, 500], [20, 9000],
+  ]));
+  // Four LINEs, and the same rectangle broken into eight loose segments.
+  const four = [...ln(0, 0, 10000, 0), ...ln(10000, 0, 10000, 10000), ...ln(10000, 10000, 0, 10000), ...ln(0, 10000, 0, 0)];
+  const eight = [...ln(0, 0, 5000, 0), ...ln(5000, 0, 10000, 0), ...ln(10000, 0, 10000, 5000), ...ln(10000, 5000, 10000, 10000), ...ln(10000, 10000, 5000, 10000), ...ln(5000, 10000, 0, 10000), ...ln(0, 10000, 0, 5000), ...ln(0, 5000, 0, 0)];
+  for (const [name, border] of [['four LINEs', four], ['eight segments', eight]] as const) {
+    const g = await renderCadForSupplier(sheet(border), { seeds, longEdge: 1000 });
+    assert(g.ok, `${name}: held ${!g.ok && g.reason} ${!g.ok && g.detail}`);
+    if (!g.ok) continue;
+    assertEquals(g.drawn_texts, ['KITCHEN', 'OFFICE 101'], name);
+    const t = g.regions_px.filter((r) => r.kind === 'title');
+    assertEquals(t.length, 1, `${name}: the title block is one black box`);
+    assert(t[0].w * t[0].h < 0.2 * g.width * g.height, `${name}: the black box swallowed the sheet (${JSON.stringify(t[0])})`);
+    // The border itself is not drawn: no column carries ink over most of the page's height.
+    let tall = 0;
+    for (let x = 0; x < g.width; x++) { let n = 0; for (let y = 0; y < g.height; y++) if (g.rgba[(y * g.width + x) * 4] === 32) n++; if (n > 0.8 * g.height) tall++; }
+    assertEquals(tall, 0, `${name}: the border was drawn`);
+  }
+  // A cross of LINEs through the middle of that layer is still not a border: held.
+  const cross = await renderCadForSupplier(sheet([...four, ...ln(100, 100, 9900, 9900), ...ln(100, 9900, 9900, 100)]), { seeds });
+  assertEquals(cross.ok ? 'drawn' : cross.reason, 'title_unbounded');
 });
 
 Deno.test('too dense for the budget is HELD, never half-drawn; not a DXF is refused', async () => {

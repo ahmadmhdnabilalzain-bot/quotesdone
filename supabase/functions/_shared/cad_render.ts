@@ -17,11 +17,13 @@
 //   * a title-block / logo / stamp / revision INSERT or layer (cad_identity.FRAME_NAME) is drawn as ONE
 //     solid black box over its extent: the supplier sees that something was removed, and where;
 //   * a border / frame / viewport INSERT keeps its lines and loses every word in it;
-//   * every other TEXT, MTEXT, ATTRIB and dimension text is checked against the file's own identity
-//     terms (cad_identity.cadIdentityTerms), the customer's seed terms, and the same contact / label
-//     patterns the PDF path boxes (drawing_identity_text ID_TEXT / ID_LABEL, anonymise residualScan).
+//   * every other TEXT, MTEXT, ATTRIB and dimension text is drawn ONLY if it reads as drawing content
+//     (drawing_text_policy.isDrawingContent: numbers, codes from a closed list, the trade's vocabulary) and
+//     names no seed - the file's own identity terms (cad_identity.cadIdentityTerms) and the customer's -
+//     alone, joined with the runs along its baseline, or joined with the line stacked above or below it.
 //     A label ("CLIENT:", "Drawn by") takes the words beside it and under it with it. A text that fails
-//     is not drawn, and a black box marks where it stood;
+//     is not drawn, and a black box marks where it stood. FAIL CLOSED (second review of #967): a sheet
+//     written one glyph per TEXT is held as glyph_per_text rather than reassembled;
 //   * embedded raster images (IMAGE, OLE: logos, scanned stamps) are never reproduced;
 //   * header variables, xref paths, layer names and block names are never drawn by anything here.
 // What IS drawn: every line, arc, circle, polyline, ellipse, spline (through its fit or control points),
@@ -38,9 +40,8 @@
 // them). Those are said in `notes`, which become what the customer is told.
 import { binaryDxfToAscii, stripMtext } from './doc_read/cad.ts';
 import { cadIdentityTerms, FRAME, tokens } from './cad_identity.ts';
-import { COMPANY, isDrawingContent, LICENCE, partyTag, seedHit } from './drawing_text_policy.ts';
+import { isDrawingContent, namesParty, partyLabel, partyTag, seedHit } from './drawing_text_policy.ts';
 import { residualScan, seedTerms } from './anonymise.ts';
-import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
 import { textStrokes } from './stroke_font.ts';
 
 type Pair = [number, string];
@@ -61,6 +62,12 @@ const MAX_DEPTH = 8, MAX_EXPANDED = 250_000;
  *  with it); its words are withheld and its lines drawn - the same 0.35 as anonymise.MAX_STRIP. */
 export const MAX_TITLE_SHARE = 0.35;
 const INK = [32, 32, 32] as const;
+/** A sheet with more single-character TEXTs than this, or with more than GLYPH_SHARE of its texts single characters
+ *  (and at least 4), is HELD as glyph_per_text: a PDF converted to DWG writes every glyph as its own TEXT, and a
+ *  name split that way defeats any reassembly (second review of #967: "CLIENT: ZZ OMEGA", "TEL 04 123 4567" and the
+ *  customer's name, rotated, stacked or spaced three heights apart, were all drawn). A structural grid's A-H and
+ *  1-12 bubbles are 20. */
+export const GLYPH_MAX = 20, GLYPH_SHARE = 0.3;
 
 const TITLE_TOK = /^(?:TITLE|TITLES|TITLEBLOCK|TITLEBLK|TTLB|TTL|TB|TBLK|LOGO|LOGOS|STAMP|SEAL|REVISION|REVISIONS|REVS|XREF|XREFS)$/i;
 /** 'title': drawn as one black box. 'border': lines kept, words withheld. null: ordinary content. */
@@ -178,7 +185,7 @@ type Ctx = { m: M; layer: string; depth: number; frame: 'border' | null; title: 
 
 export type CadRenderResult =
   | { ok: true; rgba: Uint8ClampedArray; width: number; height: number; drawn_texts: string[]; withheld: { texts: number; regions: number; samples_redacted: number }; counts: Record<string, number>; notes: string[]; regions_px: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[] }
-  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual' | 'title_unbounded'; detail: string };
+  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual' | 'title_unbounded' | 'glyph_per_text'; detail: string };
 
 const bboxOf = (pts: number[]): BBox => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (let i = 0; i + 1 < pts.length; i += 2) { x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]); } return { x0, y0, x1, y1 }; };
 const grow = (a: BBox, b: BBox): BBox => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) });
@@ -217,7 +224,7 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
     const tm = mul(ctx.m, mul(m, mul(tr(x, y), mul(rot(rotDeg), mul(scl(h, h), tr(dx, dy))))));
     const strokes = ts.strokes.map((st) => st.map(([u, v]) => ap(tm, u, v)));
     const corners = [ap(tm, 0, -0.3), ap(tm, ts.width, -0.3), ap(tm, ts.width, 1.1), ap(tm, 0, 1.1)].flat();
-    const item: TextItem = { s: clean, m: tm, w: ts.width, unknown: ts.unknown, strokes, box: bboxOf(corners), frame: !!ctx.frame, tag, label: ID_LABEL.test(clean), h: Math.hypot(tm[2], tm[3]), x: ap(tm, 0, 0)[0], y: ap(tm, 0, 0)[1], rotDeg };
+    const item: TextItem = { s: clean, m: tm, w: ts.width, unknown: ts.unknown, strokes, box: bboxOf(corners), frame: !!ctx.frame, tag, label: partyLabel(clean), h: Math.hypot(tm[2], tm[3]), x: ap(tm, 0, 0)[0], y: ap(tm, 0, 0)[1], rotDeg };
     if (ctx.title) { ctx.title.box = grow(ctx.title.box, item.box); ctx.title.texts.push(item); return; }
     texts.push(item);
   };
@@ -360,23 +367,89 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
 
   // ── which words may be drawn ───────────────────────────────────────────────────────────────────────
   const withheldBoxes: BBox[] = [];
-  // THE DEFAULT IS WITHHOLD (review of #967, drawing_text_policy.ts): a word is drawn only when it reads as drawing
-  // content - numbers, dimensions, codes, the trade's vocabulary - and names no seed, even fuzzily.
-  const identity = (t: TextItem) => t.frame || partyTag(t.tag) || !isDrawingContent(t.s) || residualScan(t.s, seeds).length > 0 || !!seedHit(t.s, seeds);
+  const singles = texts.filter((t) => t.s.trim().length === 1).length;
+  if (singles > GLYPH_MAX || (singles >= 4 && singles > GLYPH_SHARE * texts.length)) {
+    return { ok: false, reason: 'glyph_per_text', detail: `${singles} of ${texts.length} texts are a single character` };
+  }
+  // THE DEFAULT IS WITHHOLD (drawing_text_policy.ts): a word is drawn only when it reads as drawing content -
+  // numbers, dimensions, codes from a closed list, the trade's vocabulary - and names no seed, even fuzzily.
+  const textLeaks = (x: string) => !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
+  const identity = (t: TextItem) => t.frame || partyTag(t.tag) || textLeaks(t.s);
   const out = new Set<TextItem>();
   for (const t of texts) if (identity(t)) out.add(t);
-  // Runs on one line are read TOGETHER: a name split one letter per TEXT, or spread across runs, is caught joined.
-  const linesOf = (items: TextItem[]) => {
-    const sorted = [...items].sort((a, b) => b.y - a.y || a.x - b.x);
-    const groups: TextItem[][] = [];
-    for (const t of sorted) {
-      const g = groups.find((x) => { const last = x[x.length - 1]; return Math.abs(last.y - t.y) <= 0.6 * Math.max(last.h, t.h) && t.box.x0 - last.box.x1 <= 2 * Math.max(last.h, t.h) && t.box.x0 >= last.box.x0; });
-      if (g) g.push(t); else groups.push([t]);
-    }
-    return groups.filter((g) => g.length > 1).map((g) => g.sort((a, b) => a.x - b.x));
+  // RUNS ARE READ TOGETHER ALONG THEIR OWN BASELINE (second review of #967: grouping by y alone missed a name
+  // rotated 90 degrees or spaced three heights apart). Runs at the same angle whose baselines lie within 0.6 of a
+  // text height of each other, and whose ends come within 3 heights, are one line; the line is judged spaced
+  // ("ZZ ORB IT") and as it stands on the page, abutting runs joined ("ZZ ORBIT"), by the same full policy. A line
+  // that fails withholds every run in it. Then two lines stacked within 2.4 heights are joined, so a phone or an
+  // e-mail broken over two lines is read whole.
+  type Geo = { t: TextItem; ang: number; a0: number; a1: number; perp: number; h: number };
+  const geoOf = (t: TextItem): Geo => {
+    const d = Math.hypot(t.m[0], t.m[1]) || 1, dx = t.m[0] / d, dy = t.m[1] / d;
+    const [x0, y0] = ap(t.m, 0, 0), [x1, y1] = ap(t.m, t.w, 0);
+    const a0 = x0 * dx + y0 * dy, a1 = x1 * dx + y1 * dy;
+    return { t, ang: Math.round(((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360 / 2) % 180, a0: Math.min(a0, a1), a1: Math.max(a0, a1), perp: -x0 * dy + y0 * dx, h: t.h || 1 };
   };
-  const lineLeaks = (g: TextItem[]) => { const joined = g.map((t) => t.s).join(' '); return !!seedHit(g.map((t) => t.s).join(''), seeds) || COMPANY.test(joined) || LICENCE.test(joined) || ID_TEXT.test(joined); };
-  for (const g of linesOf(texts)) if (lineLeaks(g)) for (const t of g) out.add(t);
+  const byAngle = (items: TextItem[]) => {
+    const m = new Map<number, Geo[]>();
+    for (const t of items) { const g = geoOf(t); (m.get(g.ang) ?? m.set(g.ang, []).get(g.ang)!).push(g); }
+    for (const list of m.values()) list.sort((u, v) => u.perp - v.perp);
+    return m;
+  };
+  const baselineGroups = (items: TextItem[]): Geo[][] => {
+    const groups: Geo[][] = [];
+    for (const list of byAngle(items).values()) {
+      const parent = list.map((_, i) => i);
+      const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+      const hMax = Math.max(...list.map((g) => g.h));
+      for (let i = 0; i < list.length; i++) {
+        for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 0.6 * hMax; j++) {
+          const u = list[i], v = list[j], h = Math.max(u.h, v.h);
+          if (v.perp - u.perp > 0.6 * h) continue;
+          if (Math.max(v.a0 - u.a1, u.a0 - v.a1) > 3 * h) continue;
+          parent[find(i)] = find(j);
+        }
+      }
+      const by = new Map<number, Geo[]>();
+      list.forEach((g, i) => { const r = find(i); (by.get(r) ?? by.set(r, []).get(r)!).push(g); });
+      for (const g of by.values()) groups.push(g.sort((u, v) => u.a0 - v.a0));
+    }
+    return groups;
+  };
+  const joins = (g: Geo[]) => {
+    const spaced = g.map((x) => x.t.s.trim()).join(' ');
+    let tight = '';
+    // Runs that ABUT (end to start within 0.35 of a height either way) read as one word; runs apart, or lying over
+    // each other (a drafting overlap, not a word), read as two.
+    g.forEach((x, i) => { const gap = i ? (x.a0 - g[i - 1].a1) / Math.max(x.h, g[i - 1].h) : 0; tight += (i && (gap > 0.35 || gap < -0.5) ? ' ' : '') + x.t.s.trim(); });
+    return [spaced, tight];
+  };
+  // The spaced line is judged by the whole policy; the abutting reading ("ZZ ORBIT", "050 123" + "4567") by every
+  // identity rule - seeds, company words, licence numbers, contacts - but not by the vocabulary, since two labels
+  // that merely touch ("MEETING ROOM 102" against "STORE 103") make a non-word that names nobody.
+  const tightLeaks = (x: string) => !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
+  const lineLeaks = (g: Geo[]) => { const [spaced, tight] = joins(g); return textLeaks(spaced) || tightLeaks(tight); };
+  const groupLeaks = (g: Geo[]) => g.length > 1 && lineLeaks(g);
+  const stackLeaks = (upper: string[], lower: string[]) => upper.some((a) => lower.some((b) => [`${a} ${b}`, `${a}${b}`].some((j) => namesParty(j) || !!seedHit(j, seeds))));
+  const stackedPairs = (groups: Geo[][]) => {
+    const lines = groups.map((g) => ({ g, ang: g[0].ang, perp: g.reduce((n, x) => n + x.perp, 0) / g.length, a0: Math.min(...g.map((x) => x.a0)), a1: Math.max(...g.map((x) => x.a1)), h: Math.max(...g.map((x) => x.h)), text: joins(g) }));
+    const pairs: [typeof lines[number], typeof lines[number]][] = [];
+    const byA = new Map<number, typeof lines>();
+    for (const l of lines) (byA.get(l.ang) ?? byA.set(l.ang, []).get(l.ang)!).push(l);
+    for (const list of byA.values()) {
+      list.sort((u, v) => u.perp - v.perp);
+      const hMax = Math.max(...list.map((l) => l.h));
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 2.4 * hMax; j++) {
+        const lo = list[i], up = list[j], h = Math.max(lo.h, up.h), d = up.perp - lo.perp;
+        if (d <= 0.6 * h || d > 2.4 * h || Math.max(up.a0 - lo.a1, lo.a0 - up.a1) > h) continue;
+        pairs.push([up, lo]);
+      }
+    }
+    return pairs;
+  };
+  const allGroups = baselineGroups(texts);
+  for (const g of allGroups) if (groupLeaks(g)) for (const x of g) out.add(x.t);
+  for (const [up, lo] of stackedPairs(allGroups)) if (stackLeaks(up.text, lo.text)) for (const x of [...up.g, ...lo.g]) out.add(x.t);
   // A label takes its value with it: the words to its right on the same line, and the cell under it.
   for (const l of texts) {
     if (!l.label) continue;
@@ -403,12 +476,20 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
     // blacked out tight round everything on it except the outer border; if even that is most of the sheet, HOLD.
     // The border is a large AXIS-ALIGNED outline (every edge horizontal or vertical); a long diagonal or a cross
     // on the title layer is not a border and stays inside what must be covered.
-    const isBorder = (p: number[]) => {
-      const b = bboxOf(p), tol = 0.005 * Math.max(b.x1 - b.x0, b.y1 - b.y0);
-      if (p.length < 8 || area(b) < 0.6 * area(r.box)) return false;
-      for (let i = 0; i + 3 < p.length; i += 2) if (Math.abs(p[i + 2] - p[i]) > tol && Math.abs(p[i + 3] - p[i + 1]) > tol) return false;
-      return true;
-    };
+    // Second review of #967: a border drawn as four LINEs, or a rectangle made of loose segments, is a border too.
+    // The OUTLINE is the box round every long axis-aligned part (one spanning half the region's width or height);
+    // when that is most of the region, every part whose segments ALL run along the outline's edges is border. A line
+    // across the middle, or a diagonal, is not. Nothing on a title layer is ever drawn, so this only decides how
+    // big the black box is.
+    const R = r.box, tol = 0.005 * Math.max(R.x1 - R.x0, R.y1 - R.y0);
+    const segs = (p: number[]) => { const o: [number, number, number, number][] = []; for (let i = 0; i + 3 < p.length; i += 2) o.push([p[i], p[i + 1], p[i + 2], p[i + 3]]); return o; };
+    const axisOnly = (p: number[]) => p.length >= 4 && segs(p).every(([x0, y0, x1, y1]) => Math.abs(y1 - y0) <= tol || Math.abs(x1 - x0) <= tol);
+    const long = r.parts.filter((p) => { if (!axisOnly(p)) return false; const b = bboxOf(p); return b.x1 - b.x0 >= 0.5 * (R.x1 - R.x0) || b.y1 - b.y0 >= 0.5 * (R.y1 - R.y0); });
+    const O = long.map(bboxOf).reduce(grow, EMPTY);
+    const outlined = finite(O) && area(O) >= 0.6 * area(R);
+    const near = (v: number, u: number, w: number) => Math.abs(v - u) <= tol || Math.abs(v - w) <= tol;
+    const isBorder = (p: number[]) => outlined && axisOnly(p) && segs(p).every(([x0, y0, x1, y1]) =>
+      (Math.abs(y1 - y0) <= tol && near(y0, O.y0, O.y1)) || (Math.abs(x1 - x0) <= tol && near(x0, O.x0, O.x1)));
     const inner = [...r.parts.filter((p) => !isBorder(p)).map(bboxOf), ...r.texts.map((t) => t.box)].reduce(grow, EMPTY);
     if (!finite(inner)) continue;                               // the border alone: nothing to cover, nothing drawn
     if (area(inner) / sheetArea > MAX_TITLE_SHARE) return { ok: false, reason: 'title_unbounded', detail: `the title layer covers ${Math.round(100 * area(inner) / sheetArea)}% of the sheet inside its border` };
@@ -420,13 +501,13 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   for (const t of texts) if (!out.has(t) && blackRegions.some((b) => inside(b, t))) out.add(t);
   for (const t of out) withheldBoxes.push(t.box);
   const kept = texts.filter((t) => !out.has(t));
-  // THE RE-READ, of what will actually be drawn, and only that (review of #967: the old re-scan asked the same
-  // question as the selection above, so it could never fail). The drawn strings are joined line by line AS THEY
-  // WILL STAND on the page, squashed, and looked for against every seed fuzzily, plus company words and licence
-  // numbers. Any hit holds the page. The pixels are re-read by OCR in scan_redact.check.ts.
+  // THE RE-READ, of what will actually be drawn, and only that: the kept runs are grouped again as they will stand
+  // on the page and every line, and every stacked pair of lines, is judged by the same policy. Any hit holds the
+  // page (removing a run can join two others). The pixels are re-read by OCR in scan_redact.check.ts.
   const drawnTexts = kept.map((t) => t.s);
-  const leak = [...kept.map((t) => [t]), ...linesOf(kept)].filter(lineLeaks);
-  if (leak.length) return { ok: false, reason: 'residual', detail: `${leak.length} drawn line(s) still read as identity` };
+  const keptGroups = baselineGroups(kept);
+  const leak = keptGroups.filter(lineLeaks).length + stackedPairs(keptGroups).filter(([up, lo]) => stackLeaks(up.text, lo.text)).length;
+  if (leak) return { ok: false, reason: 'residual', detail: `${leak} drawn line(s) still read as identity` };
   for (const t of kept) counts.unknown_glyphs += t.unknown;
   if (counts.unknown_glyphs) notes.push(`${counts.unknown_glyphs} character(s) outside the Latin stroke font (for example Arabic) are drawn as boxes; the take-off still reads them.`);
   if (counts.paper_space_skipped) notes.push(`${counts.paper_space_skipped} paper-space entities (sheet layouts, where title blocks live) are not drawn.`);

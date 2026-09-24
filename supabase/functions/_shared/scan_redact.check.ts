@@ -15,7 +15,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { redactScan, rgbaToBmp, type Rgba } from './scan_redact.ts';
 import { seedTerms } from './anonymise.ts';
-import { CUSTOMER, FILE_NAME, zzLeakyDxf, zzScanRgba } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CUSTOMER, FILE_NAME, zzLeakyDxf, zzScanRgba, zzScanText } from './doc_read/zz_demo_drawings.fixtures.ts';
 import { renderCadForSupplier } from './cad_render.ts';
 import { tesseractOcr } from '../../../scripts/lib/scan_ocr.ts';
 import { scanDrawing } from '../../../scripts/cad_read_worker.ts';
@@ -130,9 +130,48 @@ Deno.test({ name: 'the review case: a firm left of the title column is covered (
   } finally { await e.done(); }
 } });
 
+// SECOND REVIEW OF #967 (25 Sep 2026). Its probe scan.ts published a stamp "ZZ ORBIT ENGINEERING" turned 90 and 30
+// degrees in the drawing body, a body note "BY ZZ OMEGA", and a speckled phone number, each still readable by OCR.
+// Every case here must be HELD, or published with nothing a supplier's OCR can read at ANY orientation.
+const turned = (img: Rgba, q: number): Rgba => {
+  let t = img;
+  for (let i = 0; i < q; i++) {
+    const o = new Uint8ClampedArray(t.rgba.length);
+    for (let y = 0; y < t.h; y++) for (let x = 0; x < t.w; x++) { const s = (y * t.w + x) * 4, d = (x * t.h + (t.h - 1 - y)) * 4; o[d] = t.rgba[s]; o[d + 1] = t.rgba[s + 1]; o[d + 2] = t.rgba[s + 2]; o[d + 3] = 255; }
+    t = { w: t.h, h: t.w, rgba: o };
+  }
+  return t;
+};
+Deno.test({ name: 'second review: a turned stamp, a body note, a speckled phone and a name variant are held or unreadable every way up', sanitizeResources: false, sanitizeOps: false, fn: async () => {
+  const e = await tesseractOcr('eng+ara');
+  try {
+    const cases: [string, (i: Rgba) => void, RegExp][] = [
+      ['a body note "BY ZZ OMEGA"', (i) => zzScanText(i, 300, 1200, 26, 'BY ZZ OMEGA'), /OMEGA/i],
+      ['a body note "ZZ OMEGA CONTRACTING"', (i) => zzScanText(i, 300, 1200, 26, 'ZZ OMEGA CONTRACTING'), /OMEGA|CONTRACT/i],
+      ['a stamp turned 90 degrees', (i) => zzScanText(i, 1750, 1250, 22, 'ZZ ORBIT ENGINEERING', -90), /ORBIT|ENGINEER/i],
+      ['a stamp turned 30 degrees', (i) => zzScanText(i, 1000, 1250, 22, 'ZZ ORBIT ENGINEERING', -30), /ORBIT|ENGINEER/i],
+      ['a speckled phone "TEL 04 123 4567"', (i) => zzScanText(i, 300, 1200, 24, 'TEL 04 123 4567', 0, 0.12), /123|4567|TEL/i],
+      ['the customer as "RASHEED KARIM"', (i) => zzScanText(i, 300, 1200, 26, 'RASHEED KARIM'), /RASHEED|KARIM/i],
+    ];
+    const outcome: string[] = [];
+    for (const [name, add, id] of cases) {
+      const img = zzScanRgba({ rotateDeg: 0.6, noise: 0.002 });
+      add(img);
+      const r = await redactScan(img, e.ocr, seeds);
+      if (!r.ok) { outcome.push(`${name}: held ${r.held}`); continue; }
+      for (const q of [0, 1, 2, 3]) {
+        const text = (await e.ocr(rgbaToBmp(turned(r.image, q)))).map((l) => l.text).join('\n');
+        assert(!id.test(text), `${name}: published and readable at ${q * 90} degrees:\n${text}`);
+      }
+      outcome.push(`${name}: published, unreadable every way up`);
+    }
+    console.log(outcome.join('\n'));
+  } finally { await e.done(); }
+} });
+
 // The CAD page, re-read from its PIXELS by OCR: an independent extraction of what a supplier would see, on the
 // review's crafted drawing (a CLIENT_NAME attribute in block ISO_A1, bare firm names, a dimension override, a
-// licence number, a letter-spaced name and a name split one letter per TEXT).
+// licence number and a letter-spaced name).
 Deno.test({ name: 'the CAD page of the review\'s crafted drawing, read back by OCR, shows the rooms and no party', sanitizeResources: false, sanitizeOps: false, fn: async () => {
   const g = await renderCadForSupplier(zzLeakyDxf(), { seeds });
   assert(g.ok, `the crafted drawing was held: ${!g.ok && g.reason}`);

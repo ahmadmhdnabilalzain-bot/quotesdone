@@ -7,15 +7,18 @@
 // our own code: an ATTRIB tagged CLIENT_NAME inside a block called ISO_A1; plain TEXT "ZZ ORBIT ENGINEERING" and
 // "ORBIT HOLDINGS"; a dimension override "BY ZZ ORBIT"; "DM LIC 123456"; the customer's name letter-spaced, and
 // split one letter per TEXT. Any party no rule names gets through a list of what identity looks like. So the
-// list is now of what DRAWING CONTENT looks like: numbers, dimensions, levels, units, short tags and codes, and
-// words of the trade's own vocabulary (rooms, elements, devices, the words notes are written in). Anything else
-// is withheld. Withholding a label a supplier would have liked is a cost; showing a party is a breach.
+// list is now of what DRAWING CONTENT looks like: numbers, dimensions, levels, units, codes from a closed list,
+// and words of the trade's own vocabulary (drawing_vocabulary.ts). Anything else is withheld. Withholding a label
+// a supplier would have liked is a cost; showing a party is a breach.
 //
-// And a party that hides in the SPACING is caught by squashing: text runs on the same line are joined, every
-// space and punctuation mark is removed, and the result is looked for against the seed terms, exactly and with
-// an edit distance of up to 2 (OCR and letter-spacing both shift a letter or two).
+// SECOND REVIEW (25 Sep 2026). Every word of 3 letters or fewer used to pass as "a code", so "DAR", "WSP", "ZZ" +
+// "ORB" + "IT" and "<> BY DAR" were drawn; a short word now passes only from the closed list. Seed matching was a
+// sliding window over the squashed text, so "ORBITAL" hit the seed "Orbit" and "CEILING HEIGHT" hit "Marina
+// Heights"; it now matches whole tokens (several adjacent tokens may run together), after a transliteration fold
+// so "RASHEED KARIM" is "Rashid Kareem", and never on a seed word that is itself a trade word.
 import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
-import { PARTY_TAG, VOCAB } from './cad_identity.ts';
+import { PARTY_TAG } from './cad_identity.ts';
+import { tradeWord } from './drawing_vocabulary.ts';
 
 /** Company suffixes and firm words, English and Arabic: a text carrying one names a party. */
 export const COMPANY = /\b(?:L\.?\s?L\.?\s?C|F\.?Z\.?E|FZ-?LLC|FZCO|EST\.?|ESTABLISHMENT|CO\.|COMPANY|CORP(?:ORATION)?|INC\.?|LTD\.?|LIMITED|GROUP|HOLDINGS?|ENGINEERING|ENGINEERS|CONSULTANTS?|CONSULTING|CONSULTANCY|CONTRACTING|CONTRACTORS?|DEVELOPMENTS?|DEVELOPERS?|REAL\s+ESTATE|PROPERTIES|PROPERTY|ARCHITECTS?|INTERIORS|ASSOCIATES|PARTNERS|TRADING|INDUSTRIES|ENTERPRISES?|SERVICES)\b|\u0630\.?\s?\u0645\.?\s?\u0645|\u0645\u0624\u0633\u0633\u0629|\u0634\u0631\u0643\u0629|\u0645\u0643\u062a\u0628\s+\u0647\u0646\u062f\u0633\u064a|\u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a|\u0644\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a|\u0627\u0644\u0639\u0642\u0627\u0631\u064a\u0629/i;
@@ -25,56 +28,69 @@ export const LICENCE = /\b(?:LIC(?:EN[CS]E)?|TRADE\s+LIC|DM|DEWA|RERA|TRN|VAT|PE
 export const PARTY_TAG_WIDE = /(?:^|_)(?:NAME|TITLE|CLIENT|OWNER|CONSULT\w*|CONTRACT\w*|ARCHITECT\w*|ENGINEER\w*|PROJ\w*|DWG\w*|DRG\w*|DRAWING\w*|JOB\w*|SITE|LOCATION|ADDR\w*|PLOT|MAKANI|COMPANY|FIRM|DRAWN|DRN|CHECK\w*|CHK|APPROV\w*|DESIGN\w*|PHONE|TEL|FAX|E?MAIL|WEB\w*|LIC\w*|PERMIT|TRN|DEVELOPER|EMPLOYER|CUSTOMER|SIGN\w*|STAMP|SEAL|REV\w*|DATE|SCALE|SHEET\w*|ISSUE\w*|PREPARED|REVIEWED)(?:_|$|\d)/i;
 export const partyTag = (tag: string) => !!tag && (PARTY_TAG.test(tag) || PARTY_TAG_WIDE.test(tag));
 
-// The trade's own words, beyond cad_identity's layer vocabulary: rooms, drawing furniture, devices and the small
-// words notes are written in. Plurals are folded (a trailing S / ES) before the lookup.
-const MORE = `
-  a an the of to at in on by for and or with from as per not no all any each every only other same see refer note notes
-  general typical typ unless otherwise stated shown indicated noted mounted installed provide provided fixed mount
-  above below over under between near top bottom side left right front back center centre high low level levels
-  new existing remove relocate retain future proposed approx approximately min max minimum maximum
-  office meeting room store storage lobby reception corridor hall hallway kitchen pantry toilet toilets bathroom bath
-  bedroom master guest living dining majlis maid maids laundry utility electrical mechanical plant riser shaft stair
-  stairs staircase lift lifts balcony terrace roof garage parking entrance exit foyer dressing closet study library
-  gym pool prayer server it telecom janitor cleaner lounge waiting conference board boardroom open plan area zone
-  plan section elevation detail details schedule legend key scale drawing sheet layout ground first second third
-  fourth fifth floor floors basement mezzanine podium typical north south east west part
-  smoke heat detector detectors sounder beacon strobe call point panel socket sockets outlet outlets double single
-  twin switch switches isolator fused spur light lighting luminaire downlight emergency exit sign fan coil unit units
-  supply return exhaust extract fresh air grille diffuser damper duct ducts pipe pipes valve drain gully trap sprinkler
-  hose reel extinguisher cabinet data telephone tv cctv camera access card reader speaker intercom meter distribution
-  board db mdb smdb cable tray trunking conduit containment earth bonding lightning protection
-  wall walls door doors window windows glazing partition ceiling floor finish tile tiles paint skirting column columns
-  beam slab opening void dim dimension dimensions height width length depth thickness dia diameter radius
-  mm cm m sqm kw kva amp amps volt volts watt watts lux cfm lps nos no qty quantity each set lot
-  affl ffl ssl fcl tos bos cl sfl rl fgl ngl datum
-`.split(/\s+/).filter(Boolean);
-const WORDS = new Set([...VOCAB, ...MORE].map((w) => w.toLowerCase()));
-const known = (w: string) => {
-  const l = w.toLowerCase();
-  return WORDS.has(l) || WORDS.has(l.replace(/es$/, '')) || WORDS.has(l.replace(/s$/, ''));
-};
+// Instructions that name a party ROLE, not a party: "CONTRACTOR TO VERIFY ON SITE", "THE CONTRACTOR SHALL ...".
+// Taken out before the company / label rules read the text, so the rest of the note is judged on its own words.
+const INSTRUCTION = /\b(?:THE\s+)?(?:MAIN\s+|MEP\s+|ELECTRICAL\s+|MECHANICAL\s+)?(?:SUB-?)?CONTRACTORS?\s+(?:TO|SHALL|MUST|IS\s+TO|ARE\s+TO)\b/gi;
+/** A party label ("CLIENT:", "Drawn by", "TEL") whose value sits beside or under it; an instruction is not one. */
+export const partyLabel = (text: string) => ID_LABEL.test(String(text || '').replace(INSTRUCTION, ' '));
+// Latin letters, digits, punctuation and the few symbols a drawing prints (degree, plus-minus, squared, cubed,
+// times, the diameter sign, dashes, primes). Any other letter is withheld: an accented "ORBÍT" is a name.
+const FOREIGN = /[^\x00-\x7F\u00b0\u00b1\u00b2\u00b3\u00d7\u00d8\u00f8\u2013\u2014\u2019\u2032\u2033\u2300]/;
 
-const NUMERIC = /^[\d\s.,:;x×\/'"\-+±Ø°%=()@#~]*\d[\d\s.,:;x×\/'"\-+±Ø°%=()@#~]*(?:\s*(?:mm|cm|m|m2|m²|sqm|kw|kva|a|v|w|lux|l\/s|cfm|lps|nos?|dia|ffl|affl|ssl|fcl|typ|thk)\.?)*\s*$/i;
+// An e-mail or web address, whole or in part ("al@", "@kx"). A digit either side of "@" is not: OCR reads the
+// "0" of "101" as "@" (measured 25 Sep 2026 on the ZZ scan: "OFFICE 1@1" at 86).
+const MAILISH = /[A-Za-z]@|@[A-Za-z]|www\.|https?:/i;
+
+/** One token of a drawing's text: a number, a size or code with digits (13A, 600X600, CAT6, DB01), or a trade word. */
+function tokenOk(w: string): boolean {
+  if (/^\d+$/.test(w)) return true;
+  if (/\d/.test(w)) return /^\d+(?:X\d+)*[A-Z]{0,4}\d*$/i.test(w) || /^[A-Z]{1,4}\d+[A-Z]?$/i.test(w);
+  return tradeWord(w);
+}
 
 /**
- * True when a text reads as drawing content a supplier needs; false means withhold it. Rules, in order:
- * anything carrying a company word, a licence number, a contact or a party label is not content; numbers and
- * dimensions are; letter-spaced text (4+ single letters in a row) is not; otherwise every word of 4+ letters must
- * be the trade's vocabulary (words of 1-3 letters are codes and tags: SD, SKT, FCU, DB).
+ * True when a text reads as drawing content a supplier needs; false means withhold it. FAIL CLOSED: anything
+ * carrying a company word, a licence number, a contact or a party label is not content; nor is Arabic (not in
+ * the vocabulary yet), any other non-Latin letter, letter-spaced text, or a lone letter (a name split one glyph
+ * per TEXT). Otherwise EVERY token must be a number, a size or device code, or a trade word; a short word passes
+ * only if it is in the closed list (drawing_vocabulary CODES) - "DAR", "WSP", "ORB" do not.
  */
 export function isDrawingContent(text: string): boolean {
-  const t = String(text || '').replace(/\s+/g, ' ').trim();
-  if (!t) return false;
+  const t0 = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t0) return false;
+  const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return true;
   if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || ID_LABEL.test(t)) return false;
-  if (NUMERIC.test(t)) return true;
-  if (/[\u0600-\u06ff]/.test(t)) return false;                 // Arabic words are not in the vocabulary yet: withheld
-  if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;        // letter-spaced text
-  const words = t.split(/[^A-Za-z]+/).filter(Boolean);
-  return words.every((w) => w.length <= 3 || known(w));
+  if (/[\u0600-\u06ff]/.test(t) || FOREIGN.test(t) || MAILISH.test(t)) return false;
+  if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
+  const toks = t.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  if (!toks.length) return !/[@#]/.test(t);                          // bare punctuation: "<>", "-", "="
+  if (toks.length === 1 && /^[A-Za-z]$/.test(toks[0])) return false; // a lone letter
+  return toks.every(tokenOk);
 }
 
 /** Letters and digits only, lower case: "Z Z  D-E-M-O" -> "zzdemo". */
 export const squash = (s: string) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+
+/** Company words that give a party away even with every space removed ("ZZORBITENGINEERING"). */
+export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|contracting|holdings|properties|developers|developments|architects|interiors|associates|partners|trading|industries|enterprise|establishment|corporation|limited|fzllc|fzco/;
+
+/** A company word (also with the spaces squashed out), a licence number or a contact, in a text read as it stands
+ *  or with its runs joined; an instruction to the contractor is not a party. */
+export const namesParty = (text: string) => {
+  const t = String(text || '').replace(INSTRUCTION, ' ');
+  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || SQUASHED_COMPANY.test(squash(t));
+};
+
+// Transliteration fold: the same Arabic name in the spellings a drawing, an OCR and a customer use. "Rashid Kareem",
+// "RASHEED KARIM" and "Rasheed Qarim" fold alike. Digits standing for letters inside a word (0RB1T) fold too.
+const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '8': 'b' };
+export function fold(w: string): string {
+  let s = String(w || '').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  if (/[a-z]/.test(s) && /\d/.test(s)) s = s.replace(/[0134578]/g, (d) => LEET[d]);
+  return s.replace(/kh/g, 'k').replace(/q/g, 'k').replace(/ck/g, 'k').replace(/ph/g, 'f').replace(/ee|ea|ie|ei|iy/g, 'i')
+    .replace(/ou|oo|uu/g, 'u').replace(/aa/g, 'a').replace(/([aeiou])h$/, '$1').replace(/(.)\1+/g, '$1');
+}
 
 function editWithin(a: string, b: string, k: number): boolean {
   if (Math.abs(a.length - b.length) > k) return false;
@@ -90,25 +106,44 @@ function editWithin(a: string, b: string, k: number): boolean {
 }
 
 /**
- * Does `text` (a line, or several runs joined) carry any seed term? Squashed containment for every seed of 4+
- * characters, and an edit distance of at most 2 between each seed token of 5+ characters and every window of
- * the squashed text of about the same length - 1 edit for a token of 5-6 letters, 2 from 7 - so OCR's "KAREFM"
- * and a letter-spaced "K A R E E M" both hit.
+ * Does `text` (one run, or a line of runs joined) carry a seed term? WHOLE TOKENS only, where a token may be
+ * several adjacent tokens run together (a letter-spaced "K A R E E M", a name split "ORB" + "IT", "RASHIDKAREM").
+ * After the transliteration fold a token matches a seed word exactly, or within 1 edit for a seed word of 5
+ * letters and 2 from 6, with the same first letter. A seed word that is itself a trade word ("kitchens",
+ * "heights") is never matched on its own; the whole seed phrase still is. Digit seeds (a phone, a plot number)
+ * match inside the text's digits with every separator removed.
  */
 export function seedHit(text: string, seeds: string[]): string | null {
-  const s = squash(text);
-  if (!s) return null;
+  const raw = String(text || '');
+  const digits = raw.replace(/\D/g, '');
+  const toks = raw.split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(fold).filter(Boolean);
+  const words: { seed: string; f: string; n: number }[] = [];
   for (const seed of seeds) {
-    const q = squash(seed);
-    if (q.length >= 4 && s.includes(q)) return seed;
+    const q = String(seed || '').trim();
+    if (!q) continue;
+    const bare = q.replace(/[\s\-+().]/g, '');
+    if (/^\d+$/.test(bare)) { if (bare.length >= 5 && digits.includes(bare)) return seed; continue; }
+    const parts = q.split(/\s+/).filter(Boolean);
+    const whole = fold(parts.join(''));
+    if (parts.length > 1 && whole.length >= 5) words.push({ seed, f: whole, n: whole.length });
+    for (const p of parts) {
+      const f = fold(p);
+      if (f.length < 4 || /^\d+$/.test(f) || tradeWord(p)) continue;
+      words.push({ seed, f, n: p.replace(/[^\p{L}\p{N}]/gu, '').length });
+    }
   }
-  for (const seed of seeds) for (const tok of String(seed).split(/\s+/)) {
-    const q = squash(tok);
-    if (q.length < 5 || /^\d+$/.test(q)) continue;
-    for (let i = 0; i + q.length - 2 <= s.length; i++) {
-      for (const len of [q.length - 1, q.length, q.length + 1]) {
-        if (len < 4 || i + len > s.length) continue;
-        if (editWithin(s.slice(i, i + len), q, q.length >= 7 ? 2 : 1)) return seed;
+  if (!words.length || !toks.length) return null;
+  const maxLen = Math.max(...words.map((w) => w.f.length)) + 2;
+  for (let i = 0; i < toks.length; i++) {
+    let cand = '';
+    for (let j = i; j < toks.length; j++) {
+      cand += toks[j];
+      if (cand.length > maxLen) break;
+      for (const w of words) {
+        if (cand === w.f) return w.seed;
+        const k = w.n >= 6 ? 2 : w.n === 5 ? 1 : 0;
+        // Two edits only between words that begin AND end alike (MUHAMMAD / Mohammed), so MANSARD is not Mansoori.
+        if (k && cand[0] === w.f[0] && (k === 1 || cand[cand.length - 1] === w.f[w.f.length - 1]) && editWithin(cand, w.f, k)) return w.seed;
       }
     }
   }

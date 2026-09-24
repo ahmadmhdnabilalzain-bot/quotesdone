@@ -32,6 +32,7 @@
 // 'layer …'). A concrete "block wall" in a spreadsheet BOQ is left alone.
 // deno-lint-ignore-file no-explicit-any
 import { redactText, seedTerms } from './anonymise.ts';
+import { tradeOnly, VOCAB } from './drawing_vocabulary.ts';
 
 // Layer / block names that ARE a title block, a sheet frame or an external reference.
 export const FRAME = /^(?:TITLE|TITLES|TITLEBLOCK|TITLEBLK|TTLB|TTL|TB|TBLK|BORDER|BORDERS|BRDR|LOGO|LOGOS|STAMP|SEAL|XREF|XREFS|VPORT|VIEWPORT|DEFPOINTS|FRAME|NPLT|NOPLOT|SHEETFRAME|REVISION|REVISIONS|REVS)$/i;
@@ -53,9 +54,12 @@ export function cadIdentityTerms(dxfText: string): string[] {
   const out = new Set<string>();
   const add = (v: string) => {
     const t = String(v || '').replace(/\\P/g, ' ').replace(/\{\\[^;]*;|[{}]/g, '').replace(/\s+/g, ' ').trim();
-    if (t.length < 4 || CONTENT.test(t)) return;
+    // A title block's view title and discipline ("LIGHTING LAYOUT", "GROUND FLOOR", "ELECTRICAL WORKS") names what
+    // is drawn, not who for: made a seed, it withheld the same words all over the plan (second review of #967).
+    // Only text with a word outside the trade's vocabulary, or a number, becomes a seed.
+    if (t.length < 4 || CONTENT.test(t) || tradeOnly(t)) return;
     out.add(t);
-    for (const m of t.matchAll(LABEL_VALUE)) if (m[1].trim().length >= 4) out.add(m[1].trim());
+    for (const m of t.matchAll(LABEL_VALUE)) if (m[1].trim().length >= 4 && !tradeOnly(m[1])) out.add(m[1].trim());
   };
   let section = '', pendingSection = false, headerVar = '';
   let ent = '', layer = '', tag = '', text: string[] = [], blockName = '', inFrameBlock = false, afterFrameInsert = false, xrec = false, xref = false;
@@ -102,33 +106,10 @@ export function cadIdentityTerms(dxfText: string): string[] {
   return [...out];
 }
 
-// CAD vocabulary: the words a layer or block name may keep. AIA CAD Layer Guidelines major/minor groups,
-// ISO 13567 element words, trades and devices a supplier prices. Codes of 3 characters or fewer and
-// numbers are always kept (discipline letters, sizes, tags like D-900) — they identify nobody.
-export const VOCAB = new Set(`
-  wall walls door doors glaz glazing wind window windows flor floor floors clng ceiling ceilings roof roofs
-  strs stair stairs ramp elev elevator lift lifts furn furniture fixt fixture fixtures eqpm equip equipment
-  duct ducts ductwork pipe pipes piping hvac plmb plumbing fire sprk spkl sprinkler sprinklers elec electrical
-  lite light lights lighting powr power comm communication data tele anno note notes text symb symbol symbols
-  iden iden patt hatch grid dims dimension dimensions case casework cols column columns beam beams slab slabs
-  fndn foundation footing conc concrete steel stl masonry block brick tile tiles paving pave site topo cont
-  road curb kerb park parking land landscape plnt plant plants tree trees irrg irrigation fenc fence gate gates
-  supp supply retn return exhs exhaust exh diff diffuser diffusers grille grilles grilles regs register louv louver
-  louvre damp damper dampers vav fcu ahu fan fans pump pumps valve valves boiler chiller chillers tank tanks
-  cool cooling heat heating vent ventilation drain drains drainage sani sanitary sewr sewer storm strm dome
-  domestic cold hot water gas medg medical oxygen vacuum cond condensate refr refrigerant
-  smoke detector detectors alarm alarms bell bells horn strobe sounder beacon call point panel panels mcp fap
-  socket sockets outlet outlets switch switches recp receptacle cable cables tray trays trunking conduit
-  ladder busbar busway meter meters db dbs mdb smdb board boards lum luminaire luminaires emergency exit
-  cctv camera cameras access control speaker speakers pa bms tv sat
-  toilet toilets wc basin basins sink sinks shower showers bath bathtub urinal urinals tap taps mixer heater
-  kitchen pantry counter cabinet cabinets wardrobe bed beds sofa table tables chair chairs desk desks
-  villa room rooms area areas zone zones level levels ground first second third mezz mezzanine basement
-  new existing demo demolition remove removed proposed future temp typical typ
-  outline outlines boundary plot interior exterior int ext main sub north south east west
-  insulation cladding facade curtain partition partitions gypsum board paint finish finishes skirting
-  marble granite porcelain ceramic carpet vinyl wood timber aluminium aluminum glass handrail railing balustrade
-`.split(/\s+/).filter(Boolean));
+// CAD vocabulary: the words a layer or block name may keep (AIA / ISO 13567 groups, trades, devices). Codes of 3
+// characters or fewer and numbers are always kept (discipline letters, sizes, tags like D-900) - they identify
+// nobody. The list lives in drawing_vocabulary.ts with the rest of the drawing's words; it is re-exported here.
+export { VOCAB };
 const keepWord = (t: string) => t.length <= 3 || /^\d+[a-z]?$/i.test(t) || VOCAB.has(t.toLowerCase());
 
 /** A layer or block name with every word that is not CAD vocabulary removed. */

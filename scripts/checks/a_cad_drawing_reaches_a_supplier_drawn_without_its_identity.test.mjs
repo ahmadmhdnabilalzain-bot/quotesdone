@@ -37,6 +37,10 @@ test('both CAD entry points draw the original through drawing_redact mode cad, a
   // Review of #967: the edge dies (546) near 150k segments, so the cap is 120k and a denser drawing goes to the worker.
   assert.ok(read('supabase/functions/_shared/cad_render.ts').includes('export const RENDER_MAX_SEGMENTS = 120_000;'), 'the edge render cap moved');
   assert.equal((api.match(/reason === 'cad_render_too_dense' && path/g) || []).length, 2, 'a too-dense CAD drawing is not queued for the worker on both paths');
+  // Second review of #967: a sheet drawn one glyph per TEXT is held, and a short word passes only from a closed list.
+  const render = read('supabase/functions/_shared/cad_render.ts');
+  assert.ok(render.includes('export const GLYPH_MAX = 20, GLYPH_SHARE = 0.3;') && render.includes("reason: 'glyph_per_text'"), 'a glyph-per-TEXT sheet is no longer held');
+  assert.ok(read('supabase/functions/_shared/drawing_vocabulary.ts').includes('if (l.length <= 3) return CODES.has(l) || WORDS.has(l);'), 'short words are no longer limited to the closed list');
 });
 
 test('drawing_redact draws, uploads, records, and removes the upload when the record fails', () => {

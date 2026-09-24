@@ -121,7 +121,10 @@ async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promis
 // eng + ara data (scripts/lib/scan_ocr.ts), boxed by the PDF path's own rules, painted, OCR'd AGAIN, and kept
 // only if the re-read shows no identity (_shared/scan_redact.ts). Held is all-or-nothing, as on the edge
 // (customer_api/drawing_hold.ts): one page that is not proved clean publishes none of them.
-export const SCAN_JOB_MS = 15 * 60_000;
+// Since the second review of #967 every page is read all four ways up, painted, and read all four ways again: eight
+// OCR passes, measured 25 Sep 2026 at about 60 s for the ZZ scan's 2600 x 1400 page. customer_api sends at most 20
+// pages (MAX_DRAWING_PAGES), so the budget is 30 minutes, inside the workflow's 75.
+export const SCAN_JOB_MS = 30 * 60_000;
 export async function scanDrawing(job: Job, key: string, pages: string[]): Promise<Record<string, unknown>> {
   const seeds = await seedsOf(job);
   const { Image } = await import('https://deno.land/x/imagescript@1.2.17/mod.ts');
@@ -182,7 +185,7 @@ async function runJob(job: Job, key: string): Promise<void> {
   if (job.why === 'scan_needs_ocr') {
     const pages = Array.isArray(job.boq_in?.scan_pages) ? job.boq_in.scan_pages.map(String) : [];
     if (!pages.length) throw new Error('a scan job with no stored pages');
-    const scanBudget = new Promise<never>((_, no) => setTimeout(() => no(new Error('the OCR ran past its 15-minute budget')), SCAN_JOB_MS));
+    const scanBudget = new Promise<never>((_, no) => setTimeout(() => no(new Error('the OCR ran past its 30-minute budget')), SCAN_JOB_MS));
     const drawing = await Promise.race([scanDrawing(job, key, pages), scanBudget]);
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'scan', ms: Math.round(performance.now() - t0), ...drawing }))}::jsonb where id = ${lit(job.id)}::uuid`);
     console.log(`job ${job.id}: scan ${drawing.redaction_complete ? 'published' : 'held (' + drawing.held_reason + ')'}, ${pages.length} page(s), ${Math.round(performance.now() - t0)} ms`);
