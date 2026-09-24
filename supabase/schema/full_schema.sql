@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T10:39:23.104Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T11:35:19.383Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -182,6 +182,7 @@ CREATE SEQUENCE IF NOT EXISTS public.screening_entry_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.screening_run_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_case_memory_miss_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_eval_question_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.seat_knowledge_exam_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.self_review_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.simulations_id_seq;
@@ -208,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (628) =====
+-- ===== TABLES (632) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2985,6 +2986,16 @@ CREATE TABLE IF NOT EXISTS public.expense_entries (
   renews_item text
 );
 
+CREATE TABLE IF NOT EXISTS public.expense_sender_reading (
+  sender text NOT NULL,
+  kind text,
+  kind_times integer DEFAULT 0 NOT NULL,
+  vendor text,
+  vendor_times integer DEFAULT 0 NOT NULL,
+  last_email_id text,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.expense_vendor_billing_mailbox (
   id bigint DEFAULT nextval('expense_vendor_billing_mailbox_id_seq'::regclass) NOT NULL,
   vendor text NOT NULL,
@@ -4606,6 +4617,12 @@ CREATE TABLE IF NOT EXISTS public.licence_renewal_ask (
   notification_id bigint,
   answered_at timestamp with time zone,
   answered_by_intake bigint
+);
+
+CREATE TABLE IF NOT EXISTS public.line_spec_reading (
+  reading_key text NOT NULL,
+  found jsonb DEFAULT '{}'::jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.llm_attempt (
@@ -7347,6 +7364,17 @@ CREATE TABLE IF NOT EXISTS public.seat_judgement (
   made_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_eval_question (
+  id bigint DEFAULT nextval('seat_knowledge_eval_question_id_seq'::regclass) NOT NULL,
+  seat text NOT NULL,
+  pack text NOT NULL,
+  lang text NOT NULL,
+  question text NOT NULL,
+  expected text[] NOT NULL,
+  embedding vector(384) NOT NULL,
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
   id bigint DEFAULT nextval('seat_knowledge_exam_id_seq'::regclass) NOT NULL,
   seat text NOT NULL,
@@ -7363,6 +7391,15 @@ CREATE TABLE IF NOT EXISTS public.seat_knowledge_exam (
   answered_at timestamp with time zone,
   graded_at timestamp with time zone,
   refiled_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_knowledge_recall (
+  day date NOT NULL,
+  seat text NOT NULL,
+  questions integer NOT NULL,
+  recall_en numeric,
+  recall_ar numeric,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_refresh (
@@ -8967,6 +9004,7 @@ ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_pkey PRI
 ALTER TABLE public.exec_reports ADD CONSTRAINT exec_reports_pkey PRIMARY KEY (id);
 ALTER TABLE public.expense_billing_mailbox ADD CONSTRAINT expense_billing_mailbox_pkey PRIMARY KEY (mailbox);
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_pkey PRIMARY KEY (id);
+ALTER TABLE public.expense_sender_reading ADD CONSTRAINT expense_sender_reading_pkey PRIMARY KEY (sender);
 ALTER TABLE public.expense_vendor_billing_mailbox ADD CONSTRAINT expense_vendor_billing_mailbox_pkey PRIMARY KEY (id);
 ALTER TABLE public.expenses ADD CONSTRAINT expenses_pkey PRIMARY KEY (id);
 ALTER TABLE public.feedback ADD CONSTRAINT feedback_pkey PRIMARY KEY (id);
@@ -9092,6 +9130,7 @@ ALTER TABLE public.legal_documents ADD CONSTRAINT legal_documents_pkey PRIMARY K
 ALTER TABLE public.legal_kpi_snapshots ADD CONSTRAINT legal_kpi_snapshots_pkey PRIMARY KEY (id);
 ALTER TABLE public.legal_reviews ADD CONSTRAINT legal_reviews_pkey PRIMARY KEY (id);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_pkey PRIMARY KEY (id);
+ALTER TABLE public.line_spec_reading ADD CONSTRAINT line_spec_reading_pkey PRIMARY KEY (reading_key);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_pkey PRIMARY KEY (attempt_id);
 ALTER TABLE public.llm_cache ADD CONSTRAINT llm_cache_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.llm_calls ADD CONSTRAINT llm_calls_pkey PRIMARY KEY (id);
@@ -9285,7 +9324,9 @@ ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_pkey PRIMARY KEY (duty);
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_pkey PRIMARY KEY (id);
+ALTER TABLE public.seat_knowledge_recall ADD CONSTRAINT seat_knowledge_recall_pkey PRIMARY KEY (day, seat);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
@@ -9475,6 +9516,7 @@ ALTER TABLE public.reviews ADD CONSTRAINT reviews_transaction_id_key UNIQUE (tra
 ALTER TABLE public.rfq_archives ADD CONSTRAINT rfq_archives_rfq_id_key UNIQUE (rfq_id);
 ALTER TABLE public.sales_knowledge_gap ADD CONSTRAINT sales_knowledge_gap_question_norm_key UNIQUE (question_norm);
 ALTER TABLE public.seat_case_memory ADD CONSTRAINT seat_case_memory_source_uq UNIQUE (source_table, source_id);
+ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_seat_pack_lang_question_key UNIQUE (seat, pack, lang, question);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_state_hash_key UNIQUE (state_hash);
 ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_token_hash_key UNIQUE (token_hash);
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
@@ -9680,6 +9722,7 @@ ALTER TABLE public.evolution_proposal ADD CONSTRAINT evolution_proposal_trigger_
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_doc_kind_ck CHECK (((doc_kind IS NULL) OR (doc_kind = ANY (ARRAY['vendor_document'::text, 'email_print'::text, 'founder_statement'::text]))));
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_founder_statement_ck CHECK (((doc_kind IS DISTINCT FROM 'founder_statement'::text) OR ((source = 'founder_reported'::text) AND (COALESCE(btrim(doc_note), ''::text) <> ''::text))));
 ALTER TABLE public.expense_entries ADD CONSTRAINT expense_entries_read_as_check CHECK (((read_as IS NULL) OR (read_as = ANY (ARRAY['receipt_monthly'::text, 'receipt_annual'::text, 'receipt_one_off'::text, 'meta_ads_invoice'::text, 'renewal'::text]))));
+ALTER TABLE public.expense_sender_reading ADD CONSTRAINT expense_sender_reading_sender_check CHECK (((sender = lower(sender)) AND (sender ~ '^[^@\s]+@[^@\s]+\.[a-z]{2,}$'::text)));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_shared_carries_no_trade CHECK (((scope <> 'shared'::text) OR (trade_key IS NULL)));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_subset_carries_no_trade CHECK (((scope <> 'trade_subset'::text) OR (trade_key IS NULL)));
 ALTER TABLE public.field_definition ADD CONSTRAINT fd_trade_specific_has_trade CHECK (((scope <> 'trade_specific'::text) OR (trade_key IS NOT NULL)));
@@ -9781,6 +9824,8 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_opt_known CHECK (((whatsa
 ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_band_check CHECK ((band = ANY (ARRAY['t_minus_30'::text, 't_minus_14'::text, 't_minus_7'::text, 'expired'::text])));
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_channel_check CHECK ((channel = ANY (ARRAY['email'::text, 'whatsapp'::text])));
+ALTER TABLE public.line_spec_reading ADD CONSTRAINT line_spec_reading_found_check CHECK ((jsonb_typeof(found) = 'object'::text));
+ALTER TABLE public.line_spec_reading ADD CONSTRAINT line_spec_reading_reading_key_check CHECK ((reading_key ~ '^[0-9a-f]{64}$'::text));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_attempt_no_check CHECK ((attempt_no >= 1));
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_matches_ok CHECK (((ok AND (class_key IS NULL)) OR ((NOT ok) AND (class_key IS NOT NULL))));
 ALTER TABLE public.llm_failure_class ADD CONSTRAINT llm_failure_class_layer_check CHECK ((layer = ANY (ARRAY['provider'::text, 'transport'::text, 'contract'::text, 'tool'::text, 'retrieval'::text, 'database'::text, 'orchestration'::text, 'test_runner'::text, 'unknown'::text])));
@@ -10146,6 +10191,9 @@ ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_type_check
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_seat_check CHECK ((seat = ANY (ARRAY['ceo'::text, 'customer_support'::text, 'sales_engineer'::text, 'accountant'::text, 'it_engineer'::text, 'marketing'::text])));
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_status_check CHECK ((status = ANY (ARRAY['recalled'::text, 'answered'::text, 'held'::text])));
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_surface_check CHECK ((btrim(surface) <> ''::text));
+ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_expected_check CHECK ((cardinality(expected) > 0));
+ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_lang_check CHECK ((lang = ANY (ARRAY['en'::text, 'ar'::text])));
+ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_question_check CHECK ((btrim(question) <> ''::text));
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_verdict_check CHECK ((verdict = ANY (ARRAY['correct'::text, 'partial'::text, 'wrong'::text, 'not_covered'::text])));
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_quarter_check CHECK ((quarter = (date_trunc('quarter'::text, (quarter)::timestamp with time zone))::date));
@@ -20569,6 +20617,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -20594,16 +20652,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -22884,7 +22932,7 @@ begin
     end if;
   end if;
 
-  -- A CALL WITH NO DEPARTMENT IS A CALL NO CEILING CAN STOP (13 Aug 2026). The halt below needs a
+  -- (Historical, 13 Aug 2026: the halt that used to follow needed a department.) A CALL WITH NO DEPARTMENT: the lookup below needs a
   -- dept_key to find a budget, and 59 of this month's calls arrived without one - inquiry_intake,
   -- drawing_boq, doc_extract, license_extract, supplier_onboard and eleven more, i.e. the demand
   -- path. fn_task_class already maps fn -> task_class for this same function's model choice; it now
@@ -22903,18 +22951,8 @@ begin
           where dept_key = any(public.fn_dept_scope(v_bud.dept_key))
             and occurred_at >= date_trunc('month', now())), 0)
         / v_bud.monthly_aed, 2);
-      if v_pct >= v_bud.halt_at_pct then
-        return jsonb_build_object(
-          'use_llm', false, 'task_class', v_class, 'tier', v_tier, 'halted', true, 'budget_pct', v_pct,
-          'why', 'HALTED. ' || v_bud.dept_key || ' is at ' || v_pct || '% of its monthly AI budget (halt at '
-                 || v_bud.halt_at_pct || '%). Non-gated work stops until the budget resets or is raised.');
-      elsif v_pct >= v_bud.degrade_at_pct then
-        select model_id into v_model from model_registry
-         where active and approved
-           and tier = case v_tier when 'xlarge' then 'large' when 'large' then 'medium' else 'small' end
-         order by in_per_mtok_usd limit 1;
-        v_why := v_why || ' | department at ' || v_pct || '% of budget, degraded one tier';
-      end if;
+      -- NO HALT AND NO DEGRADE (24 Sep 2026, founder_instruction 987: no caps on LLM spend). v_pct is still
+      -- reported as budget_pct so the books can see a department's spend; it no longer refuses or downgrades a call.
     end if;
   end if;
 
@@ -25539,23 +25577,13 @@ end $function$
 
 CREATE OR REPLACE FUNCTION public.fn_category_key_ask(p_word text)
  RETURNS bigint
- LANGUAGE plpgsql
- SECURITY DEFINER
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_w text := lower(btrim(coalesce(p_word, '')));
-begin
-  if v_w = '' or exists (select 1 from public.category_route_map m where m.category = v_w)
-     or exists (select 1 from public.catalog_supplier_categories c where c.slug = v_w) then
-    return null;
-  end if;
-  return public.fn_reason_route_ask('sales_engineer', 'category.key_for_slug',
-    'The marketplace names a trade "' || v_w || '". Which catalogue category is that trade?',
-    (select coalesce(jsonb_agg(jsonb_build_object('id', i.category_key, 'meaning', c.name) order by i.category_key), '[]'::jsonb)
-       from public.org_category_identity i join public.catalog_supplier_categories c on c.num = i.catalog_num)
-      || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'no catalogue category is that trade')),
-    jsonb_build_object('word', v_w), 'category_key:' || v_w);
-end $function$
+  -- Files nothing (24 Sep 2026): the key is category_route_map / catalog_supplier_categories.slug or none.
+  select null::bigint
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_category_key_for_slug(p_slug text)
@@ -27614,21 +27642,18 @@ begin
 
   v_held := public.fn_seat_duty_reason('ceo', 'ceo.management_review',
     'The weekly management review. Read each seat''s week — its duties, failures, open findings, what waits in its '
-      || 'reasoning queue, and its own targets and month directive on the founder''s year-one path — against last week''s review. Give the verdict, name the one '
-      || 'binding constraint, and one concrete line of direction for each seat.',
+      || 'reasoning queue, and its own targets and month directive on the founder''s year-one path — against last week''s review. Give the verdict and name the one '
+      || 'binding constraint.',
     ('[{"id":"on_track","meaning":"the company is on its plan this week"},'
     || '{"id":"at_risk","meaning":"the plan holds but something material is slipping"},'
     || '{"id":"off_track","meaning":"the plan is not working and must change"}]')::jsonb,
     v_facts, jsonb_build_object('kind', 'management_review', 'period', v_week), 'ceo_mreview:' || v_week);
-  -- The fields the review must fill, beside the verdict (think() fills them from its reasoning, with evidence).
+  -- ONE VERDICT LINE (24 Sep 2026, it_engineer): the per-seat week is the SQL facts above (duties, failures,
+  -- findings, queue, targets, directive); the model gives only the verdict and the one binding constraint, at
+  -- normal stakes, so the review is one think() call. The five per-seat direction fields it wrote before are gone.
   update public.reasoning_held_question
-     set request = jsonb_set(request, '{decision,fields}', jsonb_build_array(
-           jsonb_build_object('key', 'binding_constraint', 'question', 'the one constraint that most limits progress this week'),
-           jsonb_build_object('key', 'sales_engineer', 'question', 'the sales engineer''s direction for the coming week'),
-           jsonb_build_object('key', 'customer_support', 'question', 'customer support''s direction for the coming week'),
-           jsonb_build_object('key', 'accountant', 'question', 'the accountant''s direction for the coming week'),
-           jsonb_build_object('key', 'it_engineer', 'question', 'the IT engineer''s direction for the coming week'),
-           jsonb_build_object('key', 'marketing', 'question', 'marketing''s direction for the coming week')))
+     set request = jsonb_set(request || '{"stakes":"normal"}'::jsonb, '{decision,fields}', jsonb_build_array(
+           jsonb_build_object('key', 'binding_constraint', 'question', 'the one constraint that most limits progress this week')))
    where id = v_held;
   update public.ceo_review set held_id = v_held where kind = 'management_review' and period = v_week;
   return jsonb_build_object('week', v_week, 'filed', v_held);
@@ -28274,6 +28299,8 @@ begin
              jsonb_build_object('key', 'proposal', 'question', 'the exact change proposed, if any, with the figure'),
              jsonb_build_object('key', 'evidence', 'question', 'the measured evidence it rests on')))
      where id = v_held;
+    -- ONE CALL PER REPORT (24 Sep 2026, it_engineer): normal stakes, so think() runs no second-family verify on it.
+    update public.reasoning_held_question set request = request || '{"stakes":"normal"}'::jsonb where id = v_held;
     update public.ceo_review set held_id = v_held where kind = 'pricing_monitor' and period = v_week;
   end if;
   return jsonb_build_object('week', v_week, 'quoted_requests_90d', v_quoted, 'reasoning_filed', v_held is not null);
@@ -28834,8 +28861,9 @@ begin
   if rv.decided_at is not null then return jsonb_build_object('applied', true, 'already', v_kind || ' ' || v_period); end if;
   select coalesce(jsonb_object_agg(k, v->>'value'), '{}'::jsonb) into v_fields from jsonb_each(coalesce(p_result->'decision'->'fields', '{}'::jsonb)) f(k, v);
 
-  -- THE CHALLENGE: every call except "hold course" / "keep" is reviewed by the accountant on a model of another family.
-  if v_choice not in ('hold_course', 'keep') then
+  -- THE CHALLENGE (narrowed 24 Sep 2026, it_engineer): only a call that goes to the founder - a pricing proposal or
+  -- "tell the founder" - is challenged by the accountant on a model of another family. An internal verdict is one call.
+  if v_choice in ('propose_change', 'tell_founder') then
     v_review := public.fn_seat_duty_cross_review('ceo.' || v_kind, 'ceo', 'accountant',
       case v_kind when 'management_review' then 'Challenge the chief executive''s reading of the company''s week.'
                   when 'pricing_monitor' then 'Challenge the chief executive''s pricing call before it reaches the founder.'
@@ -29339,6 +29367,8 @@ begin
       || '{"id":"tell_founder","meaning":"the gap needs a decision only the founder holds (money, a commercial rule, his intent)"}]')::jsonb,
       jsonb_build_object('forecast', v_rev - 'chain', 'all_contracts', v_all, 'year_plan', public.fn_ceo_year_plan_status(now())),
       jsonb_build_object('kind', 'target_forecast', 'period', v_week), 'ceo_forecast:' || v_week);
+    -- ONE CALL PER REPORT (24 Sep 2026, it_engineer): normal stakes, so think() runs no second-family verify on it.
+    update public.reasoning_held_question set request = request || '{"stakes":"normal"}'::jsonb where id = v_held;
     update public.ceo_review set held_id = v_held where kind = 'target_forecast' and period = v_week;
   end if;
   return jsonb_build_object('week', v_week, 'verdicts', v_all, 'reasoning_filed', v_held is not null);
@@ -37143,6 +37173,41 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_expense_sender_learn(p_sender text, p_kind text, p_vendor text, p_email_id text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_sender text := lower(btrim(p_sender)); r public.expense_sender_reading;
+begin
+  if v_sender is null or v_sender !~ '^[^@\s]+@[^@\s]+\.[a-z]{2,}$' then
+    return jsonb_build_object('learned', false, 'why', 'not an address');
+  end if;
+  insert into public.expense_sender_reading as e (sender, kind, kind_times, vendor, vendor_times, last_email_id)
+  values (v_sender, p_kind, case when p_kind is null then 0 else 1 end, p_vendor, case when p_vendor is null then 0 else 1 end, p_email_id)
+  on conflict (sender) do update set
+    kind = coalesce(excluded.kind, e.kind),
+    kind_times = case when excluded.kind is null then e.kind_times when excluded.kind = e.kind then e.kind_times + 1 else 1 end,
+    vendor = coalesce(excluded.vendor, e.vendor),
+    vendor_times = case when excluded.vendor is null then e.vendor_times when excluded.vendor = e.vendor then e.vendor_times + 1 else 1 end,
+    last_email_id = coalesce(excluded.last_email_id, e.last_email_id),
+    updated_at = now()
+  returning * into r;
+  return jsonb_build_object('learned', true, 'kind', r.kind, 'kind_times', r.kind_times, 'vendor', r.vendor, 'vendor_times', r.vendor_times);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_expense_sender_reading(p_sender text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select to_jsonb(r) - 'sender' from public.expense_sender_reading r where r.sender = lower(btrim(p_sender));
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_expiring_docs(p_days integer DEFAULT 60)
  RETURNS TABLE(id bigint, company_name text, sector text, doc text, expiry date, days_left integer, status text)
  LANGUAGE sql
@@ -42491,7 +42556,7 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
  LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
-AS $function$ select public.fn_it_engineer_knowledge_exam(2) $function$
+AS $function$ select jsonb_build_object('asked', 0, 'retired', 'the model exam files no question (24 Sep 2026)') $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_close(p_issue_key text, p_note text DEFAULT NULL::text)
@@ -42791,6 +42856,60 @@ begin
     end;
   end loop;
   return jsonb_build_object('seats', v_out, 'raised', v_raised, 'refiled', v_refiled, 'model_gate_open', v_open);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_knowledge_recall_exam()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_day date := (now() at time zone 'Asia/Dubai')::date; s record; p public.seat_knowledge_recall; v_bad text; v_out jsonb := '[]'::jsonb; v_raised int := 0;
+begin
+  if not exists (select 1 from public.seat_knowledge_eval_question) then
+    perform public.fn_it_engineer_finding_upsert('knowledge_recall:no_questions',
+      'The daily knowledge exam has no questions loaded, so no seat''s knowledge is being examined',
+      'public.seat_knowledge_eval_question', 'agent_facing', 6, jsonb_build_object('owner_seat', 'it_engineer'),
+      '{}'::text[], array['run node scripts/kb/load_knowledge_eval_questions.mjs'], 'it_engineer');
+    return jsonb_build_object('day', v_day, 'questions', 0, 'raised', 1);
+  end if;
+  update public.it_engineer_finding set closed_at = now(), close_note = 'questions are loaded (knowledge_recall)'
+   where issue_key = 'knowledge_recall:no_questions' and closed_at is null;
+
+  for s in
+    with scored as (
+      select q.seat, q.lang,
+             (select count(distinct regexp_replace(x->>'id', '@ar$', ''))
+                from jsonb_array_elements(public.fn_reason_retrieve(q.seat, q.embedding, 6)) with ordinality t(x, n)
+               where n <= 5 and regexp_replace(x->>'id', '@ar$', '') = any(q.expected))::numeric
+             / (select count(distinct e) from unnest(q.expected) e) as recall
+        from public.seat_knowledge_eval_question q)
+    select seat, count(*) filter (where lang = 'en') as questions,
+           round(avg(recall) filter (where lang = 'en'), 3) as en, round(avg(recall) filter (where lang = 'ar'), 3) as ar
+      from scored group by seat
+  loop
+    select * into p from public.seat_knowledge_recall where seat = s.seat and day < v_day order by day desc limit 1;
+    insert into public.seat_knowledge_recall (day, seat, questions, recall_en, recall_ar) values (v_day, s.seat, s.questions, s.en, s.ar)
+    on conflict (day, seat) do update set questions = excluded.questions, recall_en = excluded.recall_en,
+                                          recall_ar = excluded.recall_ar, measured_at = now();
+    v_bad := case when s.en is null or s.en < 0.35 then 'under the floor 0.35'
+                  when p.recall_en is not null and p.recall_en - s.en >= 0.10 then 'down from ' || p.recall_en || ' on ' || p.day end;
+    if v_bad is not null then
+      v_raised := v_raised + 1;
+      perform public.fn_it_engineer_finding_upsert('knowledge_recall:' || s.seat,
+        'The ' || s.seat || ' seat finds its own knowledge less: English recall@5 ' || coalesce(s.en::text, 'unmeasured') || ' (' || v_bad || ')',
+        'public.seat_knowledge_recall / public.fn_reason_retrieve', 'agent_facing', s.questions::int,
+        jsonb_build_object('seat', s.seat, 'owner_seat', 'it_engineer', 'recall_en', s.en, 'recall_ar', s.ar, 'previous', to_jsonb(p)),
+        '{}'::text[], array['which pack''s questions stopped finding their entries, and whether rows lost their vectors'], 'it_engineer');
+    else
+      update public.it_engineer_finding set closed_at = now(), close_note = 'recall back within bounds (knowledge_recall)'
+       where issue_key = 'knowledge_recall:' || s.seat and closed_at is null;
+    end if;
+    v_out := v_out || jsonb_build_object('seat', s.seat, 'questions', s.questions, 'recall_en', s.en, 'recall_ar', s.ar, 'raised', v_bad is not null);
+  end loop;
+  return jsonb_build_object('day', v_day, 'seats', v_out, 'raised', v_raised);
 end $function$
 
 
@@ -46025,6 +46144,25 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_lesson_clusters_to_reason(p_min_cases integer DEFAULT 5, p_limit integer DEFAULT 3)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('seat', c.seat, 'cluster_key', c.cluster_key, 'cases',
+           (select jsonb_agg(jsonb_build_object('case_id', m.id, 'case_kind', m.case_kind, 'situation', left(m.situation, 500),
+                    'decision', left(m.decision, 300), 'outcome', left(m.outcome, 300), 'finalised', m.finalised,
+                    'correction', m.correction) order by m.id)
+              from public.seat_case_memory m where m.id = any(c.case_ids)))), '[]'::jsonb)
+    from (select * from public.seat_lesson_cluster c
+           where c.candidate_id is null and cardinality(c.case_ids) >= greatest(3, coalesce(p_min_cases, 5))
+             and not exists (select 1 from public.reasoning_held_question h where h.dedupe_key = 'lesson:' || c.cluster_key)
+           order by cardinality(c.case_ids) desc, c.filed_at
+           limit greatest(1, least(coalesce(p_limit, 3), 10))) c;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_lesson_embed_write(p_id bigint, p_embedding vector)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -46233,6 +46371,33 @@ begin
   );
 end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_line_spec_reading_get(p_keys text[])
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_object_agg(reading_key, found), '{}'::jsonb) from public.line_spec_reading where reading_key = any (p_keys);
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_line_spec_reading_put(p_rows jsonb)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n integer;
+begin
+  insert into public.line_spec_reading (reading_key, found)
+  select r->>'key', coalesce(r->'found', '{}'::jsonb) from jsonb_array_elements(coalesce(p_rows, '[]'::jsonb)) r
+   where r->>'key' ~ '^[0-9a-f]{64}$' and jsonb_typeof(coalesce(r->'found', '{}'::jsonb)) = 'object'
+  on conflict (reading_key) do nothing;
+  get diagnostics n = row_count;
+  return n;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_llm_cache_lookup(p_key text, p_embedding vector DEFAULT NULL::vector, p_task_class text DEFAULT NULL::text, p_min_similarity numeric DEFAULT 0.95)
@@ -56800,14 +56965,20 @@ CREATE OR REPLACE FUNCTION public.fn_reason_held_due(p_limit integer DEFAULT 3)
 AS $function$
 declare v_gate jsonb; v jsonb;
 begin
-  update public.reasoning_held_question set status = 'failed' where status = 'held' and attempts >= 5;
+  update public.reasoning_held_question set status = 'failed' where status = 'held' and attempts >= 3;
+  -- A fixture row is never replayed (a replay would pay for a test question): the estate's fixture convention in the
+  -- question or request, or a caller's subject.fixture flag. Same criteria as the one-off expiry at the end of this file.
+  update public.reasoning_held_question
+     set status = 'expired', result = coalesce(result, '{}'::jsonb) || jsonb_build_object('expired_by', 'fn_reason_held_due', 'why', 'fixture, never paid for')
+   where status = 'held'
+     and (question ~ 'ZZ DEMO|@example\.invalid' or request::text ~ 'ZZ DEMO|@example\.invalid' or subject->>'fixture' = 'true');
   v_gate := public.fn_kernel_paid_provider_gate('hold-probe/not-a-model');
   if coalesce(v_gate->>'rule', '') in ('founder_hold', 'no_paid_ai_switch', 'empty_route_state') then
     return '[]'::jsonb;
   end if;
   with due as (
     select id from public.reasoning_held_question
-     where status = 'held' and attempts < 5
+     where status = 'held' and attempts < 3
        and (last_attempt_at is null or last_attempt_at < now() - interval '10 minutes')
      order by last_attempt_at nulls first, created_at
      limit greatest(1, least(coalesce(p_limit, 3), 10))
@@ -56920,8 +57091,14 @@ begin
   select * into r from public.reasoning_held_question where id = p_id for update;
   if not found then raise exception 'no held question %', p_id using errcode = 'P0002'; end if;
   if coalesce(p_result->>'status', '') <> 'answered' then
+    if coalesce(p_result->>'reason', '') = 'model_hold' then
+      update public.reasoning_held_question
+         set result = p_result, status = 'held', attempts = greatest(attempts - 1, 0)
+       where id = p_id;
+      return jsonb_build_object('id', p_id, 'status', 'still_held', 'attempt_returned', true);
+    end if;
     update public.reasoning_held_question
-       set result = p_result, status = case when attempts >= 5 then 'failed' else 'held' end
+       set result = p_result, status = case when attempts >= 3 then 'failed' else 'held' end
      where id = p_id;
     return jsonb_build_object('id', p_id, 'status', 'still_held');
   end if;
@@ -62970,9 +63147,9 @@ CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(p_author_seat text
 AS $function$
   select case when c.author_seat is null
     then jsonb_build_object('ok', false, 'dept', null, 'why', 'no seat_deliberation_ceiling row for ' || p_author_seat || ' -> ' || p_reviewer_seat)
-    else jsonb_build_object('ok', s.spent < c.cap_aed_month, 'dept', c.dept_key, 'cap_aed', c.cap_aed_month, 'spent_aed', s.spent,
-                            'why', 'reviews ' || p_author_seat || ' -> ' || p_reviewer_seat || ' spent AED ' || s.spent || ' of '
-                                   || c.cap_aed_month || ' this month (' || c.dept_key || ')') end
+    else jsonb_build_object('ok', true, 'dept', c.dept_key, 'spent_aed', s.spent,
+                            'why', 'reviews ' || p_author_seat || ' -> ' || p_reviewer_seat || ' spent AED ' || s.spent
+                                   || ' this month (' || c.dept_key || '); no limit (founder_instruction 987)') end
     from (select 1) one
     left join public.seat_deliberation_ceiling c on c.author_seat = p_author_seat and c.reviewer_seat = p_reviewer_seat
     left join lateral (select coalesce(sum(l.cost_aed), 0) spent from public.ai_cost_log l
@@ -70640,29 +70817,15 @@ begin
   v_text := coalesce(t.title,'') || ' ' || coalesce(t.detail,'') || ' ' || coalesce(t.action_class,'');
 
   -- STAGE 0 OF THE RECORD, WRITTEN HERE: WHO OWNS THIS PROCESS.
-  -- WHICH RESPONSIBILITY THE WORK IS, REASONED (23 Sep 2026, founder_instruction 886-903). The
-  -- responsibility was the longest one whose words appeared in the task text; it is now the CEO seat's
-  -- reasoning over the declared responsibilities (ceo.task_responsibility), read back by its key. Until it
-  -- is answered no owner is recorded — the ownership row is written by fn_task_ownership_record when the
-  -- answer arrives (fn_reason_apply_ceo__task_responsibility), never on a word.
+  -- ROUTED, NOT REASONED (24 Sep 2026, it_engineer). model_policy task_class 'workflow_routing' is tier none:
+  -- ownership follows the structure (the task's department and its operating system, via
+  -- fn_task_ownership_record with no named responsibility), never a model and never a word. An answer the
+  -- CEO seat already reasoned under the old path (ceo.task_responsibility) is still honoured by its key;
+  -- no new question is filed. Was 5 think() calls / 24h (inventory 24 Sep 2026).
   v_resp_key := 'task_resp:' || p_task_id || ':' || md5(v_text);
-  v_resp_choice := public.fn_reason_route_answer(v_resp_key);
-  if v_resp_choice is null then
-    v_held := public.fn_reason_route_ask('ceo', 'ceo.task_responsibility', v_text,
-      coalesce((select jsonb_agg(jsonb_build_object('id', r.responsibility,
-                  'meaning', 'the work is ' || replace(r.responsibility, '_', ' ') || ' (owned by the ' || r.os_key || ' operating system)')
-                  order by r.responsibility) from os_responsibility r), '[]'::jsonb)
-        || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'none of these responsibilities is what the work is')),
-      jsonb_build_object('task_id', p_task_id, 'dept_key', t.dept_key, 'author', v_author), v_resp_key);
-    -- No declared responsibility to choose between (and no text): nothing to reason, the department's OS owns it.
-    if v_held is null then v_resp_choice := 'none';
-    else v_awaiting := v_awaiting || jsonb_build_object('surface', 'ceo.task_responsibility', 'held_id', v_held); end if;
-  end if;
-  if v_resp_choice is not null then
-    v_own := public.fn_task_ownership_record(p_task_id, t.dept_key, v_author, nullif(v_resp_choice, 'none'));
-    v_own_os := v_own->>'owned_by_os'; v_own_agent := v_own->>'owner_agent'; v_own_resp := v_own->>'owns_responsibility';
-  end if;
-
+  v_resp_choice := coalesce(public.fn_reason_route_answer(v_resp_key), 'none');
+  v_own := public.fn_task_ownership_record(p_task_id, t.dept_key, v_author, nullif(v_resp_choice, 'none'));
+  v_own_os := v_own->>'owned_by_os'; v_own_agent := v_own->>'owner_agent'; v_own_resp := v_own->>'owns_responsibility';
   for v_rule in
     select c.* from collaboration_rule c where c.owner_dept = t.dept_key
   loop
@@ -77561,7 +77724,11 @@ CREATE OR REPLACE FUNCTION public.trg_inquiry_enrich()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare dup int; v_prev_id uuid; v_prev text;
+declare dup int; v_prev_id uuid; v_sim real;
+  -- REPEAT_SIMILARITY: pg_trgm similarity() of the two summaries at or above which a differently worded request from
+  -- the same customer, in the same category, within 30 minutes, is flagged possible_duplicate. 0.5 = half the
+  -- trigrams shared; a flag only marks the inquiry for review, it never merges or drops one.
+  c_repeat_similarity constant real := 0.5;
 begin
   if NEW.urgency is null and NEW.spec is not null and (NEW.spec ? 'urgency') then NEW.urgency := NEW.spec->>'urgency'; end if;
   if NEW.plausibility is null and NEW.spec is not null and (NEW.spec ? 'plausibility') then NEW.plausibility := NEW.spec->'plausibility'; end if;
@@ -77580,30 +77747,23 @@ begin
      where p.customer_id = NEW.customer_id and c.tos_accepted_at is not null;
   end if;
 
-  -- A REPEAT REQUEST (23 Sep 2026, founder_instruction 886-903). The very same summary is the same
-  -- request: that is identity, not meaning, and is flagged at once. A DIFFERENTLY WORDED one used to be
-  -- judged by whether its first 40 characters appeared inside the other — meaning by substring. Whether
-  -- it asks for the same job is now the sales engineer seat's reasoning (inquiry.same_request); the answer
-  -- sets the flag later (fn_reason_apply_inquiry__same_request). Under the hold no flag is guessed.
+  -- A REPEAT REQUEST. The very same summary is the same request (identity). A differently worded one is flagged
+  -- by trigram similarity (model_policy duplicate_detection: SQL + pg_trgm, tier none; 24 Sep 2026), no question filed.
   select count(*) into dup from inquiries i
     where i.customer_id = NEW.customer_id and i.created_at > now() - interval '30 minutes'
       and coalesce(i.category,'') = coalesce(NEW.category,'')
       and i.summary = NEW.summary;
   if dup > 0 then
     NEW.plausibility := coalesce(NEW.plausibility, '{}'::jsonb) || jsonb_build_object('possible_duplicate', true);
-  elsif NEW.id is not null and btrim(coalesce(NEW.summary, '')) <> '' then
-    select i.id, i.summary into v_prev_id, v_prev from inquiries i
+  elsif btrim(coalesce(NEW.summary, '')) <> '' then
+    select i.id, public.similarity(i.summary, NEW.summary) into v_prev_id, v_sim from inquiries i
      where i.customer_id = NEW.customer_id and i.created_at > now() - interval '30 minutes'
        and coalesce(i.category,'') = coalesce(NEW.category,'')
-       and btrim(coalesce(i.summary, '')) <> '' and i.id <> NEW.id
-     order by i.created_at desc limit 1;
-    if v_prev_id is not null then
-      perform public.fn_reason_route_ask('sales_engineer', 'inquiry.same_request',
-        'Earlier request: ' || left(v_prev, 3000) || E'\nNew request: ' || left(NEW.summary, 3000),
-        jsonb_build_array(
-          jsonb_build_object('id', 'same_request', 'meaning', 'the new request asks for the same job as the earlier one, however differently it is worded'),
-          jsonb_build_object('id', 'different_request', 'meaning', 'the new request is a different job')),
-        jsonb_build_object('inquiry_id', NEW.id, 'earlier_id', v_prev_id), 'inquiry_dup:' || NEW.id);
+       and btrim(coalesce(i.summary, '')) <> '' and i.id is distinct from NEW.id
+     order by public.similarity(i.summary, NEW.summary) desc, i.created_at desc limit 1;
+    if v_prev_id is not null and v_sim >= c_repeat_similarity then
+      NEW.plausibility := coalesce(NEW.plausibility, '{}'::jsonb) || jsonb_build_object('possible_duplicate', true,
+        'duplicate_of', v_prev_id, 'duplicate_by', 'trigram', 'similarity', round(v_sim::numeric, 3));
     end if;
   end if;
   return NEW;
@@ -78143,8 +78303,8 @@ begin
 
   grp := public.fn_quote_spec_group(coalesce(cat,''));
   if grp is not null and exists (select 1 from public.category_quote_specs where spec_group=grp) then
-    -- WHICH ASPECTS THE QUOTE STATES IS A REASONED READING of this exact text (quote_aspect_reading),
-    -- never a pattern over the text. No reading yet: the category verdict is 'needs_reasoning' and NOT a pass.
+    -- A reading already reasoned for this exact text is used. Without one nothing is asked (24 Sep 2026): the
+    -- category status is 'not_read' and the quote is judged on its structural score alone.
     v_md5 := md5(coalesce(public.fn_quote_aspect_text(NEW), ''));
     select a.present into v_present from public.quote_aspect_reading a
      where a.quote_id = NEW.id and a.content_md5 = v_md5 and a.status = 'reasoned';
@@ -78158,8 +78318,7 @@ begin
       end loop;
       cat_pass := (cmand_missing = 0);
     else
-      v_cat_status := 'needs_reasoning';
-      cat_pass := false;
+      v_cat_status := 'not_read';
     end if;
   end if;
 
@@ -79207,6 +79366,7 @@ ALTER TABLE public.evolution_proposal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exec_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expense_billing_mailbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expense_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.expense_sender_reading ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expense_vendor_billing_mailbox ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
@@ -79332,6 +79492,7 @@ ALTER TABLE public.legal_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.legal_reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.licence_renewal_ask ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.line_spec_reading ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_attempt ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_cache ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.llm_calls ENABLE ROW LEVEL SECURITY;
@@ -79525,7 +79686,9 @@ ALTER TABLE public.seat_deliberation_turn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_duty ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_handoff_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_judgement ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_eval_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_exam ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_knowledge_recall ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_refresh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
@@ -79673,6 +79836,7 @@ CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SE
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY error_events_service_role_only ON public.error_events AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY expense_sender_reading_service_role_only ON public.expense_sender_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.expenses AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY founder_instruction_service_role_only ON public.founder_instruction AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY founder_mail_policy_history_service_role_only ON public.founder_mail_policy_history AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -79711,6 +79875,7 @@ CREATE POLICY knowledge_ml_status_service_role_only ON public.knowledge_ml_statu
 CREATE POLICY knowledge_vector_ml_service_role_only ON public.knowledge_vector_ml AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY lead_trade_class_service_role_only ON public.lead_trade_class AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.leads AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY line_spec_reading_service_role_only ON public.line_spec_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY market_intel_service_role_only ON public.market_intel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_ad_spend_day_service_role_only ON public.marketing_ad_spend_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_article_service_role_only ON public.marketing_article AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -79783,7 +79948,9 @@ CREATE POLICY seat_deliberation_turn_service_role_only ON public.seat_deliberati
 CREATE POLICY seat_duty_service_role_only ON public.seat_duty AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_judgement_service_role_only ON public.seat_judgement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_eval_question_service_role_only ON public.seat_knowledge_eval_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_exam_service_role_only ON public.seat_knowledge_exam AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_knowledge_recall_service_role_only ON public.seat_knowledge_recall AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_refresh_service_role_only ON public.seat_knowledge_refresh AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
