@@ -528,10 +528,15 @@ const COPY: Record<string, Entry> = {
   // ── Licence gate reasons (leads.licence_gate_reason) ────────────────────────────────────────────
   no_licence: s('no trade licence on file', 'لا توجد رخصة تجارية محفوظة'),
   licence_expired: s('the trade licence on file has expired', 'الرخصة التجارية المحفوظة منتهية الصلاحية'),
+  licence_name_unread: s('we could not read the company name on your trade licence, so our team is checking it by hand. You do not need to do anything; a clearer copy speeds it up',
+    'لم نتمكن من قراءة اسم الشركة في رخصتكم التجارية، لذا يراجعها فريقنا يدويًا. لا يلزمكم أي إجراء، ورفع نسخة أوضح يسرّع المراجعة'),
+  licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
+    'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 
   // ── supplier_api gate and error codes ───────────────────────────────────────────────────────────
   no_company: s('Register your company first.', 'يُرجى تسجيل شركتكم أولًا.'),
   company_exists: s('Your account already manages a company.', 'حسابكم يدير شركة بالفعل.'),
+  company_already_registered: s('A company with this name is already registered on QuotesDone. If it is yours, sign in with the email used to register it, or write to management@quotesdone.com.', 'شركة بهذا الاسم مسجّلة مسبقًا في QuotesDone. إن كانت شركتكم فيُرجى تسجيل الدخول بالبريد الإلكتروني المستخدم في تسجيلها، أو مراسلتنا على management@quotesdone.com.'),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,

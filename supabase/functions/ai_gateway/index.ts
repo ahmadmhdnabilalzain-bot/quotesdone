@@ -25,7 +25,7 @@
 //   3. routing           - fn_ai_route picks the tier from the calling function or task_class,
 //                          then substitutes for capability if the payload needs it
 //   4. refusal           - tier='none' means deterministic code is correct; we decline
-//   5. budget halt       - department over its ceiling stops non-gated work
+//   5. (no budget halt)  - removed 24 Sep 2026, founder_instruction 987: no caps on LLM spend
 //   6. cache             - exact hash, then SEMANTIC similarity on free in-region embeddings
 //   7. the call          - with Anthropic prompt caching, a hard token cap, and a model ladder
 //   8. log               - real cost from model_registry, including cache-read pricing
@@ -380,7 +380,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
         p_agent_key: body.agent ?? null, p_counterpart_model: counterpart, p_why: route.why ?? null });
     }
 
-    // ---- 4 & 5. REFUSALS: deterministic work, a department over budget, or no capable model ---
+    // ---- 4. REFUSALS: deterministic work, or no capable model (no budget halt: founder_instruction 987) ---
     if (route.use_llm === false) {
       await rpcSafe('fn_llm_log', {
         p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
@@ -390,7 +390,7 @@ Deno.serve(observe('ai_gateway', async (req) => {
       });
       return J({ ok: true, used_llm: false,
                  outcome: route.unknown_author ? 'review_author_unknown' : route.no_independent_reviewer ? 'review_held_no_independent_reviewer'
-                        : route.halted ? 'budget_halted' : 'refused_deterministic',
+                        : 'refused_deterministic',
                  why: route.why, deterministic_alternative: route.deterministic_alternative ?? null,
                  caps, cost_usd: 0 });
     }

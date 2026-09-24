@@ -27,8 +27,9 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
   assetMismatch, deletePostizPost, dubaiDate, MAX_LIVE_PER_BEAT, publishSpentTheBeat, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
-  publishPost, pullInsights, readAdSpend, stripTokens, type MetaEnv, type PublishInput, type Variant,
+  publishPost, pullInsights, readAdSpend, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
 } from '../_shared/marketing_channels.ts';
+import { accessToken } from '../_shared/marketing_social_oauth.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
@@ -367,6 +368,49 @@ async function calendarsDue() {
   return { ok: Object.values(out).every((x: any) => x?.ok !== false), sent: out };
 }
 
+// ── THE INTEGRATION WATCH, EVERY BEAT (it_engineer, 24 Sep 2026, founder instruction 979) ─────────────
+// Run here, under the marketing seat, because only this seat reads the Postiz and Meta credentials (rule 641);
+// the registry entries postiz, meta, google_youtube and linkedin say 'marketing' for this reason. One GET of
+// Postiz's integrations, one look at the sealed YouTube token (refreshed when due: the self-fix; a refused
+// refresh is the finding), and the daily Meta access rows re-filed. fn_it_integration_settle files one
+// it_engineer finding per dead channel (duty:integration_social:<item>), closes it by that exact key when the
+// channel is back, and mails the founder the reconnect link; fn_marketing_post_refusal holds that channel's
+// posts meanwhile. Runs BEFORE publishDue, so a channel that died since the last beat is paused on this one.
+async function integrationWatch(e: Env) {
+  const ints = e.postizKey
+    ? await postizIntegrations(timedFetch, e.postizBase, e.postizKey).catch((err) => ({ status: 0, list: [], error: String((err as Error)?.message || err) }))
+    : null;
+  let youtube: YoutubeAuth = { state: 'unknown' };
+  try {
+    const sec = async (k: string) => (await secrets([k]))[k];
+    const save = async (k: string, v: string) => {
+      const { error } = await admin.from('app_secrets').update({ value: v }).eq('key', k);
+      if (error) throw new Error(error.message);
+    };
+    const t = await accessToken(timedFetch, 'youtube', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', sec, save);
+    youtube = t ? { state: 'ok' } : { state: 'not_connected' };
+  } catch (err) {
+    const m = String((err as Error)?.message || err);
+    // Google refusing the refresh token is the finding; a network blip is not a reading and holds what stood.
+    youtube = /token refresh HTTP 4\d\d/.test(m) ? { state: 'refresh_failed', error: m } : { state: 'unknown', error: m };
+  }
+  // A sign-in item carries where its one-time link starts; fn_it_integration_settle mints the token when it mails him.
+  const connectBase = Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_connect/youtube/start?t=';
+  const items: Array<Record<string, unknown>> = socialIntegrationItems(ints, youtube)
+    .map((i): Record<string, unknown> => i.evidence.reconnect_link === 'youtube' ? { ...i, evidence: { ...i.evidence, connect_base: connectBase } } : { ...i });
+  // Meta's own connection, as the daily access check last measured it (no second call to Graph).
+  const { data: meta } = await admin.from('marketing_connection_check').select('check_key,ok,needs,measured_at').like('check_key', 'meta.%');
+  for (const c of (meta || []) as Array<{ check_key: string; ok: boolean; needs: string | null; measured_at: string }>) {
+    if (c.ok) continue;
+    items.push({ item: c.check_key.replace('.', ':'), owner_seat: 'marketing', subject: 'meta', blast: 'agent_facing', affected: 1,
+      title: `Meta ${c.check_key.slice(5)} is not working (measured ${c.measured_at.slice(0, 16)}Z). Needs: ${c.needs}. Reconnect: https://business.facebook.com/settings/system-users`,
+      evidence: { check_key: c.check_key, needs: c.needs, reauth: true, reconnect_url: 'https://business.facebook.com/settings/system-users' } });
+  }
+  const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration_social', p_items: items, p_fixed: [] });
+  if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
+  return { ok: true, dead: items.filter((i) => !i.carried).map((i) => i.item), settled: data };
+}
+
 // ── daily duties ──────────────────────────────────────────────────────────────────────────────────
 async function accessCheck(e: Awaited<ReturnType<typeof env>>) {
   const { data: li } = await admin.from('app_secrets').select('key').ilike('key', '%linkedin%');
@@ -440,10 +484,12 @@ Deno.serve(async (req) => {
     if (action === 'requeue') return J(await requeue(e, body));
     if (action === 'calendar_send') return J(await calendarSend(String(body.campaign_key || '')));
     if (action === 'access_check') return J(await runDaily(e, 'access'));
+    if (action === 'integration_watch') return J(await integrationWatch(e));
     if (action === 'pull_insights') return J(await runDaily(e, 'insights'));
     if (action === 'pull_ad_spend') return J(await runDaily(e, 'ad_spend'));
     if (action !== 'duties') return J({ error: 'unknown_action' }, 400);
 
+    const integrations = await integrationWatch(e);
     const publish = await publishDue(e);
     // One heavy phase per beat (gap 1): a beat that sent a post renders no calendar and runs no daily read.
     const spent = publishSpentTheBeat(publish as { published?: number; failed?: number; unconfirmed?: number; refused_by_database?: number });
@@ -460,13 +506,13 @@ Deno.serve(async (req) => {
       const next = Object.entries((due || {}) as Record<string, boolean>).find(([, isDue]) => isDue);
       if (next) daily[next[0]] = await runDaily(e, next[0]);
     }
-    const bad = [publish, calendars, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
+    const bad = [integrations, publish, calendars, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
     const ran = (publish as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0 || !!(monthPlan as any)?.sent;
     if (ran || bad.length) {
       await logRun(bad.length ? 'error' : 'ok', { publish, calendars: Object.keys(calendars.sent || {}), daily: Object.keys(daily), failed: bad.length, publishing: e.publishing, month_plan: monthPlan },
         bad.length ? 'marketing duty failed: ' + JSON.stringify(stripTokens(bad)).slice(0, 400) : 'marketing duties ran', started);
     }
-    return J({ ok: bad.length === 0, publish, calendars, daily: stripTokens(daily) });
+    return J({ ok: bad.length === 0, integrations: { ok: integrations.ok, dead: (integrations as { dead?: unknown[] }).dead ?? [] }, publish, calendars, daily: stripTokens(daily) });
   } catch (err) {
     await logRun('error', { action }, 'marketing_channels crashed: ' + String((err as Error)?.message || err), started);
     return J({ ok: false, error: String((err as Error)?.message || err) }, 500);

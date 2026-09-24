@@ -1224,7 +1224,7 @@
    "severity": "med",
    "where": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
    "decides": "each category aspect counted as addressed when the quote blob ~* its match_regex; now quote_aspect_reading, reasoned by reasonQuoteAspects over the quote text (md5-keyed, verbatim evidence).",
-   "held": "Held: the quote is held on this verdict - quality.category.status needs_reasoning and pass false (never passed on a word guess); the question is queued (sql.trg_quote_quality) and fn_reason_apply_sql__trg_quote_quality records it and re-scores the quote when the hold lifts.",
+   "held": "No longer reasoned (24 Sep 2026, it_engineer, scripts/sql/quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql): the quote is scored by structure (the fn_quote_score_json points); a reading already reasoned for the exact text is still used, otherwise quality.category.status is not_read and nothing is asked. fn_reason_apply_sql__trg_quote_quality stays for rows already answered.",
    "proof": [
     {
      "file": "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql",
@@ -1239,14 +1239,8 @@
     },
     {
      "file": "supabase/functions/supplier_api/index.ts",
-     "must_contain": [
-      "reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid)"
-     ]
-    },
-    {
-     "file": "supabase/functions/_shared/reasoned_suppliers.ts",
-     "must_contain": [
-      "surface: 'sql.trg_quote_quality'"
+     "must_not_contain": [
+      "reasonQuoteAspects("
      ]
     }
    ]
@@ -1325,7 +1319,7 @@
    "severity": "med",
    "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
    "decides": "summary ilike left(summary,40) -> a differently worded request was flagged possible_duplicate by substring",
-   "held": "An identical summary is flagged at once (identity, not meaning). A differently worded sibling (same customer, category, 30 minutes) files inquiry.same_request in the sales_engineer queue (dedupe inquiry_dup:<id>); under the hold no flag is guessed, and fn_reason_apply_inquiry__same_request sets it when reasoned.",
+   "held": "No longer reasoned (24 Sep 2026, it_engineer, scripts/sql/quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql): an identical summary is flagged at once; a differently worded sibling (same customer, category, 30 minutes) is flagged by pg_trgm similarity >= 0.5 (model_policy duplicate_detection, tier none). No question is filed.",
    "proof": [
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
@@ -1439,7 +1433,7 @@
    "severity": "med",
    "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
    "decides": "os_responsibility words in the task text (position(), longest first) -> the owning OS and owner; two shared long words -> a (possibly blocking) collaboration rule applies",
-   "held": "The responsibility (ceo.task_responsibility) and each collaboration rule (ceo.task_collaboration_rule) are filed in the CEO seat's queue; until reasoned no owner is recorded and no rule applies, and the review lists them under awaiting_reasoning. The apply routines record the ownership row / collaboration row when answered.",
+   "held": "Ownership is ROUTED, not reasoned (24 Sep 2026, it_engineer; model_policy workflow_routing, tier none): the department's operating system owns the task via fn_task_ownership_record, no question filed; an answer reasoned under the old ceo.task_responsibility key is honoured. Each collaboration rule (ceo.task_collaboration_rule) is filed in the CEO seat's queue; until reasoned no rule applies and the review lists it under awaiting_reasoning.",
    "proof": [
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
@@ -1454,9 +1448,19 @@
      ]
     },
     {
+     "file": "scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql",
+     "must_contain": [
+      "v_resp_choice := coalesce(public.fn_reason_route_answer(v_resp_key), 'none');",
+      "v_own := public.fn_task_ownership_record(p_task_id, t.dept_key, v_author, nullif(v_resp_choice, 'none'));"
+     ],
+     "must_not_contain": [
+      "fn_reason_route_ask('ceo', 'ceo.task_responsibility'",
+      "position(replace(r.responsibility, '_', ' ') in lower(v_text))"
+     ]
+    },
+    {
      "file": "supabase/functions/_shared/reasoned_routing.ts",
      "must_contain": [
-      "'ceo.task_responsibility'",
       "'ceo.escalation_meaning'",
       "'ceo.refund_off_platform'",
       "'supplier_documents.subject'",
@@ -2865,7 +2869,7 @@
    "severity": "med",
    "where": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",
    "decides": "rungs 3 and 4 matched the trade word inside catalogue slugs and names (slug like '%-'||word||'-%', name like '%'||word||'%'); they resolved 40 of 56 vocabulary words (measured 23 Sep 2026)",
-   "held": "A word no declared rung maps is asked once (category.key_for_slug, dedupe category_key:<word>; on the category_specs insert trigger and a one-off for the 40 known words); until reasoned it has no key (null), which callers read as no category.",
+   "held": "No longer reasoned (24 Sep 2026, it_engineer, scripts/sql/quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql): the key is an exact lookup in category_route_map / catalog_supplier_categories.slug; a word absent from both has no key (null, no category) and nothing is asked - exact trade match or none.",
    "proof": [
     {
      "file": "scripts/sql/routing_and_ceo_decisions_are_reasoned_not_word_matched.sql",

@@ -2,7 +2,7 @@
 // No network, no env, no paid call. ZZ DEMO / example.invalid only.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
-import { bankLineKind, deliverBooks, documentKind, readingOf, reasonBankLines, receiptVendor, type ExpenseMail } from './reasoned_books.ts';
+import { bankLineKind, deliverBooks, documentKind, issuingSender, readingOf, reasonBankLines, receiptVendor, type ExpenseMail } from './reasoned_books.ts';
 
 const J = (x: unknown) => JSON.stringify(x);
 const PLAN = J({ steps: [{ id: 's1', goal: 'read the document', needs_knowledge: false }], facts: [] });
@@ -112,4 +112,45 @@ Deno.test('the replay: delivered only when the sweep took the email in; "other" 
   assertEquals((await deliverBooks(row('accountant.document_kind', { email_id: 'svix:s1', mailbox: 'expenses', provider_email_id: null }), res('receipt_one_off'), io))?.via, 'none');
   assertEquals(await deliverBooks(row('wa_inbound.needs_a_person', {}), res('x'), io), null);
   assertEquals(log, ['sweep e1', 'sweep e1', 'sweep e1', 'bk e1', 'bk p2']);
+});
+
+// ── a known sender stays code: each test FAILS if a known sender's receipt goes back to the model ──
+Deno.test('the issuing sender is the forwarded header address, exact and lower-cased, else the envelope', () => {
+  assertEquals(issuingSender(MAIL), 'billing@example.invalid');
+  assertEquals(issuingSender({ ...MAIL, text: 'no header here' }), 'founder@example.invalid');
+});
+
+function knownSender(reading: Record<string, unknown> | null) {
+  const m = mock({ choices: [] });
+  let llm = 0; const learned: Record<string, unknown>[] = [];
+  const base = m.deps.rpc;
+  m.deps.llm = () => { llm++; return Promise.resolve({ content: null, model: 'm' } as LlmReply); };
+  m.deps.rpc = (fn, args) => {
+    if (fn === 'fn_expense_sender_reading') { assertEquals(args.p_sender, 'billing@example.invalid'); return Promise.resolve({ data: reading, error: null }); }
+    if (fn === 'fn_expense_sender_learn') learned.push(args);
+    return base(fn, args);
+  };
+  return { deps: m.deps, llm: () => llm, learned };
+}
+
+Deno.test('a sender whose kind and vendor were reasoned the same twice is not reasoned again', async () => {
+  const k = knownSender({ kind: 'receipt_monthly', kind_times: 2, vendor: 'ZZ DEMO Vendor', vendor_times: 3 });
+  const kind = await documentKind(k.deps, MAIL, RENEWALS, []);
+  const vendor = await receiptVendor(k.deps, MAIL, ['ZZ DEMO Vendor']);
+  assertEquals([kind.value, vendor.value, k.llm()], ['receipt_monthly', 'ZZ DEMO Vendor', 0]);
+  assertEquals(kind.result.model, null);
+});
+
+Deno.test('a sender seen once, or a renewal, is still reasoned — and the answer is learned', async () => {
+  const once = knownSender({ kind: 'receipt_monthly', kind_times: 1 });
+  await documentKind(once.deps, MAIL, RENEWALS, []);
+  assert(once.llm() > 0, 'seen once: reasoned');
+  const renewal = knownSender({ kind: 'renewal:trade_licence_det_1633275', kind_times: 5 });
+  await documentKind(renewal.deps, MAIL, RENEWALS, []);
+  assert(renewal.llm() > 0, 'a renewal names one item: always reasoned');
+  const m = mock({ choices: ['receipt_annual'] });
+  const learned: Record<string, unknown>[] = []; const base = m.deps.rpc;
+  m.deps.rpc = (fn, args) => { if (fn === 'fn_expense_sender_learn') learned.push(args); return base(fn, args); };
+  await documentKind(m.deps, MAIL, [], []);
+  assertEquals(learned, [{ p_sender: 'billing@example.invalid', p_kind: 'receipt_annual', p_vendor: null, p_email_id: 'zz-demo-1' }]);
 });

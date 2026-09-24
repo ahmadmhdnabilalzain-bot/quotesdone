@@ -58,9 +58,29 @@ export function blocksTransactional(reason: unknown): boolean {
 const aligned = (d: string, from: string) => d === from || from.endsWith('.' + d) || d.endsWith('.' + from);
 
 /** true when the receiving MTA authenticated the From domain (DMARC pass, or an aligned DKIM/SPF pass). */
+// A REPEATED HEADER FROM THE SENDER'S OWN MAIL SYSTEM (24 Sep 2026, marketing). Microsoft 365 stamps its own
+// internal Authentication-Results on every message it sends ("dkim=none (message not signed) header.d=none;
+// dmarc=none action=none header.from=..."), so EVERY Outlook reply arrives with two instances and Resend hands
+// them over as one JSON-encoded array. Refusing every '['-string refused the founder's own "Approve" to the
+// September calendar (inbound_messages 162: SES wrote spf=pass and dmarc=pass header.from=quotesdone.com; the
+// outcome was not_authenticated). SES always adds its own header, so a sender-supplied SES-looking entry makes
+// TWO SES entries and still fails closed; an entry that is not SES's is ignored, because only the receiving
+// server's verdict was ever trusted.
+function sesHeaderOf(authResults: unknown): string | null {
+  if (typeof authResults !== 'string') return null;                       // missing, or an array object
+  const raw = authResults.trim();
+  if (!raw.startsWith('[')) return raw;
+  let list: unknown;
+  try { list = JSON.parse(raw); } catch { return null; }
+  if (!Array.isArray(list) || !list.every((x) => typeof x === 'string')) return null;
+  const ses = (list as string[]).filter((x) => /^amazonses\.com\s*;/i.test(x.trim()));
+  return ses.length === 1 ? ses[0].trim() : null;                          // none, or two SES verdicts: ambiguous
+}
+
 export function fromDomainAuthenticated(authResults: unknown, fromEmail: string): boolean {
-  if (typeof authResults !== 'string') return false;                       // missing, or an array: not one header
-  const ar = authResults.trim().toLowerCase();
+  const one = sesHeaderOf(authResults);
+  if (one === null) return false;
+  const ar = one.toLowerCase();
   const dom = String(fromEmail || '').trim().toLowerCase().split('@')[1] || '';
   if (!dom || /[\r\n]/.test(ar)) return false;
   if (!ar.startsWith('amazonses.com;')) return false;                      // not SES's, or a JSON list of several

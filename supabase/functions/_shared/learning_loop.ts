@@ -22,7 +22,11 @@ export function distilQuestion(c: Cluster): string {
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export async function distilLessons(admin: Admin, deps?: ThinkDeps, limit = 2): Promise<unknown> {
+// TWO CADENCES (24 Sep 2026, it_engineer): the hourly run (reason: false) embeds and groups in SQL and never calls
+// the model; the weekly run (reason: true) groups too, then reasons ONLY the groups that crossed the threshold
+// (fn_lesson_clusters_to_reason: minCases or more, reasonLimit a week, never one already asked).
+export type DistilOpts = { reason: boolean; minCases?: number; reasonLimit?: number };
+export async function distilLessons(admin: Admin, deps?: ThinkDeps, limit = 2, opts: DistilOpts = { reason: true }): Promise<unknown> {
   const d = deps ?? defaultDeps(admin, 'resilience_ping');
   // Lessons already written get their vector first, so they are retrievable by meaning (gte-small, free).
   let embedded = 0;
@@ -31,8 +35,12 @@ export async function distilLessons(admin: Admin, deps?: ThinkDeps, limit = 2): 
     const v = await d.embed(t.finding);
     if (v) { await d.rpc('fn_lesson_embed_write', { p_id: t.id, p_embedding: '[' + v.join(',') + ']' }); embedded++; }
   }
-  const { data, error } = await d.rpc('fn_lesson_clusters', { p_limit: limit });
+  const { data: grouped, error } = await d.rpc('fn_lesson_clusters', { p_limit: limit });
   if (error) return { ok: false, error: error.message, embedded };
+  const groupedN = ((grouped ?? []) as unknown[]).length;
+  if (!opts.reason) return { ok: true, embedded, grouped: groupedN, reasoned: 0 };
+  const { data, error: e2 } = await d.rpc('fn_lesson_clusters_to_reason', { p_min_cases: opts.minCases ?? 5, p_limit: opts.reasonLimit ?? 3 });
+  if (e2) return { ok: false, error: e2.message, embedded, grouped: groupedN };
   const out: unknown[] = [];
   for (const c of (data ?? []) as Cluster[]) {
     const subject = { cluster_key: c.cluster_key, case_ids: c.cases.map((x) => x.case_id) };
@@ -47,5 +55,5 @@ export async function distilLessons(admin: Admin, deps?: ThinkDeps, limit = 2): 
     }
     out.push({ cluster: c.cluster_key, seat: c.seat, status: r.status, held_id: r.held_id ?? null, applied });
   }
-  return { ok: true, embedded, clusters: out.length, rows: out };
+  return { ok: true, embedded, grouped: groupedN, clusters: out.length, rows: out };
 }
