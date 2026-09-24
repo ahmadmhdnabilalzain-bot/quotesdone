@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T01:56:49.561Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T02:09:09.846Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -41825,6 +41825,8 @@ AS $function$
         -- fn_originators_reverify_handoffs escalates them to the CEO at the window first. Per-type
         -- rules belong in seat_handoff_kind if one of them ever needs a different allowance.
         when h.replied and h.t <> 'it.finding' and now() > h.created_at + h.w + interval '24 hours' then 'unclosed'
+        -- 23 Sep 2026: answered, the problem is still there, and a day has gone by.
+        when h.replied and h.t = 'it.finding' and not h.cleared and now() > h.created_at + interval '24 hours' then 'open_over_24h'
       end state
       from h)
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -41834,8 +41836,10 @@ AS $function$
            'subject', 'agent_actions',
            'title', g.n || ' ' || g.t || ' handoff(s) to ' || g.agent
                     || case g.state when 'unanswered' then ' have had no reply'
+                                    when 'open_over_24h' then ' were answered more than 24 hours ago and the problem is still open'
                        else ' were answered but never closed by the seat that sent them' end
-                    || ' past the ' || g.w || ' window; the oldest is #' || g.oldest_id || ' from '
+                    || case when g.state = 'open_over_24h' then '' else ' past the ' || g.w || ' window' end
+                    || '; the oldest is #' || g.oldest_id || ' from '
                     || to_char(g.oldest_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
            'blast', 'agent_facing', 'affected', g.n,
            'evidence', jsonb_build_object('state', g.state, 'type', g.t, 'seat', g.agent, 'reply_within', g.w::text,
@@ -42659,7 +42663,9 @@ begin
    where v_manifest is null
       or (v_manifest->'tables' ? t.table_name
           and coalesce(v_manifest->'tables'->t.table_name->>'mode', 'full') not like 'changes_since%')
-   order by (coalesce(pc.reltuples, 0) > 0) desc, random() limit 1;
+   -- 23 Sep 2026: a page the export says has rows first; reltuples counts demo rows the export excludes.
+   order by coalesce((v_manifest->'tables'->t.table_name->>'rows') ~ '^[1-9][0-9]*$', false) desc,
+            (coalesce(pc.reltuples, 0) > 0) desc, random() limit 1;
   return jsonb_build_object('newest_export_day', v_newest,
     'sample_rows', coalesce(public.fn_it_threshold('restore_table_sample_rows'), 50),
     'chain', v_chain,
@@ -42776,12 +42782,15 @@ begin
   end if;
   if v_err is null and n_rest = 0 and v_key is not null then
     if coalesce((t->>'rows_in_file')::int, -1) = 0 then
+      -- 23 Sep 2026: an empty page restores nothing, so it proves nothing -- a failure, not a pass.
       execute format('select not exists (select 1 from public.%I)', v_tab) into v_live_empty;
+      v_err := 'the picked page of ' || v_tab || ' holds 0 rows, so nothing was restored and nothing was proved'
+               || case when v_live_empty then ' (live is empty too)' else '' end;
     else
       v_err := 'the export holds ' || coalesce(t->>'rows_in_file', 'an unknown number of') || ' row(s) and none reached the restore';
     end if;
   end if;
-  v_ok := v_err is null and ((n_rest > 0 and n_match > 0) or coalesce(v_live_empty, false));
+  v_ok := v_err is null and n_rest > 0 and n_match > 0;
   v_detail := jsonb_build_object('table', v_tab, 'path', t->>'path', 'rows_in_file', t->'rows_in_file', 'restored', n_rest,
                                  'identical_to_live', n_match, 'changed_since_export', n_changed, 'gone_from_live', n_missing,
                                  'not_compared', to_jsonb(v_drop), 'error', v_err,
@@ -53512,6 +53521,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53682,16 +53701,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
