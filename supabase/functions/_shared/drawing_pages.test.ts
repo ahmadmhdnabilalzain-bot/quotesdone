@@ -7,7 +7,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { DRAWING_SIGN_ISSUE, drawingWithheld, isRedactedPath, signRedactedDrawings } from './drawing_pages.ts';
 
 /** `fails` decides how each path answers: 'ok', 'error' (the shape createSignedUrl really returns), or 'throw'. */
-function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang') {
+function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang', prov: { recorded?: (path: string) => boolean; demoTags?: string[]; lookupError?: boolean } = {}) {
   const rpcs: { name: string; args: any }[] = [];
   const inserts: { table: string; row: any }[] = [];
   const signed: string[] = [];
@@ -25,7 +25,20 @@ function fake(fails: (path: string) => 'ok' | 'error' | 'throw' | 'hang') {
       }),
     },
     rpc: async (name: string, args: any) => { rpcs.push({ name, args }); return { data: {}, error: null }; },
-    from: (table: string) => ({ insert: async (row: any) => { inserts.push({ table, row }); return { error: null }; } }),
+    from: (table: string) => ({
+      insert: async (row: any) => { inserts.push({ table, row }); return { error: null }; },
+      // The provenance lookups (drawing_redaction_runs.output_paths, rehearsal_window.run_tag): a thenable chain.
+      select: (_cols: string) => {
+        let vals: string[] = [];
+        const q: any = {
+          overlaps: (_k: string, v: string[]) => { vals = v; return q; }, neq: () => q, in: (_k: string, v: string[]) => { vals = v; return q; },
+          then: (res: (x: unknown) => unknown) => res(prov.lookupError ? { data: null, error: { message: 'lookup down' } }
+            : table === 'drawing_redaction_runs' ? { data: [{ output_paths: vals.filter((p) => (prov.recorded ?? (() => true))(p)) }], error: null }
+            : { data: vals.filter((t) => (prov.demoTags ?? []).includes(t.replace(/^qd_run:/, ''))).map((run_tag) => ({ run_tag })), error: null }),
+        };
+        return q;
+      },
+    }),
   };
   return { admin, rpcs, signed, inserts };
 }
@@ -147,4 +160,23 @@ Deno.test('a customer file with no shareable page is reported as withheld, never
   assertEquals(drawingWithheld(true, 0), true);    // held drawing, CAD file, BOQ sheet: an original, no pages
   assertEquals(drawingWithheld(true, 3), false);   // the redacted pages are the drawing
   assertEquals(drawingWithheld(false, 0), false);  // no file was attached
+});
+
+// 24 Sep 2026 (drawings audit, finding 2): three live inquiries served drawings/redacted/founderdemo/... pages that
+// no redaction run names. A redacted-shaped path is now signed only when a recorded run (or a registered E2E run)
+// produced it; a failed lookup refuses every page, and the refusal is counted and raised like any failure.
+Deno.test('a redacted-shaped path with no run behind it is refused; a registered demo run is served; a failed lookup serves nothing', async () => {
+  const f = fake(() => 'ok', { recorded: (p) => p.includes('ran'), demoTags: ['founderdemo'] });
+  const out = await signRedactedDrawings(f.admin, [{ id: 'zz-demo-inq-7', paths: [
+    'redacted/ran-1/page_p0.jpg', 'redacted/forged-2/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png', 'drawings/redacted/zzforged/x_p1.png'] }]);
+  assertEquals(out['zz-demo-inq-7'].served, 2);
+  assertEquals(out['zz-demo-inq-7'].failed, 2);
+  assertEquals(f.signed, ['redacted/ran-1/page_p0.jpg', 'drawings/redacted/founderdemo/x_p1.png'], 'a page with no provenance reached storage');
+  assert(String(f.rpcs[0].args.p_evidence.sample_errors[0].message).includes('no redaction run'));
+
+  const down = fake(() => 'ok', { lookupError: true });
+  const none = await signRedactedDrawings(down.admin, [{ id: 'zz-demo-inq-8', paths: ['redacted/ran-1/page_p0.jpg'] }]);
+  assertEquals(none['zz-demo-inq-8'].served, 0);
+  assertEquals(down.signed, [], 'a page was signed while its provenance could not be read');
+  assertEquals(down.rpcs[0].name, 'fn_it_engineer_finding_upsert');
 });

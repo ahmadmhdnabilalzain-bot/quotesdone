@@ -442,6 +442,35 @@ function cadJobNeedsRedispatch(job: { status: string; created_at: string; claime
   return stuck && Math.floor(age(job.created_at) / 1000) % 60 < 15;
 }
 
+// A CAD DRAWING IS DRAWN FOR SUPPLIERS FROM ITS OWN ENTITIES (24 Sep 2026, sales_engineer; founder
+// instructions 32, 580, 703). Until today a .dwg / .dxf reached drawing_redact only as cad_convert's paid
+// CloudConvert raster, which has no text layer: the server could not box its title block, the model is held,
+// and every CAD drawing a customer sent was held (production, 24 Sep: 6 redaction runs, none complete).
+// drawing_redact mode 'cad' draws the drawing itself with its identity left out (_shared/cad_render.ts) and
+// records the run; the answer is shaped like the pictured path's, so drawingHandoff decides the same way.
+async function redactCad(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }) {
+  let rj: any = null;
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'cad', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
+      // A drawing that takes longer than this to draw is HELD (the CAD worker draws past the edge's limits).
+      signal: AbortSignal.timeout(60_000) });
+    rj = await r.json().catch(() => null);
+  } catch (_e) { rj = null; }
+  const ok = !!(rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths) && rj.paths.length);
+  const redacted: string[] = ok ? rj.paths.map((x: unknown) => String(x)) : [];
+  const meta = { redaction_job_id: ok ? String(rj.job_id) : null, redaction_job_ids: ok ? [String(rj.job_id)] : [], redaction_pages_in: 1, redaction_pages_out: redacted.length, redaction_pages_lost: rj ? 0 : 1, redaction_complete: ok && redacted.length === 1, needs_manual_boxes: false };
+  return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
+}
+// THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
+// throwing, so the old try/catch swallowed every failure and a held drawing could have no ledger row at all.
+async function recordHeld(row: ReturnType<typeof heldRun>): Promise<void> {
+  try {
+    const { error } = await admin.from('drawing_redaction_runs').insert(row);
+    if (error) console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${error.message}`);
+  } catch (e) { console.error(`[drawing] the hold of ${row.source_path} was not recorded: ${String((e as Error)?.message || e)}`); }
+}
+
 // AUDIT 9.1 (3 Aug 2026). This is the least trusted input in the system: the customer drawing
 // path. Whatever lands here is later rendered, passed to an LLM, and shown to suppliers. It
 // previously took the caller's declared Content-Type and the caller's filename at face value and
@@ -792,7 +821,11 @@ Deno.serve(observe('customer_api', async (req) => {
       const { data: job } = await admin.from('cad_read_jobs').select('status, result, finished_at, created_at, claimed_at').eq('id', id).eq('customer_id', cust.id).maybeSingle();
       if (!job) return J({ ok: false, error: 'not_found' }, 404);
       if (cadJobNeedsRedispatch(job as any)) await dispatchCadWorker(id);
-      return J({ ok: true, status: job.status, boq: job.status === 'done' ? (job.result as any)?.boq ?? null : null });
+      // 24 Sep 2026: the worker also DRAWS a CAD file the edge could not, for suppliers (cad_read_worker.ts
+      // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
+      const res = job.status === 'done' ? (job.result as any) : null;
+      const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
+      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -841,10 +874,15 @@ Deno.serve(observe('customer_api', async (req) => {
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
-      // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD file itself is
-      // never shared, and the customer is told so (drawing_held, the same notice analyze_drawing gives).
+      // out before the customer's portal holds the BOQ it will send (22 Sep 2026). The CAD FILE is never
+      // shared; since 24 Sep 2026 a DRAWING of it is, with its identity left out (redactCad), and when that
+      // cannot be drawn the drawing is held and the customer is told so, as analyze_drawing does.
       const cad = /\.(dxf|dwg)$/i.test(name) || /dxf|dwg/i.test(mime);
-      return J({ ok: true, boq: cad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(b64)) : jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path, ...(cad ? { drawing_held: !!path, share_redacted: false } : {}) });
+      if (!cad) return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+      const red = path ? await redactCad({ secret, b64, custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) }) : null;
+      const hand = red ? drawingHandoff(red.meta, path, red.redacted) : { drawing_redacted_paths: [], drawing_held: false };
+      if (red && hand.drawing_held && path) await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: red.meta, reason: 'cad_render_' + red.reason }));
+      return J({ ok: true, boq: jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(b64)) : jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, stored: !!path, ...(red ? red.meta : {}), ...hand });
     }
 
     if (action === 'analyze_drawing') {
@@ -855,9 +893,14 @@ Deno.serve(observe('customer_api', async (req) => {
       const path = body.original_b64 ? await storeOriginal(cust.id, email, name, mime, String(body.original_b64)) : null;
       const secret = await getSecret('cred_fn_customer_api');
       const isCad = /\.(dwg|dxf)$/i.test(name) || /dwg|dxf|autocad|acad/i.test(mime);
-      if (!images.length && isCad && body.original_b64) {
-        try { const cr = await fetch(`${SUPABASE_URL}/functions/v1/cad_convert`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, b64: body.original_b64, filename: name }) }); const cj = await cr.json(); if (cj?.ok && Array.isArray(cj.images) && cj.images.length) images = cj.images.slice(0, MAX_DRAWING_PAGES); } catch (_e) { /* */ }
-      }
+      // 24 Sep 2026: a CAD original is no longer sent to cad_convert (a paid CloudConvert raster the server could
+      // not verify, so every such picture was held). It is DRAWN from its own entities, identity left out.
+      const cadRed = !images.length && isCad && body.original_b64 && path
+        ? await redactCad({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) })
+        : null;
+      const cadHand = cadRed ? drawingHandoff(cadRed.meta, path, cadRed.redacted) : { drawing_redacted_paths: [] as string[], drawing_held: !!path, share_redacted: false as const };
+      if (cadRed && cadHand.drawing_held && path) await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: cadRed.meta, reason: 'cad_render_' + cadRed.reason }));
+      const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand) };
       // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
       // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.
       // Measured before changing anything: neither crashed — both fell through to the single note
@@ -878,9 +921,9 @@ Deno.serve(observe('customer_api', async (req) => {
         const why = cadQueueReason(st, jd);
         if (why && path) {
           const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why });
-          if (job) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: true, share_redacted: false, note: 'cad_queued', cad_job_id: job });
+          if (job) return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name, ...cadOut, note: 'cad_queued', cad_job_id: job });
         }
-        if (boq) return J({ ok: true, boq, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note: 'cad_read_not_pictured' });
+        if (boq) return J({ ok: true, boq, drawing_file_path: path, drawing_file_name: name, ...cadOut });
       }
       if (!images.length) {
         const note = isCad ? 'cad_not_converted' : (isArchive ? 'archive_not_supported' : 'no_readable_pages');
@@ -890,7 +933,7 @@ Deno.serve(observe('customer_api', async (req) => {
             ? 'This is a compressed archive, so we cannot read the drawings inside it. Please extract it and upload the PDF or image files themselves — you can attach up to 10 pages.'
             : 'We could not read any pages from this file. It may be corrupted, password-protected, or saved in a format we cannot open. Please re-export it as a PDF or upload clear images of each page.');
         return J({ ok: true, boq: null, drawing_file_path: path, drawing_file_name: name,
-                   drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, note, advice });
+                   drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false, ...(isCad ? cadOut : {}), note, advice });
       }
       try {
         const redPrefix = `redacted/${crypto.randomUUID()}/page`;
@@ -983,7 +1026,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path) {
           const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
-          try { await admin.from('drawing_redaction_runs').insert(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason })); } catch (_e) { /* the hold stands even if its record fails */ }
+          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason }));
         }
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
         const jd = await boqRes.value.json().catch(() => null);

@@ -1,0 +1,205 @@
+// zz_demo_drawings.fixtures — ONE synthetic ZZ DEMO job drawn in every format a customer sends, with its
+// true counts known by construction and its identity planted everywhere a real drawing carries it
+// (24 Sep 2026, sales_engineer; founder instructions 31, 32, 580, 701, 703). Pure, no I/O, nothing real:
+// every name is "ZZ DEMO", every address @example.invalid, every phone a reserved 5000000xx number.
+//
+// THE JOB. A ground-floor power and fire-alarm layout: three rooms (OFFICE 101, MEETING ROOM 102,
+// STORE 103), two dimensions (6000, 4000), a legend, a note, and TAGGED ELEMENTS whose true count is:
+//   CAD (DXF / binary DXF / DWG): block SD (smoke detector) x 7, block SKT (double socket) x 5 — plus one
+//     SD and one SKT drawn as LEGEND samples, which an estimator does not count;
+//   PDF (vector, single sheet and 3-sheet set): floor drains FD-1 x 7, water closets WC-1 x 5, and fan
+//     coil units FCU-1 / FCU-2 / FCU-3 once each;
+//   image: 7 red smoke-detector symbols and 3 blue manual call points, with their legend.
+// THE IDENTITY, planted in the title block (as text, as ATTRIBs of a title-block INSERT, as the PDF's
+// /Info metadata, as a DWG header variable, in paper space, in the file NAME) and OUTSIDE it (a contact
+// line with an e-mail and a phone, a "CONSULTANT:" label with the firm beside it). Every string in
+// IDENTITY must be gone from anything a supplier receives; every string in CONTENT must survive.
+import { dxfBinaryFrom, dxfFrom, dxfSection } from './cad.fixtures.ts';
+import type { DwgDb } from './dwg.ts';
+
+export const IDENTITY = ['ZZ DEMO', 'Rashid', 'Kareem', 'Harbour', 'ORBIT', 'ZZ-2026-0142', 'example.invalid', '0000017', '000 0017', 'Drafter', 'zz.site', 'zz.orbit'];
+export const CONTENT = ['OFFICE 101', 'MEETING ROOM 102', 'STORE 103', '6000', '4000', 'LEGEND', 'SD - SMOKE DETECTOR', 'SKT - DOUBLE SOCKET OUTLET', 'NOTE: ALL SOCKETS AT 300 AFFL'];
+/** The customer's own seed terms, as customer_api builds them (name, e-mail, phone, file name). */
+export const CUSTOMER = { name: 'ZZ DEMO Rashid Kareem', email: 'rashid.kareem@zzdemo.example.invalid', phone: '+971500000017' };
+export const FILE_NAME = 'ZZ DEMO Harbour Tower E-101 ZZ-2026-0142';
+export const CAD_COUNTS = { SD: 7, SKT: 5 };
+export const PDF_COUNTS = { 'FD-1': 7, 'WC-1': 5, FCU: 3 };
+export const IMAGE_COUNTS = { smoke_detector: 7, manual_call_point: 3 };
+
+type P = [number, string | number][];
+const line = (layer: string, x1: number, y1: number, x2: number, y2: number): P => [[0, 'LINE'], [8, layer], [10, x1], [20, y1], [30, 0], [11, x2], [21, y2], [31, 0]];
+const rect = (layer: string, x: number, y: number, w: number, h: number): P => [[0, 'LWPOLYLINE'], [8, layer], [90, 4], [70, 1], [10, x], [20, y], [10, x + w], [20, y], [10, x + w], [20, y + h], [10, x], [20, y + h]];
+const text = (layer: string, x: number, y: number, h: number, s: string, center = false): P => center
+  ? [[0, 'TEXT'], [8, layer], [10, x], [20, y], [30, 0], [40, h], [1, s], [72, 1], [11, x], [21, y], [31, 0]]
+  : [[0, 'TEXT'], [8, layer], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+const insert = (layer: string, name: string, x: number, y: number): P => [[0, 'INSERT'], [8, layer], [2, name], [10, x], [20, y], [30, 0]];
+const attrib = (tag: string, x: number, y: number, s: string): P => [[0, 'ATTRIB'], [8, 'ZZ-TITLE'], [10, x], [20, y], [30, 0], [40, 180], [1, s], [2, tag], [70, 0]];
+
+const SD_AT: [number, number][] = [[1000, 1000], [3000, 700], [5000, 1000], [1000, 3200], [5000, 3200], [7000, 1000], [9000, 3200]];
+const SKT_AT: [number, number][] = [[200, 500], [5800, 500], [6200, 3600], [9800, 3600], [11000, 300]];
+
+/** The DXF, as group-code pairs (so the same drawing can be written ASCII or binary). */
+export function zzDxfPairs(): P {
+  const blocks: P = [
+    [0, 'BLOCK'], [8, '0'], [2, 'SD'], [70, 0], [10, 0], [20, 0], [30, 0],
+    [0, 'CIRCLE'], [8, '0'], [10, 0], [20, 0], [30, 0], [40, 150],
+    ...text('0', 0, 0, 90, 'SD', true), [0, 'ENDBLK'], [8, '0'],
+    [0, 'BLOCK'], [8, '0'], [2, 'SKT'], [70, 0], [10, 0], [20, 0], [30, 0],
+    ...rect('0', -100, -50, 200, 100), ...line('0', -100, 0, 100, 0), [0, 'ENDBLK'], [8, '0'],
+    // The consultant's title block: a frame, a logo image, the firm, its contacts, the sheet's own words.
+    [0, 'BLOCK'], [8, '0'], [2, 'ZZ_TITLEBLOCK_A1'], [70, 2], [10, 0], [20, 0], [30, 0],
+    ...rect('0', 0, 0, 3000, 7500),
+    ...text('0', 150, 7100, 180, 'ZZ DEMO ORBIT CONSULTING ENGINEERS LLC'),
+    ...text('0', 150, 6800, 150, 'TEL +971 4 000 0017'),
+    ...text('0', 150, 6550, 150, 'zz.orbit@example.invalid'),
+    ...text('0', 150, 1200, 150, 'SCALE 1:100'),
+    ...text('0', 150, 900, 150, 'GROUND FLOOR POWER AND FIRE ALARM LAYOUT'),
+    [0, 'ENDBLK'], [8, '0'],
+    // The sheet frame: its lines are the page border, its words are a plot stamp.
+    [0, 'BLOCK'], [8, '0'], [2, 'BORDER_A1'], [70, 0], [10, 0], [20, 0], [30, 0],
+    ...rect('0', 0, 0, 17500, 8500), ...text('0', 100, 100, 120, 'PLOTTED FOR ZZ DEMO HARBOUR TOWER'), [0, 'ENDBLK'], [8, '0'],
+    // A dimension's own block, the way AutoCAD writes one.
+    [0, 'BLOCK'], [8, '0'], [2, '*D1'], [70, 1], [10, 0], [20, 0], [30, 0],
+    ...line('0', 0, -600, 6000, -600), ...line('0', 0, -450, 0, -750), ...line('0', 6000, -450, 6000, -750),
+    [0, 'MTEXT'], [8, '0'], [10, 3000], [20, -450], [30, 0], [40, 200], [71, 8], [1, '6000'],
+    [0, 'ENDBLK'], [8, '0'],
+  ];
+  const ents: P = [
+    ...rect('A-WALL', 0, 0, 6000, 4000), ...rect('A-WALL', 6000, 0, 4000, 4000), ...rect('A-WALL', 10000, 0, 2000, 4000),
+    ...text('A-ANNO', 3000, 2000, 250, 'OFFICE 101', true), ...text('A-ANNO', 8000, 2000, 250, 'MEETING ROOM 102', true), ...text('A-ANNO', 11000, 2000, 200, 'STORE 103', true),
+    [0, 'DIMENSION'], [8, 'A-DIMS'], [2, '*D1'], [10, 6000], [20, -600], [30, 0], [11, 3000], [21, -450], [31, 0], [70, 32], [1, ''], [42, 6000],
+    [0, 'DIMENSION'], [8, 'A-DIMS'], [10, -700], [20, 0], [30, 0], [11, -700], [21, 2000], [31, 0], [70, 32], [1, '4000'], [53, 90],
+    ...SD_AT.flatMap(([x, y]) => insert('E-FIRE', 'SD', x, y)),
+    ...SKT_AT.flatMap(([x, y]) => insert('E-POWR', 'SKT', x, y)),
+    // The legend: a sample of each symbol beside its description. Not work anyone prices twice.
+    ...text('A-ANNO', 0, -1500, 200, 'LEGEND'),
+    ...insert('E-FIRE', 'SD', 200, -1900), ...text('A-ANNO', 600, -1980, 160, 'SD - SMOKE DETECTOR'),
+    ...insert('E-POWR', 'SKT', 200, -2300), ...text('A-ANNO', 600, -2380, 160, 'SKT - DOUBLE SOCKET OUTLET'),
+    ...text('A-ANNO', 6000, -1500, 160, 'NOTE: ALL SOCKETS AT 300 AFFL'),
+    // Identity OUTSIDE the title block: a contact line, and a label with the firm on the same line.
+    ...text('A-ANNO', 0, -2800, 150, 'SITE CONTACT zz.site@example.invalid +971 50 000 0017'),
+    ...text('A-ANNO', 6000, -2800, 150, 'CONSULTANT:'), ...text('A-ANNO', 7600, -2800, 150, 'ZZ DEMO ORBIT'),
+    // The title block, with the project's parties as attributes.
+    ...insert('ZZ-TITLE', 'ZZ_TITLEBLOCK_A1', 12500, -3000), [66, 1],
+    ...attrib('CLIENT', 12650, 3900, 'ZZ DEMO Rashid Kareem'), ...attrib('PROJECT', 12650, 3500, 'ZZ DEMO Harbour Tower'),
+    ...attrib('DWG_NO', 12650, 3100, 'ZZ-2026-0142'), ...attrib('DRAWN_BY', 12650, 2700, 'ZZ Demo Drafter'),
+    [0, 'SEQEND'], [8, 'ZZ-TITLE'],
+    ...insert('0', 'BORDER_A1', -1500, -3500),
+    // A logo pasted as an image, and a sheet layout in paper space.
+    [0, 'IMAGE'], [8, 'ZZ-LOGO'], [10, 12600], [20, 4000], [30, 0],
+    [0, 'TEXT'], [8, 'A-ANNO'], [67, 1], [10, 0], [20, 0], [30, 0], [40, 300], [1, 'ZZ DEMO SHEET LAYOUT HARBOUR TOWER'],
+  ];
+  return [
+    ...dxfSection('HEADER', [[9, '$ACADVER'], [1, 'AC1027'], [9, '$INSUNITS'], [70, 4], [9, '$PROJECTNAME'], [1, 'ZZ DEMO Harbour Tower'], [9, '$LASTSAVEDBY'], [1, 'ZZ Demo Drafter']]),
+    ...dxfSection('BLOCKS', blocks),
+    ...dxfSection('ENTITIES', ents),
+    [0, 'EOF'],
+  ];
+}
+export const zzDxf = (): Uint8Array => dxfFrom(zzDxfPairs());
+export const zzDxfBinary = (): Uint8Array => dxfBinaryFrom(zzDxfPairs());
+
+/** The same drawing as LibreDWG's JSON (the shape @mlightcad/libredwg-web 0.7.14 returns: radians, flag 512
+ *  = closed, model and paper space together in `entities`, a title INSERT's ATTRIBs listed after it). */
+export function zzDwgDb(): DwgDb {
+  const pt = (x: number, y: number) => ({ x, y, z: 0 });
+  const room = (x: number, y: number, w: number, h: number) => ({ type: 'LWPOLYLINE', layer: 'A-WALL', flag: 512, vertices: [{ x, y, bulge: 0 }, { x: x + w, y, bulge: 0 }, { x: x + w, y: y + h, bulge: 0 }, { x, y: y + h, bulge: 0 }] });
+  const txt = (layer: string, x: number, y: number, h: number, s: string, extra: Record<string, unknown> = {}) => ({ type: 'TEXT', layer, text: s, startPoint: pt(x, y), textHeight: h, rotation: 0, ...extra });
+  const ins = (layer: string, name: string, x: number, y: number, attribs: unknown[] = []) => ({ type: 'INSERT', layer, name, insertionPoint: pt(x, y), xScale: 1, yScale: 1, rotation: 0, attribs });
+  const att = (tag: string, x: number, y: number, s: string) => ({ type: 'ATTRIB', layer: 'ZZ-TITLE', tag, flags: 0, text: { text: s, startPoint: pt(x, y), textHeight: 180, rotation: 0 } });
+  const attribs = [att('CLIENT', 12650, 3900, 'ZZ DEMO Rashid Kareem'), att('PROJECT', 12650, 3500, 'ZZ DEMO Harbour Tower'), att('DWG_NO', 12650, 3100, 'ZZ-2026-0142'), att('DRAWN_BY', 12650, 2700, 'ZZ Demo Drafter')];
+  return {
+    header: { INSUNITS: 4, PROJECTNAME: 'ZZ DEMO Harbour Tower', LASTSAVEDBY: 'ZZ Demo Drafter' },
+    tables: { BLOCK_RECORD: { entries: [
+      { name: '*Model_Space', flags: 0, basePoint: pt(0, 0), entities: [] },
+      { name: 'SD', flags: 0, basePoint: pt(0, 0), entities: [{ type: 'CIRCLE', layer: '0', center: pt(0, 0), radius: 150 }, txt('0', -60, -45, 90, 'SD')] },
+      { name: 'SKT', flags: 0, basePoint: pt(0, 0), entities: [room(-100, -50, 200, 100), { type: 'LINE', layer: '0', startPoint: pt(-100, 0), endPoint: pt(100, 0) }] },
+      { name: 'ZZ_TITLEBLOCK_A1', flags: 2, basePoint: pt(0, 0), entities: [room(0, 0, 3000, 7500), txt('0', 150, 7100, 180, 'ZZ DEMO ORBIT CONSULTING ENGINEERS LLC'), txt('0', 150, 6800, 150, 'TEL +971 4 000 0017'), txt('0', 150, 6550, 150, 'zz.orbit@example.invalid'), txt('0', 150, 1200, 150, 'SCALE 1:100')] },
+    ] } },
+    entities: [
+      room(0, 0, 6000, 4000), room(6000, 0, 4000, 4000), room(10000, 0, 2000, 4000),
+      txt('A-ANNO', 2400, 1900, 250, 'OFFICE 101'), txt('A-ANNO', 6900, 1900, 250, 'MEETING ROOM 102'), txt('A-ANNO', 10300, 1900, 200, 'STORE 103'),
+      { type: 'DIMENSION', layer: 'A-DIMS', text: '6000', measurement: 6000, textPoint: { x: 3000, y: -450 } },
+      { type: 'DIMENSION', layer: 'A-DIMS', text: '4000', measurement: 4000, textPoint: { x: -700, y: 2000 } },
+      ...SD_AT.map(([x, y]) => ins('E-FIRE', 'SD', x, y)),
+      ...SKT_AT.map(([x, y]) => ins('E-POWR', 'SKT', x, y)),
+      txt('A-ANNO', 0, -1500, 200, 'LEGEND'),
+      ins('E-FIRE', 'SD', 200, -1900), txt('A-ANNO', 600, -1980, 160, 'SD - SMOKE DETECTOR'),
+      ins('E-POWR', 'SKT', 200, -2300), txt('A-ANNO', 600, -2380, 160, 'SKT - DOUBLE SOCKET OUTLET'),
+      txt('A-ANNO', 6000, -1500, 160, 'NOTE: ALL SOCKETS AT 300 AFFL'),
+      txt('A-ANNO', 0, -2800, 150, 'SITE CONTACT zz.site@example.invalid +971 50 000 0017'),
+      txt('A-ANNO', 6000, -2800, 150, 'CONSULTANT:'), txt('A-ANNO', 7600, -2800, 150, 'ZZ DEMO ORBIT'),
+      ins('ZZ-TITLE', 'ZZ_TITLEBLOCK_A1', 12500, -3000, attribs), ...attribs,
+      { ...txt('A-ANNO', 0, 0, 300, 'ZZ DEMO SHEET LAYOUT HARBOUR TOWER'), isInPaperSpace: true },
+    ],
+  } as DwgDb;
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────────────────────────
+// A 36 x 24 in sheet (2592 x 1728 pt), unrotated; positions as (a, b) = fraction across, fraction down.
+const PW = 2592, PH = 1728;
+const esc = (s: string) => s.replace(/([()\\])/g, '\\$1');
+const t = (a: number, b: number, size: number, s: string) => `BT /F1 ${size} Tf 1 0 0 1 ${(a * PW).toFixed(1)} ${((1 - b) * PH).toFixed(1)} Tm (${esc(s)}) Tj ET\n`;
+const l = (a1: number, b1: number, a2: number, b2: number) => `${(a1 * PW).toFixed(1)} ${((1 - b1) * PH).toFixed(1)} m ${(a2 * PW).toFixed(1)} ${((1 - b2) * PH).toFixed(1)} l S\n`;
+const box = (a: number, b: number, w: number, h: number) => l(a, b, a + w, b) + l(a + w, b, a + w, b + h) + l(a + w, b + h, a, b + h) + l(a, b + h, a, b);
+
+/** Title-block strings on the PDF sheet (all in the right-hand strip). */
+export const PDF_TITLE = ['ZZ DEMO ORBIT CONSULTING ENGINEERS LLC', 'TEL +971 4 000 0017', 'zz.orbit@example.invalid', 'CLIENT: ZZ DEMO Rashid Kareem', 'PROJECT: ZZ DEMO Harbour Tower', 'DRAWING NO: ZZ-2026-0142', 'DRAWN BY: ZZ Demo Drafter'];
+
+function titleStrip(sheetNo: string, title: string): string {
+  return l(0.855, 0.02, 0.855, 0.98) + PDF_TITLE.map((s, i) => t(0.865, 0.06 + i * 0.05, 11, s)).join('') + t(0.865, 0.80, 11, title) + t(0.865, 0.85, 11, 'SCALE 1:100') + t(0.90, 0.93, 28, sheetNo);
+}
+function plan(view: string, fd: [number, number][], wc: [number, number][], fcu: string[], rooms: [number, number, string][]): string {
+  let s = box(0.05, 0.10, 0.30, 0.40) + box(0.35, 0.10, 0.25, 0.40) + box(0.60, 0.10, 0.20, 0.40) + t(0.30, 0.58, 28, view);
+  for (const [a, b, n] of rooms) s += t(a, b, 16, n);
+  s += t(0.18, 0.54, 11, '6000') + t(0.02, 0.30, 11, '4000');
+  for (const [a, b] of fd) s += t(a, b, 9, 'FD-1');
+  for (const [a, b] of wc) s += t(a, b, 9, 'WC-1');
+  fcu.forEach((f, i) => { s += t(0.40 + i * 0.1, 0.45, 9, f); });
+  s += t(0.05, 0.62, 14, 'LEGEND') + t(0.05, 0.65, 10, 'FD - FLOOR DRAIN') + t(0.05, 0.67, 10, 'WC - WATER CLOSET');
+  s += t(0.40, 0.62, 10, 'NOTE: ALL SOCKETS AT 300 AFFL');
+  // Identity outside the strip: a contact line and a label with the firm beside it.
+  s += t(0.05, 0.90, 9, 'SITE CONTACT zz.site@example.invalid +971 50 000 0017') + t(0.45, 0.90, 9, 'CONSULTANT:') + t(0.52, 0.90, 9, 'ZZ DEMO ORBIT');
+  return s;
+}
+function pdfOf(pages: string[], info: Record<string, string>, imagePage = false): Uint8Array {
+  const objs: string[] = [];
+  const add = (s: string) => { objs.push(s); return objs.length; };
+  const stream = (dict: string, body: string) => `<< ${dict} /Length ${body.length} >>\nstream\n${body}\nendstream`;
+  add('<< /Type /Catalog /Pages 2 0 R >>');
+  const kidsAt = add('');                                      // 2: filled below
+  const font = add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+  // A "scan": one gray image per page, painted over the whole sheet, and no text at all.
+  const scan = imagePage ? add(stream('/Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8', '\xff\xe0\xff\x20\xff\xff\x40\xff')) : 0;
+  const kids: number[] = [];
+  for (const body of pages) {
+    const content = add(stream('', imagePage ? `q ${PW} 0 0 ${PH} 0 0 cm /Im1 Do Q` : body));
+    const res = imagePage ? `<< /XObject << /Im1 ${scan} 0 R >> >>` : `<< /Font << /F1 ${font} 0 R >> >>`;
+    kids.push(add(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PW} ${PH}] /Resources ${res} /Contents ${content} 0 R >>`));
+  }
+  objs[kidsAt - 1] = `<< /Type /Pages /Kids [${kids.map((k) => `${k} 0 R`).join(' ')}] /Count ${kids.length} >>`;
+  const infoAt = add(`<< ${Object.entries(info).map(([k, v]) => `/${k} (${esc(v)})`).join(' ')} >>`);
+  let out = '%PDF-1.4\n';
+  objs.forEach((o, i) => { out += `${i + 1} 0 obj\n${o}\nendobj\n`; });
+  out += `trailer\n<< /Root 1 0 R /Info ${infoAt} 0 R >>\n%%EOF\n`;
+  return new TextEncoder().encode(out);
+}
+const INFO = { Title: 'ZZ DEMO Harbour Tower E-101', Author: 'ZZ DEMO Orbit Consulting', Subject: 'ZZ-2026-0142', Creator: 'ZZ Demo Drafter' };
+const ROOMS: [number, number, string][] = [[0.15, 0.30, 'OFFICE 101'], [0.40, 0.30, 'MEETING ROOM 102'], [0.65, 0.30, 'STORE 103']];
+const FD7: [number, number][] = [[0.08, 0.15], [0.12, 0.20], [0.20, 0.15], [0.28, 0.40], [0.45, 0.20], [0.55, 0.40], [0.70, 0.20]];
+const WC5: [number, number][] = [[0.08, 0.45], [0.25, 0.45], [0.50, 0.15], [0.66, 0.45], [0.75, 0.40]];
+
+/** One sheet: FD-1 x 7, WC-1 x 5, FCU-1..3. */
+export const zzPdfSheet = () => pdfOf([plan('GROUND FLOOR PLUMBING AND HVAC PLAN', FD7, WC5, ['FCU-1', 'FCU-2', 'FCU-3'], ROOMS) + titleStrip('P-1.01', 'GROUND FLOOR PLUMBING AND HVAC PLAN')], INFO);
+/**
+ * The same floor as a 3-sheet set, the way consultants issue it: the plumbing plan (FD-1 x 7, WC-1 x 5,
+ * FCU-1), the mechanical plan of the SAME floor (FCU-2, FCU-3, and the five WCs drawn again for
+ * coordination), and a notes sheet. An estimator counts the WCs once: 5, not 10.
+ */
+export const zzPdfSet = () => pdfOf([
+  plan('GROUND FLOOR PLUMBING PLAN', FD7, WC5, ['FCU-1'], ROOMS) + titleStrip('P-1.01', 'GROUND FLOOR PLUMBING PLAN'),
+  plan('GROUND FLOOR MECHANICAL PLAN', [], WC5, ['FCU-2', 'FCU-3'], ROOMS) + titleStrip('M-1.01', 'GROUND FLOOR MECHANICAL PLAN'),
+  t(0.05, 0.10, 28, 'GENERAL NOTES') + t(0.05, 0.14, 10, '1. ALL WORK TO LOCAL AUTHORITY REQUIREMENTS.') + titleStrip('G-0.01', 'GENERAL NOTES'),
+], INFO);
+/** A scanned sheet: the same /Info metadata, one image, no text layer. */
+export const zzPdfScan = () => pdfOf(['scan'], INFO, true);

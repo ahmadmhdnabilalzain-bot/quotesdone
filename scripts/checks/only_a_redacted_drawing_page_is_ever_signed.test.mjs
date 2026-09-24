@@ -41,6 +41,21 @@ test('the signer refuses a path that is not a redacted page', () => {
   assert.match(src, /const REDACTED_PREFIX = \/\^\(\?:drawings\\\/\)\?redacted\\\//, 'the prefix itself changed');
 });
 
+// 24 SEP 2026 — SHAPE IS NOT PROVENANCE (drawings audit, finding 2). Three live inquiries served
+// drawings/redacted/founderdemo/... pages that no redaction run names; anyone who can write a row can write
+// that shape. The signer now also requires the page to be named in drawing_redaction_runs.output_paths, or
+// (the demo / E2E shape) its tag to be a registered E2E run in rehearsal_window, and a failed lookup refuses.
+test('the signer signs only a page a recorded run produced, and a lookup failure refuses', () => {
+  const src = readFileSync(PAGES, 'utf8');
+  assert.match(src, /export async function recordedPaths\(/, 'the provenance lookup is gone');
+  assert.match(src, /\.from\('drawing_redaction_runs'\)\.select\('output_paths'\)\.overlaps\('output_paths', runPaths\)\.neq\('status', 'held'\)/);
+  assert.match(src, /\.from\('rehearsal_window'\)\.select\('run_tag'\)\.in\('run_tag', tags\.map\(\(t\) => 'qd_run:' \+ t\)\)/);
+  const sign = src.slice(src.indexOf('async function signOne'), src.indexOf('export async function signRedactedDrawings'));
+  assert.match(sign, /if \(!provenance\.ok\) return \{ url: null/, 'a failed lookup no longer refuses');
+  assert.match(sign, /if \(!provenance\.allowed\.has\(path\)\) return \{ url: null/, 'a page with no run behind it is signed');
+  assert.ok(sign.indexOf('provenance.allowed.has') < sign.indexOf('createSignedUrl'), 'the signer signs before it checks provenance');
+});
+
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 
@@ -51,4 +66,14 @@ test('production: no inquiry stores a drawing path outside the redacted prefixes
   const bad = rows.filter((r) => !REDACTED.test(String(r.path))).map((r) => `${r.id} -> ${r.path}`);
   assert.deepEqual(bad, [], 'a supplier-facing drawing path is not a redaction output');
   console.log(`${rows.length} stored drawing page path(s), all under redacted/ or drawings/redacted/`);
+});
+
+test('production: every stored drawing page was produced by a recorded run or a registered E2E run', { skip: SKIP }, async () => {
+  const { sql } = await import('../lib/db.mjs');
+  const rows = await sql(`select i.id::text as id, p as path
+                            from public.inquiries i, unnest(coalesce(i.drawing_redacted_paths, '{}'::text[])) p
+                           where not exists (select 1 from public.drawing_redaction_runs r where p = any(r.output_paths) and r.status <> 'held')
+                             and not exists (select 1 from public.rehearsal_window w
+                                              where p like 'drawings/redacted/%' and w.run_tag = 'qd_run:' || split_part(p, '/', 3))`);
+  assert.deepEqual(rows.map((r) => `${r.id} -> ${r.path}`), [], 'a stored page has no provenance: the supplier inbox will refuse it');
 });

@@ -34,16 +34,16 @@
 import { redactText, seedTerms } from './anonymise.ts';
 
 // Layer / block names that ARE a title block, a sheet frame or an external reference.
-const FRAME = /^(?:TITLE|TITLES|TITLEBLOCK|TITLEBLK|TTLB|TTL|TB|TBLK|BORDER|BORDERS|BRDR|LOGO|LOGOS|STAMP|SEAL|XREF|XREFS|VPORT|VIEWPORT|DEFPOINTS|FRAME|NPLT|NOPLOT|SHEETFRAME|REVISION|REVISIONS|REVS)$/i;
-const FRAME_NAME = (name: string) => tokens(name).some((t) => FRAME.test(t)) || /title\s*block|titleblock|sheet\s*frame/i.test(name);
+export const FRAME = /^(?:TITLE|TITLES|TITLEBLOCK|TITLEBLK|TTLB|TTL|TB|TBLK|BORDER|BORDERS|BRDR|LOGO|LOGOS|STAMP|SEAL|XREF|XREFS|VPORT|VIEWPORT|DEFPOINTS|FRAME|NPLT|NOPLOT|SHEETFRAME|REVISION|REVISIONS|REVS)$/i;
+export const FRAME_NAME = (name: string) => tokens(name).some((t) => FRAME.test(t)) || /title\s*block|titleblock|sheet\s*frame/i.test(name);
 // An ATTRIB tag that names a party or the job.
-const PARTY_TAG = /^(?:CLIENT|OWNER|EMPLOYER|CUSTOMER|PROJECT|PROJ|PROJECT_?NAME|PROJ_?NAME|PROJECT_?(?:NO|NUM|NUMBER)|JOB|JOB_?(?:NO|NUM|NAME)|SITE|LOCATION|ADDRESS|ADDR|PLOT|MAKANI|CONSULTANT|ARCHITECT|ENGINEER|CONTRACTOR|DEVELOPER|COMPANY|FIRM|DRAWN|DRAWN_?BY|DRN|CHECKED|CHECKED_?BY|CHK|APPROVED|APPROVED_?BY|APP|DESIGNED|DESIGNED_?BY|DES|DWG_?(?:NO|NUM)|DRAWING_?(?:NO|NUM|NUMBER)|PHONE|TEL|EMAIL|WEB|WEBSITE)$/i;
+export const PARTY_TAG = /^(?:CLIENT|OWNER|EMPLOYER|CUSTOMER|PROJECT|PROJ|PROJECT_?NAME|PROJ_?NAME|PROJECT_?(?:NO|NUM|NUMBER)|JOB|JOB_?(?:NO|NUM|NAME)|SITE|LOCATION|ADDRESS|ADDR|PLOT|MAKANI|CONSULTANT|ARCHITECT|ENGINEER|CONTRACTOR|DEVELOPER|COMPANY|FIRM|DRAWN|DRAWN_?BY|DRN|CHECKED|CHECKED_?BY|CHK|APPROVED|APPROVED_?BY|APP|DESIGNED|DESIGNED_?BY|DES|DWG_?(?:NO|NUM)|DRAWING_?(?:NO|NUM|NUMBER)|PHONE|TEL|EMAIL|WEB|WEBSITE)$/i;
 const LABEL_VALUE = /\b(?:client|owner|employer|customer|consultant|contractor|architect|engineer|developer|project(?:\s*(?:name|title))?|site(?:\s*address)?|location|address|drawn\s*by|checked\s*by|approved\s*by|designed\s*by)\s*[:：]\s*([^\n]{2,80})/gi;
 const HEADER_VARS = new Set(['$PROJECTNAME', '$LASTSAVEDBY', '$HYPERLINKBASE', '$STYLESHEET', '$MENU']);
 // Text on a title block that is DRAWING content, not a party: a view title, a scale, a date, a sheet number.
 const CONTENT = /\b(?:PLANS?|SCHEDULES?|DETAILS?|DIAGRAMS?|SECTIONS?|ELEVATIONS?|LEGEND|NOTES|INDEX|SPECIFICATIONS?|SCALE|SHEET|REV(?:ISION)?S?|DATE|NTS|NORTH|ISSUED|FOR\s+CONSTRUCTION|TENDER|PERMIT|BID\s+SET)\b|^\s*[\d\s:./\-]+\s*$|^[A-Z]{1,2}-?\d{1,3}(?:\.\d{1,2})?[A-Z]?$/i;
 
-const tokens = (s: string) => String(s || '').split(/[\s\-_.,/\\|+]+/).filter(Boolean);
+export const tokens = (s: string) => String(s || '').split(/[\s\-_.,/\\|+]+/).filter(Boolean);
 
 /** Every identity term an ASCII DXF states about its own job. Binary or non-DXF input returns []. */
 export function cadIdentityTerms(dxfText: string): string[] {

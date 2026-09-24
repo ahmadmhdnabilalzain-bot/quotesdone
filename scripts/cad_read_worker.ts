@@ -28,6 +28,7 @@ import { boqFromExtracted } from '../supabase/functions/drawing_boq/boq_from_doc
 import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
+import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const BASE = `https://${REF}.supabase.co`;
@@ -59,7 +60,54 @@ async function serviceKey(): Promise<string> {
 }
 
 // deno-lint-ignore no-explicit-any
-type Job = { id: string; source_path: string; file_name: string; mime: string; attempts: number; boq_in: any };
+type Job = { id: string; customer_id: string | null; owner_email: string | null; source_path: string; file_name: string; mime: string; attempts: number; boq_in: any };
+
+// THE SUPPLIER'S DRAWING OF A CAD FILE THE EDGE COULD NOT OPEN (24 Sep 2026, sales_engineer; founder
+// instructions 32, 580, 701, 703). customer_api asks drawing_redact to draw a CAD original for suppliers with
+// its identity left out (_shared/cad_render.ts); a DWG past the edge's ceiling cannot be drawn there, so it was
+// held. The worker reads it with no ceiling already, and now draws it too: the SAME cadPage, with no DWG size
+// ceiling and a 5,000,000-segment budget (no CPU cap here). The page is uploaded under redacted/<uuid>/ and the
+// run recorded in drawing_redaction_runs exactly as drawing_redact records one, so create_inquiry resolves it
+// and the supplier inbox signs it; if the record fails the upload is removed (no orphan page).
+export const WORKER_MAX_SEGMENTS = 5_000_000;
+async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promise<Record<string, unknown>> {
+  const who = job.customer_id ? await sql<{ full_name: string | null; email: string | null; phone: string | null }>(
+    `select full_name, email, phone from public.customers where id = ${lit(job.customer_id)}::uuid`) : [];
+  const c = who[0] ?? { full_name: '', email: job.owner_email, phone: '' };
+  const seeds = seedTerms({ name: c.full_name ?? '', email: c.email ?? job.owner_email ?? '', phone: c.phone ?? '', extra: [job.file_name || ''] });
+  // Imported here, not at the top: drawing_redact_page encodes with imagescript, whose Deno build fetches its
+  // codec from deno.land when imported, and dwg_samples.check.ts imports this file with no network to it.
+  const { cadPage } = await import('../supabase/functions/_shared/drawing_redact_page.ts');
+  const page = await cadPage(bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS });
+  if (!page.ok) return { redaction_complete: false, held_reason: page.skipped };
+  const path = `redacted/${crypto.randomUUID()}/page_p0.jpg`;
+  const obj = `${BASE}/storage/v1/object/drawing-files/${path}`;
+  const up = await fetch(obj, { method: 'POST', headers: { Authorization: 'Bearer ' + key, apikey: key, 'Content-Type': 'image/jpeg', 'x-upsert': 'false' }, body: new Blob([page.jpg as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' }), signal: AbortSignal.timeout(60_000) });
+  if (!up.ok) return { redaction_complete: false, held_reason: `upload_failed_http_${up.status}` };
+  const runId = crypto.randomUUID();
+  try {
+    await sql(`insert into public.drawing_redaction_runs (id, customer_id, owner_email, caller_ref, source_path, output_paths, pages_in, pages_out, skipped, status, pages_verified, verify_failed, verify_detail)
+      values (${lit(runId)}::uuid, ${job.customer_id ? lit(job.customer_id) + '::uuid' : 'null'}, ${job.owner_email ? lit(job.owner_email) : 'null'}, 'redacted', ${lit(job.source_path)},
+              array[${lit(path)}]::text[], 1, 1, 0, 'complete', 1, 0, ${lit(JSON.stringify({ method: 'cad_render', worker: true, pages: [{ page: 0, ...page.detail }] }))}::jsonb)`);
+  } catch (e) {
+    await fetch(`${BASE}/storage/v1/object/drawing-files`, { method: 'DELETE', headers: { Authorization: 'Bearer ' + key, apikey: key, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: [path] }), signal: AbortSignal.timeout(30_000) }).catch(() => null);
+    return { redaction_complete: false, held_reason: 'run_not_recorded: ' + String((e as Error)?.message || e).slice(0, 120) };
+  }
+  return { redaction_complete: true, redaction_job_id: runId, drawing_redacted_paths: [path] };
+}
+
+// A JOB THAT FAILS FOR GOOD IS RAISED, NOT ONLY LOGGED (24 Sep 2026, drawings audit finding 4): a customer's
+// drawing that no reader could open was visible only in this runner's log. The same finding helper every
+// seat uses, one deduplicated key; failing to raise it never stops the other jobs.
+async function raiseFailed(job: Job, msg: string): Promise<void> {
+  try {
+    await sql(`select public.fn_it_engineer_finding_upsert(
+      'cad_read_worker:job_failed', ${lit('A queued CAD drawing could not be read after 3 attempts')},
+      'scripts/cad_read_worker.ts (.github/workflows/cad-read-worker.yml), table public.cad_read_jobs', 'customer_facing', 1,
+      ${lit(JSON.stringify({ subject: 'cad_read_jobs', owner_seat: 'sales_engineer', job_id: job.id, error: msg.slice(0, 300) }))}::jsonb,
+      '{}'::text[], '{}'::text[], 'sales_engineer')`);
+  } catch (e) { console.log(`job ${job.id}: the finding could not be raised: ${String((e as Error)?.message || e).slice(0, 200)}`); }
+}
 
 /** A PDF drawing set's lengths (the call that died on the edge), merged into its counted take-off. */
 // deno-lint-ignore no-explicit-any
@@ -94,7 +142,8 @@ async function runJob(job: Job, key: string): Promise<void> {
   if (!read.ok) throw new Error(`${read.error}: ${read.detail}`.slice(0, 300));
   // Nothing the CAD file says about its own job reaches a line (cad_identity.ts, as drawing_boq does).
   const boq = cadSupplierBoq(boqFromExtracted(read, '', '', {}), read.dxf_text ?? '');
-  const result = JSON.stringify({ boq, kind: read.kind, needs: read.needs, ms: Math.round(performance.now() - t0), bytes: bytes.length });
+  const drawing = read.dxf_text ? await Promise.race([supplierDrawing(job, bytes, key), budget()]).catch((e) => ({ redaction_complete: false, held_reason: String((e as Error)?.message || e).slice(0, 160) })) : { redaction_complete: false, held_reason: 'no_cad_entities' };
+  const result = JSON.stringify({ boq, kind: read.kind, needs: read.needs, ms: Math.round(performance.now() - t0), bytes: bytes.length, ...drawing });
   await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(result)}::jsonb where id = ${lit(job.id)}::uuid`);
   console.log(`job ${job.id}: done, ${bytes.length} bytes, ${boq.boq?.length ?? 0} lines, ${Math.round(performance.now() - t0)} ms`);
 }
@@ -102,7 +151,7 @@ async function runJob(job: Job, key: string): Promise<void> {
 if (import.meta.main) {
   token = (Deno.env.get('SUPABASE_ACCESS_TOKEN') ?? (() => { try { return Deno.readTextFileSync('C:/Users/Opera/.supabase/access-token'); } catch { return ''; } })()).trim();
   if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set'); Deno.exit(2); }
-  const jobs = await sql<Job>(`select id, source_path, file_name, mime, attempts, boq_in from public.fn_cad_read_claim(${MAX_JOBS})`);
+  const jobs = await sql<Job>(`select id, customer_id, owner_email, source_path, file_name, mime, attempts, boq_in from public.fn_cad_read_claim(${MAX_JOBS})`);
   console.log(`claimed ${jobs.length} job(s)`);
   if (jobs.length) {
     const key = await serviceKey();
@@ -113,6 +162,7 @@ if (import.meta.main) {
         await sql(`update public.cad_read_jobs set status = case when attempts >= 3 then 'failed' else 'queued' end,
                    finished_at = case when attempts >= 3 then now() end, error = ${lit(msg)} where id = ${lit(job.id)}::uuid`);
         console.log(`job ${job.id}: ${msg}`);
+        if (job.attempts >= 3) await raiseFailed(job, msg);
       }
     }
   }

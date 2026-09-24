@@ -23,6 +23,9 @@
 // every quantity says so at confidence 'low'. Identity is NOT scrubbed here; the caller does that.
 import { capText, empty, LIMITS, ok, refuse, type Qty, type ReadContext, type ReadResult } from './types.ts';
 
+/** A legend's own heading: "LEGEND", "SYMBOL LEGEND", "KEY", "SYMBOLS", "مفتاح الرموز". */
+const LEGEND_HEADING = /^\s*(?:(?:electrical|fire\s*alarm|symbols?)\s+)?(?:legend|key|symbols?)(?:\s+(?:of\s+)?symbols?)?\s*:?\s*$|^\s*(?:مفتاح\s*الرموز|دليل\s*الرموز)\s*$/i;
+
 /** 200,000 entities is a dense multi-storey plan; past it the reader stops and says so. */
 export const DXF_MAX_ENTITIES = 200_000;
 
@@ -186,6 +189,8 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   const lenBy = new Map<string, { v: number; n: number }>();
   const areaBy = new Map<string, { v: number; n: number }>();
   const inserts = new Map<string, number>();
+  const placed: { name: string; x: number; y: number }[] = [];
+  const words: { s: string; x: number; y: number; h: number }[] = [];
   let anon = 0, extent = 0;
   const bump = (m: Map<string, { v: number; n: number }>, k: string, v: number) => {
     const e = m.get(k) ?? { v: 0, n: 0 }; e.v += v; e.n++; m.set(k, e);
@@ -206,8 +211,8 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     const layer = str(e, 8).trim() || '0';
     if (e.type !== 'VERTEX' && e.type !== 'SEQEND') endPoly();
     switch (e.type) {
-      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); break;
-      case 'MTEXT': addText(stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1))); break;
+      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); if (e.type === 'TEXT') words.push({ s: stripMtext(str(e, 1)).trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break;
+      case 'MTEXT': { const s = stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1)); addText(s); words.push({ s: s.trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break; }
       case 'DIMENSION': {
         const over = str(e, 1).trim();
         const m = num(e, 42, NaN);
@@ -217,7 +222,7 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
       case 'INSERT': {
         const b = str(e, 2).trim();
         if (!b || b.startsWith('*')) { anon++; break; }
-        inserts.set(b, (inserts.get(b) ?? 0) + 1);
+        placed.push({ name: b, x: num(e, 10), y: num(e, 20) });
         break;
       }
       case 'LINE': {
@@ -255,6 +260,23 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     }
   }
   endPoly();
+
+  // LEGEND SAMPLES ARE NOT WORK (24 Sep 2026, sales_engineer; founder instruction 580: "make sure that he's
+  // doing the count properly"). A legend draws one of each symbol beside its description, and those are
+  // block INSERTs like every device on the plan: counted as they stood, the ZZ DEMO plan's 7 smoke detectors
+  // read 8 and its 5 sockets 6. An insert is a legend sample when it lies under a LEGEND / KEY / SYMBOLS
+  // heading (within 40 heading heights below it, 80 across) AND a description sits beside it on its own
+  // line (within 1.5 heading heights up or down, 12 to the right). Anything else is counted, and what was
+  // set aside is said in the notes, so a surprising count can be checked.
+  const anchors = words.filter((w) => w.h > 0 && LEGEND_HEADING.test(w.s));
+  let samples = 0;
+  for (const p of placed) {
+    const sample = anchors.some((a) => p.y <= a.y + a.h && p.y >= a.y - 40 * a.h && p.x >= a.x - 3 * a.h && p.x <= a.x + 80 * a.h &&
+      words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x <= 12 * a.h));
+    if (sample) { samples++; continue; }
+    inserts.set(p.name, (inserts.get(p.name) ?? 0) + 1);
+  }
+  if (samples) notes.push(`${samples} block insert(s) drawn as legend samples beside their descriptions were not counted.`);
 
   // Units.
   let toM = 1, unitName = 'm', confidence: Qty['confidence'] = 'medium';

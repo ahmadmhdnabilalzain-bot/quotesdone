@@ -201,7 +201,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && s.ok && s.status === 'done') {
         const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
         if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
-        const adopted = adopt({ ...res, boq: s.boq }, name, source);
+        // A CAD file the edge could not open is drawn by the CAD worker too: its redacted page replaces the hold.
+        const drawn = Array.isArray(s.drawing_redacted_paths) && s.drawing_redacted_paths.length ? { drawing_redacted_paths: s.drawing_redacted_paths, drawing_held: false } : {};
+        const adopted = adopt({ ...res, boq: s.boq, ...drawn }, name, source);
         push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
         return;

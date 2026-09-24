@@ -64,8 +64,42 @@ const REDACTED_PREFIX = /^(?:drawings\/)?redacted\//;
 export const isRedactedPath = (p: string): boolean =>
   REDACTED_PREFIX.test(p) && !p.includes('..') && !p.startsWith('/');
 
-async function signOne(admin: any, path: string): Promise<{ url: string | null; error: string | null }> {
+// ── A REDACTED-LOOKING PATH IS NOT ENOUGH: IT MUST HAVE BEEN PRODUCED (24 Sep 2026, sales_engineer) ──────
+// MEASURED (production, read-only, 24 Sep 2026): three live inquiries served drawings/redacted/founderdemo/…
+// pages that no redaction run names. The prefix guard above proves SHAPE; anyone who can write a row can
+// write that shape. A path is now signed only when its PROVENANCE is on record:
+//   * redacted/<uuid>/…          — named in public.drawing_redaction_runs.output_paths (drawing_redact records
+//                                   every run it publishes; a 'held' row names none);
+//   * drawings/redacted/<tag>/…  — the demo / E2E pages, only for a tag registered as an E2E run in
+//                                   public.rehearsal_window ('qd_run:<tag>'), which scripts/e2e/fixtures.mjs
+//                                   opens for every harness run (founderdemo is one).
+// A lookup that fails refuses every page of the request: counted, logged and raised like any other failure.
+const DEMO_PAGE = /^drawings\/redacted\/([A-Za-z0-9_-]{1,64})\//;
+export async function recordedPaths(admin: any, paths: string[]): Promise<{ ok: true; allowed: Set<string> } | { ok: false; error: string }> {
+  const allowed = new Set<string>();
+  const runPaths = [...new Set(paths.filter((p) => isRedactedPath(p) && !DEMO_PAGE.test(p)))];
+  const tags = [...new Set(paths.map((p) => DEMO_PAGE.exec(p)?.[1]).filter((t): t is string => !!t))];
+  try {
+    if (runPaths.length) {
+      const { data, error } = await admin.from('drawing_redaction_runs').select('output_paths').overlaps('output_paths', runPaths).neq('status', 'held');
+      if (error) return { ok: false, error: 'redaction provenance lookup failed: ' + String(error.message || error) };
+      const want = new Set(runPaths);
+      for (const r of data || []) for (const p of (r.output_paths || [])) if (want.has(String(p))) allowed.add(String(p));
+    }
+    if (tags.length) {
+      const { data, error } = await admin.from('rehearsal_window').select('run_tag').in('run_tag', tags.map((t) => 'qd_run:' + t));
+      if (error) return { ok: false, error: 'demo page provenance lookup failed: ' + String(error.message || error) };
+      const ok = new Set((data || []).map((r: any) => String(r.run_tag).slice('qd_run:'.length)));
+      for (const p of paths) { const t = DEMO_PAGE.exec(p)?.[1]; if (t && ok.has(t)) allowed.add(p); }
+    }
+  } catch (e) { return { ok: false, error: 'redaction provenance lookup failed: ' + String((e as Error)?.message || e) }; }
+  return { ok: true, allowed };
+}
+
+async function signOne(admin: any, path: string, provenance: { ok: true; allowed: Set<string> } | { ok: false; error: string }): Promise<{ url: string | null; error: string | null }> {
   if (!isRedactedPath(path)) return { url: null, error: 'refused: not a redacted drawing page (path must be under redacted/ or drawings/redacted/)' };
+  if (!provenance.ok) return { url: null, error: 'refused: ' + provenance.error };
+  if (!provenance.allowed.has(path)) return { url: null, error: 'refused: no redaction run (or registered E2E run) produced this page' };
   let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     const signing = admin.storage.from('drawing-files').createSignedUrl(path, SIGNED_SECONDS);
@@ -94,13 +128,15 @@ export async function signRedactedDrawings(
   let expected = 0, served = 0, failed = 0;
   const samples: { path: string; message: string }[] = [];
   const perInquiry: { inquiry_id: string; expected: number; failed: number }[] = [];
+  const everyPath = rows.flatMap((r) => (Array.isArray(r.paths) ? r.paths : []).map((p) => String(p)));
+  const provenance = everyPath.length ? await recordedPaths(admin, everyPath) : { ok: true as const, allowed: new Set<string>() };
 
   for (const row of rows) {
     const key = String(row.id);
     const paths = (Array.isArray(row.paths) ? row.paths : []).map((p) => String(p));
     const entry: InquiryPages = { urls: [], expected: paths.length, served: 0, failed: 0 };
     for (const p of paths) {
-      const r = await signOne(admin, p);
+      const r = await signOne(admin, p, provenance);
       if (r.url) { entry.urls.push(r.url); entry.served++; continue; }
       entry.failed++;
       // The PATH and the message only. A signed URL carries a token and must never be logged.
