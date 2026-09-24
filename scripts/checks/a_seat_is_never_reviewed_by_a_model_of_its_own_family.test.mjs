@@ -219,7 +219,8 @@ begin
     'tripped_turn', (select status || ':' || coalesce(model, 'no model') from public.seat_deliberation_turn where deliberation_id = v_id2 and phase = 'blind'),
     'escalated_finding', (select count(*) from public.it_engineer_finding where issue_key = 'duty:deliberation_independence_demo:no_independent_reviewer:ceo:marketing' and closed_at is null));
 
-  -- THE PAIR CEILING: marketing -> ceo has spent AED 60 of 50 this month (a rolled-back row)
+  -- NO PAIR CEILING (24 Sep 2026, founder_instruction 987): marketing -> ceo has spent AED 60 this month (a rolled-back
+  -- row, above the old AED 50 cap) and the review is still NOT held for spend
   update public.llm_route_health set opened_class = null where model_id in (c_opus, 'google/gemini-3.8-flash', 'z-ai/glm-5.3-flash', 'qwen/qwen3.7-plus');
   insert into public.ai_cost_log (fn, dept_key, agent_key, task_class, model_used, cost_aed, ok)
   values ('resilience_ping', 'marketing', 'ceo', 'seat_deliberation_blind', c_opus, 60, true);
@@ -282,8 +283,8 @@ test('production, in one aborted transaction: independence, blind first, steelma
   assert.equal(out.demo_unheld, 'held, not run: demo deliberation');
   for (const k of ['steelman_placeholder', 'steelman_too_short', 'steelman_not_a_string', 'compare_repeats_blind_steelman'])
     assert.equal(out[k], 'MALFORMED_REVIEW', k);
-  assert.equal(out.over_ceiling_turn, 'held_not_run:held, not run: pair_ceiling');
-  assert.equal(out.budget_ok, false);
+  assert.doesNotMatch(String(out.over_ceiling_turn), /pair_ceiling/, 'spend no longer holds a review (founder_instruction 987)');
+  assert.equal(out.budget_ok, true);
   assert.equal(out.no_ceil, false, 'a pair with no ceiling row is held');
   assert.equal(out.budget_dept, 'marketing');
 

@@ -541,25 +541,22 @@ begin
   o := o || jsonb_build_object('doc_after', (select source || ':' || (path like '%zz_demo.pdf') from public.fn_supplier_document_home(v_lead) where key = 'iso'),
     'doc_backfilled', (select count(*) from public.reasoning_held_question where surface = 'supplier_documents.subject'));
 
-  -- 5. A repeat request: the same summary is flagged at once; a different wording waits for reasoning.
+  -- 5. A repeat request: the same summary is flagged at once; a different wording by pg_trgm similarity, no question (24 Sep 2026).
   insert into public.customers (email, full_name) values ('zz-demo-b6@example.invalid', 'ZZ DEMO B6') returning id into v_cust;
   insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i1;
   insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in a villa kitchen') returning id into v_i2;
   insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO kitchen floor tiling, about twenty square metres, porcelain') returning id into v_i3;
   o := o || jsonb_build_object('dup_same', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i2),
     'dup_reworded_before', (select plausibility->>'possible_duplicate' from public.inquiries where id = v_i3));
-  select id into v_id from public.reasoning_held_question where dedupe_key = 'inquiry_dup:' || v_i3;
-  perform public.fn_reason_held_resolve(v_id, '{"status":"answered","answer":"ZZ","decision":{"choice":"same_request"}}'::jsonb);
-  o := o || jsonb_build_object('dup_reworded_after', (select plausibility->>'duplicate_by' from public.inquiries where id = v_i3));
+  insert into public.inquiries (customer_id, category, summary) values (v_cust, 'tiling', 'ZZ DEMO lay 20 m2 of porcelain tiles in the villa kitchen') returning id into v_i2;
+  o := o || jsonb_build_object('dup_near', (select plausibility->>'duplicate_by' from public.inquiries where id = v_i2),
+    'dup_asked', exists (select 1 from public.reasoning_held_question where dedupe_key in ('inquiry_dup:' || v_i2, 'inquiry_dup:' || v_i3) and status = 'held'));
 
-  -- 6. A task's owner: no owner on a word; the reasoned responsibility records it.
+  -- 6. A task's owner: ROUTED by structure (workflow_routing, tier none - 24 Sep 2026): no word, no model, no question.
   select id into v_task from public.org_tasks where coalesce(result->>'deliverable', '') <> '' order by id desc limit 1;
   v := public.fn_task_review(v_task);
-  o := o || jsonb_build_object('task_waits', v->'awaiting_reasoning'->0->>'surface', 'task_owner_before', v->>'owns_responsibility');
-  select responsibility into v_resp from public.os_responsibility order by responsibility limit 1;
-  v := public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key like 'task_resp:' || v_task || ':%'),
-         jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_resp)));
-  o := o || jsonb_build_object('task_applied', v->>'status', 'task_owner_after', v->'effect'->>'owns_responsibility' = v_resp);
+  o := o || jsonb_build_object('task_waits', v->'awaiting_reasoning'->0->>'surface', 'task_owner_os', v->>'owned_by_os',
+    'task_asked', (select count(*) from public.reasoning_held_question where dedupe_key like 'task_resp:' || v_task || ':%' and status = 'held'));
 
   -- 7. Only service_role executes.
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
@@ -624,12 +621,13 @@ end $p$;`);
 
   assert.equal(out.dup_same, 'true');
   assert.equal(out.dup_reworded_before, null, 'a differently worded request is not flagged on a substring');
-  assert.equal(out.dup_reworded_after, 'reasoning');
+  assert.equal(out.dup_near, 'trigram', 'a near-identical wording is flagged by pg_trgm similarity');
+  assert.equal(out.dup_asked, false, 'a repeat request is never filed to the model');
 
-  assert.equal(out.task_waits, 'ceo.task_responsibility');
-  assert.equal(out.task_owner_before, null);
-  assert.equal(out.task_applied, 'applied');
-  assert.equal(out.task_owner_after, true);
+  assert.equal(out.task_waits, null, 'task ownership is routed, never filed to the model');
+  assert.equal(out.task_asked, 0);
+  // owned_by_os is whatever the structure says (measured 24 Sep 2026: os_department holds 0 rows and the live tasks carry
+  // no dept_key, so the structure names no OS today) - the property is only that no model is asked.
   assert.equal(out.anon_can, false);
 });
 
@@ -685,10 +683,7 @@ begin
      and not exists (select 1 from public.catalog_supplier_categories x where x.slug = s.w) order by w limit 1;
   o := o || jsonb_build_object('word', v_word, 'word_before', public.fn_category_key_for_slug(v_word),
     'word_asked', exists (select 1 from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word));
-  select category_key into v_key from public.org_category_identity order by category_key limit 1;
-  perform public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key = 'category_key:' || v_word),
-    jsonb_build_object('status', 'answered', 'answer', 'ZZ', 'decision', jsonb_build_object('choice', v_key)));
-  o := o || jsonb_build_object('word_after', public.fn_category_key_for_slug(v_word) = v_key);
+  o := o || jsonb_build_object('word_ask_files', public.fn_category_key_ask(v_word));
 
   o := o || jsonb_build_object('anon_can', (select bool_or(has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
             from pg_proc p where p.pronamespace = 'public'::regnamespace and p.proname in
@@ -713,8 +708,8 @@ end $p$;`);
   assert.equal(out.twin_words, 0, 'the free-text categories column counts no supplier');
   assert.ok(out.word, 'a vocabulary word without a declared key exists (measured 23 Sep 2026: 40)');
   assert.equal(out.word_before, null, 'no key on a substring');
-  assert.equal(out.word_asked, true);
-  assert.equal(out.word_after, true);
+  assert.equal(out.word_asked, false, 'an unmapped word is never filed to the model (exact match or none, 24 Sep 2026)');
+  assert.equal(out.word_ask_files, null);
   assert.equal(out.anon_can, false);
 });
 
@@ -1210,8 +1205,7 @@ end $p$;`);
   assert.equal(out.price_old_overload, false);
   assert.equal(out.price_ok, 'true'); assert.equal(out.price_item, 'ZZ DEMO item'); assert.equal(out.price_capped, true);
 
-  assert.equal(out.q_before, 'needs_reasoning', 'an unread quote is not scored by a regex');
-  assert.equal(out.q_pass_before, 'false', 'held, never passed on a guess');
+  assert.ok(['not_read', 'reasoned'].includes(out.q_before), 'an unread quote is scored by structure, never held on a model (24 Sep 2026)');
   assert.ok(out.q_due_aspects >= 1);
   assert.equal(out.q_due_after_held, true, 'a queued reading is not re-asked on every write');
   assert.equal(out.q_resolve, 'applied');
