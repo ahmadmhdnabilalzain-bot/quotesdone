@@ -1,0 +1,280 @@
+{
+  "_about": "THE ONE REGISTRY OF EVERY EXTERNAL SERVICE THE COMPANY DEPENDS ON (it_engineer, 24 Sep 2026, founder instruction 979 and its widening the same day). One entry per integration: the hosts it is reached on, the app_secrets keys and edge env it holds, how the IT engineer probes it and what it tries itself before telling the founder. A new integration is one entry here, not new code: probe.kind 'http' is run by _shared/integration_watch.ts as written; 'custom' names one of the few coded probes there; 'marketing' is measured by the marketing seat's own beat (founder rule 641: only that seat reads Meta and Postiz credentials); 'covered' names the existing duty that already owns it, so this registry never becomes a second owner. scripts/checks/every_external_host_and_secret_is_registered.test.mjs fails when code calls a host, or reads a secret or env name, that is in no entry, and (with a token) when production app_secrets holds a key no entry names. Placeholders: {secret:<app_secrets key>} and {env:<NAME>}.",
+  "integrations": {
+    "stripe": {
+      "what": "payments: checkout, refunds, invoices, supplier charges",
+      "hosts": ["api.stripe.com", "files.stripe.com", "js.stripe.com"],
+      "secrets": ["stripe_secret_key", "stripe_secret_key_test", "stripe_setup_token", "stripe_publishable_key", "stripe_publishable_key_test", "stripe_webhook_secret", "stripe_webhook_secret_test"],
+      "owner_seat": "accountant", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.stripe.com/v1/balance", "auth": "bearer:stripe_secret_key", "ok": [200] },
+      "self_fix": "retried once after 3 s; a refused key cannot be re-issued by the company",
+      "action": "Issue a new secret key in the Stripe dashboard and store it as app_secrets.stripe_secret_key", "link": "https://dashboard.stripe.com/apikeys"
+    },
+    "stripe_test": {
+      "what": "Stripe test mode: the sandbox rehearsals pay with it",
+      "hosts": [], "secrets": [],
+      "owner_seat": "accountant", "blast": "internal", "notify_founder": false, "notify_why": "test mode carries no customer money; the finding stays with the seats",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.stripe.com/v1/balance", "auth": "bearer:stripe_secret_key_test", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Issue a new test secret key and store it as app_secrets.stripe_secret_key_test", "link": "https://dashboard.stripe.com/test/apikeys"
+    },
+    "stripe_webhook": {
+      "what": "Stripe tells stripe_webhook that a payment or refund happened",
+      "hosts": [], "secrets": [],
+      "owner_seat": "accountant", "blast": "customer_facing",
+      "probe": { "kind": "custom", "name": "stripe_webhook", "secret": "stripe_secret_key", "function": "stripe_webhook" },
+      "self_fix": "a DISABLED endpoint that points at stripe_webhook is re-enabled through the Stripe API; the enabled-events wiring stays duty:payment's",
+      "action": "Open the webhook in Stripe, check its failures and enable it", "link": "https://dashboard.stripe.com/webhooks"
+    },
+    "resend": {
+      "what": "every email the company sends, and the expenses inbox",
+      "hosts": ["api.resend.com"],
+      "secrets": ["resend_api_key", "resend_domain_id"],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.resend.com/domains/{secret:resend_domain_id}", "auth": "bearer:resend_api_key", "ok": [200], "expect": { "path": "status", "equals": "verified" } },
+      "self_fix": "retried once after 3 s",
+      "action": "Open the sending domain in Resend: re-verify its DNS records, or issue a new API key and store it as app_secrets.resend_api_key", "link": "https://resend.com/domains"
+    },
+    "resend_webhooks": {
+      "what": "Resend posts delivery events to resend_webhook and inbound mail to resend_inbound",
+      "hosts": [],
+      "secrets": ["resend_webhook_key", "resend_webhook_signing_secret", "resend_inbound_signing_secret", "resend_inbound_token", "inbound_secret"],
+      "env": ["RESEND_INBOUND_NO_SERVE"],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "resilience_ping deliveryCanary: a daily mail to Resend's bounce sink must come back through resend_webhook" },
+      "action": "Open Webhooks in Resend and check the endpoint is enabled", "link": "https://resend.com/webhooks"
+    },
+    "twilio": {
+      "what": "WhatsApp, SMS and the account every Twilio product bills to",
+      "hosts": ["api.twilio.com", "content.twilio.com", "monitor.twilio.com"],
+      "secrets": ["twilio_account_sid", "twilio_api_key_sid", "twilio_api_key_secret", "twilio_auth_token", "twilio_from", "twilio_wa_from"],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.twilio.com/2010-04-01/Accounts/{secret:twilio_account_sid}.json", "auth": "basic:twilio_api_key_sid:twilio_api_key_secret", "ok": [200], "expect": { "path": "status", "equals": "active" } },
+      "self_fix": "retried once after 3 s",
+      "action": "Open the Twilio console: reactivate the account or issue a new API key (store twilio_api_key_sid and twilio_api_key_secret)", "link": "https://console.twilio.com/"
+    },
+    "twilio_whatsapp_sender": {
+      "what": "the company's WhatsApp number as Meta sees it through Twilio",
+      "hosts": ["messaging.twilio.com"], "secrets": [],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "custom", "name": "twilio_wa_sender" },
+      "self_fix": "retried once after 3 s; a sender Meta took offline is re-registered only in the Twilio console",
+      "action": "Check the sender in the Twilio console. If Meta still shows the number connected, only Twilio can restore the sender's WABA link: open a Twilio support ticket and record it with fn_it_external_cause_open so you are not asked again", "link": "https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders"
+    },
+    "twilio_webhooks": {
+      "what": "Twilio posts inbound WhatsApp/SMS and delivery statuses to wa_inbound, sms_inbound and wa_status",
+      "hosts": [], "secrets": [],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "custom", "name": "twilio_webhook_errors", "every_minutes": 60 },
+      "self_fix": "none possible from here: Twilio could not reach our endpoint, so the endpoint or its URL is what is wrong",
+      "action": "Open the Twilio error log (codes 11200/11205: our webhook did not answer)", "link": "https://console.twilio.com/us1/monitor/logs/debugger/errors"
+    },
+    "twilio_verify": {
+      "what": "sign-in codes by SMS and voice",
+      "hosts": ["verify.twilio.com"],
+      "secrets": ["twilio_verify_service_sid", "voice_capture_token"],
+      "owner_seat": "customer_support", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://verify.twilio.com/v2/Services/{secret:twilio_verify_service_sid}", "auth": "basic:twilio_api_key_sid:twilio_api_key_secret", "ok": [200] },
+      "self_fix": "retried once after 3 s",
+      "action": "Open Verify services in the Twilio console and check the service exists", "link": "https://console.twilio.com/us1/develop/verify/services"
+    },
+    "openrouter": {
+      "what": "the paid model gateway (on hold by the founder's ruling)",
+      "hosts": ["openrouter.ai"],
+      "secrets": ["openrouter_api_key", "openrouter_min_usd"],
+      "env": ["OPENROUTER_DISABLED", "NO_PAID_AI"],
+      "owner_seat": "accountant", "blast": "agent_facing",
+      "notify_founder": false, "notify_why": "OpenRouter is on hold and the founder ruled it is never raised with him again; the finding stays with the seats",
+      "probe": { "kind": "http", "method": "GET", "url": "https://openrouter.ai/api/v1/key", "auth": "bearer:openrouter_api_key", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Issue a new OpenRouter key and store it as app_secrets.openrouter_api_key", "link": "https://openrouter.ai/settings/keys"
+    },
+    "dropbox": {
+      "what": "the daily backups and the compliance archive",
+      "hosts": ["api.dropboxapi.com", "content.dropboxapi.com"],
+      "secrets": ["dropbox_app_key", "dropbox_app_secret", "dropbox_refresh_token", "dropbox_access_token", "dropbox_oauth_key", "dropbox_roots"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "custom", "name": "dropbox_refresh", "every_minutes": 60 },
+      "self_fix": "the probe IS the refresh: a new short-lived token is minted from the refresh token",
+      "action": "Reconnect the Dropbox app and store the new refresh token as app_secrets.dropbox_refresh_token", "link": "https://www.dropbox.com/developers/apps"
+    },
+    "github": {
+      "what": "the repository, CI verdicts and signed-change reviews",
+      "hosts": ["api.github.com", "raw.githubusercontent.com"],
+      "secrets": ["github_token"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.github.com/repos/ahmadmhdnabilalzain-bot/quotesdone", "auth": "bearer:github_token", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Issue a new GitHub token with repo read scope and store it as app_secrets.github_token", "link": "https://github.com/settings/tokens"
+    },
+    "github_actions": {
+      "what": "CI on main", "hosts": [], "secrets": [],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "duty:live_code (fn_it_duties): the check-runs on main's head" }
+    },
+    "vercel": {
+      "what": "the website's hosting and deployments",
+      "hosts": ["api.vercel.com"],
+      "secrets": ["vercel_token", "vercel_team_id", "vercel_project_id", "vercel_project"],
+      "env": ["VERCEL_ENV", "VERCEL_DEPLOYMENT_ID", "NEXT_PUBLIC_VERCEL_ENV", "CRON_SECRET"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.vercel.com/v2/user", "auth": "bearer:vercel_token", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s; deployments themselves are duty:live_code's",
+      "action": "Issue a new Vercel token and store it as app_secrets.vercel_token", "link": "https://vercel.com/account/tokens"
+    },
+    "supabase": {
+      "what": "the database, auth, storage and every edge function",
+      "hosts": ["htdblwldjkcgjvmqkbeh.supabase.co"], "secrets": ["anon_key", "project_ref"],
+      "env": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "SB_REGION"],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "{env:SUPABASE_URL}/auth/v1/health", "auth": "apikey:SUPABASE_ANON_KEY", "ok": [200] },
+      "self_fix": "retried once after 3 s",
+      "action": "Open the Supabase status page and the project's dashboard", "link": "https://status.supabase.com/"
+    },
+    "supabase_cron": {
+      "what": "the scheduled jobs and the 15-minute heartbeat", "hosts": [], "secrets": ["cred_cron_compliance"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "resilience_ping: fn_cron_liveness pages platform_down; duty:heartbeat per failing step" }
+    },
+    "company_sites": {
+      "what": "quotesdone.com and quotesdone.ae",
+      "hosts": ["quotesdone.com", "www.quotesdone.com", "quotesdone.ae", "www.quotesdone.ae"],
+      "secrets": ["public_site_url", "cred_site_error_ingest"], "env": ["SITE_ERROR_INGEST_SECRET"],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "duty:uptime (fn_it_duties) and duty:launch_path every hour" }
+    },
+    "cloudconvert": {
+      "what": "CAD and office drawing conversion",
+      "hosts": ["api.cloudconvert.com"], "secrets": ["cloudconvert_api_key"],
+      "owner_seat": "sales_engineer", "blast": "customer_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.cloudconvert.com/v2/users/me", "auth": "bearer:cloudconvert_api_key", "ok": [200, 403], "_ok_why": "measured 24 Sep 2026: the company's key carries task scopes only, so users/me answers 403 'Invalid scope(s)'; a refused or revoked key answers 401", "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Issue a new CloudConvert API key and store it as app_secrets.cloudconvert_api_key", "link": "https://cloudconvert.com/dashboard/api/v2/keys"
+    },
+    "virustotal": {
+      "what": "malware screening of uploaded files",
+      "hosts": ["www.virustotal.com"], "secrets": ["virustotal_api_key"],
+      "owner_seat": "it_engineer", "blast": "security",
+      "probe": { "kind": "http", "method": "GET", "url": "https://www.virustotal.com/api/v3/ip_addresses/8.8.8.8", "auth": "header:x-apikey:virustotal_api_key", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Issue a new VirusTotal API key and store it as app_secrets.virustotal_api_key", "link": "https://www.virustotal.com/gui/my-apikey"
+    },
+    "sanctions_lists": {
+      "what": "the UN and UAE sanctions lists every party is screened against",
+      "hosts": ["scsanctions.un.org", "www.uaeiec.gov.ae"], "secrets": [],
+      "owner_seat": "accountant", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "finding sanctions_list_stale (sanctions_screen fetch)" }
+    },
+    "postiz": {
+      "what": "publishing to Facebook, Instagram, LinkedIn, X, YouTube and TikTok",
+      "hosts": ["api.postiz.com", "platform.postiz.com", "open.tiktokapis.com"],
+      "secrets": ["postiz_api_key", "postiz_api_url", "postiz_publish_key", "postiz_integrations", "marketing_publishing_enabled", "marketing_golive"],
+      "owner_seat": "marketing", "blast": "customer_facing",
+      "probe": { "kind": "marketing", "by": "marketing_channels integrationWatch, every beat: one finding per dead channel (refreshNeeded, disabled, inBetweenSteps, missing)" },
+      "self_fix": "none possible: a channel login is re-authorised only by a person in Postiz; its posts are held until then",
+      "action": "Reconnect the channel in Postiz", "link": "https://platform.postiz.com/launches"
+    },
+    "meta": {
+      "what": "Facebook page and Instagram insights, ads, and the social inbox",
+      "hosts": ["graph.facebook.com", "business.facebook.com"],
+      "secrets": ["meta_autospend_golive", "meta_daily_budget_cap_aed", "meta_access_token", "meta_ad_account_id", "meta_app_id", "meta_app_secret", "meta_graph_version", "meta_ig_user_id", "meta_webhook_verify_token", "social_model_enabled", "social_send_enabled", "profile_text_push"],
+      "owner_seat": "marketing", "blast": "agent_facing",
+      "probe": { "kind": "marketing", "by": "marketing_channels access check (daily, marketing_connection_check meta.*), filed as findings every beat" },
+      "action": "Re-issue the system-user token or re-grant the page in Meta Business settings", "link": "https://business.facebook.com/settings/system-users"
+    },
+    "google_youtube": {
+      "what": "YouTube comment replies and analytics",
+      "hosts": ["www.googleapis.com", "oauth2.googleapis.com", "accounts.google.com", "youtubeanalytics.googleapis.com"],
+      "secrets": ["youtube_oauth", "youtube_channel_id", "google_oauth_client_id", "google_oauth_client_secret"],
+      "owner_seat": "marketing", "blast": "agent_facing",
+      "probe": { "kind": "marketing", "by": "marketing_channels integrationWatch: the sealed token is refreshed when due; a refused refresh is the finding" },
+      "self_fix": "the access token is refreshed from the refresh token",
+      "action": "Sign in again with the one-time connect link", "link": "connect-link:youtube"
+    },
+    "linkedin": {
+      "what": "the LinkedIn company page (published through Postiz; the direct API only for comments)",
+      "hosts": ["api.linkedin.com", "www.linkedin.com"],
+      "secrets": ["linkedin_oauth", "linkedin_organization_id", "linkedin_oauth_client_id", "linkedin_oauth_client_secret"],
+      "owner_seat": "marketing", "blast": "agent_facing",
+      "probe": { "kind": "marketing", "by": "the Postiz linkedin channel and marketing_connection_check linkedin.via_postiz" },
+      "action": "Sign in again with the one-time connect link", "link": "connect-link:linkedin"
+    },
+    "code_cdns": {
+      "what": "modules and model files the edge functions load at boot",
+      "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co"], "secrets": [],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "notify_founder": false, "notify_why": "nothing he can do about a public CDN; the finding stays with the IT engineer",
+      "probe": { "kind": "http", "method": "GET", "url": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/package.json", "auth": "none", "ok": [200], "every_minutes": 60 },
+      "self_fix": "retried once after 3 s",
+      "action": "Nothing to reconnect: a CDN outage passes; check https://status.esm.sh if it persists", "link": "https://esm.sh/"
+    },
+    "web_search": {
+      "what": "the seats' web lookups while reasoning", "hosts": ["html.duckduckgo.com"], "secrets": [],
+      "owner_seat": "it_engineer", "blast": "agent_facing",
+      "probe": { "kind": "http", "method": "GET", "url": "https://html.duckduckgo.com/html/?q=quotesdone", "auth": "none", "ok": [200, 202], "every_minutes": 60, "notify": false },
+      "self_fix": "retried once after 3 s",
+      "action": "Nothing to reconnect; a reasoning step answers without the web while it is down", "link": "https://html.duckduckgo.com/"
+    },
+    "apify": {
+      "what": "lead scraping (paused by the founder until about February 2027)", "hosts": [], "secrets": ["apify_token"],
+      "owner_seat": "sales_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "nothing to probe: no code calls Apify while the founder's pause stands; the token is kept for the restart" }
+    },
+    "it_reading_sources": {
+      "what": "sources the IT duties read domain expiry, certificates and DNS from", "hosts": ["rdap.org", "crt.sh", "dns.google"], "secrets": [],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "duty:expiry and the sender duty report 'unavailable' when these do not answer, and never close a finding on it" }
+    }
+  },
+  "mcp_servers": {
+    "_about": "MCP servers the repository declares (.mcp.json). None is called by the running company: they are tools for the engineering sessions, so a failure stops a session, not a customer. Each is listed so a new one cannot arrive unnoticed.",
+    "playwright": "engineering sessions drive a headless browser with it (journey and page checks); no production code path calls it"
+  },
+  "not_integrations": {
+    "_about": "Hosts that appear in code and are not a service the company depends on: links shown to people, XML namespaces, and reserved test domains. Each says why.",
+    "hosts": {
+      "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",
+      "schemas.openxmlformats.org": "Office XML namespace in a parser fixture", "www.gaeb.de": "GAEB XML namespace in a parser fixture",
+      "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
+      "wa.me": "a click-to-chat link shown to people", "x.com": "footer link", "www.instagram.com": "footer link", "www.facebook.com": "footer link",
+      "consumerrights.ae": "a link shown to a complainant", "status.supabase.com": "the status page named in this registry", "status.esm.sh": "the status page named in this registry"
+    }
+  },
+  "internal_and_settings": {
+    "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
+    "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
+    "secrets": {
+      "admin_emails": "setting", "admin_mfa_phone": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
+      "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
+      "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
+      "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",
+      "email_logo_url": "setting", "email_reply_info": "setting", "email_reply_supplier": "setting", "email_reply_supplier_docs": "setting",
+      "email_signature_name": "setting", "email_signature_name_ar": "setting", "email_signature_title": "setting", "email_stale_hours": "setting",
+      "expense_forwarders": "setting", "founder_email": "setting", "founder_public_phone": "setting", "supplier_emails_enabled": "setting",
+      "unsubscribe_public_base": "setting", "wa_autoreply_enabled": "setting", "wa_daily_cap": "setting", "wa_menu_content_sids": "setting",
+      "wa_per_recipient_24h": "setting", "wa_stale_hours": "setting", "wa_template_sids": "setting", "wa_templates_ready": "setting",
+      "otp_hmac_key": "minted by us: signs sign-in codes", "unsubscribe_signing_key": "minted by us: signs unsubscribe links",
+      "unsubscribe_signing_key_legacy": "minted by us: verifies old unsubscribe links",
+      "internal_credential_hmac_key": "minted by us: hashes internal credentials", "inbound_webhook_secret": "minted by us: shared secret on our own inbound hooks",
+      "content_secret": "minted by us", "deploy_secret": "minted by us", "dispatch_force_key": "minted by us",
+      "accountant_weekly_report_local_dow": "setting", "accountant_weekly_report_local_time": "setting", "agent_autonomy_enabled": "setting",
+      "agent_autonomy_from": "setting", "agent_failure_rate_limit": "setting", "ai_health_fails": "state kept by a watcher", "ai_spend_spike_multiple": "setting",
+      "bd_daily_cap": "setting", "bd_outreach_enabled": "setting", "bd_source_mode": "setting", "brand_avatar_url": "setting",
+      "brand_logo_on_navy_url": "setting", "brand_logo_on_white_url": "setting", "brand_mark_transparent_url": "setting",
+      "ceo_digest_local_time": "setting", "ceo_weekly_report_local_dow": "setting", "ceo_weekly_report_local_time": "setting", "company_trn": "setting",
+      "containment_maintenance": "setting", "cos_frozen": "setting", "cron_down_last_alert": "state kept by a watcher", "default_post_image": "setting",
+      "excluded_job_scopes": "setting", "founder_mobile": "setting", "founder_name": "setting", "founder_public_name": "setting",
+      "founding_free_limit": "setting", "invite_body": "setting", "invite_body_ar": "setting", "invite_daily_cap": "setting", "invite_enabled": "setting",
+      "invite_max_bounce_rate": "setting", "invite_subject": "setting", "invite_subject_ar": "setting", "invite_target_per_category": "setting",
+      "invite_target_per_trade": "setting", "invite_warmup": "setting", "job_eligibility_note": "setting", "lead_reclassify_cost_estimate": "setting",
+      "lead_reclassify_daily_cap": "setting", "min_job_value_aed": "setting", "ml_embed_daily_cap": "setting", "ml_embed_golive": "setting",
+      "ml_embed_read": "setting", "qa_customer_email": "setting", "qa_mint_enabled": "setting", "rating_request_days_after_reveal": "setting",
+      "require_structured_quotes": "setting", "sanctions_screen_enabled": "setting", "site_assistant_global_day": "setting",
+      "site_assistant_ip_hour": "setting", "sla_quote_hours": "setting", "social_posts_per_week": "setting", "subscription_honour_12m": "setting",
+      "supplier_exception_days": "setting", "supplier_outreach_golive": "setting", "supplier_subscription_aed": "setting",
+      "supplier_subscription_start": "setting", "supplier_subscription_term": "setting", "terms_sha256_customer": "setting",
+      "terms_sha256_customer_version": "setting", "terms_sha256_supplier": "setting", "terms_sha256_supplier_version": "setting",
+      "uptime_last_autoheal": "state kept by a watcher", "voice_otp_last": "state kept by a watcher"
+    }
+  }
+}
