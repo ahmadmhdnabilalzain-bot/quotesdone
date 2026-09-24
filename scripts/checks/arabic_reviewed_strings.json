@@ -510,6 +510,9 @@
   "d2f51ce60d95",
   "e0c574ae3528"
  ],
+ "scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql": [
+  "f1b2f677e087"
+ ],
  "scripts/sql/an_arabic_question_is_not_six_words_that_must_all_appear.sql": [
   "3cbc1543d65e"
  ],
@@ -3137,6 +3140,7 @@
   "1336c9d7e82b",
   "13418e9d55f0",
   "137895ad951a",
+  "139f11fd3f80",
   "1745c7367850",
   "17d6313b7fd9",
   "180e85f23dfd",
@@ -4241,7 +4245,8 @@
  ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
-  "cbb176539761"
+  "cbb176539761",
+  "fbe144d11ac6"
  ],
  "supabase/functions/_shared/drawing_identity_gate.ts": [
   "a53833277648"
