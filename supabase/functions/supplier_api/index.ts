@@ -631,7 +631,7 @@ const handle = async (req: Request): Promise<Response> => {
             codeExpiry = docRead.expiry;
             upd.license_expiry = docRead.expiry;
             upd.doc_extracted_at = new Date().toISOString();
-            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code' };
+            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code', licence_name: codeName };
           } else {
             noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
                      'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.');

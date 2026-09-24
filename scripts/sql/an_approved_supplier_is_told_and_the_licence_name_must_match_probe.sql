@@ -10,7 +10,7 @@
 do $probe$
 declare
   a bigint; b bigint; v_codes text[]; e_a int; w_a int; e_a2 int; w_a2 int; e_b int; w_b int;
-  v_to text; v_phone text; v_body text; v_subj text; f text[] := '{}';
+  v_to text; v_phone text; v_body text; v_subj text; f text[] := '{}'; v_rev jsonb;
 begin
   select array_agg(code order by code) into v_codes from (select code from public.taxonomy_trade order by code limit 2) t;
 
@@ -62,14 +62,18 @@ begin
 
   if public.fn_company_name_norm('Al Meydan Aluminium & Glass Works L.L.C') <> public.fn_company_name_norm('AL MEYDAN ALUMINIUM AND GLASS WORKS LLC')
     then f := f || text 'norm: & / L.L.C'; end if;
-  if public.fn_company_name_norm('Nasser Metal Works Est.') <> public.fn_company_name_norm('Nasser Metal Works') then f := f || text 'norm: Est.'; end if;
+  -- Arabic survives [:alnum:] (production lc_ctype en_US.UTF-8, measured 24 Sep) and the legal form drops.
+  if public.fn_company_name_norm('الميدان للألمنيوم ش.ذ.م.م') <> public.fn_company_name_norm('الميدان للألمنيوم')
+     or public.fn_company_name_norm('الميدان للألمنيوم') = '' then f := f || text 'norm: Arabic'; end if;
+  if public.fn_company_name_norm('Nasser Metal Works Est.')<> public.fn_company_name_norm('Nasser Metal Works') then f := f || text 'norm: Est.'; end if;
   if public.fn_company_name_norm('Nasser Metal Works') = public.fn_company_name_norm('Rashid Metal Works') then f := f || text 'norm: different names equal'; end if;
   update public.leads set licence_legal_name = 'Some Other Trading LLC' where id = b;
   if not public.fn_supplier_licence_name_mismatch((select l from public.leads l where id = b)) then f := f || text 'mismatch not seen'; end if;
   -- The review itself: a complete registration whose licence names another company is action_required.
   update public.leads set approval_status = 'pending', verified = false where id = b;
-  if (public.fn_sales_engineer_verifies_supplier(b, 'probe')->>'reason') is distinct from 'licence_name_mismatch'
-     or (select approval_status from public.leads where id = b) <> 'action_required' then f := f || text 'review did not block the mismatch'; end if;
+  v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
+  if (v_rev->>'reason') is distinct from 'licence_name_mismatch'
+     or (select approval_status from public.leads where id = b) <> 'action_required' then f := f || ('review did not block the mismatch: ' || v_rev::text); end if;
   update public.leads set licence_legal_name = 'ZZ DEMO - Approval Notice Probe B LLC' where id = b;
   if public.fn_supplier_licence_name_mismatch((select l from public.leads l where id = b)) then f := f || text 'false mismatch'; end if;
   update public.leads set licence_legal_name = null where id = b;
