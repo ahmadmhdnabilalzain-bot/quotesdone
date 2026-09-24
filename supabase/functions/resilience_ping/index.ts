@@ -435,7 +435,7 @@ async function mlEmbedTick(): Promise<unknown> {
     const secret = await sec('cred_fn_ai');
     if (!secret) return { ok: false, error: 'cred_fn_ai is not in app_secrets' };
     const r = await fetch(FN + '/embed_ml', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
       body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'tick', limit: 4 }), signal: AbortSignal.timeout(50000),
     });
     const j = await r.json().catch(() => null);
