@@ -791,7 +791,7 @@ const handle = async (req: Request): Promise<Response> => {
     if (action === 'accept_terms') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const rec = await supplierTermsRecord(secretVal, clientIp(req));
+      const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
@@ -846,7 +846,7 @@ const handle = async (req: Request): Promise<Response> => {
       const accepting = body.accept_terms === true
         && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
       if (accepting) {
-        const rec = await supplierTermsRecord(secretVal, clientIp(req));
+        const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
         Object.assign(upd, rec);
       }

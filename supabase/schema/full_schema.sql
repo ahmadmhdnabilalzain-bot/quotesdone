@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T13:07:27.441Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T13:24:41.107Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4580,7 +4580,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   whatsapp_asked_at timestamp with time zone,
   invite_clicked_at timestamp with time zone,
   registration_payment_ref text,
-  registration_amount_aed numeric(12,2)
+  registration_amount_aed numeric(12,2),
+  accepted_terms_user_agent text
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
