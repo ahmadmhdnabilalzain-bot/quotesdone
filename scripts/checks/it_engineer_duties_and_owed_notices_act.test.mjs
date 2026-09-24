@@ -2,7 +2,7 @@
 //
 // WHAT FAILS IF THE CAUSE RETURNS — production, in ONE aborted transaction (pending files replayed, ZZ DEMO only,
 // nothing commits, nothing is sent: every message here is a queued row that rolls back):
-//   * licence_expiry_watch: a ZZ DEMO approved supplier whose licence expired stays matchable;
+//   * licence_expiry_watch (the sales_engineer's since 24 Sep 2026): a ZZ DEMO approved supplier whose licence expired stays matchable;
 //   * knowledge_exam: no seat is asked, a seat's answer is not graded as a high-stakes reasoned decision, or the
 //     grade is not recorded;
 //   * knowledge_pass_rate: a seat at 20 % is not raised (finding + it.finding handoff) or its missed items are not
@@ -24,7 +24,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql',
   'scripts/sql/the_it_engineer_watches_licences_and_every_seats_knowledge.sql',
-  'scripts/sql/a_customer_notice_that_failed_is_sent_again.sql'];
+  'scripts/sql/a_customer_notice_that_failed_is_sent_again.sql',
+  'scripts/sql/the_sales_engineer_owns_the_supplier_licence_expiry_watch.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const PING = read('supabase/functions/resilience_ping/index.ts');
 
@@ -54,7 +55,7 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; e_id bigint; ah bigint; g bi
   -- the ZZ DEMO supplier (example.invalid) is made expired inside this transaction only
   select id into lid from public.leads where company_name like 'ZZ DEMO%' and email like '%@example.invalid' and approval_status = 'approved' order by id limit 1;
   update public.leads set license_expiry = current_date - 3, matching_blocked = false, matching_block_reason = null where id = lid;
-  v := public.fn_it_engineer_licence_expiry_watch();
+  v := public.fn_sales_engineer_licence_expiry_watch();
   o := o || jsonb_build_object('lic_after', v->'expired_matchable_after', 'lic_blocked', (select matching_blocked from public.leads where id = lid));
 
   v := public.fn_it_engineer_knowledge_exam(1);
