@@ -1,0 +1,5 @@
+Not applied (marketing, ledger 993, 24 Sep 2026): the session brief forbade applying SQL. Moves the invitation From
+to info@quotesdone.com after four Outlook seed sends showed the supplier@ path junked and the info@ path inboxed.
+What moves it: apply with node scripts/apply_sql.mjs <file> --apply, then ONE seed send
+(node scripts/invitation_inbox_check.mjs --send-seed --to=management@doratajewelries.com) must land in Inbox.
+If it still lands in Junk, the cause is the supplier frame or the unsubscribe headers, not the From; revert the key.
