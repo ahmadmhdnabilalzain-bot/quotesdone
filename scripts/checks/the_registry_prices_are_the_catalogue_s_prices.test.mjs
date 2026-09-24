@@ -15,7 +15,7 @@
 //     comparison and says so. A check that goes red because openrouter.ai was briefly unreachable
 //     teaches people to ignore it, and a check people ignore is worse than no check.
 //   * A MISMATCH IS a finding, and fails. That is the whole point: it means the file's comments, the
-//     rationale text quoting those prices, and the AED 1,200 budget arithmetic derived from them are
+//     rationale text quoting those prices, and the AED 1,600 budget arithmetic derived from them are
 //     all stating a number that is no longer true.
 //
 // It reads the expected values out of the SQL file itself, so there is one place to correct when a
@@ -129,8 +129,9 @@ test('every price and context length the registry file claims is the one the cat
   assert.deepEqual(wrong, [],
     'model_registry states a price or context length the provider does not. The file\'s comments, the '
     + 'model_policy rationale text that quotes these prices, the model_rate row fn_llm_log prices every '
-    + 'call from, and the AED 1,200/month budget arithmetic derived from them (1,170 in its 841 draft; '
-    + 'a_ceiling_exists_before_the_door_is_opened.sql) are all now wrong. Correct them in a NEW file '
+    + 'call from, and the AED 1,600/month budget arithmetic derived from them (gpt_sol_takes_every_qwen_'
+    + 'class_and_one_gemini_takes_every_gemini_class.sql section 6) are all now wrong, and a price that '
+    + 'reorders a tier moves every cheapest-in-tier route. Correct them in a NEW file '
     + 'appended to OWNING_SQLS (glm_5_3_flash_costs_what_the_catalogue_now_charges.sql is the pattern):'
     + `\n  ${wrong.join('\n  ')}`);
 });
