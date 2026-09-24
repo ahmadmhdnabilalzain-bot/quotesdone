@@ -262,9 +262,9 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       const { processComment } = await import('./marketing_social_comments.ts');
       const { adminStore, metaPageToken } = await import('./marketing_social_store.ts');
       const { timedFetch } = await import('./timed_fetch.ts');
-      // deno-lint-ignore no-explicit-any
       // TikTok (#898): the business account's own token, as the marketing duty uses it; replies post AS that account.
       const tiktokToken = async () => String((await admin.from('app_secrets').select('value').eq('key', 'tiktok_business_token').maybeSingle()).data?.value ?? '').trim() || null;
+      // deno-lint-ignore no-explicit-any
       const tokenFor = (ev: any) => ev.platform === 'youtube' ? Promise.resolve(null)
         : ev.platform === 'tiktok' ? tiktokToken()
         : metaPageToken(admin, timedFetch, ev.platform, ev.accountId);

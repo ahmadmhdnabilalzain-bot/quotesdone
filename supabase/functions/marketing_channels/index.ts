@@ -28,7 +28,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { belowFloor, belowRecommended, readMp4 } from '../_shared/video_quality.ts';
 import {
   assetMismatch, deletePostizPost, dubaiDate, MAX_LIVE_PER_BEAT, publishSpentTheBeat, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
-  publishPost, pullInsights, readAdSpend, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
+  publishPost, pullInsights, readAdSpend, saveInsights, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
 } from '../_shared/marketing_channels.ts';
 import { accessToken } from '../_shared/marketing_social_oauth.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
@@ -449,12 +449,13 @@ async function insights(e: Awaited<ReturnType<typeof env>>) {
   const sec = async (k: string) => (await secrets([k]))[k] || undefined;
   const save = async (k: string, v: string) => { const { error } = await admin.from('app_secrets').upsert({ key: k, value: v }, { onConflict: 'key' }); if (error) throw new Error('app_secrets ' + k + ': ' + error.message); };
   const yt = await accessToken(fetch, 'youtube', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '', sec, save).catch(() => null);
-  const { rows, errors } = await pullInsights(fetch, e.meta, e.postizKey ? { base: e.postizBase, key: e.postizKey } : null, day,
+  const pulled = await pullInsights(fetch, e.meta, e.postizKey ? { base: e.postizBase, key: e.postizKey } : null, day,
     yt ? { token: yt.access_token, channelId: yt.account_id } : null);
-  if (rows.length) {
-    const { error } = await admin.from('marketing_insight_day').upsert(rows.map((r) => ({ ...r, pulled_at: new Date().toISOString() })), { onConflict: 'platform,object_id,metric,day' });
-    if (error) return { ok: false, error: error.message };
-  }
+  // One upsert PER PLATFORM (saveInsights): until tiktok_comments_and_every_channels_insights_have_a_home.sql is applied the
+  // table refuses youtube/tiktok rows (23514), and one batch would lose Facebook/Instagram/LinkedIn's day with them.
+  const saved = await saveInsights(async (rs) => await admin.from('marketing_insight_day')
+    .upsert(rs.map((r) => ({ ...r, pulled_at: new Date().toISOString() })), { onConflict: 'platform,object_id,metric,day' }), pulled.rows);
+  const rows = pulled.rows; const errors = [...pulled.errors, ...saved.errors]; const skipped = [...pulled.skipped, ...saved.skipped];
   // permalinks for what the seat published: Postiz's releaseURL per channel
   let linked = 0;
   if (e.postizKey) {
@@ -469,7 +470,7 @@ async function insights(e: Awaited<ReturnType<typeof env>>) {
       }
     }
   }
-  return { ok: errors.length === 0, day, rows: rows.length, linked, errors };
+  return { ok: errors.length === 0, day, rows: rows.length, written: saved.written, linked, errors, skipped };
 }
 
 async function adSpend(e: Awaited<ReturnType<typeof env>>) {

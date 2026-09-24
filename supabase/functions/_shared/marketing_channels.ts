@@ -451,8 +451,9 @@ export function dubaiDayBounds(day: string): { since: number; until: number } {
  *  owner's token from the one connect link), plus a snapshot of recent post counters. A channel not connected is
  *  named in `errors`; the others still come back. */
 export async function pullInsights(f: Fetch, env: MetaEnv | null, postiz: { base: string; key: string } | null, day: string,
-  youtube: { token: string; channelId: string } | null = null): Promise<{ rows: InsightRow[]; errors: string[] }> {
-  const rows: InsightRow[] = []; const errors: string[] = [];
+  youtube: { token: string; channelId: string } | null = null): Promise<{ rows: InsightRow[]; errors: string[]; skipped: string[] }> {
+  // skipped: a channel that is simply not connected is a named skip, not an error; the duty stays green for the rest.
+  const rows: InsightRow[] = []; const errors: string[] = []; const skipped: string[] = [];
   const { since, until } = dubaiDayBounds(day);
   const pg = env ? await metaPage(f, env) : { page: null, error: 'meta_access_token is not in app_secrets' };
   if (!pg.page) errors.push('meta page unreadable: ' + (pg.error || 'no page'));
@@ -496,7 +497,7 @@ export async function pullInsights(f: Fetch, env: MetaEnv | null, postiz: { base
     const ints = await postizIntegrations(f, postiz.base, postiz.key);
     for (const ch of ['linkedin', 'youtube', 'tiktok'] as const) {
       const it = integrationFor(ints.list, ch);
-      if (!it) { errors.push(ch + ' is not connected in Postiz'); continue; }
+      if (!it) { skipped.push(ch + ' is not connected in Postiz'); continue; }
       const r = await f(`${postiz.base}/analytics/${it.id}?date=7`, { headers: { Authorization: postiz.key } });
       const j = await readJson(r);
       if (!r.ok || !Array.isArray(j)) errors.push(ch + ' analytics via postiz: HTTP ' + r.status);
@@ -516,7 +517,28 @@ export async function pullInsights(f: Fetch, env: MetaEnv | null, postiz: { base
       if (st[k] != null) rows.push({ platform: 'youtube', object_type: 'account', object_id: youtube.channelId, metric, day, value: Number(st[k]) || 0 });
     }
   }
-  return { rows, errors };
+  return { rows, errors, skipped };
+}
+
+/** Postgres/PostgREST codes that mean "this platform's rows have no home yet" (the SQL is not applied): a CHECK that does
+ *  not admit the platform (23514), a missing table (42P01) or column (42703), or PostgREST's schema-cache misses. */
+const SCHEMA_NOT_APPLIED = new Set(['23514', '42P01', '42703', 'PGRST204', 'PGRST205']);
+export type InsightUpsert = (rows: InsightRow[]) => Promise<{ error: { code?: string; message: string } | null }>;
+/** Saves insight rows ONE PLATFORM AT A TIME, so a platform the database cannot hold yet never loses the others'
+ *  day (each run fetches only yesterday, so a lost day is lost for good). A platform refused because its schema is
+ *  not applied is a named skip; any other refusal is an error for that platform only. */
+export async function saveInsights(upsert: InsightUpsert, rows: InsightRow[]): Promise<{ written: number; skipped: string[]; errors: string[] }> {
+  const by = new Map<string, InsightRow[]>();
+  for (const r of rows) by.set(r.platform, [...(by.get(r.platform) || []), r]);
+  let written = 0; const skipped: string[] = []; const errors: string[] = [];
+  for (const [platform, group] of by) {
+    let error: { code?: string; message: string } | null;
+    try { ({ error } = await upsert(group)); } catch (e) { error = { message: String((e as Error)?.message || e) }; }
+    if (!error) { written += group.length; continue; }
+    if (SCHEMA_NOT_APPLIED.has(String(error.code || ''))) skipped.push(`${platform}: schema not applied (${error.code})`);
+    else errors.push(`${platform}: ${error.message}`);
+  }
+  return { written, skipped, errors };
 }
 
 // ── ad spend ──────────────────────────────────────────────────────────────────────────────────────

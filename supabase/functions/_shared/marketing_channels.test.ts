@@ -3,7 +3,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
   assetMismatch, buildPostizPayload, deletePostizPost, dubaiDate, sha256Hex, findInPostiz, isDemoText, measureAccess, publishPost, pullInsights,
-  readAdSpend, stripTokens, type Fetch, type MetaEnv, type PublishInput, type Variant,
+  readAdSpend, saveInsights, stripTokens, type Fetch, type InsightRow, type MetaEnv, type PublishInput, type Variant,
 } from './marketing_channels.ts';
 
 const TOKEN = 'EAAZZDEMOTOKENVALUE0000000000';
@@ -234,6 +234,39 @@ Deno.test('insights: one Dubai day of page, Instagram, post and LinkedIn metrics
   assertEquals(m['tiktok.account.video_views'], 9);
   assertEquals(m['youtube.account.subscribers'], 41);
   assert(!JSON.stringify(rows).includes('PAGETOKEN-SECRET'));
+});
+
+Deno.test('insights: a channel not connected in Postiz is a named skip, not an error, and the rest still come back', async () => {
+  const { f } = mock([
+    ...graphRoutes(),
+    [/\/integrations$/, () => INTEGRATIONS.filter((i) => i.identifier !== 'tiktok-business')],
+    [/\/analytics\/i-li/, () => [{ label: 'Page Views', data: [{ total: 6, date: '2026-09-21' }] }]],
+    [/\/analytics\/i-yt/, () => [{ label: 'Views', data: [{ total: 12, date: '2026-09-21' }] }]],
+  ]);
+  const { rows, errors, skipped } = await pullInsights(f, META, { base: P, key: 'k' }, '2026-09-21');
+  assertEquals(errors, [], 'an unconnected channel must not turn the duty red on every run');
+  assertEquals(skipped, ['tiktok is not connected in Postiz']);
+  assert(rows.some((r) => r.platform === 'linkedin') && rows.some((r) => r.platform === 'facebook'));
+});
+
+Deno.test('insights are saved per platform: youtube refused by the CHECK (23514) is a skip, and FB/IG/LinkedIn are still written', async () => {
+  const row = (platform: InsightRow['platform'], metric: string): InsightRow => ({ platform, object_type: 'account', object_id: 'o', metric, day: '2026-09-21', value: 1 });
+  const rows = [row('facebook', 'a'), row('youtube', 'views'), row('instagram', 'reach'), row('linkedin', 'page_views'), row('youtube', 'subscribers')];
+  const stored: InsightRow[] = [];
+  const upsert = async (rs: InsightRow[]) => {
+    if (rs.some((r) => r.platform === 'youtube')) return { error: { code: '23514', message: 'violates check constraint "marketing_insight_day_platform_check"' } };
+    stored.push(...rs); return { error: null };
+  };
+  const r = await saveInsights(upsert, rows);
+  assertEquals(stored.map((x) => x.platform).sort(), ['facebook', 'instagram', 'linkedin']);
+  assertEquals(r.written, 3);
+  assertEquals(r.skipped, ['youtube: schema not applied (23514)']);
+  assertEquals(r.errors, []);
+  // a missing table/column is the same skip; any other refusal is an error for that platform only
+  assertEquals((await saveInsights(async () => ({ error: { code: '42P01', message: 'x' } }), [row('tiktok', 'v')])).skipped, ['tiktok: schema not applied (42P01)']);
+  const other = await saveInsights(async (rs) => rs[0].platform === 'facebook' ? { error: { code: '57014', message: 'timeout' } } : { error: null }, rows);
+  assertEquals(other.errors, ['facebook: timeout']);
+  assertEquals(other.written, 4);
 });
 
 Deno.test('ad spend: per campaign per day, with the business read on the same call so the books can refuse', async () => {

@@ -24,7 +24,7 @@
 // (the system-user token; the page token, page id and IG id are derived from it through me/accounts and
 // cached in public.marketing_meta_page, refetched on a Graph 190), meta_app_id (optional; recognises our
 // Messenger echoes), social_send_enabled,
-// social_model_enabled (off: the model is held — OpenRouter is on hold), cred_fn_ai (the gateway key).
+// social_model_enabled (off: the model is held — OpenRouter is on hold).
 //
 // META APP SETUP: scripts/marketing/connect_social_inbox.mjs does all of it once meta_app_secret is stored.
 // Callback URL:
@@ -54,7 +54,6 @@ import { commentClass } from '../_shared/reasoned_social.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string): Promise<string | undefined> {
   const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
   const v = String(data?.value ?? '').trim();
@@ -200,7 +199,7 @@ async function handle(ev: InboundEvent): Promise<string> {
     // What the comment IS (hide / answer / hand off) is REASONED too (reasoned_social.ts); held, nothing is hidden
     // or said and the replay applies the policy (reasoned_delivery.ts).
     const cls = async () => (await commentClass(defaultDeps(admin, 'marketing_social_inbox'), { platform: ev.platform, commentId: ev.messageId, authorId: ev.userId, text: ev.text })).value;
-    return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
+    return await processComment(adminStore(admin, timedFetch, () => pageToken(ev)), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
       text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, cls, person);
   }

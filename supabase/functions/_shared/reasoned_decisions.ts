@@ -70,7 +70,11 @@ export async function statedSpecs(deps: ThinkDeps, o: {
 }
 
 /** Social: the public or private reply, reasoned over the knowledge and checked by a model of another family.
- *  Only an answer the independent reviewer AGREED with is returned; anything else is null (the caller escalates). */
+ *  Only an answer the independent reviewer AGREED with is returned; anything else is null (the caller escalates).
+ *  Its surfaces (marketing_social.comment_reply, marketing_social.dm_reply) deliberately have NO case in
+ *  reasoned_delivery.deliverReasoned: when think() holds, the person has ALREADY been answered on the spot (the comment
+ *  with the fixed acknowledgement and an escalation to customer_support, since an empty draft fails guard(); the DM with the honest "unknown" and its
+ *  knowledge gap). A late model answer released from the hold would be a second, unasked reply, so it is dropped. */
 export async function socialReply(deps: ThinkDeps, o: {
   surface: string; platform: string; message: string; language: 'en' | 'ar'; dedupeKey?: string; subject?: Record<string, unknown>;
   /** How this seat answered cases like it before (case_recall precedentBlock), recalled by the caller. */
