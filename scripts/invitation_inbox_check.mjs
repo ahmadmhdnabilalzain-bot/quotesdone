@@ -7,7 +7,7 @@
 //       arabic_frame.ts, supplier_mail.ts, payload.ts) and prints the headers plus every inbox rule.
 //       Exit 1 if a rule fails.
 //
-//   node --no-warnings scripts/invitation_inbox_check.mjs --send-seed --to=test-abc123@srv1.mail-tester.com [--lang=ar]
+//   node --no-warnings scripts/invitation_inbox_check.mjs --send-seed --to=test-abc123@srv1.mail-tester.com
 //       Sends ONE invitation through the real path: a notifications row (type supplier_invite_seed,
 //       to_role supplier, company "ZZ DEMO Supplier", a zero portal token) that the running send_outbox
 //       picks up and hands to Resend with the campaign's From, Reply-To, headers and frame. It is not a
@@ -17,6 +17,12 @@
 //       --subject-file=<path> / --body-file=<path> send a CANDIDATE subject/body (same {{company}}/{{link}}
 //       placeholders) instead of the live copy; --role=customer routes it through the info@ identity and
 //       customer frame instead (a diagnostic to split sender identity from content), so a copy fix is placement-tested before app_secrets changes.
+//
+// ENGLISH ONLY (24 Sep 2026, marketing, ledger 993 item 4 "invitations always in English"). The render and the
+// seed are English; --lang=ar is refused. The copy rules (one closing question after the link, never the word
+// AI, English only) come from supabase/functions/send_outbox/invitation_copy.ts, and the render applies
+// withReplyQuestion exactly as send_outbox does. A separate line says whether the STORED body already ends with
+// the question, i.e. whether the_supplier_invitation_ends_with_one_question_and_is_always_english.sql is applied.
 //
 // Token: %USERPROFILE%\.supabase\access-token or SUPABASE_ACCESS_TOKEN. No secret is printed.
 import { readFileSync, existsSync } from 'node:fs';
@@ -74,7 +80,7 @@ function inviteBody(c, lang, override) {
     .split('{{link}}').join(`${site}/${lang}/portal?t=00000000-0000-0000-0000-000000000000`);
 }
 
-async function render(c, lang) {
+async function render(c, lang = 'en') {
   globalThis.Deno ??= { env: { get: (k) => (k === 'SUPABASE_URL' ? PROJECT_URL : '') } };
   const base = new URL('../supabase/functions/send_outbox/', import.meta.url);
   const { tmpl } = await import(new URL('render.ts', base).href);
@@ -82,22 +88,32 @@ async function render(c, lang) {
   const { plainTextPart } = await import(new URL('supplier_mail.ts', base).href);
   const { resendPayload, inboxLint, ownDomain } = await import(new URL('payload.ts', base).href);
   const { UNSUBSCRIBE_MAILBOX } = await import(new URL('../_shared/unsubscribe_mailbox.ts', base).href);
+  const { withReplyQuestion, invitationCopyLint, endsWithOneQuestion } = await import(new URL('invitation_copy.ts', base).href);
   const ar = lang === 'ar';
   const reply = c.email_reply_supplier || 'supplier@quotesdone.com';
   const unsub = `${c.unsubscribe_public_base || PROJECT_URL + '/functions/v1/unsubscribe'}?e=zz-demo%40example.invalid&t=render-only`;
-  const body = inviteBody(c, lang);
+  const stored = inviteBody(c, lang);
+  const body = ar ? stored : withReplyQuestion(stored);   // what send_outbox renders for an English invitation
   const subject = ar ? c.invite_subject_ar : c.invite_subject;
   const html0 = tmpl({ body, logo: c.email_logo_url || '', name: ar ? (c.email_signature_name_ar || 'أحمد الزين') : (c.email_signature_name || 'Ahmad Alzain'),
     title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject, preheader: ar ? '' : (c.invite_preheader || '') });
   const mail = resendPayload({ from: c.email_from_supplier || 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject,
     html: ownDomain(ar ? arabicFrame(html0) : html0, PROJECT_URL, c.email_asset_public_base || ''), text: plainTextPart({ body, unsub, ar, internal: false }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
-  return { mail, lint: inboxLint(mail, ['quotesdone.com', `${REF}.supabase.co`]) };
+  const site = c.public_site_url || 'https://quotesdone.com';
+  const copy = invitationCopyLint({ lang, subject, body, preheader: ar ? '' : (c.invite_preheader || ''), link: `${site}/${lang}/portal?t=00000000-0000-0000-0000-000000000000` });
+  copy.push({ rule: 'the STORED invite_body already ends with the question (the SQL is applied)', ok: endsWithOneQuestion(stored),
+    detail: 'send_outbox appends it at send time; apply scripts/sql/the_supplier_invitation_ends_with_one_question_and_is_always_english.sql' });
+  // A reply to the question must reach resend_inbound: every address on mail.quotesdone.com does; quotesdone.com
+  // itself is a Microsoft 365 tenant no code reads (a_supplier_reply_reaches_a_mailbox_that_is_read.sql).
+  copy.push({ rule: 'Reply-To is a mailbox resend_inbound reads (@mail.quotesdone.com)', ok: /@mail\.quotesdone\.com$/i.test(reply), detail: `Reply-To ${reply}` });
+  return { mail, lint: [...inboxLint(mail, ['quotesdone.com', `${REF}.supabase.co`]), ...copy] };
 }
 
 async function main() {
   const c = await liveConfig();
   if (flag('send-seed')) {
-    const to = arg('to'); const lang = arg('lang') === 'ar' ? 'ar' : 'en';
+    const to = arg('to'); const lang = 'en';
+    if (arg('lang') && arg('lang') !== 'en') { console.error('REFUSED: the supplier invitation is English only (ledger 993).'); process.exit(2); }
     if (!seedAddressAllowed(to)) { console.error(`REFUSED: ${to || '(no --to)'} is not on an inbox-test service (${SEED_DOMAINS.join(', ')}).`); process.exit(2); }
     const readOpt = (k) => (arg(k) ? readFileSync(arg(k), 'utf8').trim() : undefined);
     const subject = readOpt('subject-file') ?? (lang === 'ar' ? c.invite_subject_ar : c.invite_subject);
@@ -113,7 +129,7 @@ async function main() {
     console.error('still queued after 20 minutes'); process.exit(1);
   }
   let bad = 0;
-  for (const lang of ['en', 'ar']) {
+  for (const lang of ['en']) {
     const { mail, lint } = await render(c, lang);
     console.log(`\n=== ${lang.toUpperCase()} invitation (rendered, not sent)`);
     console.log(`From:     ${mail.from}\nReply-To: ${mail.reply_to}\nSubject:  ${mail.subject}`);
