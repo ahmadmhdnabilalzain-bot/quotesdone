@@ -9,8 +9,10 @@
 //   * static: the table loses RLS / its policy / its revoke, a routine loses its pinned search_path or revoke,
 //     the post outcome rule changes shape, the re-check window stops being 48 hours, the beat stops reading
 //     back or stops settling partial/failed channels as it_engineer findings through fn_it_duty_settle, the
-//     read-back writes to Postiz or calls a model, the table leaves the daily export, or the file carries both
-//     (or neither of) a pending note and a MANIFEST line;
+//     read-back writes to Postiz or calls a model, the table leaves the daily export, the playbook row for the
+//     finding prefix is lost, findings go back to one per post, the read-back runs on a heavy beat or fails the
+//     beat before its SQL is applied, a truncated notification read re-classifies an older post, the CEO report
+//     stops reading channel_outcome, or the file carries both (or neither of) a pending note and a MANIFEST line;
 //   * production, in ONE aborted transaction (the file replayed while pending, a ZZ DEMO post with is_demo set,
 //     nothing commits, no finding filed, no notification): all-ok is published, a YouTube thumbnail complaint is
 //     partial, one channel error is partial, all errors are failed, a second record of the same channel is still
@@ -49,23 +51,41 @@ test('static SQL: RLS + policy + revoke, pinned and revoked routines, the rule, 
   assert.match(src, /where p\.status = 'published' and not p\.is_demo/, 'a demo post must never be re-read from Postiz');
   assert.doesNotMatch(src, /cron\.schedule/, 'the re-check runs on the existing beat: no new cron job');
   assert.match(src, /\('marketing_post_channel_result','marketing'\)/, 'the new table is not in the daily export');
+  // review of #965: a cleared finding must not park at awaiting_learning (no playbook row -> duty:handoff_sla)
+  assert.match(src, /insert into public\.it_playbook[\s\S]{0,200}\('postiz_channel_result', 'duty:postiz_channel_result:',/, 'no it_playbook row covers the finding prefix');
+  assert.match(src, /constraint marketing_post_channel_result_says_why check \(state not in \('partial', 'failed'\) or \(platform_message is not null and cause is not null\)\)/);
+  // the CEO report counts published from the channels where they were read back, the old way while NULL
+  assert.match(src, /function public\.fn_marketing_report_figures[\s\S]*coalesce\(channel_outcome, 'published'\) in \('published', 'pending'\)[\s\S]*'posts_partly_published', v_partial/);
+  assert.match(src, /revoke execute on function public\.fn_marketing_report_figures\(timestamptz, timestamptz\) from public, anon, authenticated;/);
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
   assert.ok(pending(FILE) !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
 });
 
 test('static runtime: the beat reads back every channel, stores it, and settles partial/failed as it_engineer findings', () => {
   const fn = tsCode(read(FN));
-  assert.match(fn, /const channels = spent \? \{ ok: true, deferred: 'a post was sent this beat' \} : await channelResults\(e\);/, 'the duties beat does not read channel results');
+  // one heavy phase per beat (PR #931, error 546): not after a send, a calendar render or a daily read
+  assert.match(fn, /const heavy = spent \? 'a post was sent this beat' : rendered \? 'a calendar was rendered this beat' : Object\.keys\(daily\)\.length \? 'a daily read ran this beat' : null;/);
+  assert.match(fn, /const channels = heavy \? \{ ok: true, deferred: heavy \} : await channelResults\(e\);/, 'the duties beat does not read channel results');
+  assert.ok(fn.indexOf('const channels = heavy') > fn.indexOf('daily[next[0]] = await runDaily('), 'the read-back must run after the daily read decides the beat');
+  // deploy order: before the SQL is applied the beat skips instead of failing every 15 minutes
+  assert.match(fn, /if \(sqlPending\(error\)\) return \{ ok: true, skipped: 'sql pending' \};/);
+  // nothing due: no table read and no settle, except one beat in 24
+  assert.match(fn, /if \(!posts\.length && Math\.floor\(Date\.now\(\) \/ 900_000\) % 24 !== 0\) return \{ ok: true, due: 0 \};/);
+  // truncated notifications: a post older than the oldest note read is not re-classified
+  assert.match(fn, /if \(notes\.truncated && notes\.oldestRead && sent < notes\.oldestRead\) \{ heldBack\+\+; continue; \}/);
+  assert.match(fn, /attributeNotes\(notes\.notes, listed\.posts\.values\(\)\)/, 'notes must be credited over every Postiz post, not only ours');
   assert.match(fn, /rpc\('fn_marketing_channel_results_due'/);
   assert.match(fn, /rpc\('fn_marketing_post_channel_record', \{ p_post_id: p\.post_id, p_channels: rows \}\)/);
-  assert.match(fn, /\.in\('state', \['partial', 'failed'\]\)/, 'the settle must be built from every stored partial/failed row, or a finding closes on a beat that did not look');
+  assert.match(fn, /\.in\('state', \['partial', 'failed'\]\)\.gte\('post\.published_at', /, 'the settle is every stored partial/failed row of the re-check window');
   assert.match(fn, /rpc\('fn_it_duty_settle', \{ p_duty: 'postiz_channel_result', p_items: items \}\)/);
   assert.match(fn, /if \(listed\.ok && notes\.ok\) \{/, 'an unreadable Postiz must store nothing');
   const lib = tsCode(read(LIB));
   assert.doesNotMatch(lib, /method:\s*'(POST|PUT|PATCH|DELETE)'/, 'reading results back must never write to Postiz');
   assert.doesNotMatch(lib + fn.slice(fn.indexOf('async function channelResults(')), /think\(|fn_reason_hold|openrouter|makeLlm/i, 'the read-back is deterministic code, never a model');
-  assert.match(lib, /item: `post:\$\{r\.post_id\}:\$\{r\.channel\}`/, 'one finding key per post-channel');
-  assert.match(lib, /owner_seat: 'it_engineer'/, 'the finding belongs to the it_engineer seat');
+  assert.match(lib, /const k = `\$\{r\.channel\}:\$\{r\.cause \|\| 'error'\}`;/, 'one finding per channel + cause, not per post');
+  assert.match(lib, /owner_seat: 'marketing', subject: 'postiz'/, 'fn_it_loop_open routes by owner_seat: marketing owns the posts and has the handoff kind');
+  // marketing/post_results.ts no longer retries a channel the read-back stored as failed
+  assert.match(tsCode(read('supabase/functions/marketing/post_results.ts')), /from\('marketing_post_channel_result'\)\.select\('post_id,channel'\)\s*\.eq\('state', 'failed'\)/);
   assert.match(lib, /export const RECHECK_HOURS = 48;/);
 });
 
@@ -99,9 +119,9 @@ begin
             array['youtube', 'instagram'], 'draft', true)
     returning id into v;
   o := o || jsonb_build_object('all_ok', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"published","release_url":"https://www.youtube.com/watch?v=ZZdemo"},{"channel":"instagram","state":"published"}]')->>'outcome');
-  o := o || jsonb_build_object('thumbnail', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"partial","postiz_state":"ERROR","platform_message":"An error occurred while posting on youtube: thumbnail not set"},{"channel":"instagram","state":"published"}]')->>'outcome');
-  o := o || jsonb_build_object('one_error', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"published"},{"channel":"instagram","state":"failed","platform_message":"An error occurred while posting on instagram-standalone: Media upload failed"}]')->>'outcome');
-  o := o || jsonb_build_object('all_error', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"failed","platform_message":"x"},{"channel":"instagram","state":"failed","platform_message":"y"}]')->>'outcome');
+  o := o || jsonb_build_object('thumbnail', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"partial","cause":"thumbnail_not_set","postiz_state":"ERROR","platform_message":"An error occurred while posting on youtube: thumbnail not set"},{"channel":"instagram","state":"published"}]')->>'outcome');
+  o := o || jsonb_build_object('one_error', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"published"},{"channel":"instagram","state":"failed","cause":"error","platform_message":"An error occurred while posting on instagram-standalone: Media upload failed"}]')->>'outcome');
+  o := o || jsonb_build_object('all_error', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"failed","cause":"error","platform_message":"x"},{"channel":"instagram","state":"failed","cause":"error","platform_message":"y"}]')->>'outcome');
   o := o || jsonb_build_object('rows', (select count(*) from marketing_post_channel_result where post_id = v));
   o := o || jsonb_build_object('column', (select channel_outcome from marketing_post where id = v));
   -- The publish guard may refuse a demo post reaching 'published' at all; either way it must never be due.
