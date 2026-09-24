@@ -44,6 +44,14 @@
       "probe": { "kind": "covered", "by": "resilience_ping deliveryCanary: a daily mail to Resend's bounce sink must come back through resend_webhook" },
       "action": "Open Webhooks in Resend and check the endpoint is enabled", "link": "https://resend.com/webhooks"
     },
+    "inbox_placement_seeds": {
+      "what": "the morning inbox placement check reads, read-only, which folder the day's seed invitation landed in: the founder's Gmail through the Gmail API (the Google client the YouTube connection already uses, plus its own gmail.readonly refresh token) and his Microsoft 365 mailbox through Microsoft Graph Mail.Read",
+      "hosts": ["gmail.googleapis.com", "graph.microsoft.com", "login.microsoftonline.com"],
+      "secrets": ["gmail_seed_refresh_token", "ms_graph_tenant_id", "ms_graph_client_id", "ms_graph_client_secret", "ms_graph_seed_refresh_token"],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "resilience_ping inboxPlacement: a mailbox that cannot be read by the window's start is verdict 'unread', which holds the batch and files deliverability:inbox_placement" },
+      "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
+    },
     "twilio": {
       "what": "WhatsApp, SMS and the account every Twilio product bills to",
       "hosts": ["api.twilio.com", "content.twilio.com", "monitor.twilio.com"],

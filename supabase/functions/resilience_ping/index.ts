@@ -15,6 +15,7 @@ import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
+import { placementTick } from '../_shared/inbox_placement.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { defaultDeps, replayHeld } from '../_shared/think.ts';
@@ -210,6 +211,20 @@ async function deliveryCanaryTick(): Promise<unknown> {
     const { data, error } = await admin.rpc('fn_delivery_feedback_canary_tick');
     if (error) return { ok: false, error: error.message };
     return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE MORNING INBOX PLACEMENT CHECK (24 Sep 2026, it_engineer). On a sending day at 05:15 UTC the database
+// queues one seed invitation to the Gmail and Microsoft 365 seed inboxes; the next beats read which folder
+// each landed in (Gmail API labelIds, Graph parentFolderId) and fn_invite_placement_record decides. Anything
+// but Inbox in both by 06:00 UTC pauses the campaign and files deliverability:inbox_placement, and the batch
+// (enqueue_supplier_invites) refuses to queue without a pass
+// (the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql). It queues mail, so it runs
+// before the outbox drain, which is place=last.
+async function inboxPlacementTick(): Promise<unknown> {
+  try {
+    return await placementTick((fn, args) => admin.rpc(fn, args) as never, fetch, sec,
+      async (k, v) => await admin.from('app_secrets').update({ value: v }).eq('key', k));
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1414,6 +1429,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   marketingOutreach: { run: marketingOutreachTick },
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
+  inboxPlacement: { run: inboxPlacementTick },
   seatClocks: { run: seatClocksTick },
   seatDuties: { run: seatDutiesTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask

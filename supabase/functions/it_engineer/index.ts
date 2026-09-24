@@ -29,6 +29,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
+import { placementTick } from '../_shared/inbox_placement.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -383,6 +384,19 @@ Deno.serve(async (req) => {
       return J({ ok: true, seat: 'it_engineer', issue_key: key, precedent: memory });
     }
 
+    // ── INBOX PLACEMENT ──────────────────────────────────────────────────────────────────────────────
+    // The morning seed check through the seam named above, on demand (the heartbeat's inboxPlacement step
+    // runs the same placementTick every 15 min). The database decides whether to queue, read or settle, so
+    // a call outside 05:15-06:00 UTC on a sending day only answers 'idle'. Monitoring class, asked live.
+    if (action === 'inbox_placement') {
+      const m = await mayAct('monitoring');
+      if (m.may_act !== true) return J({ ok: false, error: 'not_authorised', authority_rule: m }, 403);
+      const out = await placementTick((fn, args) => admin.rpc(fn, args) as never, fetch, sec,
+        async (k, v) => await admin.from('app_secrets').update({ value: v }).eq('key', k));
+      await run('inbox_placement', out.ok === false ? 'error' : 'ok', { result: out });
+      return J({ seat: 'it_engineer', ...out });
+    }
+
     if (action === 'authority') {
       const cls = String(body.action_class || '').trim();
       if (!cls) return J({ error: 'action_class_required', classes: CLASSES }, 400);
@@ -409,7 +423,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist'],
+    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist', 'triage', 'incident_pdf', 'inbox_placement'],
       note: 'The monitoring, diagnosis and escalation actions are a separate build. See the seam '
         + 'described at the top of supabase/functions/it_engineer/index.ts.' }, 400);
   } catch (e) {
