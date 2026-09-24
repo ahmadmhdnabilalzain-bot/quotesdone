@@ -137,7 +137,8 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)
           || new RegExp(`p_author_seat: '${from}',\\s*p_reviewer_seat: '${to}'`).test(ts)
           // a seat duty opens its review through fn_seat_duty_cross_review, whose call names the pair the same way (#901)
-          || new RegExp(`fn_seat_duty_cross_review\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)));
+          // (the kind may be built, e.g. 'ceo.' || v_kind; the author and reviewer must still be written literally)
+          || new RegExp(`fn_seat_duty_cross_review\\(\\s*[^,]+,\\s*'${from}',\\s*'${to}'`).test(allSql)));
     if (!produced) missing.push(`${k}: nothing starts it`);
   }
   assert.deepEqual(missing, []);

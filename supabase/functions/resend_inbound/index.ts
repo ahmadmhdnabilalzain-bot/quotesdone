@@ -646,6 +646,9 @@ export const handler = observe('resend_inbound', async (req) => {
         from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
         body: `[HELD — nothing booked: ${(receiptReason || 'no amount could be read').slice(0, 200)}]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
         attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
+        // Held for the accountant's reasoning (the model hold): the row is the accountant's while it waits, so it never
+        // reads as the founder's (receipts_never_wait_on_the_founder, 24 Sep 2026: the Anthropic receipt, row 161).
+        ...(reasoningHeld ? { owner_role: 'accountant' } : {}),
       }).select('id').maybeSingle();
       if (!reasoningHeld) await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
       await logRun('ok', { expenses_mailbox: 1, receipt: true, booked: false, held: true, doc_archived: !!heldPath, from, subject }, 'receipt HELD for review, not guessed at: ' + (receiptReason || 'no amount could be read').slice(0, 300));
