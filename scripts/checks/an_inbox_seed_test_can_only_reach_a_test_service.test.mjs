@@ -13,6 +13,8 @@ test('a mail-tester address (and its srv subdomain) is accepted', () => {
 test("the founder's own two inboxes are accepted, and nobody else on those domains", () => {
   assert.equal(seedAddressAllowed('ahmadmhdnabilalzain@gmail.com'), true);
   assert.equal(seedAddressAllowed('Management@QuotesDone.com'), true);
+  assert.equal(seedAddressAllowed('management@doratajewelries.com'), true);
+  assert.equal(seedAddressAllowed('info@doratajewelries.com'), false);
   for (const a of ['info@quotesdone.com', 'someone@gmail.com', 'ahmadmhdnabilalzain@gmail.com.evil.ae']) assert.equal(seedAddressAllowed(a), false, a);
 });
 
