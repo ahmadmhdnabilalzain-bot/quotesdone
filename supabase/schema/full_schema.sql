@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T00:09:48.634Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T00:17:46.104Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -31371,14 +31371,14 @@ begin
       case when v_ar then 'طلبكم الأول على QuotesDone' else 'Your first request on QuotesDone' end,
       case when v_ar then
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-        || 'شكرًا لانضمامكم إلى QuotesDone. لم تنشروا طلبكم الأول بعد، ويكفي أن تصفوا ما تحتاجون إليه، وأن ترفقوا المخطط أو جدول الكميات إن توفّر، لتصلكم عروض أسعار من موردين مؤهلين في الإمارات، حتى ثلاثة عروض. ولا تدفعون شيئًا إلا إذا اخترتم الاطلاع على بيانات مورّد.' || chr(10) || chr(10)
-        || 'ابدؤوا من هنا: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || 'شكرًا لانضمامكم إلى QuotesDone. لم تنشروا طلبكم الأول بعد، انشروا طلبكم مرة واحدة، وأرفقوا المخطط أو جدول الكميات إن توفّر، فيقدّم الموردون الموثّقون في الإمارات العاملون في هذا التخصص عروضهم، ونقارنها لكم ونوصي بأفضل ثلاثة منها من حيث القيمة في تقرير المقارنة. ولا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها.' || chr(10) || chr(10)
+        || 'ابدؤوا من هنا: https://quotesdone.com/ar/me' || chr(10) || chr(10)
         || 'وإن واجهتم ما يمنعكم من البدء، يسعدنا أن تردّوا على هذه الرسالة لنساعدكم.' || chr(10) || chr(10)
         || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
       else
         'Dear ' || v_name || ',' || chr(10) || chr(10)
-        || 'Thank you for joining QuotesDone. You have not posted a request yet. Describe what you need, attach a drawing or a bill of quantities if you have one, and up to three qualified UAE suppliers will quote. You pay only if you choose to see a supplier''s details.' || chr(10) || chr(10)
-        || 'Start here: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || 'Thank you for joining QuotesDone. You have not posted a request yet. Post your request once, with a drawing or a bill of quantities if you have one; verified UAE suppliers in that trade quote, and we compare them and recommend the top three by value in your comparison report. You reveal only the one you choose, and pay 3% only then.' || chr(10) || chr(10)
+        || 'Start here: https://quotesdone.com/me' || chr(10) || chr(10)
         || 'If something stopped you, reply to this e-mail and we will help.' end,
       r.id);
     if (v->>'sent')::boolean then v_signup := v_signup + 1; end if;
@@ -31400,13 +31400,13 @@ begin
       case when v_ar then
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
         || 'لم يصل بعدُ أي عرض سعر على طلبكم المنشور بتاريخ ' || to_char(r.created_at at time zone 'Asia/Dubai', 'DD/MM/YYYY')
-        || '، وما زلنا ندعو الموردين العاملين في هذا المجال. ويساعد الموردين على التسعير بسرعة أن يتضمّن الطلب نطاق العمل والكميات والمخطط، ويمكنكم إضافتها من حسابكم: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || '، وما زلنا ندعو الموردين العاملين في هذا المجال. ويساعد الموردين على التسعير بسرعة أن يتضمّن الطلب نطاق العمل والكميات والمخطط، ويمكنكم إضافتها من حسابكم: https://quotesdone.com/ar/me' || chr(10) || chr(10)
         || 'ولأي مساعدة، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
         || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
       else
         'Dear ' || v_name || ',' || chr(10) || chr(10)
         || 'Your request posted on ' || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
-        || ' has not received a quote yet, and we are still inviting suppliers who work in this trade. A clear scope, quantities and a drawing help suppliers price quickly; you can add them from your portal: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || ' has not received a quote yet, and we are still inviting suppliers who work in this trade. A clear scope, quantities and a drawing help suppliers price quickly; you can add them from your account: https://quotesdone.com/me' || chr(10) || chr(10)
         || 'Reply to this e-mail if you would like help.' end,
       r.cid, null, r.id);
     if (v->>'sent')::boolean then v_noquote := v_noquote + 1; end if;
@@ -32216,12 +32216,12 @@ begin
       case when v_ar then 'مشروعكم القادم على QuotesDone' else 'Your next project on QuotesDone' end,
       case when v_ar then
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-        || 'مضى بعض الوقت على مشروعكم الأخير معنا. وحين يحين مشروعكم القادم، يكفي أن تنشروه في دقائق لتصلكم عروض أسعار من موردين مؤهلين في الإمارات، حتى ثلاثة عروض: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || 'مضى بعض الوقت على مشروعكم الأخير معنا. وحين يحين مشروعكم القادم، يكفي أن تنشروه مرة واحدة، فيقدّم الموردون الموثّقون في الإمارات العاملون في هذا التخصص عروضهم، ونقارنها لكم ونوصي بأفضل ثلاثة منها من حيث القيمة في تقرير المقارنة. ولا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها: https://quotesdone.com/ar/me' || chr(10) || chr(10)
         || 'وإن كنتم لا ترغبون في تلقّي مثل هذه الرسائل، فيكفي أن تردّوا على هذه الرسالة لنتوقف عن إرسالها.' || chr(10) || chr(10)
         || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
       else
         'Dear ' || v_name || ',' || chr(10) || chr(10)
-        || 'It has been a while since your last project with us. When the next one comes up, post it in a few minutes and receive up to three quotes from qualified UAE suppliers: https://quotesdone.com/portal' || chr(10) || chr(10)
+        || 'It has been a while since your last project with us. When the next one comes up, post it once; verified UAE suppliers in that trade quote, and we compare them and recommend the top three by value in your comparison report. You reveal only the one you choose, and pay 3% only then: https://quotesdone.com/me' || chr(10) || chr(10)
         || 'If you would rather not hear from us like this, reply to this e-mail and we will stop.' end,
       r.id);
     if (v->>'sent')::boolean then v_sent := v_sent + 1; end if;
@@ -54267,12 +54267,12 @@ begin
   end if;
   v_ar := r.locale = 'ar'; v_name := coalesce(nullif(btrim(r.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
   v_en := case v_choice
-    when 'add_details' then 'Suppliers have looked at your request but need more to price it. Please add the scope of work, the quantities and, if you have one, a drawing or bill of quantities from your portal: https://quotesdone.com/portal'
-    when 'widen_scope' then 'Few suppliers cover this request exactly as it stands. Widening it, for example to a neighbouring emirate, a related trade or a later delivery date, usually brings quotes in. You can change it from your portal: https://quotesdone.com/portal'
+    when 'add_details' then 'Suppliers have looked at your request but need more to price it. Please add the scope of work, the quantities and, if you have one, a drawing or bill of quantities from your account: https://quotesdone.com/me'
+    when 'widen_scope' then 'Few suppliers cover this request exactly as it stands. Widening it, for example to a neighbouring emirate, a related trade or a later delivery date, usually brings quotes in. You can change it from your account: https://quotesdone.com/me'
     else 'Your request is complete and is still with suppliers in this trade. We will write as soon as the first quote arrives; nothing is needed from you now.' end;
   v_arb := case v_choice
-    when 'add_details' then 'اطّلع الموردون على طلبكم، ويحتاجون إلى تفاصيل أكثر لتسعيره. نرجو إضافة نطاق العمل والكميات، والمخطط أو جدول الكميات إن توفّر، من حسابكم: https://quotesdone.com/portal'
-    when 'widen_scope' then 'عدد الموردين الذين يغطّون طلبكم بصيغته الحالية محدود، وتوسيعه عادةً يجلب العروض، كأن يشمل إمارة مجاورة أو تخصصًا قريبًا أو موعد تسليم لاحقًا. ويمكنكم تعديله من حسابكم: https://quotesdone.com/portal'
+    when 'add_details' then 'اطّلع الموردون على طلبكم، ويحتاجون إلى تفاصيل أكثر لتسعيره. نرجو إضافة نطاق العمل والكميات، والمخطط أو جدول الكميات إن توفّر، من حسابكم: https://quotesdone.com/ar/me'
+    when 'widen_scope' then 'عدد الموردين الذين يغطّون طلبكم بصيغته الحالية محدود، وتوسيعه عادةً يجلب العروض، كأن يشمل إمارة مجاورة أو تخصصًا قريبًا أو موعد تسليم لاحقًا. ويمكنكم تعديله من حسابكم: https://quotesdone.com/ar/me'
     else 'طلبكم مكتمل، وما زال لدى الموردين العاملين في هذا المجال. سنبلغكم فور وصول أول عرض سعر، ولا يلزمكم أي إجراء الآن.' end;
   return jsonb_build_object('applied', true, 'choice', v_choice, 'send',
     public.fn_customer_support_duty_send('activation.stalled', r.id::text, 'customer', r.email, case when v_ar then 'ar' else 'en' end,
