@@ -24,7 +24,9 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const MINE = 'scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql';
 const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql',
-  'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql', MINE];
+  'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql', MINE,
+  // the founder's year-one targets (24 Sep 2026) replace this file's base-case contract; replayed after it when pending
+  'scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
@@ -146,7 +148,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
   v := public.fn_ceo_plan_decide(f || '{"company_stage":{"stage":"supply_seeding","scope":["deliverability","invitations","registrations","verification"]}}',
          '{"invites":2200,"registered":90,"verified":0,"inquiries":138,"reveals":9}', null);
   o := o || jsonb_build_object('seeding', jsonb_build_object('stage', v->>'stage', 'lever', v->>'lever'));
-  o := o || jsonb_build_object('forecast_has_path', public.fn_ceo_target_forecast()->'verdicts' @> '[{"contract":"REVEAL_FEES_BASE_PATH_BY_2027_08_31"}]');
+  o := o || jsonb_build_object('forecast_has_path', public.fn_ceo_target_forecast()->'verdicts' @> '[{"contract":"FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30"}]');
   raise exception 'CHK<<%>>', o::text;
 end $$;`);
 
@@ -166,12 +168,12 @@ end $$;`);
   assert.equal(o.diff, 'fetched', 'a changed page was not reasoned');
   assert.match(o.change_task ?? '', /^Competitor change: ZZ DEMO competitor/, 'a material change opened no CEO task');
 
-  assert.deepEqual(o.contracts, { REVENUE_AED_1M_BY_2027_10_01: 'superseded', REVEAL_FEES_BASE_PATH_BY_2027_08_31: 'active' });
-  assert.equal(o.paths, 70); assert.equal(o.path_seats, 6);
-  assert.equal(o.nov_month_plan, 138, 'the CEO month plan does not follow the base-case path');
+  assert.deepEqual(o.contracts, { REVENUE_AED_1M_BY_2027_10_01: 'superseded', REVEAL_FEES_BASE_PATH_BY_2027_08_31: 'superseded' }, 'the year-one targets did not replace the base case');
+  assert.equal(o.paths, 190); assert.equal(o.path_seats, 6);   // 70 of the base case (superseded) + 120 of the year-one path
+  assert.equal(o.nov_month_plan, 40, 'the CEO month plan does not follow the year-one path');
   assert.ok(o.nov.misses >= 4 && o.nov.opened === o.nov.misses, `a November day with nothing measured: ${JSON.stringify(o.nov)}`);
   assert.equal(o.nov_again, 0, 'a second verdict the same day opened a second task');
-  assert.deepEqual(o.root_cause_to, ['accountant', 'marketing', 'sales_engineer'], 'the owning seats were not asked for the root cause');
+  assert.deepEqual(o.root_cause_to, ['accountant', 'customer_support', 'marketing', 'sales_engineer'], 'the owning seats were not asked for the root cause');
   assert.deepEqual(o.answered, { task: 'working', has_cause: true }, 'the root cause never reached the CEO task');
   assert.equal(o.handoff_after, 'done', 'the CEO did not close the root-cause handoff');
   assert.equal(o.miss_case, 'marketing');

@@ -1,0 +1,6 @@
+Committed, not applied. Apply AFTER the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql (#913: target_path,
+target_daily_verdict, fn_ambition_measure, fn_ceo_task_open, the ceo.root_cause kinds), which itself follows #901 and #906.
+Then delete this note and append the file to the END of MANIFEST.txt in the same commit: it becomes canonical for
+fn_ambition_measure, fn_ceo_target_daily_verdict (from #913), fn_ceo_target_forecast and fn_ceo_management_review (from #906),
+so it must sit below all three. Proved in an aborted transaction by
+scripts/checks/the_ceo_year_one_plan_follows_the_founder_targets.test.mjs.
