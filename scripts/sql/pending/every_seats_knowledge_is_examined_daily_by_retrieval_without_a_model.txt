@@ -1,5 +1,0 @@
-COMMITTED, NOT APPLIED. Seat: it_engineer, 24 Sep 2026.
-scripts/sql/every_seats_knowledge_is_examined_daily_by_retrieval_without_a_model.sql is applied after its PR merges, with
-routine_work_is_code_and_the_model_answers_only_real_judgement.sql, before the OpenRouter top-up on 25 Sep 2026. Then run
-node scripts/kb/load_knowledge_eval_questions.mjs (free gte-small embeddings, no model) so the daily exam has its questions;
-until then the duty raises knowledge_recall:no_questions. The probe at the end of the file must print PROBE OK.

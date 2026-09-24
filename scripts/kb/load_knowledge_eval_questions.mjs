@@ -14,7 +14,9 @@ const bad = packs.filter((p) => p.errors.length);
 if (bad.length) { console.error('refused packs: ' + bad.map((p) => p.rel).join(', ')); process.exit(2); }
 const qs = packs.flatMap((p) => (p.pack.eval ?? []).flatMap((q) => ['en', 'ar'].flatMap((lang) =>
   seatsOf(p).map((seat) => ({ pack: p.key, seat, lang, text: lang === 'en' ? q.q_en : q.q_ar, expected: q.expected_entry_ids })))))
-  .filter((q) => q.text && q.expected?.length);
+  .filter((q) => q.text && q.expected?.length)
+  // a pack can repeat a question or list a seat twice; the upsert refuses the same key twice in one batch
+  .filter((q, i, all) => all.findIndex((o) => o.seat === q.seat && o.pack === q.pack && o.lang === q.lang && o.text === q.text) === i);
 console.log(`${packs.length} packs, ${qs.length} (seat, question, language) rows`);
 if (process.argv.includes('--dry')) process.exit(0);
 

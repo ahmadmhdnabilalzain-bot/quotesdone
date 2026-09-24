@@ -1,5 +1,0 @@
-COMMITTED, NOT APPLIED. Seat: it_engineer, 24 Sep 2026.
-scripts/sql/quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql is to be applied after its PR merges
-and BEFORE the OpenRouter top-up on 25 Sep 2026, so sql.trg_quote_quality (52 held/24h), category.key_for_slug (40) and
-inquiry.same_request (2) never reach the new credit. Apply it, deploy supplier_api (it no longer calls
-reasonQuoteAspects), and the probe at its end must print PROBE OK. Then this note is removed and the MANIFEST line added.
