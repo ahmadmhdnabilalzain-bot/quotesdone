@@ -59,8 +59,9 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   // target, an assigned improvement) and approves nothing
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type).sort(),
     ['ceo.directive', 'ceo.improvement', 'ceo.month_directive', 'ceo.root_cause']);
-  // marketing's month plan reaches the CEO for judgement as a review on another model family (866, 873)
-  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['deliberation.review', 'marketing.report']);
+  // marketing's month plan reaches the CEO for judgement as a review on another model family (866, 873); the quarterly
+  // brand review and the monthly GEO report are read by the CEO as marketing.review (ledger 983, gap 8)
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['deliberation.review', 'marketing.report', 'marketing.review']);
   // and marketing asks nobody else; the one exception is a public comment's lead, handed to sales_engineer
   // (instruction 866, 23 Sep 2026), and the escalation of a comment that must not be answered in public
   assert(has('social.lead', 'marketing', 'sales_engineer') && has('social.escalation', 'marketing', 'customer_support'));
@@ -68,5 +69,5 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
     assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || (h.type === 'social.lead' && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.report>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'deliberation.review>ceo', 'delivery.request>customer_support', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });

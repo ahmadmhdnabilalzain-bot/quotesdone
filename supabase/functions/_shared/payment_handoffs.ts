@@ -60,6 +60,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'deliberation.review', from: 'ceo', to: 'accountant' },         // the CEO's pricing or forecast call, reviewed (#906)
   { type: 'deliberation.review', from: 'it_engineer', to: 'ceo' },        // the CEO judges a seat's case (#913)
   { type: 'deliberation.review', from: 'sales_engineer', to: 'ceo' },     // the CEO judges a seat's case (#913)
+  { type: 'sales.escalation', from: 'sales_engineer', to: 'ceo' },        // thin supply or a disputed reveal, decided by the CEO (ledger 983)
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
@@ -130,6 +131,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // It reports the overall picture to the CEO, who READS it and closes it (never approves); it reports ad spend to
   // the accountant, who records it and answers; email and WhatsApp still go through customer_support.
   { type: 'marketing.report', from: 'marketing', to: 'ceo' },
+  // The quarterly brand review and the monthly GEO report (ledger 983, marketing gap 8).
+  { type: 'marketing.review', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },

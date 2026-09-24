@@ -1,7 +1,7 @@
 // think() with a mocked model, embedder and database. No network, no env, no paid call.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
 import type { GateAnswer } from './llm_hold.ts';
-import { authoritative, parseSearchResults, refuse, replayHeld, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
+import { authoritative, isFixtureRequest, parseSearchResults, refuse, replayHeld, taskClassFor, think, type LlmReply, type Phase, type ThinkDeps } from './think.ts';
 
 type Call = { phase: Phase; system: string; input: string; o: Record<string, unknown> };
 function mock(o: {
@@ -102,7 +102,7 @@ Deno.test('a decision must be one of its options', async () => {
   const r = await think(m.deps, { seat: 'ceo', surface: 'ceo.command_intent', question: 'set up a weekly supplier report', decision: opts });
   assertEquals(r.decision?.choice, 'build');
   assertEquals(m.calls.filter((c) => c.phase === 'synthesise').length, 2);
-  assertEquals(m.calls[0].o.taskClass, 'agent_reasoning');
+  assertEquals(m.calls[0].o.taskClass, 'routine_employee_reasoning');
 });
 
 Deno.test('refuse(): asking back needs a decision-changing missing fact and something said with it', () => {
@@ -206,4 +206,29 @@ Deno.test('a judgement whose model fails after the recall is closed as held, nev
   assertEquals(r.status, 'held');
   assert(m.rpcs.some(([f]) => f === 'fn_judgement_record'));
   assertEquals(m.rpcs.find(([f]) => f === 'fn_judgement_decided')?.[1].p_status, 'held');
+});
+
+Deno.test('internal think() runs on the GLM class; customer, supplier and Arabic replies keep theirs (23 Sep ruling)', () => {
+  for (const ph of ['decompose', 'research'] as const) for (const aud of ['internal', 'customer', 'supplier']) assertEquals(taskClassFor(ph, aud, false), 'routine_employee_reasoning');
+  assertEquals(taskClassFor('synthesise', 'internal', false), 'routine_employee_reasoning');
+  assertEquals(taskClassFor('synthesise', 'internal', true), 'routine_employee_reasoning');
+  assertEquals(taskClassFor('synthesise', 'customer', true), 'customer_communication');
+  assertEquals(taskClassFor('synthesise', 'visitor', false), 'customer_communication');
+  assertEquals(taskClassFor('synthesise', 'supplier', false), 'supplier_communication');
+  assertEquals(taskClassFor('synthesise', 'internal', false, 'ar'), 'customer_communication');
+  assertEquals(taskClassFor('verify', 'internal', false), 'knowledge_validation');
+});
+
+Deno.test('a fixture question is held but never queued for a paid replay (e2e journey, 24 Sep 2026)', async () => {
+  const HOLD = { allowed: false, rule: 'founder_hold', held: 1, routes: 8 };
+  const opts = { name: 'trade', options: [{ id: 'aluminium', meaning: 'aluminium work' }, { id: 'glazing', meaning: 'glazing work' }] };
+  const m = mock({ gate: HOLD, replies: {} });
+  const r = await think(m.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts,
+    question: 'We need 40 aluminium windows', subject: { intake_id: 'x', fixture: true } });
+  assertEquals(r.status, 'held');
+  assert(!m.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a fixture must not be filed');
+  const real = mock({ gate: HOLD, replies: {} });
+  await think(real.deps, { seat: 'sales_engineer', surface: 'inquiry_intake.trade', decision: opts, question: 'We need 40 aluminium windows', subject: { intake_id: 'x' } });
+  assert(real.rpcs.some(([f]) => f === 'fn_reason_hold'), 'a real subject is still filed');
+  assertEquals(isFixtureRequest({ subject: { intake_id: 'x' } }), false);
 });

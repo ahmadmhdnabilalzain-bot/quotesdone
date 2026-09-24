@@ -1010,7 +1010,9 @@ Deno.serve(observe('sales_engineer', async (req) => {
 
     // ── SECTORS ────────────────────────────────────────────────────────────────────────────────
     if (action === 'sectors') {
-      const q = String(body.q || '').trim();
+      // A lookup box over the sector catalogue, not a matching judgement. Characters that are PostgREST filter
+      // syntax are dropped so the caller's text cannot add conditions to the or() below.
+      const q = String(body.q || '').replace(/[,()*%\\:."]/g, ' ').trim();
       let query = admin.from('sales_sector').select('sector_id,group_key,title,scope');
       if (q) query = query.or(`title.ilike.%${q}%,scope.ilike.%${q}%,sector_id.ilike.%${q}%`);
       const { data, error } = await query.order('sector_id').limit(Number(body.limit ?? 50));

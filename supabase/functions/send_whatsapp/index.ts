@@ -49,6 +49,10 @@ import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 // provider_status that callback (or its 30-minute backstop poll) writes onto the row.
 import { statusCallbackUrl } from '../_shared/twilio_status.ts';
 import { portfolioGate } from './portfolio_gate.ts';
+// v9 (24 Sep 2026, customer_support, founder ledger 994): nothing depends on WhatsApp alone. While the IT
+// engineer's watch holds the sender down, or when one send fails, the notice goes once by SMS
+// (_shared/whatsapp_failover.ts, public.fn_wa_sms_twin), and back to WhatsApp when the watch closes.
+import { FAILOVER_MARK, queueSmsTwin, routeFor, smsTextFor, WA_SENDER_FINDING_KEY, waHealthFrom, type WaHealth } from '../_shared/whatsapp_failover.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return (data?.value as string|undefined) || undefined; }
@@ -143,6 +147,9 @@ function tmplKey(type:string):string|null{
   // 23 Sep 2026 (instruction 858): the 3-working-day portfolio reminder is a notice about the supplier's
   // own account too. {{1}} is its subject, {{2}} the portal, which opens on the Services tab.
   if(t==='supplier_portfolio_incomplete') return 'supplier_account_notice';
+  // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
+  // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
+  if(t==='supplier_approved') return 'supplier_account_notice';
   // 6 SEP 2026: the founder's own alert. fn_notify_founder queues it (allowed kind, severe level) and
   // wa_flush drains it here. "QuotesDone alert: {{1}}. Details: {{2}}. Open the OS to act." — registered
   // by wa_template_setup under this key.
@@ -169,11 +176,21 @@ function varsFor(key:string, n:{subject?:string|null; body?:string|null}){
   }
   // support_reply: {{1}} their question (the subject), {{2}} the answer (the body), each one line.
   if (key==='support_reply') return {'1': waVar(shortSummary(n.subject||''), 120), '2': waVar(String(n.body||''), 700)};
-  const summary = shortSummary(n.subject||n.body||'');
-  const url = key==='supplier_new_inquiry' ? SUP_URL
-            : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice') ? PORTAL_URL
-            : APP_URL;
-  return {'1':summary,'2':url};
+  return {'1':shortSummary(n.subject||n.body||''),'2':linkFor(key)};
+}
+// The page a notice points to. The SMS twin carries the same link as the WhatsApp template.
+function linkFor(key:string|null){
+  return key==='supplier_new_inquiry' ? SUP_URL
+       : (key==='supplier_doc_expiry' || key==='supplier_quote_accepted' || key==='supplier_account_notice') ? PORTAL_URL
+       : APP_URL;
+}
+// LIVE WHATSAPP HEALTH: the IT engineer's integration watch. An unreadable finding table reads as healthy,
+// because the per-message failover below still catches every send that then fails.
+async function waHealth(): Promise<WaHealth> {
+  const { data, error } = await admin.from('it_engineer_finding').select('started_at')
+    .eq('issue_key', WA_SENDER_FINDING_KEY).is('closed_at', null).limit(1);
+  if (error) return { healthy: true, reason: null };
+  return waHealthFrom((data && data[0]) || null);
 }
 // THE SEND, AND WHAT IT MEANS WHEN IT DOES NOT COME BACK (22 Sep 2026, it_engineer, CONN-03).
 // Both of these used a bare `await fetch` with no deadline and no catch. A timeout or a dropped
@@ -336,7 +353,9 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     const { count: founderQueued } = await admin.from('notifications').select('id', { count: 'exact', head: true })
       .eq('channel','whatsapp').eq('status','queued').in('to_role', ['founder','admin','owner']);
     const founderWaiting = Number(founderQueued || 0) > 0;
-    if (budget <= 0 && !founderWaiting) {
+    // While WhatsApp is down the queue goes by SMS, which the WhatsApp reputation cap has no say over.
+    const health = await waHealth();
+    if (budget <= 0 && !founderWaiting && health.healthy) {
       await logThrottled('daily_cap', 180, 'ok', { cap: dayCap, sent_last_24h: Number(sentLast24 || 0) },
         'WhatsApp daily cap of ' + dayCap + ' reached. Queued messages are held, not dropped, and resume automatically. Raise app_secrets.wa_daily_cap only while Twilio reports sender quality High.');
       return J({ ok:true, sent:0, failed:0, skipped:0, requeued:0, unmapped:0, capped:true, cap:dayCap, sent_last_24h:Number(sentLast24||0) });
@@ -353,6 +372,13 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     const staleH = Number(await sec('wa_stale_hours') || 24);
     let sent=0, failed=0, skipped=0, requeued=0, unmapped=0, capped=0, heldFounder=0, heldStale=0, fellBack=0, unconfirmed=0; let lastErr=''; const unmappedTypes = new Set<string>();
     const fallbackOutcomes = new Set<string>();
+    let smsFailover = 0;
+    // The notice goes by SMS instead. Founder rows keep their own email fallback (fn_wa_founder_alert_fallback).
+    const toSms = async (n: WaRow, reason: string) => {
+      const r = await queueSmsTwin((fn, args) => admin.rpc(fn, args), n.id, smsTextFor(n, linkFor(tmplKey(String(n.type || '')))), reason);
+      if (r.ok) { smsFailover++; return true; }
+      lastErr = 'SMS failover not queued for notification ' + n.id + ': ' + r.outcome; return false;
+    };
     // Every founder path funnels through here so the counter and the log agree on what happened.
     const tryFallback = async (n: WaRow, reason: string) => {
       const out = await founderFallback(n, reason);
@@ -392,6 +418,9 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // held like a row waiting on its template: the claim lapses and the next run re-checks it
         if (g.action === 'hold') { await admin.from('notifications').update({ last_error: g.reason }).eq('id', n.id); skipped++; requeued++; lastErr = g.reason; continue; }
       }
+      // WHATSAPP DOWN: the notice goes by SMS now, not when WhatsApp comes back. If the twin cannot be
+      // queued the row falls through to the WhatsApp attempt, whose failure is caught below.
+      if (!isFounderRow(n) && routeFor(health, to) === 'sms' && await toSms(n, health.reason || 'WhatsApp unavailable')) { skipped++; continue; }
       // A capped row is NOT a requeue caused by a template. Counting it as one is what made three
       // founder alerts read as "templates_not_ready" for a day while the template was approved.
       if (budget <= 0 && !isFounderRow(n)) { capped++; continue; }
@@ -503,6 +532,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         // class of lying counter this version exists to remove.
         if (await tryFallback(n, 'Twilio rejected the WhatsApp send: ' + lastErr)) continue;
       }
+      // One failed WhatsApp send: the row is recorded 'failed' below, then the same notice goes once by SMS.
+      const smsAfter = !res.ok && !isFounderRow(n);
       // THE SID IS THE PROOF (21 Sep 2026). Measured: 24 of 24 WhatsApp rows marked 'sent' since 18 Sep
       // carried provider_message_id NULL, so every founder alert's WhatsApp twin came back to the
       // delivery watch as 'sent_unconfirmed', was escalated to the CEO as "did not arrive", and reached
@@ -514,7 +545,21 @@ Deno.serve(observe('send_whatsapp', async (req) => {
         provider_message_id: res.ok ? (res.sid || null) : null,
         last_error: res.ok?null:String(res.error||'').slice(0,500) }).eq('id', n.id);
       if (res.ok) { sent++; budget--; } else { failed++; lastErr = String(res.error || '').slice(0, 200); }
+      if (smsAfter) await toSms(n, 'Twilio rejected the WhatsApp send: ' + String(res.error || '').slice(0, 200));
     }
+    // FAILED AFTER IT WAS ACCEPTED: wa_status records Twilio's later 'failed' / 'undelivered' (63005 and the
+    // like) as status 'failed'. Each such notice of the last 24 hours goes once by SMS; fn_wa_sms_twin stamps
+    // the mark this filter reads, and its unique index makes a repeat a no-op.
+    const { data: lateFails } = await admin.from('notifications')
+      .select('id,type,to_phone,to_role,subject,body,provider_error_code')
+      .eq('channel', 'whatsapp').eq('status', 'failed').gte('created_at', since24)
+      .or('last_error.is.null,last_error.not.ilike.*' + FAILOVER_MARK.replace(/[^a-z ]/g, '') + '*').limit(25);
+    for (const n of (lateFails || []) as (WaRow & { provider_error_code?: string | null })[]) {
+      if (isFounderRow(n) || routeFor(health, normPhone(String(n.to_phone || ''))) === 'suppress') continue;
+      await toSms(n, 'WhatsApp reported the message failed' + (n.provider_error_code ? ' (Twilio ' + n.provider_error_code + ')' : ''));
+    }
+    if (smsFailover) await logRun('ok', { signal: 'sms_failover', sms_failover: smsFailover, whatsapp_healthy: health.healthy },
+      smsFailover + ' WhatsApp notice(s) queued as SMS, one twin each, because ' + (health.healthy ? 'their WhatsApp send failed.' : health.reason));
     if (capped) await logThrottled('rate_capped', 180, 'ok', { capped, cap: dayCap, per_recipient: perRecip },
       capped + ' WhatsApp message(s) held this run by the sender-reputation cap (daily ' + dayCap + ', per recipient ' + perRecip + ' / 24h). They stay queued and go out as budget frees up.');
     // A founder alert that WhatsApp could not carry is only acceptable because the email did. Say so
@@ -548,7 +593,7 @@ Deno.serve(observe('send_whatsapp', async (req) => {
     else if (heldStale) await logRun('ok', { sent, failed, skipped, held_stale: heldStale, templates_ready: ready },
       heldStale + ' WhatsApp message(s) were held as stale: older than ' + staleH + 'h when the queue was drained. They are retained, not sent — an alert that old describes a situation that has probably changed.');
     else if (sent || (skipped && !requeued)) await logRun('ok', { sent, failed, skipped, templates_ready: ready }, '');
-    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, unconfirmed, fell_back: fellBack,
+    return J({ ok:true, sent, failed, skipped, requeued, unmapped, capped, unconfirmed, fell_back: fellBack, sms_failover: smsFailover, whatsapp_healthy: health.healthy,
                fallback_outcomes: [...fallbackOutcomes], held_founder: heldFounder, held_stale: heldStale,
                cap:dayCap, per_recipient_24h:perRecip, templates_ready:ready });
   } catch (e) { const m = String((e as Error)?.message||e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }

@@ -23,8 +23,9 @@ import { accessToken, type SocialPlatform } from '../_shared/marketing_social_oa
 import { pushFacebook, pushWhatsapp, pushYoutube, VARIANTS } from './profile_text.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
-import { defaultDeps } from '../_shared/think.ts';
+import { defaultDeps, think } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { modelCitation, parseDuckResults, parseRss, webCitation } from '../_shared/marketing_trends.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Admin = any;
@@ -323,6 +324,111 @@ export const profileText: Duty = {
 };
 
 
+// ── TRENDS, GEO AND THE REVIEWS (marketing, 24 Sep 2026; ledger 983, GAPS.md "## Marketing" gaps 3, 5, 8) ───────
+// scripts/sql/marketing_watches_trends_audits_answer_engines_and_reviews_the_brand_each_quarter.sql.
+// Each bounds itself for the edge CPU cap: two feeds and ONE judgement per beat; two GEO checks per beat.
+
+/** One trend's relevance, reasoned (surface marketing.trend_relevance). Held: null, and it is asked again next beat. */
+export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: number; title: string; url: string; source: string }) {
+  const r = await think(deps, {
+    seat: 'marketing', surface: 'marketing.trend_relevance', queueWhenHeld: false, research: false,
+    question: `A news item from "${t.source}": ${t.title} (${t.url}). Does it matter to QuotesDone, a UAE construction and fit-out procurement marketplace that is registering suppliers now and launches to customers in January 2027? If it does, say in one line what the marketing seat should do with it.`,
+    context: { audience: 'internal' },
+    decision: { name: 'trend_relevance', options: [
+      { id: 'relevant', meaning: 'it changes what UAE buyers or suppliers of construction, fit-out, MEP or building materials need, fear or search for, or what a competitor offers; usable in content or positioning' },
+      { id: 'not_relevant', meaning: 'nothing the company can act on' },
+    ], fields: [{ key: 'why_it_matters', question: 'in one line, why it matters and what content or positioning it suggests' }] },
+  });
+  if (r.status !== 'answered' || !r.decision?.choice) return null;
+  const why = (r.decision.fields?.why_it_matters?.value || r.answer || '').trim().slice(0, 300);
+  // "Relevant" with no reason is not usable in a plan; recording it as not relevant (and saying why) ends the retry
+  // instead of re-asking the model about the same headline every beat.
+  if (r.decision.choice === 'relevant' && !why) return { relevant: false, why: 'judged relevant but no reason was given; not used', model: r.model ?? 'think' };
+  return { relevant: r.decision.choice === 'relevant', why, model: r.model ?? 'think' };
+}
+
+export const trendWatch: Duty = {
+  name: 'trend_watch',
+  owner_seat: 'marketing',
+  async run({ admin }) {
+    const { data: srcs, error } = await admin.rpc('fn_marketing_trend_sources_due', { p_limit: 2 });
+    if (error) throw new Error('fn_marketing_trend_sources_due: ' + error.message);
+    let fresh = 0; const failed: string[] = [];
+    for (const s of (srcs || []) as Array<{ id: number; name: string; feed_url: string }>) {
+      let items: ReturnType<typeof parseRss> = [], err: string | null = null;
+      try {
+        const r = await timedFetch(s.feed_url, { headers: { 'User-Agent': 'QuotesDone-marketing-trends/1.0 (+https://www.quotesdone.ae)' } }, 12_000);
+        if (r.ok) items = parseRss(await r.text()); else err = 'HTTP ' + r.status;
+      } catch (e) { err = String((e as Error)?.message || e).slice(0, 200); }
+      const seen = await admin.rpc('fn_marketing_trend_seen', { p_source_id: s.id, p_items: items, p_error: err });
+      if (seen.error) throw new Error('fn_marketing_trend_seen: ' + seen.error.message);
+      if (err) failed.push(s.name + ': ' + err); else fresh += Number(seen.data) || 0;
+    }
+    const { data: next } = await admin.rpc('fn_marketing_trend_next_to_judge');
+    let judged: unknown = null;
+    const t = (next || [])[0];
+    if (t) {
+      const j = await judgeTrend(defaultDeps(admin, 'marketing'), t);
+      if (j) {
+        const w = await admin.rpc('fn_marketing_trend_judged', { p_id: t.id, p_relevant: j.relevant, p_why: j.why, p_by: j.model });
+        if (w.error) throw new Error('fn_marketing_trend_judged: ' + w.error.message);
+        judged = { id: t.id, relevant: j.relevant };
+      } else judged = { id: t.id, held: true };
+    }
+    // A feed that fails is recorded on its row (last_error) and retried tomorrow; only every active feed failing is a finding.
+    if (failed.length) {
+      const { data: healthy } = await admin.from('marketing_trend_source').select('id').eq('active', true).is('last_error', null).limit(1);
+      if (!healthy?.length) throw new Error('every trend feed failed: ' + failed.join('; '));
+    }
+    return { due: (srcs || []).length > 0 || !!t, read: (srcs || []).length, new_trends: fresh, judged, failed };
+  },
+};
+
+export const geoAudit: Duty = {
+  name: 'geo_audit',
+  owner_seat: 'marketing',
+  async run(ctx) {
+    const held = await modelHeld(ctx.admin);   // under the founder's hold only the web checks are due
+    const { data, error } = await ctx.admin.rpc('fn_marketing_geo_due', { p_limit: 2, p_include_model: !held });
+    if (error) throw new Error('fn_marketing_geo_due: ' + error.message);
+    const rows = (data || []) as Array<{ question_id: number; question: string; engine: 'web' | 'model'; month: string }>;
+    const done: unknown[] = [];
+    for (const q of rows) {
+      let rec: { cited: boolean; rank: number | null; evidence: string | null; model: string | null };
+      if (q.engine === 'web') {
+        const r = await timedFetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q.question),
+          { headers: { 'User-Agent': 'QuotesDone-marketing-geo/1.0 (+https://www.quotesdone.ae)' } }, 12_000);
+        if (!r.ok) throw new Error('web search HTTP ' + r.status);
+        const results = parseDuckResults(await r.text());
+        // No results is a blocked or changed page, not "we are not cited": nothing is recorded, and it is a finding.
+        if (!results.length) throw new Error('web search returned no results for GEO question ' + q.question_id + ' (blocked or page changed)');
+        rec = { ...webCitation(results), model: null };
+      } else {
+
+        const a = await marketingDeps(ctx).callModel('marketing_research', 600,
+          [{ role: 'user', content: q.question + ' Name specific platforms or companies if you know any.' }], []);
+        if (a.error || !a.content) throw new Error('geo model check: ' + (a.error || 'no answer'));
+        rec = { ...modelCitation(a.content), rank: null, model: a.model ?? null };
+      }
+      const w = await ctx.admin.rpc('fn_marketing_geo_record', { p_month: q.month, p_question_id: q.question_id, p_engine: q.engine,
+        p_cited: rec.cited, p_rank: rec.rank, p_evidence: rec.evidence, p_model: rec.model });
+      if (w.error) throw new Error('fn_marketing_geo_record: ' + w.error.message);
+      done.push({ question: q.question_id, engine: q.engine, cited: rec.cited });
+    }
+    return { due: rows.length > 0, checked: done };
+  },
+};
+
+export const reviews: Duty = {
+  name: 'reviews',
+  owner_seat: 'marketing',
+  async run({ admin, now }) {
+    const { data, error } = await admin.rpc('fn_marketing_reviews_tick', { p_at: now.toISOString() });
+    if (error) throw new Error('fn_marketing_reviews_tick: ' + error.message);
+    return { due: Object.keys(data || {}).length > 0, composed: data };
+  },
+};
+
 // competitor_study, judgement, plan_loop: the judgement duties (instructions 865-867, above); profile_text (920).
 export const DUTIES: Duty[] = [
   POST_RESULTS, SCORECARD, platformSpecFreshness, socialComments,
@@ -401,5 +507,5 @@ export const DUTIES: Duty[] = [
       return data as Record<string, unknown>;
     },
   },
-  profileText,
+  profileText, trendWatch, geoAudit, reviews,
 ];

@@ -109,6 +109,18 @@ export async function record(
   } catch (_e) { /* instrumentation never breaks the thing it watches */ }
 }
 
+/**
+ * THE LATENCY BUDGET (24 Sep 2026, it_engineer; seat audit IT gap 4). The founder's number: portal page data
+ * loads in under 2.5 s. Until today only the nightly journey checked it, once a night. These are the functions
+ * the two portals load their data from; each run carries `budget_ms` and every run is logged, and
+ * fn_it_engineer_latency_slo (scripts/sql/the_it_engineer_holds_the_portals_to_their_latency_budget.sql)
+ * judges the p95 hourly. ponytail: every run is a row — about 1-2.5k a day each today (measured 24 Sep); if
+ * launch traffic makes that heavy, sample at a known rate and weight the p95 instead.
+ */
+export const LATENCY_BUDGET_MS: Readonly<Record<string, number>> = {
+  customer_api: 2500, customer_portal: 2500, project_api: 2500, messages_api: 2500, kyc: 2500,
+  supplier_portal: 2500, supplier_api: 2500,
+};
 export type ObserveOpts = {
   /** Minimum gap between logged healthy runs, per isolate. 0 logs every run. Default 60000. */
   okEveryMs?: number;
@@ -183,7 +195,10 @@ export function observe(
   handler: (req: Request) => Response | Promise<Response>,
   opts: ObserveOpts = {},
 ): (req: Request) => Promise<Response> {
-  const okEveryMs = opts.okEveryMs ?? 60_000;
+  const budgetMs = LATENCY_BUDGET_MS[slug];
+  // A function under a latency budget logs EVERY run, so its p95 is a real p95 and not the p95 of a sample
+  // that always keeps the slow tail (which would read slower than the truth).
+  const okEveryMs = budgetMs ? 0 : (opts.okEveryMs ?? 60_000);
   const slowMs = opts.slowMs ?? 4_000;
   let lastOkAt = 0;
   return async (req: Request): Promise<Response> => {
@@ -199,7 +214,7 @@ export function observe(
     }
     const ms = Date.now() - t0;
     const http = res.status;
-    const base = { ...(ANNOTATIONS.get(res) ?? {}), ...baseCounts(req, http) };
+    const base = { ...(ANNOTATIONS.get(res) ?? {}), ...baseCounts(req, http), ...(budgetMs ? { budget_ms: budgetMs } : {}) };
     if (http >= 400) {
       const status = classify(http);
       const cloned = bodyOf(res);    // clone NOW, read in the background
