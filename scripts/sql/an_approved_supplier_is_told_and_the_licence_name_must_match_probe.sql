@@ -95,6 +95,10 @@ begin
   update public.leads set licence_legal_name = 'ZZ DEMO - Approval Notice Probe B LLC' where id = b;
   v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
   if (select approval_status from public.leads where id = b) <> 'approved' then f := f || ('a read, matching name was not approved: ' || v_rev::text); end if;
+  -- An already-approved supplier whose licence name is (now) unread stays approved.
+  update public.leads set licence_legal_name = null where id = b;
+  v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
+  if (select approval_status from public.leads where id = b) <> 'approved' then f := f || ('an approved supplier lost approval on an unread name: ' || v_rev::text); end if;
   update public.pricing_config set auto_approve_suppliers = v_auto_was where id = 1;
 
   raise exception 'CHK<<%>> A: email % / whatsapp % (to %, phone %), after re-approval % / %; B (opt none): email % / addressed whatsapp %. SUBJECT: % BODY: %',
