@@ -3,7 +3,7 @@
 // with one question, after the portal link and before the signature, footer and unsubscribe line.
 //   deno test supabase/functions/send_outbox/invitation_copy.test.ts   (pure: no network, no file reads)
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { endsWithOneQuestion, INVITE_REPLY_QUESTION, invitationCopyLint, withReplyQuestion } from './invitation_copy.ts';
+import { endsWithOneQuestion, holdArabicInvitation, INVITE_REPLY_QUESTION, invitationCopyLint, withReplyQuestion } from './invitation_copy.ts';
 import { tmpl } from './render.ts';
 import { plainTextPart } from './supplier_mail.ts';
 
@@ -53,4 +53,21 @@ Deno.test('the rules refuse the word AI, Arabic copy, and a closing with two sen
   assertEquals(endsWithOneQuestion('x\n\nThanks. Which trades do you cover?'), false);
   assertEquals(endsWithOneQuestion('x\n\nWhich trades? And which emirates?'), false);
   assertEquals(endsWithOneQuestion('x\n\nWhich trades do you cover?'), true);
+});
+
+Deno.test('an abbreviation is not a sentence break, so a closing question that uses one is not given a second', () => {
+  const q = 'Which trades do you cover, e.g. MEP, joinery or L.L.C. fit-out works?';
+  assert(endsWithOneQuestion('x\n\n' + q));
+  assert(endsWithOneQuestion('x\n\nDoes Acme Co. cover HVAC, etc. in Dubai?'));
+  assertEquals(withReplyQuestion('x\n\n' + q), 'x\n\n' + q, 'a rewritten closing question got the fallback appended');
+  assertEquals(endsWithOneQuestion('x\n\nThanks. Which trades do you cover?'), false, 'a real sentence break still counts');
+});
+
+Deno.test('a supplier invitation queued in Arabic is held, never sent; nothing else is', () => {
+  assertEquals(holdArabicInvitation('supplier_invite', 'ar'), true);
+  assertEquals(holdArabicInvitation('supplier_invite_seed', 'AR'), true);
+  assertEquals(holdArabicInvitation('supplier_invite', 'en'), false);
+  assertEquals(holdArabicInvitation('supplier_invite', null), false);
+  assertEquals(holdArabicInvitation('supplier_rfq_widened_invite', 'ar'), false, 'other supplier mail keeps its language');
+  assertEquals(holdArabicInvitation('supplier_approved', 'ar'), false);
 });

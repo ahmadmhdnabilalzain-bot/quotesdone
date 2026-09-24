@@ -26,13 +26,26 @@ export function lastParagraph(body: string): string {
   return parts.length ? parts[parts.length - 1] : '';
 }
 
+// Abbreviations whose full stop is not the end of a sentence ("e.g. MEP", "Acme Co. LLC", "L.L.C."). Mirrored in the
+// verdict row of the_supplier_invitation_ends_with_one_question_and_is_always_english.sql.
+const ABBREVIATION = /\b(?:e\.g|i\.e|etc|co|l\.l\.c|ltd|inc|no|st|mr|mrs|ms|dr)\./gi;
+
 /** True when the body's last paragraph is ONE sentence and it is a question. */
 export function endsWithOneQuestion(body: string): boolean {
   const last = lastParagraph(body);
   if (!last.endsWith('?')) return false;
   if ((last.match(/\?/g) || []).length !== 1) return false;
   // a sentence break inside the paragraph (". ", "! " followed by more text) means two sentences
-  return !/[.!]\s+\S/.test(last);
+  return !/[.!]\s+\S/.test(last.replace(ABBREVIATION, ''));
+}
+
+/**
+ * An invitation row in Arabic is held, never sent (ledger 993: invitations always in English). A row queued with
+ * lang 'ar' before fn_supplier_invite_candidates was made English-only carries only the Arabic text and no
+ * question; the English copy cannot be rebuilt from the row (no claim token, no company), so it waits instead.
+ */
+export function holdArabicInvitation(type: unknown, lang: unknown): boolean {
+  return String(type || '').startsWith('supplier_invite') && String(lang || '').toLowerCase() === 'ar';
 }
 
 /**

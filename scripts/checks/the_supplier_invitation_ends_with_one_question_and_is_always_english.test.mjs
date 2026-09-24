@@ -99,8 +99,38 @@ test('the invitation is English only: the selection never chooses or reads the A
   assert.equal(invitationCopyLint({ lang: 'ar', subject: SUBJECT, body: withReplyQuestion(OLD), preheader: PRE, link: LINK })[0].ok, false);
 });
 
+test('the SQL verdict cannot pass on a missing field and applies the one-sentence rule (review of #964)', () => {
+  const verdict = sqlCode.slice(sqlCode.indexOf('with s as ('));
+  assert.match(verdict, /coalesce\(s\.subj, ''\)/, 'a NULL subject would make the AI/Arabic test NULL and the verdict PROBE OK');
+  assert.match(verdict, /invite_subject is missing/);
+  assert.match(verdict, /invite_body is missing/);
+  assert.match(verdict, /'\[\.!\]\\s\+\\S'/, 'the verdict only counts question marks, not sentences');
+  assert.match(verdict, /e\\\.g\|i\\\.e\|etc\|co\|l\\\.l\\\.c/, 'the verdict treats an abbreviation as a sentence break');
+  assert.doesNotMatch(verdict, /when \(last\.subj \|\|/, 'the uncoalesced concatenation is back');
+});
+
+test('a closing question with an abbreviation is one sentence, and is not given a second question', () => {
+  const q = 'Which trades do you cover, e.g. MEP, joinery or L.L.C. fit-out works?';
+  assert.ok(endsWithOneQuestion('x\n\n' + q));
+  assert.equal(withReplyQuestion('x\n\n' + q), 'x\n\n' + q);
+  assert.equal(endsWithOneQuestion('x\n\nThanks. Which trades do you cover?'), false);
+});
+
+test('an invitation queued in Arabic is held before it is rendered, never sent', () => {
+  const hold = outbox.indexOf('if (holdArabicInvitation(n.type, n.lang))');
+  assert.ok(hold > 0, 'send_outbox no longer holds a supplier invitation queued in Arabic');
+  assert.ok(hold < outbox.indexOf('const htmlBody0 = tmpl('), 'the Arabic hold must run before the mail is rendered');
+  assert.match(outbox.slice(hold, hold + 400), /status: 'held'/);
+});
+
+test('the inbox check refuses Arabic candidate copy and renders no Arabic variant', () => {
+  const chk = read('scripts/invitation_inbox_check.mjs');
+  assert.match(chk, /ARABIC_SCRIPT\.test\(readOpt\(k\) \?\? ''\)/, '--subject-file/--body-file accept Arabic script again');
+  assert.doesNotMatch(chk, /arabicFrame|invite_body_ar|invite_subject_ar/, 'the inbox check renders an Arabic invitation again');
+});
+
 test('send_outbox renders both parts of an English invitation through withReplyQuestion', () => {
-  assert.match(outbox, /import \{ withReplyQuestion \} from '\.\/invitation_copy\.ts'/);
+  assert.match(outbox, /import \{[^}]*\bwithReplyQuestion\b[^}]*\} from '\.\/invitation_copy\.ts'/);
   assert.match(outbox, /const inviteEn = String\(n\.type \|\| ''\)\.startsWith\('supplier_invite'\) && !arMail;/);
   assert.match(outbox, /const mailBody = inviteEn \? withReplyQuestion\(n\.body \|\| ''\) : \(n\.body \|\| ''\);/);
   assert.match(outbox, /tmpl\(\{ body: mailBody,/, 'the html part no longer renders the body with the question');

@@ -159,25 +159,34 @@ $function$;
 revoke execute on function public.fn_supplier_invite_candidates(integer) from public, anon, authenticated;
 
 -- VERDICT (a row, never a notice: apply_sql.mjs exits 3 on PROBE FAILED). Reads only; writes nothing.
+-- Every field is coalesced: a NULL subject once made the whole AI/Arabic test NULL, the branch was skipped and the
+-- verdict read PROBE OK having checked nothing (review of #964). A missing subject or body is its own failure.
+-- The one-sentence rule is endsWithOneQuestion's in send_outbox/invitation_copy.ts: the last paragraph ends with
+-- '?', holds exactly one '?', and has no '.'/'!' followed by more text once common abbreviations are removed.
 with s as (
   select (select value from public.app_secrets where key = 'invite_body') as body,
          (select value from public.app_secrets where key = 'invite_subject') as subj,
          (select coalesce(value, '') from public.app_secrets where key = 'invite_preheader') as pre
 ), last as (
-  select s.*, btrim(regexp_replace(rtrim(s.body), '^.*\n[ \t]*\n', '')) as lastp from s
+  select s.*, coalesce(s.subj, '') || ' ' || coalesce(s.body, '') || ' ' || coalesce(s.pre, '') as copy,
+         btrim(regexp_replace(rtrim(coalesce(s.body, '')), '^.*\n[ \t]*\n', '')) as lastp from s
 ), c as (
-  select count(*) filter (where lang <> 'en') as not_en,
-         count(*) filter (where position('/en/portal?t=' in body) = 0
-                             or rtrim(body) not like '%which trades does your company cover?') as bad_body,
+  select count(*) filter (where lang is distinct from 'en') as not_en,
+         count(*) filter (where position('/en/portal?t=' in coalesce(body, '')) = 0
+                             or rtrim(coalesce(body, '')) not like '%which trades does your company cover?') as bad_body,
          count(*) as n
     from public.fn_supplier_invite_candidates(50)
 )
 select case
-  when last.lastp not like '%?' or length(last.lastp) - length(replace(last.lastp, '?', '')) <> 1
-    then 'PROBE FAILED: invite_body does not end with one question'
-  when (last.subj || ' ' || last.body || ' ' || last.pre) ~* '\mAI\M'
+  when coalesce(btrim(last.subj), '') = '' then 'PROBE FAILED: app_secrets.invite_subject is missing'
+  when coalesce(btrim(last.body), '') = '' then 'PROBE FAILED: app_secrets.invite_body is missing'
+  when last.lastp not like '%?'
+    or length(last.lastp) - length(replace(last.lastp, '?', '')) <> 1
+    or regexp_replace(last.lastp, '\m(e\.g|i\.e|etc|co|l\.l\.c|ltd|inc|no|st|mr|mrs|ms|dr)\.', '', 'gi') ~ '[.!]\s+\S'
+    then 'PROBE FAILED: invite_body does not end with one question sentence'
+  when last.copy ~* '\mAI\M'
     then 'PROBE FAILED: the invitation copy says AI'
-  when (last.subj || last.body || last.pre) ~ '[؀-ۿ]'
+  when last.copy ~ '[؀-ۿ]'
     then 'PROBE FAILED: Arabic script in the English invitation copy'
   when c.not_en > 0 then 'PROBE FAILED: fn_supplier_invite_candidates still returns a non-English invitation'
   when c.bad_body > 0 then 'PROBE FAILED: a candidate body has no /en/ link or does not end with the question'

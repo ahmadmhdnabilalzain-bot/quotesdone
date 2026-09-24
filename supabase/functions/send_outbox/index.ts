@@ -11,7 +11,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
-import { withReplyQuestion } from './invitation_copy.ts';
+import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
@@ -207,6 +207,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
       // neither. A licence/document request is transactional and still goes; everything else waits.
       if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
+      // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
+      if (holdArabicInvitation(n.type, n.lang)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: the supplier invitation is English only (ledger 993); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
