@@ -8,7 +8,7 @@
 --                   The seat map gives reveals to the sales engineer. The refund execution inside the ladder is still
 --                   the accountant's own routine (fn_refund_ladder_sweep calls it); only the step's owner moves.
 --   5. WRONG-OWNED  the licence-expiry duty sat on it_engineer. The 9 Sep ruling makes a verification record sales
---                   work. The duty moves to sales_engineer.document_validity. Its routine delegates to the existing,
+--                   work. Released as #938's sales_engineer.licence_expiry_watch (no second duty here). The original plan delegated to the existing,
 --                   already-tested body (fn_it_engineer_licence_expiry_watch) rather than copying it: one body, and
 --                   the IT engineer still sees a finding if an expired supplier stays matchable.
 --   6. PARTIAL      no weekly quality review. Added: fn_sales_engineer_weekly_quality_review, a weekly seat_duty.
@@ -25,14 +25,9 @@
 update public.resilience_step set owner_seat = 'sales_engineer' where step = 'ladder';
 
 -- ── 5. document validity belongs to the sales engineer ───────────────────────────────────────────────────
-create or replace function public.fn_sales_engineer_document_validity()
-returns jsonb
-language sql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_it_engineer_licence_expiry_watch() || jsonb_build_object('owner_seat', 'sales_engineer') $fn$;
-revoke execute on function public.fn_sales_engineer_document_validity() from public, anon, authenticated;
-grant execute on function public.fn_sales_engineer_document_validity() to service_role;
-
+-- Released 24 Sep 2026: #938 (each_seat_owns_the_duty_the_founder_gave_it_and_it_measures.sql) already moved this duty to
+-- sales_engineer.licence_expiry_watch (fn_sales_engineer_licence_expiry_watch). A second duty here would run the same
+-- sweep twice a day, so this file only makes sure the IT row stays gone.
 delete from public.seat_duty where duty = 'it_engineer.licence_expiry_watch';
 
 -- ── 6. the weekly quality review ─────────────────────────────────────────────────────────────────────────
@@ -171,9 +166,6 @@ grant execute on function public.fn_sales_engineer_enterprise_pipeline() to serv
 
 -- ── the clocks ───────────────────────────────────────────────────────────────────────────────────────────
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('sales_engineer.document_validity', 'sales_engineer', interval '1 day', 'fn_sales_engineer_document_validity',
-   'Renewal asks at 30/14/7 days; an approved supplier with an expired licence or insurance is paused from matching and told.',
-   'scripts/sql/the_sales_engineer_reviews_the_week_owns_licences_the_ladder_and_enterprise_accounts.sql'),
   ('sales_engineer.weekly_quality_review', 'sales_engineer', interval '7 days', 'fn_sales_engineer_weekly_quality_review',
    'Quotes held and why, match rate, requests with no exact match and time to fix a hold; each lesson into seat_case_memory.',
    'scripts/sql/the_sales_engineer_reviews_the_week_owns_licences_the_ladder_and_enterprise_accounts.sql'),

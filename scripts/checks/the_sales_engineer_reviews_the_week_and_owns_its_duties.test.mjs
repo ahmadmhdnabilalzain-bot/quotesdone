@@ -22,7 +22,7 @@ const pending = existsSync(join(REPO, 'scripts/sql/pending', FILE.split('/').pop
 test('the ladder and document validity are the sales engineer\'s, and each new duty has a clock', () => {
   assert.match(src, /update public\.resilience_step set owner_seat = 'sales_engineer' where step = 'ladder'/);
   assert.match(src, /delete from public\.seat_duty where duty = 'it_engineer\.licence_expiry_watch'/);
-  for (const d of ['document_validity', 'weekly_quality_review', 'enterprise_pipeline'])
+  for (const d of ['weekly_quality_review', 'enterprise_pipeline'])
     assert.match(src, new RegExp(`\\('sales_engineer\\.${d}', 'sales_engineer'`), d + ' has no seat_duty row');
 });
 
