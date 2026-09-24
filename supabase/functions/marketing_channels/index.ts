@@ -12,6 +12,8 @@
 //   duties        every resilience beat: reconcile posts in flight (watchdog), publish what is due, email any
 //                 monthly calendar that is owed (fn_marketing_calendar_due), then the daily reads
 //   publish_due / access_check / pull_insights / pull_ad_spend   one duty on demand
+//   channel_results   read back what Postiz did on each channel of recently sent posts (also every beat in
+//                 duties); partial/failed channels become it_engineer findings (duty postiz_channel_result)
 //   calendar_send {campaign_key}   render and email that month's calendar now
 //   cancel {ingest_key} / reschedule {ingest_key, at_utc} / requeue {ingest_key}
 //   The month's posts are loaded by scripts/marketing/load_calendar.mjs (fn_marketing_calendar_load).
@@ -31,6 +33,10 @@ import {
   publishPost, pullInsights, readAdSpend, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
 } from '../_shared/marketing_channels.ts';
 import { accessToken } from '../_shared/marketing_social_oauth.ts';
+import {
+  classifyChannel, findingItems, notesFor, postizIdByChannel, readPostizNotifications, readPostizPosts, skippedByChannel, RECHECK_HOURS,
+} from '../_shared/marketing_channel_results.ts';
+import type { Platform } from '../_shared/marketing_post_results.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
@@ -240,6 +246,57 @@ async function publishDue(e: Env) {
     item: q.ingest_key, title: 'info: published below the platform recommended video target: ' + q.ingest_key, owner_seat: 'marketing',
     subject: 'marketing', blast: 'agent_facing', affected: 0, evidence: { post_id: q.id, below_recommended: q.postiz_result?.below_recommended } })) });
   return { ok: failed === 0 && refused === 0, due: due.length, published: live, dry_run: dry, failed, unconfirmed, refused_by_database: refused, reconcile: recon, quality_settle_error: settled.error?.message ?? null };
+}
+
+// ── what each channel actually did ────────────────────────────────────────────────────────────────
+// A 2xx on POST /posts is Postiz accepting the job, not every platform publishing it (24 Sep 2026: a YouTube
+// upload whose thumbnail was refused read as 'published'). Every beat, the posts fn_marketing_channel_results_due
+// names (sent in the last 48 hours, every 30 minutes; a partial/failed one of the last 30 days every 6 hours)
+// are read back from Postiz: ONE GET /posts over their window and GET /notifications back to the oldest. Each
+// channel is classified (_shared/marketing_channel_results.ts) and stored by fn_marketing_post_channel_record,
+// which sets marketing_post.channel_outcome. Then every stored partial/failed channel is settled as an
+// it_engineer finding (duty postiz_channel_result), so a channel a re-check finds published closes its own.
+// Postiz unreadable: nothing is stored and nothing is closed (the settle reads the table, not this beat).
+async function channelResults(e: Env) {
+  if (!e.postizKey) return { ok: false, error: 'postiz_api_key is not in app_secrets' };
+  const { data: due, error } = await admin.rpc('fn_marketing_channel_results_due', { p_limit: 10 });
+  if (error) return { ok: false, error: 'fn_marketing_channel_results_due: ' + error.message };
+  const posts = (due || []) as Array<{ post_id: number; ingest_key: string; channels: string[]; postiz_result: any; sent_at: string; next_same_channel: Record<string, string> | null }>;
+  let stored = 0; const unread: string[] = [];
+  if (posts.length) {
+    const oldest = Math.min(...posts.map((p) => Date.parse(p.sent_at)));
+    const listed = await readPostizPosts(timedFetch, e.postizBase, e.postizKey, new Date(oldest - 86400_000), new Date(Date.now() + 86400_000));
+    const notes = listed.ok ? await readPostizNotifications(timedFetch, e.postizBase, e.postizKey, new Date(oldest - 10 * MIN)) : { ok: false, notes: [], error: 'not read' };
+    if (!listed.ok) unread.push(listed.error || 'GET /posts');
+    if (!notes.ok) unread.push(notes.error || 'GET /notifications');
+    if (listed.ok && notes.ok) {
+      const otherUrls = [...listed.posts.values()].map((x) => x.releaseURL).filter((u): u is string => !!u);
+      for (const p of posts) {
+        const sent = new Date(p.sent_at);
+        const ids = postizIdByChannel(p.postiz_result, listed.posts);
+        const skipped = skippedByChannel(p.postiz_result?.skipped);
+        const rows = (p.channels as Platform[]).map((ch) => {
+          const pz = ids[ch] ? listed.posts.get(ids[ch]!) ?? null : null;
+          const until = p.next_same_channel?.[ch] ? new Date(p.next_same_channel[ch]) : new Date(sent.getTime() + RECHECK_HOURS * 3600_000);
+          return classifyChannel({ channel: ch, postizPostId: ids[ch] ?? null, skipped: ids[ch] ? null : skipped[ch] ?? null, post: pz,
+            notes: notesFor(notes.notes, ch, new Date(sent.getTime() - 5 * MIN), until, pz?.releaseURL ?? null, otherUrls.filter((u) => u !== pz?.releaseURL)),
+            ageHours: (Date.now() - sent.getTime()) / 3600_000 });
+        });
+        const { error: rErr } = await admin.rpc('fn_marketing_post_channel_record', { p_post_id: p.post_id, p_channels: rows });
+        if (rErr) return { ok: false, error: 'fn_marketing_post_channel_record: ' + rErr.message, stored };
+        stored++;
+      }
+    }
+  }
+  // The settle, from every stored partial/failed channel: refiled under its key while it stands, closed once it is not.
+  const { data: open, error: oErr } = await admin.from('marketing_post_channel_result')
+    .select('post_id,channel,state,platform_message,release_url,postiz_post_id,postiz_state,post:marketing_post(ingest_key)')
+    .in('state', ['partial', 'failed']);
+  if (oErr) return { ok: false, error: 'marketing_post_channel_result: ' + oErr.message, stored };
+  const items = findingItems((open || []).map((r: any) => ({ ...r, ingest_key: r.post?.ingest_key ?? String(r.post_id) })));
+  const settled = await admin.rpc('fn_it_duty_settle', { p_duty: 'postiz_channel_result', p_items: items });
+  if (settled.error) return { ok: false, error: 'fn_it_duty_settle: ' + settled.error.message, stored };
+  return { ok: unread.length === 0, due: posts.length, stored, open_findings: items.length, unread, settled: settled.data };
 }
 
 // ── cancel / reschedule / requeue ─────────────────────────────────────────────────────────────────
@@ -508,6 +565,7 @@ Deno.serve(async (req) => {
     if (action === 'integration_watch') return J(await integrationWatch(e));
     if (action === 'pull_insights') return J(await runDaily(e, 'insights'));
     if (action === 'pull_ad_spend') return J(await runDaily(e, 'ad_spend'));
+    if (action === 'channel_results') return J(await channelResults(e));
     if (action !== 'duties') return J({ error: 'unknown_action' }, 400);
 
     const integrations = await integrationWatch(e);
@@ -516,6 +574,9 @@ Deno.serve(async (req) => {
     const spent = publishSpentTheBeat(publish as { published?: number; failed?: number; unconfirmed?: number; refused_by_database?: number });
     const calendars = spent ? { ok: true, sent: {}, deferred: 'a post was sent this beat' } : await calendarsDue();
     const rendered = Object.keys(calendars.sent || {}).length > 0;
+    // What each channel did, read back from Postiz (two GETs). Not on a beat that just sent: Postiz is still
+    // publishing that post, and the CPU cap keeps a sending beat to the send.
+    const channels = spent ? { ok: true, deferred: 'a post was sent this beat' } : await channelResults(e);
     // THE MONTHLY LOOP (from November 2026): on the 1st of each Dubai month the next month's video idea plan
     // goes to the founder. Code only: fn_marketing_month_plan_tick picks the ideas and the working-day dates.
     const { data: monthPlan, error: mpErr } = await admin.rpc('fn_marketing_month_plan_tick');
@@ -527,13 +588,13 @@ Deno.serve(async (req) => {
       const next = Object.entries((due || {}) as Record<string, boolean>).find(([, isDue]) => isDue);
       if (next) daily[next[0]] = await runDaily(e, next[0]);
     }
-    const bad = [integrations, publish, calendars, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
-    const ran = (publish as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0 || !!(monthPlan as any)?.sent;
+    const bad = [integrations, publish, calendars, channels, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
+    const ran = (publish as any).due > 0 || (channels as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0 || !!(monthPlan as any)?.sent;
     if (ran || bad.length) {
-      await logRun(bad.length ? 'error' : 'ok', { publish, calendars: Object.keys(calendars.sent || {}), daily: Object.keys(daily), failed: bad.length, publishing: e.publishing, month_plan: monthPlan },
+      await logRun(bad.length ? 'error' : 'ok', { publish, channel_results: channels, calendars: Object.keys(calendars.sent || {}), daily: Object.keys(daily), failed: bad.length, publishing: e.publishing, month_plan: monthPlan },
         bad.length ? 'marketing duty failed: ' + JSON.stringify(stripTokens(bad)).slice(0, 400) : 'marketing duties ran', started);
     }
-    return J({ ok: bad.length === 0, integrations: { ok: integrations.ok, dead: (integrations as { dead?: unknown[] }).dead ?? [] }, publish, calendars, daily: stripTokens(daily) });
+    return J({ ok: bad.length === 0, integrations: { ok: integrations.ok, dead: (integrations as { dead?: unknown[] }).dead ?? [] }, publish, channel_results: channels, calendars, daily: stripTokens(daily) });
   } catch (err) {
     await logRun('error', { action }, 'marketing_channels crashed: ' + String((err as Error)?.message || err), started);
     return J({ ok: false, error: String((err as Error)?.message || err) }, 500);
