@@ -1,7 +1,8 @@
 Not applied: written 24 Sep 2026 on branch claude/sih5rh-b-duplicate-companies (seat: sales_engineer) in a session
 that was not allowed to write to production. It adds two IMMUTABLE key functions and two partial unique indexes on
 public.leads (claimed rows only); it deletes and updates nothing. Measured read-only on 24 Sep: zero existing claimed
-duplicates under either key, so both indexes are creatable. Deploy supplier_api (the 23505 mapping) in the same change;
-before the deploy a collision would surface as the old generic error rather than company_already_registered.
+duplicates under either key, so both indexes are creatable.
+Deploy order does not matter: the edge functions (supabase/functions/_shared/duplicate_company.ts) only recognise a
+23505 that names these indexes and call no SQL routine, so they behave exactly as before until this file is applied.
 To move it: apply with node scripts/apply_sql.mjs scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql --apply --ddl,
 then delete this note and append the file to the END of scripts/sql/MANIFEST.txt.

@@ -4,8 +4,8 @@
 -- WHAT WAS MEASURED. PR #944 (ledger 993) made supplier_api create_company refuse a second account
 -- registering the exact name of an already-claimed company (409 company_already_registered). That
 -- guard is an application-side ilike on the whole name, so three gaps remain, each read off the code:
---   * "ZZ Demo Steel Trading L.L.C." and "zz demo steel FZ-LLC" are different strings, so the second
---     is accepted: a legal suffix, a dot or a hyphen is enough to register the same company twice;
+--   * "ZZ Demo Steel Co. L.L.C." and "zz demo steel co llc" are different strings, so the second is
+--     accepted: a dot, a bracket or a spelling of the legal form registers the same company twice;
 --   * nothing compares the trade licence number, so one licence can back two claimed profiles;
 --   * the check-then-insert is not atomic (the #944 reviewer's note): two concurrent registrations can
 --     both pass the check. Only a unique index closes that.
@@ -14,13 +14,24 @@
 -- rows, and also zero under both keys across claimed-or-registration_status rows and across every
 -- row carrying a licence. So both indexes are creatable today with no exclusion list.
 --
+-- HOW CONSERVATIVE THE NAME KEY IS, MEASURED OVER THE WHOLE DIRECTORY (review of #962). The first
+-- draft DROPPED trailing legal forms and "trading"/"est"/"co". Run over all 22,269 names it merged
+-- differently spelled names (case and spacing aside) under 172 keys, 67 of them across emirates:
+-- "AL NOOR CONTRACTING EST" = "AL NOOR CONTRACTING CO", "ACE" = "ACE TRADING FZE", and a free-zone
+-- FZCO = a mainland LLC of the same words. Those are separate legal companies, and a false match locks
+-- a real one out for good. This key KEEPS the legal form and every word, and folds only how they are
+-- SPELT. The same measurement now gives 100 keys, 14 across emirates, and every one read on 24 Sep is
+-- a spelling of one company: "CO. L.L.C" = "CO LLC", "&#038;" = "&", "DECOR EST" = "Decor
+-- Establishment", "MODERN ELEVATORS CO WLL" = "... COMPANY WLL", "AL-BARIQ" = "AL BARIQ".
+--
 -- WHAT THIS CHANGES
 --   1. public.fn_company_registration_name_key(text) -- IMMUTABLE, deterministic; each rule is
 --      explained where it is applied.
 --   2. public.fn_trade_licence_key(text) -- IMMUTABLE; upper case, letters and digits only.
 --   3. Two partial unique indexes on public.leads, restricted to claimed rows.
---   supplier_api maps a 23505 naming either index to the EXISTING company_already_registered answer
---   (supabase/functions/supplier_api/company_already_registered.ts); no new copy.
+--   The edge functions recognise a 23505 naming either index in supabase/functions/_shared/
+--   duplicate_company.ts: a registration gets the EXISTING company_already_registered answer (no new
+--   copy); a document write sets the clashing licence number aside and asks a human.
 --
 -- WHY "claimed" AND NOT registration_status / verified. `claimed` is the one flag both registration
 -- doors set (create_company inserts claimed = true; claim updates it) and the flag the #944 guard
@@ -30,27 +41,24 @@
 -- legitimately holds near-duplicates, and a scraped row must stay claimable.
 --
 -- WHY NOT fn_company_name_norm. It already exists (fn_supplier_licence_name_mismatch uses it), but it
--- removes words from ANYWHERE in the name -- 'and', 'the', 'company', 'branch', 'sole' -- and joins what
--- is left with no spaces. That is right for a mismatch SIGNAL (a false alarm costs a human review) and
--- wrong for a hard REFUSAL (a false match locks a real company out of the marketplace). This key strips
--- legal-form words from the END only and keeps word boundaries. fn_company_name_norm is not changed.
+-- removes words from ANYWHERE in the name -- 'and', 'the', 'company', 'branch', 'llc', 'fze' -- and
+-- joins what is left with no spaces. That is right for a mismatch SIGNAL (a false alarm costs a human
+-- review) and wrong for a hard REFUSAL. fn_company_name_norm is not changed.
 --
--- IF DUPLICATES APPEAR BEFORE THIS IS APPLIED. Nothing is deleted or merged, ever. Section 3 counts
--- them first and stops the apply with their ids; the fix is then to add `and id not in (<ids>)` to the
--- predicate of the index that failed, with a comment naming the ids and the date, and re-apply. That
--- keeps the existing rows untouched and still refuses every NEW duplicate. (The alternative of a
--- trigger was rejected: a trigger check is not atomic under concurrency, which is the gap in #944.)
+-- IF DUPLICATES APPEAR BEFORE THIS IS APPLIED. Nothing is deleted or merged, ever. Section 3 is a
+-- deliberate PRECONDITION that aborts the apply, naming the ids; the fix is then to add
+-- `and id not in (<ids>)` to the predicate of the index that failed, with a comment naming the ids and
+-- the date, and re-apply. That keeps the existing rows untouched and still refuses every NEW duplicate.
+-- (A trigger was rejected: a trigger check is not atomic under concurrency, which is the gap in #944.)
 --
 -- WHAT THIS DELIBERATELY DOES NOT DO
 --   * does not touch any row; no update, no delete, no merge;
---   * does not strip Arabic legal words that stand at the START of a name (شركة / مؤسسة): stripping a
---     leading word is how two different companies collide, so only trailing forms are removed;
+--   * does not drop any word, legal form included: "X LLC", "X FZCO", "X EST" and "X" are four keys;
+--   * does not equate ش.ذ.م.م (single-owner LLC) with ذ.م.م / LLC: only its spellings are folded;
 --   * does not key the licence on its issuing authority: license_authority is free text read off a
 --     document ("Dubai DET (fixture)"), so keying on it would let a retyped authority bypass the rule.
 --     The cost: two emirates issuing the same number would collide; none do on 24 Sep (4 licences, all
---     distinct), and the refusal names management@ for exactly that case;
---   * does not change the other writers of trade_license_no (wa_inbound, resend_inbound,
---     supplier_portal): on a collision their update is refused by the index like any other.
+--     distinct), and the refusal names management@ for exactly that case.
 
 -- ---------------------------------------------------------------------------------------------
 -- 1. THE NAME KEY
@@ -67,36 +75,53 @@ immutable
 parallel safe
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select nullif(
-    -- 6. LEGAL FORM, TRAILING ONLY. One or more of these words at the END are removed, so
-    --    "Steel Trading L.L.C." = "Steel FZ-LLC" = "Steel Co. Est." = "Steel". The leading space in
-    --    the pattern means the FIRST word is never removed: "LLC" alone stays "llc", never empty.
-    --    fz + llc covers FZ-LLC (the hyphen became a space in step 5); ذمم / شذمم are ذ.م.م / ش.ذ.م.م
-    --    after step 4, and the spaced forms are written out because the letters stand alone.
-    regexp_replace(
-      -- 5. Every run of anything that is not a letter or digit (spaces, hyphens, brackets, commas,
-      --    slashes) becomes ONE space, then the ends are trimmed: "zz demo  steel (LLC)" is
-      --    "zz demo steel llc".
-      btrim(regexp_replace(
-        -- 4. Dots and apostrophes VANISH rather than split: "L.L.C." is "llc", "F.Z.E" is "fze",
-        --    "Mu'min" is "mumin".
-        regexp_replace(
-          -- 3. "&" is the word "and", so "A & B Glass" = "A and B Glass".
-          replace(
-            -- 2. Case: lower().
-            lower(
-              -- 1. Arabic: hamza/alef forms, taa marbuta, alef maqsura, tashkeel, tatweel and Arabic
-              --    digits folded by the estate's existing normaliser.
-              public.fn_ar_norm(p)),
-            '&', ' and '),
-          '[.''’‘`]', '', 'g'),
-        '[^[:alnum:]]+', ' ', 'g')),
-      '( (llc|fze|fzco|fzllc|fz|est|establishment|trading|co|ذمم|شذمم|ذ م م|ش ذ م م))+$', ''),
-    '')   -- a name with no letters or digits has no key; NULL never conflicts in a unique index
+  with
+  -- 1. Arabic: hamza/alef forms, taa marbuta, alef maqsura, tashkeel, tatweel and Arabic digits,
+  --    folded by the estate's existing normaliser. 2. Case: lower().
+  a as (select lower(public.fn_ar_norm(p)) as s),
+  -- 3. HTML ENTITIES. 2,143 of the 22,269 directory names carried one on 24 Sep, scraped from web
+  --    pages ("GOLDEN OCEAN ... TRADING &#038; ELEC"). &amp; / &#038; / &#x26; are "&"; the apostrophe
+  --    entities are an apostrophe (removed in step 5); any other entity (&#8211; en dash, &nbsp;)
+  --    is a separator, like the punctuation it stands for.
+  b as (select regexp_replace(
+                 regexp_replace(
+                   regexp_replace(s, '&(amp|#0*38|#x0*26);', '&', 'g'),
+                   '&(apos|rsquo|lsquo|#0*39|#x0*27|#8216|#8217);', '''', 'g'),
+                 '&#?[a-z0-9]+;', ' ', 'g') as s from a),
+  -- 4. "&" is the word "and": "A & B Glass" = "A and B Glass".
+  -- 5. Dots and apostrophes VANISH rather than split: "L.L.C." is "llc", "F.Z.E" is "fze", "Co." is
+  --    "co", "Mu'min" is "mumin".
+  -- 6. Every other run of non letters/digits (spaces, hyphens, brackets, commas, slashes) is ONE
+  --    space: "AL-BARIQ" = "AL BARIQ", "(L.L.C)" = "llc", "FZ-LLC" = "fz llc".
+  c as (select btrim(regexp_replace(regexp_replace(replace(s, '&', ' and '), '[.''’‘`]', '', 'g'),
+                                    '[^[:alnum:]]+', ' ', 'g')) as s from b),
+  -- 7. THE SPELLING OF A LEGAL FORM, KEPT AS PART OF THE KEY (whole words only, \m...\M):
+  --      "l l c" -> llc;  "f z e" -> fze;  "f z c o" -> fzco;  "fz llc" / "f z llc" -> fzllc
+  --      (after step 6 "FZ-LLC" and "FZ LLC" are both "fz llc", and "FZLLC" is already one word);
+  --      "establishment" -> est;  "company" -> co;
+  --      Arabic: "ش ذ م م" -> شذمم (single-owner LLC, its own form); "ذ م م" and "ذمم" -> llc,
+  --      because ذ.م.م IS the Arabic spelling of L.L.C. The spaced ش form is folded first so its
+  --      tail is not read as ذ م م.
+  --    Nothing is dropped: "X LLC" and "X FZE" stay two keys.
+  d as (select
+          regexp_replace(regexp_replace(regexp_replace(
+          regexp_replace(regexp_replace(
+          regexp_replace(regexp_replace(regexp_replace(regexp_replace(s,
+            '\ml l c\M', 'llc', 'g'),
+            '\mf z e\M', 'fze', 'g'),
+            '\mf z c o\M', 'fzco', 'g'),
+            '\mf ?z llc\M', 'fzllc', 'g'),
+            '\mestablishment\M', 'est', 'g'),
+            '\mcompany\M', 'co', 'g'),
+            '\mش ذ م م\M', 'شذمم', 'g'),
+            '\mذ م م\M', 'llc', 'g'),
+            '\mذمم\M', 'llc', 'g') as s from c)
+  -- A name with no letters or digits has no key; NULL never conflicts in a unique index.
+  select nullif(btrim(s), '') from d
 $fn$;
 
 comment on function public.fn_company_registration_name_key(text) is
-  'The key two claimed companies may not share (leads_claimed_company_name_uidx). Case, whitespace, punctuation, Arabic letter forms and TRAILING legal-form words (LLC, L.L.C, FZE, FZCO, FZ-LLC, Est, Establishment, Trading, Co, ذ.م.م, ش.ذ.م.م) are folded. Conservative by design: nothing is removed from the start or middle of a name.';
+  'The key two claimed companies may not share (leads_claimed_company_name_uidx). Folds case, whitespace, punctuation, HTML entities, & = and, Arabic letter forms, and the SPELLING of a legal form (L.L.C = LLC = ذ.م.م, F.Z.E = FZE, FZ-LLC = FZLLC, Establishment = EST, Company = CO). Drops no word: the legal form stays part of the key, so an FZE and an LLC of the same words are two companies.';
 
 -- ---------------------------------------------------------------------------------------------
 -- 2. THE LICENCE KEY
@@ -118,9 +143,11 @@ comment on function public.fn_trade_licence_key(text) is
   'The key two claimed companies may not share (leads_claimed_trade_licence_uidx): the trade licence number in upper case with every non-alphanumeric character removed.';
 
 -- ---------------------------------------------------------------------------------------------
--- 3. EXISTING DUPLICATES STOP THE APPLY BY ID -- NOTHING IS EVER DELETED
+-- 3. PRECONDITION: EXISTING DUPLICATES ABORT THE APPLY BY ID -- NOTHING IS EVER DELETED
 -- ---------------------------------------------------------------------------------------------
--- Zero on 24 Sep 2026. If this raises, read the header: add the named ids to the index predicate.
+-- A deliberate precondition, NOT a verdict probe: it raises on purpose so the whole file rolls back
+-- before an index is attempted, and says which rows to exclude. Zero on 24 Sep 2026. If it raises,
+-- read the header: add the named ids to the failing index's predicate.
 do $$
 declare v_name text; v_lic text;
 begin
@@ -141,10 +168,12 @@ end $$;
 -- ---------------------------------------------------------------------------------------------
 -- 4. THE INDEXES
 -- ---------------------------------------------------------------------------------------------
--- Their NAMES are read by supplier_api (company_already_registered.ts) to recognise a duplicate
+-- Their NAMES are read by supabase/functions/_shared/duplicate_company.ts to recognise a duplicate
 -- company among other 23505s; renaming one here without renaming it there turns the refusal into a 500.
--- Not CONCURRENTLY: the applier runs the file as one transaction, where CONCURRENTLY is refused. Each
--- build holds a SHARE lock on leads (reads continue, writes wait) for one scan of ~22k rows; the lock
+-- Not CONCURRENTLY, because this file holds more than one statement: scripts/apply_sql.mjs sends a
+-- CONCURRENTLY file on its own, and a second statement in the same query would wrap it in an implicit
+-- transaction that Postgres refuses. Splitting it out is not needed: a plain build holds a SHARE lock
+-- on leads (reads continue, writes wait) for one scan of ~22k rows, well under a second, and the lock
 -- timeout makes a busy table fail the apply instead of queueing every registration behind it.
 set local lock_timeout = '5s';
 
