@@ -24,8 +24,12 @@ export function plainTextPart(o: { body: string; unsub: string; ar: boolean; int
   // Trader Licence No. 1633275, and the TDRA permit (NOL-26-100000665) was missing from the footer
   // altogether. The Arabic said «رخصة تاجر إلكتروني», the same wrong class. Both now match the paper.
   const footer = o.ar
-    ? 'QuotesDone Technologies · دبي، الإمارات العربية المتحدة · رخصة تاجر رقم 1633275 – دائرة الاقتصاد والسياحة في دبي · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية NOL-26-100000665'
-    : 'QuotesDone Technologies · Dubai, UAE · DET Trader Licence No. 1633275 · TDRA NOL-26-100000665';
+  // 24 Sep 2026 (marketing, ledger 993): the founder's campaign rules - no trade licence number in
+  // supplier mail, and the address is Al Furjan, Dubai. The TDRA permit stays: it is the site's permit,
+  // not the licence. Mirrors templates.email_supplier
+  // (scripts/sql/the_supplier_mail_names_al_furjan_and_no_licence_number.sql).
+    ? 'QuotesDone Technologies · الفرجان، دبي، الإمارات العربية المتحدة · خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية NOL-26-100000665'
+    : 'QuotesDone Technologies · Al Furjan, Dubai, UAE · TDRA NOL-26-100000665';
   const unsub = o.unsub
     ? (o.ar ? `إلغاء الاشتراك: ${o.unsub}\nأو مراسلة ${UNSUBSCRIBE_MAILBOX} لإزالة عنوانكم من القائمة.` : `Unsubscribe: ${o.unsub}\nor email ${UNSUBSCRIBE_MAILBOX} to be removed.`)
     : '';

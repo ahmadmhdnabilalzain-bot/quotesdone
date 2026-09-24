@@ -1,0 +1,1 @@
+Not applied: the marketing seat was told not to apply SQL on 24 Sep 2026 (ledger 993). Apply it, then deploy send_outbox, then append this file to the END of MANIFEST.txt and delete this note in the same commit.
