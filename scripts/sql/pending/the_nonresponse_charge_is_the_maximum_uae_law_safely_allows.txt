@@ -1,7 +1,0 @@
-NOT APPLIED. Committed by the ceo seat (legal), 24 Sep 2026, founder instruction 990 / 965: Supplier Agreement v14's
-clause 33 (processor fee at cost, agreed 12% interest, recovery fees, set-off). The session was told not to apply SQL.
-What moves it: the serial release operator, in this order, outside a campaign hour (an apply can lock sign-in):
-  1. node scripts/apply_sql.mjs scripts/sql/the_nonresponse_charge_is_the_maximum_uae_law_safely_allows.sql --apply --ddl
-     -> must print PROBE OK. v13-and-earlier charges are unchanged to the fils (charge_aed = refunded_aed, 9%).
-  2. then scripts/sql/the_terms_of_24_september_2026_reach_every_place.sql (its own note).
-Then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
