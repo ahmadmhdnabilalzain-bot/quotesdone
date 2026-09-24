@@ -4,7 +4,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import type { GateAnswer } from './llm_hold.ts';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
-import { capabilityKinds, ownWordService, priceGuidanceFor, priceQuestion, quoteTerms, readSupplierProfile, reasonQuoteAspects } from './reasoned_suppliers.ts';
+import { capabilityKinds, ownWordService, priceGuidanceFor, priceQuestion, quoteTerms, readSupplierProfile } from './reasoned_suppliers.ts';
 
 const J = (x: unknown) => JSON.stringify(x);
 const PLAN = J({ steps: [{ id: 's1', goal: 'read what was written', needs_knowledge: false }], facts: [] });
@@ -137,27 +137,3 @@ Deno.test('readSupplierProfile: records each reading, held ones as held with the
   assertEquals([none.p_reasoned, none.p_service_key], [true, null]);
 });
 
-// ── sql.trg_quote_quality ──
-const DUE = { content_md5: 'c'.repeat(32), spec_group: 'glazing', text: 'Clear tempered glass 10mm, 2400 x 1200, aluminium frame powder coated.',
-  aspects: [{ aspect: 'glass', label: 'Glass type & thickness' }, { aspect: 'frame', label: 'Frame material & finish' }, { aspect: 'size', label: 'Dimensions' }] };
-Deno.test('quote aspects: stated aspects are recorded by key; an aspect the words merely resemble is not', async () => {
-  const m = mock({ synth: [{ answer: 'Glass and frame are stated; the dimensions are stated too.', decision: { fields: {
-    glass: { value: 'tempered glass 10mm', evidence: 'Clear tempered glass 10mm' },
-    frame: { value: 'aluminium frame powder coated', evidence: 'aluminium frame powder coated' } } } }], rpc: { fn_quote_aspects_due: DUE } });
-  assertEquals(await reasonQuoteAspects(m.deps, 'q-1'), { status: 'reasoned', present: ['glass', 'frame'] });
-  const rec = m.rpcs.find(([f]) => f === 'fn_quote_aspect_reading_record')![1];
-  assertEquals([rec.p_present, rec.p_content_md5], [['glass', 'frame'], 'c'.repeat(32)]);
-});
-Deno.test('quote aspects held: recorded as held (the verdict stays needs_reasoning), queued under sql.trg_quote_quality', async () => {
-  const m = mock({ hold: true, rpc: { fn_quote_aspects_due: DUE } });
-  assertEquals(await reasonQuoteAspects(m.deps, 'q-1'), { status: 'held' });
-  const rec = m.rpcs.find(([f]) => f === 'fn_quote_aspect_reading_record')![1];
-  assertEquals([rec.p_present, rec.p_held_id], [null, 77]);
-  const [h] = m.held();
-  assertEquals([h.p_surface, h.p_dedupe_key, h.p_subject], ['sql.trg_quote_quality', 'quote_aspects:q-1:' + 'c'.repeat(32), { quote_id: 'q-1', content_md5: 'c'.repeat(32) }]);
-});
-Deno.test('quote aspects: nothing due -> no model, nothing recorded', async () => {
-  const m = mock({});
-  assertEquals(await reasonQuoteAspects(m.deps, 'q-2'), { status: 'none_due' });
-  assertEquals(m.rpcs.map(([f]) => f), ['fn_quote_aspects_due']);
-});

@@ -363,7 +363,9 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
     if (!out && allText.trim() && !(draft.brief && draft.brief.category_by === 'reasoning')) {
       const t = await tradeOf(defaultDeps(admin, 'inquiry_intake'), {
         conversation: allText, candidates: validSlugs.map((slug: string) => ({ slug, label: slug.replace(/[-_]/g, ' ') })),
-        dedupeKey: 'intake_trade:' + draft.id, subject: { intake_id: draft.id },
+        dedupeKey: 'intake_trade:' + draft.id,
+        // a harness customer's question is never queued for a paid replay (think.ts isFixtureRequest)
+        subject: { intake_id: draft.id, ...(email.endsWith('@example.invalid') ? { fixture: true } : {}) },
       });
       if (t.value && validSlugs.includes(t.value)) {
         // The reasoned trade replaces the keyword one everywhere the deterministic interview reads it.

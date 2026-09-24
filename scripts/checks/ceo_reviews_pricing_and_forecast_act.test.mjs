@@ -3,9 +3,11 @@
 // WHAT FAILS IF THE CAUSE RETURNS — production, in ONE aborted transaction (the pending files replayed first; the
 // founder path runs with app.qd_stub_founder_notify on and the whole block rolls back, so nothing reaches him):
 //   * target_forecast: no verdict is recorded for the instrumented contracts, or an off-track revenue verdict is not
-//     filed as a high-stakes CEO decision, or "tell the founder" does not reach him through customer_support;
-//   * management_review: the week is not gathered per seat, is filed twice, is not a decision with fields, or its call
-//     is not challenged by the accountant through a cross-family seat_deliberation;
+//     filed as ONE normal-stakes CEO decision, or "tell the founder" does not reach him through customer_support,
+//     challenged by the accountant through a cross-family seat_deliberation;
+//   * management_review: the week is not gathered per seat, is filed twice, asks the model more than the verdict and
+//     the binding constraint, or an internal verdict spends a second (challenge) call - 24 Sep 2026, it_engineer:
+//     routine work is code, one reasoned line per report;
 //   * pricing_monitor: thin evidence (under 20 quoted requests) is reasoned instead of recorded as insufficient;
 //   * any reasoned choice outside the options is applied instead of raising.
 //
@@ -20,7 +22,8 @@ import { fileURLToPath } from 'node:url';
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const CEO = 'scripts/sql/the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql';
-const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', CEO];
+const FILES = ['scripts/sql/every_seat_duty_has_an_owner_a_clock_and_a_check.sql', CEO,
+  'scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql'];
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
 test('the reveal fee is out of the pricing review, and no price is written', () => {
@@ -102,15 +105,15 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; n bigint; begin
 end $$;`);
   assert.ok(o.verdicts >= 1 && o.recorded >= 1, 'no feasibility verdict was recorded');
   if (o.fc_held) {
-    assert.deepEqual(o.fc_held, { seat: 'ceo', stakes: 'high' });
+    assert.deepEqual(o.fc_held, { seat: 'ceo', stakes: 'normal' }, 'the forecast call is not one normal-stakes think() call');
     assert.match(o.bad_choice, /^CHOICE_NOT_AN_OPTION/, 'a choice outside the options was applied');
     assert.deepEqual(o.fc, { decision: 'tell_founder', founder: 'true', challenged: true }, 'tell_founder did not reach the (stubbed) founder or was not challenged');
     assert.deepEqual(o.founder_via, ['customer_support'], 'the founder was not told through customer_support');
   }
   assert.equal(o.mr_again, true, 'the management review was filed twice in one week');
   assert.ok(o.mr_seats >= 6, 'the week was not gathered for every seat');
-  assert.equal(o.mr_fields, 6, 'the review is not a decision with a binding constraint and a line per seat');
-  assert.deepEqual(o.mr, { decision: 'off_track', binding: 'verified suppliers per trade', reviewer: 'accountant' }, 'the review was not recorded or not challenged by the accountant');
+  assert.equal(o.mr_fields, 1, 'the review asks the model more than the verdict and the binding constraint');
+  assert.deepEqual(o.mr, { decision: 'off_track', binding: 'verified suppliers per trade', reviewer: null }, 'the review was not recorded, or an internal verdict spent a cross-family challenge call');
   if (o.pm_quoted < 20) {
     assert.equal(o.pm_filed, false, 'thin pricing evidence was reasoned');
     assert.equal(o.pm_decision, 'insufficient_evidence');
