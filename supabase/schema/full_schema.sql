@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T00:33:28.486Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T01:29:53.544Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16703,6 +16703,7 @@ declare
   t public.transactions; c public.pricing_config; v_n int; v_sum bigint;
   v_refunded numeric; v_approved numeric; v_base numeric; v_settled timestamptz; v_src text;
   v_cap numeric; v_apr numeric; v_due_days int; v_due date; v_as_of date; v_days int; v_int numeric;
+  v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
@@ -16744,17 +16745,31 @@ begin
   v_due      := (v_settled at time zone 'Asia/Dubai')::date + v_due_days;
   v_as_of    := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
   v_days     := greatest(v_as_of - v_due, 0);
-  v_int      := round((v_base + c.supplier_nonresponse_admin_fee_aed) * v_apr * v_days / 365.0, 2);
+  -- 23 SEP 2026 (ceo): Supplier Agreement v13 clause 33(b) raised the administrative fee (company_facts.json
+  -- nonresponse_admin_fee_aed). The fee is the one the supplier had SIGNED when the customer revealed it: v13 or
+  -- later accepted at or before the reveal -> decision_policy.supplier_nonresponse_admin_fee_from_v13_aed; anything
+  -- else (v12 or earlier, v13 accepted after the reveal, unknown dates) -> pricing_config's AED 250 of clauses v6-v12.
+  -- Never retroactive. supplier_charge.ts adminFeeAed() is the same rule for the documents.
+  select l.accepted_terms_version, l.accepted_terms_at into v_ver, v_acc from public.leads l where l.id = t.supplier_id;
+  if coalesce(nullif(regexp_replace(coalesce(v_ver, ''), '\D', '', 'g'), '')::int, 0) >= 13
+     and v_acc is not null and t.revealed_at is not null and v_acc <= t.revealed_at then
+    v_fee := coalesce((select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_nonresponse_admin_fee_from_v13_aed'), c.supplier_nonresponse_admin_fee_aed);
+    v_fee_basis := 'Supplier Agreement ' || v_ver || ' clause 33(b), accepted ' || v_acc || ' before the reveal';
+  else
+    v_fee := c.supplier_nonresponse_admin_fee_aed;
+    v_fee_basis := 'Supplier Agreement ' || coalesce(v_ver, '(no version recorded)') || ' clause 33(b) as signed before this reveal';
+  end if;
+  v_int      := round((v_base + v_fee) * v_apr * v_days / 365.0, 2);
 
   return jsonb_build_object(
     'ok', true, 'transaction_id', t.id, 'supplier_id', t.supplier_id,
     'refunded_aed', v_base, 'actually_refunded_aed', v_refunded, 'approved_aed', v_approved, 'refund_source', v_src,
-    'admin_fee_aed', c.supplier_nonresponse_admin_fee_aed,
+    'admin_fee_aed', v_fee, 'admin_fee_basis', v_fee_basis,
     'interest_apr', v_apr, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
     'due_date', v_due, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
-    'total_aed', round(v_base + c.supplier_nonresponse_admin_fee_aed + v_int, 2),
+    'total_aed', round(v_base + v_fee + v_int, 2),
     'basis', 'base = the amount refunded to the customer, read from the refund record and capped at the amount the CEO approved; '
-          || '+ the administration fee from pricing_config; + simple interest on (base + admin fee) at the lower of pricing_config''s APR and '
+          || '+ the administration fee of the agreement version the supplier had signed at the reveal; + simple interest on (base + admin fee) at the lower of pricing_config''s APR and '
           || 'the lawful maximum, from the due date (' || v_due_days || ' days after the refund settled) to the as-of date. Nothing is typed.');
 end $function$
 
@@ -28754,7 +28769,9 @@ begin
        ||(s->'totals'->>'category_sales_agents')||' category sales agents, '||(s->'totals'->>'tools_wired')||' wired tools, '
        ||(s->'totals'->>'open_objectives')||' open objectives, '||(s->'totals'->>'open_tasks')||' open tasks.'||E'\n'
        ||'Departments (lead · brain agents · north star):'||E'\n';
-  for d in select * from jsonb_array_elements(s->'departments') loop
+  -- No departments since 7 Sep 2026: fn_company_state() returns null for them, which is not an array. Read it as
+  -- an empty list rather than fail every self-knowledge sync (22023, measured 24 Sep 2026).
+  for d in select * from jsonb_array_elements(case when jsonb_typeof(s->'departments') = 'array' then s->'departments' else '[]'::jsonb end) loop
     out := out || '- '||(d->>'name')||' ['||(d->>'dept')||']: lead '||coalesce(d->>'lead_agent','—')
                 || ', '||(d->>'headcount')||' agent(s)';
     if jsonb_array_length(d->'brain_agents') > 0 then

@@ -1,4 +1,0 @@
-Committed, not applied: the release operator applies it (founder_instruction 965: the terms fully UAE-compliant, on the website, in sync everywhere). Seat: ceo.
-Apply AFTER the_terms_of_23_september_2026_reach_every_place.sql, which writes the policy key this routine reads
-(until then it falls back to AED 250, so applying it alone never charges more than a supplier signed). When
-applied: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

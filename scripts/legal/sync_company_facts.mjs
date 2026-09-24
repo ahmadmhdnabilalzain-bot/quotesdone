@@ -139,7 +139,10 @@ if (at >= 0) {
     const s = r.surface; const fixed = fixWordings(rewrite(r.old).text).text;
     const note = r.wordings.length ? ` -- ALSO worded against canonical_statements: ${r.wordings.map((w) => w.text).join(' | ').replace(/\n/g, ' ')}` : '';
     if (fixed === r.old) { L.push(`-- ${s.table}#${r.key}: only a wording finding, rewrite by hand${note}`); continue; }
-    L.push(`update public.${s.table} set ${s.col} = ${q(fixed)}${s.embed ? `, ${s.embed} = null` : ''} where ${s.key}::text = '${r.key.replace(/'/g, "''")}' and md5(${s.col}) = '${md5(r.old)}';${note}`);
+    // The key is compared UNCAST: the untyped literal takes the column's type, so the primary key's index is used.
+    // With ${s.key}::text each kb_chunks row was found by a full scan of an 8 GB table and the apply outran the
+    // statement timeout (24 Sep 2026, measured: DataFileRead for 5 minutes on the first attempt).
+    L.push(`update public.${s.table} set ${s.col} = ${q(fixed)}${s.embed ? `, ${s.embed} = null` : ''} where ${s.key} = '${r.key.replace(/'/g, "''")}' and md5(${s.col}) = '${md5(r.old)}';${note}`);
   }
   L.push('', '-- policy keys');
   for (const f of Object.values(F.facts)) for (const d of f.db || []) if (d.table === 'decision_policy') {
