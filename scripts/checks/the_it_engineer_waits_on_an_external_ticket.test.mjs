@@ -56,7 +56,8 @@ begin
   perform public.fn_it_external_cause_reply('zz_probe_ext', now() - interval '1 minute', 'Please confirm the account owner by replying to this email.');
   b4 := public.fn_it_integration_settle('integration', it, '[]');
   b5 := public.fn_it_integration_settle('integration', it, '[]');               -- told once, not again
-  perform public.fn_it_integration_settle('integration', '[]', '[]');           -- recovered: finding and cause close
+  perform public.fn_it_integration_settle('integration',                        -- a passing re-probe: finding and cause close
+    jsonb_build_array(jsonb_build_object('item','zz_probe_ext','title','answers again','recovered',true)), '[]');
   select closed_at into v_closed from public.it_integration_external_cause where integration = 'zz_probe_ext';
   select exists (select 1 from public.it_founder_decision_class where issue_key_like = 'duty:integration%:zz_probe_ext') into v_cls_after;
   raise exception 'CHK<<%>>', jsonb_build_object('digest_off_him', v_cls_open, 'mailed', jsonb_build_array(b1->'founder_mailed', b2->'founder_mailed',

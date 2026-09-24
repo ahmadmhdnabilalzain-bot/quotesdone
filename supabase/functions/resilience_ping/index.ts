@@ -1051,7 +1051,7 @@ async function itIntegrationsTick(): Promise<unknown> {
     const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
     const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
     if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
-    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried).length, fixed: fixed.length,
+    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
              settled: (data as Record<string, unknown> | null)?.failing ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }

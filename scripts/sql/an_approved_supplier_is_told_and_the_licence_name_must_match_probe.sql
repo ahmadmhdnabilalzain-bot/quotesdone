@@ -10,7 +10,7 @@
 do $probe$
 declare
   a bigint; b bigint; v_codes text[]; e_a int; w_a int; e_a2 int; w_a2 int; e_b int; w_b int;
-  v_to text; v_phone text; v_body text; v_subj text; f text[] := '{}'; v_rev jsonb;
+  v_auto_was boolean; v_to text; v_phone text; v_body text; v_subj text; f text[] := '{}'; v_rev jsonb;
 begin
   select array_agg(code order by code) into v_codes from (select code from public.taxonomy_trade order by code limit 2) t;
 
@@ -28,7 +28,8 @@ begin
   update public.leads
      set phone = '971500000000', owner_phone_verified = true, owner_email_verified = true,
          license_doc_path = 'zz-probe/approval-notice/licence.pdf', company_profile_doc_path = 'zz-probe/approval-notice/profile.pdf',
-         signed_terms_path = 'zz-probe/approval-notice/terms.pdf'
+         signed_terms_path = 'zz-probe/approval-notice/terms.pdf',
+         licence_legal_name = company_name   -- the licence names this company (an unread name is held for review)
    where id in (a, b);
 
   update public.leads set approval_status = 'approved' where id = a;
@@ -78,6 +79,27 @@ begin
   if public.fn_supplier_licence_name_mismatch((select l from public.leads l where id = b)) then f := f || text 'false mismatch'; end if;
   update public.leads set licence_legal_name = null where id = b;
   if public.fn_supplier_licence_name_mismatch((select l from public.leads l where id = b)) then f := f || text 'unread name blocks'; end if;
+
+  -- A SCANNED LICENCE WHOSE NAME COULD NOT BE READ (model held or unreadable): even with automatic approval
+  -- ON, the registration waits as pending, reason licence_name_unread, and the verification row needs review.
+  select auto_approve_suppliers into v_auto_was from public.pricing_config where id = 1;
+  update public.pricing_config set auto_approve_suppliers = true where id = 1;
+  update public.leads set licence_legal_name = null, approval_status = 'pending', verified = false where id = b;
+  v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
+  if (v_rev->>'decision') is distinct from 'pending' or (v_rev->>'reason') is distinct from 'licence_name_unread'
+     or (select approval_status from public.leads where id = b) <> 'pending'
+     or not exists (select 1 from public.agent_actions where target_table = 'leads' and target_id = b::text
+                     and kind = 'supplier_verification' and status = 'needs_review')
+    then f := f || ('unread name was not held for review: ' || v_rev::text); end if;
+  -- The name read off the scan lands and matches: now, and only now, it is approved automatically.
+  update public.leads set licence_legal_name = 'ZZ DEMO - Approval Notice Probe B LLC' where id = b;
+  v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
+  if (select approval_status from public.leads where id = b) <> 'approved' then f := f || ('a read, matching name was not approved: ' || v_rev::text); end if;
+  -- An already-approved supplier whose licence name is (now) unread stays approved.
+  update public.leads set licence_legal_name = null where id = b;
+  v_rev := public.fn_sales_engineer_verifies_supplier(b, 'probe');
+  if (select approval_status from public.leads where id = b) <> 'approved' then f := f || ('an approved supplier lost approval on an unread name: ' || v_rev::text); end if;
+  update public.pricing_config set auto_approve_suppliers = v_auto_was where id = 1;
 
   raise exception 'CHK<<%>> A: email % / whatsapp % (to %, phone %), after re-approval % / %; B (opt none): email % / addressed whatsapp %. SUBJECT: % BODY: %',
     case when cardinality(f) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(f, '; ') end,

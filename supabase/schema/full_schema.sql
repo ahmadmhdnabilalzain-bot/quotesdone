@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T13:41:35.234Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T14:03:26.607Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -20664,16 +20664,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -20699,6 +20689,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -43657,7 +43657,7 @@ declare
   x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; f public.it_engineer_finding;
   v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
   v_link text; v_detail text; v_dedupe text; v_note jsonb; n_mail int := 0; n_fixed int := 0;
-  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record;
+  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record; v_recovered text[] := '{}';
 begin
   if p_duty not in ('integration', 'integration_social') then
     raise exception 'fn_it_integration_settle: duty must be integration or integration_social, not %', p_duty;
@@ -43666,7 +43666,9 @@ begin
     raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
   end if;
   -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
+  -- A RECOVERED item is a successful re-probe, not a failure: it is kept out of the settle and remembered.
   for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce((x->>'recovered')::boolean, false) then v_recovered := v_recovered || (x->>'item'); continue; end if;
     if coalesce((x->>'carried')::boolean, false) and not exists (select 1 from public.it_engineer_finding
          where issue_key = 'duty:' || p_duty || ':' || (x->>'item') and closed_at is null) then
       continue;
@@ -43674,6 +43676,12 @@ begin
     v_items := v_items || x;
   end loop;
   v_res := public.fn_it_duty_settle(p_duty, v_items);
+  -- The closed finding of an integration that answered its probe this beat says so. The evidence is replaced
+  -- whenever the finding reopens, so the mark never outlives the closure it describes.
+  update public.it_engineer_finding
+     set evidence = evidence || jsonb_build_object('recovered', true, 'recovered_at', now())
+   where closed_at is not null
+     and issue_key = any (select 'duty:' || p_duty || ':' || r from unnest(v_recovered) r);
 
   -- What the company fixed itself: the IT daily line, never the founder.
   for x in select e from jsonb_array_elements(coalesce(p_fixed, '[]'::jsonb)) e loop
@@ -43683,11 +43691,14 @@ begin
     n_fixed := n_fixed + 1;
   end loop;
 
-  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause once the integration answers again.
+  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause ONLY on a genuine recovery: the finding
+  -- is closed AND a successful re-probe stamped it recovered. Any other closure (a sweep, a manual close) keeps
+  -- the cause open, or the founder path would re-open without the provider having fixed anything.
   for c in select * from public.it_integration_external_cause where closed_at is null loop
     continue when not exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration);
     if exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration
-                  and closed_at is not null and closed_at >= c.created_at) then
+                  and closed_at is not null and closed_at >= c.created_at
+                  and coalesce((evidence->>'recovered')::boolean, false)) then
       perform public.fn_it_external_cause_close(c.integration, 'the integration answers again; ' || c.external_party || ' ticket ' || c.ticket_ref || ' can be closed');
       continue;
     end if;
@@ -43695,7 +43706,9 @@ begin
     select i.created_at, coalesce(i.subject, '') || E'\n' || coalesce(i.body, '') txt into m
       from public.inbound_messages i
      where i.created_at > greatest(coalesce(c.last_reply_at, c.opened_on::timestamptz), c.opened_on::timestamptz)
-       and (i.subject ilike '%' || c.ticket_ref || '%' or i.body ilike '%' || c.ticket_ref || '%')
+       -- A literal substring, case-blind: a pattern match would read % and _ in a provider's reference as wildcards.
+       and (strpos(lower(coalesce(i.subject, '')), lower(c.ticket_ref)) > 0
+            or strpos(lower(coalesce(i.body, '')), lower(c.ticket_ref)) > 0)
      order by i.created_at desc limit 1;
     if found then perform public.fn_it_external_cause_reply(c.integration, m.created_at, m.txt); end if;
     update public.it_integration_external_cause set last_checked_at = now() where id = c.id;
@@ -62569,7 +62582,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -62587,6 +62600,8 @@ begin
   v_expired := l.license_expiry is not null and l.license_expiry < current_date;
   -- 24 Sep 2026: the licence must be this company's. Unread name = not a mismatch (nothing guessed).
   v_name_mismatch := public.fn_supplier_licence_name_mismatch(l);
+  -- ...and an unread name is not a match: no name match, no automatic approval.
+  v_name_unread := public.fn_company_name_norm(coalesce(l.licence_legal_name, '')) = '';
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
                    when v_name_mismatch then 'licence_name_mismatch'
@@ -62597,6 +62612,7 @@ begin
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
   elsif v_reason is not null then v_decision := 'action_required';
+  elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_name_unread';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -62615,22 +62631,25 @@ begin
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
   if v_changed > 0 or p_source <> 'mandatory_item_changed' then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', 'auto_done',
-          case when v_decision = 'action_required' then 'medium' else 'low' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_name_unread' then 'needs_review' else 'auto_done' end,
+          case when v_decision = 'action_required' or v_reason = 'licence_name_unread' then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.'
+            when 'pending' then case when v_reason = 'licence_name_unread'
+              then 'Review: complete, but the company name on the trade licence could not be read (a scan the document model could not read, or the model is held). Compare the licence with the registered name, then approve or ask for the right licence. It is never approved automatically without a name match.'
+              else 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.' end
             else 'No action required. The supplier was told exactly what is missing; the verification re-runs when it arrives, and the registration closes after 14 days.' end,
           jsonb_build_object('supplier_id', l.id, 'decision', v_decision, 'previous_status', l.approval_status,
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
-                             'licence_name_mismatch', v_name_mismatch, 'licence_legal_name', l.licence_legal_name,
+                             'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
+                             'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
           'leads', l.id::text);
   end if;
 
   return jsonb_build_object('ok', true, 'decision', v_decision, 'approval_status', v_decision, 'missing', to_jsonb(v_missing),
-                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch,
+                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$
 
