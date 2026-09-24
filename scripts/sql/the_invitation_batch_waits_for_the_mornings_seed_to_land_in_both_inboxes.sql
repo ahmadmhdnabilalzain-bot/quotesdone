@@ -19,8 +19,10 @@
 --     (to_role supplier, the live From, Reply-To and frame, never counted against the invitation cap).
 --     The script only polled until the send and never read the folder back. The one Gmail reading
 --     (24 Sep 11:31) was INBOX. No placement was stored anywhere.
---   * The live From is info@quotesdone.com (app_secrets.email_from_supplier). Each row records the From it
---     tested, and a pass only clears the batch while the From is still the same.
+--   * The live From is info@quotesdone.com (app_secrets.email_from_supplier). PR #963 adds an invitation lane:
+--     with app_secrets.invite_lane_enabled='true', send_outbox sends supplier_invite AND supplier_invite_seed from
+--     invite_lane_from (send_outbox/invite_lane.ts). Neither key exists on production today (the lane is off).
+--     Each row records the EFFECTIVE sender it tested, and a pass only clears the batch while it is unchanged.
 --   * The campaign pause already exists: fn_invite_same_day_brake (#943) sets invite_enabled=false, cancels the
 --     queued supplier_invite rows and opens it_watch_finding. PR #961
 --     (the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql) moves it into
@@ -33,28 +35,32 @@
 --     does not send (fail closed).
 --
 -- WHAT THIS CHANGES
---   1. public.invite_placement_check: one row per Dubai sending day. It records the per-run token, the From
---      tested, both seed addresses (a CHECK constraint fixes each one, so no other address can be stored), the
---      folder each landed in, the reader's evidence and the verdict.
---   2. fn_invite_placement_due(now): the heartbeat's entry point. At 45 min before the window opens (05:15 UTC)
---      on a sending day with the campaign on, it queues ONE supplier_invite_seed to each seed inbox. The
---      subject is the live subject plus "(ref <token>)" and the body is the live body for a ZZ DEMO company.
---      Later it answers 'read' until a verdict, and settles the day once the window opens.
+--   1. public.invite_placement_check: one row per Dubai sending day. It records the per-run token, the effective
+--      From tested, both seed addresses (a CHECK constraint fixes each one, so no other address can be stored),
+--      the folder each landed in, the reader's evidence and the verdict.
+--   2. fn_invite_placement_due(now): the heartbeat's entry point. From 90 min before the window opens (04:30 UTC)
+--      on a sending day with the campaign on, it queues ONE supplier_invite_seed to each seed inbox. The subject is
+--      the live subject plus "(ref <token>)" and the body is the live body for a ZZ DEMO company. Later it answers
+--      'read' until a verdict, and settles the day at the read cutoff (the window + 2 h, 08:00 UTC).
 --   3. fn_invite_placement_record(day, gmail, outlook): the folder readings from
---      supabase/functions/_shared/inbox_placement.ts (Gmail API labelIds, Graph parentFolderId), then a settle.
---   4. fn_invite_placement_settle(day, now): verdict inbox (both in Inbox), spam (either in spam/junk),
---      elsewhere (trash or another folder), and, once the window opens without both in Inbox: not_sent,
---      unread (a mailbox could not be read) or not_found. Anything but inbox pauses the campaign
---      (fn_invite_campaign_pause) and files the it_engineer finding deliverability:inbox_placement (the
---      #935 door, fn_it_engineer_finding_upsert). An inbox verdict closes that finding.
---   5. fn_invite_placement_gate(day, now): 'pass' only for an inbox verdict under the current From.
---      'wait' before the window while the check can still finish. 'fail' otherwise, including a day with
---      no check (fail closed). enqueue_supplier_invites refuses to queue without 'pass'. The outreach tick
---      waits on 'wait' without spending its once-a-day run, and holds the day on anything else.
+--      supabase/functions/_shared/inbox_placement.ts (Gmail labelIds, Graph parentFolderId; the owner's Sent and
+--      Drafts copies and any other sender's mail excluded), then a settle.
+--   4. fn_invite_placement_settle(day, now): verdict inbox (both in Inbox), spam (either in spam/junk), elsewhere
+--      (trash or another folder), and, at the cutoff without both in Inbox: not_sent, unread or not_found.
+--      spam and elsewhere pause a running campaign through #961's fn_invite_campaign_pause. not_sent, unread and
+--      not_found hold the day without touching invite_enabled. Every failure files the it_engineer finding
+--      deliverability:inbox_placement (fn_invite_placement_finding -> fn_it_engineer_finding_upsert, the #935
+--      door), once per day and verdict. An inbox verdict closes it.
+--   5. fn_invite_placement_gate(day, now): 'pass' only for an inbox verdict under the current effective sender
+--      (fn_invite_placement_sender: the #963 invitation lane when invite_lane_enabled='true', else
+--      email_from_supplier). 'wait' until a verdict or the cutoff. 'fail' otherwise. A day with no check is
+--      'fail:no_check', filed as the same finding on an open day. enqueue_supplier_invites refuses to queue without
+--      'pass'. In the outreach tick only the batch waits; reminders and the 24-hour clock run on time.
 --   6. No schedule row. resilience_ping's itintegrations step (every 15 min) calls placementTick. If this file is
---      applied before that code is deployed, nothing calls fn_invite_placement_due, no seed is queued, and the
---      gate answers 'wait' until 06:00 UTC and then 'fail:no_check': the batch is held, and the campaign is not
---      paused. If the code is deployed first, the missing routine is recorded as "skipped: schema not applied".
+--      applied before that code is deployed, nothing calls fn_invite_placement_due, no seed is queued, the gate
+--      answers 'wait' until 08:00 UTC and then 'fail:no_check': the batch is held, the finding is filed and the
+--      campaign is not paused. If the code is deployed first, the missing routine is recorded as "skipped: schema
+--      not applied".
 --
 -- WHAT THIS DELIBERATELY DOES NOT CHANGE
 --   * The founder's go. invite_enabled and supplier_outreach_golive are only ever set to false here, never
@@ -187,9 +193,11 @@ end
 $fn$;
 revoke execute on function public.fn_invite_same_day_brake() from public, anon, authenticated;
 
--- ── 3. when: the batch's own window and calendar ────────────────────────────────────────────────────────
--- The window opens at invite_warmup.window_start_hour Dubai (10:00 = 06:00 UTC). That instant is the
--- check's deadline, and the seed leaves 45 minutes before it (05:15 UTC).
+-- ── 3. when and from whom: the batch's own window, calendar and sender ──────────────────────────────────
+-- The window opens at invite_warmup.window_start_hour Dubai (10:00 = 06:00 UTC): the deadline. The seed is
+-- queued from 90 minutes before it (04:30 UTC), so a deferred or slow heartbeat still has several beats to read
+-- it before 06:00. Reading goes on after 06:00 until the cutoff (deadline + 2 h, 08:00 UTC). The batch waits
+-- until a verdict exists, because a late pass can still send inside the day's window (to 17:00 Dubai).
 create or replace function public.fn_invite_placement_deadline(p_day date)
 returns timestamptz
 language sql
@@ -202,6 +210,38 @@ as $fn$
          at time zone 'Asia/Dubai';
 $fn$;
 revoke execute on function public.fn_invite_placement_deadline(date) from public, anon, authenticated;
+
+create or replace function public.fn_invite_placement_cutoff(p_day date)
+returns timestamptz
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select public.fn_invite_placement_deadline(p_day) + interval '2 hours';
+$fn$;
+revoke execute on function public.fn_invite_placement_cutoff(date) from public, anon, authenticated;
+
+-- THE EFFECTIVE SENDER (review of #966). With the #963 invitation lane on, send_outbox sends invitations AND their
+-- seed from app_secrets.invite_lane_from (invite_lane.ts senderFor); otherwise from email_from_supplier. The keys
+-- are read defensively: #963 may not be applied, and a missing key is the lane off. The check records this value
+-- and the gate compares it, so switching the lane on or off, or changing either From, makes an earlier pass stale.
+create or replace function public.fn_invite_placement_sender()
+returns text
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select case
+    when coalesce((select lower(btrim(value)) from public.app_secrets where key = 'invite_lane_enabled'), 'false') = 'true'
+     and coalesce((select btrim(value) from public.app_secrets where key = 'invite_lane_from'), '') <> ''
+      then (select btrim(value) from public.app_secrets where key = 'invite_lane_from')
+    else coalesce(nullif((select btrim(value) from public.app_secrets where key = 'email_from_supplier'), ''),
+                  'QuotesDone <supplier@quotesdone.com>')
+  end;
+$fn$;
+revoke execute on function public.fn_invite_placement_sender() from public, anon, authenticated;
 
 -- NULL = the batch will run today; otherwise why it will not. Same predicates as enqueue_supplier_invites.
 create or replace function public.fn_invite_placement_day_closed(p_now timestamptz default now())
@@ -225,6 +265,44 @@ $fn$;
 revoke execute on function public.fn_invite_placement_day_closed(timestamptz) from public, anon, authenticated;
 
 -- ── 4. the verdict, and what a failed one does ──────────────────────────────────────────────────────────
+-- The it_engineer finding, the #935 door. One key; each Dubai day is filed once (a repeat call the same day
+-- for the same verdict is not a new sighting), so a held day is visible without being counted on every beat.
+create or replace function public.fn_invite_placement_finding(p_day date, p_verdict text, p_why text, p_evidence jsonb)
+returns void
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_key constant text := 'deliverability:inbox_placement';
+begin
+  if exists (select 1 from public.it_engineer_finding
+              where issue_key = v_key and closed_at is null
+                and evidence ->> 'dubai_day' = p_day::text and evidence ->> 'verdict' = p_verdict) then
+    return;
+  end if;
+  perform public.fn_it_engineer_finding_upsert(v_key, left('Supplier invitations held: ' || p_why, 300),
+    'supplier invitation inbox placement: the daily seed to the Gmail and Microsoft 365 seed inboxes',
+    'customer_facing', 1,
+    coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('dubai_day', p_day, 'verdict', p_verdict),
+    array['the seed goes through the real path: send_outbox, the effective From (invitation lane or email_from_supplier), Reply-To and frame'],
+    case p_verdict
+      when 'unread' then array['whether the Gmail / Microsoft Graph credentials in app_secrets are present and still consented',
+                               'whether the itintegrations heartbeat step ran between 04:30 and 08:00 UTC']
+      when 'not_sent' then array['why send_outbox did not send the seed (email_enabled, supplier_emails_enabled, the daily cap)',
+                                 'invite_lane_domain_unverified: with the invitation lane on, send_outbox holds the seed while the lane''s domain is not verified in Resend']
+      when 'no_check' then array['whether the itintegrations heartbeat step ran between 04:30 and 08:00 UTC, or resilience_ping is deployed without the placement code',
+                                 'invite_lane_domain_unverified, if the lane is on']
+      when 'not_found' then array['whether a mailbox rule moved or deleted the seed', 'whether the seed arrived from a different From than the one recorded']
+      else array['which content, sender or domain signal the mailbox provider acted on'] end,
+    'it_engineer');
+end
+$fn$;
+revoke execute on function public.fn_invite_placement_finding(date, text, text, jsonb) from public, anon, authenticated;
+
+-- PAUSE ONLY ON WHAT A MAILBOX PROVIDER DID (review of #966). spam or elsewhere is a placement the provider chose,
+-- so the campaign is paused through PR #961's one pause (only while it is running) and resuming is by hand.
+-- not_sent / unread / not_found at the cutoff is OUR side failing to measure: the day is held (the gate fails)
+-- and the finding is filed, but invite_enabled is not touched, so tomorrow's check runs on its own.
 create or replace function public.fn_invite_placement_settle(p_day date, p_now timestamptz default now())
 returns text
 language plpgsql
@@ -233,8 +311,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   r public.invite_placement_check;
-  v text; v_sent_g text; v_sent_o text; v_why text; v_title text; v_ev jsonb; v_pause jsonb;
-  v_key constant text := 'deliverability:inbox_placement';
+  v text; v_sent_g text; v_sent_o text; v_why text; v_ev jsonb; v_pause jsonb;
 begin
   select * into r from public.invite_placement_check where dubai_day = p_day for update;
   if r.dubai_day is null or r.verdict <> 'pending' then return r.verdict; end if;
@@ -242,7 +319,7 @@ begin
   if 'spam' in (r.gmail_folder, r.outlook_folder) then v := 'spam';
   elsif r.gmail_folder in ('trash', 'other') or r.outlook_folder in ('trash', 'other') then v := 'elsewhere';
   elsif r.gmail_folder = 'inbox' and r.outlook_folder = 'inbox' then v := 'inbox';
-  elsif p_now >= public.fn_invite_placement_deadline(p_day) then
+  elsif p_now >= public.fn_invite_placement_cutoff(p_day) then
     select status into v_sent_g from public.notifications where id = r.gmail_notification_id;
     select status into v_sent_o from public.notifications where id = r.outlook_notification_id;
     v := case when coalesce(v_sent_g, '') <> 'sent' or coalesce(v_sent_o, '') <> 'sent' then 'not_sent'
@@ -254,7 +331,7 @@ begin
 
   if v = 'inbox' then
     update public.invite_placement_check set verdict = v, decided_at = p_now where dubai_day = p_day;
-    perform public.fn_it_engineer_finding_close(v_key,
+    perform public.fn_it_engineer_finding_close('deliverability:inbox_placement',
       'the seed of ' || p_day || ' landed in the Inbox of both seed mailboxes (token ' || r.token || ')');
     insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('it_engineer', 'ok', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v),
@@ -265,46 +342,40 @@ begin
   v_why := 'the inbox placement seed of ' || p_day || ' '
     || case v when 'spam' then 'landed in spam/junk'
               when 'elsewhere' then 'did not land in the Inbox'
-              when 'not_sent' then 'was not sent before the batch window'
+              when 'not_sent' then 'was not sent by the read cutoff'
               when 'unread' then 'could not be read back from a seed mailbox'
               else 'was not found in a seed mailbox' end
     || ' (Gmail ' || coalesce(r.gmail_folder, 'unread') || ', Outlook ' || coalesce(r.outlook_folder, 'unread') || ')';
-  v_title := 'Supplier invitations held: ' || v_why;
-  v_ev := jsonb_build_object('dubai_day', p_day, 'token', r.token, 'from', r.from_address, 'subject', r.subject,
-            'verdict', v, 'gmail', jsonb_build_object('to', r.gmail_to, 'folder', r.gmail_folder, 'detail', r.gmail_detail,
-                                                      'notification_id', r.gmail_notification_id, 'status', v_sent_g),
+  v_ev := jsonb_build_object('token', r.token, 'from', r.from_address, 'subject', r.subject,
+            'gmail', jsonb_build_object('to', r.gmail_to, 'folder', r.gmail_folder, 'detail', r.gmail_detail,
+                                        'notification_id', r.gmail_notification_id, 'status', v_sent_g),
             'outlook', jsonb_build_object('to', r.outlook_to, 'folder', r.outlook_folder, 'detail', r.outlook_detail,
                                           'notification_id', r.outlook_notification_id, 'status', v_sent_o),
             'reads', r.reads);
-  -- THE ONE PAUSE (PR #961's fn_invite_campaign_pause, 4 arguments). Only a RUNNING campaign is paused, as #961
-  -- does: stopping a stopped one would only write an error run and rewrite the #943 finding. The day is held by the
-  -- gate either way, and the it_engineer finding below is filed either way.
-  if coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true' then
-    v_pause := public.fn_invite_campaign_pause('it_engineer_inbox_placement', v_why, v_ev,
+  -- THE ONE PAUSE (PR #961's fn_invite_campaign_pause, 4 arguments), only for a provider's placement and only on a
+  -- RUNNING campaign, as #961 does: stopping a stopped one would only write an error run and rewrite #943's finding.
+  if v in ('spam', 'elsewhere')
+     and coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true' then
+    v_pause := public.fn_invite_campaign_pause('it_engineer_inbox_placement', v_why, v_ev || jsonb_build_object('dubai_day', p_day),
       jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v,
                          'gmail', r.gmail_folder, 'outlook', r.outlook_folder));
   end if;
   update public.invite_placement_check set verdict = v, decided_at = p_now, paused = (v_pause is not null) where dubai_day = p_day;
-  perform public.fn_it_engineer_finding_upsert(v_key, v_title,
-    'supplier invitation inbox placement: the daily seed to the Gmail and Microsoft 365 seed inboxes',
-    'customer_facing', 1, v_ev,
-    array['the seed went through the real path: send_outbox, the live From, Reply-To and frame'],
-    case v when 'unread' then array['whether the Gmail / Microsoft Graph credentials in app_secrets are present and still consented']
-           when 'not_sent' then array['why send_outbox did not send the seed before the window (email_enabled, supplier_emails_enabled, the daily cap)']
-           else array['which content, sender or domain signal the mailbox provider acted on'] end,
-    'it_engineer');
+  perform public.fn_invite_placement_finding(p_day, v, v_why, v_ev);
   if v_pause is null then
     -- The pause writes its own agent_runs row; a day held without a pause is recorded here.
     insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false),
-            'HELD: ' || v_why || '; the campaign was already off, finding ' || v_key || ' filed.', now(), now());
+            'HELD: ' || v_why || '; the day''s batch does not go, invite_enabled untouched, finding deliverability:inbox_placement filed.', now(), now());
   end if;
   return v;
 end
 $fn$;
 revoke execute on function public.fn_invite_placement_settle(date, timestamptz) from public, anon, authenticated;
 
--- ── 5. the heartbeat's entry point: queue the seed, ask for a reading, settle at the deadline ─────────────
+-- ── 5. the heartbeat's entry point: queue the seed, ask for a reading, settle at the cutoff ──────────────
+-- What it returns goes to _shared/inbox_placement.ts only; placementTick passes the action, day, verdict and
+-- reason on to resilience_ping's public answer, never the token, the From or the notification ids.
 create or replace function public.fn_invite_placement_due(p_now timestamptz default now())
 returns jsonb
 language plpgsql
@@ -314,6 +385,7 @@ as $fn$
 declare
   v_day date := (p_now at time zone 'Asia/Dubai')::date;
   v_deadline timestamptz := public.fn_invite_placement_deadline(v_day);
+  v_cutoff timestamptz := public.fn_invite_placement_cutoff(v_day);
   r public.invite_placement_check;
   v_closed text; v_token text; v_subject text; v_body text; v_site text; v_from text;
   v_g bigint; v_o bigint; v_sg text; v_so text;
@@ -321,7 +393,8 @@ begin
   select * into r from public.invite_placement_check where dubai_day = v_day;
 
   if r.dubai_day is null then
-    if p_now < v_deadline - interval '45 minutes' or p_now >= v_deadline then
+    -- Queued from 04:30 UTC; not later than 30 minutes before the cutoff, which leaves beats to read it.
+    if p_now < v_deadline - interval '90 minutes' or p_now >= v_cutoff - interval '30 minutes' then
       return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', 'outside the seed window');
     end if;
     v_closed := public.fn_invite_placement_day_closed(p_now);
@@ -331,10 +404,10 @@ begin
 
     select coalesce(max(value) filter (where key = 'invite_subject'), ''),
            coalesce(max(value) filter (where key = 'invite_body'), ''),
-           coalesce(nullif(max(value) filter (where key = 'public_site_url'), ''), 'https://quotesdone.com'),
-           coalesce(nullif(max(value) filter (where key = 'email_from_supplier'), ''), 'QuotesDone <supplier@quotesdone.com>')
-      into v_subject, v_body, v_site, v_from
-      from public.app_secrets where key in ('invite_subject', 'invite_body', 'public_site_url', 'email_from_supplier');
+           coalesce(nullif(max(value) filter (where key = 'public_site_url'), ''), 'https://quotesdone.com')
+      into v_subject, v_body, v_site
+      from public.app_secrets where key in ('invite_subject', 'invite_body', 'public_site_url');
+    v_from := public.fn_invite_placement_sender();
     -- The body exactly as scripts/invitation_inbox_check.mjs inviteBody() fills it: a ZZ DEMO company and a
     -- zero portal token. The token goes in the subject, the one field both the Gmail and Graph APIs match
     -- without a full-text index lag.
@@ -355,20 +428,20 @@ begin
     returning id into v_o;
     update public.invite_placement_check set gmail_notification_id = v_g, outlook_notification_id = v_o
      where dubai_day = v_day;
-    return jsonb_build_object('action', 'queued', 'dubai_day', v_day, 'token', v_token, 'from', v_from,
-                              'notifications', jsonb_build_array(v_g, v_o));
+    return jsonb_build_object('action', 'queued', 'dubai_day', v_day);
   end if;
 
   if r.verdict <> 'pending' then
     return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'verdict', r.verdict);
   end if;
-  if p_now >= v_deadline then
+  if p_now >= v_cutoff then
     return jsonb_build_object('action', 'settled', 'dubai_day', v_day, 'verdict', public.fn_invite_placement_settle(v_day, p_now));
   end if;
 
   select status into v_sg from public.notifications where id = r.gmail_notification_id;
   select status into v_so from public.notifications where id = r.outlook_notification_id;
   return jsonb_build_object('action', 'read', 'dubai_day', v_day, 'token', r.token, 'since', r.queued_at,
+    'sender', lower(coalesce(substring(r.from_address from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), btrim(r.from_address))),
     'gmail', jsonb_build_object('to', r.gmail_to, 'sent', v_sg = 'sent', 'folder', r.gmail_folder),
     'outlook', jsonb_build_object('to', r.outlook_to, 'sent', v_so = 'sent', 'folder', r.outlook_folder));
 end
@@ -405,8 +478,10 @@ $fn$;
 revoke execute on function public.fn_invite_placement_record(date, jsonb, jsonb, timestamptz) from public, anon, authenticated;
 
 -- ── 6. the gate the batch asks ──────────────────────────────────────────────────────────────────────────
--- 'pass' | 'wait' | 'fail:<why>'. FAIL CLOSED: every state that is not a proven inbox placement under the
--- current From is 'fail' once the window opens, including a day on which no check ran at all.
+-- 'pass' | 'wait' | 'fail:<why>'. FAIL CLOSED: only a proven Inbox + Inbox under the current effective sender
+-- passes. Before the cutoff an undecided day waits; at the cutoff every other state is 'fail'. A day on which no
+-- check ran at all is 'fail:no_check', and on an open day that is filed (review of #966: a starved or undeployed
+-- step must not hold the batch in silence).
 create or replace function public.fn_invite_placement_gate(p_day date default null, p_now timestamptz default now())
 returns text
 language plpgsql
@@ -415,27 +490,35 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   v_day date := coalesce(p_day, (p_now at time zone 'Asia/Dubai')::date);
-  r public.invite_placement_check; v text; v_from text;
+  r public.invite_placement_check; v text;
 begin
   select * into r from public.invite_placement_check where dubai_day = v_day;
   if r.dubai_day is null then
-    return case when p_now < public.fn_invite_placement_deadline(v_day) then 'wait' else 'fail:no_check' end;
+    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
+    if public.fn_invite_placement_day_closed(p_now) is null then
+      perform public.fn_invite_placement_finding(v_day, 'no_check',
+        'no inbox placement check ran on ' || v_day || ', an open sending day',
+        jsonb_build_object('checked_at', p_now, 'sender', public.fn_invite_placement_sender()));
+    end if;
+    return 'fail:no_check';
   end if;
   v := r.verdict;
   if v = 'pending' then
-    if p_now < public.fn_invite_placement_deadline(v_day) then return 'wait'; end if;
+    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
     v := public.fn_invite_placement_settle(v_day, p_now);
   end if;
   if v <> 'inbox' then return 'fail:' || v; end if;
-  v_from := coalesce(nullif((select value from public.app_secrets where key = 'email_from_supplier'), ''),
-                     'QuotesDone <supplier@quotesdone.com>');
-  if v_from is distinct from r.from_address then return 'fail:from_changed'; end if;
+  if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
   return 'pass';
 end
 $fn$;
 revoke execute on function public.fn_invite_placement_gate(date, timestamptz) from public, anon, authenticated;
 
--- ── 7. the outreach tick waits on the gate (live body of 24 Sep; PLACEMENT GATE marks the change) ────────
+-- ── 7. the outreach tick: only the batch waits on the gate (live body of 24 Sep; PLACEMENT GATE marks it) ─
+-- Review of #966: the first version returned early while the gate said 'wait', which also delayed the
+-- registration reminders and the 24-hour clock by up to an hour. Now the tick's daily work runs on its first
+-- beat from 09:00 Dubai exactly as before, and only the batch (ramp + enqueue) waits. A later beat that finds
+-- the daily work done and the batch still owed runs the batch alone, recorded as job 'supplier_outreach_batch'.
 create or replace function public.fn_sales_engineer_supplier_outreach_tick(p_force boolean default false)
 returns jsonb
 language plpgsql
@@ -446,14 +529,22 @@ declare
   v_now_dxb timestamp := now() at time zone 'Asia/Dubai';
   v_go boolean; v_weekend boolean; v_invited int; r record; s jsonb; v_cap int;
   v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
-  v_gate text;
+  v_gate text; v_daily_done boolean; v_batch_done boolean; v_batch_why text; v_batch_wait boolean := false;
 begin
+  select exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date),
+         exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer'
+                    and ((a.counts->>'job' = 'supplier_outreach' and coalesce(a.counts->>'batch_waiting', 'false') <> 'true')
+                         or a.counts->>'job' = 'supplier_outreach_batch')
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date)
+    into v_daily_done, v_batch_done;
   if not p_force then
     if extract(hour from v_now_dxb) < 9 then return jsonb_build_object('due', false, 'reason', 'before 09:00 Dubai'); end if;
-    if exists (select 1 from public.agent_runs a
-                where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
-                  and a.started_at > now() - interval '1 day'
-                  and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date) then
+    if v_daily_done and v_batch_done then
       return jsonb_build_object('due', false, 'reason', 'already ran this Dubai day');
     end if;
   end if;
@@ -465,27 +556,44 @@ begin
                 when not v_go then 'invite_enabled is false'
                 when v_weekend then 'it is the UAE weekend' end;
 
-  -- PLACEMENT GATE (24 Sep 2026, it_engineer). An open day sends only after that morning's seed landed in
-  -- the Inbox of both seed mailboxes. While the check can still finish, the tick returns WITHOUT recording
-  -- the day, so the next heartbeat asks again; any other answer holds the day (fail closed).
-  if v_why is null then
-    v_gate := public.fn_invite_placement_gate(v_now_dxb::date);
-    if v_gate = 'wait' and not p_force then
-      return jsonb_build_object('due', false, 'reason', 'waiting for the morning inbox placement check');
+  -- 1. THE BATCH, behind the PLACEMENT GATE (24 Sep 2026, it_engineer). On an open day it goes only after that
+  --    morning's seed landed in the Inbox of both seed mailboxes; while the check can still finish it waits (the
+  --    next beat asks again); any other answer holds it (fail closed). enqueue_supplier_invites asks the same gate.
+  if p_force or not v_batch_done then
+    v_batch_why := v_why;
+    if v_why is null then
+      v_gate := public.fn_invite_placement_gate(v_now_dxb::date);
+      if v_gate = 'wait' and not p_force then
+        v_batch_wait := true;
+      elsif v_gate <> 'pass' then
+        v_batch_why := 'the morning inbox placement check did not clear (' || v_gate || ')';
+      end if;
     end if;
-    if v_gate <> 'pass' then
-      v_why := 'the morning inbox placement check did not clear (' || v_gate || ')';
+    if not v_batch_wait then
+      -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
+      -- complaints. Open days only: a held day sends nothing, so it must not move the cap.
+      if v_batch_why is null then v_cap := public.fn_invite_ramp(); end if;
+      -- enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
+      v_invited := public.enqueue_supplier_invites(null);
     end if;
   end if;
 
-  -- 0. THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of
-  --    bounces and complaints. Open days only: a held day sends nothing, so it must not move the cap.
-  if v_why is null then v_cap := public.fn_invite_ramp(); end if;
+  -- A later beat of the same day: the daily work is done, only the batch was owed.
+  if v_daily_done and not p_force then
+    if v_batch_wait then
+      return jsonb_build_object('due', false, 'reason', 'the batch waits for the morning inbox placement check');
+    end if;
+    v_out := jsonb_build_object('job', 'supplier_outreach_batch', 'dubai_day', v_now_dxb::date, 'held', v_batch_why is not null,
+      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap));
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('sales_engineer', 'ok', now(), now(), v_out,
+            case when v_batch_why is not null
+                 then 'Supplier invitation batch HELD (' || v_batch_why || '): ' || coalesce(v_invited, 0) || ' queued.'
+                 else 'Supplier invitation batch: ' || coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') || '.' end);
+    return v_out;
+  end if;
 
-  -- 1. The batch. enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
-  v_invited := public.enqueue_supplier_invites(null);
-
-  -- 2. Reminders: always counted; written only on an open weekday.
+  -- 2. Reminders: always counted; written only on an open weekday (the campaign gates, not the placement gate).
   for r in select * from public.fn_supplier_registration_reminders_due() loop
     v_due := v_due + 1;
     if v_why is not null then continue; end if;
@@ -499,16 +607,20 @@ begin
   v_clock := public.fn_sales_engineer_raises_undecided_submissions(false);
 
   v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
-    'placement_gate', v_gate,
-    'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap),
+    'placement_gate', v_gate, 'batch_waiting', v_batch_wait, 'batch_held_because', v_batch_why,
+    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap),
     'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
     'submissions', v_clock);
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('sales_engineer', case when jsonb_array_length(v_failed) > 0 then 'warn' else 'ok' end, now(), now(), v_out,
           case when v_why is not null
-               then 'Supplier outreach HELD (' || v_why || '): ' || v_invited || ' invitation(s) queued, ' || v_due
+               then 'Supplier outreach HELD (' || v_why || '): ' || coalesce(v_invited, 0) || ' invitation(s) queued, ' || v_due
                     || ' reminder(s) due and none written; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
-               else 'Supplier outreach: ' || v_invited || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') || ', ' || v_sent || ' of ' || v_due
+               else 'Supplier outreach: '
+                    || case when v_batch_wait then 'the invitation batch waits for the morning inbox placement check'
+                            when v_batch_why is not null then 'the invitation batch was HELD (' || v_batch_why || ')'
+                            else coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') end
+                    || ', ' || v_sent || ' of ' || v_due
                     || ' reminder(s) sent; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.' end);
   return v_out;
 end
@@ -583,7 +695,7 @@ begin
   if v_planned <= 0 then return 0; end if;
 
   -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
-  -- in the Inbox of both seed mailboxes under today's From (fn_invite_placement_gate). Fail closed: a check
+  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
   -- that is still running, failed, or never ran all hold the batch.
   v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
   if v_gate <> 'pass' then

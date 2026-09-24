@@ -47,6 +47,9 @@ const ROUTINES = {
   fn_invite_campaign_pause: 'text, text, jsonb, jsonb',
   fn_invite_same_day_brake: '',
   fn_invite_placement_deadline: 'date',
+  fn_invite_placement_cutoff: 'date',
+  fn_invite_placement_sender: '',
+  fn_invite_placement_finding: 'date, text, text, jsonb',
   fn_invite_placement_day_closed: 'timestamptz',
   fn_invite_placement_settle: 'date, timestamptz',
   fn_invite_placement_due: 'timestamptz',
@@ -85,46 +88,78 @@ test('the seed is supplier_invite_seed to exactly the two allowlisted inboxes, i
   for (const a of [gm, ol]) assert.ok(founder.includes(`'${a}'`), `${a} is not one of the founder's own inboxes in invitation_inbox_check.mjs`);
 });
 
-test('a failed check pauses through the one shared pause and files the it_engineer finding; the brake uses the same pause', () => {
+test('only a provider placement pauses, through the one shared pause; every failure files the finding; the brake uses the same pause', () => {
   const pause = body('fn_invite_campaign_pause');
   assert.match(pause, /update app_secrets set value = 'false' where key = 'invite_enabled'/);
   assert.match(pause, /update notifications set status = 'cancelled'\s+where type = 'supplier_invite' and status = 'queued'/);
   assert.match(pause, /insert into it_watch_finding/);
   assert.doesNotMatch(pause, /value = 'true'/, 'the pause can switch the campaign ON');
   const settle = body('fn_invite_placement_settle');
-  assert.match(settle, /public\.fn_invite_campaign_pause\('it_engineer_inbox_placement', v_why, v_ev,/);
-  assert.match(settle, /public\.fn_it_engineer_finding_upsert\(v_key,/);
-  assert.match(settle, /v_key constant text := 'deliverability:inbox_placement'/);
+  assert.match(settle, /if v in \('spam', 'elsewhere'\)\s+and coalesce\(\(select value from public\.app_secrets where key = 'invite_enabled'\), 'false'\) = 'true' then\s+v_pause := public\.fn_invite_campaign_pause\('it_engineer_inbox_placement', v_why,/,
+    'the pause is not limited to a spam/elsewhere verdict on a running campaign');
+  assert.equal((settle.match(/fn_invite_campaign_pause\(/g) || []).length, 1, 'a second pause path in the settle');
+  assert.match(settle, /perform public\.fn_invite_placement_finding\(p_day, v, v_why, v_ev\);/, 'a failed verdict files no finding');
   assert.match(settle, /if 'spam' in \(r\.gmail_folder, r\.outlook_folder\) then v := 'spam'/);
   assert.match(settle, /elsif r\.gmail_folder = 'inbox' and r\.outlook_folder = 'inbox' then v := 'inbox'/, 'inbox must need BOTH seeds in the Inbox');
+  assert.match(settle, /elsif p_now >= public\.fn_invite_placement_cutoff\(p_day\) then/, 'unread/not_found are settled before the read cutoff');
+  const finding = body('fn_invite_placement_finding');
+  assert.match(finding, /v_key constant text := 'deliverability:inbox_placement'/);
+  assert.match(finding, /public\.fn_it_engineer_finding_upsert\(v_key,/);
+  assert.match(finding, /evidence ->> 'dubai_day' = p_day::text and evidence ->> 'verdict' = p_verdict/, 'the finding is not filed once per day and verdict');
+  assert.match(finding, /invite_lane_domain_unverified/, 'the lane-refused hint is gone');
   const brake = body('fn_invite_same_day_brake');
   assert.match(brake, /public\.fn_invite_campaign_pause\('invite_same_day_brake', v_why,/);
   assert.doesNotMatch(brake, /update app_secrets set value/, 'the brake pauses on its own again: two pause paths');
   assert.doesNotMatch(SQL, /set value = 'true'/, 'this file switches a campaign gate on');
 });
 
-test('the batch fails closed: the gate, the tick and the enqueue', () => {
+test('the batch fails closed: the gate, the tick and the enqueue; the sender is the effective one', () => {
   const gate = body('fn_invite_placement_gate');
-  assert.match(gate, /then 'wait' else 'fail:no_check' end/, 'a day with no check does not fail closed');
+  assert.match(gate, /if p_now < public\.fn_invite_placement_cutoff\(v_day\) then return 'wait'; end if;\s+if public\.fn_invite_placement_day_closed\(p_now\) is null then\s+perform public\.fn_invite_placement_finding\(v_day, 'no_check',/,
+    'a day with no check does not fail closed, or holds in silence');
+  assert.match(gate, /return 'fail:no_check';/);
   assert.match(gate, /if v <> 'inbox' then return 'fail:' \|\| v; end if;/);
-  assert.match(gate, /if v_from is distinct from r\.from_address then return 'fail:from_changed'; end if;/);
+  assert.match(gate, /if public\.fn_invite_placement_sender\(\) is distinct from r\.from_address then return 'fail:from_changed'; end if;/);
   assert.equal((gate.match(/return 'pass'/g) || []).length, 1, 'more than one way to pass');
+  const sender = body('fn_invite_placement_sender');
+  assert.match(sender, /key = 'invite_lane_enabled'\), 'false'\) = 'true'/, 'the lane is not read, or a missing key is not the lane off');
+  assert.match(sender, /key = 'invite_lane_from'/);
+  assert.match(sender, /key = 'email_from_supplier'/);
+  assert.match(body('fn_invite_placement_due'), /v_from := public\.fn_invite_placement_sender\(\);/, 'the check records a sender other than the effective one');
   const tick = body('fn_sales_engineer_supplier_outreach_tick');
   const g = tick.indexOf('v_gate := public.fn_invite_placement_gate(');
   assert.ok(g > 0, 'the outreach tick no longer asks the placement gate');
   assert.ok(g < tick.indexOf('public.enqueue_supplier_invites(null)') && g < tick.indexOf('public.fn_invite_ramp()'), 'the tick asks the gate after the batch');
-  assert.match(tick, /if v_gate = 'wait' and not p_force then\s+return jsonb_build_object\('due', false/, 'a check still running spends the once-a-day run');
-  assert.match(tick, /if v_gate <> 'pass' then\s+v_why :=/, 'a failed gate does not hold the day');
+  assert.match(tick, /if v_gate = 'wait' and not p_force then\s+v_batch_wait := true;/, 'a running check does not make the batch wait');
+  assert.match(tick, /elsif v_gate <> 'pass' then\s+v_batch_why :=/, 'a failed gate does not hold the batch');
+  assert.match(tick, /if not v_batch_wait then[\s\S]*?public\.enqueue_supplier_invites\(null\)/, 'the batch is enqueued while the gate waits');
+  const rem = tick.indexOf('fn_supplier_registration_reminders_due()');
+  const early = tick.slice(0, rem);
+  assert.doesNotMatch(early.slice(early.indexOf('if v_daily_done and not p_force then')), /return jsonb_build_object\('due', false, 'reason', 'waiting/, 'the daily work waits for the gate');
+  assert.match(tick, /if v_why is not null then continue; end if;/, 'reminders are held by something other than the campaign gates');
+  assert.match(tick, /'supplier_outreach_batch'/, 'a later beat cannot run the owed batch');
   const enq = body('enqueue_supplier_invites');
   const eg = enq.indexOf('v_gate := public.fn_invite_placement_gate(');
   assert.ok(eg > 0, 'enqueue_supplier_invites no longer asks the placement gate');
   assert.ok(eg < enq.indexOf('insert into notifications(type, to_email, to_role, lead_id'), 'the batch is queued before the gate');
   assert.match(enq.slice(eg), /^v_gate := [^\n]*\n\s*if v_gate <> 'pass' then[\s\S]*?return 0;\s*end if;/, 'a non-pass does not return before queueing');
   const due = body('fn_invite_placement_due');
-  assert.match(due, /p_now < v_deadline - interval '45 minutes' or p_now >= v_deadline/, 'the seed window is not the 45 minutes before the batch');
+  assert.match(due, /p_now < v_deadline - interval '90 minutes' or p_now >= v_cutoff - interval '30 minutes'/, 'the seed is not queued from 90 minutes before the window');
+  assert.match(due, /if p_now >= v_cutoff then/, 'the day is settled before the read cutoff');
+  assert.match(body('fn_invite_placement_cutoff'), /fn_invite_placement_deadline\(p_day\) \+ interval '2 hours'/);
   assert.match(body('fn_invite_placement_deadline'), /'window_start_hour'/, 'the deadline is not the batch window');
   const record = body('fn_invite_placement_record');
   assert.match(record, /case when v_g is null or/, 'a failed reading can overwrite a found folder');
+});
+
+test('the reader: only the seed counts, the answer is public-safe, the listing is paged', () => {
+  assert.match(TS, /if \(gmailIsOwnCopy\(labels\)\) \{ ownCopies\+\+; continue; \}/, 'a Gmail Sent/Draft copy can decide the placement');
+  assert.match(TS, /l\.includes\('SENT'\) \|\| l\.includes\('DRAFT'\)/);
+  assert.match(TS, /if \(addressOf\(from\) !== want\) \{ otherSender\+\+; continue; \}/, 'a token mail from another sender can decide the placement');
+  assert.match(TS, /m\.parentFolderId === ids\.sentitems \|\| m\.parentFolderId === ids\.drafts/, 'a Graph Sent Items/Drafts copy can decide the placement');
+  assert.match(TS, /@odata\.nextLink/, 'the Graph listing is not paged');
+  assert.match(TS, /if \(due\.action !== 'read'\) return \{ ok: true, \.\.\.publicView\(due\) \};/, 'the raw due row (token, notification ids) reaches the public answer');
+  assert.doesNotMatch(TS.slice(TS.indexOf('export async function placementTick')), /token: |sender: |notifications/, 'placementTick returns a sensitive field');
 });
 
 test('the schedule is the heartbeat inside an existing 15-minute step: no new step, no row, no pg_cron; pending XOR MANIFEST', () => {
@@ -132,7 +167,8 @@ test('the schedule is the heartbeat inside an existing 15-minute step: no new st
   // red until this file is applied, so the check rides on itintegrations (every 15 min), as #961 rides on itlater.
   const fnStart = PING.indexOf('async function itIntegrationsTick()');
   assert.ok(fnStart > 0, 'itIntegrationsTick is gone');
-  assert.match(PING.slice(fnStart, PING.indexOf('\n}\n', fnStart)), /await inboxPlacement\(\)/, 'itintegrations no longer runs the placement check');
+  assert.match(PING.slice(fnStart, PING.indexOf('\n}\n', fnStart)), /await Promise\.all\(\[integrations, inboxPlacement\(\)\]\)/,
+    'itintegrations no longer runs the placement check on its own path (an integration settle error would skip it)');
   assert.match(PING.slice(PING.indexOf('async function inboxPlacement()'), fnStart), /placementTick\(/);
   const open = PING.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
   assert.doesNotMatch(PING.slice(open, PING.indexOf('\n};', open)), /inboxPlacement/, 'a new STEP_RUN entry needs a resilience_step row first');
@@ -174,7 +210,7 @@ test('no three-argument fn_invite_campaign_pause is defined anywhere', () => {
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
-test('production, aborted: queue at 05:15, wait, junk pauses, inbox passes, no check holds, allowlist refuses', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+test('production, aborted: queue from 04:30, wait, junk pauses, inbox passes, lane or From change holds, unsent and no check hold without a pause, allowlist refuses', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const replay = pending(FILE) ? read(FILE) : '';
   let o;
@@ -185,8 +221,10 @@ test('production, aborted: queue at 05:15, wait, junk pauses, inbox passes, no c
     o = JSON.parse(m[1].replace(/\\"/g, '"'));
   }
   assert.ok(o, 'the probe committed instead of rolling back');
-  assert.equal(o.early, 'idle', 'the seed was queued before 05:15 UTC');
+  assert.equal(o.at_0450, 'queued', 'the seed was not queued at 04:35 UTC');
+  assert.equal(o.early, 'idle', 'the seed was queued before 04:30 UTC');
   assert.equal(o.queued, 'queued');
+  assert.equal(o.queued_leaks, false, 'the due answer carries the token or notification ids');
   assert.deepEqual(o.seeds, ['ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com']);
   assert.deepEqual(o.types, ['supplier_invite_seed']);
   assert.equal(o.gate_wait, 'wait');
@@ -198,9 +236,13 @@ test('production, aborted: queue at 05:15, wait, junk pauses, inbox passes, no c
   assert.equal(o.gate_pass, 'pass');
   assert.equal(o.finding_closed, true, 'an inbox verdict did not close the finding');
   assert.equal(o.from_changed, 'fail:from_changed');
-  assert.equal(o.unsent, 'fail:not_sent', 'a seed never sent did not fail closed at the deadline');
+  assert.equal(o.unsent_at_window, 'wait', 'a check still running at 06:00 already failed');
+  assert.equal(o.unsent, 'fail:not_sent', 'a seed never sent did not fail closed at the cutoff');
+  assert.equal(o.unsent_paused, 'true', 'a not-sent day paused the campaign: only a provider placement may');
   assert.equal(o.no_check_early, 'wait');
   assert.equal(o.no_check_late, 'fail:no_check');
+  assert.equal(o.no_check_filed, true, 'an open day with no check held the batch in silence');
+  assert.equal(o.lane_changed, 'fail:from_changed', 'switching the invitation lane on did not invalidate the pass');
   assert.equal(o.refused, true, 'the schema accepted an address outside the allowlist');
 });
 
@@ -209,18 +251,21 @@ do $$ declare
   o jsonb := '{}'; d date[]; t timestamptz; r jsonb; ids bigint[];
 begin
   update app_secrets set value = 'true' where key in ('invite_enabled', 'supplier_outreach_golive');
+  delete from app_secrets where key in ('invite_lane_enabled', 'invite_lane_from');
   select array_agg(x::date order by x) into d
     from generate_series(current_date + 1, current_date + 30, interval '1 day') x
    where extract(isodow from x) < 6
      and not exists (select 1 from company_calendar c where c.kind = 'public_holiday'
                       and x::date between c.starts_on and coalesce(c.ends_on, c.starts_on));
 
-  -- day 1: queued at 05:15 and not at 05:10; the gate waits; Outlook in junk pauses and files the finding
+  -- day 1: not queued at 04:25, queued at 04:35 (the window opens at t = 06:00 UTC); Outlook in junk pauses and files
   t := fn_invite_placement_deadline(d[1]);
-  o := o || jsonb_build_object('early', fn_invite_placement_due(t - interval '50 minutes') ->> 'action');
-  r := fn_invite_placement_due(t - interval '44 minutes');
-  select array_agg(x::bigint) into ids from jsonb_array_elements_text(r -> 'notifications') x;
-  o := o || jsonb_build_object('queued', r ->> 'action',
+  o := o || jsonb_build_object('early', fn_invite_placement_due(t - interval '95 minutes') ->> 'action');
+  r := fn_invite_placement_due(t - interval '85 minutes');
+  select array_agg(n.id) into ids from notifications n where n.type = 'supplier_invite_seed'
+     and n.subject like '%(ref ' || (select token from invite_placement_check where dubai_day = d[1]) || ')';
+  o := o || jsonb_build_object('queued', r ->> 'action', 'at_0450', r ->> 'action',
+    'queued_leaks', (r ? 'token') or (r ? 'notifications'),
     'seeds', (select jsonb_agg(to_email order by id) from notifications where id = any(ids)),
     'types', (select jsonb_agg(distinct type) from notifications where id = any(ids)),
     'gate_wait', fn_invite_placement_gate(d[1], t - interval '30 minutes'));
@@ -230,26 +275,34 @@ begin
     'finding_open', exists (select 1 from it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is null),
     'gate_after_spam', fn_invite_placement_gate(d[1], t + interval '1 minute'));
 
-  -- day 2: both in the Inbox passes and closes the finding; a From change afterwards holds
+  -- day 2: both in the Inbox passes and closes the finding; the From, then the invitation lane, invalidate it
   update app_secrets set value = 'true' where key = 'invite_enabled';
   t := fn_invite_placement_deadline(d[2]);
-  r := fn_invite_placement_due(t - interval '40 minutes');
-  update notifications set status = 'sent' where id in (select x::bigint from jsonb_array_elements_text(r -> 'notifications') x);
+  perform fn_invite_placement_due(t - interval '60 minutes');
+  update notifications set status = 'sent' where type = 'supplier_invite_seed'
+     and subject like '%(ref ' || (select token from invite_placement_check where dubai_day = d[2]) || ')';
   o := o || jsonb_build_object('inbox', fn_invite_placement_record(d[2], '{"folder":"inbox"}', '{"folder":"inbox"}', t - interval '10 minutes') ->> 'verdict',
     'gate_pass', fn_invite_placement_gate(d[2], t + interval '1 minute'),
     'finding_closed', exists (select 1 from it_engineer_finding where issue_key = 'deliverability:inbox_placement' and closed_at is not null));
+  insert into app_secrets(key, value) values ('invite_lane_enabled', 'true'), ('invite_lane_from', 'QuotesDone <zz-lane@example.invalid>');
+  o := o || jsonb_build_object('lane_changed', fn_invite_placement_gate(d[2], t + interval '2 minutes'));
+  delete from app_secrets where key in ('invite_lane_enabled', 'invite_lane_from');
   update app_secrets set value = 'ZZ DEMO <zz@example.invalid>' where key = 'email_from_supplier';
-  o := o || jsonb_build_object('from_changed', fn_invite_placement_gate(d[2], t + interval '2 minutes'));
+  o := o || jsonb_build_object('from_changed', fn_invite_placement_gate(d[2], t + interval '3 minutes'));
 
-  -- day 3: queued, never sent, never read: at the window it fails closed
+  -- day 3: queued, never sent, never read: still waiting at 06:00, held at the cutoff WITHOUT a pause
   t := fn_invite_placement_deadline(d[3]);
-  perform fn_invite_placement_due(t - interval '40 minutes');
-  o := o || jsonb_build_object('unsent', fn_invite_placement_gate(d[3], t + interval '1 minute'));
+  perform fn_invite_placement_due(t - interval '60 minutes');
+  o := o || jsonb_build_object('unsent_at_window', fn_invite_placement_gate(d[3], t + interval '1 minute'),
+    'unsent', fn_invite_placement_gate(d[3], fn_invite_placement_cutoff(d[3]) + interval '1 minute'),
+    'unsent_paused', (select value from app_secrets where key = 'invite_enabled'));
 
-  -- day 4: no check at all
+  -- day 4: no check at all: wait, then fail and file the finding
   t := fn_invite_placement_deadline(d[4]);
   o := o || jsonb_build_object('no_check_early', fn_invite_placement_gate(d[4], t - interval '1 hour'),
-                               'no_check_late', fn_invite_placement_gate(d[4], t + interval '1 minute'));
+                               'no_check_late', fn_invite_placement_gate(d[4], fn_invite_placement_cutoff(d[4]) + interval '1 minute'),
+                               'no_check_filed', exists (select 1 from it_engineer_finding where issue_key = 'deliverability:inbox_placement'
+                                                          and closed_at is null and evidence ->> 'verdict' = 'no_check'));
 
   begin
     insert into invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to)
