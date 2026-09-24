@@ -12,6 +12,7 @@ import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type 
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
+import { takePostmasterReading } from '../_shared/it_postmaster_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
@@ -1156,6 +1157,16 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('provider_status')) return { due: false };
     const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
     return { due: true, failing: r?.failing ?? null };
+  });
+  // Gmail Postmaster Tools, once a day (it_engineer, 24 Sep 2026): spam rate, reputation and SPF/DKIM/DMARC for
+  // quotesdone.com, read by _shared/it_postmaster_readings.ts and stored and acted on by fn_it_postmaster_record
+  // (a finding at 0.1%; the #943 invitation pause at 0.3% or reputation LOW/BAD). Next to the sender duty's DNS and
+  // blocklist reading, on this heartbeat, never pg_cron. Only the basis and the verdict come back: this endpoint is public.
+  await step('postmaster', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('postmaster')) return { due: false };
+    const reading = await takePostmasterReading(fetch, sec);
+    const r = (await rpc('fn_it_postmaster_record', { p_r: reading })) as Record<string, unknown>;
+    return { due: true, basis: reading.basis, finding: reading.verdict.finding, paused: r?.paused ?? null };
   });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
