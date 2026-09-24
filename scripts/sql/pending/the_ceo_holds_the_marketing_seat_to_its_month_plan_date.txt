@@ -1,1 +1,0 @@
-Committed, not applied: the release operator applies it. Seat: ceo. Apply AFTER the_ceo_turns_the_binding_constraint_into_an_improvement_every_week.sql (source kind marketing_plan_late). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.

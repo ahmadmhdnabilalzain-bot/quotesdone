@@ -1,1 +1,0 @@
-Committed, not applied: the release operator applies it. Seat: ceo. Apply BEFORE the_ceo_monthly_report_is_a_board_pack.sql (ceo_launch_gate). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.
