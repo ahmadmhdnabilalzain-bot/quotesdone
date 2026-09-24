@@ -1,0 +1,11 @@
+Committed, not applied (sales_engineer, 24 Sep 2026). Serial release operator, in this order:
+1. RE-APPLY the edited seed first (already in MANIFEST; idempotent, on conflict everywhere; +18 trades, +72 services, +18 umbrella rows):
+   node scripts/apply_sql.mjs scripts/sql/the_missing_trades_join_the_taxonomy_under_twelve_groups.sql --apply --ddl --seat sales_engineer
+   expect verdict PROBE OK and 213 active trades.
+2. node scripts/apply_sql.mjs scripts/sql/an_intake_trade_word_names_its_own_trade_never_a_neighbour.sql --apply --seat sales_engineer
+   expect verdict PROBE OK (it refuses to repoint a slug to a trade that does not exist yet).
+3. Delete this note and append this file to the END of scripts/sql/MANIFEST.txt in the same commit; then
+   node --test scripts/checks/an_intake_word_names_its_own_trade.test.mjs (production part must run, not print NOT_VERIFIED_FIX_NOT_APPLIED)
+   and regenerate the schema mirror last.
+Proved before commit: both files ran on production inside one DO block that always raised (nothing committed; 195 trades after):
+213 trades, 1047 services, 0 aliases naming two trades, 0 trades without group/service, each of the 11 words resolved to its own trade.
