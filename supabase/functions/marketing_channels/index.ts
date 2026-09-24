@@ -35,7 +35,6 @@ import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_s
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
 import { recallCases } from '../_shared/case_recall.ts';
-import { accessToken } from '../_shared/marketing_social_oauth.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
