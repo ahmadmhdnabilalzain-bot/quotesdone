@@ -157,6 +157,13 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_pass_rate()',
     asOf: { seat_knowledge_exam: 'asked_at' },
   },
+  // 24 Sep 2026 (it_engineer, #936). The daily no-model knowledge exam: a seat whose retrieval misses the expected
+  // entries, or no questions loaded. Not filtered: the questions were loaded after the healthy instants, and hiding
+  // them makes it raise no_questions, which is the apply window, not an unhealthy day.
+  fn_it_engineer_knowledge_recall_exam: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_recall_exam()',
+    asOf: {},
+  },
   // 24 Sep 2026 (it_engineer, #903). A quarter's knowledge refresh still unverified 45 days after it opened. Refreshes
   // that existed at the instant; the new quarter's refresh it files is written inside the rolled-back replay.
   fn_it_engineer_knowledge_refresh: {
