@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T01:29:53.544Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T01:44:09.328Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -16703,7 +16703,7 @@ declare
   t public.transactions; c public.pricing_config; v_n int; v_sum bigint;
   v_refunded numeric; v_approved numeric; v_base numeric; v_settled timestamptz; v_src text;
   v_cap numeric; v_apr numeric; v_due_days int; v_due date; v_as_of date; v_days int; v_int numeric;
-  v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text;
+  v_ver text; v_acc timestamptz; v_fee numeric; v_fee_basis text; v_due_id bigint; v_notice timestamptz; v_due_basis text;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such transaction'); end if;
@@ -16742,7 +16742,26 @@ begin
   v_cap      := (select (d.value #>> '{}')::numeric from public.decision_policy d where d.key = 'supplier_charge_max_lawful_apr');
   v_apr      := least(c.supplier_nonresponse_interest_apr, coalesce(v_cap, c.supplier_nonresponse_interest_apr));
   v_due_days := coalesce((select (d.value #>> '{}')::int from public.decision_policy d where d.key = 'supplier_charge_due_days'), 7);
-  v_due      := (v_settled at time zone 'Asia/Dubai')::date + v_due_days;
+  -- 24 SEP 2026 (accountant): CLAUSE 33 SAYS THE CHARGE IS PAYABLE "within seven (7) days of QuotesDone's notice".
+  -- This used to count from the refund settling, which could put a supplier in default before it was ever told:
+  -- unfair to the supplier and the weak point of any claim (no notice, no default). The due date is now seven
+  -- days after the notice was DELIVERED (customer_support's delivery of nonresponse_charge for this due, status done,
+  -- evidence delivered). Until it is delivered the due date is seven days from today, so no interest can accrue.
+  select d.id into v_due_id from public.supplier_dues d
+   where d.transaction_id = p_transaction_id and coalesce(d.status, '') <> 'cancelled' order by d.id limit 1;
+  if v_due_id is not null then
+    select min(a.decided_at) into v_notice from public.agent_actions a
+     where a.kind = 'handoff' and a.agent = 'customer_support' and a.status = 'done'
+       and a.target_id in ('delivery.request:nonresponse_charge:' || v_due_id, 'delivery.request:charge_corrected:' || v_due_id)
+       and coalesce((a.evidence->>'delivered')::boolean, false);
+  end if;
+  if v_notice is not null then
+    v_due       := (greatest(v_notice, v_settled) at time zone 'Asia/Dubai')::date + v_due_days;
+    v_due_basis := 'notice delivered ' || to_char(v_notice at time zone 'Asia/Dubai', 'YYYY-MM-DD') || ' (Dubai) + ' || v_due_days || ' days, clause 33';
+  else
+    v_due       := greatest((v_settled at time zone 'Asia/Dubai')::date, (now() at time zone 'Asia/Dubai')::date) + v_due_days;
+    v_due_basis := 'notice not yet delivered: provisional, today + ' || v_due_days || ' days; it moves to the delivery date + ' || v_due_days || ' when the notice is delivered';
+  end if;
   v_as_of    := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
   v_days     := greatest(v_as_of - v_due, 0);
   -- 23 SEP 2026 (ceo): Supplier Agreement v13 clause 33(b) raised the administrative fee (company_facts.json
@@ -16766,11 +16785,11 @@ begin
     'refunded_aed', v_base, 'actually_refunded_aed', v_refunded, 'approved_aed', v_approved, 'refund_source', v_src,
     'admin_fee_aed', v_fee, 'admin_fee_basis', v_fee_basis,
     'interest_apr', v_apr, 'interest_apr_configured', c.supplier_nonresponse_interest_apr, 'interest_apr_lawful_max', v_cap,
-    'due_date', v_due, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
+    'due_date', v_due, 'due_basis', v_due_basis, 'as_of', v_as_of, 'interest_days', v_days, 'interest_aed', v_int,
     'total_aed', round(v_base + v_fee + v_int, 2),
     'basis', 'base = the amount refunded to the customer, read from the refund record and capped at the amount the CEO approved; '
           || '+ the administration fee of the agreement version the supplier had signed at the reveal; + simple interest on (base + admin fee) at the lower of pricing_config''s APR and '
-          || 'the lawful maximum, from the due date (' || v_due_days || ' days after the refund settled) to the as-of date. Nothing is typed.');
+          || 'the lawful maximum, from the due date (' || v_due_days || ' days after the notice was delivered, clause 33) to the as-of date. Nothing is typed.');
 end $function$
 
 
@@ -36941,7 +36960,7 @@ begin
       and public.fn_gl_fixture_or_orphan(transactions.id, null, null) is null
   loop
     gross := round(coalesce(r.total_charged, r.reveal_fee),2);
-    fee   := coalesce(round(r.stripe_fee_fils / 100.0, 2), r.processing_fee, round(gross*fee_pct/100 + fee_fixed, 2));
+    fee   := coalesce(round(r.stripe_fee_fils / 100.0, 2), nullif(r.processing_fee, 0), round(gross*fee_pct/100 + fee_fixed, 2));
     if fee >= gross then fee := 0; end if;
     net   := gross - fee;
     perform public.fn_gl_entry(r.d, 'Reveal fee (net of Stripe fee)', 'reveal_fee', r.id::text,
@@ -36965,7 +36984,7 @@ begin
   --     6100 as the absorbed cost. If it was not, the only real movement is the fee: 6100 / 1050.
   for r in
     select t.id, coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) as amt,
-           coalesce(round(t.stripe_fee_fils / 100.0, 2), t.processing_fee, round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0)*fee_pct/100 + fee_fixed, 2)) as fee_absorbed,
+           coalesce(round(t.stripe_fee_fils / 100.0, 2), nullif(t.processing_fee, 0), round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0)*fee_pct/100 + fee_fixed, 2)) as fee_absorbed,
            exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=t.id::text) as sale_booked,
            coalesce(t.refund_resolved_at::date, t.revealed_at::date, current_date) as d
     from public.transactions t
@@ -63802,10 +63821,12 @@ begin
     v := public.fn_accountant_nonresponse_charge(x.transaction_id, p_as_of);
     continue when not coalesce((v->>'ok')::boolean, false);
     update public.supplier_dues
-       set interest_amount = (v->>'interest_aed')::numeric, total_claim = amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric
+       set interest_amount = (v->>'interest_aed')::numeric, total_claim = amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric,
+           due_date = (v->>'due_date')::date, due_date_30 = (v->>'due_date')::date + 23
      where id = x.id
        and (interest_amount is distinct from (v->>'interest_aed')::numeric
-            or total_claim is distinct from amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric);
+            or total_claim is distinct from amount_due + coalesce(admin_fee, 0) + (v->>'interest_aed')::numeric
+            or due_date is distinct from (v->>'due_date')::date);
     if found then n := n + 1; end if;
   end loop;
   return n;

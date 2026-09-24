@@ -70,7 +70,7 @@ import { isDemoEmail } from '../_shared/demo_identity.ts';
 // 14 Sep 2026 — the duties (founder: "yea add them all", "yea add them"). Nothing is re-implemented:
 // the charge audit uses the #616 formula itself, the statement reader and the dispute form are pure
 // modules with their own tests.
-import { revealChargeFor, shortfallAfterPayment } from '../_shared/reveal_fee.ts';
+import { revealChargeFor, absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { readStatement } from '../_shared/bank_statement_parse.ts';
 import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
 import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
@@ -1387,8 +1387,9 @@ Deno.serve(observe('accountant', async (req) => {
           quote_amount: Number(c.quote_amount), rate: Number(c.rate),
           expected_total: exp.total_charged, expected_processing: exp.processing_fee,
           actual_total: actualTotal, actual_fee_fils: bt.fee,
-          shortfall_aed: shortfallAfterPayment({ processing_fee: Math.round((actualTotal - exp.base_fee) * 100) / 100, total_charged: actualTotal, actual_card_fee_fils: Number(bt.fee) }),
-          evidence: { payment_intent: pi.id, balance_transaction: bt.id, currency: bt.currency, fee_details: bt.fee_details,
+          // No shortfall exists any more: the buyer pays the 3% only and QuotesDone absorbs Stripe (24 Sep 2026).
+          // diff_aed (actual - expected) > 0 is the finding that matters: a buyer charged more than the 3%.
+          evidence: { absorbed_stripe_cost_aed: absorbedStripeCost({ total_charged: actualTotal, actual_card_fee_fils: Number(bt.fee) }), payment_intent: pi.id, balance_transaction: bt.id, currency: bt.currency, fee_details: bt.fee_details,
                       basis_source: pi.metadata?.fee_basis ? 'payment metadata' : 'no fee_basis on the payment: the Checkout Session flow prices at the international basis' },
         });
       }

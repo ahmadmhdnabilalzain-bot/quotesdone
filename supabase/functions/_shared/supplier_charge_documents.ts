@@ -88,13 +88,16 @@ function chargeOf(c: CaseFile, asOf = c.as_of): Charge {
 type Block = Record<string, any>;
 function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
   const ar = lang === 'ar';
-  const rows = ar
-    ? [['1', 'رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
-      ['2', 'رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')],
-      ['3', 'الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
-    : [['1', 'Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
-      ['2', 'Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)],
-      ['3', 'Administrative fee (b)', money(ch.admin_fee)]];
+  // A card processing line appears only for a reveal paid before 24 Sep 2026, when buyers still paid one; since then
+  // no buyer is charged a card fee (Cabinet Res. 66/2023 Art. 5(3)), so nothing of the kind is refunded or owed.
+  const lines = ar
+    ? [['رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
+      ...(ch.refunded_processing_fee > 0 ? [['رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')]] : []),
+      ['الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
+    : [['Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
+      ...(ch.refunded_processing_fee > 0 ? [['Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)]] : []),
+      ['Administrative fee (b)', money(ch.admin_fee)]];
+  const rows = lines.map((l, i) => [String(i + 1), ...l]);
   const tot: (string | boolean)[][] = [[ar ? 'أصل المبلغ المستحق' : 'Principal due', money(ch.principal, lang), !withInterest]];
   if (ch.paid > 0) tot.push([ar ? 'المسدَّد' : 'Paid', '− ' + money(ch.paid, lang), false]);
   if (withInterest) {
