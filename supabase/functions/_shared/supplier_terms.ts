@@ -28,6 +28,15 @@ export async function currentSupplierTermsVersion(sec: (k: string) => Promise<st
   return String((await sec('supplier_terms_version')) || (await sec('terms_version')) || '').trim().slice(0, 20);
 }
 
+// ONE READER FOR THE ACCEPTING ADDRESS (24 Sep 2026, sales_engineer). supplier_api fell back to
+// cf-connecting-ip and x-real-ip when x-forwarded-for was absent; kyc accept_terms read x-forwarded-for
+// only, so the same acceptance could be stored with an IP on one path and none on the other, and the
+// certificate then prints "Not recorded". Both paths now read the address here.
+export function clientIp(req: Request): string {
+  return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim()
+    || (req.headers.get('cf-connecting-ip') || '').trim() || (req.headers.get('x-real-ip') || '').trim();
+}
+
 // 24 Sep 2026 (sales_engineer): the record said when, which version, from which IP and which text, but not
 // from which browser - leads had no user-agent column, so the certificate could not print one. The
 // User-Agent header of the accepting request is now kept beside the IP (clipped; null when absent).

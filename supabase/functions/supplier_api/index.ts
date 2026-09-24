@@ -19,7 +19,7 @@ import { boqReadings, liveReadingStore } from '../_shared/reasoned_documents.ts'
 import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
-import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
 import { readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
@@ -74,7 +74,6 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // version without an originating IP is materially weaker evidence.
 //
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
-function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
