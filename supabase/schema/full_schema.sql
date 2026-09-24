@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T15:50:34.384Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T16:12:58.551Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (637) =====
+-- ===== TABLES (639) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -254,6 +254,17 @@ CREATE TABLE IF NOT EXISTS public.accountant_knowledge (
   ingested_at timestamp with time zone DEFAULT now() NOT NULL,
   embedding_gte vector(384),
   search tsvector
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_mailbox_check (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL,
+  listed integer NOT NULL,
+  not_taken_in integer NOT NULL,
+  held_over_24h integer NOT NULL,
+  last_received_at timestamp with time zone,
+  verdict text NOT NULL,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_month_close (
@@ -318,6 +329,15 @@ CREATE TABLE IF NOT EXISTS public.accountant_spend_report (
   generated_at timestamp with time zone DEFAULT now() NOT NULL,
   delivered_at timestamp with time zone,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.accountant_ubo_seen (
+  lead_id bigint NOT NULL,
+  owner_name text NOT NULL,
+  owner_norm text NOT NULL,
+  first_seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  changed_at timestamp with time zone,
+  previous_owner_name text
 );
 
 CREATE TABLE IF NOT EXISTS public.accountant_weekly_report (
@@ -8846,10 +8866,12 @@ CREATE TABLE IF NOT EXISTS public.yello_staging (
 ALTER TABLE public.accountant_ad_spend_month ADD CONSTRAINT accountant_ad_spend_month_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_document_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_pkey PRIMARY KEY (record_id);
+ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_check_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_pkey PRIMARY KEY (month);
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_pkey PRIMARY KEY (vendor);
 ALTER TABLE public.accountant_renewal_budget ADD CONSTRAINT accountant_renewal_budget_pkey PRIMARY KEY (item);
 ALTER TABLE public.accountant_spend_report ADD CONSTRAINT accountant_spend_report_pkey PRIMARY KEY (id);
+ALTER TABLE public.accountant_ubo_seen ADD CONSTRAINT accountant_ubo_seen_pkey PRIMARY KEY (lead_id);
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.accountant_year_end_pack ADD CONSTRAINT accountant_year_end_pack_pkey PRIMARY KEY (year);
 ALTER TABLE public.action_class_demand ADD CONSTRAINT action_class_demand_pkey PRIMARY KEY (action_class);
@@ -9603,6 +9625,7 @@ ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_d
 ALTER TABLE public.accountant_issued_document ADD CONSTRAINT accountant_issued_document_document_kind_check CHECK ((document_kind = ANY (ARRAY['charge_reminder'::text, 'final_demand'::text, 'filing_pack'::text, 'invoice'::text])));
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.accountant_knowledge ADD CONSTRAINT accountant_knowledge_epistemic_ck CHECK ((epistemic_status = ANY (ARRAY['method_general_accounting'::text, 'marketplace_policy_derived'::text, 'framework_shape_verify_current_text'::text, 'obligation_shape_no_figures'::text, 'resolve_from_authority'::text, 'company_record_generated'::text, 'company_governance_ruling'::text, 'authority_protocol'::text, 'verified_pack_sourced'::text])));
+ALTER TABLE public.accountant_mailbox_check ADD CONSTRAINT accountant_mailbox_check_verdict_check CHECK ((verdict = ANY (ARRAY['unreadable'::text, 'intake_silent'::text, 'held_waiting'::text, 'mailbox_quiet'::text, 'current'::text])));
 ALTER TABLE public.accountant_month_close ADD CONSTRAINT accountant_month_close_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_bank_value_aed_check CHECK ((bank_value_aed > (0)::numeric));
 ALTER TABLE public.accountant_owner_ruled_subscription ADD CONSTRAINT accountant_owner_ruled_subscription_cadence_check CHECK ((cadence = 'monthly'::text));
@@ -14891,6 +14914,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_ad_spend_reconcile()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_accountant_ad_spend_tick() $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_ad_spend_snapshot()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -16870,6 +16901,85 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_mailbox_check_record(p_messages jsonb, p_list_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_missing jsonb; v_not int; v_held jsonb; v_held_n int; v_last timestamptz; v_listed int; v_verdict text;
+  v_items jsonb := '[]'::jsonb; v_settle jsonb;
+begin
+  if p_list_error is null and jsonb_typeof(p_messages) is distinct from 'array' then
+    raise exception 'fn_accountant_mailbox_check_record: messages must be an array of {id, created_at}';
+  end if;
+  v_listed := case when p_list_error is null then jsonb_array_length(p_messages) else 0 end;
+
+  select coalesce(jsonb_agg(jsonb_build_object('id', m->>'id', 'received_at', m->>'created_at', 'from', m->>'from')), '[]'::jsonb), count(*)
+    into v_missing, v_not
+    from jsonb_array_elements(case when p_list_error is null then p_messages else '[]'::jsonb end) m
+   where coalesce(m->>'id', '') <> ''
+     and not exists (select 1 from public.inbound_messages i where i.provider_email_id = m->>'id')
+     and not exists (select 1 from public.expense_entries e where e.source_msg_id = 'resend:' || (m->>'id'))
+     and not exists (select 1 from public.inbound_messages i
+                      where lower(i.to_email) like 'expenses@%'
+                        and position(('Resend inbound id ' || (m->>'id')) in coalesce(i.body, '')) > 0);
+
+  select coalesce(jsonb_agg(jsonb_build_object('inbound_id', i.id, 'received_at', i.created_at, 'subject', left(i.subject, 120)) order by i.id), '[]'::jsonb), count(*)
+    into v_held, v_held_n
+    from public.inbound_messages i
+   -- still waiting = held (needs_review) and not yet closed: fn_receipt_hand_to_bookkeeper's work item tells the
+   -- accountant to mark the inbound row replied once the expense is booked, so replied_at is the closing mark.
+   where lower(i.to_email) like 'expenses@%' and i.needs_review and i.replied_at is null
+     and i.created_at < now() - interval '24 hours';
+
+  select greatest(
+           (select max(created_at) from public.inbound_messages where lower(to_email) like 'expenses@%'),
+           (select max((m->>'created_at')::timestamptz) from jsonb_array_elements(case when p_list_error is null then p_messages else '[]'::jsonb end) m))
+    into v_last;
+
+  v_verdict := case when p_list_error is not null then 'unreadable'
+                    when v_not > 0 then 'intake_silent'
+                    when v_held_n > 0 then 'held_waiting'
+                    when v_last is null or v_last < now() - interval '72 hours' then 'mailbox_quiet'
+                    else 'current' end;
+
+  if p_list_error is not null then
+    v_items := v_items || jsonb_build_object('item', 'unreadable', 'owner_seat', 'accountant', 'subject', 'resend inbound',
+      'title', 'The expenses mailbox could not be listed, so nobody can say whether receipts arrived',
+      'evidence', jsonb_build_object('error', left(p_list_error, 300)));
+  end if;
+  if v_not > 0 then
+    v_items := v_items || jsonb_build_object('item', 'intake_silent', 'owner_seat', 'accountant', 'subject', 'inbound_messages',
+      'title', v_not || ' message(s) reached the expenses mailbox and no intake recorded them',
+      'affected', v_not, 'evidence', jsonb_build_object('messages', v_missing,
+        'act', 'run the accountant expense_sweep for each email_id; if it cannot book one, it holds it and says why'));
+  end if;
+  if v_held_n > 0 then
+    v_items := v_items || jsonb_build_object('item', 'held_waiting', 'owner_seat', 'accountant', 'subject', 'inbound_messages',
+      'title', v_held_n || ' receipt(s) in the expenses mailbox are held, not booked, for more than 24 hours',
+      'affected', v_held_n, 'evidence', jsonb_build_object('held', v_held));
+  end if;
+  v_settle := public.fn_accountant_duty_settle('mailbox', v_items);
+
+  -- the log keeps 90 days; the latest row is the answer
+  delete from public.accountant_mailbox_check where checked_at < now() - interval '90 days';
+  insert into public.accountant_mailbox_check (listed, not_taken_in, held_over_24h, last_received_at, verdict, detail)
+  values (v_listed, v_not, v_held_n, v_last, v_verdict,
+          jsonb_build_object('not_taken_in', v_missing, 'held', v_held, 'list_error', p_list_error));
+
+  return jsonb_build_object('verdict', v_verdict, 'listed', v_listed, 'not_taken_in', v_not, 'held_over_24h', v_held_n,
+    'last_received_at', v_last, 'findings', v_settle,
+    'says', case v_verdict
+      when 'unreadable' then 'the mailbox could not be listed: nothing is known about what arrived'
+      when 'intake_silent' then 'receipts reached the mailbox and the intake did not record them'
+      when 'held_waiting' then 'every message was taken in, and ' || v_held_n || ' receipt(s) are still held'
+      when 'mailbox_quiet' then 'the mailbox is quiet: nothing has arrived since ' || coalesce(to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai', 'it was opened')
+      else 'every receipt that arrived is recorded' end);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_month_close(p_month date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -18216,6 +18326,87 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_runway_figures(p_month date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_m date := date_trunc('month', p_month)::date;
+  v_close jsonb; v_exp numeric; v_cp jsonb; v_avail numeric; v_budget numeric; v_budget_lines int; v_run_b numeric;
+  v_missing text[] := '{}';
+begin
+  select figures into v_close from public.accountant_month_close where month = v_m;
+  if v_close is null then v_missing := v_missing || ('the month ' || to_char(v_m, 'YYYY-MM') || ' is not closed'); end if;
+  v_exp := (v_close #>> '{cash_out,expenses_aed}')::numeric;
+  v_cp := public.fn_accountant_cash_position(v_m, v_exp);
+  v_avail := (v_cp #>> '{runway,available_aed}')::numeric;
+  if (v_cp #>> '{runway,missing}') is not null then v_missing := v_missing || (v_cp #>> '{runway,missing}'); end if;
+
+  select round(sum(l.amount), 2), count(*) into v_budget, v_budget_lines
+    from public.budget_lines l join public.budgets b on b.id = l.budget_id
+   where b.status = 'active' and l.period_month = v_m;
+  if v_budget_lines = 0 then v_missing := v_missing || ('no active budget has a line for ' || to_char(v_m, 'YYYY-MM') || ', so there is no runway against the budget');
+  elsif v_budget <= 0 then v_missing := v_missing || 'the budgeted spend for the month is not positive, so the runway against it is undefined';
+  elsif v_avail is not null then v_run_b := round(v_avail / v_budget, 1);
+  end if;
+
+  return jsonb_build_object(
+    'month', to_char(v_m, 'YYYY-MM'),
+    'cash_in_bank_aed', v_cp #> '{cash_in_bank,aed}',
+    'held_for_possible_refunds_aed', v_cp -> 'held_for_possible_refunds_aed',
+    'available_aed', v_avail,
+    'monthly_spend_aed', v_cp #> '{runway,monthly_spend_aed}',
+    'runway_months_at_actual_spend', v_cp #> '{runway,months}',
+    'budgeted_spend_aed', case when v_budget_lines > 0 then v_budget end,
+    'runway_months_at_budget', v_run_b,
+    'missing', to_jsonb(v_missing),
+    'basis', 'Runway at actual spend is fn_accountant_cash_position''s (available cash / average booked monthly expenses). '
+          || 'Runway at budget = the same available cash / the month''s lines of the active budgets. Nothing is estimated.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_runway_report_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_m date; f jsonb; v_warn numeric; v_sev text; v_key text; v_res jsonb; v_low boolean;
+begin
+  select month into v_m from public.accountant_month_close order by month desc limit 1;
+  if v_m is null then return jsonb_build_object('reported', false, 'reason', 'no month is closed yet'); end if;
+  v_key := 'accountant.runway:' || to_char(v_m, 'YYYY-MM');
+  if exists (select 1 from public.support_ceo_report where idempotency_key = v_key) then
+    return jsonb_build_object('reported', false, 'reason', 'the runway for ' || to_char(v_m, 'YYYY-MM') || ' is already with the CEO');
+  end if;
+  v_warn := (select (value #>> '{}')::numeric from public.decision_policy where key = 'accountant_runway_warn_months');
+  if v_warn is null then raise exception 'decision_policy accountant_runway_warn_months is required'; end if;
+  f := public.fn_accountant_runway_figures(v_m);
+  -- The Mashreq statement for a month arrives at its end or later, after the close. The report is sent ONCE per
+  -- month, so it waits for the closing balance until the end of the following month, then goes with the gap named.
+  if (f->>'cash_in_bank_aed') is null and (now() at time zone 'Asia/Dubai')::date < (v_m + interval '2 months')::date then
+    return jsonb_build_object('reported', false, 'month', to_char(v_m, 'YYYY-MM'),
+      'reason', 'waiting for the Mashreq closing balance; sent without it from ' || to_char(v_m + interval '2 months', 'YYYY-MM-DD'));
+  end if;
+  v_low := coalesce((f->>'runway_months_at_actual_spend')::numeric < v_warn, false)
+        or coalesce((f->>'runway_months_at_budget')::numeric < v_warn, false);
+  v_sev := case when v_low then 'elevated' else 'routine' end;
+  v_res := public.fn_support_report_to_ceo(v_key, v_sev,
+    'Runway for ' || to_char(v_m, 'Mon YYYY') || ': '
+      || coalesce((f->>'runway_months_at_actual_spend') || ' months at actual spend', 'not measurable at actual spend')
+      || ', ' || coalesce((f->>'runway_months_at_budget') || ' months at budget', 'no runway against a budget'),
+    f, '[]'::jsonb,
+    case when v_low then 'Decide how to extend the runway: it is below ' || v_warn || ' months.'
+         else 'Read and acknowledge the month''s cash and runway.' end,
+    null, null, interval '3 days', 'accountant');
+  return jsonb_build_object('reported', coalesce((v_res->>'ok')::boolean, false), 'month', to_char(v_m, 'YYYY-MM'),
+                            'severity', v_sev, 'figures', f, 'report', v_res);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_sanctions_rescreen()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -19162,6 +19353,57 @@ begin
   return jsonb_build_object('owners_screened', v_owners, 'owner_hits_new', v_new,
     'suppliers_without_owner_on_record', v_missing, 'suppliers_with_owner_unverified_a_year', v_stale,
     'screen', v_screen - 'sources' - 'runs' - 'oldest_list');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_ubo_watch_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_none jsonb; v_none_n int; v_changed jsonb := '[]'::jsonb; v_new int := 0; r record; v_items jsonb := '[]'::jsonb;
+begin
+  create temp table tmp_ubo on commit drop as
+    select l.id, l.company_name, nullif(btrim(coalesce(l.signatory_name, '')), '') as owner_name
+      from public.leads l
+     where (l.lifecycle_stage = 'registered' or l.approval_status = 'approved')
+       and not coalesce(l.banned, false)
+       and case when v_fx then l.company_name like 'ZZ DEMO — %'
+                else coalesce(l.company_name, '') not like 'ZZ DEMO — %' and coalesce(l.email, '') not ilike '%@example.invalid' end;
+
+  select coalesce(jsonb_agg(jsonb_build_object('lead_id', id, 'company', company_name) order by id), '[]'::jsonb), count(*)
+    into v_none, v_none_n from tmp_ubo where owner_name is null;
+  if v_none_n > 0 then
+    v_items := v_items || jsonb_build_object('item', 'owner_unknown' || case when v_fx then '_demo' else '' end,
+      'owner_seat', 'sales_engineer', 'subject', 'leads.signatory_name', 'demo', v_fx,
+      'title', v_none_n || ' registered supplier(s) name no owner, so their owner cannot be sanctions-screened',
+      'affected', v_none_n,
+      'evidence', jsonb_build_object('suppliers', v_none,
+        'act', 'ask each supplier for the name of its owner or authorised signatory as the trade licence shows it and record it in leads.signatory_name',
+        'basis', 'there is no UBO register yet: the signatory is the owner of record and the one the sanctions screen reads'));
+  end if;
+
+  for r in select t.id, t.owner_name, public.fn_screening_normalise(t.owner_name) as norm, s.owner_norm as seen_norm, s.owner_name as seen_name
+             from tmp_ubo t left join public.accountant_ubo_seen s on s.lead_id = t.id
+            where t.owner_name is not null loop
+    if r.seen_norm is null then
+      insert into public.accountant_ubo_seen (lead_id, owner_name, owner_norm) values (r.id, r.owner_name, r.norm);
+      v_new := v_new + 1;
+    elsif r.seen_norm is distinct from r.norm then
+      update public.accountant_ubo_seen
+         set previous_owner_name = owner_name, owner_name = r.owner_name, owner_norm = r.norm, changed_at = now()
+       where lead_id = r.id;
+      v_changed := v_changed || jsonb_build_object('lead_id', r.id, 'from', r.seen_name, 'to', r.owner_name);
+    end if;
+  end loop;
+  drop table if exists tmp_ubo;
+
+  return jsonb_build_object('suppliers_without_owner', v_none_n, 'owners_first_seen', v_new, 'owners_changed', v_changed,
+    'rescreened_by', 'accountant.sanctions_rescreen (daily) screens every current owner name',
+    'findings', public.fn_accountant_duty_settle('ubo' || case when v_fx then '_demo' else '' end, v_items));
 end $function$
 
 
@@ -21516,6 +21758,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -22031,135 +22402,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -55865,16 +56107,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -56045,6 +56277,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -80177,10 +80419,12 @@ CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF 
 ALTER TABLE public.accountant_ad_spend_month ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_issued_document ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_knowledge ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_mailbox_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_month_close ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_owner_ruled_subscription ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_renewal_budget ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_spend_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accountant_ubo_seen ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_weekly_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.accountant_year_end_pack ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.action_class_demand ENABLE ROW LEVEL SECURITY;
@@ -80815,9 +81059,11 @@ ALTER TABLE public.yello_staging ENABLE ROW LEVEL SECURITY;
 -- ===== POLICIES =====
 CREATE POLICY accountant_ad_spend_month_service_role_only ON public.accountant_ad_spend_month AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_issued_document_service_role_only ON public.accountant_issued_document AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_mailbox_check_service_role_only ON public.accountant_mailbox_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_month_close_service_role_only ON public.accountant_month_close AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_owner_ruled_subscription_service_role_only ON public.accountant_owner_ruled_subscription AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_renewal_budget_service_role_only ON public.accountant_renewal_budget AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY accountant_ubo_seen_service_role_only ON public.accountant_ubo_seen AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY accountant_year_end_pack_service_role_only ON public.accountant_year_end_pack AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY action_class_demand_service_role_only ON public.action_class_demand AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ad_spend_reported_service_role_only ON public.ad_spend_reported AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

@@ -43,6 +43,7 @@ import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_sh
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
 import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
+import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
@@ -636,7 +637,8 @@ export const handler = observe('resend_inbound', async (req) => {
           let bookedSub = false;
           if (recurring) {
             const erow = { vendor, category: 'Subscription', description: String(ex.note||subject).slice(0,300), amount, currency, cadence: cad, expense_date: charged, active: true, source: 'email_forward', confidence: 'medium', note: ('auto from forwarded subscription receipt' + (docPath?' (document archived)':'')) };
-            const { data: ex0 } = await admin.from('expenses').select('id').ilike('vendor', vendor).eq('active', true).limit(1);
+            // the SAME vendor by identity, never a LIKE pattern (founder_instruction 890; _shared/expense_mailbox.ts)
+            const ex0 = await registerRowsFor(admin, vendor);
             if (ex0 && ex0.length) await admin.from('expenses').update(erow).eq('id', ex0[0].id);
             else await admin.from('expenses').insert(erow);
             bookedSub = true;
