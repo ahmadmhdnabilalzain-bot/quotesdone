@@ -1,0 +1,1 @@
+Committed, not applied: the release operator applies it. Seat: ceo (the door); the sales_engineer sends once its own build calls fn_seat_handoff('sales_engineer', 'ceo', 'sales.escalation', ...). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.

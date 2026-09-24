@@ -1,0 +1,1 @@
+Committed, not applied: the release operator applies it. Seat: ceo. Apply AFTER the_ceo_decides_whether_january_holds_on_supply_coverage.sql. It redefines fn_ceo_month_plan, so once applied it is that routine's canonical file (MANIFEST order). On apply: delete this note and append the file to the END of MANIFEST.txt in the same commit.
