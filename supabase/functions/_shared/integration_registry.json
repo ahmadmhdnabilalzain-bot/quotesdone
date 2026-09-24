@@ -147,7 +147,7 @@
       "what": "CAD and office drawing conversion",
       "hosts": ["api.cloudconvert.com"], "secrets": ["cloudconvert_api_key"],
       "owner_seat": "sales_engineer", "blast": "customer_facing",
-      "probe": { "kind": "http", "method": "GET", "url": "https://api.cloudconvert.com/v2/users/me", "auth": "bearer:cloudconvert_api_key", "ok": [200], "every_minutes": 60 },
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.cloudconvert.com/v2/users/me", "auth": "bearer:cloudconvert_api_key", "ok": [200, 403], "_ok_why": "measured 24 Sep 2026: the company's key carries task scopes only, so users/me answers 403 'Invalid scope(s)'; a refused or revoked key answers 401", "every_minutes": 60 },
       "self_fix": "retried once after 3 s",
       "action": "Issue a new CloudConvert API key and store it as app_secrets.cloudconvert_api_key", "link": "https://cloudconvert.com/dashboard/api/v2/keys"
     },
@@ -203,14 +203,15 @@
       "what": "modules and model files the edge functions load at boot",
       "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co"], "secrets": [],
       "owner_seat": "it_engineer", "blast": "internal",
-      "probe": { "kind": "http", "method": "GET", "url": "https://esm.sh/", "auth": "none", "ok": [200], "every_minutes": 60 },
+      "notify_founder": false, "notify_why": "nothing he can do about a public CDN; the finding stays with the IT engineer",
+      "probe": { "kind": "http", "method": "GET", "url": "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/package.json", "auth": "none", "ok": [200], "every_minutes": 60 },
       "self_fix": "retried once after 3 s",
       "action": "Nothing to reconnect: a CDN outage passes; check https://status.esm.sh if it persists", "link": "https://esm.sh/"
     },
     "web_search": {
       "what": "the seats' web lookups while reasoning", "hosts": ["html.duckduckgo.com"], "secrets": [],
       "owner_seat": "it_engineer", "blast": "agent_facing",
-      "probe": { "kind": "http", "method": "GET", "url": "https://html.duckduckgo.com/html/?q=quotesdone", "auth": "none", "ok": [200], "every_minutes": 60, "notify": false },
+      "probe": { "kind": "http", "method": "GET", "url": "https://html.duckduckgo.com/html/?q=quotesdone", "auth": "none", "ok": [200, 202], "every_minutes": 60, "notify": false },
       "self_fix": "retried once after 3 s",
       "action": "Nothing to reconnect; a reasoning step answers without the web while it is down", "link": "https://html.duckduckgo.com/"
     },
