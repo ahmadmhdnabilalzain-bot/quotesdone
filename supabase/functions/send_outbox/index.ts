@@ -13,6 +13,7 @@ import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
+import { isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -161,6 +162,12 @@ Deno.serve(observe('send_outbox', async (req) => {
     // WHAT A ROW STOPS (22 Sep 2026): a bounce or complaint stops everything; an 'unsubscribe' stops only the
     // invitation and its reminders (_shared/suppression_policy.ts). Before, an unsubscribe also stopped quote,
     // reveal and account notices to a registered supplier.
+    // THE INVITATION LANE (24 Sep 2026, marketing + it_engineer; invite_lane.ts). Flag off = LANE_OFF and no call.
+    // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
+    const lane = await resolveLane({ enabled: await sec('invite_lane_enabled'), from: await sec('invite_lane_from'), apiKey: key,
+      needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type)),
+      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000),
+      fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; } });
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
     let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0;
@@ -197,7 +204,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       const docReq = supplierSide && isDocRequest(n.type);
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
       if (sent >= remaining) break;
-      const from = supplierSide ? fromSup : fromInfo;
+      // Lane inactive = the same From as before the lane existed; active = invitations only (invite_lane.ts senderFor).
+      const from = senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane });
       // A row may name its own Reply-To (notifications.reply_to, constrained to our inbound subdomain): the monthly
       // social calendar carries calendar+<token>@mail.quotesdone.com so the founder's reply reaches resend_inbound.
       const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : replyInfo);
@@ -278,7 +286,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
   finally {
     // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a
