@@ -89,7 +89,7 @@ export interface LlmResult {
   http_status: number;
   error: string | null;        // set when the call failed; distinguishes refusal from breakage
   model?: string | null;       // the route that actually answered (a deliberation records it per turn)
-  outcome?: string | null;     // the gateway's own outcome (review_held_no_independent_reviewer, budget_halted, ...)
+  outcome?: string | null;     // the gateway's own outcome (review_held_no_independent_reviewer, ...)
 }
 export interface LlmCallOpts {
   tools?: any[];               // OpenAI-shape function definitions

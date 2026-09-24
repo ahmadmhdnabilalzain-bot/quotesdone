@@ -51,7 +51,9 @@ export function shortDate(iso: string, lang: Lang): string {
 export function duesLines(rows: any[]): SupplierPayment['lines'] {
   const sum = (k: string) => Math.round(rows.reduce((a, d) => a + Number(d[k] || 0), 0) * 100) / 100;
   const out: SupplierPayment['lines'] = [
-    { en: 'Reveal fee refunded to the customer, recovered under the Supplier Agreement', ar: 'رسوم الكشف المستردّة للعميل، مستردّة بموجب اتفاقية المورّد', amount: sum('amount_due') },
+    // supplier_dues.amount_due is the clause 33 non-response charge: the refund and, from Supplier Agreement v14, the
+    // processor fee QuotesDone could not recover (fn_accountant_nonresponse_charge charge_aed, 24 Sep 2026).
+    { en: 'Non-response charge: the refund to the customer (and, from Supplier Agreement v14, the processor fee not recovered)', ar: 'رسم عدم الاستجابة: المبلغ المردود للعميل (ومنذ الإصدار v14 من اتفاقية المورّد، رسوم مزوّد خدمة الدفع غير المستردّة)', amount: sum('amount_due') },
     { en: 'Administration fee', ar: 'الرسوم الإدارية', amount: sum('admin_fee') },
   ];
   const interest = Math.round((sum('interest_amount') + sum('fine_amount')) * 100) / 100;

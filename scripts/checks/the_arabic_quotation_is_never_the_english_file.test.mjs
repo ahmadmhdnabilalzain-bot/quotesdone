@@ -76,5 +76,5 @@ test('journey h decides the step with sameDocument and the Arabic language, not 
   assert.match(block, /sameDocument\(pdfs\.en, pdfs\.ar\)/);
   assert.match(block, /languageOf\(pdfs\.ar\) === 'ar'/);
   assert.doesNotMatch(block, /Buffer\.compare/);
-  assert.match(src.slice(at, at + 1200), /sameMoney\(pdfs\.en, pdfs\.ar\)/, 'journey h no longer compares the money of the two renders');
+  assert.match(src.slice(at, at + 1200), /(sameMoney|moneyVerdict)\(pdfs\.en, pdfs\.ar\)/, 'journey h no longer compares the money of the two renders');
 });

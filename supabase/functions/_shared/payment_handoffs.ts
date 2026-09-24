@@ -130,6 +130,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // It reports the overall picture to the CEO, who READS it and closes it (never approves); it reports ad spend to
   // the accountant, who records it and answers; email and WhatsApp still go through customer_support.
   { type: 'marketing.report', from: 'marketing', to: 'ceo' },
+  // The quarterly brand review and the monthly GEO report (ledger 983, marketing gap 8).
+  { type: 'marketing.review', from: 'marketing', to: 'ceo' },
   { type: 'adspend.recorded', from: 'marketing', to: 'accountant' },
   { type: 'adspend.booked', from: 'accountant', to: 'marketing' },
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },

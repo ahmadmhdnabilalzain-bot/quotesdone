@@ -19,6 +19,11 @@
 --     leads go FIRST in the invitation queue (fn_supplier_invite_candidates, below: one ordering key added, nothing
 --     else changed — the go, the cap, the window and every eligibility rule are the invitation machine's). A gap whose
 --     pool is empty is a marketing finding (the lead source is the constraint, not the invitation).
+--     24 Sep 2026 (ledger 983, GAPS.md marketing gap 7; instr 625 "NOT responsible for the supplier invitation"):
+--     the ordering reads public.supply_gap, the sales engineer's own 'recruit' marks, not marketing's funnel; the
+--     invitation and its order are sales_engineer's and customer_support's. Marketing keeps the analytics only.
+--     The duty's sentence was corrected here and in
+--     marketing_watches_trends_audits_answer_engines_and_reviews_the_brand_each_quarter.sql.
 --   marketing.reputation (1 day): a customer who rated his job 4 or 5 in the last 30 days is asked ONCE, through
 --     customer_support (the only seat that addresses customers), to review QuotesDone publicly, with the link in
 --     app_secrets 'public_review_url'. With no link configured the ask is recorded as waiting and the missing link is
@@ -191,7 +196,7 @@ grant execute on function public.fn_marketing_reputation() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('marketing.recruitment_funnel', 'marketing', interval '1 day', 'fn_marketing_recruitment_funnel',
-   'A daily funnel per gap the sales engineer marked recruit; its leads go first in the invitation queue; an empty pool is a finding.',
+   'Funnel analytics only: a daily funnel per gap the sales engineer marked recruit, and an empty pool is a marketing finding (the lead source). The invitation, and its order, belong to sales_engineer and customer_support (instr 625).',
    'scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql'),
   ('marketing.reputation', 'marketing', interval '1 day', 'fn_marketing_reputation',
    'A satisfied customer is asked once, through customer_support, for a public review; a daily reputation snapshot.',
