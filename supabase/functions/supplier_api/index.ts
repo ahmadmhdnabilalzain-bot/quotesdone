@@ -21,7 +21,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
+import { licenceModelPayload, licenceNameFromModel, readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -616,7 +616,9 @@ const handle = async (req: Request): Promise<Response> => {
       // compares it with the registered name (fn_supplier_licence_name_mismatch); null = not read.
       let codeName: string | null = null;
       if (licBytes?.bytes) { try { codeName = await readLicenceName(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeName = null; } }
-      if (codeName) upd.licence_legal_name = codeName;
+      // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
+      // document. null = not read, and the review then holds the registration (licence_name_unread).
+      if (licBytes?.bytes) upd.licence_legal_name = codeName;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -640,8 +642,10 @@ const handle = async (req: Request): Promise<Response> => {
       // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
       // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
       // of a gateway that cannot answer, and nothing above depends on it.
-      if ((licImgs.length || lic.file_b64) && await flagOn('document_expiry_ai')) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
+      // A scan the code could not name is sent from storage when the portal did not resend it (24 Sep 2026).
+      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null, codeName);
+      if (modelDoc && await flagOn('document_expiry_ai')) {
+        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc }) }); const jd = await r.json();
           if (jd?.ok && jd.doc) { const d = jd.doc;
             if (d.license_number) upd.trade_license_no = d.license_number;
             if (d.license_authority) upd.license_authority = d.license_authority;
@@ -662,7 +666,8 @@ const handle = async (req: Request): Promise<Response> => {
             // made the name check the founder asked for always pass; the review now compares the two
             // (fn_supplier_licence_name_mismatch) and a mismatch is action_required. Code's reading wins.
             const legal = String(d.legal_name || '').trim();
-            if (legal && !codeName) upd.licence_legal_name = legal;
+            const modelName = licenceNameFromModel(d);
+            if (modelName && !codeName) upd.licence_legal_name = modelName;
             // Merged, never replaced (main): out.license may already carry the expiry code measured,
             // and overwriting it would lose the reading that is actually written to the row.
             // `trn` is SP-C-09 of #858: process_docs read the TRN off the licence and wrote it to the
