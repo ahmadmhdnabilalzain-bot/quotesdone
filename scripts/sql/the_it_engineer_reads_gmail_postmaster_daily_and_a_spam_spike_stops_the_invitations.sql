@@ -6,7 +6,10 @@
 --     reads DNS, blocklists and Resend's domain status; fn_invite_same_day_brake (PR #943) reads OUR bounce and
 --     complaint webhooks. Neither sees Gmail's own user-reported spam rate or domain reputation, the two numbers
 --     Gmail's bulk-sender rules are enforced on (spam rate under 0.3%, aim under 0.1%).
---   * public.it_postmaster_reading did not exist; it_duty_schedule held 14 duties and no 'postmaster'.
+--   * public.it_postmaster_reading did not exist; it_duty_schedule held 13 duties and no 'postmaster'.
+--   * app_secrets.invite_enabled is 'false' today: the campaign is already off, so a pause now would be a no-op
+--     that still wrote an 'error' agent_runs row (trg_emit_test_failed_ins raises test.failed) and rewrote the
+--     #943 finding's evidence. The Postmaster record pauses only a running campaign (review of PR #961).
 --   * app_secrets: google_oauth_client_id and google_oauth_client_secret exist (the YouTube connect's OAuth client);
 --     google_postmaster_refresh_token does NOT exist. Until the founder grants the consent, every read is
 --     'unavailable' and says so; nothing is fabricated.
@@ -24,9 +27,11 @@
 --      (supabase/functions/_shared/it_postmaster_readings.ts: v1 trafficStats, deterministic, no model) and
 --      public.fn_it_postmaster_record stores it and acts on the verdict the module computed:
 --        * spam >= 0.1%, or reputation LOW/BAD  -> finding duty:postmaster:deliverability:<domain> (fn_it_duty_settle);
---        * spam >= 0.3% (Gmail's hard limit), or reputation LOW/BAD -> ALSO fn_invite_campaign_pause, ONCE per
---          Postmaster day: a stats day that already paused never pauses again, so a founder who re-enables after
---          reading it is not overridden by the same stale day (Postmaster publishes 1-2 days late);
+--        * spam >= 0.3% (Gmail's hard limit), or reputation LOW/BAD -> ALSO fn_invite_campaign_pause, only while
+--          invite_enabled = 'true', and ONCE per Postmaster day: a stats day that already paused never pauses again,
+--          so a founder who re-enables after reading it is not overridden by the same stale day (Postmaster publishes
+--          1-2 days late). A NEW Postmaster day that is still over the line pauses again -- intended: a trailing LOW
+--          reputation must keep the campaign stopped, and it re-pauses each day it persists;
 --        * no data or unreadable -> an open deliverability finding is CARRIED (held as it stands, neither closed
 --          nor re-raised): silence from Postmaster is not evidence the spam rate fell;
 --        * unreadable (no consent, token refused, no access) -> one configuration finding, raised once and held.
@@ -189,7 +194,9 @@ begin
      set basis = excluded.basis, stats_day = excluded.stats_day, spam_ratio = excluded.spam_ratio, spam_lower = excluded.spam_lower,
          spam_upper = excluded.spam_upper, reputation = excluded.reputation, spf_ratio = excluded.spf_ratio,
          dkim_ratio = excluded.dkim_ratio, dmarc_ratio = excluded.dmarc_ratio, reason = excluded.reason,
-         verdict = excluded.verdict, line = excluded.line, read_at = now();
+         verdict = excluded.verdict, line = excluded.line, read_at = now(),
+         -- paused_at belongs to the stats day that paused; a rerun that returns a different day does not inherit it.
+         paused_at = case when t.stats_day is not distinct from excluded.stats_day then t.paused_at end;
 
   if v_basis = 'measured' and coalesce((p_r->'verdict'->>'finding')::boolean, false) then
     v_items := v_items || jsonb_build_object('item', 'deliverability:' || v_dom, 'owner_seat', 'it_engineer', 'subject', v_dom,
@@ -211,8 +218,14 @@ begin
       'title', 'Gmail Postmaster could not be read for ' || v_dom || ': ' || coalesce(p_r->>'reason', '?'), 'evidence', p_r - 'line');
   end if;
 
-  -- The pause, once per Postmaster day. A stats day that already paused the invitations never pauses them again.
+  -- The pause: only a RUNNING campaign (invite_enabled = 'true'; stopping a stopped one would only write an error
+  -- run and rewrite the #943 finding), and once per Postmaster day -- a stats day that already paused the
+  -- invitations never pauses them again, so a hand resume is not overridden by the same stale day. A NEW
+  -- Postmaster day still over the line pauses again, deliberately: a trailing LOW/BAD reputation repeats on every
+  -- day it lasts, and each day must keep the campaign stopped even over a manual resume. The finding above is
+  -- filed either way; paused_at is set only when a pause actually happened.
   if v_basis = 'measured' and coalesce((p_r->'verdict'->>'pause')::boolean, false) and v_stats is not null
+     and coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true'
      and not exists (select 1 from public.it_postmaster_reading
                       where domain = v_dom and stats_day = v_stats and paused_at is not null) then
     v_pause := public.fn_invite_campaign_pause('it_engineer_postmaster',

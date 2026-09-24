@@ -95,6 +95,15 @@ test('static: the record pauses once per Postmaster day, carries on silence, and
   const rec = code(body(SQL, 'fn_it_postmaster_record'));
   assert.match(rec, /not exists \(select 1 from public\.it_postmaster_reading\s+where domain = v_dom and stats_day = v_stats and paused_at is not null\)/);
   assert.match(rec, /v_basis = 'measured' and coalesce\(\(p_r->'verdict'->>'pause'\)::boolean, false\)/, 'a no-data reading could pause');
+  // Review of PR #961: invite_enabled is 'false' today; pausing a stopped campaign wrote an error run (test.failed),
+  // rewrote the #943 finding and spent the day's once-only pause. The pause is gated on a RUNNING campaign.
+  const gate = rec.slice(rec.indexOf('if v_basis = \'measured\' and coalesce((p_r->\'verdict\'->>\'pause\')'), rec.indexOf('fn_invite_campaign_pause('));
+  assert.match(gate, /coalesce\(\(select value from public\.app_secrets where key = 'invite_enabled'\), 'false'\) = 'true'/,
+    'the Postmaster pause is not gated on invite_enabled = true');
+  assert.equal((rec.match(/set paused_at = now\(\)/g) || []).length, 1, 'paused_at is set outside the pause branch');
+  assert.ok(rec.indexOf('set paused_at = now()') > rec.indexOf('fn_invite_campaign_pause('), 'paused_at is set before a pause happened');
+  assert.match(rec, /paused_at = case when t\.stats_day is not distinct from excluded\.stats_day then t\.paused_at end/,
+    'a rerun returning a newer stats day inherits the old day\'s paused_at');
   assert.match(rec, /'carried', true/, 'no data would close an open spam finding');
   assert.match(rec, /'config', true/, 'an unreadable Postmaster is re-raised every day');
   assert.match(rec, /public\.fn_it_duty_settle\('postmaster', v_items\)/);
@@ -116,9 +125,13 @@ test('static: the IT daily line keeps every canonical key and carries the Postma
 
 test('static: resilience_ping runs it on the heartbeat, the registry and the pending note are in place', () => {
   const ping = read('supabase/functions/resilience_ping/index.ts');
-  assert.match(ping, /import \{ takePostmasterReading \} from '\.\.\/_shared\/it_postmaster_readings\.ts';/);
-  assert.match(ping, /step\('postmaster'/);
-  assert.match(ping, /rpc\('fn_it_postmaster_record', \{ p_r: reading \}\)/);
+  assert.match(ping, /import \{ runPostmasterStep, takePostmasterReading \} from '\.\.\/_shared\/it_postmaster_readings\.ts';/);
+  // Deploy order: the function ships on merge, the SQL may be pending; the step goes through runPostmasterStep,
+  // which records a missing routine/table as skipped (tested in it_postmaster_readings.test.ts).
+  assert.match(ping, /step\('postmaster', \(\) => runPostmasterStep\(/);
+  const mod = read('supabase/functions/_shared/it_postmaster_readings.ts');
+  assert.match(mod, /SCHEMA_MISSING = new Set\(\['42883', '42P01', 'PGRST202', 'PGRST205'\]\)/);
+  assert.match(mod, /rpc\('fn_it_postmaster_record', \{ p_r: reading \}\)/);
   assert.ok(!/cron\.schedule/.test(SQL), 'the duty is scheduled by resilience_ping, never pg_cron');
   const reg = JSON.parse(read('supabase/functions/_shared/integration_registry.json'));
   const e = reg.integrations.google_postmaster;
@@ -140,11 +153,20 @@ test('production, aborted: a spike files, pauses once, holds on silence and clos
   { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
   const pending = existsSync(join(REPO, 'scripts/sql/pending', NAME + '.txt'));
-  const r = (spam, pause, finding, extra = '') => `{"domain":"zz-demo.example.invalid","basis":"measured","stats_day":"2026-09-20",
+  const r = (spam, pause, finding, sd = '2026-09-20') => `{"domain":"zz-demo.example.invalid","basis":"measured","stats_day":"${sd}",
     "spam_ratio":${spam},"reputation":"HIGH","spf":1,"dkim":1,"dmarc":1,"reason":null,"line":"ZZ DEMO ${spam}",
-    "verdict":{"finding":${finding},"pause":${pause},"reasons":["ZZ DEMO spam ${spam}"]}${extra}}`;
+    "verdict":{"finding":${finding},"pause":${pause},"reasons":["ZZ DEMO spam ${spam}"]}}`;
   const block = String.raw`
-do $$ declare o jsonb := '{}'; k text := 'duty:postmaster:deliverability:zz-demo.example.invalid'; begin
+do $$ declare o jsonb := '{}'; k text := 'duty:postmaster:deliverability:zz-demo.example.invalid'; wf0 jsonb; begin
+  -- a STOPPED campaign is not paused again: finding yes, run row no, #943 finding untouched, paused_at unset
+  update public.app_secrets set value = 'false' where key = 'invite_enabled';
+  select evidence into wf0 from public.it_watch_finding where detector_key = 'deliverability:supplier_invite';
+  perform public.fn_it_postmaster_record('${r(0.004, true, true, '2026-09-19')}');
+  o := o || jsonb_build_object('s_f', (select count(*) from public.it_engineer_finding where issue_key = k and closed_at is null),
+    's_run', (select count(*) from public.agent_runs where agent = 'it_engineer_postmaster' and finished_at > now() - interval '1 minute'),
+    's_wf', (select evidence is not distinct from wf0 from public.it_watch_finding where detector_key = 'deliverability:supplier_invite')
+            or (wf0 is null and not exists (select 1 from public.it_watch_finding where detector_key = 'deliverability:supplier_invite')),
+    's_paused', (select paused_at is not null from public.it_postmaster_reading where domain = 'zz-demo.example.invalid'));
   update public.app_secrets set value = 'true' where key = 'invite_enabled';
   perform public.fn_it_postmaster_record('${r(0.0015, false, true)}');
   o := o || jsonb_build_object('f1', (select count(*) from public.it_engineer_finding where issue_key = k and closed_at is null),
@@ -157,6 +179,10 @@ do $$ declare o jsonb := '{}'; k text := 'duty:postmaster:deliverability:zz-demo
   update public.app_secrets set value = 'true' where key = 'invite_enabled';
   perform public.fn_it_postmaster_record('${r(0.004, true, true)}');
   o := o || jsonb_build_object('on3', (select value from public.app_secrets where key = 'invite_enabled'));
+  -- a rerun the same read day that returns a NEWER stats day does not inherit the old day's paused_at
+  perform public.fn_it_postmaster_record('${r(0.0002, false, false, '2026-09-21')}');
+  o := o || jsonb_build_object('cleared', (select paused_at is null from public.it_postmaster_reading where domain = 'zz-demo.example.invalid'));
+  perform public.fn_it_postmaster_record('${r(0.0015, false, true)}');   -- reopen the finding for the silence cases
   perform public.fn_it_postmaster_record('{"domain":"zz-demo.example.invalid","basis":"no_data","stats_day":null,"reason":"ZZ DEMO below threshold","line":"ZZ DEMO no data","verdict":{"finding":false,"pause":false,"reasons":[]}}');
   o := o || jsonb_build_object('f_held', (select count(*) from public.it_engineer_finding where issue_key = k and closed_at is null));
   perform public.fn_it_postmaster_record('{"domain":"zz-demo.example.invalid","basis":"unavailable","stats_day":null,"reason":"ZZ DEMO no token","line":"ZZ DEMO unread","verdict":{"finding":false,"pause":false,"reasons":[]}}');
@@ -178,6 +204,11 @@ end $$;`;
     o = JSON.parse(m[1].replace(/\\"/g, '"'));
   }
   assert.ok(!committed, 'the probe committed instead of rolling back');
+  assert.equal(o.s_f, 1, 'a stopped campaign got no finding for an over-limit reading');
+  assert.equal(o.s_run, 0, 'a stopped campaign was paused again: an error run (test.failed) was written');
+  assert.equal(o.s_wf, true, 'a stopped campaign had its #943 finding rewritten');
+  assert.equal(o.s_paused, false, 'paused_at was set although nothing was paused');
+  assert.equal(o.cleared, true, 'a newer stats day inherited the old day\'s paused_at');
   assert.equal(o.f1, 1, '0.15% did not file a finding');
   assert.equal(o.on1, 'true', '0.15% paused the invitations');
   assert.equal(o.on2, 'false', '0.4% did not pause the invitations');

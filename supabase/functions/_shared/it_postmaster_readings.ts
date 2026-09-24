@@ -17,8 +17,9 @@
 // WHAT THIS MODULE DOES: measures, judges and writes the digest line. Deterministic code, no model call.
 //   * takePostmasterReading: one token refresh + one GET of v1/domains/<domain>/trafficStats for the last 7 days
 //     (the list form of /trafficStats/{YYYYMMDD}: one call instead of seven), newest day wins.
-//   * parseTrafficStats: an absent field is null, NEVER zero. Postmaster publishes a day 1-2 days late and
-//     publishes nothing below its volume threshold; "no data" is a reading of its own, not a clean result.
+//   * parseTrafficStats: no published day is "no data", NEVER zero. Postmaster publishes a day 1-2 days late and
+//     publishes nothing below its volume threshold; "no data" is a reading of its own, not a clean result. On a
+//     day that WAS published, an omitted spam or auth ratio is a measured 0 (Google omits zero-valued fields).
 //   * judge: spam >= 0.1% is a finding; spam >= 0.3% (Gmail's hard limit) or reputation LOW/BAD also pauses the
 //     invitation campaign through the #943 mechanism (public.fn_invite_campaign_pause). The database acts on the
 //     verdict; public.fn_it_postmaster_record owns the storing, the finding and the pause.
@@ -48,7 +49,7 @@ export interface PostmasterReading {
   domain: string;
   basis: 'measured' | 'no_data' | 'unavailable';
   stats_day: string | null;            // YYYY-MM-DD the numbers belong to (Postmaster's day, not the read day)
-  spam_ratio: number | null;           // userReportedSpamRatio; the midpoint when bounds are present
+  spam_ratio: number | null;           // userReportedSpamRatio as Postmaster publishes it; 0 when omitted on a published day
   spam_lower: number | null;           // userReportedSpamRatioLowerBound
   spam_upper: number | null;           // userReportedSpamRatioUpperBound
   reputation: Reputation | null;       // domainReputation; UNSPECIFIED is null
@@ -89,7 +90,39 @@ export function parseTrafficStats(domain: string, json: unknown): Measured {
   };
   // A day row that carries none of the numbers this duty reads is the below-threshold shape, not a clean day.
   if ([m.spam_ratio, m.reputation, m.spf, m.dkim, m.dmarc].every((v) => v === null)) return empty(domain, 'no_data', NO_DATA, day);
-  return m;
+  // THE ROW MET THE VOLUME THRESHOLD, SO AN ABSENT RATIO IS A MEASURED ZERO. Google's JSON omits a field whose value
+  // is 0 (proto3 default), so on a published day a missing userReportedSpamRatio is 0% spam, and a missing
+  // spf/dkim/dmarcSuccessRatio is 0% authenticated -- the WORST auth reading, which read "no data" and hid it until
+  // the independent review of PR #961. The bounds and the reputation are not zero-filled: an absent bound means
+  // Postmaster gave no interval, and an absent reputation means no category.
+  return { ...m, spam_ratio: m.spam_ratio ?? 0, spf: m.spf ?? 0, dkim: m.dkim ?? 0, dmarc: m.dmarc ?? 0 };
+}
+
+// THE STEP resilience_ping RUNS (review of PR #961). The edge function deploys when the PR merges
+// (.github/workflows/deploy-functions.yml) while the SQL stays pending until applied, so the step must survive a
+// database without the new routine or table: an undefined function (42883, or PostgREST's PGRST202 when the RPC is
+// absent from its schema cache) or an undefined table (42P01, PGRST205) is recorded as "skipped: schema not applied"
+// and never fails the tick. Any other error is thrown, and the heartbeat's step() reports it as that step's failure.
+export const SCHEMA_MISSING = new Set(['42883', '42P01', 'PGRST202', 'PGRST205']);
+type RpcResult = { data: unknown; error: { code?: string; message: string } | null };
+export type Rpc = (fn: string, args?: Record<string, unknown>) => PromiseLike<RpcResult>;
+
+export async function runPostmasterStep(rpc: Rpc, read: () => Promise<PostmasterReading>): Promise<Record<string, unknown>> {
+  const due = await rpc('fn_it_scheduled_due');
+  if (due.error) {
+    if (SCHEMA_MISSING.has(String(due.error.code))) return { skipped: 'schema not applied', code: due.error.code };
+    throw new Error('fn_it_scheduled_due: ' + due.error.message);
+  }
+  if (!((due.data ?? []) as string[]).includes('postmaster')) return { due: false };
+  const reading = await read();
+  const r = await rpc('fn_it_postmaster_record', { p_r: reading });
+  if (r.error) {
+    if (SCHEMA_MISSING.has(String(r.error.code))) return { due: true, skipped: 'schema not applied', code: r.error.code, basis: reading.basis };
+    throw new Error('fn_it_postmaster_record: ' + r.error.message);
+  }
+  // Only the basis and the verdict: resilience_ping's answer is public.
+  return { due: true, basis: reading.basis, finding: reading.verdict.finding,
+           paused: (r.data as Record<string, unknown> | null)?.paused ?? null };
 }
 
 export function judge(m: Measured): Verdict {
