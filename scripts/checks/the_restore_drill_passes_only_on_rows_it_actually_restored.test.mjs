@@ -13,13 +13,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/the_restore_drill_passes_only_on_rows_it_actually_restored.sql';
 const ddl = readFileSync(join(REPO, FILE), 'utf8').split('\n-- PROBE')[0];
 
-test('an empty page fails, the pick prefers a page with rows, and live rows restore', async () => {
+// A production probe: CI's checks job has no management token, so it skips there (the credential job runs it).
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+test('an empty page fails, the pick prefers a page with rows, and live rows restore', { skip: hasToken ? false : 'no management token' }, async () => {
   const body = `do $p$ declare pick jsonb; tab text; r jsonb; o jsonb; live jsonb; begin
       pick := public.fn_it_restore_table_pick();
       tab := pick->'table'->>'table';

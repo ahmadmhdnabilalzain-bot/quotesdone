@@ -12,13 +12,17 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/a_handoff_waiting_more_than_a_day_is_a_finding.sql';
 const ddl = readFileSync(join(REPO, FILE), 'utf8').split('\n-- PROBE')[0];
 
-test('a replied it.finding handoff whose finding is still open is a finding after 24 hours, not before', async () => {
+// A production probe: CI's checks job has no management token, so it skips there (the credential job runs it).
+const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
+test('a replied it.finding handoff whose finding is still open is a finding after 24 hours, not before', { skip: hasToken ? false : 'no management token' }, async () => {
   const body = `do $p$ declare hid bigint; k text := 'zz:test:handoff_sla_24h'; o jsonb := '{}'; begin
       insert into public.it_engineer_finding (issue_key, title, where_it_is, blast, affected, evidence, raised_by, started_at, last_seen_at)
       values (k, 'test finding', 'test', 'monitor', 1, '{}'::jsonb, 'it_engineer', now() - interval '26 hours', now());
