@@ -182,10 +182,9 @@ export async function readSupplierProfile(deps: ThinkDeps, leadId: number, max =
   return { read, held };
 }
 
-// ── 45 sql.trg_quote_quality, 84 sql.fn_os_catalog_test_gate ─────────────────────────────────────
+// ── 84 sql.fn_os_catalog_test_gate (45 sql.trg_quote_quality is structural since 24 Sep 2026) ─────────────────────────────────────
 type Aspect = { aspect: string; label: string; note?: string | null };
-/** Which of these category aspects does the text state? One reading, used by the quote trigger and the
- *  catalogue test gate. Present = a value AND the words that state it. */
+/** Which of these category aspects does the text state? Used by the catalogue test gate. Present = a value AND the words that state it. */
 export async function aspectsStated(deps: ThinkDeps, o: { surface: string; text: string; aspects: Aspect[]; trade?: string; queueWhenHeld?: boolean; dedupeKey?: string; subject?: Record<string, unknown> }): Promise<Reasoned<string[]>> {
   const text = o.text.slice(0, 8000);
   const result = await think(deps, {
@@ -197,19 +196,6 @@ export async function aspectsStated(deps: ThinkDeps, o: { surface: string; text:
     },
   });
   return { value: answered(result) ? o.aspects.map((a) => a.aspect).filter((k) => stated(result, k)) : null, result };
-}
-
-/** Which category aspects does the quote state? Reads fn_quote_aspects_due, reasons, records. Held: the
- *  reading is recorded as queued and the quote's category verdict stays 'needs_reasoning' (not a pass). */
-export async function reasonQuoteAspects(deps: ThinkDeps, quoteId: string): Promise<{ status: 'none_due' | 'reasoned' | 'held'; present?: string[] }> {
-  const { data: due, error } = await deps.rpc('fn_quote_aspects_due', { p_quote_id: quoteId });
-  if (error || !due) return { status: 'none_due' };
-  const r = await aspectsStated(deps, {
-    surface: 'sql.trg_quote_quality', text: String(due.text ?? ''), aspects: (due.aspects ?? []) as Aspect[], trade: String(due.spec_group ?? ''),
-    dedupeKey: `quote_aspects:${quoteId}:${due.content_md5}`, subject: { quote_id: quoteId, content_md5: due.content_md5 },
-  });
-  await deps.rpc('fn_quote_aspect_reading_record', { p_quote_id: quoteId, p_content_md5: due.content_md5, p_present: r.value, p_held_id: r.result.held_id ?? null });
-  return r.value ? { status: 'reasoned', present: r.value } : { status: 'held' };
 }
 
 /** The catalogue test gate over a sample: the aspects of the category (fn_os_catalog_test_gate with none

@@ -76,15 +76,12 @@ export function sameInquiry(deps: ThinkDeps, o: { inquiryId: string; earlierId: 
     { inquiry_id: o.inquiryId, earlier_id: o.earlierId });
 }
 
-// ── ceo.task_responsibility and ceo.task_collaboration_rule (sql.fn_task_review) ──────────────────
+// ── ceo.task_collaboration_rule (sql.fn_task_review) ────────────────────────────────────────────────
+// ceo.task_responsibility is NO LONGER REASONED (24 Sep 2026, it_engineer): task ownership is routed by structure
+// (model_policy 'workflow_routing', tier none) in fn_task_review - the department's operating system owns the task.
+// scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql. 'none' is the id an answer reasoned
+// under the old path carries, still honoured by its key.
 export const TASK_RESPONSIBILITY_NONE = 'none';
-export function taskResponsibilityOptions(rows: { responsibility: string; os_key: string }[]): Opt[] {
-  return [...rows.map((r) => ({ id: r.responsibility, meaning: `the work is ${r.responsibility.replace(/_/g, ' ')} (owned by the ${r.os_key} operating system)` })),
-    { id: TASK_RESPONSIBILITY_NONE, meaning: 'none of these responsibilities is what the work is' }];
-}
-export function taskResponsibility(deps: ThinkDeps, o: { taskId: number; deptKey: string; author: string; text: string; rows: { responsibility: string; os_key: string }[]; dedupeKey: string }) {
-  return pick(deps, 'ceo', 'ceo.task_responsibility', o.text, taskResponsibilityOptions(o.rows), o.dedupeKey, { task_id: o.taskId, dept_key: o.deptKey, author: o.author });
-}
 export function collaborationRuleOptions(situation: string): Opt[] {
   return [
     { id: 'applies', meaning: 'the task is the situation this rule governs: ' + situation },
