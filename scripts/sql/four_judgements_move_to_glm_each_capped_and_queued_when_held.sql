@@ -141,13 +141,35 @@ create or replace function public.fn_glm_judgement_defer(p_id bigint, p_error te
 returns void language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
+declare g public.glm_judgement;
 begin
   update public.glm_judgement
      set leased_until = null, last_error = left(p_error, 500),
          attempts = attempts + case when p_counts then 1 else 0 end,
          status = case when p_counts and attempts + 1 >= 3 then 'failed' else status end,
          decided_at = case when p_counts and attempts + 1 >= 3 then now() else decided_at end
-   where id = p_id and status = 'queued';
+   where id = p_id and status = 'queued'
+  returning * into g;
+  if g.id is null or g.status <> 'failed' then return; end if;
+  -- THE TERMINAL STATE HANDS EACH KIND BACK TO ITS OWNER (review of this PR): three failed readings never leave
+  -- anything waiting on a judgement that will not come.
+  if g.kind = 'unknown_sender_mail' then
+    -- The mail leaves the 'glm_queued' mark (which email_triage skips) and goes to a person's review, unread.
+    update public.inbound_messages set ai_category = 'other', ai_summary = 'Not read: GLM could not judge this mail after 3 tries.', triaged_at = now()
+     where id = (g.input->>'message_id')::bigint and triaged_at is null;
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, target_table, target_id, detail)
+    values ('email', 'inbound_review', 'pending', 'low',
+            left('Inbox (unknown sender, unread): ' || coalesce(g.input->>'subject', '(no subject)'), 70),
+            'GLM could not read this mail from an unknown sender after 3 tries. Read it and reply from the Inbox.',
+            'inbound_messages', g.input->>'message_id',
+            jsonb_build_object('from', g.input->>'from', 'glm_judgement_id', g.id, 'last_error', g.last_error));
+  elsif g.kind = 'supplier_trade_words' then
+    -- The proposal stays pending for the sales engineer (as before this PR), now saying why it was not offered.
+    update public.taxonomy_trade_proposal set note = coalesce(note || ' ', '') || '[GLM could not map these words after 3 tries; decide by hand.]'
+     where id = (g.input->>'proposal_id')::bigint and status = 'pending';
+  end if;
+  -- repeat_request: the inquiry simply stays unflagged (exactly its state before this PR; a flag only marks review).
+  -- quote_spec_match: fn_quote_spec_mismatches reports the cells as 'unread', never as meeting the request.
 end $fn$;
 revoke execute on function public.fn_glm_judgement_defer(bigint, text, boolean) from public, anon, authenticated;
 grant execute on function public.fn_glm_judgement_defer(bigint, text, boolean) to service_role;
@@ -221,6 +243,7 @@ as $fn$
   select jsonb_build_object(
     'quote_id', p_quote_id,
     'pending', count(*) filter (where g.status = 'queued'),
+    'unread', coalesce(sum(jsonb_array_length(g.input->'cells')) filter (where g.status = 'failed'), 0),
     'mismatches', coalesce(jsonb_agg(v) filter (where g.status = 'done' and (v->>'mismatch')::boolean), '[]'::jsonb),
     'meets', count(v) filter (where g.status = 'done' and not (v->>'mismatch')::boolean))
   from public.glm_judgement g
@@ -324,7 +347,15 @@ begin
   v_n := jsonb_array_length(public.fn_quote_spec_mismatches('zz-probe-quote')->'mismatches');
   if v_fail is null and v_n <> 1 then v_fail := 'fn_quote_spec_mismatches read ' || v_n || ' mismatches, expected 1'; end if;
   if v_fail is null and public.fn_glm_judgement_cap('no_such_kind') <> 0 then v_fail := 'an unknown kind has a cap'; end if;
-  delete from public.glm_judgement where id = v_id;
+  -- The terminal state: three failed readings mark the row failed and the report counts its cells unread.
+  v_id2 := public.fn_glm_judgement_enqueue('quote_spec_match', 'zz-probe-fail:' || txid_current(), jsonb_build_object('quote_id', 'zz-probe-quote2', 'cells', jsonb_build_array(jsonb_build_object('line_no', 1))));
+  perform public.fn_glm_judgement_defer(v_id2, 'probe', true); perform public.fn_glm_judgement_defer(v_id2, 'probe', true);
+  perform public.fn_glm_judgement_defer(v_id2, 'probe', false);
+  if v_fail is null and (select status from public.glm_judgement where id = v_id2) <> 'queued' then v_fail := 'a hold counted toward the three tries'; end if;
+  perform public.fn_glm_judgement_defer(v_id2, 'probe', true);
+  if v_fail is null and (select status from public.glm_judgement where id = v_id2) <> 'failed' then v_fail := 'three failed readings did not fail the row'; end if;
+  if v_fail is null and (public.fn_quote_spec_mismatches('zz-probe-quote2')->>'unread')::int <> 1 then v_fail := 'a failed judgement is not reported unread'; end if;
+  delete from public.glm_judgement where id in (v_id, v_id2);
   if v_fail is null and (select count(*) from public.glm_judgement) <> v_before then v_fail := 'probe left rows behind'; end if;
   insert into glm_probe_verdict values (case when v_fail is null then 'PROBE OK' else 'PROBE FAILED: ' || v_fail end);
 end $probe$;

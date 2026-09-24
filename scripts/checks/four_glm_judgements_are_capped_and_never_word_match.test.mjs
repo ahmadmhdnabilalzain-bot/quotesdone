@@ -72,3 +72,14 @@ test('email_triage queues an unknown sender for GLM before its old model call', 
   assert.ok(known > 0 && queue > known && old > queue, 'the unknown-sender branch must come before the old model call');
   assert.match(s, /continue;/);
 });
+
+test('the terminal state (three failed readings) hands every kind back to its owner - nothing waits forever', () => {
+  const b = body('fn_glm_judgement_defer');
+  // unknown mail: leaves the glm_queued mark (email_triage skips it) and goes to a person's review
+  assert.match(b, /g\.kind = 'unknown_sender_mail'[\s\S]*update public\.inbound_messages set ai_category = 'other'[\s\S]*triaged_at = now\(\)/);
+  assert.match(b, /insert into public\.agent_actions[\s\S]*'inbound_review'/);
+  // supplier words: the proposal stays pending for the sales engineer, with the reason
+  assert.match(b, /g\.kind = 'supplier_trade_words'[\s\S]*taxonomy_trade_proposal[\s\S]*status = 'pending'/);
+  // spec cells: reported unread, never as meeting the request
+  assert.match(body('fn_quote_spec_mismatches'), /'unread',[\s\S]*g\.status = 'failed'/);
+});
