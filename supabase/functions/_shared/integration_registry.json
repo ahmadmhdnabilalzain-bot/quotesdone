@@ -59,7 +59,7 @@
       "owner_seat": "customer_support", "blast": "customer_facing",
       "probe": { "kind": "custom", "name": "twilio_wa_sender" },
       "self_fix": "retried once after 3 s; a sender Meta took offline is re-registered only in the Twilio console",
-      "action": "Open WhatsApp senders in the Twilio console and bring the sender back ONLINE", "link": "https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders"
+      "action": "Check the sender in the Twilio console. If Meta still shows the number connected, only Twilio can restore the sender's WABA link: open a Twilio support ticket and record it with fn_it_external_cause_open so you are not asked again", "link": "https://console.twilio.com/us1/develop/sms/senders/whatsapp-senders"
     },
     "twilio_webhooks": {
       "what": "Twilio posts inbound WhatsApp/SMS and delivery statuses to wa_inbound, sms_inbound and wa_status",
