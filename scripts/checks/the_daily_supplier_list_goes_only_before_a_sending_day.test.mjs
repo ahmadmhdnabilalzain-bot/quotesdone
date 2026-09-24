@@ -45,3 +45,20 @@ test('one invitation per company: best contact per key, and never a company alre
   assert.match(c, /not exists \(select 1 from touched_n t where t\.nkey = k\.nkey\)/);
   assert.match(c, /l\.invite_status is not null or l\.invited_at is not null/);
 });
+
+test('never an address on a known platform domain, unless it is the lead\'s own website; exact domain, no words', () => {
+  const e = body('fn_supplier_invite_eligible');
+  assert.match(e, /from public\.email_platform_domain d\s+where d\.domain = split_part\(lower\(btrim\(p\.email\)\), '@', 2\)/);
+  assert.match(e, /d\.domain is distinct from lower\(regexp_replace\(regexp_replace\(btrim\(coalesce\(nullif\(btrim\(p\.website\), ''\), p\.maps_website/);
+  assert.doesNotMatch(e.slice(e.indexOf('email_platform_domain')), /~\*?\s*'|ilike|like '%/);
+  assert.match(SQL, /\('buildclub\.com', 'marketplace'/);
+  assert.match(SQL, /\('hub\.com', 'directory'/);
+  assert.match(SQL, /create policy email_platform_domain_service_role_only/);
+});
+
+test('invitations leave from 10:00 Dubai and the 18:00 email states the window from the same setting', () => {
+  assert.match(SQL, /jsonb_set\(nullif\(value, ''\)::jsonb, '\{window_start_hour\}', '10'::jsonb\)/);
+  const tick = body('fn_customer_support_campaign_list_tick');
+  assert.match(tick, /'window_start_hour'\)::int, 9\), 0, 0\), 'HH24:MI'\)/);
+  assert.match(tick, /', sent from ' \|\| v_win/);
+});

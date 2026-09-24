@@ -14,11 +14,110 @@
 --      names. Now one invitation per company (email domain, or the address on a shared provider; and the
 --      normalised name), the best contact first, and never a company already invited. The PDF reads the same
 --      function, so the list and the batch cannot diverge.
+--   4. Addresses on a directory, marketplace, hosting, template or placeholder domain (buildclub.com, hub.com ...)
+--      were eligible. Now public.email_platform_domain (maintained, exact domains) excludes them from
+--      fn_supplier_invite_eligible, unless the lead's own website is that domain.
+--   5. The founder's ruling: invitations leave from about 10:00 Dubai. invite_warmup.window_start_hour 9 -> 10
+--      (the end stays 17:00), and the 18:00 email states the window from the same setting.
 --
 -- prevented by: scripts/checks/the_daily_supplier_list_goes_only_before_a_sending_day.test.mjs
 --   node scripts/apply_sql.mjs scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql --apply --ddl
 
 begin;
+
+-- ── THE KNOWN PLATFORM DOMAINS (maintained; one row per exact domain) ─────────────────────────────
+create table if not exists public.email_platform_domain (
+  domain     text primary key check (domain = lower(btrim(domain)) and domain like '%.%'),
+  kind       text not null check (kind in ('directory', 'marketplace', 'job_board', 'publisher', 'hosting', 'site_builder',
+                                            'template_vendor', 'web_agency', 'placeholder', 'disposable', 'typo')),
+  reason     text not null,
+  added_by   text not null default 'marketing',
+  created_at timestamptz not null default now()
+);
+comment on table public.email_platform_domain is
+  'Email domains that are not a supplier''s own mailbox (directories, marketplaces, hosting, template vendors, placeholders, disposable, typos). An address on one is never invited unless the lead''s own website is that domain. Exact match only. Owner: marketing. Add a row when a scraped address is found on such a domain.';
+alter table public.email_platform_domain enable row level security;
+drop policy if exists email_platform_domain_service_role_only on public.email_platform_domain;
+create policy email_platform_domain_service_role_only on public.email_platform_domain as permissive for all to public using (false) with check (false);
+revoke all on public.email_platform_domain from anon, authenticated;
+
+-- Seeded 24 Sep 2026 from the eligible leads whose email domain differs from their own website (read by hand).
+insert into public.email_platform_domain (domain, kind, reason) values
+  ('buildclub.com', 'marketplace', 'construction marketplace; seen on almaskanengineering.com'),
+  ('hub.com', 'directory', 'generic hub domain; seen on fixandscrew.com'),
+  ('yellowpages-uae.com', 'directory', 'UAE business directory'),
+  ('naukri.com', 'job_board', 'job board'), ('naukrigulf.com', 'job_board', 'job board'),
+  ('itp.com', 'publisher', 'trade-media publisher; seen on commercialinteriordesign.com'),
+  ('companyprofiledesign.ae', 'web_agency', 'profile-design agency; seen on uaethrive.com'),
+  ('godaddy.com', 'hosting', 'registrar/host; seen on flametechgcc.com'), ('secureserver.net', 'hosting', 'GoDaddy mail host'),
+  ('22.cn', 'hosting', 'domain registrar'), ('hostinger.com', 'hosting', 'web host'),
+  ('wix.com', 'site_builder', 'site builder'), ('wixpress.com', 'site_builder', 'site builder'),
+  ('squarespace.com', 'site_builder', 'site builder'), ('weebly.com', 'site_builder', 'site builder'),
+  ('wordpress.com', 'site_builder', 'site builder'), ('readymag.com', 'site_builder', 'site builder; seen on d82decor.com'),
+  ('ucoz.com', 'site_builder', 'site builder'),
+  ('themepunch.com', 'template_vendor', 'website theme vendor'), ('rstheme.com', 'template_vendor', 'website theme vendor'),
+  ('cmssuperheroes.com', 'template_vendor', 'website theme vendor'), ('pixelwars.org', 'template_vendor', 'website theme vendor'),
+  ('w3docs.com', 'template_vendor', 'tutorial site left in a template'), ('indiantypefoundry.com', 'template_vendor', 'font foundry credited in a template'),
+  ('vstacks.in', 'web_agency', 'web developer credited on a client site'), ('promoexpertz.in', 'web_agency', 'web developer credited on a client site'),
+  ('mysite.com', 'placeholder', 'template placeholder'), ('website.com', 'placeholder', 'template placeholder'),
+  ('yoursite.com', 'placeholder', 'template placeholder'), ('yourdomain.io', 'placeholder', 'template placeholder'),
+  ('yourdomain.com', 'placeholder', 'template placeholder'), ('domainname.com', 'placeholder', 'template placeholder'),
+  ('domain.com', 'placeholder', 'template placeholder'), ('example.com', 'placeholder', 'template placeholder'),
+  ('company.com', 'placeholder', 'template placeholder'), ('yourcompany.com', 'placeholder', 'template placeholder'),
+  ('hello.com', 'placeholder', 'template placeholder (hello@hello.com shape)'), ('info.com', 'placeholder', 'template placeholder'),
+  ('business.com', 'placeholder', 'template placeholder'), ('doe.com', 'placeholder', 'template placeholder (john@doe.com)'),
+  ('architect.com', 'placeholder', 'template placeholder'), ('tyler.com', 'placeholder', 'template placeholder'),
+  ('atom.com', 'placeholder', 'template placeholder'), ('theproject.com', 'placeholder', 'template placeholder'),
+  ('ramonloganjr.com', 'template_vendor', 'template author address'),
+  ('mailinator.com', 'disposable', 'disposable inbox'),
+  ('gmai.com', 'typo', 'misspelt gmail.com: a typo domain is a spam-trap risk')
+on conflict (domain) do nothing;
+
+-- ── THE SENDING WINDOW OPENS AT 10:00 DUBAI (founder's ruling; window end stays 17:00) ────────────
+update public.app_secrets set value = jsonb_set(nullif(value, '')::jsonb, '{window_start_hour}', '10'::jsonb)::text
+ where key = 'invite_warmup' and coalesce((nullif(value, '')::jsonb->>'window_start_hour')::int, -1) <> 10;
+
+create or replace function public.fn_supplier_invite_eligible(p leads)
+returns boolean
+language sql
+stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(btrim(p.email), '') <> ''
+     and p.invite_status is null
+     and coalesce(p.source, '') <> 'self_registered'
+     and coalesce(p.claimed, false) = false
+     and coalesce(p.banned, false) = false
+     and coalesce(p.permanently_closed, false) = false
+     -- a fixture is never a supplier: the flag, the naming convention, and the reserved domains
+     and coalesce(p.is_demo, false) = false
+     and coalesce(p.company_name, '') !~* '^\s*zz\s*demo'
+     and not public.fn_is_demo_email(p.email)
+     -- screened and matched but undecided is not cleared; a confirmed ban is total
+     and not exists (select 1 from public.sanctions_ban b where b.lead_id = p.id)
+     and not exists (select 1 from public.supplier_screening_hit h
+                      where h.lead_id = p.id and h.status in ('open', 'confirmed'))
+     -- never twice, read from the outbox rather than from a status column
+     and not exists (select 1 from public.notifications n
+                      where n.type = 'supplier_invite' and lower(btrim(n.to_email)) = lower(btrim(p.email)))
+     and coalesce((public.fn_email_sendable(p.email)->>'ok')::boolean, false)
+     -- 22 Sep 2026: a COLD invitation needs a measured MX. An A-record-only domain (361 leads), a lookup
+     -- that errored (86) or a domain never asked is a bounce risk on a domain with no history to spend.
+     and exists (select 1 from public.email_domain_mx m
+                  where m.domain = split_part(lower(btrim(p.email)), '@', 2) and m.kind = 'mx')
+     -- ... and never a mailbox whose reader is not the business (44 leads): a recruiter or a lawyer
+     -- presses "spam", they do not register.
+     and split_part(lower(btrim(p.email)), '@', 1) !~
+         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)$'
+     -- 24 Sep 2026 (marketing, ledger 993): never an address on a directory, marketplace, hosting, template or
+     -- placeholder domain (public.email_platform_domain, exact domain equality, no word is read) -- the reader is not
+     -- the company. The one exception is a platform that IS the lead: its own website host is that domain.
+     and not exists (select 1 from public.email_platform_domain d
+                      where d.domain = split_part(lower(btrim(p.email)), '@', 2)
+                        and d.domain is distinct from lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(p.website), ''), p.maps_website, '')),
+                                                          '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
+$fn$;
+revoke execute on function public.fn_supplier_invite_eligible(leads) from public, anon, authenticated;
 
 create or replace function public.fn_supplier_invite_candidates(p_limit integer)
 returns table (lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
@@ -177,7 +276,7 @@ create or replace function public.fn_customer_support_campaign_list_tick(p_now t
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_local timestamp := coalesce(p_now, now()) at time zone 'Asia/Dubai'; v_at time; r public.supplier_campaign_daily_list;
-  v_l jsonb; v_c jsonb; v_subj text; v_body text; v_blocks jsonb; v_state text; v_send text;
+  v_l jsonb; v_c jsonb; v_win text; v_subj text; v_body text; v_blocks jsonb; v_state text; v_send text;
 begin
   begin
     select coalesce(nullif(btrim(value), ''), '18:00')::time into v_at from public.app_secrets where key = 'supplier_campaign_list_local_time';
@@ -197,11 +296,16 @@ begin
   if r.id is null then
     v_l := public.fn_supplier_campaign_next_list(v_local::date);
     v_c := public.fn_supplier_campaign_day_counts(v_local::date);
+    -- the sending window, read from the setting the sender reads (invite_warmup), so the email cannot drift from it
+    select to_char(make_time(coalesce((nullif(value, '')::jsonb->>'window_start_hour')::int, 9), 0, 0), 'HH24:MI') || ' to '
+           || to_char(make_time(coalesce((nullif(value, '')::jsonb->>'window_end_hour')::int, 17), 0, 0), 'HH24:MI') || ' Dubai'
+      into v_win from public.app_secrets where key = 'invite_warmup';
+    v_win := coalesce(v_win, '09:00 to 17:00 Dubai');
     v_send := to_char((v_l->>'send_day')::date, 'FMDay DD FMMonth YYYY');
     v_state := case when (v_l->>'switch_on')::boolean
-                    then 'The campaign is ON: these ' || (v_l->>'planned') || ' supplier(s) will be invited on ' || v_send || ', spread across the working day.'
+                    then 'The campaign is ON: these ' || (v_l->>'planned') || ' supplier(s) will be invited on ' || v_send || ', sent from ' || v_win || ', evenly spaced.'
                     else 'The campaign is SWITCHED OFF (' || (v_l->>'held_because') || '): NOTHING will be sent on ' || v_send
-                         || '. This is the list that WOULD be sent if it were on.' end;
+                         || '. This is the list that WOULD be sent if it were on (from ' || v_win || ').' end;
     v_subj := 'Supplier campaign: ' || case when (v_l->>'switch_on')::boolean then '' else 'OFF — would invite ' end
               || (v_l->>'planned') || ' supplier(s) on ' || to_char((v_l->>'send_day')::date, 'Dy DD Mon');
     v_body := v_state || E'\n\n'
