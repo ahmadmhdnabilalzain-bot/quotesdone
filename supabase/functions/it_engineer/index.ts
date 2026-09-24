@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
     }
 
     // ── INBOX PLACEMENT ──────────────────────────────────────────────────────────────────────────────
-    // The morning seed check through the seam named above, on demand (the heartbeat's inboxPlacement step
+    // The morning seed check through the seam named above, on demand (resilience_ping's itintegrations step
     // runs the same placementTick every 15 min). The database decides whether to queue, read or settle, so
     // a call outside 05:15-06:00 UTC on a sending day only answers 'idle'. Monitoring class, asked live.
     if (action === 'inbox_placement') {

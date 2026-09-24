@@ -165,6 +165,15 @@ Deno.test('the tick does nothing but ask when the database says idle or queued',
     assertEquals(out.action, action);
   }
   assertEquals(fetched, 0);
-  const err = await placementTick(async () => ({ data: null, error: { message: 'no such function' } }), async () => ok({}), sec());
+  const err = await placementTick(async () => ({ data: null, error: { message: 'boom', code: 'XX000' } }), async () => ok({}), sec());
   assertEquals(err.ok, false);
+});
+
+Deno.test('deployed before its SQL: a missing routine is "skipped: schema not applied", not a failing step, and nothing is read', async () => {
+  let fetched = 0;
+  for (const code of ['42883', '42P01', 'PGRST202', 'PGRST205']) {
+    const out = await placementTick(async () => ({ data: null, error: { message: 'missing', code } }), async () => { fetched++; return ok({}); }, sec());
+    assertEquals([out.ok, out.skipped], [true, 'schema not applied']);
+  }
+  assertEquals(fetched, 0);
 });

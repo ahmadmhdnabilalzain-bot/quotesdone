@@ -148,7 +148,12 @@ export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string,
   } catch (e) { return failed(String((e as Error)?.message || e), { provider: 'graph' }); }
 }
 
-type Rpc = (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
+type Rpc = (fn: string, args?: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
+
+// The routines not applied yet (undefined function, undefined table, PostgREST's "not in the schema cache"): the
+// code deploys on merge while its SQL may still be pending. Recorded as skipped, not as a failing step -- the
+// same codes and the same wording as PR #961's runPostmasterStep. Nothing is queued, so the gate holds the batch.
+export const SCHEMA_MISSING = new Set(['42883', '42P01', 'PGRST202', 'PGRST205']);
 type Due = { action?: string; dubai_day?: string; token?: string; since?: string;
   gmail?: { to?: string; sent?: boolean; folder?: Folder | null }; outlook?: { to?: string; sent?: boolean; folder?: Folder | null } };
 
@@ -156,7 +161,10 @@ type Due = { action?: string; dubai_day?: string; token?: string; since?: string
 export async function placementTick(rpc: Rpc, f: Fetch, sec: Sec,
   save?: (k: 'ms_graph_seed_refresh_token', v: string) => Promise<unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await rpc('fn_invite_placement_due');
-  if (error) return { ok: false, error: 'fn_invite_placement_due: ' + error.message };
+  if (error) {
+    if (SCHEMA_MISSING.has(String(error.code))) return { ok: true, skipped: 'schema not applied', code: error.code };
+    return { ok: false, error: 'fn_invite_placement_due: ' + error.message };
+  }
   const due = (data ?? {}) as Due;
   if (due.action !== 'read') return { ok: true, ...due };
   // A side is read only once its seed has left and until it has a folder that is not not_found; a side

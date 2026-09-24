@@ -8,7 +8,9 @@
 --     fn_invite_ramp and enqueue_supplier_invites. The enqueue spreads the day over notifications.not_before
 --     from invite_warmup.window_start_hour (10, so 10:00 Dubai = 06:00 UTC) to window_end_hour (17).
 --     A pg_cron schedule would never fire, and reactivating pg_cron would restart machinery the founder
---     removed. So this check runs on the same heartbeat, as a resilience_step row: the schedule this file seeds.
+--     removed. So this check runs on the same heartbeat, INSIDE the existing itintegrations step (it_engineer,
+--     resilience_step every 15 min, measured 24 Sep). No new resilience_step row: the step list and the schedule
+--     stay equal whether this file is applied or not (scripts/checks/every_tick_step_is_scheduled.mjs), as #961 does.
 --   * The sending-day calendar is the one the batch reads. enqueue_supplier_invites holds on the Dubai
 --     weekend (isodow 6/7) and on a company_calendar 'public_holiday' row covering the day. fn_is_working_day
 --     reads a different table (public_holidays), and the batch does not read it. The check runs on exactly
@@ -19,10 +21,12 @@
 --     (24 Sep 11:31) was INBOX. No placement was stored anywhere.
 --   * The live From is info@quotesdone.com (app_secrets.email_from_supplier). Each row records the From it
 --     tested, and a pass only clears the batch while the From is still the same.
---   * The campaign pause already exists: fn_invite_same_day_brake (an_invitation_bounce_or_complaint_spike_
---     stops_the_campaign_the_same_hour.sql) sets invite_enabled=false, cancels the queued supplier_invite rows
---     and opens it_watch_finding. Its three statements move into fn_invite_campaign_pause so the brake and
---     this check stop the campaign the same way. The brake's own logic is unchanged.
+--   * The campaign pause already exists: fn_invite_same_day_brake (#943) sets invite_enabled=false, cancels the
+--     queued supplier_invite rows and opens it_watch_finding. PR #961
+--     (the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql) moves it into
+--     fn_invite_campaign_pause(source, why, evidence, counts) and has the brake call it. THAT IS CANONICAL: this
+--     file carries #961's fn_invite_campaign_pause and fn_invite_same_day_brake blocks BYTE-FOR-BYTE (commit
+--     f444d565), so whichever of the two files applies second is a no-op on them, and no second overload exists.
 --   * Credentials: app_secrets holds google_oauth_client_id / google_oauth_client_secret (the YouTube
 --     connection's Google client) and no Gmail refresh token, no Microsoft Graph key. vault.secrets is
 --     empty. Until they are stored, the reader cannot see a folder, the verdict is 'unread' and the day
@@ -47,7 +51,10 @@
 --      'wait' before the window while the check can still finish. 'fail' otherwise, including a day with
 --      no check (fail closed). enqueue_supplier_invites refuses to queue without 'pass'. The outreach tick
 --      waits on 'wait' without spending its once-a-day run, and holds the day on anything else.
---   6. resilience_step 'inboxPlacement' (every 15 min, owner it_engineer): the schedule.
+--   6. No schedule row. resilience_ping's itintegrations step (every 15 min) calls placementTick. If this file is
+--      applied before that code is deployed, nothing calls fn_invite_placement_due, no seed is queued, and the
+--      gate answers 'wait' until 06:00 UTC and then 'fail:no_check': the batch is held, and the campaign is not
+--      paused. If the code is deployed first, the missing routine is recorded as "skipped: schema not applied".
 --
 -- WHAT THIS DELIBERATELY DOES NOT CHANGE
 --   * The founder's go. invite_enabled and supplier_outreach_golive are only ever set to false here, never
@@ -97,33 +104,47 @@ create policy invite_placement_check_service_role_only on public.invite_placemen
   as permissive for all to public using (false) with check (false);
 revoke all on public.invite_placement_check from anon, authenticated;
 
--- ── 2. the one pause, shared with the same-day brake ────────────────────────────────────────────────────
-create or replace function public.fn_invite_campaign_pause(p_detector_key text, p_title text, p_evidence jsonb)
-returns integer
+-- ── 2. the one pause and the brake: BYTE-FOR-BYTE the blocks of PR #961 (commit f444d565) ──────────────
+-- Copied verbatim from the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql, so
+-- whichever of the two files applies second re-creates identical definitions (a no-op on them). The check
+-- the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.test.mjs fails if they ever differ.
+
+-- ── 2. THE ONE PAUSE (moved out of fn_invite_same_day_brake, PR #943) ───────────────────────────────
+create or replace function public.fn_invite_campaign_pause(p_source text, p_why text, p_evidence jsonb, p_counts jsonb)
+returns jsonb
 language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_cancelled int;
 begin
+  if coalesce(btrim(p_source), '') = '' or coalesce(btrim(p_why), '') = '' then
+    raise exception 'fn_invite_campaign_pause(source, why, evidence, counts): a source and a reason are required';
+  end if;
   update app_secrets set value = 'false' where key = 'invite_enabled';
   update notifications set status = 'cancelled'
    where type = 'supplier_invite' and status = 'queued';
   get diagnostics v_cancelled = row_count;
 
   insert into it_watch_finding(detector_key, detector, subject, state, severity, title, evidence)
-  values (p_detector_key, 'deliverability', 'supplier_invite', 'paused', 'high', left(p_title, 300),
-          coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled,
-            'resume', 'set app_secrets.invite_enabled=true after reading the finding'))
+  values ('deliverability:supplier_invite', 'deliverability', 'supplier_invite', 'paused', 'high',
+          'Supplier invitations auto-paused: ' || p_why,
+          coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled, 'paused_by', p_source,
+                             'resume', 'set app_secrets.invite_enabled=true after reading the bounces/complaints'))
   on conflict (detector_key) do update
      set state = excluded.state, severity = excluded.severity, title = excluded.title, evidence = excluded.evidence,
          last_seen_at = now(), seen_count = it_watch_finding.seen_count + 1, status = 'open', resolved_at = null;
-  return v_cancelled;
+
+  insert into agent_runs(agent, status, counts, note, finished_at)
+  values (p_source, 'error', coalesce(p_counts, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled),
+          'PAUSED: ' || p_why || '; invite_enabled=false, ' || v_cancelled || ' queued invitation(s) cancelled, it_engineer finding opened.', now());
+  return jsonb_build_object('paused', true, 'cancelled_queued', v_cancelled, 'source', p_source);
 end
 $fn$;
-revoke execute on function public.fn_invite_campaign_pause(text, text, jsonb) from public, anon, authenticated;
+revoke execute on function public.fn_invite_campaign_pause(text, text, jsonb, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_invite_campaign_pause(text, text, jsonb, jsonb) to service_role;
 
--- The brake of #943, its detection unchanged, pausing through the shared routine.
+-- The brake keeps its thresholds and its decision exactly; only the pause it used to write inline is now the call.
 create or replace function public.fn_invite_same_day_brake()
 returns trigger
 language plpgsql
@@ -137,7 +158,7 @@ declare
   v_cr_max numeric := coalesce((c->>'pause_complaint_rate')::numeric, 0.003);
   v_c_min  int     := coalesce((c->>'same_day_pause_min_complaints')::int, 1);
   v_day date := (now() at time zone 'Asia/Dubai')::date;
-  v_sent int; v_b int; v_c int; v_why text; v_cancelled int;
+  v_sent int; v_b int; v_c int; v_why text;
 begin
   if coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') <> 'true' then
     return null;  -- already stopped; nothing more to stop
@@ -158,14 +179,9 @@ begin
     return null;
   end if;
 
-  v_cancelled := public.fn_invite_campaign_pause('deliverability:supplier_invite',
-    'Supplier invitations auto-paused: ' || v_why,
-    jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'bounced', v_b, 'complained', v_c));
-
-  insert into agent_runs(agent, status, counts, note, finished_at)
-  values ('invite_same_day_brake', 'error',
-          jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c, 'cancelled_queued', v_cancelled),
-          'PAUSED: ' || v_why || '; invite_enabled=false, ' || v_cancelled || ' queued invitation(s) cancelled, it_engineer finding opened.', now());
+  perform public.fn_invite_campaign_pause('invite_same_day_brake', v_why,
+    jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'bounced', v_b, 'complained', v_c),
+    jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
   return null;
 end
 $fn$;
@@ -217,7 +233,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   r public.invite_placement_check;
-  v text; v_sent_g text; v_sent_o text; v_title text; v_ev jsonb; v_cancelled int;
+  v text; v_sent_g text; v_sent_o text; v_why text; v_title text; v_ev jsonb; v_pause jsonb;
   v_key constant text := 'deliverability:inbox_placement';
 begin
   select * into r from public.invite_placement_check where dubai_day = p_day for update;
@@ -246,21 +262,29 @@ begin
     return v;
   end if;
 
-  v_title := 'Supplier invitations paused: the seed of ' || p_day || ' '
+  v_why := 'the inbox placement seed of ' || p_day || ' '
     || case v when 'spam' then 'landed in spam/junk'
               when 'elsewhere' then 'did not land in the Inbox'
               when 'not_sent' then 'was not sent before the batch window'
               when 'unread' then 'could not be read back from a seed mailbox'
               else 'was not found in a seed mailbox' end
     || ' (Gmail ' || coalesce(r.gmail_folder, 'unread') || ', Outlook ' || coalesce(r.outlook_folder, 'unread') || ')';
+  v_title := 'Supplier invitations held: ' || v_why;
   v_ev := jsonb_build_object('dubai_day', p_day, 'token', r.token, 'from', r.from_address, 'subject', r.subject,
             'verdict', v, 'gmail', jsonb_build_object('to', r.gmail_to, 'folder', r.gmail_folder, 'detail', r.gmail_detail,
                                                       'notification_id', r.gmail_notification_id, 'status', v_sent_g),
             'outlook', jsonb_build_object('to', r.outlook_to, 'folder', r.outlook_folder, 'detail', r.outlook_detail,
                                           'notification_id', r.outlook_notification_id, 'status', v_sent_o),
             'reads', r.reads);
-  v_cancelled := public.fn_invite_campaign_pause(v_key, v_title, v_ev);
-  update public.invite_placement_check set verdict = v, decided_at = p_now, paused = true where dubai_day = p_day;
+  -- THE ONE PAUSE (PR #961's fn_invite_campaign_pause, 4 arguments). Only a RUNNING campaign is paused, as #961
+  -- does: stopping a stopped one would only write an error run and rewrite the #943 finding. The day is held by the
+  -- gate either way, and the it_engineer finding below is filed either way.
+  if coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true' then
+    v_pause := public.fn_invite_campaign_pause('it_engineer_inbox_placement', v_why, v_ev,
+      jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v,
+                         'gmail', r.gmail_folder, 'outlook', r.outlook_folder));
+  end if;
+  update public.invite_placement_check set verdict = v, decided_at = p_now, paused = (v_pause is not null) where dubai_day = p_day;
   perform public.fn_it_engineer_finding_upsert(v_key, v_title,
     'supplier invitation inbox placement: the daily seed to the Gmail and Microsoft 365 seed inboxes',
     'customer_facing', 1, v_ev,
@@ -269,10 +293,12 @@ begin
            when 'not_sent' then array['why send_outbox did not send the seed before the window (email_enabled, supplier_emails_enabled, the daily cap)']
            else array['which content, sender or domain signal the mailbox provider acted on'] end,
     'it_engineer');
-  insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
-  values ('it_engineer', 'error', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v,
-            'cancelled_queued', v_cancelled),
-          'PAUSED: ' || v_title || '; invite_enabled=false, finding ' || v_key || ' filed.', now(), now());
+  if v_pause is null then
+    -- The pause writes its own agent_runs row; a day held without a pause is recorded here.
+    insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false),
+            'HELD: ' || v_why || '; the campaign was already off, finding ' || v_key || ' filed.', now(), now());
+  end if;
   return v;
 end
 $fn$;
@@ -641,12 +667,3 @@ begin
 end;
 $fn$;
 revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;
-
--- ── 9. the schedule: the heartbeat, not pg_cron ─────────────────────────────────────────────────────────
-insert into public.resilience_step (step, every, budget_ms, place, rank, note, owner_seat) values
-  ('inboxPlacement', interval '15 min', 9000, 'plan', 0,
-   'it_engineer: the daily seed invitation to the Gmail and Microsoft 365 seed inboxes (05:15 UTC on a sending day), its folder read back through the Gmail API and Microsoft Graph, and the verdict that gates the 06:00 UTC batch (fn_invite_placement_due / _record). Outside 05:15-06:00 UTC a tick is one indexed read.',
-   'it_engineer')
-on conflict (step) do update
-   set every = excluded.every, budget_ms = excluded.budget_ms, place = excluded.place, rank = excluded.rank,
-       note = excluded.note, owner_seat = excluded.owner_seat;

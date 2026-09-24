@@ -21,7 +21,7 @@
 //   node --test scripts/checks/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -44,7 +44,7 @@ function body(name) {
 }
 
 const ROUTINES = {
-  fn_invite_campaign_pause: 'text, text, jsonb',
+  fn_invite_campaign_pause: 'text, text, jsonb, jsonb',
   fn_invite_same_day_brake: '',
   fn_invite_placement_deadline: 'date',
   fn_invite_placement_day_closed: 'timestamptz',
@@ -92,13 +92,13 @@ test('a failed check pauses through the one shared pause and files the it_engine
   assert.match(pause, /insert into it_watch_finding/);
   assert.doesNotMatch(pause, /value = 'true'/, 'the pause can switch the campaign ON');
   const settle = body('fn_invite_placement_settle');
-  assert.match(settle, /public\.fn_invite_campaign_pause\(v_key,/);
+  assert.match(settle, /public\.fn_invite_campaign_pause\('it_engineer_inbox_placement', v_why, v_ev,/);
   assert.match(settle, /public\.fn_it_engineer_finding_upsert\(v_key,/);
   assert.match(settle, /v_key constant text := 'deliverability:inbox_placement'/);
   assert.match(settle, /if 'spam' in \(r\.gmail_folder, r\.outlook_folder\) then v := 'spam'/);
   assert.match(settle, /elsif r\.gmail_folder = 'inbox' and r\.outlook_folder = 'inbox' then v := 'inbox'/, 'inbox must need BOTH seeds in the Inbox');
   const brake = body('fn_invite_same_day_brake');
-  assert.match(brake, /public\.fn_invite_campaign_pause\('deliverability:supplier_invite',/);
+  assert.match(brake, /public\.fn_invite_campaign_pause\('invite_same_day_brake', v_why,/);
   assert.doesNotMatch(brake, /update app_secrets set value/, 'the brake pauses on its own again: two pause paths');
   assert.doesNotMatch(SQL, /set value = 'true'/, 'this file switches a campaign gate on');
 });
@@ -127,14 +127,49 @@ test('the batch fails closed: the gate, the tick and the enqueue', () => {
   assert.match(record, /case when v_g is null or/, 'a failed reading can overwrite a found folder');
 });
 
-test('the schedule is the heartbeat: the step, its row, no pg_cron; pending XOR MANIFEST', () => {
+test('the schedule is the heartbeat inside an existing 15-minute step: no new step, no row, no pg_cron; pending XOR MANIFEST', () => {
+  // every_tick_step_is_scheduled.mjs compares STEP_RUN with production's resilience_step rows; a new step would be
+  // red until this file is applied, so the check rides on itintegrations (every 15 min), as #961 rides on itlater.
+  const fnStart = PING.indexOf('async function itIntegrationsTick()');
+  assert.ok(fnStart > 0, 'itIntegrationsTick is gone');
+  assert.match(PING.slice(fnStart, PING.indexOf('\n}\n', fnStart)), /await inboxPlacement\(\)/, 'itintegrations no longer runs the placement check');
+  assert.match(PING.slice(PING.indexOf('async function inboxPlacement()'), fnStart), /placementTick\(/);
   const open = PING.indexOf("const STEP_RUN: Record<string, Omit<Step, 'name'>> = {");
-  assert.match(PING.slice(open, PING.indexOf('\n};', open)), /^\s{2}inboxPlacement:\s*\{\s*run:\s*inboxPlacementTick\s*\}/m);
-  assert.match(PING, /placementTick\(/);
-  assert.match(SQL, /\('inboxPlacement', interval '15 min', \d+, 'plan', 0,[\s\S]*?'it_engineer'\)/, 'the resilience_step row is not seeded for it_engineer');
+  assert.doesNotMatch(PING.slice(open, PING.indexOf('\n};', open)), /inboxPlacement/, 'a new STEP_RUN entry needs a resilience_step row first');
+  assert.doesNotMatch(SQL, /resilience_step/, 'this file seeds a resilience_step row the deployed code may not have');
+  assert.match(TS, /SCHEMA_MISSING\.has\(String\(error\.code\)\)\) return \{ ok: true, skipped: 'schema not applied'/, 'deployed before the apply, the step would fail every beat');
   assert.doesNotMatch(SQL, /cron\.schedule/, 'pg_cron holds one inactive job on this project; a schedule there never fires');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
   assert.ok(pending(FILE) !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
+});
+
+// PR #961 owns the pause: fn_invite_campaign_pause(source, why, evidence, counts) and the brake that calls it. Both
+// files carry the two blocks, so they must be identical or the one applied second silently rewrites the other.
+const PM = 'scripts/sql/the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql';
+export function block(text, name) {
+  const open = text.indexOf(`create or replace function public.${name}(`);
+  if (open < 0) return null;
+  let end = text.indexOf('\n', text.indexOf(`revoke execute on function public.${name}(`, open));
+  if (text.startsWith(`grant execute on function public.${name}(`, end + 1)) end = text.indexOf('\n', end + 1);
+  return text.slice(open, end);
+}
+
+test('the pause and the brake are byte-identical to PR #961 whenever both files are in the tree', { skip: existsSync(join(REPO, PM)) ? false : 'PR #961 not in this tree' }, () => {
+  const mine = read(FILE), theirs = read(PM);
+  for (const fn of ['fn_invite_campaign_pause', 'fn_invite_same_day_brake']) {
+    const a = block(mine, fn), b = block(theirs, fn);
+    assert.ok(a && b, `${fn} is missing from one of the two files`);
+    assert.equal(a, b, `${fn} differs from PR #961: whichever applies second would rewrite the other`);
+  }
+});
+
+test('no three-argument fn_invite_campaign_pause is defined anywhere', () => {
+  const three = /function public\.fn_invite_campaign_pause\(\s*(?:[a-z_]+\s+)?text\s*,\s*(?:[a-z_]+\s+)?text\s*,\s*(?:[a-z_]+\s+)?jsonb\s*\)/i;
+  const bad = readdirSync(join(REPO, 'scripts/sql')).filter((f) => f.endsWith('.sql')).filter((f) => three.test(code(read('scripts/sql/' + f))));
+  assert.deepEqual(bad, [], 'a second overload of the pause: the 4-argument one of PR #961 is the only one');
+  const sigs = [...SQL.matchAll(/function public\.fn_invite_campaign_pause\(([^)]*)\)/g)].map((m) => m[1].replace(/\s+/g, ' ').trim());
+  assert.ok(sigs.length >= 2);
+  for (const g of sigs) assert.ok(/^(p_source text, p_why text, p_evidence jsonb, p_counts jsonb|text, text, jsonb, jsonb)$/.test(g), `unexpected signature ${g}`);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
