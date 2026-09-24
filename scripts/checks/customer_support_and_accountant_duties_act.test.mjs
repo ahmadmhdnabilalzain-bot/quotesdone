@@ -172,7 +172,7 @@ begin
      'overdue_after', (select count(*) from it_engineer_finding where issue_key = 'dispute_decision_overdue:' || d and closed_at is null));
   o := o || jsonb_build_object('msgs', (select jsonb_agg(stage || '/' || outcome order by stage, subject_key) from customer_support_duty_message));
   o := o || jsonb_build_object('notes', (select jsonb_agg(type || '/' || coalesce(lang, '?') order by type, lang) from notifications where to_email like 'zz.duty.%'));
-  o := o || jsonb_build_object('duties', (select jsonb_agg(duty order by duty) from seat_duty where owner_seat in ('customer_support', 'accountant')));
+  o := o || jsonb_build_object('duties', (select jsonb_agg(duty order by duty) from seat_duty where owner_file in ('scripts/sql/customer_support_activates_wins_back_and_settles_disputes.sql', 'scripts/sql/the_accountant_watches_for_fee_circumvention_and_rescreens_sanctions.sql')));
   raise exception 'CHK<<%>>', o::text;
 end $$;
 `;

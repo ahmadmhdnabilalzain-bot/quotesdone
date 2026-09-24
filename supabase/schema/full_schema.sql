@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T15:12:00.660Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T15:24:33.265Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (636) =====
+-- ===== TABLES (637) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -7791,6 +7791,17 @@ CREATE TABLE IF NOT EXISTS public.subcategory_agent_map (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_beneficial_owner (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  lead_id bigint NOT NULL,
+  full_name text NOT NULL,
+  nationality text,
+  share_pct numeric,
+  source text NOT NULL,
+  declared_at timestamp with time zone DEFAULT now() NOT NULL,
+  verified_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_campaign_daily_list (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   list_day date NOT NULL,
@@ -9399,6 +9410,7 @@ ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_pkey PRIMARY KEY
 ALTER TABLE public.stripe_events ADD CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id);
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_pkey PRIMARY KEY (id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_pkey PRIMARY KEY (sub_slug);
+ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_campaign_daily_list ADD CONSTRAINT supplier_campaign_daily_list_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_pkey PRIMARY KEY (supplier_id);
 ALTER TABLE public.supplier_capability_confirmation ADD CONSTRAINT supplier_capability_confirmation_pkey PRIMARY KEY (id);
@@ -10281,6 +10293,9 @@ ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
+ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_full_name_check CHECK ((btrim(full_name) <> ''::text));
+ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_share_pct_check CHECK (((share_pct IS NULL) OR ((share_pct > (0)::numeric) AND (share_pct <= (100)::numeric))));
+ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_source_check CHECK ((source = ANY (ARRAY['trade_licence'::text, 'supplier_declared'::text, 'registry'::text])));
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_check CHECK (((status = 'needs_reasoning'::text) OR ((manufacturing IS NOT NULL) AND (installation IS NOT NULL) AND (maintenance IS NOT NULL) AND (design IS NOT NULL))));
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_status_check CHECK ((status = ANY (ARRAY['reasoned'::text, 'needs_reasoning'::text])));
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_summary_md5_check CHECK ((summary_md5 ~ '^[0-9a-f]{32}$'::text));
@@ -10638,6 +10653,7 @@ ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_bank_line_fk FOREIGN KEY (bank_line_id) REFERENCES bank_statement_line(id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
+ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
@@ -11144,6 +11160,7 @@ CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer US
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
 CREATE INDEX spec_backlog_status_idx ON public.spec_backlog USING btree (status, priority);
 CREATE INDEX subcategory_agent_map_agent_idx ON public.subcategory_agent_map USING btree (agent_slug);
+CREATE UNIQUE INDEX supplier_beneficial_owner_once ON public.supplier_beneficial_owner USING btree (lead_id, lower(btrim(full_name)));
 CREATE INDEX supplier_collaboration_event_by_lead ON public.supplier_collaboration_event USING btree (lead_id, created_at);
 CREATE INDEX supplier_document_cache_supplier_time_idx ON public.supplier_document_cache USING btree (supplier_id, created_at);
 CREATE UNIQUE INDEX supplier_dues_stripe_session_key ON public.supplier_dues USING btree (stripe_session_id) WHERE (stripe_session_id IS NOT NULL);
@@ -19086,6 +19103,65 @@ begin
 
   return jsonb_build_object('as_of', v_as_of, 'position', v_pos, 'ceo_reports', n_rep, 'first_notices', v_run,
     'renewal_reminders', n_renew, 'dunning', n_dun, 'findings', public.fn_accountant_duty_settle('subscriptions', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_ubo_rescreen()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_runs bigint[]; v_owners int; v_new int := 0; v_missing int; v_stale int; v_screen jsonb; h record;
+begin
+  select array_agg(id order by id) into v_runs
+    from (select distinct on (source) id from public.screening_run where status = 'ok'
+           order by source, fetched_at desc, id desc) x;
+  if v_runs is null then raise exception 'no sanctions list has ever been fetched successfully (screening_run has no ok row)'; end if;
+
+  -- the suppliers in scope are exactly the ones fn_supplier_sanctions_screen screens (same demo split)
+  create temp table if not exists tmp_ubo_scope (lead_id bigint primary key) on commit drop;
+  truncate tmp_ubo_scope;
+  insert into tmp_ubo_scope
+  select l.id from public.leads l
+   where (l.lifecycle_stage = 'registered' or l.approval_status = 'approved')
+     and case when v_fx then l.company_name like 'ZZ DEMO — %'
+              else coalesce(l.company_name, '') not like 'ZZ DEMO — %' and coalesce(l.email, '') not ilike '%@example.invalid' end;
+
+  select count(*) into v_owners from public.supplier_beneficial_owner o join tmp_ubo_scope s on s.lead_id = o.lead_id;
+
+  for h in
+    select o.lead_id, o.full_name, e.id as entry_id, e.run_id, e.name, e.source, coalesce(e.reference, '') as reference, e.entry_type,
+           case when x.norm = e.name_norm then 'exact' else 'token_overlap' end as kind,
+           case when x.norm = e.name_norm then 1.0
+                else round(least(cardinality(x.toks), cardinality(e.tokens))::numeric / greatest(cardinality(x.toks), cardinality(e.tokens), 1), 2) end as score
+      from public.supplier_beneficial_owner o
+      join tmp_ubo_scope s on s.lead_id = o.lead_id
+      cross join lateral (select public.fn_screening_normalise(o.full_name) as norm, public.fn_screening_tokens(o.full_name) as toks) x
+      join public.screening_entry e
+        on e.run_id = any(v_runs)
+       and ((x.norm = e.name_norm and length(x.norm) >= 6)
+         or (cardinality(x.toks) >= 2 and cardinality(e.tokens) >= 2 and (x.toks <@ e.tokens or e.tokens <@ x.toks)))
+  loop
+    insert into public.supplier_screening_hit (run_id, lead_id, field, supplier_value, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
+    values (h.run_id, h.lead_id, 'beneficial_owner', h.full_name, h.entry_id, h.name, h.source, h.reference, h.entry_type, h.kind, h.score)
+    on conflict (lead_id, entry_source, entry_reference, field) do nothing;
+    if found then v_new := v_new + 1; end if;
+  end loop;
+
+  -- the existing screen files the CEO decision and the sales_engineer hold for every open hit of these runs
+  v_screen := public.fn_accountant_sanctions_rescreen();
+
+  select count(*) filter (where not exists (select 1 from public.supplier_beneficial_owner o where o.lead_id = s.lead_id)),
+         count(*) filter (where exists (select 1 from public.supplier_beneficial_owner o where o.lead_id = s.lead_id
+                                          and coalesce(o.verified_at, o.declared_at) < now() - interval '365 days'))
+    into v_missing, v_stale from tmp_ubo_scope s;
+
+  return jsonb_build_object('owners_screened', v_owners, 'owner_hits_new', v_new,
+    'suppliers_without_owner_on_record', v_missing, 'suppliers_with_owner_unverified_a_year', v_stale,
+    'screen', v_screen - 'sources' - 'runs' - 'oldest_list');
 end $function$
 
 
@@ -66148,6 +66224,24 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_beneficial_owner_record(p_lead_id bigint, p_full_name text, p_source text, p_nationality text DEFAULT NULL::text, p_share_pct numeric DEFAULT NULL::numeric)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.supplier_beneficial_owner as o (lead_id, full_name, source, nationality, share_pct, verified_at)
+  values (p_lead_id, btrim(p_full_name), p_source, nullif(btrim(p_nationality), ''), p_share_pct, now())
+  on conflict (lead_id, lower(btrim(full_name))) do update
+     set source = excluded.source, nationality = coalesce(excluded.nationality, o.nationality),
+         share_pct = coalesce(excluded.share_pct, o.share_pct), verified_at = now()
+  returning o.id into v_id;
+  return v_id;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_campaign_day_counts(p_day date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE sql
@@ -80647,6 +80741,7 @@ ALTER TABLE public.stripe_dispute ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_payout ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subcategory_agent_map ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_beneficial_owner ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_campaign_daily_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capability_confirmation ENABLE ROW LEVEL SECURITY;
@@ -80899,6 +80994,7 @@ CREATE POLICY social_reply_library_service_role_only ON public.social_reply_libr
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_beneficial_owner_service_role_only ON public.supplier_beneficial_owner AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_campaign_daily_list_service_role_only ON public.supplier_campaign_daily_list AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_capability_reading_service_role_only ON public.supplier_capability_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
