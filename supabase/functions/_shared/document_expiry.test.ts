@@ -98,3 +98,30 @@ Deno.test('readLicenceName: reads the name off a text-layer licence PDF, null fo
   assertEquals(await readLicenceName(await pdf(['Legal Name : ZZ Demo Works L.L.C', 'Expiry Date : 13/03/2027'], true), 'application/pdf'), 'ZZ Demo Works L.L.C');
   assertEquals(await readLicenceName(new Uint8Array([0xff, 0xd8]), 'image/jpeg'), null);
 });
+
+// A SCANNED LICENCE STILL YIELDS ITS NAME (24 Sep 2026, sales_engineer): code reads no name off an image, so the
+// stored scan goes to the vision model; a low-confidence read is not a name (the review then holds it).
+import { licenceModelPayload, licenceNameFromModel } from './document_expiry.ts';
+
+Deno.test('a scanned licence (image, no text layer) is sent from storage to the model when code read no name', async () => {
+  const jpg = { bytes: new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]), mime: 'image/jpeg' };
+  assertEquals(await readLicenceName(jpg.bytes, jpg.mime), null);
+  const p = licenceModelPayload({}, jpg, null);
+  assertEquals(p?.images.length, 1);
+  assertEquals((p?.images[0] as { b64: string; mime: string }).mime, 'image/jpeg');
+  assertEquals((p?.images[0] as { b64: string }).b64, btoa(String.fromCharCode(...jpg.bytes)));
+  const pdf = licenceModelPayload({}, { bytes: new Uint8Array([37, 80, 68, 70]), mime: 'application/pdf' }, null);
+  assertEquals(pdf?.file_b64, btoa('%PDF'));
+  // Code already read the name, or nothing is stored: nothing to send. What the request carried always goes.
+  assertEquals(licenceModelPayload({}, jpg, 'Al Meydan LLC'), null);
+  assertEquals(licenceModelPayload({}, null, null), null);
+  assertEquals(licenceModelPayload({ file_b64: 'QQ==', mime: 'image/png' }, jpg, 'x')?.file_b64, 'QQ==');
+});
+
+Deno.test('the model name counts only when confident and a real name', () => {
+  assertEquals(licenceNameFromModel({ legal_name: ' Al Meydan Aluminium LLC ', confidence: 'high' }), 'Al Meydan Aluminium LLC');
+  assertEquals(licenceNameFromModel({ legal_name: 'الميدان للألمنيوم', confidence: 'medium' }), 'الميدان للألمنيوم');
+  assertEquals(licenceNameFromModel({ legal_name: 'Al Meydan LLC', confidence: 'low' }), null);
+  assertEquals(licenceNameFromModel({ legal_name: '', confidence: 'high' }), null);
+  assertEquals(licenceNameFromModel(null), null);
+});
