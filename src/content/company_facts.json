@@ -1,6 +1,6 @@
 {
   "_about": "THE ONE SOURCE OF TRUTH for every company figure a customer, supplier or seat can read: fees, penalties, rates. Founder rule (C), 23 Sep 2026: a change to company knowledge reaches every place at once. Change a value HERE, then run `node scripts/legal/sync_company_facts.mjs --write-repo` (rewrites the website texts) and `--emit-sql <file>` (the production knowledge, the signed registry and the seats' policy keys, one transaction). `scripts/checks/company_facts_agree_everywhere.test.mjs` fails CI if any repository surface states a different figure; `sync_company_facts.mjs --probe` does the same against production. Each fact's `basis` is the INTERNAL legal annex: the article relied on and why the figure is the safe maximum. It is never rendered on a public page.",
-  "version": "2026-09-24.1",
+  "version": "2026-09-24.2",
   "documents": {
     "terms": {
       "version": "v9",
@@ -20,8 +20,8 @@
       }
     },
     "supplier-agreement": {
-      "version": "v13",
-      "date": "2026-09-23",
+      "version": "v14",
+      "date": "2026-09-24",
       "registry_slug": "supplier-agreement",
       "page_slug": "legal_supplier_body",
       "secrets": {
@@ -43,8 +43,8 @@
       "date": "2026-09-23"
     },
     "refund-policy": {
-      "version": "1.7",
-      "date": "2026-09-23"
+      "version": "1.8",
+      "date": "2026-09-24"
     },
     "cookie-policy": {
       "version": "1.4",
@@ -159,7 +159,7 @@
       "unit": "AED",
       "was": 250,
       "founder": "Founder 6 Sep 2026: 'refund admin fee is 250 AED dont remove it'; founder 23 Sep 2026 (instruction B): set it at the maximum the law safely allows.",
-      "basis": "Art. 340(1) agreed compensation for QuotesDone's cost of the refund a silent supplier causes: the day-3 chase, the CEO's day-5 final call, the refund processing and the recovery notice (an estimate of staff time and handling, not a measured cost). Applies only to a supplier who had accepted v13 before the reveal; everyone else owes the AED 250 of the version they signed (never retroactive): fn_accountant_nonresponse_charge and supplier_charge.ts adminFeeAed() choose by accepted version and acceptance time.",
+      "basis": "Art. 340(1) agreed compensation for QuotesDone's cost of HANDLING the refund a silent supplier causes: the day-3 chase, the CEO's day-5 final call, the refund processing and the recovery notice (an estimate of seat time and handling, not a measured cost). Kept at AED 500 in v14, not raised: the one material cash cost (the processor fee Stripe keeps on a refunded payment) is now charged at its recorded amount under clause 33(b), and a higher fixed fee with no cost behind it is exactly what Art. 340(2) lets the supplier have reduced (docs/legal/NONRESPONSE_MAX_V14.md section 3). Applies to a supplier who had accepted v13 or later before the reveal; everyone else owes the AED 250 of the version they signed (never retroactive): fn_accountant_nonresponse_charge and supplier_charge.ts termsAt() choose by accepted version and acceptance time.",
       "db": [
         {
           "table": "decision_policy",
@@ -189,18 +189,20 @@
       }
     },
     "late_interest_pct_pa": {
-      "value": 9,
+      "value": 12,
       "unit": "% per annum, simple",
-      "basis": "Commercial Transactions Law, Federal Decree-Law 50/2022: where no rate is agreed the legal rate is capped at 9%; Art. 88 prohibits compound interest (void). 9% simple is kept as the SAFE maximum: an agreed rate above the statutory figure invites reduction and the founder's ruling of 6 Sep 2026 fixes 9% a year. Never compounded; the clause says so.",
+      "basis": "Commercial Transactions Law, Federal Decree-Law 50/2022, read on the official u.ae text 24 Sep 2026: Art. 72 applies the contract rate and caps only the NO-agreement market rate at 9%; Art. 73 delay interest runs at the agreed rate; Art. 84 applies it to a certain sum of money unless otherwise agreed; Art. 85 no proof of damage; Art. 86 from maturity; Art. 88 no compound interest. No ceiling on an agreed rate appears in Arts. 69-92. 12% simple is the agreed rate chosen as the SAFE maximum: above the 9% fallback, at a level that is not a penalty a court would cut under Civil Transactions Law 25/2025 Art. 340(2) if it treated delay interest as compensation (the supplier would carry the burden, and the fallback is 9%, never zero). Supplier Agreement v14 clauses 31 and 33(d). Reasoning: docs/legal/NONRESPONSE_MAX_V14.md.",
       "db": [
         {
           "table": "decision_policy",
-          "key": "refund_late_fee_annual_pct"
+          "key": "refund_late_fee_annual_pct",
+          "note": "what the seats and the customer texts state (the current version's rate)"
         },
         {
           "table": "decision_policy",
-          "key": "supplier_charge_max_lawful_apr",
-          "scale": 0.01
+          "key": "supplier_nonresponse_interest_apr_from_v14",
+          "scale": 0.01,
+          "note": "what fn_accountant_nonresponse_charge charges a supplier who accepted v14 or later before the reveal"
         }
       ],
       "patterns": [
@@ -214,7 +216,13 @@
         "بسعر البند 31 البالغ [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا",
         "بواقع [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا",
         "فائدة بسيطة بنسبة [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا"
-      ]
+      ],
+      "was": 9,
+      "founder": "Founder 6 and 14 Sep 2026: '9% yearly interest as per UAE law' (instructions 2, 90, 179); founder 24 Sep 2026 (instruction 990): collect the maximum UAE law safely allows, interest included. The 9% was his reading of the law, which on the primary text is the NO-agreement ceiling only.",
+      "legacy": {
+        "value": 9,
+        "applies_to": "a supplier whose accepted Supplier Agreement is v13 or earlier, or who accepted v14 only after the reveal: pricing_config.supplier_nonresponse_interest_apr stays 0.09 and decision_policy.supplier_charge_max_lawful_apr stays 0.09 for them; clauses 31 and 33 as that supplier signed them."
+      }
     },
     "business_platform_protection_aed": {
       "value": 20000,
@@ -335,7 +343,8 @@
     "archived_documents": [
       "supplier-agreement-v10",
       "supplier-agreement-v11",
-      "supplier-agreement-v12"
+      "supplier-agreement-v12",
+      "supplier-agreement-v13"
     ],
     "db": [
       {
@@ -387,18 +396,42 @@
   "canonical_statements": {
     "_about": "Where a rule is worded more than one way across the company, the ONE wording. The coordinator asked 23 Sep 2026 to settle the non-response charge, found worded both as \"3% + AED 250 + 9% a year\" and as \"the refunded amount (which includes the 3%) + AED 250 admin fee + 9% a year simple interest\".",
     "nonresponse_charge": {
-      "en": "the exact amount refunded to the customer for that reveal + an AED 500 administrative fee + simple interest at 9% a year on that total from the due date (seven days after QuotesDone's notice), never compounded",
-      "ar": "المبلغ الذي رُدّ إلى العميل عن ذلك الكشف بالضبط + رسم إداري قدره 500 درهم + فائدة بسيطة بنسبة 9% سنويًا على هذا الإجمالي من تاريخ الاستحقاق (بعد سبعة أيام من إشعار QuotesDone)، ولا تُركَّب",
-      "why": "Chosen from the signed text and the code, not by preference. Supplier Agreement clause 33(a) charges \"the exact amount refunded to the Customer, being the reveal fee (3% of the Quotation Value) plus the card processing fee charged on it\"; the customer is refunded both (Terms clause 5), and supplier_charge.ts computeCharge() and fn_accountant_nonresponse_charge() take the base from the refund record (reveal fee + processing fee), add the administrative fee, and charge simple interest on (base + fee). \"3% + AED 250 + 9%\" is WRONG: it drops the card processing fee the supplier does owe and does not say the interest is simple, annual, on the total, from the due date. A supplier on v12 or earlier owes AED 250 in place of AED 500. 24 Sep 2026 (accountant): buyers no longer pay a card processing fee (Cabinet Res. 66/2023 Art. 5(3)), so the refund is the reveal fee alone and the wording no longer names a card fee; the base is still whatever was refunded, which covers a reveal paid before that date. The due date is seven days after the notice, as clause 33 says; fn_accountant_nonresponse_charge now counts from the notice the supplier was actually sent, not from the refund settling.",
+      "en": "the exact amount refunded to the customer for that reveal + the payment processor's fee on it that QuotesDone could not recover + an AED 500 administrative fee + simple interest at 12% a year on that total from the due date (seven days after QuotesDone's notice), never compounded; unpaid, the official recovery fees too",
+      "ar": "المبلغ الذي رُدّ إلى العميل عن ذلك الكشف بالضبط + رسوم مزوّد خدمة الدفع عليه التي لم تستردها QuotesDone + رسم إداري قدره 500 درهم + فائدة بسيطة بنسبة 12% سنويًا على هذا الإجمالي من تاريخ الاستحقاق (بعد سبعة أيام من إشعار QuotesDone)، ولا تُركَّب؛ وإن لم يُسدَّد، فالرسوم الرسمية للتحصيل أيضًا",
+      "why": "CURRENT (Supplier Agreement v14, 24 Sep 2026, ceo): clause 33 charges (a) the exact amount refunded (the reveal fee; no buyer pays a card fee since 24 Sep 2026, Cabinet Res. 66/2023 Art. 5(3)), (b) the processor fee QuotesDone paid on it and could not recover, at its recorded amount, (c) the AED 500 administrative fee, (d) simple interest at the agreed 12% a year on (a)+(b)+(c) from the due date (seven days after the notice), never compounded; unpaid, the official recovery fees at cost; QuotesDone may set off. Each supplier is charged under the version it had accepted at the reveal: v13 = refund + AED 500 + 9%; v12 or earlier = refund (incl. any card fee a pre-24-Sep buyer paid) + AED 250 + 9%. fn_accountant_nonresponse_charge and supplier_charge.ts termsAt() are the one rule. HISTORY: this wording was first settled 23 Sep 2026 when the charge was found worded both as \"3% + AED 250 + 9%\" and as \"refunded amount + AED 250 + 9%\"; the refunded amount then included the card fee.",
       "forbid": [
         {
-          "re": "3\\s?%\\s?\\+\\s?AED\\s?\\d[\\d,]*\\s?\\+\\s?9\\s?%",
+          "re": "3\\s?%\\s?\\+\\s?AED\\s?\\d[\\d,]*\\s?\\+\\s?(?:9|12)\\s?%",
           "why": "drops the card processing fee and does not say simple, annual, on the total, from the due date; rewrite by hand to the one wording"
         },
         {
           "re": "equal to the (?:customer's )?(?:refunded )?reveal fee\b(?! refunded)",
           "fix": "equal to the exact amount refunded to the customer for that reveal",
           "why": "the charge is the whole refund"
+        },
+        {
+          "v14": true,
+          "re": " \\(the 3% reveal fee and the card processing fee\\)",
+          "fix": " (the 3% reveal fee)",
+          "why": "no buyer has paid a card fee since 24 Sep 2026 (Cabinet Res. 66/2023 Art. 5(3)); what is refunded is the reveal fee"
+        },
+        {
+          "v14": true,
+          "re": "\\(?the UAE statutory maximum\\)?|\\(UAE statutory maximum\\)",
+          "fix": "(the rate agreed in Supplier Agreement v14; 9% under v13 or earlier)",
+          "why": "Commercial Transactions Law 50/2022 Art. 72: 9% is the ceiling only where NO rate is agreed; v14 clause 31 agrees 12% (docs/legal/NONRESPONSE_MAX_V14.md)"
+        },
+        {
+          "v14": true,
+          "re": "(exact amount refunded(?:(?!processor)[^.;:])*?)((?:,? plus|,| \\+|,? and)? an? AED 500 administrative fee)",
+          "fix": "$1, the payment processor fee QuotesDone could not recover (from Supplier Agreement v14)$2",
+          "why": "Supplier Agreement v14 clause 33(b): the unrecovered processor fee is part of the charge"
+        },
+        {
+          "v14": true,
+          "re": "(رُدّ(?:(?!مزوّد)[^.؛:])*?بالضبط(?:(?!مزوّد)[^.؛:])*?)(،? و?(?:رسمًا إداريًا|رسم إداري) قدره 500)",
+          "fix": "$1، ورسوم مزوّد خدمة الدفع التي لم تُسترد (من الإصدار v14 من اتفاقية المورّد)$2",
+          "why": "اتفاقية المورّد الإصدار v14 البند 33(ب)"
         }
       ]
     },
