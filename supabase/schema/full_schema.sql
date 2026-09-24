@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T14:22:43.044Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T14:50:40.184Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (635) =====
+-- ===== TABLES (636) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4012,6 +4012,13 @@ CREATE TABLE IF NOT EXISTS public.it_integration_external_cause (
   closed_at timestamp with time zone,
   close_note text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_model_consumer (
+  consumer text NOT NULL,
+  owner_seat text NOT NULL,
+  why_a_model text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_playbook (
@@ -9119,6 +9126,7 @@ ALTER TABLE public.it_founder_decision_class ADD CONSTRAINT it_founder_decision_
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_integration_external_cause ADD CONSTRAINT it_integration_external_cause_pkey PRIMARY KEY (id);
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_pkey PRIMARY KEY (consumer);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
 ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_pkey PRIMARY KEY (queryid);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
@@ -9833,6 +9841,8 @@ ALTER TABLE public.it_engineer_scanner ADD CONSTRAINT it_engineer_scanner_gap_ck
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_kind_check CHECK ((kind = ANY (ARRAY['licence'::text, 'domain'::text, 'tls'::text, 'token'::text])));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_never_expires_ck CHECK ((NOT (never_expires AND (expires_on IS NOT NULL))));
 ALTER TABLE public.it_expiry ADD CONSTRAINT it_expiry_warn_days_ck CHECK (((cardinality(warn_days) > 0) AND (0 < ALL (warn_days))));
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_consumer_check CHECK ((consumer ~ '^[a-z0-9_]+[:.][a-z0-9_]+$'::text));
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_why_a_model_check CHECK ((btrim(why_a_model) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_added_by_check CHECK ((btrim(added_by) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_check CHECK (((COALESCE(btrim(remedy), ''::text) <> ''::text) OR (COALESCE(btrim(not_automatable_reason), ''::text) <> ''::text)));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_failure_class_check CHECK ((failure_class ~ '^[a-z0-9_]+$'::text));
@@ -10509,6 +10519,7 @@ ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_owner_seat_fk FOREIGN KEY (owner_seat) REFERENCES org_agents(agent_key);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_fkey FOREIGN KEY (handoff_id) REFERENCES agent_actions(id);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_playbook_class_fkey FOREIGN KEY (playbook_class) REFERENCES it_playbook(failure_class);
+ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 ALTER TABLE public.kb_operational_alias ADD CONSTRAINT kb_operational_alias_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_operational_route_map ADD CONSTRAINT kb_operational_route_map_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
 ALTER TABLE public.kb_route_scope_trigger ADD CONSTRAINT kb_route_scope_trigger_catalog_num_fkey FOREIGN KEY (catalog_num) REFERENCES kb_operational_route(catalog_num) ON DELETE CASCADE;
@@ -42889,6 +42900,54 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_data_quality()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_items jsonb := '[]'::jsonb; n int; ids jsonb; v_chk record; v_counts jsonb := '{}'::jsonb;
+begin
+  for v_chk in
+    select * from (values
+      ('demo_quote_crosses_real', 'sales_engineer', 'quotes join a ZZ DEMO party to a real one (customer and supplier disagree on demo)',
+       $q$select q.id from public.quotes q join public.inquiries i on i.id = q.inquiry_id
+            join public.customers cu on cu.id = i.customer_id join public.leads l on l.id = q.supplier_id
+          where cu.is_demo is distinct from l.is_demo$q$),
+      ('demo_transaction_crosses_real', 'accountant', 'transactions join a ZZ DEMO party to a real one (customer and supplier disagree on demo)',
+       $q$select t.id from public.transactions t join public.customers cu on cu.id = t.customer_id join public.leads l on l.id = t.supplier_id
+          where cu.is_demo is distinct from l.is_demo$q$),
+      ('orphan_quotes', 'sales_engineer', 'quotes point at an inquiry or a supplier that no longer exists',
+       $q$select q.id from public.quotes q where not exists (select 1 from public.inquiries i where i.id = q.inquiry_id)
+            or (q.supplier_id is not null and not exists (select 1 from public.leads l where l.id = q.supplier_id))$q$),
+      ('orphan_inquiries', 'sales_engineer', 'inquiries point at a customer that no longer exists',
+       $q$select i.id from public.inquiries i where i.customer_id is not null and not exists (select 1 from public.customers c where c.id = i.customer_id)$q$),
+      ('orphan_transactions', 'accountant', 'transactions point at a quote, inquiry, customer or supplier that no longer exists',
+       $q$select t.id from public.transactions t
+          where (t.quote_id is not null and not exists (select 1 from public.quotes q where q.id = t.quote_id))
+             or (t.inquiry_id is not null and not exists (select 1 from public.inquiries i where i.id = t.inquiry_id))
+             or (t.customer_id is not null and not exists (select 1 from public.customers c where c.id = t.customer_id))
+             or (t.supplier_id is not null and not exists (select 1 from public.leads l where l.id = t.supplier_id))$q$),
+      ('transaction_quote_mismatch', 'accountant', 'transactions disagree with the quote they were revealed from (amount, inquiry or supplier)',
+       $q$select t.id from public.transactions t join public.quotes q on q.id = t.quote_id
+          where t.quote_amount is distinct from q.quote_amount or t.inquiry_id is distinct from q.inquiry_id
+             or t.supplier_id is distinct from q.supplier_id$q$)
+    ) v(cls, owner, what, q)
+  loop
+    execute 'select count(*), coalesce(jsonb_agg(id) filter (where rn <= 20), ''[]'') from (select id, row_number() over (order by id) rn from ('
+            || v_chk.q || ') s) z' into n, ids;
+    v_counts := v_counts || jsonb_build_object(v_chk.cls, n);
+    if n > 0 then
+      v_items := v_items || jsonb_build_object('item', v_chk.cls, 'owner_seat', v_chk.owner, 'subject', v_chk.cls, 'affected', n,
+        'blast', case when v_chk.owner = 'accountant' then 'customer_facing' else 'internal' end,
+        'title', n || ' ' || v_chk.what, 'evidence', jsonb_build_object('ids', ids, 'count', n));
+    end if;
+  end loop;
+
+  return jsonb_build_object('counts', v_counts, 'settled', public.fn_it_duty_settle('data_quality', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
  RETURNS jsonb
  LANGUAGE sql
@@ -43157,12 +43216,12 @@ begin
           'The ' || s.seat || ' seat''s knowledge pass rate is ' || round(r30 * 100) || '% over the last 30 days'
             || case when rprev is not null then ' (was ' || round(rprev * 100) || '%)' else '' end,
           'public.seat_knowledge_exam', 'agent_facing', (s.n30 - s.ok30)::int,
-          jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'rate_prev_30d', rprev, 'graded_30d', s.n30, 'owner_seat', s.seat),
+          jsonb_build_object('seat', s.seat, 'rate_30d', r30, 'rate_prev_30d', rprev, 'graded_30d', s.n30, 'owner_seat', 'ceo'),
           '{}'::text[], array['which items it answered wrong and why'], 'it_engineer');
-        perform public.fn_seat_handoff('it_engineer', s.seat, 'it.finding', 'seat_knowledge_exam',
+        perform public.fn_seat_handoff('it_engineer', 'ceo', 'it.finding', 'seat_knowledge_exam',
           'knowledge_pass_rate:' || s.seat || ':' || to_char(now(), 'IYYY-IW'),
           jsonb_build_object('duty', 'knowledge_pass_rate', 'issue_key', 'knowledge_pass_rate:' || s.seat, 'subject', s.seat || ' knowledge',
-                             'title', 'Your knowledge pass rate dropped to ' || round(r30 * 100) || '%; the items you missed are filed for re-research'));
+                             'title', 'The ' || replace(s.seat, '_', ' ') || ' seat''s knowledge pass rate dropped to ' || round(r30 * 100) || '%; its missed items are filed for re-research in its queue, and holding the seat to the bar is yours'));
         -- THE SEAT ACTS: every item it missed in the window is re-researched in its own queue.
         for e in select * from public.seat_knowledge_exam
                   where seat = s.seat and verdict in ('wrong', 'partial', 'not_covered') and graded_at > now() - interval '30 days' and refiled_at is null loop
@@ -43359,6 +43418,46 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_slo()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_site numeric; v_site_n int;
+begin
+  for x in
+    select substring(r.agent from 4) fn, max((r.counts->>'budget_ms')::int) budget, count(*) n,
+           percentile_cont(0.95) within group (order by (r.counts->>'ms')::numeric) p95
+      from public.agent_runs r
+     where r.agent like 'fn:%' and r.started_at > now() - interval '24 hours'
+       and r.counts ? 'budget_ms' and r.status = 'ok'
+       and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
+       and coalesce(r.counts->>'region', '') not like 'us-%'
+     group by 1
+  loop
+    v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget);
+    if x.n >= 30 and x.p95 > x.budget then
+      v_items := v_items || jsonb_build_object('item', x.fn, 'subject', x.fn, 'blast', 'customer_facing', 'affected', x.n,
+        'owner_seat', coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer'),
+        'title', x.fn || ' answered in ' || round(x.p95) || ' ms at p95 over the last 24 h (' || x.n || ' runs); the budget is ' || x.budget || ' ms',
+        'evidence', jsonb_build_object('p95_ms', round(x.p95), 'runs', x.n, 'budget_ms', x.budget, 'window', '24 hours'));
+    end if;
+  end loop;
+
+  select percentile_cont(0.95) within group (order by site_ms), count(site_ms) into v_site, v_site_n
+    from public.it_watch_tick where ran_at > now() - interval '24 hours' and site_ms is not null;
+  if v_site_n >= 30 and v_site > 2500 then
+    v_items := v_items || jsonb_build_object('item', 'site_home', 'subject', 'website', 'blast', 'customer_facing', 'owner_seat', 'it_engineer',
+      'title', 'The website home page answered in ' || round(v_site) || ' ms at p95 over the last 24 h; the budget is 2500 ms',
+      'evidence', jsonb_build_object('p95_ms', round(v_site), 'samples', v_site_n));
+  end if;
+
+  return jsonb_build_object('functions', v_out, 'site_p95_ms', round(v_site), 'site_samples', v_site_n,
+                            'settled', public.fn_it_duty_settle('latency_slo', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_licence_expiry_watch()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -43391,6 +43490,125 @@ begin
   end if;
   return jsonb_build_object('renewal_asks', v_asks - 'sample', 'expired_matchable_before', v_before,
                             'paused', v_fix, 'expired_matchable_after', v_after);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_model_spend()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb;
+begin
+  -- a think() surface is listed by construction (it lives in reasoning_held_question); ai_cost_log fn:task_class must be registered
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, count(*) n, max(a.seat) seat from public.ai_cost_log a
+            where a.occurred_at > now() - interval '24 hours' and a.fn is not null
+              and not public.fn_it_model_consumer_listed(a.fn, a.task_class)
+            group by 1 loop
+    v_items := v_items || jsonb_build_object('item', 'unlisted:' || x.k, 'owner_seat', 'ceo', 'subject', x.k, 'blast', 'internal', 'affected', x.n,
+      'title', x.k || ' called a model ' || x.n || ' time(s) in 24 h and is not in the model-consumer inventory (it_model_consumer)',
+      'evidence', jsonb_build_object('calls_24h', x.n, 'seat', x.seat));
+  end loop;
+
+  for x in with h as (select a.fn || ':' || coalesce(a.task_class, 'unclassified') k,
+                             count(*) filter (where a.occurred_at > now() - interval '1 hour') last_hour,
+                             count(*) filter (where a.occurred_at <= now() - interval '1 hour') / 168.0 mean_hour
+                        from public.ai_cost_log a where a.occurred_at > now() - interval '7 days 1 hour' and a.fn is not null group by 1)
+           select h.*, c.owner_seat from h left join public.it_model_consumer c on c.consumer = h.k
+            where h.last_hour > greatest(30, 5 * h.mean_hour) loop
+    v_items := v_items || jsonb_build_object('item', 'runaway:' || x.k, 'owner_seat', coalesce(x.owner_seat, 'ceo'), 'subject', x.k,
+      'blast', 'internal', 'affected', x.last_hour,
+      'title', x.k || ' made ' || x.last_hour || ' model calls in the last hour against a usual ' || round(x.mean_hour, 1) || ' an hour: a loop until shown otherwise',
+      'evidence', jsonb_build_object('last_hour', x.last_hour, 'mean_hour_7d', round(x.mean_hour, 2)));
+  end loop;
+
+  for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, a.cache_hit_key key, count(*) n, max(c.owner_seat) owner_seat
+             from public.ai_cost_log a left join public.it_model_consumer c on c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified')
+            where a.occurred_at > now() - interval '1 hour' and not a.cached and a.cache_hit_key is not null
+            group by 1, 2 having count(*) >= 5 loop
+    v_items := v_items || jsonb_build_object('item', 'repeat:' || x.k || ':' || left(md5(x.key), 12), 'owner_seat', coalesce(x.owner_seat, 'ceo'),
+      'subject', x.k, 'blast', 'internal', 'affected', x.n,
+      'title', x.k || ' paid for the same uncached call ' || x.n || ' times in the last hour',
+      'evidence', jsonb_build_object('cache_hit_key', x.key, 'calls', x.n));
+  end loop;
+
+  return jsonb_build_object('settled', public.fn_it_duty_settle('model_spend', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_postmortem()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; v_inc bigint; p public.it_playbook; v_since timestamptz; n_open int := 0; n_play int := 0; n_asked int := 0;
+        v_hist int; v_late int; v_ids jsonb; v_items jsonb := '[]'::jsonb; f public.it_engineer_finding;
+begin
+  select created_at into v_since from public.seat_duty where duty = 'it_engineer.postmortem';
+  v_since := coalesce(v_since, now());
+
+  for h in
+    select a.* from public.agent_actions a
+     where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done'
+       and a.detail->>'severity' in ('critical', 'high') and coalesce(a.decided_at, a.created_at) >= v_since
+       and not exists (select 1 from public.it_incident i where i.handoff_id = a.id)
+     order by a.id limit 50
+  loop
+    v_inc := public.fn_it_incident_open(h.id);
+    n_open := n_open + 1;
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    update public.it_incident set ended_at = coalesce(ended_at, f.closed_at, h.decided_at, now()),
+           fix = coalesce(fix, 'Closed: ' || coalesce(f.close_note, 'the ' || h.agent || ' answered and the finding cleared')),
+           updated_at = now() where id = v_inc;
+    select * into p from public.it_playbook where (h.detail->>'issue_key') like issue_prefix || '%'
+     order by length(issue_prefix) desc limit 1;
+    if found then
+      update public.it_incident set playbook_class = p.failure_class,
+             cause = coalesce(cause, p.typical_cause, 'Known failure class ' || p.failure_class || ': ' || coalesce(p.remedy, p.not_automatable_reason)),
+             regression_check = coalesce(regression_check, p.regression_check), recorded_by = 'it_engineer.postmortem', updated_at = now()
+       where id = v_inc;
+      n_play := n_play + 1;
+    end if;
+  end loop;
+
+  -- A class the playbook has never seen: its root cause is asked once, three incidents a run, oldest first. Asked from
+  -- the incident (not the pass that opened it) so an incident past one run's cap is asked on the next.
+  for h in
+    select i.id inc_id, a.detail, a.evidence from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+     where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
+       and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+     order by i.id limit 3
+  loop
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+      'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+      jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
+        'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+        'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
+          'finding', to_jsonb(f) - 'evidence')),
+        'subject', jsonb_build_object('incident_id', h.inc_id), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id), 'seat_duty', 'postmortem:' || h.inc_id);
+    n_asked := n_asked + 1;
+  end loop;
+
+  select count(*) into v_hist from public.agent_actions a
+   where a.kind = 'handoff' and a.detail->>'type' = 'it.finding' and a.status = 'done' and a.detail->>'severity' in ('critical', 'high')
+     and not exists (select 1 from public.it_incident i where i.handoff_id = a.id);
+
+  select count(*), coalesce(jsonb_agg(id order by id) filter (where rn <= 20), '[]') into v_late, v_ids
+    from (select i.id, row_number() over (order by i.id) rn from public.it_incident i
+           where i.ended_at < now() - interval '72 hours' and i.created_at >= v_since
+             and (coalesce(btrim(i.cause), '') = '' or coalesce(btrim(i.regression_check), '') = '')) z;
+  if v_late > 0 then
+    v_items := jsonb_build_array(jsonb_build_object('item', 'incomplete', 'owner_seat', 'it_engineer', 'blast', 'internal', 'affected', v_late,
+      'title', v_late || ' closed incident(s) have no root cause or no regression check 72 hours after they closed',
+      'evidence', jsonb_build_object('incident_ids', v_ids)));
+  end if;
+
+  return jsonb_build_object('opened', n_open, 'from_playbook', n_play, 'asked', n_asked,
+                            'historical_without_postmortem', v_hist, 'settled', public.fn_it_duty_settle('postmortem', v_items));
 end $function$
 
 
@@ -44159,6 +44377,41 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_model_consumer_inventory()
+ RETURNS TABLE(consumer text, owner_seat text, listed boolean, why_a_model text, calls_30d bigint, cost_aed_30d numeric, last_call timestamp with time zone, held_waiting bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with seen as (
+    select a.fn || ':' || coalesce(a.task_class, 'unclassified') consumer, count(*) n, sum(coalesce(a.cost_aed, 0)) aed,
+           max(a.occurred_at) last, max(a.seat) seat, bool_and(public.fn_it_model_consumer_listed(a.fn, a.task_class)) listed
+      from public.ai_cost_log a where a.occurred_at > now() - interval '30 days' and a.fn is not null group by 1),
+  held as (
+    select h.surface consumer, count(*) n, max(h.seat) seat from public.reasoning_held_question h
+     where h.applied_at is null and h.status is distinct from 'expired' group by 1),
+  keys as (select c.consumer from public.it_model_consumer c union select consumer from seen union select consumer from held)
+  select k.consumer, coalesce(c.owner_seat, s.seat, h.seat), c.consumer is not null or h.consumer is not null or coalesce(s.listed, false),
+         coalesce(c.why_a_model, case when h.consumer is not null then 'a think() surface: reasoned in its seat''s queue' end),
+         coalesce(s.n, 0), coalesce(s.aed, 0), s.last, coalesce(h.n, 0)
+    from keys k left join public.it_model_consumer c using (consumer) left join seen s using (consumer) left join held h using (consumer)
+   order by coalesce(s.n, 0) + coalesce(h.n, 0) desc, 1;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_model_consumer_listed(p_fn text, p_class text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.it_model_consumer c
+                  where c.consumer = p_fn || ':' || coalesce(p_class, 'unclassified')
+                     or (c.consumer = p_fn || ':think'
+                         and p_class in ('agent_reasoning', 'knowledge_validation', 'customer_communication', 'supplier_communication')))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_open_findings()
  RETURNS SETOF it_engineer_finding
  LANGUAGE sql
@@ -44288,6 +44541,44 @@ AS $function$
      order by length(b.issue_prefix) desc, b.failure_class limit 1) p
    where coalesce(btrim(p.typical_cause), '') <> '';
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_provider_watch(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x jsonb; v_items jsonb := '[]'::jsonb; fw jsonb := coalesce(p_r->'firewall', '{}'::jsonb); v_res jsonb;
+begin
+  for x in select e from jsonb_array_elements(coalesce(p_r->'providers', '[]'::jsonb)) e loop
+    if x->>'basis' = 'unavailable' then
+      v_items := v_items || jsonb_build_object('item', 'unreadable:' || (x->>'provider'), 'config', true, 'owner_seat', 'it_engineer',
+        'title', 'The ' || (x->>'provider') || ' status page could not be read: ' || coalesce(x->>'reason', '?'), 'blast', 'monitor',
+        'subject', x->>'provider', 'evidence', x);
+    elsif x->>'indicator' in ('major', 'critical') then
+      v_items := v_items || jsonb_build_object('item', x->>'provider', 'owner_seat', 'it_engineer', 'subject', x->>'provider',
+        'title', initcap(x->>'provider') || ' reports a ' || (x->>'indicator') || ' incident on its status page: ' || coalesce(x->>'description', ''),
+        'blast', case when x->>'provider' = 'dropbox' then 'internal' else 'customer_facing' end, 'evidence', x);
+    end if;
+  end loop;
+
+  if fw->>'basis' = 'unavailable' or fw->'config'->>'basis' = 'unavailable' then
+    v_items := v_items || jsonb_build_object('item', 'firewall:unreadable', 'config', true, 'owner_seat', 'it_engineer', 'blast', 'monitor',
+      'title', 'The Vercel firewall could not be read: ' || coalesce(fw->>'reason', fw->'config'->>'reason', '?'), 'evidence', fw);
+  elsif (fw->'config'->>'enabled')::boolean is false then
+    v_items := v_items || jsonb_build_object('item', 'firewall:off', 'owner_seat', 'it_engineer', 'blast', 'security',
+      'title', 'The Vercel firewall is switched off for the site', 'evidence', fw);
+  end if;
+  if fw->'attack'->>'basis' = 'measured' and (fw->'attack'->>'under_attack')::boolean then
+    v_items := v_items || jsonb_build_object('item', 'firewall:attack', 'owner_seat', 'it_engineer', 'blast', 'security',
+      'title', 'Vercel reports an active attack on the site', 'evidence', fw);
+  end if;
+
+  v_res := public.fn_it_duty_settle('provider_status', v_items);
+  perform public.fn_it_duty_ran('provider_status', v_res);
+  return v_res;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_refusal_is_policy(p_subject text, p_counts jsonb)
@@ -57021,6 +57312,24 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_refresh
 AS $function$ select public.fn_it_engineer_knowledge_refreshed(p_id, p_result) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__postmortem(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_inc bigint; v_ans text := btrim(coalesce(p_result->>'answer', ''));
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_inc := (r.subject->>'incident_id')::bigint;
+  if v_ans = '' then raise exception 'EMPTY_ANSWER: postmortem question % came back empty', p_id; end if;
+  update public.it_incident set cause = coalesce(nullif(btrim(cause), ''), left(v_ans, 2000)),
+         recorded_by = coalesce(recorded_by, 'it_engineer.postmortem (' || coalesce(p_result->>'model', 'model') || ')'), updated_at = now()
+   where id = v_inc;
+  return jsonb_build_object('applied', found, 'incident_id', v_inc);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__root_cause(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql
@@ -61996,6 +62305,14 @@ begin
   end if;
   raise exception 'no such ladder step %', p_step;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_licence_expiry_watch()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_it_engineer_licence_expiry_watch() $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_raises_undecided_submissions(p_include_fixtures boolean DEFAULT false)
@@ -80057,6 +80374,7 @@ ALTER TABLE public.it_founder_decision_class ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_hold_signature ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_integration_external_cause ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_model_consumer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
@@ -80471,6 +80789,7 @@ CREATE POLICY it_founder_decision_class_service_role_only ON public.it_founder_d
 CREATE POLICY it_hold_signature_service_role_only ON public.it_hold_signature AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_integration_external_cause_service_role_only ON public.it_integration_external_cause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_model_consumer_service_role_only ON public.it_model_consumer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

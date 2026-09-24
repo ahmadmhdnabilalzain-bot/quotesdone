@@ -11,6 +11,7 @@ import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
+import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
@@ -1149,6 +1150,13 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // The sales engineer's daily document duty, on this heartbeat because pg_cron is not coming back:
   // expiry reconcile and final notice, approved suppliers re-verified, 14-day incomplete registrations
   // closed (the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql). Counts only.
+  // Provider status pages and the Vercel firewall (24 Sep 2026, it_engineer; seat audit IT gaps 3 and 5). Measured
+  // here, decided by fn_it_provider_watch, hourly by it_duty_schedule 'provider_status'.
+  await step('provider_status', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('provider_status')) return { due: false };
+    const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
+    return { due: true, failing: r?.failing ?? null };
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
