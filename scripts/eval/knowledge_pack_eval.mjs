@@ -85,8 +85,12 @@ if (mode === 'live') {
   };
   const pending = existsSync(PENDING_NOTE) ? readFileSync(join(REPO, SQL_FILE), 'utf8') + '\n' : '';
   for (const p of packs) {
-    const mine = qs.filter((q) => q.pack === p.key);
-    if (!mine.length) continue;
+    const all = qs.filter((q) => q.pack === p.key);
+    // 24 Sep 2026: a pack with ~130 questions (EN + AR) staged in ONE request hit HTTP 413 (request entity
+    // too large) at the management API. Staged in chunks of 24 questions: each chunk is its own aborted
+    // transaction with the rows its own questions could reach, so the ranking per question is unchanged.
+    for (let c = 0; c < all.length; c += 24) {
+    const mine = all.slice(c, c + 24);
     const stage = new Map();
     for (const q of mine) for (const pool of pools(q.seat)) {
       pool.map((r) => [r, cosine(q.vec, r.vec)]).sort((a, b) => b[1] - a[1]).slice(0, K_RETRIEVE).forEach(([r]) => stage.set(r.record_id, r));
@@ -100,6 +104,7 @@ if (mode === 'live') {
       const m = String(e.message).match(/CHK<<(.*?)>>/s);
       if (!m) throw new Error(`${p.key}: the probe failed before it could report: ${String(e.message).slice(0, 400)}`);
       JSON.parse(m[1]).forEach((h, j) => { mine[j].hits = h; });
+    }
     }
     process.stdout.write(`${p.key} `);
   }

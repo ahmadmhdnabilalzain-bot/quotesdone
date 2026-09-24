@@ -613,8 +613,8 @@
       "id": "customer_support:supplier-non-response",
       "topic": "Supplier non-response after reveal: the 5-working-day rule",
       "kind": "playbook",
-      "body_en": "Under the signed Terms (texts of 14 Sep 2026, superseding earlier wording), a supplier whose details a customer has revealed must respond to that customer within 5 working days of the reveal. This is the most important clock support runs, because a silent supplier after the customer has paid is the fastest way to lose the customer's trust.\n\nThe sequence, exactly:\n1. Day 0: the reveal. Both parties are notified; the supplier receives the customer's details through the platform.\n2. Working day 3: if the supplier has not responded, QuotesDone chases the supplier, with the customer copied, stating the reveal reference, the deadline date and time in UAE time, and that non-response triggers a refund and a charge under the Terms.\n3. Working day 5: the CEO seat makes the final call on the evidence.\n4. If the supplier is still silent, the customer's payment is refunded in full automatically, with no request needed: the 3% fee and the processing charge. The supplier then owes a non-response charge under the Terms (the refunded amount, plus an AED 500 administration fee and 9% a year simple interest).\n\nBefore bidding stage (a different situation): suppliers invited to quote on a request are not charged for declining. A clear decline with a reason (capacity, out of scope, unclear specification) is useful; incomplete quotations are held with notes, never rejected.\n\nIf a supplier disputes the charge, investigate with records: was the reveal notice delivered, was the chaser sent on day 3, did the supplier contact the customer by any channel, was there a platform incident? If our notices failed, recommend reversal to the accountant and CEO seats.\n\nTone: businesslike and non-punitive. \"The customer revealed your quotation for QD-1234 on Monday; the response period ends Monday 13 October, 17:00 UAE time. A short call or message to the customer today closes this.\"",
-      "body_ar": "بموجب الأحكام الموقعة (نصوص 14 سبتمبر 2026 التي حلت محل الصياغات السابقة)، يلتزم المورد الذي كشف العميل عن بياناته بالرد على ذلك العميل خلال 5 أيام عمل من الكشف. وهذه أهم مهلة يتابعها الدعم، لأن صمت المورد بعد أن دفع العميل أسرع طريق لفقدان ثقته.\n\nالتسلسل بدقة:\n1. اليوم صفر: الكشف، ويُبلَّغ الطرفان، ويتلقى المورد بيانات العميل عبر المنصة.\n2. يوم العمل الثالث: إن لم يرد المورد تلاحقه كوتس دن مع إشراك العميل في المراسلة، مع ذكر مرجع الكشف وتاريخ المهلة وساعتها بتوقيت الإمارات، وأن عدم الرد يوجب الاسترداد والرسوم وفق الأحكام.\n3. يوم العمل الخامس: يتخذ الرئيس التنفيذي القرار النهائي بناءً على الأدلة.\n4. إن ظل المورد صامتاً يُرد للعميل كامل ما دفعه تلقائياً دون حاجة إلى طلب، أي رسوم الـ 3% ورسوم المعالجة، ويلتزم المورد برسوم عدم الاستجابة وفق الأحكام (المبلغ المسترد مضافاً إليه 250 درهماً رسوماً إدارية وفائدة بسيطة 9% سنوياً).\n\nقبل مرحلة الكشف (حالة مختلفة): لا يُحمَّل المورد المدعو لتقديم عرض أي رسوم إذا اعتذر. والاعتذار الواضح مع السبب (الطاقة الاستيعابية، خارج النطاق، مواصفات غير واضحة) مفيد، والعروض الناقصة تُعلَّق مع ملاحظات ولا تُرفض.\n\nإذا اعترض المورد على الرسوم نحقق بالسجلات: هل وصل إشعار الكشف؟ هل أُرسلت المتابعة في اليوم الثالث؟ هل تواصل المورد مع العميل بأي وسيلة؟ هل وقع خلل في المنصة؟ فإن أخفقت إشعاراتنا نوصي المحاسب والرئيس التنفيذي بإلغاء الرسوم.\n\nالأسلوب مهني غير عقابي: \"كشف العميل عن عرضكم للطلب QD-1234 يوم الاثنين، وتنتهي مهلة الرد يوم الاثنين 13 أكتوبر الساعة 17:00 بتوقيت الإمارات، ومكالمة أو رسالة قصيرة للعميل اليوم تنهي الأمر.\"",
+      "body_en": "Under the signed Terms (texts of 14 Sep 2026, superseding earlier wording), a supplier whose details a customer has revealed must respond to that customer within 5 working days of the reveal. This is the most important clock support runs, because a silent supplier after the customer has paid is the fastest way to lose the customer's trust.\n\nThe sequence, exactly:\n1. Day 0: the reveal. Both parties are notified; the supplier receives the customer's details through the platform.\n2. Working day 3: if the supplier has not responded, QuotesDone chases the supplier, with the customer copied, stating the reveal reference, the deadline date and time in UAE time, and that non-response triggers a refund and a charge under the Terms.\n3. Working day 5: the CEO seat makes the final call on the evidence.\n4. If the supplier is still silent, the customer's payment is refunded in full automatically, with no request needed: the 3% fee and the processing charge. The supplier then owes a non-response charge under the Terms (the refunded amount, plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 9% a year simple interest).\n\nBefore bidding stage (a different situation): suppliers invited to quote on a request are not charged for declining. A clear decline with a reason (capacity, out of scope, unclear specification) is useful; incomplete quotations are held with notes, never rejected.\n\nIf a supplier disputes the charge, investigate with records: was the reveal notice delivered, was the chaser sent on day 3, did the supplier contact the customer by any channel, was there a platform incident? If our notices failed, recommend reversal to the accountant and CEO seats.\n\nTone: businesslike and non-punitive. \"The customer revealed your quotation for QD-1234 on Monday; the response period ends Monday 13 October, 17:00 UAE time. A short call or message to the customer today closes this.\"",
+      "body_ar": "بموجب الأحكام الموقعة (نصوص 14 سبتمبر 2026 التي حلت محل الصياغات السابقة)، يلتزم المورد الذي كشف العميل عن بياناته بالرد على ذلك العميل خلال 5 أيام عمل من الكشف. وهذه أهم مهلة يتابعها الدعم، لأن صمت المورد بعد أن دفع العميل أسرع طريق لفقدان ثقته.\n\nالتسلسل بدقة:\n1. اليوم صفر: الكشف، ويُبلَّغ الطرفان، ويتلقى المورد بيانات العميل عبر المنصة.\n2. يوم العمل الثالث: إن لم يرد المورد تلاحقه كوتس دن مع إشراك العميل في المراسلة، مع ذكر مرجع الكشف وتاريخ المهلة وساعتها بتوقيت الإمارات، وأن عدم الرد يوجب الاسترداد والرسوم وفق الأحكام.\n3. يوم العمل الخامس: يتخذ الرئيس التنفيذي القرار النهائي بناءً على الأدلة.\n4. إن ظل المورد صامتاً يُرد للعميل كامل ما دفعه تلقائياً دون حاجة إلى طلب، أي رسوم الـ 3% ورسوم المعالجة، ويلتزم المورد برسوم عدم الاستجابة وفق الأحكام (المبلغ المسترد مضافاً إليه رسم إداري قدره 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله من اتفاقية المورد) وفائدة بسيطة 9% سنوياً).\n\nقبل مرحلة الكشف (حالة مختلفة): لا يُحمَّل المورد المدعو لتقديم عرض أي رسوم إذا اعتذر. والاعتذار الواضح مع السبب (الطاقة الاستيعابية، خارج النطاق، مواصفات غير واضحة) مفيد، والعروض الناقصة تُعلَّق مع ملاحظات ولا تُرفض.\n\nإذا اعترض المورد على الرسوم نحقق بالسجلات: هل وصل إشعار الكشف؟ هل أُرسلت المتابعة في اليوم الثالث؟ هل تواصل المورد مع العميل بأي وسيلة؟ هل وقع خلل في المنصة؟ فإن أخفقت إشعاراتنا نوصي المحاسب والرئيس التنفيذي بإلغاء الرسوم.\n\nالأسلوب مهني غير عقابي: \"كشف العميل عن عرضكم للطلب QD-1234 يوم الاثنين، وتنتهي مهلة الرد يوم الاثنين 13 أكتوبر الساعة 17:00 بتوقيت الإمارات، ومكالمة أو رسالة قصيرة للعميل اليوم تنهي الأمر.\"",
       "sources": [
         "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
         "internal:plan/plan.md"
@@ -1117,8 +1117,8 @@
       "id": "customer_support:company-hard-rules-fees-refunds",
       "topic": "Hard rules: the Reveal Fee, refunds and supplier response",
       "kind": "company",
-      "body_en": "These rules come from the signed Terms (texts of 14 Sep 2026, which supersede older wording) and must be stated exactly.\n\nThe Reveal Fee: the customer pays 3% of the value of the quotation they select, calculated on the value before VAT, with no cap, once per reveal, by card or Apple Pay. Card-processing charges are added on top so that QuotesDone nets the full 3%; the breakdown is shown to the customer before they pay. There is no VAT on the Reveal Fee, because QuotesDone is not VAT-registered. Comparing quotations is free; the fee arises only when the customer chooses to reveal a supplier.\n\nSupplier response after reveal: the supplier must respond to the customer within 5 working days of the reveal. QuotesDone chases the supplier at 3 working days with the customer copied. On day 5 the CEO seat makes a final call. If the supplier is still silent, the customer's payment is refunded in full automatically, with no request needed, and the supplier owes a non-response charge under the Terms (the refunded amount plus an AED 500 administration fee and 9% a year simple interest).\n\nRefunds: a refund means everything the customer paid, the 3% and the processing charge; QuotesDone absorbs the processor's fee. The CEO seat approves every refund and verifies each step of the money movement. Support investigates, explains and keeps the customer informed, but never promises a refund before approval, except the automatic non-response refund, which the Terms guarantee.\n\nNever say: that suppliers pay commission (they do not); that VAT is charged on the fee; that a refund needs a form when the supplier did not respond; or any supplier's tax registration number, which is hidden from customers.",
-      "body_ar": "هذه القواعد مأخوذة من الأحكام والشروط الموقعة (نصوص 14 سبتمبر 2026 التي تحل محل الصياغات السابقة) ويجب ذكرها بدقة.\n\nرسوم الكشف: يدفع العميل 3% من قيمة عرض السعر الذي يختاره، محسوبة على القيمة قبل ضريبة القيمة المضافة، دون حد أقصى، مرة واحدة لكل كشف، بالبطاقة أو Apple Pay. وتُضاف رسوم معالجة البطاقة فوقها لتحصل كوتس دن على نسبة الـ 3% كاملة، ويُعرض التفصيل على العميل قبل الدفع. ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف لأن كوتس دن غير مسجلة ضريبياً. ومقارنة العروض مجانية، ولا تُستحق الرسوم إلا عندما يختار العميل الكشف عن مورد.\n\nرد المورد بعد الكشف: على المورد الرد على العميل خلال 5 أيام عمل من الكشف، وتلاحقه كوتس دن في يوم العمل الثالث مع إشراك العميل في المراسلة، ويتخذ الرئيس التنفيذي القرار النهائي في اليوم الخامس. فإن ظل المورد صامتاً يُرد للعميل كامل ما دفعه تلقائياً دون حاجة إلى طلب، ويلتزم المورد برسوم عدم الاستجابة وفق الأحكام (المبلغ المسترد مضافاً إليه رسوم إدارية قدرها 250 درهماً وفائدة بسيطة 9% سنوياً).\n\nالاسترداد: يعني الاسترداد كل ما دفعه العميل، أي الـ 3% ورسوم المعالجة، وتتحمل كوتس دن رسوم جهة الدفع. ويعتمد الرئيس التنفيذي كل عملية استرداد ويتحقق من كل خطوة في حركة المال. ويتولى الدعم التحقيق والشرح وإبقاء العميل على اطلاع، ولا يَعِد باسترداد قبل الاعتماد، باستثناء الاسترداد التلقائي عند عدم استجابة المورد الذي تكفله الأحكام.\n\nلا نقول أبداً: إن الموردين يدفعون عمولة (فهم لا يدفعون)، أو إن ضريبة القيمة المضافة مفروضة على الرسوم، أو إن الاسترداد يحتاج إلى نموذج عند عدم رد المورد، ولا نذكر الرقم الضريبي لأي مورد لأنه محجوب عن العملاء.",
+      "body_en": "These rules come from the signed Terms (texts of 14 Sep 2026, which supersede older wording) and must be stated exactly.\n\nThe Reveal Fee: the customer pays 3% of the value of the quotation they select, calculated on the value before VAT, with no cap, once per reveal, by card or Apple Pay. Card-processing charges are added on top so that QuotesDone nets the full 3%; the breakdown is shown to the customer before they pay. There is no VAT on the Reveal Fee, because QuotesDone is not VAT-registered. Comparing quotations is free; the fee arises only when the customer chooses to reveal a supplier.\n\nSupplier response after reveal: the supplier must respond to the customer within 5 working days of the reveal. QuotesDone chases the supplier at 3 working days with the customer copied. On day 5 the CEO seat makes a final call. If the supplier is still silent, the customer's payment is refunded in full automatically, with no request needed, and the supplier owes a non-response charge under the Terms (the refunded amount plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 9% a year simple interest).\n\nRefunds: a refund means everything the customer paid, the 3% and the processing charge; QuotesDone absorbs the processor's fee. The CEO seat approves every refund and verifies each step of the money movement. Support investigates, explains and keeps the customer informed, but never promises a refund before approval, except the automatic non-response refund, which the Terms guarantee.\n\nNever say: that suppliers pay commission (they do not); that VAT is charged on the fee; that a refund needs a form when the supplier did not respond; or any supplier's tax registration number, which is hidden from customers.",
+      "body_ar": "هذه القواعد مأخوذة من الأحكام والشروط الموقعة (نصوص 14 سبتمبر 2026 التي تحل محل الصياغات السابقة) ويجب ذكرها بدقة.\n\nرسوم الكشف: يدفع العميل 3% من قيمة عرض السعر الذي يختاره، محسوبة على القيمة قبل ضريبة القيمة المضافة، دون حد أقصى، مرة واحدة لكل كشف، بالبطاقة أو Apple Pay. وتُضاف رسوم معالجة البطاقة فوقها لتحصل كوتس دن على نسبة الـ 3% كاملة، ويُعرض التفصيل على العميل قبل الدفع. ولا تُفرض ضريبة القيمة المضافة على رسوم الكشف لأن كوتس دن غير مسجلة ضريبياً. ومقارنة العروض مجانية، ولا تُستحق الرسوم إلا عندما يختار العميل الكشف عن مورد.\n\nرد المورد بعد الكشف: على المورد الرد على العميل خلال 5 أيام عمل من الكشف، وتلاحقه كوتس دن في يوم العمل الثالث مع إشراك العميل في المراسلة، ويتخذ الرئيس التنفيذي القرار النهائي في اليوم الخامس. فإن ظل المورد صامتاً يُرد للعميل كامل ما دفعه تلقائياً دون حاجة إلى طلب، ويلتزم المورد برسوم عدم الاستجابة وفق الأحكام (المبلغ المسترد مضافاً إليه رسم إداري قدره 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله من اتفاقية المورد) وفائدة بسيطة 9% سنوياً).\n\nالاسترداد: يعني الاسترداد كل ما دفعه العميل، أي الـ 3% ورسوم المعالجة، وتتحمل كوتس دن رسوم جهة الدفع. ويعتمد الرئيس التنفيذي كل عملية استرداد ويتحقق من كل خطوة في حركة المال. ويتولى الدعم التحقيق والشرح وإبقاء العميل على اطلاع، ولا يَعِد باسترداد قبل الاعتماد، باستثناء الاسترداد التلقائي عند عدم استجابة المورد الذي تكفله الأحكام.\n\nلا نقول أبداً: إن الموردين يدفعون عمولة (فهم لا يدفعون)، أو إن ضريبة القيمة المضافة مفروضة على الرسوم، أو إن الاسترداد يحتاج إلى نموذج عند عدم رد المورد، ولا نذكر الرقم الضريبي لأي مورد لأنه محجوب عن العملاء.",
       "sources": [
         "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
         "internal:plan/plan.md"
@@ -1191,6 +1191,539 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "customer_support:civil-code-2026-offer-acceptance",
+      "topic": "The new UAE Civil Code (Decree-Law 25/2025): offer, acceptance and negotiation",
+      "kind": "law",
+      "body_en": "The UAE replaced its 1985 Civil Code. Federal Decree-Law No. 25 of 2025 (the new Civil Transactions Law) took effect on 1 June 2026 and repealed Federal Law No. 5 of 1985. Anyone quoting the old article numbers is out of date.\n\nWhat the new code says on forming a contract, per a law-firm commentary (Mayer Brown, June 2026; the primary text was not read in this pass): a contract is formed when an offer meets an acceptance (Article 125); where several offers follow each other, the final offer prevails; a counter-offer is a rejection of the original plus a new offer; an acceptance that arrives after the offer has expired counts only as a new offer (Article 125). An offeror who sets a time limit for acceptance must keep the offer open for it; if no limit is set, it is inferred from the circumstances, the nature of the deal or custom; withdrawing early can make the offeror liable for the other side's actual loss, but not lost profit (Article 130). Negotiations must be in good faith; bad faith creates liability for actual loss (Article 121); information of decisive importance must be disclosed and that duty cannot be excluded (Article 122); confidential information received in negotiation must not be disclosed without authority (Article 123). Ambiguity is read in favour of the party bearing the obligation or the weaker party (Article 120).\n\nWhat support does with this: explain that a quotation on QuotesDone is the supplier's offer, valid for the period the Terms set (30 days), and that a customer asking the supplier to change price or scope is making a counter-offer. Never give a legal opinion on a specific dispute; route that to the CEO seat.",
+      "body_ar": "استبدلت دولة الإمارات قانون المعاملات المدنية الصادر عام 1985، إذ دخل المرسوم بقانون اتحادي رقم (25) لسنة 2025 بإصدار قانون المعاملات المدنية حيز النفاذ في 1 يونيو 2026، وألغى القانون الاتحادي رقم (5) لسنة 1985. ومن يستشهد بأرقام المواد القديمة يستند إلى نص لم يعد سارياً.\n\nوبحسب تعليق قانوني صادر عن مكتب محاماة (يونيو 2026، ولم يُقرأ النص الرسمي في هذه المراجعة): ينعقد العقد بارتباط الإيجاب بالقبول؛ وإذا تتابعت عدة إيجابات فالعبرة بالإيجاب الأخير؛ والرد بإيجاب معدَّل يُعد رفضاً للإيجاب الأول وإيجاباً جديداً؛ والقبول الذي يصل بعد انقضاء مدة الإيجاب لا يُعد إلا إيجاباً جديداً (المادة 125). ومن حدد مدة للقبول التزم بالبقاء على إيجابه طوالها، فإن لم تُحدد مدة استُخلصت من الظروف أو طبيعة المعاملة أو العرف، والعدول المبكر قد يرتب التعويض عن الخسارة الفعلية دون الكسب الفائت (المادة 130). ويجب أن تجري المفاوضات بحسن نية (المادة 121)، مع وجوب الإفصاح عن المعلومات ذات الأهمية الحاسمة (المادة 122)، وعدم إفشاء المعلومات السرية المتلقاة أثناء التفاوض (المادة 123). ويُفسَّر الغموض لصالح الطرف الملتزم أو الطرف الأضعف (المادة 120).\n\nدور الدعم: نوضح أن عرض السعر على كوتس دن هو إيجاب من المورد صالح للمدة المحددة في الشروط (30 يوماً)، وأن طلب العميل تعديل السعر أو النطاق يُعد إيجاباً معدَّلاً. ولا نقدم رأياً قانونياً في نزاع بعينه، بل نحيله إلى مقعد الرئيس التنفيذي.",
+      "sources": [
+        "https://www.mayerbrown.com/en/insights/publications/2026/06/examining-the-new-uae-civil-code-part-3-contract-negotiation-formation-and-interpretation",
+        "https://www.mondaq.com/contracts-and-commercial-law/1804408/examining-the-new-uae-civil-codepart-3-contract-negotiation-formation-and-interpretation"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:quotation-is-an-offer",
+      "topic": "What a quotation is in law and on QuotesDone: validity, changes and acceptance",
+      "kind": "decision_rule",
+      "body_en": "Customers and suppliers often ask whether a quotation 'binds' anyone. The answer support gives, in this order:\n\n1. A quotation on QuotesDone is the supplier's offer to do the stated scope at the stated price. Under the Terms it is valid for 30 days. Under the new Civil Code (Decree-Law 25/2025, in force 1 June 2026) an offeror who fixes a period for acceptance is expected to keep the offer open for that period.\n2. Revealing a supplier is not accepting the quotation. The Reveal Fee buys the supplier's identity and contact details; the contract for the work is made directly between customer and supplier, usually by a purchase order (LPO) or signed agreement. QuotesDone is not a party to that contract.\n3. If the customer asks for a lower price, different scope or longer payment terms, that is a counter-offer; the supplier may accept, refuse or re-quote.\n4. If the customer accepts after the 30 days, the supplier may re-confirm or re-price; an acceptance after expiry is treated as a new offer.\n5. A supplier who wants to change a quotation before reveal edits it through the portal; the change is visible to the customer as a revised quotation, never silently.\n\nNever say: 'the supplier must honour this price' as a legal certainty, or 'this quotation is a contract'. Say: 'the quotation is valid until [date] under our Terms; the contract is agreed between you and the supplier.' Specific enforceability questions go to the CEO seat.",
+      "body_ar": "كثيراً ما يسأل العملاء والموردون هل يُلزم عرض السعر أحداً. وإجابة الدعم تكون بهذا الترتيب:\n\n1. عرض السعر على كوتس دن إيجاب من المورد لتنفيذ النطاق المذكور بالسعر المذكور، وهو صالح وفق الشروط لمدة 30 يوماً. وبموجب قانون المعاملات المدنية الجديد (المرسوم بقانون 25 لسنة 2025، النافذ منذ 1 يونيو 2026) يُتوقع ممن حدد مدة للقبول أن يبقى على إيجابه خلالها.\n2. الكشف عن هوية المورد ليس قبولاً للعرض؛ فرسوم الكشف مقابل معرفة هوية المورد وبيانات التواصل معه، أما عقد العمل فيُبرم مباشرة بين العميل والمورد، عادةً بأمر شراء محلي أو اتفاقية موقعة، وكوتس دن ليست طرفاً فيه.\n3. طلب العميل خفض السعر أو تعديل النطاق أو شروط الدفع يُعد إيجاباً معدَّلاً، وللمورد أن يقبل أو يرفض أو يقدم عرضاً جديداً.\n4. القبول بعد انقضاء الثلاثين يوماً يتيح للمورد إعادة التأكيد أو إعادة التسعير، إذ يُعامل القبول المتأخر معاملة الإيجاب الجديد.\n5. إذا أراد المورد تعديل عرضه قبل الكشف فيكون ذلك عبر البوابة، ويظهر للعميل عرضاً معدَّلاً، لا تعديلاً صامتاً.\n\nلا نقول: «المورد ملزم قانوناً بهذا السعر» أو «هذا العرض عقد». بل نقول: «العرض صالح حتى [التاريخ] وفق شروطنا، والعقد يُتفق عليه بينكم وبين المورد». وأسئلة النفاذ القانوني المحددة تُحال إلى مقعد الرئيس التنفيذي.",
+      "sources": [
+        "https://www.mayerbrown.com/en/insights/publications/2026/06/examining-the-new-uae-civil-code-part-3-contract-negotiation-formation-and-interpretation",
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:electronic-transactions-law-46-2021",
+      "topic": "Electronic Transactions and Trust Services Law (Decree-Law 46/2021): e-documents and e-signatures",
+      "kind": "law",
+      "body_en": "Federal Decree-Law No. 46 of 2021 on Electronic Transactions and Trust Services (enacted 20 September 2021) repealed Federal Law No. 1 of 2006 and is the law that makes electronic documents and signatures legally effective in the UAE. Its executive regulations are Cabinet Resolution No. 28 of 2023. Per the official u.ae portal, an electronic document does not lose legal validity or evidential value because it is electronic; TDRA licenses trust service providers (electronic signatures, seals, certificates) and ICP oversees trust services to government entities; licensed providers carry a trust mark.\n\nA law-firm overview (Charles Russell Speechlys, 2026) describes three levels: an electronic signature (any electronic means of showing acceptance, from a scanned signature upward), a trusted electronic signature, and a qualified electronic signature based on a certificate from a qualified trust service provider, which carries the strongest evidential weight. Which transactions the law excludes was not read from the primary text in this pass and is not established here; do not tell a customer that a particular deed (for example a property transfer or a notarised document) can or cannot be signed electronically.\n\nWhat this means for support: a customer's acceptance of the Terms by ticking and confirming with a one-time code, a supplier's quotation submitted through the portal, and emails exchanged between the parties are electronic records the law recognises. When asked 'is my online acceptance valid?', say that UAE law recognises electronic documents and signatures and that the platform keeps the record of what was accepted and when; offer the customer a copy of their own acceptance record.",
+      "body_ar": "صدر المرسوم بقانون اتحادي رقم (46) لسنة 2021 بشأن المعاملات الإلكترونية وخدمات الثقة في 20 سبتمبر 2021، وألغى القانون الاتحادي رقم (1) لسنة 2006، وهو القانون الذي يمنح المستندات والتواقيع الإلكترونية أثرها القانوني في الدولة، ولائحته التنفيذية هي قرار مجلس الوزراء رقم (28) لسنة 2023. ووفق البوابة الرسمية لحكومة الإمارات، لا يفقد المستند الإلكتروني حجيته القانونية أو قيمته في الإثبات لكونه إلكترونياً؛ وتتولى هيئة تنظيم الاتصالات والحكومة الرقمية ترخيص مزودي خدمات الثقة (التواقيع والأختام والشهادات الإلكترونية)، وتشرف الهيئة الاتحادية للهوية والجنسية والجمارك وأمن المنافذ على خدمات الثقة المقدمة للجهات الحكومية، ويحمل المزود المرخص علامة ثقة.\n\nويصف تعليق قانوني ثلاثة مستويات: التوقيع الإلكتروني (أي وسيلة إلكترونية تدل على القبول)، والتوقيع الإلكتروني الموثوق، والتوقيع الإلكتروني المعتمد القائم على شهادة من مزود خدمة ثقة معتمد، وهو الأقوى في الإثبات. أما المعاملات المستثناة من القانون فلم يُقرأ نصها الرسمي في هذه المراجعة، ولذلك لا نقول لعميل إن مستنداً معيناً يجوز أو لا يجوز توقيعه إلكترونياً.\n\nدلالته للدعم: قبول العميل للشروط بالتأشير والتأكيد برمز لمرة واحدة، وعرض السعر المقدم من المورد عبر البوابة، والرسائل الإلكترونية المتبادلة، كلها سجلات إلكترونية يعترف بها القانون. وإذا سُئلنا «هل قبولي الإلكتروني صحيح؟» نجيب بأن القانون الإماراتي يعترف بالمستندات والتواقيع الإلكترونية، وأن المنصة تحتفظ بسجل ما قُبل ومتى، ونعرض على العميل نسخة من سجل قبوله.",
+      "sources": [
+        "https://u.ae/en/about-the-uae/digital-uae/regulatory-framework/electronic-transactions-and-trust-services-law",
+        "https://uaelegislation.gov.ae/en/legislations/1539",
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/corporate/2026/an-overview-of-electronic-signatures-in-the-uae/",
+        "https://tdra.gov.ae/en/About/tdra-sectors/information-and-digital-government/policy-and-programs-department/trust-services/laws-and-regulations"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:commercial-transactions-law-50-2022",
+      "topic": "Commercial Transactions Law (Decree-Law 50/2022): what it means for B2B buyers and suppliers",
+      "kind": "law",
+      "body_en": "Federal Decree-Law No. 50 of 2022 promulgating the Commercial Transactions Law came into force on 2 January 2023 and repealed Federal Law No. 18 of 1993. It governs dealings between traders: commercial contracts, obligations of merchants, commercial agency, payment instruments and banking operations. Most dealings between a company buyer and a contractor or supplier on QuotesDone are commercial transactions under this law, with the new Civil Code filling gaps.\n\nOne rule customers raise: per a law-firm summary, Article 88 entitles a creditor to interest on a commercial debt from the date it falls due unless the parties agreed otherwise, and compound interest is prohibited; the rate and details were not read from the primary text in this pass and are not established here.\n\nSupport rules: disputes about payment for work, late payment between customer and supplier, or interest claims are between those two parties under their own contract; QuotesDone facilitates communication (see the dispute resolution ladder) but does not adjudicate or calculate interest. The non-response charge in our Terms (refunded amount plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 9% a year simple interest) is a contractual term between the supplier and QuotesDone, not an application of Article 88; do not describe it as statutory.",
+      "body_ar": "دخل المرسوم بقانون اتحادي رقم (50) لسنة 2022 بإصدار قانون المعاملات التجارية حيز النفاذ في 2 يناير 2023، وألغى القانون الاتحادي رقم (18) لسنة 1993. وهو ينظم التعامل بين التجار: العقود التجارية، والتزامات التاجر، والوكالة التجارية، والأوراق التجارية، والعمليات المصرفية. ومعظم التعاملات بين شركة مشترية ومقاول أو مورد عبر كوتس دن معاملات تجارية يحكمها هذا القانون، ويكمل قانون المعاملات المدنية الجديد ما لم يرد فيه نص.\n\nومما يثيره العملاء: بحسب ملخص قانوني، تمنح المادة (88) الدائن فائدة على الدين التجاري من تاريخ استحقاقه ما لم يُتفق على خلاف ذلك، ويُحظر احتساب الفائدة المركبة؛ ولم يُقرأ النص الرسمي في هذه المراجعة، فالنسبة والتفاصيل غير ثابتة هنا.\n\nقواعد الدعم: النزاعات على مستحقات الأعمال أو تأخر السداد أو المطالبة بالفوائد تكون بين العميل والمورد وفق عقدهما؛ وتيسّر كوتس دن التواصل ولا تفصل في النزاع ولا تحتسب الفوائد. أما رسوم عدم الاستجابة في شروطنا (المبلغ المسترد مضافاً إليه رسم إداري قدره 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله من اتفاقية المورد) وفائدة بسيطة 9% سنوياً) فهي شرط تعاقدي بين المورد وكوتس دن، ولا تُوصف بأنها تطبيق للمادة (88) أو التزام قانوني.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/1610",
+        "https://www.nourattorneys.com/articles/uae-interest-late-payments-commercial"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:consumer-or-commercial-buyer",
+      "topic": "Is this buyer a consumer or a commercial buyer? Deciding which rules frame the answer",
+      "kind": "decision_rule",
+      "body_en": "QuotesDone serves both individuals (a villa owner renovating a kitchen) and companies (a facilities manager buying an AMC). The framing of a complaint or refund answer depends on which one is asking, so decide first:\n\n- Individual buying for personal or household use: treat as a consumer under Federal Law 15/2020 and Cabinet Resolution 66/2023. They have the rights u.ae lists (accurate information, free choice, fair compensation for damage from defective goods or poor service, privacy) and external routes (Ministry of Economy 800 1222; the local economic department, in Dubai consumerrights.ae).\n- Company or sole establishment buying for its business: the relationship with the supplier is normally a commercial transaction (Decree-Law 50/2022) governed by the contract they sign. A legal commentary notes the consumer definition does not clearly exclude companies, so never tell a company it has no consumer rights.\n- Unclear (for example a contractor buying for a private client): ask one neutral question, 'Is this for your own home or for a business?', and record the answer.\n\nFor both: QuotesDone's own commitments (the Terms, the Reveal Fee rules, the automatic non-response refund, complaint service levels) apply identically. The distinction changes only which external authority we name if the customer asks where else they can go, and how cautiously we speak about statutory remedies. Legal qualification of a specific case is the CEO seat's call.",
+      "body_ar": "تخدم كوتس دن الأفراد (مالك فيلا يجدد مطبخه) والشركات (مدير مرافق يشتري عقد صيانة سنوياً). وتختلف صياغة الرد على الشكوى أو طلب الاسترداد بحسب صفة السائل، فنحدد ذلك أولاً:\n\n- فرد يشتري لاستعماله الشخصي أو المنزلي: يُعامل معاملة المستهلك وفق القانون الاتحادي رقم (15) لسنة 2020 وقرار مجلس الوزراء رقم (66) لسنة 2023، وله الحقوق التي تذكرها البوابة الرسمية (معلومات دقيقة، وحرية الاختيار، وتعويض عادل عن الضرر، وحماية الخصوصية)، وسبل الشكوى الخارجية (وزارة الاقتصاد 800 1222، والدائرة الاقتصادية المحلية، وفي دبي موقع حقوق المستهلك).\n- شركة أو مؤسسة تشتري لأعمالها: العلاقة مع المورد معاملة تجارية في الغالب (المرسوم بقانون 50 لسنة 2022) يحكمها العقد المبرم. ويشير تعليق قانوني إلى أن تعريف المستهلك لا يستبعد الشركات صراحة، فلا نقول لشركة إنها لا تتمتع بحقوق المستهلك.\n- حالة غير واضحة (مقاول يشتري لعميل خاص مثلاً): نطرح سؤالاً محايداً واحداً: «هل هذا الطلب لمنزلكم أم لنشاط تجاري؟» ونسجل الإجابة.\n\nوفي الحالتين تسري التزامات كوتس دن ذاتها (الشروط، وقواعد رسوم الكشف، والاسترداد التلقائي عند عدم الاستجابة، ومستويات خدمة الشكاوى). ولا يغيّر التمييز إلا الجهة الخارجية التي نذكرها إن سأل العميل، ومدى تحفظنا في الحديث عن الحقوق النظامية. والتكييف القانوني لحالة بعينها قرار مقعد الرئيس التنفيذي.",
+      "sources": [
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/consumer-protection",
+        "https://afridi-angell.com/executive-regulations-concerning-the-uae-consumer-protection-law/",
+        "https://uaelegislation.gov.ae/en/legislations/1610"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:dubai-consumer-complaint-route",
+      "topic": "Dubai and other emirates: where an individual customer can complain externally",
+      "kind": "law",
+      "body_en": "QuotesDone holds a Dubai (DET) licence, so an individual customer's external complaint about QuotesDone itself would normally go to Dubai's consumer protection function. Verified routes:\n\n- Federal: Ministry of Economy consumer line 800 1222 (u.ae).\n- Dubai: Consumer Rights, consumerrights.ae (u.ae); press reports also give the Dubai Consumer app and hotline 600545555 (Gulf News; the official complaint page refused our fetch, so treat the hotline as reported, not read). DET's complaint platform is aimed at individuals dealing with DET-licensed establishments.\n- Other emirates' economic departments per u.ae: Abu Dhabi added.gov.ae, Sharjah sedd.ae, Ajman ajmanded.ae, Umm Al Quwain ded.uaq.ae, Ras Al Khaimah ded.rak.ae. Fujairah was not listed on the page read.\n\nHow support uses this: if a customer asks where else they can go, tell them plainly and give the route; never discourage, delay or threaten. Say in the same message what we are doing and by when, because most customers prefer a fast internal fix. If the complaint is about a supplier licensed in another emirate, the supplier's own licensing emirate is the relevant department. Record in the case that external routes were given. A notice or enquiry from any authority goes to the CEO seat the same day.",
+      "body_ar": "تحمل كوتس دن رخصة من دائرة الاقتصاد والسياحة في دبي، ولذلك فإن الشكوى الخارجية لعميل فرد بشأن كوتس دن ذاتها تُوجَّه عادةً إلى جهة حماية المستهلك في دبي. والسبل الثابتة:\n\n- اتحادياً: خط المستهلك لدى وزارة الاقتصاد 800 1222 (البوابة الرسمية).\n- في دبي: حقوق المستهلك عبر consumerrights.ae (البوابة الرسمية)؛ وتذكر الصحافة تطبيق «مستهلك دبي» والرقم 600545555 (ولم نتمكن من فتح صفحة الشكاوى الرسمية، فالرقم منقول لا مقروء من المصدر). ومنصة الشكاوى في الدائرة موجهة للأفراد المتعاملين مع منشآت مرخصة منها.\n- الدوائر الاقتصادية في الإمارات الأخرى وفق البوابة: أبوظبي added.gov.ae، والشارقة sedd.ae، وعجمان ajmanded.ae، وأم القيوين ded.uaq.ae، ورأس الخيمة ded.rak.ae. ولم تُذكر الفجيرة في الصفحة المقروءة.\n\nطريقة الاستخدام: إذا سأل العميل عن جهة أخرى نخبره بوضوح ونعطيه السبيل، دون تثبيط أو مماطلة أو تهديد، ونذكر في الرسالة نفسها ما نفعله ومتى، لأن أغلب العملاء يفضلون حلاً داخلياً سريعاً. وإذا كانت الشكوى بحق مورد مرخص في إمارة أخرى فالجهة المختصة هي دائرة إمارة ترخيصه. ويُسجَّل في الحالة أن السبل الخارجية قد أُعطيت، وأي إشعار أو استفسار من جهة رسمية يُحال إلى مقعد الرئيس التنفيذي في اليوم نفسه.",
+      "sources": [
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/consumer-protection",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/business-and-consumer-protection",
+        "https://gulfnews.com/living-in-uae/ask-us/how-to-file-a-consumer-complaint-in-dubai-for-overpricing-defective-products-or-poor-service-1.500084491"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:telemarketing-regulation-56-2024",
+      "topic": "Telemarketing rules (Cabinet Resolution 56/2024): calls, SMS and messaging for marketing",
+      "kind": "law",
+      "body_en": "Cabinet Resolution No. 56 of 2024 on the regulation of telemarketing, with Cabinet Resolution No. 57 of 2024 on violations and penalties, came into force on 27 August 2024 and applies to all licensed companies, free zones included. The primary PDF could not be parsed in this pass; the points below are from a law-firm summary (Pinsent Masons) and press, so confidence is medium.\n\n- Scope: marketing to consumers by phone, including landline and mobile calls, SMS, and marketing messages on social media.\n- Hours: telemarketing only between 9 a.m. and 6 p.m.\n- Before promoting anything, the caller must confirm the person is willing to continue; no unjustified pressure; a consumer who refuses on a first call may not be called again the same day (press).\n- Do Not Call Registry (DNCR): numbers registered must not be targeted; residents register by sending DNCR to 2211 (press).\n- Calls must come from local numbers registered to the company's licence; records of marketing calls must be kept.\n- Penalties reported up to AED 150,000, suspension of telemarketing, licence revocation or disconnection.\n\nSupport consequences: customer_support never sends promotional content; service messages about an active request are not marketing. Any outbound marketing is the marketing seat's and must respect the hours, the DNCR and opt-outs. If a person complains they received a marketing call or message from QuotesDone, apologise, record the number as opted out on every channel immediately, and send the case to the marketing and CEO seats.",
+      "body_ar": "دخل قرار مجلس الوزراء رقم (56) لسنة 2024 بشأن تنظيم التسويق عبر الهاتف، مع القرار رقم (57) لسنة 2024 بشأن المخالفات والجزاءات، حيز النفاذ في 27 أغسطس 2024، ويسري على جميع الشركات المرخصة بما فيها شركات المناطق الحرة. ولم نتمكن من قراءة النص الرسمي بصيغة PDF في هذه المراجعة، فما يلي مأخوذ من ملخص قانوني ومن الصحافة، ودرجة الثقة متوسطة.\n\n- النطاق: التسويق للمستهلكين عبر الهاتف، بما في ذلك المكالمات الأرضية والمتحركة والرسائل النصية والرسائل التسويقية على وسائل التواصل الاجتماعي.\n- الأوقات: من التاسعة صباحاً حتى السادسة مساءً فقط.\n- قبل الترويج يجب التأكد من رغبة الشخص في مواصلة المكالمة، ويُحظر الضغط غير المبرر، ولا يجوز معاودة الاتصال في اليوم نفسه بمن رفض العرض (بحسب الصحافة).\n- سجل عدم الإزعاج: لا تُستهدف الأرقام المسجلة فيه، ويسجل المقيم رقمه بإرسال DNCR إلى 2211 (بحسب الصحافة).\n- تكون المكالمات من أرقام محلية مسجلة باسم رخصة الشركة، مع الاحتفاظ بسجلات المكالمات التسويقية.\n- الجزاءات المذكورة تصل إلى 150,000 درهم، مع إيقاف النشاط أو إلغاء الرخصة أو قطع الخدمة.\n\nأثره على الدعم: لا يرسل مقعد خدمة العملاء أي محتوى ترويجي، ورسائل الخدمة المتعلقة بطلب قائم ليست تسويقاً. وأي تسويق صادر هو مسؤولية مقعد التسويق ويجب أن يلتزم بالأوقات وسجل عدم الإزعاج وطلبات إلغاء الاشتراك. وإذا اشتكى شخص من مكالمة أو رسالة تسويقية من كوتس دن نعتذر، ونسجل الرقم فوراً ضمن من ألغوا الاشتراك في جميع القنوات، ونحيل الحالة إلى مقعدي التسويق والرئيس التنفيذي.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/2519/download",
+        "https://uaelegislation.gov.ae/en/legislations/2523",
+        "https://www.pinsentmasons.com/out-law/news/uae-telemarketing-rules-ensure-businesses-operate-transparency-integrity",
+        "https://gulfnews.com/living-in-uae/telephone-internet/how-to-block-telemarketing-calls-in-the-uae--all-you-need-to-know-about-the-do-not-call-registry-1.1667573547539"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:service-vs-marketing-message",
+      "topic": "Service message or marketing message? The line support must not cross",
+      "kind": "decision_rule",
+      "body_en": "The same channel (WhatsApp, SMS, email) can carry a service message or a marketing message, and the rules differ: WhatsApp classifies templates as utility, authentication or marketing, and UAE telemarketing rules (Cabinet Resolution 56/2024) cover marketing by phone, SMS and social media messaging.\n\nA message is SERVICE when it is about something the person already started or is owed: a quotation arrived, a supplier was chased, a refund was issued, a document is missing from their onboarding, an answer to their question. It is MARKETING when it tries to get them to do something new: post another request, upgrade, try a new category, a seasonal offer, a newsletter.\n\nRules for customer_support:\n1. Support sends service messages only. If a reply would be improved by a promotional line ('you may also like...'), leave it out.\n2. Never reuse a service template to carry promotional text; WhatsApp may recategorise it and the number's quality suffers.\n3. A person who opts out of marketing still receives service messages about their live request, unless they ask to stop all contact; then confirm how they want to be told about money or deadlines (for example email only).\n4. Mixed requests ('tell me about new services') are answered because they asked; that is a reply, not a campaign.\n5. When unsure, it is marketing, and it belongs to the marketing seat.",
+      "body_ar": "قد تحمل القناة نفسها (واتساب أو الرسائل النصية أو البريد) رسالة خدمة أو رسالة تسويقية، والقواعد مختلفة: فواتساب يصنف القوالب إلى خدمية وتوثيقية وتسويقية، وقواعد التسويق عبر الهاتف في الدولة (قرار مجلس الوزراء 56 لسنة 2024) تشمل التسويق بالمكالمات والرسائل النصية ورسائل وسائل التواصل.\n\nتكون الرسالة خدمية إذا تعلقت بأمر بدأه الشخص أو له حق فيه: وصول عرض سعر، أو متابعة مورد، أو إصدار استرداد، أو مستند ناقص في التسجيل، أو إجابة عن سؤاله. وتكون تسويقية إذا سعت إلى دفعه لفعل جديد: طلب جديد، أو ترقية، أو فئة جديدة، أو عرض موسمي، أو نشرة.\n\nقواعد مقعد خدمة العملاء:\n1. لا يرسل الدعم إلا رسائل خدمية، وإذا بدا أن سطراً ترويجياً «يحسّن» الرد فيُحذف.\n2. لا يُستخدم قالب خدمي لحمل نص ترويجي؛ فقد يعيد واتساب تصنيفه وتتأثر جودة الرقم.\n3. من ألغى اشتراكه في التسويق يستمر في تلقي رسائل الخدمة عن طلبه القائم، إلا إذا طلب وقف كل تواصل؛ وعندها نؤكد معه الوسيلة التي يريد أن يُبلَّغ بها عن المال والمواعيد (البريد فقط مثلاً).\n4. إذا سأل الشخص «أخبروني عن خدماتكم الجديدة» نجيبه لأنه سأل، فذلك رد لا حملة.\n5. عند الشك تُعد الرسالة تسويقية، وتعود إلى مقعد التسويق.",
+      "sources": [
+        "https://www.pinsentmasons.com/out-law/news/uae-telemarketing-rules-ensure-businesses-operate-transparency-integrity",
+        "https://developers.facebook.com/docs/whatsapp/pricing",
+        "https://whatsappbusiness.com/policy/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:public-holidays-2026-and-deadlines",
+      "topic": "UAE public holidays in 2026 and how they move deadlines",
+      "kind": "decision_rule",
+      "body_en": "Per the official u.ae page, the UAE's public holidays for both the public and private sectors in 2026 are: Gregorian New Year (1 January); Eid Al Fitr (1 to 3 Shawwal, shown as 4 days on the page); Arafah Day (9 Dhu Al Hijjah); Eid Al Adha (10 to 12 Dhu Al Hijjah); Hijri New Year (1 Muharram); the Prophet Mohammed's Birthday (12 Rabi Al Awwal); and National Day (2 and 3 December). The Islamic holidays follow the lunar calendar and are confirmed by moon sighting, so their Gregorian dates are announced close to the day. Under Cabinet Resolution No. 27 of 2024, a public holiday is not transferred to another day when it coincides with another holiday or falls on the weekend.\n\nFor the rest of 2026 the fixed holiday that matters is National Day, Wednesday 2 and Thursday 3 December 2026; 1 January 2027 follows. The next Islamic holiday dates must be taken from the official announcement, not estimated.\n\nRules: (1) public holidays are not working days on any contractual working-day clock (supplier response, chaser, complaint service levels); (2) before promising a date that crosses a holiday, count it day by day and write the resulting date in the message; (3) never quote an estimated Islamic holiday date as fact: say 'subject to the official announcement'; (4) if the government announces a change, recalculate open deadlines and tell affected customers and suppliers proactively.\n\nSee also: customer_support:working-day-deadline-calculation, marketing:national-day-campaign-norms, marketing:ramadan-uae-calendar.",
+      "body_ar": "وفق الصفحة الرسمية على البوابة، العطلات الرسمية في القطاعين العام والخاص لعام 2026 هي: رأس السنة الميلادية (1 يناير)، وعيد الفطر (من 1 إلى 3 شوال، وتذكره الصفحة 4 أيام)، ويوم عرفة (9 ذي الحجة)، وعيد الأضحى (من 10 إلى 12 ذي الحجة)، ورأس السنة الهجرية (1 محرم)، والمولد النبوي الشريف (12 ربيع الأول)، وعيد الاتحاد (2 و3 ديسمبر). وتتبع المناسبات الإسلامية التقويم القمري وتُعتمد برؤية الهلال، فتُعلن تواريخها الميلادية قرب موعدها. وبموجب قرار مجلس الوزراء رقم (27) لسنة 2024 لا تُنقل العطلة الرسمية إلى يوم آخر إذا تزامنت مع عطلة أخرى أو وقعت في عطلة نهاية الأسبوع.\n\nوفي ما تبقى من 2026 فالعطلة الثابتة المؤثرة هي عيد الاتحاد يومي الأربعاء 2 والخميس 3 ديسمبر 2026، ثم 1 يناير 2027. أما مواعيد المناسبات الإسلامية التالية فتؤخذ من الإعلان الرسمي ولا تُقدَّر.\n\nالقواعد: (1) العطلات الرسمية ليست أيام عمل في أي مهلة تعاقدية تُحسب بأيام العمل (استجابة المورد، والتذكير، ومستويات خدمة الشكاوى)؛ (2) قبل الوعد بتاريخ يتخلله عطلة نعدّ الأيام يوماً بيوم ونكتب التاريخ الناتج في الرسالة؛ (3) لا نذكر تاريخاً تقديرياً لمناسبة إسلامية على أنه حقيقة، بل نقول «وفق الإعلان الرسمي»؛ (4) إذا أعلنت الحكومة تغييراً نعيد احتساب المهل المفتوحة ونبلغ العملاء والموردين المعنيين استباقياً.\n\nانظر أيضاً: customer_support:working-day-deadline-calculation، marketing:national-day-campaign-norms، marketing:ramadan-uae-calendar.",
+      "sources": [
+        "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays",
+        "https://u.ae/en/about-the-uae/fact-sheet"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:working-day-deadline-calculation",
+      "topic": "Calculating a working-day deadline step by step (with worked examples)",
+      "kind": "method",
+      "body_en": "Customers and suppliers argue about deadlines more than about anything else, and a wrong date destroys trust. Method:\n\n1. Read the rule: which clock (supplier response 5 working days after reveal; chaser at 3 working days), and how the Terms define a working day. The pack's working assumption, unless the Terms say otherwise, is Monday to Friday excluding UAE public holidays (the government week per u.ae).\n2. Fix the start event and its timestamp in UAE time (GMT+4, no daylight saving). Day 0 is the day of the event; counting starts the next working day.\n3. Walk forward one calendar day at a time, skipping Saturday, Sunday and public holidays.\n4. Write the result as weekday, date, and 'UAE time', and show the count if challenged.\n\nWorked example 1: reveal on Monday 28 September 2026. Tuesday 29 = 1, Wednesday 30 = 2, Thursday 1 October = 3 (chaser), Friday 2 = 4, Monday 5 October = 5 (response due).\nWorked example 2 (National Day): reveal on Monday 30 November 2026. Tuesday 1 December = 1; Wednesday 2 and Thursday 3 are public holidays; Friday 4 = 2; Monday 7 = 3 (chaser); Tuesday 8 = 4; Wednesday 9 December = 5 (response due).\n\nIf the Terms define working days or cut-off times differently, the Terms win; this method is internal practice, and an external benchmark for it is not established. When a platform clock and a manual count disagree, trust neither: raise it to the IT engineer seat and tell the customer the later of the two dates until resolved.\n\nSee also: customer_support:public-holidays-2026-and-deadlines, marketing:national-day-campaign-norms, marketing:ramadan-uae-calendar.",
+      "body_ar": "يختلف العملاء والموردون على المواعيد أكثر من أي أمر آخر، والتاريخ الخاطئ يهدم الثقة. والطريقة:\n\n1. نقرأ القاعدة: أي مهلة (استجابة المورد خلال 5 أيام عمل من الكشف، والتذكير عند اليوم الثالث)، وكيف تعرّف الشروط يوم العمل. والافتراض المعتمد في هذه الحزمة، ما لم تنص الشروط على غيره، أن أيام العمل من الاثنين إلى الجمعة باستثناء العطلات الرسمية (أسبوع العمل الحكومي وفق البوابة الرسمية).\n2. نحدد الحدث الذي يبدأ منه الحساب ووقته بتوقيت الإمارات (غرينتش +4 دون توقيت صيفي). يوم الحدث هو اليوم صفر، ويبدأ العد من يوم العمل التالي.\n3. نتقدم يوماً تقويمياً بعد يوم، مع تخطي السبت والأحد والعطلات الرسمية.\n4. نكتب النتيجة باسم اليوم والتاريخ و«بتوقيت الإمارات»، ونعرض طريقة العد إذا اعتُرض عليها.\n\nمثال 1: كشف يوم الاثنين 28 سبتمبر 2026؛ الثلاثاء 29 = 1، والأربعاء 30 = 2، والخميس 1 أكتوبر = 3 (التذكير)، والجمعة 2 = 4، والاثنين 5 أكتوبر = 5 (موعد الاستجابة).\nمثال 2 (عيد الاتحاد): كشف يوم الاثنين 30 نوفمبر 2026؛ الثلاثاء 1 ديسمبر = 1، والأربعاء 2 والخميس 3 عطلة رسمية، والجمعة 4 = 2، والاثنين 7 = 3 (التذكير)، والثلاثاء 8 = 4، والأربعاء 9 ديسمبر = 5 (موعد الاستجابة).\n\nإذا عرّفت الشروط أيام العمل أو أوقات الانتهاء بطريقة مختلفة فالشروط هي المرجع؛ وهذه الطريقة ممارسة داخلية، ولا يوجد مرجع خارجي ثابت لها. وإذا اختلف عدّاد المنصة عن العد اليدوي فلا نعتمد أياً منهما: نرفع الأمر إلى مقعد مهندس تقنية المعلومات، ونعطي العميل التاريخ الأبعد منهما حتى يُحسم.\n\nانظر أيضاً: customer_support:public-holidays-2026-and-deadlines، marketing:national-day-campaign-norms، marketing:ramadan-uae-calendar.",
+      "sources": [
+        "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays",
+        "https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/working-hours",
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:card-payment-declined",
+      "topic": "The Reveal Fee payment was declined: what happened and what the customer should do",
+      "kind": "playbook",
+      "body_en": "Per Stripe's documentation, a card payment fails for one of three reasons: the card issuer declined it (its own systems weigh spending habits, balance, card details such as expiry and CVC), Stripe's fraud screening blocked it as high risk before it reached the issuer, or the request itself was invalid. When an issuer declines, Stripe passes on only the code the issuer gave; issuers often give a generic reason, so neither QuotesDone nor Stripe can always say exactly why. With some cards a blocked payment still shows as a temporary authorisation on the customer's statement; the issuer normally removes it within a few days and no money was taken.\n\nWhat support says and does:\n1. Reassure first: 'No charge was completed. Your request and the quotations are safe; nothing expires because of a failed payment today.' (Quotation validity is 30 days from the Terms.)\n2. Read the decline outcome in the payment record, never guess. Typical plain-language causes: wrong card number, expiry or security code; insufficient funds or limit; card not enabled for online or international payments; the bank's security check (3D Secure) not completed.\n3. Suggest in this order: re-enter details carefully; complete the bank's verification prompt; try Apple Pay or another card; call the number on the back of the card and ask the bank to allow the payment, then retry.\n4. Never ask for the full card number, CVC or one-time code in chat. Never offer to take payment by bank transfer or by a link sent from a personal number.\n5. If a charge appears completed twice, treat it as a possible duplicate: check the record and escalate to the accountant seat the same day.",
+      "body_ar": "وفق وثائق Stripe، يفشل الدفع بالبطاقة لأحد ثلاثة أسباب: رفض البنك المُصدر للعملية (إذ تقيّم أنظمته نمط الإنفاق والرصيد وبيانات البطاقة كتاريخ الانتهاء ورمز التحقق)، أو حجب نظام مكافحة الاحتيال لدى Stripe للعملية بوصفها عالية المخاطر قبل وصولها إلى البنك، أو خلل في الطلب نفسه. وعند رفض البنك تنقل Stripe الرمز الذي أعطاه البنك فقط، وكثيراً ما يكون السبب عاماً، فلا نستطيع دائماً معرفة السبب الدقيق. ومع بعض البطاقات قد يظهر حجز مؤقت في كشف العميل رغم حجب العملية، ويزيله البنك عادةً خلال أيام، ولم يُقتطع أي مبلغ.\n\nما يقوله الدعم ويفعله:\n1. الطمأنة أولاً: «لم تكتمل أي عملية خصم، وطلبكم وعروض الأسعار محفوظة، ولا ينتهي شيء اليوم بسبب تعذر الدفع». (صلاحية العرض 30 يوماً وفق الشروط.)\n2. نقرأ نتيجة الرفض في سجل الدفع ولا نخمّن. والأسباب الشائعة: خطأ في رقم البطاقة أو تاريخ انتهائها أو رمز التحقق، أو عدم كفاية الرصيد أو الحد، أو عدم تفعيل البطاقة للدفع الإلكتروني أو الدولي، أو عدم إتمام التحقق الأمني للبنك.\n3. نقترح بالترتيب: إعادة إدخال البيانات بعناية، وإتمام طلب التحقق من البنك، وتجربة Apple Pay أو بطاقة أخرى، والاتصال بالرقم المدون خلف البطاقة لطلب السماح بالعملية ثم إعادة المحاولة.\n4. لا نطلب أبداً رقم البطاقة كاملاً أو رمز التحقق أو الرمز لمرة واحدة في المحادثة، ولا نعرض الدفع بتحويل بنكي أو برابط مرسل من رقم شخصي.\n5. إذا ظهر خصم مكتمل مرتين فنعامله كاحتمال تكرار: نتحقق من السجل ونصعّد إلى مقعد المحاسب في اليوم نفسه.",
+      "sources": [
+        "https://docs.stripe.com/declines",
+        "https://docs.stripe.com/payments/3d-secure"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:three-d-secure-help",
+      "topic": "3D Secure (bank verification) problems when paying the Reveal Fee",
+      "kind": "playbook",
+      "body_en": "3D Secure is the card networks' extra check that the payer is the real cardholder. Per Stripe, the issuing bank may ask the cardholder to authenticate with a password, a one-time code sent to their phone, or biometric approval in the bank's app; customers may recognise it as Visa Secure, Mastercard Identity Check or American Express SafeKey. It is mandatory in some regions (for example under European rules) and optional elsewhere, where it is used to reduce fraud. When a payment is authenticated with 3D Secure and later disputed as fraud, the liability shift rule can protect the merchant, and Stripe supplies the 3D Secure evidence automatically.\n\nCommon customer problems and answers:\n- 'I never received the code': the code comes from the customer's bank, not from QuotesDone. Check the mobile number registered with the bank, signal and SMS blocking, or approve in the bank's app; then retry.\n- 'The window closed or timed out': retry; do not refresh mid-way.\n- 'I entered the code and it still failed': the bank declined after authentication; call the bank.\n- A customer abroad with a UAE card, or a UAE customer with a foreign card, may need the bank to allow the transaction.\n\nNever: ask the customer to send the code to us, read it out, or forward the SMS. QuotesDone staff never need a bank code. A message claiming to be QuotesDone asking for a code is fraud: say so plainly.",
+      "body_ar": "التحقق الآمن ثلاثي الأبعاد (3D Secure) إجراء إضافي من شبكات البطاقات للتأكد من أن الدافع هو حامل البطاقة الحقيقي. ووفق Stripe قد يطلب البنك المُصدر من حامل البطاقة التحقق بكلمة مرور أو رمز لمرة واحدة يُرسل إلى هاتفه أو بموافقة بيومترية في تطبيق البنك، وقد يعرفه العملاء باسم Visa Secure أو Mastercard Identity Check أو American Express SafeKey. وهو إلزامي في بعض المناطق (بموجب القواعد الأوروبية مثلاً) واختياري في غيرها للحد من الاحتيال. وإذا اعتُرض لاحقاً على دفعة موثقة بهذا الإجراء بدعوى الاحتيال فقد تنتقل المسؤولية عن التاجر، وتقدم Stripe أدلة التحقق تلقائياً.\n\nالمشكلات الشائعة والإجابات:\n- «لم يصلني الرمز»: الرمز يصدر من بنك العميل لا من كوتس دن؛ يُتحقق من رقم الهاتف المسجل لدى البنك، والتغطية، وحجب الرسائل، أو تتم الموافقة من تطبيق البنك، ثم تُعاد المحاولة.\n- «أُغلقت النافذة أو انتهت المهلة»: نعيد المحاولة دون تحديث الصفحة أثناء العملية.\n- «أدخلت الرمز وفشلت العملية»: رفض البنك العملية بعد التحقق، فيتواصل العميل مع البنك.\n- العميل المسافر ببطاقة إماراتية، أو المقيم ببطاقة أجنبية، قد يحتاج إلى أن يسمح البنك بالعملية.\n\nلا نطلب أبداً إرسال الرمز إلينا أو قراءته أو إعادة توجيه الرسالة؛ فموظفو كوتس دن لا يحتاجون أي رمز بنكي، وأي رسالة تدّعي أنها من كوتس دن وتطلب رمزاً هي احتيال، ونقول ذلك بوضوح.",
+      "sources": [
+        "https://docs.stripe.com/payments/3d-secure",
+        "https://docs.stripe.com/disputes/responding"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:refund-timing-and-tracing",
+      "topic": "When will my refund arrive? Refund timing, reversals and reference numbers",
+      "kind": "playbook",
+      "body_en": "Facts from Stripe's refund documentation that support must use exactly:\n- A refund can only go back to the original payment method; it cannot be sent to a different card or bank account.\n- The customer normally sees the credit about 5 to 10 business days after the refund is issued, depending on the bank.\n- A refund issued shortly after the charge may be processed as a reversal: the original charge simply disappears from the statement and no separate credit line appears. Customers often think nothing happened; explain this.\n- Refunds to an expired or cancelled card are handled by the issuer, usually credited to the replacement card or paid by another method.\n- A reference number (ARN, or STAN or RRN) can take up to 7 business days to become available; there is none for a reversal. The customer's bank can trace the refund with it.\n- In rare cases a refund fails (closed account, card problem); the money returns to QuotesDone, which can take up to 30 days, and QuotesDone must then arrange another way to pay the customer.\n\nQuotesDone rules on top: a refund is everything the customer paid (the 3% Reveal Fee and the processing charge); Stripe does not return its processing fee, and QuotesDone absorbs it, so the customer is never short. The CEO seat approves refunds except the automatic non-response refund.\n\nScript: 'Your refund of AED [amount] was issued on [date] to the card ending [4 digits]. Banks usually show it within 5 to 10 business days. If it is not visible by [date + 10 business days], reply here and we will send the bank reference so your bank can trace it.'",
+      "body_ar": "حقائق من وثائق الاسترداد لدى Stripe يستخدمها الدعم بدقة:\n- لا يُرد المبلغ إلا إلى وسيلة الدفع الأصلية، ولا يمكن تحويله إلى بطاقة أو حساب آخر.\n- يرى العميل المبلغ المسترد عادةً بعد نحو 5 إلى 10 أيام عمل من إصداره، بحسب البنك.\n- قد يُعالج الاسترداد الذي يصدر بعد الخصم بفترة قصيرة بوصفه إلغاءً للعملية: فتختفي العملية الأصلية من الكشف دون ظهور قيد دائن منفصل، ويظن العملاء أن شيئاً لم يحدث، فنوضح لهم ذلك.\n- الاسترداد إلى بطاقة منتهية أو ملغاة يتولاه البنك المُصدر، ويُقيد غالباً على البطاقة البديلة أو يُدفع بوسيلة أخرى.\n- قد يستغرق توفر الرقم المرجعي للاسترداد (ARN أو STAN أو RRN) حتى 7 أيام عمل، ولا يوجد رقم في حالة إلغاء العملية، ويستطيع بنك العميل تتبع الاسترداد به.\n- في حالات نادرة يفشل الاسترداد (حساب مغلق أو مشكلة في البطاقة)، فيعود المبلغ إلى كوتس دن خلال مدة قد تصل إلى 30 يوماً، وعلى كوتس دن عندها ترتيب وسيلة أخرى للسداد.\n\nقواعد كوتس دن: الاسترداد يشمل كل ما دفعه العميل (رسوم الكشف 3% ورسوم المعالجة)؛ ولا تعيد Stripe رسوم المعالجة، وتتحملها كوتس دن فلا ينقص العميل شيئاً. ويعتمد مقعد الرئيس التنفيذي كل استرداد عدا الاسترداد التلقائي عند عدم استجابة المورد.\n\nالصيغة: «صدر استرداد مبلغ [المبلغ] درهم بتاريخ [التاريخ] إلى البطاقة المنتهية بـ[4 أرقام]. تُظهر البنوك المبلغ عادةً خلال 5 إلى 10 أيام عمل، وإن لم يظهر بحلول [التاريخ] فتفضلوا بالرد هنا وسنرسل لكم الرقم المرجعي ليتتبعه بنككم».",
+      "sources": [
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:chargeback-customer-view",
+      "topic": "A customer disputes the Reveal Fee with their bank (chargeback)",
+      "kind": "playbook",
+      "body_en": "How card disputes work, per Stripe: the cardholder questions a payment with their card issuer; the issuer files a dispute on the card network, which immediately reverses the payment and pulls the amount plus dispute fees from the merchant. Before a formal chargeback there may be an inquiry stage, where a good answer can stop escalation. The merchant has a limited window to respond, usually 7 to 21 days depending on the network; a missed deadline loses automatically. The merchant gets one submission only, cannot add to it, and the bank's decision can take up to 3 months. A lost dispute is permanent and the dispute fee is not returned. If a customer disputes while a refund is pending, the refund can fail (Stripe recommends accepting or challenging the dispute instead) to avoid paying the customer twice.\n\nWhat support does:\n1. If a customer says they will go to the bank, respond with facts and our own fix first: what the fee was for, the reveal record, and, if they are entitled (for example the supplier did not respond in 5 working days), that the refund is automatic and when it was or will be issued.\n2. Once a dispute is opened, stop issuing refunds for that payment and stop negotiating the amount in chat; hand the case at once to the accountant seat, which responds through Stripe, with the CEO seat deciding accept or contest.\n3. Give the accountant the evidence: timestamps of the request, quotations, the reveal, the supplier contact details delivered, all messages.\n4. Stay courteous with the customer; a dispute is their right, not an act of bad faith.\n5. If the customer withdraws the dispute after we resolve the issue, record the resolution and tell the accountant.",
+      "body_ar": "آلية الاعتراض على المدفوعات وفق Stripe: يعترض حامل البطاقة على عملية لدى البنك المُصدر، فيقيد البنك اعتراضاً على شبكة البطاقات يعكس العملية فوراً ويسحب المبلغ مع رسوم الاعتراض من التاجر. وقد تسبقه مرحلة استفسار يمكن للرد الجيد فيها أن يمنع التصعيد. وللتاجر مهلة محدودة للرد، تتراوح عادةً بين 7 و21 يوماً بحسب الشبكة، وفوات المهلة يعني الخسارة تلقائياً. وللتاجر رد واحد لا يمكن الإضافة إليه، وقد يستغرق قرار البنك حتى 3 أشهر، وخسارة الاعتراض نهائية ولا تُرد رسومه. وإذا اعترض العميل أثناء وجود استرداد معلّق فقد يفشل الاسترداد، وتوصي Stripe بقبول الاعتراض أو الطعن فيه بدلاً من الاسترداد تفادياً لرد المبلغ مرتين.\n\nما يفعله الدعم:\n1. إذا قال العميل إنه سيلجأ إلى البنك نرد أولاً بالحقائق وبالحل من جانبنا: مقابل ماذا كانت الرسوم، وسجل الكشف، وإذا كان مستحقاً (كعدم استجابة المورد خلال 5 أيام عمل) فالاسترداد تلقائي ونذكر موعد صدوره.\n2. بمجرد فتح الاعتراض نوقف أي استرداد لتلك الدفعة ونتوقف عن التفاوض على المبلغ في المحادثة، ونحيل الحالة فوراً إلى مقعد المحاسب الذي يرد عبر Stripe، ويقرر مقعد الرئيس التنفيذي القبول أو الطعن.\n3. نزود المحاسب بالأدلة: أوقات الطلب وعروض الأسعار والكشف وبيانات المورد المسلّمة وكل الرسائل.\n4. نحافظ على اللباقة مع العميل؛ فالاعتراض حقه وليس سوء نية.\n5. إذا سحب العميل اعتراضه بعد حل المشكلة نسجل الحل ونبلغ المحاسب.",
+      "sources": [
+        "https://docs.stripe.com/disputes",
+        "https://docs.stripe.com/disputes/responding",
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:reveal-fee-refund-scenarios",
+      "topic": "Reveal Fee refund scenarios: which are automatic, which need a decision",
+      "kind": "decision_rule",
+      "body_en": "Support must know, before replying, which box a refund request falls in. The only refund support may promise without approval is the first one.\n\nA. Supplier did not respond within 5 working days of the reveal (chased at day 3, CEO final call at day 5): full refund, automatic, no request needed. Tell the customer the date it was or will be issued.\nB. Charged twice, or charged when the reveal did not complete (customer never received the supplier's details): a platform error. Investigate immediately; recommend a full refund; CEO approves; target a same-day decision.\nC. The supplier's revealed contact details are wrong or unreachable: investigate with the supplier first; if the supplier cannot be reached, treat it like A; recommend accordingly.\nD. The supplier responded but now refuses the job, raises the price, or the customer and supplier cannot agree: the reveal was delivered; this is a commercial disagreement between them. No automatic refund; support facilitates and may escalate the case with its facts, and the CEO decides.\nE. Customer changed their mind after revealing: the service was delivered; no refund is promised; if the customer insists, record it and pass it to the CEO with the facts.\nF. Customer disputes with the bank: follow the chargeback playbook; no parallel refund.\n\nIn every case: a refund is the full amount paid (fee plus processing charge); acknowledge at once, give a decision date, and never say 'refunds are not possible' as a blanket rule. Any scenario not listed here is decided by the CEO seat; say so and give the date the customer will hear back.",
+      "body_ar": "يجب أن يعرف الدعم قبل الرد في أي خانة يقع طلب الاسترداد، والاسترداد الوحيد الذي يجوز للدعم الوعد به دون اعتماد هو الأول.\n\nأ. لم يستجب المورد خلال 5 أيام عمل من الكشف (مع التذكير في اليوم الثالث والقرار النهائي للرئيس التنفيذي في اليوم الخامس): استرداد كامل تلقائي دون طلب، ونخبر العميل بتاريخ صدوره.\nب. خصم مكرر، أو خصم دون اكتمال الكشف (لم يتسلم العميل بيانات المورد): خطأ من المنصة؛ نتحقق فوراً ونوصي بالاسترداد الكامل ويعتمده الرئيس التنفيذي، والهدف قرار في اليوم نفسه.\nج. بيانات المورد المكشوفة خاطئة أو لا يمكن الوصول إليه: نتحقق مع المورد أولاً، فإن تعذر الوصول إليه تُعامل الحالة معاملة البند (أ)، ونوصي وفقاً لذلك.\nد. استجاب المورد ثم رفض العمل أو رفع السعر أو لم يتفق الطرفان: تم تسليم الكشف، والخلاف تجاري بينهما؛ لا استرداد تلقائي، ويسهّل الدعم التواصل وله رفع الحالة بوقائعها، والقرار للرئيس التنفيذي.\nهـ. غيّر العميل رأيه بعد الكشف: الخدمة قُدمت، ولا نعد باسترداد؛ وإن أصر العميل نسجل طلبه ونحيله بوقائعه إلى الرئيس التنفيذي.\nو. اعترض العميل لدى البنك: نتبع دليل الاعتراض على المدفوعات دون استرداد موازٍ.\n\nفي كل الحالات: الاسترداد هو كامل المبلغ المدفوع (الرسوم ورسوم المعالجة)، ونقرّ بالطلب فوراً ونحدد تاريخ القرار، ولا نقول «لا يوجد استرداد» قاعدةً عامة. وأي حالة غير مذكورة هنا يقررها مقعد الرئيس التنفيذي، ونقول ذلك ونذكر التاريخ الذي سيصل فيه الرد.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "internal:memory/refunds-belong-to-the-ceo.md",
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:what-does-it-cost-published-prices",
+      "topic": "Answering 'what does X cost?' using published prices only",
+      "kind": "decision_rule",
+      "body_en": "Two very different questions arrive as 'how much?'.\n\n1. What does QuotesDone cost? Answer immediately and exactly from the published rules: requesting and comparing quotations is free; the Reveal Fee is 3% of the selected quotation's value before VAT, no minimum and no cap, paid once per reveal, with the card-processing charge shown on the payment page before paying; no VAT on the fee while QuotesDone is not VAT-registered; suppliers pay no commission; supplier registration is free for the first 1,000 suppliers, then AED 1,000 a year. Worked example: AED 20,000 selected quotation gives an AED 600 Reveal Fee plus the processing charge shown at payment.\n\n2. What does the work cost (a chiller, tiling a villa, an AMC)? QuotesDone does not publish trade prices and support must not invent one. Do not give a range 'from experience', an average, or a figure from a website. Say: 'Prices for this depend on the exact specification, site and timing, which is why we collect quotations from suppliers of that exact trade. Post the request with the specification and you will see real prices, free, usually with several suppliers to compare.' If the customer insists on a ballpark, say that a reliable figure is not established without quotations and offer to help them write the specification so the quotations are comparable.\n\nNever quote a price from memory of an older Terms version, and never say a price 'should' be a number.",
+      "body_ar": "يصل تحت كلمة «كم السعر؟» سؤالان مختلفان تماماً.\n\n1. كم تكلف كوتس دن؟ نجيب فوراً وبدقة من القواعد المنشورة: طلب عروض الأسعار ومقارنتها مجاني؛ ورسوم الكشف 3% من قيمة العرض المختار قبل ضريبة القيمة المضافة، دون حد أدنى أو أقصى، تُدفع مرة واحدة لكل كشف، مع إظهار رسوم معالجة البطاقة في صفحة الدفع قبل السداد؛ ولا ضريبة على الرسوم ما دامت كوتس دن غير مسجلة في الضريبة؛ ولا يدفع الموردون أي عمولة؛ والتسجيل مجاني لأول 1,000 مورد ثم 1,000 درهم سنوياً. مثال: عرض مختار بقيمة 20,000 درهم يعني رسوم كشف 600 درهم مضافاً إليها رسوم المعالجة الظاهرة عند الدفع.\n\n2. كم يكلف العمل نفسه (مبرّد، أو تبليط فيلا، أو عقد صيانة سنوي)؟ لا تنشر كوتس دن أسعاراً للأعمال، ولا يجوز للدعم اختلاق سعر؛ فلا نعطي نطاقاً «من الخبرة» ولا متوسطاً ولا رقماً من موقع ما. بل نقول: «يعتمد السعر على المواصفات الدقيقة والموقع والتوقيت، ولهذا نجمع عروض الأسعار من موردين متخصصين في هذا المجال تحديداً. أرسلوا طلبكم مع المواصفات لتروا أسعاراً حقيقية مجاناً، وغالباً من عدة موردين للمقارنة». وإذا أصر العميل على رقم تقريبي نوضح أن الرقم الموثوق غير ثابت دون عروض، ونعرض مساعدته في كتابة المواصفات لتكون العروض قابلة للمقارنة.\n\nلا نذكر سعراً من نسخة قديمة من الشروط، ولا نقول إن السعر «ينبغي» أن يكون رقماً معيناً.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "internal:memory/founder-rulings-are-the-holy-book.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:always-answer-standard",
+      "topic": "The answer standard: support always answers, never 'I will check and get back'",
+      "kind": "decision_rule",
+      "body_en": "The founder's standard (instructions 889, 893, 894, 903) is that customer_support answers every message with substance. A reply that only says 'I will check and get back to you' is not acceptable.\n\nEvery reply contains, in this order:\n1. The direct answer to what can be answered now from the Terms, the knowledge pack and the customer's own records (status, dates, amounts, rules).\n2. For any part that genuinely needs another seat's decision (a refund outside the automatic rule, a legal qualification, a supplier investigation), name what is being decided, who decides it (the seat, never 'someone'), and the date and time the customer will hear back, in UAE time.\n3. The next step for the customer, if any, stated as one action.\n\nIf a fact is not established, say so plainly ('there is no published figure for that') and give the best verified thing instead; never fill the gap with a guess, and never state a number that was not measured or published. Silence is never an answer: a promised follow-up that is missed is itself a complaint, logged against the SLA.\n\nExample: not 'Let me check on your refund.' but 'Your supplier had until Monday 5 October to respond and did not, so your full refund of AED 618 was issued automatically today to the card ending 4417; banks usually show it within 5 to 10 business days.'",
+      "body_ar": "معيار المؤسس (التعليمات 889 و893 و894 و903) أن يجيب مقعد خدمة العملاء عن كل رسالة بمضمون فعلي، والرد الذي يقتصر على «سأتحقق وأعود إليكم» غير مقبول.\n\nيتضمن كل رد بهذا الترتيب:\n1. الإجابة المباشرة عما يمكن الإجابة عنه الآن من الشروط وحزمة المعرفة وسجلات العميل نفسه (الحالة والتواريخ والمبالغ والقواعد).\n2. أي جزء يحتاج فعلاً إلى قرار مقعد آخر (استرداد خارج القاعدة التلقائية، أو تكييف قانوني، أو تحقيق مع مورد): نذكر ما يُقرر، ومن يقرره (باسم المقعد لا «أحد الزملاء»)، وتاريخ الرد ووقته بتوقيت الإمارات.\n3. الخطوة التالية المطلوبة من العميل، إن وجدت، في إجراء واحد.\n\nوإذا كانت المعلومة غير ثابتة نقول ذلك بوضوح («لا يوجد رقم منشور لذلك») ونقدم أفضل معلومة موثقة بدلاً منها، ولا نملأ الفراغ بتخمين، ولا نذكر رقماً لم يُقس أو يُنشر. والصمت ليس إجابة: فالمتابعة الموعودة التي تفوت هي بحد ذاتها شكوى تُسجل على مستوى الخدمة.\n\nمثال: لا نقول «دعني أتحقق من الاسترداد»، بل: «كانت المهلة المتاحة للمورد حتى الاثنين 5 أكتوبر ولم يستجب، لذلك صدر اليوم تلقائياً استرداد كامل بمبلغ 618 درهماً إلى البطاقة المنتهية بـ4417، وتُظهره البنوك عادةً خلال 5 إلى 10 أيام عمل».",
+      "sources": [
+        "internal:memory/customer-support-better-than-amazon.md",
+        "internal:memory/never-state-what-you-have-not-measured.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:trade-licence-verification-by-emirate",
+      "topic": "Verifying a supplier's trade licence: the official lookup for each emirate",
+      "kind": "method",
+      "body_en": "A valid trade licence is part of QuotesDone's mandatory supplier verification. The licence is checked against the issuing authority's own register, never accepted on the strength of a PDF alone. Official lookups listed on u.ae:\n- Federal: National Economic Register, growth.gov.ae; Ministry of Economy enquiry on commercial companies' licences (moec.gov.ae).\n- Dubai (DET): licence information and business-name search on eservices.dubaided.gov.ae; business-name check on app.invest.dubai.ae.\n- Abu Dhabi: TAMM economic licence verification (tamm.abudhabi, service 'tahaqaq').\n- Sharjah: trade-name enquiry on eservices.sedd.ae. Ajman: eservices.ajmanded.ae. Umm Al Quwain: ded.uaq.ae. Fujairah: portal.fujmun.gov.ae.\n- Free zones keep their own registers (see the free-zone entry).\n\nMethod: (1) take the licence number and legal name from the upload; (2) look it up on the issuing authority's register; (3) compare legal name, licence number, expiry date and licensed activities with what the supplier registered; (4) activities must match the trades the supplier selected exactly: no nearest mapping; a mismatch goes to the sales engineer seat; (5) record the date checked and the result; (6) an expired licence pauses matching until a valid one is uploaded. Anything suggesting a forged or altered document goes to the CEO seat without accusing the supplier.\n\nWhat to tell a supplier who asks why: 'We confirm every licence with the authority that issued it, so customers can trust that every supplier on QuotesDone is licensed for the work it quotes.'",
+      "body_ar": "الرخصة التجارية السارية جزء من التحقق الإلزامي من الموردين في كوتس دن، ويُتحقق منها في سجل الجهة المصدرة نفسها، ولا يُكتفى بملف PDF. وجهات الاستعلام الرسمية المذكورة في البوابة الرسمية:\n- اتحادياً: السجل الاقتصادي الوطني growth.gov.ae، واستعلام وزارة الاقتصاد عن رخص الشركات التجارية.\n- دبي (دائرة الاقتصاد والسياحة): معلومات الرخص والبحث عن الأسماء التجارية عبر eservices.dubaided.gov.ae، والتحقق من الاسم التجاري عبر app.invest.dubai.ae.\n- أبوظبي: خدمة «تحقق» للرخص الاقتصادية عبر منصة تم.\n- الشارقة: الاستعلام عن الاسم التجاري عبر eservices.sedd.ae، وعجمان eservices.ajmanded.ae، وأم القيوين ded.uaq.ae، والفجيرة portal.fujmun.gov.ae.\n- للمناطق الحرة سجلاتها الخاصة (انظر مدخل المناطق الحرة).\n\nالطريقة: (1) نأخذ رقم الرخصة والاسم القانوني من الملف المرفوع؛ (2) نبحث عنهما في سجل الجهة المصدرة؛ (3) نطابق الاسم القانوني ورقم الرخصة وتاريخ الانتهاء والأنشطة المرخصة مع ما سجله المورد؛ (4) يجب أن تطابق الأنشطة التخصصات التي اختارها المورد تماماً دون تقريب، وأي اختلاف يُحال إلى مقعد مهندس المبيعات؛ (5) نسجل تاريخ التحقق ونتيجته؛ (6) الرخصة المنتهية توقف المطابقة حتى رفع رخصة سارية. وأي مؤشر على تزوير أو تعديل يُحال إلى مقعد الرئيس التنفيذي دون اتهام المورد.\n\nوإذا سأل المورد عن السبب نقول: «نتحقق من كل رخصة لدى الجهة التي أصدرتها، ليثق العملاء بأن كل مورد على كوتس دن مرخص للعمل الذي يقدم عرضه».",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:free-zone-licences",
+      "topic": "Free-zone licences: how they differ and how support handles them",
+      "kind": "concept",
+      "body_en": "The UAE has many free zones (in Dubai alone, for example DMCC and JAFZA), each with its own authority that licenses and registers companies in it. A free-zone licence is not issued by the emirate's economic department, so it does not appear in DET's mainland register; it is checked with the free zone that issued it. Example verified in this pass: DMCC keeps a public register of DMCC entities and issues electronic documents carrying a system-generated authentication code that third parties can verify on DMCC's document verification page.\n\nWhether a particular free-zone company may carry out a particular job outside its zone (for example fit-out work in a mainland villa) depends on its licence, the zone's rules and sometimes additional permits; the general rule was not verified in this pass and is not established here.\n\nSupport rules: (1) accept free-zone suppliers on the same verification standard: licence verified with the issuing zone, activities matching the trades selected; (2) never tell a supplier or a customer that a free-zone company can or cannot work onshore; if a customer asks, say that suppliers are responsible for holding the licences and permits the job needs, and suggest they ask the supplier to confirm this in writing before issuing a purchase order; (3) where a zone has no public lookup we could use, the verification is recorded as 'document reviewed, register not available' and flagged to the CEO seat rather than silently passed.",
+      "body_ar": "في الدولة مناطق حرة كثيرة (في دبي وحدها مثلاً مركز دبي للسلع المتعددة والمنطقة الحرة لجبل علي)، ولكل منها سلطة تمنح الرخص وتسجل الشركات فيها. ولا تُصدر رخصة المنطقة الحرة من الدائرة الاقتصادية للإمارة، فلا تظهر في سجل البر الرئيسي لدائرة الاقتصاد والسياحة، ويُتحقق منها لدى المنطقة الحرة التي أصدرتها. ومثال تحقق منه في هذه المراجعة: يحتفظ مركز دبي للسلع المتعددة بسجل عام للجهات المسجلة لديه، ويصدر مستندات إلكترونية تحمل رمز توثيق آلياً يمكن للغير التحقق منه في صفحة التحقق من المستندات.\n\nأما جواز قيام شركة منطقة حرة بعمل معين خارج منطقتها (كأعمال تجهيز داخلي في فيلا في البر الرئيسي) فيتوقف على رخصتها وأنظمة المنطقة وأحياناً على تصاريح إضافية، ولم يُتحقق من القاعدة العامة في هذه المراجعة فهي غير ثابتة هنا.\n\nقواعد الدعم: (1) يُقبل موردو المناطق الحرة بمعيار التحقق نفسه: رخصة موثقة لدى المنطقة المصدرة وأنشطة مطابقة للتخصصات المختارة؛ (2) لا نقول لمورد أو عميل إن شركة المنطقة الحرة يجوز أو لا يجوز لها العمل في البر الرئيسي؛ وإذا سأل العميل نوضح أن المورد مسؤول عن حيازة الرخص والتصاريح اللازمة للعمل، ونقترح أن يطلب منه تأكيداً كتابياً قبل إصدار أمر الشراء؛ (3) إذا لم يتوفر سجل عام للمنطقة يُسجل التحقق بعبارة «تمت مراجعة المستند، والسجل غير متاح» ويُرفع إلى مقعد الرئيس التنفيذي بدلاً من تمريره بصمت.",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "https://dmcc.ae/members/support/verify-a-document",
+        "https://landing.dmcc.ae/public-search"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:vat-trn-verification",
+      "topic": "Checking a supplier's VAT registration (TRN) on the FTA site",
+      "kind": "method",
+      "body_en": "The Federal Tax Authority (FTA) provides a free public TRN verification tool on tax.gov.ae. A UAE Tax Registration Number has 15 digits; entering it with the security code returns the registered legal name if the number is valid and live. It needs no login.\n\nWhy it matters: a supplier who charges 5% VAT on a quotation must be VAT-registered. A quotation that adds VAT from a supplier with no valid TRN, or a TRN whose legal name does not match the supplier's licence, is a red flag, either an error or an attempt to collect tax that will not be paid over.\n\nMethod at onboarding or when a quotation shows VAT: (1) take the TRN the supplier entered; (2) check it on the FTA tool; (3) compare the returned legal name with the trade licence; (4) record the date and result; (5) mismatch or invalid: hold the quotation with a note asking the supplier to correct the VAT treatment or the TRN; never tell the supplier it was 'rejected'.\n\nHard rule: a supplier's TRN is hidden from customers on QuotesDone. Support never discloses it in chat, even if the customer asks; after reveal the supplier gives its tax invoice details directly. A supplier that is not VAT-registered quotes without VAT, and that is lawful for a business below the registration threshold; do not suggest it is suspicious.",
+      "body_ar": "توفر الهيئة الاتحادية للضرائب أداة عامة مجانية للتحقق من رقم التسجيل الضريبي على موقع tax.gov.ae. ويتكون الرقم الضريبي في الدولة من 15 رقماً، وإدخاله مع رمز الأمان يُظهر الاسم القانوني المسجل إذا كان الرقم صحيحاً وسارياً، دون الحاجة إلى تسجيل دخول.\n\nأهميته: المورد الذي يضيف ضريبة القيمة المضافة بنسبة 5% إلى عرضه يجب أن يكون مسجلاً فيها. والعرض الذي يضيف الضريبة من مورد بلا رقم ضريبي صحيح، أو برقم لا يطابق اسمه القانوني الرخصة التجارية، مؤشر خطر: إما خطأ أو محاولة تحصيل ضريبة لن تُورَّد.\n\nالطريقة عند التسجيل أو عند ظهور الضريبة في عرض: (1) نأخذ الرقم الذي أدخله المورد؛ (2) نتحقق منه بأداة الهيئة؛ (3) نطابق الاسم القانوني الظاهر مع الرخصة التجارية؛ (4) نسجل التاريخ والنتيجة؛ (5) عند عدم التطابق أو عدم الصحة يُعلَّق العرض مع ملاحظة تطلب من المورد تصحيح المعاملة الضريبية أو الرقم، ولا نقول للمورد إن عرضه «رُفض».\n\nقاعدة ثابتة: الرقم الضريبي للمورد مخفي عن العملاء في كوتس دن، ولا يفصح عنه الدعم في المحادثة ولو طلبه العميل؛ وبعد الكشف يقدم المورد بيانات فاتورته الضريبية مباشرة. والمورد غير المسجل في الضريبة يقدم عرضه دون ضريبة، وهذا مشروع لمن هو دون حد التسجيل، فلا نوحي بأنه أمر مريب.",
+      "sources": [
+        "https://tax.gov.ae/en/statuscheck.aspx",
+        "https://www.cleartax.com/ae/trn-verification-uae",
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:vat-on-quotations-basics",
+      "topic": "VAT on quotations: 5%, VAT-inclusive vs exclusive, and tax invoices",
+      "kind": "concept",
+      "body_en": "The UAE standard VAT rate is 5%. Customers comparing quotations most often go wrong on VAT, so support must explain it cleanly.\n\n- A VAT-exclusive price plus 5% equals the VAT-inclusive price: AED 10,000 exclusive is AED 10,500 inclusive. Going the other way, divide by 1.05: AED 10,500 inclusive is AED 10,000 exclusive.\n- Compare like with like: convert every quotation to the same basis before ranking. A VAT-registered supplier at AED 10,500 inclusive and an unregistered supplier at AED 10,300 (no VAT) are not AED 200 apart for a VAT-registered buyer who can recover input VAT; for a buyer who cannot recover VAT (for example a private individual) the total paid is what matters. Whether a given customer can recover VAT is their own tax matter; do not advise on it.\n- The Reveal Fee is always 3% of the selected quotation's value before VAT.\n- Tax invoice content (VAT Executive Regulation Article 59, per secondary summaries): the words 'Tax Invoice', supplier name, address and TRN, recipient's details and TRN where the recipient is registered, a sequential number, date, description, quantity, unit price, VAT rate and amount payable in AED. A simplified tax invoice is allowed where the recipient is not registered, or where it is registered and the supply does not exceed AED 10,000. E-invoicing changes are coming; their dates were not read from the FTA in this pass and are not established here.\n\nTax advice beyond these facts goes to the accountant seat.",
+      "body_ar": "النسبة الأساسية لضريبة القيمة المضافة في الدولة 5%، وأكثر أخطاء العملاء في مقارنة العروض تتعلق بالضريبة، فيجب أن يشرحها الدعم بوضوح.\n\n- السعر غير الشامل للضريبة مضافاً إليه 5% يساوي السعر الشامل: 10,000 درهم دون ضريبة تساوي 10,500 درهم شاملة. وللعكس نقسم على 1.05: فـ10,500 شاملة تساوي 10,000 دون ضريبة.\n- نقارن المتماثل بالمتماثل: نحول كل العروض إلى الأساس نفسه قبل الترتيب. فعرض مورد مسجل بـ10,500 درهم شاملة الضريبة وعرض مورد غير مسجل بـ10,300 درهم دون ضريبة لا يفصل بينهما 200 درهم بالنسبة لمشترٍ مسجل يستطيع استرداد ضريبة المدخلات؛ أما المشتري الذي لا يستردها (كالفرد) فالعبرة عنده بإجمالي ما يدفعه. وقدرة عميل بعينه على الاسترداد شأن ضريبي خاص به لا نفتي فيه.\n- رسوم الكشف دائماً 3% من قيمة العرض المختار قبل الضريبة.\n- محتوى الفاتورة الضريبية (المادة 59 من اللائحة التنفيذية وفق ملخصات ثانوية): عبارة «فاتورة ضريبية»، واسم المورد وعنوانه ورقمه الضريبي، وبيانات المتلقي ورقمه الضريبي إن كان مسجلاً، ورقم تسلسلي، والتاريخ، والوصف، والكمية، وسعر الوحدة، ونسبة الضريبة، والمبلغ المستحق بالدرهم. ويجوز إصدار فاتورة ضريبية مبسطة إذا كان المتلقي غير مسجل، أو كان مسجلاً ولم تتجاوز قيمة التوريد 10,000 درهم. وهناك تغييرات قادمة بشأن الفوترة الإلكترونية لم تُقرأ مواعيدها من الهيئة في هذه المراجعة فهي غير ثابتة هنا.\n\nأي استشارة ضريبية أبعد من ذلك تُحال إلى مقعد المحاسب.",
+      "sources": [
+        "https://tax.lynchpinconsulting.com/taxlaws/tax-invoices-article-59-vat-executive-regulations/",
+        "https://www.wafeq.com/en-ae/tax-and-reporting/vat-invoice-requirements-in-uae",
+        "https://tax.gov.ae/en/statuscheck.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:explaining-quote-comparison",
+      "topic": "Explaining a quotation comparison: the eight things that make quotations comparable",
+      "kind": "method",
+      "body_en": "The customer receives a technical comparison report on the best three quotations and a list of every other quotation, any of which they may select. When they ask 'why is this one cheaper?' support walks through eight points, in this order:\n1. Scope: same items, quantities and specification? A lower price often means something is excluded. Read the exclusions line.\n2. VAT basis: inclusive or exclusive; convert to one basis.\n3. Validity: QuotesDone quotations are valid 30 days; a supplier note may add conditions (for example material prices).\n4. Payment terms: advance percentage, stage payments, credit days. A high advance increases the customer's risk.\n5. Retention: whether a percentage is held back until handover or the end of the defects period.\n6. Warranty and defects liability: length and what it covers (parts, labour, call-out).\n7. Delivery or programme: lead time, start date, duration; for imported goods, the delivery term (for example DAP or DDP under Incoterms 2020) decides who pays freight and duty.\n8. Supplier standing: verified licence and trade match (all suppliers shown are verified), ratings where available.\n\nRules: support explains, it does not choose for the customer or say which supplier is 'best' beyond what the report states. Typical market percentages for advance or retention are not established in this pack and must not be quoted. If two quotations are not comparable because the request was vague, offer to help the customer clarify the specification with all suppliers.",
+      "body_ar": "يتسلم العميل تقريراً فنياً يقارن أفضل ثلاثة عروض، مع قائمة بكل العروض الأخرى التي يجوز له اختيار أي منها. وإذا سأل «لماذا هذا العرض أرخص؟» يمر الدعم معه على ثماني نقاط بهذا الترتيب:\n1. النطاق: هل البنود والكميات والمواصفات واحدة؟ فانخفاض السعر يعني غالباً استثناء شيء ما، فنقرأ سطر الاستثناءات.\n2. أساس الضريبة: شامل أم غير شامل، ونوحّد الأساس.\n3. الصلاحية: عروض كوتس دن صالحة 30 يوماً، وقد يضيف المورد شروطاً (كأسعار المواد).\n4. شروط الدفع: نسبة الدفعة المقدمة، والدفعات المرحلية، وأيام الائتمان؛ وارتفاع الدفعة المقدمة يزيد مخاطر العميل.\n5. المحتجزات: هل تُحتجز نسبة حتى التسليم أو نهاية فترة ضمان العيوب.\n6. الضمان ومسؤولية العيوب: المدة وما يشمله (قطع الغيار والعمالة والزيارات).\n7. التوريد أو البرنامج الزمني: مدة التوريد وتاريخ البدء والمدة؛ وفي البضائع المستوردة يحدد شرط التسليم (مثل DAP أو DDP وفق قواعد إنكوترمز 2020) من يتحمل الشحن والرسوم الجمركية.\n8. وضع المورد: رخصة موثقة ومطابقة للتخصص (كل الموردين المعروضين موثقون)، والتقييمات إن وجدت.\n\nالقواعد: يشرح الدعم ولا يختار عن العميل، ولا يقول إن مورداً «الأفضل» أبعد مما يذكره التقرير. والنسب السوقية المعتادة للدفعة المقدمة أو المحتجزات غير ثابتة في هذه الحزمة ولا تُذكر. وإذا تعذرت المقارنة لغموض الطلب نعرض مساعدة العميل في توضيح المواصفات لجميع الموردين.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "https://iccwbo.org/business-solutions/incoterms-rules/incoterms-2020/",
+        "https://tax.lynchpinconsulting.com/taxlaws/tax-invoices-article-59-vat-executive-regulations/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:procurement-glossary-rfq-to-invoice",
+      "topic": "Procurement terms customers use: RFI, RFQ, RFP, BOQ, LPO, delivery note, invoice",
+      "kind": "glossary",
+      "body_en": "Plain meanings support should use (industry usage; definitions vary by company, so if a customer uses a term differently, follow their meaning and confirm it):\n- RFI (request for information): asking suppliers what they can offer, before specifying.\n- RFQ (request for quotation): asking for prices for a defined need. QuotesDone requests are RFQs.\n- RFP (request for proposal): asking for a solution and method as well as price, usually for complex work.\n- Tender: a formal, often sealed, competitive process with fixed rules and deadlines; QuotesDone is not a tendering authority.\n- BOQ (bill of quantities): itemised list of work items with quantities, which each supplier prices line by line; the best basis for comparing contractors.\n- Specification / scope of work: what exactly must be supplied or done, including standards and brands.\n- Quotation: the supplier's priced offer (valid 30 days on QuotesDone).\n- LPO (local purchase order) / PO: the buyer's written order accepting a quotation; in the UAE usually the document that creates the contract with the supplier. Issued by the customer to the supplier after reveal, outside QuotesDone.\n- Delivery note (DN): signed record that goods were delivered; a GRN (goods received note) is the buyer's internal record of receipt.\n- Tax invoice: the supplier's invoice with VAT details (Article 59 contents); a credit note reduces a previous invoice.\n- Variation: a change to scope or price after the order, which should be agreed in writing.\n- AMC (annual maintenance contract): recurring service for a year.\n- Handover / snag list: the formal completion and the list of defects to fix.\n\nArabic equivalents: طلب معلومات، طلب عرض سعر، طلب عرض فني ومالي، مناقصة، جدول الكميات، نطاق العمل، عرض السعر، أمر الشراء المحلي، إذن التسليم، الفاتورة الضريبية، الإشعار الدائن، أمر التغيير، عقد الصيانة السنوي، التسليم وقائمة الملاحظات.",
+      "body_ar": "المعاني المبسطة التي يستخدمها الدعم (وفق العرف السائد، وقد تختلف التعريفات بين الشركات، فإذا استخدم العميل المصطلح بمعنى آخر نتبع معناه ونؤكده معه):\n- طلب معلومات (RFI): سؤال الموردين عما يمكنهم تقديمه قبل تحديد المواصفات.\n- طلب عرض سعر (RFQ): طلب أسعار لحاجة محددة، وطلبات كوتس دن من هذا النوع.\n- طلب عرض فني ومالي (RFP): طلب حل وطريقة تنفيذ إلى جانب السعر، للأعمال المعقدة عادة.\n- المناقصة: إجراء تنافسي رسمي ومغلق غالباً بقواعد ومواعيد ثابتة، وكوتس دن ليست جهة طرح مناقصات.\n- جدول الكميات (BOQ): قائمة مفصلة بالبنود وكمياتها يسعّرها كل مورد بنداً بنداً، وهي أفضل أساس لمقارنة المقاولين.\n- المواصفات / نطاق العمل: ما يجب توريده أو تنفيذه بالتحديد، بما في ذلك المعايير والعلامات التجارية.\n- عرض السعر: إيجاب المورد المسعّر (صالح 30 يوماً على كوتس دن).\n- أمر الشراء المحلي (LPO): أمر مكتوب من المشتري بقبول العرض، وهو عادة في الدولة المستند الذي ينشئ العقد مع المورد، ويصدره العميل للمورد بعد الكشف خارج كوتس دن.\n- إذن التسليم (DN): سجل موقع بتسليم البضائع، وإشعار الاستلام (GRN) سجل داخلي لدى المشتري.\n- الفاتورة الضريبية: فاتورة المورد ببيانات الضريبة (محتوى المادة 59)، والإشعار الدائن يخفض فاتورة سابقة.\n- أمر التغيير: تعديل النطاق أو السعر بعد الأمر، ويُتفق عليه كتابة.\n- عقد الصيانة السنوي (AMC): خدمة دورية لمدة سنة.\n- التسليم وقائمة الملاحظات: الإنجاز الرسمي وقائمة العيوب المطلوب إصلاحها.",
+      "sources": [
+        "https://tax.lynchpinconsulting.com/taxlaws/tax-invoices-article-59-vat-executive-regulations/",
+        "https://iccwbo.org/business-solutions/incoterms-rules/incoterms-2020/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:incoterms-2020-basics",
+      "topic": "Incoterms 2020: the eleven delivery terms and how to explain them",
+      "kind": "standard",
+      "body_en": "Incoterms are the International Chamber of Commerce's standard delivery terms for sales contracts; the current edition is Incoterms 2020 (the ICC page read lists no newer edition). There are eleven rules. Seven can be used for any mode of transport: EXW (Ex Works), FCA (Free Carrier), CPT (Carriage Paid To), CIP (Carriage and Insurance Paid To), DAP (Delivered at Place), DPU (Delivered at Place Unloaded), DDP (Delivered Duty Paid). Four are for sea and inland waterway only: FAS (Free Alongside Ship), FOB (Free On Board), CFR (Cost and Freight), CIF (Cost, Insurance and Freight).\n\nThey allocate costs, risks and tasks between seller and buyer (carriage, insurance, export and import clearance, documents). They are written as rule + named place + edition, for example 'DAP Al Quoz warehouse, Dubai, Incoterms 2020'. They do not set the price, the payment terms or when ownership passes.\n\nPlain explanations support can give: EXW means the buyer collects from the seller's premises and bears everything after; DDP means the seller delivers to the named place with import duty and taxes paid; DAP means the seller delivers to the named place ready for unloading while the buyer handles import clearance and duty.\n\nWhere it matters on QuotesDone: when a customer compares supply-only quotations for imported equipment, a lower EXW or FOB price may exclude freight, insurance, customs duty and delivery that a DDP price includes. Support points this out; it does not calculate duty.",
+      "body_ar": "قواعد إنكوترمز هي شروط التسليم القياسية الصادرة عن غرفة التجارة الدولية لعقود البيع، والإصدار الحالي هو إنكوترمز 2020 (ولا تذكر صفحة الغرفة المقروءة إصداراً أحدث). وهي إحدى عشرة قاعدة: سبع تصلح لأي وسيلة نقل: EXW (التسليم في مقر البائع)، وFCA (التسليم للناقل)، وCPT (أجرة النقل مدفوعة إلى)، وCIP (أجرة النقل والتأمين مدفوعان إلى)، وDAP (التسليم في المكان)، وDPU (التسليم في المكان بعد التفريغ)، وDDP (التسليم مع دفع الرسوم). وأربع للنقل البحري والنهري فقط: FAS (التسليم بجانب السفينة)، وFOB (التسليم على ظهر السفينة)، وCFR (التكلفة والشحن)، وCIF (التكلفة والتأمين والشحن).\n\nوهي توزع التكاليف والمخاطر والمهام بين البائع والمشتري (النقل والتأمين والتخليص للتصدير والاستيراد والمستندات)، وتُكتب بصيغة القاعدة ثم المكان المسمى ثم الإصدار، مثل «DAP مستودع القوز، دبي، إنكوترمز 2020». ولا تحدد السعر ولا شروط الدفع ولا وقت انتقال الملكية.\n\nشرح مبسط: EXW يعني أن المشتري يستلم من مقر البائع ويتحمل كل ما بعده؛ وDDP يعني أن البائع يسلّم في المكان المسمى مع دفع الرسوم الجمركية والضرائب؛ وDAP يعني أن البائع يسلّم في المكان المسمى جاهزاً للتفريغ ويتولى المشتري التخليص والرسوم.\n\nأهميته في كوتس دن: عند مقارنة عروض توريد فقط لمعدات مستوردة، قد يستثني السعر الأقل بشرط EXW أو FOB الشحن والتأمين والرسوم الجمركية والتوصيل التي يشملها سعر DDP. ينبه الدعم إلى ذلك ولا يحتسب الرسوم.",
+      "sources": [
+        "https://iccwbo.org/business-solutions/incoterms-rules/incoterms-2020/",
+        "https://academy.iccwbo.org/incoterms/article/incoterms-2020-exw-or-ddp/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:retention-advance-payment-guarantees",
+      "topic": "Retention, advance payment and performance guarantees: what they are",
+      "kind": "concept",
+      "body_en": "Customers in construction and fit-out often ask about these terms when reading quotations. Plain meanings (industry usage):\n- Advance payment: money paid before work or delivery starts, often to buy materials. Risk for the buyer: paying before anything is received.\n- Advance payment guarantee (APG): a bank guarantee from the supplier's bank that repays the advance if the supplier fails to perform; it usually reduces as work progresses.\n- Performance bond or guarantee: a bank guarantee securing the supplier's performance of the contract, callable on default.\n- Retention: a percentage withheld from each payment and released at handover and/or at the end of the defects liability period, to secure snag and defect correction.\n- Defects liability period: the time after handover in which the contractor must fix defects at its cost.\n- Stage or milestone payments: payments tied to measured progress.\n\nTypical percentages and periods in the UAE market are not established in this pack; do not quote them. Whether a guarantee is appropriate for a given job is a commercial decision between customer and supplier. QuotesDone does not hold money for either side, does not issue or call guarantees, and is not an escrow; say so if asked. Support's role is to make sure the customer notices these terms when comparing quotations and to suggest they be agreed in writing in the purchase order.",
+      "body_ar": "يسأل العملاء في أعمال البناء والتجهيز الداخلي عن هذه المصطلحات عند قراءة العروض، ومعانيها المبسطة (وفق العرف السائد):\n- الدفعة المقدمة: مبلغ يُدفع قبل بدء العمل أو التوريد، غالباً لشراء المواد، ومخاطرها على المشتري أنه يدفع قبل أن يتسلم شيئاً.\n- ضمان الدفعة المقدمة: ضمان مصرفي من بنك المورد يرد الدفعة إذا أخل المورد بالتنفيذ، ويتناقص عادة مع تقدم العمل.\n- ضمان حسن التنفيذ: ضمان مصرفي يكفل تنفيذ المورد للعقد، ويمكن تسييله عند الإخلال.\n- المحتجزات: نسبة تُقتطع من كل دفعة وتُصرف عند التسليم أو عند نهاية فترة ضمان العيوب أو كليهما، لضمان إصلاح الملاحظات والعيوب.\n- فترة المسؤولية عن العيوب: المدة التالية للتسليم التي يلتزم فيها المقاول بإصلاح العيوب على نفقته.\n- الدفعات المرحلية: دفعات مرتبطة بتقدم مقيس في العمل.\n\nالنسب والمدد المعتادة في السوق الإماراتي غير ثابتة في هذه الحزمة ولا تُذكر. وملاءمة الضمان لعمل معين قرار تجاري بين العميل والمورد. ولا تحتفظ كوتس دن بأموال لأي طرف، ولا تصدر ضمانات ولا تسيّلها، وليست حساب ضمان، ونقول ذلك إذا سُئلنا. ودور الدعم أن ينبه العميل إلى هذه الشروط عند المقارنة وأن يقترح الاتفاق عليها كتابة في أمر الشراء.",
+      "sources": [
+        "https://www.mayerbrown.com/en/insights/publications/2026/06/examining-the-new-uae-civil-code-part-3-contract-negotiation-formation-and-interpretation",
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:fraud-fake-supplier-patterns",
+      "topic": "Fake or impersonated suppliers: patterns seen in UAE B2B trade and what support checks",
+      "kind": "checklist",
+      "body_en": "Warning signs that a supplier account, or someone claiming to be a supplier, is not genuine:\n- Licence details that do not return a match on the issuing authority's register, a legal name that differs from the registered company, or an expired licence.\n- A TRN that the FTA tool does not recognise, or that returns a different legal name.\n- Free email domains or look-alike domains (one letter changed) for a company that has its own website.\n- Pressure to move off the platform before reveal ('WhatsApp me directly, I will give a better price'): also a breach of the anti-circumvention rule.\n- Prices far below every other quotation combined with a demand for a large advance by bank transfer.\n- Requests for payment to a personal account or to an account in a different name from the licensed company.\n- A caller or message claiming to be QuotesDone asking a customer for a one-time code, card details or a 'verification fee'.\n\nWhat support does: (1) never pass the account on the strength of a conversation; (2) check the licence and TRN on the official registers; (3) hold, do not publish, any quotation from an account under review, and tell the supplier only that verification is in progress; (4) warn customers who report a suspicious contact that QuotesDone never asks for codes or payments outside the payment page; (5) send evidence to the CEO seat the same day; (6) point victims to the official reporting routes (Dubai Police eCrime platform; police on 999 in an emergency) and their bank.",
+      "body_ar": "مؤشرات على أن حساب مورد، أو من يدّعي أنه مورد، غير حقيقي:\n- بيانات رخصة لا تطابق سجل الجهة المصدرة، أو اسم قانوني يختلف عن الشركة المسجلة، أو رخصة منتهية.\n- رقم ضريبي لا تتعرف عليه أداة الهيئة الاتحادية للضرائب أو يُظهر اسماً قانونياً مختلفاً.\n- بريد إلكتروني مجاني أو نطاق مشابه (بتغيير حرف واحد) لشركة لها موقعها الخاص.\n- الضغط للانتقال خارج المنصة قبل الكشف («راسلني على واتساب مباشرة لأعطيك سعراً أفضل»)، وهو أيضاً إخلال بقاعدة منع التحايل.\n- أسعار أقل كثيراً من كل العروض الأخرى مع طلب دفعة مقدمة كبيرة بتحويل بنكي.\n- طلب الدفع إلى حساب شخصي أو حساب باسم يختلف عن الشركة المرخصة.\n- متصل أو رسالة تدّعي أنها من كوتس دن وتطلب من العميل رمزاً لمرة واحدة أو بيانات بطاقة أو «رسوم تحقق».\n\nما يفعله الدعم: (1) لا يمرر الحساب بناءً على محادثة؛ (2) يتحقق من الرخصة والرقم الضريبي في السجلات الرسمية؛ (3) يعلّق ولا ينشر أي عرض من حساب قيد المراجعة، ويخبر المورد فقط بأن التحقق جارٍ؛ (4) ينبه العملاء المبلغين عن تواصل مريب إلى أن كوتس دن لا تطلب أبداً رموزاً أو مدفوعات خارج صفحة الدفع؛ (5) يرسل الأدلة إلى مقعد الرئيس التنفيذي في اليوم نفسه؛ (6) يرشد الضحايا إلى سبل الإبلاغ الرسمية (منصة الجرائم الإلكترونية لشرطة دبي، والشرطة على 999 في الطوارئ) وإلى بنوكهم.",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "https://u.ae/en/information-and-services/business/important-digital-services/reporting-economic-crimes",
+        "https://tax.gov.ae/en/statuscheck.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:invoice-redirection-bank-change",
+      "topic": "Invoice redirection: 'our bank account has changed' messages",
+      "kind": "playbook",
+      "body_en": "A common business fraud: after a customer and a genuine supplier start working together, a message that appears to come from the supplier (a spoofed or hacked email, or a new WhatsApp number) says the bank account has changed and asks for the next payment to go to new details. The money goes to the fraudster.\n\nSupport's role: QuotesDone does not handle payments between customers and suppliers, but customers will ask us whether a message is genuine, and a supplier may report its email was compromised.\n\nWhat to tell a customer who receives a bank-change request:\n1. Do not pay to the new details yet.\n2. Verify by calling the supplier on the number revealed through QuotesDone or on its licence, never on a number in the suspicious message.\n3. Check that the new account name matches the supplier's licensed legal name.\n4. If already paid, contact your bank immediately to try to stop or recall the transfer, then report: the u.ae portal lists the Dubai Police eCrime platform for cyber-enabled financial crime and the police (999 in an emergency).\n\nWhat support does: record the report; if the supplier's account on QuotesDone may be compromised, alert the IT engineer seat and the CEO seat the same hour, and ask the supplier to confirm its details through a known channel. Never confirm or change anyone's bank details in chat. Chances of recovering money are not established; do not promise recovery.",
+      "body_ar": "من صور الاحتيال الشائعة في الأعمال: بعد أن يبدأ العميل التعامل مع مورد حقيقي، تصل رسالة تبدو صادرة من المورد (بريد منتحل أو مخترق، أو رقم واتساب جديد) تفيد بتغيير الحساب البنكي وتطلب تحويل الدفعة التالية إلى بيانات جديدة، فيذهب المال إلى المحتال.\n\nدور الدعم: لا تتولى كوتس دن المدفوعات بين العملاء والموردين، لكن العملاء قد يسألوننا عن صحة رسالة ما، وقد يبلغنا مورد باختراق بريده.\n\nما نقوله للعميل الذي تلقى طلب تغيير حساب:\n1. لا تحوّلوا إلى البيانات الجديدة الآن.\n2. تحققوا بالاتصال بالمورد على الرقم الذي كُشف عبر كوتس دن أو المدون في رخصته، لا على رقم وارد في الرسالة المريبة.\n3. تأكدوا أن اسم الحساب الجديد يطابق الاسم القانوني المرخص للمورد.\n4. إذا تم التحويل فتواصلوا مع بنككم فوراً لمحاولة إيقافه أو استرجاعه، ثم أبلغوا: تذكر البوابة الرسمية منصة الجرائم الإلكترونية لشرطة دبي للجرائم المالية الإلكترونية، والشرطة على 999 في الطوارئ.\n\nما يفعله الدعم: يسجل البلاغ، وإذا احتُمل اختراق حساب المورد على كوتس دن ينبه مقعدي مهندس تقنية المعلومات والرئيس التنفيذي خلال الساعة نفسها، ويطلب من المورد تأكيد بياناته عبر قناة معروفة. ولا نؤكد أو نغيّر بيانات بنكية لأحد في المحادثة. واحتمالات استرداد الأموال غير ثابتة، فلا نعد باستردادها.",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/reporting-economic-crimes",
+        "https://www.dubaipolice.gov.ae/wps/portal/home/services/individualservicescontent/cybercrime/!ut/p/z0/04_Sj9CPykssy0xPLMnMz0vMAfIjo8zi_T29HQ2NvA18_X1D3QwCLV2cgjx9HY1djM30g1Pz9AuyHRUB6_Mbiw!!/?lang=ar",
+        "https://www.khaleejtimes.com/uae/crime/email-scam-fake-invoice-steal-money-bank-details"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:cybercrime-law-34-2021",
+      "topic": "Cybercrime law (Decree-Law 34/2021) and what support may and may not say",
+      "kind": "law",
+      "body_en": "Federal Decree-Law No. 34 of 2021 on Countering Rumours and Cybercrimes took effect on 2 January 2022 and replaced Federal Law No. 5 of 2012. It criminalises, among other things, hacking, data theft, phishing and electronic fraud, and the spreading of false information online. A law-firm summary reports that obtaining money by electronic fraud carries imprisonment of at least one year and/or a fine between AED 250,000 and AED 1,000,000; the exact article was not read in this pass.\n\nWhat this means for support:\n1. Victims of fraud should report to the police (the Dubai Police eCrime platform or local police); support gives the route and does not investigate crimes itself.\n2. Support never accuses a named person or company of a crime in writing. Say 'this message shows signs of fraud' or 'we could not verify this account', not 'this supplier is a fraudster'. A written accusation can itself create legal exposure, and the facts belong to the police.\n3. Do not publish, forward or repost screenshots of a suspected fraudster's identity or details in public or to other customers.\n4. Preserve evidence: keep the messages, numbers, emails and timestamps in the case record; they may be requested by the authorities through the CEO seat.\n5. A customer who threatens to 'expose' a supplier online should be told calmly that disputes are handled through the platform process and the authorities; we do not advise on what they post.",
+      "body_ar": "دخل المرسوم بقانون اتحادي رقم (34) لسنة 2021 بشأن مكافحة الشائعات والجرائم الإلكترونية حيز النفاذ في 2 يناير 2022، وحل محل القانون الاتحادي رقم (5) لسنة 2012. ويجرّم من بين أمور أخرى الاختراق وسرقة البيانات والتصيد الاحتيالي والاحتيال الإلكتروني ونشر المعلومات الكاذبة عبر الإنترنت. ويذكر ملخص قانوني أن الاستيلاء على المال بالاحتيال الإلكتروني يعاقب عليه بالحبس مدة لا تقل عن سنة و/أو غرامة بين 250,000 و1,000,000 درهم، ولم تُقرأ المادة بعينها في هذه المراجعة.\n\nدلالته للدعم:\n1. يبلغ ضحايا الاحتيال الشرطة (منصة الجرائم الإلكترونية لشرطة دبي أو الشرطة المحلية)، ويعطيهم الدعم السبيل ولا يحقق في الجرائم بنفسه.\n2. لا يتهم الدعم كتابةً شخصاً أو شركة مسماة بجريمة؛ بل نقول «تظهر على هذه الرسالة مؤشرات احتيال» أو «لم نتمكن من التحقق من هذا الحساب»، لا «هذا المورد محتال»، فالاتهام المكتوب قد يرتب مسؤولية قانونية، والوقائع شأن الشرطة.\n3. لا ننشر أو نعيد توجيه صور لهوية المشتبه به أو بياناته علناً أو لعملاء آخرين.\n4. نحفظ الأدلة: الرسائل والأرقام والبريد والأوقات في سجل الحالة، فقد تطلبها الجهات المختصة عبر مقعد الرئيس التنفيذي.\n5. العميل الذي يهدد «بفضح» مورد على الإنترنت نخبره بهدوء أن النزاعات تُعالج عبر إجراءات المنصة والجهات المختصة، ولا نقدم له نصيحة بشأن ما ينشره.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en/legislations/1526/download",
+        "https://atblegal.com/blog/cyber-fraud-uae-laws-penalties/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:accessibility-people-of-determination",
+      "topic": "People of determination and digital accessibility: UAE framework and support practice",
+      "kind": "standard",
+      "body_en": "Federal Law No. 29 of 2006 on the rights of people with special needs, referred to since 2016 as people of determination, provides that a person's disability must not be a reason to deprive them of rights and services, including economic services, and that they should be able to access information. Secondary sources describe a National Policy for Empowering People of Determination (2017), a National Digital Accessibility Policy, and a TDRA web accessibility policy aligned to WCAG 2.1 AA for government services; how far these bind a private platform was not verified and is not established here.\n\nSupport practice (applies to everyone who needs it, without asking for proof of disability):\n- Offer an alternative channel whenever one does not work for the person: email instead of voice notes, written instead of calls, calls instead of long forms.\n- Plain language, short sentences, one question per message; no reliance on colour or images alone to convey meaning; describe attachments in text.\n- Extend customer-side deadlines the platform controls (for example time to reply to a clarification) on request, and record the adjustment.\n- Let a person nominate someone to communicate on their behalf, after confirming the account holder's consent through the verified email or mobile.\n- Never comment on or ask about the nature of a disability.\n- Report any part of the portal or widget that a customer could not use to the IT engineer seat as a defect, with the device and assistive technology if known.",
+      "body_ar": "ينص القانون الاتحادي رقم (29) لسنة 2006 بشأن حقوق ذوي الاحتياجات الخاصة، الذين يُسمَّون منذ 2016 أصحاب الهمم، على ألا تكون الإعاقة سبباً لحرمان الشخص من الحقوق والخدمات ومنها الخدمات الاقتصادية، وعلى تمكينه من الوصول إلى المعلومات. وتذكر مصادر ثانوية سياسة وطنية لتمكين أصحاب الهمم (2017)، وسياسة وطنية لإتاحة الخدمات الرقمية، وسياسة لهيئة تنظيم الاتصالات والحكومة الرقمية لإتاحة المواقع متوافقة مع معيار WCAG 2.1 بمستوى AA للخدمات الحكومية؛ ولم يُتحقق من مدى إلزامها لمنصة خاصة، فذلك غير ثابت هنا.\n\nممارسة الدعم (تنطبق على كل من يحتاجها دون طلب إثبات إعاقة):\n- نعرض قناة بديلة كلما تعذرت قناة على الشخص: البريد بدل الرسائل الصوتية، والكتابة بدل المكالمات، والمكالمة بدل النماذج الطويلة.\n- لغة بسيطة وجمل قصيرة وسؤال واحد في كل رسالة، ولا نعتمد على الألوان أو الصور وحدها لإيصال المعنى، ونصف المرفقات نصاً.\n- نمدد عند الطلب المهل الخاصة بالعميل التي تتحكم بها المنصة (كمهلة الرد على استيضاح)، ونسجل التعديل.\n- نسمح للشخص بتسمية من يتواصل نيابة عنه بعد التأكد من موافقة صاحب الحساب عبر البريد أو الهاتف الموثق.\n- لا نعلق على طبيعة الإعاقة ولا نسأل عنها.\n- نبلغ مقعد مهندس تقنية المعلومات بأي جزء من البوابة أو نافذة المحادثة تعذر على عميل استخدامه، بوصفه خللاً، مع ذكر الجهاز والتقنية المساعدة إن عُرفت.",
+      "sources": [
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/anti-discrimination-laws-and-policies/federal-law-no-29-of-2006",
+        "https://u.ae/en/information-and-services/social-affairs/people-of-determination/protection-support-and-assistance-of-people-of-determination",
+        "https://www.disabilityworld.org/regulations/ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24"
+    },
+    {
+      "id": "customer_support:vulnerable-or-distressed-customer",
+      "topic": "Customers in distress or in a vulnerable situation: recognising and adapting",
+      "kind": "playbook",
+      "body_en": "Some customers are at a disadvantage in a particular conversation: an elderly homeowner who has already paid a contractor who vanished, a small business owner facing a failed project and cash stress, someone writing in a language they barely read, someone grieving or unwell. They are not a category to label; they are a situation to notice.\n\nSigns: repeated messages within minutes, statements about money they cannot afford to lose, confusion about what they already agreed, mentions of health, bereavement or fear, a third person writing for them.\n\nAdapt:\n1. Slow down and simplify: one topic per message, confirm understanding ('So far: your fee is AED 450; the supplier has until Monday to respond. Is that clear?').\n2. Never use urgency or pressure; do not upsell; do not push them to decide on a quotation.\n3. Give the certain facts first (what is safe, what is automatic, what nobody can take from them).\n4. Offer a human conversation and a channel they prefer; confirm consent before speaking to a relative or helper.\n5. Escalate early: a vulnerable customer with money at stake goes to priority P1 or P2, and the CEO seat is told the same day.\n6. If someone expresses thoughts of self-harm or danger, give the UAE emergency number 999 immediately, stay courteous, and alert the CEO seat.\n\nThis is internal practice consistent with ISO 10002's focus on accessibility and fairness in complaint handling; it is not a statutory definition, which is not established here.",
+      "body_ar": "بعض العملاء في موقف أضعف في محادثة بعينها: مالك منزل مسن دفع لمقاول اختفى، أو صاحب منشأة صغيرة يواجه تعثر مشروع وضائقة نقدية، أو من يكتب بلغة لا يكاد يقرؤها، أو من يمر بحزن أو مرض. هؤلاء ليسوا فئة نصنفها، بل حالة ننتبه لها.\n\nالعلامات: رسائل متكررة خلال دقائق، وحديث عن مال لا يحتمل خسارته، والارتباك فيما سبق الاتفاق عليه، والإشارة إلى المرض أو الفقد أو الخوف، وشخص آخر يكتب نيابة عنه.\n\nالتكيف:\n1. نبطئ ونبسّط: موضوع واحد في كل رسالة، ونتأكد من الفهم («حتى الآن: رسومكم 450 درهماً، وأمام المورد حتى الاثنين للاستجابة. هل هذا واضح؟»).\n2. لا نستعجل ولا نضغط، ولا نعرض خدمات إضافية، ولا نستحثه على اختيار عرض.\n3. نبدأ بالحقائق المؤكدة (ما هو محفوظ، وما هو تلقائي، وما لا يمكن أن يُؤخذ منه).\n4. نعرض محادثة مع شخص والقناة التي يفضلها، ونتأكد من الموافقة قبل التحدث مع قريب أو مساعد.\n5. نصعّد مبكراً: العميل في وضع هش وأمواله على المحك يُصنف أولوية P1 أو P2، ويُبلغ مقعد الرئيس التنفيذي في اليوم نفسه.\n6. إذا عبّر شخص عن نية إيذاء نفسه أو عن خطر، نعطيه فوراً رقم الطوارئ في الدولة 999، ونبقى لبقين، وننبه مقعد الرئيس التنفيذي.\n\nهذه ممارسة داخلية منسجمة مع تركيز معيار ISO 10002 على سهولة الوصول والإنصاف في معالجة الشكاوى، وليست تعريفاً قانونياً، فالتعريف القانوني غير ثابت هنا.",
+      "sources": [
+        "https://u.ae/en/information-and-services/social-affairs/people-of-determination/protection-support-and-assistance-of-people-of-determination",
+        "https://iacouncil.org/iso-10002/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:multilingual-site-staff",
+      "topic": "Customers and supplier staff who write in Hindi, Urdu, Tagalog or basic English",
+      "kind": "decision_rule",
+      "body_en": "Arabic is the official language and English is widely used in business (u.ae fact sheet). In practice many site supervisors, technicians, drivers and small-business owners who contact a construction and services marketplace write in Hindi, Urdu, Malayalam, Tagalog or other languages, or in short basic English. The exact language mix of QuotesDone's users is not established; this rule is internal practice.\n\nRules:\n1. Reply in the language the person wrote in when the reply can be produced accurately; otherwise reply in simple English (short sentences, no idioms, no abbreviations) and, where Arabic is also appropriate, add it.\n2. Anything with legal or money effect (fees, refunds, deadlines, the Terms) is stated in English or Arabic, which are the languages of the Terms, with a short translation for understanding if helpful, and a note that the English or Arabic text governs.\n3. Numbers, dates and amounts are written in digits and repeated exactly: 'AED 1,250', 'Monday 5 October'. Ask the person to confirm the key figure back.\n4. Hindi and Urdu are close in speech but use different scripts: reply in the script they used.\n5. Never mock, correct or comment on anyone's language. Do not switch to a language based on a name or nationality guess.\n6. If the person is a supplier's employee, not the account holder, confirm who is authorised before discussing the account.\n7. Voice notes in any language: acknowledge, and ask for the key point in text if it cannot be understood reliably.",
+      "body_ar": "العربية هي اللغة الرسمية، والإنجليزية مستخدمة على نطاق واسع في الأعمال (صحيفة حقائق البوابة الرسمية). وفي الواقع يكتب كثير من مشرفي المواقع والفنيين والسائقين وأصحاب المنشآت الصغيرة الذين يتواصلون مع منصة للإنشاءات والخدمات بالهندية أو الأردية أو المالايالامية أو التاغالوغية أو غيرها، أو بإنجليزية مبسطة قصيرة. والتوزيع اللغوي الدقيق لمستخدمي كوتس دن غير ثابت، وهذه القاعدة ممارسة داخلية.\n\nالقواعد:\n1. نرد باللغة التي كتب بها الشخص إذا أمكن إعداد الرد بدقة، وإلا فبإنجليزية بسيطة (جمل قصيرة دون تعابير اصطلاحية أو اختصارات)، ونضيف العربية حيث يناسب ذلك.\n2. ما له أثر قانوني أو مالي (الرسوم، والاسترداد، والمهل، والشروط) يُكتب بالإنجليزية أو العربية، وهما لغتا الشروط، مع ترجمة قصيرة للفهم عند الحاجة، والتنبيه إلى أن النص الإنجليزي أو العربي هو المعتمد.\n3. تُكتب الأرقام والتواريخ والمبالغ بالأرقام وتُكرر بدقة: «1,250 درهماً»، «الاثنين 5 أكتوبر»، ونطلب من الشخص تأكيد الرقم الأساسي.\n4. الهندية والأردية متقاربتان نطقاً لكن بخطين مختلفين: نرد بالخط الذي استخدمه.\n5. لا نسخر من لغة أحد ولا نصححها ولا نعلق عليها، ولا نغيّر اللغة بناءً على تخمين من الاسم أو الجنسية.\n6. إذا كان الشخص موظفاً لدى المورد لا صاحب الحساب نتأكد ممن هو مخوّل قبل مناقشة الحساب.\n7. الرسائل الصوتية بأي لغة: نقرّ باستلامها ونطلب النقطة الأساسية كتابةً إذا تعذر فهمها بدقة.",
+      "sources": [
+        "https://u.ae/en/about-the-uae/fact-sheet",
+        "internal:memory/profile-copy-rules.md"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:arabic-phrases-holds-apologies",
+      "topic": "Arabic support phrase library: openings, holds, apologies and closings",
+      "kind": "standard",
+      "body_en": "Ready phrases in formal Gulf Arabic for the common moments. They complement the tone and greetings entries; use them as written, adapting names and facts. English meaning is given for reviewers.\n\nOpening: 'Wa alaikum assalam wa rahmatullah, welcome to QuotesDone. How may I help you?'\nThanks for patience: 'Thank you for your patience.' Waiting while a record is checked within the same conversation: 'Please allow me a moment while I review your request details.' (use only when the answer follows in the same conversation).\nGiving a dated follow-up: 'The decision on this point rests with [seat]; you will receive the reply on [day, date] before [time] UAE time.'\nApology for our error: 'We apologise for this error; it is on our side, and we have [action] today.'\nApology without admitting fault: 'We regret the inconvenience you experienced, and we are looking into it with the supplier now.'\nEmpathy: 'I fully understand your concern, and your right is protected.'\nAsking for a detail: 'Kindly send us the request number shown in your account.'\nDeclining politely: 'We regret that we cannot do this, because [reason under the Terms]; what we can do is [alternative].'\nClosing: 'Is there anything else I can help you with? We wish you a pleasant day.'\n\nAvoid: colloquial forms in written replies, over-flowery praise, religious phrases beyond standard greetings, and any promise the facts do not support.",
+      "body_ar": "عبارات جاهزة بالعربية الفصحى المعتمدة في الخليج للمواقف الشائعة، مكملة لمدخلي النبرة والتحية؛ تُستخدم كما هي مع تعديل الأسماء والوقائع.\n\nالافتتاح: «وعليكم السلام ورحمة الله، أهلاً بكم في كوتس دن، كيف يمكنني خدمتكم؟»\nالشكر على الصبر: «نشكر لكم سعة صدركم وحسن انتظاركم».\nالانتظار أثناء مراجعة سجل داخل المحادثة نفسها: «اسمحوا لي بلحظة لمراجعة تفاصيل طلبكم» (ولا تُستخدم إلا إذا تبعها الجواب في المحادثة نفسها).\nتحديد موعد للرد: «القرار في هذه النقطة لدى [المقعد]، وسيصلكم الرد يوم [اليوم والتاريخ] قبل الساعة [الوقت] بتوقيت الإمارات».\nالاعتذار عن خطئنا: «نعتذر لكم عن هذا الخطأ، وهو من جانبنا، وقد [الإجراء] اليوم».\nالاعتذار دون إقرار بخطأ: «يؤسفنا ما واجهتموه من إزعاج، ونحن نتابع الأمر مع المورد الآن».\nالتعاطف: «أتفهم تماماً قلقكم، وحقكم محفوظ».\nطلب معلومة: «نرجو التكرم بتزويدنا برقم الطلب الظاهر في حسابكم».\nالاعتذار عن طلب: «نأسف لعدم إمكان ذلك، لأن [السبب وفق الشروط]، والذي يمكننا فعله هو [البديل]».\nالختام: «هل من خدمة أخرى أستطيع تقديمها؟ نتمنى لكم يوماً طيباً».\n\nيُتجنب: العامية في الردود المكتوبة، والإطراء المبالغ فيه، والعبارات الدينية فيما يتجاوز التحية المعتادة، وأي وعد لا تسنده الوقائع.",
+      "sources": [
+        "internal:knowledge/seats/customer_support.json#tone-arabic-gulf-formal",
+        "https://u.ae/en/about-the-uae/fact-sheet"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:arabic-phrases-money-and-deadlines",
+      "topic": "Arabic support phrase library: fees, payments, refunds and deadlines",
+      "kind": "standard",
+      "body_en": "Exact Arabic wording for money and time, where a loose phrase causes disputes. Each Arabic line in the Arabic body matches these meanings:\n\nReveal Fee: 'The reveal fee is 3% of the value of the quotation you select, before value added tax, paid once when you choose to reveal the supplier; the card-processing charge is shown on the payment page before payment.'\nNo VAT on the fee: 'No value added tax is added to the reveal fee.'\nFree comparison: 'Requesting and comparing quotations is free of charge.'\nAutomatic refund: 'As the supplier did not respond within five working days of the reveal, the full amount you paid has been refunded automatically, without any request from you.'\nRefund timing: 'Banks usually show the amount within 5 to 10 working days of issue.'\nRefund under review: 'Your request is under review, and the decision will be issued on [date].' (never 'will be refunded' before approval)\nDeadline: 'The deadline ends on [day, date] at [time] UAE time.'\nHeld quotation (to a supplier): 'Your quotation is on hold pending completion of the following items: ...' (never 'rejected')\nPayment failed: 'The payment was not completed and no amount was deducted; you may try again or use another card.'\n\nNumbers: write Western digits with 'درهم' after the amount (for example 600 درهم), and dates with the day name.",
+      "body_ar": "صيغ عربية دقيقة للمال والوقت، إذ يسبب التعبير الفضفاض نزاعات:\n\nرسوم الكشف: «رسوم الكشف 3% من قيمة عرض السعر الذي تختارونه قبل ضريبة القيمة المضافة، وتُدفع مرة واحدة عند اختياركم الكشف عن المورد، وتظهر رسوم معالجة البطاقة في صفحة الدفع قبل السداد».\nعدم وجود ضريبة على الرسوم: «لا تُضاف ضريبة القيمة المضافة إلى رسوم الكشف».\nالمقارنة المجانية: «طلب عروض الأسعار ومقارنتها مجاني».\nالاسترداد التلقائي: «نظراً لعدم استجابة المورد خلال خمسة أيام عمل من الكشف، رُدّ إليكم كامل المبلغ المدفوع تلقائياً دون حاجة إلى أي طلب منكم».\nمدة الاسترداد: «تُظهر البنوك المبلغ عادةً خلال 5 إلى 10 أيام عمل من تاريخ إصداره».\nطلب قيد المراجعة: «طلبكم قيد المراجعة، وسيصدر القرار بتاريخ [التاريخ]» (ولا نقول «سيُرد المبلغ» قبل الاعتماد).\nالمهلة: «تنتهي المهلة يوم [اليوم والتاريخ] الساعة [الوقت] بتوقيت الإمارات».\nعرض معلّق (للمورد): «عرضكم معلّق لحين استكمال البنود التالية: ...» (ولا نقول «مرفوض»).\nتعذر الدفع: «لم تكتمل عملية الدفع ولم يُخصم أي مبلغ، ويمكنكم إعادة المحاولة أو استخدام بطاقة أخرى».\n\nالأرقام: تُكتب بالأرقام المعتادة وبعدها كلمة درهم (مثل 600 درهم)، والتواريخ مع اسم اليوم.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:reasoning-sequence-spec-question",
+      "topic": "Reasoning sequence: a technical or specification question",
+      "kind": "method",
+      "body_en": "Per founder instruction 903, think in this order before answering a question such as 'what spec do I need for a fire alarm in my warehouse?' or 'is this AC unit allowed?':\n1. Which trade exactly? Name the single trade the question belongs to (fire alarm, HVAC, tiling). If it spans two, split it. No nearest mapping.\n2. Which emirate and which authority? The answer depends on where the site is: civil defence, the municipality or the utility (for example DEWA in Dubai) may own the rule.\n3. Which standard or regulation? Look it up in the trade pack for that trade (read by support from the sales engineer's verified packs). Note its edition and date.\n4. Is it current? Check the as_of date and whether the pack marks the standard as superseded or not verified. A figure the pack says was not obtained is not established; say so.\n5. Answer: state what the rule is and its source in one or two sentences; say what the customer must include in the request (the required specs for that trade) so quotations are complete; offer to post or refine the request.\n6. Hand-off: design approval, calculations or a legal compliance opinion are the consultant's or authority's job; for anything beyond the pack, the sales engineer seat answers on the portal, and support tells the customer when.\n\nNever: invent a number, quote an older edition as current, or say 'any supplier will know'.",
+      "body_ar": "وفق تعليمة المؤسس رقم 903، نفكر بهذا الترتيب قبل الإجابة عن سؤال مثل «ما المواصفات المطلوبة لنظام إنذار الحريق في مستودعي؟» أو «هل هذا المكيف مسموح؟»:\n1. أي تخصص تحديداً؟ نسمي التخصص الواحد الذي ينتمي إليه السؤال (إنذار الحريق، التكييف، التبليط)، وإن شمل تخصصين نقسمه، دون مطابقة تقريبية.\n2. أي إمارة وأي جهة؟ تعتمد الإجابة على موقع العمل: فقد يعود الاشتراط إلى الدفاع المدني أو البلدية أو جهة الخدمات (كهيئة كهرباء ومياه دبي).\n3. أي معيار أو لائحة؟ نبحث في حزمة التخصص المعني (التي يقرؤها الدعم من الحزم الموثقة لمهندس المبيعات)، ونسجل الإصدار والتاريخ.\n4. هل هو ساري؟ نتحقق من تاريخ المعلومة وهل تشير الحزمة إلى أن المعيار استُبدل أو لم يُتحقق منه. والرقم الذي تذكر الحزمة أنه لم يُحصل عليه غير ثابت، ونقول ذلك.\n5. الإجابة: نذكر القاعدة ومصدرها في جملة أو جملتين، وما يجب أن يتضمنه طلب العميل (المواصفات المطلوبة لذلك التخصص) لتكتمل العروض، ونعرض إرسال الطلب أو تحسينه.\n6. الإحالة: اعتماد التصميم والحسابات والرأي في الامتثال من شأن الاستشاري أو الجهة المختصة؛ وما تجاوز الحزمة يجيب عنه مقعد مهندس المبيعات في البوابة، ويخبر الدعم العميل بموعد ذلك.\n\nلا نختلق رقماً، ولا نقدم إصداراً قديماً على أنه ساري، ولا نقول «أي مورد سيعرف».",
+      "sources": [
+        "internal:memory/exact-trade-match-or-none-categories-open.md",
+        "internal:memory/exact-specs-or-the-quote-is-held.md",
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:reasoning-sequence-refund-request",
+      "topic": "Reasoning sequence: a refund request",
+      "kind": "method",
+      "body_en": "Before replying to 'I want my money back':\n1. Which payment? Identify it from the account: date, amount, reveal, card last four digits. Never ask for full card data.\n2. Is a bank dispute already open? If yes, stop: the chargeback playbook applies and no refund is issued in parallel.\n3. Has an automatic rule already fired? Check the supplier-response clock: reveal date, 5 working days counted with holidays, chaser at day 3. If the supplier did not respond, the refund is automatic: confirm the issue date.\n4. Which scenario is it? Match the facts to the refund scenarios (duplicate or failed reveal; wrong supplier details; commercial disagreement; change of mind; other).\n5. What can be said now? State the facts, the rule that applies, and for anything needing approval, that the CEO seat decides and by what date.\n6. What does the customer need to know about timing? If a refund was issued: 5 to 10 business days, possible reversal, reference number available within 7 business days.\n7. Record and hand off: finding with evidence to the accountant seat (numbers) and CEO seat (approval) in the same hour.\n\nThe reply always contains an answer and a date; never 'we will look into it' alone.",
+      "body_ar": "قبل الرد على «أريد استرداد أموالي»:\n1. أي دفعة؟ نحددها من الحساب: التاريخ والمبلغ والكشف وآخر أربعة أرقام من البطاقة، ولا نطلب بيانات البطاقة كاملة.\n2. هل فُتح اعتراض لدى البنك؟ إن نعم نتوقف: يسري دليل الاعتراض على المدفوعات ولا يصدر استرداد موازٍ.\n3. هل انطبقت قاعدة تلقائية؟ نفحص مهلة استجابة المورد: تاريخ الكشف، و5 أيام عمل تُحسب مع مراعاة العطلات، والتذكير في اليوم الثالث. فإن لم يستجب المورد فالاسترداد تلقائي ونؤكد تاريخ صدوره.\n4. أي حالة هذه؟ نطابق الوقائع مع حالات الاسترداد (خصم مكرر أو كشف لم يكتمل، أو بيانات مورد خاطئة، أو خلاف تجاري، أو تغيير رأي، أو غير ذلك).\n5. ما الذي يمكن قوله الآن؟ نذكر الوقائع والقاعدة المنطبقة، وما يحتاج اعتماداً نوضح أن مقعد الرئيس التنفيذي يقرره وموعد القرار.\n6. ما يحتاج العميل معرفته عن التوقيت: إذا صدر الاسترداد فخلال 5 إلى 10 أيام عمل، مع احتمال إلغاء العملية بدلاً من القيد، وتوفر الرقم المرجعي خلال 7 أيام عمل.\n7. التسجيل والإحالة: نتيجة موثقة بالأدلة إلى مقعد المحاسب (للأرقام) ومقعد الرئيس التنفيذي (للاعتماد) خلال الساعة نفسها.\n\nيتضمن الرد دائماً إجابة وتاريخاً، ولا يقتصر على «سننظر في الأمر».",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "internal:memory/refunds-belong-to-the-ceo.md",
+        "https://docs.stripe.com/refunds",
+        "https://docs.stripe.com/disputes/responding"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:reasoning-sequence-supplier-complaint",
+      "topic": "Reasoning sequence: a customer complains about a supplier",
+      "kind": "method",
+      "body_en": "Before replying to 'this supplier is terrible / did not show up / overcharged me':\n1. When is it, relative to the reveal? Before reveal the identity is anonymous and support must not disclose it; after reveal, the parties deal directly.\n2. What exactly happened, and what does the customer want? Separate facts (dates, messages, amounts) from feelings; ask for the one missing fact only.\n3. Which rule applies? Non-response within 5 working days (automatic refund; supplier owes the non-response charge); off-platform contact before reveal (anti-circumvention penalty); quality, delay or price dispute on the work (a matter between the parties under their contract).\n4. Is anyone at risk? Safety hazards, fraud signs or a vulnerable customer raise priority immediately and go to the CEO seat.\n5. What can QuotesDone do? Contact the supplier with the customer's permission, set a response date, record the outcome, and use the rating process; QuotesDone does not adjudicate the contract or withhold the supplier's money.\n6. Answer: acknowledge, state what we are doing and by when, state the customer's own options (including external routes if they are a consumer), and never accuse the supplier in writing.\n7. Close the loop: tell the customer the supplier's reply, and record the pattern if this supplier has other complaints.",
+      "body_ar": "قبل الرد على «هذا المورد سيئ / لم يحضر / بالغ في السعر»:\n1. متى وقع ذلك بالنسبة إلى الكشف؟ قبل الكشف تكون الهوية مجهولة ولا يفصح عنها الدعم؛ وبعده يتعامل الطرفان مباشرة.\n2. ماذا حدث بالضبط، وما الذي يريده العميل؟ نفصل الوقائع (التواريخ والرسائل والمبالغ) عن المشاعر، ونسأل عن المعلومة الناقصة الوحيدة فقط.\n3. أي قاعدة تنطبق؟ عدم الاستجابة خلال 5 أيام عمل (استرداد تلقائي وتستحق على المورد رسوم عدم الاستجابة)؛ أو التواصل خارج المنصة قبل الكشف (غرامة منع التحايل)؛ أو خلاف على جودة العمل أو تأخره أو سعره (شأن بين الطرفين وفق عقدهما).\n4. هل هناك خطر على أحد؟ مخاطر السلامة أو مؤشرات الاحتيال أو العميل في وضع هش ترفع الأولوية فوراً وتُحال إلى مقعد الرئيس التنفيذي.\n5. ماذا تستطيع كوتس دن أن تفعل؟ التواصل مع المورد بإذن العميل، وتحديد موعد للرد، وتسجيل النتيجة، واستخدام نظام التقييم؛ ولا تفصل كوتس دن في العقد ولا تحتجز أموال المورد.\n6. الإجابة: نقرّ بالشكوى، ونذكر ما نفعله ومتى، ونبين خيارات العميل (بما فيها السبل الخارجية إن كان مستهلكاً)، ولا نتهم المورد كتابة.\n7. إغلاق الحلقة: نبلغ العميل برد المورد، ونسجل النمط إذا تعددت الشكاوى بحق المورد نفسه.",
+      "sources": [
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+        "https://iacouncil.org/iso-10002/",
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/consumer-protection"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:reasoning-sequence-payment-problem",
+      "topic": "Reasoning sequence: 'my payment failed' or 'I was charged wrongly'",
+      "kind": "method",
+      "body_en": "Before replying to a payment problem:\n1. Did money actually move? Read the payment record: succeeded, failed, blocked, or pending. A temporary authorisation on the statement is not a charge.\n2. If it failed: what does the decline outcome say (issuer decline, blocked as high risk, bank verification not completed)? Give the matching fix; never guess a reason the record does not show.\n3. If it succeeded: was it correct? Amount = 3% of the selected quotation before VAT plus the processing charge shown at payment; one charge per reveal. Check for duplicates.\n4. Is it even ours? Customers sometimes see another merchant's charge or a scam message. Compare amount, date and descriptor; if it is not a QuotesDone charge, say so and point them to their bank.\n5. Is there any security risk? Anyone asking the customer for a code or card number on our behalf is fraud: warn immediately.\n6. Answer: what happened, what the customer should do now (one step), and what we are doing, with a date.\n7. Escalate a wrong or duplicate charge to the accountant seat at once for a refund recommendation to the CEO seat.",
+      "body_ar": "قبل الرد على مشكلة في الدفع:\n1. هل انتقل المال فعلاً؟ نقرأ سجل الدفع: مكتمل أو مرفوض أو محجوب أو معلّق. والحجز المؤقت في الكشف ليس خصماً.\n2. إذا فشل الدفع: ماذا تقول نتيجة الرفض (رفض من البنك، أو حجب لارتفاع المخاطر، أو عدم إتمام تحقق البنك)؟ نعطي الحل المناسب، ولا نخمّن سبباً لا يظهره السجل.\n3. إذا نجح الدفع: هل هو صحيح؟ المبلغ = 3% من قيمة العرض المختار قبل الضريبة مضافاً إليه رسوم المعالجة الظاهرة عند الدفع، وخصم واحد لكل كشف، مع التحقق من التكرار.\n4. هل هو خصم منا أصلاً؟ قد يرى العميل خصماً لتاجر آخر أو رسالة احتيالية؛ نقارن المبلغ والتاريخ والوصف، وإن لم يكن خصماً من كوتس دن نقول ذلك ونحيله إلى بنكه.\n5. هل هناك خطر أمني؟ من يطلب من العميل رمزاً أو رقم بطاقة باسمنا محتال، فننبه فوراً.\n6. الإجابة: ما الذي حدث، وما الخطوة الواحدة المطلوبة من العميل الآن، وما الذي نفعله نحن مع تاريخ محدد.\n7. نصعّد الخصم الخاطئ أو المكرر فوراً إلى مقعد المحاسب لرفع توصية بالاسترداد إلى مقعد الرئيس التنفيذي.",
+      "sources": [
+        "https://docs.stripe.com/declines",
+        "https://docs.stripe.com/payments/3d-secure",
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:reasoning-sequence-supplier-onboarding",
+      "topic": "Reasoning sequence: a supplier's registration or verification question",
+      "kind": "method",
+      "body_en": "Before replying to a supplier asking 'why am I not verified?', 'why do I get no requests?' or 'how much does it cost?':\n1. Who is writing? Confirm it is the account holder or an authorised person (verified email or mobile).\n2. Where is the account in the checklist? Company name, mobile, email, valid trade licence, completed profile, signed Terms. Name exactly which steps are outstanding.\n3. Which register issued the licence? Mainland economic department or a free zone; was it verified there; is it expired; do the licensed activities match the trades selected exactly?\n4. Does the supplier charge VAT? If so, is the TRN valid on the FTA tool and does the legal name match?\n5. Commercial facts, exactly: registration free for the first 1,000 suppliers, then AED 1,000 a year; no commission on work won; quotation validity 30 days; response within 5 working days after a reveal, or the non-response charge applies; no off-platform contact before reveal. Never attach a date to the free offer.\n6. Why no requests? Matching is by exact trade; requests depend on customer demand in that trade; never reveal which customers or requests are waiting.\n7. Answer with the checklist status and the one next action; trade-mapping disputes go to the sales engineer seat, suspected forged documents to the CEO seat.",
+      "body_ar": "قبل الرد على مورد يسأل «لماذا لم يتم توثيقي؟» أو «لماذا لا تصلني طلبات؟» أو «كم التكلفة؟»:\n1. من يكتب؟ نتأكد أنه صاحب الحساب أو شخص مخوّل (بريد أو هاتف موثق).\n2. أين وصل الحساب في قائمة التحقق؟ اسم الشركة، والهاتف، والبريد، ورخصة تجارية سارية، وملف مكتمل، وشروط موقعة، ونسمي الخطوات الناقصة بالتحديد.\n3. أي سجل أصدر الرخصة؟ دائرة اقتصادية في البر الرئيسي أم منطقة حرة؛ وهل تم التحقق منها هناك؛ وهل هي منتهية؛ وهل تطابق الأنشطة المرخصة التخصصات المختارة تماماً؟\n4. هل يضيف المورد ضريبة القيمة المضافة؟ إن كان كذلك فهل رقمه الضريبي صحيح في أداة الهيئة ويطابق الاسم القانوني؟\n5. الحقائق التجارية بدقة: التسجيل مجاني لأول 1,000 مورد ثم 1,000 درهم سنوياً؛ ولا عمولة على الأعمال المكتسبة؛ وصلاحية العرض 30 يوماً؛ والاستجابة خلال 5 أيام عمل بعد الكشف وإلا استحقت رسوم عدم الاستجابة؛ ولا تواصل خارج المنصة قبل الكشف. ولا نربط العرض المجاني بتاريخ.\n6. لماذا لا تصل طلبات؟ المطابقة بالتخصص الدقيق، والطلبات تتبع طلب العملاء في ذلك التخصص، ولا نكشف أبداً عن العملاء أو الطلبات المنتظرة.\n7. نجيب بحالة قائمة التحقق والخطوة التالية الواحدة؛ وخلافات مطابقة التخصص تُحال إلى مقعد مهندس المبيعات، والمستندات المشتبه بتزويرها إلى مقعد الرئيس التنفيذي.",
+      "sources": [
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "https://tax.gov.ae/en/statuscheck.aspx",
+        "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-24",
+      "gap_kind": "commercial"
     }
   ],
   "eval": [
@@ -1531,6 +2064,200 @@
         "customer_support:whatsapp-automation-escalation",
         "customer_support:human-handoff-standard"
       ]
+    },
+    {
+      "q_en": "Is a supplier bound by the price in his quotation if I accept after 40 days?",
+      "q_ar": "هل يلتزم المورد بسعر عرضه إذا قبلت بعد 40 يوماً؟",
+      "expected_entry_ids": [
+        "customer_support:quotation-is-an-offer",
+        "customer_support:civil-code-2026-offer-acceptance"
+      ]
+    },
+    {
+      "q_en": "Is my online acceptance of the Terms with an OTP legally valid in the UAE?",
+      "q_ar": "هل قبولي للشروط إلكترونياً برمز التحقق صحيح قانوناً في الإمارات؟",
+      "expected_entry_ids": [
+        "customer_support:electronic-transactions-law-46-2021"
+      ]
+    },
+    {
+      "q_en": "My card payment for the reveal fee keeps getting declined, what should I do?",
+      "q_ar": "عملية دفع رسوم الكشف ببطاقتي تُرفض باستمرار، ماذا أفعل؟",
+      "expected_entry_ids": [
+        "customer_support:card-payment-declined",
+        "customer_support:reasoning-sequence-payment-problem"
+      ]
+    },
+    {
+      "q_en": "I did not receive the bank OTP to complete payment",
+      "q_ar": "لم يصلني رمز التحقق من البنك لإتمام الدفع",
+      "expected_entry_ids": [
+        "customer_support:three-d-secure-help"
+      ]
+    },
+    {
+      "q_en": "You refunded me a week ago and I still do not see the money",
+      "q_ar": "تم الاسترداد قبل أسبوع ولا أرى المبلغ حتى الآن",
+      "expected_entry_ids": [
+        "customer_support:refund-timing-and-tracing"
+      ]
+    },
+    {
+      "q_en": "I have raised a chargeback with my bank, can you just refund me too?",
+      "q_ar": "قدمت اعتراضاً لدى البنك، هل يمكنكم أيضاً رد المبلغ لي؟",
+      "expected_entry_ids": [
+        "customer_support:chargeback-customer-view"
+      ]
+    },
+    {
+      "q_en": "I revealed the supplier but changed my mind, can I get my fee back?",
+      "q_ar": "كشفت عن المورد ثم غيرت رأيي، هل أسترد الرسوم؟",
+      "expected_entry_ids": [
+        "customer_support:reveal-fee-refund-scenarios",
+        "customer_support:reasoning-sequence-refund-request"
+      ]
+    },
+    {
+      "q_en": "Roughly how much does it cost to tile a 300 sqm villa?",
+      "q_ar": "كم تقريباً تكلفة تبليط فيلا مساحتها 300 متر مربع؟",
+      "expected_entry_ids": [
+        "customer_support:what-does-it-cost-published-prices"
+      ]
+    },
+    {
+      "q_en": "How do you verify a supplier trade licence from Sharjah or a free zone?",
+      "q_ar": "كيف تتحققون من رخصة مورد من الشارقة أو من منطقة حرة؟",
+      "expected_entry_ids": [
+        "customer_support:trade-licence-verification-by-emirate",
+        "customer_support:free-zone-licences"
+      ]
+    },
+    {
+      "q_en": "A quotation adds 5% VAT, how do I check the supplier is VAT registered?",
+      "q_ar": "عرض السعر يضيف ضريبة 5%، كيف أتأكد أن المورد مسجل في الضريبة؟",
+      "expected_entry_ids": [
+        "customer_support:vat-trn-verification",
+        "customer_support:vat-on-quotations-basics"
+      ]
+    },
+    {
+      "q_en": "Why is one quotation cheaper than the others?",
+      "q_ar": "لماذا أحد العروض أرخص من البقية؟",
+      "expected_entry_ids": [
+        "customer_support:explaining-quote-comparison"
+      ]
+    },
+    {
+      "q_en": "What does DDP versus EXW mean on an equipment quotation?",
+      "q_ar": "ما الفرق بين DDP وEXW في عرض سعر معدات؟",
+      "expected_entry_ids": [
+        "customer_support:incoterms-2020-basics"
+      ]
+    },
+    {
+      "q_en": "What is retention and an advance payment guarantee?",
+      "q_ar": "ما المحتجزات وضمان الدفعة المقدمة؟",
+      "expected_entry_ids": [
+        "customer_support:retention-advance-payment-guarantees",
+        "customer_support:procurement-glossary-rfq-to-invoice"
+      ]
+    },
+    {
+      "q_en": "The supplier emailed saying their bank account changed, should I pay the new account?",
+      "q_ar": "راسلني المورد بأن حسابه البنكي تغير، هل أحوّل إلى الحساب الجديد؟",
+      "expected_entry_ids": [
+        "customer_support:invoice-redirection-bank-change",
+        "customer_support:fraud-fake-supplier-patterns"
+      ]
+    },
+    {
+      "q_en": "Reveal was on 30 November 2026, when must the supplier respond?",
+      "q_ar": "تم الكشف في 30 نوفمبر 2026، متى يجب أن يستجيب المورد؟",
+      "expected_entry_ids": [
+        "customer_support:working-day-deadline-calculation",
+        "customer_support:public-holidays-2026-and-deadlines"
+      ]
+    },
+    {
+      "q_en": "Can support send customers a WhatsApp offer about a new category at 8 pm?",
+      "q_ar": "هل يمكن للدعم إرسال عرض عبر واتساب للعملاء عن فئة جديدة الساعة 8 مساءً؟",
+      "expected_entry_ids": [
+        "customer_support:service-vs-marketing-message",
+        "customer_support:telemarketing-regulation-56-2024"
+      ]
+    },
+    {
+      "q_en": "I am a homeowner in Dubai, where can I complain outside QuotesDone?",
+      "q_ar": "أنا مالك منزل في دبي، أين أشتكي خارج كوتس دن؟",
+      "expected_entry_ids": [
+        "customer_support:dubai-consumer-complaint-route",
+        "customer_support:consumer-or-commercial-buyer"
+      ]
+    },
+    {
+      "q_en": "What fire alarm standard applies to my warehouse in Dubai?",
+      "q_ar": "ما معيار إنذار الحريق المطبق على مستودعي في دبي؟",
+      "expected_entry_ids": [
+        "customer_support:reasoning-sequence-spec-question"
+      ]
+    },
+    {
+      "q_en": "The contractor you revealed never came to site and stopped answering",
+      "q_ar": "المقاول الذي كشفتموه لم يحضر إلى الموقع وتوقف عن الرد",
+      "expected_entry_ids": [
+        "customer_support:reasoning-sequence-supplier-complaint"
+      ]
+    },
+    {
+      "q_en": "I am a supplier, why have I not received any requests yet?",
+      "q_ar": "أنا مورد، لماذا لم تصلني أي طلبات حتى الآن؟",
+      "expected_entry_ids": [
+        "customer_support:reasoning-sequence-supplier-onboarding"
+      ]
+    },
+    {
+      "q_en": "A site supervisor writes in Urdu about a delivery, how do we reply?",
+      "q_ar": "مشرف موقع يكتب بالأردية عن توريد، كيف نرد عليه؟",
+      "expected_entry_ids": [
+        "customer_support:multilingual-site-staff"
+      ]
+    },
+    {
+      "q_en": "How do I say in Arabic that the decision will come on a date?",
+      "q_ar": "كيف أقول بالعربية إن القرار سيصدر في تاريخ محدد؟",
+      "expected_entry_ids": [
+        "customer_support:arabic-phrases-holds-apologies",
+        "customer_support:arabic-phrases-money-and-deadlines"
+      ]
+    },
+    {
+      "q_en": "A visually impaired customer cannot use the portal form",
+      "q_ar": "عميل ضعيف البصر لا يستطيع استخدام نموذج البوابة",
+      "expected_entry_ids": [
+        "customer_support:accessibility-people-of-determination",
+        "customer_support:vulnerable-or-distressed-customer"
+      ]
+    },
+    {
+      "q_en": "Can I just tell the customer I will check and get back?",
+      "q_ar": "هل يمكنني أن أقول للعميل سأتحقق وأعود إليك فقط؟",
+      "expected_entry_ids": [
+        "customer_support:always-answer-standard"
+      ]
+    },
+    {
+      "q_en": "Should I call a supplier a fraudster in my reply to the customer?",
+      "q_ar": "هل أصف المورد بالمحتال في ردي على العميل؟",
+      "expected_entry_ids": [
+        "customer_support:cybercrime-law-34-2021"
+      ]
+    },
+    {
+      "q_en": "The supplier and I disagree on late payment interest, can QuotesDone decide?",
+      "q_ar": "نختلف أنا والمورد على فوائد التأخير، هل تفصل كوتس دن؟",
+      "expected_entry_ids": [
+        "customer_support:commercial-transactions-law-50-2022"
+      ]
     }
   ],
   "verified": {
@@ -1567,6 +2294,78 @@
     "method": "S1 23 Sep 2026: each entry checked against URLs fetched this session; unsupported claims corrected or marked not established; internal-practice entries tagged gap_kind commercial.",
     "fetched_urls_this_pass": 23,
     "upgraded": "2026-09-23 instr 961",
-    "method_v2": "23 Sep 2026 instr 961: 30 entries added (23 domain, 7 company); 23 URLs fetched this pass (Cabinet Resolution 66/2023 read in full from moet.gov.ae; u.ae, MoHRE, Meta developer docs and WhatsApp policy); business facts aligned to the 14 Sep 2026 signed texts; the word \"AI\" removed; the withdrawn fixed revenue target is not presented as a target."
+    "method_v2": "23 Sep 2026 instr 961: 30 entries added (23 domain, 7 company); 23 URLs fetched this pass (Cabinet Resolution 66/2023 read in full from moet.gov.ae; u.ae, MoHRE, Meta developer docs and WhatsApp policy); business facts aligned to the 14 Sep 2026 signed texts; the word \"AI\" removed; the withdrawn fixed revenue target is not presented as a target.",
+    "wave2": {
+      "fetched_urls": [
+        "https://www.mayerbrown.com/en/insights/publications/2026/06/examining-the-new-uae-civil-code-part-3-contract-negotiation-formation-and-interpretation",
+        "https://www.mondaq.com/contracts-and-commercial-law/1804408/examining-the-new-uae-civil-codepart-3-contract-negotiation-formation-and-interpretation",
+        "https://u.ae/en/about-the-uae/digital-uae/regulatory-framework/electronic-transactions-and-trust-services-law",
+        "https://uaelegislation.gov.ae/en/legislations/1539",
+        "https://www.charlesrussellspeechlys.com/en/insights/expert-insights/corporate/2026/an-overview-of-electronic-signatures-in-the-uae/",
+        "https://tdra.gov.ae/en/About/tdra-sectors/information-and-digital-government/policy-and-programs-department/trust-services/laws-and-regulations",
+        "https://uaelegislation.gov.ae/en/legislations/1610",
+        "https://www.nourattorneys.com/articles/uae-interest-late-payments-commercial",
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/consumer-protection",
+        "https://afridi-angell.com/executive-regulations-concerning-the-uae-consumer-protection-law/",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/business-and-consumer-protection",
+        "https://gulfnews.com/living-in-uae/ask-us/how-to-file-a-consumer-complaint-in-dubai-for-overpricing-defective-products-or-poor-service-1.500084491",
+        "https://uaelegislation.gov.ae/en/legislations/2519/download",
+        "https://uaelegislation.gov.ae/en/legislations/2523",
+        "https://www.pinsentmasons.com/out-law/news/uae-telemarketing-rules-ensure-businesses-operate-transparency-integrity",
+        "https://gulfnews.com/living-in-uae/telephone-internet/how-to-block-telemarketing-calls-in-the-uae--all-you-need-to-know-about-the-do-not-call-registry-1.1667573547539",
+        "https://developers.facebook.com/docs/whatsapp/pricing",
+        "https://whatsappbusiness.com/policy/",
+        "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays",
+        "https://u.ae/en/about-the-uae/fact-sheet",
+        "https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/working-hours",
+        "https://docs.stripe.com/declines",
+        "https://docs.stripe.com/payments/3d-secure",
+        "https://docs.stripe.com/disputes/responding",
+        "https://docs.stripe.com/refunds",
+        "https://docs.stripe.com/disputes",
+        "https://u.ae/en/information-and-services/business/important-digital-services/inquire-about-licences-names-and-activities",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits",
+        "https://dmcc.ae/members/support/verify-a-document",
+        "https://landing.dmcc.ae/public-search",
+        "https://tax.gov.ae/en/statuscheck.aspx",
+        "https://www.cleartax.com/ae/trn-verification-uae",
+        "https://tax.lynchpinconsulting.com/taxlaws/tax-invoices-article-59-vat-executive-regulations/",
+        "https://www.wafeq.com/en-ae/tax-and-reporting/vat-invoice-requirements-in-uae",
+        "https://iccwbo.org/business-solutions/incoterms-rules/incoterms-2020/",
+        "https://academy.iccwbo.org/incoterms/article/incoterms-2020-exw-or-ddp/",
+        "https://u.ae/en/information-and-services/business/important-digital-services/reporting-economic-crimes",
+        "https://www.dubaipolice.gov.ae/wps/portal/home/services/individualservicescontent/cybercrime/!ut/p/z0/04_Sj9CPykssy0xPLMnMz0vMAfIjo8zi_T29HQ2NvA18_X1D3QwCLV2cgjx9HY1djM30g1Pz9AuyHRUB6_Mbiw!!/?lang=ar",
+        "https://www.khaleejtimes.com/uae/crime/email-scam-fake-invoice-steal-money-bank-details",
+        "https://uaelegislation.gov.ae/en/legislations/1526/download",
+        "https://atblegal.com/blog/cyber-fraud-uae-laws-penalties/",
+        "https://u.ae/en/information-and-services/justice-safety-and-the-law/anti-discrimination-laws-and-policies/federal-law-no-29-of-2006",
+        "https://u.ae/en/information-and-services/social-affairs/people-of-determination/protection-support-and-assistance-of-people-of-determination",
+        "https://www.disabilityworld.org/regulations/ae/",
+        "https://iacouncil.org/iso-10002/"
+      ],
+      "claims_checked": 214,
+      "upgraded": "2026-09-24 instr 961",
+      "added": 38,
+      "method": "24 Sep 2026: 38 entries added (contract and e-transaction law, payments and refunds from the customer view, supplier licence and TRN verification, procurement terms, fraud, accessibility, multilingual and Arabic phrase libraries, 5 reasoning sequences per instr 903). Facts read from u.ae, uaelegislation.gov.ae, docs.stripe.com, iccwbo.org and tax.gov.ae where fetchable; law-firm summaries used and marked medium where the primary text was not readable. No existing entry found wrong; none corrected this wave.",
+      "not_verified": [
+        "Primary text of Decree-Law 25/2025 (new Civil Code, in force 1 Jun 2026) not read; article content from a Mayer Brown summary",
+        "Cabinet Resolution 56/2024 PDF not parseable; details from Pinsent Masons and press",
+        "Dubai consumer hotline 600545555 from press; consumerrights.gov.ae returned 403",
+        "Transactions excluded from Decree-Law 46/2021 not read",
+        "Whether free-zone companies may work onshore: not verified",
+        "Typical UAE retention and advance-payment percentages: not established",
+        "E-invoicing go-live dates: not read from the FTA",
+        "Decree-Law 34/2021 penalty article and Decree-Law 50/2022 Art. 88 detail: from law-firm summaries",
+        "Language mix of QuotesDone users: not established"
+      ],
+      "corrected": [
+        "customer_support:supplier-non-response",
+        "customer_support:company-hard-rules-fees-refunds",
+        "customer_support:commercial-transactions-law-50-2022",
+        "customer_support:civil-code-2026-offer-acceptance",
+        "customer_support:public-holidays-2026-and-deadlines",
+        "customer_support:working-day-deadline-calculation"
+      ]
+    }
   }
 }

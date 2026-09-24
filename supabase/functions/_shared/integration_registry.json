@@ -233,6 +233,7 @@
   "not_integrations": {
     "_about": "Hosts that appear in code and are not a service the company depends on: links shown to people, XML namespaces, and reserved test domains. Each says why.",
     "hosts": {
+      "support.google.com": "YouTube upload-spec page cited in video_quality.ts; a link, not a service we call", "developers.facebook.com": "Meta video-spec page cited in video_quality.ts", "support.tiktok.com": "TikTok video-spec page cited in video_quality.ts", "learn.microsoft.com": "LinkedIn/Microsoft video-spec page cited in video_quality.ts",
       "www.stripestatus.com": "Stripe public status page, read hourly by it_provider_readings.ts", "resend-status.com": "Resend public status page, read hourly", "status.twilio.com": "Twilio public status page, read hourly", "www.vercel-status.com": "Vercel public status page, read hourly", "status.dropbox.com": "Dropbox public status page, read hourly",
       "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",
       "schemas.openxmlformats.org": "Office XML namespace in a parser fixture", "www.gaeb.de": "GAEB XML namespace in a parser fixture",

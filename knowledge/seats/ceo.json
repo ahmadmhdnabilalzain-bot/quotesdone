@@ -792,8 +792,8 @@
    "id": "ceo:company-hard-rules",
    "topic": "The hard rules (terms as signed 14 Sep 2026)",
    "kind": "company",
-   "body_en": "These are the only limits the founder sets; everything else is the seats' judgement. Current wording follows the texts signed on 14 Sep 2026, which supersede older versions.\n\nFees. The customer pays a 3% Reveal Fee on the selected quotation value (before VAT), no cap, once per reveal, by card or Apple Pay, plus the card-processing fees grossed up so the company nets the full 3%; the breakdown is shown before payment. No VAT is charged on the fee while the company is not VAT registered. Comparing quotes is free. There is no supplier commission. Supplier subscription: free permanently for the first 1,000 supplier registrations, AED 1,000 a year from the 1,001st, with no dates in any copy.\n\nProduct. The comparison report covers the best three technical quotations, and the customer also sees every other quote and may choose any of them; never say \"only three shown\". No request without an account (OTP-verified mobile or email, name, date of birth with under-18s rejected, terms accepted). Incomplete quotes are held with notes to the supplier, never \"rejected\". Quotations are valid 30 days.\n\nResponse and refunds. The supplier must respond within 5 working days of the reveal; the company chases at 3 working days; on day 5 the CEO seat makes the final call; if still silent the customer is refunded everything paid, automatically, and the supplier owes the refunded amount including processing, an AED 500 admin fee and 9% a year simple interest. The CEO seat approves refunds and verifies each money step.\n\nAnti-circumvention: no off-platform contact before reveal; supplier breach costs AED 20,000 per incident or five times the fee, whichever is higher, for 24 months from introduction.",
-   "body_ar": "هذه هي الحدود الوحيدة التي يضعها المؤسس، وما عداها متروك لتقدير المقاعد. الصياغة الحالية تتبع النصوص الموقّعة في 14 سبتمبر 2026 التي تحل محل ما قبلها.\n\nالرسوم: يدفع العميل رسوم كشف 3% من قيمة العرض المختار قبل الضريبة، بلا سقف، مرة واحدة لكل كشف، بالبطاقة أو Apple Pay، مضافاً إليها رسوم معالجة البطاقة بحيث تصافي الشركة 3% كاملة، مع عرض التفصيل قبل الدفع. لا ضريبة قيمة مضافة على الرسوم ما دامت الشركة غير مسجلة. المقارنة مجانية، ولا عمولة على المورد. اشتراك المورد مجاني دائماً لأول 1,000 مورد مسجّل، ثم 1,000 درهم سنوياً ابتداءً من المورد 1,001، دون ذكر تواريخ في أي نص.\n\nالمنتج: يغطي تقرير المقارنة أفضل ثلاثة عروض فنية، ويرى العميل كذلك كل العروض الأخرى ويختار منها ما يشاء؛ فلا يقال \"نعرض ثلاثة فقط\". لا طلب بلا حساب (جوال أو بريد موثّق برمز، والاسم، وتاريخ الميلاد مع رفض من هم دون 18، والموافقة على الشروط). العروض الناقصة تُعلَّق مع ملاحظات للمورد ولا \"تُرفض\". صلاحية العرض 30 يوماً.\n\nالاستجابة والاسترداد: على المورد الرد خلال 5 أيام عمل من الكشف، وتتابعه الشركة في اليوم الثالث، ويتخذ الرئيس التنفيذي القرار النهائي في اليوم الخامس؛ فإن بقي صامتاً يُرد للعميل كل ما دفعه تلقائياً، ويلتزم المورد بالمبلغ المسترد شاملاً رسوم المعالجة ورسوماً إدارية 250 درهماً وفائدة بسيطة 9% سنوياً. يعتمد الرئيس التنفيذي الاستردادات ويتحقق من كل خطوة مالية.\n\nمنع الالتفاف: لا تواصل خارج المنصة قبل الكشف، وعقوبة المورد 15,000 درهم لكل مخالفة أو ثلاثة أضعاف الرسوم أيهما أعلى، لمدة 24 شهراً من التعريف.",
+   "body_en": "These are the only limits the founder sets; everything else is the seats' judgement. Current wording follows the texts signed on 14 Sep 2026, which supersede older versions.\n\nFees. The customer pays a 3% Reveal Fee on the selected quotation value (before VAT), no cap, once per reveal, by card or Apple Pay, plus the card-processing fees grossed up so the company nets the full 3%; the breakdown is shown before payment. No VAT is charged on the fee while the company is not VAT registered. Comparing quotes is free. There is no supplier commission. Supplier subscription: free permanently for the first 1,000 supplier registrations, AED 1,000 a year from the 1,001st, with no dates in any copy.\n\nProduct. The comparison report covers the best three technical quotations, and the customer also sees every other quote and may choose any of them; never say \"only three shown\". No request without an account (OTP-verified mobile or email, name, date of birth with under-18s rejected, terms accepted). Incomplete quotes are held with notes to the supplier, never \"rejected\". Quotations are valid 30 days.\n\nResponse and refunds. The supplier must respond within 5 working days of the reveal; the company chases at 3 working days; on day 5 the CEO seat makes the final call; if still silent the customer is refunded everything paid, automatically, and the supplier owes the refunded amount including processing, an AED 500 admin fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 9% a year simple interest. The CEO seat approves refunds and verifies each money step.\n\nAnti-circumvention: no off-platform contact before reveal; supplier breach costs AED 20,000 per incident or five times the fee, whichever is higher, for 24 months from introduction.",
+   "body_ar": "هذه هي الحدود الوحيدة التي يضعها المؤسس، وما عداها متروك لتقدير المقاعد. الصياغة الحالية تتبع النصوص الموقّعة في 14 سبتمبر 2026 التي تحل محل ما قبلها.\n\nالرسوم: يدفع العميل رسوم كشف 3% من قيمة العرض المختار قبل الضريبة، بلا سقف، مرة واحدة لكل كشف، بالبطاقة أو Apple Pay، مضافاً إليها رسوم معالجة البطاقة بحيث تصافي الشركة 3% كاملة، مع عرض التفصيل قبل الدفع. لا ضريبة قيمة مضافة على الرسوم ما دامت الشركة غير مسجلة. المقارنة مجانية، ولا عمولة على المورد. اشتراك المورد مجاني دائماً لأول 1,000 مورد مسجّل، ثم 1,000 درهم سنوياً ابتداءً من المورد 1,001، دون ذكر تواريخ في أي نص.\n\nالمنتج: يغطي تقرير المقارنة أفضل ثلاثة عروض فنية، ويرى العميل كذلك كل العروض الأخرى ويختار منها ما يشاء؛ فلا يقال \"نعرض ثلاثة فقط\". لا طلب بلا حساب (جوال أو بريد موثّق برمز، والاسم، وتاريخ الميلاد مع رفض من هم دون 18، والموافقة على الشروط). العروض الناقصة تُعلَّق مع ملاحظات للمورد ولا \"تُرفض\". صلاحية العرض 30 يوماً.\n\nالاستجابة والاسترداد: على المورد الرد خلال 5 أيام عمل من الكشف، وتتابعه الشركة في اليوم الثالث، ويتخذ الرئيس التنفيذي القرار النهائي في اليوم الخامس؛ فإن بقي صامتاً يُرد للعميل كل ما دفعه تلقائياً، ويلتزم المورد بالمبلغ المسترد شاملاً رسوم المعالجة ورسوماً إدارية قدرها 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله من اتفاقية المورد) وفائدة بسيطة 9% سنوياً. يعتمد الرئيس التنفيذي الاستردادات ويتحقق من كل خطوة مالية.\n\nمنع الالتفاف: لا تواصل خارج المنصة قبل الكشف، وعقوبة المورد 15,000 درهم لكل مخالفة أو ثلاثة أضعاف الرسوم أيهما أعلى، لمدة 24 شهراً من التعريف.",
    "sources": [
     "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
    ],
@@ -804,8 +804,8 @@
    "id": "ceo:company-pricing",
    "topic": "Pricing: how the company earns and what it does not count",
    "kind": "company",
-   "body_en": "Revenue has one engine: the 3% Reveal Fee paid by the customer on the chosen quotation value before VAT, uncapped. Card processing is added on top so the company nets 3%: the model uses Stripe's UAE card rate of 2.9% plus AED 1, or 3.9% plus AED 1 for other cards, plus the invoicing fee and tax on Stripe fees, all charged to the customer. No VAT is charged on the fee today because the company is not VAT registered.\n\nTwo other income lines exist and are kept out of the headline plan: supplier subscriptions (free permanently for the first 1,000 registrations, AED 1,000 a year from the 1,001st) and the supplier non-response charge (the refunded amount plus AED 500 and 9% a year interest), which is recovery of a loss, not revenue growth.\n\nConsequences the CEO seat must hold in mind. The AED 15,000 or three-times-fee clause is an anti-circumvention penalty, not a fee cap. On a refund the customer receives everything paid and the company absorbs Stripe's own fee. The fee rate and who pays are hard rules: the seat can study willingness to pay and presentation, but a different fee needs the founder's decision first. VAT registration becomes mandatory once taxable supplies pass AED 375,000 in 12 months; the plan assumes VAT would then be added on top of the fee so net revenue is unchanged, which is itself a founder decision to be prepared in advance.",
-   "body_ar": "للإيراد محرّك واحد: رسوم كشف 3% يدفعها العميل من قيمة العرض المختار قبل الضريبة، بلا سقف. وتُضاف رسوم معالجة البطاقة لتصافي الشركة 3%: يعتمد النموذج سعر Stripe للبطاقات الإماراتية 2.9% زائد درهم واحد، أو 3.9% زائد درهم لغيرها، إضافة إلى رسوم الفوترة والضريبة على رسوم Stripe، وكلها على العميل. ولا تُفرض ضريبة قيمة مضافة على الرسوم حالياً لأن الشركة غير مسجلة.\n\nوهناك دخلان آخران لا يدخلان في رقم الخطة الرئيسي: اشتراك الموردين (مجاني دائماً لأول 1,000 مسجل، ثم 1,000 درهم سنوياً من المورد 1,001)، ورسوم عدم استجابة المورد (المبلغ المسترد مع 250 درهماً وفائدة 9% سنوياً)، وهي استرداد لخسارة لا نمو في الإيراد.\n\nما يجب أن يتذكره الرئيس التنفيذي: بند 15,000 درهم أو ثلاثة أضعاف الرسوم عقوبة لمنع الالتفاف وليس سقفاً للرسوم. في الاسترداد يستعيد العميل كل ما دفع وتتحمل الشركة رسوم Stripe. نسبة الرسوم ومن يدفعها قاعدتان ثابتتان؛ يمكن دراسة الاستعداد للدفع وطريقة العرض، أما رسوم مختلفة فتحتاج قرار المؤسس أولاً. ويصبح التسجيل في ضريبة القيمة المضافة إلزامياً إذا تجاوزت التوريدات الخاضعة 375,000 درهم خلال 12 شهراً؛ وتفترض الخطة إضافة الضريبة فوق الرسوم ليبقى الصافي كما هو، وهو قرار يُعدّ للمؤسس مسبقاً.",
+   "body_en": "Revenue has one engine: the 3% Reveal Fee paid by the customer on the chosen quotation value before VAT, uncapped. Card processing is added on top so the company nets 3%: the model uses Stripe's UAE card rate of 2.9% plus AED 1, or 3.9% plus AED 1 for other cards, plus the invoicing fee and tax on Stripe fees, all charged to the customer. No VAT is charged on the fee today because the company is not VAT registered.\n\nTwo other income lines exist and are kept out of the headline plan: supplier subscriptions (free permanently for the first 1,000 registrations, AED 1,000 a year from the 1,001st) and the supplier non-response charge (the refunded amount plus an AED 500 administrative fee (AED 250 for a supplier whose accepted Supplier Agreement is v12 or earlier) and 9% a year interest), which is recovery of a loss, not revenue growth.\n\nConsequences the CEO seat must hold in mind. The AED 15,000 or three-times-fee clause is an anti-circumvention penalty, not a fee cap. On a refund the customer receives everything paid and the company absorbs Stripe's own fee. The fee rate and who pays are hard rules: the seat can study willingness to pay and presentation, but a different fee needs the founder's decision first. VAT registration becomes mandatory once taxable supplies pass AED 375,000 in 12 months; the plan assumes VAT would then be added on top of the fee so net revenue is unchanged, which is itself a founder decision to be prepared in advance.",
+   "body_ar": "للإيراد محرّك واحد: رسوم كشف 3% يدفعها العميل من قيمة العرض المختار قبل الضريبة، بلا سقف. وتُضاف رسوم معالجة البطاقة لتصافي الشركة 3%: يعتمد النموذج سعر Stripe للبطاقات الإماراتية 2.9% زائد درهم واحد، أو 3.9% زائد درهم لغيرها، إضافة إلى رسوم الفوترة والضريبة على رسوم Stripe، وكلها على العميل. ولا تُفرض ضريبة قيمة مضافة على الرسوم حالياً لأن الشركة غير مسجلة.\n\nوهناك دخلان آخران لا يدخلان في رقم الخطة الرئيسي: اشتراك الموردين (مجاني دائماً لأول 1,000 مسجل، ثم 1,000 درهم سنوياً من المورد 1,001)، ورسوم عدم استجابة المورد (المبلغ المسترد مع رسم إداري قدره 500 درهم (و250 درهماً للمورد الذي قَبِل الإصدار 12 أو ما قبله من اتفاقية المورد) وفائدة 9% سنوياً)، وهي استرداد لخسارة لا نمو في الإيراد.\n\nما يجب أن يتذكره الرئيس التنفيذي: بند 15,000 درهم أو ثلاثة أضعاف الرسوم عقوبة لمنع الالتفاف وليس سقفاً للرسوم. في الاسترداد يستعيد العميل كل ما دفع وتتحمل الشركة رسوم Stripe. نسبة الرسوم ومن يدفعها قاعدتان ثابتتان؛ يمكن دراسة الاستعداد للدفع وطريقة العرض، أما رسوم مختلفة فتحتاج قرار المؤسس أولاً. ويصبح التسجيل في ضريبة القيمة المضافة إلزامياً إذا تجاوزت التوريدات الخاضعة 375,000 درهم خلال 12 شهراً؛ وتفترض الخطة إضافة الضريبة فوق الرسوم ليبقى الصافي كما هو، وهو قرار يُعدّ للمؤسس مسبقاً.",
    "sources": [
     "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
     "internal:plan/plan.md"
@@ -1129,6 +1129,564 @@
    ],
    "confidence": "high",
    "as_of": "2026-09-23"
+  },
+  {
+   "id": "ceo:llc-legal-form-basics",
+   "topic": "What a UAE limited liability company is, and who can bind it",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 32 of 2021 on Commercial Companies (in force 2 January 2022) defines the limited liability company in Article 71: between 2 and 50 partners, each liable only to the extent of his share in the capital; a single natural or juristic person may also own an LLC alone, and is then liable only up to the capital in the Memorandum of Association. Article 83 says the company is managed by one or more managers named in the Memorandum, in a separate contract, or by the general assembly; unless the appointment limits his powers, a manager has full powers and his acts bind the company when he acts in that capacity.\n\nFor the CEO seat this means three things. First, the seat is not the statutory manager: it proposes, the licensed manager named on the Memorandum signs. Second, anything that commits the company (a contract, a bank mandate, a hire) needs the manager's signature, and the seat keeps a record of which document carries it. Third, the company's legal form is read from the DET licence and Memorandum, not assumed; if the form ever changes, this entry is re-verified before use.",
+   "body_ar": "يعرّف المرسوم بقانون اتحادي رقم 32 لسنة 2021 بشأن الشركات التجارية (النافذ منذ 2 يناير 2022) الشركة ذات المسؤولية المحدودة في المادة 71 بأنها شركة لا يقل عدد الشركاء فيها عن اثنين ولا يزيد على خمسين، ولا يُسأل كل منهم إلا بقدر حصته في رأس المال، ويجوز أن يؤسسها ويملكها شخص طبيعي أو اعتباري واحد لا يُسأل إلا بقدر رأس المال الوارد في عقد التأسيس. وتنص المادة 83 على أن يتولى إدارتها مدير أو أكثر يُعيَّن في عقد التأسيس أو بعقد مستقل أو من الجمعية العمومية، وما لم تُقيَّد صلاحياته يكون للمدير كامل السلطة وتُلزم تصرفاته الشركة متى تصرّف بصفته مديراً.\n\nويترتب على ذلك للرئيس التنفيذي ثلاثة أمور: أولاً، هذا المقعد ليس المدير القانوني، فهو يقترح والمدير المسجّل في عقد التأسيس هو من يوقّع. ثانياً، كل ما يُلزم الشركة من عقد أو تفويض مصرفي أو تعيين يحتاج توقيع المدير، ويحتفظ المقعد بسجل يبيّن المستند الذي يحمل هذا التوقيع. ثالثاً، يُقرأ الشكل القانوني للشركة من رخصة دائرة الاقتصاد والسياحة وعقد التأسيس ولا يُفترض، وإذا تغيّر يُعاد التحقق من هذا المدخل قبل استخدامه.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:llc-annual-general-assembly",
+   "topic": "The annual general assembly: when it must meet and what it decides",
+   "kind": "law",
+   "body_en": "Article 92 of the Companies Law requires the LLC's general assembly, made up of all partners, to be convened by the manager at least once a year within the four months following the end of the financial year; partners holding at least 10% of the capital can require a meeting. Article 94 lists what the annual assembly decides: the managers' report on activity and financial position, the auditor's report, approval of the balance sheet and profit and loss account, profit distribution, appointment and remuneration of managers, and appointment and fees of the auditor. Article 100 requires a register of assembly meetings.\n\nFor a 31 December year end the assembly is due by 30 April. The CEO seat prepares the pack (audited accounts from the accountant, a written activity report, the auditor appointment proposal and any dividend or reserve decision) by the end of March, puts the date on the regulatory calendar and records the signed minutes as evidence. Where the company has a single owner the resolutions are still documented in writing; the owner's signature replaces a meeting, but the record does not disappear.",
+   "body_ar": "تُلزم المادة 92 من قانون الشركات المديرَ بدعوة الجمعية العمومية للشركة ذات المسؤولية المحدودة، المكوّنة من جميع الشركاء، إلى الانعقاد مرة واحدة على الأقل سنوياً خلال الأشهر الأربعة التالية لنهاية السنة المالية، ويحق للشركاء المالكين 10% على الأقل من رأس المال طلب انعقادها. وتحدد المادة 94 اختصاصات الجمعية السنوية: تقرير المديرين عن النشاط والمركز المالي، وتقرير مدقق الحسابات، واعتماد الميزانية وحساب الأرباح والخسائر، وتوزيع الأرباح، وتعيين المديرين وتحديد مكافآتهم، وتعيين المدقق وتحديد أتعابه. وتوجب المادة 100 الاحتفاظ بسجل لمحاضر اجتماعات الجمعية.\n\nفإذا انتهت السنة المالية في 31 ديسمبر وجب انعقاد الجمعية بحلول 30 أبريل. يُعدّ الرئيس التنفيذي الملف بنهاية مارس: الحسابات المدققة من المحاسب، وتقرير نشاط مكتوب، ومقترح تعيين المدقق، وأي قرار بشأن الأرباح أو الاحتياطي، ويُدرج الموعد في التقويم التنظيمي ويحفظ المحضر الموقّع دليلاً. وإذا كان للشركة مالك واحد تُوثَّق القرارات كتابةً أيضاً؛ فتوقيع المالك يحل محل الاجتماع، لكن السجل لا يسقط.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24",
+   "source_note": "Articles 92, 94, 100 and 102 of FDL 32/2021 read from MoET PDF (pdftotext, 24 Sep 2026) and confirmed."
+  },
+  {
+   "id": "ceo:llc-auditor-and-books",
+   "topic": "Every LLC needs an auditor and five years of books",
+   "kind": "law",
+   "body_en": "Article 102 of the Companies Law states that a limited liability company shall have one or more auditors elected every year by the general assembly, and applies the public joint stock company auditor provisions to it. Article 26 requires every company to keep accounting registers that accurately show its financial position at any time, kept at the head office for at least five years.\n\nThe practical consequences for the CEO seat: the annual audit is a legal obligation, not an investor nicety, and its fee belongs in the budget; the auditor is appointed by the assembly, so the appointment goes into the assembly pack; and the accountant's ledger, invoices, Stripe payouts and bank statements are retained for at least five years (Corporate Tax record rules may require longer; the accountant confirms). The seat never lets a purge job touch financial records, and it treats a missing month of bank statements as an audit finding, not an inconvenience.",
+   "body_ar": "تنص المادة 102 من قانون الشركات على أن يكون للشركة ذات المسؤولية المحدودة مدقق حسابات أو أكثر تنتخبه الجمعية العمومية كل سنة، وتُطبَّق عليه أحكام مدققي شركات المساهمة العامة. وتوجب المادة 26 على كل شركة أن تمسك سجلات محاسبية تُظهر مركزها المالي بدقة في أي وقت، وأن تحفظها في مركزها الرئيسي مدة لا تقل عن خمس سنوات.\n\nوتبعات ذلك للرئيس التنفيذي: التدقيق السنوي التزام قانوني لا مجاملة للمستثمرين، وأتعابه بند ثابت في الموازنة؛ ويُعيَّن المدقق بقرار الجمعية فيدخل تعيينه في ملفها؛ وتُحفظ دفاتر المحاسب والفواتير ودفعات Stripe وكشوف البنك خمس سنوات على الأقل، وقد تفرض قواعد ضريبة الشركات مدة أطول يؤكدها المحاسب. ولا يسمح المقعد لأي مهمة حذف بالمساس بالسجلات المالية، ويعدّ غياب كشف مصرفي لشهر واحد ملاحظة تدقيق لا مجرد إزعاج.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24",
+   "source_note": "Articles 92, 94, 100 and 102 of FDL 32/2021 read from MoET PDF (pdftotext, 24 Sep 2026) and confirmed."
+  },
+  {
+   "id": "ceo:llc-statutory-reserve",
+   "topic": "The 5% statutory reserve comes before any dividend",
+   "kind": "law",
+   "body_en": "Article 103 of the Companies Law: a limited liability company shall set aside 5% of its net profits every year to form a statutory reserve; the partners may decide to stop the allocation once the reserve reaches half of the capital.\n\nFor the CEO seat: when the company first makes a net profit, the dividend or owner-drawing proposal is computed after the 5% reserve, and the accountant books it. The seat does not propose paying out the whole profit. Since the capital amount determines when the reserve can stop, the seat reads the capital from the Memorandum rather than assuming it.",
+   "body_ar": "تنص المادة 103 من قانون الشركات على أن تقتطع الشركة ذات المسؤولية المحدودة كل سنة 5% من صافي أرباحها لتكوين احتياطي قانوني، ويجوز للشركاء وقف هذا الاقتطاع متى بلغ الاحتياطي نصف رأس المال.\n\nوعلى ذلك، حين تحقق الشركة أول ربح صافٍ يُحتسب أي مقترح لتوزيع الأرباح أو سحب المالك بعد اقتطاع الاحتياطي البالغ 5%، ويقيده المحاسب. ولا يقترح المقعد توزيع الربح كاملاً. ولأن مبلغ رأس المال هو الذي يحدد متى يجوز وقف الاقتطاع، يقرأ المقعد رأس المال من عقد التأسيس ولا يفترضه.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:llc-losses-half-capital",
+   "topic": "Losses reaching half the capital force a dissolution vote",
+   "kind": "law",
+   "body_en": "Article 308 of the Companies Law: if the losses of a limited liability company reach half of its capital, the managers must refer the question of dissolution to the general assembly, which decides by the majority required to amend the Memorandum; if losses reach three quarters of the capital, partners holding a quarter of the capital may request dissolution.\n\nThis is why the CEO seat tracks accumulated losses against paid-up capital every month, not only cash runway. A pre-revenue company with small capital can cross the half-capital line long before it runs out of cash, because owner funding recorded as capital contributions or loans changes the picture. When accumulated losses pass 35% of capital the seat raises it in the monthly business review with the options (a capital increase, reclassifying owner money on the accountant's advice, or preparing the assembly referral), so the founder never meets Article 308 as a surprise.",
+   "body_ar": "تنص المادة 308 من قانون الشركات على أنه إذا بلغت خسائر الشركة ذات المسؤولية المحدودة نصف رأس مالها وجب على المديرين عرض مسألة حل الشركة على الجمعية العمومية التي تقرر بالأغلبية المطلوبة لتعديل عقد التأسيس، وإذا بلغت الخسائر ثلاثة أرباع رأس المال جاز للشركاء المالكين ربع رأس المال طلب الحل.\n\nلذلك يتابع الرئيس التنفيذي الخسائر المتراكمة مقارنةً برأس المال المدفوع شهرياً، لا مدة السيولة وحدها؛ فالشركة التي لم تحقق إيراداً ورأس مالها صغير قد تتجاوز حد النصف قبل نفاد النقد بكثير، وتصنيف أموال المالك كمساهمة رأسمالية أو قرض يغيّر الصورة. وحين تتجاوز الخسائر المتراكمة 35% من رأس المال يعرض المقعد الأمر في المراجعة الشهرية مع الخيارات: زيادة رأس المال، أو إعادة تصنيف أموال المالك بمشورة المحاسب، أو تجهيز الإحالة إلى الجمعية، حتى لا تفاجئ المادة 308 المؤسس.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:companies-law-2025-amendments",
+   "topic": "The 2025 Companies Law amendments: share classes, drag and tag, re-domiciliation",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 20 of 2025, issued in October 2025 and effective 1 January 2026 as reported by Dentons and Squire Patton Boggs, amended the Companies Law. For LLCs it permits multiple classes of shares with different rights, gives a statutory basis to drag-along and tag-along rights, adds tools for deadlock and for succession to shares, and creates a path for companies to move between a free zone and the mainland.\n\nWhy it matters to the CEO seat: before 2026 an onshore LLC could not easily give an investor preferred economic rights, which pushed founders to holding companies in ADGM or DIFC. That is now partly possible onshore, but the detail sits in the amended text and any implementing decisions. The seat therefore treats any investor term that needs preferred rights as a question for qualified counsel against the amended law, and does not assume either the old limitation or the new flexibility.",
+   "body_ar": "عدّل المرسوم بقانون اتحادي رقم 20 لسنة 2025، الصادر في أكتوبر 2025 والنافذ اعتباراً من 1 يناير 2026 وفق ما أوردته مكتبا Dentons وSquire Patton Boggs، قانونَ الشركات التجارية. فأجاز للشركات ذات المسؤولية المحدودة إصدار فئات متعددة من الحصص بحقوق مختلفة، ومنح أساساً قانونياً لحقَّي الإلزام بالبيع والانضمام إلى البيع، وأضاف أدوات لمعالجة الجمود في القرار ولانتقال الحصص بالخلافة، وأتاح انتقال الشركات بين المناطق الحرة والبر الرئيسي.\n\nوأهمية ذلك للرئيس التنفيذي أن الشركة ذات المسؤولية المحدودة في البر الرئيسي لم تكن قبل 2026 تستطيع بسهولة منح مستثمر حقوقاً اقتصادية تفضيلية، مما دفع المؤسسين إلى شركات قابضة في سوق أبوظبي العالمي أو مركز دبي المالي العالمي. وقد أصبح ذلك ممكناً جزئياً الآن، لكن التفاصيل في النص المعدّل وقراراته التنفيذية. لذا يعامل المقعد أي شرط استثماري يتطلب حقوقاً تفضيلية مسألةً للمستشار القانوني المؤهل وفق القانون المعدّل، ولا يفترض القيد القديم ولا المرونة الجديدة.",
+   "sources": [
+    "https://www.dentons.com/en/insights/alerts/2026/january/27/uae-amends-commercial-companies-law",
+    "https://www.squirepattonboggs.com/insights/publications/commercial-companies-law-amendment-allowing-for-class-shares-non-profit-companies-company-migration-and-deadlock-resolution-tools/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:det-licensed-activities",
+   "topic": "The company may only do what its DET licence lists",
+   "kind": "decision_rule",
+   "body_en": "A Dubai mainland company operates under the activities printed on its Department of Economy and Tourism (DET) licence. Starting a new line of business (for example taking payment on behalf of suppliers, logistics, or a food and beverage category the founder has excluded) is a licence question before it is a product question: an activity outside the licence may need an amendment, a different activity code, or a third-party approval.\n\nDecision rule for the CEO seat: before any directive creates a new revenue stream or a new service the company performs itself, the seat checks the licensed activities on licence 1633275 and records the result. If the activity is not clearly covered, the directive is held and the question goes to the founder with the specific activity wording needed. Current activity wording on the licence is company data that the seat reads, not a figure it remembers.",
+   "body_ar": "تمارس الشركة في البر الرئيسي لدبي الأنشطة المدرجة في رخصتها الصادرة عن دائرة الاقتصاد والسياحة فقط. وبدء خط عمل جديد، كقبض المدفوعات نيابةً عن الموردين أو الخدمات اللوجستية أو فئة الأغذية والمشروبات التي استبعدها المؤسس، مسألة ترخيص قبل أن يكون مسألة منتج؛ فالنشاط غير المرخّص قد يحتاج تعديلاً للرخصة أو رمز نشاط مختلفاً أو موافقة جهة أخرى.\n\nقاعدة القرار: قبل أن يصدر أي توجيه ينشئ مصدر إيراد جديداً أو خدمة تؤديها الشركة بنفسها، يراجع الرئيس التنفيذي الأنشطة المرخّصة في الرخصة رقم 1633275 ويوثّق النتيجة. وإذا لم يكن النشاط مشمولاً بوضوح يُعلَّق التوجيه وتُرفع المسألة إلى المؤسس مع صياغة النشاط المطلوبة تحديداً. وصياغة الأنشطة الحالية بيانات يقرؤها المقعد من الرخصة، لا معلومة يحفظها.",
+   "sources": [
+    "https://www.dubaidet.gov.ae/",
+    "internal:memory/trade-licence-and-vat-status-are-closed.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:commercial-agency-law",
+   "topic": "Commercial agency law: why QuotesDone is not an agent and must not sign like one",
+   "kind": "law",
+   "body_en": "Federal Law No. 3 of 2022 regulating Commercial Agencies replaced Federal Law No. 18 of 1981 and took effect on 16 June 2023. A commercial agency must be registered in the Ministry of Economy's Commercial Agencies Register to be valid, and the Ministry decides a complete registration application within ten working days.\n\nQuotesDone is a request-for-quotation marketplace: it introduces buyers to suppliers of the exact trade and charges the buyer a reveal fee; it does not distribute a principal's products or act as anyone's exclusive representative. The CEO seat keeps it that way. It refuses any supplier or manufacturer agreement that names the company as agent, distributor or exclusive representative for a territory, because that could bring the relationship within the agency regime and its termination protections. A supplier asking for exclusivity or a territory is routed to the founder as a strategic decision, never agreed by a seat.",
+   "body_ar": "حلّ القانون الاتحادي رقم 3 لسنة 2022 بشأن تنظيم الوكالات التجارية محل القانون الاتحادي رقم 18 لسنة 1981، وأصبح نافذاً في 16 يونيو 2023. ولا تكون الوكالة التجارية صحيحة إلا بقيدها في سجل الوكالات التجارية لدى وزارة الاقتصاد، وتبتّ الوزارة في طلب القيد المستوفي خلال عشرة أيام عمل.\n\nأما QuotesDone فمنصة لطلبات عروض الأسعار تعرّف المشترين بموردي التخصص المطابق وتتقاضى من المشتري رسم كشف، ولا توزّع منتجات موكِّل ولا تمثّل أحداً تمثيلاً حصرياً. ويحافظ الرئيس التنفيذي على ذلك، فيرفض أي اتفاق مع مورد أو مصنّع يصف الشركة بأنها وكيل أو موزّع أو ممثل حصري لإقليم ما، لأن ذلك قد يُدخل العلاقة في نظام الوكالات وحماياته عند الإنهاء. ويُحال أي طلب حصرية أو إقليم من مورد إلى المؤسس بوصفه قراراً استراتيجياً لا يوافق عليه أي مقعد.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1617/download",
+    "https://www.lexology.com/library/detail.aspx?g=c191d8f3-df35-45d3-834e-828a657dd785"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:labour-law-hiring-basics",
+   "topic": "UAE Labour Law basics the CEO needs before the first human hire",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 33 of 2021 regulating labour relations applies to private employers across the emirates and free zones except DIFC and ADGM. Employment contracts are fixed-term; renewals are added to continuous service. Probation may not exceed six months and applies once per employment; either side ending employment during probation gives at least 14 days' written notice (a worker leaving to join another UAE employer gives at least a month). After probation, notice is at least 30 and at most 90 days, in writing. Working hours may not exceed 48 a week, with overtime paid at a premium. Annual leave (Article 29) is two days for each month of service once service exceeds six months and is less than one year, then at least 30 days for each year of service after the first year.\n\nQuotesDone runs on seats today and plans no hire before the founder decides one. When he does, the CEO seat's job is to check the offer against these minimums, budget the full cost (salary, visa, health insurance, gratuity accrual) and make sure the contract is issued on the Ministry of Human Resources and Emiratisation standard before the start date.",
+   "body_ar": "يسري المرسوم بقانون اتحادي رقم 33 لسنة 2021 بشأن تنظيم علاقات العمل على أصحاب العمل في القطاع الخاص في جميع الإمارات والمناطق الحرة باستثناء مركز دبي المالي العالمي وسوق أبوظبي العالمي. وعقود العمل محددة المدة، وتُضاف مدد التجديد إلى الخدمة المتصلة. ولا تتجاوز فترة التجربة ستة أشهر ولا تتكرر في العمل ذاته، ويُخطر من ينهي العلاقة خلالها الطرفَ الآخر كتابةً قبل 14 يوماً على الأقل، ويُخطر العامل المنتقل إلى صاحب عمل آخر في الدولة قبل شهر على الأقل. وبعد التجربة لا تقل مهلة الإنذار عن 30 يوماً ولا تزيد على 90 يوماً وتكون كتابية. ولا تتجاوز ساعات العمل 48 ساعة أسبوعياً، ويُدفع العمل الإضافي بأجر أعلى. والإجازة السنوية وفق المادة 29 يومان عن كل شهر إذا زادت مدة الخدمة على ستة أشهر وقلّت عن سنة، ثم 30 يوماً على الأقل عن كل سنة خدمة بعد السنة الأولى.\n\nتعمل QuotesDone اليوم بالمقاعد، ولا تعيين قبل أن يقرره المؤسس. وعندما يقرر، يتحقق الرئيس التنفيذي من مطابقة العرض لهذه الحدود الدنيا، ويحتسب الكلفة الكاملة من راتب وإقامة وتأمين صحي ومخصص نهاية الخدمة، ويتأكد من إصدار العقد وفق نموذج وزارة الموارد البشرية والتوطين قبل تاريخ المباشرة.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1541/download",
+    "https://dda.gov.ae/-/media/A723B420E7B847B3B104C6AAB8CF937F.pdf",
+    "https://mohre.gov.ae/assets/download/8cd7cf08/Federal%20Decree-Law%20No.%2033%20of%202021%20Regarding%20the%20Regulation%20of%20Employment%20Relationship%20and%20its%20amendments.pdf.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:end-of-service-gratuity",
+   "topic": "End-of-service gratuity is a liability that accrues from day one",
+   "kind": "law",
+   "body_en": "Under Federal Decree-Law No. 33 of 2021, a full-time worker who completes at least one year of continuous service is entitled to an end-of-service gratuity calculated on basic wage: 21 days' basic wage for each of the first five years and 30 days for each additional year, applying to resignations and terminations alike.\n\nBecause the entitlement is on basic wage, the split between basic salary and allowances in an offer drives the liability. The CEO seat has the accountant accrue gratuity monthly from the first day of any hire, not at departure, and includes it in runway and in the cost of every role proposal. A role is never priced on salary alone.",
+   "body_ar": "وفق المرسوم بقانون اتحادي رقم 33 لسنة 2021، يستحق العامل بدوام كامل الذي يُكمل سنة خدمة متصلة على الأقل مكافأة نهاية خدمة تُحسب على الأجر الأساسي: أجر 21 يوماً عن كل سنة من السنوات الخمس الأولى، وأجر 30 يوماً عن كل سنة تزيد عليها، سواء انتهت العلاقة بالاستقالة أو بالإنهاء.\n\nولأن الاستحقاق يُحسب على الأجر الأساسي، فإن توزيع العرض الوظيفي بين الراتب الأساسي والبدلات هو ما يحدد حجم الالتزام. ويطلب الرئيس التنفيذي من المحاسب قيد مخصص المكافأة شهرياً منذ اليوم الأول لأي تعيين لا عند المغادرة، ويُدخله في حساب مدة السيولة وفي كلفة كل مقترح وظيفي. فلا تُسعَّر أي وظيفة على الراتب وحده.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1541/download",
+    "https://dda.gov.ae/-/media/A723B420E7B847B3B104C6AAB8CF937F.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:iloe-and-wps",
+   "topic": "Unemployment insurance and the Wage Protection System",
+   "kind": "law",
+   "body_en": "Involuntary Loss of Employment (ILOE) insurance is governed by Cabinet Resolution No. 97 of 2022 and Ministerial Resolution No. 604 of 2022 and has been compulsory for private and federal employees since 1 January 2023. The subscription is the employee's, but an employer that hires should tell each new starter to subscribe promptly and keep evidence, because MOHRE can recover unpaid fines through the Wage Protection System (WPS) or from the end-of-service gratuity. WPS is MOHRE's electronic salary system: wages of workers registered with MOHRE are paid through approved channels, and its records are the evidence in any wage dispute.\n\nFor the CEO seat: the first hire triggers WPS registration with the bank or exchange house before the first payroll, and payroll is never paid by personal transfer. Exact ILOE premium bands and fines are left to the MOHRE portal at the time of hire; they are not restated here.",
+   "body_ar": "يخضع تأمين التعطل عن العمل لقرار مجلس الوزراء رقم 97 لسنة 2022 والقرار الوزاري رقم 604 لسنة 2022، وأصبح إلزامياً لموظفي القطاع الخاص والحكومة الاتحادية منذ 1 يناير 2023. والاشتراك مسؤولية الموظف، لكن على صاحب العمل عند التعيين أن ينبّه كل موظف جديد إلى الاشتراك دون تأخير ويحتفظ بما يثبت ذلك، لأن الوزارة قد تستوفي الغرامات غير المسددة عبر نظام حماية الأجور أو من مكافأة نهاية الخدمة. ونظام حماية الأجور هو النظام الإلكتروني للوزارة لصرف الرواتب عبر قنوات معتمدة، وسجلاته هي البيّنة في أي نزاع على الأجور.\n\nوعلى الرئيس التنفيذي أن يعلم أن أول تعيين يستوجب التسجيل في نظام حماية الأجور لدى البنك أو شركة الصرافة قبل أول مسيّر رواتب، وألا تُصرف الرواتب بتحويل شخصي أبداً. أما شرائح أقساط التأمين وغراماته الدقيقة فتُؤخذ من بوابة الوزارة وقت التعيين ولا تُعاد صياغتها هنا.",
+   "sources": [
+    "https://mohre.gov.ae/en/guidance-and-awareness-portal-new/unemployment-insurance-scheme",
+    "https://www.mohre.gov.ae/en/media-center/awareness-and-guidance/unemployment-insurance-scheme.aspx"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:dubai-employee-health-insurance",
+   "topic": "Dubai employers must insure their employees' health",
+   "kind": "law",
+   "body_en": "Dubai Law No. 11 of 2013 concerning Health Insurance in the Emirate of Dubai makes the employer responsible for providing health insurance to its employees at no less than the mandatory minimum benefits; the cost is the employer's and may not be deducted from salary. The obligation was phased in and has applied to employers of every size since 2016.\n\nFor the CEO seat: health insurance is part of the cost of any Dubai-visa hire, it must be in place for visa processing, and the premium is budgeted per head. The seat does not approve an offer letter that shifts the premium to the employee.",
+   "body_ar": "يجعل قانون رقم 11 لسنة 2013 بشأن الضمان الصحي في إمارة دبي صاحبَ العمل مسؤولاً عن توفير التأمين الصحي لموظفيه بما لا يقل عن المنافع الإلزامية الدنيا، وتكون الكلفة على صاحب العمل ولا يجوز اقتطاعها من الراتب. وقد طُبّق الالتزام على مراحل وأصبح يشمل أصحاب العمل بجميع أحجامهم منذ 2016.\n\nوعلى ذلك، التأمين الصحي جزء من كلفة أي تعيين بإقامة دبي، ويجب أن يكون سارياً لإجراءات الإقامة، ويُرصد قسطه لكل موظف في الموازنة. ولا يعتمد الرئيس التنفيذي أي خطاب عرض ينقل كلفة القسط إلى الموظف.",
+   "sources": [
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2013/Law%20No.%20(11)%20of%202013.pdf",
+    "https://www.pinsentmasons.com/out-law/news/dubais-compulsory-employee-medical-insurance-scheme-gets-underway-for-largest-firms"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:emiratisation-applicability",
+   "topic": "Emiratisation and Nafis: when the targets start to apply",
+   "kind": "law",
+   "body_en": "The official UAE portal states the private-sector Emiratisation targets. Establishments with 50 or more employees must raise Emirati representation in skilled jobs by 2% a year, reaching a 10% overall increase by 2026; the monthly contribution for each missing citizen was AED 6,000 from 2023, rising by AED 1,000 a year through 2026. Companies with 20 to 49 employees in 14 specified sectors (including information and communications, professional services, real estate, construction and others) had to hire one Emirati by the end of 2024 and a second by the end of 2025, with contributions of AED 96,000 (January 2025) and AED 108,000 (January 2026) for missing the target. Nafis is the federal programme that supports Emirati employment in the private sector with incentives.\n\nQuotesDone has no human employees today, so the targets do not apply. The CEO seat re-checks applicability whenever headcount planning passes 15 people, and treats Nafis-supported Emirati hires as a positive option, not only a compliance cost.",
+   "body_ar": "تحدد البوابة الرسمية لحكومة الإمارات مستهدفات التوطين في القطاع الخاص. فالمنشآت التي يعمل بها 50 موظفاً أو أكثر ملزمة بزيادة نسبة المواطنين في الوظائف المهارية 2% سنوياً لتبلغ زيادة إجمالية قدرها 10% بحلول 2026، وكانت المساهمة الشهرية عن كل مواطن غير معيّن 6,000 درهم منذ 2023 تزيد ألف درهم سنوياً حتى 2026. أما الشركات التي يعمل بها من 20 إلى 49 موظفاً في 14 قطاعاً محدداً، منها المعلومات والاتصالات والخدمات المهنية والعقارات والإنشاءات، فكان عليها تعيين مواطن بنهاية 2024 ومواطن ثانٍ بنهاية 2025، مع مساهمة 96,000 درهم في يناير 2025 و108,000 درهم في يناير 2026 عند عدم التحقيق. و«نافس» هو البرنامج الاتحادي الذي يدعم توظيف المواطنين في القطاع الخاص بحوافز.\n\nلا يوجد لدى QuotesDone موظفون من البشر اليوم، فلا تنطبق هذه المستهدفات. ويعيد الرئيس التنفيذي التحقق من انطباقها كلما تجاوز تخطيط القوى العاملة 15 شخصاً، ويعدّ تعيين المواطنين بدعم «نافس» خياراً إيجابياً لا مجرد كلفة امتثال.",
+   "sources": [
+    "https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/emiratis-employment-in-private-sector",
+    "https://u.ae/en/information-and-services/jobs/emiratis-employment-in-private-sector/emiratisation-targets-in-the-private-sector"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:aml-position-non-dnfbp",
+   "topic": "Anti-money-laundering: our position as a non-DNFBP marketplace",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 10 of 2025 on anti-money laundering, combating the financing of terrorism and proliferation financing came into effect on 14 October 2025 and repealed Federal Decree-Law No. 20 of 2018; Cabinet Resolution No. 134 of 2025 is its implementing regulation. The regime imposes full programme obligations on financial institutions, virtual asset service providers and designated non-financial businesses and professions (DNFBPs) such as real estate brokers, dealers in precious metals and stones, lawyers, accountants and corporate service providers. Criminal offences and the duty not to facilitate laundering apply to everyone.\n\nQuotesDone introduces buyers to suppliers and collects a card-paid reveal fee through a licensed payment processor; on the facts recorded today it is not in a DNFBP category, and the processor performs its own customer due diligence. That position is a conclusion the CEO seat re-tests whenever the model changes: holding buyer funds, paying suppliers, or listing precious metals or real estate would change the answer. Meanwhile the seat keeps the beneficial owner register current, refuses cash, and routes any suspicious pattern (split payments, mismatched names, pressure to move money off platform) to the founder at once.",
+   "body_ar": "دخل المرسوم بقانون اتحادي رقم 10 لسنة 2025 بشأن مواجهة غسل الأموال ومكافحة تمويل الإرهاب وتمويل انتشار التسلح حيز التنفيذ في 14 أكتوبر 2025، وألغى المرسوم بقانون اتحادي رقم 20 لسنة 2018، وقرار مجلس الوزراء رقم 134 لسنة 2025 هو لائحته التنفيذية. ويفرض النظام برامج امتثال كاملة على المؤسسات المالية ومزوّدي خدمات الأصول الافتراضية والأعمال والمهن غير المالية المحددة، مثل الوسطاء العقاريين وتجار المعادن والأحجار الكريمة والمحامين والمحاسبين ومزوّدي خدمات الشركات. أما الجرائم وواجب عدم تسهيل غسل الأموال فتسري على الجميع.\n\nتعرّف QuotesDone المشترين بالموردين وتحصّل رسم كشف بالبطاقة عبر معالج مدفوعات مرخّص؛ وعلى الوقائع المسجلة اليوم ليست ضمن فئات الأعمال والمهن غير المالية المحددة، ويجري المعالج إجراءات العناية الواجبة الخاصة به. وهذا استنتاج يعيد الرئيس التنفيذي اختباره كلما تغيّر النموذج؛ فحفظ أموال المشترين أو الدفع للموردين أو إدراج المعادن الثمينة أو العقارات يغيّر الجواب. وفي الأثناء يحدّث المقعد سجل المستفيد الحقيقي، ويرفض النقد، ويرفع فوراً إلى المؤسس أي نمط مريب كتجزئة الدفعات أو اختلاف الأسماء أو الضغط لنقل المال خارج المنصة.",
+   "sources": [
+    "https://rulebook.centralbank.ae/en/rulebook/federal-decree-law-no-10-2025-regarding-anti-money-laundering-and-combating-financing",
+    "https://www.lexology.com/library/detail.aspx?g=090a0573-07a1-414f-818d-62e4cc9bc138"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:cybercrime-law-awareness",
+   "topic": "The cybercrime law: what the company must never do online",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 34 of 2021 on Countering Rumours and Cybercrimes (in force 2 January 2022, replacing Federal Law No. 5 of 2012) criminalises unauthorised access to systems and data, electronic fraud, invasion of privacy and the spread of false information online, with heavy prison terms and fines for the serious offences.\n\nFor a marketplace this sets hard limits on growth and marketing tactics. The CEO seat forbids: scraping behind logins or bypassing technical protections, publishing unverified claims about a competitor or a supplier, posting a supplier's or buyer's details or images without a lawful basis, and fake reviews or impersonated accounts. A defamatory or false public review of a supplier is also a legal exposure, so review moderation is a trust-and-safety duty, not a courtesy.",
+   "body_ar": "يجرّم المرسوم بقانون اتحادي رقم 34 لسنة 2021 في شأن مكافحة الشائعات والجرائم الإلكترونية (النافذ منذ 2 يناير 2022 بدلاً من القانون الاتحادي رقم 5 لسنة 2012) الدخول غير المصرّح به إلى الأنظمة والبيانات، والاحتيال الإلكتروني، والاعتداء على الخصوصية، ونشر المعلومات الكاذبة عبر الإنترنت، مع عقوبات مشددة بالسجن والغرامة في الجرائم الجسيمة.\n\nويضع ذلك حدوداً صارمة لأساليب النمو والتسويق في المنصة. فيحظر الرئيس التنفيذي: جمع البيانات من خلف تسجيل الدخول أو تجاوز الحمايات التقنية، ونشر ادعاءات غير موثّقة عن منافس أو مورد، ونشر بيانات مورد أو مشترٍ أو صوره دون أساس مشروع، والتقييمات المزيفة أو الحسابات المنتحلة. كما أن التقييم العلني الكاذب أو المسيء لمورد يمثّل تعرضاً قانونياً، فمراجعة التقييمات واجب من واجبات الثقة والأمان لا مجاملة.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1526/download",
+    "https://assets.adgm.com/download/assets/Federal+DecreeLaw+No+34+of+2021+On+Countering+Rumors+and+Cybercrimes.pdf/7b3c845c864f11ef8ccdca0b2c1f6c13"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:e-commerce-law-2023",
+   "topic": "Trading by modern technological means: the platform law",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 14 of 2023 on Trading by Modern Technological Means regulates commercial activity conducted through websites, applications and digital platforms, covering the sale and exchange of goods, services and data, and replaced the 2006 e-commerce law; it has applied since 2023.\n\nFor QuotesDone the practical duties are ones a well-run platform already keeps: clear identification of the company and its licence on the site, clear terms and fee disclosure before payment (the reveal fee breakdown is shown before the buyer pays), records of electronic transactions, and protection of the data collected. The CEO seat treats any change to checkout, terms or fee display as needing a check against this law and the consumer protection regime before release.",
+   "body_ar": "ينظّم المرسوم بقانون اتحادي رقم 14 لسنة 2023 في شأن التجارة عبر وسائل التقنية الحديثة النشاطَ التجاري الذي يجري عبر المواقع والتطبيقات والمنصات الرقمية، ويشمل بيع السلع والخدمات والبيانات وتبادلها، وقد حلّ محل قانون التجارة الإلكترونية لسنة 2006 ويُطبَّق منذ 2023.\n\nوالواجبات العملية على QuotesDone هي ما تلتزم به أي منصة منضبطة: تعريف واضح بالشركة ورخصتها على الموقع، وشروط واضحة والإفصاح عن الرسوم قبل الدفع (إذ يظهر تفصيل رسم الكشف قبل أن يدفع المشتري)، وحفظ سجلات المعاملات الإلكترونية، وحماية البيانات المجمّعة. ويعدّ الرئيس التنفيذي أي تغيير في صفحة الدفع أو الشروط أو عرض الرسوم محتاجاً إلى مراجعة وفق هذا القانون ونظام حماية المستهلك قبل الإطلاق.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/2150/download",
+    "https://www.moet.gov.ae/documents/20121/0/Federal+Decree-Law+No.+14+of+2023+on+Trading+by+Modern+Technological+Means.pdf"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:consumer-protection-scope",
+   "topic": "Consumer protection law: when a B2B platform still meets it",
+   "kind": "law",
+   "body_en": "Federal Law No. 15 of 2020 on Consumer Protection, amended by Federal Decree-Law No. 5 of 2023, protects consumers' rights to goods and services of standard quality at the declared price and to health and safety; the Ministry of Economy administers it together with its implementing regulation.\n\nQuotesDone is built for businesses, but individuals (a villa owner renovating, a sole trader) can post requests. The CEO seat therefore does not assume consumer law is irrelevant: the price shown must be the price charged, the fee and refund terms must be clear before payment, and complaints get a response path. Where a request is plainly from an individual for personal use, the seat asks customer_support to apply the consumer-grade standard of clarity.",
+   "body_ar": "يحمي القانون الاتحادي رقم 15 لسنة 2020 في شأن حماية المستهلك، المعدّل بالمرسوم بقانون اتحادي رقم 5 لسنة 2023، حقَّ المستهلك في سلع وخدمات بجودة قياسية وبالسعر المعلن، وحقه في الصحة والسلامة، وتتولى وزارة الاقتصاد تطبيقه مع لائحته التنفيذية.\n\nصُممت QuotesDone للشركات، لكن الأفراد كصاحب فيلا يجدّدها أو تاجر فرد قد ينشرون طلبات. لذا لا يفترض الرئيس التنفيذي أن قانون المستهلك لا يعنينا: يجب أن يكون السعر المعروض هو المحصّل، وأن تكون شروط الرسوم والاسترداد واضحة قبل الدفع، وأن يكون للشكاوى مسار رد. وإذا كان الطلب بوضوح من فرد لاستخدام شخصي، يطلب المقعد من خدمة العملاء تطبيق معيار الوضوح المناسب للمستهلك.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1455",
+    "https://www.moet.gov.ae/en/consumer-protection-legislations"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:uae-ai-charter",
+   "topic": "The UAE Charter for the Development and Use of Artificial Intelligence",
+   "kind": "standard",
+   "body_en": "The official UAE portal publishes the UAE Charter for the Development and Use of Artificial Intelligence with twelve principles: strengthening human-machine ties; safety; addressing algorithmic bias; data privacy; transparency; human oversight; governance and accountability; technological excellence; human commitment; peaceful coexistence with the technology; promoting awareness for an inclusive future; and commitment to treaties and applicable laws. It is a charter of principles, not a statute with penalties.\n\nQuotesDone's seats are software agents, so the charter is the closest official statement of what the UAE expects of them. The CEO seat maps it to company practice: a human (the founder) holds oversight and the reserved decisions; every seat decision is logged and explainable; matching must not systematically disadvantage suppliers by size or origin; personal data follows the PDPL. Customer-facing copy never describes the company or its seats with that technology label, per the founder's ruling; the charter governs how we build, not what we say.",
+   "body_ar": "تنشر البوابة الرسمية لحكومة الإمارات ميثاق تطوير واستخدام الذكاء الاصطناعي في الدولة، ويتضمن اثني عشر مبدأً: تعزيز العلاقة بين الإنسان والآلة، والسلامة، ومعالجة التحيز الخوارزمي، وخصوصية البيانات، والشفافية، والإشراف البشري، والحوكمة والمساءلة، والتميز التقني، والالتزام الإنساني، والتعايش السلمي مع هذه التقنية، وتعزيز الوعي من أجل مستقبل شامل، والالتزام بالمعاهدات والقوانين النافذة. وهو ميثاق مبادئ وليس تشريعاً ذا عقوبات.\n\nولأن مقاعد QuotesDone وكلاء برمجيون، فالميثاق أقرب بيان رسمي لما تتوقعه الدولة منها. ويترجمه الرئيس التنفيذي إلى ممارسة: يحتفظ إنسان، هو المؤسس، بالإشراف وبالقرارات المحجوزة؛ ويُسجَّل كل قرار لأي مقعد ويكون قابلاً للتفسير؛ ولا يجوز أن يُضعف المطابقة موقع الموردين بصورة منهجية بسبب حجمهم أو أصلهم؛ وتخضع البيانات الشخصية لقانون حمايتها. ولا تصف النصوص الموجهة للعملاء الشركة أو مقاعدها بمسمى هذه التقنية، التزاماً بقرار المؤسس؛ فالميثاق يحكم طريقة البناء لا ما نقوله للعملاء.",
+   "sources": [
+    "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/policies/Ai/The-UAE-Charter-for-the-Development-and-Use-of-Artificial-Intelligence",
+    "https://uaelegislation.gov.ae/en/policy/details/the-uae-charter-for-the-development-and-use-of-artificial-intelligence",
+    "internal:memory/profile-copy-rules.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:automated-decision-governance",
+   "topic": "Governing the seats: oversight, logging and redress",
+   "kind": "checklist",
+   "body_en": "A checklist the CEO seat runs monthly on how the seats make decisions, derived from the UAE charter principles of human oversight, transparency, bias and accountability and from the PDPL.\n\n1. Reserved decisions: every decision class the founder reserved (pricing hard rules, refunds above limits, legal commitments) is blocked in code for the seats, and the block is tested. 2. Decision log: each seat decision affecting a customer or supplier carries the inputs, the rule or knowledge entry used, and the outcome. 3. Redress: a buyer or supplier can reach customer_support and get a human-reviewable answer; the seat checks the open complaint age. 4. Bias sampling: monthly, sample matches by supplier size and emirate and look for a class that never gets shortlisted. 5. Data: personal data used by a seat is the minimum needed and stays in the stated region. 6. Model change: a model swap for a seat passes the scenario suite before it goes live. Findings go into the risk register with an owner seat.",
+   "body_ar": "قائمة تحقق يجريها الرئيس التنفيذي شهرياً على طريقة اتخاذ المقاعد قراراتها، مستمدة من مبادئ الميثاق الوطني في الإشراف البشري والشفافية والتحيز والمساءلة، ومن قانون حماية البيانات الشخصية.\n\n1. القرارات المحجوزة: كل فئة قرار احتجزها المؤسس، كالقواعد الثابتة للتسعير والاستردادات فوق الحدود والالتزامات القانونية، ممنوعة برمجياً على المقاعد، والمنع مُختبَر. 2. سجل القرارات: يحمل كل قرار يمس مشترياً أو مورداً مدخلاته والقاعدة أو مدخل المعرفة المستخدم ونتيجته. 3. التظلّم: يستطيع المشتري أو المورد الوصول إلى خدمة العملاء والحصول على جواب قابل للمراجعة البشرية، ويتابع المقعد عمر الشكاوى المفتوحة. 4. عيّنات التحيز: تُفحص شهرياً عيّنة من المطابقات حسب حجم المورد والإمارة بحثاً عن فئة لا تدخل القائمة المختصرة أبداً. 5. البيانات: لا يستخدم المقعد من البيانات الشخصية إلا الحد الأدنى اللازم، وتبقى في المنطقة المعلنة. 6. تغيير النموذج: لا يُفعَّل نموذج جديد لأي مقعد قبل اجتياز مجموعة السيناريوهات. وتُسجَّل الملاحظات في سجل المخاطر مع المقعد المسؤول.",
+   "sources": [
+    "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/policies/Ai/The-UAE-Charter-for-the-Development-and-Use-of-Artificial-Intelligence",
+    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+    "internal:memory/seat-ownership-map-24-sep.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:pdpl-executive-regulations-status",
+   "topic": "PDPL executive regulations: status not established",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data has been in force since 2 January 2022, and its Article 28-type delegation to executive regulations matters because many operational details (breach-notification timing, registration, some transfer mechanics) were left to them. As of this pass, publication of the executive regulations on an official UAE source is not established: DLA Piper's guide and other secondary sources report they had not been published, and several commercial sites cite decision numbers that could not be matched to an official source.\n\nRule for the CEO seat: operate to the decree-law's principles (lawful basis, minimisation, security, data subject rights, cross-border limits) and do not quote a breach deadline or registration duty as law until it is read on uaelegislation.gov.ae or the UAE Data Office site. When an adviser or template cites a specific regulation number, verify it on the official portal before acting.",
+   "body_ar": "المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية نافذ منذ 2 يناير 2022، وقد أحال كثيراً من التفاصيل التشغيلية إلى اللائحة التنفيذية، مثل مواعيد الإخطار بالاختراق والتسجيل وبعض آليات النقل عبر الحدود. وحتى هذه المراجعة لم يثبت نشر اللائحة التنفيذية في مصدر رسمي إماراتي: فدليل DLA Piper ومصادر ثانوية أخرى تذكر أنها لم تُنشر، وبعض المواقع التجارية تذكر أرقام قرارات تعذّر مطابقتها مع مصدر رسمي.\n\nالقاعدة للرئيس التنفيذي: العمل وفق مبادئ المرسوم بقانون، أي الأساس المشروع وتقليل البيانات والأمن وحقوق صاحب البيانات وقيود النقل عبر الحدود، وعدم ذكر مهلة للإخطار بالاختراق أو واجب تسجيل على أنه قانون حتى يُقرأ في بوابة التشريعات الإماراتية أو موقع مكتب الإمارات للبيانات. وإذا استشهد مستشار أو نموذج برقم لائحة محدد، يُتحقق منه في البوابة الرسمية قبل التصرف.",
+   "sources": [
+    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+    "https://www.dlapiperdataprotection.com/countries/uae-general/law.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:governance-cadence",
+   "topic": "Governance cadence for a founder-owned company run by seats",
+   "kind": "method",
+   "body_en": "A company with one owner and software seats still needs a board-like rhythm, because the Companies Law, the auditor and any future investor will ask for the record.\n\nWeekly: the business review (existing entry) with the triple revenue view and seat scorecards. Monthly: the monthly business review plus a governance block: compliance calendar status, risk register changes, accumulated losses against capital (Article 308), cash and runway, open founder instructions, and any decision the founder reserved. Quarterly: strategy review, forecast revision against the plan scenarios, insurance and vendor review, and a written founder resolution approving anything that needs the owner (budget changes, new activities, contracts above the agreed limit). Annually: accounts closed and audited, general assembly within four months of year end (Article 92), auditor appointed (Article 102), 5% reserve booked if profitable (Article 103), licence renewal ahead of expiry, and the Corporate Tax return.\n\nEach meeting produces a dated written record kept with the company records. If investors join, this cadence becomes the board calendar rather than being invented at the first board meeting.",
+   "body_ar": "الشركة المملوكة لمؤسس واحد والتي تُدار بمقاعد برمجية تحتاج مع ذلك إلى إيقاع يشبه مجلس الإدارة، لأن قانون الشركات والمدقق وأي مستثمر مستقبلي سيطلبون السجل.\n\nأسبوعياً: مراجعة الأعمال بثلاثية الإيراد وبطاقات أداء المقاعد. شهرياً: مراجعة الأعمال الشهرية مع بند حوكمة يشمل حالة التقويم التنظيمي، وتغيّرات سجل المخاطر، والخسائر المتراكمة مقابل رأس المال وفق المادة 308، والنقد ومدة السيولة، وتعليمات المؤسس المفتوحة، وأي قرار محجوز له. ربع سنوياً: مراجعة الاستراتيجية، وتحديث التوقعات مقابل سيناريوهات الخطة، ومراجعة التأمين والموردين، وقرار مكتوب من المؤسس يعتمد ما يحتاج موافقة المالك كتغيير الموازنة أو الأنشطة الجديدة أو العقود فوق الحد المتفق عليه. سنوياً: إقفال الحسابات وتدقيقها، وانعقاد الجمعية العمومية خلال أربعة أشهر من نهاية السنة (المادة 92)، وتعيين المدقق (المادة 102)، وقيد الاحتياطي البالغ 5% إن وُجد ربح (المادة 103)، وتجديد الرخصة قبل انتهائها، وإقرار ضريبة الشركات.\n\nويُنتج كل اجتماع محضراً مكتوباً مؤرخاً يُحفظ مع سجلات الشركة. وإذا انضم مستثمرون يصبح هذا الإيقاع تقويم مجلس الإدارة بدلاً من ابتكاره في أول اجتماع.",
+   "sources": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819",
+    "internal:knowledge/seats/ceo.json#ceo:weekly-management-review"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24",
+   "source_note": "Articles 92, 94, 100 and 102 of FDL 32/2021 read from MoET PDF (pdftotext, 24 Sep 2026) and confirmed."
+  },
+  {
+   "id": "ceo:investor-reporting-standard",
+   "topic": "Investor reporting: what a good update contains and what it never does",
+   "kind": "standard",
+   "body_en": "Standard for any investor-facing report the CEO seat prepares for the founder (fundraising and investor relations remain founder-reserved; the seat drafts, he sends).\n\nContents, in this order: headline numbers with their definitions (collected revenue by month, revealed value, requests, active suppliers by trade, reveal conversion, cash and runway); what went well and what did not, stated plainly; progress against the plan scenario the founder is tracking; the top three risks with what is being done; specific asks. Numbers are reconciled to the accountant's books and to the bank before they leave the building, and every figure carries the period it covers.\n\nNever: a figure that has not been measured, a forecast presented as a result, a changed metric definition without saying so, requested or revealed value presented as revenue, or a pipeline counted as signed. Past updates are kept, so that the next one can be compared line by line; an inconsistency between updates is corrected openly in the next one.",
+   "body_ar": "معيار لأي تقرير موجّه للمستثمرين يعدّه الرئيس التنفيذي للمؤسس؛ فجمع التمويل وعلاقات المستثمرين محجوزة للمؤسس، والمقعد يعدّ المسودة وهو يرسلها.\n\nالمحتوى بهذا الترتيب: الأرقام الرئيسية مع تعريفاتها، وهي الإيراد المحصّل شهرياً، والقيمة المكشوفة، والطلبات، والموردون النشطون حسب التخصص، ونسبة التحويل إلى الكشف، والنقد ومدة السيولة؛ ثم ما نجح وما لم ينجح بصراحة؛ ثم التقدم مقابل سيناريو الخطة الذي يتابعه المؤسس؛ ثم أهم ثلاث مخاطر وما يُتخذ حيالها؛ ثم الطلبات المحددة. وتُطابَق الأرقام مع دفاتر المحاسب ومع البنك قبل خروجها، ويحمل كل رقم الفترة التي يغطيها.\n\nولا يتضمن التقرير أبداً: رقماً لم يُقس، أو توقعاً يُعرض كنتيجة، أو تغييراً في تعريف مؤشر دون الإفصاح عنه، أو قيمة مطلوبة أو مكشوفة تُعرض كإيراد، أو صفقات محتملة تُحسب كموقّعة. وتُحفظ التقارير السابقة لمقارنة التالي بها سطراً بسطر، وأي تعارض بينها يُصحَّح علناً في التقرير التالي.",
+   "sources": [
+    "https://www.ycombinator.com/library",
+    "internal:memory/investor-pack-founder-rulings.md",
+    "internal:memory/never-state-what-you-have-not-measured.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:safe-and-convertibles",
+   "topic": "SAFEs and convertible instruments: what they are and the UAE caveat",
+   "kind": "concept",
+   "body_en": "A SAFE (simple agreement for future equity), published by Y Combinator, is an investment contract in which an investor pays now and receives shares at a later priced round, usually at a discount and/or subject to a valuation cap; it is not debt, carries no interest or maturity, and converts when a qualifying financing happens. A convertible note does the same thing but is a loan, with interest and a maturity date.\n\nThe UAE caveat: the SAFE was drafted for a US-style company with authorised share capital. An onshore UAE LLC issues shares by amending its Memorandum of Association, which needs partner decisions and a registration step, so the conversion mechanics must be adapted, which is one reason regional startups often raise through an ADGM or DIFC holding company. The 2025 Companies Law amendments added onshore flexibility but do not make a SAFE plug-and-play. The CEO seat can explain the instrument and model the dilution; the choice of instrument and its drafting are for the founder with qualified counsel.",
+   "body_ar": "اتفاقية الحق في الملكية المستقبلية البسيطة (SAFE)، التي نشرتها Y Combinator، عقد استثمار يدفع فيه المستثمر الآن ويحصل على حصص عند جولة تمويل مسعّرة لاحقة، عادةً بخصم أو بسقف تقييم أو كليهما؛ وهي ليست ديناً، فلا فائدة لها ولا تاريخ استحقاق، وتتحول عند حدوث تمويل مؤهل. أما السند القابل للتحويل فيؤدي الغرض نفسه لكنه قرض له فائدة وتاريخ استحقاق.\n\nوالتحفظ الإماراتي أن هذه الاتفاقية صيغت لشركة على النمط الأمريكي ذات رأس مال مصرّح به، بينما تصدر الشركة ذات المسؤولية المحدودة في البر الرئيسي الحصص بتعديل عقد التأسيس، مما يتطلب قرارات الشركاء وخطوة قيد، فلا بد من تكييف آلية التحويل، وهذا أحد أسباب جمع الشركات الناشئة في المنطقة التمويلَ عبر شركة قابضة في سوق أبوظبي العالمي أو مركز دبي المالي العالمي. وقد أضافت تعديلات 2025 على قانون الشركات مرونة في البر الرئيسي، لكنها لم تجعل الاتفاقية جاهزة للاستخدام مباشرة. يستطيع الرئيس التنفيذي شرح الأداة ونمذجة التخفيف، أما اختيار الأداة وصياغتها فللمؤسس مع مستشار قانوني مؤهل.",
+   "sources": [
+    "https://www.ycombinator.com/documents",
+    "https://www.dentons.com/en/insights/alerts/2026/january/27/uae-amends-commercial-companies-law",
+    "https://www.squirepattonboggs.com/insights/publications/commercial-companies-law-amendment-allowing-for-class-shares-non-profit-companies-company-migration-and-deadlock-resolution-tools/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:term-sheet-glossary",
+   "topic": "Term sheet terms the CEO must be able to explain in one line each",
+   "kind": "glossary",
+   "body_en": "Pre-money / post-money valuation: value before the new cash / value after it (post = pre + new money). Liquidation preference: on a sale or liquidation, the investor gets back a multiple of the investment (1x is the common standard) before ordinary holders; \"non-participating\" means the investor takes either the preference or its pro-rata share, whichever is larger, while \"participating\" means both. Anti-dilution: protection if a later round is priced lower; broad-based weighted average adjusts moderately, full ratchet resets the investor's price entirely and is founder-hostile. Pro-rata right: the right to invest in later rounds to keep the same percentage. Drag-along: a majority can force minority holders to join a sale; tag-along: a minority can join a sale the majority makes (both now have a statutory basis for UAE LLCs after the 2025 amendments). Vesting: founder or employee shares earned over time, typically with a cliff. Option pool: shares reserved for staff, usually created before the investment so it dilutes existing holders only. Information rights, board seat, protective provisions (veto list): governance terms that shape what the founder can decide alone.\n\nThe seat's rule: explain the effect in AED on a worked example from the current cap table; never advise acceptance; flag full ratchet, participating preference above 1x and broad veto lists to the founder as terms to negotiate with counsel.",
+   "body_ar": "التقييم قبل التمويل وبعده: القيمة قبل دخول النقد الجديد وبعده، والتقييم اللاحق يساوي السابق مضافاً إليه المال الجديد. أفضلية التصفية: عند البيع أو التصفية يسترد المستثمر مضاعفاً من استثماره، والمعيار الشائع مرة واحدة، قبل حملة الحصص العادية؛ و«غير المشاركة» تعني أن يأخذ الأفضلية أو حصته النسبية أيهما أكبر، و«المشاركة» تعني أن يأخذ الاثنين. الحماية من التخفيف: حماية إذا جاءت جولة لاحقة بسعر أدنى؛ فالمتوسط المرجّح الواسع يعدّل باعتدال، والتعديل الكامل يعيد تسعير المستثمر كلياً وهو مجحف بالمؤسس. حق المشاركة النسبية: حق الاستثمار في الجولات اللاحقة للحفاظ على النسبة. حق الإلزام بالبيع: تستطيع الأغلبية إلزام الأقلية بالانضمام إلى البيع، وحق الانضمام: تستطيع الأقلية الانضمام إلى بيع تجريه الأغلبية، وكلاهما أصبح له أساس قانوني في الشركات ذات المسؤولية المحدودة بعد تعديلات 2025. الاستحقاق التدريجي: حصص يكسبها المؤسس أو الموظف بمرور الوقت، عادةً مع فترة انتظار أولى. مجمّع الخيارات: حصص محجوزة للموظفين تُنشأ عادةً قبل الاستثمار فتخفّف الحملة الحاليين وحدهم. حقوق المعلومات ومقعد المجلس والأحكام الحمائية: شروط حوكمة تحدد ما يستطيع المؤسس تقريره منفرداً.\n\nقاعدة المقعد: شرح الأثر بالدرهم على مثال محسوب من جدول الملكية الحالي، وعدم التوصية بالقبول أبداً، والتنبيه إلى التعديل الكامل للسعر والأفضلية المشاركة فوق مرة واحدة وقوائم الاعتراض الواسعة بوصفها شروطاً يتفاوض عليها المؤسس مع مستشاره.",
+   "sources": [
+    "https://www.ycombinator.com/documents",
+    "https://www.dentons.com/en/insights/alerts/2026/january/27/uae-amends-commercial-companies-law",
+    "https://www.squirepattonboggs.com/insights/publications/commercial-companies-law-amendment-allowing-for-class-shares-non-profit-companies-company-migration-and-deadlock-resolution-tools/",
+    "https://www.bvca.co.uk/Policy/Tax-Legal-and-Regulatory/Industry-guidance/Model-documents-for-early-stage-investments"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:cap-table-hygiene",
+   "topic": "Cap table hygiene: one source of truth, reconciled to the Memorandum",
+   "kind": "checklist",
+   "body_en": "Checklist the CEO seat keeps for ownership records, because diligence failures on the cap table kill or delay rounds.\n\n1. The legal cap table is the Memorandum of Association and the licence record; the working spreadsheet must match them exactly, reconciled after every change. 2. Beneficial owner register matches too (Cabinet Decision No. 109 of 2023, existing entry). 3. Every promise of equity (to an adviser, an early hire, an investor) is written and logged the day it is made, including verbal promises the founder mentions; an unrecorded promise is a future dispute. 4. Owner money in is classified (capital or loan) by the accountant and reflected in the capital figures. 5. A fully diluted view is kept alongside the issued view once any option, SAFE or convertible exists. 6. Before any fundraising conversation, the seat produces a pro-forma showing ownership after the proposed round, the option pool and any conversions.",
+   "body_ar": "قائمة تحقق يحتفظ بها الرئيس التنفيذي لسجلات الملكية، لأن أخطاء جدول الملكية في الفحص النافي للجهالة توقف الجولات أو تؤخرها.\n\n1. جدول الملكية القانوني هو عقد التأسيس وسجل الرخصة، ويجب أن يطابقهما جدول العمل تماماً وأن يُسوّى بعد كل تغيير. 2. يطابقهما كذلك سجل المستفيد الحقيقي وفق قرار مجلس الوزراء رقم 109 لسنة 2023. 3. يُوثَّق كتابةً كل وعد بحصة لمستشار أو موظف مبكر أو مستثمر ويُسجَّل يوم صدوره، بما في ذلك الوعود الشفهية التي يذكرها المؤسس، فالوعد غير المسجّل نزاع مؤجّل. 4. يصنّف المحاسب أموال المالك الداخلة رأسمالاً أو قرضاً وتنعكس في أرقام رأس المال. 5. يُحتفظ بعرض مخفّف بالكامل إلى جانب العرض المُصدَر متى وُجد خيار أو اتفاقية ملكية مستقبلية أو سند قابل للتحويل. 6. قبل أي حديث عن التمويل يُعدّ المقعد جدولاً افتراضياً يبيّن الملكية بعد الجولة المقترحة ومجمّع الخيارات وأي تحويلات.",
+   "sources": [
+    "https://amluae.com/wp-content/uploads/2025/11/Cabinet-Decision-No.-109-of-2023-On-Regulating-the-Beneficial-Owner-Procedures.pdf",
+    "internal:memory/owner-money-in-is-capital.md",
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:esop-in-uae",
+   "topic": "Employee equity in the UAE: why it usually sits in a holding company",
+   "kind": "concept",
+   "body_en": "Practitioner guides (Kayrouz & Associates, Carta) describe the same pattern: DIFC and ADGM provide the clearest legal framework for employee share option plans, with more flexibility around shareholder pre-emption and contractual terms, so onshore operating companies commonly place employee options in a DIFC or ADGM holding company while the operating company stays on the mainland. The UAE levies no personal income tax, which simplifies the employee side. Pool sizes of roughly 10 to 15% of fully diluted equity are reported as common for venture-backed startups; that is a market observation, not a rule.\n\nFor QuotesDone, with no human staff, an option plan is not a current need. The CEO seat keeps it on the list of structural decisions that a first senior hire or a first institutional round would force, and does not promise equity to anyone; any equity promise is the founder's alone and is recorded under cap table hygiene.",
+   "body_ar": "تصف أدلة الممارسين، ومنها Kayrouz & Associates وCarta، نمطاً واحداً: يوفر مركز دبي المالي العالمي وسوق أبوظبي العالمي أوضح إطار قانوني لخطط خيارات أسهم الموظفين، مع مرونة أكبر في حق الأولوية للشركاء وفي الشروط التعاقدية، لذا تضع الشركات العاملة في البر الرئيسي عادةً خيارات الموظفين في شركة قابضة في أحد المركزين وتبقى الشركة التشغيلية في البر الرئيسي. ولا تفرض الدولة ضريبة دخل شخصية، مما يبسّط الجانب الخاص بالموظف. ويُذكر أن حجم المجمّع الشائع لدى الشركات الناشئة المموّلة بين 10 و15% تقريباً من الملكية المخففة بالكامل، وهي ملاحظة سوقية لا قاعدة.\n\nولأن QuotesDone لا توظّف بشراً، فخطة الخيارات ليست حاجة حالية. ويُبقيها الرئيس التنفيذي ضمن القرارات الهيكلية التي سيفرضها أول تعيين قيادي أو أول جولة مؤسسية، ولا يعد أحداً بحصص؛ فأي وعد بالملكية للمؤسس وحده ويُسجَّل وفق قواعد نظافة جدول الملكية.",
+   "sources": [
+    "https://www.kayrouzandassociates.com/insights/uae-employee-incentives-stock-options-esop-difc-adgm-mainland",
+    "https://carta.com/blog/esops-uae-ksa/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reveal-model-unit-economics",
+   "topic": "Unit economics of the reveal-fee RFQ model",
+   "kind": "method",
+   "body_en": "How the CEO seat builds the unit economics of QuotesDone's model from measured inputs, instead of borrowing a percentage from another marketplace.\n\nRevenue per posted request = probability the request receives quotes × probability the buyer reveals × average selected quotation value × 3% reveal fee (the founder's hard rule; card fees are grossed up so the company nets the full 3%) − refunds. Supplier subscription revenue is separate: free for the first 1,000 supplier registrations, AED 1,000 a year after that.\n\nCost per request = acquisition cost of the buyer (paid and outreach cost ÷ requests posted), supplier acquisition cost amortised over the quotes those suppliers submit, variable model cost per request across the seats, messaging cost (WhatsApp, email), and support time. Contribution per request = revenue − variable cost; payback = acquisition cost ÷ contribution per request × requests per buyer over time.\n\nEach input is read from the company's measured data by trade and emirate; where a trade has no history, the seat labels the input \"assumption\" and shows the result as a range. Because revenue scales with quotation value, one large mechanical job can equal many small ones, so the seat reports the distribution, not only the average.",
+   "body_ar": "كيف يبني الرئيس التنفيذي اقتصاديات الوحدة لنموذج QuotesDone من مدخلات مقيسة، بدلاً من استعارة نسبة من منصة أخرى.\n\nالإيراد لكل طلب منشور = احتمال أن يتلقى الطلب عروضاً × احتمال أن يكشف المشتري × متوسط قيمة العرض المختار × رسم الكشف البالغ 3% (القاعدة الثابتة للمؤسس، مع إضافة رسوم البطاقة لتصافي الشركة 3% كاملة) − الاستردادات. وإيراد اشتراك الموردين منفصل: مجاني لأول 1,000 تسجيل مورد، ثم 1,000 درهم سنوياً.\n\nالكلفة لكل طلب = كلفة استقطاب المشتري (كلفة الإعلان والتواصل ÷ الطلبات المنشورة)، وكلفة استقطاب الموردين موزعة على العروض التي يقدمونها، والكلفة المتغيرة للنماذج لكل طلب عبر المقاعد، وكلفة الرسائل عبر واتساب والبريد، ووقت الدعم. والمساهمة لكل طلب = الإيراد − الكلفة المتغيرة، وفترة الاسترداد = كلفة الاستقطاب ÷ (المساهمة لكل طلب × عدد طلبات المشتري بمرور الوقت).\n\nيُقرأ كل مدخل من بيانات الشركة المقيسة حسب التخصص والإمارة، وإذا لم يكن لتخصص ما تاريخ يوسم المدخل بأنه «افتراض» وتُعرض النتيجة نطاقاً. ولأن الإيراد يتناسب مع قيمة العرض، فقد تعادل مهمة ميكانيكية كبيرة واحدة مهاماً صغيرة كثيرة، لذا يعرض المقعد التوزيع لا المتوسط وحده.",
+   "sources": [
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "internal:knowledge/seats/ceo.json#ceo:contribution-per-reveal"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:take-rate-benchmarks",
+   "topic": "Take-rate benchmarks and why 3% on the buyer is defensible",
+   "kind": "benchmark",
+   "body_en": "a16z's marketplace metrics guide describes take rate as the share of GMV the marketplace captures and notes it ranges from low single digits to the mid-30s depending on fragmentation, substitutes and how much operational value the marketplace adds. Bill Gurley's essay \"A Rake Too Far\" (2013) argues that a high rake invites disintermediation and competitors, and that durable platforms usually keep the rake low relative to the value they create.\n\nApplied to QuotesDone: the 3% reveal fee is at the low end of that range, charged to the buyer once per reveal, with no supplier commission. That makes it hard to undercut on price and gives suppliers no reason to leave, which is the point. The CEO seat uses these sources only as context; they are general-market observations, not UAE B2B procurement data, and there is no published benchmark for a buyer-paid reveal fee in the UAE that the seat has verified. Any proposal to change the fee remains the founder's decision.",
+   "body_ar": "يصف دليل مؤشرات المنصات لدى a16z نسبة العمولة بأنها الحصة التي تحصل عليها المنصة من إجمالي قيمة المعاملات، ويذكر أنها تتراوح بين خانة الآحاد المنخفضة ومنتصف الثلاثينات بحسب تشتت السوق وتوفر البدائل ومقدار القيمة التشغيلية التي تضيفها المنصة. ويرى بيل غيرلي في مقاله «A Rake Too Far» (2013) أن العمولة المرتفعة تغري بتجاوز المنصة وتستدعي المنافسين، وأن المنصات المستدامة تُبقي العمولة منخفضة قياساً بالقيمة التي تخلقها.\n\nوبتطبيق ذلك على QuotesDone: رسم الكشف البالغ 3% في الطرف الأدنى من هذا النطاق، يدفعه المشتري مرة واحدة لكل كشف، ولا عمولة على المورد. وهذا يصعّب منافسته سعرياً ولا يعطي الموردين سبباً للمغادرة، وهذا هو المقصود. ويستخدم الرئيس التنفيذي هذه المصادر سياقاً فقط؛ فهي ملاحظات عن الأسواق عامةً وليست بيانات عن المشتريات بين الشركات في الإمارات، ولا يوجد معيار منشور تحقق منه المقعد لرسم كشف يدفعه المشتري في الدولة. وأي مقترح لتغيير الرسم يبقى قراراً للمؤسس.",
+   "sources": [
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:disintermediation-defence",
+   "topic": "Disintermediation: keeping buyers and suppliers coming back",
+   "kind": "playbook",
+   "body_en": "Leakage (buyer and supplier dealing directly after the first introduction) is the structural risk of any introduction marketplace. QuotesDone's model already limits the damage: the fee is charged at reveal, before the parties talk, so the first transaction is always paid; the question is whether the next one comes back.\n\nPlaybook the CEO seat runs: 1. Make the platform the easiest way to get the next quote: repeat requests pre-filled, previous suppliers invitable, comparison and history kept. 2. Give suppliers value beyond a single lead: a verified profile, ratings from real reveals, and demand in their exact trade. 3. Keep the fee small relative to the value (see take-rate benchmarks), so going around the platform saves little. 4. Measure it: repeat-request rate per buyer, share of suppliers quoting again within 90 days, and the gap between buyers who post once and never return. 5. Never punish or threaten either side for dealing directly after a paid reveal; the terms say what they say, and the seat competes on usefulness. Enforcement actions, if ever needed, are the founder's decision.",
+   "body_ar": "التسرّب، أي تعامل المشتري والمورد مباشرة بعد التعارف الأول، هو الخطر البنيوي لأي منصة تعارف. ونموذج QuotesDone يحدّ من الضرر أصلاً، إذ يُحصَّل الرسم عند الكشف قبل أن يتواصل الطرفان، فتكون المعاملة الأولى مدفوعة دائماً؛ والسؤال هو هل تعود المعاملة التالية إلى المنصة.\n\nالخطة التي ينفذها الرئيس التنفيذي: 1. جعل المنصة أسهل طريق للحصول على العرض التالي: طلبات متكررة معبّأة مسبقاً، وإمكانية دعوة الموردين السابقين، وحفظ المقارنات والسجل. 2. إعطاء الموردين قيمة تتجاوز فرصة واحدة: ملف موثّق، وتقييمات من كشوف حقيقية، وطلب في تخصصهم المطابق. 3. إبقاء الرسم صغيراً قياساً بالقيمة، فلا يوفّر الالتفاف على المنصة إلا القليل. 4. القياس: معدل تكرار الطلب لكل مشترٍ، ونسبة الموردين الذين يقدمون عروضاً مجدداً خلال 90 يوماً، والفجوة بين من ينشر مرة ولا يعود. 5. عدم معاقبة أي طرف أو تهديده بسبب التعامل المباشر بعد كشف مدفوع؛ فالشروط تقول ما تقوله، والمقعد ينافس بالفائدة. وأي إجراء إنفاذ، إن احتيج إليه، قرار للمؤسس.",
+   "sources": [
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:trust-and-safety-framework",
+   "topic": "Trust and safety for a B2B quotation marketplace",
+   "kind": "playbook",
+   "body_en": "The categories of harm a UAE B2B RFQ marketplace must manage, and the owner seat for each.\n\nSupplier identity fraud (a fake company or a copied licence): verify trade licence details before a supplier can quote; owner sales_engineer and customer_support. Buyer fraud (stolen card, chargeback after reveal): the payment processor's risk controls plus a review of repeated disputes; owner accountant. Fake or retaliatory ratings: ratings only from real reveals, moderation before publication, and no removal of a genuine negative rating on request; owner customer_support. Off-scope or prohibited requests (food and beverage is excluded; anything illegal is refused): refused at intake; owner sales_engineer. Harassment or abusive messages: block and record. Data misuse (scraping supplier lists, spam from revealed contacts): rate limits and account suspension; owner it_engineer.\n\nThe CEO seat reviews the monthly trust-and-safety log for trends, sets the thresholds at which an account is suspended pending review, and escalates to the founder any case with legal exposure (fraud, defamation, a threat) the same day. Every suspension has a recorded reason and a path to appeal.",
+   "body_ar": "فئات الضرر التي يجب على منصة طلبات عروض الأسعار بين الشركات في الإمارات إدارتها، والمقعد المسؤول عن كل منها.\n\nانتحال هوية المورد، أي شركة وهمية أو رخصة منسوخة: التحقق من بيانات الرخصة التجارية قبل السماح بتقديم العروض، والمسؤول مهندس المبيعات وخدمة العملاء. احتيال المشتري، كبطاقة مسروقة أو استرداد بعد الكشف: ضوابط المخاطر لدى معالج المدفوعات مع مراجعة النزاعات المتكررة، والمسؤول المحاسب. التقييمات المزيفة أو الانتقامية: لا تقييم إلا من كشف حقيقي، ومراجعة قبل النشر، وعدم حذف تقييم سلبي صادق عند الطلب، والمسؤول خدمة العملاء. الطلبات خارج النطاق أو المحظورة، فالأغذية والمشروبات مستبعدة وأي طلب غير مشروع مرفوض: تُرفض عند الاستلام، والمسؤول مهندس المبيعات. المضايقة أو الرسائل المسيئة: الحظر والتوثيق. إساءة استخدام البيانات، كجمع قوائم الموردين أو إرسال رسائل مزعجة من جهات الاتصال المكشوفة: حدود للاستخدام وتعليق الحساب، والمسؤول مهندس تقنية المعلومات.\n\nويراجع الرئيس التنفيذي سجل الثقة والأمان الشهري بحثاً عن الاتجاهات، ويحدد العتبات التي يُعلَّق عندها الحساب بانتظار المراجعة، ويرفع إلى المؤسس في اليوم نفسه أي حالة ذات تعرض قانوني كالاحتيال أو التشهير أو التهديد. ولكل تعليق سبب موثّق ومسار للتظلّم.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1526/download",
+    "internal:memory/seat-ownership-map-24-sep.md",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:crisis-leadership",
+   "topic": "Crisis leadership: the first hour, the first day, the first week",
+   "kind": "playbook",
+   "body_en": "A crisis is any event that threatens customers' money or data, the company's licence or reputation, or the founder's trust: a payment outage, a data exposure, a wrong mass message to suppliers, a public accusation, or a regulator's letter.\n\nFirst hour: stop the harm (pause the job, disable the send, freeze the feature) before diagnosing; the it_engineer incident process owns the technical side. Tell the founder in one message what happened, what is stopped, what is not yet known. Do not speculate in writing. First day: establish facts from logs, not recollection; list who was affected by name; decide with the founder what each affected party is told and by which seat; correct any wrong message sent to real people with a plain apology. If personal data was exposed, assess notification duties under the PDPL (see the status entry on its executive regulations). First week: root cause, the guard that makes it impossible rather than unlikely, a written post-incident note, and a risk register update.\n\nCommunication rules: one voice (the founder decides who speaks publicly), facts before reassurance, no blame on a supplier or vendor in public, and nothing promised that has not been approved.",
+   "body_ar": "الأزمة هي أي حدث يهدد أموال العملاء أو بياناتهم، أو رخصة الشركة أو سمعتها، أو ثقة المؤسس: كتعطل المدفوعات، أو انكشاف بيانات، أو رسالة جماعية خاطئة إلى الموردين، أو اتهام علني، أو خطاب من جهة رقابية.\n\nالساعة الأولى: إيقاف الضرر قبل التشخيص، بإيقاف المهمة أو تعطيل الإرسال أو تجميد الميزة، ويتولى مهندس تقنية المعلومات الجانب التقني وفق إجراءات الحوادث. وإبلاغ المؤسس برسالة واحدة: ما الذي حدث، وما الذي أُوقف، وما الذي لم يُعرف بعد، دون تكهنات مكتوبة. اليوم الأول: إثبات الوقائع من السجلات لا من الذاكرة، وحصر المتأثرين بأسمائهم، والاتفاق مع المؤسس على ما يُبلَّغ به كل طرف وأي مقعد يبلّغه، وتصحيح أي رسالة خاطئة وصلت إلى أشخاص حقيقيين باعتذار واضح. وإذا انكشفت بيانات شخصية تُقيَّم واجبات الإخطار وفق قانون حماية البيانات الشخصية. الأسبوع الأول: السبب الجذري، والضابط الذي يجعل التكرار مستحيلاً لا مستبعداً فحسب، ومذكرة مكتوبة بعد الحادث، وتحديث سجل المخاطر.\n\nقواعد التواصل: صوت واحد والمؤسس يقرر من يتحدث علناً، والوقائع قبل الطمأنة، وعدم لوم مورد أو مزوّد خدمة علناً، وعدم الوعد بما لم يُعتمد.",
+   "sources": [
+    "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+    "internal:memory/rehearsals-and-probes-page-the-founder.md",
+    "internal:knowledge/seats/ceo.json#ceo:incident-business-view"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:vendor-contract-management",
+   "topic": "Vendor and contract management for a software-run company",
+   "kind": "checklist",
+   "body_en": "QuotesDone depends on a small number of vendors (hosting and database, payments, messaging, email, model providers, domain). The CEO seat keeps a vendor register and reviews it quarterly.\n\nFor each vendor: owner seat; what breaks if it disappears; monthly cost and who pays it (subscriptions are on the founder's personal card until October per his ruling, which the accountant records); contract or terms version accepted and its renewal or auto-renew date; data it holds and in which region; the exit path (export, alternative vendor, time to switch). Rules: no new paid vendor without a quoted cost first; no vendor accepted whose terms let it train on or resell customer data without a lawful basis; every credential in the secrets store, never in a document; a vendor that has changed its price or terms is flagged the week it happens. Contracts that commit the company are signed by the licensed manager, and the signed copy is kept.",
+   "body_ar": "تعتمد QuotesDone على عدد محدود من مزوّدي الخدمات: الاستضافة وقاعدة البيانات، والمدفوعات، والرسائل، والبريد، ومزوّدي النماذج، والنطاق. ويحتفظ الرئيس التنفيذي بسجل للمزوّدين يراجعه كل ربع سنة.\n\nلكل مزوّد: المقعد المسؤول؛ وما يتعطل إذا غاب؛ والكلفة الشهرية ومن يدفعها (الاشتراكات على البطاقة الشخصية للمؤسس حتى أكتوبر وفق قراره، ويقيدها المحاسب)؛ ونسخة العقد أو الشروط المقبولة وتاريخ تجديدها أو تجديدها التلقائي؛ والبيانات التي يحتفظ بها وفي أي منطقة؛ ومسار الخروج من تصدير أو بديل أو مدة انتقال. القواعد: لا مزوّد مدفوع جديد قبل عرض كلفته أولاً؛ ولا قبول لمزوّد تسمح شروطه بتدريب نماذجه على بيانات العملاء أو إعادة بيعها دون أساس مشروع؛ وكل بيانات اعتماد في مخزن الأسرار لا في مستند؛ وأي مزوّد غيّر سعره أو شروطه يُنبَّه إليه في الأسبوع نفسه. والعقود التي تُلزم الشركة يوقّعها المدير المرخّص وتُحفظ النسخة الموقّعة.",
+   "sources": [
+    "internal:memory/subscriptions-paid-from-personal-card.md",
+    "internal:memory/quote-the-cost-before-spending.md",
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:insurance-review",
+   "topic": "Insurance cover: what is mandatory and what is judgement",
+   "kind": "checklist",
+   "body_en": "Mandatory once there are employees: Dubai employee health insurance (Dubai Law No. 11 of 2013), and employees' own ILOE subscription. For the company itself, a statutory requirement to hold professional indemnity, cyber or general liability insurance for QuotesDone's activity is not established; the seat has not found one in the sources checked, and a DET activity or a landlord, bank or enterprise customer may still require cover contractually.\n\nJudgement cover the CEO seat evaluates yearly with a quoted cost, for the founder to decide: professional indemnity (a claim that a match or a statement caused a buyer loss); cyber liability (a data exposure, extortion, business interruption); general liability if any physical premises or events. The assessment states the specific exposure, the quoted premium and deductible, and what the terms and limitation-of-liability clauses already cover. Nothing is bought without the founder's approval of the cost.",
+   "body_ar": "الإلزامي عند وجود موظفين: التأمين الصحي للموظفين في دبي وفق القانون رقم 11 لسنة 2013، واشتراك الموظفين أنفسهم في تأمين التعطل عن العمل. أما الشركة ذاتها فلم يثبت وجود التزام قانوني بحمل تأمين المسؤولية المهنية أو التأمين السيبراني أو المسؤولية العامة لنشاط QuotesDone، إذ لم يجد المقعد ذلك في المصادر التي راجعها، وقد يشترط ذلك تعاقدياً نشاطٌ لدى دائرة الاقتصاد والسياحة أو مالك عقار أو بنك أو عميل مؤسسي.\n\nويقيّم الرئيس التنفيذي سنوياً التغطيات التقديرية مع كلفة معروضة ليقرر المؤسس: المسؤولية المهنية، أي مطالبة بأن مطابقة أو تصريحاً سبّب خسارة لمشترٍ؛ والمسؤولية السيبرانية، أي انكشاف البيانات أو الابتزاز أو توقف الأعمال؛ والمسؤولية العامة إذا وُجد مقر فعلي أو فعاليات. ويبيّن التقييم التعرض المحدد، والقسط والتحمّل المعروضين، وما تغطيه الشروط وبنود تحديد المسؤولية أصلاً. ولا يُشترى شيء دون موافقة المؤسس على الكلفة.",
+   "sources": [
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2013/Law%20No.%20(11)%20of%202013.pdf",
+    "https://mohre.gov.ae/en/guidance-and-awareness-portal-new/unemployment-insurance-scheme",
+    "internal:memory/quote-the-cost-before-spending.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:banking-relationship",
+   "topic": "The bank relationship: keeping the account in good standing",
+   "kind": "playbook",
+   "body_en": "The company banks with Mashreq; statements arrive monthly and are forwarded to the expenses mailbox; the account fee is AED 199 plus AED 9.95 VAT (company records). Banks in the UAE are supervised by the Central Bank of the UAE and apply their own know-your-customer and AML reviews, which can freeze or close an account whose activity no longer matches what was declared.\n\nCEO seat practice: keep the bank's picture of the company current (licence renewal copy, Memorandum changes, beneficial owners, expected monthly volumes and counterparties, including the payment processor payouts); answer KYC refresh requests within the bank's deadline through the founder; expect a new pattern (large inbound transfers, foreign counterparties) to trigger questions and brief the bank before it happens; never let the balance fall below the minimum that incurs fees without a plan. Loss of the bank account would stop payouts and payroll, so it sits in the risk register with a high impact score.",
+   "body_ar": "تتعامل الشركة مع بنك المشرق، وتصل الكشوف شهرياً وتُحوَّل إلى بريد المصروفات، ورسوم الحساب 199 درهماً مضافاً إليها 9.95 درهم ضريبة قيمة مضافة وفق سجلات الشركة. وتخضع البنوك في الدولة لرقابة مصرف الإمارات العربية المتحدة المركزي، وتجري مراجعاتها الخاصة «اعرف عميلك» ومكافحة غسل الأموال، وقد تجمّد أو تغلق حساباً لم يعد نشاطه يطابق ما أُفصح عنه.\n\nممارسة الرئيس التنفيذي: إبقاء صورة الشركة لدى البنك محدّثة، من نسخة الرخصة المجددة وتعديلات عقد التأسيس والمستفيدين الحقيقيين والأحجام الشهرية المتوقعة والأطراف المقابلة ومنها دفعات معالج المدفوعات؛ والرد على طلبات تحديث بيانات العميل ضمن مهلة البنك عبر المؤسس؛ وتوقّع أن يثير أي نمط جديد، كتحويلات واردة كبيرة أو أطراف أجنبية، أسئلةً فيُطلَع البنك مسبقاً؛ وعدم ترك الرصيد ينخفض دون الحد الذي تترتب عليه رسوم دون خطة. وفقدان الحساب المصرفي يوقف الدفعات والرواتب، لذا يُدرج في سجل المخاطر بدرجة أثر عالية.",
+   "sources": [
+    "internal:memory/the-bank-is-mashreq-and-statements-come-monthly.md",
+    "https://www.centralbank.ae/en/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:competitor-landscape-verified",
+   "topic": "Competitive landscape: platforms verified to exist in UAE B2B buying",
+   "kind": "comparison",
+   "body_en": "Only facts checked in this pass. Tradeling: a Dubai-based B2B marketplace launched in February 2020, reported by Gulf News as Dubai-owned, running a catalogue wholesale marketplace and an enterprise procurement offering with RFQ, ERP punch-out and integration features. Dubai eSupply and the Abu Dhabi Government Procurement Gate: government tender portals (existing entry on the procurement landscape). Global catalogue marketplaces (Amazon Business, Alibaba) are used by UAE buyers for standard goods and imports.\n\nHow QuotesDone differs: it is not a catalogue; a buyer posts a specific request for any trade except food and beverage, suppliers of the exact trade quote, and the buyer pays only to reveal the chosen top suppliers. Catalogue players win on standard SKUs with delivery; QuotesDone's ground is specified, quoted work and goods (MEP, fit-out, fabrication, services) where price discovery needs several quotes. Market share, revenue or funding figures for competitors are not established in this pack and must not be quoted.",
+   "body_ar": "لا يرد هنا إلا ما تحقق منه في هذه المراجعة. «تريدلينغ»: منصة بين الشركات مقرها دبي أُطلقت في فبراير 2020، ووصفتها غلف نيوز بأنها مملوكة لدبي، وتدير سوق جملة قائماً على الكتالوج وعرضاً للمشتريات المؤسسية يتضمن طلبات عروض الأسعار والربط بأنظمة تخطيط الموارد. و«المشتريات الإلكترونية» في دبي وبوابة المشتريات الحكومية في أبوظبي: منصات المناقصات الحكومية. والأسواق العالمية القائمة على الكتالوج، مثل Amazon Business وAlibaba، يستخدمها المشترون في الدولة للسلع القياسية والاستيراد.\n\nويختلف QuotesDone في أنه ليس كتالوجاً؛ إذ ينشر المشتري طلباً محدداً في أي تخصص عدا الأغذية والمشروبات، ويقدّم موردو التخصص المطابق عروضهم، ولا يدفع المشتري إلا لكشف أفضل الموردين المختارين. تتفوق منصات الكتالوج في السلع القياسية مع التوصيل، أما ميدان QuotesDone فالأعمال والسلع ذات المواصفات التي تحتاج إلى عروض أسعار، كالأعمال الكهروميكانيكية والتجهيزات الداخلية والتصنيع والخدمات، حيث يتطلب اكتشاف السعر عدة عروض. ولم تثبت في هذه الحزمة أرقام الحصص السوقية أو الإيرادات أو التمويل للمنافسين، ولا يجوز ذكرها.",
+   "sources": [
+    "https://gulfnews.com/business/retail/dubai-owned-b2b-marketplace-tradeling-is-out-to-win-the-percentage-game-1.85940538",
+    "https://ent.tradeling.com/",
+    "https://www.dubai.ae/government-procurement",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:pricing-strategy-principles",
+   "topic": "Pricing strategy principles for a two-sided marketplace",
+   "kind": "concept",
+   "body_en": "Principles the CEO seat applies when analysing price, while the price itself stays a founder hard rule.\n\n1. Charge the side that gets the clearest value at the moment it is realised: the buyer, at reveal, after seeing that quotes exist. 2. Keep the unsubsidised side free to join while liquidity is being built: suppliers are free for the first 1,000 registrations. 3. Price in proportion to value (a percentage of the selected quotation) rather than a flat fee, so small jobs remain viable and large jobs pay more; accept that this makes revenue lumpy. 4. Show the full price before payment, including grossed-up card fees, never after. 5. Change price rarely and deliberately, with an experiment design, guardrails and a founder decision (existing entries on pricing proposals and guardrails). 6. Watch the substitute: what it costs a buyer to collect three quotes by phone and WhatsApp, which is the real price ceiling.",
+   "body_ar": "مبادئ يطبّقها الرئيس التنفيذي عند تحليل السعر، مع بقاء السعر ذاته قاعدة ثابتة يقررها المؤسس.\n\n1. تحصيل الرسم من الطرف الذي يحصل على أوضح قيمة لحظة تحققها: المشتري عند الكشف بعد أن يرى أن العروض موجودة. 2. إبقاء الطرف غير المموِّل مجانياً عند الانضمام أثناء بناء السيولة: الموردون مجاناً لأول 1,000 تسجيل. 3. التسعير بما يتناسب مع القيمة، أي نسبة من العرض المختار، لا برسم ثابت، فتبقى المهام الصغيرة مجدية وتدفع الكبيرة أكثر، مع قبول أن ذلك يجعل الإيراد متذبذباً. 4. إظهار السعر كاملاً قبل الدفع، بما في ذلك رسوم البطاقة المضافة، وليس بعده أبداً. 5. تغيير السعر نادراً وبتأنٍّ، بتصميم تجربة وضوابط وقرار من المؤسس. 6. مراقبة البديل: كلفة جمع المشتري ثلاثة عروض بالهاتف وواتساب، وهي السقف الحقيقي للسعر.",
+   "sources": [
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reasoning-regulatory-question",
+   "topic": "Reasoning sequence: answering a regulatory or legal question",
+   "kind": "method",
+   "body_en": "The steps the CEO seat follows, in order, before answering any \"are we allowed / must we\" question.\n\n1. Where: which emirate and which zone does the question sit in? QuotesDone is a Dubai mainland company licensed by DET; a counterpart in a free zone, ADGM or DIFC, or another emirate may be under a different authority and law. 2. Who: which authority owns the subject (DET for licensing, MOHRE for labour, FTA and MoF for tax, the Ministry of Economy for agencies and consumer protection, CBUAE for banking, the UAE Data Office for personal data)? 3. What: which instrument and which article? Name the law number, year and article, not a summary from memory. 4. Current: is it still in force and unamended? Check the official portal (uaelegislation.gov.ae, u.ae, the authority's site) for amendments, e.g. the Companies Law as amended from 1 January 2026, the AML law replaced in October 2025. 5. Applies to us: do our facts meet the trigger (headcount, revenue threshold, activity category)? 6. Confidence: if a primary source was read, answer; if only secondary sources exist, answer and say so; if nothing reliable, say \"not established\" and route to the founder or qualified counsel. 7. Record: log the question, the answer, the source and the date, and put any recurring duty on the compliance calendar. US law is never used as a reference.",
+   "body_ar": "الخطوات التي يتبعها الرئيس التنفيذي بالترتيب قبل الإجابة عن أي سؤال من نوع «هل يجوز لنا» أو «هل يجب علينا».\n\n1. أين: في أي إمارة وأي منطقة يقع السؤال؟ QuotesDone شركة في البر الرئيسي لدبي مرخّصة من دائرة الاقتصاد والسياحة، وقد يخضع طرف في منطقة حرة أو في سوق أبوظبي العالمي أو مركز دبي المالي العالمي أو إمارة أخرى لجهة وقانون مختلفين. 2. من: أي جهة تملك الموضوع؟ الدائرة للترخيص، ووزارة الموارد البشرية والتوطين للعمل، والهيئة الاتحادية للضرائب ووزارة المالية للضريبة، ووزارة الاقتصاد للوكالات وحماية المستهلك، والمصرف المركزي للمصارف، ومكتب الإمارات للبيانات للبيانات الشخصية. 3. ماذا: أي تشريع وأي مادة؟ يُذكر رقم القانون وسنته ومادته لا ملخص من الذاكرة. 4. هل هو ساري: هل ما زال نافذاً دون تعديل؟ يُراجع ذلك في البوابة الرسمية، كقانون الشركات المعدّل اعتباراً من 1 يناير 2026 وقانون مكافحة غسل الأموال المستبدل في أكتوبر 2025. 5. هل ينطبق علينا: هل تستوفي وقائعنا شرط الانطباق من عدد موظفين أو حد إيراد أو فئة نشاط؟ 6. درجة الثقة: إن قُرئ مصدر أصلي يُجاب، وإن لم يوجد إلا مصادر ثانوية يُجاب مع التصريح بذلك، وإن لم يوجد مصدر موثوق يُقال «لم يثبت» ويُحال إلى المؤسس أو مستشار مؤهل. 7. التوثيق: يُسجَّل السؤال والجواب والمصدر والتاريخ، ويوضع أي واجب متكرر في تقويم الامتثال. ولا يُستخدم القانون الأمريكي مرجعاً أبداً.",
+   "sources": [
+    "https://uaelegislation.gov.ae/",
+    "https://u.ae/",
+    "internal:memory/us-law-out-of-scope-for-uae.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reasoning-pricing-change",
+   "topic": "Reasoning sequence: evaluating a proposed pricing change",
+   "kind": "method",
+   "body_en": "The steps the CEO seat follows before any recommendation on price.\n\n1. Authority: price is a founder hard rule (3% reveal fee, supplier subscription terms). The seat analyses and proposes; it never changes a price or runs a price test on real customers without his decision. 2. Problem: what measured problem is the change meant to fix (low reveal conversion, refunds, supplier churn, revenue shortfall against the plan scenario)? If the problem is not measured, measure first. 3. Mechanism: which step of the funnel would the change move, and in which direction for each side? 4. Evidence: current conversion at each step by trade and emirate; buyer willingness-to-pay signals; the substitute cost; competitor prices only where verified. 5. Model: revenue and contribution under the change at low, central and high response, with the break-even response that makes it worth doing. 6. Risks: legal (price display under the e-commerce and consumer rules), trust (a rise felt as a bait-and-switch), and leakage. 7. Test design: guardrails, sample, duration, stop rule (existing entries). 8. Present: one page to the founder with the recommendation, the numbers, what would prove it wrong, and the date it will be reviewed.",
+   "body_ar": "الخطوات التي يتبعها الرئيس التنفيذي قبل أي توصية بشأن السعر.\n\n1. الصلاحية: السعر قاعدة ثابتة للمؤسس، أي رسم الكشف 3% وشروط اشتراك الموردين. يحلل المقعد ويقترح، ولا يغيّر سعراً ولا يجري اختبار سعر على عملاء حقيقيين دون قراره. 2. المشكلة: ما المشكلة المقيسة التي يُراد للتغيير علاجها؟ انخفاض التحويل إلى الكشف، أو الاستردادات، أو تسرّب الموردين، أو قصور الإيراد عن سيناريو الخطة؟ وإن لم تُقس المشكلة تُقاس أولاً. 3. الآلية: أي خطوة في مسار التحويل سيحرّكها التغيير، وفي أي اتجاه لكل طرف؟ 4. الأدلة: التحويل الحالي في كل خطوة حسب التخصص والإمارة، ومؤشرات استعداد المشتري للدفع، وكلفة البديل، وأسعار المنافسين حيث تحقق منها فقط. 5. النموذج: الإيراد والمساهمة بعد التغيير عند استجابة منخفضة ووسطى ومرتفعة، مع الاستجابة التي يتعادل عندها الأثر. 6. المخاطر: القانونية في عرض السعر وفق قواعد التجارة الإلكترونية وحماية المستهلك، والثقة إذا شُعر بالزيادة خداعاً، والتسرّب. 7. تصميم الاختبار: الضوابط والعيّنة والمدة وقاعدة الإيقاف. 8. العرض: صفحة واحدة للمؤسس تتضمن التوصية والأرقام وما يثبت خطأها وتاريخ مراجعتها.",
+   "sources": [
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+    "internal:knowledge/seats/ceo.json#ceo:pricing-proposal",
+    "https://uaelegislation.gov.ae/en/legislations/2150/download",
+    "https://www.moet.gov.ae/documents/20121/0/Federal+Decree-Law+No.+14+of+2023+on+Trading+by+Modern+Technological+Means.pdf"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reasoning-refund-escalation",
+   "topic": "Reasoning sequence: deciding a refund or dispute escalation",
+   "kind": "method",
+   "body_en": "The steps the CEO seat follows when a refund or dispute reaches it (all approvals are the CEO's, refunds included, within the founder's hard rules).\n\n1. Facts from the record: the request, the quotes received, the reveal timestamp and amount, messages exchanged, and what the buyer claims. Never decide from the complaint text alone. 2. Rule: what do the signed terms say for this case (the reveal fee terms, the non-response rule that applies to suppliers, any published refund condition)? Quote the clause. 3. Classification: platform fault (wrong match, broken reveal, duplicate charge), supplier fault (no response, misrepresented licence), or buyer change of mind. 4. Decision: platform fault is refunded promptly and in full; supplier fault follows the published non-response process; change of mind follows the terms, with discretion recorded if exercised. 5. Money path: the accountant executes the refund through the processor and books it; the seat confirms it reached the buyer. 6. Communication: customer_support tells the buyer the decision and the reason in plain language, in the buyer's language. 7. Loop: if the same cause appears twice, it becomes a fix with an owner seat, not a second refund. 8. Escalate to the founder only if the case has legal exposure or would set a precedent outside the hard rules.",
+   "body_ar": "الخطوات التي يتبعها الرئيس التنفيذي حين يصله طلب استرداد أو نزاع، علماً بأن جميع الموافقات للرئيس التنفيذي ومنها الاستردادات، ضمن القواعد الثابتة للمؤسس.\n\n1. الوقائع من السجل: الطلب، والعروض المستلمة، ووقت الكشف ومبلغه، والرسائل المتبادلة، وما يدعيه المشتري؛ ولا يُقرَّر بناءً على نص الشكوى وحده. 2. القاعدة: ماذا تقول الشروط الموقّعة في هذه الحالة، من شروط رسم الكشف وقاعدة عدم الاستجابة المطبّقة على الموردين وأي شرط استرداد منشور؟ يُقتبس البند. 3. التصنيف: خطأ المنصة، كمطابقة خاطئة أو كشف معطّل أو خصم مكرر؛ أو خطأ المورد، كعدم الاستجابة أو رخصة غير صحيحة؛ أو عدول المشتري. 4. القرار: خطأ المنصة يُسترد فوراً وكاملاً، وخطأ المورد يتبع إجراء عدم الاستجابة المنشور، والعدول يتبع الشروط مع توثيق أي سلطة تقديرية تُمارس. 5. مسار المال: ينفّذ المحاسب الاسترداد عبر المعالج ويقيده، ويتأكد المقعد من وصوله إلى المشتري. 6. التواصل: تبلّغ خدمة العملاء المشتري بالقرار وسببه بلغة واضحة وبلغته. 7. الحلقة: إذا تكرر السبب نفسه مرتين يصبح إصلاحاً له مقعد مسؤول لا استرداداً ثانياً. 8. لا يُرفع إلى المؤسس إلا ما فيه تعرض قانوني أو ما يُنشئ سابقة خارج القواعد الثابتة.",
+   "sources": [
+    "internal:memory/refunds-belong-to-the-ceo.md",
+    "internal:memory/the-only-hard-rules-and-operating-doctrine.md",
+    "internal:knowledge/seats/ceo.json#ceo:refund-dispute-authority"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reasoning-first-human-hire",
+   "topic": "Reasoning sequence: when a human hire is proposed",
+   "kind": "method",
+   "body_en": "The steps the CEO seat follows when any seat or the founder raises hiring a person.\n\n1. Need: which duty is failing or blocked, measured, and why a seat, better code or a contractor cannot do it (routine work is code first, by the founder's ruling). 2. Decision owner: hiring is the founder's decision; the seat prepares the case. 3. Form: employee, part-time, or contractor; if the person is abroad, whether the work creates a UAE employment or tax presence. 4. Law: Labour Law minimums (probation, notice, leave, hours, gratuity), contract via MOHRE, WPS payroll, Dubai health insurance, ILOE reminder, visa quota under the licence. 5. Cost: salary plus visa, insurance, gratuity accrual, equipment, and recruitment, over twelve months, against runway. 6. Emiratisation: check headcount thresholds and whether a Nafis-supported Emirati candidate fits the role. 7. Equity: none promised unless the founder decides; if he does, record it under cap table hygiene. 8. Present one page with the recommendation and the date to review whether the hire delivered the measured outcome.",
+   "body_ar": "الخطوات التي يتبعها الرئيس التنفيذي حين يطرح أي مقعد أو المؤسس تعيين شخص.\n\n1. الحاجة: أي واجب يتعثر أو متوقف، بقياس، ولماذا لا يستطيع أداءه مقعد أو كود أفضل أو متعاقد، إذ إن العمل الروتيني يُنجز بالكود أولاً وفق قرار المؤسس. 2. صاحب القرار: التعيين قرار المؤسس، والمقعد يُعدّ الملف. 3. الشكل: موظف أو دوام جزئي أو متعاقد، وإن كان الشخص في الخارج فهل ينشئ العمل وجوداً وظيفياً أو ضريبياً في الدولة. 4. القانون: الحدود الدنيا لقانون العمل من تجربة وإنذار وإجازات وساعات ومكافأة نهاية الخدمة، والعقد عبر وزارة الموارد البشرية والتوطين، والرواتب عبر نظام حماية الأجور، والتأمين الصحي في دبي، والتذكير بتأمين التعطل، وحصة الإقامات بموجب الرخصة. 5. الكلفة: الراتب مع الإقامة والتأمين ومخصص نهاية الخدمة والمعدات والتوظيف على مدى اثني عشر شهراً مقابل مدة السيولة. 6. التوطين: التحقق من حدود عدد الموظفين ومن ملاءمة مرشح مواطن بدعم «نافس» للوظيفة. 7. الملكية: لا وعد بحصص إلا بقرار المؤسس، وإن قرر تُسجَّل وفق قواعد جدول الملكية. 8. العرض: صفحة واحدة بالتوصية وتاريخ مراجعة ما إذا حقق التعيين النتيجة المقيسة.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1541/download",
+    "https://dda.gov.ae/-/media/A723B420E7B847B3B104C6AAB8CF937F.pdf",
+    "https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/emiratis-employment-in-private-sector",
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2013/Law%20No.%20(11)%20of%202013.pdf",
+    "internal:memory/routine-work-is-code-not-llm.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "ceo:reasoning-investor-question",
+   "topic": "Reasoning sequence: answering an investor or fundraising question",
+   "kind": "method",
+   "body_en": "The steps the CEO seat follows when the founder asks for help with an investor question or a proposed deal.\n\n1. Scope: fundraising is founder-reserved; the seat supplies numbers, models and explanations, never commitments or advice to accept. 2. Definitions first: restate the metric the investor asked about in QuotesDone's terms (requested, revealed, collected) so no number is misread. 3. Source: pull each figure from reconciled books or measured data with its period; anything not measured is labelled as an assumption or left out. 4. Instrument: identify what is proposed (equity round, SAFE, convertible note) and whether it fits an onshore LLC after the 2025 amendments or implies a holding company; flag it for counsel. 5. Model: pro-forma cap table, dilution, liquidation waterfall at a few exit values, and the effect of each unusual term in AED. 6. Consistency: compare with every earlier update sent; explain any difference. 7. Present to the founder with the open legal questions listed separately from the numbers.",
+   "body_ar": "الخطوات التي يتبعها الرئيس التنفيذي حين يطلب المؤسس مساعدة في سؤال من مستثمر أو صفقة مقترحة.\n\n1. النطاق: جمع التمويل محجوز للمؤسس، والمقعد يقدم الأرقام والنماذج والشروح، لا الالتزامات ولا النصح بالقبول. 2. التعريفات أولاً: إعادة صياغة المؤشر الذي سأل عنه المستثمر بمصطلحات QuotesDone، أي المطلوب والمكشوف والمحصّل، حتى لا يُساء فهم أي رقم. 3. المصدر: استخراج كل رقم من الدفاتر المسوّاة أو البيانات المقيسة مع فترته، وما لم يُقس يوسم بأنه افتراض أو يُستبعد. 4. الأداة: تحديد المقترح، أهو جولة ملكية أم اتفاقية ملكية مستقبلية أم سند قابل للتحويل، وهل يلائم شركة ذات مسؤولية محدودة في البر الرئيسي بعد تعديلات 2025 أم يستلزم شركة قابضة، مع إحالته إلى المستشار القانوني. 5. النموذج: جدول ملكية افتراضي، والتخفيف، وتوزيع حصيلة التصفية عند عدة قيم تخارج، وأثر كل شرط غير مألوف بالدرهم. 6. الاتساق: المقارنة بكل تقرير سابق أُرسل وتفسير أي اختلاف. 7. العرض على المؤسس مع فصل المسائل القانونية المفتوحة عن الأرقام.",
+   "sources": [
+    "https://www.ycombinator.com/documents",
+    "https://www.dentons.com/en/insights/alerts/2026/january/27/uae-amends-commercial-companies-law",
+    "https://www.squirepattonboggs.com/insights/publications/commercial-companies-law-amendment-allowing-for-class-shares-non-profit-companies-company-migration-and-deadlock-resolution-tools/",
+    "internal:memory/investor-pack-founder-rulings.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
   }
  ],
  "eval": [
@@ -1517,6 +2075,169 @@
     "ceo:weekly-review-scenario-lens",
     "ceo:weekly-management-review"
    ]
+  },
+  {
+   "q_en": "When must our general assembly meet and what does it approve?",
+   "q_ar": "متى يجب أن تنعقد الجمعية العمومية وما الذي تعتمده؟",
+   "expected_entry_ids": [
+    "ceo:llc-annual-general-assembly",
+    "ceo:governance-cadence"
+   ]
+  },
+  {
+   "q_en": "Do we legally need an auditor?",
+   "q_ar": "هل نحتاج قانوناً إلى مدقق حسابات؟",
+   "expected_entry_ids": [
+    "ceo:llc-auditor-and-books"
+   ]
+  },
+  {
+   "q_en": "What happens if our losses reach half of our capital?",
+   "q_ar": "ماذا يحدث إذا بلغت خسائرنا نصف رأس المال؟",
+   "expected_entry_ids": [
+    "ceo:llc-losses-half-capital"
+   ]
+  },
+  {
+   "q_en": "Can we give an investor preferred shares in our LLC now?",
+   "q_ar": "هل يمكننا منح مستثمر حصصاً تفضيلية في شركتنا الآن؟",
+   "expected_entry_ids": [
+    "ceo:companies-law-2025-amendments",
+    "ceo:term-sheet-glossary"
+   ]
+  },
+  {
+   "q_en": "A manufacturer wants us to be their exclusive agent in the UAE. Can we sign?",
+   "q_ar": "مصنّع يريدنا وكيلاً حصرياً له في الإمارات، هل نوقّع؟",
+   "expected_entry_ids": [
+    "ceo:commercial-agency-law"
+   ]
+  },
+  {
+   "q_en": "What does the labour law require for our first employee?",
+   "q_ar": "ماذا يشترط قانون العمل لأول موظف لدينا؟",
+   "expected_entry_ids": [
+    "ceo:labour-law-hiring-basics",
+    "ceo:end-of-service-gratuity",
+    "ceo:reasoning-first-human-hire"
+   ]
+  },
+  {
+   "q_en": "Do Emiratisation targets apply to us?",
+   "q_ar": "هل تنطبق علينا مستهدفات التوطين؟",
+   "expected_entry_ids": [
+    "ceo:emiratisation-applicability"
+   ]
+  },
+  {
+   "q_en": "Are we covered by the anti-money-laundering law as a DNFBP?",
+   "q_ar": "هل نخضع لقانون مكافحة غسل الأموال بوصفنا من الأعمال والمهن غير المالية المحددة؟",
+   "expected_entry_ids": [
+    "ceo:aml-position-non-dnfbp"
+   ]
+  },
+  {
+   "q_en": "Which UAE principles govern how our seats make decisions?",
+   "q_ar": "ما المبادئ الإماراتية التي تحكم طريقة اتخاذ مقاعدنا قراراتها؟",
+   "expected_entry_ids": [
+    "ceo:uae-ai-charter",
+    "ceo:automated-decision-governance"
+   ]
+  },
+  {
+   "q_en": "What is the breach notification deadline under the PDPL?",
+   "q_ar": "ما مهلة الإخطار بالاختراق وفق قانون حماية البيانات الشخصية؟",
+   "expected_entry_ids": [
+    "ceo:pdpl-executive-regulations-status"
+   ]
+  },
+  {
+   "q_en": "Explain a SAFE and whether it works for our company.",
+   "q_ar": "اشرح اتفاقية الملكية المستقبلية البسيطة وهل تصلح لشركتنا.",
+   "expected_entry_ids": [
+    "ceo:safe-and-convertibles"
+   ]
+  },
+  {
+   "q_en": "What does a 1x non-participating liquidation preference mean?",
+   "q_ar": "ماذا تعني أفضلية التصفية مرة واحدة غير المشاركة؟",
+   "expected_entry_ids": [
+    "ceo:term-sheet-glossary"
+   ]
+  },
+  {
+   "q_en": "How do we stop buyers and suppliers going around the platform?",
+   "q_ar": "كيف نمنع المشترين والموردين من الالتفاف على المنصة؟",
+   "expected_entry_ids": [
+    "ceo:disintermediation-defence"
+   ]
+  },
+  {
+   "q_en": "Is our 3% fee high compared with other marketplaces?",
+   "q_ar": "هل رسمنا البالغ 3% مرتفع مقارنة بالمنصات الأخرى؟",
+   "expected_entry_ids": [
+    "ceo:take-rate-benchmarks",
+    "ceo:pricing-strategy-principles"
+   ]
+  },
+  {
+   "q_en": "How much revenue does one posted request earn us?",
+   "q_ar": "كم يدرّ علينا طلب منشور واحد من إيراد؟",
+   "expected_entry_ids": [
+    "ceo:reveal-model-unit-economics"
+   ]
+  },
+  {
+   "q_en": "A wrong message went to 200 suppliers. What do we do?",
+   "q_ar": "وصلت رسالة خاطئة إلى 200 مورد، ماذا نفعل؟",
+   "expected_entry_ids": [
+    "ceo:crisis-leadership"
+   ]
+  },
+  {
+   "q_en": "Do we need professional indemnity or cyber insurance?",
+   "q_ar": "هل نحتاج تأمين المسؤولية المهنية أو التأمين السيبراني؟",
+   "expected_entry_ids": [
+    "ceo:insurance-review"
+   ]
+  },
+  {
+   "q_en": "Who are our competitors in UAE B2B procurement?",
+   "q_ar": "من منافسونا في المشتريات بين الشركات في الإمارات؟",
+   "expected_entry_ids": [
+    "ceo:competitor-landscape-verified"
+   ]
+  },
+  {
+   "q_en": "A buyer wants a refund after revealing. How do you decide?",
+   "q_ar": "مشترٍ يطلب استرداداً بعد الكشف، كيف تقرر؟",
+   "expected_entry_ids": [
+    "ceo:reasoning-refund-escalation"
+   ]
+  },
+  {
+   "q_en": "Should we raise the reveal fee to 4%?",
+   "q_ar": "هل نرفع رسم الكشف إلى 4%؟",
+   "expected_entry_ids": [
+    "ceo:reasoning-pricing-change",
+    "ceo:pricing-strategy-principles"
+   ]
+  },
+  {
+   "q_en": "Is it legal for us to offer logistics as a new service?",
+   "q_ar": "هل يجوز قانوناً أن نقدّم الخدمات اللوجستية خدمةً جديدة؟",
+   "expected_entry_ids": [
+    "ceo:det-licensed-activities",
+    "ceo:reasoning-regulatory-question"
+   ]
+  },
+  {
+   "q_en": "An investor asks for our GMV and a SAFE with a cap. How do we prepare?",
+   "q_ar": "مستثمر يطلب إجمالي قيمة المعاملات واتفاقية بسقف تقييم، كيف نستعد؟",
+   "expected_entry_ids": [
+    "ceo:reasoning-investor-question",
+    "ceo:investor-reporting-standard"
+   ]
   }
  ],
  "verified": {
@@ -1541,6 +2262,87 @@
   "prior_pass": {
    "fetched_urls": 33,
    "claims_checked": 126
+  },
+  "wave2": {
+   "upgraded": "2026-09-24 instr 961",
+   "added": [
+    "ceo:llc-legal-form-basics",
+    "ceo:llc-annual-general-assembly",
+    "ceo:llc-auditor-and-books",
+    "ceo:llc-statutory-reserve",
+    "ceo:llc-losses-half-capital",
+    "ceo:companies-law-2025-amendments",
+    "ceo:det-licensed-activities",
+    "ceo:commercial-agency-law",
+    "ceo:labour-law-hiring-basics",
+    "ceo:end-of-service-gratuity",
+    "ceo:iloe-and-wps",
+    "ceo:dubai-employee-health-insurance",
+    "ceo:emiratisation-applicability",
+    "ceo:aml-position-non-dnfbp",
+    "ceo:cybercrime-law-awareness",
+    "ceo:e-commerce-law-2023",
+    "ceo:consumer-protection-scope",
+    "ceo:uae-ai-charter",
+    "ceo:automated-decision-governance",
+    "ceo:pdpl-executive-regulations-status",
+    "ceo:governance-cadence",
+    "ceo:investor-reporting-standard",
+    "ceo:safe-and-convertibles",
+    "ceo:term-sheet-glossary",
+    "ceo:cap-table-hygiene",
+    "ceo:esop-in-uae",
+    "ceo:reveal-model-unit-economics",
+    "ceo:take-rate-benchmarks",
+    "ceo:disintermediation-defence",
+    "ceo:trust-and-safety-framework",
+    "ceo:crisis-leadership",
+    "ceo:vendor-contract-management",
+    "ceo:insurance-review",
+    "ceo:banking-relationship",
+    "ceo:competitor-landscape-verified",
+    "ceo:pricing-strategy-principles",
+    "ceo:reasoning-regulatory-question",
+    "ceo:reasoning-pricing-change",
+    "ceo:reasoning-refund-escalation",
+    "ceo:reasoning-first-human-hire",
+    "ceo:reasoning-investor-question"
+   ],
+   "fetched_urls": [
+    "https://www.moet.gov.ae/documents/20121/376326/Commercial+Companies.pdf/12d14f53-1a3e-47b4-8e70-fac3f672c403?t=1645596097819",
+    "https://www.dentons.com/en/insights/alerts/2026/january/27/uae-amends-commercial-companies-law",
+    "https://www.squirepattonboggs.com/insights/publications/commercial-companies-law-amendment-allowing-for-class-shares-non-profit-companies-company-migration-and-deadlock-resolution-tools/",
+    "https://uaelegislation.gov.ae/en/legislations/1617/download",
+    "https://dda.gov.ae/-/media/A723B420E7B847B3B104C6AAB8CF937F.pdf",
+    "https://mohre.gov.ae/en/guidance-and-awareness-portal-new/unemployment-insurance-scheme",
+    "https://u.ae/en/information-and-services/jobs/Sector-of-employment/employment-in-the-private-sector/emiratis-employment-in-private-sector",
+    "https://u.ae/en/about-the-uae/strategies-initiatives-and-awards/policies/Ai/The-UAE-Charter-for-the-Development-and-Use-of-Artificial-Intelligence",
+    "https://dlp.dubai.gov.ae/Legislation%20Reference/2013/Law%20No.%20(11)%20of%202013.pdf",
+    "https://uaelegislation.gov.ae/en/legislations/1526/download",
+    "https://uaelegislation.gov.ae/en/legislations/2150/download",
+    "https://uaelegislation.gov.ae/en/legislations/1455",
+    "https://a16z.com/13-metrics-for-marketplace-companies/",
+    "https://abovethecrowd.com/2013/04/18/a-rake-too-far-optimal-platformpricing-strategy/",
+    "https://www.kayrouzandassociates.com/insights/uae-employee-incentives-stock-options-esop-difc-adgm-mainland",
+    "https://www.dlapiper.com/en-us/insights/publications/gulf-tax-insights/2026/gulf-tax-insights-august-2026/uae-extends-corporate-tax-relief-for-small-businesses",
+    "https://gulfnews.com/business/retail/dubai-owned-b2b-marketplace-tradeling-is-out-to-win-the-percentage-game-1.85940538",
+    "https://rulebook.centralbank.ae/en/rulebook/federal-decree-law-no-10-2025-regarding-anti-money-laundering-and-combating-financing"
+   ],
+   "claims_checked": 118,
+   "corrected": [
+    "ceo:labour-law-hiring-basics",
+    "ceo:company-hard-rules",
+    "ceo:company-pricing"
+   ],
+   "still_unverified": [
+    "PDPL executive regulations publication (marked not established)",
+    "statutory insurance duty for the company activity (not established)",
+    "competitor market share/revenue (not established)",
+    "AML law and ESOP/SAFE UAE detail read from secondary sources only (CBUAE rulebook and uaelegislation returned 403 to fetch)"
+   ],
+   "note": "Companies Law articles 26, 71, 83, 84, 92, 94, 100, 102, 103, 308 read from the MoET-hosted English text of FDL 32/2021 (pre-2025 amendment); labour minimums from the DDA summary of FDL 33/2021; Emiratisation figures and AI charter principles from u.ae. Existing corporate-tax entry re-checked: SBR extension to 31 Dec 2029 confirmed, no correction needed.",
+   "corrected_note": "labour-law-hiring-basics: annual leave was 2.5 days/month; Art. 29 FDL 33/2021 (MOHRE PDF, read) says 2 days/month after 6 months and under 1 year, then 30 days/year.",
+   "companies_law_articles_read": "Arts 92, 94, 100, 102 FDL 32/2021 read from the MoET PDF and confirmed; no change needed."
   }
  }
 }

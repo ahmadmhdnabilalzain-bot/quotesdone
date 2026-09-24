@@ -37,7 +37,7 @@
    "id": "marketing:geo-answer-first-content",
    "topic": "Answer-first page structure for citation",
    "kind": "method",
-   "body_en": "Engines lift passages, so every page that should be cited must contain self-contained answer blocks. Method: (1) Write the question as the H2 exactly as a buyer would ask it (\"How much does QuotesDone charge a buyer?\"). (2) Put a 40-70 word direct answer in the first paragraph under it, with the entity name, the number and the condition (\"QuotesDone charges the buyer nothing to post an RFQ; the supplier pays a 3% reveal fee only when...\"). Avoid pronouns that depend on earlier text. (3) Follow with supporting detail: steps as an ordered list, comparisons as a real HTML table, definitions in one sentence. (4) State the source or evidence inline (law number, authority, date). (5) Add a visible \"last updated\" date and the author or owning team. (6) Keep one topic per URL; do not bury the answer under marketing copy or behind tabs, accordions that render only on click, or images of text. (7) Provide the same answer in Arabic on a parallel URL with hreflang, not machine-mixed on one page. The GEO study found statistics, quotations and citations improved visibility; Google's guidance for generative search features repeats its helpful-content principles: original, people-first, clearly sourced. A quick self-test: paste the block alone into a chat window with no context — if it still answers the question correctly and names QuotesDone, it is liftable.\n\nVerification note: the 40-70 word answer length is an internal rule, not a published Google requirement; Google states no special optimisation is needed for generative search features beyond helpful, people-first content.",
+   "body_en": "Engines lift passages, so every page that should be cited must contain self-contained answer blocks. Method: (1) Write the question as the H2 exactly as a buyer would ask it (\"How much does QuotesDone charge a buyer?\"). (2) Put a 40-70 word direct answer in the first paragraph under it, with the entity name, the number and the condition (\"Comparing quotes on QuotesDone is free. You pay only if you choose a supplier and want to see who they are: a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once.\"). Avoid pronouns that depend on earlier text. (3) Follow with supporting detail: steps as an ordered list, comparisons as a real HTML table, definitions in one sentence. (4) State the source or evidence inline (law number, authority, date). (5) Add a visible \"last updated\" date and the author or owning team. (6) Keep one topic per URL; do not bury the answer under marketing copy or behind tabs, accordions that render only on click, or images of text. (7) Provide the same answer in Arabic on a parallel URL with hreflang, not machine-mixed on one page. The GEO study found statistics, quotations and citations improved visibility; Google's guidance for generative search features repeats its helpful-content principles: original, people-first, clearly sourced. A quick self-test: paste the block alone into a chat window with no context — if it still answers the question correctly and names QuotesDone, it is liftable.\n\nVerification note: the 40-70 word answer length is an internal rule, not a published Google requirement; Google states no special optimisation is needed for generative search features beyond helpful, people-first content.",
    "body_ar": "تقتطع المحركات فقرات، لذا يجب أن تحتوي كل صفحة نريد الاستشهاد بها على كتل إجابة مستقلة. الطريقة: (1) صياغة السؤال عنواناً فرعياً كما يطرحه المشتري تماماً، مثل «كم تتقاضى QuotesDone من المشتري؟». (2) وضع إجابة مباشرة من 40 إلى 70 كلمة في الفقرة الأولى تتضمن اسم الجهة والرقم والشرط، مع تجنب الضمائر التي تعتمد على نص سابق. (3) إتباعها بالتفاصيل الداعمة: الخطوات في قائمة مرقمة، والمقارنات في جدول HTML حقيقي، والتعريفات في جملة واحدة. (4) ذكر المصدر أو الدليل داخل النص (رقم القانون، الجهة، التاريخ). (5) إظهار تاريخ آخر تحديث والفريق المسؤول. (6) موضوع واحد لكل رابط، ودون إخفاء الإجابة خلف نصوص ترويجية أو ألسنة تبويب لا تُعرض إلا بالنقر أو صور تحتوي نصاً. (7) تقديم الإجابة نفسها بالعربية على رابط موازٍ مع وسم hreflang، لا مزجاً آلياً في صفحة واحدة. وقد وجدت دراسة GEO أن الإحصاءات والاقتباسات والاستشهادات حسّنت الظهور، وتكرر إرشادات Google مبادئ المحتوى المفيد: أصيل، موجّه للناس، واضح المصادر. اختبار ذاتي سريع: الصق الكتلة وحدها في نافذة محادثة دون سياق، فإن أجابت عن السؤال بشكل صحيح وذكرت QuotesDone فهي قابلة للاقتطاع.\n\nملاحظة تحقق: طول الإجابة 40-70 كلمة قاعدة داخلية وليس شرطاً من Google، التي تؤكد أن ميزات الأنظمة الآلية لا تتطلب تحسيناً خاصاً غير المحتوى المفيد.",
    "sources": [
     "https://developers.google.com/search/docs/appearance/ai-features",
@@ -286,8 +286,8 @@
    "id": "marketing:consumer-protection-advertising",
    "topic": "Truthful advertising and claims substantiation",
    "kind": "law",
-   "body_en": "Federal Law No. 15 of 2020 on Consumer Protection and its Executive Regulation prohibit misleading advertising and require accurate information about price and terms; although our core users are businesses, many small buyers are individuals and the principle is identical to Media Council standards and platform ad policies (Meta, LinkedIn, Google all reject misleading claims). Claims discipline for QuotesDone: (1) Every claim is classified as fact, comparison or puffery. Facts (\"suppliers pay 3% only on reveal\") must match the fact register. Comparisons (\"faster than tendering\") need evidence on file with date and method. Superlatives (\"the best\", \"the largest\", \"number one\") are prohibited unless independently substantiated. (2) \"Free\" may be used only when no fee applies to that user in that flow, and conditions must be adjacent, not buried. (3) Savings claims (\"save 20%\") require a documented, representative basis; otherwise do not state a number — say \"compare up to three quotes\". (4) Testimonials must be genuine, permitted and typical, or labelled. (5) Prices in AED, VAT treatment stated where relevant (we are not VAT-registered until the threshold). (6) Keep a claims file: claim, evidence link, owner, approval date, expiry. Any claim without an evidence link is removed.\n\nVerified: the Executive Regulations (Cabinet Resolution 66/2023, in force 14 October 2023) prohibit misleading advertising with fines up to AED 250,000, and a commentary reads \"consumer\" as covering companies as well as individuals; the e-commerce law bans undisclosed fees.",
-   "body_ar": "يحظر القانون الاتحادي رقم 15 لسنة 2020 بشأن حماية المستهلك ولائحته التنفيذية الإعلان المضلل، ويشترط معلومات دقيقة عن السعر والشروط. ورغم أن مستخدمينا الأساسيين شركات، فإن كثيراً من المشترين الصغار أفراد، والمبدأ مطابق لمعايير مجلس الإعلام وسياسات إعلانات المنصات التي ترفض الادعاءات المضللة. انضباط الادعاءات في QuotesDone: (1) يُصنَّف كل ادعاء إلى حقيقة أو مقارنة أو مبالغة ترويجية. الحقائق مثل «يدفع المورد 3% عند الكشف فقط» يجب أن تطابق سجل الحقائق، والمقارنات مثل «أسرع من المناقصة» تحتاج دليلاً محفوظاً بتاريخ ومنهجية، وصيغ التفضيل مثل «الأفضل» و«الأكبر» و«رقم واحد» ممنوعة ما لم تُثبت باستقلالية. (2) لا تُستخدم كلمة «مجاني» إلا إذا لم تُفرض أي رسوم على هذا المستخدم في هذا المسار، مع ذكر الشروط بجوارها لا في الهوامش. (3) ادعاءات التوفير مثل «وفّر 20%» تتطلب أساساً موثقاً وممثلاً، وإلا فيُكتفى بعبارة «قارن حتى ثلاثة عروض». (4) الشهادات حقيقية ومأذونة ونموذجية أو يُشار إلى خلاف ذلك. (5) الأسعار بالدرهم مع بيان معاملة ضريبة القيمة المضافة عند اللزوم، علماً بأننا غير مسجلين حتى بلوغ الحد. (6) ملف ادعاءات: الادعاء ورابط الدليل والمالك وتاريخ الاعتماد والانتهاء، وأي ادعاء بلا دليل يُحذف.\n\nتم التحقق: تحظر اللائحة التنفيذية (نافذة منذ 14 أكتوبر 2023) الإعلان المضلل بغرامات تصل إلى 250,000 درهم، ويشمل تعريف المستهلك الشركات أيضاً وفق تعليق قانوني، ويحظر قانون التجارة الإلكترونية الرسوم غير المعلنة.",
+   "body_en": "Federal Law No. 15 of 2020 on Consumer Protection and its Executive Regulation prohibit misleading advertising and require accurate information about price and terms; although our core users are businesses, many small buyers are individuals and the principle is identical to Media Council standards and platform ad policies (Meta, LinkedIn, Google all reject misleading claims). Claims discipline for QuotesDone: (1) Every claim is classified as fact, comparison or puffery. Facts (\"the customer pays a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once\") must match the fact register. Comparisons (\"faster than tendering\") need evidence on file with date and method. Superlatives (\"the best\", \"the largest\", \"number one\") are prohibited unless independently substantiated. (2) \"Free\" may be used only when no fee applies to that user in that flow, and conditions must be adjacent, not buried. (3) Savings claims (\"save 20%\") require a documented, representative basis; otherwise do not state a number — say \"compare up to three quotes\". (4) Testimonials must be genuine, permitted and typical, or labelled. (5) Prices in AED, VAT treatment stated where relevant (we are not VAT-registered until the threshold). (6) Keep a claims file: claim, evidence link, owner, approval date, expiry. Any claim without an evidence link is removed.\n\nVerified: the Executive Regulations (Cabinet Resolution 66/2023, in force 14 October 2023) prohibit misleading advertising with fines up to AED 250,000, and a commentary reads \"consumer\" as covering companies as well as individuals; the e-commerce law bans undisclosed fees.",
+   "body_ar": "يحظر القانون الاتحادي رقم 15 لسنة 2020 بشأن حماية المستهلك ولائحته التنفيذية الإعلان المضلل، ويشترط معلومات دقيقة عن السعر والشروط. ورغم أن مستخدمينا الأساسيين شركات، فإن كثيراً من المشترين الصغار أفراد، والمبدأ مطابق لمعايير مجلس الإعلام وسياسات إعلانات المنصات التي ترفض الادعاءات المضللة. انضباط الادعاءات في QuotesDone: (1) يُصنَّف كل ادعاء إلى حقيقة أو مقارنة أو مبالغة ترويجية. الحقائق مثل «يدفع العميل رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة» يجب أن تطابق سجل الحقائق، والمقارنات مثل «أسرع من المناقصة» تحتاج دليلاً محفوظاً بتاريخ ومنهجية، وصيغ التفضيل مثل «الأفضل» و«الأكبر» و«رقم واحد» ممنوعة ما لم تُثبت باستقلالية. (2) لا تُستخدم كلمة «مجاني» إلا إذا لم تُفرض أي رسوم على هذا المستخدم في هذا المسار، مع ذكر الشروط بجوارها لا في الهوامش. (3) ادعاءات التوفير مثل «وفّر 20%» تتطلب أساساً موثقاً وممثلاً، وإلا فيُكتفى بعبارة «قارن حتى ثلاثة عروض». (4) الشهادات حقيقية ومأذونة ونموذجية أو يُشار إلى خلاف ذلك. (5) الأسعار بالدرهم مع بيان معاملة ضريبة القيمة المضافة عند اللزوم، علماً بأننا غير مسجلين حتى بلوغ الحد. (6) ملف ادعاءات: الادعاء ورابط الدليل والمالك وتاريخ الاعتماد والانتهاء، وأي ادعاء بلا دليل يُحذف.\n\nتم التحقق: تحظر اللائحة التنفيذية (نافذة منذ 14 أكتوبر 2023) الإعلان المضلل بغرامات تصل إلى 250,000 درهم، ويشمل تعريف المستهلك الشركات أيضاً وفق تعليق قانوني، ويحظر قانون التجارة الإلكترونية الرسوم غير المعلنة.",
    "sources": [
     "https://afridi-angell.com/executive-regulations-concerning-the-uae-consumer-protection-law/",
     "https://www.bdolegal.ae/en-gb/insights/e-commerce-in-the-uae-understanding-the-impact-of-trading-by-modern-technological-means-law"
@@ -310,8 +310,8 @@
    "id": "marketing:icp-suppliers",
    "topic": "Supplier ICP: which trades and companies to recruit",
    "kind": "concept",
-   "body_en": "The supply side is a recruitment market: we are selling opportunity to contractors and trading companies. ICP: UAE-licensed companies (valid DET or other emirate trade licence covering the activity), 2-200 staff, in trades where buyers post RFQs (MEP, HVAC, electrical, plumbing, fit-out and joinery, painting, flooring, cleaning, pest control, landscaping, security systems, IT and AV, signage, facility management), with capacity to respond within our window and willingness to complete the mandatory six verification items (name, mobile, email, licence, profile, signed terms). Best-fit signals: active Google Business Profile, recent project photos, owner or estimator reachable on WhatsApp, already bidding on other platforms. Recruitment pains: inconsistent lead flow, paying for leads that never convert, chasing unqualified buyers, slow receivables. Our proposition must address the fee honestly: they pay 3% only when a buyer reveals them. Objections: \"3% is high on large jobs\" (answer: only on reveal, no subscription), \"leads are fake\" (answer: buyer verification, exact specs or quote held), \"I don't do online\". Recruitment is local and trade-specific: messages, examples and visuals must show their trade. Track funnel per trade: invited → registered → verified → first quote → first reveal; the 2026 funnel had invitations but near-zero registrations, so conversion diagnosis precedes volume.\n\nVerification note (23 Sep 2026): the method and thresholds here are QuotesDone internal operating practice, not externally published figures; any number not tied to a cited source is an internal rule; as an external benchmark it is not established.",
-   "body_ar": "جانب العرض سوق استقطاب: نبيع الفرص للمقاولين والشركات التجارية. الملف المثالي: شركات مرخصة في الدولة (رخصة سارية من دائرة الاقتصاد والسياحة أو من إمارة أخرى تغطي النشاط)، من 2 إلى 200 موظف، في تخصصات يطلب فيها المشترون عروضاً (الأعمال الكهروميكانيكية، التكييف، الكهرباء، السباكة، التشطيب والنجارة، الدهان، الأرضيات، التنظيف، مكافحة الآفات، التنسيق، أنظمة الأمن، تقنية المعلومات والصوتيات والمرئيات، اللافتات، إدارة المرافق)، مع قدرة على الرد ضمن المهلة واستعداد لإكمال عناصر التحقق الستة الإلزامية (الاسم، الجوال، البريد، الرخصة، الملف، الشروط الموقعة). مؤشرات الملاءمة: ملف Google تجاري نشط، وصور مشاريع حديثة، ومالك أو مقدّر يمكن الوصول إليه عبر واتساب، ومشاركة حالية في منصات أخرى. آلامهم: تذبذب تدفق الفرص، ودفع ثمن فرص لا تتحول، وملاحقة مشترين غير جادين، وبطء التحصيل. ويجب أن يعالج عرضنا الرسوم بصدق: يدفعون 3% فقط عند كشف المشتري لهم. الاعتراضات: «3% كثيرة في المشاريع الكبيرة» (الرد: عند الكشف فقط ودون اشتراك)، «الفرص وهمية» (الرد: التحقق من المشتري واشتراط المواصفات الدقيقة وإلا يُعلَّق الطلب). الاستقطاب محلي وخاص بكل تخصص، ويُتتبع المسار لكل تخصص: دعوة، تسجيل، توثيق، أول عرض، أول كشف؛ وقد شهد مسار 2026 دعوات مع تسجيل شبه معدوم، فيسبق تشخيصُ التحويل زيادةَ الحجم.\n\nملاحظة تحقق (23 سبتمبر 2026): المنهج والحدود الواردة هنا ممارسة تشغيلية داخلية لدى كوتس دن وليست أرقاماً منشورة خارجياً؛ وأي رقم غير مرتبط بمصدر مذكور هو قاعدة داخلية وليس معياراً ثابتاً.",
+   "body_en": "The supply side is a recruitment market: we are selling opportunity to contractors and trading companies. ICP: UAE-licensed companies (valid DET or other emirate trade licence covering the activity), 2-200 staff, in trades where buyers post RFQs (MEP, HVAC, electrical, plumbing, fit-out and joinery, painting, flooring, cleaning, pest control, landscaping, security systems, IT and AV, signage, facility management), with capacity to respond within our window and willingness to complete the mandatory six verification items (name, mobile, email, licence, profile, signed terms). Best-fit signals: active Google Business Profile, recent project photos, owner or estimator reachable on WhatsApp, already bidding on other platforms. Recruitment pains: inconsistent lead flow, paying for leads that never convert, chasing unqualified buyers, slow receivables. Our proposition must address the fee honestly: no commission on any job; registration is free permanently for the first 1,000 suppliers, after that the subscription is AED 1,000 a year; the buyer, not the supplier, pays a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once. Objections: \"3% is high on large jobs\" (answer: the supplier pays no commission; the 3% Reveal Fee is paid by the buyer), \"leads are fake\" (answer: buyer verification, exact specs or quote held), \"I don't do online\". Recruitment is local and trade-specific: messages, examples and visuals must show their trade. Track funnel per trade: invited → registered → verified → first quote → first reveal; the 2026 funnel had invitations but near-zero registrations, so conversion diagnosis precedes volume.\n\nVerification note (23 Sep 2026): the method and thresholds here are QuotesDone internal operating practice, not externally published figures; any number not tied to a cited source is an internal rule; as an external benchmark it is not established.",
+   "body_ar": "جانب العرض سوق استقطاب: نبيع الفرص للمقاولين والشركات التجارية. الملف المثالي: شركات مرخصة في الدولة (رخصة سارية من دائرة الاقتصاد والسياحة أو من إمارة أخرى تغطي النشاط)، من 2 إلى 200 موظف، في تخصصات يطلب فيها المشترون عروضاً (الأعمال الكهروميكانيكية، التكييف، الكهرباء، السباكة، التشطيب والنجارة، الدهان، الأرضيات، التنظيف، مكافحة الآفات، التنسيق، أنظمة الأمن، تقنية المعلومات والصوتيات والمرئيات، اللافتات، إدارة المرافق)، مع قدرة على الرد ضمن المهلة واستعداد لإكمال عناصر التحقق الستة الإلزامية (الاسم، الجوال، البريد، الرخصة، الملف، الشروط الموقعة). مؤشرات الملاءمة: ملف Google تجاري نشط، وصور مشاريع حديثة، ومالك أو مقدّر يمكن الوصول إليه عبر واتساب، ومشاركة حالية في منصات أخرى. آلامهم: تذبذب تدفق الفرص، ودفع ثمن فرص لا تتحول، وملاحقة مشترين غير جادين، وبطء التحصيل. ويجب أن يعالج عرضنا الرسوم بصدق: لا عمولة على أي عمل، والتسجيل مجاني دائماً لأول 1,000 مورد وبعدها الاشتراك 1,000 درهم سنوياً، والمشتري لا المورد هو من يدفع رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة. الاعتراضات: «3% كثيرة في المشاريع الكبيرة» (الرد: لا عمولة على المورد، ورسوم الكشف 3% يدفعها المشتري)، «الفرص وهمية» (الرد: التحقق من المشتري واشتراط المواصفات الدقيقة وإلا يُعلَّق الطلب). الاستقطاب محلي وخاص بكل تخصص، ويُتتبع المسار لكل تخصص: دعوة، تسجيل، توثيق، أول عرض، أول كشف؛ وقد شهد مسار 2026 دعوات مع تسجيل شبه معدوم، فيسبق تشخيصُ التحويل زيادةَ الحجم.\n\nملاحظة تحقق (23 سبتمبر 2026): المنهج والحدود الواردة هنا ممارسة تشغيلية داخلية لدى كوتس دن وليست أرقاماً منشورة خارجياً؛ وأي رقم غير مرتبط بمصدر مذكور هو قاعدة داخلية وليس معياراً ثابتاً.",
    "sources": [
     "https://a16z.com/13-metrics-for-marketplace-companies/"
    ],
@@ -361,8 +361,8 @@
    "id": "marketing:ramadan-uae-calendar",
    "topic": "Ramadan and UAE national moments: marketing rules",
    "kind": "playbook",
-   "body_en": "Key dates (lunar dates shift about 11 days earlier each year; confirm with official announcements): Ramadan (2027 expected by the UAE astronomy projections to begin on 8 February, Eid al-Fitr around 9-12 March; confirmed only by moon sighting), Eid al-Fitr, Arafat Day and Eid al-Adha, Islamic New Year, Prophet's Birthday, Commemoration Day (30 November, an observance; the official holiday list shows only National Day, 2-3 December), New Year. Ramadan behaviour: working hours shortened by official announcement each year (the exact reduction is not established here), social usage shifts later into the night (post-iftar and pre-suhoor peaks are commonly reported; verify with our own analytics), B2B decision-making slows but maintenance and pre-Eid fit-out demand continue. Rules: tone reflective and generous, no food or drink imagery during fasting hours, no music-heavy or celebratory content at inappropriate moments, no exploiting religion to sell, greetings in correct Arabic (\"رمضان كريم\", \"عيد مبارك\"), schedule posts for evening. National Day: use official colours respectfully, no altering the flag or emblem, no commercial use of leaders' images, celebrate the country not our discount. Commemoration Day: solemn only, no promotional content. For each moment, prepare assets six weeks ahead and have ceo approve the month plan including these dates.",
-   "body_ar": "التواريخ الأساسية (تتقدم التواريخ الهجرية نحو 11 يوماً كل عام، ويُتحقق منها عبر الإعلانات الرسمية): رمضان (يُتوقع أن يبدأ عام 2027 في أوائل فبراير تقريباً، والتاريخ الدقيق غير مؤكد حتى رؤية الهلال)، وعيد الفطر، ويوم عرفة وعيد الأضحى، ورأس السنة الهجرية، والمولد النبوي، ويوم الشهيد (30 نوفمبر)، واليوم الوطني (2 ديسمبر، والعطلة 2-3 ديسمبر)، ورأس السنة الميلادية. السلوك في رمضان: تقلّص ساعات العمل (بساعتين في الجهات الحكومية وكثير من الشركات الخاصة)، ويتأخر استخدام وسائل التواصل إلى الليل (يُشار عادة إلى ذروتين بعد الإفطار وقبل السحور، ويُتحقق منهما من تحليلاتنا)، ويتباطأ القرار في الأعمال بينما يستمر الطلب على الصيانة وتشطيبات ما قبل العيد. القواعد: نبرة تأملية كريمة، ولا صور طعام أو شراب في ساعات الصيام، ولا محتوى احتفالي صاخب في غير وقته، ولا استغلال للدين في البيع، وتهنئة بعربية صحيحة («رمضان كريم»، «عيد مبارك»)، وجدولة المنشورات مساءً. اليوم الوطني: استخدام الألوان الرسمية باحترام، وعدم تعديل العلم أو الشعار، وعدم استخدام صور القادة تجارياً، والاحتفاء بالوطن لا بالخصم. يوم الشهيد: محتوى وقور فقط دون ترويج. ولكل مناسبة تُجهَّز المواد قبل ستة أسابيع ويعتمد الرئيس التنفيذي خطة الشهر بما فيها هذه التواريخ.\n\nتحديث: يُتوقع بدء رمضان 2027 في 8 فبراير وعيد الفطر بين 9 و12 مارس حسب رؤية الهلال، ويوم الشهيد (30 نوفمبر) مناسبة وطنية بينما العطلة الرسمية لليوم الوطني 2-3 ديسمبر، ومقدار تخفيض ساعات العمل يُعلن سنوياً.",
+   "body_en": "Key dates (lunar dates shift about 11 days earlier each year; confirm with official announcements): Ramadan (2027 expected by the UAE astronomy projections to begin on 8 February, Eid al-Fitr around 9-12 March; confirmed only by moon sighting), Eid al-Fitr, Arafat Day and Eid al-Adha, Islamic New Year, Prophet's Birthday, Commemoration Day (30 November, an observance; the official holiday list shows only National Day, 2-3 December), New Year. Ramadan behaviour: working hours shortened by official announcement each year (the exact reduction is not established here), social usage shifts later into the night (post-iftar and pre-suhoor peaks are commonly reported; verify with our own analytics), B2B decision-making slows but maintenance and pre-Eid fit-out demand continue. Rules: tone reflective and generous, no food or drink imagery during fasting hours, no music-heavy or celebratory content at inappropriate moments, no exploiting religion to sell, greetings in correct Arabic (\"رمضان كريم\", \"عيد مبارك\"), schedule posts for evening. National Day: use official colours respectfully, no altering the flag or emblem, no commercial use of leaders' images, celebrate the country not our discount. Commemoration Day: solemn only, no promotional content. For each moment, prepare assets six weeks ahead and have ceo approve the month plan including these dates.\n\nSee also: marketing:national-day-campaign-norms, customer_support:public-holidays-2026-and-deadlines, customer_support:working-day-deadline-calculation.",
+   "body_ar": "التواريخ الأساسية (تتقدم التواريخ الهجرية نحو 11 يوماً كل عام، ويُتحقق منها عبر الإعلانات الرسمية): رمضان (يُتوقع أن يبدأ عام 2027 في أوائل فبراير تقريباً، والتاريخ الدقيق غير مؤكد حتى رؤية الهلال)، وعيد الفطر، ويوم عرفة وعيد الأضحى، ورأس السنة الهجرية، والمولد النبوي، ويوم الشهيد (30 نوفمبر)، واليوم الوطني (2 ديسمبر، والعطلة 2-3 ديسمبر)، ورأس السنة الميلادية. السلوك في رمضان: تقلّص ساعات العمل (بساعتين في الجهات الحكومية وكثير من الشركات الخاصة)، ويتأخر استخدام وسائل التواصل إلى الليل (يُشار عادة إلى ذروتين بعد الإفطار وقبل السحور، ويُتحقق منهما من تحليلاتنا)، ويتباطأ القرار في الأعمال بينما يستمر الطلب على الصيانة وتشطيبات ما قبل العيد. القواعد: نبرة تأملية كريمة، ولا صور طعام أو شراب في ساعات الصيام، ولا محتوى احتفالي صاخب في غير وقته، ولا استغلال للدين في البيع، وتهنئة بعربية صحيحة («رمضان كريم»، «عيد مبارك»)، وجدولة المنشورات مساءً. اليوم الوطني: استخدام الألوان الرسمية باحترام، وعدم تعديل العلم أو الشعار، وعدم استخدام صور القادة تجارياً، والاحتفاء بالوطن لا بالخصم. يوم الشهيد: محتوى وقور فقط دون ترويج. ولكل مناسبة تُجهَّز المواد قبل ستة أسابيع ويعتمد الرئيس التنفيذي خطة الشهر بما فيها هذه التواريخ.\n\nتحديث: يُتوقع بدء رمضان 2027 في 8 فبراير وعيد الفطر بين 9 و12 مارس حسب رؤية الهلال، ويوم الشهيد (30 نوفمبر) مناسبة وطنية بينما العطلة الرسمية لليوم الوطني 2-3 ديسمبر، ومقدار تخفيض ساعات العمل يُعلن سنوياً.\n\nانظر أيضاً: marketing:national-day-campaign-norms، customer_support:public-holidays-2026-and-deadlines، customer_support:working-day-deadline-calculation.",
    "sources": [
     "https://www.thenationalnews.com/news/uae/2026/09/09/ramadan-2027-dates-eid-al-fitr-holiday/",
     "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays"
@@ -679,14 +679,15 @@
    "id": "marketing:email-marketing",
    "topic": "Email marketing and nurture for buyers and suppliers",
    "kind": "playbook",
-   "body_en": "Email reaches opted-in contacts without algorithm dependence. Programme: (1) Consent and compliance: explicit opt-in for marketing (separate from transactional emails), sender identified, physical address, one-click unsubscribe (Gmail's bulk-sender rules, in force from 1 February 2024 for senders of 5,000+ messages a day, require SPF, DKIM and DMARC, one-click unsubscribe on marketing mail, and a spam rate below 0.30%, ideally below 0.10%; Yahoo's rules were not re-read here), suppression honoured permanently; PDPL applies. (2) Flows: supplier onboarding (welcome → complete verification six items → how to write a winning quote → first-RFQ nudge), buyer onboarding (welcome → how to write exact specs → what happens after posting → reveal explained), reactivation for dormant accounts, and a monthly newsletter (procurement tips, trade spotlights, marketplace data). (3) Copy: subject line ≤ ~50 characters with a specific benefit; preheader complements it; one primary CTA; bilingual either as separate language versions based on preference or EN with an Arabic block; RTL rendering tested. (4) Deliverability: warm new sending domains gradually, separate marketing and transactional streams or subdomains, monitor bounces and complaints, never mail purchased lists. (5) Metrics: clicks and conversions rather than opens (Apple Mail Privacy Protection inflates opens), unsubscribe and complaint rates, revenue events by flow. Coordinate with it_engineer on authentication and the outbox.",
-   "body_ar": "يصل البريد إلى المشتركين الموافقين دون الاعتماد على الخوارزميات. البرنامج: (1) الموافقة والامتثال: موافقة صريحة على التسويق منفصلة عن الرسائل الخدمية، وتعريف المرسل، والعنوان الفعلي، وإلغاء اشتراك بنقرة واحدة (وتشترط Gmail وYahoo منذ 2024 على المرسلين بكثافة أيضاً توافق SPF وDKIM وDMARC ومعدل شكاوى منخفضاً دون 0.3%)، واحترام دائم لقوائم الاستبعاد، مع سريان قانون حماية البيانات. (2) التسلسلات: تهيئة المورد (ترحيب، ثم إكمال عناصر التحقق الستة، ثم كيف تكتب عرضاً فائزاً، ثم تذكير بأول طلب)، وتهيئة المشتري (ترحيب، ثم كيف تكتب مواصفات دقيقة، ثم ماذا يحدث بعد النشر، ثم شرح الكشف)، وإعادة تنشيط الحسابات الخاملة، ونشرة شهرية (نصائح المشتريات، إبراز التخصصات، بيانات السوق). (3) النص: عنوان بنحو 50 حرفاً أو أقل بفائدة محددة، ونص معاينة مكمّل، ودعوة أساسية واحدة، وثنائية اللغة إما بنسخ منفصلة حسب التفضيل أو إنجليزية مع كتلة عربية، مع اختبار العرض من اليمين لليسار. (4) قابلية التسليم: تدفئة نطاقات الإرسال الجديدة تدريجياً، وفصل التسويقي عن الخدمي بنطاقات فرعية، ومراقبة الارتداد والشكاوى، وعدم مراسلة قوائم مشتراة. (5) المؤشرات: النقرات والتحويلات لا مرات الفتح (إذ تضخمها حماية خصوصية بريد Apple)، ومعدلات إلغاء الاشتراك والشكاوى، وأحداث الإيراد لكل تسلسل. وبالتنسيق مع مهندس تقنية المعلومات بشأن المصادقة وصندوق الإرسال.\n\nتحديث: قواعد Gmail منذ 1 فبراير 2024 لمن يرسل أكثر من 5,000 رسالة يومياً تشترط SPF وDKIM وDMARC وإلغاء الاشتراك بنقرة واحدة ومعدل شكاوى أقل من 0.30% والأفضل أقل من 0.10%.",
+   "body_en": "Email reaches opted-in contacts without algorithm dependence. Programme: (1) Consent and compliance: explicit opt-in for marketing (separate from transactional emails), sender identified, physical address, one-click unsubscribe (Gmail's bulk-sender rules, in force from 1 February 2024 for senders of 5,000+ messages a day, require SPF, DKIM and DMARC, one-click unsubscribe on marketing mail, and a spam rate below 0.30%, ideally below 0.10%; Yahoo requires SPF or DKIM for all senders, SPF and DKIM plus a passing DMARC policy of at least p=none for bulk senders, one-click unsubscribe honoured within 2 days, and a spam rate below 0.3% — see marketing:email-authentication-bulk-sender-rules), suppression honoured permanently; PDPL applies. (2) Flows: supplier onboarding (welcome → complete verification six items → how to write a winning quote → first-RFQ nudge), buyer onboarding (welcome → how to write exact specs → what happens after posting → reveal explained), reactivation for dormant accounts, and a monthly newsletter (procurement tips, trade spotlights, marketplace data). (3) Copy: subject line ≤ ~50 characters with a specific benefit; preheader complements it; one primary CTA; bilingual either as separate language versions based on preference or EN with an Arabic block; RTL rendering tested. (4) Deliverability: warm new sending domains gradually, separate marketing and transactional streams or subdomains, monitor bounces and complaints, never mail purchased lists. (5) Metrics: clicks and conversions rather than opens (Apple Mail Privacy Protection inflates opens), unsubscribe and complaint rates, revenue events by flow. Coordinate with it_engineer on authentication and the outbox.",
+   "body_ar": "يصل البريد إلى المشتركين الموافقين دون الاعتماد على الخوارزميات. البرنامج: (1) الموافقة والامتثال: موافقة صريحة على التسويق منفصلة عن الرسائل الخدمية، وتعريف المرسل، والعنوان الفعلي، وإلغاء اشتراك بنقرة واحدة (وتشترط Gmail وYahoo منذ 2024 على المرسلين بكثافة أيضاً توافق SPF وDKIM وDMARC ومعدل شكاوى منخفضاً دون 0.3%)، واحترام دائم لقوائم الاستبعاد، مع سريان قانون حماية البيانات. (2) التسلسلات: تهيئة المورد (ترحيب، ثم إكمال عناصر التحقق الستة، ثم كيف تكتب عرضاً فائزاً، ثم تذكير بأول طلب)، وتهيئة المشتري (ترحيب، ثم كيف تكتب مواصفات دقيقة، ثم ماذا يحدث بعد النشر، ثم شرح الكشف)، وإعادة تنشيط الحسابات الخاملة، ونشرة شهرية (نصائح المشتريات، إبراز التخصصات، بيانات السوق). (3) النص: عنوان بنحو 50 حرفاً أو أقل بفائدة محددة، ونص معاينة مكمّل، ودعوة أساسية واحدة، وثنائية اللغة إما بنسخ منفصلة حسب التفضيل أو إنجليزية مع كتلة عربية، مع اختبار العرض من اليمين لليسار. (4) قابلية التسليم: تدفئة نطاقات الإرسال الجديدة تدريجياً، وفصل التسويقي عن الخدمي بنطاقات فرعية، ومراقبة الارتداد والشكاوى، وعدم مراسلة قوائم مشتراة. (5) المؤشرات: النقرات والتحويلات لا مرات الفتح (إذ تضخمها حماية خصوصية بريد Apple)، ومعدلات إلغاء الاشتراك والشكاوى، وأحداث الإيراد لكل تسلسل. وبالتنسيق مع مهندس تقنية المعلومات بشأن المصادقة وصندوق الإرسال.\n\nتحديث: قواعد Gmail منذ 1 فبراير 2024 لمن يرسل أكثر من 5,000 رسالة يومياً تشترط SPF وDKIM وDMARC وإلغاء الاشتراك بنقرة واحدة ومعدل شكاوى أقل من 0.30% والأفضل أقل من 0.10%.\n\nتحديث: تشترط Yahoo على جميع المرسلين SPF أو DKIM، وعلى المرسلين بكميات كبيرة SPF وDKIM مع سياسة DMARC ناجحة لا تقل عن p=none، وإلغاء اشتراك بنقرة واحدة يُنفذ خلال يومين، ومعدل بريد مزعج دون 0.3%.",
    "sources": [
     "https://support.google.com/a/answer/81126",
-    "https://www.bdolegal.ae/en-gb/insights/e-commerce-in-the-uae-understanding-the-impact-of-trading-by-modern-technological-means-law"
+    "https://www.bdolegal.ae/en-gb/insights/e-commerce-in-the-uae-understanding-the-impact-of-trading-by-modern-technological-means-law",
+    "https://senders.yahooinc.com/best-practices/"
    ],
    "confidence": "high",
-   "as_of": "2026-09-23"
+   "as_of": "2026-09-24"
   },
   {
    "id": "marketing:landing-page-cro",
@@ -828,7 +829,9 @@
    "kind": "decision_rule",
    "body_en": "Marketing never works alone and never closes a loop it did not open. Decision rules: (1) Leads from social, content or events → sales_engineer via social.lead with context (source post, what they asked, language); marketing closes only after sales_engineer confirms receipt and outcome. (2) Complaints, account or payment questions, supplier questions → customer_support via social.escalation; supplier questions always go through Support. (3) Monthly plan → ceo via deliberation.review (cross-family reviewer); no month runs without approval; any paid spend needs ceo approval and is recorded to the accountant via adspend.recorded/booked. (4) Facts about fees, refunds, terms → owned by ceo/accountant; marketing quotes the fact register, never paraphrases money terms. (5) Security, account access, email authentication, website technical SEO defects → it_engineer via it.finding with the evidence. (6) Legal, regulatory, media and crisis Level 2-3 → ceo. (7) Anything a person asks for \"a human\" → founder_mail_policy social_human_request. (8) Each handoff is tracked, answered, re-verified and closed by the originator (\"nothing is one-way\"). (9) Every change of process or content rules carries the seat name in the commit and is recorded where an auditor would look.\n\nVerification note: this entry restates QuotesDone founder rulings and internal routing contracts; it has no external source by design (external support: not established).",
    "body_ar": "لا يعمل التسويق منفرداً ولا يغلق حلقة لم يفتحها. قواعد القرار: (1) الفرص من التواصل الاجتماعي أو المحتوى أو الفعاليات تُحال إلى مهندس المبيعات عبر social.lead مع السياق (المنشور المصدر، وما سُئل، واللغة)، ولا يغلقها التسويق إلا بعد تأكيد مهندس المبيعات الاستلام والنتيجة. (2) الشكاوى وأسئلة الحسابات أو المدفوعات وأسئلة الموردين تُحال إلى خدمة العملاء عبر social.escalation، وأسئلة الموردين دائماً عبر الدعم. (3) الخطة الشهرية تُرفع إلى الرئيس التنفيذي عبر deliberation.review بمراجع من عائلة نماذج مختلفة، ولا يبدأ شهر دون اعتماد، وأي إنفاق مدفوع يحتاج موافقة الرئيس التنفيذي ويُسجَّل لدى المحاسب عبر adspend.recorded أو booked. (4) حقائق الرسوم والاسترداد والشروط يملكها الرئيس التنفيذي والمحاسب، ويقتبس التسويق سجل الحقائق ولا يعيد صياغة الشروط المالية. (5) الأمن والوصول إلى الحسابات ومصادقة البريد وعيوب البحث التقنية في الموقع تُحال إلى مهندس تقنية المعلومات عبر it.finding مع الدليل. (6) الشؤون القانونية والتنظيمية والإعلامية والأزمات من المستويين 2 و3 تُرفع إلى الرئيس التنفيذي. (7) كل طلب «لشخص حقيقي» يمر عبر founder_mail_policy بنوع social_human_request. (8) كل إحالة تُتتبع ويُرد عليها ويُعاد التحقق منها وتُغلق من مُرسِلها («لا شيء باتجاه واحد»). (9) كل تغيير في العمليات أو قواعد المحتوى يحمل اسم المقعد في الإيداع ويُسجَّل حيث يبحث المدقق.\n\nملاحظة تحقق: يعيد هذا البند صياغة قرارات المؤسس وعقود التوجيه الداخلية، فلا مصدر خارجياً له بطبيعته.",
-   "sources": [],
+   "sources": [
+    "internal:memory:nothing-is-one-way.md"
+   ],
    "confidence": "high",
    "as_of": "2026-09-23",
    "gap_kind": "commercial"
@@ -848,8 +851,8 @@
    "id": "marketing:supplier-recruitment-outreach",
    "topic": "Supplier recruitment outreach that converts",
    "kind": "playbook",
-   "body_en": "The 2026 funnel showed many invitations and near-zero registrations, so diagnose before scaling. Diagnosis: check each step — was the invitation delivered (outbox record, not a status column), opened/clicked, did the landing page load on mobile, where did registrants abandon (verification six items), and what objections did the few replies raise. Outreach playbook: (1) Lawful contact: business contact details published by the company for enquiries; identify ourselves, say why we are contacting them, offer opt-out; no bulk cold WhatsApp. (2) Trade-specific message: name their trade and emirate, show a real, recent anonymised RFQ example in their trade (\"A Business Bay office requested AC maintenance for 12 units this week\"), and state the economics plainly (no subscription; 3% only when a buyer reveals you). (3) One ask: a 3-minute registration link with prefilled trade. (4) Follow-up cadence: at most two follow-ups over ten days across channels they already use for business, then stop. (5) Remove friction in verification: explain why each of the six items is required, accept licence upload from phone, human help via customer_support. (6) Social proof: first suppliers' stories once they exist. (7) Measure per trade: delivered → clicked → started → verified → first quote, and fix the biggest drop first.",
-   "body_ar": "أظهر مسار 2026 دعوات كثيرة مع تسجيل شبه معدوم، فيجب التشخيص قبل التوسع. التشخيص: فحص كل خطوة؛ هل سُلِّمت الدعوة (سجل صندوق الإرسال لا عمود حالة)، وهل فُتحت ونُقرت، وهل حُمّلت صفحة الهبوط على الجوال، وأين توقف المسجلون (عناصر التحقق الستة)، وما الاعتراضات في الردود القليلة. خطة التواصل: (1) تواصل مشروع: بيانات الاتصال التجارية التي نشرتها الشركة للاستفسارات، مع التعريف بأنفسنا وسبب التواصل وخيار عدم التلقي، ودون رسائل واتساب جماعية باردة. (2) رسالة خاصة بالتخصص: تسمية تخصصهم وإمارتهم، وعرض مثال حقيقي حديث مجهول الهوية لطلب في تخصصهم («طلب مكتب في الخليج التجاري صيانة 12 وحدة تكييف هذا الأسبوع»)، وبيان الاقتصاديات بوضوح (لا اشتراك، و3% فقط عند كشف المشتري لكم). (3) طلب واحد: رابط تسجيل من 3 دقائق مع تعبئة التخصص مسبقاً. (4) وتيرة المتابعة: متابعتان كحد أقصى خلال عشرة أيام عبر القنوات التي يستخدمونها للعمل، ثم التوقف. (5) تقليل احتكاك التحقق: شرح سبب طلب كل عنصر من الستة، وقبول رفع الرخصة من الهاتف، ومساعدة بشرية عبر خدمة العملاء. (6) الدليل الاجتماعي: قصص أوائل الموردين حين تتوفر. (7) القياس لكل تخصص: التسليم، النقر، البدء، التوثيق، أول عرض، ومعالجة أكبر تسرب أولاً.",
+   "body_en": "The 2026 funnel showed many invitations and near-zero registrations, so diagnose before scaling. Diagnosis: check each step — was the invitation delivered (outbox record, not a status column), opened/clicked, did the landing page load on mobile, where did registrants abandon (verification six items), and what objections did the few replies raise. Outreach playbook: (1) Lawful contact: business contact details published by the company for enquiries; identify ourselves, say why we are contacting them, offer opt-out; no bulk cold WhatsApp. (2) Trade-specific message: name their trade and emirate, show a real, recent anonymised RFQ example in their trade (\"A Business Bay office requested AC maintenance for 12 units this week\"), and state the economics plainly (no commission on any job; registration is free permanently for the first 1,000 suppliers, after that the subscription is AED 1,000 a year). (3) One ask: a 3-minute registration link with prefilled trade. (4) Follow-up cadence: at most two follow-ups over ten days across channels they already use for business, then stop. (5) Remove friction in verification: explain why each of the six items is required, accept licence upload from phone, human help via customer_support. (6) Social proof: first suppliers' stories once they exist. (7) Measure per trade: delivered → clicked → started → verified → first quote, and fix the biggest drop first.",
+   "body_ar": "أظهر مسار 2026 دعوات كثيرة مع تسجيل شبه معدوم، فيجب التشخيص قبل التوسع. التشخيص: فحص كل خطوة؛ هل سُلِّمت الدعوة (سجل صندوق الإرسال لا عمود حالة)، وهل فُتحت ونُقرت، وهل حُمّلت صفحة الهبوط على الجوال، وأين توقف المسجلون (عناصر التحقق الستة)، وما الاعتراضات في الردود القليلة. خطة التواصل: (1) تواصل مشروع: بيانات الاتصال التجارية التي نشرتها الشركة للاستفسارات، مع التعريف بأنفسنا وسبب التواصل وخيار عدم التلقي، ودون رسائل واتساب جماعية باردة. (2) رسالة خاصة بالتخصص: تسمية تخصصهم وإمارتهم، وعرض مثال حقيقي حديث مجهول الهوية لطلب في تخصصهم («طلب مكتب في الخليج التجاري صيانة 12 وحدة تكييف هذا الأسبوع»)، وبيان الاقتصاديات بوضوح (لا عمولة على أي عمل، والتسجيل مجاني دائماً لأول 1,000 مورد، وبعدها الاشتراك 1,000 درهم سنوياً). (3) طلب واحد: رابط تسجيل من 3 دقائق مع تعبئة التخصص مسبقاً. (4) وتيرة المتابعة: متابعتان كحد أقصى خلال عشرة أيام عبر القنوات التي يستخدمونها للعمل، ثم التوقف. (5) تقليل احتكاك التحقق: شرح سبب طلب كل عنصر من الستة، وقبول رفع الرخصة من الهاتف، ومساعدة بشرية عبر خدمة العملاء. (6) الدليل الاجتماعي: قصص أوائل الموردين حين تتوفر. (7) القياس لكل تخصص: التسليم، النقر، البدء، التوثيق، أول عرض، ومعالجة أكبر تسرب أولاً.",
    "sources": [
     "https://www.bdolegal.ae/en-gb/insights/e-commerce-in-the-uae-understanding-the-impact-of-trading-by-modern-technological-means-law",
     "https://tdra.gov.ae/en/initiatives/marketing-short-message-service",
@@ -1071,8 +1074,8 @@
    "id": "marketing:google-ads-policy",
    "topic": "Google Ads policies: misrepresentation, destinations and verification",
    "kind": "standard",
-   "body_en": "Google Ads policies fall into four groups: prohibited content (for example counterfeit goods, dangerous products, dishonest behaviour, inappropriate content); prohibited practices (abusing the ad network, misusing data, misrepresentation); restricted content (for example alcohol, gambling, healthcare, political content, financial products) that is allowed only under conditions such as certification and country limits; and editorial and technical requirements covering ad quality and working, useful destinations. Enforcement ranges from disapproving an ad to strikes and account suspension; advertiser verification gates some categories.\n\nFor QuotesDone the risk areas are misrepresentation and destinations:\n- Misrepresentation covers omitting material information such as billing terms, and making claims that are false or unlikely to be true. An ad saying \"Free quotes from 100 suppliers\" is risky twice over: \"free\" without the reveal-fee condition, and a supplier number we cannot guarantee for every request. Safer: \"Compare verified quotes free. Pay 3% only to reveal the supplier you choose.\"\n- Destinations must work, load quickly, be relevant and give unique value; a thin doorway page per city is both a policy and a quality risk.\n- Data: forms collect only what is needed, over HTTPS, with our privacy notice.\n\nOperating rules: complete advertiser verification before spending; one account, never a second account to get around a disapproval; the plan's economics mean search campaigns run only on high-fee categories (fit-out, renovation, joinery, materials) where a posted request can repay the click cost; every disapproval is logged with the fix.",
-   "body_ar": "تنقسم سياسات إعلانات Google إلى أربع مجموعات: المحتوى المحظور (مثل السلع المقلدة والمنتجات الخطرة والسلوك غير الأمين والمحتوى غير اللائق)؛ والممارسات المحظورة (إساءة استخدام الشبكة، وسوء استخدام البيانات، والتضليل)؛ والمحتوى المقيد (كالكحول والمقامرة والرعاية الصحية والمحتوى السياسي والمنتجات المالية) المسموح بشروط كالشهادة وحدود الدول؛ والمتطلبات التحريرية والتقنية لجودة الإعلان وصلاحية الوجهة وفائدتها. ويتدرج التطبيق من رفض الإعلان إلى الإنذارات وتعليق الحساب، ويشترط التحقق من المعلن لبعض الفئات.\n\nلكوتس دن مناطق الخطر هي التضليل والوجهات:\n- يشمل التضليل إغفال معلومات جوهرية كشروط الدفع، وادعاءات خاطئة أو بعيدة الاحتمال. إعلان \"عروض مجانية من 100 مورد\" خطر مرتين: \"مجانية\" دون شرط رسوم الكشف، وعدد موردين لا نضمنه لكل طلب. والأسلم: \"قارن عروضاً موثّقة مجاناً، وادفع 3% فقط لكشف المورد الذي تختاره\".\n- يجب أن تعمل الوجهات وتُحمَّل بسرعة وتكون ذات صلة وتقدم قيمة فريدة؛ وصفحة مدخل رقيقة لكل مدينة خطر على السياسة والجودة معاً.\n- البيانات: النماذج تجمع الضروري فقط عبر HTTPS مع إشعار الخصوصية.\n\nقواعد التشغيل: إكمال التحقق من المعلن قبل الإنفاق؛ حساب واحد وعدم فتح حساب ثانٍ للتحايل على الرفض؛ واقتصاديات الخطة تعني أن حملات البحث تعمل فقط على الفئات عالية الرسوم (التجهيز، التجديد، النجارة، المواد) حيث يستطيع الطلب المنشور استرداد كلفة النقرة؛ وكل رفض يُسجَّل مع إصلاحه.",
+   "body_en": "Google Ads policies fall into four groups: prohibited content (for example counterfeit goods, dangerous products, dishonest behaviour, inappropriate content); prohibited practices (abusing the ad network, misusing data, misrepresentation); restricted content (for example alcohol, gambling, healthcare, political content, financial products) that is allowed only under conditions such as certification and country limits; and editorial and technical requirements covering ad quality and working, useful destinations. Enforcement ranges from disapproving an ad to strikes and account suspension; advertiser verification gates some categories.\n\nFor QuotesDone the risk areas are misrepresentation and destinations:\n- Misrepresentation covers omitting material information such as billing terms, and making claims that are false or unlikely to be true. An ad saying \"Free quotes from 100 suppliers\" is risky twice over: \"free\" without the reveal-fee condition, and a supplier number we cannot guarantee for every request. Safer: \"Compare verified quotes free. Pay a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once, only to see the supplier you choose.\"\n- Destinations must work, load quickly, be relevant and give unique value; a thin doorway page per city is both a policy and a quality risk.\n- Data: forms collect only what is needed, over HTTPS, with our privacy notice.\n\nOperating rules: complete advertiser verification before spending; one account, never a second account to get around a disapproval; the plan's economics mean search campaigns run only on high-fee categories (fit-out, renovation, joinery, materials) where a posted request can repay the click cost; every disapproval is logged with the fix.",
+   "body_ar": "تنقسم سياسات إعلانات Google إلى أربع مجموعات: المحتوى المحظور (مثل السلع المقلدة والمنتجات الخطرة والسلوك غير الأمين والمحتوى غير اللائق)؛ والممارسات المحظورة (إساءة استخدام الشبكة، وسوء استخدام البيانات، والتضليل)؛ والمحتوى المقيد (كالكحول والمقامرة والرعاية الصحية والمحتوى السياسي والمنتجات المالية) المسموح بشروط كالشهادة وحدود الدول؛ والمتطلبات التحريرية والتقنية لجودة الإعلان وصلاحية الوجهة وفائدتها. ويتدرج التطبيق من رفض الإعلان إلى الإنذارات وتعليق الحساب، ويشترط التحقق من المعلن لبعض الفئات.\n\nلكوتس دن مناطق الخطر هي التضليل والوجهات:\n- يشمل التضليل إغفال معلومات جوهرية كشروط الدفع، وادعاءات خاطئة أو بعيدة الاحتمال. إعلان \"عروض مجانية من 100 مورد\" خطر مرتين: \"مجانية\" دون شرط رسوم الكشف، وعدد موردين لا نضمنه لكل طلب. والأسلم: \"قارن عروضاً موثّقة مجاناً، وادفع رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة، فقط لمعرفة المورد الذي تختاره\".\n- يجب أن تعمل الوجهات وتُحمَّل بسرعة وتكون ذات صلة وتقدم قيمة فريدة؛ وصفحة مدخل رقيقة لكل مدينة خطر على السياسة والجودة معاً.\n- البيانات: النماذج تجمع الضروري فقط عبر HTTPS مع إشعار الخصوصية.\n\nقواعد التشغيل: إكمال التحقق من المعلن قبل الإنفاق؛ حساب واحد وعدم فتح حساب ثانٍ للتحايل على الرفض؛ واقتصاديات الخطة تعني أن حملات البحث تعمل فقط على الفئات عالية الرسوم (التجهيز، التجديد، النجارة، المواد) حيث يستطيع الطلب المنشور استرداد كلفة النقرة؛ وكل رفض يُسجَّل مع إصلاحه.",
    "sources": [
     "https://support.google.com/adspolicy/answer/6008942",
     "internal:plan/plan.md"
@@ -1202,6 +1205,517 @@
    ],
    "confidence": "high",
    "as_of": "2026-09-23"
+  },
+  {
+   "id": "marketing:meta-advantage-plus-structure",
+   "topic": "Meta account structure and Advantage+ campaigns",
+   "kind": "method",
+   "body_en": "Structure: one Business Portfolio owning the Page, Instagram account, ad account, dataset (pixel) and WhatsApp Business Account, with people added by role, never by sharing a personal login. Campaign level holds the objective and, for Advantage+, the budget. Meta's Marketing API treats a campaign as Advantage+ only when three levers are all enabled: Advantage+ budget (budget set at campaign level with a supported bid strategy), Advantage+ audience (at least one ad set on Advantage+ audience or minimal targeting) and Advantage+ placements (no placement targeting or exclusions). Supported objectives map to Advantage+ Sales (OUTCOME_SALES), Advantage+ App (APP_INSTALLS) and Advantage+ Leads (OUTCOME_LEADS). From API v25.0 legacy ASC/AAC creation is gone, and from v26.0 legacy campaigns cannot be edited. For QuotesDone: few campaigns, few ad sets, many creatives. Use Leads (instant form or website conversion on \"RFQ submitted\" / \"supplier registered\") with broad audience limited to the UAE, and let creative do the targeting (one creative per ICP: fit-out buyer, facility manager, supplier). Split campaigns only where the budget or the conversion event genuinely differs (buyers vs suppliers). Keep exclusions (existing customers) as custom audiences, which is compatible with Advantage+ audience as a suggestion rather than a hard limit — check the setting before launch.",
+   "body_ar": "الهيكل: محفظة أعمال واحدة تملك الصفحة وحساب Instagram والحساب الإعلاني ومجموعة البيانات (البكسل) وحساب واتساب للأعمال، ويُضاف الأشخاص بأدوار محددة، ولا تُشارك أبداً بيانات دخول شخصية. يحمل مستوى الحملة الهدف، وفي حملات Advantage+ يحمل الميزانية أيضاً. تعتبر واجهة Meta البرمجية الحملةَ من نوع Advantage+ فقط عند تفعيل ثلاث روافع معاً: ميزانية Advantage+ (الميزانية على مستوى الحملة مع استراتيجية عطاء مدعومة)، وجمهور Advantage+ (مجموعة إعلانية واحدة على الأقل بجمهور Advantage+ أو استهداف أدنى)، ومواضع Advantage+ (بلا استهداف مواضع أو استثناءات). الأهداف المدعومة: المبيعات والتطبيقات والعملاء المحتملون. اعتباراً من الإصدار 25.0 لا يمكن إنشاء الحملات بالواجهات القديمة، ومن الإصدار 26.0 لا يمكن تعديل الحملات القديمة. لـ QuotesDone: حملات قليلة ومجموعات إعلانية قليلة وتصاميم كثيرة؛ هدف العملاء المحتملين مع حدث \"تقديم طلب عرض سعر\" أو \"تسجيل مورد\"، وجمهور واسع داخل الإمارات، ويتولى التصميم الإبداعي مهمة الاستهداف. لا تُفصل الحملات إلا عند اختلاف الميزانية أو حدث التحويل فعلاً (المشترون مقابل الموردين).",
+   "sources": [
+    "https://developers.facebook.com/docs/marketing-api/advantage-campaigns"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:meta-pixel-capi-events",
+   "topic": "Meta Pixel and Conversions API event setup and deduplication",
+   "kind": "standard",
+   "body_en": "Send every conversion twice, once from the browser (Pixel) and once from our server (Conversions API), and let Meta deduplicate. Recommended deduplication: the Pixel's eventID equals the server event's event_id AND the Pixel's event name equals event_name; if the same pair arrives from both sources to the same Pixel ID within 48 hours, Meta discards the later one. Alternative method uses fbp and/or external_id with the same event_name, but a server event is not discarded if no browser event arrived in the prior 48 hours. Our event map: PageView (all pages), ViewContent (trade/category page), Lead (RFQ submitted, value 0), CompleteRegistration (supplier registered), custom SupplierVerified (six verification items complete), Purchase (reveal fee paid, value in AED, currency AED). Server events carry hashed email and phone (SHA-256, normalised) only where the user consented to marketing cookies; event_source_url and action_source=website always. Test in Events Manager's test events tool before any spend; check Event Match Quality and that deduplication shows both sources. Never send RFQ contents, supplier names or anything identifying a counterparty.",
+   "body_ar": "يُرسل كل تحويل مرتين: مرة من المتصفح (البكسل) ومرة من خادمنا (واجهة التحويلات Conversions API)، ثم تزيل Meta التكرار. الطريقة الموصى بها: أن يطابق eventID في البكسل قيمة event_id في حدث الخادم، وأن يطابق اسم الحدث event_name؛ فإذا وصل الزوج نفسه من المصدرين إلى معرّف البكسل نفسه خلال 48 ساعة تُهمل Meta الحدث اللاحق. وتوجد طريقة بديلة عبر fbp أو external_id، لكن حدث الخادم لا يُهمل إذا لم يصل حدث من المتصفح خلال الـ48 ساعة السابقة. خريطة أحداثنا: PageView، وViewContent لصفحات التخصصات، وLead عند تقديم طلب عرض السعر، وCompleteRegistration عند تسجيل المورد، وحدث مخصص SupplierVerified، وPurchase عند دفع رسوم الكشف بالدرهم. تحمل أحداث الخادم البريد والهاتف مُجزّأين (SHA-256) فقط لمن وافق على ملفات تعريف الارتباط التسويقية. يُختبر كل شيء في أداة اختبار الأحداث قبل أي إنفاق، ولا تُرسل أبداً محتويات الطلب أو أسماء الموردين.",
+   "sources": [
+    "https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events",
+    "https://developers.facebook.com/docs/marketing-api/conversions-api"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:meta-learning-phase",
+   "topic": "Meta delivery learning phase and what resets it",
+   "kind": "concept",
+   "body_en": "Every new ad set, and every ad set after a significant edit, goes through a learning phase in which delivery is less stable and cost per result is usually higher. The threshold commonly cited from Meta's Business Help Centre is about 50 optimisation events per ad set within the 7 days after the last significant edit; Meta's help page did not return readable text to our tools in this pass or the previous one, so the exact figure is carried at medium confidence. Significant edits that restart learning include changes to targeting, creative (adding a new ad), optimisation event, bid strategy, and large budget changes; pausing for a long period also restarts it. Practice: batch edits once a week, raise budgets in steps rather than jumps, and if a rare event (Purchase = reveal paid) cannot reach the threshold, optimise for a higher-volume proxy (Lead = RFQ submitted) and judge the proxy by its downstream reveal rate. Do not judge an ad set during learning unless it is clearly broken (tracking fault, rejected ad).",
+   "body_ar": "تمر كل مجموعة إعلانية جديدة، وكل مجموعة بعد تعديل جوهري، بمرحلة تعلّم يكون فيها العرض أقل استقراراً والتكلفة لكل نتيجة أعلى عادة. الحد الشائع المنسوب إلى مركز مساعدة Meta هو نحو 50 حدث تحسين لكل مجموعة إعلانية خلال سبعة أيام من آخر تعديل جوهري؛ ولم تُتح صفحة Meta نصاً مقروءاً لأدواتنا، لذا يبقى الرقم بثقة متوسطة. من التعديلات الجوهرية التي تعيد التعلّم: تغيير الاستهداف أو التصميم أو حدث التحسين أو استراتيجية العطاء، والتغييرات الكبيرة في الميزانية، والإيقاف الطويل. الممارسة: تجميع التعديلات مرة أسبوعياً، ورفع الميزانية تدريجياً، وإذا كان الحدث نادراً (دفع رسوم الكشف) نُحسّن لحدث أعلى حجماً (تقديم الطلب) ونقيّمه بنسبة تحوّله إلى كشف لاحقاً.",
+   "sources": [
+    "https://www.facebook.com/business/help/112167992830700"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:linkedin-lead-gen-forms",
+   "topic": "LinkedIn Lead Gen Forms: rules and handling",
+   "kind": "standard",
+   "body_en": "Lead Gen Forms open inside LinkedIn prefilled from the member's profile, which is why they convert better than sending a professional to a mobile landing page. Rules from LinkedIn's help: up to three custom questions, and custom questions count toward the twelve-question maximum for the whole form; custom-question fields are limited to 100 characters; custom questions may be multiple choice or single-line text. LinkedIn deletes all lead data after 90 days, so leads must be downloaded or synced to the CRM continuously; leads from archived forms remain downloadable only if submitted within the last 90 days. A privacy policy URL is part of form setup. QuotesDone form: prefilled name, work email, company, job title, phone optional; one custom question (\"What do you buy most often?\" with our trade list) and one qualifying question (\"Monthly requests: 1 / 2-5 / 6+\"). Sync to our database via the integration the same day; first contact within one working day by the customer_support seat, never on a weekend or UAE public holiday. Consent text must state what we will send (PDPL).",
+   "body_ar": "تُفتح نماذج العملاء المحتملين داخل LinkedIn معبأة مسبقاً من ملف العضو، ولذلك تتفوق على إرسال المهني إلى صفحة هبوط على الهاتف. القواعد من مساعدة LinkedIn: ثلاثة أسئلة مخصصة كحد أقصى تُحتسب ضمن حد اثني عشر سؤالاً للنموذج كله، وكل حقل مخصص بحد 100 حرف، والأسئلة إما اختيار من متعدد أو نص بسطر واحد. تحذف LinkedIn بيانات العملاء المحتملين بعد 90 يوماً، فيجب تنزيلها أو مزامنتها مع نظام إدارة العملاء باستمرار. رابط سياسة الخصوصية جزء من إعداد النموذج. نموذج QuotesDone: الاسم والبريد المهني والشركة والمسمى الوظيفي معبأة مسبقاً، وسؤال مخصص عن أكثر ما يشترونه، وسؤال تأهيلي عن عدد الطلبات الشهرية. تُزامن البيانات في اليوم نفسه، ويتواصل مقعد خدمة العملاء خلال يوم عمل واحد، ولا تواصل في عطلة نهاية الأسبوع أو العطل الرسمية. يجب أن يوضح نص الموافقة ما سنرسله (قانون حماية البيانات الشخصية).",
+   "sources": [
+    "https://www.linkedin.com/help/lms/answer/a423364",
+    "https://www.linkedin.com/help/linkedin/answer/a425750",
+    "https://www.linkedin.com/help/lms/answer/a425337"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:linkedin-matched-audiences-abm",
+   "topic": "LinkedIn Matched Audiences and account-based marketing",
+   "kind": "method",
+   "body_en": "Matched Audiences let us target uploaded company lists, contact lists, and retargeting segments. LinkedIn's minimum campaign audience is 300 members and location is a required facet; a campaign starts delivering automatically once its audience reaches 300. For company lists, supply company name AND the LinkedIn Company Page URL to raise the match rate; the Company Engagement Report then shows which companies matched and engaged. ABM for QuotesDone: tier 1 = named contractors, fit-out firms, facility-management and property-management companies in the UAE that buy across several trades (a list the ceo seat approves); layer job functions Purchasing, Operations, Real Estate and seniority Manager+; run thought-leadership and \"how to get three comparable quotes\" content first, then a lead-gen form to the same accounts. Measure by account: accounts reached, accounts engaged, accounts that posted a request. Contact-list uploads require that we hold the data lawfully and that the use is compatible with the purpose it was collected for (PDPL); never upload scraped personal lists.",
+   "body_ar": "تتيح الجماهير المطابقة استهداف قوائم شركات أو جهات اتصال مرفوعة وشرائح إعادة الاستهداف. الحد الأدنى لجمهور الحملة في LinkedIn هو 300 عضو، والموقع شرط إلزامي، وتبدأ الحملة تلقائياً عند بلوغ 300. لقوائم الشركات يُذكر اسم الشركة ورابط صفحتها على LinkedIn لرفع نسبة المطابقة، ثم يُظهر تقرير تفاعل الشركات أيها طوبق وتفاعل. التسويق القائم على الحسابات لـ QuotesDone: الفئة الأولى مقاولون وشركات تشطيب وإدارة مرافق وإدارة عقارات في الإمارات تشتري في عدة تخصصات (قائمة يعتمدها مقعد الرئيس التنفيذي)، مع وظائف المشتريات والعمليات والعقارات ومستوى مدير فما فوق؛ محتوى معرفي أولاً ثم نموذج عملاء محتملين للحسابات نفسها. القياس على مستوى الحساب. رفع قوائم الأشخاص يتطلب حيازة البيانات بشكل مشروع وتوافق الاستخدام مع غرض جمعها، ولا تُرفع أبداً قوائم مجمّعة من الإنترنت.",
+   "sources": [
+    "https://www.linkedin.com/help/lms/answer/a424450",
+    "https://www.linkedin.com/help/lms/answer/a423102",
+    "https://www.linkedin.com/help/lms/answer/a423690"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:google-ads-search-vs-pmax",
+   "topic": "Google Ads for B2B lead generation: Search versus Performance Max",
+   "kind": "comparison",
+   "body_en": "Performance Max is a goal-based campaign type that serves one campaign across all Google Ads inventory: YouTube, Display, Search, Discover, Gmail and Maps. Search campaigns with an exact-match keyword are prioritised over Performance Max when a query hits that exact keyword; brand exclusions and negative keywords are available in Performance Max to prevent overlap and block unwanted queries. Decision rule for QuotesDone: start with Search only, on high-intent trade + quote/price/contractor keywords in the high-fee categories (fit-out, renovation, joinery), because the query itself states the need and we can read the search terms. Consider Performance Max only after the conversion signal is clean (reveal paid imported as the primary conversion, RFQ submitted as secondary) and there are enough conversions for the system to learn; run it with brand exclusions so it does not claim credit for people already searching \"QuotesDone\". Never let Performance Max optimise to a cheap micro-event, or it will buy low-quality form fills.",
+   "body_ar": "حملات Performance Max نوع قائم على الهدف يعرض حملة واحدة عبر كل مخزون Google Ads: YouTube والشبكة الإعلانية والبحث وDiscover وGmail والخرائط. وتُقدَّم حملات البحث ذات الكلمة المفتاحية المطابقة تماماً على Performance Max حين يطابق الاستعلام تلك الكلمة، وتتوفر في Performance Max استثناءات العلامة التجارية والكلمات السلبية لمنع التداخل. قاعدة القرار لـ QuotesDone: البدء بحملات البحث فقط على كلمات عالية النية تجمع التخصص مع \"عرض سعر\" أو \"تكلفة\" أو \"مقاول\" في الفئات عالية الرسوم (التشطيب والتجديد والنجارة)، لأن الاستعلام نفسه يعلن الحاجة ويمكننا قراءة مصطلحات البحث. لا يُنظر في Performance Max إلا بعد نظافة إشارة التحويل (دفع رسوم الكشف تحويلاً أساسياً) ووجود تحويلات كافية، ومع استثناء العلامة التجارية. لا يُسمح أبداً بتحسينها لحدث صغير رخيص.",
+   "sources": [
+    "https://support.google.com/google-ads/answer/10724817"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:google-ads-negative-keywords",
+   "topic": "Negative keywords and match types for a trade marketplace",
+   "kind": "method",
+   "body_en": "Google Ads: negative keywords do NOT match close variants or other expansions. Excluding the broad negative \"flowers\" blocks \"red flowers\" but not \"red flower\". So every negative must be added with its singular/plural, misspellings and synonyms, and in both English and Arabic spellings. Starter negative list for QuotesDone: jobs, job, vacancy, vacancies, salary, hiring, career, course, training, certificate, DIY, how to do it yourself, free, second hand/used (unless the category sells used goods), wholesale China/Alibaba if irrelevant, restaurant, food, catering, F&B (excluded category), and Arabic equivalents (وظائف، وظيفة، راتب، دورة، تدريب، مجاني، مستعمل، مطعم، مطاعم). Review the search terms report weekly, add negatives at campaign level for trade-specific exclusions and at account (shared list) level for universal ones. Protect converting terms: before adding a negative, check it has not produced RFQs.",
+   "body_ar": "في Google Ads لا تطابق الكلمات السلبية المتغيرات القريبة ولا التوسعات الأخرى؛ فاستبعاد \"flowers\" يحجب \"red flowers\" ولا يحجب \"red flower\". لذلك تُضاف كل كلمة سلبية بصيغ المفرد والجمع والأخطاء الإملائية والمرادفات، وبالإنجليزية والعربية. قائمة أولية لـ QuotesDone: وظائف، وظيفة، راتب، توظيف، دورة، تدريب، شهادة، افعلها بنفسك، مجاني، مستعمل (ما لم تبع الفئة سلعاً مستعملة)، مطعم، مطاعم، تموين، أغذية ومشروبات (فئة مستبعدة)، ومقابلاتها الإنجليزية. يُراجع تقرير مصطلحات البحث أسبوعياً، وتُضاف الكلمات الخاصة بالتخصص على مستوى الحملة والعامة في قائمة مشتركة على مستوى الحساب. قبل إضافة أي كلمة سلبية يُتحقق من أنها لم تُنتج طلبات عروض أسعار.",
+   "sources": [
+    "https://support.google.com/google-ads/answer/2453972"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:google-ads-arabic-keywords",
+   "topic": "Arabic keywords and bilingual search campaigns in the UAE",
+   "kind": "method",
+   "body_en": "UAE searchers type in English, in Arabic, and in Arabic transliterated in Latin letters (Arabizi). Build separate ad groups (or campaigns) per language so the ad language matches the query: an Arabic query should see Arabic ad copy and an Arabic landing page. Arabic keyword craft: include both common spellings of hamza/ta marbuta/alif maqsura variants (e.g. شركة ديكور / شركه ديكور), definite and indefinite forms (التشطيب / تشطيب), Gulf trade vocabulary as well as MSA (e.g. صباغ and دهان for painter, كاشي/بلاط for tiles) and city names in Arabic (دبي، أبوظبي، الشارقة). Remember negatives do not match variants, so the same applies to negative lists. Write Arabic ad copy natively, not translated: Gulf-formal MSA for the ad and landing page, no dialect jokes. Measured facts about UAE Arabic search volume per trade are not established here; use Keyword Planner per keyword before committing budget.",
+   "body_ar": "يبحث المستخدمون في الإمارات بالإنجليزية وبالعربية وبالعربية المكتوبة بحروف لاتينية. تُبنى مجموعات إعلانية أو حملات منفصلة لكل لغة كي تطابق لغة الإعلان لغة الاستعلام: الاستعلام العربي يرى إعلاناً عربياً وصفحة هبوط عربية. صياغة الكلمات العربية: تشمل صيغ الهمزة والتاء المربوطة والألف المقصورة (شركة ديكور / شركه ديكور)، والمعرّف والنكرة (التشطيب / تشطيب)، والمفردات الخليجية إلى جانب الفصحى (صباغ ودهان، كاشي وبلاط)، وأسماء المدن بالعربية. ولأن الكلمات السلبية لا تطابق المتغيرات، ينطبق الأمر نفسه على القوائم السلبية. تُكتب الإعلانات العربية أصلاً لا ترجمةً، بفصحى خليجية رسمية. أحجام البحث العربية لكل تخصص غير ثابتة هنا (not established)، وتُفحص في مخطط الكلمات قبل الإنفاق.",
+   "sources": [
+    "https://support.google.com/google-ads/answer/2453972"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:tiktok-snapchat-uae",
+   "topic": "TikTok and Snapchat for a UAE B2B marketplace",
+   "kind": "decision_rule",
+   "body_en": "Both platforms are consumer-first. Their ad policies bind us: Snap prohibits false or misleading claims, misleading calls to action, low-quality or non-mobile landing pages, and collecting sensitive or special-category data; privacy policies must be accessible wherever personal data is collected; Snap also restricts some product categories for UAE and Middle East targeting (alcohol, dating and others — none apply to us). TikTok's policies (see marketing:tiktok-and-x-ads) cover deceptive practices, landing-page match and data collection. Decision rule: use TikTok and Snapchat for (a) supplier recruitment among owner-operated trades (painters, AC technicians, carpenters) with short how-to and \"get RFQs free\" videos, and (b) homeowner-style fit-out and villa-renovation requests; do not use them for corporate procurement buyers, where LinkedIn and Search fit. UAE audience sizes and CPMs for these platforms are not established here from a primary source; read them from each platform's ads manager audience estimate before proposing budget.",
+   "body_ar": "المنصتان استهلاكيتان في الأساس، وسياساتهما الإعلانية ملزمة لنا: تحظر Snap الادعاءات الكاذبة أو المضللة، ودعوات الإجراء المضللة، وصفحات الهبوط الرديئة أو غير الملائمة للهاتف، وجمع البيانات الحساسة؛ ويجب إتاحة سياسة الخصوصية أينما جُمعت بيانات شخصية، كما تقيد Snap بعض الفئات عند الاستهداف في الإمارات والشرق الأوسط (لا تنطبق علينا). وتغطي سياسات TikTok الممارسات المضللة وتطابق صفحة الهبوط وجمع البيانات. قاعدة القرار: تُستخدم TikTok وSnapchat (أ) لاستقطاب الموردين من الحرفيين وأصحاب المنشآت الصغيرة بمقاطع قصيرة تعليمية و\"احصل على طلبات عروض مجاناً\"، و(ب) لطلبات التشطيب وتجديد الفلل من الأفراد؛ ولا تُستخدم لمشتري المشتريات في الشركات، فلهم LinkedIn والبحث. أحجام الجمهور والتكلفة لكل ألف ظهور في الإمارات غير ثابتة من مصدر أساسي (not established)، وتُقرأ من مدير الإعلانات قبل اقتراح الميزانية.",
+   "sources": [
+    "https://snap.com/en-US/ad-policies",
+    "https://ads.tiktok.com/help/article/tiktok-advertising-policies-ad-creatives-landing-page"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:creative-testing-framework",
+   "topic": "Ad creative testing framework",
+   "kind": "method",
+   "body_en": "Test one variable at a time at the concept level, not micro-variants. Order of impact: (1) angle/message (save time vs save money vs verified suppliers vs 3% only on reveal), (2) format (UGC-style talking head, screen recording of posting an RFQ, static with a price fact, carousel of trades), (3) hook (first 1-3 seconds or headline), (4) CTA and copy length. Method: 3-5 concepts per round, same audience and budget, run until each has enough results to compare (use marketing:small-sample-decision-rule; do not call winners on a handful of leads). Use the platform's A/B test tool when a clean split is needed (Meta Experiments, LinkedIn A/B test, Google Ads experiments). Judge on cost per qualified result (RFQ that passed the exact-spec check, or supplier verified), not on CTR alone. Log every test: hypothesis, variants, dates, spend, result, decision, in the experiment register (marketing:experiment-design). Winners get iterated (new hooks on the winning angle); losers are retired, not tweaked forever.",
+   "body_ar": "يُختبر متغير واحد في كل مرة على مستوى الفكرة لا التفاصيل الصغيرة. ترتيب الأثر: (1) الزاوية والرسالة (توفير الوقت، توفير المال، موردون موثقون، 3% فقط عند الكشف)، (2) الشكل (متحدث بأسلوب محتوى المستخدمين، تسجيل شاشة لنشر طلب، صورة ثابتة بحقيقة سعرية، عرض دوّار للتخصصات)، (3) الافتتاحية في أول ثلاث ثوانٍ أو العنوان، (4) دعوة الإجراء وطول النص. الطريقة: من 3 إلى 5 أفكار في كل جولة بالجمهور والميزانية نفسيهما حتى تكفي النتائج للمقارنة، دون إعلان فائز على عدد قليل من العملاء. تُستخدم أداة الاختبار في المنصة عند الحاجة لتقسيم نظيف. يُحكم بالتكلفة لكل نتيجة مؤهلة لا بنسبة النقر وحدها. يُسجل كل اختبار في سجل التجارب. الفائز يُطوَّر بافتتاحيات جديدة، والخاسر يُوقف ولا يُعدّل إلى ما لا نهاية.",
+   "sources": [
+    "https://developers.facebook.com/docs/marketing-api/advantage-campaigns",
+    "https://support.google.com/google-ads/answer/10724817"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:budget-pacing-bidding",
+   "topic": "Budget pacing and bid strategy choice",
+   "kind": "method",
+   "body_en": "Pacing: set a monthly cap (approved in the one-shot monthly plan) and derive a daily budget = remaining budget / remaining eligible days. Our calendar excludes weekends and UAE public holidays for organic posting; for paid, schedule ads to run on working days only where the platform allows ad scheduling, or accept that weekend impressions are cheaper but less useful for B2B. Check pacing twice a week: spent vs plan (±15% triggers action), cost per qualified result vs target. Bid strategy by stage: (1) no conversion history: lowest cost / maximise conversions with a daily budget cap; (2) stable volume on the primary event: add a cost-per-result goal (Meta cost per result goal, Google target CPA) set near the achieved average, not an aspirational number; (3) value tracked (reveal fee in AED): value-based bidding (target ROAS) only when volume supports it. Never change bid strategy and budget in the same week (it restarts learning — see marketing:meta-learning-phase). Specific benchmark CPAs for UAE B2B are not established here.",
+   "body_ar": "التوزيع: يُحدد سقف شهري ضمن الخطة الشهرية المعتمدة دفعة واحدة، وتُشتق الميزانية اليومية بقسمة المتبقي على أيام العمل المتبقية. يستثني تقويمنا عطلات نهاية الأسبوع والعطل الرسمية في الإمارات للنشر العضوي؛ وفي الإعلانات المدفوعة تُجدول الإعلانات لأيام العمل حيث تسمح المنصة. يُفحص التوزيع مرتين أسبوعياً: الإنفاق مقابل الخطة (انحراف 15% يستدعي إجراء)، والتكلفة لكل نتيجة مؤهلة مقابل الهدف. استراتيجية العطاء حسب المرحلة: (1) بلا سجل تحويلات: أقل تكلفة أو تعظيم التحويلات بسقف يومي؛ (2) حجم مستقر: هدف تكلفة لكل نتيجة قريب من المتوسط المحقق؛ (3) قيمة متتبعة بالدرهم: عطاء قائم على القيمة فقط عند كفاية الحجم. لا تُغيّر الاستراتيجية والميزانية في الأسبوع نفسه. أرقام التكلفة المرجعية في الإمارات غير ثابتة هنا (not established).",
+   "sources": [
+    "https://support.google.com/google-ads/answer/10724817",
+    "https://www.facebook.com/business/help/112167992830700"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:frequency-creative-fatigue",
+   "topic": "Frequency and creative fatigue",
+   "kind": "decision_rule",
+   "body_en": "Fatigue shows as rising frequency with falling CTR and rising cost per result on an unchanged audience. Rules: watch 7-day frequency per ad set; for a small B2B retargeting pool, frequency climbs fast, so rotate creative when CTR falls by roughly a third from its first-week level or cost per result rises by a similar amount for a week with no tracking change. Keep 3-5 live creatives per ad set and a backlog of new ones from the repurposing system. Refresh the hook and thumbnail first (cheapest), then the angle. For LinkedIn ABM lists (hundreds of accounts), cap exposure by rotating formats (document ad, single image, video, conversation) rather than raising budget. The thresholds above are our operating rule, not a platform-published benchmark; published fatigue benchmarks are not established here.",
+   "body_ar": "يظهر الإرهاق الإبداعي بارتفاع التكرار مع انخفاض نسبة النقر وارتفاع التكلفة لكل نتيجة على الجمهور نفسه. القواعد: مراقبة تكرار سبعة أيام لكل مجموعة إعلانية؛ وفي جمهور إعادة الاستهداف الصغير يرتفع التكرار سريعاً، فيُبدَّل التصميم عندما تنخفض نسبة النقر بنحو الثلث عن مستوى الأسبوع الأول أو ترتفع التكلفة بقدر مماثل أسبوعاً كاملاً دون تغيير في التتبع. يُبقى من 3 إلى 5 تصاميم نشطة مع مخزون جديد من نظام إعادة التوظيف. يُجدد أولاً الافتتاحية والصورة المصغرة ثم الزاوية. وفي قوائم LinkedIn الصغيرة يُدار التعرض بتدوير الأشكال لا برفع الميزانية. هذه العتبات قاعدة تشغيلية لنا وليست معياراً منشوراً من المنصات (not established).",
+   "sources": [
+    "https://www.facebook.com/business/help/112167992830700",
+    "https://www.linkedin.com/help/lms/answer/a423690"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:retargeting-pdpl-consent",
+   "topic": "Retargeting, custom audiences and privacy under the UAE PDPL",
+   "kind": "law",
+   "body_en": "Retargeting uses personal data (cookies, device IDs, hashed emails), so it runs on consent and purpose. Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data (PDPL) requires a lawful basis (consent is the practical basis for marketing), clear, specific and unambiguous consent that can be withdrawn, and processing for the purpose disclosed. Operating rules: (1) marketing and advertising cookies/pixels fire only after the visitor accepts them; implement Google consent mode v2 and Meta's consent handling (see marketing:consent-mode-v2); (2) customer-list uploads (Meta custom audiences, LinkedIn contact lists, Google Customer Match) only for people who gave marketing consent, hashed before upload; (3) honour withdrawal: remove the person from every uploaded audience at the next refresh; (4) exclude sensitive data entirely; (5) retention: retargeting windows no longer than needed (e.g. 90-180 days), stated in the privacy notice; (6) a published privacy notice explains pixels, the platforms we share hashed data with, and how to opt out. The PDPL's executive regulations status should be re-checked before any audit; this entry does not restate article numbers not re-read in this pass.",
+   "body_ar": "تستخدم إعادة الاستهداف بيانات شخصية (ملفات تعريف الارتباط، معرفات الأجهزة، البريد المجزأ)، فتقوم على الموافقة والغرض. يشترط المرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية أساساً مشروعاً (والموافقة هي الأساس العملي للتسويق)، وموافقة واضحة ومحددة وصريحة قابلة للسحب، ومعالجة للغرض المعلن. قواعد التشغيل: (1) لا تعمل بكسلات الإعلان إلا بعد قبول الزائر، مع تطبيق وضع الموافقة الإصدار الثاني من Google؛ (2) لا تُرفع قوائم العملاء إلا لمن وافق على التسويق وبعد التجزئة؛ (3) احترام سحب الموافقة بحذف الشخص من كل جمهور مرفوع عند التحديث التالي؛ (4) استبعاد البيانات الحساسة كلياً؛ (5) نوافذ إعادة الاستهداف بقدر الحاجة ومعلنة في إشعار الخصوصية؛ (6) إشعار خصوصية منشور يشرح البكسلات والمنصات وطريقة الانسحاب. يُعاد التحقق من حالة اللائحة التنفيذية قبل أي تدقيق.",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1972",
+    "https://developers.google.com/tag-platform/security/guides/consent"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:whatsapp-pricing-model",
+   "topic": "WhatsApp Business Platform pricing model (per message)",
+   "kind": "standard",
+   "body_en": "Meta moved the WhatsApp Business Platform from conversation-based to per-message pricing effective 1 July 2025. Charges apply when a template message is delivered; the rate depends on the template category and the recipient's country calling code. Marketing templates are always charged. Utility and authentication templates are charged outside a customer-service window; utility templates delivered inside an open customer-service window are free. Customer-service window: 24 hours from the user's last message, during which all non-template messages are free. Free entry point: when a user messages us through a Click-to-WhatsApp ad or a Page call-to-action, a 72-hour window opens from our first reply in which any message type is free. Volume tiers lower rates by monthly volume aggregated across the WhatsApp Business Accounts in the portfolio; tiers are set by Meta and reset monthly. Consequences for QuotesDone: (1) never send a marketing template where a utility template is honest (and never disguise marketing as utility — Meta recategorises it, see marketing:whatsapp-template-categories); (2) Click-to-WhatsApp ads buy a 72-hour free conversation, useful for supplier onboarding; (3) current AED/UAE rate cards are published by Meta and change; read the rate card before budgeting, the figures are not restated here.",
+   "body_ar": "نقلت Meta منصة واتساب للأعمال من التسعير حسب المحادثة إلى التسعير حسب الرسالة اعتباراً من 1 يوليو 2025. تُحتسب الرسوم عند تسليم رسالة قالب، ويعتمد السعر على فئة القالب ورمز دولة المستلم. قوالب التسويق تُحتسب دائماً. وقوالب الخدمات والمصادقة تُحتسب خارج نافذة خدمة العملاء، أما قوالب الخدمات المرسلة داخل نافذة مفتوحة فمجانية. نافذة خدمة العملاء: 24 ساعة من آخر رسالة للمستخدم، وكل الرسائل غير القالبية فيها مجانية. نقطة الدخول المجانية: عندما يراسلنا المستخدم عبر إعلان \"انقر للمراسلة عبر واتساب\" أو زر الصفحة، تُفتح نافذة 72 ساعة من أول رد لنا تكون فيها كل الرسائل مجانية. وتخفض شرائح الحجم الأسعار حسب الحجم الشهري المجمع وتُعاد شهرياً. النتائج لـ QuotesDone: لا يُرسل قالب تسويقي حيث يكون قالب الخدمات صادقاً، ولا يُمَوَّه التسويق خدمةً؛ وإعلانات النقر للمراسلة تمنح 72 ساعة مجانية مفيدة لتأهيل الموردين؛ وأسعار الإمارات تُقرأ من جدول Meta الحالي قبل وضع الميزانية.",
+   "sources": [
+    "https://developers.facebook.com/docs/whatsapp/pricing"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:email-authentication-bulk-sender-rules",
+   "topic": "Email authentication and Gmail/Yahoo bulk-sender rules",
+   "kind": "standard",
+   "body_en": "Gmail (all senders, enforceable from 1 February 2024): SPF or DKIM on the sending domain, valid forward and reverse DNS (PTR), TLS for transmission, RFC 5322 formatting, spam rate in Postmaster Tools below 0.3%, and no impersonating Gmail From: headers. Gmail senders of 5,000+ messages a day additionally need BOTH SPF and DKIM, a DMARC record for the sending domain, DMARC alignment (the From: domain aligns with the SPF or DKIM domain), and one-click unsubscribe (List-Unsubscribe headers) on marketing and subscribed mail. Yahoo: SPF or DKIM at minimum for all; bulk senders need both plus a DMARC policy of at least p=none that passes; one-click unsubscribe via list-unsubscribe headers; honour unsubscribes within 2 days; keep spam rate below 0.3%, measured on mail delivered to the inbox. QuotesDone practice: send marketing from a subdomain separate from transactional mail so a marketing complaint spike cannot hurt RFQ and OTP delivery; DKIM 2048-bit; DMARC starting p=none with reporting, moving to quarantine once reports are clean; process unsubscribes immediately (well inside Yahoo's 2 days); monitor Google Postmaster Tools weekly.",
+   "body_ar": "Gmail (لجميع المرسلين، نافذ منذ 1 فبراير 2024): SPF أو DKIM على نطاق الإرسال، وسجلات DNS أمامية وعكسية صالحة، وتشفير TLS، والتزام صيغة RFC 5322، ومعدل بريد مزعج في Postmaster Tools دون 0.3%، وعدم انتحال ترويسة Gmail. ويحتاج مرسلو أكثر من 5,000 رسالة يومياً إلى SPF وDKIM معاً، وسجل DMARC، ومحاذاة DMARC بين نطاق المرسل ونطاق SPF أو DKIM، وإلغاء اشتراك بنقرة واحدة في رسائل التسويق. Yahoo: SPF أو DKIM على الأقل للجميع؛ والمرسلون بكميات كبيرة يحتاجون الاثنين مع سياسة DMARC لا تقل عن p=none وتنجح؛ وإلغاء اشتراك بنقرة واحدة؛ وتنفيذ طلبات الإلغاء خلال يومين؛ ومعدل بريد مزعج دون 0.3% محسوباً على البريد الواصل إلى صندوق الوارد. ممارسة QuotesDone: إرسال التسويق من نطاق فرعي منفصل عن البريد التشغيلي حتى لا تضر الشكاوى بتسليم الطلبات ورموز التحقق؛ ومفتاح DKIM بطول 2048؛ وDMARC يبدأ بـ p=none مع التقارير ثم quarantine؛ وتنفيذ الإلغاء فوراً؛ ومراقبة Postmaster Tools أسبوعياً.",
+   "sources": [
+    "https://support.google.com/a/answer/81126",
+    "https://senders.yahooinc.com/best-practices/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:newsletter-craft",
+   "topic": "Newsletter craft for UAE procurement buyers and suppliers",
+   "kind": "playbook",
+   "body_en": "Two newsletters, never one: Buyers (procurement tips, trade cost guides, what makes a request get better quotes) and Suppliers (how to win quotes, new categories opened, demand signals by trade). Cadence: monthly, sent on a working day morning UAE time (Tuesday-Thursday preferred by our rule, never weekend or public holiday). Structure: one lead story with a single useful fact (sourced, dated), two short items, one CTA. Subject ≤ ~50 characters, preheader completes the subject, sender name \"QuotesDone\" (a person's name only if that person really writes it). Plain, fast-loading HTML with a text version; images carry alt text; English and Arabic as separate sends chosen by the subscriber's language, not a bilingual wall. Every number comes from the fact register; never publish marketplace counts that are not measured. Metrics: click rate and replies matter more than opens (Apple Mail Privacy Protection inflates opens); unsubscribe and complaint rates are the guardrails (see marketing:email-authentication-bulk-sender-rules). Archive each issue as a web page: it doubles as GEO content.",
+   "body_ar": "نشرتان لا نشرة واحدة: للمشترين (نصائح المشتريات، أدلة تكاليف التخصصات، ما يجعل الطلب يحصل على عروض أفضل) وللموردين (كيف تفوز بالعروض، الفئات الجديدة، مؤشرات الطلب). الوتيرة شهرية صباح يوم عمل بتوقيت الإمارات، ولا إرسال في عطلة نهاية الأسبوع أو العطل الرسمية. البنية: موضوع رئيسي بحقيقة مفيدة واحدة موثقة ومؤرخة، وفقرتان قصيرتان، ودعوة إجراء واحدة. العنوان نحو 50 حرفاً، والنص التمهيدي يكمله، واسم المرسل \"QuotesDone\". تصميم بسيط سريع مع نسخة نصية، ونص بديل للصور، والعربية والإنجليزية إرسالان منفصلان حسب لغة المشترك. كل رقم من سجل الحقائق، ولا تُنشر أعداد غير مقاسة. المقاييس: النقرات والردود أهم من الفتح، ومعدلا الإلغاء والشكاوى هما الضابط. يُؤرشف كل عدد صفحةً على الموقع فيخدم الظهور في محركات الإجابة.",
+   "sources": [
+    "https://support.google.com/a/answer/81126",
+    "https://senders.yahooinc.com/best-practices/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:case-studies-standard",
+   "topic": "B2B case studies: standard and approval",
+   "kind": "standard",
+   "body_en": "A case study is the strongest B2B proof and the most dangerous if invented. Standard: (1) real customer, written consent to be named (or anonymised as \"a Dubai facility-management company\" with consent for the facts); (2) structure: situation (what they needed, trade, emirate), what they did on QuotesDone (posted request, number of quotes received, reveal), outcome in their words and measured numbers only (time to first quote, number of comparable quotes, price spread between quotes) with the date; (3) no savings percentage unless computed from the actual quotes and approved by the customer; (4) no supplier named without that supplier's consent, and never in a way that ranks suppliers publicly; (5) quote the customer verbatim, approved in writing; (6) publish as a web page with Organization and Article markup, a short video cut, and a LinkedIn document post. Until real case studies exist, say so — use \"how it works\" walkthroughs with demo data clearly labelled, never fabricated testimonials (UAE media content standards prohibit misleading content; see marketing:consumer-protection-advertising).",
+   "body_ar": "دراسة الحالة أقوى دليل في التسويق بين الشركات وأخطره إذا اختُلق. المعيار: (1) عميل حقيقي بموافقة مكتوبة على ذكر اسمه، أو إخفاء الهوية بموافقته على الوقائع؛ (2) البنية: الوضع (الحاجة والتخصص والإمارة)، وما فعله على QuotesDone (نشر الطلب، عدد العروض، الكشف)، والنتيجة بكلماته وبأرقام مقاسة فقط مع التاريخ؛ (3) لا نسبة توفير إلا محسوبة من العروض الفعلية وبموافقة العميل؛ (4) لا يُذكر مورد دون موافقته، ولا يُرتب الموردون علناً؛ (5) اقتباس العميل حرفياً وبموافقة مكتوبة؛ (6) النشر صفحةً على الموقع مع ترميز منظم، ومقطع فيديو قصير، ومنشور مستند على LinkedIn. وإلى أن توجد دراسات حقيقية يُقال ذلك صراحة، وتُستخدم شروحات بعلامة بيانات تجريبية واضحة، ولا شهادات مختلقة أبداً.",
+   "sources": [
+    "https://u.ae/en/media/media-in-the-uae/media-regulation"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:buyer-guides-per-trade",
+   "topic": "Buyer guides per trade (content template)",
+   "kind": "playbook",
+   "body_en": "One guide per trade we serve, in English and Arabic, built to be cited by answer engines and useful to a procurement officer. Template: (1) one-paragraph answer first: what to specify to get comparable quotes for <trade> in the UAE; (2) the exact-spec checklist per line item (from the sales_engineer seat's trade pack — marketing must not invent technical specs); (3) the approvals and codes that apply, only as stated in verified sources (e.g. Dubai Civil Defence, DEWA, municipality), with links; (4) typical timelines and what drives price, with price ranges ONLY if sourced and dated, otherwise \"not established\"; (5) red flags in quotes; (6) how QuotesDone works for this trade (free to post, comparing quotes is free, a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once only if you choose a supplier and want to see who they are, suppliers of the exact trade only); (7) FAQ in question form; (8) last-reviewed date and reviewer seat. Priority order follows marketing:category-priority (high-fee categories first). F&B is excluded, so no food-service guides. Refresh every six months or when a cited regulation changes.",
+   "body_ar": "دليل لكل تخصص نخدمه بالعربية والإنجليزية، مبني ليستشهد به محرك الإجابة ويفيد مسؤول المشتريات. القالب: (1) فقرة إجابة أولاً: ما الذي يُحدد للحصول على عروض قابلة للمقارنة في هذا التخصص في الإمارات؛ (2) قائمة المواصفات الدقيقة لكل بند من حزمة مقعد مهندس المبيعات، ولا يخترع التسويق مواصفات فنية؛ (3) الموافقات والأكواد المنطبقة كما وردت في مصادر موثقة مع الروابط؛ (4) المدد المعتادة ومحركات السعر، ونطاقات الأسعار فقط إن كانت موثقة ومؤرخة وإلا \"not established\"؛ (5) العلامات التحذيرية في العروض؛ (6) كيف يعمل QuotesDone لهذا التخصص (النشر مجاني، والمقارنة مجانية، ورسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة فقط إذا اخترت مورداً وأردت معرفة هويته، وموردو التخصص نفسه فقط)؛ (7) أسئلة شائعة؛ (8) تاريخ آخر مراجعة والمقعد المراجع. الأولوية للفئات عالية الرسوم، والأغذية والمشروبات مستبعدة. يُحدَّث كل ستة أشهر أو عند تغير اللوائح.",
+   "sources": [
+    "https://u.ae/en/media/media-in-the-uae/media-regulation"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:events-uae-trade-shows",
+   "topic": "UAE trade shows relevant to QuotesDone (2026-27 dates)",
+   "kind": "benchmark",
+   "body_en": "Verified dates and venues (official event sites, read 24 Sep 2026): Big 5 Global (construction), 23-26 November 2026, Dubai World Trade Centre — the core event for fit-out, MEP, building materials and contractors. GITEX Global (technology), 7-11 December 2026, moving after 45 years at DWTC to the Dubai Exhibition Centre, Expo City Dubai (Dubai Media Office). ADIPEC (energy), 2-5 November 2026, ADNEC Abu Dhabi — relevant for industrial suppliers and oil-and-gas maintenance trades. Intersec (security, safety and fire protection), 12-14 January 2027, Dubai World Trade Centre — relevant for fire-fighting, CCTV and access-control trades. INDEX (interiors and furniture): event listings show 2-4 June 2026 at DWTC and an INDEX Design Series 28-30 September 2026 at the Dubai Exhibition Centre; the organiser's own page was not read, so treat INDEX dates as medium confidence. Gulfood is F&B and excluded. Use: walk the floor to recruit suppliers (collect cards with consent, follow up with an opt-in invitation, never add them to marketing lists without consent), post daily event content on working days only, and pre-book meetings with target buyer accounts. Re-verify dates on the official site before committing spend.",
+   "body_ar": "مواعيد وأماكن موثقة من المواقع الرسمية (قُرئت في 24 سبتمبر 2026): Big 5 Global للبناء من 23 إلى 26 نوفمبر 2026 في مركز دبي التجاري العالمي، وهو الحدث الأهم للتشطيب والأعمال الكهروميكانيكية ومواد البناء والمقاولين. GITEX Global للتقنية من 7 إلى 11 ديسمبر 2026، منتقلاً بعد 45 عاماً إلى مركز دبي للمعارض في مدينة إكسبو دبي. ADIPEC للطاقة من 2 إلى 5 نوفمبر 2026 في أدنيك أبوظبي، مهم لموردي الصناعة وصيانة النفط والغاز. Intersec للأمن والسلامة والحماية من الحريق من 12 إلى 14 يناير 2027 في مركز دبي التجاري العالمي. INDEX للتصميم الداخلي والأثاث: تظهر في القوائم من 2 إلى 4 يونيو 2026 في مركز دبي التجاري العالمي وسلسلة INDEX للتصميم من 28 إلى 30 سبتمبر 2026، ولم تُقرأ صفحة المنظم فالثقة متوسطة. Gulfood مستبعد لأنه أغذية ومشروبات. الاستخدام: استقطاب الموردين في المعرض بموافقتهم، ولا إضافة لقوائم التسويق دون موافقة، ونشر محتوى الحدث في أيام العمل فقط، وحجز لقاءات مسبقة مع الحسابات المستهدفة. يُعاد التحقق من المواعيد قبل أي إنفاق.",
+   "sources": [
+    "https://www.big5global.com/",
+    "https://www.dwtc.com/en/events/the-big-5-2026/",
+    "https://www.gitex.com/gitex-global-2026",
+    "https://mediaoffice.ae/en/news/2025/october/08-10/gitex-global-to-begin-a-new-chapter-at-expo-city-dubai-in-2026",
+    "https://www.adipec.com/",
+    "https://intersecglobal.ae.messefrankfurt.com/dubai/en.html",
+    "https://www.dezeen.com/eventsguide/2026/06/index-dubai-2026/"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:national-day-campaign-norms",
+   "topic": "UAE National Day (Eid Al Etihad) campaign norms",
+   "kind": "standard",
+   "body_en": "Eid Al Etihad marks the union of 2 December 1971. The public holiday is two days, 2 and 3 December (in 2026 a Wednesday and Thursday), for public and private sectors; it is a fixed date. Commemoration Day (30 November) is an observance. Our rule: no posting on the public-holiday days themselves, so the greeting goes out on the last working day before (or on 30 November/1 December if they are working days). Norms: respectful use of the national colours and symbols; UAE media content standards require respecting the country's symbols and institutions, so never alter the flag, emblem or images of the Rulers, never use Rulers' images or quotes commercially, and no discount-style \"Union sale\" copy for a B2B service. Tone: gratitude and pride in building the country, e.g. a thank-you to the suppliers and contractors who build the UAE. Official branding guidance, where issued for the year, is published by the organising authority and should be read before design.\n\nSee also: marketing:ramadan-uae-calendar, customer_support:public-holidays-2026-and-deadlines, customer_support:working-day-deadline-calculation.",
+   "body_ar": "عيد الاتحاد يخلّد قيام الاتحاد في 2 ديسمبر 1971. العطلة الرسمية يومان في 2 و3 ديسمبر (الأربعاء والخميس في 2026) للقطاعين العام والخاص، وهي تاريخ ثابت. يوم الشهيد (30 نوفمبر) مناسبة وطنية. قاعدتنا: لا نشر في أيام العطلة الرسمية، فتُنشر التهنئة في آخر يوم عمل قبلها. الأعراف: احترام ألوان الدولة ورموزها؛ إذ تشترط معايير المحتوى الإعلامي احترام رموز الدولة ومؤسساتها، فلا تعديل للعلم أو الشعار أو صور الحكام، ولا استخدام تجاري لصور الحكام أو أقوالهم، ولا عبارات \"تخفيضات الاتحاد\" لخدمة بين الشركات. النبرة: الامتنان والفخر ببناء الوطن، كشكر الموردين والمقاولين الذين يبنون الإمارات. يُطّلع على أي إرشادات هوية رسمية للعام قبل التصميم.\n\nانظر أيضاً: marketing:ramadan-uae-calendar، customer_support:public-holidays-2026-and-deadlines، customer_support:working-day-deadline-calculation.",
+   "sources": [
+    "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays",
+    "https://u.ae/en/media/media-in-the-uae/media-regulation"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:comparative-advertising-rules",
+   "topic": "Comparative advertising and competitor mentions in the UAE",
+   "kind": "law",
+   "body_en": "Federal Decree-Law No. 55 of 2023 on Media Regulation requires media content to respect national standards and prohibits publishing false and misleading content; law-firm summaries of the UAE advertising standards state that comparative advertising is permitted only if it is truthful and does not mislead, and that advertisements must avoid false claims, exaggeration, unsupported exclusivity claims and disparagement of competitors, and must not use others' trademarks unlawfully or create confusion. The exact article numbers of the Media Council's advertising standards were not re-read in this pass. Operating rules for QuotesDone: (1) compare models, not named competitors, in ads (\"comparing quotes is free; you pay a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once only if you choose a supplier\" vs \"subscription to see leads\") — no competitor names or logos in paid ads; (2) alternatives/comparison pages (marketing:geo-comparison-and-alternatives-pages) may name competitors only with dated, sourced, factual statements and a fair description, no ridicule; (3) superlatives (\"best\", \"cheapest\", \"No.1\") only with evidence we can show; (4) never use a competitor's brand as a keyword in ad text. Legal review by the ceo seat before any named comparison goes live.",
+   "body_ar": "يشترط المرسوم بقانون اتحادي رقم 55 لسنة 2023 بشأن تنظيم الإعلام احترام المحتوى للمعايير الوطنية ويحظر نشر المحتوى الكاذب والمضلل؛ وتفيد ملخصات مكاتب المحاماة لمعايير الإعلان في الإمارات بأن الإعلان المقارن جائز فقط إذا كان صادقاً وغير مضلل، وأن على الإعلانات تجنب الادعاءات الكاذبة والمبالغة وادعاءات الحصرية غير المثبتة والإساءة إلى المنافسين، وعدم استخدام علامات الغير بشكل غير مشروع أو إحداث لبس. لم تُقرأ أرقام مواد معايير الإعلان لدى مجلس الإعلام في هذه الجولة. قواعد QuotesDone: (1) المقارنة بين النماذج لا بين منافسين مسمَّين في الإعلانات، ولا أسماء أو شعارات منافسين في الإعلانات المدفوعة؛ (2) صفحات البدائل تذكر المنافسين بعبارات واقعية مؤرخة وموثقة ووصف منصف دون سخرية؛ (3) لا صيغ تفضيل (\"الأفضل\"، \"الأرخص\"، \"رقم 1\") إلا بدليل يمكن عرضه؛ (4) لا يُستخدم اسم منافس في نص الإعلان. يراجع مقعد الرئيس التنفيذي أي مقارنة مسماة قبل نشرها.",
+   "sources": [
+    "https://u.ae/en/media/media-in-the-uae/media-regulation",
+    "https://www.tamimi.com/law-update-articles/media-law-and-advertising-standards-in-the-uae-key-rules-and-restrictions/"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:advertiser-permit-2026-update",
+   "topic": "Advertiser Permit regime from 1 February 2026 (update)",
+   "kind": "law",
+   "body_en": "Update to marketing:uae-media-council-advertiser-permit: reports of the UAE Media Council's regime state that from 1 February 2026 individuals publishing promotional content online from inside the UAE must hold an Advertiser Permit issued by the Media Council, applying to paid and unpaid promotional content regardless of follower count, with the permit free for residents for the first three years and applied for online at uaemc.gov.ae. These points come from law-firm and press summaries; the Media Council page itself was not read in this pass, so confidence is medium. For QuotesDone: (1) any person posting promotional content about us from the UAE — creators, and arguably staff posting promotional material in a personal capacity — must be checked for a permit before we brief or pay them; (2) our own corporate accounts post under the company's licence, but keep copy factual and within media content standards; (3) record permit number and expiry in the creator file (marketing:influencer-creator-rules).",
+   "body_ar": "تحديث لقيد تصريح المعلن: تفيد التقارير عن نظام مجلس الإمارات للإعلام بأنه اعتباراً من 1 فبراير 2026 يجب على الأفراد الذين ينشرون محتوى ترويجياً عبر الإنترنت من داخل الدولة الحصول على تصريح معلن من المجلس، ويشمل ذلك المحتوى الترويجي المدفوع وغير المدفوع بصرف النظر عن عدد المتابعين، وأن التصريح مجاني للمقيمين في السنوات الثلاث الأولى ويُطلب إلكترونياً عبر uaemc.gov.ae. هذه النقاط من ملخصات مكاتب محاماة وصحف، ولم تُقرأ صفحة المجلس نفسها في هذه الجولة، لذا الثقة متوسطة. لـ QuotesDone: (1) يُتحقق من تصريح أي شخص ينشر محتوى ترويجياً عنا من الإمارات قبل تكليفه أو الدفع له؛ (2) حساباتنا الرسمية تنشر تحت ترخيص الشركة مع الالتزام بمعايير المحتوى؛ (3) يُسجل رقم التصريح وتاريخ انتهائه في ملف صانع المحتوى.",
+   "sources": [
+    "https://uaemc.gov.ae/",
+    "https://u.ae/en/media/media-in-the-uae/media-regulation"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:arabic-dialect-vs-msa",
+   "topic": "Arabic copy: Gulf dialect versus Modern Standard Arabic",
+   "kind": "decision_rule",
+   "body_en": "Default: Gulf-formal Modern Standard Arabic (فصحى معاصرة مبسطة) for the website, ads, emails, legal text, PDFs and anything a procurement officer forwards. Use light Emirati/Gulf dialect only in short social video voice-overs, community replies that mirror the user's own dialect, and supplier-recruitment content aimed at tradespeople, and never in pricing, legal or fee explanations. Rules: (1) write Arabic natively from the brief, not translated from English; (2) keep brand terms consistent (QuotesDone in Latin letters; \"طلب عرض سعر\" for RFQ, \"رسوم الكشف\" for the reveal fee, \"الموردون الثلاثة الأوائل\" for the top three); (3) numbers: Western digits are standard in UAE commercial use, currency \"درهم\" or AED consistently per piece; (4) right-to-left layout checked on mobile, punctuation Arabic (، ؛ ؟); (5) no mixed-language sentences in formal text; (6) never describe the product as \"ذكاء اصطناعي\" (company rule: never call the product AI). Profile copy is English only (company rule); Arabic appears in posts, ads and pages.",
+   "body_ar": "الأصل: فصحى معاصرة مبسطة برسمية خليجية للموقع والإعلانات والبريد والنصوص القانونية والملفات وكل ما قد يعيد مسؤول المشتريات إرساله. تُستخدم اللهجة الإماراتية أو الخليجية الخفيفة فقط في التعليق الصوتي لمقاطع التواصل القصيرة، والردود المجتمعية التي تحاكي لهجة المستخدم، ومحتوى استقطاب الحرفيين، ولا تُستخدم أبداً في شرح الأسعار أو الرسوم أو الشروط. القواعد: (1) الكتابة بالعربية أصلاً لا ترجمةً؛ (2) ثبات المصطلحات: QuotesDone بالحروف اللاتينية، \"طلب عرض سعر\"، \"رسوم الكشف\"، \"الموردون الثلاثة الأوائل\"؛ (3) الأرقام الغربية معتادة تجارياً في الإمارات، والعملة \"درهم\" أو AED بثبات في القطعة الواحدة؛ (4) فحص الاتجاه من اليمين إلى اليسار على الهاتف وعلامات الترقيم العربية؛ (5) لا جمل مختلطة اللغة في النص الرسمي؛ (6) لا يوصف المنتج بأنه \"ذكاء اصطناعي\". نصوص الملفات التعريفية بالإنجليزية فقط.",
+   "sources": [
+    "https://u.ae/en/media/media-in-the-uae/media-regulation"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:brand-voice-guidelines",
+   "topic": "QuotesDone brand voice and guidelines",
+   "kind": "company",
+   "body_en": "Voice: a knowledgeable procurement colleague — clear, factual, calm, specific. Four attributes with do/don't: (1) Precise, not hype: \"Post once, get quotes from suppliers of that exact trade\" — not \"revolutionary platform\"; (2) Honest about money: always state the fee as in the company pricing message entry: comparing quotes is free; you pay only if you choose a supplier and want to see who they are: a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once, never \"free\" without the condition; (3) Respectful of suppliers: they are partners, never \"cheap labour\" or \"vendors to squeeze\"; (4) Local and formal: UAE context, formal English, Gulf-formal Arabic. Hard rules: never call the product \"AI\"; profile copy in English only, without the licence number; no F&B imagery or categories; no posting on weekends or UAE public holidays; every number from the fact register with a date. Visual: consistent logo lockup, brand colours and type (from the brand kit held by the ceo seat), real UAE settings, no stock photos of handshakes. A monthly brand review samples ten published pieces against this entry.",
+   "body_ar": "النبرة: زميل مشتريات خبير؛ واضح وواقعي وهادئ ومحدد. أربع صفات: (1) دقة لا مبالغة: \"انشر مرة واحدة واحصل على عروض من موردي التخصص نفسه\" لا \"منصة ثورية\"؛ (2) صدق في المال: تُذكر الرسوم دائماً كما في مادة رسالة التسعير: مقارنة العروض مجانية، ولا تدفع إلا إذا اخترت مورداً وأردت معرفة هويته: رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة، ولا تُقال كلمة \"مجاني\" دون الشرط؛ (3) احترام الموردين بوصفهم شركاء؛ (4) محلية ورسمية: سياق إماراتي وإنجليزية رسمية وعربية خليجية رسمية. قواعد صارمة: لا يوصف المنتج بأنه \"ذكاء اصطناعي\"؛ نصوص الملفات التعريفية بالإنجليزية فقط ودون رقم الرخصة؛ لا صور أو فئات أغذية ومشروبات؛ لا نشر في عطلة نهاية الأسبوع أو العطل الرسمية؛ كل رقم من سجل الحقائق بتاريخه. الهوية البصرية من دليل العلامة لدى مقعد الرئيس التنفيذي، بمشاهد إماراتية حقيقية. مراجعة شهرية لعشر قطع منشورة مقابل هذا المدخل.",
+   "sources": [
+    "internal:memory:profile-copy-rules.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:two-sided-landing-pages",
+   "topic": "Landing pages for a two-sided marketplace",
+   "kind": "playbook",
+   "body_en": "Never send buyers and suppliers to the same page. Buyer page: headline states the job (\"Get comparable quotes for office fit-out in Dubai\"), subline states the model (comparing quotes is free; you pay a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once only if you choose a supplier and want to see who they are), primary CTA \"Post a request\", the three-step flow, what makes a request quote-ready (exact specs), trust (how suppliers are verified — the six verification items), FAQ on fees and privacy. Supplier page: headline states the gain (\"Receive requests in your exact trade\"), cost to the supplier stated plainly per current policy, CTA \"Register your company\", what verification needs, how requests are matched (exact trade, no nearest-match), non-response rule explained honestly. Both: message match with the ad, one primary CTA, mobile-first, Arabic twin page (not a toggle that leaves English fragments), consent-compliant tracking, page speed within Core Web Vitals \"good\". Liquidity proof (counts of requests or suppliers) only from measured, dated numbers; while the marketplace is young, show process and verification, not volume.",
+   "body_ar": "لا يُرسل المشترون والموردون إلى الصفحة نفسها أبداً. صفحة المشتري: عنوان يذكر المهمة (\"احصل على عروض قابلة للمقارنة لتشطيب مكتبك في دبي\")، وسطر يوضح النموذج (مقارنة العروض مجانية، ولا تدفع إلا إذا اخترت مورداً وأردت معرفة هويته: رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة)، ودعوة \"انشر طلباً\"، والخطوات الثلاث، وما يجعل الطلب جاهزاً للتسعير، والثقة (كيف يُوثَّق الموردون ببنود التحقق الستة)، وأسئلة عن الرسوم والخصوصية. صفحة المورد: عنوان يذكر المكسب (\"استقبل طلبات في تخصصك الدقيق\")، والتكلفة على المورد بوضوح وفق السياسة الحالية، ودعوة \"سجّل شركتك\"، ومتطلبات التحقق، وطريقة المطابقة (التخصص نفسه دون أقرب تطابق)، وقاعدة عدم الاستجابة بصدق. في الحالتين: تطابق الرسالة مع الإعلان، ودعوة أساسية واحدة، وتصميم للهاتف أولاً، وصفحة عربية توأم، وتتبع متوافق مع الموافقة، وسرعة ضمن \"جيد\". أرقام السيولة فقط إن كانت مقاسة ومؤرخة، وفي البداية يُعرض المسار والتحقق لا الحجم.",
+   "sources": [],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:referral-programme",
+   "topic": "Referral programme design (buyers and suppliers)",
+   "kind": "playbook",
+   "body_en": "Referrals fit a marketplace because a satisfied buyer knows other buyers and a supplier knows other suppliers. Design: (1) same-side referrals first (supplier refers supplier in a trade where we lack coverage; buyer refers buyer), because cross-side referrals create conflicts of interest; (2) reward must be lawful, simple and not distort the marketplace: account credit against the buyer's reveal fee or a supplier profile benefit, never cash per signup and never anything that affects ranking in the top-3 report (ranking is by quote, not by referrals); (3) reward only on a qualified event (referred buyer's first reveal paid; referred supplier fully verified), after a cooling period, one reward per company; (4) the referrer shares a link, we never ask for the friend's contact details to message them (a PDPL and anti-spam risk); (5) terms published, any change announced before it applies; (6) fraud checks: same domain, same phone, self-referral. Budget and reward amounts are a ceo decision; referral conversion benchmarks are not established here.",
+   "body_ar": "تناسب الإحالات السوق الإلكتروني لأن المشتري الراضي يعرف مشترين آخرين والمورد يعرف موردين. التصميم: (1) الإحالة من الجانب نفسه أولاً (مورد يحيل مورداً في تخصص ينقصنا، ومشترٍ يحيل مشترياً)، لأن الإحالة بين الجانبين تخلق تعارض مصالح؛ (2) المكافأة مشروعة وبسيطة ولا تشوه السوق: رصيد يُخصم من رسوم الكشف أو ميزة في ملف المورد، ولا نقود لكل تسجيل، ولا شيء يؤثر في ترتيب الثلاثة الأوائل؛ (3) المكافأة عند حدث مؤهل فقط (أول كشف مدفوع للمشتري المُحال، أو توثيق المورد كاملاً) بعد فترة انتظار ومرة واحدة لكل شركة؛ (4) يشارك المحيل رابطاً، ولا نطلب بيانات صديقه لمراسلته؛ (5) شروط منشورة ويُعلن أي تغيير مسبقاً؛ (6) فحوص الاحتيال. قيم المكافآت قرار للرئيس التنفيذي، ومعايير التحويل غير ثابتة هنا (not established).",
+   "sources": [
+    "https://uaelegislation.gov.ae/en/legislations/1972"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:supplier-acquisition-funnel",
+   "topic": "Supplier acquisition funnel and metrics",
+   "kind": "playbook",
+   "body_en": "Stages and the metric at each: (1) Sourced: supplier identified in a target trade and emirate (trade directories, trade shows, referrals, inbound search) — measure coverage per trade; (2) Invited: an actual delivered message (email/WhatsApp through the outbox, not a status flag — a status column is not a delivery record) — measure delivered invitations; (3) Registered: account created — invitation-to-registration rate; (4) Verified: all six verification items complete — registration-to-verified rate and median days; (5) Activated: first quote submitted on a real request — verified-to-first-quote rate; (6) Retained: quoted on requests in each of the next three months, non-response rate within policy. Levers by stage: sourcing = trade-show floor and search pages; invite = one clear benefit and cost statement; verification = checklist emails and a WhatsApp utility reminder inside the customer-service window; activation = alert on the first matching request. Prioritise trades where buyers are posting and coverage is thin; never recruit more suppliers in a trade than demand justifies. Outreach obeys marketing:supplier-recruitment-outreach and the telemarketing rules.",
+   "body_ar": "المراحل والمقياس في كل منها: (1) التحديد: مورد في تخصص وإمارة مستهدفين (أدلة التجارة، المعارض، الإحالات، البحث) — تغطية كل تخصص؛ (2) الدعوة: رسالة مُسلّمة فعلاً عبر صندوق الإرسال، لا مجرد حقل حالة — عدد الدعوات المسلّمة؛ (3) التسجيل — نسبة الدعوة إلى التسجيل؛ (4) التوثيق: اكتمال بنود التحقق الستة — النسبة والوسيط بالأيام؛ (5) التفعيل: أول عرض على طلب حقيقي؛ (6) الاستبقاء: عروض في كل من الأشهر الثلاثة التالية ونسبة عدم استجابة ضمن السياسة. الروافع: المعارض وصفحات البحث للتحديد، وفائدة واحدة واضحة مع بيان التكلفة للدعوة، ورسائل قائمة التحقق وتذكير خدمات عبر واتساب داخل نافذة الخدمة للتوثيق، وتنبيه عند أول طلب مطابق للتفعيل. الأولوية للتخصصات التي ينشر فيها المشترون وتقل فيها التغطية، دون تجنيد يتجاوز الطلب. تلتزم الدعوات بقواعد استقطاب الموردين والتسويق الهاتفي.",
+   "sources": [
+    "https://developers.facebook.com/docs/whatsapp/pricing"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:gbp-review-operations",
+   "topic": "Google Business Profile and review operations",
+   "kind": "method",
+   "body_en": "Google Business Profile eligibility requires in-person contact with customers during stated hours or a service-area business; a marketplace with no customer-facing premises must follow Google's guidelines for representing the business (see marketing:google-business-profile-policy) and not invent an address. Reviews: Google's contributed-content policy prohibits fake engagement, including incentivising reviews, reviews from employees or owners, and selective solicitation (review-gating); see marketing:review-solicitation-rules. Operating method: (1) ask every buyer who completed a reveal, at the timing the company set (support emails three weeks after the reveal), with the same neutral link whether the experience was good or bad; (2) reply to every review within two working days, sign as QuotesDone, thank, address the specific point, move details to private channels, never reveal a counterparty's identity or transaction data; (3) flag reviews that breach policy through the profile's report tool, never argue publicly; (4) track rating, count, response time monthly. Review volume and rating targets are set only after a baseline exists.",
+   "body_ar": "تتطلب الأهلية في ملف Google التجاري تواصلاً مباشراً مع العملاء خلال ساعات محددة أو نشاطاً بمنطقة خدمة، والسوق الإلكتروني بلا مقر لاستقبال العملاء يتبع إرشادات Google لتمثيل النشاط دون اختلاق عنوان. المراجعات: تحظر سياسة المحتوى في Google التفاعل المزيف، ومنه تحفيز المراجعات، ومراجعات الموظفين أو الملاك، والطلب الانتقائي للمراجعات. طريقة العمل: (1) الطلب من كل مشترٍ أكمل الكشف في التوقيت الذي حددته الشركة (بعد ثلاثة أسابيع من الكشف) بالرابط المحايد نفسه أياً كانت التجربة؛ (2) الرد على كل مراجعة خلال يومي عمل باسم QuotesDone بالشكر ومعالجة النقطة المحددة ونقل التفاصيل إلى قناة خاصة، دون كشف هوية الطرف الآخر أو بيانات المعاملة؛ (3) الإبلاغ عن المراجعات المخالفة عبر أداة الإبلاغ لا بالجدال العلني؛ (4) متابعة التقييم والعدد وزمن الرد شهرياً. تُحدد الأهداف بعد وجود خط أساس.",
+   "sources": [
+    "https://support.google.com/business/answer/3474122",
+    "https://support.google.com/contributionpolicy/answer/7400114"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:geo-bing-indexnow",
+   "topic": "GEO: Bing Webmaster Tools and IndexNow",
+   "kind": "method",
+   "body_en": "ChatGPT search and Microsoft Copilot draw on Bing's index (see marketing:geo-engine-retrieval-map), so Bing indexation is a GEO requirement, not an afterthought. Steps: verify quotesdone.ae in Bing Webmaster Tools (import from Google Search Console is supported), submit the XML sitemap, and check crawl errors. Implement IndexNow: host a key file (a key of 8-128 hexadecimal characters) at the site root as {key}.txt, then notify on publish or update — single URL via GET https://<engine>/indexnow?url=...&key=..., or up to 10,000 URLs per JSON POST. The key file's location limits which URLs it can validate (a key under /catalog/ validates only /catalog/ URLs), so keep it at the root. Response codes: 200 submitted, 202 received pending key validation, 400 bad format, 403 key invalid, 429 too many requests. Participating engines share submitted URLs with each other. Trigger IndexNow from the publishing pipeline for new trade guides, cost pages and case studies, and for significant edits — not for every trivial change.",
+   "body_ar": "يعتمد بحث ChatGPT وMicrosoft Copilot على فهرس Bing، فالفهرسة في Bing شرط من شروط الظهور في محركات الإجابة. الخطوات: توثيق quotesdone.ae في أدوات مشرفي المواقع من Bing (الاستيراد من Google Search Console متاح)، وإرسال خريطة الموقع، وفحص أخطاء الزحف. تطبيق IndexNow: استضافة ملف مفتاح (من 8 إلى 128 حرفاً سداسياً عشرياً) في جذر الموقع باسم {key}.txt، ثم الإخطار عند النشر أو التحديث: رابط واحد عبر GET، أو حتى 10,000 رابط في طلب POST بصيغة JSON. موقع ملف المفتاح يحدد الروابط التي يصادق عليها، لذا يبقى في الجذر. رموز الاستجابة: 200 تم الإرسال، و202 استُلم بانتظار التحقق، و400 صيغة خاطئة، و403 مفتاح غير صالح، و429 طلبات كثيرة. تتبادل المحركات المشاركة الروابط المرسلة. يُطلق الإخطار من مسار النشر للأدلة الجديدة وصفحات التكاليف ودراسات الحالة والتعديلات الجوهرية فقط.",
+   "sources": [
+    "https://www.indexnow.org/documentation",
+    "https://www.bing.com/webmasters/help/indexnow-0a9f4a8b"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:geo-wikidata-entity",
+   "topic": "GEO: Wikidata entity for QuotesDone",
+   "kind": "decision_rule",
+   "body_en": "Wikidata feeds knowledge graphs that answer engines use to resolve entities. An item is acceptable if it meets at least one criterion: (1) a valid sitelink to a Wikimedia project page (e.g. Wikipedia); (2) it refers to a clearly identifiable conceptual or material entity that can be described using serious and publicly available references; (3) it fulfils a structural need (makes statements in other items more useful). For QuotesDone the route is criterion 2, which needs serious public references — independent press coverage or official registers — not our own website alone. Decision rule: do not create a Wikidata item until at least two independent, reputable public references exist (e.g. press coverage, a government or chamber listing); then create one item with neutral statements only (instance of: online marketplace/business; country: UAE; headquarters location: Dubai; official website; inception date), each with a reference. Never create or edit a Wikipedia article about ourselves (conflict of interest). Keep facts identical to the Organization markup and profiles (marketing:geo-entity-consistency). No licence number in public profiles (company rule).",
+   "body_ar": "تغذي Wikidata رسوم المعرفة التي تستخدمها محركات الإجابة لتمييز الكيانات. يُقبل العنصر إذا استوفى معياراً واحداً على الأقل: (1) رابط صالح لصفحة في مشروع من مشاريع ويكيميديا؛ (2) أن يشير إلى كيان واضح التحديد يمكن وصفه بمراجع جادة ومتاحة للعموم؛ (3) أن يلبي حاجة هيكلية. طريق QuotesDone هو المعيار الثاني، وهو يتطلب مراجع عامة جادة كتغطية صحفية مستقلة أو سجلات رسمية، لا موقعنا وحده. قاعدة القرار: لا يُنشأ عنصر في Wikidata قبل وجود مرجعين عامين مستقلين موثوقين على الأقل؛ ثم يُنشأ عنصر واحد بعبارات محايدة فقط (نوع الكيان، الدولة، المقر في دبي، الموقع الرسمي، تاريخ التأسيس) مع مرجع لكل منها. لا يُنشأ ولا يُحرر مقال ويكيبيديا عن أنفسنا (تعارض مصالح). تبقى الحقائق مطابقة للترميز المنظم والملفات التعريفية، ولا يُذكر رقم الرخصة.",
+   "sources": [
+    "https://www.wikidata.org/wiki/Wikidata:Notability"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:ga4-key-events-plan",
+   "topic": "GA4 event and key-event plan",
+   "kind": "standard",
+   "body_en": "GA4 key events are the actions that matter to the business, used to evaluate which channels lead to them; with Google Ads linked and ads personalisation enabled, Google Ads conversions can be created from GA4 key events. Our plan (event names snake_case, identical across web and server): page_view (auto), view_trade_page {trade}, start_request {trade}, submit_request {trade, emirate} = KEY EVENT, supplier_signup_start, supplier_registered = KEY EVENT, supplier_verified = KEY EVENT, reveal_paid {value, currency:\"AED\"} = KEY EVENT (primary), whatsapp_click, lead_form_submit {platform}. Parameters never include personal data (no email, phone, names, request text) — Google's policies prohibit sending PII to Analytics. UTM standard per marketing:utm-standard. Import reveal_paid (primary) and submit_request (secondary) into Google Ads. Register custom dimensions for trade and emirate. Validate in DebugView before launch and reconcile weekly: GA4 reveal_paid count vs payments table count (the payments table is the source of truth; GA4 will be lower because of consent).",
+   "body_ar": "الأحداث الرئيسية في GA4 هي الإجراءات المهمة للنشاط وتُستخدم لتقييم القنوات المؤدية إليها، ومع ربط Google Ads وتفعيل التخصيص الإعلاني يمكن إنشاء تحويلات Google Ads منها. خطتنا (أسماء أحداث موحدة بين الويب والخادم): page_view، وview_trade_page، وstart_request، وsubmit_request حدث رئيسي، وsupplier_signup_start، وsupplier_registered حدث رئيسي، وsupplier_verified حدث رئيسي، وreveal_paid بالقيمة والعملة AED حدث رئيسي أساسي، وwhatsapp_click، وlead_form_submit. لا تحمل المعلمات أي بيانات شخصية (لا بريد ولا هاتف ولا أسماء ولا نص الطلب)، فسياسات Google تحظر إرسالها إلى Analytics. يتبع الترميز معيار UTM. يُستورد reveal_paid تحويلاً أساسياً وsubmit_request ثانوياً إلى Google Ads. تُسجل أبعاد مخصصة للتخصص والإمارة. يُتحقق في DebugView قبل الإطلاق، ويُطابق أسبوعياً عدد reveal_paid مع جدول المدفوعات الذي هو مصدر الحقيقة، وسيكون GA4 أقل بسبب الموافقة.",
+   "sources": [
+    "https://support.google.com/analytics/answer/13128484"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:consent-mode-v2",
+   "topic": "Google consent mode v2 implementation",
+   "kind": "standard",
+   "body_en": "Consent mode v2 uses four parameters, each 'granted' or 'denied': ad_storage, analytics_storage, ad_user_data and ad_personalization. By default no consent values are set, so we must set a default for every type on page load BEFORE any measurement tag fires; if the consent code runs out of order the defaults do not work. Then update the states when the visitor interacts with the banner, and persist the choice for later pages. Consent updates are tracked on the page where they occur, before any page transition. Basic vs advanced: basic blocks Google tags until consent; advanced loads tags with denied defaults and sends cookieless pings, and supports features such as region-specific defaults, URL passthrough and ads data redaction. QuotesDone rule: defaults denied for all four for every visitor, banner in English and Arabic with equal-weight Accept and Reject buttons, no pre-ticked boxes, choice changeable from the footer; Meta and LinkedIn tags are gated by the same consent through the tag manager. Which mode (basic or advanced) is a privacy decision for the ceo seat under the PDPL; until decided, use basic.",
+   "body_ar": "يستخدم وضع الموافقة الإصدار الثاني أربع معلمات قيمة كل منها granted أو denied: ad_storage وanalytics_storage وad_user_data وad_personalization. لا توجد قيم افتراضية مسبقاً، فيجب ضبط قيمة افتراضية لكل نوع عند تحميل الصفحة قبل تشغيل أي وسم قياس، وإذا نُفذ كود الموافقة بترتيب خاطئ لا تعمل القيم الافتراضية. ثم تُحدَّث الحالات عند تفاعل الزائر مع الشريط، ويُحفظ اختياره للصفحات التالية، وتُسجل التحديثات في الصفحة التي حدثت فيها قبل أي انتقال. الفرق بين الأساسي والمتقدم: الأساسي يحجب وسوم Google حتى الموافقة، والمتقدم يحمّلها بقيم مرفوضة ويرسل إشارات بلا ملفات تعريف ارتباط ويدعم ميزات مثل القيم حسب المنطقة وتمرير الروابط وحجب بيانات الإعلانات. قاعدة QuotesDone: الرفض افتراضياً للأربعة لكل زائر، وشريط بالعربية والإنجليزية بزري قبول ورفض متساويين، ولا خانات معلّمة مسبقاً، وإمكانية التغيير من تذييل الصفحة؛ وتخضع وسوم Meta وLinkedIn للموافقة نفسها. اختيار الوضع قرار خصوصية لمقعد الرئيس التنفيذي، وحتى يُتخذ يُستخدم الأساسي.",
+   "sources": [
+    "https://developers.google.com/tag-platform/security/guides/consent"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:server-side-tagging",
+   "topic": "Server-side tagging",
+   "kind": "concept",
+   "body_en": "Server-side tagging in Google Tag Manager processes measurement on a server we control instead of in the visitor's browser: the browser sends one stream to our tagging server, whose clients turn requests into events that tags then route to GA4, Google Ads, Meta Conversions API and others. Benefits Google lists: one server container can handle web, app and other sources; we control the data before deciding where it goes; tags run in sandboxed JavaScript with visible permissions. Requirements: a server container deployed on Google Cloud or another environment, and Google strongly recommends serving it from a first-party subdomain and upgrading to production mode before going live. For QuotesDone: worthwhile once paid media runs at scale, because it lets us strip personal data centrally, send Meta CAPI and Google enhanced conversions from one place, and keep consent enforcement in one layer. It does not remove the need for consent: server-side is a transport, not a legal basis. Hosting cost is an IT decision (it_engineer seat).",
+   "body_ar": "يعالج الوسم من جهة الخادم في Google Tag Manager القياسَ على خادم نتحكم فيه بدلاً من متصفح الزائر: يرسل المتصفح تدفقاً واحداً إلى خادم الوسم، فتحوّل عملاؤه الطلبات إلى أحداث توجهها الوسوم إلى GA4 وGoogle Ads وواجهة تحويلات Meta وغيرها. الفوائد التي تذكرها Google: حاوية خادم واحدة لمصادر الويب والتطبيقات وغيرها، والتحكم في البيانات قبل توجيهها، وتشغيل الوسوم في بيئة معزولة بأذونات ظاهرة. المتطلبات: حاوية خادم على Google Cloud أو بيئة أخرى، وتوصي Google بشدة بتشغيلها من نطاق فرعي خاص بنا ووضع الإنتاج قبل الإطلاق. لـ QuotesDone: مجدٍ عند توسع الإعلانات المدفوعة لأنه يتيح حذف البيانات الشخصية مركزياً وإرسال التحويلات من مكان واحد وتطبيق الموافقة في طبقة واحدة. ولا يُغني عن الموافقة، فهو وسيلة نقل لا أساس قانوني. تكلفة الاستضافة قرار لمقعد مهندس تقنية المعلومات.",
+   "sources": [
+    "https://developers.google.com/tag-platform/tag-manager/server-side/intro",
+    "https://developers.google.com/tag-platform/security/guides/consent"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:marketing-budget-benchmarks",
+   "topic": "Marketing budget benchmarks: what is and is not established",
+   "kind": "benchmark",
+   "body_en": "No primary-source benchmark for \"marketing spend as a percentage of revenue\" for UAE B2B marketplaces was found in this pass; widely quoted percentages come from vendor surveys of other markets and are not established for us. What IS established for QuotesDone: the company plan's paid-media test (marketing:paid-media-economics) found that no paid platform pays back on a first reveal at benchmark costs, and set a paid cap range with paid only in high-fee categories and on LinkedIn for business accounts; the investor-pack ruling caps company costs; marketing spends by one-shot monthly approval. Method to set a budget without a benchmark: (1) start from the target (requests and reveals needed this month); (2) work back through measured conversion rates (visit→request, request→reveal) — or, before we have them, label the assumption; (3) price the gap with the platform's own forecasts (Google Keyword Planner, Meta/LinkedIn audience estimates); (4) cap at the approved monthly figure; (5) review against actual cost per reveal after 30 days and cut any channel whose cost per reveal exceeds the reveal fee it produces, unless it brings repeat business accounts.",
+   "body_ar": "لم يُعثر في هذه الجولة على معيار من مصدر أساسي لنسبة الإنفاق التسويقي من الإيرادات للأسواق الإلكترونية بين الشركات في الإمارات؛ والنسب المتداولة من استبيانات موردين في أسواق أخرى وليست ثابتة لنا (not established). الثابت لـ QuotesDone: اختبار الإعلانات المدفوعة في خطة الشركة وجد أن أي منصة لا تسترد تكلفتها من أول كشف بالتكاليف المرجعية، وحدد نطاق سقف للإنفاق مع قصره على الفئات عالية الرسوم وعلى LinkedIn لحسابات الشركات؛ وحكم ملف المستثمرين يحدد سقف التكاليف؛ والتسويق ينفق بموافقة شهرية واحدة. طريقة وضع الميزانية دون معيار: (1) البدء بالهدف (الطلبات والكشوف المطلوبة)؛ (2) الرجوع عبر نسب التحويل المقاسة أو وسم الافتراض صراحة؛ (3) تسعير الفجوة بتوقعات المنصات نفسها؛ (4) السقف هو الرقم الشهري المعتمد؛ (5) المراجعة بعد 30 يوماً وإيقاف أي قناة تتجاوز تكلفتها لكل كشف الرسوم التي تنتجها، ما لم تجلب حسابات شركات متكررة.",
+   "sources": [],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:whatsapp-click-to-chat-ads",
+   "topic": "Click-to-WhatsApp ads for supplier and buyer onboarding",
+   "kind": "playbook",
+   "body_en": "Click-to-WhatsApp (CTWA) ads on Facebook and Instagram open a WhatsApp chat with us. Under the per-message pricing model, a conversation that starts from a CTWA ad or a Page call-to-action opens a 72-hour free-entry-point window from our first reply, during which any message type — including templates — is free. Playbook: (1) ad promise = one job (\"Register as a supplier in 3 minutes\" / \"Tell us what you need quoted\"); (2) pre-filled greeting message identifying the ad so the customer_support seat knows the context; (3) first reply within minutes during working hours with a short menu, and an honest after-hours auto-reply stating when we will respond (no weekend or holiday campaign pushes, but inbound is still answered by the support rules); (4) collect only what is needed, move to the web form for identity (email is identity, phone confirms); (5) record opt-in for future marketing templates explicitly — a chat is not marketing consent; (6) measure cost per verified supplier or per posted request, not per conversation started. Meta's rate cards and CTWA eligibility for our account should be checked before launch.",
+   "body_ar": "تفتح إعلانات \"انقر للمراسلة عبر واتساب\" على فيسبوك وInstagram محادثة واتساب معنا. وفق التسعير حسب الرسالة، تفتح المحادثة الناشئة من هذه الإعلانات أو من زر الصفحة نافذة دخول مجانية مدتها 72 ساعة من أول رد لنا تكون فيها كل الرسائل مجانية، بما فيها القوالب. الخطة: (1) وعد إعلاني بمهمة واحدة (\"سجّل كمورد في 3 دقائق\" أو \"أخبرنا بما تريد تسعيره\")؛ (2) رسالة ترحيب معبأة تحدد الإعلان ليعرف مقعد خدمة العملاء السياق؛ (3) رد أول خلال دقائق في ساعات العمل بقائمة قصيرة، ورد آلي صادق خارجها يذكر موعد الرد؛ (4) جمع الضروري فقط والانتقال إلى النموذج على الموقع للهوية (البريد هو الهوية والهاتف يؤكد)؛ (5) تسجيل الموافقة على قوالب التسويق المستقبلية صراحةً، فالمحادثة ليست موافقة تسويقية؛ (6) القياس بالتكلفة لكل مورد موثق أو طلب منشور لا لكل محادثة. يُتحقق من جداول الأسعار وأهلية الحساب قبل الإطلاق.",
+   "sources": [
+    "https://developers.facebook.com/docs/whatsapp/pricing"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:event-marketing-playbook",
+   "topic": "Trade-show and event marketing playbook",
+   "kind": "playbook",
+   "body_en": "Before (4-6 weeks): pick the show by trade priority (marketing:events-uae-trade-shows), decide visit vs stand (visiting is the default until the ceo approves stand spend), list target exhibitors (suppliers to recruit) and visitors (buyer accounts), prepare a one-page bilingual leave-behind and a QR code to a trade-specific landing page with UTM source=event name. During: short daily posts on working days only; capture contacts with explicit consent on a form (tick box for marketing), never photograph badges or scan without consent; note trade, emirate and need per contact. After (within 3 working days): personal follow-up to each consented contact, supplier invitations through the normal onboarding flow, buyers offered a guided first request; add non-consented contacts to nothing. Measure: consented contacts, suppliers registered and verified, buyer accounts that posted within 60 days, cost per verified supplier. Media Council rules apply to any promotional content posted by individuals at the event (Advertiser Permit).",
+   "body_ar": "قبل الحدث (4 إلى 6 أسابيع): اختيار المعرض حسب أولوية التخصص، وتقرير الزيارة أو الجناح (الزيارة هي الأصل حتى يوافق الرئيس التنفيذي على تكلفة الجناح)، وإعداد قائمة بالعارضين المراد استقطابهم كموردين والزوار من حسابات المشترين، ومطوية ثنائية اللغة ورمز QR إلى صفحة هبوط خاصة بالتخصص مع ترميز UTM. أثناء الحدث: منشورات يومية قصيرة في أيام العمل فقط، وجمع جهات الاتصال بموافقة صريحة في نموذج، ولا تصوير أو مسح للبطاقات دون موافقة. بعد الحدث (خلال 3 أيام عمل): متابعة شخصية لكل من وافق، ودعوة الموردين عبر مسار التسجيل المعتاد، وعرض طلب أول موجَّه للمشترين، ولا إضافة لمن لم يوافق. القياس: جهات الاتصال الموافِقة، والموردون المسجلون والموثقون، وحسابات المشترين التي نشرت خلال 60 يوماً، والتكلفة لكل مورد موثق. تنطبق قواعد تصريح المعلن على أي محتوى ترويجي ينشره أفراد في الحدث.",
+   "sources": [
+    "https://www.big5global.com/",
+    "https://intersecglobal.ae.messefrankfurt.com/dubai/en.html"
+   ],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:reasoning-campaign-idea",
+   "topic": "Reasoning sequence: before proposing a campaign idea",
+   "kind": "method",
+   "body_en": "Run these steps in order and show the result of each in the proposal. (1) Goal: which company KPI moves (requests posted, reveals paid, suppliers verified in trade X) and by how much this month; if none, stop. (2) Audience: buyer or supplier, which ICP, which trades and emirates; never both sides in one campaign. (3) Channel: organic first; paid only if approved and in high-fee categories or LinkedIn business accounts (marketing:paid-media-economics); Meta/social is the marketing channel set. (4) Rules: platform ad policy (Meta, LinkedIn, Google, TikTok/Snap), UAE media content standards, Advertiser Permit for any creator, comparative-advertising limits, PDPL for any data or retargeting, WhatsApp template category. (5) Calendar: no posting on weekends or UAE public holidays; Ramadan and Eid adjustments; clashes with trade shows. (6) Creative: angle, format, hook, bilingual copy per brand voice, facts only from the fact register, never \"AI\". (7) KPI and test: primary metric, guardrail, sample size and stop rule. (8) Cost and approval: spend inside the monthly cap, included in the one-shot monthly plan for the founder. (9) Answer: the campaign in one paragraph plus the table of steps 1-8.",
+   "body_ar": "تُنفذ الخطوات بالترتيب وتُعرض نتيجة كل منها في المقترح. (1) الهدف: أي مؤشر للشركة سيتحرك (طلبات منشورة، كشوف مدفوعة، موردون موثقون في تخصص معين) وبكم هذا الشهر؛ فإن لم يوجد يتوقف الاقتراح. (2) الجمهور: مشترٍ أو مورد، وأي شريحة وتخصصات وإمارات، ولا جانبين في حملة واحدة. (3) القناة: العضوي أولاً، والمدفوع فقط بموافقة وفي الفئات عالية الرسوم أو حسابات الشركات على LinkedIn. (4) القواعد: سياسة إعلانات المنصة، ومعايير المحتوى الإعلامي في الإمارات، وتصريح المعلن لأي صانع محتوى، وحدود الإعلان المقارن، وقانون حماية البيانات، وفئة قالب واتساب. (5) التقويم: لا نشر في عطلة نهاية الأسبوع أو العطل الرسمية، وتعديلات رمضان والعيد، وتعارض المعارض. (6) الإبداع: الزاوية والشكل والافتتاحية ونص ثنائي اللغة وفق نبرة العلامة، والحقائق من سجل الحقائق فقط، ولا كلمة \"ذكاء اصطناعي\". (7) المؤشر والاختبار: المقياس الأساسي والضابط وحجم العينة وقاعدة الإيقاف. (8) التكلفة والموافقة: ضمن السقف الشهري وفي الخطة الشهرية الموحدة للمؤسس. (9) الإجابة: الحملة في فقرة مع جدول الخطوات.",
+   "sources": [
+    "internal:memory:marketing-month-approval-flow.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:reasoning-post-review",
+   "topic": "Reasoning sequence: before approving a post or ad for publication",
+   "kind": "method",
+   "body_en": "(1) Purpose: which pillar and which KPI this post serves; if it serves none, drop it. (2) Facts: every number, claim and price traced to the fact register or a cited source with date; superlatives removed unless evidenced; fees stated with their condition (\"a 3% Reveal Fee on the value of the quotation you choose (before VAT), charged once\", only if the buyer chooses a supplier). (3) Legal: UAE media content standards (religion, national symbols, no misleading content), comparative-advertising limits, consumer-protection advertising, platform policy, Advertiser Permit if a creator posts, disclosure label if paid. (4) Privacy: no customer, supplier or request identifiable without written consent; no screenshots of real requests. (5) Brand: voice, English-only profile copy, never \"AI\", no F&B, correct Arabic (Gulf-formal MSA), RTL checked. (6) Accessibility: alt text, captions on video, contrast. (7) Timing: working day, not a UAE public holiday, not during a national mourning period if one is announced, Ramadan norms respected. (8) Tracking: UTM per standard, correct landing page with message match. (9) Verdict: publish / fix (list the fixes) / reject (state which rule).",
+   "body_ar": "(1) الغرض: أي محور وأي مؤشر يخدم المنشور، وإن لم يخدم شيئاً يُستبعد. (2) الحقائق: كل رقم وادعاء وسعر يعود إلى سجل الحقائق أو مصدر مؤرخ، وتُحذف صيغ التفضيل غير المثبتة، وتُذكر الرسوم بشرطها («رسوم كشف 3% من قيمة العرض الذي تختاره (قبل الضريبة)، مرة واحدة» فقط إذا اختار المشتري مورداً). (3) القانون: معايير المحتوى الإعلامي (الدين، رموز الدولة، عدم التضليل)، وحدود الإعلان المقارن، وحماية المستهلك، وسياسة المنصة، وتصريح المعلن، وعلامة الإفصاح إن كان مدفوعاً. (4) الخصوصية: لا يُعرّف عميل أو مورد أو طلب دون موافقة مكتوبة، ولا لقطات لطلبات حقيقية. (5) العلامة: النبرة، ونصوص الملفات بالإنجليزية فقط، ولا \"ذكاء اصطناعي\"، ولا أغذية ومشروبات، وعربية سليمة، واتجاه صحيح. (6) الإتاحة: نص بديل وترجمة للفيديو وتباين. (7) التوقيت: يوم عمل، ليس عطلة رسمية ولا فترة حداد معلنة، ومراعاة رمضان. (8) التتبع: ترميز UTM وصفحة هبوط مطابقة. (9) الحكم: نشر، أو إصلاح مع قائمة الإصلاحات، أو رفض مع ذكر القاعدة.",
+   "sources": [
+    "internal:memory:marketing-month-approval-flow.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:reasoning-answer-marketing-question",
+   "topic": "Reasoning sequence: before answering a marketing question",
+   "kind": "method",
+   "body_en": "(1) Classify the question: fact (a rule, date, platform limit), judgement (what should we do), or number (a benchmark or result). (2) Look up the pack entry first and quote its confidence; if the entry is medium/low or older than the as_of date's relevance (platform rules change often), say so and re-check the primary source before stating it as current. (3) For facts: give the fact, the source and the date; if not in the pack and not verifiable now, say \"not established\" rather than recall. (4) For numbers: only measured company numbers (with the query or report behind them) or cited benchmarks with source; never extrapolate a benchmark into a forecast without labelling the assumption; top-3 claims and any number quoted to the founder are a report and need the source. (5) For judgements: run the relevant reasoning sequence (campaign idea, post review, trend, paid spend) and state the decision, not a menu of options — the founder decides boundaries, not methods. (6) Check the company hard rules (3% reveal, top three, no weekend/holiday posting, never \"AI\", F&B excluded, English profile copy). (7) Answer in the asker's language, shortest complete form, with sources listed.",
+   "body_ar": "(1) تصنيف السؤال: حقيقة (قاعدة أو تاريخ أو حد منصة)، أو تقدير (ماذا نفعل)، أو رقم (معيار أو نتيجة). (2) البحث في مدخلات الحزمة أولاً وذكر درجة الثقة؛ فإن كانت متوسطة أو منخفضة أو كانت القاعدة مما يتغير كثيراً يُذكر ذلك ويُعاد التحقق من المصدر الأساسي. (3) للحقائق: الحقيقة ومصدرها وتاريخها، وإن لم تكن في الحزمة ولا يمكن التحقق الآن يُقال \"not established\" بدلاً من الاعتماد على الذاكرة. (4) للأرقام: أرقام الشركة المقاسة فقط مع الاستعلام أو التقرير وراءها، أو معايير موثقة بمصدرها، ولا يُحوَّل معيار إلى توقع دون وسم الافتراض؛ وأي رقم يُذكر للمؤسس تقرير يحتاج مصدراً. (5) للتقديرات: تشغيل تسلسل الاستدلال المناسب وإعلان القرار لا تقديم قائمة خيارات. (6) مراجعة القواعد الصارمة للشركة. (7) الإجابة بلغة السائل بأقصر صيغة كاملة مع ذكر المصادر.",
+   "sources": [
+    "internal:memory:the-only-hard-rules-and-operating-doctrine.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:reasoning-trend-response",
+   "topic": "Reasoning sequence: before acting on a trend",
+   "kind": "method",
+   "body_en": "(1) Signal: what exactly is trending (sound, format, topic, hashtag), where (platform, UAE or global), since when, and the evidence (platform trend tool, social listening, search trend) — see marketing:trend-detection. (2) Fit: does it connect honestly to procurement, trades, suppliers or UAE business life? If the link is forced, skip. (3) Risk: religious, political, national-symbol or tragedy-related trends are excluded; check the trend's origin and any controversy; audio must be licensed for commercial use on that platform (use the platform's commercial music library). (4) Rules: media content standards, platform policy, no competitor mockery, never \"AI\", no F&B. (5) Timing: trends decay quickly, but our calendar still forbids weekend and holiday posting — if the next working day is too late, skip rather than break the rule; it must fit within the approved monthly plan or the one-shot approval's allowance for reactive posts. (6) Creative: our angle in the first 2 seconds, bilingual captions. (7) Measure: compare with the account's median post, not with the trend's viral examples. (8) Decision: post / adapt / skip, with one line of reasoning.",
+   "body_ar": "(1) الإشارة: ما الرائج تحديداً (صوت، شكل، موضوع، وسم)، وأين (المنصة، الإمارات أو عالمياً)، ومنذ متى، والدليل (أداة الترند في المنصة، الرصد الاجتماعي، اتجاهات البحث). (2) الملاءمة: هل يرتبط بصدق بالمشتريات أو التخصصات أو الموردين أو بيئة الأعمال في الإمارات؟ وإن كان الربط متكلفاً يُتجاوز. (3) المخاطر: تُستبعد الترندات الدينية والسياسية والمتعلقة برموز الدولة أو المآسي، ويُتحقق من أصل الترند وأي جدل حوله، ويجب أن يكون الصوت مرخصاً للاستخدام التجاري. (4) القواعد: معايير المحتوى، وسياسة المنصة، ولا سخرية من المنافسين، ولا \"ذكاء اصطناعي\"، ولا أغذية ومشروبات. (5) التوقيت: الترندات تخبو سريعاً، لكن التقويم يمنع النشر في عطلة نهاية الأسبوع والعطل، فإن كان يوم العمل التالي متأخراً يُتجاوز الترند بدلاً من كسر القاعدة، ويجب أن يقع ضمن الخطة الشهرية المعتمدة. (6) الإبداع: زاويتنا في أول ثانيتين وترجمة ثنائية اللغة. (7) القياس مقارنة بوسيط منشورات الحساب. (8) القرار: نشر أو تكييف أو تجاوز مع سطر تعليل.",
+   "sources": [
+    "internal:memory:marketing-month-approval-flow.md"
+   ],
+   "confidence": "high",
+   "as_of": "2026-09-24"
+  },
+  {
+   "id": "marketing:reasoning-paid-spend",
+   "topic": "Reasoning sequence: before recommending paid spend",
+   "kind": "method",
+   "body_en": "(1) Unit economics: what is one reveal worth in fees in this category (from the company pricing model) and what is our measured or benchmarked cost per reveal on this channel? If cost per reveal exceeds the fee and there is no repeat-account case, do not recommend. (2) Tracking readiness: pixel/CAPI or Insight Tag and GA4 key events live, deduplication verified, consent mode in place, conversions imported — otherwise fix tracking first. (3) Channel and campaign type: Search for stated intent, LinkedIn for named business accounts, Meta/CTWA for supplier recruitment; campaign structure per the platform entries. (4) Budget: fits the approved monthly cap; daily pacing computed; learning thresholds reachable at this budget (if not, choose a higher-volume optimisation event). (5) Rules: platform policy, UAE media standards, PDPL for audiences, no competitor names. (6) Test plan: hypothesis, variants, stop rule, sample size. (7) Answer: channel, amount, duration, expected range labelled as assumption or measured, and the kill criterion — included in the one-shot monthly plan, not requested separately.",
+   "body_ar": "(1) اقتصاديات الوحدة: كم تساوي رسوم الكشف الواحد في هذه الفئة وفق نموذج التسعير، وكم تكلفة الكشف الواحد المقاسة أو المرجعية في هذه القناة؟ فإن تجاوزت التكلفة الرسوم ولم توجد حجة الحسابات المتكررة، لا توصية. (2) جاهزية التتبع: البكسل وواجهة التحويلات أو وسم LinkedIn وأحداث GA4 الرئيسية تعمل، وإزالة التكرار مثبتة، ووضع الموافقة مطبق، والتحويلات مستوردة، وإلا يُصلح التتبع أولاً. (3) القناة ونوع الحملة: البحث للنية المعلنة، وLinkedIn للحسابات المسماة، وMeta وإعلانات واتساب لاستقطاب الموردين. (4) الميزانية: ضمن السقف الشهري المعتمد، والتوزيع اليومي محسوب، وعتبات التعلم ممكنة بهذه الميزانية وإلا يُختار حدث تحسين أعلى حجماً. (5) القواعد: سياسة المنصة، ومعايير الإعلام، وحماية البيانات للجماهير، ولا أسماء منافسين. (6) خطة الاختبار: الفرضية والمتغيرات وقاعدة الإيقاف وحجم العينة. (7) الإجابة: القناة والمبلغ والمدة والنطاق المتوقع موسوماً افتراضاً أو قياساً، ومعيار الإيقاف، ضمن الخطة الشهرية الموحدة لا في طلب منفصل.",
+   "sources": [],
+   "confidence": "medium",
+   "as_of": "2026-09-24"
   }
  ],
  "eval": [
@@ -1566,6 +2080,190 @@
     "marketing:tiktok-and-x-ads",
     "marketing:paid-media-economics"
    ]
+  },
+  {
+   "q_en": "How does WhatsApp charge us for messages now?",
+   "q_ar": "كيف تحتسب واتساب رسوم رسائلنا حالياً؟",
+   "expected_entry_ids": [
+    "marketing:whatsapp-pricing-model"
+   ]
+  },
+  {
+   "q_en": "Is a conversation from a Click-to-WhatsApp ad free?",
+   "q_ar": "هل المحادثة الناتجة عن إعلان النقر للمراسلة عبر واتساب مجانية؟",
+   "expected_entry_ids": [
+    "marketing:whatsapp-click-to-chat-ads",
+    "marketing:whatsapp-pricing-model"
+   ]
+  },
+  {
+   "q_en": "How do we stop Meta counting the same lead twice from Pixel and CAPI?",
+   "q_ar": "كيف نمنع Meta من احتساب العميل نفسه مرتين من البكسل وواجهة التحويلات؟",
+   "expected_entry_ids": [
+    "marketing:meta-pixel-capi-events"
+   ]
+  },
+  {
+   "q_en": "What makes a Meta campaign Advantage+?",
+   "q_ar": "ما الذي يجعل حملة Meta من نوع Advantage+؟",
+   "expected_entry_ids": [
+    "marketing:meta-advantage-plus-structure"
+   ]
+  },
+  {
+   "q_en": "How long does LinkedIn keep lead gen form data?",
+   "q_ar": "كم تحتفظ LinkedIn ببيانات نماذج العملاء المحتملين؟",
+   "expected_entry_ids": [
+    "marketing:linkedin-lead-gen-forms"
+   ]
+  },
+  {
+   "q_en": "What is the minimum audience for a LinkedIn campaign using a company list?",
+   "q_ar": "ما الحد الأدنى للجمهور في حملة LinkedIn بقائمة شركات؟",
+   "expected_entry_ids": [
+    "marketing:linkedin-matched-audiences-abm"
+   ]
+  },
+  {
+   "q_en": "Should we run Performance Max or Search first?",
+   "q_ar": "هل نبدأ بحملات Performance Max أم حملات البحث؟",
+   "expected_entry_ids": [
+    "marketing:google-ads-search-vs-pmax"
+   ]
+  },
+  {
+   "q_en": "Why is \"jobs\" still triggering our ads when \"job\" is a negative keyword?",
+   "q_ar": "لماذا تظهر إعلاناتنا لكلمة \"jobs\" رغم أن \"job\" كلمة سلبية؟",
+   "expected_entry_ids": [
+    "marketing:google-ads-negative-keywords"
+   ]
+  },
+  {
+   "q_en": "What are Gmail and Yahoo requirements for our marketing emails?",
+   "q_ar": "ما متطلبات Gmail وYahoo لرسائلنا التسويقية؟",
+   "expected_entry_ids": [
+    "marketing:email-authentication-bulk-sender-rules"
+   ]
+  },
+  {
+   "q_en": "When is Big 5 Global this year and where?",
+   "q_ar": "متى وأين يُقام معرض Big 5 Global هذا العام؟",
+   "expected_entry_ids": [
+    "marketing:events-uae-trade-shows"
+   ]
+  },
+  {
+   "q_en": "Where is GITEX 2026 held?",
+   "q_ar": "أين يُقام GITEX 2026؟",
+   "expected_entry_ids": [
+    "marketing:events-uae-trade-shows"
+   ]
+  },
+  {
+   "q_en": "Can we post a National Day greeting on 2 December?",
+   "q_ar": "هل يمكننا نشر تهنئة اليوم الوطني في 2 ديسمبر؟",
+   "expected_entry_ids": [
+    "marketing:national-day-campaign-norms"
+   ]
+  },
+  {
+   "q_en": "Can our ad say we are cheaper than a named competitor?",
+   "q_ar": "هل يمكن أن يقول إعلاننا إننا أرخص من منافس مسمّى؟",
+   "expected_entry_ids": [
+    "marketing:comparative-advertising-rules"
+   ]
+  },
+  {
+   "q_en": "Should Arabic ads use Emirati dialect?",
+   "q_ar": "هل تُكتب الإعلانات العربية باللهجة الإماراتية؟",
+   "expected_entry_ids": [
+    "marketing:arabic-dialect-vs-msa"
+   ]
+  },
+  {
+   "q_en": "How do we get QuotesDone into Bing quickly after publishing a guide?",
+   "q_ar": "كيف نُدخل دليلاً جديداً إلى فهرس Bing بسرعة بعد نشره؟",
+   "expected_entry_ids": [
+    "marketing:geo-bing-indexnow"
+   ]
+  },
+  {
+   "q_en": "Should we create a Wikidata item for QuotesDone now?",
+   "q_ar": "هل ننشئ عنصراً لـ QuotesDone في Wikidata الآن؟",
+   "expected_entry_ids": [
+    "marketing:geo-wikidata-entity"
+   ]
+  },
+  {
+   "q_en": "What must happen before Google tags fire on our site?",
+   "q_ar": "ما الذي يجب أن يحدث قبل تشغيل وسوم Google على موقعنا؟",
+   "expected_entry_ids": [
+    "marketing:consent-mode-v2"
+   ]
+  },
+  {
+   "q_en": "Which GA4 events are our key events?",
+   "q_ar": "ما الأحداث الرئيسية في GA4 لدينا؟",
+   "expected_entry_ids": [
+    "marketing:ga4-key-events-plan"
+   ]
+  },
+  {
+   "q_en": "Can we retarget website visitors with Meta ads?",
+   "q_ar": "هل يمكننا إعادة استهداف زوار الموقع بإعلانات Meta؟",
+   "expected_entry_ids": [
+    "marketing:retargeting-pdpl-consent"
+   ]
+  },
+  {
+   "q_en": "What percentage of revenue should marketing spend?",
+   "q_ar": "ما النسبة من الإيرادات التي يجب إنفاقها على التسويق؟",
+   "expected_entry_ids": [
+    "marketing:marketing-budget-benchmarks"
+   ]
+  },
+  {
+   "q_en": "Can we pay users for referring new buyers?",
+   "q_ar": "هل يمكننا الدفع للمستخدمين مقابل إحالة مشترين جدد؟",
+   "expected_entry_ids": [
+    "marketing:referral-programme"
+   ]
+  },
+  {
+   "q_en": "How do we think before suggesting a new campaign?",
+   "q_ar": "كيف نفكر قبل اقتراح حملة جديدة؟",
+   "expected_entry_ids": [
+    "marketing:reasoning-campaign-idea"
+   ]
+  },
+  {
+   "q_en": "A trending sound is viral on Friday — do we post?",
+   "q_ar": "صوت رائج انتشر يوم الجمعة، هل ننشر؟",
+   "expected_entry_ids": [
+    "marketing:reasoning-trend-response"
+   ]
+  },
+  {
+   "q_en": "Should we use TikTok to reach procurement managers?",
+   "q_ar": "هل نستخدم TikTok للوصول إلى مديري المشتريات؟",
+   "expected_entry_ids": [
+    "marketing:tiktok-snapchat-uae"
+   ]
+  },
+  {
+   "q_en": "Can we publish a customer success story with savings figures?",
+   "q_ar": "هل يمكننا نشر قصة نجاح عميل مع أرقام التوفير؟",
+   "expected_entry_ids": [
+    "marketing:case-studies-standard"
+   ]
+  },
+  {
+   "q_en": "How often should we change our ad creatives?",
+   "q_ar": "كم مرة نغيّر تصاميم إعلاناتنا؟",
+   "expected_entry_ids": [
+    "marketing:frequency-creative-fatigue",
+    "marketing:creative-testing-framework"
+   ]
   }
  ],
  "verified": {
@@ -1578,7 +2276,8 @@
    "marketing:geo-engine-retrieval-map",
    "marketing:ai-generated-content-disclosure",
    "marketing:marketing-glossary",
-   "marketing:geo-measurement"
+   "marketing:geo-measurement",
+   "marketing:email-marketing"
   ],
   "removed": [],
   "still_unverified": [
@@ -1594,6 +2293,104 @@
   "prior_pass": {
    "fetched_urls": 49,
    "claims_checked": 531
+  },
+  "wave2": {
+   "fetched_urls": [
+    "https://developers.facebook.com/docs/whatsapp/pricing",
+    "https://developers.facebook.com/docs/marketing-api/conversions-api/deduplicate-pixel-and-server-events",
+    "https://developers.facebook.com/docs/marketing-api/advantage-campaigns",
+    "https://support.google.com/a/answer/81126",
+    "https://senders.yahooinc.com/best-practices/",
+    "https://support.google.com/google-ads/answer/10724817",
+    "https://support.google.com/google-ads/answer/2453972",
+    "https://developers.google.com/tag-platform/security/guides/consent",
+    "https://developers.google.com/tag-platform/tag-manager/server-side/intro",
+    "https://support.google.com/analytics/answer/13128484",
+    "https://www.indexnow.org/documentation",
+    "https://www.wikidata.org/wiki/Wikidata:Notability",
+    "https://u.ae/en/media/media-in-the-uae/media-regulation",
+    "https://snap.com/en-US/ad-policies",
+    "https://www.linkedin.com/help/lms/answer/a423364 (via search)",
+    "https://www.linkedin.com/help/lms/answer/a424450 (via search)",
+    "https://www.big5global.com/ (via search)",
+    "https://www.gitex.com/gitex-global-2026 (via search)",
+    "https://www.adipec.com/ (via search)",
+    "https://intersecglobal.ae.messefrankfurt.com/dubai/en.html (via search)"
+   ],
+   "claims_checked": 96,
+   "not_verified": [
+    "Meta learning-phase 50-event threshold (help page unreadable; medium)",
+    "INDEX 2026 dates (listings only; medium)",
+    "Advertiser Permit 1 Feb 2026 / free 3 years (law-firm and press summaries; uaemc.gov.ae not read)",
+    "Media Council advertising-standard article numbers for comparative advertising",
+    "UAE TikTok/Snapchat audience sizes and CPMs",
+    "UAE Arabic search volumes per trade",
+    "marketing budget % of revenue benchmarks"
+   ],
+   "added": [
+    "marketing:meta-advantage-plus-structure",
+    "marketing:meta-pixel-capi-events",
+    "marketing:meta-learning-phase",
+    "marketing:linkedin-lead-gen-forms",
+    "marketing:linkedin-matched-audiences-abm",
+    "marketing:google-ads-search-vs-pmax",
+    "marketing:google-ads-negative-keywords",
+    "marketing:google-ads-arabic-keywords",
+    "marketing:tiktok-snapchat-uae",
+    "marketing:creative-testing-framework",
+    "marketing:budget-pacing-bidding",
+    "marketing:frequency-creative-fatigue",
+    "marketing:retargeting-pdpl-consent",
+    "marketing:whatsapp-pricing-model",
+    "marketing:email-authentication-bulk-sender-rules",
+    "marketing:newsletter-craft",
+    "marketing:case-studies-standard",
+    "marketing:buyer-guides-per-trade",
+    "marketing:events-uae-trade-shows",
+    "marketing:national-day-campaign-norms",
+    "marketing:comparative-advertising-rules",
+    "marketing:advertiser-permit-2026-update",
+    "marketing:arabic-dialect-vs-msa",
+    "marketing:brand-voice-guidelines",
+    "marketing:two-sided-landing-pages",
+    "marketing:referral-programme",
+    "marketing:supplier-acquisition-funnel",
+    "marketing:gbp-review-operations",
+    "marketing:geo-bing-indexnow",
+    "marketing:geo-wikidata-entity",
+    "marketing:ga4-key-events-plan",
+    "marketing:consent-mode-v2",
+    "marketing:server-side-tagging",
+    "marketing:marketing-budget-benchmarks",
+    "marketing:whatsapp-click-to-chat-ads",
+    "marketing:event-marketing-playbook",
+    "marketing:reasoning-campaign-idea",
+    "marketing:reasoning-post-review",
+    "marketing:reasoning-answer-marketing-question",
+    "marketing:reasoning-trend-response",
+    "marketing:reasoning-paid-spend"
+   ],
+   "upgraded": "2026-09-24 instr 961",
+   "corrected": [
+    "marketing:handoffs-and-governance",
+    "marketing:brand-voice-guidelines",
+    "marketing:reasoning-campaign-idea",
+    "marketing:reasoning-post-review",
+    "marketing:reasoning-answer-marketing-question",
+    "marketing:reasoning-trend-response",
+    "marketing:marketing-budget-benchmarks",
+    "marketing:reasoning-paid-spend",
+    "marketing:geo-answer-first-content",
+    "marketing:consumer-protection-advertising",
+    "marketing:icp-suppliers",
+    "marketing:supplier-recruitment-outreach",
+    "marketing:google-ads-policy",
+    "marketing:buyer-guides-per-trade",
+    "marketing:comparative-advertising-rules",
+    "marketing:two-sided-landing-pages",
+    "marketing:national-day-campaign-norms",
+    "marketing:ramadan-uae-calendar"
+   ]
   }
  }
 }
