@@ -532,6 +532,7 @@ const COPY: Record<string, Entry> = {
   // ── supplier_api gate and error codes ───────────────────────────────────────────────────────────
   no_company: s('Register your company first.', 'يُرجى تسجيل شركتكم أولًا.'),
   company_exists: s('Your account already manages a company.', 'حسابكم يدير شركة بالفعل.'),
+  company_already_registered: s('A company with this name is already registered on QuotesDone. If it is yours, sign in with the email used to register it, or write to management@quotesdone.com.', 'شركة بهذا الاسم مسجّلة مسبقًا في QuotesDone. إن كانت شركتكم فيُرجى تسجيل الدخول بالبريد الإلكتروني المستخدم في تسجيلها، أو مراسلتنا على management@quotesdone.com.'),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   not_verified: s((p) => `Your registration is not verified yet${p.reason ? ': ' + (COPY[p.reason]?.en({}) || p.reason) : ''}. Upload a clear, in-date trade licence in Documents — it is re-checked automatically the moment it is saved.`,

@@ -57,7 +57,7 @@ const dq = (s) => { const tag = 'q' + Math.random().toString(36).slice(2, 8); re
 async function liveConfig() {
   const keys = ['email_from_supplier', 'email_reply_supplier', 'invite_subject', 'invite_subject_ar', 'invite_body', 'invite_body_ar',
     'public_site_url', 'email_signature_name', 'email_signature_name_ar', 'email_signature_title', 'email_logo_url',
-    'unsubscribe_public_base', 'email_asset_public_base'];
+    'unsubscribe_public_base', 'email_asset_public_base', 'invite_preheader'];
   const rows = await sql(`select key, value from app_secrets where key in (${keys.map((k) => `'${k}'`).join(',')})
                           union all select 'tpl:email_supplier', content from templates where name = 'email_supplier'`);
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
@@ -85,7 +85,7 @@ async function render(c, lang) {
   const body = inviteBody(c, lang);
   const subject = ar ? c.invite_subject_ar : c.invite_subject;
   const html0 = tmpl({ body, logo: c.email_logo_url || '', name: ar ? (c.email_signature_name_ar || 'أحمد الزين') : (c.email_signature_name || 'Ahmad Alzain'),
-    title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject });
+    title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject, preheader: ar ? '' : (c.invite_preheader || '') });
   const mail = resendPayload({ from: c.email_from_supplier || 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject,
     html: ownDomain(ar ? arabicFrame(html0) : html0, PROJECT_URL, c.email_asset_public_base || ''), text: plainTextPart({ body, unsub, ar, internal: false }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
   return { mail, lint: inboxLint(mail, ['quotesdone.com', `${REF}.supabase.co`]) };
