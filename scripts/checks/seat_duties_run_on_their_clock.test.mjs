@@ -123,6 +123,7 @@ test('production: every registered seat duty is on its clock (fn_seat_duty_healt
     assert.ok(pending(FRAME), 'public.seat_duty is not on production and the framework file has no pending note');
     return;
   }
-  const [{ h }] = await sql(`select public.fn_seat_duty_health() as h`, { readOnly: true });
+  // Not the API read-only role: fn_seat_duty_health is service-role only (42501). It is STABLE; nothing is written.
+  const [{ h }] = await sql(`select public.fn_seat_duty_health() as h`);
   assert.deepEqual(h, [], 'seat duties not being done: ' + JSON.stringify(h).slice(0, 1500));
 });

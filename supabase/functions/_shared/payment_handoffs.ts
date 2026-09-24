@@ -58,6 +58,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'deliberation.review', from: 'accountant', to: 'ceo' },         // a fee-circumvention finding (#904)
   { type: 'deliberation.review', from: 'sales_engineer', to: 'marketing' }, // a supply gap marketing should recruit for (#905)
   { type: 'deliberation.review', from: 'ceo', to: 'accountant' },         // the CEO's pricing or forecast call, reviewed (#906)
+  { type: 'deliberation.review', from: 'it_engineer', to: 'ceo' },        // the CEO judges a seat's case (#913)
+  { type: 'deliberation.review', from: 'sales_engineer', to: 'ceo' },     // the CEO judges a seat's case (#913)
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },

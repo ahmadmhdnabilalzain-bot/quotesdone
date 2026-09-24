@@ -1,6 +1,0 @@
-Committed, not applied. Apply AFTER every_seat_duty_has_an_owner_a_clock_and_a_check.sql (#901: seat_duty, fn_seat_duty_reason,
-fn_seat_duty_cross_review) and the_ceo_reviews_the_week_watches_pricing_and_forecasts_the_target.sql (#906: the ceo>accountant
-deliberation.review kind, fn_ceo_target_forecast). Then delete this note and append the file to the END of MANIFEST.txt in the
-same commit: it becomes canonical for fn_ceo_plan_funnel and fn_ceo_plan_decide, so it must sit below
-the_ceo_plans_every_day_and_directs_the_seats.sql. Proved in an aborted transaction by
-scripts/checks/the_ceo_target_experiments_and_competitors_act.test.mjs.
