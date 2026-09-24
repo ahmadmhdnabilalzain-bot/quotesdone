@@ -244,7 +244,7 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
-      "admin_emails": "setting", "admin_mfa_phone": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
+      "admin_emails": "setting", "admin_mfa_phone": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
       "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",

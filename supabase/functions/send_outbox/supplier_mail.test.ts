@@ -9,9 +9,9 @@ import { arabicFrame } from './arabic_frame.ts';
 const LINK = 'https://quotesdone.com/en/portal?t=00000000-0000-0000-0000-000000000000';
 const UNSUB = 'https://x.supabase.co/functions/v1/unsubscribe?e=a%40b.ae&t=abc';
 // The shape of templates.email_supplier as measured on 21 Sep 2026: {{BODY}} inside a pre-wrap div,
-// the licence footer, then {{UNSUB}}.
+// the footer (Al Furjan, no licence number since 24 Sep 2026), then {{UNSUB}}.
 const WRAPPER = '<!doctype html><html><head></head><body>{{LOGO}}<div dir="auto">{{BODY}}</div>'
-  + '<div>{{NAME}}</div><div>{{TITLE}}, QuotesDone</div><div>{{REPLY}}</div><div>QuotesDone Technologies &middot; Dubai, UAE &middot; DET Trader Licence No. 1633275 &middot; TDRA NOL-26-100000665{{UNSUB}}</div></body></html>';
+  + '<div>{{NAME}}</div><div>{{TITLE}}, QuotesDone</div><div>{{REPLY}}</div><div>QuotesDone Technologies &middot; Al Furjan, Dubai, UAE &middot; TDRA NOL-26-100000665{{UNSUB}}</div></body></html>';
 
 Deno.test('an unsubscribed address with a capital letter is still recognised', () => {
   const suppressed = new Set(['buyer@acme.ae'].map(foldEmail));
@@ -30,11 +30,13 @@ Deno.test('the plain-text part carries the body, the licence footer and the unsu
   const en = plainTextPart({ body: 'Dear X,\n\n' + LINK, unsub: UNSUB, ar: false, internal: false });
   assertStringIncludes(en, LINK);
   assertStringIncludes(en, 'Unsubscribe: ' + UNSUB);
-  // 22 Sep 2026 (DL-06): the footer names the licence the company actually holds, and the TDRA permit.
-  assertStringIncludes(en, 'DET Trader Licence No. 1633275 · TDRA NOL-26-100000665');
+  // 24 Sep 2026 (ledger 993): no trade licence number in supplier mail; the address is Al Furjan, Dubai.
+  assertStringIncludes(en, 'QuotesDone Technologies · Al Furjan, Dubai, UAE · TDRA NOL-26-100000665');
+  assert(!/1633275|[Ll]icen[cs]e No/.test(en), 'no trade licence number in supplier mail');
   assert(!/E-Trader/.test(en), 'the DET issues no "E-Trader" licence to this company');
   const ar = plainTextPart({ body: 'السادة', unsub: UNSUB, ar: true, internal: false });
-  assertStringIncludes(ar, 'رخصة تاجر رقم 1633275');
+  assertStringIncludes(ar, 'الفرجان، دبي');
+  assert(!/1633275/.test(ar), 'no trade licence number in Arabic supplier mail');
   assert(!/تاجر إلكتروني/.test(ar));
   assertStringIncludes(ar, 'إلغاء الاشتراك: ' + UNSUB);
   // The second way out names the mailbox resend_inbound reads, never "reply" (that went to an unread inbox).
@@ -56,4 +58,18 @@ Deno.test('the rendered invitation has a clickable portal link and the unsubscri
   assert(!ar.includes('>Unsubscribe</a>'));
   assertStringIncludes(ar, '<div>المؤسس، QuotesDone</div>');
   assertStringIncludes(ar, 'أو مراسلة unsubscribe@mail.quotesdone.com لإزالة عنوانكم من القائمة');
+});
+
+Deno.test('the invitation carries a hidden preheader first in <body>, no licence number, and the Al Furjan address', () => {
+  const html = tmpl({ body: 'Dear X,\n\n' + LINK, logo: '', name: 'N', title: 'T', channelEmail: 'supplier@quotesdone.com',
+    unsub: UNSUB, wrapper: WRAPPER, internal: false, preheader: 'Free for the first 1,000 suppliers. No commission, ever.' });
+  assertMatch(html, /<body><div style="display:none;[^"]*">Free for the first 1,000 suppliers\. No commission, ever\.&zwnj;/);
+  assert(!/1633275/.test(html));
+  assertStringIncludes(html, 'Al Furjan, Dubai, UAE');
+  const ar = arabicFrame(html);
+  assertStringIncludes(ar, 'الفرجان، دبي، الإمارات العربية المتحدة');
+  assert(!/Al Furjan|Dubai, UAE/.test(ar), 'the Arabic frame translates the whole address');
+  // No preheader asked for, none rendered: every other mail is unchanged.
+  const plain = tmpl({ body: 'x', logo: '', name: 'N', title: 'T', channelEmail: 'a@b.c', unsub: UNSUB, wrapper: WRAPPER, internal: false });
+  assert(!/display:none/.test(plain));
 });

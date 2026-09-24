@@ -6,7 +6,7 @@
 // licence (one page, Helvetica, a plain content stream), once uncompressed and once FlateDecode —
 // the two framings a generated or printed-to-PDF UAE licence arrives in.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { expiryFromText, parseDate, pdfText, readExpiry, textFromContent } from './document_expiry.ts';
+import { expiryFromText, licenceNameFromText, parseDate, pdfText, readExpiry, readLicenceName, textFromContent } from './document_expiry.ts';
 
 const enc = new TextEncoder();
 const esc = (s: string) => s.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
@@ -82,4 +82,19 @@ Deno.test('readExpiry: an image, a non-PDF and a PDF without an expiry all say n
   assertEquals(await readExpiry(enc.encode('\x89PNG....'), 'image/png'), null);
   assertEquals(await readExpiry(enc.encode('hello'), 'application/pdf'), null);
   assertEquals(await readExpiry(await pdf(['GOVERNMENT OF DUBAI', 'Issue Date : 14/03/2024']), 'application/pdf'), null);
+});
+
+// 24 Sep 2026: the licence's printed company name, for the sales engineer's name check.
+Deno.test('licenceNameFromText: legal name first, same line only, null when unlabelled', () => {
+  const lic = 'Trade Name            : Al Meydan Aluminium And Glass Works\nLegal Name            : Al Meydan Aluminium And Glass Works L.L.C\nExpiry Date : 13/03/2027';
+  assertEquals(licenceNameFromText(lic), 'Al Meydan Aluminium And Glass Works L.L.C');
+  assertEquals(licenceNameFromText('Trade Name: Nasser Metal Works'), 'Nasser Metal Works');
+  assertEquals(licenceNameFromText('الاسم التجاري: الميدان للألمنيوم'), 'الميدان للألمنيوم');
+  assertEquals(licenceNameFromText('Legal Name:\nExpiry 2027-01-01'), null);
+  assertEquals(licenceNameFromText('Al Meydan Aluminium LLC'), null);
+});
+
+Deno.test('readLicenceName: reads the name off a text-layer licence PDF, null for an image', async () => {
+  assertEquals(await readLicenceName(await pdf(['Legal Name : ZZ Demo Works L.L.C', 'Expiry Date : 13/03/2027'], true), 'application/pdf'), 'ZZ Demo Works L.L.C');
+  assertEquals(await readLicenceName(new Uint8Array([0xff, 0xd8]), 'image/jpeg'), null);
 });

@@ -434,7 +434,7 @@ Deno.serve(observe('kyc', async (req) => {
       if (kind === 'supplier') {
         const curV = await currentSupplierTermsVersion(sec);
         if (!(lead as any)?.accepted_terms_at || (lead as any)?.accepted_terms_version !== curV) {
-          const rec = await supplierTermsRecord(sec, ip);
+          const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);
         }

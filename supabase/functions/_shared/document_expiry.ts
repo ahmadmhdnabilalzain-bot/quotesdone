@@ -102,7 +102,10 @@ function unescapePdf(s: string): string {
 export function textFromContent(content: string): string {
   const out: string[] = [];
   // (...) Tj  |  [ (...) -250 (...) ] TJ  |  <hex> Tj  |  T* / Td / TD / ET → newline
-  const re = /\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:[^\]\\]|\\.)*)\]\s*TJ|<([0-9A-Fa-f\s]+)>\s*Tj|\b(T\*|Td|TD|ET)\b/g;
+  const re = /\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:[^\]\\]|\\.)*)\]\s*TJ|<([0-9A-Fa-f\s]+)>\s*Tj|\b(T\*|Td\b|TD\b|ET\b)/g;
+  // 24 Sep 2026: `T*` then a trailing \b never matched (no word boundary after '*'), so a licence laid out
+  // with T* read as ONE line and "Legal Name : X" swallowed the rest of the page. Measured by the
+  // readLicenceName test below the fix.
   let m: RegExpExecArray | null;
   while ((m = re.exec(content))) {
     if (m[1] !== undefined) out.push(unescapePdf(m[1]));
@@ -149,6 +152,27 @@ export async function pdfText(bytes: Uint8Array): Promise<string | null> {
   }
   const text = chunks.join('\n').trim();
   return text ? text : null;
+}
+
+// THE NAME A LICENCE PRINTS (24 Sep 2026, sales_engineer). The review compares it with the registered
+// company name (fn_supplier_licence_name_mismatch). Read the same way as the expiry: a value on the SAME
+// line as a name label, nothing inferred. Legal name is preferred over trade name, which a UAE licence
+// may print without the legal form. No label = null ("not read"), never a guess.
+const NAME_LABELS = ['legal name', 'company name', 'name of company', 'name of the company', 'trade name',
+  'الاسم القانوني', 'اسم الشركة', 'الاسم التجاري'];
+export function licenceNameFromText(text: string): string | null {
+  for (const label of NAME_LABELS) {
+    const re = new RegExp('^[ \\t]*' + label + '[ \\t]*[:：\\-]?[ \\t]*(.+)$', 'im');
+    const v = re.exec(String(text || ''))?.[1]?.trim().slice(0, 200);
+    if (v && /\p{L}{2}/u.test(v)) return v;
+  }
+  return null;
+}
+/** The licence's printed company name from a text-layer PDF, or null. Images return null (no OCR). */
+export async function readLicenceName(bytes: Uint8Array, mime: string): Promise<string | null> {
+  if (!/pdf/i.test(mime)) return null;
+  const text = await pdfText(bytes);
+  return text ? licenceNameFromText(text) : null;
 }
 
 /** The one call the upload paths make: bytes in, a read expiry or null out. Images return null (no OCR here). */
