@@ -14,6 +14,9 @@
 //       supplier_invite, so it never spends the day's cap and the campaign gates (invite_enabled,
 //       supplier_outreach_golive) are untouched. REFUSES any address outside SEED_DOMAINS: nothing can
 //       reach a real person through this flag.
+//       --subject-file=<path> / --body-file=<path> send a CANDIDATE subject/body (same {{company}}/{{link}}
+//       placeholders) instead of the live copy; --role=customer routes it through the info@ identity and
+//       customer frame instead (a diagnostic to split sender identity from content), so a copy fix is placement-tested before app_secrets changes.
 //
 // Token: %USERPROFILE%\.supabase\access-token or SUPABASE_ACCESS_TOKEN. No secret is printed.
 import { readFileSync, existsSync } from 'node:fs';
@@ -64,9 +67,9 @@ async function liveConfig() {
 }
 
 /** The invitation body exactly as fn_supplier_invite_candidates fills it, for a fixture company. */
-function inviteBody(c, lang) {
+function inviteBody(c, lang, override) {
   const site = c.public_site_url || 'https://quotesdone.com';
-  const body = lang === 'ar' ? c.invite_body_ar : c.invite_body;
+  const body = override ?? (lang === 'ar' ? c.invite_body_ar : c.invite_body);
   return body.split('{{company}}').join('ZZ DEMO Supplier')
     .split('{{link}}').join(`${site}/${lang}/portal?t=00000000-0000-0000-0000-000000000000`);
 }
@@ -96,9 +99,10 @@ async function main() {
   if (flag('send-seed')) {
     const to = arg('to'); const lang = arg('lang') === 'ar' ? 'ar' : 'en';
     if (!seedAddressAllowed(to)) { console.error(`REFUSED: ${to || '(no --to)'} is not on an inbox-test service (${SEED_DOMAINS.join(', ')}).`); process.exit(2); }
-    const subject = lang === 'ar' ? c.invite_subject_ar : c.invite_subject;
+    const readOpt = (k) => (arg(k) ? readFileSync(arg(k), 'utf8').trim() : undefined);
+    const subject = readOpt('subject-file') ?? (lang === 'ar' ? c.invite_subject_ar : c.invite_subject);
     const [row] = await sql(`insert into notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-      values ('supplier_invite_seed', ${dq(to.toLowerCase())}, 'supplier', ${dq(subject)}, ${dq(inviteBody(c, lang))}, '${lang}', 'queued', 'customer_support')
+      values ('supplier_invite_seed', ${dq(to.toLowerCase())}, '${arg('role') === 'customer' ? 'customer' : 'supplier'}', ${dq(subject)}, ${dq(inviteBody(c, lang, readOpt('body-file')))}, '${lang}', 'queued', 'customer_support')
       returning id, status`);
     console.log(`queued notifications#${row.id} (${row.status}) to ${to}; waiting for send_outbox ...`);
     for (let i = 0; i < 40; i++) {
