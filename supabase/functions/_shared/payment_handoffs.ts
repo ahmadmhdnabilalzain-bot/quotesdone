@@ -58,6 +58,8 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'deliberation.review', from: 'accountant', to: 'ceo' },         // a fee-circumvention finding (#904)
   { type: 'deliberation.review', from: 'sales_engineer', to: 'marketing' }, // a supply gap marketing should recruit for (#905)
   { type: 'deliberation.review', from: 'ceo', to: 'accountant' },         // the CEO's pricing or forecast call, reviewed (#906)
+  { type: 'deliberation.review', from: 'it_engineer', to: 'ceo' },        // the CEO judges a seat's case (#913)
+  { type: 'deliberation.review', from: 'sales_engineer', to: 'ceo' },     // the CEO judges a seat's case (#913)
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
@@ -108,6 +110,22 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'ceo.directive', from: 'ceo', to: 'it_engineer' },
   // the demand stage is the marketing seat's (instruction 721): the CEO steers it like every other seat, never approves
   { type: 'ceo.directive', from: 'ceo', to: 'marketing' },
+  // the root cause of a target miss (the ambition build, #913) and the year-one plan's month directive and improvement (#923)
+  { type: 'ceo.root_cause', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.root_cause', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.root_cause', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.root_cause', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.root_cause', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.month_directive', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.month_directive', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.month_directive', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.month_directive', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.month_directive', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.improvement', from: 'ceo', to: 'sales_engineer' },
+  { type: 'ceo.improvement', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.improvement', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.improvement', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.improvement', from: 'ceo', to: 'it_engineer' },
   // THE MARKETING SEAT (founder instruction 721, 22 Sep 2026; scripts/sql/the_company_gets_a_marketing_seat_that_reports_the_picture_to_the_ceo.sql).
   // It reports the overall picture to the CEO, who READS it and closes it (never approves); it reports ad spend to
   // the accountant, who records it and answers; email and WhatsApp still go through customer_support.
