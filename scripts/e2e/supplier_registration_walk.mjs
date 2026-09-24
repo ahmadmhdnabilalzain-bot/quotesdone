@@ -35,6 +35,9 @@ const argv = process.argv.slice(2);
 const val = (f, d) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : d; };
 const LANGS = val('--lang', 'en,ar').split(','); const VPS = val('--vp', 'desktop,mobile').split(',');
 const KEEP = argv.includes('--keep');
+// --shots <dir>: a full-page screenshot of every screen, named <lang>_<vp>_<nn>_<step>.png (24 Sep 2026, ledger 993).
+const SHOTS = val('--shots', ''); let shotN = 0;
+const shot = async (p, m, name) => { if (!SHOTS) return; const f = join(SHOTS, `${m.replace('/', '_')}_${String(++shotN).padStart(2, '0')}_${name}.png`); await p.screenshot({ path: f, fullPage: true }).catch(() => {}); console.log('  shot', f); };
 const TMP = mkdtempSync(join(tmpdir(), 'qd-regwalk-'));
 const AR = (l) => l === 'ar';
 const results = [];
@@ -51,7 +54,7 @@ try {
       returning id, claim_token::text t`, 'invited demo lead'))[0];
     run.ids.leads.add(String(lead.id));
     const mobile = vp === 'mobile';
-    const ctxOpts = { viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 900 }, locale: AR(lang) ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
+    const ctxOpts = { viewport: mobile ? { width: Number(val('--mobile-width', '390')), height: 844 } : { width: 1440, height: 900 }, locale: AR(lang) ? 'ar-AE' : 'en-GB', ...(mobile ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {}) };
     const consent = () => localStorage.setItem('qd-cookie-consent', JSON.stringify({ necessary: true, analytics: false, marketing: false, ts: Date.now() }));
     const url = `${SITE}/${lang}/portal?t=${lead.t}`;
 
@@ -59,9 +62,10 @@ try {
     { const ctx = await browser.newContext(ctxOpts); await ctx.addInitScript(consent); const p = await ctx.newPage(); const t0 = Date.now();
       await p.goto(url, { waitUntil: 'domcontentloaded' });
       const seen = await p.getByText(company).first().waitFor({ timeout: 20000 }).then(() => true).catch(() => false);
-      step(m, 'the invitation names the company on landing', seen, `${Date.now() - t0} ms`);
+      step(m, 'the invitation names the company on landing', seen, `${Date.now() - t0} ms`); await shot(p, m, 'landing_from_invitation');
       const h1 = await p.locator('#qd-supplier-signin h1').innerText().catch(() => '');
       step(m, 'the form opens on create-account, not "Welcome back"', (AR(lang) ? /سجّل|التسجيل|إنشاء حساب/.test(h1) && !/بعودت/.test(h1) : /Register/.test(h1) && !/Welcome back/i.test(h1)), h1);
+      await shot(p, m, 'signup_form');
       await ctx.close(); }
 
     // 2. sign-up (see header: OTP seeded, verified through login_otp), then the portal with the claim token
@@ -89,6 +93,7 @@ try {
       await p.waitForTimeout(500);
     }
     step(m, 'the claimed company opens — never a blank "Register your company"', !blank.hit && await heading.isVisible(), `${Date.now() - t1} ms`);
+    await shot(p, m, 'portal_after_claim');
     const claimed = (await read(`select claimed, lower(claimed_by)=lower('${email}') mine, owner_email_verified ev from public.leads where id=${lead.id}`))[0];
     step(m, 'the listing is claimed by this account with the e-mail proof carried', claimed?.claimed && claimed?.mine && claimed?.ev, JSON.stringify(claimed));
 
@@ -110,6 +115,7 @@ try {
     await M.locator('input[type=file]').nth(1).setInputFiles(prof); await upBtn().click(); await settle(); await p.waitForTimeout(2500);
     const docs = (await read(`select license_doc_path is not null lic, license_expiry, company_profile_doc_path is not null prof from public.leads where id=${lead.id}`))[0];
     step(m, 'licence + company profile uploaded; licence expiry read', docs?.lic && docs?.prof && String(docs?.license_expiry || '').startsWith('2028'), JSON.stringify(docs));
+    await shot(p, m, 'documents_uploaded');
     for (const d of await read(`select license_doc_path p from public.leads where id=${lead.id} union all select company_profile_doc_path from public.leads where id=${lead.id}`)) if (d.p) run.ids.storage.push('supplier-docs/' + d.p);
 
     // 4. mobile: the fixture refusal, then recorded verified
@@ -123,6 +129,7 @@ try {
     const waQ = await M.getByText(/WhatsApp|واتساب/).first().waitFor({ timeout: 15000 }).then(() => true).catch(() => false);
     if (!waQ) await p.screenshot({ path: join(TMP, `wa_${n}.png`), fullPage: true });
     step(m, 'the WhatsApp question is on the Profile tab while registration needs it', waQ, waQ ? '' : 'screen: ' + join(TMP, `wa_${n}.png`));
+    await shot(p, m, 'profile_whatsapp_question');
     const wa = await call('kyc', s.access_token, { action: 'whatsapp_choose', user_kind: 'supplier', email, opt: 'same' });
     step(m, 'the WhatsApp answer is recorded', wa.json?.ok === true, `HTTP ${wa.status}`);
     await p.reload({ waitUntil: 'domcontentloaded' }); await heading.waitFor({ timeout: 30000 });
@@ -136,6 +143,7 @@ try {
     await M.getByRole('button', { name: /Saving|جارٍ الحفظ/ }).waitFor({ state: 'detached', timeout: 90000 }).catch(() => {});
     const reg = (await read(`select approval_status, signed_terms_path, signatory_name from public.leads where id=${lead.id}`))[0];
     step(m, 'terms + Save → approved with a signed certificate', reg?.approval_status === 'approved' && !!reg?.signed_terms_path, `${JSON.stringify(reg)} in ${Date.now() - t2} ms`);
+    await shot(p, m, 'after_submit');
     if (reg?.signed_terms_path) run.ids.storage.push('signed-terms/' + reg.signed_terms_path);
 
     // 6. every tab, the bell and the account menu settle
@@ -143,6 +151,7 @@ try {
     for (const name of await nav.getByRole('button').allInnerTexts()) {
       await nav.getByRole('button', { name, exact: true }).click(); const ms = await settle();
       step(m, `tab "${name}" settles`, ms >= 0, `${ms} ms${ms > 3000 ? ' (>3 s)' : ''}`);
+      await shot(p, m, 'tab_' + name.replace(/[^a-z0-9]+/gi, '_').slice(0, 20));
     }
     for (let k = 0; k < 3; k++) {
       await acct.locator('summary').click(); const b = acct.getByRole('button').nth(k); const name = await b.innerText();

@@ -571,10 +571,17 @@ export function SupplierPortal() {
     // into "this is your listing, claim it".
     try {
       const t = new URLSearchParams(window.location.search).get('t') || '';
+      // A LINK THAT DOES NOT RESOLVE SAYS SO (24 Sep 2026, sales_engineer, ledger 993). Measured: a
+      // mistyped or out-of-date ?t= opened the generic page on "Welcome back", with nothing telling the
+      // supplier the invitation link was the problem. claim_lookup answers invalid_link / not_found for
+      // exactly that; a network failure or a 503 stays silent, because the link may well be fine.
       if (UUID_RE.test(t)) {
         sessionStorage.setItem(CLAIM_KEY, t);
-        call('claim_lookup', { t }).then((j) => { if (j && j.ok) setInvite(j); }).catch(() => {});
-      }
+        call('claim_lookup', { t }).then((j) => {
+          if (j && j.ok) setInvite(j);
+          else if (j && (j.error === 'invalid_link' || j.error === 'not_found')) setInvite({ invalid: true });
+        }).catch(() => {});
+      } else if (t) setInvite({ invalid: true });
     } catch (_e) {}
     try { const th = localStorage.getItem('qd-theme'); if (th === 'light' || th === 'dark') setTheme(th); } catch (_e) {}
     // A magic-link session in the URL is taken out of it in place and signs in (audit 21 Sep, item 29).
@@ -693,7 +700,7 @@ export function SupplierPortal() {
         {phase === 'login' && invite && <InviteBanner invite={invite} lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
         {/* §1 — the supplier meets the product before the sign-in box, not after it. */}
         {phase === 'login' && <SupplierEntryHero lang={lang} onStart={() => { try { document.getElementById('qd-supplier-signin')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_e) {} }} />}
-        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && invite.claimable ? 'signup' : 'signin'} /></div>}
+        {phase === 'login' && <div id="qd-supplier-signin"><Login onAuth={onAuth} lang={lang} startMode={invite && (invite.claimable || invite.invalid) ? 'signup' : 'signin'} /></div>}
         {phase === 'app' && (claiming
           ? <div className={S.center} aria-busy="true" role="status">{t(lang, 'claiming_listing')}</div>
           : <>
@@ -711,6 +718,17 @@ export function SupplierPortal() {
 // at the end with "This company is already claimed by another account."
 function InviteBanner({ invite, lang, onStart }) {
   const ar = lang === 'ar';
+  if (invite.invalid) return (
+    <section className="mx-auto w-full max-w-3xl px-4 pt-6" dir={ar ? 'rtl' : 'ltr'}>
+      <Card className="qd-panel p-5" role="status">
+        <div className="text-[15px] font-bold text-foreground">{ar ? 'رابط الدعوة هذا غير صالح أو انتهت صلاحيته.' : 'This invitation link is not valid or has expired.'}</div>
+        <div className={cn(S.sub, 'mt-2 max-w-[62ch]')}>
+          {ar ? 'يمكنكم إنشاء حساب أدناه وتسجيل شركتكم مباشرةً، أو مراسلتنا على management@quotesdone.com.'
+              : 'You can still create an account below and register your company, or write to management@quotesdone.com.'}
+        </div>
+      </Card>
+    </section>
+  );
   const name = invite.company_name || (ar ? 'شركتكم' : 'your company');
   const taken = !invite.claimable;
   return (

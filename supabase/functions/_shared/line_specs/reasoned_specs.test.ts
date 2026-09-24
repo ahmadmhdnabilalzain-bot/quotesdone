@@ -2,6 +2,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert';
 import { assessQuote, type Line } from './assess.ts';
 import { checklistAttrs, chooseChecklist, LINES_PER_CALL, needsChecklist, reasonLineSpecs, specCode, unionOf, withReasoned, type Checklist } from './reasoned_specs.ts';
+import { labelUnit, shapeDecides } from './field_format.ts';
 import type { ThinkDeps } from '../think.ts';
 
 const J = JSON.stringify;
@@ -51,8 +52,8 @@ Deno.test('under the model hold nothing is judged, every required spec is missin
 
 Deno.test('what the supplier\'s own words state is filled; only what they do not state holds the quote', async () => {
   const checklist = checklistAttrs(SPECS);
-  const key = `L1__${SPECS[0].code}`;
-  const found = await reasonLineSpecs(deps({ synth: [J({ answer: 'glass is stated, the handrail is not', decision: { fields: { [key]: { value: '6 tonne', evidence: '6 tonne rated capacity' } } } })] }),
+  // the capacity is read by SHAPE (one "<n> tonne", one spec in tonnes); the model is asked only the lip, and finds it unstated
+  const found = await reasonLineSpecs(deps({ synth: [J({ answer: 'the lip is not stated', decision: { fields: {} } })] }),
     { lines: LINES, checklist, trade: 'glazing', quoteId: 'q1' });
   assertEquals(found, { 1: { [SPECS[0].code]: '6 tonne' } });
   const a = assessQuote({ category: 'zz-demo-readerless-trade', lines: withReasoned(LINES, found), terms: TERMS, checklist });
@@ -99,4 +100,49 @@ Deno.test('every checklist together names its list and the honest way out', () =
 Deno.test('a trade that HAS a line reader is unchanged by a checklist', () => {
   const withReader = assessQuote({ category: 'gypsum', lines: [{ line_no: 1, description: 'Gypsum false ceiling', qty: 100, unit: 'sqm', amount: 5000 }], terms: TERMS, checklist: checklistAttrs(SPECS) });
   assert(!withReader.lines[0].asked.includes(SPECS[0].code));
+});
+
+// ── the routine path stays code: each test FAILS if the line goes back to the model ──
+function counting(o: { cache?: Record<string, unknown> } = {}) {
+  const calls = { llm: 0, put: [] as unknown[] };
+  const d: ThinkDeps = {
+    gate: () => Promise.resolve({ allowed: true, rule: 'ok' }),
+    llm: () => { calls.llm++; return Promise.resolve({ content: null, model: 'm' }); },
+    embed: () => Promise.resolve(null),
+    rpc: (fn, args) => {
+      if (fn === 'fn_line_spec_reading_get') return Promise.resolve({ data: o.cache ?? {}, error: null });
+      if (fn === 'fn_line_spec_reading_put') calls.put.push(args);
+      return Promise.resolve({ data: null, error: null });
+    },
+  };
+  return { d, calls };
+}
+const NUMERIC = checklistAttrs([{ code: 'spec_cap', label_en: 'capacity (litres)' }, { code: 'spec_bin', label_en: 'bin capacity (kg)' }]);
+
+Deno.test('shape: a unit named in the label is read by format, never by meaning', () => {
+  assertEquals([labelUnit('rated capacity (tonnes)'), labelUnit('camera count (DORI)'), labelUnit('bin capacity (L)')], ['tonne', null, 'l']);
+  assertEquals(shapeDecides('Water heater 80 litres, 20 kg bin', NUMERIC).present, { spec_cap: '80 litres', spec_bin: '20 kg' });
+  assertEquals(shapeDecides('Water heater, supply only', NUMERIC).absent, ['spec_cap', 'spec_bin']);
+  assertEquals(shapeDecides('80 litres or 100 litres', NUMERIC).ambiguous.map((a) => a.code), ['spec_cap', 'spec_bin'], 'two readings, or none: the model decides');
+});
+
+Deno.test('a line whose numeric specs are settled by shape never reaches the model', async () => {
+  const { d, calls } = counting();
+  const found = await reasonLineSpecs(d, { lines: [{ line_no: 1, description: 'Heater 80 litres, bin 20 kg', qty: 1 }, { line_no: 2, description: 'Labour and transport' }], checklist: NUMERIC, trade: 'x', quoteId: 'q9' });
+  assertEquals(calls.llm, 0);
+  assertEquals(found, { 1: { spec_cap: '80 litres', spec_bin: '20 kg' } });
+});
+
+Deno.test('a line already reasoned (same text, same checklist) is reused by its hash, never paid for twice', async () => {
+  const first = counting();
+  const line: Line = { line_no: 1, description: 'Hydraulic dock leveller with telescopic lip' };
+  const cl = checklistAttrs(SPECS);
+  await reasonLineSpecs(first.d, { lines: [line], checklist: cl, trade: 'x', quoteId: 'q9' });
+  assert(first.calls.llm > 0, 'the first sight is reasoned');
+  // the model returned nothing usable, so nothing was stored; now the store holds an answer for that hash
+  const k = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(line.description + '|' + cl.map((a) => a.code).sort().join(','))))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const again = counting({ cache: { [k]: { [SPECS[1].code]: 'telescopic lip' } } });
+  const found = await reasonLineSpecs(again.d, { lines: [line], checklist: cl, trade: 'x', quoteId: 'q9' });
+  assertEquals(again.calls.llm, 0);
+  assertEquals(found, { 1: { [SPECS[1].code]: 'telescopic lip' } });
 });

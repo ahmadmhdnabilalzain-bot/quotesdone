@@ -5,7 +5,7 @@ import type { ThinkDeps } from './think.ts';
 import {
   DOCUMENT_SUBJECT, ESCALATION_LEGAL, ESCALATION_NEITHER, ESCALATION_REPEAT, REFUND_OFF_PLATFORM, SAME_REQUEST, TASK_RESPONSIBILITY_NONE,
   collaborationRuleOptions, escalationMeaning, escalationOptions, leadTrade, refundOffPlatform, sameInquiry, supplierDocumentSubject,
-  taskCollaborationRule, taskResponsibility, taskResponsibilityOptions,
+  taskCollaborationRule,
 } from './reasoned_routing.ts';
 
 const PLAN = JSON.stringify({ steps: [{ id: 's1', goal: 'read what was written', query: 'q', needs_knowledge: false }], facts: [] });
@@ -79,15 +79,7 @@ Deno.test('repeat request: same / different; held queues inquiry.same_request', 
   assertEquals(heldCall(m)!.p_subject, { inquiry_id: 'i2', earlier_id: 'i1' });
 });
 
-Deno.test('task: responsibility and collaboration rule reasoned; held queues each for the CEO seat', async () => {
-  const rows = [{ responsibility: 'business_development', os_key: 'sales' }, { responsibility: 'sales', os_key: 'sales' }];
-  const o = { taskId: 4, deptKey: 'exec', author: 'ceo', text: 'ZZ find three new facility managers', rows, dedupeKey: 'task_resp:4:md5' };
-  assertEquals((await taskResponsibility(mock({ choice: 'business_development' }).deps, o)).value, 'business_development');
-  assertEquals((await taskResponsibility(mock({ choice: TASK_RESPONSIBILITY_NONE }).deps, o)).value, 'none');
-  const m = mock({ held: true });
-  assertEquals((await taskResponsibility(m.deps, o)).value, null);
-  assertEquals(heldCall(m)!.p_subject, { task_id: 4, dept_key: 'exec', author: 'ceo' });
-  assertEquals(taskResponsibilityOptions(rows).map((x) => x.id), ['business_development', 'sales', 'none']);
+Deno.test('task: the collaboration rule is reasoned; held queues it for the CEO seat', async () => {
   const ro = { taskId: 4, ruleId: 2, situation: 'Publishing anything externally', text: 'ZZ post the Q3 update', dedupeKey: 'task_rule:4:2:md5' };
   assertEquals((await taskCollaborationRule(mock({ choice: 'applies' }).deps, ro)).value, 'applies');
   assertEquals((await taskCollaborationRule(mock({ choice: 'does_not_apply' }).deps, ro)).value, 'does_not_apply');
