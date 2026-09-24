@@ -240,6 +240,11 @@ export function canonicalBodies(repo = REPO) {
     const src = readFileSync(p, 'utf8');
     const heads = [...src.matchAll(/create\s+or\s+replace\s+function\s+public\.(\w+)\s*\(/gi)];
     heads.forEach((m, i) => out.set(m[1].toLowerCase(), src.slice(m.index, heads[i + 1]?.index ?? src.length)));
+    // A later file that drops a routine takes it out of the canonical source (24 Sep 2026: #934 dropped
+    // fn_customer_support_disputes_tick; its earlier body is history, not a live alarm).
+    for (const d of src.matchAll(/drop\s+function\s+if\s+exists\s+public\.(\w+)\s*\(/gi)) {
+      if (!heads.some((h) => h[1].toLowerCase() === d[1].toLowerCase() && h.index > d.index)) out.delete(d[1].toLowerCase());
+    }
   }
   return out;
 }
