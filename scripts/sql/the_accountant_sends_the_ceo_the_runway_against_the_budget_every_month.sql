@@ -82,6 +82,12 @@ begin
   v_warn := (select (value #>> '{}')::numeric from public.decision_policy where key = 'accountant_runway_warn_months');
   if v_warn is null then raise exception 'decision_policy accountant_runway_warn_months is required'; end if;
   f := public.fn_accountant_runway_figures(v_m);
+  -- The Mashreq statement for a month arrives at its end or later, after the close. The report is sent ONCE per
+  -- month, so it waits for the closing balance until the end of the following month, then goes with the gap named.
+  if (f->>'cash_in_bank_aed') is null and (now() at time zone 'Asia/Dubai')::date < (v_m + interval '2 months')::date then
+    return jsonb_build_object('reported', false, 'month', to_char(v_m, 'YYYY-MM'),
+      'reason', 'waiting for the Mashreq closing balance; sent without it from ' || to_char(v_m + interval '2 months', 'YYYY-MM-DD'));
+  end if;
   v_low := coalesce((f->>'runway_months_at_actual_spend')::numeric < v_warn, false)
         or coalesce((f->>'runway_months_at_budget')::numeric < v_warn, false);
   v_sev := case when v_low then 'elevated' else 'routine' end;

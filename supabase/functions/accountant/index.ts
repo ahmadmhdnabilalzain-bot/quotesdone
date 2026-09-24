@@ -1512,12 +1512,24 @@ Deno.serve(observe('accountant', async (req) => {
         let listErr: string | null = rkey ? null : 'app_secrets.resend_api_key is unreadable';
         let msgs: MailboxMessage[] = [];
         if (rkey) {
+          // The list covers every mailbox, newest first: page until a page reaches past the window, at most 10.
+          const since = Date.now() - 14 * 86400000;
           try {
-            const r = await fetch('https://api.resend.com/emails/inbound?limit=100', { headers: { Authorization: 'Bearer ' + rkey }, signal: AbortSignal.timeout(15000) });
-            // deno-lint-ignore no-explicit-any
-            const j: any = await r.json().catch(() => ({}));
-            if (!r.ok) listErr = 'HTTP ' + r.status;
-            else msgs = mailboxMessages((j.data || j.items || []) as InboundItem[], EXPENSE_MAILBOX, Date.now() - 14 * 86400000);
+            let after = ''; let pages = 0;
+            for (;;) {
+              const r = await fetch('https://api.resend.com/emails/inbound?limit=100' + (after ? '&after=' + encodeURIComponent(after) : ''),
+                { headers: { Authorization: 'Bearer ' + rkey }, signal: AbortSignal.timeout(15000) });
+              // deno-lint-ignore no-explicit-any
+              const j: any = await r.json().catch(() => ({}));
+              if (!r.ok) { listErr = 'HTTP ' + r.status; break; }
+              const items = (j.data || j.items || []) as InboundItem[];
+              msgs.push(...mailboxMessages(items, EXPENSE_MAILBOX, since));
+              pages++;
+              const oldest = Date.parse(String(items[items.length - 1]?.created_at || ''));
+              if (!j.has_more || !items.length || (Number.isFinite(oldest) && oldest < since)) break;
+              if (pages >= 10) { listErr = 'more than 1,000 inbound messages in 14 days; the list was not read to the end of the window'; break; }
+              after = String(items[items.length - 1].id);
+            }
           } catch (e) { listErr = String((e as Error)?.message || e).slice(0, 200); }
         }
         const { data: mb, error: mbErr } = await admin.rpc('fn_accountant_mailbox_check_record', { p_messages: msgs, p_list_error: listErr });

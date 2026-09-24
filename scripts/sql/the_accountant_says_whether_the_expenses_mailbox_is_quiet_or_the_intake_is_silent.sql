@@ -75,7 +75,10 @@ begin
   select coalesce(jsonb_agg(jsonb_build_object('inbound_id', i.id, 'received_at', i.created_at, 'subject', left(i.subject, 120)) order by i.id), '[]'::jsonb), count(*)
     into v_held, v_held_n
     from public.inbound_messages i
-   where lower(i.to_email) like 'expenses@%' and i.needs_review and i.created_at < now() - interval '24 hours';
+   -- still waiting = held (needs_review) and not yet closed: fn_receipt_hand_to_bookkeeper's work item tells the
+   -- accountant to mark the inbound row replied once the expense is booked, so replied_at is the closing mark.
+   where lower(i.to_email) like 'expenses@%' and i.needs_review and i.replied_at is null
+     and i.created_at < now() - interval '24 hours';
 
   select greatest(
            (select max(created_at) from public.inbound_messages where lower(to_email) like 'expenses@%'),
@@ -106,6 +109,8 @@ begin
   end if;
   v_settle := public.fn_accountant_duty_settle('mailbox', v_items);
 
+  -- the log keeps 90 days; the latest row is the answer
+  delete from public.accountant_mailbox_check where checked_at < now() - interval '90 days';
   insert into public.accountant_mailbox_check (listed, not_taken_in, held_over_24h, last_received_at, verdict, detail)
   values (v_listed, v_not, v_held_n, v_last, v_verdict,
           jsonb_build_object('not_taken_in', v_missing, 'held', v_held, 'list_error', p_list_error));
