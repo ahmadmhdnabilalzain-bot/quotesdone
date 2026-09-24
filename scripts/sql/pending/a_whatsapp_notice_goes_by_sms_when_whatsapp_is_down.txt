@@ -1,4 +1,0 @@
-Not applied: written 24 Sep 2026 by a customer_support worktree session that does not apply to production.
-Adds notifications.failover_of, the unique index notifications_one_sms_twin and fn_wa_sms_twin (revoked, search_path
-pinned); its probe must print PROBE OK. Apply BEFORE deploying send_whatsapp from the same PR, which calls
-fn_wa_sms_twin and filters on failover_of. When applied: delete this note and append the file to the END of MANIFEST.txt.
