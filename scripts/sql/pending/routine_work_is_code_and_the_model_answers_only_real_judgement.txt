@@ -1,0 +1,4 @@
+COMMITTED, NOT APPLIED. Seat: it_engineer, 24 Sep 2026.
+scripts/sql/routine_work_is_code_and_the_model_answers_only_real_judgement.sql is to be applied after its PR merges
+and BEFORE the OpenRouter top-up on 25 Sep 2026, so the routine work it moves off the model never reaches the new credit.
+Apply it, deploy resilience_ping (the new learningGroup step), and the probe at its end must print PROBE OK.

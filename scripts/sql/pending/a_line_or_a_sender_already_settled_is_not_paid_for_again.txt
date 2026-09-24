@@ -1,0 +1,5 @@
+Committed, NOT applied. Seat: it_engineer.
+Apply after the PR merges and BEFORE the OpenRouter top-up on 25 Sep 2026; it must print PROBE OK.
+Until it is applied the edge code degrades safely: the rpc reads fail, nothing is reused, and every quote line and
+receipt is reasoned exactly as before (shape-only line decisions already work without it).
+Remove this note when it is applied and its MANIFEST line is added.

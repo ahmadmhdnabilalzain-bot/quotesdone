@@ -452,8 +452,12 @@ async function learningMeasureTick(): Promise<unknown> {
     return error ? { ok: false, error: error.message } : data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
+// Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+async function learningGroupTick(): Promise<unknown> {
+  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
 async function learningDistilTick(): Promise<unknown> {
-  try { return await distilLessons(admin); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1364,6 +1368,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   caseMemory: { run: caseMemoryEmbedTick },
   mlEmbed: { run: mlEmbedTick },
   learningMeasure: { run: learningMeasureTick },
+  learningGroup: { run: learningGroupTick },
   learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
