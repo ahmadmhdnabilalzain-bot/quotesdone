@@ -104,11 +104,13 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
     insert into public.ai_cost_log (fn, task_class, model_used, occurred_at, cached, cache_hit_key)
     values ('zz_demo_fn', 'zz_loop', 'zz/model', now() - interval '5 minutes', false, 'zz-same-call');
   end loop;
+  insert into public.ai_cost_log (fn, task_class, model_used, occurred_at) values ('sales_engineer', 'agent_reasoning', 'zz/model', now());
   v := public.fn_it_engineer_model_spend();
   o := o || jsonb_build_object(
     'm_unlisted', (select evidence->>'owner_seat' from public.it_engineer_finding where issue_key = 'duty:model_spend:unlisted:zz_demo_fn:zz_loop' and closed_at is null),
     'm_runaway', (select count(*) from public.it_engineer_finding where issue_key = 'duty:model_spend:runaway:zz_demo_fn:zz_loop' and closed_at is null),
     'm_repeat', (select count(*) from public.it_engineer_finding where issue_key like 'duty:model_spend:repeat:zz_demo_fn:zz_loop:%' and closed_at is null),
+    'm_think_unlisted', (select count(*) from public.it_engineer_finding where issue_key = 'duty:model_spend:unlisted:sales_engineer:agent_reasoning' and closed_at is null),
     'm_inventory', (select calls_30d from public.fn_it_model_consumer_inventory() where consumer = 'zz_demo_fn:zz_loop'));
 
   -- postmortem: a high-severity fault of a known class, closed after the duty went live
@@ -117,10 +119,17 @@ do $$ declare o jsonb := '{}'; v jsonb; qid uuid; hid bigint; inc public.it_inci
           'issue_key', 'duty:latency_slo:zz_demo_portal', 'title', 'ZZ DEMO slow', 'occurrence_started_at', now() - interval '2 hours'),
           now(), '{"answer":"ZZ DEMO bounded"}')
   returning id into hid;
+  insert into public.agent_actions (agent, kind, status, detail, decided_at)
+  select 'ceo', 'handoff', 'done', jsonb_build_object('type', 'it.finding', 'severity', 'critical',
+          'issue_key', 'zz_demo_new_class:' || g, 'title', 'ZZ DEMO new class ' || g, 'occurrence_started_at', now() - interval '2 hours'), now()
+    from generate_series(1, 4) g;
   v := public.fn_it_engineer_postmortem();
+  perform public.fn_it_engineer_postmortem();
   select * into inc from public.it_incident where handoff_id = hid;
   o := o || jsonb_build_object('pm_opened', inc.id is not null, 'pm_class', inc.playbook_class,
-    'pm_cause', coalesce(btrim(inc.cause), '') <> '', 'pm_check', inc.regression_check);
+    'pm_cause', coalesce(btrim(inc.cause), '') <> '', 'pm_check', inc.regression_check,
+    'pm_asked', (select count(*) from public.reasoning_held_question q join public.it_incident i on q.dedupe_key = 'postmortem:' || i.id
+                  where i.issue_key like 'zz_demo_new_class:%'));
 
   -- ownership
   o := o || jsonb_build_object(
@@ -147,6 +156,8 @@ end $$;`);
   assert.equal(o.m_unlisted, 'ceo', 'an unlisted model consumer is not raised to the CEO');
   assert.equal(o.m_runaway, 1, 'a loop of 40 calls in an hour is not raised');
   assert.equal(o.m_repeat, 1, 'the same uncached call paid 40 times is not raised');
+  assert.equal(o.m_think_unlisted, 0, 'a think() call from a listed host is raised as unlisted');
+  assert.equal(o.pm_asked, 4, 'an incident past one run cap of three is never asked for its root cause');
   assert.equal(o.m_inventory, 40, 'the inventory does not list an observed consumer');
   assert.equal(o.pm_opened, true, 'a closed high-severity fault got no incident record');
   assert.equal(o.pm_class, 'latency_over_budget');

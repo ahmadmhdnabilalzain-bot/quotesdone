@@ -55,17 +55,27 @@ begin
              regression_check = coalesce(regression_check, p.regression_check), recorded_by = 'it_engineer.postmortem', updated_at = now()
        where id = v_inc;
       n_play := n_play + 1;
-    elsif n_asked < 3 then
-      perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
-        'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
-        jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
-          'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
-          'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
-            'finding', to_jsonb(f) - 'evidence')),
-          'subject', jsonb_build_object('incident_id', v_inc), 'dedupeKey', 'postmortem:' || v_inc),
-        jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', v_inc), 'seat_duty', 'postmortem:' || v_inc);
-      n_asked := n_asked + 1;
     end if;
+  end loop;
+
+  -- A class the playbook has never seen: its root cause is asked once, three incidents a run, oldest first. Asked from
+  -- the incident (not the pass that opened it) so an incident past one run's cap is asked on the next.
+  for h in
+    select i.id inc_id, a.detail, a.evidence from public.it_incident i join public.agent_actions a on a.id = i.handoff_id
+     where i.created_at >= v_since and i.playbook_class is null and coalesce(btrim(i.cause), '') = ''
+       and not exists (select 1 from public.reasoning_held_question q where q.dedupe_key = 'postmortem:' || i.id)
+     order by i.id limit 3
+  loop
+    select * into f from public.it_engineer_finding where issue_key = h.detail->>'issue_key';
+    perform public.fn_reason_hold('it_engineer', 'it_engineer.postmortem',
+      'Postmortem: what was the root cause of this fault, in two or three sentences? ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+      jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.postmortem', 'research', false, 'stakes', 'normal',
+        'question', 'Root cause of: ' || coalesce(h.detail->>'title', h.detail->>'issue_key'),
+        'context', jsonb_build_object('audience', 'internal', 'case', jsonb_build_object('handoff', h.detail, 'answer', h.evidence,
+          'finding', to_jsonb(f) - 'evidence')),
+        'subject', jsonb_build_object('incident_id', h.inc_id), 'dedupeKey', 'postmortem:' || h.inc_id),
+      jsonb_build_object('filed_by', 'it_engineer.postmortem'), jsonb_build_object('incident_id', h.inc_id), 'seat_duty', 'postmortem:' || h.inc_id);
+    n_asked := n_asked + 1;
   end loop;
 
   select count(*) into v_hist from public.agent_actions a

@@ -49,8 +49,41 @@ insert into public.it_model_consumer (consumer, owner_seat, why_a_model) values
   ('site_assistant:level0_faq_keyword',     'customer_support', 'legacy FAQ tier; recorded so its calls are not unlisted'),
   ('site_assistant:level0_template',        'customer_support', 'legacy FAQ tier; recorded so its calls are not unlisted'),
   ('resend_inbound:intent_detection',       'customer_support', 'understanding what an inbound email asks'),
-  ('founder_directive:json_extraction',     'ceo',              'reading an instruction the founder wrote in free text')
+  ('founder_directive:json_extraction',     'ceo',              'reading an instruction the founder wrote in free text'),
+  -- THINK() HOSTS (review, 24 Sep 2026): think() logs ai_cost_log fn = the function that hosts it and task_class one of
+  -- agent_reasoning / knowledge_validation / customer_communication / supplier_communication (_shared/think.ts
+  -- taskClassFor). '<fn>:think' lists every such call from that host; without these rows the replay of the held
+  -- questions on the day the hold lifts would raise every host as unlisted. Hosts measured by grep of defaultDeps(admin, '<fn>').
+  ('accountant:think', 'accountant', 'think(): reasoning where code cannot decide'),
+  ('ceo_agent:think', 'ceo', 'think(): reasoning where code cannot decide'),
+  ('customer_api:think', 'customer_support', 'think(): reasoning where code cannot decide'),
+  ('inbound_email:think', 'customer_support', 'think(): reasoning where code cannot decide'),
+  ('inquiry_intake:think', 'sales_engineer', 'think(): reasoning where code cannot decide'),
+  ('marketing:think', 'marketing', 'think(): reasoning where code cannot decide'),
+  ('marketing_outreach:think', 'marketing', 'think(): reasoning where code cannot decide'),
+  ('marketing_social_inbox:think', 'marketing', 'think(): reasoning where code cannot decide'),
+  ('public_site:think', 'customer_support', 'think(): reasoning where code cannot decide'),
+  ('quote_extract:think', 'sales_engineer', 'think(): reasoning where code cannot decide'),
+  ('resend_inbound:think', 'customer_support', 'think(): reasoning where code cannot decide'),
+  ('resilience_ping:think', 'it_engineer', 'think(): reasoning where code cannot decide'),
+  ('sales_engineer:think', 'sales_engineer', 'think(): reasoning where code cannot decide'),
+  ('site_assistant:think', 'customer_support', 'think(): reasoning where code cannot decide'),
+  ('supplier_api:think', 'sales_engineer', 'think(): reasoning where code cannot decide'),
+  ('supplier_portal:think', 'sales_engineer', 'think(): reasoning where code cannot decide'),
+  ('wa_inbound:think', 'customer_support', 'think(): reasoning where code cannot decide')
 on conflict (consumer) do update set owner_seat = excluded.owner_seat, why_a_model = excluded.why_a_model;
+
+-- Is this ai_cost_log (fn, task_class) a listed consumer? Its own row, or a think() class from a listed think() host.
+create or replace function public.fn_it_model_consumer_listed(p_fn text, p_class text)
+returns boolean language sql stable security definer set search_path to 'public', 'pg_temp'
+as $fn$
+  select exists (select 1 from public.it_model_consumer c
+                  where c.consumer = p_fn || ':' || coalesce(p_class, 'unclassified')
+                     or (c.consumer = p_fn || ':think'
+                         and p_class in ('agent_reasoning', 'knowledge_validation', 'customer_communication', 'supplier_communication')))
+$fn$;
+revoke execute on function public.fn_it_model_consumer_listed(text, text) from public, anon, authenticated;
+grant execute on function public.fn_it_model_consumer_listed(text, text) to service_role;
 
 create or replace function public.fn_it_model_consumer_inventory()
 returns table(consumer text, owner_seat text, listed boolean, why_a_model text, calls_30d bigint, cost_aed_30d numeric,
@@ -60,13 +93,13 @@ set search_path to 'public', 'pg_temp'
 as $fn$
   with seen as (
     select a.fn || ':' || coalesce(a.task_class, 'unclassified') consumer, count(*) n, sum(coalesce(a.cost_aed, 0)) aed,
-           max(a.occurred_at) last, max(a.seat) seat
+           max(a.occurred_at) last, max(a.seat) seat, bool_and(public.fn_it_model_consumer_listed(a.fn, a.task_class)) listed
       from public.ai_cost_log a where a.occurred_at > now() - interval '30 days' and a.fn is not null group by 1),
   held as (
     select h.surface consumer, count(*) n, max(h.seat) seat from public.reasoning_held_question h
      where h.applied_at is null and h.status is distinct from 'expired' group by 1),
   keys as (select c.consumer from public.it_model_consumer c union select consumer from seen union select consumer from held)
-  select k.consumer, coalesce(c.owner_seat, s.seat, h.seat), c.consumer is not null or h.consumer is not null,
+  select k.consumer, coalesce(c.owner_seat, s.seat, h.seat), c.consumer is not null or h.consumer is not null or coalesce(s.listed, false),
          coalesce(c.why_a_model, case when h.consumer is not null then 'a think() surface: reasoned in its seat''s queue' end),
          coalesce(s.n, 0), coalesce(s.aed, 0), s.last, coalesce(h.n, 0)
     from keys k left join public.it_model_consumer c using (consumer) left join seen s using (consumer) left join held h using (consumer)
@@ -85,7 +118,7 @@ begin
   -- a think() surface is listed by construction (it lives in reasoning_held_question); ai_cost_log fn:task_class must be registered
   for x in select a.fn || ':' || coalesce(a.task_class, 'unclassified') k, count(*) n, max(a.seat) seat from public.ai_cost_log a
             where a.occurred_at > now() - interval '24 hours' and a.fn is not null
-              and not exists (select 1 from public.it_model_consumer c where c.consumer = a.fn || ':' || coalesce(a.task_class, 'unclassified'))
+              and not public.fn_it_model_consumer_listed(a.fn, a.task_class)
             group by 1 loop
     v_items := v_items || jsonb_build_object('item', 'unlisted:' || x.k, 'owner_seat', 'ceo', 'subject', x.k, 'blast', 'internal', 'affected', x.n,
       'title', x.k || ' called a model ' || x.n || ' time(s) in 24 h and is not in the model-consumer inventory (it_model_consumer)',
@@ -127,6 +160,6 @@ on conflict (duty) do update set every = excluded.every, routine = excluded.rout
 
 select case when to_regprocedure('public.fn_it_engineer_model_spend()') is not null
              and to_regprocedure('public.fn_it_model_consumer_inventory()') is not null
-             and (select count(*) from public.it_model_consumer) >= 12
+             and (select count(*) from public.it_model_consumer) >= 29
              and exists (select 1 from public.seat_duty where duty = 'it_engineer.model_spend')
             then 'PROBE OK' else 'PROBE FAILED: the model-spend duty or its inventory is missing' end as verdict;
