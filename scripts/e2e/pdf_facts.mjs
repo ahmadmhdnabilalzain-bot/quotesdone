@@ -103,6 +103,22 @@ export function sameMoney(a, b) {
   return { comparable: true, same, why: same ? `${x.length} amounts agree (total ${x[x.length - 1]})` : `amounts differ: [${x.join(' ')}] vs [${y.join(' ')}]` };
 }
 
+/**
+ * The journey's verdict on "the Arabic quotation states the same money as the English one".
+ * 24 Sep 2026 (finding duty:journey:c customer audit:the_Arabic_quotation_states_the_same_money_as_the_English_one,
+ * seen 3 nights): customer_api answered the Arabic request HTTP 202 arabic_held (its translation not yet
+ * reasoned), so no Arabic file existed, and this step filed "no amounts read: 6 and 0" as a money
+ * disagreement. Money cannot differ on a document never issued; the hold is its own FAIL
+ * ("quotation PDF is ours and in ar"). A side that did not open is SKIP naming why; a side that opened
+ * with no figures, or with other figures, stays FAIL. Prevented by: scripts/e2e/pdf_facts.test.mjs.
+ */
+export function moneyVerdict(en, ar) {
+  const shut = [['en', en], ['ar', ar]].filter(([, f]) => !f?.ok).map(([l, f]) => `${l}: ${f?.why || 'did not open'}`);
+  if (shut.length) return { status: 'SKIP', why: `no document to compare (${shut.join('; ')})` };
+  const m = sameMoney(en, ar);
+  return { status: m.comparable && m.same === true ? 'PASS' : 'FAIL', why: m.why };
+}
+
 export function sameDocument(a, b) {
   const size = (f) => (f?.ok && f.bytes?.length) || 0;
   if (!size(a) || !size(b)) return { comparable: false, same: null, why: `cannot compare: ${size(a)} and ${size(b)} bytes` };
