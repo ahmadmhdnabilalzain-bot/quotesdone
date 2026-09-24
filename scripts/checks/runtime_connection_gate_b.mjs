@@ -3,13 +3,12 @@
 // docs/agents/runtime_blueprint/IMPLEMENTATION_ACCEPTANCE_GATES.md: "Hard budget: USD 3 total.
 // Stop immediately if its hard cap cannot be enforced."
 //
-// THE CAP IS ENFORCED TWICE, and both are checkable:
+// THE RUN'S OWN CAP (this test harness bounds what one gate run may spend):
 //   1. HERE, before every call: the run's own spend is read back from ai_cost_log and the next
 //      call is refused if it would cross the ceiling. Reading the ledger rather than trusting a
 //      local counter means a call made by a nested path still counts against this run.
-//   2. IN THE DATABASE, by fn_ai_route, which returns use_llm=false once a department passes
-//      department_budget.halt_at_pct. That was proved to fire on 14 Aug 2026 by burning 96% of a
-//      budget inside an aborted transaction and watching the route refuse.
+//   2. (Removed 24 Sep 2026: fn_ai_route no longer halts a department past department_budget.halt_at_pct;
+//      founder_instruction 987, no caps on LLM spend in production. The harness keeps its own run cap above.)
 // A run that cannot read the ledger does not start.
 //
 //   node scripts/checks/runtime_connection_gate_b.mjs --ref=<project> [--cases=30] [--usd=3]
@@ -175,9 +174,9 @@ Project \`${REF}\` · started ${started} UTC · blueprint \`IMPLEMENTATION_ACCEP
 | stopped early for budget | ${stoppedForBudget ? 'YES' : 'no'} |
 | cases attempted | ${rows.length} of ${CASES} requested |
 
-The cap is enforced twice and both are checkable: this runner re-reads \`ai_cost_log\` before every
-call and refuses the next one at the ceiling, and \`fn_ai_route\` independently returns
-\`use_llm=false\` once a department passes \`department_budget.halt_at_pct\`. The run refuses to
+The run's own cap is checkable: this runner re-reads \`ai_cost_log\` before every
+call and refuses the next one at the run ceiling (production routing has no department halt since
+24 Sep 2026, founder_instruction 987). The run refuses to
 start at all if the ledger cannot be read, because a cap that cannot be measured is not a cap.
 
 ## Gate B criteria
