@@ -528,7 +528,7 @@ const COPY: Record<string, Entry> = {
   // ── Licence gate reasons (leads.licence_gate_reason) ────────────────────────────────────────────
   no_licence: s('no trade licence on file', 'لا توجد رخصة تجارية محفوظة'),
   licence_expired: s('the trade licence on file has expired', 'الرخصة التجارية المحفوظة منتهية الصلاحية'),
-  licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company's trade licence, or contact us if your registered name should change',
+  licence_name_mismatch: s('the company name on your trade licence does not match your registered company name. Upload your own company’s trade licence, or contact us if your registered name should change',
     'اسم الشركة في الرخصة التجارية لا يطابق اسم شركتكم المسجّل. يُرجى رفع الرخصة التجارية الخاصة بشركتكم، أو التواصل معنا إن كان اسمكم المسجّل يحتاج إلى تعديل'),
 
   // ── supplier_api gate and error codes ───────────────────────────────────────────────────────────
