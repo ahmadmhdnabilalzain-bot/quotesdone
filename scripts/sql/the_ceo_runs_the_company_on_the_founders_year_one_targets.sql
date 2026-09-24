@@ -370,6 +370,7 @@ begin
   for p in select * from public.target_path where contract_id = c_id and month = v_m0 order by metric_key loop
     v_act := public.fn_ambition_measure(p.metric_key, v_from, p_at);
     if p.kind = 'cumulative' then
+      -- the day's line starts from last month's TARGET; a real shortfall is carried by the month directive (still_needed)
       select coalesce(max(value), 0) into v_prev_cum from public.target_path where contract_id = c_id and metric_key = p.metric_key and month < v_m0;
       v_exp := round(v_prev_cum + (p.value - v_prev_cum) * v_frac, 1);
     elsif p.kind = 'month' and p.direction = 'min' then v_exp := round(p.value * v_frac, 1);
@@ -960,10 +961,12 @@ create or replace function public.fn_ceo_daily_run_now()
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
 as $fn$ select public.fn_ceo_daily_run(now()) $fn$;
 revoke execute on function public.fn_ceo_daily_run_now() from public, anon, authenticated;
+grant execute on function public.fn_ceo_daily_run_now() to service_role;
 create or replace function public.fn_ceo_month_plan_now()
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
 as $fn$ select public.fn_ceo_month_plan(now()) $fn$;
 revoke execute on function public.fn_ceo_month_plan_now() from public, anon, authenticated;
+grant execute on function public.fn_ceo_month_plan_now() to service_role;
 
 -- ═════════════════════════════════════════════════════════════════════════════════════════════════════
 -- 6. THE CONVERSATIONS, THE DUTIES AND THE SEAT'S OWN RECORD
