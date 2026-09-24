@@ -28,7 +28,7 @@ const FILES = {
 test('each duty row names a routine that exists in the repository, and its own file as owner', () => {
   const allSql = readdirSync(join(ROOT, 'scripts/sql')).filter((f) => f.endsWith('.sql')).map((f) => R('scripts/sql/' + f)).join('\n');
   for (const [duty, routine, file] of [
-    ['accountant.ad_spend_reconcile', 'fn_accountant_ad_spend_tick', FILES.ad],
+    ['accountant.ad_spend_reconcile', 'fn_accountant_ad_spend_reconcile', FILES.ad],
     ['accountant.runway_report', 'fn_accountant_runway_report_tick', FILES.runway],
     ['accountant.ubo_watch', 'fn_accountant_ubo_watch_tick', FILES.ubo],
   ]) {

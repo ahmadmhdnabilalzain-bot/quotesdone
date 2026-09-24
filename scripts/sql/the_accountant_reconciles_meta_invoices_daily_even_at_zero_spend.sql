@@ -27,8 +27,15 @@
 -- prevented by: scripts/checks/accountant_duties_are_wired.test.mjs (the duty row and its routine are in the
 -- schema mirror; removing either fails it).
 
+-- The duty's own entry point, defined here so the file that registers the duty defines its routine (seat_duties_run_on_their_clock).
+-- It runs the existing reconcile unchanged: one body, in every_meta_invoice_is_matched_to_the_spend_meta_reported.sql.
+create or replace function public.fn_accountant_ad_spend_reconcile()
+returns jsonb language sql security definer set search_path to 'public', 'pg_temp' as $fn$ select public.fn_accountant_ad_spend_tick() $fn$;
+revoke execute on function public.fn_accountant_ad_spend_reconcile() from public, anon, authenticated;
+grant execute on function public.fn_accountant_ad_spend_reconcile() to service_role;
+
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
-  ('accountant.ad_spend_reconcile', 'accountant', interval '1 day', 'fn_accountant_ad_spend_tick',
+  ('accountant.ad_spend_reconcile', 'accountant', interval '1 day', 'fn_accountant_ad_spend_reconcile',
    'Meta ads invoices booked in the books reconciled against the spend the marketing seat reported, month by month; runs at zero spend so the first invoice is checked',
    'scripts/sql/the_accountant_reconciles_meta_invoices_daily_even_at_zero_spend.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
@@ -36,7 +43,7 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
 
 -- PROBE (verdict row; nothing written): the routine the duty names exists and the figures it reads answer.
 select case
-  when not public.fn_seat_duty_routine_exists('fn_accountant_ad_spend_tick') then 'PROBE FAILED: fn_accountant_ad_spend_tick is missing'
+  when not public.fn_seat_duty_routine_exists('fn_accountant_ad_spend_reconcile') then 'PROBE FAILED: fn_accountant_ad_spend_reconcile is missing'
   when (public.fn_accountant_ad_spend_figures((now() at time zone 'Asia/Dubai')::date) ? 'missing') is not true
     then 'PROBE FAILED: fn_accountant_ad_spend_figures did not return its missing list'
   else 'PROBE OK' end as verdict;
