@@ -554,6 +554,33 @@
   "9e64c11d99df",
   "e46ed30c27c0"
  ],
+ "scripts/sql/any_number_of_suppliers_quote_and_the_report_recommends_the_top_three.sql": [
+  "000ec568dd15",
+  "039041ff5eac",
+  "0646b2df5661",
+  "1efd2d7480a2",
+  "23fae6511568",
+  "2a4de98c1ad0",
+  "2ac2662f4c5c",
+  "2ad58b27f38e",
+  "2fc609253d74",
+  "32d0cb3b0210",
+  "35862315e985",
+  "4040a8441b66",
+  "4481ff8ee53f",
+  "49ca63ca0b32",
+  "4c4545485de9",
+  "7190605bd113",
+  "846b9fbac6fa",
+  "859798d5f8bb",
+  "9679427e133a",
+  "9d848bd59941",
+  "9f219905da0b",
+  "b3c84c105000",
+  "c1a8fd1860ac",
+  "cb76a6eb29d7",
+  "f6fe48838815"
+ ],
  "scripts/sql/arabic_reaches_the_same_answer_as_english.sql": [
   "5f5a880180ca",
   "d04d2f838a0b"
