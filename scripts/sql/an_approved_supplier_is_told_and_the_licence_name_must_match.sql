@@ -32,10 +32,16 @@
 --      the model only when the flag is on). process_docs no longer overwrites company_name with it.
 --   2. fn_company_name_norm / fn_supplier_licence_name_mismatch — deterministic: lowercase, '&' = 'and',
 --      dots dropped, punctuation to spaces, legal-form words (LLC, FZE, Est, Co, ش.ذ.م.م …) removed.
---      A licence with no readable name is not a mismatch (nothing was read; nothing is guessed).
+--      A licence with no readable name is not a mismatch (nothing was read; nothing is guessed), but it is
+--      not a MATCH either: see 3.
 --   3. fn_sales_engineer_verifies_supplier: a mismatch is action_required, reason licence_name_mismatch
 --      (the portal prints it under "why", serverCopy.ts). Order: missing items, then name, then expiry.
 --      An already-approved supplier stays approved, as for expiry. z20 re-verifies on licence_legal_name.
+--      A licence whose name could not be read (a scan the model could not read, or the model held) is NEVER
+--      auto-approved: the registration waits as 'pending', reason licence_name_unread, and the verification
+--      row is 'needs_review' so the sales engineer's review queue shows the case (24 Sep 2026). A scan is read
+--      by license_extract (vision, model_policy.document_extraction) from every upload path: supplier_api
+--      sends the stored file when the portal did not resend it, resend_inbound and wa_inbound record the name.
 --   4. trg_sales_engineer_tells_the_supplier_he_is_approved: on the transition to approved, once per
 --      supplier (dedupe key supplier_approved:<id>), the sales engineer hands customer_support one English
 --      email to the portal account address (claimed_by); fn_wa_fanout makes the WhatsApp twin. Refused by
@@ -95,7 +101,7 @@ language plpgsql
 security definer
 set search_path to 'public', 'pg_temp'
 as $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -113,6 +119,8 @@ begin
   v_expired := l.license_expiry is not null and l.license_expiry < current_date;
   -- 24 Sep 2026: the licence must be this company's. Unread name = not a mismatch (nothing guessed).
   v_name_mismatch := public.fn_supplier_licence_name_mismatch(l);
+  -- ...and an unread name is not a match: no name match, no automatic approval.
+  v_name_unread := public.fn_company_name_norm(coalesce(l.licence_legal_name, '')) = '';
   select coalesce(p.auto_approve_suppliers, false) into v_auto from public.pricing_config p where p.id = 1;
   v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
                    when v_name_mismatch then 'licence_name_mismatch'
@@ -123,6 +131,7 @@ begin
     -- pauses their matching and restores it on renewal, without taking the registration away.
     v_decision := 'approved';
   elsif v_reason is not null then v_decision := 'action_required';
+  elsif v_name_unread then v_decision := 'pending'; v_reason := 'licence_name_unread';
   elsif coalesce(v_auto, false) then v_decision := 'approved';
   else v_decision := 'pending';
   end if;
@@ -141,22 +150,25 @@ begin
   -- Every decision is recorded; a re-run by the trigger that changed nothing is not a decision.
   if v_changed > 0 or p_source <> 'mandatory_item_changed' then
   insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
-  values ('sales_engineer', 'supplier_verification', 'auto_done',
-          case when v_decision = 'action_required' then 'medium' else 'low' end,
+  values ('sales_engineer', 'supplier_verification', case when v_reason = 'licence_name_unread' then 'needs_review' else 'auto_done' end,
+          case when v_decision = 'action_required' or v_reason = 'licence_name_unread' then 'medium' else 'low' end,
           'Supplier ' || v_decision || coalesce(' (' || v_reason || ')', '') || ' — ' || left(coalesce(l.company_name, 'supplier #' || l.id), 120),
           case v_decision
             when 'approved' then 'No action required. All six mandatory items are present, the licence name matches and the licence is not known to be expired.'
-            when 'pending' then 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.'
+            when 'pending' then case when v_reason = 'licence_name_unread'
+              then 'Review: complete, but the company name on the trade licence could not be read (a scan the document model could not read, or the model is held). Compare the licence with the registered name, then approve or ask for the right licence. It is never approved automatically without a name match.'
+              else 'Complete, and waiting for the sales engineer: pricing_config.auto_approve_suppliers is off.' end
             else 'No action required. The supplier was told exactly what is missing; the verification re-runs when it arrives, and the registration closes after 14 days.' end,
           jsonb_build_object('supplier_id', l.id, 'decision', v_decision, 'previous_status', l.approval_status,
                              'missing', v_missing, 'licence_expired', v_expired, 'license_expiry', l.license_expiry,
-                             'licence_name_mismatch', v_name_mismatch, 'licence_legal_name', l.licence_legal_name,
+                             'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
+                             'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path,
                              'auto_approve', v_auto, 'source', p_source),
           'leads', l.id::text);
   end if;
 
   return jsonb_build_object('ok', true, 'decision', v_decision, 'approval_status', v_decision, 'missing', to_jsonb(v_missing),
-                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch,
+                            'licence_expired', v_expired, 'licence_name_mismatch', v_name_mismatch, 'licence_name_unread', v_name_unread,
                             'reason', v_reason, 'auto_approve', v_auto);
 end $function$;
 

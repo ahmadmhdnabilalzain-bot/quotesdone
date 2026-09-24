@@ -42,6 +42,7 @@ import { answerFromFaq, type Content, founderUnanswered, type MenuDeps, menuTurn
 import type { Figures } from './founder_queries.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
+import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -342,6 +343,9 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
   // licence on file, and license_doc_path is what unblocks the approval gate.
   const upd: Record<string, unknown> = {
     license_doc_path: path, license_doc_name: fname, doc_extracted_at: new Date().toISOString(),
+    // The name printed on this licence, read by the vision model off the photo or scan; null = not read,
+    // and the review then holds the registration for a human (licence_name_unread).
+    licence_legal_name: licenceNameFromModel(doc),
   };
   const applied: string[] = [];
   // 'low' confidence never overwrites a stored fact. license_extract returns confidence 'low' both

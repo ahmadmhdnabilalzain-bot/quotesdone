@@ -175,6 +175,31 @@ export async function readLicenceName(bytes: Uint8Array, mime: string): Promise<
   return text ? licenceNameFromText(text) : null;
 }
 
+// A SCANNED LICENCE STILL YIELDS ITS NAME (24 Sep 2026, sales_engineer). Code reads only a text layer, so a
+// scan or a photo reaches the name through license_extract (vision, model_policy.document_extraction). These
+// two are the whole rule, shared by every upload path (supplier_api, resend_inbound, wa_inbound):
+/** The name the model read, or null. A 'low' confidence read (an unreadable scan, or a truncated reply) is not a name. */
+export function licenceNameFromModel(doc: { legal_name?: unknown; confidence?: unknown } | null | undefined): string | null {
+  if (!doc || doc.confidence === 'low') return null;
+  const v = String(doc.legal_name ?? '').trim().slice(0, 200);
+  return /\p{L}{2}/u.test(v) ? v : null;
+}
+function toB64(u8: Uint8Array): string {
+  let bin = ''; for (let i = 0; i < u8.length; i += 0x8000) bin += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+/** What license_extract is sent: the images or file the request carried; otherwise, when code could not read a
+ *  name, the STORED licence (a scan uploaded earlier, or by path). null = nothing to send. */
+export function licenceModelPayload(lic: { images?: unknown[]; file_b64?: string; mime?: string; filename?: string },
+    stored: { bytes: Uint8Array; mime: string } | null, codeName: string | null) {
+  const images = Array.isArray(lic.images) ? lic.images : [];
+  if (images.length || lic.file_b64) return { images, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename };
+  if (codeName || !stored?.bytes?.length) return null;
+  return /^image\//i.test(stored.mime)
+    ? { images: [{ b64: toB64(stored.bytes), mime: stored.mime }], file_b64: undefined, mime: stored.mime, filename: lic.filename }
+    : { images: [], file_b64: toB64(stored.bytes), mime: stored.mime || 'application/pdf', filename: lic.filename || 'licence.pdf' };
+}
+
 /** The one call the upload paths make: bytes in, a read expiry or null out. Images return null (no OCR here). */
 export async function readExpiry(bytes: Uint8Array, mime: string): Promise<ExpiryRead | null> {
   if (!/pdf/i.test(mime)) return null;
