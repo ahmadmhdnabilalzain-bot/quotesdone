@@ -4,7 +4,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
-import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, choosePatch, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, whatsappState, type Patch, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
@@ -419,7 +419,7 @@ Deno.serve(observe('kyc', async (req) => {
       // dashboard asks them once instead. Suppliers are held at supplier_api save_profile, which is
       // where their sign-up completes.
       if (kind === 'customer' && !(cust as any)?.tos_accepted_at && !whatsappState(await readWa()).opt) return J({ error: 'whatsapp_unanswered', code: 'whatsapp_unanswered', message: 'Tell us whether your mobile is also your WhatsApp number first.' }, 400);
-      const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim();
+      const ip = clientIp(req);
       const nowIso = new Date().toISOString();
       // ONE SOURCE OF TRUTH FOR THE VERSION (2 Aug 2026, external code review). 'v4' and 'v3' were
       // hard-coded here, supplier_api read app_secrets('terms_version') (a key that did not exist,
@@ -434,7 +434,7 @@ Deno.serve(observe('kyc', async (req) => {
       if (kind === 'supplier') {
         const curV = await currentSupplierTermsVersion(sec);
         if (!(lead as any)?.accepted_terms_at || (lead as any)?.accepted_terms_version !== curV) {
-          const rec = await supplierTermsRecord(sec, ip);
+          const rec = await supplierTermsRecord(sec, ip, req.headers.get('user-agent') || '');
           if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
           await admin.from('leads').update(rec).eq('claimed_by', email);
         }

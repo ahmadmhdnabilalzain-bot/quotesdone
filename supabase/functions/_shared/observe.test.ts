@@ -8,7 +8,7 @@
 //
 // Run: deno test supabase/functions/_shared/observe.test.ts   (or npm test, which discovers it)
 import { assert, assertEquals, assertStrictEquals } from 'jsr:@std/assert@1';
-import { baseCounts, classify, edgeRegion, observe, record } from './observe.ts';
+import { baseCounts, classify, edgeRegion, LATENCY_BUDGET_MS, observe, record } from './observe.ts';
 
 const req = (url = 'http://x.test/fn', init?: RequestInit) => new Request(url, init);
 
@@ -94,4 +94,12 @@ Deno.test('every run row carries the edge region that served it', () => {
   // Without env permission (this test run) the region is unknown, never a throw.
   assertStrictEquals(edgeRegion(), null);
   assertStrictEquals(baseCounts(req(), 204).region, null);
+});
+
+Deno.test('the portal data functions carry the 2.5 s budget the founder set', () => {
+  // 24 Sep 2026: fn_it_engineer_latency_slo judges only rows that carry budget_ms. A portal function dropped
+  // from this map would silently leave the latency budget unwatched.
+  for (const fn of ['customer_api', 'customer_portal', 'project_api', 'messages_api', 'kyc', 'supplier_portal', 'supplier_api']) {
+    assertEquals(LATENCY_BUDGET_MS[fn], 2500, fn + ' has no 2.5 s budget');
+  }
 });

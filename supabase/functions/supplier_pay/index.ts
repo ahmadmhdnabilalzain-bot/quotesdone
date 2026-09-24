@@ -142,6 +142,7 @@ Deno.serve(observe('supplier_pay', async (req) => {
       await logRun('ok', { supplier_id: lead.id, outstanding: outstanding.length, total_owed: totalOwed }, '');
       return J({ ok: true, company: lead.company_name, currency: 'AED', total_owed: totalOwed,
         dues: outstanding.map((d) => ({ id: d.id, amount: owed(d),
+          // clause 33(a)+(b): the refund and, from v14, the unrecovered processor fee (the key name is the portal's)
           refunded_fee: Number(d.amount_due || 0),
           admin_fee: Number(d.admin_fee || 0),
           interest: Number(d.interest_amount || 0) + Number(d.fine_amount || 0),

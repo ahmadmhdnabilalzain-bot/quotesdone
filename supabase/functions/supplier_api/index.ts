@@ -9,8 +9,7 @@ import { arDays } from '../_shared/ar_days.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
-import { quoteTerms, reasonQuoteAspects } from '../_shared/reasoned_suppliers.ts';
-import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
+import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
@@ -20,9 +19,9 @@ import { boqReadings, liveReadingStore } from '../_shared/reasoned_documents.ts'
 import { arabicOf, nativeArabic } from '../_shared/reasoned_governance.ts';
 import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
-import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
+import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readExpiry } from '../_shared/document_expiry.ts';
+import { licenceModelPayload, licenceNameFromModel, readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -75,7 +74,6 @@ const CONCLUDED = ['completed','closed','cancelled'];
 // version without an originating IP is materially weaker evidence.
 //
 // Same derivation as auth_api line 9 so the two paths produce comparable records.
-function clientIp(req: Request): string { return (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || ''; }
 const clip = (v: unknown, n: number) => (v == null || String(v).trim() === '') ? null : String(v).slice(0, n);
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { inboxBoq, inboxField, scrubIdentity } from './identity_scrub.ts';
@@ -249,11 +247,8 @@ async function kickDelivery() {
 const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
-  // WHICH CATEGORY ASPECTS THE QUOTE STATES is reasoned (think(), reasoned_suppliers.ts; founder_instruction
-  // 886-903), after the response so a submission never waits on a model. Until the reading lands,
-  // trg_quote_quality keeps the category verdict 'needs_reasoning' (not a pass); held, it is queued and
-  // applied by fn_reason_apply_sql__trg_quote_quality when the hold lifts.
-  runtimeWaitUntil()?.(reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid).catch((e) => console.error('quote aspects not read:', String(e))));
+  // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
+  // model (24 Sep 2026, it_engineer, quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql).
   const r = await acceptRule(qid);
   // deno-lint-ignore no-explicit-any
   let coaching: any = null;
@@ -455,7 +450,7 @@ const handle = async (req: Request): Promise<Response> => {
     // answered with the value we already hold.
     if (action === 'me') { const { data } = await admin.from('leads').select('id,company_name,claimed_by,emirate,sector,business_role,products,services,description,certifications,company_type,company_size,founded_year,service_emirates,claimed,verified,approval_status,ai_review_notes,registration_submitted_at,accepted_terms_at,accepted_terms_version,contact_name,signatory_name,phone,trade_license_no,license_authority,license_expiry,license_city,name_corrected_from,owner_email_verified,doc_extracted_at,trn,license_doc_path,egr_doc_path,egr_doc_name,egr_number,company_profile_doc_path,catalog_doc_paths,registration_status,registration_fee_due,registration_expires_at,app_rating,app_reviews,rating,reviews,licence_gate_reason,exception_due_at').eq('claimed_by', email).maybeSingle(); return J({ supplier: data ? { ...data, terms_current: await secretVal('terms_version') } : null }); }
     if (action === 'search') { const q = String(body.q || '').slice(0, 60); if (q.length < 2) return J({ results: [] }); const { data } = await admin.from('leads').select(SEARCH_COLUMNS).ilike('company_name', '%' + q + '%').order('reviews', { ascending: false, nullsFirst: false }).limit(8); const rows = (data || []) as LeadHit[]; /* a sanctioned party is never shown to anybody — founder instruction 516, 18 Sep 2026 */ const barred = await sanctionedLeads(admin, rows.map((r) => r.id)); return J({ results: rows.filter((r) => !barred.has(String(r.id))).map((r) => searchResult(r, email)) }); } // search_result.ts: claimed_by is read, never returned
-    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
+    if (action === 'create_company') { const { data: existing } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(); if (existing) return J({ error: 'Your account already manages a company.', code: 'company_exists' }, 409); const name = String(body.company_name || '').trim().slice(0, 160); if (name.length < 2) return J({ error: 'Enter your company name.', code: 'enter_company' }, 400); /* A COMPANY ALREADY CLAIMED IS NOT REGISTERED TWICE (24 Sep 2026, sales_engineer, ledger 993). Measured on production with two ZZ DEMO accounts: after account A claimed "ZZ DEMO Errors …", account B created a second listing with the identical name and got HTTP 200, so one company could hold two verified profiles and be matched twice. The comparison is case- and space-folded and exact; a different company with a similar name is not blocked. */ { const { data: twins } = await admin.from('leads').select('id').eq('claimed', true).ilike('company_name', name.replace(/\s+/g, ' ').replace(/[\\%_]/g, (c) => '\\' + c)).limit(1); if (twins && twins.length) return J({ error: 'A company with this name is already registered on QuotesDone. If it is yours, sign in with the email used to register it, or write to management@quotesdone.com.', code: 'company_already_registered' }, 409); } const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null, business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: await emailProven(email), source: 'self_registered', locale: asLocale(body.lang), scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle(); if (error) { /* a01_leads_sanctioned_identity_cannot_re_register raises this when the name, trade licence or account e-mail belongs to a confirmed sanctions ban. The trigger is the guard; this turns it into a sentence a stranger can read rather than a raw 23514 — founder instruction 516, 18 Sep 2026. */ if (String(error.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return J(SANCTIONED_REGISTRATION_REFUSAL, 403); return J({ error: error.message }, 500); } const reg = await setRegistration(ins!.id); await recordFirstTouch(ins!.id, body.first_touch); return J({ ok: true, id: ins?.id, registration: reg }); }
     // TAKEOVER FIX 27 Jul 2026 -----------------------------------------------------------------
     // 'claim' resolved the listing from body.leads_id - the sequential primary key - and never
     // looked at claim_token. claim_lookup v2 was rewritten on 19 Jul 2026 to accept ONLY the
@@ -616,6 +611,13 @@ const handle = async (req: Request): Promise<Response> => {
       // What CODE measured off the document. The model below may add what code cannot read
       // (licence number, authority, legal name) but must never overwrite this date.
       let codeExpiry: string | null = null;
+      // The licence's printed company name, read by code (24 Sep 2026). The sales engineer's review
+      // compares it with the registered name (fn_supplier_licence_name_mismatch); null = not read.
+      let codeName: string | null = null;
+      if (licBytes?.bytes) { try { codeName = await readLicenceName(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeName = null; } }
+      // A NEW licence replaces the old name even when nothing is read: a stale name must never match for a new
+      // document. null = not read, and the review then holds the registration (licence_name_unread).
+      if (licBytes?.bytes) upd.licence_legal_name = codeName;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -626,7 +628,7 @@ const handle = async (req: Request): Promise<Response> => {
             codeExpiry = docRead.expiry;
             upd.license_expiry = docRead.expiry;
             upd.doc_extracted_at = new Date().toISOString();
-            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code' };
+            out.license = { expiry: docRead.expiry, source: 'text', keyword: docRead.keyword, read_by: 'code', licence_name: codeName };
           } else {
             noteBoth('We could not read an expiry date from your trade licence — it may be a scan, or it may not print a date beside an expiry label. Nothing was guessed.',
                      'لم نتمكن من قراءة تاريخ انتهاء رخصتكم التجارية. قد يكون الملف صورة ممسوحة ضوئياً، أو لا يذكر تاريخاً بجانب كلمة الانتهاء. ولم نخمّن أي تاريخ.');
@@ -639,8 +641,10 @@ const handle = async (req: Request): Promise<Response> => {
       // The model path — legal name, licence number, authority, emirate, TRN — is behind the same
       // flag the portal uses (app_secrets.document_expiry_ai). With the flag off nothing is asked
       // of a gateway that cannot answer, and nothing above depends on it.
-      if ((licImgs.length || lic.file_b64) && await flagOn('document_expiry_ai')) {
-        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', images: licImgs, file_b64: lic.file_b64, mime: lic.mime, filename: lic.filename }) }); const jd = await r.json();
+      // A scan the code could not name is sent from storage when the portal did not resend it (24 Sep 2026).
+      const modelDoc = licenceModelPayload({ ...lic, images: licImgs }, licBytes?.bytes ? { bytes: licBytes.bytes, mime: licBytes.mime || 'application/pdf' } : null, codeName);
+      if (modelDoc && await flagOn('document_expiry_ai')) {
+        try { const r = await fetch(`${SUPA_URL}/functions/v1/license_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: sup.id, email }, mode: 'license', ...modelDoc }) }); const jd = await r.json();
           if (jd?.ok && jd.doc) { const d = jd.doc;
             if (d.license_number) upd.trade_license_no = d.license_number;
             if (d.license_authority) upd.license_authority = d.license_authority;
@@ -657,8 +661,12 @@ const handle = async (req: Request): Promise<Response> => {
             if (d.emirate) upd.emirate = d.emirate;
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
-            const legal = String(d.legal_name || '').trim(); const cur = String(sup.company_name || '').trim();
-            if (legal && legal.toLowerCase() !== cur.toLowerCase()) { upd.name_corrected_from = cur; upd.company_name = legal; }
+            // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
+            // made the name check the founder asked for always pass; the review now compares the two
+            // (fn_supplier_licence_name_mismatch) and a mismatch is action_required. Code's reading wins.
+            const legal = String(d.legal_name || '').trim();
+            const modelName = licenceNameFromModel(d);
+            if (modelName && !codeName) upd.licence_legal_name = modelName;
             // Merged, never replaced (main): out.license may already carry the expiry code measured,
             // and overwriting it would lose the reading that is actually written to the row.
             // `trn` is SP-C-09 of #858: process_docs read the TRN off the licence and wrote it to the
@@ -666,7 +674,7 @@ const handle = async (req: Request): Promise<Response> => {
             out.license = { ...(out.license as Record<string, unknown> || {}),
               legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-              name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
+              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence };
           } else out.license_error = jd?.error || 'extract_failed';
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }
@@ -795,7 +803,7 @@ const handle = async (req: Request): Promise<Response> => {
     if (action === 'accept_terms') {
       const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const rec = await supplierTermsRecord(secretVal, clientIp(req));
+      const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
       if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
       const { error } = await admin.from('leads').update(rec).eq('id', sup.id);
       if (error) return J({ error: error.message }, 500);
@@ -850,7 +858,7 @@ const handle = async (req: Request): Promise<Response> => {
       const accepting = body.accept_terms === true
         && !(sup.accepted_terms_at && sup.accepted_terms_version === await currentSupplierTermsVersion(secretVal));
       if (accepting) {
-        const rec = await supplierTermsRecord(secretVal, clientIp(req));
+        const rec = await supplierTermsRecord(secretVal, clientIp(req), req.headers.get('user-agent') || '');
         if (!rec) return J({ error: 'the current agreement version is not set', code: 'no_terms_version' }, 500);
         Object.assign(upd, rec);
       }
