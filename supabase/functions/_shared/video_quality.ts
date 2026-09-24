@@ -60,6 +60,26 @@ export function readMp4(bytes: Uint8Array): Mp4Info | null {
 }
 
 /**
+ * The founder's floor (ruling of 24 Sep 2026): the month-1 files are the MINIMUM acceptable quality. Below this a
+ * video is refused on every platform: 1080x1920, 30-60 fps, H.264 or HEVC, video >= 650 kbps (the 12 month-1 files
+ * measure 694-1190 kbps; 750 would refuse files 10-12), mono audio allowed.
+ */
+export const FLOOR = { width: 1080, height: 1920, fps_min: 30, fps_max: 60.5, video_kbps: 650 };
+
+/** Every way this video falls below the founder's floor; [] when it meets it. A refusal. */
+export function belowFloor(info: Mp4Info | null): string[] {
+  if (!info) return ['the video header could not be read, so its quality is unproven'];
+  const v = info.tracks.find((t) => t.kind === 'video');
+  if (!v) return ['no video track'];
+  const out: string[] = [];
+  if (!/^(avc1|avc3|hvc1|hev1)/.test(v.codec)) out.push(`codec ${v.codec}, H.264 or HEVC required`);
+  if ((v.width ?? 0) < FLOOR.width || (v.height ?? 0) < FLOOR.height) out.push(`${v.width}x${v.height} below ${FLOOR.width}x${FLOOR.height}`);
+  if ((v.fps ?? 0) < FLOOR.fps_min || (v.fps ?? 0) > FLOOR.fps_max) out.push(`${v.fps} fps outside 30-60`);
+  if (v.kbps < FLOOR.video_kbps) out.push(`video ${v.kbps} kbps below ${FLOOR.video_kbps} kbps`);
+  return out;
+}
+
+/**
  * Each platform's RECOMMENDED upload spec for a vertical short video, from its own page (read 24 Sep 2026).
  * A value a page does not state is not invented: only YouTube publishes a bitrate recommendation.
  */
@@ -72,8 +92,8 @@ export const UPLOAD_FLOOR: Record<string, { width: number; height: number; fps: 
   linkedin:  { width: 1080, height: 1920, fps: 10, source: 'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api' },
 };
 
-/** Every way this video falls below the platform's recommended upload spec; [] when it meets it. */
-export function belowUploadSpec(platform: string, info: Mp4Info | null): string[] {
+/** Below the platform's RECOMMENDED target: information for the digest only, never a refusal. */
+export function belowRecommended(platform: string, info: Mp4Info | null): string[] {
   const f = UPLOAD_FLOOR[platform];
   if (!f) return [];
   if (!info) return [`${platform}: the video header could not be read, so its quality is unproven`];

@@ -25,7 +25,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { belowUploadSpec, readMp4 } from '../_shared/video_quality.ts';
+import { belowFloor, belowRecommended, readMp4 } from '../_shared/video_quality.ts';
 import {
   assetMismatch, deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
   publishPost, pullInsights, readAdSpend, socialIntegrationItems, stripTokens, type MetaEnv, type PublishInput, type Variant, type YoutubeAuth,
@@ -112,7 +112,7 @@ async function download(path: string | null): Promise<PublishInput['media'][numb
     : /\.mp4$/i.test(name) ? 'video/mp4' : /\.png$/i.test(name) ? 'image/png' : /\.jpe?g$/i.test(name) ? 'image/jpeg' : 'application/octet-stream';
   return { name, type, bytes: new Uint8Array(await blob.arrayBuffer()) };
 }
-const QUALITY_REFUSAL = 'below the platform upload spec: ';
+const QUALITY_REFUSAL = 'below the founder video floor: ';
 async function patch(id: number, fields: Record<string, unknown>) {
   const { error } = await admin.from('marketing_post').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', id);
   return error;
@@ -205,15 +205,17 @@ async function publishDue(e: Env) {
     const differs = await assetMismatch(media.map((m, i) => ({ path: (p.media_paths || [])[i], bytes: m.bytes })).concat(cover ? [{ path: p.cover_path, bytes: cover.bytes }] : []),
       { [p.video_path || '']: p.video_sha256, [p.cover_path || '']: p.cover_sha256 });
     if (differs) { await patch(p.id, { status: 'failed', error: 'bytes differ from what was approved: ' + differs }); failed++; continue; }
-    // Highest quality or nothing (founder, 24 Sep 2026): a video below any target platform's recommended upload
-    // spec is refused here, before a byte leaves, and filed for the IT digest below.
+    // The founder's floor (24 Sep 2026: the month-1 files are the minimum): below it the video is refused here,
+    // before a byte leaves, and filed for the IT digest. Below a platform's RECOMMENDED target is only noted.
     const video = media.find((m) => m.type === 'video/mp4');
-    const low = video ? [...new Set(variants.map((v) => v.platform))].flatMap((pf) => belowUploadSpec(pf, readMp4(video.bytes))) : [];
+    const vinfo = video ? readMp4(video.bytes) : null;
+    const low = video ? belowFloor(vinfo) : [];
+    const recommended = video ? [...new Set(variants.map((v) => v.platform))].flatMap((pf) => belowRecommended(pf, vinfo)) : [];
     if (low.length) { await patch(p.id, { status: 'failed', error: (QUALITY_REFUSAL + low.join('; ')).slice(0, 1000) }); failed++; continue; }
     const res = await publishPost(fetch, e.postizBase, e.postizKey, input(media, cover), true, '');
     const now = new Date().toISOString();
     if (res.mode === 'live' && res.ok) {
-      await patch(p.id, { status: 'published', published_at: now, postiz_result: { channels: res.channels, skipped: res.skipped, postiz: res.postiz }, error: null });
+      await patch(p.id, { status: 'published', published_at: now, postiz_result: { channels: res.channels, skipped: res.skipped, postiz: res.postiz, below_recommended: recommended.length ? recommended : undefined }, error: null });
       live++;
     } else if (res.mode === 'live' && res.unclear) {
       await patch(p.id, { status: 'unconfirmed', error: res.error.slice(0, 500), postiz_result: { skipped: res.skipped, status: res.status ?? null } });
@@ -227,8 +229,14 @@ async function publishDue(e: Env) {
   // cancelled, and closes by its own key after.
   const { data: lowq } = await admin.from('marketing_post').select('id,ingest_key,error').eq('status', 'failed').like('error', QUALITY_REFUSAL + '%');
   const settled = await admin.rpc('fn_it_duty_settle', { p_duty: 'marketing_media_quality', p_items: (lowq || []).map((q) => ({
-    item: q.ingest_key, title: 'marketing refused a video below the platform upload spec: ' + q.ingest_key, owner_seat: 'marketing',
+    item: q.ingest_key, title: 'marketing refused a video below the founder floor: ' + q.ingest_key, owner_seat: 'marketing',
     subject: 'marketing', blast: 'agent_facing', affected: 1, evidence: { post_id: q.id, error: q.error } })) });
+  // Information only: published in the last 7 days below a platform's recommended target. Never a refusal.
+  const { data: rec } = await admin.from('marketing_post').select('id,ingest_key,postiz_result').eq('status', 'published')
+    .gte('published_at', new Date(Date.now() - 7 * 86400_000).toISOString()).not('postiz_result->below_recommended', 'is', null);
+  await admin.rpc('fn_it_duty_settle', { p_duty: 'marketing_media_below_recommended', p_items: (rec || []).map((q) => ({
+    item: q.ingest_key, title: 'info: published below the platform recommended video target: ' + q.ingest_key, owner_seat: 'marketing',
+    subject: 'marketing', blast: 'agent_facing', affected: 0, evidence: { post_id: q.id, below_recommended: q.postiz_result?.below_recommended } })) });
   return { ok: failed === 0 && refused === 0, due: due.length, published: live, dry_run: dry, failed, unconfirmed, refused_by_database: refused, reconcile: recon, quality_settle_error: settled.error?.message ?? null };
 }
 
