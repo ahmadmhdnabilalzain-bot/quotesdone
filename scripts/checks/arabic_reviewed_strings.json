@@ -839,6 +839,9 @@
   "a88f17897251",
   "d5286ce9f7f2"
  ],
+ "scripts/sql/one_approve_schedules_and_publishes_the_month_on_working_days.sql": [
+  "1721f87d2f73"
+ ],
  "scripts/sql/one_job_number_on_every_portal_document_and_notice.sql": [
   "2e6cf0d056d2"
  ],

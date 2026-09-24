@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T00:17:46.104Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T00:33:28.486Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -202,7 +202,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (609) =====
+-- ===== TABLES (612) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4659,6 +4659,20 @@ CREATE TABLE IF NOT EXISTS public.marketing_first_touch (
   recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_founder_request (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  kind text NOT NULL,
+  campaign_id bigint,
+  month date,
+  founder_text text DEFAULT ''::text NOT NULL,
+  attachments text[] DEFAULT '{}'::text[] NOT NULL,
+  message_id text,
+  status text DEFAULT 'open'::text NOT NULL,
+  done_at timestamp with time zone,
+  done_note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_goal (
   month text NOT NULL,
   platform text NOT NULL,
@@ -4754,7 +4768,10 @@ CREATE TABLE IF NOT EXISTS public.marketing_month_plan (
   founder_decided_at timestamp with time zone,
   founder_note text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  plan_token text,
+  plan_notification_id bigint,
+  plan_sent_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_outreach_message (
@@ -4938,6 +4955,19 @@ CREATE TABLE IF NOT EXISTS public.marketing_snapshots (
   snapshot_date date DEFAULT CURRENT_DATE NOT NULL,
   kpis jsonb NOT NULL,
   plan jsonb,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_video_idea (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  idea_key text NOT NULL,
+  title text NOT NULL,
+  hook text NOT NULL,
+  film_plan text NOT NULL,
+  cta text NOT NULL,
+  audience text NOT NULL,
+  enabled boolean DEFAULT true NOT NULL,
+  last_planned_month date,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -7480,6 +7510,26 @@ CREATE TABLE IF NOT EXISTS public.subcategory_agent_map (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_campaign_daily_list (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  list_day date NOT NULL,
+  send_day date NOT NULL,
+  switch_on boolean NOT NULL,
+  held_because text,
+  planned integer NOT NULL,
+  rows jsonb NOT NULL,
+  counts jsonb NOT NULL,
+  subject text NOT NULL,
+  body text NOT NULL,
+  pdf_blocks jsonb NOT NULL,
+  pdf_path text,
+  pdf_error text,
+  attempts integer DEFAULT 0 NOT NULL,
+  notification_id bigint,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_capabilities (
   supplier_id bigint NOT NULL,
   services text[] DEFAULT '{}'::text[],
@@ -8815,6 +8865,7 @@ ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_pkey PRI
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_pkey PRIMARY KEY (month, platform, metric);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_insight_note ADD CONSTRAINT marketing_insight_note_pkey PRIMARY KEY (week_start);
@@ -8835,6 +8886,7 @@ ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRI
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_pkey PRIMARY KEY (period_key);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_pkey PRIMARY KEY (id);
 ALTER TABLE public.match_eval_runs ADD CONSTRAINT match_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.materials ADD CONSTRAINT materials_pkey PRIMARY KEY (id);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_pkey PRIMARY KEY (id);
@@ -9017,6 +9069,7 @@ ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_pkey PRIMARY KEY
 ALTER TABLE public.stripe_events ADD CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id);
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_pkey PRIMARY KEY (id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_pkey PRIMARY KEY (sub_slug);
+ALTER TABLE public.supplier_campaign_daily_list ADD CONSTRAINT supplier_campaign_daily_list_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_pkey PRIMARY KEY (supplier_id);
 ALTER TABLE public.supplier_capability_confirmation ADD CONSTRAINT supplier_capability_confirmation_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_pkey PRIMARY KEY (lead_id);
@@ -9143,11 +9196,13 @@ ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_campaign_key_key UNIQUE (campaign_key);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_key UNIQUE (lead_id);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
+ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_key UNIQUE (plan_token);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_mark_token_key UNIQUE (mark_token);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_month_round_seat_key UNIQUE (month, round, seat);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_platform_checkpoint_metric_key UNIQUE (post_id, platform, checkpoint, metric);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_platform_seq_key UNIQUE (post_id, platform, seq);
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_idea_key_key UNIQUE (idea_key);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
 ALTER TABLE public.mdm_standards ADD CONSTRAINT mdm_standards_code_key UNIQUE (code);
@@ -9176,6 +9231,7 @@ ALTER TABLE public.social_connect_link ADD CONSTRAINT social_connect_link_token_
 ALTER TABLE public.social_conversation ADD CONSTRAINT social_conversation_platform_user_id_key UNIQUE (platform, user_id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_platform_meta_message_id_key UNIQUE (platform, meta_message_id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_category_title_key UNIQUE (category, title);
+ALTER TABLE public.supplier_campaign_daily_list ADD CONSTRAINT supplier_campaign_daily_list_list_day_key UNIQUE (list_day);
 ALTER TABLE public.supplier_catalog ADD CONSTRAINT supplier_catalog_supplier_id_source_hash_key UNIQUE (supplier_id, source_hash);
 ALTER TABLE public.supplier_dues ADD CONSTRAINT supplier_dues_transaction_id_key UNIQUE (transaction_id);
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_external_key_key UNIQUE (supplier_id, external_key);
@@ -9503,6 +9559,11 @@ ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_ut
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_content_check CHECK ((utm_content ~ '^[A-Za-z0-9._-]{1,100}$'::text));
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_medium_check CHECK ((utm_medium ~ '^[A-Za-z0-9._-]{1,100}$'::text));
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_utm_source_check CHECK ((utm_source ~ '^[A-Za-z0-9._-]{1,100}$'::text));
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_done_is_whole CHECK (((status = 'open'::text) = (done_at IS NULL)));
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_kind_check CHECK ((kind = ANY (ARRAY['calendar_change'::text, 'month_content'::text])));
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_benchmark_source_check CHECK ((length(btrim(benchmark_source)) >= 20));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
@@ -9519,6 +9580,7 @@ ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_check 
 ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_outcome_check CHECK ((outcome = ANY (ARRAY['held_not_run'::text, 'written'::text, 'rejected'::text, 'failed'::text])));
 ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_seat_check CHECK ((seat = ANY (ARRAY['marketing'::text, 'ceo'::text])));
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
+ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_check CHECK ((plan_token ~ '^[0-9a-f]{32}$'::text));
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'with_ceo'::text, 'agreed'::text, 'brief_requested'::text, 'sent_to_founder'::text, 'accepted'::text, 'rejected'::text])));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_body_check CHECK (((btrim(body) <> ''::text) AND (length(body) <= 1900)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_first_has_a_note CHECK (((kind <> 'first'::text) OR (note IS NOT NULL)));
@@ -9597,6 +9659,12 @@ ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_owner_seat_check CHECK ((owner_seat = 'marketing'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_period_key_check CHECK ((period_key ~ '^\d{4}-(W\d{2}|\d{2}-end)$'::text));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_audience_check CHECK ((audience = ANY (ARRAY['supplier'::text, 'customer'::text, 'both'::text])));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_cta_check CHECK ((btrim(cta) <> ''::text));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_film_plan_check CHECK ((btrim(film_plan) <> ''::text));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_hook_check CHECK ((btrim(hook) <> ''::text));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_idea_key_check CHECK ((idea_key ~ '^[a-z0-9][a-z0-9-]{2,60}$'::text));
+ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_title_check CHECK ((btrim(title) <> ''::text));
 ALTER TABLE public.messages ADD CONSTRAINT messages_sender_check CHECK ((sender = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_direction_check CHECK ((direction = ANY (ARRAY['up'::text, 'down'::text])));
 ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_check CHECK ((domain = ANY (ARRAY['demand'::text, 'supply'::text, 'liquidity'::text, 'revenue'::text, 'quality'::text, 'cost'::text, 'ops'::text])));
@@ -10067,6 +10135,7 @@ ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE SET NULL;
+ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES marketing_prospect(id);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_month_fkey FOREIGN KEY (month) REFERENCES marketing_month_plan(month);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
@@ -10535,6 +10604,7 @@ CREATE UNIQUE INDEX market_intel_one_row_per_post ON public.market_intel USING b
 CREATE INDEX marketing_asset_feature_path ON public.marketing_asset_feature USING btree (asset_bucket, asset_path);
 CREATE INDEX marketing_asset_review_sha ON public.marketing_asset_review USING btree (file_sha256, created_at DESC);
 CREATE INDEX marketing_first_touch_post ON public.marketing_first_touch USING btree (post_id) WHERE (post_id IS NOT NULL);
+CREATE UNIQUE INDEX marketing_founder_request_one_per_message ON public.marketing_founder_request USING btree (message_id) WHERE ((message_id IS NOT NULL) AND (message_id <> ''::text));
 CREATE INDEX marketing_knowledge_emb_hnsw ON public.marketing_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE UNIQUE INDEX marketing_model_run_held_once_a_day ON public.marketing_model_run USING btree (step, subject, run_day) WHERE (outcome = 'held_not_run'::text);
 CREATE INDEX marketing_outreach_message_day_idx ON public.marketing_outreach_message USING btree (listed_on);
@@ -20046,16 +20116,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -20081,6 +20141,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -20792,135 +20862,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -21436,6 +21377,135 @@ begin
 
   return out;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -23852,6 +23922,7 @@ AS $function$
     ('marketing_asset_feature.asset_path',  'column', null, false, null, 'EXEMPT (not a file or not ours): a pointer to a post video already in marketing-media (backed up through marketing_post.video_path and media_paths); the feature row measures it and holds no second copy'),
     ('action_class_demand.on_revenue_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): a boolean saying whether an action_class is on the revenue path; it names no file, and the row is in the daily table export'),
     ('ml-models',                            'bucket', null, false, null, 'EXEMPT (not a file or not ours): a copy of a public embedding model downloaded from Hugging Face for the multilingual embedder; it can be fetched again and holds no record'),
+    ('supplier_campaign_daily_list.pdf_path', 'column', null, false, null, 'EXEMPT (not a file or not ours): the 18:00 supplier-list PDF is drawn from its own row (rows, pdf_blocks), which is in the daily table export; it can be rendered again'),
     ('demo-assets',                          'bucket', null, false, null, 'EXEMPT (not a file or not ours): a rehearsal fixture (one sample recording), never a record'),
 
     -- ── (c) EXEMPT (derived): no registry source. The one derived thing left out is a folder, not a
@@ -31572,6 +31643,97 @@ begin
       'agent_actions#' || v_id);
   end if;
   return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_campaign_list_attach(p_id bigint, p_bucket text DEFAULT NULL::text, p_path text DEFAULT NULL::text, p_url text DEFAULT NULL::text, p_bytes integer DEFAULT NULL::integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.supplier_campaign_daily_list; v_nid bigint; v_to text;
+begin
+  select * into r from public.supplier_campaign_daily_list where id = p_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no such supplier_campaign_daily_list ' || p_id); end if;
+  if r.notification_id is not null then return jsonb_build_object('ok', true, 'already_sent', true, 'notification_id', r.notification_id); end if;
+  if p_path is null or coalesce(p_error, '') <> '' then
+    update public.supplier_campaign_daily_list set pdf_error = coalesce(nullif(p_error, ''), 'pdf_native returned no path'),
+           attempts = attempts + 1, updated_at = now() where id = p_id;
+    return jsonb_build_object('ok', false, 'retained', true, 'error', coalesce(nullif(p_error, ''), 'pdf_native returned no path'));
+  end if;
+  if not coalesce((select allowed_to_email from public.founder_mail_policy where kind = 'supplier_campaign_daily_list'), false) then
+    return jsonb_build_object('ok', false, 'error', 'founder_mail_policy does not allow supplier_campaign_daily_list');
+  end if;
+  v_to := lower(btrim(coalesce(nullif(split_part((select value from public.app_secrets where key = 'admin_emails'), ',', 1), ''), 'management@quotesdone.com')));
+  insert into public.notifications (type, kind, to_email, to_role, subject, body, status, channel, attachments, requested_by)
+  values ('supplier_campaign_daily_list', 'supplier_campaign_daily_list', v_to, 'founder', left(r.subject, 200), r.body, 'queued', 'email',
+          jsonb_build_array(jsonb_build_object('bucket', coalesce(p_bucket, 'agent-docs'), 'path', p_path,
+            'filename', 'Suppliers to invite ' || to_char(r.send_day, 'YYYY-MM-DD') || '.pdf')), 'customer_support')
+  returning id into v_nid;
+  update public.supplier_campaign_daily_list set pdf_path = p_path, pdf_error = null, notification_id = v_nid, updated_at = now() where id = p_id;
+  return jsonb_build_object('ok', true, 'notification_id', v_nid, 'to', v_to);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_campaign_list_tick(p_now timestamp with time zone DEFAULT NULL::timestamp with time zone)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_local timestamp := coalesce(p_now, now()) at time zone 'Asia/Dubai'; v_at time; r public.supplier_campaign_daily_list;
+  v_l jsonb; v_c jsonb; v_subj text; v_body text; v_blocks jsonb; v_state text; v_send text;
+begin
+  begin
+    select coalesce(nullif(btrim(value), ''), '18:00')::time into v_at from public.app_secrets where key = 'supplier_campaign_list_local_time';
+  exception when others then v_at := time '18:00'; end;
+  v_at := coalesce(v_at, time '18:00');
+  if v_local::time < v_at then return jsonb_build_object('due', false, 'reason', 'before ' || to_char(v_at, 'HH24:MI') || ' Dubai'); end if;
+
+  select * into r from public.supplier_campaign_daily_list where list_day = v_local::date;
+  if r.notification_id is not null then return jsonb_build_object('due', false, 'reason', 'already sent today', 'id', r.id); end if;
+  if r.id is not null and r.attempts >= 8 then return jsonb_build_object('due', false, 'ok', false, 'reason', 'render failed 8 times today', 'error', r.pdf_error); end if;
+
+  if r.id is null then
+    v_l := public.fn_supplier_campaign_next_list(v_local::date);
+    v_c := public.fn_supplier_campaign_day_counts(v_local::date);
+    v_send := to_char((v_l->>'send_day')::date, 'FMDay DD FMMonth YYYY');
+    v_state := case when (v_l->>'switch_on')::boolean
+                    then 'The campaign is ON: these ' || (v_l->>'planned') || ' supplier(s) will be invited on ' || v_send || ', spread across the working day.'
+                    else 'The campaign is SWITCHED OFF (' || (v_l->>'held_because') || '): NOTHING will be sent on ' || v_send
+                         || '. This is the list that WOULD be sent if it were on.' end;
+    v_subj := 'Supplier campaign: ' || case when (v_l->>'switch_on')::boolean then '' else 'OFF — would invite ' end
+              || (v_l->>'planned') || ' supplier(s) on ' || to_char((v_l->>'send_day')::date, 'Dy DD Mon');
+    v_body := v_state || E'\n\n'
+      || 'Today (' || to_char(v_local::date, 'Dy DD Mon') || '): ' || (v_c->>'sent') || ' invitation(s) sent, ' || (v_c->>'bounced') || ' bounced, '
+      || (v_c->>'unsubscribed') || ' unsubscribed, ' || (v_c->>'registered') || ' supplier(s) registered.' || E'\n\n'
+      || 'The attached PDF lists each supplier: company, emirate, language and email (masked). It is produced by code from the same '
+      || 'selection the sender uses (cap ' || (v_l->>'cap') || ', eligible pool ' || (v_l->>'pool') || '). The morning warm-up may move the cap, '
+      || 'and a supplier who registers, bounces or unsubscribes overnight drops out.'
+      || coalesce(E'\n\nNo sending on: ' || (select string_agg(to_char((s->>'day')::date, 'Dy DD Mon') || ' (' || (s->>'why') || ')', ', ')
+                                               from jsonb_array_elements(v_l->'skipped') s), '');
+    v_blocks := jsonb_build_array(
+        jsonb_build_object('t', 'h2', 'text', 'Suppliers to be invited on ' || v_send),
+        jsonb_build_object('t', 'p', 'text', v_state),
+        jsonb_build_object('t', 'p', 'text', 'Today (' || to_char(v_local::date, 'Dy DD Mon YYYY') || '): sent ' || (v_c->>'sent') || ', bounced ' || (v_c->>'bounced')
+                                              || ', unsubscribed ' || (v_c->>'unsubscribed') || ', registered ' || (v_c->>'registered') || '.'),
+        jsonb_build_object('t', 'note', 'text', 'Selection: fn_supplier_invite_candidates(' || (v_l->>'planned') || '), the sender''s own; cap ' || (v_l->>'cap')
+                                              || ', eligible pool ' || (v_l->>'pool') || '. Emails are masked. Prepared by customer_support, by code.'),
+        jsonb_build_object('t', 'space', 'h', 6),
+        jsonb_build_object('t', 'table', 'head', jsonb_build_array('#', 'Company', 'Emirate', 'Language', 'Email'),
+          'widths', jsonb_build_array(0.06, 0.44, 0.14, 0.1, 0.26),
+          'rows', coalesce((select jsonb_agg(jsonb_build_array((x->>'n'), x->>'company', x->>'emirate', upper(x->>'language'), x->>'email') order by (x->>'n')::int)
+                              from jsonb_array_elements(v_l->'rows') x), '[]'::jsonb)));
+    insert into public.supplier_campaign_daily_list (list_day, send_day, switch_on, held_because, planned, rows, counts, subject, body, pdf_blocks)
+    values (v_local::date, (v_l->>'send_day')::date, (v_l->>'switch_on')::boolean, v_l->>'held_because', (v_l->>'planned')::int,
+            v_l->'rows', v_c, v_subj, v_body, v_blocks)
+    returning * into r;
+  end if;
+  return jsonb_build_object('due', true, 'pdf_pending', true, 'id', r.id, 'subject', r.subject,
+                            'report_key', 'supplier_list_' || to_char(r.send_day, 'YYYY-MM-DD'), 'pdf_blocks', r.pdf_blocks,
+                            'planned', r.planned, 'switch_on', r.switch_on);
 end $function$
 
 
@@ -45040,8 +45202,7 @@ AS $function$
   select c.campaign_key, h.v
     from public.marketing_campaign c, lateral (select public.fn_marketing_campaign_hash(c.id) v) h
    where not c.is_demo
-     and now() < ((c.month + interval '1 month')::timestamp at time zone 'Asia/Dubai')
-     and exists (select 1 from public.marketing_post p where p.campaign_id = c.id and p.status <> 'cancelled')
+     and now() < (select max(p.scheduled_at) from public.marketing_post p where p.campaign_id = c.id and p.status <> 'cancelled')
      and h.v is distinct from c.calendar_hash
      and h.v is distinct from c.approved_hash
      and greatest(c.updated_at,
@@ -45205,49 +45366,65 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_calendar_reply(p jsonb)
 AS $function$
 declare
   c public.marketing_campaign; v_from text := lower(btrim(coalesce(p->>'from_email', '')));
-  v_now text; v_st jsonb; v_out text; v_msg text; v_subj text; v_nid bigint;
+  v_now text; v_st jsonb; v_out text; v_msg text; v_subj text; v_nid bigint; v_last timestamptz; v_rid bigint;
+  v_text text := btrim(coalesce(p->>'text', ''));
 begin
   select * into c from public.marketing_campaign where calendar_token = lower(coalesce(p->>'token', '')) for update;
   -- A reply from anyone but him is recorded by the caller and never answered: we do not email strangers.
   if v_from is distinct from public.fn_marketing_founder_email() then
     return jsonb_build_object('outcome', 'not_the_founder', 'approved', false, 'campaign_key', c.campaign_key);
   end if;
+  select max(scheduled_at) into v_last from public.marketing_post where campaign_id = c.id and status <> 'cancelled';
   if c.id is null then
     v_out := 'unknown_calendar';
     v_msg := 'Your reply did not match the current social calendar email, so nothing was approved. Please reply to the latest calendar email you received from us (a newer one replaces any earlier one).';
   elsif not coalesce((p->>'authenticated')::boolean, false) then
     v_out := 'not_authenticated';
-    v_msg := 'A reply to the ' || to_char(c.month, 'FMMonth YYYY') || ' social calendar arrived with your address but our mail server could not verify it came from your mailbox (no SPF/DKIM/DMARC pass), so nothing was approved. If it was you, reply again from your usual mail app.';
+    v_msg := 'A reply to the social calendar arrived with your address but our mail server could not verify it came from your mailbox (no SPF/DKIM/DMARC pass), so nothing was approved or changed. If it was you, reply again from your usual mail app.';
   else
     v_now := public.fn_marketing_campaign_hash(c.id);
-    if c.approved_hash is not null and c.approved_hash = v_now then
+    if coalesce(p->>'intent', '') = 'approve' and c.approved_hash is not null and c.approved_hash = v_now then
       return jsonb_build_object('outcome', 'already_approved', 'approved', true, 'campaign_key', c.campaign_key);  -- idempotent: nothing sent
-    elsif now() >= ((c.month + interval '1 month')::timestamp at time zone 'Asia/Dubai') then
+    elsif v_last is null or now() >= v_last then
       v_out := 'expired';
-      v_msg := 'The ' || to_char(c.month, 'FMMonth YYYY') || ' calendar can no longer be approved: its month is over. Nothing was approved.';
+      v_msg := 'This social calendar has no posts left to go out, so nothing was approved or changed.';
+    elsif coalesce(p->>'intent', '') = 'change' and v_text <> '' then
+      -- HIS WORDS GO TO THE SEAT. Filed once per message; the corrected calendar is re-sent by code when it changes.
+      insert into public.marketing_founder_request (kind, campaign_id, month, founder_text, message_id)
+      values ('calendar_change', c.id, c.month, left(v_text, 4000), nullif(p->>'message_id', ''))
+      on conflict (message_id) where message_id is not null and message_id <> '' do nothing
+      returning id into v_rid;
+      if v_rid is null then
+        return jsonb_build_object('outcome', 'change_already_filed', 'approved', false, 'campaign_key', c.campaign_key);
+      end if;
+      v_out := 'change_requested';
+      v_msg := 'Nothing was approved yet. Your change request was passed to the marketing seat (request ' || v_rid || '):' || E'\n\n'
+               || left(v_text, 1500) || E'\n\n'
+               || 'The corrected calendar will be emailed to you for approval; reply "approve" to that one and it is scheduled and published.';
     elsif c.calendar_hash is distinct from v_now then
       v_out := 'edited_after_sending';
-      v_msg := 'The ' || to_char(c.month, 'FMMonth YYYY') || ' calendar was changed after we emailed it to you, so this approval would not match what will be posted. Nothing was approved; the updated calendar is being emailed to you now. Please reply "approve" to that one.';
+      v_msg := 'The social calendar was changed after we emailed it to you, so this approval would not match what will be posted. Nothing was approved; the updated calendar is being emailed to you now. Please reply "approve" to that one.';
     elsif coalesce(p->>'intent', '') <> 'approve' then
       v_out := 'unclear';
-      v_msg := 'We could not read your reply as an approval of the ' || to_char(c.month, 'FMMonth YYYY') || ' social calendar, so nothing was approved. To approve it exactly as sent, reply with the single word "approve" (or "موافق"). To change something, tell us what, and we will send you a corrected calendar.';
+      v_msg := 'Your reply had no text of its own, so nothing was approved. To approve the calendar exactly as sent, reply with the single word "approve" (or "موافق"). To change something, reply saying what.';
     else
       update public.marketing_campaign set approved_by = 'founder', approved_at = now(), approved_hash = v_now,
              approved_message_id = coalesce(nullif(p->>'message_id', ''), 'unknown'), updated_at = now()
        where id = c.id;
       v_st := public.fn_marketing_campaign_state(c.campaign_key);
       v_out := 'approved';
-      v_msg := 'Approved — ' || (v_st->>'posts') || ' posts scheduled from '
-               || to_char(((v_st->>'first_post_at')::timestamptz at time zone 'Asia/Dubai'), 'FMDay DD FMMonth YYYY, HH24:MI') || ' (Dubai). '
-               || 'They will go out exactly as in the calendar you approved (content reference ' || left(v_now, 12) || ').'
-               || case when coalesce((select lower(value) from public.app_secrets where key = 'marketing_golive'), 'false') <> 'true'
-                       then ' Publishing is currently switched off (marketing_golive); nothing will post until it is switched on.' else '' end;
+      v_msg := 'Approved — ' || (v_st->>'posts') || ' posts scheduled and publishing from '
+               || to_char(((v_st->>'first_post_at')::timestamptz at time zone 'Asia/Dubai'), 'FMDay DD FMMonth YYYY, HH24:MI') || ' (Dubai), '
+               || 'on UAE working days only. They go out exactly as in the calendar you approved (content reference ' || left(v_now, 12) || ').'
+               || case when not public.fn_marketing_publishing_on()
+                       then ' NOTE: the emergency stop is on (marketing_publishing_enabled = false); nothing posts until it is lifted.' else '' end;
     end if;
   end if;
-  v_subj := case when v_out = 'approved' then 'Approved: ' else 'Not approved: ' end || 'social calendar '
-            || coalesce(to_char(c.month, 'FMMonth YYYY'), '');
-  v_nid := public.fn_marketing_mail_founder('marketing_calendar_reply', v_subj, v_msg);
-  return jsonb_build_object('outcome', v_out, 'approved', v_out = 'approved', 'campaign_key', c.campaign_key, 'reply_notification_id', v_nid);
+  v_subj := case v_out when 'approved' then 'Approved: ' when 'change_requested' then 'Change request received: ' else 'Not approved: ' end
+            || 'social calendar' || coalesce(' — ' || c.title, '');
+  v_nid := public.fn_marketing_mail_founder('marketing_calendar_reply', left(v_subj, 200), v_msg);
+  return jsonb_build_object('outcome', v_out, 'approved', v_out = 'approved', 'campaign_key', c.campaign_key,
+                            'request_id', v_rid, 'reply_notification_id', v_nid);
 end $function$
 
 
@@ -45646,6 +45823,114 @@ begin
    where month = p_month and status = 'sent_to_founder' returning * into p;
   if p.month is null then raise exception 'no brief for % is waiting for the founder', p_month; end if;
   return jsonb_build_object('ok', true, 'month', p.month, 'status', p.status);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_reply(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  m public.marketing_month_plan; v_from text := lower(btrim(coalesce(p->>'from_email', ''))); v_rid bigint; v_msg text; v_out text;
+  v_atts text[] := coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(p->'attachments', '[]'::jsonb)) x), '{}');
+begin
+  select * into m from public.marketing_month_plan where plan_token = lower(coalesce(p->>'token', '')) for update;
+  if v_from is distinct from public.fn_marketing_founder_email() then
+    return jsonb_build_object('outcome', 'not_the_founder', 'month', m.month);
+  end if;
+  if m.month is null then
+    v_out := 'unknown_plan';
+    v_msg := 'Your reply did not match a video plan email, so nothing was filed. Please reply to the latest plan email.';
+  elsif not coalesce((p->>'authenticated')::boolean, false) then
+    v_out := 'not_authenticated';
+    v_msg := 'A reply to the video plan arrived with your address but our mail server could not verify it came from your mailbox, so nothing was filed. If it was you, reply again from your usual mail app.';
+  else
+    insert into public.marketing_founder_request (kind, month, founder_text, attachments, message_id)
+    values ('month_content', m.month, left(btrim(coalesce(p->>'text', '')), 4000), v_atts, nullif(p->>'message_id', ''))
+    on conflict (message_id) where message_id is not null and message_id <> '' do nothing
+    returning id into v_rid;
+    if v_rid is null then return jsonb_build_object('outcome', 'already_filed', 'month', m.month); end if;
+    -- his reply with the content IS his acceptance of the plan (the columns fn_marketing_month_plan_founder_decides writes)
+    update public.marketing_month_plan set status = 'accepted', founder_decided_at = now(),
+           founder_note = left(btrim(coalesce(p->>'text', '')), 2000), updated_at = now() where month = m.month;
+    v_out := 'content_received';
+    v_msg := 'Received for ' || to_char(m.month, 'FMMonth YYYY') || ' (' || cardinality(v_atts) || ' attachment(s)). The marketing seat builds the calendar from it '
+             || '(request ' || v_rid || ') and emails it to you; reply "approve" to that calendar and it is scheduled and published.';
+  end if;
+  perform public.fn_marketing_mail_founder('marketing_month_plan_reply',
+    case when v_out = 'content_received' then 'Received: ' else 'Not filed: ' end || 'video plan ' || coalesce(to_char(m.month, 'FMMonth YYYY'), ''), v_msg);
+  return jsonb_build_object('outcome', v_out, 'month', m.month, 'request_id', v_rid);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_tick(p_today date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
+  v_month date := (date_trunc('month', v_today) + interval '1 month')::date;
+  v_token text := encode(extensions.gen_random_bytes(16), 'hex'); v_ideas jsonb; v_body text; v_nid bigint; v_mname text;
+begin
+  if v_month < date '2026-11-01' then return jsonb_build_object('sent', false, 'reason', 'the monthly loop starts with November 2026'); end if;
+  -- once per month: a plan already emailed, or one the model path already carried past the CEO, is not replaced
+  if exists (select 1 from public.marketing_month_plan where month = v_month
+              and (plan_sent_at is not null or status not in ('draft', 'with_ceo'))) then
+    return jsonb_build_object('sent', false, 'reason', 'already planned', 'month', v_month);
+  end if;
+  v_mname := to_char(v_month, 'FMMonth YYYY');
+  with days as (select d, row_number() over (order by d) n from public.fn_marketing_video_days(v_month, 12) d),
+       picks as (select i.*, row_number() over (order by i.last_planned_month nulls first, i.id) n
+                   from public.marketing_video_idea i where i.enabled
+                  order by i.last_planned_month nulls first, i.id limit 12)
+  select jsonb_agg(jsonb_build_object('n', d.n, 'date', d.d, 'idea_key', p.idea_key, 'title', p.title, 'hook', p.hook,
+                                      'film_plan', p.film_plan, 'cta', p.cta, 'audience', p.audience) order by d.n)
+    into v_ideas
+    from days d join picks p on p.n = d.n;
+  if v_ideas is null then raise exception 'marketing_month_plan: no enabled ideas or no working days in %', v_month; end if;
+
+  v_body := 'Here is the video plan for ' || v_mname || ': ' || jsonb_array_length(v_ideas)
+         || ' short videos on UAE working days (Monday, Wednesday, Thursday first; no weekends or public holidays).' || E'\n\n'
+         || (select string_agg(format(E'%s. %s — %s\n   Hook: %s\n   Film: %s\n   Call to action: %s',
+                                      e->>'n', to_char((e->>'date')::date, 'Dy DD Mon'), e->>'title', e->>'hook', e->>'film_plan', e->>'cta'),
+                               E'\n\n' order by (e->>'n')::int)
+               from jsonb_array_elements(v_ideas) e)
+         || E'\n\nWhen the videos are ready, reply to this email with them (attachments or links). Change any idea by saying so in the same reply. '
+         || 'The marketing seat then builds the calendar (dates, times per platform, captions, hashtags, links) and sends it to you; '
+         || 'replying "approve" to that calendar schedules and publishes it.';
+  v_nid := public.fn_marketing_mail_founder('marketing_month_plan', 'Video plan for ' || v_mname || ' [plan ' || v_token || ']',
+                                            v_body, null, 'plan+' || v_token || '@mail.quotesdone.com');
+  insert into public.marketing_month_plan as t (month, status, verdict, plan, content_brief, plan_token, plan_notification_id, plan_sent_at)
+  values (v_month, 'sent_to_founder', jsonb_build_object('by', 'code', 'rule', 'founder 24 Sep 2026: the monthly idea plan is routine work, coded'),
+          jsonb_build_object('by', 'code', 'ideas', v_ideas), jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas),
+          v_token, v_nid, now())
+  on conflict (month) do update set status = excluded.status, verdict = coalesce(t.verdict, excluded.verdict), plan = excluded.plan,
+         content_brief = excluded.content_brief, plan_token = excluded.plan_token, plan_notification_id = excluded.plan_notification_id,
+         plan_sent_at = excluded.plan_sent_at, updated_at = now();
+  update public.marketing_video_idea set last_planned_month = v_month
+   where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_ideas) e);
+  return jsonb_build_object('sent', true, 'month', v_month, 'ideas', jsonb_array_length(v_ideas), 'notification_id', v_nid);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_next_working_slot(p_at timestamp with time zone)
+ RETURNS timestamp with time zone
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v timestamptz := p_at; i int := 0;
+begin
+  if v is null then return null; end if;
+  while not public.fn_is_working_day((v at time zone 'Asia/Dubai')::date) loop
+    v := v + interval '1 day'; i := i + 1;
+    if i > 30 then raise exception 'no UAE working day within 30 days of %', p_at; end if;
+  end loop;
+  return v;
 end $function$
 
 
@@ -46319,6 +46604,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_post_on_a_working_day()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if new.status in ('draft', 'scheduled') and new.scheduled_at is not null then
+    new.scheduled_at := public.fn_marketing_next_working_slot(new.scheduled_at);
+    new.scheduled_local := new.scheduled_at at time zone 'Asia/Dubai';
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_post_publish_refusal(p marketing_post)
  RETURNS text
  LANGUAGE plpgsql
@@ -46328,7 +46628,7 @@ AS $function$
 declare c public.marketing_campaign; v record; v_probs text[];
 begin
   -- ZZ DEMO both ways: the flag OR the words anywhere that is published
-  if p.is_demo or (p.text_en || ' ' || p.text_ar || ' ' || coalesce(p.title, '') || ' ' || coalesce(p.cta_url, '')) ~* 'zz[ _-]?demo'
+  if p.is_demo or (p.text_en || ' ' || coalesce(p.text_ar, '') || ' ' || coalesce(p.title, '') || ' ' || coalesce(p.cta_url, '')) ~* 'zz[ _-]?demo'
      or exists (select 1 from public.marketing_post_variant x where x.post_id = p.id
                  and (x.body || ' ' || coalesce(x.title, '') || ' ' || coalesce(x.alt_text, '') || ' ' || coalesce(x.first_comment, '')) ~* 'zz[ _-]?demo') then
     return 'demo: a ZZ DEMO post is never published';
@@ -46341,14 +46641,17 @@ begin
   if c.approved_hash <> public.fn_marketing_campaign_hash(c.id) then
     return 'approval_void: campaign ' || c.campaign_key || ' was edited after the founder approved it';
   end if;
-  -- A slot missed by more than 30 minutes (the switch was off, the seat was down) is not posted late: he approved
-  -- a time, and a Tuesday-morning post going out on Thursday night is not what he approved (review of #874).
-  -- Checked BEFORE the switch so the aborted-transaction probe proves it without touching marketing_golive.
+  -- A slot missed by more than 30 minutes is not posted late (review of #874).
   if p.scheduled_at < now() - interval '30 minutes' then
     return 'missed_slot: due ' || to_char(p.scheduled_at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai; reschedule and re-approve';
   end if;
-  if coalesce((select lower(value) from public.app_secrets where key = 'marketing_golive'), 'false') <> 'true' then
-    return 'switch_off: app_secrets.marketing_golive is not true';
+  -- Founder, 24 Sep 2026: never on the UAE weekend or a UAE public holiday (the trigger moves such posts; this
+  -- is the backstop for a row that reached the day some other way).
+  if not public.fn_is_working_day((p.scheduled_at at time zone 'Asia/Dubai')::date) then
+    return 'blocked_day: ' || to_char(p.scheduled_at at time zone 'Asia/Dubai', 'YYYY-MM-DD') || ' is a UAE weekend day or public holiday';
+  end if;
+  if not public.fn_marketing_publishing_on() then
+    return 'kill_switch: app_secrets.marketing_publishing_enabled is false (emergency stop)';
   end if;
   if not exists (select 1 from public.marketing_post_variant x where x.post_id = p.id) then return 'no_variants'; end if;
   for v in select x from public.marketing_post_variant x where x.post_id = p.id loop
@@ -46418,6 +46721,16 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_publishing_live()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'marketing_golive'), false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_publishing_on()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select lower(btrim(value)) from public.app_secrets where key = 'marketing_publishing_enabled'), 'true') <> 'false'
 $function$
 
 
@@ -47433,6 +47746,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_video_days(p_month date, p_n integer DEFAULT 12)
+ RETURNS SETOF date
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select d from (
+    select d::date d from generate_series(p_month, (p_month + interval '1 month' - interval '1 day'), interval '1 day') d
+     where public.fn_is_working_day(d::date)
+     order by (extract(isodow from d) in (1, 3, 4)) desc, d
+     limit p_n) x
+  order by d
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketplace_analytics()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -47501,6 +47829,18 @@ begin
   -- leaked 9 digits.) A date splits into short tokens and survives; output holds no digit run to re-mask.
   return regexp_replace(v, '(?=(?:[A-Za-z]*[0-9]){8})[A-Za-z0-9]+', '[ref]', 'g');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_mask_email(p text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when position('@' in coalesce(p, '')) > 1
+              then left(split_part(lower(btrim(p)), '@', 1), 2) || '***@' || split_part(lower(btrim(p)), '@', 2)
+              else '***' end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_match_capability(p_trades text[], p_need text DEFAULT 'executes'::text, p_products text[] DEFAULT '{}'::text[], p_brands text[] DEFAULT '{}'::text[], p_project_type text DEFAULT NULL::text, p_value numeric DEFAULT NULL::numeric, p_emirate text DEFAULT NULL::text, p_limit integer DEFAULT 12, p_services text[] DEFAULT '{}'::text[])
@@ -53470,6 +53810,19 @@ begin
   -- tick — an unbounded read to produce a number nobody reads (review of #852). `more` is what the
   -- caller needs, and it costs nothing.
   return jsonb_build_object('deleted', v_deleted, 'limit', p_limit, 'more', v_deleted = p_limit);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_public_holiday_moves_the_posts()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  update public.marketing_post set scheduled_at = scheduled_at, updated_at = now()
+   where status in ('draft', 'scheduled') and (scheduled_at at time zone 'Asia/Dubai')::date = new.holiday_date;
+  return null;
 end $function$
 
 
@@ -62971,6 +63324,64 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_campaign_day_counts(p_day date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with d as (select coalesce(p_day, (now() at time zone 'Asia/Dubai')::date) as d_day)
+  select jsonb_build_object('day', d.d_day,
+    'sent', (select count(*) from public.notifications n where n.type = 'supplier_invite' and n.status = 'sent'
+               and not public.fn_is_demo_email(n.to_email) and (n.sent_at at time zone 'Asia/Dubai')::date = d.d_day),
+    'bounced', (select count(*) from public.email_suppressions s where s.reason ilike '%bounce%'
+                  and (s.created_at at time zone 'Asia/Dubai')::date = d.d_day),
+    'unsubscribed', (select count(*) from public.email_suppressions s where s.reason ilike 'unsub%'
+                       and (s.created_at at time zone 'Asia/Dubai')::date = d.d_day),
+    'registered', (select count(*) from public.leads l where coalesce(l.is_demo, false) = false
+                     and (l.registration_submitted_at at time zone 'Asia/Dubai')::date = d.d_day))
+  from d
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_campaign_next_list(p_after date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_after date := coalesce(p_after, (now() at time zone 'Asia/Dubai')::date);
+  v_day date := v_after + 1; v_skipped jsonb := '[]'::jsonb; v_why text; i int := 0;
+  v_cap int; v_pool int; v_n int; v_switch boolean; v_held text; v_rows jsonb;
+begin
+  loop
+    v_why := public.fn_supplier_invites_hold_reason(v_day);
+    exit when v_why is null;
+    v_skipped := v_skipped || jsonb_build_object('day', v_day, 'why', v_why);
+    v_day := v_day + 1; i := i + 1;
+    if i > 20 then raise exception 'no supplier sending day within 20 days of %', v_after; end if;
+  end loop;
+  v_switch := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+              and public.fn_supplier_outreach_golive();
+  v_held := case when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive is false'
+                 when not v_switch then 'invite_enabled is false' end;
+  -- the sender's own numbers (enqueue_supplier_invites): cap, eligible pool, planned = least of the two
+  v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
+  select count(*) into v_pool from public.leads l where public.fn_supplier_invite_eligible(l);
+  v_n := greatest(least(v_cap, v_pool), 0);
+  select coalesce(jsonb_agg(jsonb_build_object('n', c.rn, 'lead_id', c.lead_id,
+            'company', coalesce(nullif(btrim(c.company_name), ''), '(no company name)'),
+            'emirate', coalesce(nullif(btrim(l.emirate), ''), '-'), 'language', c.lang,
+            'email', public.fn_mask_email(c.to_email)) order by c.rn), '[]'::jsonb)
+    into v_rows
+    from (select x.*, row_number() over () rn from public.fn_supplier_invite_candidates(v_n) x) c
+    join public.leads l on l.id = c.lead_id;
+  return jsonb_build_object('send_day', v_day, 'skipped', v_skipped, 'switch_on', v_switch, 'held_because', v_held,
+                            'cap', v_cap, 'pool', v_pool, 'planned', v_n, 'rows', v_rows);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_capability_reading_record(p_lead_id bigint, p_summary_md5 text, p_kinds jsonb, p_held_id bigint DEFAULT NULL::bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -63609,6 +64020,20 @@ begin
   return jsonb_build_object('id', v_id, 'to', v_to, 'lang', v_lang, 'status', v_status, 'captured_note', v_err,
                             'subject', v_subj, 'never_reaches_resend', v_status = 'suppressed');
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_invites_hold_reason(p_day date)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (select 'public holiday: ' || c.event_name from public.company_calendar c
+      where c.kind = 'public_holiday' and p_day between c.starts_on and coalesce(c.ends_on, c.starts_on)
+      order by c.starts_on limit 1),
+    case when extract(isodow from p_day) in (6, 7) then 'the UAE weekend' end)
 $function$
 
 
@@ -67454,7 +67879,7 @@ AS $function$
     ('marketing_ad_spend_day','marketing'), ('marketing_duty_run','marketing'), ('marketing_report','marketing'),
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
-    ('marketing_campaign','marketing'), ('marketing_post_variant','marketing'),
+    ('marketing_campaign','marketing'), ('marketing_founder_request','marketing'), ('marketing_video_idea','marketing'), ('supplier_campaign_daily_list','supplier'), ('marketing_post_variant','marketing'),
     ('marketing_post_platform','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
     ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('marketing_asset_feature','marketing'), ('marketing_asset_perception','marketing'), ('marketing_asset_review','marketing'),
@@ -76444,23 +76869,23 @@ end $function$
 
 -- ===== TRIGGERS =====
 CREATE TRIGGER a00_append_only BEFORE DELETE OR UPDATE ON public.accountant_issued_document FOR EACH ROW EXECUTE FUNCTION trg_accountant_issued_document_is_append_only();
-CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('accountant_knowledge', 'record_id');
+CREATE TRIGGER a10_accountant_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.accountant_knowledge FOR EACH ROW EXECUTE FUNCTION fn_accountant_knowledge_search_vector();
 CREATE TRIGGER t10_action_execution_set_author BEFORE INSERT ON public.action_execution FOR EACH ROW EXECUTE FUNCTION fn_action_execution_set_author();
 CREATE TRIGGER a00_ad_spend_ceiling_guard BEFORE INSERT ON public.ad_decision FOR EACH ROW EXECUTE FUNCTION fn_ad_spend_ceiling_guard();
-CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
-CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
-CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER a00_agent_action_resolve_addressee BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_action_resolve_addressee();
 CREATE TRIGGER zzz_zz_agent_action_fill_fields BEFORE INSERT OR UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_agent_actions_fill_alternatives();
 CREATE TRIGGER z62_new_bug_closes_with_learning BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_new_bug_closes_with_learning();
+CREATE TRIGGER z61_handoff_only_originator_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_handoff_only_originator_closes();
 CREATE TRIGGER z60_backup_refile_only_it_engineer_closes BEFORE UPDATE OF status ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION trg_backup_refile_only_it_engineer_closes();
 CREATE TRIGGER trg_sales_engineer_tells_customer_invoice_ready AFTER INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_sales_engineer_tells_customer_invoice_ready();
 CREATE TRIGGER trg_invite_week_activate AFTER UPDATE ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_invite_week_activate();
 CREATE TRIGGER trg_governance_stamp BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION fn_governance_stamp();
-CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
-CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_dedupe_it_incident BEFORE INSERT ON public.agent_actions FOR EACH ROW EXECUTE FUNCTION dedupe_it_incident();
+CREATE TRIGGER trg_category_knowledge_promote AFTER UPDATE ON public.agent_actions FOR EACH ROW WHEN ((new.kind = 'category_knowledge'::text)) EXECUTE FUNCTION fn_category_knowledge_promote();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF topic, content ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('agent_knowledge', 'id');
+CREATE TRIGGER trg_undo_agent_knowledge BEFORE DELETE OR UPDATE ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_knowledge_provenance_stamp BEFORE INSERT ON public.agent_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_provenance_stamp();
 CREATE TRIGGER trg_audit_agent_run AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION trg_audit_agent_run();
 CREATE TRIGGER trg_emit_test_failed_ins AFTER INSERT ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed_ins();
 CREATE TRIGGER trg_emit_test_failed_upd AFTER UPDATE ON public.agent_runs FOR EACH ROW EXECUTE FUNCTION fn_emit_test_failed();
@@ -76472,9 +76897,9 @@ CREATE TRIGGER trg_emit_invoice_received AFTER INSERT ON public.ap_bills FOR EAC
 CREATE TRIGGER trg_ap_pay_block_held BEFORE UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_pay_block_held();
 CREATE TRIGGER trg_ap_bill_dupe_guard BEFORE INSERT OR UPDATE ON public.ap_bills FOR EACH ROW EXECUTE FUNCTION fn_ap_bill_dupe_guard();
 CREATE TRIGGER a50_invite_cap_allocation AFTER UPDATE ON public.app_secrets FOR EACH ROW WHEN ((old.value IS DISTINCT FROM new.value)) EXECUTE FUNCTION trg_invite_cap_allocation();
+CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER trg_protect_app_secret BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_protect_app_secret();
 CREATE TRIGGER trg_audit_app_secrets AFTER INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_autonomy_control_guard BEFORE INSERT OR DELETE OR UPDATE ON public.app_secrets FOR EACH ROW EXECUTE FUNCTION fn_autonomy_control_guard();
 CREATE TRIGGER a00_artifact_review_author_is_not_reviewer BEFORE INSERT OR UPDATE ON public.artifact_review FOR EACH ROW EXECUTE FUNCTION fn_artifact_review_valid();
 CREATE TRIGGER trg_undo_business_rules BEFORE DELETE OR UPDATE ON public.business_rules FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER category_key_asked AFTER INSERT ON public.category_specs FOR EACH ROW EXECUTE FUNCTION trg_category_key_asked();
@@ -76483,29 +76908,29 @@ CREATE TRIGGER z90_case_memory AFTER INSERT ON public.ceo_approval FOR EACH ROW 
 CREATE TRIGGER z00_ceo_approval_append_only BEFORE UPDATE ON public.ceo_approval FOR EACH ROW EXECUTE FUNCTION fn_ceo_approval_append_only();
 CREATE TRIGGER z20_ceo_command_state_guard BEFORE UPDATE ON public.ceo_command FOR EACH ROW EXECUTE FUNCTION fn_ceo_command_state_guard();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF outcome, reading_after, founder_answer ON public.ceo_decision_log FOR EACH ROW EXECUTE FUNCTION trg_case_memory_ceo_decision_log();
+CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('ceo_knowledge', 'record_id');
 CREATE TRIGGER trg_ceo_knowledge_text_change_clears_embedding BEFORE UPDATE OF title, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_text_change_clears_embedding();
-CREATE TRIGGER a10_ceo_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.ceo_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ceo_knowledge_search_vector();
 CREATE TRIGGER z50_learning_section BEFORE INSERT OR UPDATE OF body ON public.ceo_weekly_report FOR EACH ROW EXECUTE FUNCTION trg_ceo_weekly_report_learning();
 CREATE TRIGGER trg_audit_collections_config AFTER INSERT OR DELETE OR UPDATE ON public.collections_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
-CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_priority_backlog_reorder AFTER INSERT ON public.company_event FOR EACH ROW WHEN ((new.event_type = 'priority.updated'::text)) EXECUTE FUNCTION fn_priority_backlog_reorder();
 CREATE TRIGGER trg_company_event_dispatch AFTER INSERT ON public.company_event FOR EACH STATEMENT EXECUTE FUNCTION trg_company_event_dispatch();
+CREATE TRIGGER trg_emit_health_degraded AFTER INSERT ON public.company_event FOR EACH ROW WHEN (((new.event_type = 'os.health_changed'::text) AND (new.payload ? 'previous_score'::text) AND (new.payload ? 'score'::text) AND ((new.payload ->> 'score'::text) ~ '^[0-9.]+$'::text) AND ((new.payload ->> 'previous_score'::text) ~ '^[0-9.]+$'::text) AND (((new.payload ->> 'score'::text))::numeric < ((new.payload ->> 'previous_score'::text))::numeric))) EXECUTE FUNCTION fn_emit_health_degraded();
 CREATE TRIGGER trg_company_faq_text_change_clears_embedding BEFORE UPDATE OF question, answer ON public.company_faq FOR EACH ROW EXECUTE FUNCTION fn_company_faq_text_change_clears_embedding();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF question, answer ON public.company_faq FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('company_faq', 'id');
-CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_undo_company_goals BEFORE DELETE OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
+CREATE TRIGGER trg_goal_cascade AFTER INSERT OR UPDATE ON public.company_goals FOR EACH ROW EXECUTE FUNCTION trg_goal_cascade();
 CREATE TRIGGER trg_emit_competitor_pricing_changed AFTER UPDATE ON public.competitor FOR EACH ROW WHEN ((((COALESCE(old.business_model, ''::text) IS DISTINCT FROM COALESCE(new.business_model, ''::text)) OR (COALESCE(old.what_they_do, ''::text) IS DISTINCT FROM COALESCE(new.what_they_do, ''::text))) AND ((COALESCE(new.business_model, ''::text) || COALESCE(new.what_they_do, ''::text)) ~* '(price|pricing|fee|commission|%|subscription|free)'::text))) EXECUTE FUNCTION fn_emit_competitor_pricing_changed();
-CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF final_response_at ON public.complaint_tickets FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF status, final_response, final_response_at ON public.complaint_tickets FOR EACH ROW EXECUTE FUNCTION trg_case_memory_complaint();
+CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF final_response_at ON public.complaint_tickets FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER trg_emit_regulation_changed AFTER UPDATE OF last_changed_at ON public.compliance_sources FOR EACH ROW WHEN (((new.last_changed_at IS NOT NULL) AND (COALESCE(old.last_changed_at, '-infinity'::timestamp with time zone) IS DISTINCT FROM new.last_changed_at))) EXECUTE FUNCTION fn_emit_regulation_changed();
-CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER t_emit_content_drafted AFTER INSERT ON public.content_drafts FOR EACH ROW EXECUTE FUNCTION fn_emit_content_drafted();
+CREATE TRIGGER trg_emit_campaign_published_content AFTER INSERT OR UPDATE OF status ON public.content_drafts FOR EACH ROW WHEN ((new.status = 'posted'::text)) EXECUTE FUNCTION fn_emit_campaign_published_from_content();
 CREATE TRIGGER trg_control_mode_session_mfa_is_real BEFORE INSERT ON public.control_mode_session FOR EACH ROW EXECUTE FUNCTION fn_control_mode_session_mfa_is_real();
 CREATE TRIGGER t_emit_churn_signal AFTER INSERT OR UPDATE ON public.customer_score FOR EACH ROW EXECUTE FUNCTION fn_emit_churn_signal();
 CREATE TRIGGER trg_sign_customer AFTER UPDATE ON public.customers FOR EACH ROW WHEN (((new.email_verified IS TRUE) AND (old.email_verified IS DISTINCT FROM new.email_verified) AND (new.signed_terms_url IS NULL))) EXECUTE FUNCTION qd_sign_customer();
-CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER trg_block_disposable_customers BEFORE INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_emit_customer_registered AFTER INSERT ON public.customers FOR EACH ROW EXECUTE FUNCTION fn_emit_customer_registered();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF signed_terms_path ON public.customers FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
 CREATE TRIGGER declog_immutable BEFORE DELETE OR UPDATE ON public.decision_log FOR EACH ROW EXECUTE FUNCTION trg_declog_immutable();
 CREATE TRIGGER trg_undo_decision_policy BEFORE DELETE OR UPDATE ON public.decision_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('key');
@@ -76519,9 +76944,9 @@ CREATE TRIGGER supplier_document_subject_asked AFTER INSERT OR UPDATE OF file_na
 CREATE TRIGGER version_document AFTER INSERT OR UPDATE OF extracted ON public.documents FOR EACH ROW EXECUTE FUNCTION trg_version_document();
 CREATE TRIGGER trg_undo_employee_authority BEFORE DELETE OR UPDATE ON public.employee_authority FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('agent_key');
 CREATE TRIGGER trg_undo_employee_kpi BEFORE DELETE OR UPDATE ON public.employee_kpi FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF category ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF category, vendor, note ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION trg_case_memory_expense();
 CREATE TRIGGER trg_emit_invoice_received_expense AFTER INSERT ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION fn_emit_invoice_received_from_expense();
-CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF category ON public.expense_entries FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER t_emit_customer_complaint AFTER INSERT ON public.feedback FOR EACH ROW WHEN ((((new.rating IS NOT NULL) AND (new.rating <= (2)::numeric)) OR ((new.source IS NOT NULL) AND (lower(new.source) ~~ '%complaint%'::text)))) EXECUTE FUNCTION fn_emit_customer_complaint();
 CREATE TRIGGER z90_security_detect AFTER INSERT ON public.file_scan FOR EACH ROW WHEN ((new.verdict = ANY (ARRAY['malicious'::text, 'suspicious'::text]))) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER trg_normalize_founder_alert_level BEFORE INSERT OR UPDATE ON public.founder_alerts FOR EACH ROW EXECUTE FUNCTION fn_normalize_founder_alert_level();
@@ -76535,18 +76960,18 @@ CREATE TRIGGER a00_handoff_contract_guard BEFORE INSERT OR UPDATE ON public.hand
 CREATE TRIGGER health_checks_agent_threshold BEFORE INSERT ON public.health_checks FOR EACH ROW EXECUTE FUNCTION trg_health_check_agent_threshold();
 CREATE TRIGGER trg_event_idea AFTER INSERT ON public.idea FOR EACH ROW EXECUTE FUNCTION fn_emit_event('idea', 'idea.submitted');
 CREATE TRIGGER trg_inbound_supplier_reply BEFORE INSERT ON public.inbound_messages FOR EACH ROW EXECUTE FUNCTION trg_inbound_supplier_reply();
-CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
-CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
-CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
-CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
-CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
-CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
-CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
-CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF status, outcome, lost_reason, completed_at, pipeline_stage, hired_supplier_id, summary_masked ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_case_memory_inquiry();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER trg_mask_inquiry_contact BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION scrub_inquiry_contacts();
 CREATE TRIGGER trg_event_inquiry AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_event('inquiry', 'rfq.created');
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER block_banned_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_block_banned_inquiry();
+CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF status, outcome, lost_reason, completed_at, pipeline_stage, hired_supplier_id, summary_masked ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_case_memory_inquiry();
+CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
+CREATE TRIGGER enrich_inquiry BEFORE INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_inquiry_enrich();
+CREATE TRIGGER learn_customer_preference AFTER INSERT ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_learn_customer_preference();
+CREATE TRIGGER reg_inquiry_doc AFTER INSERT OR UPDATE OF drawing_file_path ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_reg_inquiry_doc();
+CREATE TRIGGER rfq_complete BEFORE INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_rfq_complete();
+CREATE TRIGGER trg_emit_rfq_classified AFTER INSERT OR UPDATE OF category ON public.inquiries FOR EACH ROW EXECUTE FUNCTION fn_emit_rfq_classified();
+CREATE TRIGGER version_rfq AFTER INSERT OR UPDATE ON public.inquiries FOR EACH ROW EXECUTE FUNCTION trg_version_rfq();
 CREATE TRIGGER inquiry_answer_value_immutable BEFORE DELETE OR UPDATE ON public.inquiry_answer FOR EACH ROW EXECUTE FUNCTION trg_inquiry_answer_value_immutable();
 CREATE TRIGGER conflict_value_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_conflict_value FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER corroboration_append_only BEFORE DELETE OR UPDATE ON public.inquiry_answer_corroboration FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
@@ -76556,118 +76981,120 @@ CREATE TRIGGER inquiry_scope_disposition_append_only BEFORE DELETE OR UPDATE ON 
 CREATE TRIGGER inquiry_state_audit_append_only BEFORE DELETE OR UPDATE ON public.inquiry_state_audit FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
 CREATE TRIGGER supplier_brief_immutable BEFORE UPDATE ON public.inquiry_supplier_brief FOR EACH ROW EXECUTE FUNCTION trg_supplier_brief_immutable();
 CREATE TRIGGER trade_candidate_evidence_append_only BEFORE DELETE OR UPDATE ON public.inquiry_trade_candidate_evidence FOR EACH ROW EXECUTE FUNCTION trg_p2c1_append_only();
-CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER trg_internal_credential_audit_immutable BEFORE DELETE OR UPDATE ON public.internal_credential_audit FOR EACH ROW EXECUTE FUNCTION fn_internal_credential_audit_immutable();
-CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF closed_at, close_note, title ON public.it_engineer_finding FOR EACH ROW EXECUTE FUNCTION trg_case_memory_it_finding();
+CREATE TRIGGER z90_security_detect AFTER INSERT ON public.internal_credential_audit FOR EACH ROW WHEN ((new.allowed = false)) EXECUTE FUNCTION fn_security_detect_on_evidence();
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF closed_at ON public.it_engineer_finding FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
+CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF closed_at, close_note, title ON public.it_engineer_finding FOR EACH ROW EXECUTE FUNCTION trg_case_memory_it_finding();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('it_engineer_knowledge', 'record_id');
 CREATE TRIGGER a10_it_engineer_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, content ON public.it_engineer_knowledge FOR EACH ROW EXECUTE FUNCTION fn_it_engineer_knowledge_search_vector();
 CREATE TRIGGER z90_kb_chunks_export_change_upd AFTER UPDATE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_trunc AFTER TRUNCATE ON public.kb_chunks FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
-CREATE TRIGGER z90_kb_chunks_export_change_del AFTER DELETE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.kb_chunks FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('kb_chunks', 'id');
-CREATE TRIGGER trg_leads_e0_mandatory_six_gate BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW WHEN (((new.approval_status = 'approved'::text) OR new.verified)) EXECUTE FUNCTION fn_leads_mandatory_six_gate();
-CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
-CREATE TRIGGER zzz_leads_sanctioned_ban_is_permanent BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
-CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
-CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
-CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
-CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
+CREATE TRIGGER z90_kb_chunks_export_change_del AFTER DELETE ON public.kb_chunks REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
+CREATE TRIGGER z90_kb_chunks_export_change_ins AFTER INSERT ON public.kb_chunks REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
+CREATE TRIGGER z90_kb_chunks_export_change_trunc AFTER TRUNCATE ON public.kb_chunks FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('id', 'id,source_kind,source_id,category,title,content,citation,effective_date,fts,created_at,category_norm,embed_claimed_at');
 CREATE TRIGGER trg_sign_supplier AFTER UPDATE ON public.leads FOR EACH ROW WHEN (((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL) AND (new.claimed_by IS NOT NULL))) EXECUTE FUNCTION qd_sign_supplier();
+CREATE TRIGGER z20_leads_mandatory_item_landed_reverifies AFTER UPDATE OF company_name, phone, phone_e164, owner_phone_verified, owner_email_verified, license_doc_path, license_expiry, company_profile_doc_path, signed_terms_path ON public.leads FOR EACH ROW WHEN (((new.approval_status = ANY (ARRAY['action_required'::text, 'pending'::text])) AND (pg_trigger_depth() < 1))) EXECUTE FUNCTION fn_leads_mandatory_item_landed_reverifies();
+CREATE TRIGGER z21_sign_supplier_on_acceptance AFTER UPDATE OF accepted_terms_at ON public.leads FOR EACH ROW WHEN (((new.accepted_terms_at IS NOT NULL) AND (new.accepted_terms_at IS DISTINCT FROM old.accepted_terms_at) AND (new.claimed_by IS NOT NULL) AND (NOT ((new.owner_email_verified IS TRUE) AND (old.owner_email_verified IS DISTINCT FROM new.owner_email_verified) AND (new.signed_terms_url IS NULL))))) EXECUTE FUNCTION qd_sign_supplier();
 CREATE TRIGGER quote_reviews_follow_owner AFTER UPDATE OF claimed_by ON public.leads FOR EACH ROW WHEN ((old.claimed_by IS DISTINCT FROM new.claimed_by)) EXECUTE FUNCTION fn_quote_reviews_follow_owner();
-CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
-CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
 CREATE TRIGGER trg_emit_supplier_applied AFTER UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_applied();
+CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
+CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF license_doc_path, egr_doc_path, insurance_doc_path, vat_doc_path, iso_doc_path, manufacturer_auth_doc_path, company_profile_doc_path, catalog_doc_paths, signed_terms_path ON public.leads FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER zzz_collaboration_hold_guard BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_collaboration_hold_guard();
+CREATE TRIGGER zzz_leads_sanctioned_ban_is_permanent BEFORE UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
+CREATE TRIGGER a01_leads_sanctioned_identity_cannot_re_register BEFORE INSERT OR UPDATE OF company_name, trade_license_no, claimed_by, email ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_identity_cannot_re_register();
+CREATE TRIGGER trg_bz_supplier_registration_state BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_derive_supplier_registration_state();
 CREATE TRIGGER trg_emit_supplier_approved AFTER INSERT OR UPDATE OF approval_status ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_emit_supplier_approved();
 CREATE TRIGGER trg_leads_derive_owner_email_verified BEFORE INSERT OR UPDATE OF claimed_by ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_derive_owner_email_verified();
-CREATE TRIGGER a00_leads_sanctioned_row_is_never_deleted BEFORE DELETE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_row_is_permanent();
-CREATE TRIGGER a01_leads_sanctioned_identity_cannot_re_register BEFORE INSERT OR UPDATE OF company_name, trade_license_no, claimed_by, email ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_sanctioned_identity_cannot_re_register();
-CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
+CREATE TRIGGER trg_block_disposable_leads BEFORE INSERT ON public.leads FOR EACH ROW EXECUTE FUNCTION block_disposable_signup();
+CREATE TRIGGER trg_leads_e0_mandatory_six_gate BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW WHEN (((new.approval_status = 'approved'::text) OR new.verified)) EXECUTE FUNCTION fn_leads_mandatory_six_gate();
+CREATE TRIGGER trg_leads_exception_invariant BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_leads_exception_invariant();
 CREATE TRIGGER trg_assign_founding_rank BEFORE INSERT OR UPDATE ON public.leads FOR EACH ROW EXECUTE FUNCTION fn_assign_founding_rank();
+CREATE TRIGGER reg_lead_docs AFTER INSERT OR UPDATE OF license_doc_path, company_profile_doc_path, egr_doc_path, catalog_doc_paths ON public.leads FOR EACH ROW EXECUTE FUNCTION trg_reg_lead_docs();
 CREATE TRIGGER a00_llm_attempt_immutable BEFORE DELETE OR UPDATE ON public.llm_attempt FOR EACH ROW EXECUTE FUNCTION a00_llm_attempt_immutable();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF approved_at, theme, title ON public.marketing_campaign FOR EACH ROW EXECUTE FUNCTION trg_case_memory_campaign();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.marketing_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('marketing_knowledge', 'record_id');
 CREATE TRIGGER marketing_post_guard_publish BEFORE INSERT OR UPDATE OF status ON public.marketing_post FOR EACH ROW EXECUTE FUNCTION fn_marketing_post_guard_publish();
+CREATE TRIGGER a05_marketing_post_on_a_working_day BEFORE INSERT OR UPDATE OF scheduled_at, status ON public.marketing_post FOR EACH ROW EXECUTE FUNCTION fn_marketing_post_on_a_working_day();
 CREATE TRIGGER z91_judgement_outcome AFTER INSERT ON public.marketing_post_metric FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER trg_emit_campaign_launched AFTER INSERT OR UPDATE ON public.meta_insights FOR EACH ROW WHEN ((new.effective_status ~* '^active$'::text)) EXECUTE FUNCTION fn_emit_campaign_launched();
-CREATE TRIGGER trg_model_policy_names_a_known_route BEFORE INSERT OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_model_policy_names_a_known_route();
 CREATE TRIGGER trg_undo_model_policy BEFORE DELETE OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
+CREATE TRIGGER trg_model_policy_names_a_known_route BEFORE INSERT OR UPDATE ON public.model_policy FOR EACH ROW EXECUTE FUNCTION trg_model_policy_names_a_known_route();
 CREATE TRIGGER trg_identity_policy_is_a_live_seat_and_a_known_model BEFORE INSERT OR UPDATE ON public.model_policy_by_identity FOR EACH ROW EXECUTE FUNCTION fn_identity_policy_is_a_live_seat_and_a_known_model();
-CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
-CREATE TRIGGER a02_notifications_never_reach_a_sanctioned_party BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_never_reach_a_sanctioned_party();
-CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a04_notifications_speak_the_recipients_language BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_speak_the_recipients_language();
+CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
 CREATE TRIGGER a05_notifications_sender_of_record BEFORE INSERT OR UPDATE OF sender, requested_by ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_sender_of_record();
+CREATE TRIGGER a02_notifications_never_reach_a_sanctioned_party BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_never_reach_a_sanctioned_party();
+CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
+CREATE TRIGGER a03_notifications_whatsapp_goes_to_a_confirmed_number BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_whatsapp_goes_to_a_confirmed_number();
 CREATE TRIGGER a06_notifications_supplier_notice_follows_the_accepted_agreemen BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_notice_follows_the_accepted_agreement();
+CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status, provider_status ON public.notifications FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER a07_notifications_supplier_invite_is_whole BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_supplier_invite_is_whole();
-CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
+CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
 CREATE TRIGGER a20_notifications_attachment_policy BEFORE INSERT OR UPDATE OF attachments ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notification_attachment_policy();
+CREATE TRIGGER a10_notifications_founder_mail_policy BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_founder_mail_policy();
 CREATE TRIGGER trg_notifications_digest BEFORE INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_digest();
 CREATE TRIGGER trg_wa_fanout AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_wa_fanout();
+CREATE TRIGGER z06_supplier_notice_whatsapp_twin_under_v11 AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_supplier_notice_whatsapp_twin_under_v11();
 CREATE TRIGGER z51_support_notification_sync_state AFTER UPDATE ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_support_notification_sync_state();
-CREATE TRIGGER z90_every_send_is_tracked AFTER INSERT ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_customer_support_adopts_untracked_send();
-CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status, provider_status ON public.notifications FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
-CREATE TRIGGER zzz_notifications_demo_guard BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION zzz_fn_notifications_demo_guard();
-CREATE TRIGGER zzzz_notifications_demo_capture BEFORE INSERT OR UPDATE OF status, to_email, to_phone ON public.notifications FOR EACH ROW EXECUTE FUNCTION fn_notifications_demo_capture();
-CREATE TRIGGER z90_ops_knowledge_export_change_del AFTER DELETE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
-CREATE TRIGGER z90_ops_knowledge_export_change_upd AFTER UPDATE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
-CREATE TRIGGER z90_ops_knowledge_export_change_trunc AFTER TRUNCATE ON public.ops_knowledge FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
-CREATE TRIGGER z90_ops_knowledge_export_change_ins AFTER INSERT ON public.ops_knowledge REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
-CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('ops_knowledge', 'record_id');
 CREATE TRIGGER a10_ops_knowledge_embedding_status BEFORE INSERT OR UPDATE ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ops_knowledge_embedding_status();
+CREATE TRIGGER z90_ops_knowledge_export_change_del AFTER DELETE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_ins AFTER INSERT ON public.ops_knowledge REFERENCING NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_trunc AFTER TRUNCATE ON public.ops_knowledge FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z90_ops_knowledge_export_change_upd AFTER UPDATE ON public.ops_knowledge REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows FOR EACH STATEMENT EXECUTE FUNCTION trg_table_export_change('record_id', 'record_id,scope_type,scope_key,dept_key,module,record_type,title,content,structured_data,source_ids,implementation_status,validation_status,authority_tier,risk_level,version,effective_date,review_after,keywords,dependencies,escalation_rule,tsv,package,package_version,generation,layer,role_key,category_key,jurisdiction,source_type,source_authority,source_freshness,confidentiality,runtime_eligible,deterministic,supersedes_id,supersession_state,checksum,ingestion_run_id,embedding_status,source_path');
+CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, content ON public.ops_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('ops_knowledge', 'record_id');
 CREATE TRIGGER trg_org_action_executor_guard BEFORE INSERT OR UPDATE OF kind, target ON public.org_action_executor FOR EACH ROW EXECUTE FUNCTION fn_org_action_executor_guard();
 CREATE TRIGGER a00_org_phase_baseline_append_only BEFORE DELETE OR UPDATE ON public.org_phase_baseline FOR EACH ROW EXECUTE FUNCTION fn_org_phase_baseline_append_only();
 CREATE TRIGGER a20_org_role_touch BEFORE UPDATE ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_touch();
 CREATE TRIGGER a10_org_role_no_cycle BEFORE INSERT OR UPDATE OF manager_role_id ON public.org_role FOR EACH ROW EXECUTE FUNCTION trg_org_role_no_cycle();
 CREATE TRIGGER a00_role_identity_isolation_guard BEFORE INSERT OR UPDATE OF agent_key, packaged_role_id, packaged_department, archetype ON public.org_role_identity FOR EACH ROW EXECUTE FUNCTION fn_role_identity_isolation_guard();
-CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
-CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
-CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
-CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_org_task_cross_os_guard BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_cross_os_guard();
 CREATE TRIGGER trg_org_task_root_cause BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_root_cause_guard();
+CREATE TRIGGER a05_org_task_fill_ownership BEFORE INSERT ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_fill_ownership();
+CREATE TRIGGER a10_org_task_done_needs_a_determination BEFORE INSERT OR UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_done_needs_a_determination();
+CREATE TRIGGER t40_org_task_incident_sync AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW WHEN ((new.action_class = 'incident'::text)) EXECUTE FUNCTION fn_org_task_incident_sync();
+CREATE TRIGGER trg_org_task_autonomy_brake BEFORE UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_autonomy_brake();
 CREATE TRIGGER trg_undo_org_tasks BEFORE DELETE OR UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION trg_undo_capture('id');
 CREATE TRIGGER trg_workflow_run_follow_task AFTER UPDATE OF status ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_workflow_run_follow_task();
 CREATE TRIGGER z50_task_close_needs_an_act BEFORE UPDATE ON public.org_tasks FOR EACH ROW EXECUTE FUNCTION fn_org_task_close_needs_an_act();
-CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
+CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
 CREATE TRIGGER trg_event_incident AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_emit_event('incident', 'security.event');
 CREATE TRIGGER t30_os_incident_close_task AFTER UPDATE OF status ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_close_task();
-CREATE TRIGGER t20_os_incident_open_task AFTER INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_open_task();
+CREATE TRIGGER t10_os_incident_set_owner BEFORE INSERT ON public.os_incidents FOR EACH ROW EXECUTE FUNCTION fn_os_incident_set_owner_and_due();
 CREATE TRIGGER otp_served_country_lifts_blocks AFTER INSERT OR UPDATE OF prefix ON public.otp_served_country FOR EACH ROW EXECUTE FUNCTION trg_otp_served_country_lifts_blocks();
 CREATE TRIGGER trg_pages_legal_sync_a AFTER INSERT OR UPDATE OF html ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_legal_sync();
 CREATE TRIGGER trg_pages_dirty_a AFTER INSERT OR UPDATE ON public.pages FOR EACH ROW EXECUTE FUNCTION trg_pages_dirty();
 CREATE TRIGGER trg_phase1_rollback_log_immutable BEFORE DELETE OR UPDATE ON public.phase1_rollback_log FOR EACH ROW EXECUTE FUNCTION fn_phase1_rollback_log_immutable();
 CREATE TRIGGER trg_po_orders_link BEFORE INSERT OR UPDATE OF quote_id, inquiry_id, customer_id, project_id ON public.po_orders FOR EACH ROW EXECUTE FUNCTION fn_po_orders_link();
 CREATE TRIGGER trg_audit_pricing_config AFTER INSERT OR DELETE OR UPDATE ON public.pricing_config FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
+CREATE TRIGGER public_holidays_move_the_posts AFTER INSERT OR UPDATE OF holiday_date ON public.public_holidays FOR EACH ROW EXECUTE FUNCTION fn_public_holiday_moves_the_posts();
 CREATE TRIGGER a20_quote_comparison_publication_stamp BEFORE INSERT OR UPDATE ON public.quote_comparisons FOR EACH ROW EXECUTE FUNCTION fn_quote_comparison_publication_stamp();
 CREATE TRIGGER quote_items_rescore AFTER INSERT OR DELETE OR UPDATE ON public.quote_items FOR EACH ROW EXECUTE FUNCTION trg_quote_items_rescore();
 CREATE TRIGGER z30_quote_pdf_cache_register AFTER INSERT OR UPDATE OF path ON public.quote_pdf_cache FOR EACH ROW EXECUTE FUNCTION trg_quote_pdf_cache_register();
 CREATE TRIGGER z10_hold_answered_resets_the_run AFTER UPDATE OF state ON public.quote_spec_hold FOR EACH ROW EXECUTE FUNCTION trg_hold_answered_resets_the_run();
-CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
-CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
-CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
-CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
 CREATE TRIGGER trg_quote_expiry_b BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_expiry();
-CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER trg_scrub_quote_contacts BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION scrub_quote_contacts();
+CREATE TRIGGER version_quote AFTER INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_version_quote();
 CREATE TRIGGER a01_quote_demo_and_real_never_pair BEFORE INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_demo_and_real_never_pair();
-CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
-CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
 CREATE TRIGGER quote_committed_hash BEFORE INSERT OR UPDATE OF scope, notes, payment_terms, warranty, committed_items ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_committed_hash();
+CREATE TRIGGER quotes_quality BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_quote_quality();
 CREATE TRIGGER reg_quote_doc AFTER INSERT OR UPDATE OF original_file_path ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_reg_quote_doc();
+CREATE TRIGGER trg_event_quote AFTER INSERT ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_emit_event('quote', 'quote.received');
+CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF status ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
+CREATE TRIGGER mask_quote_contact BEFORE INSERT OR UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION trg_mask_quote_contact();
+CREATE TRIGGER a30_quote_supplier_is_immutable BEFORE UPDATE ON public.quotes FOR EACH ROW EXECUTE FUNCTION fn_quote_supplier_is_immutable();
 CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF question, finding ON public.reasoning_knowledge_candidate FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('reasoning_knowledge_candidate', 'id');
-CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
 CREATE TRIGGER z20_refund_case_approval_checks_the_process BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_ceo_refund_approval_checks_the_process();
+CREATE TRIGGER z10_refund_nonresponse_needs_silence BEFORE INSERT OR UPDATE ON public.refund_case FOR EACH ROW EXECUTE FUNCTION fn_refund_nonresponse_needs_silence();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF state, decision, decision_rationale ON public.refund_case FOR EACH ROW EXECUTE FUNCTION trg_case_memory_refund_case();
-CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
-CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
-CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
 CREATE TRIGGER trg_emit_refund_requested AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_emit_refund_requested();
-CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
-CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
 CREATE TRIGGER a00_refund_amount_is_the_fee_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_amount_is_the_fee_paid();
-CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
+CREATE TRIGGER a01_refunds_never_return_more_than_was_paid BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_never_return_more_than_was_paid();
+CREATE TRIGGER refunds_touch BEFORE UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION trg_refunds_touch();
+CREATE TRIGGER trg_refunds_settled_at BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refunds_settled_at();
+CREATE TRIGGER z00_refund_ceo_approval_only BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_ceo_approval_only();
+CREATE TRIGGER z05_refund_execution_requires_ceo_approval BEFORE INSERT OR UPDATE ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_execution_requires_ceo_approval();
 CREATE TRIGGER z30_refund_request_hands_to_accountant AFTER INSERT ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_refund_request_hands_to_accountant();
+CREATE TRIGGER z50_external_refund_is_verified AFTER INSERT OR UPDATE OF status ON public.refunds FOR EACH ROW EXECUTE FUNCTION fn_external_refund_is_verified();
 CREATE TRIGGER trg_reg_gov BEFORE INSERT OR UPDATE ON public.regulations FOR EACH ROW EXECUTE FUNCTION trg_reg_gov_fn();
 CREATE TRIGGER a00_review_chain_no_self_review BEFORE INSERT OR UPDATE ON public.review_chain FOR EACH ROW EXECUTE FUNCTION trg_review_chain_no_self_review();
 CREATE TRIGGER t60_sales_rating_landed AFTER INSERT OR UPDATE ON public.reviews FOR EACH ROW EXECUTE FUNCTION fn_sales_rating_landed();
@@ -76695,21 +77122,21 @@ CREATE TRIGGER a10_supplier_collaboration_event_append_only BEFORE DELETE OR UPD
 CREATE TRIGGER z91_judgement_outcome AFTER UPDATE OF first_response_at, closed_at ON public.supplier_response_watch FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
 CREATE TRIGGER a00_hit_is_never_deleted BEFORE DELETE ON public.supplier_screening_hit FOR EACH ROW EXECUTE FUNCTION fn_screening_record_is_never_deleted();
 CREATE TRIGGER a00_hit_is_never_truncated BEFORE TRUNCATE ON public.supplier_screening_hit FOR EACH STATEMENT EXECUTE FUNCTION fn_screening_record_is_never_deleted();
-CREATE TRIGGER trg_support_case_closed_tells_the_reporter AFTER UPDATE OF state ON public.support_case FOR EACH ROW EXECUTE FUNCTION fn_support_case_closed_tells_the_reporter();
 CREATE TRIGGER z90_case_memory AFTER INSERT OR UPDATE OF state, closed_at, close_reason ON public.support_case FOR EACH ROW EXECUTE FUNCTION trg_case_memory_support_case();
+CREATE TRIGGER trg_support_case_closed_tells_the_reporter AFTER UPDATE OF state ON public.support_case FOR EACH ROW EXECUTE FUNCTION fn_support_case_closed_tells_the_reporter();
 CREATE TRIGGER a10_support_knowledge_search_vector BEFORE INSERT OR UPDATE OF title, tags, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_support_knowledge_search_vector();
-CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('support_knowledge', 'record_id');
 CREATE TRIGGER trg_support_knowledge_text_change_clears_embedding BEFORE UPDATE OF title, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_knowledge_text_change_clears_embedding();
+CREATE TRIGGER z_ml_vectors_stale AFTER DELETE OR UPDATE OF title, body ON public.support_knowledge FOR EACH ROW EXECUTE FUNCTION fn_ml_vectors_stale('support_knowledge', 'record_id');
 CREATE TRIGGER z50_support_notification_to_outbox BEFORE INSERT ON public.support_notification FOR EACH ROW EXECUTE FUNCTION fn_support_notification_to_outbox();
 CREATE TRIGGER z91_judgement_outcome AFTER INSERT ON public.target_verdict FOR EACH ROW EXECUTE FUNCTION trg_judgement_outcome();
-CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
-CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
 CREATE TRIGGER z30_decision_closes_unanswered_holds AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_decision_closes_unanswered_holds();
-CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
-CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
-CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
-CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_accountant_files_reveal_invoice AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_accountant_files_reveal_invoice();
 CREATE TRIGGER z70_document_landed_kicks_backup AFTER INSERT OR UPDATE OF doc_path ON public.transactions FOR EACH STATEMENT EXECUTE FUNCTION trg_document_landed_kicks_backup();
+CREATE TRIGGER z40_refund_outcome_follows_through AFTER UPDATE OF refund_status, refund_amount_aed ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_transaction_refund_outcome_follows_through();
+CREATE TRIGGER trg_emit_refund_requested_tx AFTER UPDATE OF refund_status ON public.transactions FOR EACH ROW WHEN (((new.refund_status = 'requested'::text) AND (old.refund_status IS DISTINCT FROM new.refund_status))) EXECUTE FUNCTION fn_emit_refund_requested_from_transaction();
+CREATE TRIGGER trg_event_transaction AFTER INSERT ON public.transactions FOR EACH ROW EXECUTE FUNCTION fn_emit_event('transaction', 'payment.received');
+CREATE TRIGGER trg_reveal_window_b BEFORE INSERT OR UPDATE ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_window();
+CREATE TRIGGER z20_reveal_receipt AFTER INSERT OR UPDATE OF revealed_at ON public.transactions FOR EACH ROW EXECUTE FUNCTION trg_reveal_receipt();
 CREATE TRIGGER trg_audit_user_roles AFTER INSERT OR DELETE OR UPDATE ON public.user_roles FOR EACH ROW EXECUTE FUNCTION fn_security_audit();
 CREATE TRIGGER trg_wa_signature_watch AFTER INSERT ON public.wa_messages FOR EACH ROW EXECUTE FUNCTION fn_wa_signature_watch();
 CREATE TRIGGER a00_step_run_actor_is_a_real_employee BEFORE INSERT OR UPDATE OF actor, status ON public.workflow_step_run FOR EACH ROW EXECUTE FUNCTION trg_step_run_actor_is_a_real_employee();
@@ -77056,6 +77483,7 @@ ALTER TABLE public.marketing_campaign ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_founder_request ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_note ENABLE ROW LEVEL SECURITY;
@@ -77076,6 +77504,7 @@ ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_scorecard_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_video_idea ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mdm_brands ENABLE ROW LEVEL SECURITY;
@@ -77258,6 +77687,7 @@ ALTER TABLE public.stripe_dispute ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.stripe_payout ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.subcategory_agent_map ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_campaign_daily_list ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capabilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capability_confirmation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_capability_reading ENABLE ROW LEVEL SECURITY;
@@ -77410,6 +77840,7 @@ CREATE POLICY marketing_campaign_service_role_only ON public.marketing_campaign 
 CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_connection_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_founder_request_service_role_only ON public.marketing_founder_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_note_service_role_only ON public.marketing_insight_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -77428,6 +77859,7 @@ CREATE POLICY marketing_post_variant_service_role_only ON public.marketing_post_
 CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_scorecard_report_service_role_only ON public.marketing_scorecard_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_video_idea_service_role_only ON public.marketing_video_idea AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_type_severity_service_role_only ON public.notification_type_severity AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.org_agents AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
@@ -77483,6 +77915,7 @@ CREATE POLICY social_reply_library_service_role_only ON public.social_reply_libr
 CREATE POLICY spec_alternative_offer_service_role_only ON public.spec_alternative_offer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_dispute_service_role_only ON public.stripe_dispute AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY stripe_payout_service_role_only ON public.stripe_payout AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_campaign_daily_list_service_role_only ON public.supplier_campaign_daily_list AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_capability_reading_service_role_only ON public.supplier_capability_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_service_role_only ON public.supplier_collaboration AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_collaboration_event_service_role_only ON public.supplier_collaboration_event AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -77685,6 +78118,7 @@ $CRON$);
 --   lead_reclassify_cost_estimate
 --   lead_reclassify_daily_cap
 --   marketing_golive
+--   marketing_publishing_enabled
 --   meta_access_token
 --   meta_ad_account_id
 --   meta_app_id
