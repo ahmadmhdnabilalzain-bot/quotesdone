@@ -1,4 +1,0 @@
-Not applied: the sales_engineer session that wrote it was told not to apply SQL (launch eve, 24 Sep 2026).
-Apply it BEFORE deploying supplier_api, kyc and compliance_archive from the same PR: those functions write
-leads.accepted_terms_user_agent, and an update naming a missing column fails the acceptance write.
-When applied: delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt in the same commit.
