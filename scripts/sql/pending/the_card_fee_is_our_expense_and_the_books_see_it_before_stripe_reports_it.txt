@@ -1,5 +1,0 @@
-Committed, not applied (instruction for this PR: open it, do not apply or merge). Seat: accountant.
-Apply BEFORE the stacked edge functions are deployed (stripe_checkout, stripe_webhook, accountant, customer_api): once
-reveals carry processing_fee 0, the old body books a zero Stripe fee for any sale synced before the webhook reads
-the balance transaction. Verified 24 Sep 2026 in an aborted transaction against production (compiles, runs, rolled back).
-When applied: delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

@@ -261,6 +261,6 @@ $function$;
 
 -- PROBE (no write): the live body carries the fall-through in both places. Verdict row, read by apply_sql.mjs.
 select case
-  when (select count(*) from regexp_matches(pg_get_functiondef('public.fn_gl_sync_business()'::regprocedure), 'nullif((r|t).processing_fee, 0)', 'g')) <> 2
+  when (select count(*) from regexp_matches(pg_get_functiondef('public.fn_gl_sync_business()'::regprocedure), 'nullif\((r|t)\.processing_fee, 0\)', 'g')) <> 2   -- parentheses escaped: unescaped they are a group, and nothing matches
     then 'PROBE FAILED: a zero card-processing line still wins the fee coalesce'
   else 'PROBE OK' end as verdict;

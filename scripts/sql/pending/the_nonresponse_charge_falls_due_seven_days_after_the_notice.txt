@@ -1,6 +1,0 @@
-Committed, not applied (instruction for this PR: open it, do not apply or merge). Seat: accountant.
-Apply AFTER the_administrative_fee_is_the_one_the_supplier_signed.sql (#918): this file redefines the same routine
-with that file's body plus the clause 33 due date (seven days after the notice was delivered). Applying it first and
-that file second would restore the refund-settlement due date. Verified 24 Sep 2026 in an aborted transaction
-against production (compiles, runs, rolled back). When applied: delete this note and append the file to the END of
-scripts/sql/MANIFEST.txt in the same commit.
