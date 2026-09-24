@@ -1,6 +1,0 @@
-Committed, not applied: the build of 24 Sep 2026 (ledger 983, GAPS.md marketing gaps 3, 5, 7, 8) was ordered with
-"do NOT apply SQL to production; the release operator applies it". Apply with
-  node scripts/apply_sql.mjs scripts/sql/marketing_watches_trends_audits_answer_engines_and_reviews_the_brand_each_quarter.sql --apply --ddl
-(it must print PROBE OK), then deploy the marketing and marketing_channels functions (the duties call these
-routines; until the file is applied, trend_watch, geo_audit and reviews fail as the marketing seat's IT finding),
-delete this note and append the file to the END of MANIFEST.txt. Seat: marketing.
