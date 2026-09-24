@@ -22,16 +22,24 @@
 -- scripts/checks/the_ceo_year_one_plan_follows_the_founder_targets.test.mjs recomputes each one from them.
 --   verified suppliers (cumulative) 125 Oct, 200 Nov, 300 Dec, then +25 a month to 500 in Aug and 525 in Sep
 --       (the founder's 50 by 8 Oct are the first wave of October);
+--   CUSTOMERS LAUNCH IN JANUARY 2027 (founder, 24 Sep 2026): Oct - Dec 2026 is supplier registration only, with zero
+--       requests, quotes, reveals and fees and no customer-facing campaign;
 --   paying suppliers and subscription revenue 0 all year: the subscription starts at supplier #1,001, not reached;
---   enterprise accounts 1 in Dec, then one more every two months, 5 by Aug;
---   requests posted = 20 % of the verified suppliers (a month) + 6 per enterprise account;
---   quotes = 1.8 a request (three quotes on 60 % of requests);
+--   enterprise accounts 1 in Jan, then one more every two months, 5 by Sep;
+--   requests posted (from Jan) = 20 % of the verified suppliers (a month) + 6 per enterprise account;
+--   quotes = 1.8 a request (a planning average: at least three quotes on 60 % of requests; any number of suppliers may quote);
 --   reveals = 15 % of the non-enterprise requests + 3 awards per enterprise account;
 --   reveal fees = AED 390 a reveal (3 % of AED 13,000) + AED 1,500 an enterprise award (3 % of AED 50,000);
 --   cost ceiling = AED 18,598 a month (fee 10,000; ads 5,000; Claude 799; OpenAI 799; other software 1,200; model
 --       usage 800) + LLC AED 7,000 in Oct and trademark AED 5,000 in Nov = AED 235,176 for the year (< 250,000).
---   Year: 1,070 requests, 1,926 quotes, 225 reveals, AED 187,650 of reveal fees; revenue passes the cost ceiling in
---   June 2027. Rates are assumptions until real transactions exist; the experiments of #913 measure them.
+--   Year: 915 requests, 1,647 quotes, 191 reveals, AED 157,740 of reveal fees; revenue passes the cost ceiling in
+--   July 2027.
+--   registrations submitted = verified added / 0.75; invitations delivered = (registrations - the founder's 50 in Oct) / 0.041.
+--
+-- OWNERSHIP (founder, 24 Sep 2026): sales_engineer owns suppliers AND customers (inquiries, drawings, matching, quotes,
+-- the comparison, reveals, enterprise); customer_support is the communication seat (homepage chat, email, WhatsApp,
+-- delivering every seat's messages) and owns no reveal; marketing owns social, SEO/GEO, trends, the recruitment funnel,
+-- reputation and analytics; it_engineer owns platform service levels; the CEO owns the whole and the direction. Rates are assumptions until real transactions exist; the experiments of #913 measure them.
 --
 -- WHAT THIS ADDS
 --   1. ceo_mandate: what the founder asks of the CEO: targets, cost ceilings, hard rules, what he decides alone
@@ -47,7 +55,9 @@
 --   5. MONTHLY (ceo.month_plan): last month closed per seat (met / missed), the next month re-planned (a cumulative
 --      shortfall carries into the month's need), each seat's directive issued from the plan table
 --      (ceo.month_directive), and the founder's monthly report sent through customer_support.
---   6. IMPROVING (ceo.improvement, weekly): recurring misses, lessons in seat_case_memory and recurring IT findings
+--   6. The weekly summary email to the founder carries plan against actual for every metric (target, actual, gap,
+--      owning seat, the action being taken).
+--   7. IMPROVING (ceo.improvement, weekly): recurring misses, lessons in seat_case_memory and recurring IT findings
 --      become improvement proposals assigned to a seat and tracked to done.
 --
 -- DETERMINISTIC: every routine here is code. Judgement stays where #906 and #913 put it (think() on the review,
@@ -120,6 +130,16 @@ begin
       into v from public.expense_entries
      where charged_on >= (p_from at time zone 'Asia/Dubai')::date
        and charged_on <= ((p_to - interval '1 microsecond') at time zone 'Asia/Dubai')::date;
+  when 'uptime_pct' then
+    -- the platform's own health checks in the window; under 20 checks is not a rate
+    select count(*) filter (where ok), count(*) into v_num, v_den from public.health_checks where created_at >= p_from and created_at < p_to;
+    v := case when v_den >= 20 then round(100.0 * v_num / v_den, 2) end;
+  when 'duties_on_clock_pct' then
+    -- enabled seat duties whose last success is within twice their interval, at p_to
+    select count(*) filter (where last_ok_at >= p_to - 2 * every), count(*) into v_num, v_den from public.seat_duty where enabled;
+    v := case when v_den > 0 then round(100.0 * v_num / v_den, 1) end;
+  when 'it_findings_open' then
+    select count(*) into v from public.it_engineer_finding where closed_at is null and started_at < p_to;
   else
     v := public.fn_ceo_plan_measure(p_key, p_from, p_to);   -- raises on an unknown key
   end case;
@@ -199,18 +219,18 @@ revoke all on public.ceo_year_plan from anon, authenticated;
 insert into public.ceo_year_plan (month, verified, verified_added, requests, quotes, reveals, fee_aed, fee_cum_aed, enterprise, cost_ceiling_aed, basis)
 select m::date, v, va, r, q, rv, f, fc, e, c, 'founder targets 24 Sep 2026; rules in the header of scripts/sql/the_ceo_runs_the_company_on_the_founders_year_one_targets.sql'
   from (values
-    ('2026-10-01', 125, 125, 25, 45, 4, 1560, 1560, 0, 25598),
-    ('2026-11-01', 200, 75, 40, 72, 6, 2340, 3900, 0, 23598),
-    ('2026-12-01', 300, 100, 66, 119, 12, 8010, 11910, 1, 18598),
-    ('2027-01-01', 325, 25, 71, 128, 13, 8400, 20310, 1, 18598),
-    ('2027-02-01', 350, 25, 82, 148, 17, 13290, 33600, 2, 18598),
-    ('2027-03-01', 375, 25, 87, 157, 17, 13290, 46890, 2, 18598),
-    ('2027-04-01', 400, 25, 98, 176, 21, 18180, 65070, 3, 18598),
-    ('2027-05-01', 425, 25, 103, 185, 22, 18570, 83640, 3, 18598),
-    ('2027-06-01', 450, 25, 114, 205, 26, 23460, 107100, 4, 18598),
-    ('2027-07-01', 475, 25, 119, 214, 26, 23460, 130560, 4, 18598),
-    ('2027-08-01', 500, 25, 130, 234, 30, 28350, 158910, 5, 18598),
-    ('2027-09-01', 525, 25, 135, 243, 31, 28740, 187650, 5, 18598)) x(m, v, va, r, q, rv, f, fc, e, c)
+('2026-10-01', 125, 125, 0, 0, 0, 0, 0, 0, 25598),
+    ('2026-11-01', 200, 75, 0, 0, 0, 0, 0, 0, 23598),
+    ('2026-12-01', 300, 100, 0, 0, 0, 0, 0, 0, 18598),
+    ('2027-01-01', 325, 25, 71, 128, 13, 8400, 8400, 1, 18598),
+    ('2027-02-01', 350, 25, 76, 137, 14, 8790, 17190, 1, 18598),
+    ('2027-03-01', 375, 25, 87, 157, 17, 13290, 30480, 2, 18598),
+    ('2027-04-01', 400, 25, 92, 166, 18, 13680, 44160, 2, 18598),
+    ('2027-05-01', 425, 25, 103, 185, 22, 18570, 62730, 3, 18598),
+    ('2027-06-01', 450, 25, 108, 194, 23, 18960, 81690, 3, 18598),
+    ('2027-07-01', 475, 25, 119, 214, 26, 23460, 105150, 4, 18598),
+    ('2027-08-01', 500, 25, 124, 223, 27, 23850, 129000, 4, 18598),
+    ('2027-09-01', 525, 25, 135, 243, 31, 28740, 157740, 5, 18598)) x(m, v, va, r, q, rv, f, fc, e, c)
 on conflict (month) do update set verified = excluded.verified, verified_added = excluded.verified_added, requests = excluded.requests,
   quotes = excluded.quotes, reveals = excluded.reveals, fee_aed = excluded.fee_aed, fee_cum_aed = excluded.fee_cum_aed,
   enterprise = excluded.enterprise, cost_ceiling_aed = excluded.cost_ceiling_aed, basis = excluded.basis;
@@ -266,21 +286,34 @@ select c.id, p.month, x.metric, x.seat, x.kind,
        case x.metric when 'registrations_verified_cumulative' then p.verified when 'inquiries_posted' then p.requests
                      when 'quotes_received' then p.quotes when 'reveals_paid' then p.reveals when 'fee_aed' then p.fee_aed
                      when 'fee_aed_cumulative' then p.fee_cum_aed when 'b2b_active_accounts' then p.enterprise
-                     when 'costs_aed' then p.cost_ceiling_aed when 'quote_coverage_pct' then 60 when 'checkout_success_pct' then 98 end,
+                     when 'costs_aed' then p.cost_ceiling_aed
+                     when 'registrations_submitted' then ceil(p.verified_added / 0.75)
+                     when 'invitations_delivered' then ceil((ceil(p.verified_added / 0.75) - case when p.month = date '2026-10-01' then 50 else 0 end) / 0.041)
+                     when 'bounce_pct_7d' then 5
+                     -- a customer rate has no target before customers launch (January 2027)
+                     when 'quote_coverage_pct' then case when p.requests > 0 then 60 else 0 end
+                     when 'checkout_success_pct' then case when p.requests > 0 then 98 else 0 end
+                     when 'uptime_pct' then 99.5 when 'duties_on_clock_pct' then 99 when 'it_findings_open' then 5 end,
        x.tol, 'ceo_year_plan (founder targets 24 Sep 2026)', x.dir
   from public.target_contract c
   cross join public.ceo_year_plan p
   cross join (values
     ('registrations_verified_cumulative', 'sales_engineer', 'cumulative', 20, 'min'),
-    ('inquiries_posted', 'marketing', 'month', 30, 'min'),
+    ('inquiries_posted', 'sales_engineer', 'month', 30, 'min'),
     ('quotes_received', 'sales_engineer', 'month', 30, 'min'),
-    ('quote_coverage_pct', 'customer_support', 'rate', 20, 'min'),
-    ('reveals_paid', 'customer_support', 'month', 30, 'min'),
-    ('fee_aed', 'accountant', 'month', 30, 'min'),
-    ('fee_aed_cumulative', 'ceo', 'cumulative', 30, 'min'),
+    ('quote_coverage_pct', 'sales_engineer', 'rate', 20, 'min'),
+    ('reveals_paid', 'sales_engineer', 'month', 30, 'min'),
     ('b2b_active_accounts', 'sales_engineer', 'level', 30, 'min'),
+    ('registrations_submitted', 'marketing', 'month', 30, 'min'),
+    ('invitations_delivered', 'customer_support', 'month', 30, 'min'),
+    ('bounce_pct_7d', 'customer_support', 'rate', 20, 'max'),
+    ('fee_aed', 'accountant', 'month', 30, 'min'),
     ('costs_aed', 'accountant', 'month', 5, 'max'),
-    ('checkout_success_pct', 'it_engineer', 'rate', 2, 'min')) x(metric, seat, kind, tol, dir)
+    ('fee_aed_cumulative', 'ceo', 'cumulative', 30, 'min'),
+    ('checkout_success_pct', 'it_engineer', 'rate', 2, 'min'),
+    ('uptime_pct', 'it_engineer', 'rate', 1, 'min'),
+    ('duties_on_clock_pct', 'it_engineer', 'rate', 2, 'min'),
+    ('it_findings_open', 'it_engineer', 'level', 20, 'max')) x(metric, seat, kind, tol, dir)
  where c.contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30'
 on conflict (contract_id, month, metric_key) do update set owner_seat = excluded.owner_seat, kind = excluded.kind, value = excluded.value,
   tolerance_pct = excluded.tolerance_pct, source = excluded.source, direction = excluded.direction;
@@ -315,20 +348,21 @@ revoke all on sequence public.ceo_plan_action_id_seq from anon, authenticated;
 
 insert into public.ceo_plan_action (seat, from_month, to_month, action) values
   ('sales_engineer', '2026-10-01', '2026-10-01', 'Onboard the founder''s own network first: 50 verified suppliers by 8 October, each verified within 24 hours of registering.'),
-  ('sales_engineer', '2026-10-01', '2026-12-01', 'Run the supplier campaign in daily waves at the invitation cap, trades that buyers ask for first, to 200 verified by 30 November and 300 by 31 December.'),
-  ('sales_engineer', '2027-01-01', '2027-09-01', 'Recruit 25 verified suppliers a month, weighted to the trades where requests went unquoted last month.'),
-  ('sales_engineer', '2026-12-01', '2027-09-01', 'Enterprise outreach through consented channels only (inbound forms, opted-in WhatsApp, events, referrals): one new procurement account every two months.'),
-  ('sales_engineer', '2026-10-01', '2027-09-01', 'Keep three quotes coming on every request: chase the matched suppliers who have not quoted within 48 hours.'),
-  ('customer_support', '2026-10-01', '2027-09-01', 'Send the daily supplier-campaign email with the PDF of the suppliers to be contacted the next day.'),
-  ('customer_support', '2026-10-01', '2027-09-01', 'Activate every new supplier: welcome, profile complete, first request explained, within 24 hours of verification.'),
-  ('customer_support', '2026-11-01', '2027-09-01', 'Follow up every quoted request within 24 hours of the third quote; record why a buyer did not reveal.'),
-  ('marketing', '2026-10-01', '2026-10-01', 'Schedule the founder''s October content with captions, hashtags and links; no posts on weekends or UAE public holidays.'),
-  ('marketing', '2026-11-01', '2027-09-01', 'Run the monthly loop: propose next month''s video ideas, build the calendar from the founder''s content, send it for his one-step approval.'),
-  ('marketing', '2026-10-01', '2027-09-01', 'Bring buyers to post requests within the AED 5,000 monthly ads ceiling; report what moved each week.'),
-  ('accountant', '2026-10-01', '2027-09-01', 'Close the month''s books by day 3: reveal fees reconciled to Stripe, every cost booked, costs against the ceiling.'),
+  ('sales_engineer', '2026-10-01', '2026-12-01', 'Build the supplier base in daily campaign waves, trades by expected demand, to 200 verified by 30 November and 300 by 31 December; every trade able to quote before customers launch.'),
+  ('sales_engineer', '2026-12-01', '2026-12-01', 'Prove the customer journey end to end in the sandbox (request, drawings, matching, quotes, comparison, reveal) before the January launch.'),
+  ('sales_engineer', '2027-01-01', '2027-09-01', 'Own every customer request: specs and drawings complete, matched to the exact trade, at least three quotes on every request (any number of suppliers may quote), the comparison report, and the reveal.'),
+  ('sales_engineer', '2027-01-01', '2027-09-01', 'Recruit 25 verified suppliers a month, weighted to the trades where requests went unquoted.'),
+  ('sales_engineer', '2027-01-01', '2027-09-01', 'Enterprise procurement accounts through consented channels only: one new account every two months.'),
+  ('customer_support', '2026-10-01', '2027-09-01', 'Deliver the daily supplier-campaign email and the PDF of the suppliers contacted the next day; keep bounces under 5 %.'),
+  ('customer_support', '2026-10-01', '2027-09-01', 'Answer the homepage chat, email and WhatsApp, and deliver every seat''s messages, on time and in the customer''s language.'),
+  ('marketing', '2026-10-01', '2026-12-01', 'Supplier recruitment only: the recruitment funnel, social posts and SEO/GEO pages aimed at suppliers; no customer-facing campaign before January.'),
+  ('marketing', '2026-10-01', '2027-09-01', 'Run the monthly content loop: ideas, the founder''s content, the calendar for his one-step approval; no posts on weekends or UAE public holidays.'),
+  ('marketing', '2026-10-01', '2027-09-01', 'Watch trends, reputation and analytics; report what moved each week; ads within AED 5,000 a month.'),
+  ('marketing', '2027-01-01', '2027-09-01', 'Launch to customers in January: SEO and GEO blog pages, social reach and replies, and the buyer funnel.'),
+  ('accountant', '2026-10-01', '2027-09-01', 'Close the month''s books by day 3: every cost booked against the ceiling, and from January reveal fees reconciled to Stripe.'),
   ('accountant', '2026-10-01', '2026-11-01', 'Book the one-off LLC (AED 7,000, October) and trademark (AED 5,000, November).'),
   ('accountant', '2027-06-01', '2027-09-01', 'Have supplier subscription billing ready before supplier #1,001 registers.'),
-  ('it_engineer', '2026-10-01', '2027-09-01', 'Keep checkout success at 98 % or better, backups verified, and every duty on its clock.')
+  ('it_engineer', '2026-10-01', '2027-09-01', 'Hold the service levels: uptime 99.5 %, every seat duty on its clock (99 %), open findings 5 or fewer, and from January checkout success 98 %; backups verified.')
 on conflict (seat, from_month, action) do update set to_month = excluded.to_month;
 
 -- The current month of the path and each metric's latest daily verdict: what the weekly review, the forecast
@@ -998,6 +1032,83 @@ update public.org_agents
  where agent_key = 'ceo';
 
 -- ═════════════════════════════════════════════════════════════════════════════════════════════════════
+-- 6b. THE WEEKLY SUMMARY EMAIL CARRIES PLAN AGAINST ACTUAL FOR EVERY METRIC (founder, 24 Sep 2026)
+-- ═════════════════════════════════════════════════════════════════════════════════════════════════════
+-- Per metric of the path, at the end of the reported week: the target by then, the actual, the gap, the owning seat
+-- and the action being taken. The target by then is the verdict's own line (a month metric pro-rated to the day, a
+-- cumulative one from last month's target, a level or rate as set, a ceiling the whole month's). The action is the
+-- owning seat's open target-miss task (its root cause and corrective action once answered), otherwise the first action
+-- of the seat's month directive. Code only.
+create or replace function public.fn_ceo_week_plan_vs_actual(p_week_end date)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare c_id bigint; v_m0 date := date_trunc('month', p_week_end)::date; v_from timestamptz := v_m0::timestamp at time zone 'Asia/Dubai';
+  v_to timestamptz := (p_week_end + 1)::timestamp at time zone 'Asia/Dubai';
+  v_frac numeric := extract(day from p_week_end) / extract(day from (v_m0 + interval '1 month - 1 day'));
+  p record; v_prev numeric; v_exp numeric; v_act numeric; v_gap numeric; v_res text; v_action text; v_rows jsonb := '[]'::jsonb; v_text text;
+begin
+  select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
+  if c_id is null or not exists (select 1 from public.target_path where contract_id = c_id and month = v_m0) then
+    return jsonb_build_object('rows', '[]'::jsonb, 'text', 'PLAN AGAINST ACTUAL' || E'\n' || '  No year-one path for ' || to_char(v_m0, 'FMMonth YYYY') || ' (the path runs October 2026 to September 2027).');
+  end if;
+  for p in select * from public.target_path where contract_id = c_id and month = v_m0 order by owner_seat, metric_key loop
+    if p.kind = 'cumulative' then
+      select coalesce(max(value), 0) into v_prev from public.target_path where contract_id = c_id and metric_key = p.metric_key and month < v_m0;
+      v_exp := round(v_prev + (p.value - v_prev) * v_frac, 1);
+    elsif p.kind = 'month' and p.direction = 'min' then v_exp := round(p.value * v_frac, 1);
+    else v_exp := p.value; end if;
+    v_act := public.fn_ambition_measure(p.metric_key, v_from, v_to);
+    v_gap := case when v_act is not null then round(v_act - v_exp, 1) end;
+    v_res := case when v_act is null then 'not measurable'
+                  when p.direction = 'max' then case when v_act <= v_exp then 'within the ceiling' else 'OVER the ceiling' end
+                  when v_act >= v_exp then 'on plan' else 'BEHIND' end;
+    select coalesce(nullif(substring(t.evidence from 'Corrective action: ([^\n]*)'), '?'), 'root cause asked of ' || p.owner_seat || ' (task #' || t.task_id || ')')
+      into v_action from public.ceo_task t
+     where t.title like 'Target miss: ' || p.metric_key || ' (' || p.owner_seat || ')%' and t.state in ('open', 'working', 'blocked')
+     order by t.task_id desc limit 1;
+    if v_action is null then
+      select d.actions[1] into v_action from public.ceo_seat_directive d where d.month = v_m0 and d.seat = p.owner_seat;
+      v_action := coalesce(v_action, (select a.action from public.ceo_plan_action a where a.seat = p.owner_seat and v_m0 between a.from_month and a.to_month order by a.id limit 1),
+                           'the CEO''s own routine: the daily read, the weekly review and the month plan');
+    end if;
+    v_rows := v_rows || jsonb_build_object('metric', p.metric_key, 'owner_seat', p.owner_seat, 'target', v_exp, 'month_target', p.value,
+                                           'actual', v_act, 'gap', v_gap, 'result', v_res, 'action', v_action);
+  end loop;
+  v_text := 'PLAN AGAINST ACTUAL, month to ' || to_char(p_week_end, 'DD Mon YYYY') || E' (the founder''s year-one path)\n'
+    || (select string_agg(format(E'  %s (%s): target %s, actual %s, gap %s, %s\n    Action: %s',
+                                 r->>'metric', r->>'owner_seat', r->>'target', coalesce(r->>'actual', 'not measurable'),
+                                 coalesce(r->>'gap', 'n/a'), r->>'result', r->>'action'), E'\n' order by r->>'owner_seat', r->>'metric')
+          from jsonb_array_elements(v_rows) r);
+  return jsonb_build_object('rows', v_rows, 'text', v_text);
+end $fn$;
+revoke execute on function public.fn_ceo_week_plan_vs_actual(date) from public, anon, authenticated;
+grant execute on function public.fn_ceo_week_plan_vs_actual(date) to service_role;
+
+-- Every weekly report the CEO writes carries the section, above the money figures; the plan rows go in its figures.
+-- A trigger rather than a second copy of fn_ceo_weekly_report: the report's own writer stays the one canonical file.
+create or replace function public.fn_ceo_weekly_report_carries_the_plan()
+returns trigger
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v jsonb;
+begin
+  if new.body is null or position('PLAN AGAINST ACTUAL' in new.body) > 0 then return new; end if;
+  v := public.fn_ceo_week_plan_vs_actual(new.week_end);
+  new.body := case when position('MONEY' in new.body) > 0
+                   then overlay(new.body placing (v->>'text') || E'\n\n' || '--------------------------------------------------' || E'\n' from position('MONEY' in new.body) for 0)
+                   else new.body || E'\n\n' || (v->>'text') end;
+  new.figures := coalesce(new.figures, '{}'::jsonb) || jsonb_build_object('plan_vs_actual', v->'rows');
+  return new;
+end $fn$;
+revoke execute on function public.fn_ceo_weekly_report_carries_the_plan() from public, anon, authenticated;
+drop trigger if exists ceo_weekly_report_carries_the_plan on public.ceo_weekly_report;
+create trigger ceo_weekly_report_carries_the_plan before insert or update of body on public.ceo_weekly_report
+  for each row execute function public.fn_ceo_weekly_report_carries_the_plan();
+
+-- ═════════════════════════════════════════════════════════════════════════════════════════════════════
 -- 7. THE VERDICT (reads only; the behaviour is proved in scripts/checks/the_ceo_year_one_plan_follows_the_founder_targets.test.mjs)
 -- ═════════════════════════════════════════════════════════════════════════════════════════════════════
 select case
@@ -1005,10 +1116,11 @@ select case
   when (select verified from public.ceo_year_plan where month = date '2026-11-01') <> 200
     or (select verified from public.ceo_year_plan where month = date '2026-12-01') <> 300
     or (select verified from public.ceo_year_plan where month = date '2027-08-01') <> 500 then 'PROBE FAILED: a founder milestone is off the path'
+  when (select sum(requests + reveals + fee_aed) from public.ceo_year_plan where month < date '2027-01-01') <> 0 then 'PROBE FAILED: customer activity before the January launch'
   when (select sum(cost_ceiling_aed) from public.ceo_year_plan) >= 250000 then 'PROBE FAILED: the cost ceilings exceed AED 250,000 a year'
   when exists (select 1 from public.target_contract where contract_key in ('REVEAL_FEES_BASE_PATH_BY_2027_08_31', 'REVENUE_AED_1M_BY_2027_10_01', 'SUPPLIERS_1000_BY_2027_10_01') and status = 'active')
     then 'PROBE FAILED: a replaced target is still active'
   when (select count(*) from public.target_path p join public.target_contract c on c.id = p.contract_id
-         where c.contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30') <> 120 then 'PROBE FAILED: the path is not 10 metrics x 12 months'
+         where c.contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30') <> 192 then 'PROBE FAILED: the path is not 16 metrics x 12 months'
   when (select count(*) from public.seat_duty where duty in ('ceo.daily_run', 'ceo.month_plan', 'ceo.improvement')) <> 3 then 'PROBE FAILED: a CEO routine has no clock'
   else 'PROBE OK' end as verdict;

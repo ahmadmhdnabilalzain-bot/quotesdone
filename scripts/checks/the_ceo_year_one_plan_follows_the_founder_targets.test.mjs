@@ -30,11 +30,11 @@ const code = (p) => read(p).split('\n').map((l) => l.replace(/--.*$/, '')).join(
 // The founder's targets and the stated rules (the file header says the same in words).
 function plan() {
   const verified = [125, 200, 300, 325, 350, 375, 400, 425, 450, 475, 500, 525];
-  const ent = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5];
+  const ent = [0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5];   // customers launch in January 2027 (index 3)
   const base = 10000 + 5000 + 799 + 799 + 1200 + 800, oneOff = [7000, 5000];
   let cum = 0;
   return verified.map((v, i) => {
-    const sme = Math.round(0.2 * v), requests = sme + 6 * ent[i], reveals = Math.round(0.15 * sme) + 3 * ent[i];
+    const sme = i >= 3 ? Math.round(0.2 * v) : 0, requests = sme + 6 * ent[i], reveals = Math.round(0.15 * sme) + 3 * ent[i];
     const fee = Math.round(0.15 * sme) * 390 + 3 * ent[i] * 1500; cum += fee;
     return [new Date(Date.UTC(2026, 9 + i, 1)).toISOString().slice(0, 10), v, v - (i ? verified[i - 1] : 0), requests,
       Math.round(requests * 1.8), reveals, fee, cum, ent[i], base + (oneOff[i] ?? 0)];
@@ -49,6 +49,8 @@ test('static: the plan table is the founder\'s targets, recomputed', () => {
   const at = (m) => rows.find((r) => r[0] === m)[1];
   assert.equal(at('2026-11-01'), 200); assert.equal(at('2026-12-01'), 300); assert.equal(at('2027-08-01'), 500);
   assert.ok(rows.reduce((a, r) => a + r[9], 0) < 250000, 'the year\'s cost ceilings reach AED 250,000');
+  assert.ok(rows.slice(0, 3).every((r) => r[3] === 0 && r[5] === 0 && r[6] === 0), 'customer activity before the January 2027 launch');
+  assert.ok(!/three quotes on every request(?! \(any)/i.test(src), 'three quotes read as a cap; any number of suppliers may quote');
   assert.ok(!/investor|valuation|cap table|\bAI\b/i.test(src), 'the CEO\'s plan names the investor pack or the word AI');
 });
 
@@ -143,6 +145,14 @@ do $$ declare o jsonb := '{}'; v jsonb; n bigint; hid bigint; c bigint; begin
   o := o || jsonb_build_object('improvement', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id))
             from public.ceo_improvement i where source_kind = 'recurring_miss' and source_ref like 'inquiries_posted:%'),
     'sweep_again', (public.fn_ceo_improvement_sweep()->>'proposed')::int);
+  -- the weekly summary email: plan against actual for every metric
+  v := public.fn_ceo_weekly_report(date '2026-11-16');
+  update public.ceo_weekly_report set body = body where id = (v->>'id')::bigint;   -- a rewrite must not add it twice
+  o := o || jsonb_build_object('weekly', (select jsonb_build_object('has_section', position('PLAN AGAINST ACTUAL' in body) > 0,
+            'rows', jsonb_array_length(figures->'plan_vs_actual'),
+            'line', substring(body from '(registrations_verified_cumulative \(sales_engineer\)[^\n]*\n[^\n]*)'),
+            'once', (length(body) - length(replace(body, 'PLAN AGAINST ACTUAL', ''))) = length('PLAN AGAINST ACTUAL'))
+            from public.ceo_weekly_report where id = (v->>'id')::bigint));
   o := o || jsonb_build_object('status_metrics', jsonb_array_length(public.fn_ceo_year_plan_status(timestamptz '2026-11-20 10:00+04')->'metrics'),
     'forecast_reads_it', public.fn_ceo_target_forecast()->'verdicts' @> '[{"contract":"FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30"}]');
   raise exception 'CHK<<%>>', o::text;
@@ -150,8 +160,8 @@ end $$;`);
 
   assert.deepEqual(o.contracts, { FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30: 'active', REVEAL_FEES_BASE_PATH_BY_2027_08_31: 'superseded',
     REVENUE_AED_1M_BY_2027_10_01: 'superseded', SUPPLIERS_1000_BY_2027_10_01: 'superseded' }, 'a replaced target is still in force');
-  assert.equal(o.paths, 120); assert.equal(o.seats, 6);
-  assert.deepEqual(o.plan_month_oct, { verified: 125, inquiries: 25, fee: 1560 }, 'the CEO month plan does not follow the path');
+  assert.equal(o.paths, 192); assert.equal(o.seats, 6);
+  assert.deepEqual(o.plan_month_oct, { verified: 125, inquiries: 0, fee: 0 }, 'the CEO month plan does not follow the path');
   assert.ok(o.mandate >= 20, 'the mandate is missing');
   assert.ok(o.nov_misses >= 4 && o.nov_opened === o.nov_misses, `a November day with nothing measured: ${o.nov_misses} misses, ${o.nov_opened} tasks`);
   assert.equal(o.cost_status, 'miss', 'a cost over its month ceiling is not a miss');
@@ -165,12 +175,16 @@ end $$;`);
   assert.deepEqual(o.nov, { closed: 5, issued: 5, reported: true }, 'the month did not close, report and issue');
   assert.equal(o.nov_again, 0, 'a second run the same month issued twice');
   assert.ok(Object.values(o.oct_status).every((s) => ['met', 'missed', 'not_measurable'].includes(s)), JSON.stringify(o.oct_status));
-  assert.deepEqual(o.se_nov_targets, ['b2b_active_accounts', 'quotes_received', 'registrations_verified_cumulative']);
-  assert.equal(o.se_nov_actions, 2, 'the sales engineer\'s directive carries no actions from the plan table');
+  assert.deepEqual(o.se_nov_targets, ['b2b_active_accounts', 'inquiries_posted', 'quote_coverage_pct', 'quotes_received', 'registrations_verified_cumulative', 'reveals_paid']);
+  assert.equal(o.se_nov_actions, 1, 'the sales engineer\'s directive carries no actions from the plan table');
   assert.ok(o.month_miss_improvements >= 1, 'a missed month opened no improvement');
   assert.equal(o.report_has_targets, true, 'the monthly report does not carry the targets');
   assert.deepEqual(o.improvement, { seat: 'marketing', status: 'assigned', handoff: 'pending' }, 'a recurring miss did not become an assigned improvement');
   assert.equal(o.sweep_again, 0, 'the sweep proposed the same improvement twice');
-  assert.equal(o.status_metrics, 10);
+  assert.equal(o.status_metrics, 16);
+  assert.equal(o.weekly.has_section, true, 'the weekly summary email carries no plan against actual');
+  assert.equal(o.weekly.rows, 16, 'the weekly summary misses a metric');
+  assert.match(o.weekly.line ?? '', /^registrations_verified_cumulative \(sales_engineer\): target [\d.]+, actual \d+, gap -?[\d.]+, (on plan|BEHIND)(\n|\\n)\s*Action: .+/, 'a weekly line lacks target, actual, gap, seat or action: ' + o.weekly.line);
+  assert.equal(o.weekly.once, true, 'the section was written twice');
   assert.equal(o.forecast_reads_it, true, 'the weekly forecast does not read the founder\'s contract');
 });
