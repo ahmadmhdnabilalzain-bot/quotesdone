@@ -159,3 +159,28 @@ Until then the digest line reads "not read" and one configuration finding stays 
 Connect each channel with `node scripts/marketing/social_connect_link.mjs` (it prints the link to
 open in his browser). Until connected, a held LinkedIn/YouTube comment is skipped by name and
 waits; nothing fails.
+
+## 11. The merge run for the local session (the cloud session of 24 Sep only opened PRs)
+
+The founder, 24 Sep 2026: the cloud session follows his local-session instructions, so merging,
+applying and deploying happen in the local session. **A merge to `main` deploys the changed edge
+functions to production at once** (`.github/workflows/deploy-functions.yml`); the SQL does not go with
+it — each PR's SQL waits in `scripts/sql/pending/<name>.txt` until applied. Every PR below was built to
+be safe if its functions deploy before its SQL is applied, and none needs the Sunday items (6–10) to be
+merged — those only switch features on.
+
+Order:
+1. **#968** (it_engineer, GLM 5.3 Flash price) first — every other branch carries its two commits
+   byte-identically, so they merge cleanly after it.
+2. **#961** (Postmaster) before **#966** (daily inbox check): both define `fn_invite_campaign_pause` and
+   `fn_invite_same_day_brake` byte-identically (a check in #966 asserts it).
+3. Then **#962, #963, #964, #965, #969, #898** in any order. Expected small conflicts, resolve by
+   keeping both sides: #963 and #964 both edit `supabase/functions/send_outbox/index.ts`; #898 and
+   #969 both edit `supabase/functions/_shared/reasoned_delivery.ts` (#898 adds TikTok, #969 LinkedIn
+   and YouTube — keep all three branches in `replayHeldComment`).
+4. **#967** (drawings) last, and only once its second independent review is clean.
+
+For each PR, straight after its merge: `node scripts/apply_sql.mjs <file> --apply --ddl` for every
+file in its pending notes (must print `PROBE OK`), then delete the pending note and append the file to
+the END of `scripts/sql/MANIFEST.txt` in one commit. Finish with the end-of-session sweep in
+`.claude/skills/quotesdone-session/SKILL.md` §9 (CI, schema mirror `--write`, deploy parity).
