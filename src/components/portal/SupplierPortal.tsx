@@ -456,6 +456,9 @@ const CLAIM_REFUSAL = {
 export function claimRefusalKey(j) {
   const c = String((j && j.code) || '');
   if (CLAIM_REFUSAL[c]) return c;
+  // 24 Sep 2026: a listing whose name or licence another account already claimed is refused with the
+  // same code create_company uses; its sentence is the existing one in serverCopy.ts (no second copy).
+  if (c === 'company_already_registered') return c;
   const e = String((j && j.error) || '');
   if (/invalid_link/i.test(e)) return 'invalid_link';
   if (/not found/i.test(e)) return 'not_found';
@@ -470,7 +473,7 @@ function ClaimRefusal({ code, lang, onClose }) {
     <div className={S.wrap} style={{ paddingBottom: 0 }}>
       <Card role="alert" className="qd-panel border-warn/50 p-5" dir={ar ? 'rtl' : 'ltr'}>
         <div className={S.h2}>{ar ? 'لم يُربط سجل شركتكم' : 'Your company listing was not attached'}</div>
-        <div className={cn(S.sub, 'mt-1')}>{c ? (ar ? c.ar : c.en) : panelErrorText(ar ? 'ar' : 'en', code)}</div>
+        <div className={cn(S.sub, 'mt-1')}>{c ? (ar ? c.ar : c.en) : (srvText(lang, code) || panelErrorText(ar ? 'ar' : 'en', code))}</div>
         <Button className="mt-3" variant="outline" onClick={onClose}>{ar ? 'متابعة التسجيل' : 'Continue registering'}</Button>
       </Card>
     </div>
