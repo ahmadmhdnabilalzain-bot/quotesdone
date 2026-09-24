@@ -1,0 +1,444 @@
+{
+  "_about": "THE ONE SOURCE OF TRUTH for every company figure a customer, supplier or seat can read: fees, penalties, rates. Founder rule (C), 23 Sep 2026: a change to company knowledge reaches every place at once. Change a value HERE, then run `node scripts/legal/sync_company_facts.mjs --write-repo` (rewrites the website texts) and `--emit-sql <file>` (the production knowledge, the signed registry and the seats' policy keys, one transaction). `scripts/checks/company_facts_agree_everywhere.test.mjs` fails CI if any repository surface states a different figure; `sync_company_facts.mjs --probe` does the same against production. Each fact's `basis` is the INTERNAL legal annex: the article relied on and why the figure is the safe maximum. It is never rendered on a public page.",
+  "version": "2026-09-24.1",
+  "documents": {
+    "terms": {
+      "version": "v9",
+      "date": "2026-09-23",
+      "registry_slug": "customer-terms",
+      "page_slug": "legal_terms_body",
+      "secrets": {
+        "version": [
+          "customer_terms_version",
+          "terms_sha256_customer_version"
+        ],
+        "sha": "terms_sha256_customer",
+        "label": [
+          "customer_terms_label",
+          "Customer Terms & Conditions — Version "
+        ]
+      }
+    },
+    "supplier-agreement": {
+      "version": "v13",
+      "date": "2026-09-23",
+      "registry_slug": "supplier-agreement",
+      "page_slug": "legal_supplier_body",
+      "secrets": {
+        "version": [
+          "terms_version",
+          "supplier_terms_version",
+          "terms_sha256_supplier_version"
+        ],
+        "sha": "terms_sha256_supplier",
+        "html": "supplier_terms_html",
+        "label": [
+          "supplier_terms_label",
+          "Supplier Agreement — Version "
+        ]
+      }
+    },
+    "privacy": {
+      "version": "1.5",
+      "date": "2026-09-23"
+    },
+    "refund-policy": {
+      "version": "1.7",
+      "date": "2026-09-23"
+    },
+    "cookie-policy": {
+      "version": "1.4",
+      "date": "2026-09-23"
+    },
+    "acceptable-use": {
+      "version": "1.4",
+      "date": "2026-09-23"
+    },
+    "disclaimer": {
+      "version": "1.3",
+      "date": "2026-09-23"
+    },
+    "complaints": {
+      "version": "1.4",
+      "date": "2026-09-23"
+    }
+  },
+  "facts": {
+    "reveal_fee_pct": {
+      "value": 3,
+      "unit": "%",
+      "founder": "3% reveal fee, no cap (founder ruling; unchanged).",
+      "basis": "A price, not a penalty, and the WHOLE price: Cabinet Res. 66/2023 Art. 5(3) forbids adding any amount when a card is used, and Federal Law 15/2020 Art. 1 makes every natural or juristic person buying for its own or others' needs a consumer, so no buyer pays a card fee (24 Sep 2026; QuotesDone bears Stripe's cost, expense 6100). Art. 5(1) requires the price shown before payment.",
+      "patterns": [
+        "(?<n>\\d+(?:\\.\\d+)?)\\s?% reveal fee",
+        "reveal fee of (?<n>\\d+(?:\\.\\d+)?)\\s?%",
+        "reveal fee \\((?<n>\\d+(?:\\.\\d+)?)%",
+        "Reveal Fee is [a-z ]+\\((?<n>\\d+(?:\\.\\d+)?)%\\)",
+        "رسوم الكشف \\((?<n>\\d+(?:\\.\\d+)?)%",
+        "رسوم الكشف هي [^()]{0,25}\\((?<n>\\d+(?:\\.\\d+)?)%\\)",
+        "رسوم الكشف (?:للعميل )?بنسبة (?<n>\\d+(?:\\.\\d+)?)%"
+      ]
+    },
+    "supplier_free_count": {
+      "value": 1000,
+      "unit": "suppliers",
+      "founder": "The first 1,000 suppliers register free, permanently (founder ruling; unchanged).",
+      "basis": "A price term. Varying it needs 30 days' notice and re-acceptance (Supplier Agreement clause 23).",
+      "patterns": [
+        "first (?<n>[\\d,]+) businesses to register",
+        "first (?<n>[\\d,]+) suppliers",
+        "مجاني لأول (?<n>[\\d,]+) (?:نشاط|منشأة|مورّد|مورد)",
+        "أول (?<n>[\\d,]+) (?:منشأة|مورّد|مورد)"
+      ]
+    },
+    "subscription_fee_aed": {
+      "value": 1000,
+      "unit": "AED/year",
+      "basis": "A price term (clause 6). Unchanged.",
+      "patterns": [
+        "subscription fee of AED (?<n>[\\d,]+) per year",
+        "رسوم اشتراك (?:سنوية )?(?:قدرها|بقيمة) (?<n>[\\d,]+) درهم"
+      ]
+    },
+    "anonymity_breach_aed": {
+      "value": 10000,
+      "unit": "AED per incident",
+      "basis": "Supplier Agreement clause 10: sharing or soliciting contact details during anonymised stages. The v12 figure, kept (not raised) because no transaction has yet been lost; if one follows, clause 24 applies INSTEAD, never both (the independent review of 23 Sep 2026 found that folding this act into clause 24 would have charged AED 20,000 for a blocked chat message, a sum a court would reduce under Arts. 340 and 106). Warning first for an evidently inadvertent first breach. Art. 340 agreed compensation; court may reduce.",
+      "patterns": [
+        "agreed compensation of AED (?<n>[\\d,]+) per incident, agreed as a genuine pre-estimate of the platform value",
+        "تعويض اتفاقي قدره (?<n>[\\d,]+) درهم إماراتي عن كل واقعة، مُتفق عليه بوصفه تقديرًا حقيقيًا مسبقًا لقيمة المنصة"
+      ]
+    },
+    "circumvention_min_aed": {
+      "value": 20000,
+      "unit": "AED per incident",
+      "was": 15000,
+      "basis": "Agreed compensation under Civil Transactions Law, Federal Decree-Law 25/2025 (in force 1 Jun 2026) Art. 340 (replaces Federal Law 5/1985 Art. 390): valid, but the court may REDUCE an exaggerated sum and any agreement excluding that power is void, so the clause states the court's power instead of excluding it. Pre-estimate components (estimates, not measured losses): the 3% fee on the introduced job; the fees on repeat work with the same customer over the 24-month protected period; detection, evidence, notice and Dubai court filing costs; loss of marketplace value. AED 20,000 is a floor chosen as a pre-estimate, not a measured cost: on a small job it is many times the fee, which is exactly where a court is most likely to reduce it, so the clause states the components and keeps the court's power. The sum INCLUDES the fee on the introduced job (no separate recovery of it, per the 23 Sep 2026 review). Raised from AED 15,000; v12 clause 10 called its AED 10,000 the \"sole monetary remedy\" for the same conduct clause 24 priced at AED 15,000; v13 gives clause 10 its own act (disclosure) and clause 24 its own (a transaction), never both. Business suppliers only.",
+      "patterns": [
+        "AED (?<n>[\\d,]+)(?: liquidated sum)? per incident,? or (?:[a-z]+ )?\\(?\\d*\\)? ?times the fee",
+        "agreed compensation of AED (?<n>[\\d,]+) per incident, or",
+        "AED (?<n>[\\d,]+) circumvention sum",
+        "circumvention (?:carries|sum)[^.]{0,30}AED (?<n>[\\d,]+)",
+        "تعويض اتفاقي قدره (?<n>[\\d,]+) درهم إماراتي عن كل واقعة، أو",
+        "circumvention sum \\(AED (?<n>[\\d,]+)"
+      ]
+    },
+    "circumvention_fee_multiple": {
+      "value": 5,
+      "unit": "x the fee",
+      "was": 3,
+      "basis": "Same Art. 340 basis. The multiple reflects that a circumvented introduction usually also removes the repeat work with that customer for the 24-month protected period, and that off-platform dealing is hard to detect and prove. Court may reduce it (Art. 340); the clause says so.",
+      "patterns": [
+        "or (?:[a-z]+ )\\((?<n>\\d+)\\) times the fee",
+        "\\((?<n>\\d+)\\) times the fee that would",
+        "(?:[\\u0600-\\u06FF]+ )?\\((?<n>\\d+)\\) أضعاف الرسوم",
+        "per incident,? or (?<n>one|two|three|four|five|six|seven|eight|nine|ten) times the fee"
+      ]
+    },
+    "circumvention_tail_months": {
+      "value": 24,
+      "unit": "months",
+      "basis": "Restraint limited to the introduced customer and the same or similar scope; proportionate (Decree-Law 25/2025 Art. 106 abuse of rights, proportionality). Unchanged.",
+      "patterns": [
+        "For (?<n>\\d+) months from such introduction",
+        "ولمدة (?<n>\\d+) شهرًا من ذلك التعريف"
+      ]
+    },
+    "data_misuse_aed": {
+      "value": 25000,
+      "unit": "AED per incident",
+      "was": 20000,
+      "basis": "Art. 340 agreed compensation. Resale or reuse of leads, customer data and pricing data destroys the anonymity the platform sells and can expose QuotesDone to PDPL (Decree-Law 45/2021) liability to the data subjects; the figure pre-estimates remediation, notification and lost value. Court may reduce (Art. 340).",
+      "patterns": [
+        "Each proven breach entitles QuotesDone to (?:liquidated|agreed) compensation of AED (?<n>[\\d,]+)",
+        "ويترتب على كل مخالفة مثبتة حق QuotesDone في تعويض اتفاقي قدره (?<n>[\\d,]+)"
+      ]
+    },
+    "nonresponse_admin_fee_aed": {
+      "value": 500,
+      "unit": "AED",
+      "was": 250,
+      "founder": "Founder 6 Sep 2026: 'refund admin fee is 250 AED dont remove it'; founder 23 Sep 2026 (instruction B): set it at the maximum the law safely allows.",
+      "basis": "Art. 340(1) agreed compensation for QuotesDone's cost of the refund a silent supplier causes: the day-3 chase, the CEO's day-5 final call, the refund processing and the recovery notice (an estimate of staff time and handling, not a measured cost). Applies only to a supplier who had accepted v13 before the reveal; everyone else owes the AED 250 of the version they signed (never retroactive): fn_accountant_nonresponse_charge and supplier_charge.ts adminFeeAed() choose by accepted version and acceptance time.",
+      "db": [
+        {
+          "table": "decision_policy",
+          "key": "refund_admin_fee_aed",
+          "note": "what the seats and the customer texts state (fn_company_hard_rules, fn_company_self_knowledge_sync, fn_refund_amount_aed)"
+        },
+        {
+          "table": "decision_policy",
+          "key": "supplier_nonresponse_admin_fee_from_v13_aed",
+          "note": "what fn_accountant_nonresponse_charge charges a supplier who accepted v13 or later before the reveal"
+        }
+      ],
+      "patterns": [
+        "administrative fee of AED (?<n>[\\d,]+)",
+        "AED (?<n>[\\d,]+) ad(?:ministrative|min)(?:istration)? fee",
+        "plus AED (?<n>[\\d,]+), as stated in that notice",
+        "AED (?<n>[\\d,]+) is a genuine pre-estimate",
+        "رسمًا إداريًا قدره (?<n>[\\d,]+)",
+        "رسم إداري قدره (?<n>[\\d,]+)",
+        "مضافًا إليه (?<n>[\\d,]+) درهم(?:ًا)? إماراتي(?:ًا)?، على النحو",
+        "مبلغ (?<n>[\\d,]+) درهم(?:ًا)?(?: إماراتي)? تقدير",
+        "(?:plus|\\+) (?:an )?AED (?<n>[\\d,]+),? (?:and|plus|\\+) (?:9|nine)"
+      ],
+      "legacy": {
+        "value": 250,
+        "applies_to": "a supplier whose accepted Supplier Agreement is v12 or earlier, or who accepted v13 only after the reveal: pricing_config.supplier_nonresponse_admin_fee_aed stays 250 and is what such a supplier is charged; clause 33 as that supplier signed it."
+      }
+    },
+    "late_interest_pct_pa": {
+      "value": 9,
+      "unit": "% per annum, simple",
+      "basis": "Commercial Transactions Law, Federal Decree-Law 50/2022: where no rate is agreed the legal rate is capped at 9%; Art. 88 prohibits compound interest (void). 9% simple is kept as the SAFE maximum: an agreed rate above the statutory figure invites reduction and the founder's ruling of 6 Sep 2026 fixes 9% a year. Never compounded; the clause says so.",
+      "db": [
+        {
+          "table": "decision_policy",
+          "key": "refund_late_fee_annual_pct"
+        },
+        {
+          "table": "decision_policy",
+          "key": "supplier_charge_max_lawful_apr",
+          "scale": 0.01
+        }
+      ],
+      "patterns": [
+        "interest (?:at|of) (?:[a-z]+ percent \\()?(?<n>\\d+(?:\\.\\d+)?)%\\)? (?:simple interest )?(?:per annum|a year)",
+        "rate of (?:[a-z]+ percent \\()?(?<n>\\d+(?:\\.\\d+)?)%\\)? (?:per annum|a year)",
+        "(?<n>\\d+(?:\\.\\d+)?)%\\)? (?:per annum|a year),? simple",
+        "(?<n>\\d+(?:\\.\\d+)?)% (?:per annum|a year) (?:simple )?interest",
+        "simple interest (?:at|of) (?:[a-z]+ percent \\()?(?<n>\\d+(?:\\.\\d+)?)%",
+        "(?<n>\\d+(?:\\.\\d+)?)%\\s?/\\s?annum simple",
+        "فائدة (?:بسيطة )?بنسبة (?<n>\\d+(?:\\.\\d+)?)% سنويًا",
+        "بسعر البند 31 البالغ [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا",
+        "بواقع [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا",
+        "فائدة بسيطة بنسبة [^()]{0,20}\\((?<n>\\d+(?:\\.\\d+)?)%\\) سنويًا"
+      ]
+    },
+    "business_platform_protection_aed": {
+      "value": 20000,
+      "unit": "AED per incident",
+      "was": 10000,
+      "basis": "Customer Terms 'Permitted use & platform protection' (scraping, benchmarking a competitor, reverse engineering). Art. 340 agreed compensation, BUSINESS customers only. For a consumer an adhesion-contract penalty is exposed to Decree-Law 25/2025 Art. 223 (court may amend or exempt unfair adhesion terms) and Consumer Protection Exec. Reg. 66/2023 void terms, so consumers bear actual proven loss only.",
+      "patterns": [
+        "platform protection[^.]{0,200}?AED (?<n>[\\d,]+) per incident",
+        "If you are a business customer, any breach of this clause entitles QuotesDone to[^.]*?AED (?<n>[\\d,]+)",
+        "إذا كنت عميلًا تجاريًا، يترتب على أي إخلال بهذا البند[^.]*?(?<n>[\\d,]+) درهم"
+      ]
+    },
+    "customer_circumvention_min_aed": {
+      "value": 5000,
+      "unit": "AED per incident",
+      "basis": "New. Art. 340 agreed compensation for a BUSINESS customer who takes an introduced supplier off-platform to avoid the Reveal Fee: the fee avoided plus detection and enforcement cost. Consumers pay only the fee avoided (Art. 223; CR 66/2023).",
+      "patterns": [
+        "Reveal Fee avoided and agreed compensation of AED (?<n>[\\d,]+) per incident",
+        "رسوم الكشف التي تم تجنّبها وتعويضًا اتفاقيًا قدره (?<n>[\\d,]+) درهم"
+      ]
+    },
+    "customer_circumvention_multiple": {
+      "value": 3,
+      "unit": "x the Reveal Fee avoided",
+      "basis": "New. Art. 340. Business customers only.",
+      "patterns": [
+        "or (?:[a-z]+ )\\((?<n>\\d+)\\) times the Reveal Fee avoided",
+        "\\((?<n>\\d+)\\) أضعاف رسوم الكشف التي تم تجنّبها"
+      ]
+    },
+    "fake_account_aed": {
+      "value": 20000,
+      "unit": "AED per account or incident",
+      "basis": "New. Art. 340 agreed compensation for fake, duplicate or impersonating accounts and fraudulent submissions (business users only): investigation, account remediation, protecting counterparties. The conduct is also an offence under the Cybercrime Law, Federal Decree-Law 34/2021 (Art. 11 false attribution of an account; Art. 40 fraud by false name or capacity) - the terms reserve reporting to the authorities; no clause purports to impose a criminal penalty. Consumers: actual proven loss only.",
+      "patterns": [
+        "agreed compensation of AED (?<n>[\\d,]+) per account or incident",
+        "تعويض(?:ًا)? اتفاقي(?:ًا)? قدره (?<n>[\\d,]+) درهم إماراتي عن كل حساب أو واقعة"
+      ]
+    },
+    "chargeback_fee_aed": {
+      "value": 250,
+      "unit": "AED per dispute",
+      "basis": "New. Art. 340 pre-estimate of the cost of contesting a bad-faith chargeback (processor dispute fee and evidence preparation), BUSINESS customers only; a genuine unauthorised transaction is always excluded. Consumers: actual costs only.",
+      "patterns": [
+        "handling fee of AED (?<n>[\\d,]+) per dispute",
+        "رسم معالجة قدره (?<n>[\\d,]+) درهم إماراتي عن كل اعتراض"
+      ]
+    }
+  },
+  "unchanged_structures": {
+    "suspension_and_forfeiture": "Suspension, termination and retention of a subscription already paid for the current period on fraud (Supplier Agreement clause 36(b)): contractual rights, not sums; Decree-Law 25/2025 permits agreed termination.",
+    "indemnity": "Supplier indemnity (clause 18) and business-customer indemnity for fraud (Terms clause 21). No indemnity is imposed on a consumer.",
+    "non_excludable": "Nothing limits liability for fraud, wilful misconduct or gross negligence (Decree-Law 25/2025; carried over from Federal Law 5/1985 Art. 383) or the court's power over agreed compensation (Art. 340) or over unfair adhesion terms (Art. 223)."
+  },
+  "unsafe_clause_denylist": [
+    {
+      "id": "exclude_fraud_liability",
+      "re": "(?:not|never) (?:be )?liable[^.]{0,80}(?:fraud|gross negligence|wilful)",
+      "why": "Liability for fraud or gross negligence cannot be excluded (Decree-Law 25/2025 Art. 340; old CTL Art. 383). Void."
+    },
+    {
+      "id": "exclude_court_adjustment",
+      "re": "(?:court|tribunal)[^.]{0,60}(?:may not|shall not|cannot)[^.]{0,40}(?:reduce|adjust|vary)",
+      "why": "Excluding the court's power to adjust agreed compensation is void (Art. 340)."
+    },
+    {
+      "id": "sole_remedy_conflict",
+      "re": "sole monetary remedy",
+      "why": "The v12 clause 10 'sole monetary remedy' at AED 10,000 contradicted clause 24; one sum per act now, stated in clause 37."
+    },
+    {
+      "id": "compound_interest",
+      "re": "compound(?:ed)? (?:interest|monthly|daily)|interest on (?:accrued )?interest",
+      "why": "Compound interest is prohibited (Commercial Transactions Law 50/2022 Art. 88)."
+    },
+    {
+      "id": "penalty_word",
+      "re": "\\bpenalt(?:y|ies) of AED",
+      "why": "A sum framed as a punishment invites reduction; every sum is agreed compensation (Art. 340)."
+    },
+    {
+      "id": "english_governs",
+      "re": "English version of this document is the governing version|English (?:text|version) (?:prevails|shall prevail)",
+      "why": "Arabic is required for consumer contracts and is the language of the UAE courts; every document now says the Arabic text prevails."
+    },
+    {
+      "id": "waive_statutory_rights",
+      "re": "waive[sd]? (?:any|all|your) (?:statutory|consumer) rights",
+      "why": "Consumer rights under Federal Law 15/2020 cannot be waived."
+    },
+    {
+      "id": "unilateral_change_no_notice",
+      "re": "may (?:change|amend|update) these (?:Terms|terms) at any time without notice",
+      "why": "A unilateral right to amend without notice is a void consumer term (Cabinet Res. 66/2023)."
+    },
+    {
+      "id": "word_ai",
+      "re": "\\bAI\\b|(?<!Authority for )artificial intelligence|الذكاء الاصطناعي",
+      "why": "Founder rule: public text never says 'AI'; it says 'smart'. The one exception is the official name of the UAE Federal Authority for Artificial Intelligence and Data, which the privacy policy must name correctly."
+    }
+  ],
+  "surfaces": {
+    "repo": [
+      "src/content/legal.json",
+      "messages/en.json",
+      "messages/ar.json",
+      "src/content/marketing.json",
+      "src/content/blog.json",
+      "src/components/me/portalText.ts"
+    ],
+    "repo_globs": [
+      "supabase/functions/**/*.ts"
+    ],
+    "history": [
+      "supabase/functions/_shared/supplier_agreement.ts",
+      "src/components/portal/SupplierPortal.tsx"
+    ],
+    "archived_documents": [
+      "supplier-agreement-v10",
+      "supplier-agreement-v11",
+      "supplier-agreement-v12"
+    ],
+    "db": [
+      {
+        "table": "company_faq",
+        "key": "id",
+        "col": "answer",
+        "embed": "embedding_gte"
+      },
+      {
+        "table": "agent_knowledge",
+        "key": "id",
+        "col": "content",
+        "embed": "embedding_gte"
+      },
+      {
+        "table": "support_knowledge",
+        "key": "record_id",
+        "col": "body",
+        "embed": "embedding_gte"
+      },
+      {
+        "table": "sales_knowledge",
+        "key": "record_id",
+        "col": "content",
+        "embed": "embedding_gte"
+      },
+      {
+        "table": "dept_library",
+        "key": "id",
+        "col": "content"
+      },
+      {
+        "table": "templates",
+        "key": "name",
+        "col": "content"
+      },
+      {
+        "table": "kb_chunks",
+        "key": "id",
+        "col": "content",
+        "embed": "embedding_gte",
+        "where": "source_kind in ('trade','company_faq','memory','library','generated')"
+      }
+    ],
+    "unread": {
+      "ai-organization/org-as-code/agent_knowledge.json": "Read by nothing in the repository (measured 23 Sep 2026: no script, function or workflow names it). Its figures are stale (AED 10,000; \"admin fee NOT yet in the signed terms\"). Not a surface; the live seat knowledge is public.agent_knowledge, which the probe reads."
+    }
+  },
+  "canonical_statements": {
+    "_about": "Where a rule is worded more than one way across the company, the ONE wording. The coordinator asked 23 Sep 2026 to settle the non-response charge, found worded both as \"3% + AED 250 + 9% a year\" and as \"the refunded amount (which includes the 3%) + AED 250 admin fee + 9% a year simple interest\".",
+    "nonresponse_charge": {
+      "en": "the exact amount refunded to the customer for that reveal + an AED 500 administrative fee + simple interest at 9% a year on that total from the due date (seven days after QuotesDone's notice), never compounded",
+      "ar": "المبلغ الذي رُدّ إلى العميل عن ذلك الكشف بالضبط + رسم إداري قدره 500 درهم + فائدة بسيطة بنسبة 9% سنويًا على هذا الإجمالي من تاريخ الاستحقاق (بعد سبعة أيام من إشعار QuotesDone)، ولا تُركَّب",
+      "why": "Chosen from the signed text and the code, not by preference. Supplier Agreement clause 33(a) charges \"the exact amount refunded to the Customer, being the reveal fee (3% of the Quotation Value) plus the card processing fee charged on it\"; the customer is refunded both (Terms clause 5), and supplier_charge.ts computeCharge() and fn_accountant_nonresponse_charge() take the base from the refund record (reveal fee + processing fee), add the administrative fee, and charge simple interest on (base + fee). \"3% + AED 250 + 9%\" is WRONG: it drops the card processing fee the supplier does owe and does not say the interest is simple, annual, on the total, from the due date. A supplier on v12 or earlier owes AED 250 in place of AED 500. 24 Sep 2026 (accountant): buyers no longer pay a card processing fee (Cabinet Res. 66/2023 Art. 5(3)), so the refund is the reveal fee alone and the wording no longer names a card fee; the base is still whatever was refunded, which covers a reveal paid before that date. The due date is seven days after the notice, as clause 33 says; fn_accountant_nonresponse_charge now counts from the notice the supplier was actually sent, not from the refund settling.",
+      "forbid": [
+        {
+          "re": "3\\s?%\\s?\\+\\s?AED\\s?\\d[\\d,]*\\s?\\+\\s?9\\s?%",
+          "why": "drops the card processing fee and does not say simple, annual, on the total, from the due date; rewrite by hand to the one wording"
+        },
+        {
+          "re": "equal to the (?:customer's )?(?:refunded )?reveal fee\b(?! refunded)",
+          "fix": "equal to the exact amount refunded to the customer for that reveal",
+          "why": "the charge is the whole refund"
+        }
+      ]
+    },
+    "no_card_fee": {
+      "en": "the buyer pays the 3% reveal fee and nothing more: no card fee or surcharge is added, whatever the card; QuotesDone bears the payment processor's cost",
+      "ar": "يدفع المشتري رسوم الكشف البالغة 3% فقط: لا تُضاف أي رسوم أو زيادة على الدفع بالبطاقة أيًّا كانت البطاقة، وتتحمّل QuotesDone تكلفة مزوّد الدفع",
+      "why": "Cabinet Resolution 66/2023 (executive regulation of Federal Law 15/2020 on Consumer Protection), Art. 5(3): the supplier shall 'Not add any further amounts on the value of commodity, if credit cards are used in the purchase of commodities and services.' Law 15/2020 Art. 1 defines the consumer as every natural or juristic person obtaining a good or service for its own or others' needs, so a business buyer is not safely outside it; the MoE, DED Dubai and ADDED have each said card surcharges are unlawful (fine up to AED 100,000). Decided 24 Sep 2026 (accountant) on the founder's instruction that the company be fully compliant and not suable. Guarded by supabase/functions/_shared/reveal_fee.test.ts.",
+      "forbid": [
+        {
+          "re": ",? plus the card processing fee(?: charged on it)?,?",
+          "fix": "",
+          "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
+        },
+        {
+          "re": "،? ?(?:مضافًا إليها|مع) رسوم معالجة البطاقة(?: المحصّلة عليها)?",
+          "fix": "",
+          "why": "a card surcharge on the buyer (Cabinet Res. 66/2023 Art. 5(3))"
+        },
+        {
+          "re": "(?:you (?:also )?pay|pays?|plus|charged?) (?:the |a )?card processing (?:fee|line)",
+          "why": "a card surcharge on the buyer; rewrite by hand to the one wording"
+        }
+      ]
+    }
+  },
+  "marketing_surfaces": {
+    "_about": "Marketing and profile copy: the website FAQ, blog, page texts and the search-engine organisation card. Founder rule (#908, restated 24 Sep 2026): the trade licence number is NEVER in marketing or profile copy. The legal pages (legal.json), invoices, letterheads and signed agreements keep the registered details the law requires and are not listed here. Enforced by scripts/checks/company_facts_agree_everywhere.test.mjs.",
+    "files": [
+      "src/content/marketing.json",
+      "src/content/blog.json",
+      "messages/en.json",
+      "messages/ar.json",
+      "src/lib/seo.ts",
+      "src/components/me/portalText.ts"
+    ],
+    "forbid": [
+      {
+        "re": "1633275|[١][٦][٣][٣][٢][٧][٥]",
+        "why": "the trade licence number; marketing says 'licensed by the Dubai Department of Economy and Tourism' and the legal pages carry the number"
+      }
+    ]
+  }
+}

@@ -29,6 +29,7 @@ import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { sendWhatsApp } from '../_shared/wa_send.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { queueWhatsAppMeaning, whatsappMeaning, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { FIXTURE_CAPTURE_NOTE, isDemoPhone } from '../_shared/demo_identity.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
@@ -205,9 +206,9 @@ function bidiSafe(s: string): string {
 
 const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- A request is sent ONLY to suppliers of the exact trade it names (the trades in public.taxonomy_trade; never a neighbouring trade). Never claim a trade is covered unless the FAQ CONTEXT or FACT PACK names it. New trades are welcome: a supplier can register one we do not list yet. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact. This number is published on our contact page.\n- Operator: QuotesDone Technologies, DET Dubai Trader License No. 1633275.`;
 
-const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee plus the card processing fee (both shown in full before payment) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job: https://quotesdone.com/me`;
+const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee (shown in full before payment; no card fee is ever added) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job: https://quotesdone.com/me`;
 
-const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee plus the card processing fee charged on it), an AED 250 administrative fee, and simple interest at 9% a year (or the maximum lawful rate) from the due date) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
+const FACTS_SUPPLIER = `SUPPLIER-SIDE FACTS (commercially sensitive - see AUDIENCE RULES before using):\n- No commission, ever - suppliers keep 100% of the value of jobs they win.\n- Registration pricing (the free count, the annual fee and whether any date applies) is stated in the COMPANY BLOCK, read from the live pricing tables on this message. Use those figures and no others; never quote a start date the COMPANY BLOCK does not give.\n- A non-response charge (the exact amount refunded to the customer (the 3% reveal fee), an AED 500 administrative fee (AED 250 for a supplier still on Supplier Agreement v12 or earlier), and simple interest at 9% a year on that total from the due date, never compounded) applies only if a supplier ignores a customer who has already paid to reveal them.\n- Suppliers register free at https://quotesdone.com/suppliers with a valid UAE trade licence; verification takes up to 3 working days and verified suppliers are prioritised. We are currently onboarding founding suppliers ahead of opening the platform to clients.`;
 
 async function retrieveFaq(q: string): Promise<{ ctx: string; ids: number[] }> {
   const { data } = await admin.from('company_faq').select('id,question,answer,tags').eq('status', 'approved').eq('public', true);
@@ -586,7 +587,29 @@ async function handleInbound(req: Request): Promise<Response> {
     // Twilio. It runs after the no-exact-spec answer (a "2" there is an answer to that offer) and before
     // the founder's command channel, and it never takes a document (the media branch below owns those).
     const waFrom = 'whatsapp:' + (await sec('twilio_wa_from'));
+    // WHAT THE MESSAGE ASKS, reasoned ONCE (23 Sep 2026, founder_instruction 886-903): which intent row, our
+    // size, the trade list or one trade (_shared/reasoned_channels.ts). It replaces fn_wa_answer's
+    // match_patterns, coverage.ts's regexes and isSizeQuestion's. Held (the model hold) it is null: nothing is
+    // guessed, and only if nothing else answers the message is it filed for replay (menu_flow.ts unanswered).
+    // The reason it was not answered (the hold, a failed reasoning, or a throw) rides with it, so the queue files
+    // the question WITHOUT reasoning again: one think() per message, never a second model call.
+    let meaningP: Promise<string | null> | null = null; let meaningWhy = 'not_asked';
+    const meaningIn = async (): Promise<WaMeaningInput> => {
+      const { data: rows } = await admin.from('wa_reply_intent').select('intent_key,label').eq('active', true).order('sort').order('intent_key');
+      return { message: Body, intents: (rows || []) as WaMeaningInput['intents'], trades: await menuDeps.trades(), phone: From,
+               messageSid: MessageSid || null, audience: (['customer', 'supplier', 'founder'].includes(audience) ? audience : 'unknown') as WaMeaningInput['audience'] };
+    };
     const menuDeps: MenuDeps = {
+      intent: (_text: string) => (meaningP ??= (async () => {
+        if (!Body.trim()) return null;
+        const r = await whatsappMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn());
+        meaningWhy = r.result.reason ?? r.result.status;
+        return r.value;
+      })().catch((e) => { meaningWhy = 'threw: ' + String((e as Error)?.message || e).slice(0, 200); return null; })),
+      queueIntent: async (_text: string) => {
+        try { await queueWhatsAppMeaning(defaultDeps(admin, 'wa_inbound'), await meaningIn(), meaningWhy); }
+        catch (e) { await itFinding('wa_inbound:meaning_not_queued', 'A held WhatsApp question could not be filed for replay', { error: String((e as Error)?.message || e) }); }
+      },
       meaning: async (text: string, awaitingProblem: boolean, offerMenu: boolean) =>
         (await menuMeaning(defaultDeps(admin, 'wa_inbound'), { text, awaitingProblem, messageSid: MessageSid || undefined,
           // Both languages' titles, so a typed Arabic title is recognised as surely as an English one.
@@ -1021,7 +1044,10 @@ async function handleInbound(req: Request): Promise<Response> {
       } catch (_e) { /* visibility must not block the reply */ }
     }
     try {
-      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson });
+      // The intent is the REASONED meaning (above), never the body's words: null = held, 'none' = no row fits.
+      const meaning = await menuDeps.intent(Body);
+      const intent = meaning === null ? null : meaning.startsWith('intent:') ? meaning.slice(7) : meaning;
+      const { data } = await admin.rpc('fn_wa_route', { p_phone: From, p_body: Body.slice(0, 4000), p_has_audio: media.length > 0, p_needs_person: needsPerson, p_intent: intent });
       route = (data || null) as Record<string, unknown> | null;
     } catch (_e) { /* the brain being unreachable must never lose their message */ }
 

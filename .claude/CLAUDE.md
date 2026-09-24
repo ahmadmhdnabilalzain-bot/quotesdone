@@ -20,7 +20,7 @@ is built. If the two ever conflict, the skill wins on conduct and the brief wins
 
 # quotesdone-work-is-assigned — ALWAYS APPLY
 - **quotesdone-work-is-assigned** (`.claude/skills/quotesdone-work-is-assigned/SKILL.md`) — the
-  founder's rulings of 7 Sep 2026. There are exactly TWO agents — `ceo` and `customer_support` — and NO departments. Every change names its agent before the work starts and carries that name in the commit. No task exists unless the founder confirmed it.
+  founder's rulings of 7 Sep 2026. Every change belongs to a seat that exists (read the live seats), and there are no departments. Every change names its agent before the work starts and carries that name in the commit. No task exists unless the founder confirmed it.
 
 Load this alongside `quotesdone-session` at the START of every session on this repository.
 

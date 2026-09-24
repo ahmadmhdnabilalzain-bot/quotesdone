@@ -4,7 +4,7 @@
 // invoice, demand and claim agree on the principal; the demand gives at least the legal minimum;
 // no document charges VAT; and no real party can appear (ZZ DEMO / example.invalid only).
 import { assert, assertEquals, assertStringIncludes, assertThrows } from 'jsr:@std/assert@1';
-import { computeCharge } from './supplier_charge.ts';
+import { computeCharge, adminFeeAed } from './supplier_charge.ts';
 import { recoveryPack, finalDemandDocument, invoiceDocument, claimDocument, LEGAL, signingRecord, sha256Hex } from './supplier_charge_documents.ts';
 import { DEMO_CASE as C } from './supplier_charge.fixture.ts';
 import { renderPdf } from '../pdf_native/render.ts';
@@ -51,10 +51,11 @@ Deno.test('the pack is a demo case and can reach nobody real', () => {
 
 Deno.test('documents agree, give the legal minimum, and charge no VAT', () => {
   const inv = JSON.stringify(invoiceDocument(C, 'en'));
-  assertStringIncludes(inv, 'AED 2,705.72');
+  assertStringIncludes(inv, 'AED 2,617.00');
+  assert(!inv.includes('card processing fee refunded'), 'a reveal with no card fee shows no card-fee line');
   assertStringIncludes(inv, 'not registered for VAT');
-  assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'AED 2,705.72');
-  assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), '2,705.72 درهم');
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'en')), 'AED 2,617.00');
+  assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), '2,617.00 درهم');
   assert(LEGAL.final_demand_days >= LEGAL.demand_days, 'the demand gives less than the law requires');
   // Art 340(1) is quoted in the official wording of each language, never a translation made here.
   assertStringIncludes(JSON.stringify(claimDocument(C, 'ar')), 'يجوز للمتعاقدين أن يُحددا مقدمًا قيمة التعويض بالنص عليها في العقد أو في اتفاق لاحق، مع مراعاة أحكام القانون.');
@@ -95,4 +96,15 @@ Deno.test('every document renders to a PDF', async () => {
     assert(out.ok, p.name + ' refused: ' + JSON.stringify(!out.ok && out.body));
     if (out.ok) { assertEquals(new TextDecoder().decode(out.bytes.slice(0, 5)), '%PDF-'); if (p.lang === 'en') assertEquals(out.meta.glyphs_dropped, 0, p.name); }
   }
+});
+
+Deno.test('the clause 33(b) fee is the one the supplier had signed at the reveal, never retroactive (v13, 23 Sep 2026)', () => {
+  assertEquals(adminFeeAed('v12', '2026-09-14T10:00:00Z', '2026-10-01T10:00:00Z'), 250);
+  assertEquals(adminFeeAed('v13', '2026-09-24T10:00:00Z', '2026-10-01T10:00:00Z'), 500);
+  assertEquals(adminFeeAed('v13', '2026-10-02T10:00:00Z', '2026-10-01T10:00:00Z'), 250, 'accepted after the reveal');
+  assertEquals(adminFeeAed('v13', null, '2026-10-01T10:00:00Z'), 250, 'unknown acceptance time');
+  assertEquals(adminFeeAed(null, null, null), 250);
+  const c = computeCharge({ refunded_reveal_fee: 300, refunded_processing_fee: 10, notice_date: '2026-10-01', as_of: '2026-10-08', admin_fee_aed: 500 });
+  assertEquals(c.admin_fee, 500); assertEquals(c.principal, 810);
+  assertThrows(() => computeCharge({ refunded_reveal_fee: 300, refunded_processing_fee: 10, notice_date: '2026-10-01', as_of: '2026-10-08', admin_fee_aed: 999 }));
 });

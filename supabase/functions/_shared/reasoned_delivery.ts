@@ -11,8 +11,13 @@
 //     question, {{2}} the answer). It stays queued, never dropped, until Meta approves that template;
 //   * social (Instagram / Facebook): the platform reply path — marketing_social_inbox's own send, called
 //     with an internal credential, which also applies Meta's messaging window (meta.ts withinWindow).
+//   * a held MEANING (wa_inbound.intent_table, marketing_social.library_match — _shared/reasoned_channels.ts):
+//     the answer the reasoned meaning selects — the database's intent reply, the trade list, the size statement
+//     on WhatsApp; the library / FAQ / passage reply on the platform. Nothing when the meaning selects nothing.
 // deliverReasoned is pure over its `io`, so reasoned_delivery.test.ts pins every branch.
 import type { HeldRow } from './think.ts';
+import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
+import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
 // Batch 8 (accountant + marketing): an expense email's reasoned kind or vendor re-runs the accountant's sweep, and
 // a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
@@ -29,6 +34,12 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   socialHandoff(subject: Record<string, unknown>): Promise<Sent>;
   /** A public comment reasoned to need a person: the private conversation customer_support owns (social.escalation). */
   socialCommentHandoff(subject: Record<string, unknown>): Promise<Sent>;
+  /** fn_wa_answer with the reasoned intent: the database's answer for this sender, or null. */
+  waIntentReply(phone: string, question: string, intent: string): Promise<string | null>;
+  /** public.taxonomy_trade, active rows: the live trade list a coverage answer is built from. */
+  waTrades(): Promise<Trade[]>;
+  /** A held DM's grounded reply, sent by marketing_social_inbox on the platform (reasoned_reply). */
+  socialReply(subject: Record<string, unknown>, meaning: string): Promise<Sent>;
   /** Every regenerated Arabic quotation whose lines are now all reasoned (fn_arabic_waiters_ready): render it and send
    *  the approval request (supplier_api spec_arabic_finish -> workflow.ts finishArabic). Decision point trade_glossary_ar. */
   arabicFinishReady?(): Promise<Sent>;
@@ -81,6 +92,26 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     return { delivered: s.ok, via: 'social', detail: s.err };
   }
 
+  if (row.surface === 'wa_inbound.intent_table') {
+    // What an unanswered WhatsApp message asked, reasoned now: the database's answer goes on WhatsApp.
+    const phone = String(subject.phone ?? '');
+    if (!phone) return { delivered: false, via: 'none', detail: 'no phone on the held row' };
+    const lang = isAr(question) ? 'ar' : 'en';
+    let text: string | null = null;
+    if (choice === 'size') text = capabilityAnswer(lang);
+    else if (choice?.startsWith('coverage:') || choice?.startsWith('trade:')) text = coverageReply(choice, await io.waTrades(), lang);
+    // A request for a person is delivered by wa_inbound.needs_a_person (its own held row), never twice.
+    else if (choice?.startsWith('intent:') && !['intent:contact_human', 'intent:greeting', 'intent:small_talk'].includes(choice)) text = await io.waIntentReply(phone, question, choice.slice(7));
+    if (!text) return { delivered: false, via: 'none', detail: 'reasoned: ' + (choice ?? 'no choice') + ' — nothing more is owed; the courteous reply and the knowledge gap stand' };
+    return await whatsapp(io, phone, question, text);
+  }
+
+  if (row.surface === 'marketing_social.library_match') {
+    if (!choice || choice === 'none') return { delivered: false, via: 'none', detail: 'reasoned: no grounded reply; the honest unknown already went' };
+    const s = await io.socialReply(subject, choice);
+    return { delivered: s.ok, via: 'social', detail: s.err };
+  }
+
   const books = await deliverBooks(row, r, io);
   if (books) return books;
   const outreach = await deliverOutreach(row, r, io);
@@ -129,6 +160,21 @@ export async function holdingNotice(row: { id: number; surface: string; question
     ? 'شكرًا لصبركم. سؤالكم لدى فريقنا الآن ويتابعه شخص مختص، وسنعود إليكم بالإجابة هنا.'
     : 'Thank you for your patience. Your question is now with our team and a person is handling it; we will reply here.';
   return await whatsapp(io, phone, q, text);
+}
+
+/** Every owed holding notice (fn_reason_held_notice_due: escalated, a customer phone, not yet delivered, not tried in
+ *  30 minutes) is sent, and EACH ATTEMPT IS RECORDED (fn_reason_held_notice_record), so a failed send comes back on a
+ *  later tick instead of being lost with the step's log (a_customer_notice_that_failed_is_sent_again.sql). A throw is
+ *  a failed attempt, never an abandoned batch. */
+export async function sendHeldNotices(rows: { id: number; surface: string; question?: string; subject?: Record<string, unknown> | null }[], io: DeliveryIO,
+  record: (id: number, d: Delivery) => Promise<unknown>): Promise<{ id: number; delivered: boolean; via: string; detail?: string }[]> {
+  const out = [];
+  for (const r of rows) {
+    const d: Delivery = await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none' as const, detail: String(e?.message || e).slice(0, 200) }));
+    await record(r.id, d).catch(() => null);
+    out.push({ id: r.id, ...d });
+  }
+  return out;
 }
 
 // ── the live io ──────────────────────────────────────────────────────────────────────────────────
@@ -184,6 +230,27 @@ export function liveDeliveryIO(admin: Admin): DeliveryIO {
       }, 20_000);
       const j = await r.json().catch(() => ({}));
       return r.ok && j?.ok ? { ok: true } : { ok: false, err: String(j?.error ?? r.status) };
+    },
+    waIntentReply: async (phone, question, intent) => {
+      const { data } = await admin.rpc('fn_wa_answer', { p_from: phone, p_body: question.slice(0, 4000), p_intent: intent });
+      return (data as { matched?: boolean; reply?: string } | null)?.matched ? String(data.reply || '') || null : null;
+    },
+    waTrades: async () => {
+      // Each trade with its live group (#885), the same read wa_inbound makes; ungrouped if the groups are absent.
+      const grouped = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases,group:taxonomy_trade_group(code,label_en,label_ar,sort)').eq('active', true).order('sort').order('code');
+      if (!grouped.error) return (grouped.data || []) as unknown as Trade[];
+      const { data } = await admin.from('taxonomy_trade').select('code,label,label_ar,aliases').eq('active', true).order('sort').order('code');
+      return (data || []) as Trade[];
+    },
+    socialReply: async (subject, meaning) => {
+      const { timedFetch } = await import('./timed_fetch.ts');
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/marketing_social_inbox', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'reasoned_reply', platform: subject.platform, message_id: subject.message_id, meaning, passages: subject.passages ?? [] }),
+      }, 20_000);
+      const j = await r.json().catch(() => ({}));
+      // Sent only when the inbox says it answered; 'already_answered', 'outside_window' and the like are reported, not counted.
+      return r.ok && j?.ok && String(j?.outcome ?? '').startsWith('answered') ? { ok: true } : { ok: false, err: String(j?.error ?? j?.outcome ?? r.status) };
     },
     socialCommentClassified: async (subject, cls) => {
       const { data: m } = await admin.from('social_message')

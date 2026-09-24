@@ -122,6 +122,75 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_plan_loop_tick()',
     asOf: { marketing_model_run: 'created_at', marketing_month_plan: 'created_at' },
   },
+  // 24 Sep 2026 (it_engineer, #910). Raises learning_accuracy_fell:<seat> when a seat's 7-day judgement accuracy
+  // falls against the week before. It reads the judgements, lessons and daily rows that existed at the instant;
+  // a healthy day has no seat whose accuracy fell, so it is quiet. Its own daily row is written inside the
+  // rolled-back replay.
+  fn_seat_learning_measure: {
+    replay: 'pg_temp.qd_replay_fn_seat_learning_measure(null::date)',
+    asOf: { seat_judgement: 'made_at', seat_learning_daily: 'measured_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #901). Raises seat_duty:<duty> when a registered duty is overdue, failing or has no
+  // live owner (fn_seat_duty_health). Duties are present state; a healthy day has every duty on its clock. The
+  // duties it runs are run inside the rolled-back replay.
+  fn_seat_duties_tick: {
+    replay: 'pg_temp.qd_replay_fn_seat_duties_tick(1)',
+    asOf: { seat_duty: 'created_at' },   // a duty registered after the instant did not exist then
+  },
+  // 24 Sep 2026 (it_engineer, #903). Raises held_notice:undelivered when a WhatsApp holding notice owed to a customer
+  // failed 8 times. It reads held questions that existed (were escalated) at the instant; a healthy day has none
+  // undeliverable, so it is quiet. Its claims are made inside the rolled-back replay.
+  fn_reason_held_notice_due: {
+    replay: 'pg_temp.qd_replay_fn_reason_held_notice_due(20)',
+    asOf: { reasoning_held_question: 'escalated_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). Raises licence_expiry:matchable_after_expiry only when an approved supplier with
+  // an expired licence or insurance is STILL matchable after its own pause ran. Leads that existed at the instant;
+  // the renewal asks and pauses happen inside the rolled-back replay.
+  fn_it_engineer_licence_expiry_watch: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_licence_expiry_watch()',
+    asOf: { leads: 'created_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). A seat's knowledge pass rate below 70%, or 10 points down on the month before,
+  // over graded exam answers that existed at the instant. A healthy day has no seat below the bar.
+  fn_it_engineer_knowledge_pass_rate: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_pass_rate()',
+    asOf: { seat_knowledge_exam: 'asked_at' },
+  },
+  // 24 Sep 2026 (it_engineer, #903). A quarter's knowledge refresh still unverified 45 days after it opened. Refreshes
+  // that existed at the instant; the new quarter's refresh it files is written inside the rolled-back replay.
+  fn_it_engineer_knowledge_refresh: {
+    replay: 'pg_temp.qd_replay_fn_it_engineer_knowledge_refresh()',
+    // Not filtered by opened_at: hiding this quarter's row makes the copy insert it again (23505). A row opened after
+    // the instant is never 45 days old at it, so leaving it visible cannot make the replay louder.
+    asOf: {},
+  },
+  // 24 Sep 2026 (accountant, #904). sanctions_list_stale: the newest good list of some source is over 8 days old at
+  // the instant. Screening runs that existed then; a healthy day has fresh lists.
+  fn_accountant_sanctions_rescreen: {
+    replay: 'pg_temp.qd_replay_fn_accountant_sanctions_rescreen()',
+    // Not filtered: the first ok list postdates the healthy instants, and with none visible the routine raises
+    // (never fetched). A later list seen at the instant can only make it quieter (the ceiling in the header).
+    asOf: {},
+  },
+  // 24 Sep 2026 (customer_support, #904). A post-reveal dispute past its decision date. Disputes that existed at
+  // the instant; a healthy day has none overdue.
+  fn_customer_support_disputes_tick: {
+    replay: 'pg_temp.qd_replay_fn_customer_support_disputes_tick()',
+    asOf: { post_reveal_dispute: 'opened_at' },
+  },
+  // 24 Sep 2026 (marketing, #905). recruitment:pool_empty when a trade marked for recruitment has no leads left to
+  // invite. Gaps opened and leads that existed at the instant; a healthy day has no marked gap with an empty pool.
+  fn_marketing_recruitment_funnel: {
+    replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
+    asOf: { supply_gap: 'opened_at', leads: 'created_at' },
+  },
+  // 24 Sep 2026 (marketing, #905). reputation:no_public_review_link when a satisfied customer waits for an ask and no
+  // review link is configured. Reviews that existed at the instant; the asks it writes are rolled back.
+  fn_marketing_reputation: {
+    replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
+    asOf: { reviews: 'created_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
@@ -131,6 +200,7 @@ export const REGISTER = {
   fn_accountant_duty_settle: { relay: 'the accountant\'s twin of fn_it_duty_settle' },
   fn_accountant_duty_stage: { relay: 'records that an accountant duty stage raised; the error is the finding' },
   fn_it_loop_stage: { relay: 'records that an IT loop stage raised; the error is the finding' },
+  fn_seat_duty_cross_review: { relay: 'records that a cross-family review could not be opened; the error from fn_seat_deliberation_open is the finding' },
   fn_seat_handoff: { relay: 'records a handoff that could not be opened; the error is the finding' },
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },

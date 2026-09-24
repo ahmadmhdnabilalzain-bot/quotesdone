@@ -20,6 +20,7 @@
 --   9 reserve       fn_accountant_refund_reserve — read by the close; nothing to run
 --  10 charge audit  fn_accountant_charge_audit_record                                (charge audit file)
 --  11 costs         fn_accountant_book_stripe_fees + fn_accountant_cost_booking_tick (costs file)
+--  12 books         fn_accountant_books_duty: runs AFTER costs has posted, and says when the ledger is stale (this file)
 --
 -- The five further duties (founder, 14 Sep 2026: "add all for accountant and IT"):
 --  F1 cash          fn_accountant_bank_balance_tick; the close carries the cash and runway   (cash file)
@@ -36,6 +37,62 @@ returns boolean language sql stable security definer set search_path to 'public'
                       and status = 'ok' and started_at > now() - interval '55 minutes')
 $fn$;
 revoke execute on function public.fn_accountant_duties_due() from public, anon, authenticated;
+
+-- 12 BOOKS (23 Sep 2026, accountant). The readiness audit read "the last journal is 15 Sep" as posting
+-- having stopped. Measured the same day, it had not: Resend's inbound history (13 messages back to 27 Aug)
+-- held nothing for expenses@ after 15 Sep 22:12 UTC, every message it did hold was booked (the 10 Sep
+-- Vercel forward was a second copy of #2293-8940, deduped on its economic identity), and 0 expense
+-- entries were unposted. Nothing had been forwarded. What was missing is that a quiet ledger said nothing
+-- at all, so "no receipts arrived" and "receipts arrived and were not posted" looked the same from
+-- outside. This duty runs after costs (which posts, via fn_gl_sync_business) and raises ONE finding when
+-- the newest posted journal is older than gl_settings.books_stale_after_days, naming which of the two it is.
+insert into public.gl_settings (key, num_value, txt_value) values ('books_stale_after_days', 2,
+  'Days after which a ledger with no new posted journal is a finding (accountant duty 12, fn_accountant_books_duty).')
+on conflict (key) do nothing;
+
+create or replace function public.fn_accountant_books_duty(p_as_of date default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  v_after int := (select num_value::int from public.gl_settings where key = 'books_stale_after_days');
+  v_last date; v_last_at timestamptz; v_mail timestamptz; n_arrived int; n_unbooked int; n_unposted int;
+  v_cause text; v_items jsonb := '[]'::jsonb;
+begin
+  if v_after is null then raise exception 'fn_accountant_books_duty: gl_settings.books_stale_after_days is missing'; end if;
+  select max(entry_date), max(posted_at) into v_last, v_last_at from public.gl_journal
+   where status = 'posted' and memo !~* 'zz[ _-]?demo';
+  select max(created_at) into v_mail from public.inbound_messages where to_email ilike 'expenses@%';
+  -- What reached the mailbox since the last posting, and what of it has no entry and no statement behind it.
+  select count(*), count(*) filter (where not exists (select 1 from public.expense_entries e where e.source_msg_id = 'resend:' || m.provider_email_id)
+                                      and not exists (select 1 from public.bank_statement_intake b where b.source_ref = 'resend:' || m.provider_email_id))
+    into n_arrived, n_unbooked
+    from public.inbound_messages m
+   where m.to_email ilike 'expenses@%' and m.created_at > coalesce(v_last_at, '-infinity') and m.created_at < now() - interval '2 hours';
+  select count(*) into n_unposted from public.expense_entries e
+   where not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = e.id::text)
+     and not ((coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo');
+
+  if v_last is null or v_as_of - v_last > v_after then
+    v_cause := case
+      when n_unposted > 0 then n_unposted || ' booked expense(s) have no journal: posting is failing'
+      when n_unbooked > 0 then n_unbooked || ' message(s) reached the expenses mailbox and were neither booked nor held as a statement'
+      else 'nothing has reached the expenses mailbox since ' || coalesce(to_char(v_mail at time zone 'Asia/Dubai', 'DD Mon YYYY'), 'ever')
+           || ', so there was nothing to post; the vendor-side gaps are in the expenses duty' end;
+    v_items := jsonb_build_array(jsonb_build_object('item', 'books_stale', 'owner_seat', 'accountant', 'subject', 'gl_journal',
+      'title', 'The books are ' || coalesce((v_as_of - v_last)::text, 'never') || ' day(s) stale (last posted journal '
+               || coalesce(v_last::text, 'none') || '): ' || v_cause,
+      'blast', 'internal', 'affected', 1,
+      'evidence', jsonb_build_object('last_posted_journal', v_last, 'last_posted_at', v_last_at, 'stale_after_days', v_after,
+        'last_expenses_mail', v_mail, 'mail_since_last_posting', n_arrived, 'mail_not_booked', n_unbooked,
+        'entries_not_posted', n_unposted,
+        'remedy', case when n_unposted + n_unbooked > 0
+                       then 'run the accountant expense_sweep for the named message, then fn_gl_sync_business; read the stage finding if it raises'
+                       else 'forward the month''s receipts to expenses@mail.quotesdone.com; nothing is broken on this side' end)));
+  end if;
+  return jsonb_build_object('as_of', v_as_of, 'last_posted_journal', v_last, 'mail_not_booked', n_unbooked,
+    'entries_not_posted', n_unposted, 'findings', public.fn_accountant_duty_settle('books', v_items));
+end $fn$;
+revoke execute on function public.fn_accountant_books_duty(date) from public, anon, authenticated;
 
 -- p_r: {stripe: {live|test: {basis, reason?, payouts[], fee_bts[], disputes[]}}, charge_audit: [..] | null}
 create or replace function public.fn_accountant_duties(p_r jsonb)
@@ -82,6 +139,8 @@ begin
   exception when others then v_err := v_err || jsonb_build_object('step', 'disputes', 'error', sqlerrm); end;
   begin o := o || jsonb_build_object('costs', public.fn_accountant_cost_booking_tick());
   exception when others then v_err := v_err || jsonb_build_object('step', 'costs', 'error', sqlerrm); end;
+  begin o := o || jsonb_build_object('books', public.fn_accountant_books_duty());
+  exception when others then v_err := v_err || jsonb_build_object('step', 'books', 'error', sqlerrm); end;
   -- The five further duties (14 Sep 2026). Ad spend, recovery and renewals run BEFORE the close, which
   -- reads their figures; the bank balance and the year-end pack read the close, so they run after it.
   -- F2 AD SPEND IS HELD FOR THE MARKETING SEAT (founder rule 641, 22 Sep 2026: Meta and social are
@@ -105,7 +164,7 @@ begin
                                  'completed', public.fn_accountant_reports_complete());
   exception when others then v_err := v_err || jsonb_build_object('step', 'ceo', 'error', sqlerrm); end;
 
-  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs',
+  foreach v_step in array array['stripe', 'bank', 'collections', 'subscriptions', 'expenses', 'charge_audit', 'disputes', 'costs', 'books',
                                 'recovery', 'renewals', 'close', 'bank_balance', 'year_end', 'ceo'] loop
     perform public.fn_accountant_duty_stage(v_step,
       (select string_agg(e->>'error', '; ') from jsonb_array_elements(v_err) e where e->>'step' = v_step));

@@ -54,6 +54,10 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // marketing puts its monthly plan before the CEO on the review machine: another model family, blind first
   // (founder_instructions 866 and 873; the_marketing_seat_watches_its_videos_studies_the_market_and_argues_its_month_with_the_ceo.sql)
   { type: 'deliberation.review', from: 'marketing', to: 'ceo' },
+  { type: 'deliberation.review', from: 'customer_support', to: 'ceo' },   // a dispute's fault finding (#904)
+  { type: 'deliberation.review', from: 'accountant', to: 'ceo' },         // a fee-circumvention finding (#904)
+  { type: 'deliberation.review', from: 'sales_engineer', to: 'marketing' }, // a supply gap marketing should recruit for (#905)
+  { type: 'deliberation.review', from: 'ceo', to: 'accountant' },         // the CEO's pricing or forecast call, reviewed (#906)
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },

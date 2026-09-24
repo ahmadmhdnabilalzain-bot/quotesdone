@@ -16,7 +16,8 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { replayHeld } from '../_shared/think.ts';
-import { deliverReasoned, holdingNotice, liveDeliveryIO } from '../_shared/reasoned_delivery.ts';
+import { distilLessons } from '../_shared/learning_loop.ts';
+import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
@@ -221,6 +222,18 @@ async function seatClocksTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// EVERY SEAT DUTY ON ITS OWN CLOCK (23 Sep 2026, it_engineer; founder_instruction 898). public.seat_duty holds each
+// seat's registered duties with their interval; fn_seat_duties_tick runs the due ones, each in its own
+// sub-transaction, and files a finding for any duty that is overdue or failing
+// (every_seat_duty_has_an_owner_a_clock_and_a_check.sql). Duties queue mail, so it runs before the outbox drain.
+async function seatDutiesTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_duties_tick', { p_limit: 8 });
+    if (error) return { ok: false, error: error.message };
+    return data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 async function outboxTick(): Promise<unknown> {
   try {
     const secret = await sec('cred_fn_resilience_ping');
@@ -268,6 +281,22 @@ async function ceoWeeklyTick(): Promise<unknown> {
     // strict_glyphs false: this is a narrative report whose figures are ASCII digits from format(); a
     // dash the font lacks must not hold the whole week's report back. The financial statement keeps true.
     return await renderPdfAndAttach(t, 'ceo/weekly', 'weekly_company_report', false, 'fn_ceo_weekly_report_attach_pdf');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE FOUNDER'S 18:00 SUPPLIER LIST (24 Sep 2026, customer_support). fn_customer_support_campaign_list_tick
+// builds, by code, the list of suppliers the campaign invites on the next sending day from the sender's own
+// fn_supplier_invite_candidates, with the day's counts; this renders it on the company template and
+// fn_customer_support_campaign_list_attach mails it (founder_mail_policy supplier_campaign_daily_list). A failed
+// render is retained and retried next beat. scripts/sql/the_founder_sees_tomorrows_supplier_invitations_at_six.sql
+async function supportCampaignListTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_customer_support_campaign_list_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    return await renderPdfAndAttach(t, 'customer_support/supplier_list', 'supplier_list', false, 'fn_customer_support_campaign_list_attach');
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -395,6 +424,36 @@ async function caseMemoryEmbedTick(): Promise<unknown> {
     // A claim that could not embed anything is a failure, never a quiet zero.
     return { ok: failed === 0 || embedded > 0, claimed: (data || []).length, embedded, failed };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE MULTILINGUAL SPACE'S TRICKLE (23 Sep 2026, it_engineer). knowledge_vector_ml rows that are new or whose
+// text changed are embedded by the embed_ml function (action 'tick'), not here: the model loads only in that
+// function's workers. Four rows a tick (ML_TICK_MAX, measured); the backlog is drained by
+// .github/workflows/ml-embed-backfill.yml. The gate and the daily cap are fn_ml_embed_claim's.
+async function mlEmbedTick(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_ai');
+    if (!secret) return { ok: false, error: 'cred_fn_ai is not in app_secrets' };
+    const r = await fetch(FN + '/embed_ml', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: secret, fn: 'resilience_ping', action: 'tick', limit: 4 }), signal: AbortSignal.timeout(50000),
+    });
+    const j = await r.json().catch(() => null);
+    return { ok: r.ok, status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+// THE LEARNING LOOP (23 Sep 2026, it_engineer; scripts/sql/every_judgement_learns_from_its_outcome.sql).
+// Daily: per-seat accuracy against real outcomes into seat_learning_daily (a fall opens a finding).
+// Weekly: cases with outcomes, grouped by meaning, distilled into cross-family-verified lessons
+// (_shared/learning_loop.ts); held under the model hold, never written from words.
+async function learningMeasureTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_seat_learning_measure', {});
+    return error ? { ok: false, error: error.message } : data;
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+async function learningDistilTick(): Promise<unknown> {
+  try { return await distilLessons(admin); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1046,12 +1105,16 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
   await step('reasoning_escalate', async () => {
-    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
-    const io = liveDeliveryIO(admin);
-    const told = [];
-    for (const r of rows ?? []) told.push({ id: r.id, ...(await holdingNotice(r, io).catch((e) => ({ delivered: false, via: 'none', detail: String(e?.message || e).slice(0, 200) }))) });
+    const rows = (await rpc('fn_reason_held_escalate', { p_limit: 20 })) as unknown[] | null;
+    // The notices owed — the rows just escalated AND any earlier one whose send failed — come from the queue, not
+    // from the escalate call's return, so a failure is retried (a_customer_notice_that_failed_is_sent_again.sql).
+    const owed = (await rpc('fn_reason_held_notice_due', { p_limit: 20 })) as { id: number; surface: string; question: string; subject: Record<string, unknown> | null }[] | null;
+    const told = await sendHeldNotices(owed ?? [], liveDeliveryIO(admin), (id, d) => rpc('fn_reason_held_notice_record', { p_id: id, p_delivery: d }));
     return { escalated: (rows ?? []).length, told };
   });
+  // THE SUPPLIER TRADE BACKFILL (sales_engineer, 23 Sep 2026): files at most the daily cap of leads for reasoning,
+  // and NOTHING unless app_secrets.lead_reclassify_backfill = 'go' (the cost is quoted beside the gate).
+  await step('lead_reclassify', async () => rpc('fn_lead_reclassify_tick', { p_limit: 20 }));
   await step('restore_table', async () => {
     if ((await rpc('fn_it_restore_table_due')) !== true) return { due: false };
     const pick = await rpc('fn_it_restore_table_pick');
@@ -1299,10 +1362,14 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   openrouter: { run: openrouterMeterTick },
   ladder: { run: refundLadderTick },
   caseMemory: { run: caseMemoryEmbedTick },
+  mlEmbed: { run: mlEmbedTick },
+  learningMeasure: { run: learningMeasureTick },
+  learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
   marketing: { run: marketingTick },
   marketingChannels: { run: marketingChannelsTick },
+  supportCampaignList: { run: supportCampaignListTick },
   whatsapp: { run: whatsappTick },
   itdetect: { run: itDetectTick },
   itduties: { run: itDutiesTick },
@@ -1313,6 +1380,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   supplierOutreach: { run: supplierOutreachTick },
   deliveryCanary: { run: deliveryCanaryTick },
   seatClocks: { run: seatClocksTick },
+  seatDuties: { run: seatDutiesTick },
   // `nested` because it returns one entry per function it called: without it runSteps would ask
   // failureOf about the map itself, which has neither `ok` nor `status`, and a 500 from email_cron
   // would be invisible.

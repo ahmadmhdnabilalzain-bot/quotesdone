@@ -35,7 +35,7 @@ const COPY = {
     job: 'Job No.', received: 'Received', boq: (n: number) => `BOQ ${n} line${n === 1 ? '' : 's'}`, drawings: (n: number) => `${n} drawing page${n === 1 ? '' : 's'}`,
     scope: 'Scope', documents: 'Documents', download: 'Download', noDocs: 'No documents were attached to this inquiry.',
     boqFile: (n: number) => `Bill of quantities (${n} lines, CSV)`, page: (n: number) => `Drawing page ${n} (identity removed)`,
-    inqPdf: 'Inquiry document (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfFailed: 'The document could not be prepared. Please try again.',
+    inqPdf: 'Inquiry document (PDF)', pdfEn: 'English', pdfAr: 'Arabic', preparing: 'Preparing…', pdfHeld: 'The Arabic version is being prepared by our sales engineer and will be ready shortly. The English version is available now.', pdfFailed: 'The document could not be prepared. Please try again.',
     quote: 'Send your quotation to the sales engineer', form: 'Or type it into the quote form', closeForm: 'Close the form', sentOk: 'Your quotation was submitted.', sentHeld: 'Your quotation is saved and on hold: the card below lists what is still needed.',
     concluded: 'Concluded — the customer has chosen.', won: 'You won this job.', quoted: 'Your quotation', loading: 'Loading inquiries…', err: 'Something went wrong. Please try again.', retry: 'Try again',
     boqHeld: 'The bill of quantities is held back because we could not prove it free of the customer’s details. Price from the drawings and the scope.',
@@ -47,7 +47,7 @@ const COPY = {
     job: 'رقم الطلب', received: 'تاريخ الاستلام', boq: (n: number) => `جدول الكميات: ${arCount(n, AR_NOUN.line)}`, drawings: (n: number) => arCount(n, AR_NOUN.drawingPage),
     scope: 'النطاق', documents: 'المستندات', download: 'تنزيل', noDocs: 'لم تُرفق مستندات بهذا الطلب.',
     boqFile: (n: number) => `جدول الكميات (${arCount(n, AR_NOUN.line)}، CSV)`, page: (n: number) => `صفحة المخطط ${n} (بعد إخفاء الهوية)`,
-    inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
+    inqPdf: 'مستند الاستفسار (PDF)', pdfEn: 'بالإنجليزية', pdfAr: 'بالعربية', preparing: 'جارٍ التحضير…', pdfHeld: 'يُعدّ مهندس المبيعات لدينا النسخة العربية وستكون جاهزة قريبًا. النسخة الإنجليزية متاحة الآن.', pdfFailed: 'تعذّر تحضير المستند. يُرجى المحاولة مرة أخرى.',
     quote: 'إرسال عرض السعر إلى مهندس المبيعات', form: 'أو أدخلوه في نموذج العرض', closeForm: 'إغلاق النموذج', sentOk: 'قُدّم عرض سعركم.', sentHeld: 'حُفظ عرض سعركم معلّقًا، وتوضّح البطاقة أدناه ما يلزم لاستكماله.',
     concluded: 'انتهى — اختار العميل.', won: 'فزتم بهذا الطلب.', quoted: 'عرضكم', loading: 'جارٍ تحميل الطلبات…', err: 'حدث خطأ. يُرجى المحاولة مرة أخرى.', retry: 'إعادة المحاولة',
     boqHeld: 'حُجب جدول الكميات لتعذّر التأكد من خلوّه من بيانات العميل. يُرجى التسعير استنادًا إلى المخططات والنطاق.',
@@ -70,8 +70,8 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
   // quotation and cached there. It sits first in the documents list because it is the document the
   // drawings and the BOQ belong to.
   const [busy, setBusy] = useState<Lang | null>(null);
-  const [pdfErr, setPdfErr] = useState(false);
-  const inquiryPdf = async (l: Lang) => { setBusy(l); setPdfErr(false); const ok = await openPdf(() => qr.inquiryPdf(token, id, l)); setBusy(null); if (!ok) setPdfErr(true); };
+  const [pdfErr, setPdfErr] = useState<boolean | 'held'>(false);
+  const inquiryPdf = async (l: Lang) => { setBusy(l); setPdfErr(false); const ok = await openPdf(() => qr.inquiryPdf(token, id, l)); setBusy(null); if (ok !== true) setPdfErr(ok === 'held' ? 'held' : true); };
   useEffect(() => {
     let on = true;
     qr.documents(token, id).then((j) => { if (!on) return; if (failed(j)) setErr(true); else { setD(j); setErr(false); } })
@@ -85,7 +85,7 @@ function Documents({ token, lang, id }: { token: string; lang: Lang; id: string 
         <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('en')} lang="en">{busy === 'en' ? t.preparing : t.pdfEn}</Button>
         <Button size="sm" variant="outline" disabled={!!busy} onClick={() => inquiryPdf('ar')} lang="ar">{busy === 'ar' ? t.preparing : t.pdfAr}</Button>
       </span>
-      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{t.pdfFailed}</span> : null}
+      {pdfErr ? <span role="alert" className="basis-full text-[12px] text-danger-fg">{pdfErr === 'held' ? t.pdfHeld : t.pdfFailed}</span> : null}
     </li>
   );
   if (err) return (

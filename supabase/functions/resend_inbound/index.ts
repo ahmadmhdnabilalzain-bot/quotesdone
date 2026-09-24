@@ -42,7 +42,7 @@ import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
-import { calendarTokenOf, isCalendarReply, replyIntent } from '../_shared/marketing_calendar_mail.ts';
+import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -214,7 +214,9 @@ export const handler = observe('resend_inbound', async (req) => {
       const calHdrs = d.headers?.['authentication-results'] ? d.headers
         : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
       const verdict = { token: calendarTokenOf({ to, subject }) || '', from_email: from,
-        authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText) };
+        authenticated: fromDomainAuthenticated(calHdrs?.['authentication-results'], from), message_id: providerEmailId || '', intent: replyIntent(fullText),
+        // his own words (quote cut off): a reply that is not exactly "approve" becomes the marketing seat's change request
+        text: ownWords(fullText).slice(0, 4000) };
       const { data: out, error: cErr } = await admin.rpc('fn_marketing_calendar_reply', { p: verdict });
       await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
         body: '[MONTHLY CALENDAR REPLY: ' + (cErr ? 'error ' + cErr.message : String((out as any)?.outcome)) + '; authenticated ' + verdict.authenticated + ', read as ' + verdict.intent + ']\n\n' + fullText,
@@ -223,6 +225,28 @@ export const handler = observe('resend_inbound', async (req) => {
       await logRun(cErr ? 'error' : 'ok', { calendar_reply: 1, outcome: (out as any)?.outcome ?? null, authenticated: verdict.authenticated, intent: verdict.intent },
         'monthly calendar reply from ' + from + ': ' + (cErr ? 'fn_marketing_calendar_reply failed: ' + cErr.message : String((out as any)?.outcome)));
       return J({ ok: !cErr, calendar_reply: true, outcome: (out as any)?.outcome ?? null });
+    }
+
+    // ---- HIS REPLY TO THE MONTHLY VIDEO IDEA PLAN (24 Sep 2026, marketing) ----
+    // The plan email's Reply-To is plan+<token>@mail.quotesdone.com. Whatever he sends back -- his content, links,
+    // or changes to the ideas -- is filed for the marketing seat by fn_marketing_month_plan_reply (same sender and
+    // SPF/DKIM/DMARC rules as the calendar); the seat then builds and loads the calendar, and the calendar email
+    // for his "approve" follows by itself (fn_marketing_calendar_due).
+    const planToken = planTokenOf({ to, subject });
+    if (planToken) {
+      const pHdrs = d.headers?.['authentication-results'] ? d.headers
+        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+      const pv = { token: planToken, from_email: from, authenticated: fromDomainAuthenticated(pHdrs?.['authentication-results'], from),
+        message_id: providerEmailId || '', text: ownWords(fullText).slice(0, 4000),
+        attachments: atts.map((a: any) => String(a?.filename || a?.name || '')).filter(Boolean).slice(0, 50) };
+      const { data: out, error: pErr } = await admin.rpc('fn_marketing_month_plan_reply', { p: pv });
+      await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
+        body: '[MONTHLY IDEA PLAN REPLY: ' + (pErr ? 'error ' + pErr.message : String((out as any)?.outcome)) + '; authenticated ' + pv.authenticated + ']\n\n' + fullText,
+        html: fullHtml, provider_email_id: providerEmailId, attachments_count: pv.attachments.length, matched_existing: !!(out as any)?.month,
+        needs_review: !!pErr || (out as any)?.outcome === 'not_the_founder' });
+      await logRun(pErr ? 'error' : 'ok', { plan_reply: 1, outcome: (out as any)?.outcome ?? null, authenticated: pv.authenticated },
+        'monthly idea plan reply from ' + from + ': ' + (pErr ? 'fn_marketing_month_plan_reply failed: ' + pErr.message : String((out as any)?.outcome)));
+      return J({ ok: !pErr, plan_reply: true, outcome: (out as any)?.outcome ?? null });
     }
 
     // ---- Forwarded receipt / subscription -> finance ----
@@ -646,6 +670,9 @@ export const handler = observe('resend_inbound', async (req) => {
         from_email: from, to_email: to, subject, html: fullHtml, provider_email_id: providerEmailId,
         body: `[HELD — nothing booked: ${(receiptReason || 'no amount could be read').slice(0, 200)}]${heldPath ? ' document: receipt-files/' + heldPath : ' (no readable attachment)'}\n\n` + fullText,
         attachments_count: heldPath ? 1 : 0, matched_existing: false, needs_review: true,
+        // Held for the accountant's reasoning (the model hold): the row is the accountant's while it waits, so it never
+        // reads as the founder's (receipts_never_wait_on_the_founder, 24 Sep 2026: the Anthropic receipt, row 161).
+        ...(reasoningHeld ? { owner_role: 'accountant' } : {}),
       }).select('id').maybeSingle();
       if (!reasoningHeld) await handToBookkeeper(heldRow?.id, [], (receiptReason || 'No amount could be read from this email.') + (heldPath ? ' The document is archived at receipt-files/' + heldPath + '. Read it, then book the expense in expense_entries (source \'receipt\') and post it with fn_expense_post_to_gl.' : ' No attachment could be read, so ask for a re-forward.'));
       await logRun('ok', { expenses_mailbox: 1, receipt: true, booked: false, held: true, doc_archived: !!heldPath, from, subject }, 'receipt HELD for review, not guessed at: ' + (receiptReason || 'no amount could be read').slice(0, 300));
