@@ -127,12 +127,19 @@ async function rasterise(pdf) {
 
 async function edgeTimes(fn, sinceIso) {
   // function_edge_logs carry execution_time_ms per request (wall time; the runtime does not log CPU).
+  // 24 Sep 2026: Supabase removed logs.all (HTTP 410, "Use GET /v1/projects/{ref}/analytics/endpoints/logs").
+  // The replacement takes ClickHouse SQL over ONE table, `logs`, filtered by source, with the old nested
+  // metadata flattened into log_attributes (keys measured live that day: execution_time_ms,
+  // response.status_code, request.pathname). See scripts/checks/edge_requests_show_no_attack_pattern.mjs.
   const { readFileSync } = await import('node:fs');
   const tok = (process.env.SUPABASE_ACCESS_TOKEN || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
-  const sql = `select timestamp, m.execution_time_ms as ms, r.status_code as st from function_edge_logs cross join unnest(metadata) as m cross join unnest(m.response) as r where event_message like '%/functions/v1/${fn}' order by timestamp`;
-  const r = await fetch(`https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/analytics/endpoints/logs.all?sql=${encodeURIComponent(sql)}&iso_timestamp_start=${encodeURIComponent(sinceIso)}&iso_timestamp_end=${encodeURIComponent(new Date().toISOString())}`, { headers: { Authorization: 'Bearer ' + tok } });
-  const j = await r.json().catch(() => ({}));
-  return Array.isArray(j.result) ? j.result : [];
+  const sql = `select timestamp, toFloat64OrZero(log_attributes['execution_time_ms']) as ms, toInt32OrZero(log_attributes['response.status_code']) as st from logs where source = 'function_edge_logs' and log_attributes['request.pathname'] = '/functions/v1/${fn}' order by timestamp`;
+  const r = await fetch(`https://api.supabase.com/v1/projects/htdblwldjkcgjvmqkbeh/analytics/endpoints/logs?sql=${encodeURIComponent(sql)}&iso_timestamp_start=${encodeURIComponent(sinceIso)}&iso_timestamp_end=${encodeURIComponent(new Date().toISOString())}`, { headers: { Authorization: 'Bearer ' + tok } });
+  const text = await r.text();
+  let j; try { j = JSON.parse(text); } catch { j = null; }
+  // An unreadable log used to come back as [] and print "no log rows yet" — which is how the 410 went unseen.
+  if (!r.ok || !j || j.error || !Array.isArray(j.result)) throw new Error(`function_edge_logs unreadable: HTTP ${r.status} ${text.slice(0, 200)}`);
+  return j.result;
 }
 
 // ── the run ──────────────────────────────────────────────────────────────────────────────────────────
@@ -241,8 +248,11 @@ try {
   // Edge timings for this run's drawing calls (logs land within ~a minute).
   await new Promise((r) => setTimeout(r, 45000));
   for (const fn of ['drawing_boq', 'drawing_redact', 'customer_api']) {
-    const rows = await edgeTimes(fn, started);
-    console.log(`TIME  ${fn}: ${rows.map((r) => `${r.st}/${r.ms}ms`).join('  ') || 'no log rows yet'}`);
+    // Timings are information, not a check: an unreadable log is printed as such, never as "no rows".
+    try {
+      const rows = await edgeTimes(fn, started);
+      console.log(`TIME  ${fn}: ${rows.map((r) => `${r.st}/${r.ms}ms`).join('  ') || 'no log rows yet'}`);
+    } catch (e) { console.log(`TIME  ${fn}: ${e.message}`); }
   }
   exitCode = results.every((r) => r.ok) ? 0 : 1;
 } catch (e) {

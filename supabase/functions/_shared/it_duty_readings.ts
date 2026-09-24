@@ -93,33 +93,10 @@ async function expiries(_sec: Sec) {
   return out;
 }
 
-// Does each provider credential still work today? A harmless authenticated GET per provider.
-async function providers(sec: Sec) {
-  const [sl, st, rs, tSid, tKey, tSec, dbKey, dbSecret, dbRefresh, gh] = await Promise.all([
-    sec('stripe_secret_key'), sec('stripe_secret_key_test'), sec('resend_api_key'), sec('twilio_account_sid'),
-    sec('twilio_api_key_sid'), sec('twilio_api_key_secret'), sec('dropbox_app_key'), sec('dropbox_app_secret'),
-    sec('dropbox_refresh_token'), sec('github_token')]);
-  const probe = async (owner_seat: string, present: boolean, run: () => Promise<Got>) => {
-    if (!present) return { ...unavailable('credential not in app_secrets'), owner_seat };
-    const g = await run();
-    return { basis: g.status ? 'measured' : 'unavailable', status: g.status || null, owner_seat, error: g.error ?? null };
-  };
-  const bearer = (k: string) => ({ headers: { Authorization: `Bearer ${k}` } });
-  return {
-    stripe_live: await probe('accountant', !!sl, () => get('https://api.stripe.com/v1/balance', bearer(sl))),
-    stripe_test: await probe('accountant', !!st, () => get('https://api.stripe.com/v1/balance', bearer(st))),
-    resend: await probe('customer_support', !!rs, () => get('https://api.resend.com/domains', bearer(rs))),
-    twilio: await probe('customer_support', !!(tSid && tKey && tSec), () =>
-      get(`https://api.twilio.com/2010-04-01/Accounts/${tSid}.json`, { headers: { Authorization: 'Basic ' + btoa(`${tKey}:${tSec}`) } })),
-    dropbox: await probe('sales_engineer', !!(dbKey && dbSecret && dbRefresh), async () => {
-      const g = await get('https://api.dropboxapi.com/oauth2/token', { method: 'POST',
-        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: dbRefresh, client_id: dbKey, client_secret: dbSecret }) });
-      // Dropbox answers a revoked refresh token with 400 invalid_grant: that is a refused credential.
-      return J(g)?.error === 'invalid_grant' ? { ...g, status: 401 } : g;
-    }),
-    github: await probe('ceo', !!gh, () => get(`https://api.github.com/repos/${REPO}`, bearer(gh))),
-  };
-}
+// THE PROVIDER CREDENTIAL PROBES MOVED (it_engineer, 24 Sep 2026, founder instruction 979). They were read here
+// once an hour and filed as duty:credential. Every external integration is now one entry in
+// integration_registry.json, probed every 15 minutes by integration_watch.ts and filed as duty:integration, so
+// there is ONE owner. fn_it_duties leaves duty:credential untouched when the providers reading is absent.
 
 // A REHEARSAL'S STRIPE OBJECT IS NOT A GAP IN THE BOOKS (15 Sep 2026, accountant).
 // The e2e harness pays demo reveals with Stripe's TEST key, then its teardown deletes the demo
@@ -191,10 +168,10 @@ async function stripe(sec: Sec) {
 
 export async function takeDutyReadings(sec: Sec) {
   const gh = await github(sec);
-  const [v, s, e, p, st] = await Promise.all([
+  const [v, s, e, st] = await Promise.all([
     vercel(sec, (gh as { sha?: string }).sha ?? null, (gh as { committed_at?: string }).committed_at ?? null),
-    sites(), expiries(sec), providers(sec), stripe(sec)]);
-  return { taken_at: new Date().toISOString(), github: gh, vercel: v, sites: s, expiries: e, providers: p, stripe: st };
+    sites(), expiries(sec), stripe(sec)]);
+  return { taken_at: new Date().toISOString(), github: gh, vercel: v, sites: s, expiries: e, stripe: st };
 }
 
 // ── DUTY 22: WHAT THE PROVIDERS BILL AGAINST, WHERE THEY PUBLISH IT ─────────────────────────────────
