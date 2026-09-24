@@ -1,0 +1,4 @@
+Not applied (24 Sep 2026, sales_engineer, PR #967). Until it is, customer_api's scan queue insert is refused by the
+cad_read_jobs why check and a scanned drawing stays held, exactly as before. To apply: node scripts/apply_sql.mjs
+scripts/sql/a_scanned_drawing_is_queued_for_ocr_redaction.sql --apply --ddl, then delete this note and append the
+file to the END of scripts/sql/MANIFEST.txt.

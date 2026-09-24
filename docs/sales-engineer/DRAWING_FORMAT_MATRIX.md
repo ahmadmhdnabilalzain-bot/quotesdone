@@ -74,12 +74,12 @@ Evidence (BEFORE):
 | DXF ascii | S | S | S | S¹ | S | P² |
 | DXF binary | S | S | S | S¹ | S | P² |
 | PDF vector | S | S | S | S¹ | S³ | P² |
-| PDF scanned | P | P | P | P | M (H) | P |
+| PDF scanned | P | P | P | P | S⁵ | P² |
 | PDF multi-sheet | S | S | S | S¹ | S³ | P² |
 | RVT | P | M | M | M | H | M |
 | DGN | P | M | M | M | H | M |
 | IFC | S | S | P | P | P | P |
-| image JPG/PNG | P | P⁴ | P | P | M (H) | P |
+| image JPG/PNG | P | P⁴ | P | P | P⁵ | P² |
 
 1. The Arabic document is asserted on its content in CI, where the brand Arabic font is unreachable. The glyphs
    were read back from the rendered PDF once, locally, with Noto Naskh Arabic (OFL) standing in for the brand font:
@@ -95,6 +95,31 @@ Evidence (BEFORE):
 4. The counter itself is proven on pixels: 7 smoke detectors and 3 call points against the drawing's own legend.
    The legend's words come from the customer's browser OCR, which the server never re-reads, so the count stays an
    estimate the customer confirms.
+
+5. **OCR redaction, second commit (founder instruction 579, "OCR for scanned drawings")**:
+   `_shared/scan_redact.ts` runs on the CAD worker, with no model and no paid service. The engine is tesseract.js
+   7.0.0 with the repository's own eng + ara data (`scripts/lib/scan_ocr.ts`). The steps:
+   - OCR the page.
+   - Box it with the PDF path's own rules (`titleBlockBoxes` plus `textLayerBoxes`).
+   - HOLD if no title block is found, or if its words read below 70% confidence.
+   - Paint the boxes, then OCR the painted page again.
+   - HOLD if any identity is read back.
+
+   Proof: `_shared/scan_redact.check.ts`, 4 tests with the real engine (eng+ara) on a synthetic ZZ DEMO scan turned
+   0.6 degrees and speckled.
+   - The title block is more than 99% black. The rooms, the 6000 dimension and the legend are under 20% black.
+   - A second OCR reads OFFICE, MEETING, LEGEND, SMOKE DETECTOR and SOCKET, and no identity.
+   - A title block speckled at 6% reads at 62% confidence and is held as `title_block_low_confidence`. The clean one
+     reads at 83%.
+   - A sheet with no title block is held.
+   - The worker's own `scanDrawing`, with storage and SQL replaced by a recorder, uploads one page under
+     `redacted/<uuid>/`, records one `complete` run naming it, and publishes nothing for a held page.
+   - `_shared/scan_redact.test.ts` holds the decisions: an identity read back holds the page, a seed read back holds it.
+
+   Image is **P** because a camera PHOTO of a sheet (perspective, glare) is not tested; the tests cover flat sheet
+   rasters. The live path also needs `scripts/sql/a_scanned_drawing_is_queued_for_ocr_redaction.sql` applied (the
+   queue reason). Until then the queue insert is refused and the drawing stays held, which is fail closed. Pinned by
+   `scripts/checks/a_scanned_drawing_is_redacted_by_ocr_or_held.test.mjs`.
 
 Evidence (AFTER):
 - **CAD drawn for suppliers**: `_shared/cad_render.ts` draws model space from the entities (DXF, binary DXF, and a
@@ -137,10 +162,10 @@ Evidence (AFTER):
 
 ## Still not done, and why
 
-- **Scanned PDF and photo redaction (M, held)**: with no text layer the server cannot prove where identity is. A
-  deterministic title-block crop would publish a stamp or a name written anywhere else. Such pages stay held and are
-  recorded as waiting for the model. When the model hold lifts, `drawing_redact`'s existing find, verify and retry path
-  applies. Server-side OCR (tesseract.js in the CAD worker) is the free route to close this, and it is not built.
+- **Scanned PDF and photo redaction**: built in the second commit (note 5). It is not live until the queue-reason
+  SQL is applied and deployed. Camera photos with perspective are untested. A scan whose identity sits outside the
+  title block in a form OCR misreads both times would pass. The re-read uses the same engine, so that residual risk
+  remains, and it is stated here rather than hidden.
 - **Revit (RVT)**: no free library reads Revit geometry or schedules; the format is closed. What is certain is read
   (version, family or project, workshared, the embedded preview), and the customer is asked for an IFC export in
   English and Arabic. IFC is then read fully. No paid Autodesk service is used (instruction 696).

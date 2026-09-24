@@ -972,10 +972,14 @@ Deno.serve(observe('customer_api', async (req) => {
         // title block it did not find, a residual it could not cover — no boxes are sent at all, and
         // drawing_redact holds every page. Fail closed.
         let serverBoxes: { x: number; y: number; w: number; h: number }[][] | null = null;
+        // Words on the PDF's own text layer; 0 means a scan (see SCANNED PAGES below). -1: not a PDF / unread.
+        let pdfWords = -1;
         if (/pdf/i.test(mime) && body.original_b64) {
           try {
             const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-            const tb = titleBlockBoxes(await pdfPages(bytes, undefined, { layers: false }), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
+            const pp = await pdfPages(bytes, undefined, { layers: false });
+            pdfWords = pp.reduce((n, pg) => n + pg.runs.length, 0);
+            const tb = titleBlockBoxes(pp, seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
             serverBoxes = supplierBoxes(tb, manualBoxes, images.length);
           } catch (_e) { serverBoxes = null; }
         }
@@ -1028,6 +1032,24 @@ Deno.serve(observe('customer_api', async (req) => {
           const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
           await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason }));
         }
+        // SCANNED PAGES ARE READ BY OCR OFF THE REQUEST PATH (24 Sep 2026, sales_engineer; founder instruction 579:
+        // "OCR for scanned drawings"). A photo or a PDF with no text layer gives the server no words to box, so the
+        // edge holds it, and until today it stayed held for ever. Its page rasters (what a supplier would see) are
+        // stored like any original, and the CAD worker OCRs, boxes, re-reads and publishes them only when clean
+        // (_shared/scan_redact.ts). If the store or the queue fails, the drawing simply stays held.
+        let scanJob: string | null = null;
+        if (hand.drawing_held && path && !isCad && images.length && (/^image\//i.test(mime) || pdfWords === 0)) {
+          const pagePaths: string[] = [];
+          for (let i = 0; i < images.length; i++) {
+            const im = images[i];
+            const b64 = String((im && (im.b64 || im.data)) || im || '');
+            const pth = b64 ? await storeOriginal(cust.id, email, `scan_page_${i + 1}.jpg`, 'image/jpeg', b64, SAFE_UPLOAD) : null;
+            if (!pth) { pagePaths.length = 0; break; }
+            pagePaths.push(pth);
+          }
+          if (pagePaths.length === images.length) scanJob = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, why: 'scan_needs_ocr', boqIn: { scan_pages: pagePaths } });
+        }
+        const scanNote = scanJob ? { note: 'scan_queued', cad_job_id: scanJob } : {};
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand }, 200);
         const jd = await boqRes.value.json().catch(() => null);
         // A CAD original the edge could not read (past its ceiling, or its worker died) is read off the
@@ -1070,7 +1092,7 @@ Deno.serve(observe('customer_api', async (req) => {
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 

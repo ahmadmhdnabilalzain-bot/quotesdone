@@ -96,6 +96,16 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-net=deno.land
           supabase/functions/_shared/drawing_redact_page.check.ts
+      # 24 SEP 2026 — A SCANNED DRAWING IS REDACTED BY OCR OR HELD (founder instruction 579). The real engine
+      # (tesseract.js 7.0.0 with the repository's own eng + ara data) on a synthetic ZZ DEMO scan: the title block
+      # blacked out, rooms / dimensions / legend kept, a second OCR reads no identity, a title block read below
+      # 70% confidence is held, a sheet with no title block is held, and the CAD worker publishes a clean page as
+      # one recorded run. The engine's worker thread needs --allow-env and imagescript's codec comes from deno.land.
+      - name: A scanned drawing is redacted by OCR, or held
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
+          --allow-net=deno.land
+          supabase/functions/_shared/scan_redact.check.ts
 
   # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
   # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a

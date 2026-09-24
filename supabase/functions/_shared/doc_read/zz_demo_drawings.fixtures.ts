@@ -16,6 +16,7 @@
 // IDENTITY must be gone from anything a supplier receives; every string in CONTENT must survive.
 import { dxfBinaryFrom, dxfFrom, dxfSection } from './cad.fixtures.ts';
 import type { DwgDb } from './dwg.ts';
+import { textStrokes } from '../stroke_font.ts';
 
 export const IDENTITY = ['ZZ DEMO', 'Rashid', 'Kareem', 'Harbour', 'ORBIT', 'ZZ-2026-0142', 'example.invalid', '0000017', '000 0017', 'Drafter', 'zz.site', 'zz.orbit'];
 export const CONTENT = ['OFFICE 101', 'MEETING ROOM 102', 'STORE 103', '6000', '4000', 'LEGEND', 'SD - SMOKE DETECTOR', 'SKT - DOUBLE SOCKET OUTLET', 'NOTE: ALL SOCKETS AT 300 AFFL'];
@@ -203,3 +204,34 @@ export const zzPdfSet = () => pdfOf([
 ], INFO);
 /** A scanned sheet: the same /Info metadata, one image, no text layer. */
 export const zzPdfScan = () => pdfOf(['scan'], INFO, true);
+
+// ── a SCANNED sheet ─────────────────────────────────────────────────────────────────────────────────
+// The same job as a raster with no text layer: rooms, dimensions and a legend on the plan, the ZZ DEMO title
+// block down the right-hand side, drawn with the stroke font, turned by a slight angle and speckled, the way a
+// scanner returns a sheet. `titleNoise` smears the title block alone, to make a page OCR cannot read there.
+export const SCAN_TITLE = ['ZZ DEMO ORBIT CONSULTING ENGINEERS LLC', 'TEL +971 4 000 0017', 'ZZ.ORBIT@EXAMPLE.INVALID', 'CLIENT: ZZ DEMO RASHID KAREEM', 'PROJECT: ZZ DEMO HARBOUR TOWER', 'DRAWING NO: ZZ-2026-0142', 'DRAWN BY: ZZ DEMO DRAFTER'];
+export const SCAN_CONTENT = ['OFFICE 101', 'MEETING ROOM 102', 'STORE 103', '6000', '4000', 'LEGEND'];
+export function zzScanRgba(o: { rotateDeg?: number; noise?: number; titleNoise?: number; noTitle?: boolean; seed?: number } = {}): { w: number; h: number; rgba: Uint8ClampedArray } {
+  const w = 2600, h = 1400, rgba = new Uint8ClampedArray(w * h * 4).fill(255);
+  let s = o.seed ?? 7; const rnd = () => ((s = (s * 1103515245 + 12345) >>> 0) / 4294967296);
+  const th = (o.rotateDeg ?? 0) * Math.PI / 180, cx = w / 2, cy = h / 2;
+  const turn = (x: number, y: number): [number, number] => [cx + (x - cx) * Math.cos(th) - (y - cy) * Math.sin(th), cy + (x - cx) * Math.sin(th) + (y - cy) * Math.cos(th)];
+  const dot = (x: number, y: number, v = 20) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = Math.round(x) + dx, Y = Math.round(y) + dy; if (X >= 0 && Y >= 0 && X < w && Y < h) { const k = (Y * w + X) * 4; rgba[k] = rgba[k + 1] = rgba[k + 2] = v; } } };
+  const seg = (x0: number, y0: number, x1: number, y1: number) => { const [a, b] = turn(x0, y0), [c, d] = turn(x1, y1); const n = Math.max(1, Math.ceil(Math.hypot(c - a, d - b))); for (let i = 0; i <= n; i++) dot(a + (c - a) * i / n, b + (d - b) * i / n); };
+  const rect = (x: number, y: number, rw: number, rh: number) => { seg(x, y, x + rw, y); seg(x + rw, y, x + rw, y + rh); seg(x + rw, y + rh, x, y + rh); seg(x, y + rh, x, y); };
+  const text = (x: number, y: number, size: number, str: string) => { for (const st of textStrokes(str).strokes) for (let i = 0; i + 1 < st.length; i++) seg(x + st[i][0] * size, y - st[i][1] * size, x + st[i + 1][0] * size, y - st[i + 1][1] * size); };
+  // The plan.
+  rect(100, 150, 700, 500); rect(800, 150, 500, 500); rect(1300, 150, 350, 500);
+  text(260, 420, 34, 'OFFICE 101'); text(850, 420, 34, 'MEETING ROOM 102'); text(1360, 420, 34, 'STORE 103');
+  seg(100, 720, 800, 720); text(390, 705, 28, '6000'); text(20, 430, 28, '4000');
+  text(100, 900, 32, 'LEGEND'); text(100, 960, 26, 'SD - SMOKE DETECTOR'); text(100, 1010, 26, 'SKT - DOUBLE SOCKET OUTLET');
+  // The title block, down the right-hand edge.
+  rect(40, 40, 2520, 1320);
+  if (!o.noTitle) seg(1940, 40, 1940, 1360);
+  if (!o.noTitle) SCAN_TITLE.forEach((t, i) => text(1970, 140 + i * 90, 15, t));
+  if (!o.noTitle) { text(1970, 1000, 20, 'SCALE 1:100'); text(1970, 1200, 40, 'E-1.01'); }
+  // The scanner's speckle, and (for the low-confidence case) a smeared title block.
+  for (let i = 0; i < w * h * (o.noise ?? 0); i++) { const k = (Math.floor(rnd() * h) * w + Math.floor(rnd() * w)) * 4; rgba[k] = rgba[k + 1] = rgba[k + 2] = rnd() < 0.5 ? 0 : 255; }
+  if (o.titleNoise) for (let y = 40; y < 1360; y++) for (let x = 1945; x < 2560; x++) if (rnd() < o.titleNoise) { const k = (y * w + x) * 4; rgba[k] = rgba[k + 1] = rgba[k + 2] = rnd() < 0.5 ? 0 : 160; }
+  return { w, h, rgba };
+}
