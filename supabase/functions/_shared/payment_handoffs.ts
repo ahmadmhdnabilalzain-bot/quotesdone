@@ -60,6 +60,7 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'deliberation.review', from: 'ceo', to: 'accountant' },         // the CEO's pricing or forecast call, reviewed (#906)
   { type: 'deliberation.review', from: 'it_engineer', to: 'ceo' },        // the CEO judges a seat's case (#913)
   { type: 'deliberation.review', from: 'sales_engineer', to: 'ceo' },     // the CEO judges a seat's case (#913)
+  { type: 'sales.escalation', from: 'sales_engineer', to: 'ceo' },        // thin supply or a disputed reveal, decided by the CEO (ledger 983)
   // customer_support is the only seat that sends email or WhatsApp (founder, 14 Sep 2026)
   { type: 'delivery.request', from: 'sales_engineer', to: 'customer_support' },
   { type: 'delivery.request', from: 'ceo', to: 'customer_support' },
