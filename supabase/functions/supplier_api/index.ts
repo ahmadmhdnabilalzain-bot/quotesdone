@@ -9,8 +9,7 @@ import { arDays } from '../_shared/ar_days.ts';
 import { sanitizeAndScan } from '../_shared/malware.ts';
 import { observe } from '../_shared/observe.ts';
 import { defaultDeps } from '../_shared/think.ts';
-import { quoteTerms, reasonQuoteAspects } from '../_shared/reasoned_suppliers.ts';
-import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
+import { quoteTerms } from '../_shared/reasoned_suppliers.ts';
 import { storedAt } from '../_shared/stored_at.ts';
 import { CANONICAL_ORIGIN, siteReturnBase } from '../_shared/site_origins.ts';
 import { capabilityState, capabilityConfirm } from '../_shared/supplier_capability.ts';
@@ -249,11 +248,8 @@ async function kickDelivery() {
 const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
-  // WHICH CATEGORY ASPECTS THE QUOTE STATES is reasoned (think(), reasoned_suppliers.ts; founder_instruction
-  // 886-903), after the response so a submission never waits on a model. Until the reading lands,
-  // trg_quote_quality keeps the category verdict 'needs_reasoning' (not a pass); held, it is queued and
-  // applied by fn_reason_apply_sql__trg_quote_quality when the hold lifts.
-  runtimeWaitUntil()?.(reasonQuoteAspects(defaultDeps(admin, 'supplier_api'), qid).catch((e) => console.error('quote aspects not read:', String(e))));
+  // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
+  // model (24 Sep 2026, it_engineer, quote_quality_trade_keys_and_repeat_requests_are_code_not_the_model.sql).
   const r = await acceptRule(qid);
   // deno-lint-ignore no-explicit-any
   let coaching: any = null;
