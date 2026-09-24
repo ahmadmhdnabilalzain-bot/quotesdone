@@ -26,7 +26,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
-  assetMismatch, deletePostizPost, dubaiDate, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
+  assetMismatch, deletePostizPost, dubaiDate, MAX_LIVE_PER_BEAT, publishSpentTheBeat, findInPostiz, integrationFor, isDemoText, measureAccess, postizIds, postizIntegrations, postizReleases,
   publishPost, pullInsights, readAdSpend, stripTokens, type MetaEnv, type PublishInput, type Variant,
 } from '../_shared/marketing_channels.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
@@ -158,6 +158,8 @@ async function publishDue(e: Env) {
   if (!e.postizKey) return { ok: false, error: 'postiz_api_key is not in app_secrets', due: due.length, reconcile: recon };
   let live = 0, dry = 0, failed = 0, unconfirmed = 0, refused = 0;
   for (const p of due) {
+    // At most MAX_LIVE_PER_BEAT live sends per beat (the CPU cap, gap 1); the next is due again in 15 minutes.
+    if (live + failed + unconfirmed + refused >= MAX_LIVE_PER_BEAT) break;
     let variants = await variantsOf(p.id);
     const { data: refusal } = await admin.rpc('fn_marketing_post_refusal', { p_post_id: p.id });
     const demo = p.is_demo || isDemoText(p.title, p.text_en, p.text_ar, p.cta_url, ...variants.flatMap((v) => [v.body, v.title, v.alt_text, v.first_comment]));
@@ -360,7 +362,8 @@ async function calendarsDue() {
   const { data, error } = await admin.rpc('fn_marketing_calendar_due');
   if (error) return { ok: false, error: error.message };
   const out: Record<string, unknown> = {};
-  for (const r of (data || []) as Array<{ campaign_key: string }>) out[r.campaign_key] = await calendarSend(r.campaign_key);
+  // One calendar render per beat (the CPU cap, gap 1); the next is still due next beat.
+  for (const r of ((data || []) as Array<{ campaign_key: string }>).slice(0, 1)) out[r.campaign_key] = await calendarSend(r.campaign_key);
   return { ok: Object.values(out).every((x: any) => x?.ok !== false), sent: out };
 }
 
@@ -442,14 +445,21 @@ Deno.serve(async (req) => {
     if (action !== 'duties') return J({ error: 'unknown_action' }, 400);
 
     const publish = await publishDue(e);
-    const calendars = await calendarsDue();
+    // One heavy phase per beat (gap 1): a beat that sent a post renders no calendar and runs no daily read.
+    const spent = publishSpentTheBeat(publish as { published?: number; failed?: number; unconfirmed?: number; refused_by_database?: number });
+    const calendars = spent ? { ok: true, sent: {}, deferred: 'a post was sent this beat' } : await calendarsDue();
+    const rendered = Object.keys(calendars.sent || {}).length > 0;
     // THE MONTHLY LOOP (from November 2026): on the 1st of each Dubai month the next month's video idea plan
     // goes to the founder. Code only: fn_marketing_month_plan_tick picks the ideas and the working-day dates.
     const { data: monthPlan, error: mpErr } = await admin.rpc('fn_marketing_month_plan_tick');
     const planBad = mpErr ? [{ ok: false, error: 'fn_marketing_month_plan_tick: ' + mpErr.message }] : [];
     const { data: due } = await admin.rpc('fn_marketing_duties_due');
     const daily: Record<string, unknown> = {};
-    for (const [duty, isDue] of Object.entries((due || {}) as Record<string, boolean>)) if (isDue) daily[duty] = await runDaily(e, duty);
+    // The daily reads, one per beat and none after a send or a render: each is due all day, so none is lost.
+    if (!spent && !rendered) {
+      const next = Object.entries((due || {}) as Record<string, boolean>).find(([, isDue]) => isDue);
+      if (next) daily[next[0]] = await runDaily(e, next[0]);
+    }
     const bad = [publish, calendars, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
     const ran = (publish as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0 || !!(monthPlan as any)?.sent;
     if (ran || bad.length) {
