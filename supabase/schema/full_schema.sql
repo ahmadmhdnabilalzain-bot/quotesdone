@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T13:51:27.094Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T14:03:26.607Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -43657,7 +43657,7 @@ declare
   x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; f public.it_engineer_finding;
   v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
   v_link text; v_detail text; v_dedupe text; v_note jsonb; n_mail int := 0; n_fixed int := 0;
-  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record;
+  v_mailed jsonb := '[]'::jsonb; c public.it_integration_external_cause; m record; v_recovered text[] := '{}';
 begin
   if p_duty not in ('integration', 'integration_social') then
     raise exception 'fn_it_integration_settle: duty must be integration or integration_social, not %', p_duty;
@@ -43666,7 +43666,9 @@ begin
     raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
   end if;
   -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
+  -- A RECOVERED item is a successful re-probe, not a failure: it is kept out of the settle and remembered.
   for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce((x->>'recovered')::boolean, false) then v_recovered := v_recovered || (x->>'item'); continue; end if;
     if coalesce((x->>'carried')::boolean, false) and not exists (select 1 from public.it_engineer_finding
          where issue_key = 'duty:' || p_duty || ':' || (x->>'item') and closed_at is null) then
       continue;
@@ -43674,6 +43676,12 @@ begin
     v_items := v_items || x;
   end loop;
   v_res := public.fn_it_duty_settle(p_duty, v_items);
+  -- The closed finding of an integration that answered its probe this beat says so. The evidence is replaced
+  -- whenever the finding reopens, so the mark never outlives the closure it describes.
+  update public.it_engineer_finding
+     set evidence = evidence || jsonb_build_object('recovered', true, 'recovered_at', now())
+   where closed_at is not null
+     and issue_key = any (select 'duty:' || p_duty || ':' || r from unnest(v_recovered) r);
 
   -- What the company fixed itself: the IT daily line, never the founder.
   for x in select e from jsonb_array_elements(coalesce(p_fixed, '[]'::jsonb)) e loop
@@ -43683,11 +43691,14 @@ begin
     n_fixed := n_fixed + 1;
   end loop;
 
-  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause once the integration answers again.
+  -- A KNOWN EXTERNAL CAUSE: follow the ticket up, and close the cause ONLY on a genuine recovery: the finding
+  -- is closed AND a successful re-probe stamped it recovered. Any other closure (a sweep, a manual close) keeps
+  -- the cause open, or the founder path would re-open without the provider having fixed anything.
   for c in select * from public.it_integration_external_cause where closed_at is null loop
     continue when not exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration);
     if exists (select 1 from public.it_engineer_finding where issue_key = 'duty:' || p_duty || ':' || c.integration
-                  and closed_at is not null and closed_at >= c.created_at) then
+                  and closed_at is not null and closed_at >= c.created_at
+                  and coalesce((evidence->>'recovered')::boolean, false)) then
       perform public.fn_it_external_cause_close(c.integration, 'the integration answers again; ' || c.external_party || ' ticket ' || c.ticket_ref || ' can be closed');
       continue;
     end if;
@@ -43695,7 +43706,9 @@ begin
     select i.created_at, coalesce(i.subject, '') || E'\n' || coalesce(i.body, '') txt into m
       from public.inbound_messages i
      where i.created_at > greatest(coalesce(c.last_reply_at, c.opened_on::timestamptz), c.opened_on::timestamptz)
-       and (i.subject ilike '%' || c.ticket_ref || '%' or i.body ilike '%' || c.ticket_ref || '%')
+       -- A literal substring, case-blind: a pattern match would read % and _ in a provider's reference as wildcards.
+       and (strpos(lower(coalesce(i.subject, '')), lower(c.ticket_ref)) > 0
+            or strpos(lower(coalesce(i.body, '')), lower(c.ticket_ref)) > 0)
      order by i.created_at desc limit 1;
     if found then perform public.fn_it_external_cause_reply(c.integration, m.created_at, m.txt); end if;
     update public.it_integration_external_cause set last_checked_at = now() where id = c.id;
