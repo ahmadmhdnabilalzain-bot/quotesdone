@@ -16,9 +16,11 @@
 //   cancel {ingest_key} / reschedule {ingest_key, at_utc} / requeue {ingest_key}
 //   The month's posts are loaded by scripts/marketing/load_calendar.mjs (fn_marketing_calendar_load).
 //
-// THE SWITCH AND THE APPROVAL. A due post goes to Postiz only when app_secrets.marketing_golive is 'true'
-// (measured 'false' on 22 Sep 2026), the post is not a ZZ DEMO post (flag or text), and the database lets the
-// claim through: the founder approved the month, by replying to its calendar email, for exactly this content. Otherwise the scheduler records on marketing_post.dry_run
+// THE APPROVAL AND THE KILL SWITCH (24 Sep 2026, founder: "It should be one shot. I say approve... it's done").
+// A due post goes to Postiz when the founder approved the month, by replying "approve" to its calendar email,
+// for exactly this content, the post is not a ZZ DEMO post (flag or text), and the database lets the claim
+// through. There is no separate go switch: app_secrets.marketing_publishing_enabled is an EMERGENCY STOP only --
+// missing or anything but 'false' means on; 'false' holds every post (fn_marketing_publishing_on in the gate). Otherwise the scheduler records on marketing_post.dry_run
 // what it WOULD have sent and leaves the post scheduled. Nothing in this function writes to Meta or spends.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
@@ -53,12 +55,12 @@ async function logRun(status: 'ok' | 'error' | 'skipped', counts: Record<string,
 }
 
 async function env() {
-  const s = await secrets(['postiz_api_key', 'postiz_api_url', 'meta_access_token', 'meta_ad_account_id', 'marketing_golive']);
+  const s = await secrets(['postiz_api_key', 'postiz_api_url', 'meta_access_token', 'meta_ad_account_id', 'marketing_publishing_enabled']);
   const [graphVer, business] = await Promise.all([policy('marketing_meta_graph_version'), policy('marketing_meta_business_id')]);
   const meta: MetaEnv | null = s.meta_access_token
     ? { graph: 'https://graph.facebook.com/' + (graphVer || 'v21.0'), token: s.meta_access_token, adAccountId: s.meta_ad_account_id || null, businessId: business || '' }
     : null;
-  return { postizBase: s.postiz_api_url || POSTIZ_DEFAULT, postizKey: s.postiz_api_key || null, meta, golive: String(s.marketing_golive || 'false').toLowerCase() === 'true' };
+  return { postizBase: s.postiz_api_url || POSTIZ_DEFAULT, postizKey: s.postiz_api_key || null, meta, publishing: String(s.marketing_publishing_enabled ?? 'true').trim().toLowerCase() !== 'false' };
 }
 type Env = Awaited<ReturnType<typeof env>>;
 
@@ -88,7 +90,7 @@ async function ingest(body: any) {
 // ── publish ───────────────────────────────────────────────────────────────────────────────────────
 // WHOSE CLOCK (23 Sep 2026). We keep our own 15-minute clock and send each post to Postiz as 'now' when it is
 // due, rather than handing Postiz the month as scheduled posts. Reason: the founder's approval, the ZZ DEMO rule
-// and marketing_golive are enforced by the DATABASE at the moment of the claim (fn_marketing_post_guard_publish);
+// and the kill switch are enforced by the DATABASE at the moment of the claim (fn_marketing_post_guard_publish);
 // a post parked in Postiz's own queue would go out even after the month was edited (approval void), the switch
 // was turned off, or a post was cancelled here and the delete to Postiz failed. The cost is up to one beat
 // (15 min) of lateness, stated to him in the calendar as the Dubai time the post is due.
@@ -159,8 +161,8 @@ async function publishDue(e: Env) {
     let variants = await variantsOf(p.id);
     const { data: refusal } = await admin.rpc('fn_marketing_post_refusal', { p_post_id: p.id });
     const demo = p.is_demo || isDemoText(p.title, p.text_en, p.text_ar, p.cta_url, ...variants.flatMap((v) => [v.body, v.title, v.alt_text, v.first_comment]));
-    const why = demo ? 'a ZZ DEMO post is never published' : !e.golive ? 'app_secrets.marketing_golive is not true' : (refusal as string | null);
-    const isLive = e.golive && !demo && !why;
+    const why = demo ? 'a ZZ DEMO post is never published' : !e.publishing ? 'kill switch: app_secrets.marketing_publishing_enabled is false' : (refusal as string | null);
+    const isLive = e.publishing && !demo && !why;
     const input = (media: PublishInput['media'], cover: PublishInput['cover']): PublishInput =>
       ({ id: p.id, ingest_key: p.ingest_key, is_demo: p.is_demo, variants, media, cover });
     if (!isLive) {
@@ -441,13 +443,17 @@ Deno.serve(async (req) => {
 
     const publish = await publishDue(e);
     const calendars = await calendarsDue();
+    // THE MONTHLY LOOP (from November 2026): on the 1st of each Dubai month the next month's video idea plan
+    // goes to the founder. Code only: fn_marketing_month_plan_tick picks the ideas and the working-day dates.
+    const { data: monthPlan, error: mpErr } = await admin.rpc('fn_marketing_month_plan_tick');
+    const planBad = mpErr ? [{ ok: false, error: 'fn_marketing_month_plan_tick: ' + mpErr.message }] : [];
     const { data: due } = await admin.rpc('fn_marketing_duties_due');
     const daily: Record<string, unknown> = {};
     for (const [duty, isDue] of Object.entries((due || {}) as Record<string, boolean>)) if (isDue) daily[duty] = await runDaily(e, duty);
-    const bad = [publish, calendars, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
-    const ran = (publish as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0;
+    const bad = [publish, calendars, ...planBad, ...Object.values(daily)].filter((x: any) => x && x.ok === false);
+    const ran = (publish as any).due > 0 || (publish as any).reconcile?.checked > 0 || Object.keys(calendars.sent || {}).length > 0 || Object.keys(daily).length > 0 || !!(monthPlan as any)?.sent;
     if (ran || bad.length) {
-      await logRun(bad.length ? 'error' : 'ok', { publish, calendars: Object.keys(calendars.sent || {}), daily: Object.keys(daily), failed: bad.length, golive: e.golive },
+      await logRun(bad.length ? 'error' : 'ok', { publish, calendars: Object.keys(calendars.sent || {}), daily: Object.keys(daily), failed: bad.length, publishing: e.publishing, month_plan: monthPlan },
         bad.length ? 'marketing duty failed: ' + JSON.stringify(stripTokens(bad)).slice(0, 400) : 'marketing duties ran', started);
     }
     return J({ ok: bad.length === 0, publish, calendars, daily: stripTokens(daily) });

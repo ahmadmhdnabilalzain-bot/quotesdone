@@ -275,22 +275,37 @@ Deno.test({ name: 'a calendar reply goes to fn_marketing_calendar_reply with the
   calls.length = 0;
   let out = await (await handler(await calReply('Approve\n\nOn Tue QuotesDone wrote:\n> the calendar', SES('example.invalid')))).json();
   assertEquals(out.calendar_reply, true);
-  assertEquals(calCalls(), [{ token: CAL_TOKEN, from_email: 'management@example.invalid', authenticated: true, message_id: calCalls()[0].message_id, intent: 'approve' }]);
+  assertEquals(calCalls(), [{ token: CAL_TOKEN, from_email: 'management@example.invalid', authenticated: true, message_id: calCalls()[0].message_id, intent: 'approve', text: 'Approve' }]);
   assertEquals(calls.filter((c) => /ai_gateway|fn_receipt_hand_to_bookkeeper|fn_accountant|email_suppressions|\/leads/.test(c.url) && c.method !== 'GET').length, 0);
   // forged: no SES pass -> authenticated false (the function refuses it)
   calls.length = 0;
   await handler(await calReply('approve'));
   assertEquals(calCalls()[0].authenticated, false);
-  // Arabic approval; an ambiguous reply is 'unclear'
+  // Arabic approval; anything else he writes is a change request carrying his own words (quote cut off)
   calls.length = 0;
   await handler(await calReply('موافق', SES('example.invalid')));
   assertEquals(calCalls()[0].intent, 'approve');
   calls.length = 0;
   await handler(await calReply('looks fine but change the third video', SES('example.invalid')));
-  assertEquals(calCalls()[0].intent, 'unclear');
+  assertEquals([calCalls()[0].intent, calCalls()[0].text], ['change', 'looks fine but change the third video']);
   // the token also comes from the subject when the client replied to another address
   calls.length = 0;
   out = await (await handler(await signed({ email_id: 'zz-demo-cal-s', from: 'management@example.invalid', to: ['info@quotesdone.com'],
     subject: `Re: Social calendar [ref ${CAL_TOKEN}]`, text: 'approved', headers: SES('example.invalid') }))).json();
   assertEquals([out.calendar_reply, calCalls()[0].token], [true, CAL_TOKEN]);
+} });
+
+// THE MONTHLY IDEA PLAN (24 Sep 2026, marketing): his reply to plan+<token>@ goes to fn_marketing_month_plan_reply
+// with his own words and the attachment names, and to nothing else (never a receipt, never a calendar approval).
+const planCalls = () => calls.filter((c) => c.url.endsWith('/rpc/fn_marketing_month_plan_reply')).map((c) => JSON.parse(c.body).p);
+Deno.test({ name: 'a reply to the monthly idea plan is filed for the marketing seat, and nowhere else', sanitizeOps: false, sanitizeResources: false, fn: async () => {
+  calls.length = 0;
+  const out = await (await handler(await calReply('Videos for November attached. Swap idea 4 for a fit-out one.\n\nOn Wed QuotesDone wrote:\n> the plan',
+    SES('example.invalid'), `plan+${CAL_TOKEN}@mail.quotesdone.com`))).json();
+  assertEquals(out.plan_reply, true);
+  const p = planCalls();
+  assertEquals(p.length, 1);
+  assertEquals([p[0].token, p[0].authenticated, p[0].text], [CAL_TOKEN, true, 'Videos for November attached. Swap idea 4 for a fit-out one.']);
+  assertEquals(calCalls().length, 0, 'a plan reply is never read as a calendar approval');
+  assertEquals(calls.filter((c) => /ai_gateway|fn_receipt_hand_to_bookkeeper|fn_accountant|\/leads/.test(c.url) && c.method !== 'GET').length, 0);
 } });

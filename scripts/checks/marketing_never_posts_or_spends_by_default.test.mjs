@@ -3,8 +3,9 @@
 // The build rule for the marketing seat: nothing posts publicly and no ad money is spent until the founder
 // turns it on. The behaviour is proved with mock HTTP in supabase/functions/_shared/marketing_channels.test.ts;
 // this check holds the WIRING those tests cannot see, so a later edit cannot quietly route around them:
-//   1. the edge function publishes live only when app_secrets.marketing_golive reads exactly 'true' AND the
-//      post is not a ZZ DEMO post;
+//   1. the edge function publishes live only when the database's verdict (the founder's approval of exactly
+//      this content) lets it, the emergency stop app_secrets.marketing_publishing_enabled is not 'false'
+//      (default on since 24 Sep 2026: one "approve" publishes), AND the post is not a ZZ DEMO post;
 //   2. the only writes to the outside world are Postiz's /upload and /posts inside publishPost, after the
 //      dry-run return -- nothing POSTs to Graph, so no campaign, ad set or budget can be touched;
 //   3. the ad spend never reaches the ledger: the marketing SQL books nothing, a demo row is never handed
@@ -26,9 +27,9 @@ const MONTH = read('scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_e
 const code = (s) => s.split('\n').filter((l) => !/^\s*(\/\/|--)/.test(l)).join('\n');
 
 test('live publishing needs the switch, no ZZ DEMO by flag OR text, and the database\'s verdict', () => {
-  assert.match(code(FN), /golive:\s*String\(s\.marketing_golive \|\| 'false'\)\.toLowerCase\(\) === 'true'/, 'the switch defaults to off');
+  assert.match(code(FN), /publishing: String\(s\.marketing_publishing_enabled \?\? 'true'\)\.trim\(\)\.toLowerCase\(\) !== 'false'/, 'only an explicit emergency stop holds an approved month');
   assert.match(code(FN), /const demo = p\.is_demo \|\| isDemoText\(/, 'the demo rule must read the text as well as the flag');
-  assert.match(code(FN), /const isLive = e\.golive && !demo && !why;/, 'a demo post, a switched-off seat or a refused post must not go live');
+  assert.match(code(FN), /const isLive = e\.publishing && !demo && !why;/, 'a demo post, a stopped seat or a refused post must not go live');
   assert.match(code(FN), /publishPost\(fetch, [^\n]*input\(media, cover\), true,/, 'only the claimed path publishes live');
   assert.doesNotMatch(code(LIB), /export function postBody\(/, 'the joined EN+AR body is gone: variants carry the text per platform');
 });

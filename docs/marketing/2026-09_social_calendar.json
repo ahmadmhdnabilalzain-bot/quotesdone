@@ -1,16 +1,16 @@
 {
  "campaign": {
   "key": "2026-month1-supplier-recruitment",
-  "month": "2026-10",
-  "title": "October 2026: supplier recruitment and how QuotesDone works",
+  "month": "2026-09",
+  "title": "First month (25 Sep to 21 Oct 2026): supplier recruitment and how QuotesDone works",
   "theme": "Supplier recruitment (the first 1,000 suppliers join free, permanently) and how QuotesDone works; 12 founder-made videos on LinkedIn, Facebook, YouTube, Instagram and TikTok; English only; organic only"
  },
  "posts": [
   {
-   "key": "oct26-09-linkedin",
+   "key": "m1-09-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-05T11:30:00",
-   "at_utc": "2026-10-05T07:30:00Z",
+   "at_dubai": "2026-09-25T11:30:00",
+   "at_utc": "2026-09-25T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/09_Your_Business_Belongs_Here_LoFiMix_60fps.mp4",
     "sha256": "ed901a99a9b8ce08b363f33605880b5dcaad6bfbb6884bac1730496bddd66dfa",
@@ -36,10 +36,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-09-facebook",
+   "key": "m1-09-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-05T13:00:00",
-   "at_utc": "2026-10-05T09:00:00Z",
+   "at_dubai": "2026-09-25T13:00:00",
+   "at_utc": "2026-09-25T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/09_Your_Business_Belongs_Here_LoFiMix_60fps.mp4",
     "sha256": "ed901a99a9b8ce08b363f33605880b5dcaad6bfbb6884bac1730496bddd66dfa",
@@ -64,10 +64,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-09-youtube",
+   "key": "m1-09-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-05T17:30:00",
-   "at_utc": "2026-10-05T13:30:00Z",
+   "at_dubai": "2026-09-25T17:30:00",
+   "at_utc": "2026-09-25T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/09_Your_Business_Belongs_Here_LoFiMix_60fps.mp4",
     "sha256": "ed901a99a9b8ce08b363f33605880b5dcaad6bfbb6884bac1730496bddd66dfa",
@@ -94,10 +94,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-09-instagram",
+   "key": "m1-09-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-05T19:30:00",
-   "at_utc": "2026-10-05T15:30:00Z",
+   "at_dubai": "2026-09-25T19:30:00",
+   "at_utc": "2026-09-25T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/09_Your_Business_Belongs_Here_LoFiMix_60fps.mp4",
     "sha256": "ed901a99a9b8ce08b363f33605880b5dcaad6bfbb6884bac1730496bddd66dfa",
@@ -124,10 +124,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-09-tiktok",
+   "key": "m1-09-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-05T20:30:00",
-   "at_utc": "2026-10-05T16:30:00Z",
+   "at_dubai": "2026-09-25T20:30:00",
+   "at_utc": "2026-09-25T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/09_Your_Business_Belongs_Here_LoFiMix_60fps.mp4",
     "sha256": "ed901a99a9b8ce08b363f33605880b5dcaad6bfbb6884bac1730496bddd66dfa",
@@ -154,10 +154,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-02-linkedin",
+   "key": "m1-02-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-07T11:30:00",
-   "at_utc": "2026-10-07T07:30:00Z",
+   "at_dubai": "2026-09-28T11:30:00",
+   "at_utc": "2026-09-28T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/02_Big_Plans_LoFiMix_60fps.mp4",
     "sha256": "192909a7ce0ae669589f4784d99382624590fb0422ffe32d32434348b6c3c963",
@@ -183,10 +183,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-02-facebook",
+   "key": "m1-02-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-07T13:00:00",
-   "at_utc": "2026-10-07T09:00:00Z",
+   "at_dubai": "2026-09-28T13:00:00",
+   "at_utc": "2026-09-28T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/02_Big_Plans_LoFiMix_60fps.mp4",
     "sha256": "192909a7ce0ae669589f4784d99382624590fb0422ffe32d32434348b6c3c963",
@@ -211,10 +211,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-02-youtube",
+   "key": "m1-02-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-07T17:30:00",
-   "at_utc": "2026-10-07T13:30:00Z",
+   "at_dubai": "2026-09-28T17:30:00",
+   "at_utc": "2026-09-28T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/02_Big_Plans_LoFiMix_60fps.mp4",
     "sha256": "192909a7ce0ae669589f4784d99382624590fb0422ffe32d32434348b6c3c963",
@@ -241,10 +241,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-02-instagram",
+   "key": "m1-02-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-07T19:30:00",
-   "at_utc": "2026-10-07T15:30:00Z",
+   "at_dubai": "2026-09-28T19:30:00",
+   "at_utc": "2026-09-28T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/02_Big_Plans_LoFiMix_60fps.mp4",
     "sha256": "192909a7ce0ae669589f4784d99382624590fb0422ffe32d32434348b6c3c963",
@@ -271,10 +271,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-02-tiktok",
+   "key": "m1-02-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-07T20:30:00",
-   "at_utc": "2026-10-07T16:30:00Z",
+   "at_dubai": "2026-09-28T20:30:00",
+   "at_utc": "2026-09-28T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/02_Big_Plans_LoFiMix_60fps.mp4",
     "sha256": "192909a7ce0ae669589f4784d99382624590fb0422ffe32d32434348b6c3c963",
@@ -301,10 +301,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-11-linkedin",
+   "key": "m1-11-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-08T11:30:00",
-   "at_utc": "2026-10-08T07:30:00Z",
+   "at_dubai": "2026-09-30T11:30:00",
+   "at_utc": "2026-09-30T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
     "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
@@ -330,10 +330,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-11-facebook",
+   "key": "m1-11-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-08T13:00:00",
-   "at_utc": "2026-10-08T09:00:00Z",
+   "at_dubai": "2026-09-30T13:00:00",
+   "at_utc": "2026-09-30T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
     "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
@@ -358,10 +358,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-11-youtube",
+   "key": "m1-11-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-08T17:30:00",
-   "at_utc": "2026-10-08T13:30:00Z",
+   "at_dubai": "2026-09-30T17:30:00",
+   "at_utc": "2026-09-30T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
     "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
@@ -388,10 +388,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-11-instagram",
+   "key": "m1-11-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-08T19:30:00",
-   "at_utc": "2026-10-08T15:30:00Z",
+   "at_dubai": "2026-09-30T19:30:00",
+   "at_utc": "2026-09-30T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
     "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
@@ -418,10 +418,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-11-tiktok",
+   "key": "m1-11-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-08T20:30:00",
-   "at_utc": "2026-10-08T16:30:00Z",
+   "at_dubai": "2026-09-30T20:30:00",
+   "at_utc": "2026-09-30T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
     "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
@@ -448,10 +448,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-04-linkedin",
+   "key": "m1-04-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-12T11:30:00",
-   "at_utc": "2026-10-12T07:30:00Z",
+   "at_dubai": "2026-10-01T11:30:00",
+   "at_utc": "2026-10-01T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
     "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
@@ -477,10 +477,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-04-facebook",
+   "key": "m1-04-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-12T13:00:00",
-   "at_utc": "2026-10-12T09:00:00Z",
+   "at_dubai": "2026-10-01T13:00:00",
+   "at_utc": "2026-10-01T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
     "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
@@ -505,10 +505,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-04-youtube",
+   "key": "m1-04-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-12T17:30:00",
-   "at_utc": "2026-10-12T13:30:00Z",
+   "at_dubai": "2026-10-01T17:30:00",
+   "at_utc": "2026-10-01T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
     "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
@@ -535,10 +535,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-04-instagram",
+   "key": "m1-04-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-12T19:30:00",
-   "at_utc": "2026-10-12T15:30:00Z",
+   "at_dubai": "2026-10-01T19:30:00",
+   "at_utc": "2026-10-01T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
     "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
@@ -565,10 +565,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-04-tiktok",
+   "key": "m1-04-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-12T20:30:00",
-   "at_utc": "2026-10-12T16:30:00Z",
+   "at_dubai": "2026-10-01T20:30:00",
+   "at_utc": "2026-10-01T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
     "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
@@ -595,10 +595,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-03-linkedin",
+   "key": "m1-03-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-14T11:30:00",
-   "at_utc": "2026-10-14T07:30:00Z",
+   "at_dubai": "2026-10-05T11:30:00",
+   "at_utc": "2026-10-05T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
     "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
@@ -624,10 +624,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-03-facebook",
+   "key": "m1-03-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-14T13:00:00",
-   "at_utc": "2026-10-14T09:00:00Z",
+   "at_dubai": "2026-10-05T13:00:00",
+   "at_utc": "2026-10-05T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
     "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
@@ -652,10 +652,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-03-youtube",
+   "key": "m1-03-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-14T17:30:00",
-   "at_utc": "2026-10-14T13:30:00Z",
+   "at_dubai": "2026-10-05T17:30:00",
+   "at_utc": "2026-10-05T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
     "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
@@ -682,10 +682,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-03-instagram",
+   "key": "m1-03-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-14T19:30:00",
-   "at_utc": "2026-10-14T15:30:00Z",
+   "at_dubai": "2026-10-05T19:30:00",
+   "at_utc": "2026-10-05T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
     "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
@@ -712,10 +712,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-03-tiktok",
+   "key": "m1-03-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-14T20:30:00",
-   "at_utc": "2026-10-14T16:30:00Z",
+   "at_dubai": "2026-10-05T20:30:00",
+   "at_utc": "2026-10-05T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
     "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
@@ -742,10 +742,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-05-linkedin",
+   "key": "m1-05-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-15T11:30:00",
-   "at_utc": "2026-10-15T07:30:00Z",
+   "at_dubai": "2026-10-07T11:30:00",
+   "at_utc": "2026-10-07T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
     "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
@@ -771,10 +771,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-05-facebook",
+   "key": "m1-05-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-15T13:00:00",
-   "at_utc": "2026-10-15T09:00:00Z",
+   "at_dubai": "2026-10-07T13:00:00",
+   "at_utc": "2026-10-07T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
     "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
@@ -799,10 +799,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-05-youtube",
+   "key": "m1-05-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-15T17:30:00",
-   "at_utc": "2026-10-15T13:30:00Z",
+   "at_dubai": "2026-10-07T17:30:00",
+   "at_utc": "2026-10-07T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
     "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
@@ -829,10 +829,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-05-instagram",
+   "key": "m1-05-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-15T19:30:00",
-   "at_utc": "2026-10-15T15:30:00Z",
+   "at_dubai": "2026-10-07T19:30:00",
+   "at_utc": "2026-10-07T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
     "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
@@ -859,10 +859,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-05-tiktok",
+   "key": "m1-05-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-15T20:30:00",
-   "at_utc": "2026-10-15T16:30:00Z",
+   "at_dubai": "2026-10-07T20:30:00",
+   "at_utc": "2026-10-07T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
     "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
@@ -889,10 +889,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-07-linkedin",
+   "key": "m1-07-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-19T11:30:00",
-   "at_utc": "2026-10-19T07:30:00Z",
+   "at_dubai": "2026-10-08T11:30:00",
+   "at_utc": "2026-10-08T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
     "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
@@ -918,10 +918,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-07-facebook",
+   "key": "m1-07-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-19T13:00:00",
-   "at_utc": "2026-10-19T09:00:00Z",
+   "at_dubai": "2026-10-08T13:00:00",
+   "at_utc": "2026-10-08T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
     "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
@@ -946,10 +946,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-07-youtube",
+   "key": "m1-07-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-19T17:30:00",
-   "at_utc": "2026-10-19T13:30:00Z",
+   "at_dubai": "2026-10-08T17:30:00",
+   "at_utc": "2026-10-08T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
     "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
@@ -976,10 +976,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-07-instagram",
+   "key": "m1-07-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-19T19:30:00",
-   "at_utc": "2026-10-19T15:30:00Z",
+   "at_dubai": "2026-10-08T19:30:00",
+   "at_utc": "2026-10-08T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
     "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
@@ -1006,10 +1006,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-07-tiktok",
+   "key": "m1-07-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-19T20:30:00",
-   "at_utc": "2026-10-19T16:30:00Z",
+   "at_dubai": "2026-10-08T20:30:00",
+   "at_utc": "2026-10-08T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
     "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
@@ -1036,10 +1036,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-12-linkedin",
+   "key": "m1-12-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-21T11:30:00",
-   "at_utc": "2026-10-21T07:30:00Z",
+   "at_dubai": "2026-10-12T11:30:00",
+   "at_utc": "2026-10-12T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
     "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
@@ -1065,10 +1065,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-12-facebook",
+   "key": "m1-12-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-21T13:00:00",
-   "at_utc": "2026-10-21T09:00:00Z",
+   "at_dubai": "2026-10-12T13:00:00",
+   "at_utc": "2026-10-12T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
     "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
@@ -1093,10 +1093,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-12-youtube",
+   "key": "m1-12-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-21T17:30:00",
-   "at_utc": "2026-10-21T13:30:00Z",
+   "at_dubai": "2026-10-12T17:30:00",
+   "at_utc": "2026-10-12T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
     "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
@@ -1123,10 +1123,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-12-instagram",
+   "key": "m1-12-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-21T19:30:00",
-   "at_utc": "2026-10-21T15:30:00Z",
+   "at_dubai": "2026-10-12T19:30:00",
+   "at_utc": "2026-10-12T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
     "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
@@ -1153,10 +1153,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-12-tiktok",
+   "key": "m1-12-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-21T20:30:00",
-   "at_utc": "2026-10-21T16:30:00Z",
+   "at_dubai": "2026-10-12T20:30:00",
+   "at_utc": "2026-10-12T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
     "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
@@ -1183,10 +1183,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-06-linkedin",
+   "key": "m1-06-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-22T11:30:00",
-   "at_utc": "2026-10-22T07:30:00Z",
+   "at_dubai": "2026-10-14T11:30:00",
+   "at_utc": "2026-10-14T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
     "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
@@ -1212,10 +1212,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-06-facebook",
+   "key": "m1-06-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-22T13:00:00",
-   "at_utc": "2026-10-22T09:00:00Z",
+   "at_dubai": "2026-10-14T13:00:00",
+   "at_utc": "2026-10-14T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
     "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
@@ -1240,10 +1240,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-06-youtube",
+   "key": "m1-06-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-22T17:30:00",
-   "at_utc": "2026-10-22T13:30:00Z",
+   "at_dubai": "2026-10-14T17:30:00",
+   "at_utc": "2026-10-14T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
     "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
@@ -1270,10 +1270,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-06-instagram",
+   "key": "m1-06-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-22T19:30:00",
-   "at_utc": "2026-10-22T15:30:00Z",
+   "at_dubai": "2026-10-14T19:30:00",
+   "at_utc": "2026-10-14T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
     "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
@@ -1300,10 +1300,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-06-tiktok",
+   "key": "m1-06-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-22T20:30:00",
-   "at_utc": "2026-10-22T16:30:00Z",
+   "at_dubai": "2026-10-14T20:30:00",
+   "at_utc": "2026-10-14T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
     "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
@@ -1330,10 +1330,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-08-linkedin",
+   "key": "m1-08-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-26T11:30:00",
-   "at_utc": "2026-10-26T07:30:00Z",
+   "at_dubai": "2026-10-15T11:30:00",
+   "at_utc": "2026-10-15T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
     "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
@@ -1359,10 +1359,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-08-facebook",
+   "key": "m1-08-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-26T13:00:00",
-   "at_utc": "2026-10-26T09:00:00Z",
+   "at_dubai": "2026-10-15T13:00:00",
+   "at_utc": "2026-10-15T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
     "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
@@ -1387,10 +1387,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-08-youtube",
+   "key": "m1-08-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-26T17:30:00",
-   "at_utc": "2026-10-26T13:30:00Z",
+   "at_dubai": "2026-10-15T17:30:00",
+   "at_utc": "2026-10-15T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
     "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
@@ -1417,10 +1417,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-08-instagram",
+   "key": "m1-08-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-26T19:30:00",
-   "at_utc": "2026-10-26T15:30:00Z",
+   "at_dubai": "2026-10-15T19:30:00",
+   "at_utc": "2026-10-15T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
     "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
@@ -1447,10 +1447,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-08-tiktok",
+   "key": "m1-08-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-26T20:30:00",
-   "at_utc": "2026-10-26T16:30:00Z",
+   "at_dubai": "2026-10-15T20:30:00",
+   "at_utc": "2026-10-15T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
     "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
@@ -1477,10 +1477,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-10-linkedin",
+   "key": "m1-10-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-28T11:30:00",
-   "at_utc": "2026-10-28T07:30:00Z",
+   "at_dubai": "2026-10-19T11:30:00",
+   "at_utc": "2026-10-19T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
     "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
@@ -1506,10 +1506,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-10-facebook",
+   "key": "m1-10-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-28T13:00:00",
-   "at_utc": "2026-10-28T09:00:00Z",
+   "at_dubai": "2026-10-19T13:00:00",
+   "at_utc": "2026-10-19T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
     "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
@@ -1534,10 +1534,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-10-youtube",
+   "key": "m1-10-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-28T17:30:00",
-   "at_utc": "2026-10-28T13:30:00Z",
+   "at_dubai": "2026-10-19T17:30:00",
+   "at_utc": "2026-10-19T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
     "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
@@ -1564,10 +1564,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-10-instagram",
+   "key": "m1-10-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-28T19:30:00",
-   "at_utc": "2026-10-28T15:30:00Z",
+   "at_dubai": "2026-10-19T19:30:00",
+   "at_utc": "2026-10-19T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
     "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
@@ -1594,10 +1594,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-10-tiktok",
+   "key": "m1-10-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-28T20:30:00",
-   "at_utc": "2026-10-28T16:30:00Z",
+   "at_dubai": "2026-10-19T20:30:00",
+   "at_utc": "2026-10-19T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
     "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
@@ -1624,10 +1624,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-01-linkedin",
+   "key": "m1-01-linkedin",
    "platform": "linkedin",
-   "at_dubai": "2026-10-29T11:30:00",
-   "at_utc": "2026-10-29T07:30:00Z",
+   "at_dubai": "2026-10-21T11:30:00",
+   "at_utc": "2026-10-21T07:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
     "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
@@ -1653,10 +1653,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-01-facebook",
+   "key": "m1-01-facebook",
    "platform": "facebook",
-   "at_dubai": "2026-10-29T13:00:00",
-   "at_utc": "2026-10-29T09:00:00Z",
+   "at_dubai": "2026-10-21T13:00:00",
+   "at_utc": "2026-10-21T09:00:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
     "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
@@ -1681,10 +1681,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-01-youtube",
+   "key": "m1-01-youtube",
    "platform": "youtube",
-   "at_dubai": "2026-10-29T17:30:00",
-   "at_utc": "2026-10-29T13:30:00Z",
+   "at_dubai": "2026-10-21T17:30:00",
+   "at_utc": "2026-10-21T13:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
     "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
@@ -1711,10 +1711,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-01-instagram",
+   "key": "m1-01-instagram",
    "platform": "instagram",
-   "at_dubai": "2026-10-29T19:30:00",
-   "at_utc": "2026-10-29T15:30:00Z",
+   "at_dubai": "2026-10-21T19:30:00",
+   "at_utc": "2026-10-21T15:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
     "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
@@ -1741,10 +1741,10 @@
    "language": "en"
   },
   {
-   "key": "oct26-01-tiktok",
+   "key": "m1-01-tiktok",
    "platform": "tiktok",
-   "at_dubai": "2026-10-29T20:30:00",
-   "at_utc": "2026-10-29T16:30:00Z",
+   "at_dubai": "2026-10-21T20:30:00",
+   "at_utc": "2026-10-21T16:30:00Z",
    "video": {
     "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
     "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
