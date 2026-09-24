@@ -16,7 +16,8 @@ import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { replayHeld } from '../_shared/think.ts';
+import { defaultDeps, replayHeld } from '../_shared/think.ts';
+import { drain as drainGlmJudgements } from '../_shared/glm_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -1121,6 +1122,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read.
   await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // The four GLM judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
+  // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
+  // (scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql).
+  await step('glm_judgements', async () => drainGlmJudgements(defaultDeps(admin, 'resilience_ping'), 5));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
