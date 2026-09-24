@@ -20,6 +20,8 @@ export function arabicFrame(html: string): string {
     // fails while the template and this file disagree.
     .split('DET Trader Licence No. 1633275').join('رخصة تاجر رقم 1633275 – دائرة الاقتصاد والسياحة في دبي')
     .split('TDRA NOL-26-100000665').join('خطاب عدم ممانعة هيئة تنظيم الاتصالات والحكومة الرقمية NOL-26-100000665')
+    // 24 Sep 2026: the address names Al Furjan; translated whole, before the bare city below.
+    .split('Al Furjan, Dubai, UAE').join('الفرجان، دبي، الإمارات العربية المتحدة')
     .split('Dubai, UAE').join('دبي، الإمارات العربية المتحدة')
     .split(', QuotesDone</div>').join('، QuotesDone</div>')
     .split("You're receiving this because your business is publicly listed and may match clients sourcing on QuotesDone.").join('تصلكم هذه الرسالة لأن نشاطكم التجاري مُدرَج علنًا وقد يتوافق مع طلبات عملاء يبحثون عن موردين على QuotesDone.');
