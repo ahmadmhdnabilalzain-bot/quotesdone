@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T03:46:58.379Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T09:31:46.738Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -40078,13 +40078,20 @@ begin
                              where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_since),
     'new_bugs_today', (select count(*) from public.it_incident where created_at >= v_since),
     'awaiting_learning', (select count(*) from public.agent_actions
-                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'))
+                           where kind = 'handoff' and detail->>'type' = 'it.finding' and status <> 'done' and detail ? 'awaiting_learning'),
+    -- Instruction 979: what the integration watch fixed itself today (recorded here, never mailed), and what is down.
+    'integrations_fixed_today', coalesce((select jsonb_agg(distinct counts->'fix'->>'integration') from public.agent_runs
+                           where agent = 'it_engineer' and counts->>'job' = 'integration_self_fix' and started_at >= v_since), '[]'::jsonb),
+    'integrations_failing', coalesce((select jsonb_agg(regexp_replace(issue_key, '^duty:', '') order by issue_key) from public.it_engineer_finding
+                           where closed_at is null and issue_key like 'duty:integration%'), '[]'::jsonb))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
     'IT engineer daily line ' || v_day || ': ' || (v_ev->>'open_loops') || ' open loop(s), '
       || (v_ev->>'loops_closed_today') || ' closed today, ' || (v_ev->>'founder_emails_today') || ' founder email(s), '
-      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded',
+      || (v_ev->>'repeats_folded_today') || ' repeat(s) folded, '
+      || jsonb_array_length(v_ev->'integrations_fixed_today') || ' integration(s) fixed without anyone, '
+      || jsonb_array_length(v_ev->'integrations_failing') || ' integration(s) down',
     v_ev, '[]'::jsonb,
     'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
     p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
@@ -43080,6 +43087,77 @@ begin
       when p.failure_class is not null then p.failure_class || ': ' || coalesce(p.remedy, p.not_automatable_reason)
       when i.not_automatable_reason is not null then 'Not automatable: ' || i.not_automatable_reason
       else 'Not yet recorded.' end)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_integration_settle(p_duty text, p_items jsonb, p_fixed jsonb DEFAULT '[]'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb; f public.it_engineer_finding;
+  v_stub boolean := coalesce(current_setting('app.qd_stub_founder_notify', true), '') = 'on';
+  v_link text; v_detail text; v_dedupe text; v_note jsonb; n_mail int := 0; n_fixed int := 0;
+  v_mailed jsonb := '[]'::jsonb;
+begin
+  if p_duty not in ('integration', 'integration_social') then
+    raise exception 'fn_it_integration_settle: duty must be integration or integration_social, not %', p_duty;
+  end if;
+  if jsonb_typeof(p_items) is distinct from 'array' or jsonb_typeof(coalesce(p_fixed, '[]'::jsonb)) is distinct from 'array' then
+    raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
+  end if;
+  -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
+  for x in select e from jsonb_array_elements(p_items) e loop
+    if coalesce((x->>'carried')::boolean, false) and not exists (select 1 from public.it_engineer_finding
+         where issue_key = 'duty:' || p_duty || ':' || (x->>'item') and closed_at is null) then
+      continue;
+    end if;
+    v_items := v_items || x;
+  end loop;
+  v_res := public.fn_it_duty_settle(p_duty, v_items);
+
+  -- What the company fixed itself: the IT daily line, never the founder.
+  for x in select e from jsonb_array_elements(coalesce(p_fixed, '[]'::jsonb)) e loop
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('it_engineer', 'ok', now(), now(), jsonb_build_object('job', 'integration_self_fix', 'duty', p_duty, 'fix', x),
+            left('fixed ' || coalesce(x->>'integration', '?') || ' itself: ' || coalesce(x->>'what_broke', ''), 500));
+    n_fixed := n_fixed + 1;
+  end loop;
+
+  -- What it could not fix: the founder, once per open finding, after two beats.
+  for f in select * from public.it_engineer_finding
+            where closed_at is null and issue_key like 'duty:' || p_duty || ':%' and seen_count >= 2
+              and coalesce(evidence->>'notify', 'true') <> 'false' loop
+    -- ONCE PER OPEN FINDING: the key is the finding and the moment it (re)opened. The finding's evidence is
+    -- rewritten on every beat, so the record of having told him is founder_alerts, which fn_notify_founder writes.
+    v_dedupe := 'integration:' || f.issue_key || ':' || to_char(f.started_at, 'YYYYMMDDHH24MI');
+    continue when exists (select 1 from public.founder_alerts where dedupe_key = v_dedupe);
+    v_link := coalesce(f.evidence->>'reconnect_url', '');
+    if f.evidence->>'reconnect_link' in ('youtube', 'linkedin') and coalesce(f.evidence->>'connect_base', '') <> '' then
+      v_link := (f.evidence->>'connect_base') || public.fn_marketing_social_connect_link(f.evidence->>'reconnect_link')
+                || ' (one-time link, valid 24 hours)';
+    end if;
+    v_detail := 'The IT engineer found an integration down that the company could not fix itself.' || E'\n\n'
+      || 'Integration: ' || coalesce(f.evidence->>'integration', f.evidence->>'channel', regexp_replace(f.issue_key, '^duty:[a-z_]+:', '')) || E'\n'
+      || 'What broke: ' || f.title || E'\n'
+      || 'What was tried: ' || coalesce((select string_agg(t, '; ') from jsonb_array_elements_text(f.evidence->'tried') t),
+                                        'nothing the company can do: only the account holder can sign in again') || E'\n'
+      || 'What you need to do: ' || coalesce(f.evidence->>'action', 'sign in again at the link') || E'\n'
+      || 'Link: ' || coalesce(nullif(v_link, ''), 'none recorded') || E'\n\n'
+      || 'Down since ' || to_char(f.started_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai. The IT engineer re-checks every 15 minutes and closes it the moment it answers again (reference ' || f.issue_key || ').';
+    if v_stub then
+      v_note := jsonb_build_object('stubbed', true);
+    else
+      v_note := public.fn_notify_founder(p_event => 'Reconnect needed: ' || left(regexp_replace(f.issue_key, '^duty:[a-z_]+:', ''), 60),
+        p_detail => v_detail, p_level => 'normal', p_kind => 'integration_reauth_needed', p_dedupe_key => v_dedupe,
+        p_owner_agent => 'it_engineer');
+    end if;
+    v_mailed := v_mailed || jsonb_build_object('key', f.issue_key, 'detail', v_detail, 'notice', v_note);
+    n_mail := n_mail + 1;
+  end loop;
+  return v_res || jsonb_build_object('fixed', n_fixed, 'founder_mailed', n_mail, 'mailed', v_mailed, 'stubbed', v_stub);
 end $function$
 
 
@@ -48057,7 +48135,15 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_post_refusal(p_post_id bigint)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-  select public.fn_marketing_post_publish_refusal(p) from public.marketing_post p where p.id = p_post_id
+  select coalesce(
+    (select 'paused: ' || string_agg(regexp_replace(f.issue_key, '^duty:integration_social:postiz:', ''), ', ' order by f.issue_key)
+            || ' is down in Postiz (it_engineer finding open); the post goes out on the first beat after it is reconnected'
+       from public.it_engineer_finding f
+      where f.closed_at is null
+        and (f.issue_key = 'duty:integration_social:postiz:api'
+             or f.issue_key = any (select 'duty:integration_social:postiz:' || c from unnest(p.channels) c))),
+    public.fn_marketing_post_publish_refusal(p))
+  from public.marketing_post p where p.id = p_post_id
 $function$
 
 
