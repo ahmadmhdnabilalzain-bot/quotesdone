@@ -47,8 +47,44 @@ export function mailQuestion(m: ExpenseMail): string {
 }
 const subjectOf = (m: ExpenseMail) => ({ email_id: m.emailId, mailbox: m.mailbox, provider_email_id: m.providerEmailId ?? null, from: m.from, subject: m.subject.slice(0, 200) });
 
+// ── a KNOWN SENDER is not reasoned again (it_engineer, 24 Sep 2026: every receipt paid 2-4 think calls) ──
+// The issuing sender is read by FORMAT: the address in the forwarded "From:" header of the note (the founder forwards
+// receipts), else the envelope sender. It is looked up EXACTLY (the whole address, never a domain or a word) in
+// public.expense_sender_reading, which learns from the reasoning's own answers. A reading is reused only after the
+// reasoning gave that same answer for that same address twice running (a different answer resets it), and only for
+// kinds a sender repeats: a renewal names one item and "other" is not a document of ours, so both are always reasoned.
+const REUSABLE_KINDS = new Set(['bank_statement', 'meta_ads_invoice', ...Object.keys(RECEIPTS)]);
+export const SENDER_REUSE_AFTER = 2;
+/** The address that issued the document: the forwarded header's, else the envelope's. Lower-cased, exact. */
+export function issuingSender(m: ExpenseMail): string {
+  const fwd = String(m.text || '').match(/^\s*From:[^\n]*?<?([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})>?\s*$/m);
+  const env = String(m.from || '').match(/([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/);
+  return (fwd?.[1] ?? env?.[1] ?? '').toLowerCase();
+}
+type SenderReading = { kind?: string | null; kind_times?: number; vendor?: string | null; vendor_times?: number };
+async function senderReading(deps: ThinkDeps, sender: string): Promise<SenderReading | null> {
+  if (!sender) return null;
+  const r = await deps.rpc('fn_expense_sender_reading', { p_sender: sender }).catch(() => null);
+  return r && !r.error && r.data && typeof r.data === 'object' ? r.data as SenderReading : null;
+}
+async function learnSender(deps: ThinkDeps, m: ExpenseMail, o: { kind?: string; vendor?: string }) {
+  const sender = issuingSender(m);
+  if (!sender || m.dryRun) return;
+  await deps.rpc('fn_expense_sender_learn', { p_sender: sender, p_kind: o.kind ?? null, p_vendor: o.vendor ?? null, p_email_id: m.emailId }).catch(() => null);
+}
+/** A reading the books already hold, in the shape a reasoned one has. model null: no model was called. */
+const fromBooks = (choice: string, what: string, sender: string): ThinkResult => ({
+  status: 'answered', answer: `Known sender ${sender}: ${what} (reused, no model called).`, decision: { choice, fields: {} },
+  steps: [], context_used: { expense_sender_reading: sender }, missing_context: [], sources: [], confidence: 1, model: null,
+});
+
 /** What the document is. Option ids: bank_statement | meta_ads_invoice | renewal:<it_expiry.item> | receipt_* | other. */
 export async function documentKind(deps: ThinkDeps, m: ExpenseMail, renewals: Renewal[], register: { vendor: string; cadence: string }[]): Promise<Reasoned<string>> {
+  const sender = issuingSender(m);
+  const seen = await senderReading(deps, sender);
+  if (seen?.kind && REUSABLE_KINDS.has(seen.kind) && Number(seen.kind_times) >= SENDER_REUSE_AFTER) {
+    return { value: seen.kind, result: fromBooks(seen.kind, 'document kind ' + seen.kind, sender) };
+  }
   const result = await think(deps, {
     seat: 'accountant', surface: 'accountant.document_kind', question: mailQuestion(m),
     dedupeKey: 'expense_kind:' + m.emailId, subject: subjectOf(m), queueWhenHeld: !m.dryRun,
@@ -64,7 +100,9 @@ export async function documentKind(deps: ThinkDeps, m: ExpenseMail, renewals: Re
       ],
     },
   });
-  return { value: result.status === 'answered' ? result.decision?.choice ?? null : null, result };
+  const choice = result.status === 'answered' ? result.decision?.choice ?? null : null;
+  if (choice) await learnSender(deps, m, { kind: choice });
+  return { value: choice, result };
 }
 
 /** What a reasoned document kind means for the books. null for bank_statement / other. */
@@ -82,6 +120,9 @@ export async function receiptVendor(deps: ThinkDeps, m: ExpenseMail, known: stri
   const byKey = new Map<string, string>();
   for (const v of known) if (v && v.trim() && !byKey.has(v.trim().toLowerCase())) byKey.set(v.trim().toLowerCase(), v.trim());
   const names = [...byKey.values()].slice(0, 60);
+  const sender = issuingSender(m);
+  const seen = await senderReading(deps, sender);
+  if (seen?.vendor && Number(seen.vendor_times) >= SENDER_REUSE_AFTER) return { value: seen.vendor, result: fromBooks(seen.vendor, 'vendor ' + seen.vendor, sender) };
   const q = mailQuestion(m);
   const first = await think(deps, {
     seat: 'accountant', surface: 'accountant.receipt_vendor', question: q,
@@ -96,7 +137,7 @@ export async function receiptVendor(deps: ThinkDeps, m: ExpenseMail, known: stri
     },
   });
   if (first.status !== 'answered') return { value: null, result: first };
-  if (first.decision?.choice !== 'another_vendor') return { value: first.decision?.choice ?? null, result: first };
+  if (first.decision?.choice !== 'another_vendor') { const c = first.decision?.choice ?? null; if (c) await learnSender(deps, m, { vendor: c }); return { value: c, result: first }; }
   const named = await think(deps, {
     seat: 'accountant', surface: 'accountant.receipt_vendor', question: q,
     dedupeKey: 'expense_vendor_name:' + m.emailId, subject: subjectOf(m), queueWhenHeld: !m.dryRun,
@@ -104,7 +145,9 @@ export async function receiptVendor(deps: ThinkDeps, m: ExpenseMail, known: stri
     decision: { name: 'vendor_name', fields: [{ key: 'vendor', question: 'the name of the company that issued this and was paid, exactly as the document writes it' }] },
   });
   const v = named.status === 'answered' ? String(named.decision?.fields?.vendor?.value ?? '').trim() : '';
-  return { value: v ? v.slice(0, 120) : null, result: named };
+  const name = v ? v.slice(0, 120) : null;
+  if (name) await learnSender(deps, m, { vendor: name });
+  return { value: name, result: named };
 }
 
 export const BANK_KINDS = ['bank_charge', 'owner_transfer', 'bank_interest', 'stripe_payout', 'other'] as const;

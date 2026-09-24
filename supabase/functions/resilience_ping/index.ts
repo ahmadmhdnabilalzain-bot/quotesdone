@@ -11,11 +11,14 @@ import { embedLine } from '../_shared/gte_embed.ts';
 import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type Step, type StepState, stepRows } from './steps.ts';
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
+import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
+import { integrationItems } from '../_shared/integration_watch.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
-import { replayHeld } from '../_shared/think.ts';
+import { defaultDeps, replayHeld } from '../_shared/think.ts';
+import { drain as drainGlmJudgements } from '../_shared/glm_judgements.ts';
 import { distilLessons } from '../_shared/learning_loop.ts';
 import { deliverReasoned, liveDeliveryIO, sendHeldNotices } from '../_shared/reasoned_delivery.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -452,8 +455,12 @@ async function learningMeasureTick(): Promise<unknown> {
     return error ? { ok: false, error: error.message } : data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
+// Hourly, no model: embed + group in SQL. Weekly (learningDistil): reason only what crossed the threshold.
+async function learningGroupTick(): Promise<unknown> {
+  try { return await distilLessons(admin, undefined, 2, { reason: false }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
 async function learningDistilTick(): Promise<unknown> {
-  try { return await distilLessons(admin); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  try { return await distilLessons(admin, undefined, 2, { reason: true }); } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
 async function refundLadderTick(): Promise<unknown> {
@@ -1035,6 +1042,21 @@ async function itDutiesTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// EVERY EXTERNAL INTEGRATION, EVERY 15 MINUTES (it_engineer, 24 Sep 2026, founder instruction 979). The list is
+// _shared/integration_registry.json; _shared/integration_watch.ts probes each due entry, retries once and makes
+// the fixes it can (a Stripe webhook Stripe disabled is re-enabled), and fn_it_integration_settle files one
+// finding per integration, closes it by its exact key on recovery, mails the founder only what the company could
+// not fix, and counts what it did fix for the IT daily line. Only counts come back: this endpoint is public.
+async function itIntegrationsTick(): Promise<unknown> {
+  try {
+    const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
+    const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
+    if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
+    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
+             settled: (data as Record<string, unknown> | null)?.failing ?? null };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
 // fn_it_scheduled_due names what is due; only those readings are taken; fn_it_duties_scheduled decides.
 async function itScheduledTick(): Promise<unknown> {
@@ -1101,6 +1123,10 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // (founder_instruction 886-903; _shared/think.ts replayHeld). Under the hold fn_reason_held_due
   // returns nothing and no model is asked, so this step costs one gate read.
   await step('reasoning_held', async () => replayHeld(admin, 3, undefined, (row, r) => deliverReasoned(row, r, liveDeliveryIO(admin))));
+  // The four GLM judgements (quote spec match, repeat requests, supplier trade words, unknown-sender mail) queued by
+  // their callers and not judged inline: five a tick, no per-day limit; three failed readings end a row. Held rows stay queued
+  // (scripts/sql/four_judgements_move_to_glm_and_wait_in_a_queue_while_the_model_is_off.sql).
+  await step('glm_judgements', async () => drainGlmJudgements(defaultDeps(admin, 'resilience_ping'), 5));
   // A held question never expires: at 48 hours (or after 5 failed reasonings) it becomes a pending item in its
   // seat's queue, once, and a WhatsApp customer is told a person is handling it. Runs under the hold too; the
   // row stays held and is still replayed above the moment the hold lifts.
@@ -1124,6 +1150,13 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
   // The sales engineer's daily document duty, on this heartbeat because pg_cron is not coming back:
   // expiry reconcile and final notice, approved suppliers re-verified, 14-day incomplete registrations
   // closed (the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql). Counts only.
+  // Provider status pages and the Vercel firewall (24 Sep 2026, it_engineer; seat audit IT gaps 3 and 5). Measured
+  // here, decided by fn_it_provider_watch, hourly by it_duty_schedule 'provider_status'.
+  await step('provider_status', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('provider_status')) return { due: false };
+    const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
+    return { due: true, failing: r?.failing ?? null };
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
@@ -1364,6 +1397,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   caseMemory: { run: caseMemoryEmbedTick },
   mlEmbed: { run: mlEmbedTick },
   learningMeasure: { run: learningMeasureTick },
+  learningGroup: { run: learningGroupTick },
   learningDistil: { run: learningDistilTick },
   refunds: { run: accountantRefundTick },
   accountantDuties: { run: accountantDutiesTick },
@@ -1373,6 +1407,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   whatsapp: { run: whatsappTick },
   itdetect: { run: itDetectTick },
   itduties: { run: itDutiesTick },
+  itintegrations: { run: itIntegrationsTick },
   itscheduled: { run: itScheduledTick },
   itlater: { run: itLaterDutiesTick, nested: true },
   specoffer: { run: specOfferTick },

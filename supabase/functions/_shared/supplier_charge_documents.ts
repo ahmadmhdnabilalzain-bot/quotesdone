@@ -20,7 +20,7 @@
 //
 // What this does NOT do: it sends nothing, files nothing and writes no row. It is a pure function from
 // a case record to renderer bodies; the caller (the accountant seat) owns delivery and the ledger.
-import { computeCharge, adminFeeAed, money, addDays, type Charge } from './supplier_charge.ts';
+import { computeCharge, termsAt, money, addDays, type Charge } from './supplier_charge.ts';
 import { FALLBACK } from './doc_template.ts';
 import { arDays } from './ar_days.ts';
 
@@ -35,7 +35,9 @@ export type CaseFile = {
   quote_value: number;
   reveal: { paid_at: string; payment_intent: string; reveal_fee: number; processing_fee: number };
   ladder: { chase_day3_at: string; final_call_day5_at: string; chase_delivery: string; chase_delivery_ar: string; final_call_outcome: string; final_call_outcome_ar: string };
-  refund: { refunded_at: string; refund_id: string; reveal_fee: number; processing_fee: number };
+  // unrecovered_processor_fee: v14 clause 33(b), the processor fee QuotesDone paid on the refunded reveal and could not
+  // recover (transactions.stripe_fee_fils / 100). Charged only when the supplier had accepted v14 before the reveal.
+  refund: { refunded_at: string; refund_id: string; reveal_fee: number; processing_fee: number; unrecovered_processor_fee?: number };
   invoice: { number: string; date: string };
   reminders: { n: number; date: string }[];
   // service_ref: the delivery ids alone, for the evidence index (the demand letter prints the full sentence).
@@ -79,10 +81,16 @@ const FORMULA = {
   ar: (c: Charge) => `الفائدة = أصل المبلغ غير المسدَّد × ${pct(c.rate_pa)} × عدد الأيام بعد تاريخ الاستحقاق ÷ 365 (فائدة بسيطة غير مركّبة). الاستحقاق اليومي على ${money(c.unpaid_principal, 'ar')}: ${money(c.daily_interest, 'ar')}.`,
 };
 
-const feeOf = (c: CaseFile) => adminFeeAed(c.acceptance.version, c.acceptance.accepted_at, c.reveal.paid_at);
+// The clause 33 terms of the version the supplier had accepted when the customer revealed it (never retroactive).
+const termsOf = (c: CaseFile) => termsAt(c.acceptance.version, c.acceptance.accepted_at, c.reveal.paid_at);
+const feeOf = (c: CaseFile) => termsOf(c).admin_fee;
 function chargeOf(c: CaseFile, asOf = c.as_of): Charge {
-  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, payments: c.payments, admin_fee_aed: feeOf(c) });
+  const k = termsOf(c);
+  return computeCharge({ refunded_reveal_fee: c.refund.reveal_fee, refunded_processing_fee: c.refund.processing_fee, notice_date: c.invoice.date, as_of: asOf, payments: c.payments, admin_fee_aed: k.admin_fee, rate_pa: k.rate_pa, terms_version: k.version, unrecovered_processor_fee: k.processor_fee_owed ? (c.refund.unrecovered_processor_fee ?? 0) : 0 });
 }
+// v14 re-lettered clause 33: (b) processor fee, (c) administrative fee, (d) interest. The charge carries the version
+// the supplier had signed (termsAt), so the lettering never depends on a rate a later version might change.
+const isV14 = (ch: Charge) => ch.terms_version >= 14;
 
 // deno-lint-ignore no-explicit-any
 type Block = Record<string, any>;
@@ -93,15 +101,17 @@ function breakdown(ch: Charge, lang: Lang, withInterest = true): Block[] {
   const lines = ar
     ? [['رسم عدم الاستجابة (أ): رسوم الكشف المستردّة إلى العميل (3% من قيمة عرض السعر)', money(ch.refunded_reveal_fee, 'ar')],
       ...(ch.refunded_processing_fee > 0 ? [['رسم عدم الاستجابة (أ): رسوم معالجة البطاقة المستردّة إلى العميل', money(ch.refunded_processing_fee, 'ar')]] : []),
-      ['الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
+      ...(isV14(ch) && ch.unrecovered_processor_fee > 0 ? [['رسوم مزوّد خدمة الدفع غير المستردّة (ب)', money(ch.unrecovered_processor_fee, 'ar')]] : []),
+      [isV14(ch) ? 'الرسم الإداري (ج)' : 'الرسم الإداري (ب)', money(ch.admin_fee, 'ar')]]
     : [['Non-response charge (a): reveal fee refunded (3% of quotation value)', money(ch.refunded_reveal_fee)],
       ...(ch.refunded_processing_fee > 0 ? [['Non-response charge (a): card processing fee refunded', money(ch.refunded_processing_fee)]] : []),
-      ['Administrative fee (b)', money(ch.admin_fee)]];
+      ...(isV14(ch) && ch.unrecovered_processor_fee > 0 ? [['Processor fee QuotesDone could not recover (b)', money(ch.unrecovered_processor_fee)]] : []),
+      [isV14(ch) ? 'Administrative fee (c)' : 'Administrative fee (b)', money(ch.admin_fee)]];
   const rows = lines.map((l, i) => [String(i + 1), ...l]);
   const tot: (string | boolean)[][] = [[ar ? 'أصل المبلغ المستحق' : 'Principal due', money(ch.principal, lang), !withInterest]];
   if (ch.paid > 0) tot.push([ar ? 'المسدَّد' : 'Paid', '− ' + money(ch.paid, lang), false]);
   if (withInterest) {
-    tot.push([ar ? `الفائدة (ج) بواقع ${pct(ch.rate_pa)} سنويًا عن ${arDays(ch.days_overdue)} حتى ${fmtDate(ch.as_of, 'ar')}` : `Interest (c) at ${pct(ch.rate_pa)} p.a. for ${ch.days_overdue} days to ${fmtDate(ch.as_of, 'en')}`, money(ch.interest, lang), false]);
+    tot.push([ar ? `الفائدة ${isV14(ch) ? '(د)' : '(ج)'} بواقع ${pct(ch.rate_pa)} سنويًا عن ${arDays(ch.days_overdue)} حتى ${fmtDate(ch.as_of, 'ar')}` : `Interest ${isV14(ch) ? '(d)' : '(c)'} at ${pct(ch.rate_pa)} p.a. for ${ch.days_overdue} days to ${fmtDate(ch.as_of, 'en')}`, money(ch.interest, lang), false]);
     tot.push([ar ? 'الإجمالي المستحق' : 'Total due', money(ch.total_due, lang), true]);
   }
   return [
@@ -122,10 +132,10 @@ function parties(c: CaseFile, lang: Lang, roleTo: string, roleFrom: string): Blo
 function basisBlocks(c: CaseFile, lang: Lang): Block[] {
   const ar = lang === 'ar';
   return ar ? [
-    { t: 'p', label: 'الأساس التعاقدي', text: `قَبِل المورّد اتفاقية المورّد لدى QuotesDone (الإصدار ${c.acceptance.version}) إلكترونيًا بتاريخ ${fmtDate(c.acceptance.accepted_at, 'ar')}، وهو قبول مُلزِم وفقًا لـ${LEGAL.etl.ar}. ويُلزم البند 33 منها المورّد، إذا لم يستجب للعميل بعد الكشف وردّت QuotesDone المبلغ إلى العميل، بأن يدفع: (أ) رسم عدم استجابة يعادل المبلغ المستردّ بالضبط، و(ب) رسمًا إداريًا قدره ${feeOf(c).toLocaleString('en-US')} درهم إماراتي، و(ج) فائدة بسيطة بسعر البند 31 البالغ 9% سنويًا من تاريخ الاستحقاق حتى السداد. وتستحق هذه المبالغ خلال سبعة (7) أيام من إشعار QuotesDone.` },
+    { t: 'p', label: 'الأساس التعاقدي', text: `قَبِل المورّد اتفاقية المورّد لدى QuotesDone (الإصدار ${c.acceptance.version}) إلكترونيًا بتاريخ ${fmtDate(c.acceptance.accepted_at, 'ar')}، وهو قبول مُلزِم وفقًا لـ${LEGAL.etl.ar}. ويُلزم البند 33 منها المورّد، إذا لم يستجب للعميل بعد الكشف وردّت QuotesDone المبلغ إلى العميل، بأن يدفع: ${termsOf(c).version >= 14 ? `(أ) رسم عدم استجابة يعادل المبلغ المستردّ بالضبط، و(ب) رسوم مزوّد خدمة الدفع التي لم تتمكن QuotesDone من استردادها، و(ج) رسمًا إداريًا قدره ${feeOf(c).toLocaleString('en-US')} درهم إماراتي، و(د) فائدة بسيطة بسعر البند 31 البالغ ${pct(termsOf(c).rate_pa)} سنويًا من تاريخ الاستحقاق حتى السداد، والرسوم الرسمية للتحصيل إذا لم يُسدَّد المبلغ في تاريخ الاستحقاق` : `(أ) رسم عدم استجابة يعادل المبلغ المستردّ بالضبط، و(ب) رسمًا إداريًا قدره ${feeOf(c).toLocaleString('en-US')} درهم إماراتي، و(ج) فائدة بسيطة بسعر البند 31 البالغ ${pct(termsOf(c).rate_pa)} سنويًا من تاريخ الاستحقاق حتى السداد`}. وتستحق هذه المبالغ خلال سبعة (7) أيام من إشعار QuotesDone.` },
     { t: 'p', label: 'الوقائع', text: `كشف العميل عن بيانات المورّد بشأن الطلب "${c.inquiry.summary_ar}" بتاريخ ${fmtDate(c.reveal.paid_at, 'ar')}، ولم يستجب المورّد رغم المتابعة في اليوم الثالث (${fmtDate(c.ladder.chase_day3_at, 'ar')}) والاتصال الأخير في اليوم الخامس (${fmtDate(c.ladder.final_call_day5_at, 'ar')})، فردّت QuotesDone إلى العميل كامل ما دفعه بتاريخ ${fmtDate(c.refund.refunded_at, 'ar')} (مرجع الاسترداد ${c.refund.refund_id}).` },
   ] : [
-    { t: 'p', label: 'Contractual basis', text: `The Supplier accepted the QuotesDone Supplier Agreement (version ${c.acceptance.version}) electronically on ${fmtDate(c.acceptance.accepted_at, 'en')}, a binding acceptance under ${LEGAL.etl.en}. Clause 33 obliges the Supplier, where it does not respond to a Customer after a Reveal and QuotesDone refunds the Customer, to pay: (a) a non-response charge equal to the exact amount refunded, (b) an administrative fee of AED ${feeOf(c).toLocaleString('en-US')}, and (c) simple interest at the clause 31 rate of 9% per annum from the due date until settled. These amounts are payable within seven (7) days of QuotesDone's notice.` },
+    { t: 'p', label: 'Contractual basis', text: `The Supplier accepted the QuotesDone Supplier Agreement (version ${c.acceptance.version}) electronically on ${fmtDate(c.acceptance.accepted_at, 'en')}, a binding acceptance under ${LEGAL.etl.en}. Clause 33 obliges the Supplier, where it does not respond to a Customer after a Reveal and QuotesDone refunds the Customer, to pay: ${termsOf(c).version >= 14 ? `(a) a non-response charge equal to the exact amount refunded, (b) the processor fee QuotesDone could not recover, (c) an administrative fee of AED ${feeOf(c).toLocaleString('en-US')}, and (d) simple interest at the clause 31 rate of ${pct(termsOf(c).rate_pa)} per annum from the due date until settled, and the official fees of recovery if the amount is not paid by the due date` : `(a) a non-response charge equal to the exact amount refunded, (b) an administrative fee of AED ${feeOf(c).toLocaleString('en-US')}, and (c) simple interest at the clause 31 rate of ${pct(termsOf(c).rate_pa)} per annum from the due date until settled`}. These amounts are payable within seven (7) days of QuotesDone's notice.` },
     { t: 'p', label: 'Facts', text: `The Customer revealed the Supplier for the request "${c.inquiry.summary}" on ${fmtDate(c.reveal.paid_at, 'en')}. The Supplier did not respond despite the day-3 chase (${fmtDate(c.ladder.chase_day3_at, 'en')}) and the day-5 final call (${fmtDate(c.ladder.final_call_day5_at, 'en')}), and QuotesDone refunded the Customer in full on ${fmtDate(c.refund.refunded_at, 'en')} (refund reference ${c.refund.refund_id}).` },
   ];
 }
@@ -159,13 +169,13 @@ export function invoiceDocument(c: CaseFile, lang: Lang) {
     ar ? 'فاتورة تجارية' : 'Commercial Invoice', ar ? 'فاتورة — غير خاضعة لضريبة القيمة المضافة' : 'Invoice — not subject to VAT',
     ar ? `رسم عدم الاستجابة وفق البند 33 من اتفاقية المورّد — القضية ${c.case_ref}` : `Clause 33 non-response charge under the Supplier Agreement — case ${c.case_ref}`,
     [[ar ? 'رقم الفاتورة' : 'Invoice no.', c.invoice.number], [ar ? 'تاريخ الفاتورة' : 'Invoice date', fmtDate(c.invoice.date, lang)], [ar ? 'تاريخ الاستحقاق' : 'Due date', due], [ar ? 'مرجع القضية' : 'Case ref.', c.case_ref]],
-    [[ar ? 'المبلغ المستحق' : 'Amount due', money(ch.principal, lang)], [ar ? 'يُسدَّد خلال' : 'Payable within', ar ? '7 أيام' : '7 days'], [ar ? 'فائدة التأخير' : 'Late interest', ar ? '9% سنويًا' : '9% p.a.']],
+    [[ar ? 'المبلغ المستحق' : 'Amount due', money(ch.principal, lang)], [ar ? 'يُسدَّد خلال' : 'Payable within', ar ? '7 أيام' : '7 days'], [ar ? 'فائدة التأخير' : 'Late interest', ar ? `${pct(ch.rate_pa)} سنويًا` : `${pct(ch.rate_pa)} p.a.`]],
     [
       { t: 'section', n: 1, text: ar ? 'الطرفان' : 'Parties' }, ...parties(c, lang, ar ? 'إلى (المورّد)' : 'To (Supplier)', ar ? 'من' : 'From'),
       { t: 'section', n: 2, text: ar ? 'تفاصيل المبلغ' : 'Amount' }, ...breakdown(ch, lang, false),
       { t: 'note', text: NO_VAT[lang] },
       { t: 'section', n: 3, text: ar ? 'الأساس والاستحقاق' : 'Basis and due date' }, ...basisBlocks(c, lang),
-      { t: 'callout', tone: 'gold', title: ar ? 'السداد' : 'Payment', text: ar ? `يُرجى سداد ${money(ch.principal, 'ar')} في موعد أقصاه ${due}. وبعد هذا التاريخ تُحتسب فائدة بسيطة بواقع 9% سنويًا على المبلغ غير المسدَّد عن كل يوم تأخير حتى السداد التام (البندان 31 و33).` : `Please pay ${money(ch.principal)} by ${due}. After that date simple interest of 9% per annum accrues daily on the unpaid amount until paid in full (clauses 31 and 33).` },
+      { t: 'callout', tone: 'gold', title: ar ? 'السداد' : 'Payment', text: ar ? `يُرجى سداد ${money(ch.principal, 'ar')} في موعد أقصاه ${due}. وبعد هذا التاريخ تُحتسب فائدة بسيطة بواقع ${pct(ch.rate_pa)} سنويًا على المبلغ غير المسدَّد عن كل يوم تأخير حتى السداد التام (البندان 31 و33).` : `Please pay ${money(ch.principal)} by ${due}. After that date simple interest of ${pct(ch.rate_pa)} per annum accrues daily on the unpaid amount until paid in full (clauses 31 and 33).` },
       { t: 'kv', pairs: [[ar ? 'طرق السداد' : 'How to pay', ar ? 'رابط الدفع في بوابة المورّد، أو تحويل بنكي بعد طلب بيانات الحساب من ' + CO.ar.email : 'The payment link in the supplier portal, or bank transfer — request account details from ' + CO.en.email]] },
       ...signOff(lang),
     ], true);
@@ -257,7 +267,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'li', text: `${LEGAL.etl.ar} (حجية القبول والتوقيع الإلكترونيين).` },
     { t: 'li', text: 'اتفاقية المورّد، البنود 21 (الإشعارات) و22 (النص العربي هو المعتمد أمام المحاكم) و31 و33 و34 (الاختصاص الحصري لمحاكم دبي).' },
     { t: 'section', n: 7, text: 'الطلبات' },
-    { t: 'p', text: `يلتمس الطالب إصدار أمر أداء بإلزام المطلوب ضده بأن يؤدي إليه مبلغ ${money(ch.principal, 'ar')} (أصل الدين)، والفائدة البسيطة بواقع 9% سنويًا من تاريخ الاستحقاق ${fmtDate(ch.due_date, 'ar')} حتى السداد التام (وقدرها ${money(ch.interest, 'ar')} حتى ${fmtDate(ch.as_of, 'ar')})، مع إلزامه بالرسوم والمصاريف.` },
+    { t: 'p', text: `يلتمس الطالب إصدار أمر أداء بإلزام المطلوب ضده بأن يؤدي إليه مبلغ ${money(ch.principal, 'ar')} (أصل الدين)، والفائدة البسيطة بواقع ${pct(ch.rate_pa)} سنويًا من تاريخ الاستحقاق ${fmtDate(ch.due_date, 'ar')} حتى السداد التام (وقدرها ${money(ch.interest, 'ar')} حتى ${fmtDate(ch.as_of, 'ar')})، مع إلزامه بالرسوم والمصاريف.` },
     { t: 'callout', tone: 'grey', title: 'مسودة للتقديم', text: 'هذه مسودة أعدّها محاسب QuotesDone ليقدّمها صاحب المؤسسة بنفسه عبر الخدمات الذكية لمحاكم دبي. تُراجَع البيانات مع نموذج الطلب الإلكتروني وقت التقديم، وتُرفق المستندات الواردة في فهرس الأدلة.' },
   ] : [
     { t: 'p', text: 'To: the Judge competent to issue payment orders — Dubai Courts' },
@@ -281,7 +291,7 @@ export function claimDocument(c: CaseFile, lang: Lang, asOf = addDays(c.final_de
     { t: 'li', text: `${LEGAL.etl.en} (validity of electronic acceptance and signature).` },
     { t: 'li', text: 'Supplier Agreement clauses 21 (notices), 22 (the Arabic text prevails before the courts), 31, 33 and 34 (exclusive jurisdiction of the Dubai courts).' },
     { t: 'section', n: 7, text: 'Relief sought' },
-    { t: 'p', text: `The Applicant asks for a payment order requiring the Respondent to pay ${money(ch.principal)} (principal), simple interest at 9% per annum from the due date ${fmtDate(ch.due_date, 'en')} until payment in full (${money(ch.interest)} to ${fmtDate(ch.as_of, 'en')}), and the court fees and costs.` },
+    { t: 'p', text: `The Applicant asks for a payment order requiring the Respondent to pay ${money(ch.principal)} (principal), simple interest at ${pct(ch.rate_pa)} per annum from the due date ${fmtDate(ch.due_date, 'en')} until payment in full (${money(ch.interest)} to ${fmtDate(ch.as_of, 'en')}), and the court fees and costs.` },
     { t: 'callout', tone: 'grey', title: 'Draft for filing', text: 'Prepared by the QuotesDone accountant for the owner to file himself on the Dubai Courts smart services. The Arabic version is the one filed. Check the fields against the e-form at the time of filing and attach the documents in the evidence index.' },
   ];
   return doc(lang, ref, asOf, ar ? 'طلب استصدار أمر أداء' : 'Application for a Payment Order', ar ? 'مسودة — محاكم دبي' : 'Draft — Dubai Courts',

@@ -14,6 +14,9 @@
 //       supplier_invite, so it never spends the day's cap and the campaign gates (invite_enabled,
 //       supplier_outreach_golive) are untouched. REFUSES any address outside SEED_DOMAINS: nothing can
 //       reach a real person through this flag.
+//       --subject-file=<path> / --body-file=<path> send a CANDIDATE subject/body (same {{company}}/{{link}}
+//       placeholders) instead of the live copy; --role=customer routes it through the info@ identity and
+//       customer frame instead (a diagnostic to split sender identity from content), so a copy fix is placement-tested before app_secrets changes.
 //
 // Token: %USERPROFILE%\.supabase\access-token or SUPABASE_ACCESS_TOKEN. No secret is printed.
 import { readFileSync, existsSync } from 'node:fs';
@@ -25,9 +28,13 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 const PROJECT_URL = `https://${REF}.supabase.co`;
 // Inbox-placement test services only. A subdomain of one of these is accepted (srv1.mail-tester.com).
 export const SEED_DOMAINS = ['mail-tester.com', 'glockapps.com', 'mailgenius.com', 'dkimvalidator.com', 'appmaildev.com', 'learndmarc.com'];
+// The founder's OWN inboxes, exact match only (marketing, ledger 993, 24 Sep 2026: placement is read in
+// his Gmail and his Outlook). Never a domain: a colleague at quotesdone.com is still a real person.
+export const FOUNDER_INBOXES = ['ahmadmhdnabilalzain@gmail.com', 'management@quotesdone.com', 'management@doratajewelries.com'];
 export function seedAddressAllowed(addr) {
   const m = /^[a-z0-9._+-]+@([a-z0-9.-]+)$/i.exec(String(addr || '').trim());
   if (!m) return false;
+  if (FOUNDER_INBOXES.includes(String(addr).trim().toLowerCase())) return true;
   const host = m[1].toLowerCase();
   return SEED_DOMAINS.some((d) => host === d || host.endsWith('.' + d));
 }
@@ -53,16 +60,16 @@ const dq = (s) => { const tag = 'q' + Math.random().toString(36).slice(2, 8); re
 async function liveConfig() {
   const keys = ['email_from_supplier', 'email_reply_supplier', 'invite_subject', 'invite_subject_ar', 'invite_body', 'invite_body_ar',
     'public_site_url', 'email_signature_name', 'email_signature_name_ar', 'email_signature_title', 'email_logo_url',
-    'unsubscribe_public_base', 'email_asset_public_base'];
+    'unsubscribe_public_base', 'email_asset_public_base', 'invite_preheader'];
   const rows = await sql(`select key, value from app_secrets where key in (${keys.map((k) => `'${k}'`).join(',')})
                           union all select 'tpl:email_supplier', content from templates where name = 'email_supplier'`);
   return Object.fromEntries(rows.map((r) => [r.key, r.value]));
 }
 
 /** The invitation body exactly as fn_supplier_invite_candidates fills it, for a fixture company. */
-function inviteBody(c, lang) {
+function inviteBody(c, lang, override) {
   const site = c.public_site_url || 'https://quotesdone.com';
-  const body = lang === 'ar' ? c.invite_body_ar : c.invite_body;
+  const body = override ?? (lang === 'ar' ? c.invite_body_ar : c.invite_body);
   return body.split('{{company}}').join('ZZ DEMO Supplier')
     .split('{{link}}').join(`${site}/${lang}/portal?t=00000000-0000-0000-0000-000000000000`);
 }
@@ -81,7 +88,7 @@ async function render(c, lang) {
   const body = inviteBody(c, lang);
   const subject = ar ? c.invite_subject_ar : c.invite_subject;
   const html0 = tmpl({ body, logo: c.email_logo_url || '', name: ar ? (c.email_signature_name_ar || 'أحمد الزين') : (c.email_signature_name || 'Ahmad Alzain'),
-    title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject });
+    title: ar ? 'المؤسس' : (c.email_signature_title || 'Founder'), channelEmail: reply, unsub, wrapper: c['tpl:email_supplier'] || '', internal: false, subject, preheader: ar ? '' : (c.invite_preheader || '') });
   const mail = resendPayload({ from: c.email_from_supplier || 'QuotesDone <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply, subject,
     html: ownDomain(ar ? arabicFrame(html0) : html0, PROJECT_URL, c.email_asset_public_base || ''), text: plainTextPart({ body, unsub, ar, internal: false }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
   return { mail, lint: inboxLint(mail, ['quotesdone.com', `${REF}.supabase.co`]) };
@@ -92,9 +99,10 @@ async function main() {
   if (flag('send-seed')) {
     const to = arg('to'); const lang = arg('lang') === 'ar' ? 'ar' : 'en';
     if (!seedAddressAllowed(to)) { console.error(`REFUSED: ${to || '(no --to)'} is not on an inbox-test service (${SEED_DOMAINS.join(', ')}).`); process.exit(2); }
-    const subject = lang === 'ar' ? c.invite_subject_ar : c.invite_subject;
+    const readOpt = (k) => (arg(k) ? readFileSync(arg(k), 'utf8').trim() : undefined);
+    const subject = readOpt('subject-file') ?? (lang === 'ar' ? c.invite_subject_ar : c.invite_subject);
     const [row] = await sql(`insert into notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
-      values ('supplier_invite_seed', ${dq(to.toLowerCase())}, 'supplier', ${dq(subject)}, ${dq(inviteBody(c, lang))}, '${lang}', 'queued', 'customer_support')
+      values ('supplier_invite_seed', ${dq(to.toLowerCase())}, '${arg('role') === 'customer' ? 'customer' : 'supplier'}', ${dq(subject)}, ${dq(inviteBody(c, lang, readOpt('body-file')))}, '${lang}', 'queued', 'customer_support')
       returning id, status`);
     console.log(`queued notifications#${row.id} (${row.status}) to ${to}; waiting for send_outbox ...`);
     for (let i = 0; i < 40; i++) {

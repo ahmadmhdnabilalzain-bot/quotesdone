@@ -24,7 +24,7 @@ import { fileURLToPath } from 'node:url';
 import { call, read, write } from './fixtures.mjs';
 import { signedInPage, openPortal, portalUrl, shot, realErrors, SITE } from './browser.mjs';
 import { makeInquiry, keys, BASE } from '../lib/demo_factory.mjs';
-import { pdfFacts, isArabic, languageOf, sameDocument, sameMoney } from './pdf_facts.mjs';
+import { pdfFacts, isArabic, languageOf, sameDocument, moneyVerdict } from './pdf_facts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE_PDF = join(HERE, '..', '..', 'supabase', 'functions', 'supplier_api', 'fixtures', 'ZZDEMO_quotation_D958E1EA.pdf');
@@ -86,9 +86,8 @@ async function customerAudit(ctx) {
     // the property the customer cares about: the Arabic version must quote the same money, line for
     // line, as the English one. Measured on production pair QD-8B287960-A - both renders read
     // 95.00 / 17,100.00 / 42.00 / 8,820.00 / 25,920.00 / 25,920.00 (pdf_facts.mjs amounts()).
-    const m = sameMoney(pdfs.en, pdfs.ar);
-    rep.step(C, 'the Arabic quotation states the same money as the English one',
-      m.comparable && m.same === true ? 'PASS' : 'FAIL', m.why);
+    const m = moneyVerdict(pdfs.en, pdfs.ar);
+    rep.step(C, 'the Arabic quotation states the same money as the English one', m.status, m.why);
   } else rep.step(C, 'quotation PDF in both languages', 'SKIP', 'no live quote (journey b)');
   // 2. THE COMPARISON IN BOTH LANGUAGES (journey c proves %PDF-; this proves the template and the language).
   if (ctx.inquiryId) {

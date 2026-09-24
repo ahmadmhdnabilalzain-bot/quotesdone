@@ -53,19 +53,83 @@ export function isDemoText(...texts: Array<string | null | undefined>): boolean 
 }
 
 // ── Postiz ────────────────────────────────────────────────────────────────────────────────────────
-export interface PostizIntegration { id: string; identifier: string; name?: string; disabled?: boolean; refreshNeeded?: boolean }
+export interface PostizIntegration { id: string; identifier: string; name?: string; disabled?: boolean; refreshNeeded?: boolean; inBetweenSteps?: boolean }
 
 export async function postizIntegrations(f: Fetch, base: string, key: string): Promise<{ status: number; list: PostizIntegration[]; error?: string }> {
   const r = await f(base + '/integrations', { headers: { Authorization: key } });
   const j = await readJson(r);
   if (!r.ok || !Array.isArray(j)) return { status: r.status, list: [], error: String(j?.message || j?.error || j?.raw || 'not a list') };
-  return { status: r.status, list: j.map((x: any) => ({ id: String(x.id), identifier: String(x.identifier || ''), name: x.name, disabled: !!x.disabled, refreshNeeded: !!x.refreshNeeded })) };
+  return { status: r.status, list: j.map((x: any) => ({ id: String(x.id), identifier: String(x.identifier || ''), name: x.name, disabled: !!x.disabled, refreshNeeded: !!x.refreshNeeded, inBetweenSteps: !!x.inBetweenSteps })) };
 }
 
 /** The Postiz channel that serves one of our channels ('instagram-standalone' serves instagram, 'linkedin-page' linkedin). */
 export function integrationFor(list: PostizIntegration[], ch: Channel): PostizIntegration | undefined {
-  const live = list.filter((x) => !x.disabled && !x.refreshNeeded);
-  return live.find((x) => ch === 'x' ? (x.identifier === 'x' || x.identifier === 'twitter') : (x.identifier === ch || x.identifier.startsWith(ch + '-')));
+  return list.filter((x) => !x.disabled && !x.refreshNeeded && !x.inBetweenSteps).find((x) => servesChannel(x, ch));
+}
+const servesChannel = (x: PostizIntegration, ch: Channel) =>
+  ch === 'x' ? (x.identifier === 'x' || x.identifier === 'twitter') : (x.identifier === ch || x.identifier.startsWith(ch + '-'));
+
+// ── THE IT ENGINEER'S INTEGRATION WATCH (it_engineer, 24 Sep 2026, founder instruction 979) ──────────
+// "The IT engineer should have been notified when Facebook disconnected from Postiz, and about any similar
+// issue." Measured before this: marketing_connection_check held postiz.channel.<ch> once a Dubai day and no
+// routine read it into a finding, so a dead channel was silent until a post skipped it. These build the items
+// fn_it_integration_settle files (duty:integration_social:<item>) every beat. Pure: tested offline.
+export const POSTIZ_RECONNECT_URL = 'https://platform.postiz.com/launches';
+export type ChannelState = 'ok' | 'missing' | 'disabled' | 'refresh_needed' | 'in_between_steps';
+/** What Postiz says about one of our channels: ok when a live integration serves it, else the flag it carries. */
+export function channelState(list: PostizIntegration[], ch: Channel): { state: ChannelState; integration?: PostizIntegration } {
+  const live = integrationFor(list, ch);
+  if (live) return { state: 'ok', integration: live };
+  const dead = list.filter((x) => servesChannel(x, ch));
+  const r = dead.find((x) => x.refreshNeeded), b = dead.find((x) => x.inBetweenSteps), d = dead.find((x) => x.disabled);
+  if (r) return { state: 'refresh_needed', integration: r };
+  if (b) return { state: 'in_between_steps', integration: b };
+  if (d) return { state: 'disabled', integration: d };
+  return { state: 'missing' };
+}
+const SAY: Record<Exclude<ChannelState, 'ok'>, string> = {
+  refresh_needed: 'is disconnected in Postiz (its login expired: refreshNeeded)',
+  in_between_steps: 'is half-connected in Postiz (the connection was started and never finished: inBetweenSteps)',
+  disabled: 'is disabled in Postiz',
+  missing: 'is not connected in Postiz at all',
+};
+export interface IntegrationItem {
+  item: string; title: string; owner_seat: string; subject: string; blast: string; affected: number;
+  evidence: Record<string, unknown>; carried?: boolean;
+}
+export type YoutubeAuth = { state: 'ok' | 'not_connected' | 'refresh_failed' | 'unknown'; error?: string };
+/** One item per dead channel. When Postiz cannot be read: one item for the API and every channel CARRIED (held as
+ *  it stood, never closed on a reading nobody took). YouTube's own OAuth token (comment replies) is its own item. */
+export function socialIntegrationItems(ints: { status: number; list: PostizIntegration[]; error?: string } | null, youtube: YoutubeAuth): IntegrationItem[] {
+  const out: IntegrationItem[] = [];
+  const base = { owner_seat: 'marketing', subject: 'postiz', blast: 'customer_facing', affected: 1 };
+  if (!ints || ints.error) {
+    out.push({ ...base, item: 'postiz:api',
+      title: `Postiz refused the company's API key (HTTP ${ints?.status ?? 'none'}), so no channel can be published or checked. Reconnect: a new Public API key at ${POSTIZ_RECONNECT_URL} (Settings > Public API)`,
+      evidence: { http_status: ints?.status ?? null, error: ints?.error ?? 'no key stored', reauth: true, reconnect_url: POSTIZ_RECONNECT_URL } });
+    for (const ch of CHANNELS) out.push({ ...base, item: 'postiz:' + ch, title: 'not measured this beat', evidence: {}, carried: true });
+  } else {
+    for (const ch of CHANNELS) {
+      const s = channelState(ints.list, ch);
+      if (s.state === 'ok') continue;
+      out.push({ ...base, item: 'postiz:' + ch,
+        title: `${ch[0].toUpperCase() + ch.slice(1)} ${SAY[s.state]}; its scheduled posts are paused until it is reconnected. Reconnect: ${POSTIZ_RECONNECT_URL}`,
+        evidence: { channel: ch, state: s.state, identifier: s.integration?.identifier ?? null, integration_id: s.integration?.id ?? null,
+                    name: s.integration?.name ?? null, reauth: true, reconnect_url: POSTIZ_RECONNECT_URL, pauses_channel: ch,
+                    action: `open Postiz, find the ${ch} channel${s.integration?.name ? ' (' + s.integration.name + ')' : ''} and ${s.state === 'missing' ? 'add it' : 'click Reconnect'}` } });
+    }
+  }
+  const yt = { owner_seat: 'marketing', subject: 'youtube_oauth', blast: 'agent_facing', affected: 1, item: 'youtube:oauth' };
+  if (youtube.state === 'not_connected' || youtube.state === 'refresh_failed') {
+    out.push({ ...yt,
+      title: youtube.state === 'refresh_failed'
+        ? `YouTube's sign-in for comment replies was refused on refresh (${(youtube.error || '').slice(0, 120)}). Reconnect with the one-time link in this message`
+        : 'YouTube is not signed in for comment replies. Reconnect with the one-time link in this message',
+      evidence: { state: youtube.state, error: youtube.error ?? null, reauth: true, reconnect_link: 'youtube' } });
+  } else if (youtube.state === 'unknown') {
+    out.push({ ...yt, title: 'not measured this beat', evidence: {}, carried: true });
+  }
+  return out;
 }
 
 /** One platform post as marketing_post_variant stores it; `body` is the exact text (caption + hashtags). */
@@ -472,4 +536,13 @@ export async function readAdSpend(f: Fetch, env: MetaEnv, since: string, until: 
 /** Asia/Dubai calendar date, offset by `days`. */
 export function dubaiDate(now: Date, days = 0): string {
   return new Date(now.getTime() + 4 * 3600_000 + days * 86400_000).toISOString().slice(0, 10);
+}
+
+// ONE HEAVY PHASE PER BEAT (24 Sep 2026, GAPS.md marketing gap 1). marketingChannels returned HTTP 546 (the edge
+// CPU cap) 9 times up to 23 Sep: one 'duties' call could download and sha256 up to five approved videos, render a
+// calendar PDF with its frames plus the XLSX, and run the daily reads. A beat now does at most ONE live post; a beat
+// that sent one does nothing heavier after it, and a calendar render ends the beat too. The rest waits 15 minutes.
+export const MAX_LIVE_PER_BEAT = 1;
+export function publishSpentTheBeat(p: { published?: number; failed?: number; unconfirmed?: number; refused_by_database?: number } | null | undefined): boolean {
+  return ((p?.published || 0) + (p?.failed || 0) + (p?.unconfirmed || 0) + (p?.refused_by_database || 0)) > 0;
 }
