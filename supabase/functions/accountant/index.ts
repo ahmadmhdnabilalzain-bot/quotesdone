@@ -74,6 +74,7 @@ import { revealChargeFor, absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { readStatement } from '../_shared/bank_statement_parse.ts';
 import { statementRowText, takeInStatement } from '../_shared/bank_statement_intake.ts';
 import { disputeEvidenceForm } from '../_shared/dispute_evidence.ts';
+import { type InboundItem, type MailboxMessage, mailboxMessages, registerRowsFor } from '../_shared/expense_mailbox.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -1103,7 +1104,8 @@ Deno.serve(observe('accountant', async (req) => {
         }
         if (recurring) {
           const erow = { vendor, category: 'Subscription', description: subject.slice(0, 300), amount, currency, cadence: cad, expense_date: charged, active: true, source: 'email_forward', confidence: 'medium', note: 'from the accountant historical sweep of the expenses mailbox' };
-          const { data: ex0 } = await admin.from('expenses').select('id,expense_date').ilike('vendor', vendor).eq('active', true).limit(1);
+          // The register row is the SAME vendor (identity of the reasoned name), never a LIKE pattern (instr 890).
+          const ex0 = await registerRowsFor(admin, vendor);
           // The register holds the CURRENT schedule, so only a LATER receipt may move it. The
           // history arrives newest-first, so without this an August receipt would overwrite September.
           if (ex0 && ex0.length) { if (!ex0[0].expense_date || String(ex0[0].expense_date) <= charged) await admin.from('expenses').update(erow).eq('id', ex0[0].id); }
@@ -1502,9 +1504,29 @@ Deno.serve(observe('accountant', async (req) => {
         }
       }
 
-      await run('duties', 'ok', { bank_lines: bankLines, disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
+      // IS THE EXPENSES MAILBOX QUIET, OR IS THE INTAKE SILENT? (ledger 983, 24 Sep 2026, GAPS Accountant 1.)
+      // One page of Resend's inbound list, newest first, the last 14 days; the verdict and findings are SQL's.
+      let mailbox: unknown = null;
+      {
+        const rkey = await sec('resend_api_key');
+        let listErr: string | null = rkey ? null : 'app_secrets.resend_api_key is unreadable';
+        let msgs: MailboxMessage[] = [];
+        if (rkey) {
+          try {
+            const r = await fetch('https://api.resend.com/emails/inbound?limit=100', { headers: { Authorization: 'Bearer ' + rkey }, signal: AbortSignal.timeout(15000) });
+            // deno-lint-ignore no-explicit-any
+            const j: any = await r.json().catch(() => ({}));
+            if (!r.ok) listErr = 'HTTP ' + r.status;
+            else msgs = mailboxMessages((j.data || j.items || []) as InboundItem[], EXPENSE_MAILBOX, Date.now() - 14 * 86400000);
+          } catch (e) { listErr = String((e as Error)?.message || e).slice(0, 200); }
+        }
+        const { data: mb, error: mbErr } = await admin.rpc('fn_accountant_mailbox_check_record', { p_messages: msgs, p_list_error: listErr });
+        mailbox = mbErr ? { error: mbErr.message } : mb;
+      }
+
+      await run('duties', 'ok', { mailbox: (mailbox as Record<string, unknown>)?.verdict ?? null, bank_lines: bankLines, disputes_answered: answered.length, months_rendered: rendered.length, year_end: yearEnd.length,
         stripe_live: (stripe.live as Record<string, unknown>)?.basis, stripe_test: (stripe.test as Record<string, unknown>)?.basis });
-      return J({ ok: true, seat: 'accountant', result: out, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
+      return J({ ok: true, seat: 'accountant', result: out, mailbox, disputes_answered: answered, months_rendered: rendered, year_end: yearEnd });
     }
 
     // ── BANK_STATEMENT: a statement handed in directly (CSV export or text) ───────────────────────

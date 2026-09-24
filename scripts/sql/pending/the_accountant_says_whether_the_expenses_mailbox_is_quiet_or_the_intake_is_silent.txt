@@ -1,0 +1,5 @@
+Committed, not applied: this session does not write production (ledger 983 build). The release operator applies it with
+  node scripts/apply_sql.mjs scripts/sql/the_accountant_says_whether_the_expenses_mailbox_is_quiet_or_the_intake_is_silent.sql --apply --ddl
+and must see the file's verdict row read PROBE OK; then deletes this note and appends the file to the END of MANIFEST.txt in the same commit.
+Proved before commit by an aborted-transaction rehearsal against production (definitions created, each routine run on ZZ DEMO / example.invalid inputs, rolled back).
+The accountant runtime change that calls fn_accountant_mailbox_check_record deploys after the mailbox file is applied, never before. Seat: accountant.
