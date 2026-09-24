@@ -22,7 +22,7 @@ import { searchResult, SEARCH_COLUMNS, type LeadHit } from './search_result.ts';
 import { mandatorySixMissing, sixInWords } from '../_shared/supplier_registration.ts';
 import { currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { proposeTradesFromDocs, type DocIn } from '../_shared/supplier_doc_trades.ts';
-import { readExpiry } from '../_shared/document_expiry.ts';
+import { readExpiry, readLicenceName } from '../_shared/document_expiry.ts';
 // The sales engineer's hold desk (14 Sep 2026): exact specs per line, delivery, installation,
 // warranty and the ex-VAT price, or the quote is held; options are separate quotations.
 import { approve, fillIn, finishArabic, formSchema, gate, pdfDoc, supabaseRepo, type Render } from '../_shared/line_specs/workflow.ts';
@@ -616,6 +616,11 @@ const handle = async (req: Request): Promise<Response> => {
       // What CODE measured off the document. The model below may add what code cannot read
       // (licence number, authority, legal name) but must never overwrite this date.
       let codeExpiry: string | null = null;
+      // The licence's printed company name, read by code (24 Sep 2026). The sales engineer's review
+      // compares it with the registered name (fn_supplier_licence_name_mismatch); null = not read.
+      let codeName: string | null = null;
+      if (licBytes?.bytes) { try { codeName = await readLicenceName(licBytes.bytes, licBytes.mime || 'application/pdf'); } catch (_e) { codeName = null; } }
+      if (codeName) upd.licence_legal_name = codeName;
       // The supplier reads this note in the portal, so it is written in both languages the
       // registration speaks (the estate's rule: a document message is English and fully Arabic).
       const noteBoth = (en: string, ar: string) => { out.license_expiry_note = en; out.license_expiry_note_ar = ar; };
@@ -657,8 +662,11 @@ const handle = async (req: Request): Promise<Response> => {
             if (d.emirate) upd.emirate = d.emirate;
             if (d.trn) upd.trn = d.trn;
             upd.doc_extracted_at = new Date().toISOString();
-            const legal = String(d.legal_name || '').trim(); const cur = String(sup.company_name || '').trim();
-            if (legal && legal.toLowerCase() !== cur.toLowerCase()) { upd.name_corrected_from = cur; upd.company_name = legal; }
+            // 24 Sep 2026: the licence name is RECORDED, never copied over the registered name. Copying it
+            // made the name check the founder asked for always pass; the review now compares the two
+            // (fn_supplier_licence_name_mismatch) and a mismatch is action_required. Code's reading wins.
+            const legal = String(d.legal_name || '').trim();
+            if (legal && !codeName) upd.licence_legal_name = legal;
             // Merged, never replaced (main): out.license may already carry the expiry code measured,
             // and overwriting it would lose the reading that is actually written to the row.
             // `trn` is SP-C-09 of #858: process_docs read the TRN off the licence and wrote it to the
@@ -666,7 +674,7 @@ const handle = async (req: Request): Promise<Response> => {
             out.license = { ...(out.license as Record<string, unknown> || {}),
               legal_name: legal, license_number: d.license_number, authority: d.license_authority, city: d.city,
               expiry: codeExpiry || d.expiry_date, model_expiry: d.expiry_date, emirate: d.emirate, trn: d.trn,
-              name_corrected: !!upd.name_corrected_from, confidence: d.confidence };
+              licence_name: upd.licence_legal_name ?? null, confidence: d.confidence };
           } else out.license_error = jd?.error || 'extract_failed';
         } catch (e) { out.license_error = String((e as Error)?.message || e); }
       }

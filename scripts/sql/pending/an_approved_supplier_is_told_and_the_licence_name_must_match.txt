@@ -1,0 +1,7 @@
+Committed, not applied (sales_engineer, 24 Sep 2026): the session that wrote it was told not to apply to
+production on launch eve. It is applied by the coordinating session with
+  node scripts/apply_sql.mjs scripts/sql/an_approved_supplier_is_told_and_the_licence_name_must_match.sql --apply --ddl
+BEFORE supplier_api and send_whatsapp are deployed from this PR (supplier_api writes leads.licence_legal_name,
+which this file adds). Then run the _probe file (must print CHK<<PROBE OK>>), delete this note and append the
+file to the END of MANIFEST.txt in the same commit. It was proved before commit by running it together with
+its probe in one aborted transaction on production (nothing committed): PROBE OK.
