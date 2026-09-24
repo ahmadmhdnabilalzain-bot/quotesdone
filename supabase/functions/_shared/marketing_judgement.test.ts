@@ -12,6 +12,7 @@ function fakeAdmin(request: any) {
     rpc: (name: string, args: any) => {
       calls.push({ name, args });
       if (name === 'fn_marketing_step_request') return Promise.resolve({ data: request, error: null });
+      if (name === 'fn_marketing_trends_for_plan') return Promise.resolve({ data: [{ id: 1, title: 'ZZ DEMO trend', why_it_matters: 'ZZ DEMO why' }], error: null });
       if (name === 'fn_marketing_step_accept') {
         const o = args.p_outcome;
         return Promise.resolve({ data: { ok: o === 'answered', outcome: o === 'held' ? 'held_not_run' : o === 'answered' ? 'written' : o, written: o === 'answered' }, error: null });
@@ -85,4 +86,14 @@ Deno.test('truncated, gateway-held and non-JSON answers write nothing', async ()
     assertEquals(acc.p_output, null);
   }
   assertEquals(parseAnswer('[1,2]'), null);
+});
+
+Deno.test('plan: the relevant trends, with their why-it-matters line, are part of what the model reads (GAPS marketing 3)', async () => {
+  const admin = fakeAdmin({ task_class: 'marketing_plan', max_tokens: 4000, system: 'plan', input: { month: '2026-11-01' }, output_schema: {} });
+  // deno-lint-ignore no-explicit-any
+  let seen: any = null;
+  await runStep({ admin, held: () => Promise.resolve(false),
+    callModel: (_c, _m, messages) => { seen = messages; return Promise.resolve({ content: '{"plan":{}}', error: null, truncated: false }); } }, 'marketing', 'plan', '2026-11-01');
+  assertEquals(admin.calls.find((c) => c.name === 'fn_marketing_trends_for_plan')?.args, { p_month: '2026-11-01' });
+  assert(JSON.stringify(seen).includes('ZZ DEMO why'), 'the trend reached the model input');
 });

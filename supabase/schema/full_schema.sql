@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-24T16:12:58.551Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-24T16:43:16.258Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (639) =====
+-- ===== TABLES (644) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4945,6 +4945,25 @@ CREATE TABLE IF NOT EXISTS public.marketing_founder_request (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_geo_check (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  month date NOT NULL,
+  question_id bigint NOT NULL,
+  engine text NOT NULL,
+  cited boolean NOT NULL,
+  rank integer,
+  evidence text,
+  model text,
+  checked_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_geo_question (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  question text NOT NULL,
+  audience text NOT NULL,
+  active boolean DEFAULT true NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_goal (
   month text NOT NULL,
   platform text NOT NULL,
@@ -5212,6 +5231,16 @@ CREATE TABLE IF NOT EXISTS public.marketing_report (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_review (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  kind text NOT NULL,
+  period date NOT NULL,
+  body jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  handoff_id bigint,
+  read_by_ceo_at timestamp with time zone
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_scorecard_report (
   period_key text NOT NULL,
   month text NOT NULL,
@@ -5228,6 +5257,28 @@ CREATE TABLE IF NOT EXISTS public.marketing_snapshots (
   kpis jsonb NOT NULL,
   plan jsonb,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_trend (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  source_id bigint NOT NULL,
+  url text NOT NULL,
+  title text NOT NULL,
+  published_at timestamp with time zone,
+  seen_at timestamp with time zone DEFAULT now() NOT NULL,
+  relevant boolean,
+  why_it_matters text,
+  judged_at timestamp with time zone,
+  judged_by text
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_trend_source (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  name text NOT NULL,
+  feed_url text NOT NULL,
+  active boolean DEFAULT true NOT NULL,
+  last_read_at timestamp with time zone,
+  last_error text
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_video_idea (
@@ -9226,6 +9277,8 @@ ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connectio
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_pkey PRIMARY KEY (month, platform, metric);
 ALTER TABLE public.marketing_insight_day ADD CONSTRAINT marketing_insight_day_pkey PRIMARY KEY (platform, object_id, metric, day);
 ALTER TABLE public.marketing_insight_note ADD CONSTRAINT marketing_insight_note_pkey PRIMARY KEY (week_start);
@@ -9244,8 +9297,11 @@ ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platfor
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
+ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_pkey PRIMARY KEY (period_key);
 ALTER TABLE public.marketing_snapshots ADD CONSTRAINT marketing_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_pkey PRIMARY KEY (id);
 ALTER TABLE public.match_eval_runs ADD CONSTRAINT match_eval_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.materials ADD CONSTRAINT materials_pkey PRIMARY KEY (id);
@@ -9566,6 +9622,8 @@ ALTER TABLE public.marketing_asset_perception ADD CONSTRAINT marketing_asset_per
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar_token_key UNIQUE (calendar_token);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_campaign_key_key UNIQUE (campaign_key);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_key UNIQUE (lead_id);
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_question_id_engine_key UNIQUE (month, question_id, engine);
+ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_question_key UNIQUE (question);
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_key UNIQUE (plan_token);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_mark_token_key UNIQUE (mark_token);
@@ -9573,6 +9631,10 @@ ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_revi
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_platform_checkpoint_metric_key UNIQUE (post_id, platform, checkpoint, metric);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_platform_seq_key UNIQUE (post_id, platform, seq);
+ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_kind_period_key UNIQUE (kind, period);
+ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_url_key UNIQUE (url);
+ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_feed_url_key UNIQUE (feed_url);
+ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_name_key UNIQUE (name);
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_idea_key_key UNIQUE (idea_key);
 ALTER TABLE public.mdm_brands ADD CONSTRAINT mdm_brands_name_key UNIQUE (name);
 ALTER TABLE public.mdm_manufacturers ADD CONSTRAINT mdm_manufacturers_name_key UNIQUE (name);
@@ -9983,6 +10045,9 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text])));
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
+ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_benchmark_source_check CHECK ((length(btrim(benchmark_source)) >= 20));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_metric_check CHECK ((metric ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
@@ -10074,10 +10139,13 @@ ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_source_u
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_status_check CHECK ((status = ANY (ARRAY['new'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_check CHECK ((window_to > window_from));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_figures_check CHECK ((jsonb_typeof(figures) = 'object'::text));
+ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_kind_check CHECK ((kind = ANY (ARRAY['geo_monthly'::text, 'brand_quarterly'::text])));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_kind_check CHECK ((kind = ANY (ARRAY['weekly'::text, 'month_end'::text])));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_month_check CHECK ((month ~ '^\d{4}-(0[1-9]|1[0-2])$'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_owner_seat_check CHECK ((owner_seat = 'marketing'::text));
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_period_key_check CHECK ((period_key ~ '^\d{4}-(W\d{2}|\d{2}-end)$'::text));
+ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_check CHECK (((relevant IS DISTINCT FROM true) OR (COALESCE(btrim(why_it_matters), ''::text) <> ''::text)));
+ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_feed_url_check CHECK ((feed_url ~ '^https://'::text));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_audience_check CHECK ((audience = ANY (ARRAY['supplier'::text, 'customer'::text, 'both'::text])));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_cta_check CHECK ((btrim(cta) <> ''::text));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_film_plan_check CHECK ((btrim(film_plan) <> ''::text));
@@ -10576,12 +10644,14 @@ ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE SET NULL;
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_question_id_fkey FOREIGN KEY (question_id) REFERENCES marketing_geo_question(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES marketing_prospect(id);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_month_fkey FOREIGN KEY (month) REFERENCES marketing_month_plan(month);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE CASCADE;
+ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_source_id_fkey FOREIGN KEY (source_id) REFERENCES marketing_trend_source(id) ON DELETE CASCADE;
 ALTER TABLE public.messages ADD CONSTRAINT messages_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.messages ADD CONSTRAINT messages_document_id_fkey FOREIGN KEY (document_id) REFERENCES documents(id);
 ALTER TABLE public.messages ADD CONSTRAINT messages_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
@@ -11064,6 +11134,7 @@ CREATE INDEX marketing_post_due_idx ON public.marketing_post USING btree (schedu
 CREATE INDEX marketing_post_metric_post ON public.marketing_post_metric USING btree (post_id, platform);
 CREATE UNIQUE INDEX marketing_prospect_one_person_idx ON public.marketing_prospect USING btree (lower(full_name), lower(company));
 CREATE UNIQUE INDEX marketing_snap_day ON public.marketing_snapshots USING btree (snapshot_date);
+CREATE INDEX marketing_trend_unjudged ON public.marketing_trend USING btree (seen_at) WHERE (relevant IS NULL);
 CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
 CREATE INDEX messaging_template_key_idx ON public.messaging_template USING btree (channel, template_key, lang);
@@ -21012,6 +21083,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -21037,16 +21118,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -28722,6 +28793,26 @@ begin
   return jsonb_build_object('read', true, 'read_at', m.read_by_ceo_at, 'report_date', m.report_date,
                             'headline', m.figures->>'headline', 'no_data_yet', m.no_data_yet,
                             'note', 'Read by the CEO for the overall picture. Informational: nothing was approved or decided.');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_reads_marketing_review(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; r public.marketing_review;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found or a.detail->>'type' is distinct from 'marketing.review' then
+    raise exception 'fn_ceo_reads_marketing_review: % is not a marketing.review handoff', p_id;
+  end if;
+  update public.marketing_review set read_by_ceo_at = coalesce(read_by_ceo_at, now())
+   where id = (a.detail->>'subject_id')::bigint returning * into r;
+  if r.id is null then raise exception 'marketing.review % names review %, which does not exist', p_id, a.detail->>'subject_id'; end if;
+  return jsonb_build_object('read', true, 'read_at', r.read_by_ceo_at, 'kind', r.kind, 'period', r.period,
+                            'note', 'Read by the CEO. The quarterly review carries the January 2027 launch proposal for the CEO''s decision.');
 end $function$
 
 
@@ -48487,6 +48578,55 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_due(p_limit integer DEFAULT 2, p_include_model boolean DEFAULT true)
+ RETURNS TABLE(question_id bigint, question text, engine text, month date)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with m as (select date_trunc('month', now() at time zone 'Asia/Dubai')::date as month)
+  select q.id, q.question, e.engine, m.month
+    from public.marketing_geo_question q cross join (values ('web'), ('model')) e(engine) cross join m
+   where q.active and (p_include_model or e.engine = 'web') and not exists (select 1 from public.marketing_geo_check c
+                                   where c.month = m.month and c.question_id = q.id and c.engine = e.engine)
+   order by q.id, e.engine limit greatest(p_limit, 0)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean, p_rank integer, p_evidence text, p_model text DEFAULT NULL::text)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_id bigint;
+begin
+  insert into public.marketing_geo_check (month, question_id, engine, cited, rank, evidence, model)
+  values (p_month, p_question_id, p_engine, p_cited, p_rank, left(p_evidence, 1000), p_model)
+  on conflict (month, question_id, engine) do nothing returning id into v_id;
+  return v_id;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_summary(p_month date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('month', p_month,
+    'questions', (select count(distinct question_id) from public.marketing_geo_check where month = p_month),
+    'web_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'web' and cited),
+    'web_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'web'),
+    'model_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'model' and cited),
+    'model_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'model'),
+    'blog_posts_published', (select count(*) from public.blog_posts where published),
+    'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', q.question, 'engine', c.engine, 'cited', c.cited, 'rank', c.rank,
+                                                         'evidence', left(c.evidence, 200)) order by q.id, c.engine), '[]'::jsonb)
+               from public.marketing_geo_check c join public.marketing_geo_question q on q.id = c.question_id where c.month = p_month))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_hashtags_ok(p text[])
  RETURNS boolean
  LANGUAGE sql
@@ -49721,6 +49861,76 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_reviews_tick(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_local date := (p_at at time zone 'Asia/Dubai')::date;
+  v_last_month date := (date_trunc('month', v_local) - interval '1 month')::date;
+  v_quarter date := date_trunc('quarter', v_local)::date;
+  v_body jsonb; v_id bigint; v_out jsonb := '{}'::jsonb;
+begin
+  if extract(day from v_local) >= 2 and not exists (select 1 from public.marketing_review where kind = 'geo_monthly' and period = v_last_month)
+     and exists (select 1 from public.marketing_geo_check where month = v_last_month) then
+    v_body := public.fn_marketing_geo_summary(v_last_month);
+    insert into public.marketing_review (kind, period, body) values ('geo_monthly', v_last_month, v_body)
+      on conflict (kind, period) do nothing returning id into v_id;
+    if v_id is not null then
+      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'geo_monthly', 'period', v_last_month)) where id = v_id;
+      v_out := v_out || jsonb_build_object('geo_monthly', v_id);
+    end if;
+  end if;
+
+  -- Only in the first 14 days of a quarter, so the file applied mid-quarter does not compose a review of an empty one.
+  if v_local < v_quarter + 14 and not exists (select 1 from public.marketing_review where kind = 'brand_quarterly' and period = v_quarter) then
+    v_body := jsonb_build_object(
+      'quarter', v_quarter,
+      'positioning', jsonb_build_object(
+        'rule_source', 'profile_text.json (one description everywhere; "smart", never "AI"; no licence number)',
+        'social_profiles_checked', (select count(*) from public.marketing_connection_check),
+        'social_profiles_failing', (select count(*) from public.marketing_connection_check where not ok)),
+      'reach_last_quarter', (select coalesce(jsonb_object_agg(platform, total), '{}'::jsonb) from (
+          select platform, sum(value) total from public.marketing_insight_day
+           where day >= (v_quarter - interval '3 months') and day < v_quarter group by platform) r),
+      'posts_published_last_quarter', (select count(*) from public.marketing_post where status = 'published'
+           and published_at >= (v_quarter - interval '3 months') and published_at < v_quarter),
+      'geo_last_three_months', (select coalesce(jsonb_agg(public.fn_marketing_geo_summary(m::date) - 'rows' order by m), '[]'::jsonb)
+           from generate_series((v_quarter - interval '3 months')::date, (v_quarter - interval '1 month')::date, interval '1 month') g(m)),
+      'competitor_posts_seen', (select count(*) from public.market_intel where platform is not null and created_at >= v_quarter - interval '3 months'),
+      'relevant_trends', (select count(*) from public.marketing_trend where relevant and seen_at >= v_quarter - interval '3 months'),
+      'reputation', (select to_jsonb(s) from public.company_reputation_snapshot s order by day desc limit 1),
+      -- THE JANUARY 2027 CUSTOMER LAUNCH (seat map, 24 Sep 2026): no customer campaign before January 2027, and
+      -- customers launch only once suppliers can quote every inquiry. This is the proposal the CEO decides on.
+      'customer_launch_2027', jsonb_build_object(
+        'decision_owner', 'ceo',
+        'rule', 'Oct-Dec 2026 supplier registration only; customers from January 2027 once the supplier base can quote every inquiry',
+        'supply_gaps_open', (select count(*) from public.supply_gap where status in ('open', 'recruit')),
+        'supply_gaps_recruiting', (select count(*) from public.supply_gap where status = 'recruit'),
+        'suppliers_registered', (select coalesce(sum(registered), 0) from public.supplier_recruitment_funnel
+                                  where day = (select max(day) from public.supplier_recruitment_funnel)),
+        'suppliers_approved', (select coalesce(sum(approved), 0) from public.supplier_recruitment_funnel
+                                  where day = (select max(day) from public.supplier_recruitment_funnel)),
+        'plan', jsonb_build_array(
+          'December 2026: the CEO decides the launch against supply_gaps_open = 0 for the launch trades',
+          'December 2026: customer landing pages and the blog answer the buyer questions in marketing_geo_question',
+          'January 2027: the first customer calendar (organic only) goes to the founder for one-shot approval',
+          'January 2027 onward: the monthly GEO audit tracks whether answer engines name QuotesDone to buyers')));
+    insert into public.marketing_review (kind, period, body) values ('brand_quarterly', v_quarter, v_body)
+      on conflict (kind, period) do nothing returning id into v_id;
+    if v_id is not null then
+      update public.marketing_review set handoff_id = public.fn_seat_handoff('marketing', 'ceo', 'marketing.review', 'marketing_review', v_id::text,
+        jsonb_build_object('kind', 'brand_quarterly', 'period', v_quarter)) where id = v_id;
+      v_out := v_out || jsonb_build_object('brand_quarterly', v_id);
+    end if;
+  end if;
+  return v_out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_scorecard(p_month text, p_include_demo boolean DEFAULT false)
  RETURNS TABLE(platform text, rank integer, post_id bigint, ingest_key text, title text, checkpoint text, metric text, value numeric, target numeric, account_median numeric, verdict text, benchmark_source text)
  LANGUAGE sql
@@ -50416,6 +50626,80 @@ begin
   return jsonb_build_object('ok', coalesce((v_rep->>'ok')::boolean, false) and coalesce((v_ads->>'ok')::boolean, false),
                             'report', v_rep, 'ad_spend_loops', v_ads);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trend_judged(p_id bigint, p_relevant boolean, p_why text, p_by text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if p_relevant is null then raise exception 'a trend is judged relevant or not; null is not a judgement'; end if;
+  update public.marketing_trend set relevant = p_relevant, why_it_matters = nullif(btrim(p_why), ''),
+         judged_at = now(), judged_by = left(p_by, 120)
+   where id = p_id and relevant is null;
+  return found;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trend_next_to_judge()
+ RETURNS TABLE(id bigint, title text, url text, source text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select t.id, t.title, t.url, s.name from public.marketing_trend t join public.marketing_trend_source s on s.id = t.source_id
+   where t.relevant is null and t.seen_at > now() - interval '14 days'
+   order by t.seen_at desc, t.id desc limit 1
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trend_seen(p_source_id bigint, p_items jsonb, p_error text DEFAULT NULL::text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_new integer := 0;
+begin
+  update public.marketing_trend_source set last_read_at = now(), last_error = left(p_error, 500) where id = p_source_id;
+  if p_error is not null then return 0; end if;
+  with ins as (
+    insert into public.marketing_trend (source_id, url, title, published_at)
+    select p_source_id, left(i->>'url', 2000), left(i->>'title', 500), nullif(i->>'published_at', '')::timestamptz
+      from jsonb_array_elements(coalesce(p_items, '[]'::jsonb)) i
+     where coalesce(i->>'url', '') ~ '^https?://' and coalesce(btrim(i->>'title'), '') <> ''
+    on conflict (url) do nothing returning 1)
+  select count(*) into v_new from ins;
+  return v_new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trend_sources_due(p_limit integer DEFAULT 2)
+ RETURNS TABLE(id bigint, name text, feed_url text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select s.id, s.name, s.feed_url from public.marketing_trend_source s
+   where s.active and (s.last_read_at is null or s.last_read_at < now() - interval '20 hours')
+   order by s.last_read_at nulls first, s.id limit greatest(p_limit, 0)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_trends_for_plan(p_month date)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('id', t.id, 'title', t.title, 'url', t.url, 'why_it_matters', t.why_it_matters,
+                                               'published_at', t.published_at) order by t.published_at desc nulls last), '[]'::jsonb)
+    from (select * from public.marketing_trend
+           where relevant and coalesce(published_at, seen_at) >= (p_month - interval '45 days')
+           order by coalesce(published_at, seen_at) desc limit 20) t
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_variant_problems(v marketing_post_variant)
@@ -71091,7 +71375,8 @@ AS $function$
     ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('marketing_asset_feature','marketing'), ('marketing_asset_perception','marketing'), ('marketing_asset_review','marketing'),
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
-    ('marketing_model_run','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
+    ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
+    ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
@@ -80779,6 +81064,8 @@ ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_founder_request ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_geo_check ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_geo_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_day ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_insight_note ENABLE ROW LEVEL SECURITY;
@@ -80797,8 +81084,11 @@ ALTER TABLE public.marketing_post_platform ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_scorecard_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_trend ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_trend_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_video_idea ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.match_eval_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
@@ -81163,6 +81453,8 @@ CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_c
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_founder_request_service_role_only ON public.marketing_founder_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_geo_check_service_role_only ON public.marketing_geo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_geo_question_service_role_only ON public.marketing_geo_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_day_service_role_only ON public.marketing_insight_day AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_insight_note_service_role_only ON public.marketing_insight_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -81180,7 +81472,10 @@ CREATE POLICY marketing_post_platform_service_role_only ON public.marketing_post
 CREATE POLICY marketing_post_variant_service_role_only ON public.marketing_post_variant AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_review_service_role_only ON public.marketing_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_scorecard_report_service_role_only ON public.marketing_scorecard_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_trend_service_role_only ON public.marketing_trend AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_trend_source_service_role_only ON public.marketing_trend_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_video_idea_service_role_only ON public.marketing_video_idea AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_copy_service_role_only ON public.notification_copy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY notification_type_severity_service_role_only ON public.notification_type_severity AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

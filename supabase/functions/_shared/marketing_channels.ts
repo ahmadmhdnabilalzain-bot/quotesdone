@@ -537,3 +537,12 @@ export async function readAdSpend(f: Fetch, env: MetaEnv, since: string, until: 
 export function dubaiDate(now: Date, days = 0): string {
   return new Date(now.getTime() + 4 * 3600_000 + days * 86400_000).toISOString().slice(0, 10);
 }
+
+// ONE HEAVY PHASE PER BEAT (24 Sep 2026, GAPS.md marketing gap 1). marketingChannels returned HTTP 546 (the edge
+// CPU cap) 9 times up to 23 Sep: one 'duties' call could download and sha256 up to five approved videos, render a
+// calendar PDF with its frames plus the XLSX, and run the daily reads. A beat now does at most ONE live post; a beat
+// that sent one does nothing heavier after it, and a calendar render ends the beat too. The rest waits 15 minutes.
+export const MAX_LIVE_PER_BEAT = 1;
+export function publishSpentTheBeat(p: { published?: number; failed?: number; unconfirmed?: number; refused_by_database?: number } | null | undefined): boolean {
+  return ((p?.published || 0) + (p?.failed || 0) + (p?.unconfirmed || 0) + (p?.refused_by_database || 0)) > 0;
+}
