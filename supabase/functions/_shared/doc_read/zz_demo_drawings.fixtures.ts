@@ -307,3 +307,31 @@ export function zzGlyphSheetDxf(lines = ['CLIENT: ZZ OMEGA', 'CONSULTANT: ZZ ORB
     [0, 'EOF'],
   ]);
 }
+
+// ── the third review's sheet (#967, 25 Sep 2026) ────────────────────────────────────────────────────
+// Text EXPLODED to linework, as SHX text exploded or a PDF converted to DWG writes it: a title block on layer 0 whose
+// words - the client, a firm, a phone, the customer's name - and a monogram logo in a ring are short polylines, with
+// no TEXT entity to judge. The first renderer drew every one. `words` replaces the exploded lines for a variant.
+export function zzExplodedTitleDxf(words: [number, number, string, number, string][] = [
+  [15300, 10500, 'CLIENT: ZZ OMEGA', 300, '0'], [15300, 9800, 'ZZ ORBIT ENGINEERING', 220, '0'],
+  [15300, 9100, 'TEL 04 123 4567', 300, '0'], [15300, 8400, 'RASHID KAREEM', 300, 'A-ANNO'],
+]): Uint8Array {
+  type P = [number, string | number][];
+  const txt = (x: number, y: number, s: string, h = 250): P => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  const exploded = (x: number, y: number, s: string, h: number, layer: string): P => textStrokes(s).strokes.flatMap((st) => {
+    const p: P = [[0, 'LWPOLYLINE'], [8, layer], [90, st.length], [70, 0]];
+    for (const [u, v] of st) p.push([10, x + u * h], [20, y + v * h]);
+    return p;
+  });
+  const rect = (layer: string, x: number, y: number, w: number, h: number): P => [[0, 'LWPOLYLINE'], [8, layer], [90, 4], [70, 1], [10, x], [20, y], [10, x + w], [20, y], [10, x + w], [20, y + h], [10, x], [20, y + h]];
+  return dxfFrom([
+    ...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]),
+    ...dxfSection('ENTITIES', [
+      ...rect('A-WALL', 0, 0, 20000, 14000), ...rect('A-WALL', 1000, 6000, 6000, 6000), ...txt(2000, 9000, 'KITCHEN'), ...txt(8000, 9000, 'OFFICE 101'),
+      ...rect('0', 15000, 0, 5000, 14000),
+      [0, 'CIRCLE'], [8, '0'], [10, 17500], [20, 12500], [40, 900], ...exploded(16900, 12300, 'ZO', 500, '0'),
+      ...words.flatMap(([x, y, s, h, layer]) => exploded(x, y, s, h, layer)),
+    ]),
+    [0, 'EOF'],
+  ]);
+}

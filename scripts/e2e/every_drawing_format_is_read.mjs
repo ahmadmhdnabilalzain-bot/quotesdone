@@ -65,9 +65,11 @@ try {
   // DWG, small: read on the edge.
   const small = await drawing(await sample('sample_2000.dwg', '4b8d9b1396a6d0de'), 'ZZ DEMO small.dwg');
   check('a small DWG is read on the edge (not 546)', small.json?.ok && lines(small).length > 0, `HTTP ${small.status}, ${lines(small).length} lines`);
-  // 24 Sep 2026: and DRAWN for suppliers from its own entities, identity left out (drawing_redact mode 'cad').
-  check('the small DWG is drawn for suppliers: one recorded redacted page, not held', small.json?.redaction_complete === true && (small.json?.drawing_redacted_paths || []).length === 1 && small.json?.drawing_held === false,
-    `redaction_complete ${small.json?.redaction_complete}, held ${small.json?.drawing_held}, note ${small.json?.note}`);
+  // 24 Sep 2026: and DRAWN for suppliers from its own entities, identity left out (drawing_redact mode 'cad'). Since the
+  // third review of #967 the edge only checks it can be drawn and queues it: the CAD worker reads the drawn page back
+  // by OCR before publishing it (the large DWG below proves the worker's side).
+  check('the small DWG draws cleanly on the edge and is queued for the worker\'s OCR read-back', small.json?.note === 'cad_queued' && !!small.json?.cad_job_id && (small.json?.drawing_redacted_paths || []).length === 0,
+    `note ${small.json?.note}, job ${small.json?.cad_job_id || '-'}, held ${small.json?.drawing_held}`);
 
   // DWG, large: queued, read by the worker, fetched by the customer.
   const bigBytes = await sample('2018/Dynblocks.dwg', '95cc558d02a2596d');

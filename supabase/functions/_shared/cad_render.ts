@@ -40,7 +40,9 @@
 // them). Those are said in `notes`, which become what the customer is told.
 import { binaryDxfToAscii, stripMtext } from './doc_read/cad.ts';
 import { cadIdentityTerms, FRAME, tokens } from './cad_identity.ts';
-import { isDrawingContent, namesParty, partyLabel, partyTag, seedHit } from './drawing_text_policy.ts';
+import { bareDigitRun, isDrawingContent, namesParty, partyLabel, partyTag, seedHit, shortCodeOnly } from './drawing_text_policy.ts';
+import { roomOrViewTitle } from './drawing_vocabulary.ts';
+import { vectorTextRows } from './cad_vector_text.ts';
 import { residualScan, seedTerms } from './anonymise.ts';
 import { textStrokes } from './stroke_font.ts';
 
@@ -179,13 +181,15 @@ function bulgePts(x1: number, y1: number, x2: number, y2: number, b: number): nu
 }
 
 // ── the model: what would be drawn, before anything is ─────────────────────────────────────────────
-type TextItem = { s: string; m: M; w: number; unknown: number; strokes: [number, number][][]; box: BBox; frame: boolean; tag: string; label: boolean; h: number; x: number; y: number; rotDeg: number };
+type TextItem = { s: string; m: M; w: number; unknown: number; strokes: [number, number][][]; box: BBox; frame: boolean; tag: string; label: boolean; h: number; x: number; y: number; rotDeg: number; dim: boolean; sym: boolean };
 type Region = { box: BBox; parts: number[][]; texts: TextItem[] };
-type Ctx = { m: M; layer: string; depth: number; frame: 'border' | null; title: Region | null };
+// dim: inside a DIMENSION (its text is a measurement). sym: inside an ordinary block INSERT (a device symbol and its
+// own label), as opposed to model-space linework and text.
+type Ctx = { m: M; layer: string; depth: number; frame: 'border' | null; title: Region | null; dim: boolean; sym: boolean };
 
 export type CadRenderResult =
-  | { ok: true; rgba: Uint8ClampedArray; width: number; height: number; drawn_texts: string[]; withheld: { texts: number; regions: number; samples_redacted: number }; counts: Record<string, number>; notes: string[]; regions_px: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[] }
-  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual' | 'title_unbounded' | 'glyph_per_text'; detail: string };
+  | { ok: true; rgba: Uint8ClampedArray; width: number; height: number; drawn_texts: string[]; withheld: { texts: number; regions: number; samples_redacted: number }; counts: Record<string, number>; notes: string[]; regions_px: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[]; texts_px: { x: number; y: number; w: number; h: number }[] }
+  | { ok: false; reason: 'unreadable' | 'empty' | 'too_dense' | 'residual' | 'title_unbounded' | 'glyph_per_text' | 'vector_text'; detail: string };
 
 const bboxOf = (pts: number[]): BBox => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity; for (let i = 0; i + 1 < pts.length; i += 2) { x0 = Math.min(x0, pts[i]); x1 = Math.max(x1, pts[i]); y0 = Math.min(y0, pts[i + 1]); y1 = Math.max(y1, pts[i + 1]); } return { x0, y0, x1, y1 }; };
 const grow = (a: BBox, b: BBox): BBox => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) });
@@ -204,7 +208,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   const seeds = [...new Set([...(opts.seeds ?? []), ...seedTerms({ extra: cadIdentityTerms(src) })])];
   const counts: Record<string, number> = { entities: 0, paper_space_skipped: 0, hatch_skipped: 0, images_skipped: 0, other_skipped: 0, unknown_glyphs: 0, inserts: 0, segments: 0 };
   const ink: number[][] = [];
+  const inkSym: boolean[] = [];                       // ink[i] belongs to a device symbol or a dimension
   const texts: TextItem[] = [];
+  const inserts: [number, number][] = [];              // every ordinary INSERT's insertion point: a device symbol
+  const circles: { x: number; y: number; r: number }[] = [];
   const titleRegions: Region[] = [];
   // One region per title-block LAYER (every entity on it together), one per title-block INSERT.
   const layerRegions = new Map<string, Region>();
@@ -224,7 +231,7 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
     const tm = mul(ctx.m, mul(m, mul(tr(x, y), mul(rot(rotDeg), mul(scl(h, h), tr(dx, dy))))));
     const strokes = ts.strokes.map((st) => st.map(([u, v]) => ap(tm, u, v)));
     const corners = [ap(tm, 0, -0.3), ap(tm, ts.width, -0.3), ap(tm, ts.width, 1.1), ap(tm, 0, 1.1)].flat();
-    const item: TextItem = { s: clean, m: tm, w: ts.width, unknown: ts.unknown, strokes, box: bboxOf(corners), frame: !!ctx.frame, tag, label: partyLabel(clean), h: Math.hypot(tm[2], tm[3]), x: ap(tm, 0, 0)[0], y: ap(tm, 0, 0)[1], rotDeg };
+    const item: TextItem = { s: clean, m: tm, w: ts.width, unknown: ts.unknown, strokes, box: bboxOf(corners), frame: !!ctx.frame, tag, label: partyLabel(clean), h: Math.hypot(tm[2], tm[3]), x: ap(tm, 0, 0)[0], y: ap(tm, 0, 0)[1], rotDeg, dim: ctx.dim, sym: ctx.sym };
     if (ctx.title) { ctx.title.box = grow(ctx.title.box, item.box); ctx.title.texts.push(item); return; }
     texts.push(item);
   };
@@ -233,7 +240,7 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
     const out: number[] = [];
     for (let i = 0; i + 1 < pts.length; i += 2) out.push(...ap(ctx.m, ...ap(m, pts[i], pts[i + 1])));
     if (ctx.title) { ctx.title.box = grow(ctx.title.box, bboxOf(out)); ctx.title.parts.push(out); return; }
-    ink.push(out);
+    ink.push(out); inkSym.push(ctx.sym || ctx.dim);
   };
 
   const drawEnt = (e: Ent, ctx: Ctx, blocks: Map<string, Block>) => {
@@ -258,7 +265,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   const drawEnt1 = (e: Ent, ctx: Ctx, blocks: Map<string, Block>, o: M, layer: string) => {
     switch (e.type) {
       case 'LINE': addPoly([num(e, 10), num(e, 20), num(e, 11), num(e, 21)], ID, ctx); break;
-      case 'CIRCLE': addPoly(arcPts(num(e, 10), num(e, 20), num(e, 40), 0, 360), o, ctx); break;
+      case 'CIRCLE': {
+        if (!ctx.title) { const [x, y] = ap(ctx.m, ...ap(o, num(e, 10), num(e, 20))); circles.push({ x, y, r: num(e, 40) * Math.hypot(ctx.m[0], ctx.m[1]) }); }
+        addPoly(arcPts(num(e, 10), num(e, 20), num(e, 40), 0, 360), o, ctx); break;
+      }
       case 'ARC': addPoly(arcPts(num(e, 10), num(e, 20), num(e, 40), num(e, 50), num(e, 51)), o, ctx); break;
       case 'ELLIPSE': {
         const cx = num(e, 10), cy = num(e, 20), mx = num(e, 11), my = num(e, 21), r = num(e, 40, 1);
@@ -317,7 +327,7 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
         const blk = blocks.get(name);
         if (e.type === 'INSERT') counts.inserts++;
         if (!blk) {
-          if (e.type === 'DIMENSION') { const over = str(e, 1).trim(); const mv = num(e, 42, NaN); const s = over && over !== '<>' ? stripMtext(over) : Number.isFinite(mv) ? String(+mv.toFixed(2)) : ''; if (s) addText(s, ID, num(e, 11), num(e, 21), dimH, num(e, 53), 1, 1, 2, ctx); }
+          if (e.type === 'DIMENSION') { const over = str(e, 1).trim(); const mv = num(e, 42, NaN); const s = over && over !== '<>' ? stripMtext(over) : Number.isFinite(mv) ? String(+mv.toFixed(2)) : ''; if (s) addText(s, ID, num(e, 11), num(e, 21), dimH, num(e, 53), 1, 1, 2, { ...ctx, dim: true }); }
           for (const a of e.attribs) drawEnt1(a, ctx, blocks, ocs(a), layer);
           break;
         }
@@ -332,7 +342,8 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
         // sit at 0..300 while the table stands at 3299, 840).
         const baseM = e.type === 'INSERT' ? mul(o, mul(tr(num(e, 10), num(e, 20)), rot(ang)))
           : e.type === 'ACAD_TABLE' ? mul(tr(num(e, 10), num(e, 20)), rot(Math.atan2(num(e, 21, 0), num(e, 11, 1)) * 180 / Math.PI)) : ID;
-        let sub: Ctx = { m: ctx.m, layer, depth: ctx.depth + 1, frame: ctx.frame, title: ctx.title };
+        let sub: Ctx = { m: ctx.m, layer, depth: ctx.depth + 1, frame: ctx.frame, title: ctx.title, dim: ctx.dim || e.type === 'DIMENSION', sym: ctx.sym || (e.type === 'INSERT' && !kind) };
+        if (e.type === 'INSERT' && !kind && !ctx.title) inserts.push(ap(ctx.m, ...ap(baseM, 0, 0)));
         if (kind === 'title' && !ctx.title) sub = { ...sub, title: newRegion() };
         else if (kind === 'border') sub = { ...sub, frame: 'border' };
         for (let c = 0; c < cols; c++) for (let r = 0; r < rows; r++) {
@@ -360,61 +371,99 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
     addPoly(pts, o, ctx);
   };
 
-  const root: Ctx = { m: ID, layer: '0', depth: 0, frame: null, title: null };
+  const root: Ctx = { m: ID, layer: '0', depth: 0, frame: null, title: null, dim: false, sym: false };
   for (const e of parsed.ents) drawEnt(e, root, parsed.blocks);
   const notes: string[] = [];
   if (expanded > MAX_EXPANDED) notes.push(`The drawing expands to more than ${MAX_EXPANDED} entities once its blocks are exploded; the page shows the first ${MAX_EXPANDED}.`);
 
   // ── which words may be drawn ───────────────────────────────────────────────────────────────────────
   const withheldBoxes: BBox[] = [];
-  const singles = texts.filter((t) => t.s.trim().length === 1).length;
+  const hsAll = texts.map((t) => t.h).filter((h) => h > 0).sort((u, v) => u - v);
+  const medianH = hsAll.length ? hsAll[Math.floor(hsAll.length / 2)] : 1;
+  const mid = (t: TextItem): [number, number] => [(t.box.x0 + t.box.x1) / 2, (t.box.y0 + t.box.y1) / 2];
+  // CONTEXT (third review of #967). A grid bubble is a circle round the text's middle, no bigger than 4 of its
+  // heights. A device symbol is an ordinary block INSERT whose insertion point lies within 3 heights of the text,
+  // or the text is the block's own label. Only these make a two-letter code, or a single letter, structural.
+  const bucket = new Map<string, [number, number][]>(), cell = Math.max(1e-9, 4 * medianH);
+  for (const pt of inserts) { const k = `${Math.floor(pt[0] / cell)},${Math.floor(pt[1] / cell)}`; (bucket.get(k) ?? bucket.set(k, []).get(k)!).push(pt); }
+  const nearInsert = (t: TextItem) => {
+    const r = 3 * t.h, [cx, cy] = mid(t), n = Math.ceil(r / cell) + 1, i0 = Math.floor(cx / cell), j0 = Math.floor(cy / cell);
+    for (let i = i0 - n; i <= i0 + n; i++) for (let j = j0 - n; j <= j0 + n; j++) for (const [x, y] of bucket.get(`${i},${j}`) ?? []) {
+      const dx = Math.max(t.box.x0 - x, 0, x - t.box.x1), dy = Math.max(t.box.y0 - y, 0, y - t.box.y1);
+      if (Math.hypot(dx, dy) <= r) return true;
+    }
+    return false;
+  };
+  const inBubble = (t: TextItem) => { const [cx, cy] = mid(t); return circles.some((c) => c.r <= 4 * t.h && c.r >= 0.5 * t.h && Math.hypot(c.x - cx, c.y - cy) <= Math.max(0.35 * c.r, 0.6 * t.h)); };
+  const codeContext = (t: TextItem) => t.h <= 2 * medianH && (t.sym || nearInsert(t) || inBubble(t));
+  // A single character is STRUCTURAL - drawn, and not counted as a glyph-per-TEXT sheet - when it is a grid letter
+  // or number inside a bubble, or a lower-case switching letter (a, b, c) beside a light fitting.
+  const structural = (t: TextItem) => { const c = t.s.trim(); return c.length === 1 && ((/[A-Z0-9]/.test(c) && inBubble(t)) || (/[a-z]/.test(c) && t.h <= 1.5 * medianH && (t.sym || nearInsert(t)))); };
+  const singles = texts.filter((t) => t.s.trim().length === 1 && !structural(t)).length;
   if (singles > GLYPH_MAX || (singles >= 4 && singles > GLYPH_SHARE * texts.length)) {
     return { ok: false, reason: 'glyph_per_text', detail: `${singles} of ${texts.length} texts are a single character` };
   }
+  // A PHRASE AT LOGO SIZE (third review): text taller than twice the drawing's median text height that is not a
+  // room label, a view title or a number is a name set large - "NORTH GATE", "MASTER POWER" - and is withheld.
+  const big = (t: TextItem) => t.h > 2 * medianH && /[A-Za-z]{2,}/.test(t.s) && !roomOrViewTitle(t.s) && !structural(t);
   // THE DEFAULT IS WITHHOLD (drawing_text_policy.ts): a word is drawn only when it reads as drawing content -
-  // numbers, dimensions, codes from a closed list, the trade's vocabulary - and names no seed, even fuzzily.
-  const textLeaks = (x: string) => !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
-  const identity = (t: TextItem) => t.frame || partyTag(t.tag) || textLeaks(t.s);
-  const out = new Set<TextItem>();
-  for (const t of texts) if (identity(t)) out.add(t);
-  // RUNS ARE READ TOGETHER ALONG THEIR OWN BASELINE (second review of #967: grouping by y alone missed a name
-  // rotated 90 degrees or spaced three heights apart). Runs at the same angle whose baselines lie within 0.6 of a
-  // text height of each other, and whose ends come within 3 heights, are one line; the line is judged spaced
-  // ("ZZ ORB IT") and as it stands on the page, abutting runs joined ("ZZ ORBIT"), by the same full policy. A line
-  // that fails withholds every run in it. Then two lines stacked within 2.4 heights are joined, so a phone or an
-  // e-mail broken over two lines is read whole.
+  // numbers, dimensions, codes from a closed list in their context, the trade's vocabulary - and names no seed.
+  const textLeaks = (x: string, o: { dimension?: boolean; codeContext?: boolean } = {}) => !isDrawingContent(x, o) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
+  // RUNS ARE READ TOGETHER ALONG THEIR OWN BASELINE. Third review: angles are clustered within 5 degrees (a phone
+  // split 0.9 / 1.1 degrees fell into two 2-degree buckets), and only runs of like height (within 1.6x) join, with
+  // the gap measured in the SMALLER one's heights - so one big unknown word no longer takes every label within 3
+  // of its own heights with it.
+  const rowContext = new Set<TextItem>();
   type Geo = { t: TextItem; ang: number; a0: number; a1: number; perp: number; h: number };
-  const geoOf = (t: TextItem): Geo => {
-    const d = Math.hypot(t.m[0], t.m[1]) || 1, dx = t.m[0] / d, dy = t.m[1] / d;
-    const [x0, y0] = ap(t.m, 0, 0), [x1, y1] = ap(t.m, t.w, 0);
-    const a0 = x0 * dx + y0 * dy, a1 = x1 * dx + y1 * dy;
-    return { t, ang: Math.round(((Math.atan2(dy, dx) * 180 / Math.PI) + 360) % 360 / 2) % 180, a0: Math.min(a0, a1), a1: Math.max(a0, a1), perp: -x0 * dy + y0 * dx, h: t.h || 1 };
+  const angOf = (t: TextItem) => ((Math.atan2(t.m[1], t.m[0]) * 180 / Math.PI) % 180 + 180) % 180;
+  const angleClusters = (items: TextItem[]) => {
+    const sorted = [...items].sort((u, v) => angOf(u) - angOf(v));
+    const out: TextItem[][] = [];
+    for (const t of sorted) { const last = out[out.length - 1]; if (last && angOf(t) - angOf(last[last.length - 1]) <= 5) last.push(t); else out.push([t]); }
+    if (out.length > 1 && angOf(out[0][0]) + 180 - angOf(out[out.length - 1][out[out.length - 1].length - 1]) <= 5) out[0].push(...out.pop()!);
+    return out;
   };
-  const byAngle = (items: TextItem[]) => {
-    const m = new Map<number, Geo[]>();
-    for (const t of items) { const g = geoOf(t); (m.get(g.ang) ?? m.set(g.ang, []).get(g.ang)!).push(g); }
-    for (const list of m.values()) list.sort((u, v) => u.perp - v.perp);
-    return m;
+  const geoIn = (list: TextItem[]): Geo[] => {
+    // one direction for the whole cluster: the mean of its members' baselines (doubled angles, so 179 and 1 agree)
+    let sx = 0, sy = 0; for (const t of list) { const a = angOf(t) * Math.PI / 90; sx += Math.cos(a); sy += Math.sin(a); }
+    const th = Math.atan2(sy, sx) / 2, dx = Math.cos(th), dy = Math.sin(th);
+    return list.map((t) => {
+      const [x0, y0] = ap(t.m, 0, 0), [x1, y1] = ap(t.m, t.w, 0), [xm, ym] = mid(t);
+      const a0 = x0 * dx + y0 * dy, a1 = x1 * dx + y1 * dy;
+      return { t, ang: 0, a0: Math.min(a0, a1), a1: Math.max(a0, a1), perp: -xm * dy + ym * dx, h: t.h || 1 };
+    }).sort((u, v) => u.perp - v.perp);
   };
-  const baselineGroups = (items: TextItem[]): Geo[][] => {
-    const groups: Geo[][] = [];
-    for (const list of byAngle(items).values()) {
-      const parent = list.map((_, i) => i);
+  const likeHeights = (u: Geo, v: Geo) => Math.max(u.h, v.h) <= 1.6 * Math.min(u.h, v.h);
+  // Rows: runs sharing a baseline (within 0.6 of a height), of like height, WHATEVER the gap between them.
+  const rowsOf = (items: TextItem[]): Geo[][] => {
+    const rows: Geo[][] = [];
+    for (const cl of angleClusters(items)) {
+      const list = geoIn(cl), parent = list.map((_, i) => i);
       const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
       const hMax = Math.max(...list.map((g) => g.h));
-      for (let i = 0; i < list.length; i++) {
-        for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 0.6 * hMax; j++) {
-          const u = list[i], v = list[j], h = Math.max(u.h, v.h);
-          if (v.perp - u.perp > 0.6 * h) continue;
-          if (Math.max(v.a0 - u.a1, u.a0 - v.a1) > 3 * h) continue;
-          parent[find(i)] = find(j);
-        }
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 0.6 * hMax; j++) {
+        const u = list[i], v = list[j];
+        if (v.perp - u.perp <= 0.6 * Math.min(u.h, v.h) && likeHeights(u, v)) parent[find(i)] = find(j);
       }
       const by = new Map<number, Geo[]>();
       list.forEach((g, i) => { const r = find(i); (by.get(r) ?? by.set(r, []).get(r)!).push(g); });
-      for (const g of by.values()) groups.push(g.sort((u, v) => u.a0 - v.a0));
+      for (const g of by.values()) rows.push(g.sort((u, v) => u.a0 - v.a0));
     }
-    return groups;
+    return rows;
+  };
+  // Lines: pieces of a row whose ends come within 3 heights (of the smaller run) of each other.
+  const baselineGroups = (items: TextItem[]): Geo[][] => {
+    const out: Geo[][] = [];
+    for (const row of rowsOf(items)) {
+      let cur: Geo[] = [];
+      for (const g of row) {
+        const last = cur[cur.length - 1];
+        if (last && g.a0 - Math.max(...cur.map((c) => c.a1)) <= 3 * Math.min(last.h, g.h) && likeHeights(last, g)) cur.push(g);
+        else { if (cur.length) out.push(cur); cur = [g]; }
+      }
+      if (cur.length) out.push(cur);
+    }
+    return out;
   };
   const joins = (g: Geo[]) => {
     const spaced = g.map((x) => x.t.s.trim()).join(' ');
@@ -428,28 +477,80 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   // identity rule - seeds, company words, licence numbers, contacts - but not by the vocabulary, since two labels
   // that merely touch ("MEETING ROOM 102" against "STORE 103") make a non-word that names nobody.
   const tightLeaks = (x: string) => !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
-  const lineLeaks = (g: Geo[]) => { const [spaced, tight] = joins(g); return textLeaks(spaced) || tightLeaks(tight); };
+  // A structural character (a grid letter in its bubble, a switching letter at its fitting) is not part of a line.
+  const lineLeaks = (g0: Geo[]) => {
+    const g = g0.filter((x) => !structural(x.t));
+    if (!g.length) return false;
+    const [spaced, tight] = joins(g);
+    return textLeaks(spaced, { dimension: g.every((x) => x.t.dim), codeContext: g.every((x) => codeContext(x.t) || rowContext.has(x.t)) }) || tightLeaks(tight);
+  };
   const groupLeaks = (g: Geo[]) => g.length > 1 && lineLeaks(g);
-  const stackLeaks = (upper: string[], lower: string[]) => upper.some((a) => lower.some((b) => [`${a} ${b}`, `${a}${b}`].some((j) => namesParty(j) || !!seedHit(j, seeds))));
+  // DIGIT RUNS (third review): along a row, consecutive runs that are only digits (no unit, not a dimension's own
+  // text) within 6 heights of each other are one number; 6 digits or more is a phone, a plot or a licence, and every
+  // run of it is withheld. The same down a column of lines stacked within 3 heights.
+  const numeric = (t: TextItem) => !t.dim && /\d/.test(t.s) && /^[\d\s.,\-()\/+]+$/.test(t.s.trim());
+  const digitRuns = (seq: Geo[], gapH: number) => {
+    const hit: TextItem[][] = [];
+    let run: Geo[] = [];
+    const flush = () => { if (run.length && run.map((x) => x.t.s).join('').replace(/\D/g, '').length >= 6) hit.push(run.map((x) => x.t)); run = []; };
+    for (const g of seq) {
+      if (!numeric(g.t)) { flush(); continue; }
+      const last = run[run.length - 1];
+      if (last && g.a0 - last.a1 > gapH * Math.min(last.h, g.h)) flush();
+      run.push(g);
+    }
+    flush();
+    return hit;
+  };
+  const stackLeaks = (upper: string[], lower: string[]) => upper.some((a) => lower.some((b) => [`${a} ${b}`, `${a}${b}`].some((j) => namesParty(j) || !!seedHit(j, seeds) || bareDigitRun(j))));
+  type Line = { g: Geo[]; perp: number; a0: number; a1: number; h: number; text: string[] };
+  // Two lines stacked within 2.4 heights are read together for a party or a contact.
   const stackedPairs = (groups: Geo[][]) => {
-    const lines = groups.map((g) => ({ g, ang: g[0].ang, perp: g.reduce((n, x) => n + x.perp, 0) / g.length, a0: Math.min(...g.map((x) => x.a0)), a1: Math.max(...g.map((x) => x.a1)), h: Math.max(...g.map((x) => x.h)), text: joins(g) }));
-    const pairs: [typeof lines[number], typeof lines[number]][] = [];
-    const byA = new Map<number, typeof lines>();
-    for (const l of lines) (byA.get(l.ang) ?? byA.set(l.ang, []).get(l.ang)!).push(l);
-    for (const list of byA.values()) {
-      list.sort((u, v) => u.perp - v.perp);
-      const hMax = Math.max(...list.map((l) => l.h));
-      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 2.4 * hMax; j++) {
-        const lo = list[i], up = list[j], h = Math.max(lo.h, up.h), d = up.perp - lo.perp;
+    const pairs: [Line, Line][] = [];
+    for (const cl of angleClusters(groups.flat().map((x) => x.t))) {
+      const set = new Set(cl);
+      const lines: Line[] = groups.filter((g) => set.has(g[0].t)).map((g0) => {
+        const g = geoIn(g0.map((x) => x.t)).sort((u, v) => u.a0 - v.a0);
+        return { g, perp: g.reduce((n, x) => n + x.perp, 0) / g.length, a0: Math.min(...g.map((x) => x.a0)), a1: Math.max(...g.map((x) => x.a1)), h: Math.max(...g.map((x) => x.h)), text: joins(g) };
+      }).sort((u, v) => u.perp - v.perp);
+      const hMax = Math.max(...lines.map((l) => l.h));
+      for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length && lines[j].perp - lines[i].perp <= 2.4 * hMax; j++) {
+        const lo = lines[i], up = lines[j], h = Math.max(lo.h, up.h), d = up.perp - lo.perp;
         if (d <= 0.6 * h || d > 2.4 * h || Math.max(up.a0 - lo.a1, lo.a0 - up.a1) > h) continue;
         pairs.push([up, lo]);
       }
     }
     return pairs;
   };
+  // Numbers stacked in a column (third review: "050" / "123" / "4567" at 1.7 heights, "050 123" / "4567" at 2.5):
+  // digit-only runs one under another within 3 heights, overlapping along the baseline, are one number.
+  const columnDigits = (items: TextItem[]) => {
+    const out: TextItem[][] = [];
+    for (const cl of angleClusters(items.filter(numeric))) {
+      const list = geoIn(cl), parent = list.map((_, i) => i);
+      const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+      const hMax = Math.max(...list.map((g) => g.h));
+      for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length && list[j].perp - list[i].perp <= 3 * hMax; j++) {
+        const u = list[i], v = list[j], h = Math.min(u.h, v.h), d = v.perp - u.perp;
+        if (d <= 3 * h && Math.max(v.a0 - u.a1, u.a0 - v.a1) <= h) parent[find(i)] = find(j);
+      }
+      const by = new Map<number, TextItem[]>();
+      list.forEach((g, i) => { const r = find(i); (by.get(r) ?? by.set(r, []).get(r)!).push(g.t); });
+      for (const c of by.values()) if (c.length > 1 && c.map((t) => t.s).join('').replace(/\D/g, '').length >= 6) out.push(c);
+    }
+    return out;
+  };
+
+  const out = new Set<TextItem>();
   const allGroups = baselineGroups(texts);
+  // A short code in a legend or schedule row ("SD" beside "- SMOKE DETECTOR") has its context in the row itself.
+  for (const g of allGroups) if (g.length > 1 && !shortCodeOnly(joins(g)[0])) for (const x of g) rowContext.add(x.t);
+  const identity = (t: TextItem) => t.frame || partyTag(t.tag) || big(t) || (!structural(t) && textLeaks(t.s, { dimension: t.dim, codeContext: codeContext(t) || rowContext.has(t) }));
+  for (const t of texts) if (identity(t)) out.add(t);
   for (const g of allGroups) if (groupLeaks(g)) for (const x of g) out.add(x.t);
+  for (const row of rowsOf(texts)) for (const run of digitRuns(row, 6)) for (const t of run) out.add(t);
   for (const [up, lo] of stackedPairs(allGroups)) if (stackLeaks(up.text, lo.text)) for (const x of [...up.g, ...lo.g]) out.add(x.t);
+  for (const run of columnDigits(texts)) for (const t of run) out.add(t);
   // A label takes its value with it: the words to its right on the same line, and the cell under it.
   for (const l of texts) {
     if (!l.label) continue;
@@ -506,8 +607,15 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   // page (removing a run can join two others). The pixels are re-read by OCR in scan_redact.check.ts.
   const drawnTexts = kept.map((t) => t.s);
   const keptGroups = baselineGroups(kept);
-  const leak = keptGroups.filter(lineLeaks).length + stackedPairs(keptGroups).filter(([up, lo]) => stackLeaks(up.text, lo.text)).length;
+  const leak = keptGroups.filter(lineLeaks).length + stackedPairs(keptGroups).filter(([up, lo]) => stackLeaks(up.text, lo.text)).length
+    + rowsOf(kept).reduce((n, row) => n + digitRuns(row, 6).length, 0) + columnDigits(kept).length + kept.filter(big).length;
   if (leak) return { ok: false, reason: 'residual', detail: `${leak} drawn line(s) still read as identity` };
+  // TEXT DRAWN AS GEOMETRY (third review of #967): SHX text exploded, or a PDF converted to DWG, writes words as
+  // short polylines - no TEXT entity to judge. Rows of glyph-sized clusters of model-space linework (not a device
+  // symbol, not a dimension) HOLD the page; the CAD worker then OCRs the rendered page as well (scan_redact
+  // verifyRenderedCad) before any CAD page is published.
+  const vt = vectorTextRows(ink.filter((_, i) => !inkSym[i]));
+  if (vt.rows) return { ok: false, reason: 'vector_text', detail: `${vt.rows} row(s) of glyph-sized linework (${vt.glyphs} glyphs) read as text drawn as geometry` };
   for (const t of kept) counts.unknown_glyphs += t.unknown;
   if (counts.unknown_glyphs) notes.push(`${counts.unknown_glyphs} character(s) outside the Latin stroke font (for example Arabic) are drawn as boxes; the take-off still reads them.`);
   if (counts.paper_space_skipped) notes.push(`${counts.paper_space_skipped} paper-space entities (sheet layouts, where title blocks live) are not drawn.`);
@@ -576,7 +684,8 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   };
   for (const b of blackRegions) black(b, 3, 'title');
   for (const b of withheldBoxes) black(b, 2, 'text');
-  return { ok: true, rgba: bm, width: W, height: H, drawn_texts: drawnTexts, withheld: { texts: out.size, regions: blackRegions.length, samples_redacted: withheldBoxes.length }, counts, notes, regions_px: regionsPx };
+  const textsPx = kept.map((t) => { const x = Math.floor(px(t.box.x0)), y = Math.floor(py(t.box.y1)); return { x, y, w: Math.ceil(px(t.box.x1)) - x, h: Math.ceil(py(t.box.y0)) - y }; });
+  return { ok: true, rgba: bm, width: W, height: H, drawn_texts: drawnTexts, withheld: { texts: out.size, regions: blackRegions.length, samples_redacted: withheldBoxes.length }, counts, notes, regions_px: regionsPx, texts_px: textsPx };
 }
 
 /** The same, as a promise (callers await it; the work is synchronous CPU). */

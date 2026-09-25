@@ -112,7 +112,14 @@ async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promis
   const { cadPage } = await import('../supabase/functions/_shared/drawing_redact_page.ts');
   const page = await cadPage(bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS });
   if (!page.ok) return { redaction_complete: false, held_reason: page.skipped };
-  return publishPages(job, key, [page.jpg], { method: 'cad_render', pages: [{ page: 0, ...page.detail }] });
+  // READ BACK BEFORE PUBLISHING (third review of #967): words drawn as lines are geometry cad_render cannot judge.
+  // The drawn page is OCR'd all four ways up; a party read anywhere, a word read where no text was drawn, or a row of
+  // unread text-like ink holds it (_shared/scan_redact.ts verifyRenderedCad).
+  const { verifyRenderedCad } = await import('../supabase/functions/_shared/scan_redact.ts');
+  const { withOcrBudget } = await import('./lib/scan_ocr.ts');
+  const check = await withOcrBudget('eng', CAD_OCR_MS, 'the CAD page re-read', (ocr) => verifyRenderedCad({ w: page.image.width, h: page.image.height, rgba: page.image.bitmap }, ocr, seeds, page.texts_px));
+  if (!check.ok) return { redaction_complete: false, held_reason: 'cad_ocr_' + check.held, pages: [{ page: 0, held: check.held, ...check.detail }] };
+  return publishPages(job, key, [page.jpg], { method: 'cad_render', pages: [{ page: 0, ...page.detail, reread: check.detail }] });
 }
 
 // A SCANNED DRAWING OR A PHOTO, REDACTED BY OCR (24 Sep 2026, sales_engineer; founder instruction 579: "OCR for
@@ -125,27 +132,30 @@ async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promis
 // OCR passes, measured 25 Sep 2026 at about 60 s for the ZZ scan's 2600 x 1400 page. customer_api sends at most 20
 // pages (MAX_DRAWING_PAGES), so the budget is 30 minutes, inside the workflow's 75.
 export const SCAN_JOB_MS = 30 * 60_000;
+/** The CAD page's read-back: four OCR passes of one page. */
+export const CAD_OCR_MS = 4 * 60_000;
 export async function scanDrawing(job: Job, key: string, pages: string[]): Promise<Record<string, unknown>> {
   const seeds = await seedsOf(job);
   const { Image } = await import('https://deno.land/x/imagescript@1.2.17/mod.ts');
   const { redactScan } = await import('../supabase/functions/_shared/scan_redact.ts');
-  const { tesseractOcr } = await import('./lib/scan_ocr.ts');
-  const engine = await tesseractOcr('eng+ara');
+  const { withOcrBudget } = await import('./lib/scan_ocr.ts');
   const jpgs: Uint8Array[] = [];
   const detail: Record<string, unknown>[] = [];
-  try {
+  const held = await withOcrBudget('eng+ara', SCAN_JOB_MS, 'the OCR', async (ocr) => {
     for (let i = 0; i < pages.length; i++) {
       const r = await fetch(`${BASE}/storage/v1/object/drawing-files/${pages[i].split('/').map(encodeURIComponent).join('/')}`, { headers: { Authorization: 'Bearer ' + key, apikey: key }, signal: AbortSignal.timeout(60_000) });
       if (!r.ok) throw new Error(`scan page ${i + 1} could not be downloaded (HTTP ${r.status})`);
       const img = await Image.decode(new Uint8Array(await r.arrayBuffer()));
-      const out = await redactScan({ w: img.width, h: img.height, rgba: img.bitmap }, engine.ocr, seeds);
+      const out = await redactScan({ w: img.width, h: img.height, rgba: img.bitmap }, ocr, seeds);
       if (!out.ok) return { redaction_complete: false, held_reason: 'scan_' + out.held, pages: [...detail, { page: i, held: out.held, ...out.detail }] };
       const painted = new Image(out.image.w, out.image.h);
       painted.bitmap.set(out.image.rgba);
       jpgs.push(await painted.encodeJPEG(85));   // from pixels: no text layer, no EXIF, no metadata
       detail.push({ page: i, ...out.detail });
     }
-  } finally { await engine.done(); }
+    return null;
+  });
+  if (held) return held;
   return publishPages(job, key, jpgs, { method: 'scan_ocr', pages: detail });
 }
 
@@ -185,8 +195,8 @@ async function runJob(job: Job, key: string): Promise<void> {
   if (job.why === 'scan_needs_ocr') {
     const pages = Array.isArray(job.boq_in?.scan_pages) ? job.boq_in.scan_pages.map(String) : [];
     if (!pages.length) throw new Error('a scan job with no stored pages');
-    const scanBudget = new Promise<never>((_, no) => setTimeout(() => no(new Error('the OCR ran past its 30-minute budget')), SCAN_JOB_MS));
-    const drawing = await Promise.race([scanDrawing(job, key, pages), scanBudget]);
+    // The budget is enforced inside scanDrawing, where the OCR engine is terminated when it runs out.
+    const drawing = await scanDrawing(job, key, pages);
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'scan', ms: Math.round(performance.now() - t0), ...drawing }))}::jsonb where id = ${lit(job.id)}::uuid`);
     console.log(`job ${job.id}: scan ${drawing.redaction_complete ? 'published' : 'held (' + drawing.held_reason + ')'}, ${pages.length} page(s), ${Math.round(performance.now() - t0)} ms`);
     return;

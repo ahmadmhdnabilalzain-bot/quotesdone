@@ -325,15 +325,13 @@ Deno.serve(observe('drawing_redact', async (req) => {
         const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: out.skipped, detail: out.detail ?? null }] } });
         return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: out.skipped, redaction_complete: false });
       }
-      const path = `${prefix}_p0.jpg`;
-      const up = await admin.storage.from('drawing-files').upload(path, out.jpg, { contentType: 'image/jpeg', upsert: true });
-      if (up.error) {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'upload_failed' }] } });
-        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: 'upload_failed', redaction_complete: false });
-      }
-      const detail = { method: 'cad_render', pages: [{ page: 0, ...out.detail }] };
-      const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
-      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, pages_verified: 1, verify_failed: 0, status: recorded ? 'complete' : 'unrecorded', method: 'cad_render', verify_detail: detail.pages, redaction_complete: recorded });
+      // THE EDGE NEVER PUBLISHES A CAD PAGE (third review of #967, 25 Sep 2026). Words drawn as LINES (exploded SHX
+      // text, a PDF converted to DWG) are geometry the renderer cannot judge, and only an OCR of the drawn page can
+      // read them; the edge has no OCR. A page that draws cleanly here is HELD as cad_needs_ocr, and customer_api
+      // queues it for the CAD worker, which draws it again, reads it back all four ways up
+      // (_shared/scan_redact.ts verifyRenderedCad) and publishes it only if nothing is read that should not be.
+      const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'cad_needs_ocr', ...out.detail }] } });
+      return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: 'cad_needs_ocr', redaction_complete: false });
     }
 
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];

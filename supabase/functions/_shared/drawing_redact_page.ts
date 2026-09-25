@@ -86,7 +86,7 @@ export async function serverBoxedPage(raster: Uint8Array, pdf: PdfPage[], pageIn
 }
 
 export type CadOut =
-  | { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown>; drawn_texts: string[] }
+  | { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown>; drawn_texts: string[]; texts_px: { x: number; y: number; w: number; h: number }[] }
   | { ok: false; skipped: string; detail?: string };
 
 const isDwg = (b: Uint8Array) => /^AC10\d\d$/.test(new TextDecoder('latin1').decode(b.subarray(0, 6)));
@@ -109,6 +109,6 @@ export async function cadPage(original: Uint8Array, seeds: string[], opts: { max
   image.bitmap.set(g.rgba);
   // Encoded from pixels this module drew: no EXIF, no XMP, no comment segment.
   const jpg = await image.encodeJPEG(85);
-  return { ok: true, jpg, image, drawn_texts: g.drawn_texts,
+  return { ok: true, jpg, image, drawn_texts: g.drawn_texts, texts_px: g.texts_px,
     detail: { width: g.width, height: g.height, texts_withheld: g.withheld.texts, title_regions: g.withheld.regions, ...g.counts, notes: g.notes } };
 }

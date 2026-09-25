@@ -68,9 +68,20 @@ try {
   check('no name from the file in the BOQ the portal will send', leaked(lines).length === 0, JSON.stringify(leaked(lines)));
   const q = (re) => lines.filter((l) => re.test(String(l.description))).map((l) => l.qty);
   check('every quantity survives (FCU 24, diffusers 12, fans 6)', q(/FCU/)[0] === 24 && q(/DIFFUSERS/)[0] === 12 && q(/EXHAUST FANS/)[0] === 6, JSON.stringify([q(/FCU/), q(/DIFFUSERS/), q(/EXHAUST FANS/)]));
-  const pages = Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths : [];
-  check('the CAD drawing is drawn for suppliers with its identity left out (one recorded page, not held)', res.redaction_complete === true && pages.length === 1 && res.drawing_held === false,
-    `redaction_complete ${res.redaction_complete}, ${pages.length} page(s), held ${res.drawing_held}`);
+  // Since the third review of #967 the edge never publishes a CAD page: it queues it (cad_queued) and the CAD worker
+  // draws it, reads it back by OCR all four ways up, and only then publishes it. The customer's portal polls
+  // cad_read_status for the page, and so does this journey.
+  const cadJob = res.cad_job_id;
+  check('the edge queues the CAD drawing for the worker\'s OCR read-back and publishes nothing itself', res.note === 'cad_queued' && !!cadJob && (res.drawing_redacted_paths || []).length === 0,
+    `note ${res.note}, job ${cadJob || '-'}, ${(res.drawing_redacted_paths || []).length} page(s) from the edge`);
+  let st = null;
+  for (let i = 0; cadJob && i < 60 && !(st?.json?.status === 'done' || st?.json?.status === 'failed'); i++) {
+    if (i) await new Promise((r) => setTimeout(r, 10000));
+    st = await call('customer_api', cust.jwt, { action: 'cad_read_status', job_id: cadJob });
+  }
+  const pages = Array.isArray(st?.json?.drawing_redacted_paths) ? st.json.drawing_redacted_paths : [];
+  check('the CAD worker drew it, read it back and published one page with its identity left out', st?.json?.status === 'done' && pages.length === 1 && st?.json?.drawing_held === false,
+    `status ${st?.json?.status}, ${pages.length} page(s)`);
 
   const answers = [
     'Budget around AED 90,000. HVAC only: supply and install ductwork, fan coil units, diffusers and exhaust fans in an existing office in Dubai, as per the attached CAD take-off.',
@@ -88,7 +99,7 @@ try {
     intake = { ...intake, status: r.json?.status ?? intake.status, missing: Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [], turns: intake.turns + 1 };
   }
   check('the intake reached ready', intake.status === 'ready', `${intake.status}, missing ${intake.missing.join(', ')}`);
-  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: res.redaction_job_id || null, boq: res.boq, brief_source: 'drawing' };
+  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: st?.json?.redaction_job_id || null, boq: res.boq, brief_source: 'drawing' };
   const ci = await call('customer_api', cust.jwt, { action: 'create_inquiry', intake_id: intake.intakeId, category: 'hvac', emirate: 'Dubai', trades: ['hvac'], scope_type: 'single', summary: 'ZZ DEMO HVAC per CAD take-off', raw_input: answers.join('\n'), spec: {}, drawing }, 120000);
   const iid = ci.json?.id ?? ci.json?.inquiry_id ?? null;
   check('create_inquiry posted the request', !!iid, `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);

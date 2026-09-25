@@ -56,8 +56,11 @@ export const READ_CONF = 50;
  *  (mean word confidence): upside down, "OFFICE 101" reads as Arabic-looking junk at 66-76 against 86-90 upright.
  *  A narrower margin keeps BOTH readings, and each is judged - the fail-closed side. */
 const BETTER_BY = 10;
-/** Text-like ink: a connected blob whose longer side is between these shares of the page's shorter / longer side. */
-const GLYPH_MIN = 0.006, GLYPH_MAX = 0.05;
+/** Text-like ink: a connected blob whose longer side is between these shares of the page's shorter / longer side.
+ *  Third review of #967: 0.05 missed "OMEGA" underlined (one blob 161 px wide on a 2600 px page); 0.08 takes it. */
+const GLYPH_MIN = 0.006, GLYPH_MAX = 0.08;
+/** Below a glyph but not speckle: blobs this many pixels across (or more) that stand in a row are small print. */
+const SUB_MIN = 3;
 
 /**
  * x positions (0..1) of long vertical ruled lines: columns whose longest dark run is at least half the page
@@ -161,17 +164,33 @@ function paint(img: Rgba, mask: Uint8Array): Rgba {
 }
 
 /**
- * Text-like ink that nothing READ covers: dark connected blobs the size of a glyph (GLYPH_MIN..GLYPH_MAX of the
- * page), not under a painted box and not inside (a little beyond) a word OCR read, linked to their neighbours
- * within a glyph's height. Returns the clusters of two or more such blobs: each is text no one has read. Walls,
- * frames and painted boxes are one large blob and are not glyphs; scanner speckle is smaller than a glyph.
+ * The page's paper, and what counts as INK on it. Third review of #967: ink judged as "darker than mid-grey" missed
+ * a grey watermark (200), grey text (190) and a light-blue stamp (120, 170, 240). Ink is now any pixel whose DARKEST
+ * channel is 20 below the paper - the 90th percentile of the darkest channel, sampled - and never lighter than 235.
  */
-export function unreadInk(img: Rgba, covered: PB[], painted: Uint8Array = new Uint8Array(img.w * img.h)): PB[] {
+export function inkLevel(img: Rgba): number {
+  const n = img.w * img.h, step = Math.max(1, Math.floor(n / 50_000)), v: number[] = [];
+  for (let i = 0; i < n; i += step) v.push(Math.min(img.rgba[i * 4], img.rgba[i * 4 + 1], img.rgba[i * 4 + 2]));
+  v.sort((x, y) => x - y);
+  return Math.min(235, v[Math.floor(v.length * 0.9)] - 20);
+}
+
+/**
+ * Text-like ink that nothing READ covers. Ink blobs (inkLevel) that are not under a painted box and whose middle is
+ * not inside (a little beyond) something OCR read are OPEN. Returned, as boxes:
+ *   - every cluster of `minCluster` or more open GLYPH-sized blobs (GLYPH_MIN..GLYPH_MAX of the page), linked to
+ *     neighbours within a glyph's size. Scans use 1 (third review: an underlined word is ONE blob, and "unread text is
+ *     held only in twos" let it through); a rendered CAD page uses 3, since its device symbols are single blobs;
+ *   - every ROW of 4 or more open blobs smaller than a glyph but SUB_MIN pixels or more, of like size, on one
+ *     line, each within twice its size of the next: small print (third review: 11 px type was below a glyph).
+ * Walls, frames and painted boxes are larger than a glyph; scanner speckle is smaller than SUB_MIN.
+ */
+export function unreadInk(img: Rgba, covered: PB[], painted: Uint8Array = new Uint8Array(img.w * img.h), o: { minCluster?: number } = {}): PB[] {
   const { w: W, h: H } = img, lab = new Uint8Array(W * H);
-  const lo = GLYPH_MIN * Math.min(W, H), hi = GLYPH_MAX * Math.max(W, H);
+  const lo = GLYPH_MIN * Math.min(W, H), hi = GLYPH_MAX * Math.max(W, H), level = inkLevel(img);
   // A painted pixel is a box, not ink, so ink touching a box is judged on its own.
-  const dark = (i: number) => !painted[i] && (img.rgba[i * 4] + img.rgba[i * 4 + 1] + img.rgba[i * 4 + 2]) < 384;
-  const blobs: (PB & { n: number })[] = [];
+  const dark = (i: number) => !painted[i] && Math.min(img.rgba[i * 4], img.rgba[i * 4 + 1], img.rgba[i * 4 + 2]) < level;
+  const blobs: (PB & { n: number })[] = [], subs: (PB & { n: number })[] = [];
   const stack: number[] = [];
   for (let s = 0; s < W * H; s++) {
     if (lab[s] || !dark(s)) continue;
@@ -187,18 +206,54 @@ export function unreadInk(img: Rgba, covered: PB[], painted: Uint8Array = new Ui
     }
     const size = Math.max(b.x1 - b.x0 + 1, b.y1 - b.y0 + 1);
     if (size >= lo && size <= hi && b.n >= 12) blobs.push(b);
+    else if (size >= SUB_MIN && size < lo && b.n >= 4) subs.push(b);
   }
   const cov = (b: PB) => { const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2; return covered.some((c) => { const p = 0.35 * Math.max(8, Math.min(c.x1 - c.x0, c.y1 - c.y0)); return cx >= c.x0 - p && cx <= c.x1 + p && cy >= c.y0 - p && cy <= c.y1 + p; }); };
-  const open = blobs.filter((b) => !cov(b));
-  const parent = open.map((_, i) => i);
-  const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  for (let i = 0; i < open.length; i++) for (let j = i + 1; j < open.length; j++) {
-    const a = open[i], c = open[j], g = Math.max(a.x1 - a.x0, a.y1 - a.y0, c.x1 - c.x0, c.y1 - c.y0);
-    if (Math.max(c.x0 - a.x1, a.x0 - c.x1) <= g && Math.max(c.y0 - a.y1, a.y0 - c.y1) <= g) parent[find(i)] = find(j);
-  }
-  const groups = new Map<number, PB[]>();
-  open.forEach((b, i) => { const r = find(i); (groups.get(r) ?? groups.set(r, []).get(r)!).push(b); });
-  return [...groups.values()].filter((g) => g.length >= 2).map((g) => ({ x0: Math.min(...g.map((b) => b.x0)), y0: Math.min(...g.map((b) => b.y0)), x1: Math.max(...g.map((b) => b.x1)), y1: Math.max(...g.map((b) => b.y1)) }));
+  const cluster = (list: PB[], link: (a: PB, c: PB) => boolean) => {
+    const parent = list.map((_, i) => i);
+    const find = (i: number): number => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+    const order = list.map((_, i) => i).sort((i, j) => list[i].x0 - list[j].x0);
+    const reach = Math.max(0, ...list.map((b) => 2 * Math.max(b.x1 - b.x0, b.y1 - b.y0)));
+    for (let ii = 0; ii < order.length; ii++) for (let jj = ii + 1; jj < order.length && list[order[jj]].x0 - list[order[ii]].x1 <= reach; jj++) {
+      if (link(list[order[ii]], list[order[jj]])) parent[find(order[ii])] = find(order[jj]);
+    }
+    const groups = new Map<number, PB[]>();
+    list.forEach((b, i) => { const r = find(i); (groups.get(r) ?? groups.set(r, []).get(r)!).push(b); });
+    return [...groups.values()];
+  };
+  const hull = (g: PB[]): PB => ({ x0: Math.min(...g.map((b) => b.x0)), y0: Math.min(...g.map((b) => b.y0)), x1: Math.max(...g.map((b) => b.x1)), y1: Math.max(...g.map((b) => b.y1)) });
+  const sz = (b: PB) => Math.max(b.x1 - b.x0, b.y1 - b.y0);
+  const glyphs = cluster(blobs.filter((b) => !cov(b)), (a, c) => { const g = Math.max(sz(a), sz(c)); return Math.max(c.x0 - a.x1, a.x0 - c.x1) <= g && Math.max(c.y0 - a.y1, a.y0 - c.y1) <= g; })
+    .filter((g) => g.length >= (o.minCluster ?? 1)).map(hull);
+  const rows = cluster(subs.filter((b) => !cov(b)), (a, c) => {
+    const s1 = sz(a), s2 = sz(c), g = Math.max(s1, s2);
+    if (g > 2.5 * Math.min(s1, s2)) return false;
+    const overlap = Math.min(a.y1, c.y1) - Math.max(a.y0, c.y0);
+    return overlap >= 0.3 * Math.min(a.y1 - a.y0 + 1, c.y1 - c.y0 + 1) && Math.max(c.x0 - a.x1, a.x0 - c.x1) <= 2 * g;
+  }).filter((g) => g.length >= 4).map(hull);
+  return [...glyphs, ...rows];
+}
+
+/**
+ * A CAD page drawn by cad_render, read back by OCR before it is published (third review of #967: text drawn as
+ * geometry - SHX exploded, a PDF converted to DWG - is linework cad_render cannot judge). Read all four ways up;
+ * HOLD when:
+ *   - any line reads as a party: a company word, a licence number, a contact, a party label, a seed (fuzzily);
+ *   - a word of 3 or more letters is read where cad_render drew NO text (`textsPx`): words drawn as lines;
+ *   - text-like ink no read word and no drawn text covers stands in a row of 3 or more glyphs, or as small print.
+ */
+export async function verifyRenderedCad(img: Rgba, ocr: Ocr, seeds: string[], textsPx: { x: number; y: number; w: number; h: number }[]): Promise<{ ok: true; detail: Record<string, unknown> } | { ok: false; held: 'identity_read_back' | 'text_drawn_as_geometry' | 'unread_ink'; detail: Record<string, unknown> }> {
+  const all = standing(await readAllWays(img, ocr));
+  const drawn: PB[] = textsPx.map((t) => ({ x0: t.x, y0: t.y, x1: t.x + t.w, y1: t.y + t.h }));
+  const onDrawn = (b: PB) => drawn.some((d) => overlap(b, d) >= 0.5);
+  const party = all.filter((l) => namesParty(l.text) || partyLabel(l.text) || !!seedHit(l.text, seeds) || residualScan(l.text, seeds).length > 0);
+  if (party.length) return { ok: false, held: 'identity_read_back', detail: { lines: party.length } };
+  const geometry = all.filter((l) => /[A-Za-z]{3,}/.test(readText(l)) && !onDrawn(l.bbox));
+  if (geometry.length) return { ok: false, held: 'text_drawn_as_geometry', detail: { lines: geometry.length, sample: geometry.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf), at: l.bbox })) } };
+  const read = all.flatMap((l) => l.words.filter((w) => w.conf >= READ_CONF && ALNUM.test(w.text)).map((w) => w.bbox));
+  const unread = unreadInk(img, [...drawn, ...read], undefined, { minCluster: 3 });
+  if (unread.length) return { ok: false, held: 'unread_ink', detail: { clusters: unread.length, at: unread.slice(0, 12) } };
+  return { ok: true, detail: { method: 'cad_ocr_reread', lines: all.length, orientations: 4 } };
 }
 
 export type ScanResult =
@@ -247,8 +302,9 @@ export async function redactScan(img: Rgba, ocr: Ocr, seeds: string[]): Promise<
   // the boxes that is not drawing content.
   const left = second.filter((r) => namesParty(r.text) || partyLabel(r.text) || residualScan(r.text, again).length > 0 || !!seedHit(r.text, again) || (!under(r) && notContent(r)));
   if (left.length) return { ok: false, held: 'identity_survived_reocr', detail: { lines: left.length, sample: left.slice(0, 3).map((l) => ({ q: l.q, conf: Math.round(l.conf) })) } };
-  // Everything that looks like text must have been read: a word read at READ_CONF, at any orientation, covers it.
-  const read = second.flatMap((l) => l.words.filter((w) => w.conf >= READ_CONF && ALNUM.test(w.text)).map((w) => w.bbox));
+  // Everything that looks like text must have been read: a word read at READ_CONF, at any orientation, covers it,
+  // and so does the line it stands in (a dash or a colon between read words).
+  const read = second.flatMap((l) => { const ws = l.words.filter((w) => w.conf >= READ_CONF && ALNUM.test(w.text)); return ws.length ? [...ws.map((w) => w.bbox), l.bbox] : []; });
   const unread = unreadInk(painted, read, mask);
   if (unread.length) return { ok: false, held: 'unread_ink', detail: { clusters: unread.length, at: unread.slice(0, 12) } };
   return { ok: true, image: painted, boxes, detail: { method: 'scan_ocr', words: ws.length, title_conf: Math.round(titleConf), boxes: boxes.length, reocr_lines: second.length, orientations: 4 } };

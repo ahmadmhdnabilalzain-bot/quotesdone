@@ -48,24 +48,47 @@ function tokenOk(w: string): boolean {
   return tradeWord(w);
 }
 
+/** A drawing's spellings folded before its words are read: "MAID'S" -> "MAIDS", "W.C." -> "WC", "A/C" -> "AC". */
+const spelled = (t: string) => t.replace(/(\p{L})['\u2019]S\b/giu, '$1S').replace(/\b([A-Za-z])[.\/]([A-Za-z])\b\.?/g, '$1$2');
+/** A bare run of digits (spaces, dots, dashes, brackets between them) with no unit: a phone, a plot, a licence. */
+const BARE_DIGITS = /^[\d\s.,\-()\/+]+$/;
+export const bareDigitRun = (text: string) => BARE_DIGITS.test(String(text || '').trim()) && String(text).replace(/\D/g, '').length >= 6;
+/** Two-letter words that are also initials (DP, MZ, SK, AL, EL, DB ...) - except these few, which name no one. */
+const SAFE_PAIRS = new Set(['up', 'dn', 'wc', 'ac']);
+
+/**
+ * A text made only of short codes, at least one of them two letters ("DP", "AL BAR", "SD", "EL"): a code, or
+ * someone's initials. Third review of #967: drawn alone, even at logo size. It passes only in a CONTEXT the caller
+ * proves (cad_render: beside a device symbol, in a legend or schedule row, inside a grid bubble); on its own it is
+ * withheld.
+ */
+export function shortCodeOnly(text: string): boolean {
+  const toks = spelled(String(text || '')).split(/[^A-Za-z0-9]+/).filter(Boolean);
+  return toks.length > 0 && toks.every((w) => /^[A-Za-z]{1,3}$/.test(w)) && toks.some((w) => w.length === 2 && !SAFE_PAIRS.has(w.toLowerCase()));
+}
+
 /**
  * True when a text reads as drawing content a supplier needs; false means withhold it. FAIL CLOSED: anything
  * carrying a company word, a licence number, a contact or a party label is not content; nor is Arabic (not in
  * the vocabulary yet), any other non-Latin letter, letter-spaced text, or a lone letter (a name split one glyph
  * per TEXT). Otherwise EVERY token must be a number, a size or device code, or a trade word; a short word passes
- * only if it is in the closed list (drawing_vocabulary CODES) - "DAR", "WSP", "ORB" do not.
+ * only if it is in the closed list (drawing_vocabulary CODES) - "DAR", "WSP", "ORB" do not. Third review of
+ * #967: a bare run of 6 or more digits is withheld unless it is a dimension's own text (`o.dimension`), and a
+ * text of short codes alone (shortCodeOnly) is withheld unless the caller has proved its context (`o.codeContext`).
  */
-export function isDrawingContent(text: string): boolean {
+export function isDrawingContent(text: string, o: { dimension?: boolean; codeContext?: boolean } = {}): boolean {
   const t0 = String(text || '').replace(/\s+/g, ' ').trim();
   if (!t0) return false;
-  const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
+  const t = spelled(t0.replace(INSTRUCTION, ' ')).replace(/\s+/g, ' ').trim();
   if (!t) return true;
   if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || ID_LABEL.test(t)) return false;
   if (/[\u0600-\u06ff]/.test(t) || FOREIGN.test(t) || MAILISH.test(t)) return false;
   if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
+  if (!o.dimension && bareDigitRun(t)) return false;
   const toks = t.split(/[^A-Za-z0-9]+/).filter(Boolean);
   if (!toks.length) return !/[@#]/.test(t);                          // bare punctuation: "<>", "-", "="
   if (toks.length === 1 && /^[A-Za-z]$/.test(toks[0])) return false; // a lone letter
+  if (!o.codeContext && shortCodeOnly(t)) return false;
   return toks.every(tokenOk);
 }
 
@@ -134,13 +157,17 @@ export function seedHit(text: string, seeds: string[]): string | null {
   }
   if (!words.length || !toks.length) return null;
   const maxLen = Math.max(...words.map((w) => w.f.length)) + 2;
+  // Third review of #967: "PANEL" hit "Patel", "TILES" and "MARINA" hit "Torres", "RAMPS" hit "Ramos". A token that
+  // is itself a trade or vocabulary word (or a run made only of them) matches a seed EXACTLY or not at all.
+  const trade = raw.split(/[^\p{L}\p{N}]+/u).filter(Boolean).map((w) => tradeWord(w) || /^\d+$/.test(w));
   for (let i = 0; i < toks.length; i++) {
-    let cand = '';
+    let cand = '', allTrade = true;
     for (let j = i; j < toks.length; j++) {
-      cand += toks[j];
+      cand += toks[j]; allTrade = allTrade && !!trade[j];
       if (cand.length > maxLen) break;
       for (const w of words) {
         if (cand === w.f) return w.seed;
+        if (allTrade) continue;
         const k = w.n >= 6 ? 2 : w.n === 5 ? 1 : 0;
         // Two edits only between words that begin AND end alike (MUHAMMAD / Mohammed), so MANSARD is not Mansoori.
         if (k && cand[0] === w.f[0] && (k === 1 || cand[cand.length - 1] === w.f[w.f.length - 1]) && editWithin(cand, w.f, k)) return w.seed;

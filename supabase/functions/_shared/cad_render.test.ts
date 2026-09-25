@@ -13,7 +13,7 @@ import { renderCadForSupplier, frameKind, MAX_TITLE_SHARE } from './cad_render.t
 import { seedTerms } from './anonymise.ts';
 import { dwgToDxf } from './doc_read/dwg.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
-import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzGlyphSheetDxf, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzExplodedTitleDxf, zzGlyphSheetDxf, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
 const lower = (s: string) => s.toLowerCase();
@@ -248,4 +248,96 @@ Deno.test('too dense for the budget is HELD, never half-drawn; not a DXF is refu
   assertEquals(g.ok ? 'drawn' : g.reason, 'too_dense');
   const r = await renderCadForSupplier(new TextEncoder().encode('%PDF-1.4 not a drawing'), { seeds });
   assertEquals(r.ok ? 'drawn' : r.reason, 'unreadable');
+});
+
+// ── THIRD REVIEW OF #967 (25 Sep 2026): every probe is a case ───────────────────────────────────────────────────
+// Evidence: the reviewer's cad_exploded.ts, cad3.ts and over3.ts (scratch, not committed). A sheet of 60 ordinary
+// labels keeps the single-character share low, as the reviewer's did.
+const ROOMS = ['OFFICE 101', 'MEETING ROOM 102', 'CORRIDOR', 'MASTER BEDROOM', 'KITCHEN', 'MAJLIS', 'MAID ROOM', 'TOILET 2', 'STORE', 'LOBBY'];
+const sheet60 = (): Q => [[0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 20000], [20, 0], [10, 20000], [20, 14000], [10, 0], [20, 14000],
+  ...Array.from({ length: 60 }, (_, i) => tx(1000 + (i % 6) * 3000, 13000 - Math.floor(i / 6) * 700, ROOMS[i % 10])).flat() as Q];
+const on60 = (extra: Q, blocks: Q = [], s = seeds) => renderCadForSupplier(dxfFrom([...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]), ...dxfSection('BLOCKS', blocks), ...dxfSection('ENTITIES', [...sheet60(), ...extra])]), { seeds: s, longEdge: 1600 });
+const extraDrawn = (g: Awaited<ReturnType<typeof on60>>) => (g.ok ? g.drawn_texts.filter((t) => !ROOMS.includes(t)) : []);
+
+Deno.test('third review: words exploded to linework HOLD the page (vector_text); ordinary linework does not', async () => {
+  const g = await renderCadForSupplier(zzExplodedTitleDxf(), { seeds });
+  assertEquals(g.ok ? `drawn ${JSON.stringify(g.drawn_texts)}` : g.reason, 'vector_text');
+  // Each exploded line alone is enough.
+  for (const w of [[15300, 10500, 'CLIENT: ZZ OMEGA', 300, '0'], [15300, 9100, 'TEL 04 123 4567', 300, '0'], [15300, 8400, 'RASHID KAREEM', 300, 'A-ANNO']] as [number, number, string, number, string][]) {
+    const one = await renderCadForSupplier(zzExplodedTitleDxf([w]), { seeds });
+    assertEquals(one.ok ? 'drawn' : one.reason, 'vector_text', w[2]);
+  }
+  // A plan of rooms, door swings, a row of identical chairs, device symbols and a dimension is not text.
+  const ln = (x1: number, y1: number, x2: number, y2: number): Q => [[0, 'LINE'], [8, 'A-FURN'], [10, x1], [20, y1], [11, x2], [21, y2]];
+  const chair = (x: number, y: number): Q => [...ln(x, y, x + 450, y), ...ln(x + 450, y, x + 450, y + 450), ...ln(x + 450, y + 450, x, y + 450), ...ln(x, y + 450, x, y)];
+  const door = (x: number, y: number): Q => [[0, 'ARC'], [8, 'A-DOOR'], [10, x], [20, y], [40, 900], [50, 0], [51, 90], ...ln(x, y, x + 900, y)];
+  const devices: Q = Array.from({ length: 12 }, (_, i) => [[0, 'INSERT'], [8, 'E-FIRE'], [2, 'SD'], [10, 2000 + i * 1200], [20, 3000]] as Q).flat() as Q;
+  const plan = await on60([...Array.from({ length: 8 }, (_, i) => chair(2000 + i * 600, 1000)).flat() as Q, ...door(9000, 5000), ...door(12000, 5000), ...devices],
+    [[0, 'BLOCK'], [8, '0'], [2, 'SD'], [70, 0], [10, 0], [20, 0], [0, 'CIRCLE'], [8, '0'], [10, 0], [20, 0], [40, 150], [0, 'ENDBLK'], [8, '0']]);
+  assert(plan.ok, `an ordinary plan was held: ${!plan.ok && plan.reason} ${!plan.ok && plan.detail}`);
+});
+
+Deno.test('third review: a phone or number split by angle, gap or line is withheld whole; a dimension is not', async () => {
+  const H = 200, cw = H * A;
+  const cases: [string, Q][] = [
+    ['050|123|4567 at 0.9/1.1/0.9 degrees', [...tx(4000, 7000, '050', H, 'A-ANNO', 0.9), ...tx(4000 + 4 * cw, 7000, '123', H, 'A-ANNO', 1.1), ...tx(4000 + 8 * cw, 7000, '4567', H, 'A-ANNO', 0.9)]],
+    ['"050 123"|"4567" at 0.9/1.1 degrees', [...tx(4000, 7000, '050 123', H, 'A-ANNO', 0.9), ...tx(4000 + 8 * cw, 7000, '4567', H, 'A-ANNO', 1.1)]],
+    ['one digit per TEXT, alternating angle', [...'0501234567'].flatMap((c, i) => tx(4000 + i * cw, 7000, c, H, 'A-ANNO', i % 2 ? 1.1 : 0.9))],
+    ['three runs 3.1 heights apart', [...tx(4000, 7000, '050'), ...tx(4000 + 3 * cw + 3.1 * H, 7000, '123'), ...tx(4000 + 6 * cw + 6.2 * H, 7000, '4567')]],
+    ['stacked "050 123" / "4567" at 2.5 heights', [...tx(4000, 7000, '050 123'), ...tx(4000, 7000 - 2.5 * H, '4567')]],
+    ['stacked "050" / "123" / "4567" at 1.7 heights', [...tx(4000, 7000, '050'), ...tx(4000, 7000 - 1.7 * H, '123'), ...tx(4000, 7000 - 3.4 * H, '4567')]],
+    ['bare 345-0123, 123456, "12345 678"', [...tx(4000, 7000, '345-0123'), ...tx(4000, 5000, '123456'), ...tx(4000, 3000, '12345 678')]],
+    ['the customer\'s own phone split by angle', [...tx(4000, 7000, '050 000', H, 'A-ANNO', 0.9), ...tx(4000 + 8 * cw, 7000, '0017', H, 'A-ANNO', 1.1)]],
+  ];
+  for (const [name, ents] of cases) {
+    const g = await on60(ents);
+    assert(g.ok, `${name}: held ${!g.ok && g.reason}`);
+    assertEquals(extraDrawn(g), [], name);
+  }
+  // A dimension's own text of 6 digits (1504,68 in LibreDWG's example_2018.dxf) is a measurement and is drawn.
+  const dim = await on60([[0, 'DIMENSION'], [8, 'A-DIM'], [10, 0], [20, 0], [11, 4000], [21, 7000], [1, '1504,68']]);
+  assert(dim.ok && dim.drawn_texts.includes('1504,68'), 'a dimension of 6 digits was withheld');
+});
+
+Deno.test('third review: a two-letter code alone, even at logo size, is withheld; beside a device, in a legend row or a bubble it is drawn', async () => {
+  for (const s of ['DP', 'EL', 'DB', 'SS', 'MS', 'HD', 'AL', 'MZ', 'TP', 'SP', 'GL', 'SK', 'AL BAR']) {
+    for (const h of [200, 600]) assertEquals(extraDrawn(await on60(tx(4000, 7000, s, h))), [], `"${s}" at ${h} was drawn alone`);
+  }
+  const block: Q = [[0, 'BLOCK'], [8, '0'], [2, 'SKT'], [70, 0], [10, 0], [20, 0], [0, 'CIRCLE'], [8, '0'], [10, 0], [20, 0], [40, 100], [0, 'ENDBLK'], [8, '0']];
+  const beside = await on60([[0, 'INSERT'], [8, 'E-POWR'], [2, 'SKT'], [10, 4000], [20, 7000], ...tx(4200, 6900, 'DB')], block);
+  assertEquals(extraDrawn(beside), ['DB'], 'a code beside its device symbol was withheld');
+  const legend = await on60([...tx(4000, 7000, 'SD'), ...tx(4000 + 3 * 200 * A, 7000, '- SMOKE DETECTOR')]);
+  assertEquals(extraDrawn(legend), ['SD', '- SMOKE DETECTOR'], 'a legend row lost its code');
+  const bubble = await on60([[0, 'CIRCLE'], [8, 'S-GRID'], [10, 4100], [20, 7100], [40, 300], ...tx(4000, 7000, 'GL')]);
+  assertEquals(extraDrawn(bubble), ['GL'], 'a code inside its bubble was withheld');
+  // At logo size, even beside a device, it is not a device label.
+  assertEquals(extraDrawn(await on60([[0, 'INSERT'], [8, 'E-POWR'], [2, 'SKT'], [10, 4000], [20, 7000], ...tx(4200, 6900, 'DB', 600)], block)), [], 'a logo-size code beside a device was drawn');
+});
+
+Deno.test('third review: a phrase at more than twice the usual text height is withheld unless it is a room or a view title', async () => {
+  const names = ['NORTH GATE', 'FIRST POINT', 'EAST GATE', 'GULF LIGHTING', 'AL NOOR ELECTRICAL', 'MASTER POWER', 'ACCESS POINT', 'SITE WORKS', 'THE GARDEN', 'OPEN PLAN', 'CORE', 'SMART', 'POWER LINE', 'NORTH STAR', 'GREEN', 'BLUE WATER', 'STEEL LINE', 'MAIN STREET', 'NORTH POINT ELECTRICAL WORKS', 'FIRE AND SAFETY', 'CLEAR WATER'];
+  for (const n of names) assertEquals(extraDrawn(await on60(tx(4000, 7000, n, 800))), [], `"${n}" at logo size was drawn`);
+  for (const t of ['MASTER BEDROOM 1', 'GROUND FLOOR PLAN', 'SECTION A-A', 'LIGHTING LAYOUT', 'LEGEND']) assertEquals(extraDrawn(await on60(tx(4000, 7000, t, 800))), [t], `"${t}" at title size was withheld`);
+});
+
+Deno.test('third review: an unknown large word withholds itself only, not every label within 3 of its heights', async () => {
+  const g = await on60([...tx(4000, 7200, 'ZQXV', 900), ...tx(4000 + 4 * 900, 7200, 'KITCHEN'), ...tx(4000, 6300, 'PANTRY')]);
+  assert(g.ok);
+  if (g.ok) assertEquals(extraDrawn(g), ['PANTRY'], 'the labels beside a large unknown word were withheld with it');
+  if (g.ok) assert(g.drawn_texts.filter((t) => t === 'KITCHEN').length === 7, 'the KITCHEN beside the large word was withheld');
+});
+
+Deno.test('third review: grid bubbles and switching letters beside light fittings are drawn and do not hold the sheet', async () => {
+  const lum: Q = [[0, 'BLOCK'], [8, '0'], [2, 'LUM'], [70, 0], [10, 0], [20, 0], [0, 'CIRCLE'], [8, '0'], [10, 0], [20, 0], [40, 120], [0, 'ENDBLK'], [8, '0']];
+  const fittings: Q = Array.from({ length: 48 }, (_, i) => { const x = 1000 + (i % 12) * 1500, y = 5000 - Math.floor(i / 12) * 1100; return [[0, 'INSERT'], [8, 'E-LITE'], [2, 'LUM'], [10, x], [20, y], ...tx(x + 200, y + 150, 'abc'[i % 3], 150)] as Q; }).flat() as Q;
+  const bubbles: Q = [...'ABCDEF'].flatMap((c, i) => [[0, 'CIRCLE'], [8, 'S-GRID'], [10, 1100 + i * 3000], [20, 13900], [40, 250], ...tx(1000 + i * 3000, 13800, c, 200)] as Q);
+  const nums: Q = [...'123456'].flatMap((c, i) => [[0, 'CIRCLE'], [8, 'S-GRID'], [10, 19700], [20, 1100 + i * 2000], [40, 250], ...tx(19600, 1000 + i * 2000, c, 200)] as Q);
+  const g = await on60([...fittings, ...bubbles, ...nums], lum);
+  assert(g.ok, `held: ${!g.ok && g.reason} ${!g.ok && g.detail}`);
+  if (!g.ok) return;
+  for (const c of [...'ABCDEF123456']) assert(g.drawn_texts.includes(c), `grid ${c} was withheld`);
+  assertEquals(['a', 'b', 'c'].map((c) => g.drawn_texts.filter((t) => t === c).length), [16, 16, 16], 'switching letters were withheld');
+  // Without the fittings, 48 lone lower-case letters are exactly the glyph-per-TEXT shape: held.
+  const bare = await on60(Array.from({ length: 48 }, (_, i) => tx(1000 + (i % 12) * 1500, 5000 - Math.floor(i / 12) * 1100, 'abc'[i % 3], 150)).flat() as Q);
+  assertEquals(bare.ok ? 'drawn' : bare.reason, 'glyph_per_text');
 });

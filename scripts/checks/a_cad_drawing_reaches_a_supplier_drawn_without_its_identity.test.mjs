@@ -36,16 +36,21 @@ test('both CAD entry points draw the original through drawing_redact mode cad, a
   assert.doesNotMatch(api, /functions\/v1\/cad_convert/, 'customer_api calls the paid raster converter again');
   // Review of #967: the edge dies (546) near 150k segments, so the cap is 120k and a denser drawing goes to the worker.
   assert.ok(read('supabase/functions/_shared/cad_render.ts').includes('export const RENDER_MAX_SEGMENTS = 120_000;'), 'the edge render cap moved');
-  assert.equal((api.match(/reason === 'cad_render_too_dense' && path/g) || []).length, 2, 'a too-dense CAD drawing is not queued for the worker on both paths');
+  assert.equal((api.match(/reason === 'cad_render_too_dense' \|\| (?:cadRed|red)\?\.reason === 'cad_needs_ocr'\) && path/g) || []).length, 2, 'a too-dense CAD drawing, or one that needs the OCR read-back, is not queued for the worker on both paths');
   // Second review of #967: a sheet drawn one glyph per TEXT is held, and a short word passes only from a closed list.
   const render = read('supabase/functions/_shared/cad_render.ts');
   assert.ok(render.includes('export const GLYPH_MAX = 20, GLYPH_SHARE = 0.3;') && render.includes("reason: 'glyph_per_text'"), 'a glyph-per-TEXT sheet is no longer held');
   assert.ok(read('supabase/functions/_shared/drawing_vocabulary.ts').includes('if (l.length <= 3) return CODES.has(l) || WORDS.has(l);'), 'short words are no longer limited to the closed list');
+  // Third review of #967: words drawn as lines hold the page on the edge, and no CAD page is published by the edge.
+  assert.ok(render.includes("if (vt.rows) return { ok: false, reason: 'vector_text'"), 'text drawn as geometry no longer holds the page');
 });
 
-test('drawing_redact draws, uploads, records, and removes the upload when the record fails', () => {
+test('drawing_redact draws to check, never publishes a CAD page, and removes an upload when the record fails', () => {
   assert.match(redact, /if \(body\.mode === 'cad'\)/);
   assert.match(redact, /await cadPage\(b64ToBytes\(body\.original_b64\), seeds\)/);
+  const cad = between(redact, "if (body.mode === 'cad')", 'const imgs: any[]');
+  assert.doesNotMatch(cad, /\.upload\(/, 'the edge publishes a CAD page without the OCR read-back');
+  assert.match(cad, /held_reason: 'cad_needs_ocr'/);
   const publish = between(redact, 'async function publish(', 'Deno.serve(');
   assert.match(publish, /const recorded = await recordRun\(id, body, o\)/);
   assert.match(publish, /if \(!recorded && o\.paths\.length\)[\s\S]{0,200}\.remove\(o\.paths\)/, 'an unrecorded run leaves its pages behind');
@@ -59,6 +64,9 @@ test('the CAD worker draws what the edge cannot, records it, and raises a job th
   assert.match(worker, /await cadPage\(bytes, seeds, \{ maxDwgBytes: Infinity/);
   assert.match(worker, /insert into public\.drawing_redaction_runs[\s\S]{0,600}'complete'/);
   assert.match(worker, /return publishPages\(job, key, \[page\.jpg\], \{ method: 'cad_render'/);
+  const draw = between(worker, 'async function supplierDrawing', 'export const SCAN_JOB_MS');
+  assert.ok(draw.indexOf('verifyRenderedCad(') > 0 && draw.indexOf('verifyRenderedCad(') < draw.indexOf('return publishPages('), 'the worker publishes a CAD page before reading it back');
+  assert.match(draw, /if \(!check\.ok\) return \{ redaction_complete: false/);
   assert.match(worker, /fn_it_engineer_finding_upsert\(\s*'cad_read_worker:job_failed'/);
   assert.match(worker, /if \(job\.attempts >= 3\) await raiseFailed\(job, msg\)/);
   const status = between(api, "action === 'cad_read_status'", "action === 'analyze_boq'");

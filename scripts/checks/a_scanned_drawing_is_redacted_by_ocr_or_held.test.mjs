@@ -31,7 +31,8 @@ test('customer_api queues a held scan or photo, page rasters stored like any ori
 
 test('the worker OCRs with the pinned free engine and publishes only a proved-clean page, as a recorded run', () => {
   assert.ok(worker.includes("if (job.why === 'scan_needs_ocr')"));
-  assert.ok(worker.includes("tesseractOcr('eng+ara')"));
+  assert.ok(worker.includes("withOcrBudget('eng+ara', SCAN_JOB_MS, 'the OCR'"), 'the scan OCR no longer runs under a budget that stops the engine');
+  assert.match(engine, /timer = setTimeout\(\(\) => \{ void stop\(\);/, 'the OCR budget no longer terminates the engine');
   assert.ok(worker.includes("if (!out.ok) return { redaction_complete: false"), 'one held page must publish none');
   assert.ok(worker.includes("return publishPages(job, key, jpgs, { method: 'scan_ocr'"));
   const pub = worker.slice(worker.indexOf('async function publishPages'), worker.indexOf('async function supplierDrawing'));
@@ -52,12 +53,19 @@ test('the fail-closed rules stand: no title block, a low-confidence title block,
   assert.ok(scan.includes('for (const q of [0, 1, 2, 3])'), 'the page is no longer OCRed at all four orientations');
   assert.ok(scan.includes('const pageWide = standing(all).filter((l) => party(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
   assert.ok(scan.includes("if (unread.length) return { ok: false, held: 'unread_ink'"), 'unread text-like ink no longer holds the page');
-  assert.match(checks, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
+  // Third review of #967: the ~14-minute real-engine check runs in its own workflow, when a drawing file changes,
+  // nightly and by hand, and a hung engine cannot hold the runner past its timeout.
+  const ocrCi = read('.github/workflows/scan-ocr-check.yml');
+  assert.match(ocrCi, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
+  assert.match(ocrCi, /schedule:\s+- cron:/, 'the real-engine check no longer runs nightly');
+  assert.match(ocrCi, /timeout-minutes: \d+/, 'the real-engine job has no timeout');
+  assert.match(ocrCi, /pull_request:\s+paths:[\s\S]*scan_redact\*\.ts/, 'the real-engine check does not run when the scan redactor changes');
+  assert.doesNotMatch(checks, /scan_redact\.check\.ts/, 'the 14-minute check still runs on every pull request');
 });
 
 test('the queue reason is added by a file that is pending, not applied and not in the MANIFEST', () => {
   const sql = read(SQL);
-  assert.ok(sql.includes("check (why in ('over_edge_ceiling', 'edge_worker_died', 'edge_reader_failed', 'pdf_lengths_worker_died', 'scan_needs_ocr'))"));
+  assert.ok(sql.includes("check (why in ('over_edge_ceiling', 'edge_worker_died', 'edge_reader_failed', 'pdf_lengths_worker_died', 'scan_needs_ocr', 'cad_needs_ocr'))"));
   assert.ok(existsSync(new URL('../../scripts/sql/pending/a_scanned_drawing_is_queued_for_ocr_redaction.txt', import.meta.url)), 'no pending note');
   assert.ok(!read('scripts/sql/MANIFEST.txt').split('\n').includes(SQL), 'a pending file must not have a MANIFEST line');
 });

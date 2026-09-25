@@ -28,3 +28,16 @@ export async function tesseractOcr(langs = 'eng'): Promise<{ ocr: (image: Uint8A
   };
   return { ocr, done: async () => { await worker.terminate(); } };
 }
+
+/**
+ * Run `fn` with an OCR engine that is TERMINATED at the budget (third review of #967: a Promise.race rejected on time
+ * but left tesseract working, so the runner kept spending past it). The engine is always terminated when `fn` ends.
+ */
+export async function withOcrBudget<T>(langs: string, ms: number, what: string, fn: (ocr: (image: Uint8Array) => Promise<OcrLine[]>) => Promise<T>): Promise<T> {
+  const e = await tesseractOcr(langs);
+  let stopped = false, timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = async () => { if (!stopped) { stopped = true; await e.done().catch(() => {}); } };
+  try {
+    return await Promise.race([fn(e.ocr), new Promise<never>((_, no) => { timer = setTimeout(() => { void stop(); no(new Error(`${what} ran past its ${Math.round(ms / 60_000)}-minute budget; the OCR engine was stopped`)); }, ms); })]);
+  } finally { clearTimeout(timer); await stop(); }
+}

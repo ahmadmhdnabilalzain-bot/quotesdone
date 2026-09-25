@@ -883,7 +883,7 @@ Deno.serve(observe('customer_api', async (req) => {
       const hand = red ? drawingHandoff(red.meta, path, red.redacted) : { drawing_redacted_paths: [], drawing_held: false };
       if (red && hand.drawing_held && path) await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: red.meta, reason: String(red.reason) }));
       // Too dense to draw inside the edge's CPU cap (cad_render RENDER_MAX_SEGMENTS): the CAD worker draws it.
-      const denseJob = red?.reason === 'cad_render_too_dense' && path ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: b64.length, why: 'over_edge_ceiling' }) : null;
+      const denseJob = (red?.reason === 'cad_render_too_dense' || red?.reason === 'cad_needs_ocr') && path ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: b64.length, why: red.reason === 'cad_needs_ocr' ? 'cad_needs_ocr' : 'over_edge_ceiling' }) : null;
       return J({ ok: true, boq: jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(b64)) : jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, stored: !!path, ...(red ? red.meta : {}), ...hand, ...(denseJob ? { note: 'cad_queued', cad_job_id: denseJob } : {}) });
     }
 
@@ -904,8 +904,10 @@ Deno.serve(observe('customer_api', async (req) => {
       if (cadRed && cadHand.drawing_held && path) await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: cadRed.meta, reason: String(cadRed.reason) }));
       // A drawing too dense to draw inside the edge's CPU cap (review of #967: 546 at ~400k segments) is drawn by
       // the CAD worker, like a DWG past the edge's ceiling; the customer's screen polls it (cad_queued).
-      const denseJob = cadRed?.reason === 'cad_render_too_dense' && path
-        ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'over_edge_ceiling' }) : null;
+      // Since the third review of #967 EVERY CAD page that draws cleanly on the edge comes back cad_needs_ocr: the
+      // worker reads the drawn page back by OCR before it publishes it (drawing_redact mode 'cad').
+      const denseJob = (cadRed?.reason === 'cad_render_too_dense' || cadRed?.reason === 'cad_needs_ocr') && path
+        ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: cadRed.reason === 'cad_needs_ocr' ? 'cad_needs_ocr' : 'over_edge_ceiling' }) : null;
       const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand), ...(denseJob ? { note: 'cad_queued' as const, cad_job_id: denseJob } : {}) };
       // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
       // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.

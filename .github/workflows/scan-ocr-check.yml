@@ -1,0 +1,69 @@
+# A SCANNED DRAWING IS REDACTED BY OCR, OR HELD - the real engine on synthetic ZZ DEMO pages (sales_engineer; founder
+# instruction 579). supabase/functions/_shared/scan_redact.check.ts runs tesseract.js 7.0.0 with the repository's own
+# eng + ara data: the title block blacked out, rooms / dimensions / legend kept, every review case of #967 held or
+# unreadable at all four orientations, the CAD worker publishing one recorded run, a CAD page read back by OCR.
+#
+# WHY ITS OWN WORKFLOW (25 Sep 2026, third review of #967): every page is OCR'd eight times, and the step took ~14
+# minutes inside `checks` on EVERY pull request, drawing-related or not. It now runs only when a file it proves
+# changes, every night against main, and by hand; and a hung engine cannot hold a runner past timeout-minutes.
+name: scan-ocr-check
+
+concurrency:
+  group: scan-ocr-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'supabase/functions/_shared/scan_redact*.ts'
+      - 'supabase/functions/_shared/cad_render*.ts'
+      - 'supabase/functions/_shared/cad_vector_text.ts'
+      - 'supabase/functions/_shared/cad_identity.ts'
+      - 'supabase/functions/_shared/drawing_text_policy*.ts'
+      - 'supabase/functions/_shared/drawing_vocabulary.ts'
+      - 'supabase/functions/_shared/drawing_identity_text.ts'
+      - 'supabase/functions/_shared/drawing_redact_page.ts'
+      - 'supabase/functions/_shared/anonymise.ts'
+      - 'supabase/functions/_shared/stroke_font.ts'
+      - 'supabase/functions/_shared/doc_read/**'
+      - 'scripts/lib/scan_ocr.ts'
+      - 'scripts/cad_read_worker.ts'
+      - 'public/ocr/lang/**'
+      - '.github/workflows/scan-ocr-check.yml'
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/scan_redact*.ts'
+      - 'supabase/functions/_shared/cad_render*.ts'
+      - 'supabase/functions/_shared/cad_vector_text.ts'
+      - 'supabase/functions/_shared/cad_identity.ts'
+      - 'supabase/functions/_shared/drawing_text_policy*.ts'
+      - 'supabase/functions/_shared/drawing_vocabulary.ts'
+      - 'supabase/functions/_shared/drawing_identity_text.ts'
+      - 'supabase/functions/_shared/drawing_redact_page.ts'
+      - 'supabase/functions/_shared/anonymise.ts'
+      - 'supabase/functions/_shared/stroke_font.ts'
+      - 'supabase/functions/_shared/doc_read/**'
+      - 'scripts/lib/scan_ocr.ts'
+      - 'scripts/cad_read_worker.ts'
+      - 'public/ocr/lang/**'
+      - '.github/workflows/scan-ocr-check.yml'
+  schedule:
+    - cron: '41 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  scan-ocr:
+    name: A scanned drawing is redacted by OCR, or held
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: The real OCR engine on the ZZ DEMO scans and CAD pages
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
+          --allow-net=deno.land
+          supabase/functions/_shared/scan_redact.check.ts

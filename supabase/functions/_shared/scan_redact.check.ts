@@ -13,9 +13,11 @@
 // layer, turned 0.6 degrees and speckled like a scanner's output, with the title block down the right-hand side.
 // Nothing real, nothing sent anywhere.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { redactScan, rgbaToBmp, type Rgba } from './scan_redact.ts';
+import { redactScan, rgbaToBmp, type Rgba, verifyRenderedCad } from './scan_redact.ts';
 import { seedTerms } from './anonymise.ts';
-import { CUSTOMER, FILE_NAME, zzLeakyDxf, zzScanRgba, zzScanText } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CUSTOMER, FILE_NAME, zzDxf, zzLeakyDxf, zzScanRgba, zzScanText } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
+import { textStrokes } from './stroke_font.ts';
 import { renderCadForSupplier } from './cad_render.ts';
 import { tesseractOcr } from '../../../scripts/lib/scan_ocr.ts';
 import { scanDrawing } from '../../../scripts/cad_read_worker.ts';
@@ -182,4 +184,67 @@ Deno.test({ name: 'the CAD page of the review\'s crafted drawing, read back by O
     assert(/OFFICE/.test(text) && /CORRIDOR/.test(text), `the rooms are not readable:\n${text}`);
     assert(!/ORBIT|HARBOUR|HOLDING|123456|RASHID|KAREEM|K\s*A\s*R\s*E\s*E\s*M/i.test(text), `a party is readable on the CAD page:\n${text}`);
   } finally { await e.done(); }
+} });
+
+// ── THIRD REVIEW OF #967 (25 Sep 2026) ──────────────────────────────────────────────────────────────────────────
+// (1b) Every CAD page is read back by OCR on the worker before it is published. Words drawn as LINES inside a block
+// (where the edge's vector_text rule does not look, since a block's linework is a device symbol) are caught here;
+// a clean page passes.
+Deno.test({ name: 'third review: the worker\'s OCR read-back holds a CAD page with words drawn as lines, and passes a clean one', sanitizeResources: false, sanitizeOps: false, fn: async () => {
+  type P = [number, string | number][];
+  const exploded = (x: number, y: number, s: string, h: number): P => textStrokes(s).strokes.flatMap((st) => { const p: P = [[0, 'LWPOLYLINE'], [8, '0'], [90, st.length], [70, 0]]; for (const [u, v] of st) p.push([10, x + u * h], [20, y + v * h]); return p; });
+  const src = dxfFrom([
+    ...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]),
+    ...dxfSection('BLOCKS', [[0, 'BLOCK'], [8, '0'], [2, 'STAMP1'], [70, 0], [10, 0], [20, 0], ...exploded(0, 0, 'ZZ OMEGA CONSULTANTS', 300), [0, 'ENDBLK'], [8, '0']]),
+    ...dxfSection('ENTITIES', [[0, 'LWPOLYLINE'], [8, 'A-WALL'], [90, 4], [70, 1], [10, 0], [20, 0], [10, 20000], [20, 0], [10, 20000], [20, 14000], [10, 0], [20, 14000],
+      [0, 'TEXT'], [8, 'A-ANNO'], [10, 2000], [20, 9000], [40, 250], [1, 'KITCHEN'], [0, 'INSERT'], [8, 'A-ANNO'], [2, 'STAMP1'], [10, 6000], [20, 4000]]),
+    [0, 'EOF'],
+  ]);
+  const inBlock = await renderCadForSupplier(src, { seeds });
+  assert(inBlock.ok, `the edge held it (${!inBlock.ok && inBlock.reason}); this case is for the worker`);
+  const clean = await renderCadForSupplier(zzLeakyDxf(), { seeds });
+  const plan = await renderCadForSupplier(zzDxf(), { seeds });
+  assert(inBlock.ok && clean.ok && plan.ok);
+  if (!inBlock.ok || !clean.ok || !plan.ok) return;
+  const e = await tesseractOcr('eng');
+  try {
+    const bad = await verifyRenderedCad({ w: inBlock.width, h: inBlock.height, rgba: inBlock.rgba }, e.ocr, seeds, inBlock.texts_px);
+    assert(!bad.ok, 'a page with words drawn as lines passed the read-back');
+    for (const g of [clean, plan]) {
+      const ok = await verifyRenderedCad({ w: g.width, h: g.height, rgba: g.rgba }, e.ocr, seeds, g.texts_px);
+      assert(ok.ok, `a clean CAD page was held by the read-back: ${!ok.ok && ok.held} ${!ok.ok && JSON.stringify(ok.detail)}`);
+    }
+  } finally { await e.done(); }
+} });
+
+// (2) The reviewer's fourteen overlays (doc_read/scan_overlays: ink masks, 255 = ink, drawn with DejaVu Sans and two
+// OFL display fonts by the review's mk.py; every word is synthetic ZZ text) pasted on the ZZ scan in their colours. A
+// page is safe only HELD, or published with every overlay pixel painted over: an OCR that cannot read a grey
+// watermark is no proof a person cannot. NORTH GATE in body text at label size is the one stated gap (the matrix,
+// note 6): two trade words at a label's size read as a label, and its outcome is recorded, not asserted.
+Deno.test({ name: 'third review: every scan overlay is held, or published with all of its ink painted over', sanitizeResources: false, sanitizeOps: false, fn: async () => {
+  const dir = new URL('./doc_read/scan_overlays/', import.meta.url);
+  const cases = JSON.parse(await Deno.readTextFile(new URL('cases.json', dir))) as { name: string; x: number; y: number; rgb: [number, number, number] }[];
+  assertEquals(cases.length, 14);
+  const e = await tesseractOcr('eng+ara');
+  const outcome: string[] = [];
+  try {
+    for (const c of cases) {
+      const img = zzScanRgba({ rotateDeg: 0.6, noise: 0.002 });
+      const m = await Image.decode(await Deno.readFile(new URL(c.name + '.png', dir)));
+      const ink: number[] = [];
+      for (let y = 0; y < m.height; y++) for (let x = 0; x < m.width; x++) {
+        if (m.bitmap[(y * m.width + x) * 4] < 128) continue;
+        const X = c.x + x, Y = c.y + y; if (X >= img.w || Y >= img.h) continue;
+        const k = (Y * img.w + X) * 4; ink.push(k);
+        img.rgba[k] = Math.min(img.rgba[k], c.rgb[0]); img.rgba[k + 1] = Math.min(img.rgba[k + 1], c.rgb[1]); img.rgba[k + 2] = Math.min(img.rgba[k + 2], c.rgb[2]);
+      }
+      const r = await redactScan(img, e.ocr, seeds);
+      if (!r.ok) { outcome.push(`${c.name}: held ${r.held}`); continue; }
+      const showing = ink.filter((k) => !(r.image.rgba[k] === 0 && r.image.rgba[k + 1] === 0 && r.image.rgba[k + 2] === 0)).length / ink.length;
+      outcome.push(`${c.name}: published, ${(100 * showing).toFixed(1)}% of its ink still showing`);
+      if (c.name === 'trade_word_firm') continue;
+      assert(showing <= 0.02, `${c.name}: published with ${(100 * showing).toFixed(1)}% of the overlay still showing`);
+    }
+  } finally { await e.done(); console.log(outcome.join('\n')); }
 } });

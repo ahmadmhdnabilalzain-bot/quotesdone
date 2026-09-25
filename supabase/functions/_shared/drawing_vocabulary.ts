@@ -99,6 +99,10 @@ const TRADE = `
   approx nominal overall internal external clear finished structural setting out
   tbc tbd nts nic ofci na
   mep xlpe swa upvc cpvc hdpe lszh ppr pex ahu fahu fcu vrf vrv
+  led strip pir usb ev weatherproof box cove pendant chandelier bollard floodlight bulkhead shaver satellite hdmi
+  geyser elv facp dirty formal wudu car mdf spd ct pv video motorized motorised curtain keycard key hotel knx dali
+  leak lpg cylinder gray grey septic soakaway ic fco fd fwd rwp svp vp wp dnd mur bbq split cabinet cooker unit
+  gully interceptor grease sump dp gt vent pipe stack ladies gents mens majlis dressing safety tower towers podium
 `;
 
 /** The short codes a plan prints: devices, disciplines, units, levels. A word of 1-3 letters passes only if it is
@@ -117,6 +121,7 @@ export const CODES = new Set(`
   wc wcs bed liv din kit str st bth ens gym lob rec wt ht lt gt
   pvc upvc cpvc hdpe ppr gi ms ss cu al xlpe swa lszh pe pex abs
   lv mv hv ac dc tpn spn tp sp dp np mep
+  ic fco fd fwd rwp svp vp wp gt spd knx nvr dnd mur bbq ev pv ct pir usb led elv
   x
 `.split(/\s+/).filter(Boolean));
 
@@ -135,3 +140,10 @@ export function tradeOnly(text: string): boolean {
   const toks = String(text || '').split(/[^A-Za-z]+/).filter(Boolean);
   return toks.length > 0 && toks.every(tradeWord);
 }
+
+// Rooms and spaces, and view titles. Third review of #967: a phrase set at more than twice the drawing's usual text
+// height is a name ("NORTH GATE", "MASTER POWER", "OPEN PLAN") unless it is one of these.
+const ROOM = /\b(?:ROOMS?|BEDROOMS?|OFFICES?|KITCHENS?|PANTRY|MAJLIS|LOBBY|FOYER|CORRIDOR|HALL(?:WAY)?|LIVING|DINING|TOILETS?|BATH(?:ROOM)?S?|WCS?|STORES?|STORAGE|LAUNDRY|GARAGE|CAR\s+PARK(?:ING)?|BALCONY|TERRACE|STAIR(?:CASE)?S?|LIFTS?|RECEPTION|GYM|SWIMMING\s+POOL|PRAYER|STUDY|LIBRARY|CLOSET|NURSERY|LOUNGE|MEZZANINE|BASEMENT|ENTRANCE|DRIVEWAY|COURTYARD|UTILITY|RISER|SHAFT|SUBSTATION|WAREHOUSE|WORKSHOP|SHOWROOM|SALON|SAUNA|WUDU)\b/i;
+const VIEW = /\b(?:(?:GROUND|FIRST|SECOND|THIRD|FOURTH|FIFTH|\d+(?:ST|ND|RD|TH)|TYPICAL|ROOF|BASEMENT|MEZZANINE|PODIUM|FLOOR|SITE|KEY|CEILING|LIGHTING|POWER|FURNITURE|LEVEL\s*\d+)\s+(?:FLOOR\s+)?PLAN|SECTION\s+[A-Z0-9]|ELEVATION|DETAIL\s+[A-Z0-9]|LAYOUT|SCHEDULE|LEGEND|NOTES|DIAGRAM)\b/i;
+/** A room or space label, or a view title ("GROUND FLOOR PLAN", "SECTION A-A", "LIGHTING LAYOUT", "LEGEND"). */
+export const roomOrViewTitle = (text: string) => { const t = String(text || ''); return ROOM.test(t) || VIEW.test(t); };
