@@ -20,9 +20,22 @@
 --     sandbox must still see its own ZZ DEMO project, and a real customer can never see a demo one
 --     (the rows are keyed by customer_id, and fn_demo_and_real_never_pair keeps the two apart).
 --     Filtering it would break the rehearsal and exclude nothing from any company figure.
---   * figures these views take from routines - fn_ops_metrics (ops_kpis), funnel_metrics (marketing_kpis),
---     fn_strategy_metrics and finance_kpis (strategy_kpis). Those routines are their own subjects; this
---     file does not retype their bodies. Named here so it is not mistaken for covered.
+--
+-- THE ROUTINES AND THE VIEW BEHIND THOSE VIEWS (added the same day, coordinator's instruction):
+--   * fn_ops_metrics (ops_kpis) - its no-quote backlog and matched-not-quoted counts skip demo inquiries.
+--   * funnel_metrics (marketing_kpis) - every stage of the funnel, and reveal fees, skip demo inquiries.
+--   * fn_strategy_metrics (strategy_kpis) - demand and active suppliers per category skip demo inquiries
+--     and demo suppliers.
+--   * finance_kpis (strategy_kpis) - receivables skip a due whose transaction, supplier or customer is a
+--     demo identity (fn_gl_fixture_or_orphan, the ledger's own fixture test). The GL figures (cash,
+--     revenue, expense) are the books and are NOT filtered here: measured 28 Sep, 0 posted journals are
+--     linked to a demo transaction, and a fixture reaching the ledger is fn_gl_fixture_or_orphan's job
+--     at posting time, not a report's to hide.
+--   Bodies are the live definitions of 28 Sep with only the demo test added; signatures, volatility,
+--   security and search_path are unchanged, so CREATE OR REPLACE keeps each routine's ACL.
+--   NOT covered: fn_marketplace_analytics, which fn_ops_metrics and fn_strategy_metrics call for
+--   avg_first_quote_hours, response_rate_pct and the 'funnel' block. It is a separate routine with its
+--   own readers and is named here so it is not mistaken for covered.
 --
 -- Prevented by: scripts/checks/a_kpi_view_never_counts_a_demo_party.test.mjs (fails if any of the seven
 -- views loses its demo exclusion). Verdict row at the end reads the live views back.
@@ -302,14 +315,157 @@ create or replace view public.strategy_kpis as
            from simulations) as last_simulation_at
    from agg, fin, rk;
 
--- Verdict: every one of the seven reads back with a demo exclusion, and each still answers a row.
+create or replace function public.fn_ops_metrics()
+ returns jsonb
+ language plpgsql
+ stable
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare res jsonb;
+begin
+  select jsonb_build_object(
+    'open_rfqs_no_quotes_7d', (select count(*) from inquiries i where i.created_at < now()-interval '7 days'
+        and coalesce(i.status,'') not in ('completed','cancelled','closed')
+        and not public.fn_inquiry_is_demo(i.id)
+        and not exists (select 1 from quotes q where q.inquiry_id=i.id)),
+    'matched_not_quoted', (select count(*) from inquiry_matches m
+        where not public.fn_inquiry_is_demo(m.inquiry_id)
+          and not exists (select 1 from quotes q where q.inquiry_id=m.inquiry_id and q.supplier_id=m.supplier_id)),
+    'avg_first_quote_hours', (select (fn_marketplace_analytics()->>'avg_first_quote_hours')::numeric),
+    'response_rate_pct', (select (fn_marketplace_analytics()->>'response_rate_pct')::numeric),
+    'pipeline_by_stage', (select coalesce(jsonb_agg(jsonb_build_object('stage',label,'deals',deals,'value',value) order by sort_order),'[]'::jsonb) from crm_pipeline_report),
+    'overdue_activities', (select overdue_activities from crm_deal_kpis)
+  ) into res;
+  return res;
+end $function$;
+
+create or replace function public.funnel_metrics(days integer default 30)
+ returns json
+ language sql
+ stable security definer
+ set search_path to 'public', 'pg_temp'
+as $function$
+  with w as (select (now() - make_interval(days => days)) as since),
+  ri as (select i.* from public.inquiries i, w where i.created_at >= w.since and not public.fn_inquiry_is_demo(i.id))
+  select json_build_object(
+    'days', days,
+    'inquiries', (select count(*) from ri),
+    'matched', (select count(distinct m.inquiry_id) from public.inquiry_matches m join ri i on i.id=m.inquiry_id),
+    'quoted', (select count(distinct q.inquiry_id) from public.quotes q join ri i on i.id=q.inquiry_id),
+    'revealed', (select count(*) from public.transactions t join ri i on i.id=t.inquiry_id where t.revealed_at is not null),
+    'completed', (select count(*) from ri i where i.status='completed'),
+    'cancelled', (select count(*) from ri i where i.status='cancelled'),
+    'reveal_fees', (select coalesce(sum(t.reveal_fee),0) from public.transactions t join ri i on i.id=t.inquiry_id where t.revealed_at is not null)
+  );
+$function$;
+
+create or replace function public.fn_strategy_metrics()
+ returns jsonb
+ language plpgsql
+ stable
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare res jsonb;
+begin
+  with dem as (select category, count(*) rfqs from inquiries
+                where created_at > now()-interval '90 days' and category is not null and not public.fn_inquiry_is_demo(id)
+                group by category),
+  sup as (select i.category, count(distinct q.supplier_id) sups from quotes q join inquiries i on i.id=q.inquiry_id
+           where q.created_at > now()-interval '90 days' and i.category is not null
+             and not public.fn_inquiry_is_demo(i.id)
+             and not exists (select 1 from leads l where l.id = q.supplier_id and l.is_demo)
+           group by i.category)
+  select jsonb_build_object(
+    'under_supplied', (select coalesce(jsonb_agg(x order by x.rfqs desc),'[]'::jsonb) from (
+        select d.category, d.rfqs, coalesce(s.sups,0) as active_suppliers
+        from dem d left join sup s on s.category=d.category
+        where coalesce(s.sups,0) < greatest(2, d.rfqs/3) order by d.rfqs desc limit 12) x),
+    'coverage', jsonb_build_object(
+        'categories_total', (select count(*) from category_specs),
+        'with_requirements', (select count(*) from category_specs where supplier_requirements is not null),
+        'with_playbook', (select count(distinct category) from qualification_playbooks where status='active'),
+        'regulation_category_tags', (select count(distinct c) from regulations r, unnest(coalesce(r.categories,'{}')) c where r.status='active')),
+    'funnel', (select coalesce(fn_marketplace_analytics(),'{}'::jsonb))
+  ) into res;
+  return res;
+end $function$;
+
+create or replace view public.finance_kpis as
+ with rr as (
+         select coalesce(sum(case when ga.type = 'revenue'::text then l.credit - l.debit else 0::numeric end), 0::numeric) as rev30,
+            coalesce(sum(case when ga.type = 'expense'::text then l.debit - l.credit else 0::numeric end), 0::numeric) as exp30
+           from gl_journal_lines l
+             join gl_journal j on j.id = l.journal_id and j.status = 'posted'::text
+             join gl_accounts ga on ga.code = l.account_code
+          where j.entry_date >= (current_date - 30)
+        ), rd as (
+         select d.* from supplier_dues d
+          where coalesce(public.fn_gl_fixture_or_orphan(d.transaction_id, d.supplier_id, null::uuid), '') not like 'fixture:%'
+        ), ar as (
+         select coalesce(sum(rd.amount_due) filter (where fn_supplier_due_is_owed(rd.status, rd.paid_at)), 0::numeric) as ar_outstanding,
+            coalesce(sum(rd.amount_due) filter (where fn_supplier_due_is_owed(rd.status, rd.paid_at) and rd.due_date_30 < current_date), 0::numeric) as ar_overdue,
+            coalesce(sum(rd.amount_due) filter (where rd.status = 'paid'::text), 0::numeric) as ar_collected
+           from rd
+        ), ap as (
+         select coalesce(sum(ap_open_bills.balance_due), 0::numeric) as ap_outstanding,
+            coalesce(sum(ap_open_bills.balance_due) filter (where ap_open_bills.days_overdue > 0), 0::numeric) as ap_overdue
+           from ap_open_bills
+        ), bud as (
+         select count(*) filter (where budget_vs_actual_summary.type = 'expense'::text and budget_vs_actual_summary.pct_of_budget > 110::numeric) as budget_overruns
+           from budget_vs_actual_summary
+        ), gb as (
+         select coalesce(sum(b.balance) filter (where b.code = any (array['1000'::text, '1050'::text])), 0::numeric) as cash,
+            coalesce(sum(b.balance) filter (where b.type = 'revenue'::text), 0::numeric) as rev,
+            coalesce(sum(b.balance) filter (where b.type = 'expense'::text), 0::numeric) as exp
+           from gl_account_balances b
+        )
+ select gb.cash,
+    gb.rev as revenue_total,
+    gb.exp as expense_total,
+    gb.rev - gb.exp as net_income,
+        case when gb.rev > 0::numeric then round(100.0 * (gb.rev - gb.exp) / gb.rev, 1) else null::numeric end as margin_pct,
+    rr.rev30 as revenue_30d,
+    rr.exp30 as expense_30d,
+    rr.exp30 - rr.rev30 as monthly_burn,
+        case when (rr.exp30 - rr.rev30) > 0::numeric and gb.cash > 0::numeric then round(gb.cash / (rr.exp30 - rr.rev30), 1) else null::numeric end as runway_months,
+    ar.ar_outstanding,
+    ar.ar_overdue,
+    ar.ar_collected,
+        case when (ar.ar_collected + ar.ar_outstanding) > 0::numeric then round(100.0 * ar.ar_collected / (ar.ar_collected + ar.ar_outstanding), 1) else null::numeric end as collection_rate,
+    ap.ap_outstanding,
+    ap.ap_overdue,
+    bud.budget_overruns
+   from rr, ar, ap, bud, gb;
+
+-- Verdict. Structure: the eight views and three routines read back with a demo test. Behaviour: each
+-- figure equals an independent count taken with the demo test, and every KPI still answers one row.
+-- (On 28 Sep every inquiry was a demo one, so the real counts are 0 while the raw counts are not.)
 select case when (select count(*) from pg_views
                    where schemaname = 'public'
                      and viewname in ('category_price_stats','crm_deal_kpis','customer_kpis','legal_kpis',
-                                      'marketing_kpis','ops_kpis','strategy_kpis')
-                     and definition ~ '(fn_inquiry_is_demo|is_demo)') = 7
-             and (select count(*) from public.crm_deal_kpis) = 1
+                                      'marketing_kpis','ops_kpis','strategy_kpis','finance_kpis')
+                     and definition ~ '(fn_inquiry_is_demo|is_demo|fn_gl_fixture_or_orphan)') = 8
+             and (select count(*) from pg_proc
+                   where pronamespace = 'public'::regnamespace
+                     and proname in ('fn_ops_metrics','funnel_metrics','fn_strategy_metrics')
+                     and prosrc ~ 'fn_inquiry_is_demo') = 3
+             and (public.funnel_metrics(36500) ->> 'inquiries')::int
+                 = (select count(*) from public.inquiries i
+                     where i.created_at >= now() - interval '36500 days' and not public.fn_inquiry_is_demo(i.id))
+             and (public.funnel_metrics(36500) ->> 'quoted')::int
+                 = (select count(distinct q.inquiry_id) from public.quotes q
+                     where not public.fn_inquiry_is_demo(q.inquiry_id))
+             and (public.fn_ops_metrics() ->> 'matched_not_quoted')::int
+                 = (select count(*) from public.inquiry_matches m
+                     where not public.fn_inquiry_is_demo(m.inquiry_id)
+                       and not exists (select 1 from public.quotes q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id))
+             and (select open_deals + won_deals + lost_deals from public.crm_deal_kpis)
+                 = (select count(*) from public.inquiries i join public.crm_stages s on s.key = i.pipeline_stage
+                     where not public.fn_inquiry_is_demo(i.id))
              and (select count(*) from public.customer_kpis) = 1
              and (select count(*) from public.legal_kpis) = 1
              and (select count(*) from public.strategy_kpis) = 1
-       then 'PROBE OK' else 'PROBE FAILED: a KPI view lost its demo exclusion or stopped answering' end as verdict;
+             and (select count(*) from public.finance_kpis) = 1
+             and (select count(*) from public.ops_kpis) = 1
+             and (select count(*) from public.marketing_kpis) = 1
+       then 'PROBE OK' else 'PROBE FAILED: a KPI lost its demo exclusion, counts a demo row, or stopped answering' end as verdict;

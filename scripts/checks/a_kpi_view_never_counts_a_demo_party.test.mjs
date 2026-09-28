@@ -30,3 +30,17 @@ for (const v of VIEWS) {
     assert.match(viewBody(SRC, v), /fn_inquiry_is_demo|is_demo/i, `${v} counts ZZ DEMO rows`);
   });
 }
+
+// finance_kpis reads receivables, so its demo test is the ledger's fixture test.
+test('finance_kpis excludes demo receivables', () => {
+  assert.match(viewBody(SRC, 'finance_kpis'), /fn_gl_fixture_or_orphan/i, 'finance_kpis counts a demo supplier due');
+});
+
+// The routines the KPI views read their figures from.
+for (const fn of ['fn_ops_metrics', 'funnel_metrics', 'fn_strategy_metrics']) {
+  test(`${fn} excludes demo inquiries`, () => {
+    const m = new RegExp(`create or replace function public\\.${fn}\\s*\\([\\s\\S]*?\\$function\\$[\\s\\S]*?\\$function\\$`, 'i').exec(SRC);
+    assert.ok(m, fn + ' is defined');
+    assert.match(m[0].split('\n').map((l) => l.replace(/--.*$/, '')).join('\n'), /fn_inquiry_is_demo/i, `${fn} counts ZZ DEMO inquiries`);
+  });
+}
