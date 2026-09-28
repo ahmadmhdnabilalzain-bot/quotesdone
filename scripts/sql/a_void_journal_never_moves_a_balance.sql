@@ -21,7 +21,7 @@
 --
 -- Prevented by: scripts/checks/a_void_journal_never_moves_a_balance.test.mjs (fails if the view's posted
 -- test goes back to an outer-join ON clause). The verdict row below compares the forecast with the posted
--- journal directly.
+-- journal directly (re-pointed 29 Sep, see THE CHECK).
 
 create or replace view public.gl_account_balances as
  select a.code,
@@ -40,8 +40,29 @@ create or replace view public.gl_account_balances as
        on pl.account_code = a.code
   group by a.code, a.name, a.type, a.normal_balance;
 
-select case when (public.fn_finance_forecast() ->> 'cash_now')::numeric
-                 = (select coalesce(sum(l.debit - l.credit), 0)
-                      from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
-                     where l.account_code in ('1000', '1050'))
-       then 'PROBE OK' else 'PROBE FAILED: the forecast cash is not the posted-journal cash' end as verdict;
+
+-- THE CHECK (re-pointed 29 Sep 2026, after #1013 made the bank the forecast's one cash truth):
+-- (1) the view's debit and credit totals equal the posted journals', account by account, so no void
+--     line reaches any balance; (2) the forecast's cash_now is the accountant's cash position.
+-- It raises on failure, so a wrong result can never sit in an apply log as a quiet verdict row.
+do $chk$
+declare
+  v_leak numeric;
+  v_fc   numeric := (public.fn_finance_forecast() ->> 'cash_now')::numeric;
+  v_cp   numeric := (public.fn_accountant_cash_position(current_date, null) #>> '{cash_in_bank,aed}')::numeric;
+begin
+  select coalesce(sum(abs(v.debit_total - coalesce(p.d, 0)) + abs(v.credit_total - coalesce(p.c, 0))), 0)
+    into v_leak
+    from public.gl_account_balances v
+    left join (select l.account_code, sum(l.debit) d, sum(l.credit) c
+                 from public.gl_journal_lines l
+                 join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
+                group by l.account_code) p on p.account_code = v.code;
+  if v_leak <> 0 then
+    raise exception 'PROBE FAILED: gl_account_balances differs from the posted journals by %', v_leak;
+  end if;
+  if v_fc is distinct from v_cp then
+    raise exception 'PROBE FAILED: forecast cash_now % is not the cash position %', v_fc, v_cp;
+  end if;
+  raise notice 'PROBE OK: no void line moves a balance; forecast cash = cash position = %', v_fc;
+end $chk$;
