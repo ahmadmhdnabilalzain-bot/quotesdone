@@ -1354,16 +1354,26 @@ async function itDetectTick(): Promise<unknown> {
 // Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
-async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
-  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean; region?: string | null }[]> {
+  // The SUPPLIER journey's four joined 28 Sep 2026 (it_engineer): measured on the 24 Sep walk, each first
+  // call to supplier_api, supplier_portal, supplier_pay and claim_lookup paid a 2.5-4.5 s isolate boot —
+  // the landing-to-claim step and the Billing tab were almost entirely boot. Each answers x-qd-warm with
+  // a 204 before auth or the database, exactly like the five above.
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api',
+    'supplier_api', 'supplier_portal', 'supplier_pay', 'claim_lookup'];
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {
-      const r = await fetch(FN + '/' + fn, { method: 'GET',
+      // PINNED TO THE PORTAL'S REGION (28 Sep 2026, it_engineer). Unpinned, Supabase runs a function in
+      // the region nearest the CALLER, and this caller is wherever the external cron entered, while
+      // both portals pin ?forceFunctionRegion=ap-southeast-1 (src/lib/supaEnv.ts FN_REGION). Measured
+      // from Dubai: the same x-qd-warm GET unpinned answered from ap-south-1, pinned from
+      // ap-southeast-1 - separate isolates. So this ping kept isolates warm that no customer uses.
+      const r = await fetch(FN + '/' + fn + '?forceFunctionRegion=ap-southeast-1', { method: 'GET',
         headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
         signal: AbortSignal.timeout(8000) });
       await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
-      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
+      return { fn, ms: Date.now() - t0, ok: r.status === 204, region: r.headers.get('x-sb-edge-region') };
     } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
   }));
 }

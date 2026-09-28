@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { call } from './api';
+import { firstRead } from './tabPrefetch';
 import { ws } from './workspaceCopy';
 
 type Lang = 'en' | 'ar' | string;
@@ -31,7 +32,8 @@ export default function SupplierMailbox({ token, lang, openInquiry = null, onOpe
   // A tab switch unmounts this; an answer arriving afterwards must not write state.
   const live = useRef(true);
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
-  const load = () => { setErr(false); call('messages_api', { action: 'mailbox' }, token).then((j) => { if (live.current) (j && j.ok ? setBox(j) : setErr(true)); }).catch(() => { if (live.current) setErr(true); }); };
+  const first = useRef(true);
+  const load = () => { setErr(false); const f = first.current; first.current = false; (f ? firstRead(token, 'sup_tab:mailbox') : call('messages_api', { action: 'mailbox' }, token)).then((j) => { if (live.current) (j && j.ok ? setBox(j) : setErr(true)); }).catch(() => { if (live.current) setErr(true); }); };
   useEffect(() => { load(); }, [token]);
   // Opened from a revealed-job card, or from the portal with an inquiry in hand.
   const openChat = (id: string) => { const th = box?.threads.find((x) => x.inquiry_id === id); if (th) setOpen(th); };

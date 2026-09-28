@@ -8,7 +8,8 @@
 // dialog element to render and an ask(text) that resolves true/false, so each call site reads the
 // same as the confirm() it replaces.
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { t } from './portalText';
@@ -36,10 +37,10 @@ function ConfirmDialog({ lang, req, onClose }) {
   return (
     <AnimatePresence>
       {req && (
-        <motion.div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-background/80 p-4"
+        <m.div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-background/80 p-4"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.16 }}
           onClick={() => onClose(false)} dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-          <motion.div role="alertdialog" aria-modal="true" aria-labelledby="qd-confirm-title" aria-describedby="qd-confirm-body"
+          <m.div role="alertdialog" aria-modal="true" aria-labelledby="qd-confirm-title" aria-describedby="qd-confirm-body"
             className="qd-panel qd-grain my-auto w-full max-w-[480px] overflow-hidden p-0 text-foreground shadow-e3"
             initial={reduce ? false : { opacity: 0, y: 12, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduce ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: reduce ? 0 : 0.2, ease: [0.2, 0.8, 0.2, 1] }}
@@ -54,8 +55,8 @@ function ConfirmDialog({ lang, req, onClose }) {
               <Button variant="ghost" onClick={() => onClose(false)}>{t(lang, 'dlg_back')}</Button>
               <Button ref={okRef} variant={req.danger ? 'destructive' : req.reveal ? 'reveal' : 'default'} onClick={() => onClose(true)}>{req.confirm}</Button>
             </div>
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

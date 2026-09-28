@@ -23,7 +23,8 @@
 //   * pdf.js came from cdnjs at runtime -> pdfRaster.ts, bundled.
 //   * The homepage draft handoff -> initialText is sent as the first message, once.
 import { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import * as m from 'motion/react-m';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { Paperclip, Mic, Square, SendHorizontal, Sparkles, AlertTriangle, Siren, UserRound, ChevronLeft, ChevronRight, Eraser, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -201,7 +202,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && s.ok && s.status === 'done') {
         const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
         if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
-        const adopted = adopt({ ...res, boq: s.boq }, name, source);
+        // A CAD file the edge could not open is drawn by the CAD worker too: its redacted page replaces the hold.
+        const drawn = Array.isArray(s.drawing_redacted_paths) && s.drawing_redacted_paths.length ? { drawing_redacted_paths: s.drawing_redacted_paths, drawing_held: false } : {};
+        const adopted = adopt({ ...res, boq: s.boq, ...drawn }, name, source);
         push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
         return;
@@ -210,6 +213,24 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && !s.ok && s.error === 'not_found') return;
     }
     if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_slow') });
+  };
+  // A SCANNED DRAWING OR A PHOTO (24 Sep 2026): it has no text layer, so the edge holds it and customer_api queues
+  // its pages for the CAD worker's OCR redaction (_shared/scan_redact.ts). When the worker proves a page clean,
+  // its redacted page replaces the hold; when it cannot, the drawing simply stays held, as the card already says.
+  const pollScan = async (res, name, source) => {
+    for (let i = 0; i < 48; i++) {
+      await new Promise((r) => setTimeout(r, 15000));
+      const s = await call('customer_api', { action: 'cad_read_status', job_id: res.cad_job_id }, token).catch(() => null);
+      if (s && s.ok && s.status === 'done') {
+        const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
+        if (!pages.length) return;
+        adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
+        push({ role: 'assistant', text: tf(lang, 'nr_scan_pages_ready', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
+        return;
+      }
+      if (s && s.ok && s.status === 'failed') return;
+      if (s && !s.ok && s.error === 'not_found') return;
+    }
   };
   const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // customer_api analyze_document refuses more
   // Returns true when it has already told the customer and cleared the pickers.
@@ -284,6 +305,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (n >= 1) await runIntake('', adopted);
       // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
       if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
+      if (res && res.note === 'scan_queued' && res.cad_job_id) pollScan(res, file.name, source);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
@@ -437,7 +459,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
         {messages.map((m, i) => (
-          <motion.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
+          <m.div key={i} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.22 }}>
             {m.chip !== undefined
               ? <div className="flex justify-end"><div className="flex items-center gap-1.5 rounded-2xl border border-primary/30 bg-primary/15 px-3 py-2 text-[13px] text-foreground"><Paperclip className="h-3.5 w-3.5" aria-hidden /><bdi>{m.chip}</bdi></div></div>
               : <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -453,7 +475,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 ))}
               </div>
             )}
-          </motion.div>
+          </m.div>
         ))}
         {meta.override && meta.override.kept && meta.override.model ? (
           <div className="flex justify-start"><button type="button" onClick={() => answerChip(tf(lang, 'nr_override', { kept: meta.override.kept, model: meta.override.model }).split(' — ')[0])}
@@ -483,7 +505,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         )}
         <AnimatePresence>
           {ready && brief && (
-            <motion.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
+            <m.div initial={reduce ? false : { opacity: 0, y: 10, scale: 0.99 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: reduce ? 0 : 0.28, ease: [0.2, 0.8, 0.2, 1] }}
               className="rounded-2xl border border-primary/35 bg-primary/[0.06] p-4 shadow-[0_18px_50px_-30px_rgba(20,184,166,.55)]">
               <div className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" aria-hidden /><div className="text-[13.5px] font-bold text-foreground">{brief.category ? categoryLabel(brief.category, lang) : t(lang, 'rc_request')}{brief.emirate ? ' — ' + emirateName(brief.emirate, lang) : ''}</div></div>
               {brief.summary ? <div className="mt-1 text-[13px] text-muted-foreground">{brief.summary}</div> : null}
@@ -521,7 +543,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
               {drawing && drawing.held ? <div className="mt-2 text-[12.5px] font-semibold text-warn-fg" role="status">{tf(lang, drawing.boq && Array.isArray(drawing.boq.boq) && drawing.boq.boq.length ? 'nr_drawing_held_boq' : 'nr_drawing_held', { name: drawing.held_name || drawing.drawing_file_name || '' })}</div> : null}
               <Button size="lg" className="mt-3.5 w-full" disabled={busy} onClick={submit}>{busy ? t(lang, 'nr_sending') : t(lang, 'nr_send_suppliers')}</Button>
               <div className="mt-1.5 text-center text-[12px] text-muted-foreground">{t(lang, 'nr_keep_typing')}</div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
         <div ref={endRef} />
@@ -625,7 +647,7 @@ function ReadinessBar({ pct, lang, reduce }) {
     <div className="border-b border-border px-5 py-2">
       <div className="flex items-center justify-between"><span className="font-mono text-label uppercase tracking-caps text-muted-foreground">{t(lang, 'nr_readiness')}</span><span className="tabular font-mono text-label text-foreground">{pct}%</span></div>
       <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-secondary/70" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={t(lang, 'nr_readiness')}>
-        <motion.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
+        <m.div className="h-full rounded-full bg-gradient-to-r from-primary/60 to-primary" initial={reduce ? false : { width: 0 }} animate={{ width: pct + '%' }} transition={{ duration: reduce ? 0 : 0.7, ease: [0.2, 0.8, 0.2, 1] }} />
       </div>
     </div>
   );
@@ -637,12 +659,12 @@ function QuestionChips({ questions, next, left, lang, onPick, reduce }) {
       <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{left > 0 ? tf(lang, 'nr_left', { n: left }) : t(lang, 'nr_chips_hint')}</div>
       <div className="flex flex-wrap gap-1.5">
         {questions.slice(0, 8).map((q, i) => (
-          <motion.button key={q + i} type="button" onClick={() => onPick(q)}
+          <m.button key={q + i} type="button" onClick={() => onPick(q)}
             initial={reduce ? false : { opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.2, delay: reduce ? 0 : 0.05 * i }}
             className={cn('rounded-full border px-3 py-1.5 text-start text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               q === next ? 'border-primary/55 bg-primary/15 font-semibold text-primary' : 'border-border bg-card/60 text-foreground hover:border-primary/40')}>
             {q}
-          </motion.button>
+          </m.button>
         ))}
       </div>
     </div>
@@ -708,7 +730,7 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
   const live = drag ? { x: Math.min(drag.x0, drag.x1), y: Math.min(drag.y0, drag.y1), w: Math.abs(drag.x1 - drag.x0), h: Math.abs(drag.y1 - drag.y0) } : null;
   const pct = (v) => (v * 100) + '%';
   return (
-    <motion.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
+    <m.div initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-primary/35 bg-card/70 p-3.5">
       <h3 className="text-[13.5px] font-bold text-foreground">{t(lang, 'rd_title')}</h3>
       <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted-foreground">{t(lang, 'rd_body')}</p>
       <div className="mt-2.5 flex items-center justify-between gap-2 text-[12px] text-muted-foreground" dir="ltr">
@@ -728,6 +750,6 @@ function RedactionEditor({ lang, images, onApply, onSkip, reduce }) {
         <Button size="sm" variant="outline" disabled={busy || !boxes[page].length} onClick={() => setBoxes((all) => all.map((l, i) => (i === page ? [] : l)))}><Eraser className="me-1 h-3.5 w-3.5" aria-hidden />{t(lang, 'rd_clear')}</Button>
         <Button size="sm" variant="link" className="h-auto px-0" disabled={busy} onClick={onSkip}>{t(lang, 'rd_skip')}</Button>
       </div>
-    </motion.div>
+    </m.div>
   );
 }
