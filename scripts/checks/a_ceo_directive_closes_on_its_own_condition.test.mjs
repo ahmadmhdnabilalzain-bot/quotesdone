@@ -27,6 +27,18 @@ test('the daily priority is the seat\'s directive, never a bare improvement poin
   assert.match(body, /from public\.ceo_directive/, `${file}: the priority does not read the seat's open directive`);
 });
 
+// Release review of #1001, 29 Sep 2026: a seat_audit or late_deliverable signal outlives its condition, so an issuer
+// that did not test done_sql first issued a directive and the loop closed it met every hour (22 rows in 22 hourly runs
+// in the probe's control). The issuer must refuse while the condition already holds, before it inserts.
+test('a directive is issued only while its condition is open', () => {
+  const { file, body } = newest('fn_ceo_directive_issue');
+  const check = body.search(/execute\s+'select coalesce\(\(' \|\| p_done_sql/);
+  const insert = body.search(/insert\s+into\s+public\.ceo_directive/i);
+  assert.ok(check >= 0, `${file}: the issuer does not run the done-condition before issuing`);
+  assert.ok(insert > check, `${file}: the done-condition must be tested before the insert`);
+  assert.match(body, /if v_done then\s+return null;/, `${file}: a condition that already holds must issue nothing`);
+});
+
 test('the loop closes on the predicate and escalates exactly once', () => {
   const { file, body } = newest('fn_ceo_directive_run');
   assert.match(body, /execute\s+'select coalesce\(\(' \|\| d\.done_sql/, `${file}: a directive must close on its own done_sql`);

@@ -23,7 +23,10 @@
 --   ceo_directive: seat, instruction, done_when (plain words) + done_sql (a boolean SQL predicate the loop runs),
 --   deadline, source_kind + source_ref (the signal), status open | met | escalated | missed. At most ONE directive per
 --   (seat, source_kind, source_ref) that is not 'met' (unique index + the issuer's own check): a signal that is being
---   worked, escalated or missed is never issued twice. A signal that recurs after being met gets a new directive.
+--   worked, escalated or missed is never issued twice. The issuer also runs done_sql first and issues nothing while
+--   the condition already holds (release review, 29 Sep 2026: otherwise a seat_audit or late_deliverable signal that
+--   outlives its condition was issued and closed met every hour). A signal whose condition turns false again after
+--   being met gets a new directive.
 --
 --   fn_ceo_directive_run(p_at), duty ceo.directive (hourly), also called by the daily run before the priorities:
 --   ISSUE from four signals —
@@ -82,15 +85,27 @@ values ('directive_escalation', 'Operations',
   'ceo_alone', 'The directive, its done-condition, the predicate result at the deadline, and the re-issue id.', 'hourly')
 on conflict (decision_key) do nothing;
 
--- issue one directive unless the signal already has one that is not met
+-- issue one directive per OPEN condition: never while the signal already has one that is not met, and never while
+-- its done-condition already holds. Release review, 29 Sep 2026: seat_audit and late_deliverable signals outlive
+-- their condition (the quarter's audit row stays below_bar; the late-plan improvement stays assigned after the plan
+-- leaves draft), so without the second test each hourly run issued a directive the close loop met at once -- about
+-- 24 rows a day. A signal that recurs (its condition false again after being met) still gets a new directive.
+-- A predicate that errors counts as not met: the directive is issued and the close loop records the error.
 create or replace function public.fn_ceo_directive_issue(p_seat text, p_kind text, p_ref text, p_instruction text,
   p_done_when text, p_done_sql text, p_deadline timestamptz, p_evidence jsonb)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_id bigint;
+declare v_id bigint; v_done boolean;
 begin
   if exists (select 1 from public.ceo_directive where seat = p_seat and source_kind = p_kind and source_ref = p_ref and status <> 'met')
      or not exists (select 1 from public.org_role where role_id = p_seat and status = 'active') then
     return null;
+  end if;
+  begin
+    execute 'select coalesce((' || p_done_sql || ')::boolean, false)' into v_done;
+  exception when others then v_done := false;
+  end;
+  if v_done then
+    return null;   -- nothing to direct: the condition is already met
   end if;
   insert into public.ceo_directive (seat, source_kind, source_ref, instruction, done_when, done_sql, deadline, evidence)
   values (p_seat, p_kind, p_ref, p_instruction, p_done_when, p_done_sql, p_deadline, coalesce(p_evidence, '{}'::jsonb))
