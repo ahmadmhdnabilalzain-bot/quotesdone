@@ -129,7 +129,7 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // ever ESTIMATES the customer is asked to confirm — the server re-does the address cross-check.
     const drawing = drawingInput(body.ocr_lines, body.ocr_width, body.symbol_counts, ocrText);
     if (body.mode === 'document') {
-      const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''));
+      const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''), 0, { pdfCadDrawingsOnly: true });
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.

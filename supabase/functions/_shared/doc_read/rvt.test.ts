@@ -5,7 +5,7 @@
 // @deno-types="../vendor/sheetjs-0.20.3/types/index.d.ts"
 import { CFB } from '../vendor/sheetjs-0.20.3/xlsx.mjs';
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { findPng, readRvt, rvtInfo, RVT_IFC_ASK, RVT_OTHER_ASK } from './rvt.ts';
+import { findPng, readRvt, rvtInfo, RVT_FORMAT_ASK, RVT_OTHER_ASK } from './rvt.ts';
 import type { ReadResult } from './types.ts';
 
 const ctx = { filename: 'model.rvt', depth: 0 };
@@ -48,7 +48,7 @@ Deno.test('rvt project: version, build, preview, and nothing identifying in text
   assertEquals([...i.preview!.png.slice(0, 4)], [0x89, 0x50, 0x4E, 0x47]);
   const r = must(await readRvt(bytes, ctx));
   assertEquals([r.kind, r.needs, r.text, r.quantities.length], ['rvt', 'bim_conversion', '', 0]);
-  assertEquals(r.notes, ['This Revit file was saved in Revit 2023.', 'A 3 x 2 pixel preview image was extracted from the file.', RVT_IFC_ASK, RVT_OTHER_ASK]);
+  assertEquals(r.notes, ['This Revit file was saved in Revit 2023.', 'A 3 x 2 pixel preview image was extracted from the file.', RVT_FORMAT_ASK, RVT_OTHER_ASK]);
   const all = r.text + r.notes.join(' ');
   for (const secret of ['ZZ DEMO', 'zz.demo', 'Villa', 'C:\\']) assert(!all.includes(secret), secret);
 });

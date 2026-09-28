@@ -67,7 +67,8 @@ const RULES: Rule[] = [
   R(/^This Revit model is workshared \(part of a team model\)\.$/, () => 'نموذج ريفيت هذا مشترك العمل (جزء من نموذج فريق).'),
   R(/^(.+?) line\(s\) of the drawing's take-off were withheld because they still named a party after redaction; please add them by hand if they are needed\.$/, (m) => `حُجب ${m[1]} من بنود حصر الكميات في المخطط لأنها بقيت تذكر اسم جهة بعد إخفاء البيانات؛ يُرجى إضافتها يدويًا إن لزم.`),
   R(/^A (.+?) x (.+?) pixel preview image was extracted from the file\.$/, (m) => `استُخرجت من الملف صورة معاينة بأبعاد ${m[1]} × ${m[2]} بكسل.`),
-  R(/^The building elements and quantities inside a Revit file are not read here\. Please export it from Revit as IFC \(File > Export > IFC, then Modify setup, and on the Property Sets tab tick "Export base quantities" so areas and volumes come through\) and upload the \.ifc file; its quantities are then read directly\.$/, () => 'لا تُقرأ هنا عناصر المبنى وكمياته داخل ملف ريفيت. يُرجى تصديره من ريفيت بصيغة IFC (ملف > تصدير > IFC، ثم «تعديل الإعداد» Modify setup، ومن تبويب «مجموعات الخصائص» Property Sets يُرجى تحديد خيار «تصدير الكميات الأساسية» Export base quantities لتظهر المساحات والأحجام)، ثم رفع ملف ‎.ifc، وعندها تُقرأ كمياته مباشرةً.'),
+  // _shared/drawing_format.ts (founder ruling 28 Sep 2026: drawings are PDF or CAD only; the IFC request is retired)
+  R(/^Please upload your drawing as PDF or CAD \(DWG\/DXF\)\.$/, () => 'يُرجى رفع المخطط بصيغة PDF أو CAD ‏(DWG/DXF).'),
   R(/^A DWG or DXF export of the plans \(File > Export > CAD Formats\) or a PDF of the drawing sheets can be uploaded instead\.$/, () => 'ويمكن بدلًا من ذلك رفع المساقط مُصدَّرةً بصيغة DWG أو DXF (ملف > تصدير > صيغ CAD) أو رفع لوحات المخطط بصيغة PDF.'),
   // _shared/doc_read/index.ts: DGN (22 Sep 2026)
   R(/^This is a MicroStation DGN V8 file\.$/, () => 'هذا ملف مايكروستيشن DGN بإصدار V8.'),

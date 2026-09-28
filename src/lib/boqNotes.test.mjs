@@ -62,7 +62,9 @@ test('the binary DXF, Revit and DGN sentences are among those read', () => {
   for (const s of ['The Revit version could not be read from this file.', 'This Revit file is a family (.rfa), not a project model.',
     'This is a MicroStation DGN V8 file.', 'A ZZDEMO_7.pdf x ZZDEMO_7.pdf pixel preview image was extracted from the file.',
     'Read from binary DXF: ZZDEMO_7.pdf group-code pairs.']) assert.ok(sentences.has(s), `not found by the anchor: ${s}`);
-  assert.ok([...sentences].some((s) => s.startsWith('The building elements and quantities inside a Revit file')), 'RVT_IFC_ASK');
+  // 28 Sep 2026: the IFC request is retired (founder ruling: drawings are PDF or CAD only); Revit gets the ruling's message.
+  assert.ok(!/upload the .ifc/i.test(readFileSync(join(FN, '_shared', 'doc_read', 'rvt.ts'), 'utf8')), 'RVT_IFC_ASK is retired');
+  assert.equal(boqNoteAr('Please upload your drawing as PDF or CAD (DWG/DXF).'), 'يُرجى رفع المخطط بصيغة PDF أو CAD ‏(DWG/DXF).');
   assert.ok([...sentences].some((s) => s.startsWith('A MicroStation DGN drawing cannot be read here yet.')), 'DGN_NOTE');
 });
 

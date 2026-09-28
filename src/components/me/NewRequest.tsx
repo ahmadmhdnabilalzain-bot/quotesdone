@@ -65,8 +65,11 @@ import { blobToWavB64 } from '@/lib/wavEncode';
 // 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
 // document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
 // drawing path (redacted pages for suppliers).
-const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf|rvt|rfa|dgn)$/i;
-const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
+const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|xml|x8[1-6]|zip|dxf)$/i;
+// Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only. The server refuses the rest the same way
+// (supabase/functions/_shared/drawing_format.ts); refused here first so nothing is uploaded.
+const REFUSED_DRAWING_RE = /\.(rvt|rfa|rte|rft|ifc|ifczip|ifcxml|dgn|dgnlib|dwf|dwfx|skp|3dm|nwd|nwc|nwf|step|stp|pln)$/i;
+const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type', drawing_format_not_accepted: 'nr_drawing_format' };
 
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
 const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
@@ -221,6 +224,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg('');
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     push({ role: 'user', text: '', chip: file.name });
     if (tooBig(file)) return;
     setAnalyzing(true); setEditor(false);
@@ -291,6 +295,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // drawing_boq and create_inquiry stores it on the RFQ suppliers read.
   const onBoq = async (file) => {
     if (!file) return;
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     if (!DOC_RE.test(file.name)) return onFile(file, 'boq');
     setMsg(''); push({ role: 'user', text: '', chip: file.name });
     const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
@@ -317,7 +322,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
     setAnalyzing(false); reset();
   };
-  const onAny = (f) => (f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const onAny = (f) => (f && REFUSED_DRAWING_RE.test(f.name) ? refuseDrawing() : f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const refuseDrawing = () => { push({ role: 'assistant', text: t(lang, 'nr_drawing_format') }); try { if (fileRef.current) fileRef.current.value = ''; if (boqRef.current) boqRef.current.value = ''; } catch (_e) {} };
   const applyBoxes = async (boxes) => {
     if (!pages) return false;
     const res = await analyze(pages, boxes).catch(() => null);
@@ -549,7 +555,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.rvt,.rfa,.dgn,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
               drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot

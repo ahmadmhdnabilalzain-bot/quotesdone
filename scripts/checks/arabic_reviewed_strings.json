@@ -2438,7 +2438,6 @@
   "027290433d84",
   "03e04e8a8dda",
   "051b56e3955b",
-  "06afdc13e23a",
   "0907ffad5d1e",
   "098fd8bfe804",
   "099ec14fa3c8",
@@ -2452,7 +2451,6 @@
   "136812001688",
   "13962c829494",
   "1414d5859c0e",
-  "146a5b00446b",
   "14849c72fb93",
   "1504bfc3a8dc",
   "15df8b2eee6f",
@@ -2464,6 +2462,7 @@
   "1d98a9586f91",
   "1dc995d97318",
   "1e95c36e8636",
+  "1eb68a264e50",
   "1fb631ff0a5f",
   "20ffc9b01a1e",
   "21830ed1d48b",
@@ -2574,6 +2573,7 @@
   "a3b3e5144a42",
   "a5a6dce84c28",
   "a6d0e65e97e9",
+  "aa3f55b6c243",
   "ab32250b9ce6",
   "ac6da840ea78",
   "ae41461c0e53",
@@ -2613,6 +2613,7 @@
   "cb93c4e62a13",
   "cc308a5e6acf",
   "d0150f86cbe5",
+  "d04f39d6f405",
   "d2479290cc2e",
   "d24e24552aa4",
   "d466a6a5871c",
@@ -3648,12 +3649,12 @@
   "410891bd6f08",
   "4ec6ed2981b8",
   "5e44d9452342",
+  "739c1a5cc8c3",
   "7d42323153da",
   "7fd69b7c6643",
   "b6d49d8ad10a",
   "c6465d24ce9a",
   "d3319643634a",
-  "ee77ffffb50f",
   "f4af52f37af8"
  ],
  "src/components/portal/supplier/SupplierCertifications.tsx": [
@@ -4328,6 +4329,9 @@
   "a26139843907",
   "cbb176539761",
   "fbe144d11ac6"
+ ],
+ "supabase/functions/_shared/drawing_format.ts": [
+  "939055a3b61f"
  ],
  "supabase/functions/_shared/drawing_identity_gate.ts": [
   "a53833277648"

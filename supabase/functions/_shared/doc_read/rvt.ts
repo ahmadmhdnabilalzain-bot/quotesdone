@@ -41,11 +41,14 @@
 // GUID into text or notes: those identify the customer and notes are shown to suppliers. It does not
 // read elements or quantities (see WHY), runs nothing, and caps every stream it decodes.
 import { empty, ok, refuse, type ReadContext, type ReadResult } from './types.ts';
+import { DRAWING_FORMAT_MESSAGE } from '../drawing_format.ts';
 
 const MAX_INFO = 64 * 1024, MAX_PREVIEW = 2 * 1024 * 1024;
 const PNG_SIG = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
-export const RVT_IFC_ASK = 'The building elements and quantities inside a Revit file are not read here. Please export it from Revit as IFC (File > Export > IFC, then Modify setup, and on the Property Sets tab tick "Export base quantities" so areas and volumes come through) and upload the .ifc file; its quantities are then read directly.';
+// Founder ruling 28 Sep 2026: a customer's drawing is PDF or CAD (DWG/DXF) only; a Revit file is not asked for an IFC
+// export any more (the IFC request is retired). Customer paths refuse RVT before this reader (drawing_format.ts).
+export const RVT_FORMAT_ASK = DRAWING_FORMAT_MESSAGE;
 // Named constants, so src/lib/boqNotes.test.mjs finds every sentence and fails on one with no Arabic.
 const RVT_VERSION_NOTE = (v: string) => `This Revit file was saved in Revit ${v}.`;
 const RVT_NO_VERSION_NOTE = 'The Revit version could not be read from this file.';
@@ -198,7 +201,7 @@ export function readRvt(bytes: Uint8Array, _ctx: ReadContext): Promise<ReadResul
   if (info.family) notes.push(RVT_FAMILY_NOTE);
   if (info.workshared) notes.push(RVT_WORKSHARED_NOTE);
   if (info.preview) notes.push(RVT_PREVIEW_NOTE(info.preview.width, info.preview.height));
-  notes.push(RVT_IFC_ASK, RVT_OTHER_ASK);
+  notes.push(RVT_FORMAT_ASK, RVT_OTHER_ASK);
   const e = empty('rvt', notes, 'bim_conversion');
   if (info.category) e.text = `Revit family category: ${info.category}`;
   return Promise.resolve(ok(e));

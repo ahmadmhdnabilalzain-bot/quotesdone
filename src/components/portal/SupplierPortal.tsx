@@ -122,7 +122,7 @@ const MISSING = {
 const missingLabel = (lang, m) => (MISSING[m] ? MISSING[m][lang === 'ar' ? 1 : 0] : (lang === 'ar' ? 'بند ناقص' : String(m).replace(/_/g, ' ')));
 // Every format the quotation reader opens (supabase/functions/_shared/doc_read READERS, #591), the same
 // list the customer's composer accepts. A DWG is accepted and stored; it is read once converted.
-const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.xml,.x83,.x84,.x86,.zip';
+const QUOTE_ACCEPT = 'image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip';
 const fileToB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
 // STRIPE CAME BACK AND THE PAGE SAID NOTHING (audit 2026-09-14). supplier_pay and pay_registration
 // return the supplier to /portal?dues_paid=… or ?registration_paid=…, and nothing read either query

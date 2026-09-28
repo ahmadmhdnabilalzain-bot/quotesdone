@@ -31,6 +31,7 @@ import { SANCTIONED_REFUSAL, sanctionedLead, sanctionedLeads } from '../_shared/
 // One door decides whether a supplier may be revealed, and one predicate decides whether a quote is
 // complete enough to be listed, ranked or revealed (customer-portal audit CP-01 / CP-09).
 import { canReveal, heldQuoteIds, itemsByQuote } from '../_shared/reveal_guard.ts';
+import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../_shared/drawing_format.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -798,6 +799,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'analyze_boq') {
       const name = String(body.file_name || 'boq').slice(0, 180);
       const mime = String(body.mime || '');
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
       // 5 MB of bytes is about 6.7 MB of base64: refused here before anything is decoded or forwarded.
@@ -821,6 +823,7 @@ Deno.serve(observe('customer_api', async (req) => {
     if (action === 'analyze_document') {
       const name = String(body.file_name || 'document').slice(0, 180);
       const mime = String(body.mime || '');
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const b64 = String(body.file_b64 || '');
       if (!b64) return J({ ok: false, error: 'empty_upload' }, 400);
       if (b64.length > 27 * 1024 * 1024) return J({ ok: false, error: 'file_too_large', code: 'file_too_large', message: 'That file is too large. Please upload a smaller version.', message_ar: 'هذا الملف كبير جدًا. يُرجى رفع نسخة أصغر.' }, 413);
@@ -838,6 +841,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const job = p ? await queueCadRead({ customerId: cust.id, email, path: p, name, mime, b64Len: b64.length, why: cadWhy }) : null;
         if (job) return J({ ok: true, boq: null, kind: 'dxf', needs: 'cad_conversion', drawing_file_path: p, drawing_file_name: name, drawing_redacted_paths: [], stored: true, note: 'cad_queued', cad_job_id: job });
       }
+      if (jd?.error === DRAWING_FORMAT_ERROR) return J(drawingFormatRefused(), 415);
       if (!jd?.ok) return J({ ok: false, error: String(jd?.error || 'document_unreadable'), detail: String(jd?.detail || '').slice(0, 200) });
       const path = await storeOriginal(cust.id, email, name, mime, b64, SAFE_DOCS);
       // A DXF's take-off carries the file's own names (layers, blocks, title block): cad_identity takes them
@@ -851,6 +855,8 @@ Deno.serve(observe('customer_api', async (req) => {
       let images: any[] = Array.isArray(body.images) ? body.images.slice(0, MAX_DRAWING_PAGES) : [];
       const name = String(body.drawing_file_name || 'drawing').slice(0, 180);
       const mime = String(body.mime || 'application/octet-stream');
+      // Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only (_shared/drawing_format.ts).
+      { const refused = drawingFormatRefusal(name, mime); if (refused) return J(refused, 415); }
       const hint = String(body.hint || '').slice(0, 400);
       const path = body.original_b64 ? await storeOriginal(cust.id, email, name, mime, String(body.original_b64)) : null;
       const secret = await getSecret('cred_fn_customer_api');
