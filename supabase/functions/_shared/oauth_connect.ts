@@ -60,6 +60,16 @@ export function authorizeUrl(p: Provider, clientId: string, redirect: string, st
   if (p === 'gmail_seed') q.set('login_hint', SEED_GMAIL);
   return 'https://accounts.google.com/o/oauth2/v2/auth?' + q;
 }
+// PUBLIC CLIENT (ms_graph_seed, 28 Sep 2026): the Microsoft app is a "Public client/native" registration, so no
+// client secret exists. PKCE is then the only proof of possession: the verifier is HMAC(service key, nonce) and the
+// nonce is inside the signed, 10-minute state, so it never leaves the server and cannot be forged or replayed after
+// expiry. A confidential client (secret present) sends both the secret and the verifier. Google always has a secret.
+export const isPublicClient = (p: Provider, secret: string) => SPEC[p].client === 'ms' && !secret;
+export function tokenBody(code: string, redirect: string, clientId: string, secret: string, verifier: string): URLSearchParams {
+  const b = new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirect, client_id: clientId, code_verifier: verifier });
+  if (secret) b.set('client_secret', secret);
+  return b;
+}
 export function tokenUrl(p: Provider, tenant = ''): string {
   return SPEC[p].client === 'ms' ? msBase(tenant) + 'token' : 'https://oauth2.googleapis.com/token';
 }

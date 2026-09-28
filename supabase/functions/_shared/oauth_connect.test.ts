@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { authorizeUrl, checkIdentity, signState, verifyState } from './oauth_connect.ts';
+import { authorizeUrl, checkIdentity, isPublicClient, pkceChallenge, pkceVerifier, signState, tokenBody, verifyState } from './oauth_connect.ts';
 
 Deno.test('state: verifies, is bound to its key, expires in 10 minutes, and cannot be re-bound to another provider', async () => {
   const s = await signState('k', 'gmail_seed', 1_000_000_000_000);
@@ -26,4 +26,36 @@ Deno.test('identity: only the allowlisted mailbox / a Postmaster account that li
   assert(!(await checkIdentity(f({ mail: 'x@doratajewelries.com' }), 'ms_graph_seed', 't')).ok);
   assert((await checkIdentity(f({ domains: [{ name: 'domains/quotesdone.com' }] }), 'google_postmaster', 't')).ok);
   assert(!(await checkIdentity(f({ domains: [{ name: 'domains/quotesdone.ae' }] }), 'google_postmaster', 't')).ok);
+});
+
+Deno.test('PKCE round trip: the challenge on the authorize call is S256 of the verifier the callback re-derives from the state', async () => {
+  const t = 1_000_000_000_000, s = await signState('k', 'ms_graph_seed', t);
+  const sent = new URL(authorizeUrl('ms_graph_seed', 'cid', 'https://x/cb', s, await pkceChallenge(await pkceVerifier('k', s.split('.')[2])), 'tid'));
+  const v = await verifyState('k', sent.searchParams.get('state')!, t + 60_000);
+  const verifier = await pkceVerifier('k', v!.nonce);
+  assert(verifier.length >= 43 && verifier.length <= 128 && /^[A-Za-z0-9_-]+$/.test(verifier));
+  assertEquals(await pkceChallenge(verifier), sent.searchParams.get('code_challenge'));
+  assertEquals(sent.searchParams.get('code_challenge_method'), 'S256');
+  assert(!sent.toString().includes(verifier));
+  assert(verifier !== await pkceVerifier('other', v!.nonce));
+});
+
+Deno.test('tampered state is rejected: nonce, expiry or signature changed', async () => {
+  const t = 1_000_000_000_000, s = await signState('k', 'ms_graph_seed', t), [p, exp, n, sig] = s.split('.');
+  const flip = (x: string) => (x[0] === 'A' ? 'B' : 'A') + x.slice(1);
+  assertEquals(await verifyState('k', [p, exp, flip(n), sig].join('.'), t), null);
+  assertEquals(await verifyState('k', [p, String(Number(exp) + 1000), n, sig].join('.'), t), null);
+  assertEquals(await verifyState('k', [p, exp, n, flip(sig)].join('.'), t), null);
+  assertEquals(await verifyState('k', s + 'x', t), null);
+});
+
+Deno.test('missing Microsoft secret leads to PKCE-only exchange; a secret keeps the confidential path', () => {
+  assert(isPublicClient('ms_graph_seed', ''));
+  assert(!isPublicClient('ms_graph_seed', 'sec'));
+  assert(!isPublicClient('gmail_seed', ''));
+  const pub = tokenBody('c', 'https://x/cb', 'cid', '', 'ver');
+  assertEquals([pub.get('client_secret'), pub.get('code_verifier'), pub.get('grant_type')], [null, 'ver', 'authorization_code']);
+  assert(!pub.toString().includes('client_secret'));
+  const conf = tokenBody('c', 'https://x/cb', 'cid', 'sec', 'ver');
+  assertEquals([conf.get('client_secret'), conf.get('code_verifier')], ['sec', 'ver']);
 });

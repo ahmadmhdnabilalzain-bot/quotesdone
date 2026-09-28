@@ -14,7 +14,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import {
   authorizeUrl, checkIdentity, isProvider, pkceChallenge, pkceVerifier, redirectUri, sameString, signState, SPEC,
-  STATE_TTL_MS, tokenUrl, verifyState, type Provider,
+  STATE_TTL_MS, tokenBody, tokenUrl, isPublicClient, verifyState, type Provider,
 } from '../_shared/oauth_connect.ts';
 
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -45,7 +45,7 @@ async function start(url: URL): Promise<Response> {
   const p = url.searchParams.get('provider');
   if (!isProvider(p)) return page(400, 'Unknown provider', 'Use provider=google_postmaster, gmail_seed or ms_graph_seed.');
   const c = await client(p);
-  if (!c.id || !c.secret || (SPEC[p].client === 'ms' && !c.tenant)) return page(503, SPEC[p].label + ' is not ready yet', 'The OAuth client has not been stored. Nothing happened.');
+  if (!c.id || (!c.secret && !isPublicClient(p, c.secret)) || (SPEC[p].client === 'ms' && !c.tenant)) return page(503, SPEC[p].label + ' is not ready yet', 'The OAuth client has not been stored. Nothing happened.');
   const state = await signState(KEY, p);
   const nonce = state.split('.')[2];
   const location = authorizeUrl(p, c.id, redirectUri(URL_), state, await pkceChallenge(await pkceVerifier(KEY, nonce)), c.tenant);
@@ -62,8 +62,8 @@ async function callback(url: URL, req: Request): Promise<Response> {
   try {
     const c = await client(p);
     const r = await timedFetch(tokenUrl(p, c.tenant), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ grant_type: 'authorization_code', code, redirect_uri: redirectUri(URL_), client_id: c.id, client_secret: c.secret,
-        code_verifier: await pkceVerifier(KEY, v.nonce) }).toString() });
+      // No secret on the Microsoft side = public client: the PKCE verifier alone redeems the code.
+      body: tokenBody(code, redirectUri(URL_), c.id, c.secret, await pkceVerifier(KEY, v.nonce)).toString() });
     const j = await r.json().catch(() => ({})) as { access_token?: string; refresh_token?: string };
     if (!r.ok || !j.access_token) return page(502, 'Nothing was connected', 'The provider refused the code (HTTP ' + r.status + '). Open the start link again.', clear);
     const who = await checkIdentity(timedFetch, p, j.access_token);
