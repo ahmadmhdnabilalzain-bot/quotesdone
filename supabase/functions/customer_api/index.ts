@@ -848,7 +848,7 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     // EVERY DOCUMENT (14 Sep 2026; founder: "the sales agent need to be extremely capable of reading
-    // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, IFC, GAEB,
+    // all types of document"). Word, PowerPoint, ODF, RTF, text, email (.eml/.msg), DXF, GAEB,
     // zip and PDF are read by drawing_boq mode 'document' with no model; a photo arrives with the
     // customer's browser OCR as ocr_text. The same 20 MB ceiling as doc_read; stored only if accepted.
     if (action === 'analyze_document') {

@@ -64,7 +64,8 @@ test('a PDF set whose lengths call dies is queued with its counted take-off, and
   assert.match(portal, /res\.note === 'lengths_queued'[\s\S]{0,80}pollCad\(res, file\.name, source, true\)/);
 });
 
-test('the portal accepts Revit and DGN and polls a queued CAD read', () => {
-  assert.match(portal, /accept="[^"]*\.rvt[^"]*\.dgn/);
+test('the portal accepts DWG and DXF, never Revit, IFC or DGN (ruling 1000), and polls a queued CAD read', () => {
+  assert.match(portal, /accept="[^"]*\.dwg[^"]*\.dxf/);
+  assert.doesNotMatch(portal, /accept="[^"]*\.(?:rvt|rfa|ifc|dgn)\b/);
   assert.match(portal, /action: 'cad_read_status'/);
 });
