@@ -201,7 +201,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && s.ok && s.status === 'done') {
         const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
         if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
-        const adopted = adopt({ ...res, boq: s.boq }, name, source);
+        // A CAD file the edge could not open is drawn by the CAD worker too: its redacted page replaces the hold.
+        const drawn = Array.isArray(s.drawing_redacted_paths) && s.drawing_redacted_paths.length ? { drawing_redacted_paths: s.drawing_redacted_paths, drawing_held: false } : {};
+        const adopted = adopt({ ...res, boq: s.boq, ...drawn }, name, source);
         push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
         return;
@@ -210,6 +212,24 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && !s.ok && s.error === 'not_found') return;
     }
     if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_slow') });
+  };
+  // A SCANNED DRAWING OR A PHOTO (24 Sep 2026): it has no text layer, so the edge holds it and customer_api queues
+  // its pages for the CAD worker's OCR redaction (_shared/scan_redact.ts). When the worker proves a page clean,
+  // its redacted page replaces the hold; when it cannot, the drawing simply stays held, as the card already says.
+  const pollScan = async (res, name, source) => {
+    for (let i = 0; i < 48; i++) {
+      await new Promise((r) => setTimeout(r, 15000));
+      const s = await call('customer_api', { action: 'cad_read_status', job_id: res.cad_job_id }, token).catch(() => null);
+      if (s && s.ok && s.status === 'done') {
+        const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
+        if (!pages.length) return;
+        adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
+        push({ role: 'assistant', text: tf(lang, 'nr_scan_pages_ready', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
+        return;
+      }
+      if (s && s.ok && s.status === 'failed') return;
+      if (s && !s.ok && s.error === 'not_found') return;
+    }
   };
   const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // customer_api analyze_document refuses more
   // Returns true when it has already told the customer and cleared the pickers.
@@ -284,6 +304,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (n >= 1) await runIntake('', adopted);
       // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
       if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
+      if (res && res.note === 'scan_queued' && res.cad_job_id) pollScan(res, file.name, source);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };

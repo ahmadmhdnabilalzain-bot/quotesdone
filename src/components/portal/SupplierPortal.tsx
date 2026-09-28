@@ -28,6 +28,7 @@ import EmirateCheckboxes from './supplier/EmirateCheckboxes';
 import { Kicker } from '@/components/ui/sealed';
 import { srvMsg, srvText, itemCopy, emirateLabel, vocabLabel, TRADE_GROUPS, tradeLabel } from './supplier/serverCopy';
 import { call } from './supplier/api';
+import { warmTabs, firstRead } from './supplier/tabPrefetch';
 // THE ONE MONEY FORMATTER (audit 22 Sep 2026, SP-I-10): ./supplier/money.ts. The local `aed(n)` that
 // stood here printed "AED 1,200" on /ar too, while the quotation tabs printed "1,200 د.إ" for the
 // same figure.
@@ -178,9 +179,11 @@ function BillingPanel({ token, lang, receipt, onExpired }) {
   const [busy, setBusy] = useState(false);
   // Stripe returns to base + '/portal', so an Arabic supplier comes back to /ar/portal.
   const base = () => window.location.origin + (lang === 'ar' ? '/ar' : '');
+  const first = useRef(true);
   const load = async () => {
     setSt((s) => ({ ...s, loading: true, err: '' }));
-    const j = await call('supplier_pay', { action: 'list' }, token);
+    const f = first.current; first.current = false;
+    const j = await (f ? firstRead(token, 'sup_tab:billing') : call('supplier_pay', { action: 'list' }, token));
     if (j && j.ok) { setSt({ loading: false, dues: j.dues || [], total: Number(j.total_owed || 0), err: '' }); return; }
     // "Nothing to pay" and "we could not read your balance" must never look the same to someone who
     // owes money and is accruing interest on it (SP-C-08).
@@ -456,6 +459,9 @@ const CLAIM_REFUSAL = {
 export function claimRefusalKey(j) {
   const c = String((j && j.code) || '');
   if (CLAIM_REFUSAL[c]) return c;
+  // 24 Sep 2026: a listing whose name or licence another account already claimed is refused with the
+  // same code create_company uses; panelErrorText renders it from serverCopy.ts (no second copy).
+  if (c === 'company_already_registered') return c;
   const e = String((j && j.error) || '');
   if (/invalid_link/i.test(e)) return 'invalid_link';
   if (/not found/i.test(e)) return 'not_found';
@@ -1076,6 +1082,10 @@ function Dashboard({ token, lang, onExpired }) {
   // would be a second source of truth for the same state. (docs/CONVENTIONS_LOADING.md)
   const load = async (first = false) => { const n = ++seq.current; const j = await (first ? take(token, DASH_KEY, () => fetchDashboard(token)) : fetchDashboard(token)); if (n !== seq.current) return; if (j && j.ok) setOv(j); else if (j && j._http === 401 && onExpired) onExpired(); else setErr((j && (j.code || j.error)) || 'load_err'); };
   useEffect(() => { load(true); }, [token]);
+  // Once the dashboard has rendered, the Messages, Billing and Settings tabs' first reads start in the
+  // background (supplier/tabPrefetch.ts), so pressing a tab takes an answer already on its way.
+  const dashReady = !!ov;
+  useEffect(() => { if (!dashReady || !token) return; const id = setTimeout(() => warmTabs(token), 300); return () => clearTimeout(id); }, [dashReady, token]);
   // On leaving Messages only the bell's counts are read again (two reads, not the whole dashboard), so
   // the badge drops once the thread was read.
   const prevTab = useRef(tab);
@@ -1613,7 +1623,8 @@ function Projects({ token, lang, openChat, onExpired }) {
   // A 401 has no `error` field of its own, so `data.error` below was false and the list rendered
   // empty: "No won projects yet" to a supplier with revealed jobs and a 5-working-day clock running
   // on each of them (SP-C-08).
-  const load = () => call('supplier_api', { action: 'projects' }, token).then((j) => { if (wentExpired(j, onExpired, (c) => setData({ ok: false, code: c }))) return; setData(j); });
+  const first = useRef(true);
+  const load = () => { const f = first.current; first.current = false; return (f ? firstRead(token, 'sup_tab:projects') : call('supplier_api', { action: 'projects' }, token)).then((j) => { if (wentExpired(j, onExpired, (c) => setData({ ok: false, code: c }))) return; setData(j); }); };
   useEffect(() => { load(); }, [token]);
   const ack = async (id) => {
     setBusy(id); setMsg('');
@@ -1788,6 +1799,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const ex = (j.extracted && j.extracted.license) || null;
         if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
+        // The document was saved but its licence number belongs to another claimed company, so the number
+        // was set aside for a human (supabase/functions/_shared/duplicate_company.ts). Existing copy.
+        if (j.extracted && j.extracted.licence_set_aside) setMsg(srvText(lang, 'company_already_registered'));
       }
     } catch (_e) { setMsg(t(lang, 'lic_upload_failed')); }
     setUploading(false);

@@ -64,7 +64,10 @@ try {
 
   // DWG, small: read on the edge.
   const small = await drawing(await sample('sample_2000.dwg', '4b8d9b1396a6d0de'), 'ZZ DEMO small.dwg');
-  check('a small DWG is read on the edge (not 546)', small.json?.ok && small.json?.note === 'cad_read_not_pictured' && small.json?.drawing_held === true && lines(small).length > 0, `HTTP ${small.status}, note ${small.json?.note}, held ${small.json?.drawing_held}, ${lines(small).length} lines`);
+  check('a small DWG is read on the edge (not 546)', small.json?.ok && lines(small).length > 0, `HTTP ${small.status}, ${lines(small).length} lines`);
+  // 24 Sep 2026: and DRAWN for suppliers from its own entities, identity left out (drawing_redact mode 'cad').
+  check('the small DWG is drawn for suppliers: one recorded redacted page, not held', small.json?.redaction_complete === true && (small.json?.drawing_redacted_paths || []).length === 1 && small.json?.drawing_held === false,
+    `redaction_complete ${small.json?.redaction_complete}, held ${small.json?.drawing_held}, note ${small.json?.note}`);
 
   // DWG, large: queued, read by the worker, fetched by the customer.
   const bigBytes = await sample('2018/Dynblocks.dwg', '95cc558d02a2596d');

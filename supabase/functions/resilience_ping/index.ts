@@ -1381,7 +1381,12 @@ async function itDetectTick(): Promise<unknown> {
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
 async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
-  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+  // The SUPPLIER journey's four joined 28 Sep 2026 (it_engineer): measured on the 24 Sep walk, each first
+  // call to supplier_api, supplier_portal, supplier_pay and claim_lookup paid a 2.5-4.5 s isolate boot —
+  // the landing-to-claim step and the Billing tab were almost entirely boot. Each answers x-qd-warm with
+  // a 204 before auth or the database, exactly like the five above.
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api',
+    'supplier_api', 'supplier_portal', 'supplier_pay', 'claim_lookup'];
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {

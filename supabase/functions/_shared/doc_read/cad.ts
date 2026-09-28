@@ -23,6 +23,9 @@
 // every quantity says so at confidence 'low'. Identity is NOT scrubbed here; the caller does that.
 import { capText, empty, LIMITS, ok, refuse, type Qty, type ReadContext, type ReadResult } from './types.ts';
 
+/** A legend's own heading: "LEGEND", "SYMBOL LEGEND", "KEY", "SYMBOLS", "مفتاح الرموز". */
+const LEGEND_HEADING = /^\s*(?:(?:electrical|fire\s*alarm|symbols?)\s+)?(?:legend|key|symbols?)(?:\s+(?:of\s+)?symbols?)?\s*:?\s*$|^\s*(?:مفتاح\s*الرموز|دليل\s*الرموز)\s*$/i;
+
 /** 200,000 entities is a dense multi-storey plan; past it the reader stops and says so. */
 export const DXF_MAX_ENTITIES = 200_000;
 
@@ -186,6 +189,8 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   const lenBy = new Map<string, { v: number; n: number }>();
   const areaBy = new Map<string, { v: number; n: number }>();
   const inserts = new Map<string, number>();
+  const placed: { name: string; x: number; y: number }[] = [];
+  const words: { s: string; x: number; y: number; h: number }[] = [];
   let anon = 0, extent = 0;
   const bump = (m: Map<string, { v: number; n: number }>, k: string, v: number) => {
     const e = m.get(k) ?? { v: 0, n: 0 }; e.v += v; e.n++; m.set(k, e);
@@ -206,8 +211,8 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     const layer = str(e, 8).trim() || '0';
     if (e.type !== 'VERTEX' && e.type !== 'SEQEND') endPoly();
     switch (e.type) {
-      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); break;
-      case 'MTEXT': addText(stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1))); break;
+      case 'TEXT': case 'ATTRIB': addText(stripMtext(str(e, 1))); if (e.type === 'TEXT') words.push({ s: stripMtext(str(e, 1)).trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break;
+      case 'MTEXT': { const s = stripMtext(e.pairs.filter((p) => p[0] === 3).map((p) => p[1]).join('') + str(e, 1)); addText(s); words.push({ s: s.trim(), x: num(e, 10), y: num(e, 20), h: num(e, 40, 0) }); break; }
       case 'DIMENSION': {
         const over = str(e, 1).trim();
         const m = num(e, 42, NaN);
@@ -217,7 +222,7 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
       case 'INSERT': {
         const b = str(e, 2).trim();
         if (!b || b.startsWith('*')) { anon++; break; }
-        inserts.set(b, (inserts.get(b) ?? 0) + 1);
+        placed.push({ name: b, x: num(e, 10), y: num(e, 20) });
         break;
       }
       case 'LINE': {
@@ -255,6 +260,46 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     }
   }
   endPoly();
+
+  // LEGEND SAMPLES ARE NOT WORK (24 Sep 2026, sales_engineer; founder instruction 580: "make sure that he's
+  // doing the count properly"). A legend draws one of each symbol beside its description, and those are
+  // block INSERTs like every device on the plan: counted as they stood, the ZZ DEMO plan's 7 smoke detectors
+  // read 8 and its 5 sockets 6. An insert is a legend sample only when ALL of these hold:
+  //   * it lies under a LEGEND / KEY / SYMBOLS heading, in a column at most 1.5 m across in real units, and the
+  //     column is walked DOWN row by row: the first row within 1.5 m of the heading, each next row within 1.2 m of
+  //     the row above, and the walk stops at the first gap wider than that (review of #967: a window of 80 x 40
+  //     heading heights was 10 m x 20 m under a 250 mm heading and swallowed five real detectors beside CORRIDOR
+  //     tags; the second review: a hard 3 m stop counted the last rows of a 10-row legend at 400 and 600 mm pitch);
+  //   * a DESCRIPTION sits beside it on its own row, within 1 m: text that names the block, or reads as a legend
+  //     entry ("SD - SMOKE DETECTOR", "SKT = SOCKET"), not a room or a tag;
+  //   * it stands in the legend's COLUMN: within 0.3 m of the column's median x.
+  // Anything else is counted, and what was set aside is said in the notes, so a surprising count can be checked.
+  const legendToM = insunits && UNIT_M[insunits] ? UNIT_M[insunits][0] : extent > 500 ? 0.001 : 1;
+  const within = (m: number, h: number, k: number) => Math.min(k * h, m / legendToM);
+  const describes = (w: { s: string }, block: string) => w.s.toUpperCase().startsWith(block.toUpperCase()) || /\S\s*[-–=:]\s+\S/.test(w.s);
+  const anchors = words.filter((w) => w.h > 0 && LEGEND_HEADING.test(w.s));
+  const candidates = new Set<(typeof placed)[number]>();
+  for (const a of anchors) {
+    // Every described insert below the heading, in the heading's column, top down.
+    const rows = placed.filter((p) => p.y <= a.y + a.h && p.x >= a.x - within(0.2, a.h, 3) && p.x - a.x <= within(1.5, a.h, 80)
+      && words.some((w) => w !== a && w.s && Math.abs(w.y - p.y) <= 1.5 * a.h && w.x > p.x && w.x - p.x <= within(1, a.h, 12) && describes(w, p.name)))
+      .sort((u, v) => v.y - u.y);
+    const inWindow: typeof rows = [];
+    let lastY = a.y;
+    for (const p of rows) {
+      if (lastY - p.y > (inWindow.length ? within(1.2, a.h, 8) : within(1.5, a.h, 10))) break;
+      inWindow.push(p); lastY = p.y;
+    }
+    if (!inWindow.length) continue;
+    const xs = inWindow.map((p) => p.x).sort((u, v) => u - v), mid = xs[Math.floor(xs.length / 2)];
+    for (const p of inWindow) if (Math.abs(p.x - mid) <= 0.3 / legendToM) candidates.add(p);
+  }
+  let samples = 0;
+  for (const p of placed) {
+    if (candidates.has(p)) { samples++; continue; }
+    inserts.set(p.name, (inserts.get(p.name) ?? 0) + 1);
+  }
+  if (samples) notes.push(`${samples} block insert(s) drawn as legend samples beside their descriptions were not counted.`);
 
   // Units.
   let toM = 1, unitName = 'm', confidence: Qty['confidence'] = 'medium';
