@@ -4878,6 +4878,14 @@
   "c596436143c5",
   "fedcc04615f6"
  ],
+ "supabase/functions/customer_followup/page.ts": [
+  "02d6a120dd10",
+  "0e69ee21f135",
+  "8222c78dd0c6",
+  "9e2f10c91a82",
+  "a38f3071c47f",
+  "cee47e464ec8"
+ ],
  "supabase/functions/customer_portal/index.ts": [
   "27bf0de70c90",
   "50501168abd8",
