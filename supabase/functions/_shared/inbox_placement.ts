@@ -31,11 +31,17 @@
 // scripts/invitation_inbox_check.mjs FOUNDER_INBOXES
 // (scripts/checks/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.test.mjs).
 //
+// A MISPLACED SEED IS DIAGNOSED, NOT A PAUSE (founder ruling, ledger 1001, 28 Sep 2026). Every copy found carries
+// the provider's own reasons: Gmail its labels and the Authentication-Results header; Microsoft the
+// X-Forefront-Antispam-Report SCL / SFV / CAT and Authentication-Results from Graph internetMessageHeaders. The
+// database files them in the it_engineer finding and the marketing handoff; the day's batch keeps sending.
+//
 // Credentials are read from app_secrets. vault.secrets is empty on this project (measured 24 Sep 2026).
 //   Gmail:   google_oauth_client_id, google_oauth_client_secret (the Google client the YouTube connection
 //            already uses) + gmail_seed_refresh_token (scope https://www.googleapis.com/auth/gmail.readonly).
-//   Graph:   ms_graph_tenant_id, ms_graph_client_id, ms_graph_client_secret, and EITHER
-//            ms_graph_seed_refresh_token (delegated Mail.Read + offline_access, read as /me) OR nothing more
+//   Graph:   ms_graph_tenant_id, ms_graph_client_id, and EITHER ms_graph_seed_refresh_token (delegated Mail.Read +
+//            offline_access, read as /me; ms_graph_client_secret optional, because the app may be a public client
+//            whose token was minted with PKCE by oauth_connect, PR #974) OR ms_graph_client_secret alone
 //            (application Mail.Read, read as /users/<seed>, which must be limited to that one mailbox by an
 //            Exchange ApplicationAccessPolicy).
 
@@ -98,6 +104,21 @@ export function worstFolder(fs: Folder[]): Folder {
   return 'not_found';
 }
 
+/** 'spf=pass (…) smtp.mailfrom=x; dkim=pass header.d=y; dmarc=pass …' -> the three verdicts (plus compauth, Microsoft's). */
+export function authVerdicts(h: unknown): Record<string, string | null> {
+  const s = String(h ?? '');
+  const one = (k: string) => s.match(new RegExp('(?:^|[;\\s])' + k + '=([a-z]+)', 'i'))?.[1]?.toLowerCase() ?? null;
+  return { spf: one('spf'), dkim: one('dkim'), dmarc: one('dmarc'), compauth: one('compauth') };
+}
+/** X-Forefront-Antispam-Report 'CIP:…;SCL:5;SFV:SPM;…;CAT:SPM;' -> { scl, sfv, cat }. */
+export function forefront(h: unknown): { scl: number | null; sfv: string | null; cat: string | null } {
+  const kv = new Map(String(h ?? '').split(';').map((p) => { const i = p.indexOf(':'); return [p.slice(0, i).trim().toUpperCase(), p.slice(i + 1).trim()] as [string, string]; }));
+  const scl = kv.get('SCL');
+  return { scl: scl != null && /^-?\d+$/.test(scl) ? Number(scl) : null, sfv: kv.get('SFV') || null, cat: kv.get('CAT') || null };
+}
+const header = (hs: unknown, name: string) => (Array.isArray(hs) ? hs : [])
+  .filter((h: { name?: unknown }) => String(h?.name).toLowerCase() === name.toLowerCase()).map((h: { value?: unknown }) => String(h?.value ?? '')).join(' | ') || null;
+
 const failed = (why: string, extra: Record<string, unknown> = {}): Reading => ({ folder: null, detail: { error: why.slice(0, 300), ...extra } });
 
 async function json(f: Fetch, url: string, init?: RequestInit): Promise<Record<string, unknown>> {
@@ -125,16 +146,17 @@ export async function readGmail(f: Fetch, sec: Sec, to: string, token: string, s
     const q = new URLSearchParams({ q: 'subject:' + token, includeSpamTrash: 'true', maxResults: '20' });
     const list = await json(f, `${base}/messages?${q}`, { headers: auth });
     const ids = (Array.isArray(list.messages) ? list.messages : []).map((m) => String((m as { id?: unknown }).id));
-    const found: { id: string; labels: string[]; folder: Folder }[] = [];
+    const found: { id: string; labels: string[]; folder: Folder; diagnosis: Record<string, unknown> }[] = [];
     let ownCopies = 0, otherSender = 0;
     for (const mid of ids) {
-      const m = await json(f, `${base}/messages/${encodeURIComponent(mid)}?format=metadata&metadataHeaders=From`, { headers: auth });
+      const m = await json(f, `${base}/messages/${encodeURIComponent(mid)}?format=metadata&metadataHeaders=From&metadataHeaders=Authentication-Results`, { headers: auth });
       const labels = Array.isArray(m.labelIds) ? m.labelIds.map(String) : [];
       if (gmailIsOwnCopy(labels)) { ownCopies++; continue; }
       const headers = ((m.payload as { headers?: { name?: string; value?: string }[] } | undefined)?.headers) ?? [];
       const from = headers.find((h) => String(h.name).toLowerCase() === 'from')?.value;
       if (addressOf(from) !== want) { otherSender++; continue; }
-      found.push({ id: mid, labels, folder: gmailFolder(labels) });
+      const ar = header(headers, 'Authentication-Results');
+      found.push({ id: mid, labels, folder: gmailFolder(labels), diagnosis: { labels, authentication_results: ar ? ar.slice(0, 600) : null, ...authVerdicts(ar) } });
     }
     return { folder: worstFolder(found.map((x) => x.folder)), detail: { provider: 'gmail', messages: found, skipped_own_copies: ownCopies, skipped_other_sender: otherSender } };
   } catch (e) { return failed(String((e as Error)?.message || e), { provider: 'gmail' }); }
@@ -148,11 +170,14 @@ export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string,
   try {
     const [tenant, id, secret, refresh] = [await sec('ms_graph_tenant_id'), await sec('ms_graph_client_id'),
       await sec('ms_graph_client_secret'), await sec('ms_graph_seed_refresh_token')];
-    const missing = [['ms_graph_tenant_id', tenant], ['ms_graph_client_id', id], ['ms_graph_client_secret', secret]].filter(([, v]) => !v).map(([k]) => k);
-    if (missing.length) return failed('missing app_secrets: ' + missing.join(', '));
     const delegated = !!refresh;
+    // A delegated token from a public client (no secret anywhere) refreshes with the client id alone; the
+    // application mode has no user, so it always needs the secret.
+    const missing = [['ms_graph_tenant_id', tenant], ['ms_graph_client_id', id], ...(delegated ? [] : [['ms_graph_client_secret', secret]])]
+      .filter(([, v]) => !v).map(([k]) => k);
+    if (missing.length) return failed('missing app_secrets: ' + missing.join(', ') + (delegated ? '' : ' (or ms_graph_seed_refresh_token)'));
     const form: Record<string, string> = delegated
-      ? { grant_type: 'refresh_token', refresh_token: String(refresh), client_id: String(id), client_secret: String(secret), scope: 'offline_access https://graph.microsoft.com/Mail.Read' }
+      ? { grant_type: 'refresh_token', refresh_token: String(refresh), client_id: String(id), ...(secret ? { client_secret: String(secret) } : {}), scope: 'offline_access https://graph.microsoft.com/Mail.Read' }
       : { grant_type: 'client_credentials', client_id: String(id), client_secret: String(secret), scope: 'https://graph.microsoft.com/.default' };
     const tok = await json(f, `https://login.microsoftonline.com/${encodeURIComponent(String(tenant))}/oauth2/v2.0/token`,
       { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form) });
@@ -176,7 +201,7 @@ export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string,
     }
     const q = '$filter=' + encodeURIComponent(`receivedDateTime ge ${new Date(new Date(sinceIso).getTime() - 5 * 60000).toISOString()}`)
       + '&$select=id,subject,from,parentFolderId,inferenceClassification,receivedDateTime&$top=50';
-    const seen = new Map<string, { id: string; folder: Folder; focus: unknown }>();
+    const seen = new Map<string, { id: string; folder: Folder; focus: unknown; diagnosis?: Record<string, unknown> }>();
     const looked = new Set<string>();
     let ownCopies = 0, otherSender = 0, pages = 0, truncated = false;
     for (const first of [`${base}/messages?${q}`, `${base}/mailFolders/junkemail/messages?${q}`]) {
@@ -199,6 +224,14 @@ export async function readOutlook(f: Fetch, sec: Sec, to: string, token: string,
       }
     }
     const found = [...seen.values()];
+    // Why Microsoft put it there: the headers of each copy found. A failed header read never changes the folder.
+    for (const m of found) {
+      try {
+        const hs = (await json(f, `${base}/messages/${encodeURIComponent(m.id)}?$select=internetMessageHeaders`, { headers: auth })).internetMessageHeaders;
+        const ar = header(hs, 'Authentication-Results');
+        m.diagnosis = { ...forefront(header(hs, 'X-Forefront-Antispam-Report')), authentication_results: ar ? ar.slice(0, 600) : null, ...authVerdicts(ar) };
+      } catch (e) { m.diagnosis = { error: String((e as Error)?.message || e).slice(0, 200) }; }
+    }
     const detail = { provider: 'graph', mode: delegated ? 'delegated' : 'application', messages: found, pages,
       skipped_own_copies: ownCopies, skipped_other_sender: otherSender, ...(rotation ? { refresh_token_rotation: rotation } : {}) };
     // Nothing found and the listing stopped at the page bound: that is a reading we could not finish, not a not_found.

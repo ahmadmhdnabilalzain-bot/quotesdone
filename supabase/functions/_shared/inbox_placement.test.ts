@@ -1,7 +1,7 @@
 // The folder classification, the exact allowlist and the fail-closed reader of inbox_placement.ts.
 //   deno test supabase/functions/_shared/inbox_placement.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { addressOf, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
+import { addressOf, authVerdicts, forefront, gmailFolder, gmailIsOwnCopy, graphFolder, MAX_PAGES, placementTick, readGmail, readOutlook, SEED_GMAIL, SEED_OUTLOOK, seedAllowed, worstFolder } from './inbox_placement.ts';
 
 const TOKEN = 'QD0123456789';
 const SENDER = 'info@quotesdone.com';
@@ -29,7 +29,8 @@ function gmail(msgs: (GMsg | string[])[], who = SEED_GMAIL) {
     }
     const i = Number(u.match(/messages\/m(\d+)/)?.[1]);
     assert(u.includes('metadataHeaders=From'), 'the From header must be read');
-    return ok({ id: 'm' + i, labelIds: list[i].labels, payload: { headers: [{ name: 'From', value: list[i].from }] } });
+    return ok({ id: 'm' + i, labelIds: list[i].labels, payload: { headers: [{ name: 'From', value: list[i].from },
+      { name: 'Authentication-Results', value: 'mx.google.com; dkim=pass header.i=@quotesdone.com; spf=softfail (google.com: domain of transitioning x) smtp.mailfrom=x; dmarc=fail (p=NONE) header.from=quotesdone.com' }] } });
   };
   return { f, calls };
 }
@@ -47,6 +48,9 @@ function graph(msgs: OMsg[], opts: { junkOnlyInJunkList?: boolean; me?: string; 
     if (/\/me\?\$select=mail/.test(u)) return ok({ mail: opts.me ?? SEED_OUTLOOK });
     const wk = u.match(/mailFolders\/(inbox|junkemail|deleteditems|sentitems|drafts)\?\$select=id/);
     if (wk) return ok({ id: 'F-' + wk[1] });
+    if (u.includes('$select=internetMessageHeaders')) return ok({ internetMessageHeaders: [
+      { name: 'X-Forefront-Antispam-Report', value: 'CIP:1.2.3.4;CTRY:US;LANG:en;SCL:5;SRV:;IPV:NLI;SFV:SPM;H:x;PTR:x;CAT:SPM;SFS:(1);DIR:INB;' },
+      { name: 'Authentication-Results', value: 'spf=pass (sender IP is 1.2.3.4) smtp.mailfrom=quotesdone.com; dkim=pass (signature was verified) header.d=quotesdone.com;dmarc=pass action=none header.from=quotesdone.com;compauth=pass reason=100' }] });
     const inJunkList = u.includes('/mailFolders/junkemail/messages');
     const all = msgs.filter((m) => !opts.junkOnlyInJunkList || (m.parent === 'F-junkemail') === inJunkList)
       .map((m, i) => ({ id: 'g' + i, subject: m.subject, parentFolderId: m.parent, from: { emailAddress: { address: m.from ?? SENDER } } }));
@@ -232,4 +236,38 @@ Deno.test('deployed before its SQL: a missing routine is "skipped: schema not ap
     assertEquals([out.ok, out.skipped], [true, 'schema not applied']);
   }
   assertEquals(fetched, 0);
+});
+
+Deno.test('junk is diagnosed: Gmail labels + Authentication-Results; Microsoft SCL / SFV / CAT + Authentication-Results', async () => {
+  const g = await readGmail(gmail([['SPAM', 'CATEGORY_PROMOTIONS']]).f, sec(), SEED_GMAIL, TOKEN, SENDER);
+  const gd = (g.detail.messages as { diagnosis: Record<string, unknown> }[])[0].diagnosis;
+  assertEquals([g.folder, gd.labels, gd.spf, gd.dkim, gd.dmarc], ['spam', ['SPAM', 'CATEGORY_PROMOTIONS'], 'softfail', 'pass', 'fail']);
+  const o = await readOutlook(graph([{ subject: subj, parent: 'F-junkemail' }]).f, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER);
+  const od = (o.detail.messages as { diagnosis: Record<string, unknown> }[])[0].diagnosis;
+  assertEquals([o.folder, od.scl, od.sfv, od.cat, od.spf, od.dkim, od.dmarc, od.compauth], ['spam', 5, 'SPM', 'SPM', 'pass', 'pass', 'pass', 'pass']);
+});
+
+Deno.test('a failed header read keeps the folder and records why', async () => {
+  const base = graph([{ subject: subj, parent: 'F-junkemail' }]);
+  const f = async (u: string, init?: RequestInit) => u.includes('internetMessageHeaders') ? new Response('nope', { status: 403 }) : base.f(u, init);
+  const o = await readOutlook(f, sec(), SEED_OUTLOOK, TOKEN, since(), SENDER);
+  assertEquals(o.folder, 'spam');
+  assert(String((o.detail.messages as { diagnosis: { error?: string } }[])[0].diagnosis.error).includes('403'));
+});
+
+Deno.test('header parsers: forefront and Authentication-Results', () => {
+  assertEquals(forefront('CIP:1.1.1.1;SCL:-1;SFV:NSPM;CAT:NONE;'), { scl: -1, sfv: 'NSPM', cat: 'NONE' });
+  assertEquals(forefront(null), { scl: null, sfv: null, cat: null });
+  assertEquals(authVerdicts('spf=none; dkim=fail; dmarc=temperror'), { spf: 'none', dkim: 'fail', dmarc: 'temperror', compauth: null });
+});
+
+Deno.test('Outlook (delegated, public client): no client secret, the refresh carries none, the reading still works', async () => {
+  const bodies: string[] = [];
+  const base = graph([{ subject: subj, parent: 'F-inbox' }]);
+  const f = async (u: string, init?: RequestInit) => { if (u.startsWith('https://login.microsoftonline.com/')) bodies.push(String(init?.body)); return base.f(u, init); };
+  const r = await readOutlook(f, sec({ ms_graph_client_secret: '', ms_graph_seed_refresh_token: 'rt' }), SEED_OUTLOOK, TOKEN, since(), SENDER);
+  assertEquals(r.folder, 'inbox');
+  assert(!bodies[0].includes('client_secret') && bodies[0].includes('grant_type=refresh_token'));
+  const app = await readOutlook(graph([]).f, sec({ ms_graph_client_secret: '' }), SEED_OUTLOOK, TOKEN, since(), SENDER);
+  assertEquals(app.folder, null, 'application mode without a secret must fail closed');
 });

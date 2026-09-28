@@ -47,11 +47,16 @@
 --      Drafts copies and any other sender's mail excluded), then a settle.
 --   4. fn_invite_placement_settle(day, now): verdict inbox (both in Inbox), spam (either in spam/junk), elsewhere
 --      (trash or another folder), and, at the cutoff without both in Inbox: not_sent, unread or not_found.
---      spam and elsewhere pause a running campaign through #961's fn_invite_campaign_pause. not_sent, unread and
---      not_found hold the day without touching invite_enabled. Every failure files the it_engineer finding
+--      FOUNDER RULING, ledger 1001 (28 Sep 2026): a junk placement must NOT pause the batch. spam and elsewhere
+--      are diagnosed instead: the reader returns the provider's reasons (Gmail labels + Authentication-Results;
+--      Microsoft X-Forefront-Antispam-Report SCL/SFV/CAT + Authentication-Results), the finding carries them
+--      with the sender lane, a deliverability.inbox_placement handoff asks the marketing seat to fix the cause,
+--      and the day's batch keeps sending. The #943 hard brake (bounce/complaint spike, fn_invite_same_day_brake)
+--      is the ONLY automatic pause. not_sent, unread and not_found are our side failing to measure and still hold
+--      the day without touching invite_enabled. Every non-inbox verdict files the it_engineer finding
 --      deliverability:inbox_placement (fn_invite_placement_finding -> fn_it_engineer_finding_upsert, the #935
---      door), once per day and verdict. An inbox verdict closes it.
---   5. fn_invite_placement_gate(day, now): 'pass' only for an inbox verdict under the current effective sender
+--      door), once per day and verdict. An inbox verdict closes it and completes the open marketing handoff.
+--   5. fn_invite_placement_gate(day, now): 'pass' for a measured placement (inbox, spam, elsewhere) under the current effective sender
 --      (fn_invite_placement_sender: the #963 invitation lane when invite_lane_enabled='true', else
 --      email_from_supplier). 'wait' until a verdict or the cutoff. 'fail' otherwise. A day with no check is
 --      'fail:no_check', filed as the same finding on an open day. enqueue_supplier_invites refuses to queue without
@@ -280,7 +285,9 @@ begin
                 and evidence ->> 'dubai_day' = p_day::text and evidence ->> 'verdict' = p_verdict) then
     return;
   end if;
-  perform public.fn_it_engineer_finding_upsert(v_key, left('Supplier invitations held: ' || p_why, 300),
+  perform public.fn_it_engineer_finding_upsert(v_key,
+    left(case when p_verdict in ('spam', 'elsewhere') then 'Supplier invitation seed misplaced (batch still sending): '
+              else 'Supplier invitations held: ' end || p_why, 300),
     'supplier invitation inbox placement: the daily seed to the Gmail and Microsoft 365 seed inboxes',
     'customer_facing', 1,
     coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('dubai_day', p_day, 'verdict', p_verdict),
@@ -299,10 +306,36 @@ end
 $fn$;
 revoke execute on function public.fn_invite_placement_finding(date, text, text, jsonb) from public, anon, authenticated;
 
--- PAUSE ONLY ON WHAT A MAILBOX PROVIDER DID (review of #966). spam or elsewhere is a placement the provider chose,
--- so the campaign is paused through PR #961's one pause (only while it is running) and resuming is by hand.
--- not_sent / unread / not_found at the cutoff is OUR side failing to measure: the day is held (the gate fails)
--- and the finding is filed, but invite_enabled is not touched, so tomorrow's check runs on its own.
+-- THE MARKETING HANDOFF (ledger 1001). it_engineer diagnoses, marketing owns the fix (content, sender, domain
+-- reputation). The handler records that marketing is on it; it_engineer closes the handoff itself when a later
+-- seed lands in both Inboxes (originator_closes), so a fix is proved by a placement, never by a note.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('deliverability.inbox_placement', 'it_engineer', 'marketing',
+   'The daily seed invitation landed outside the Inbox of a seed mailbox. The payload carries the provider''s diagnosis (Gmail labels and Authentication-Results; Microsoft SCL/SFV/CAT and Authentication-Results) and the sender lane. Marketing fixes the cause; the batch keeps sending; it_engineer closes this when a seed lands in both Inboxes.',
+   'fn_marketing_takes_the_inbox_placement_fix', interval '1 day', true,
+   'scripts/sql/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql')
+on conflict (type, from_seat, to_seat) do update
+  set meaning = excluded.meaning, handler = excluded.handler, reply_within = excluded.reply_within,
+      originator_closes = excluded.originator_closes, owner_file = excluded.owner_file;
+
+create or replace function public.fn_marketing_takes_the_inbox_placement_fix(p_id bigint)
+returns jsonb
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select jsonb_build_object('waiting', 'marketing to fix the cause the diagnosis names ('
+           || coalesce(a.detail ->> 'verdict', 'misplaced') || ' on ' || coalesce(a.detail ->> 'dubai_day', a.target_id)
+           || '); it_engineer closes this when a seed lands in both Inboxes')
+    from public.agent_actions a where a.id = p_id
+$fn$;
+revoke execute on function public.fn_marketing_takes_the_inbox_placement_fix(bigint) from public, anon, authenticated;
+
+-- NO PAUSE ON A PLACEMENT (founder ruling, ledger 1001). spam or elsewhere is diagnosed, filed, handed to
+-- marketing, and the day's batch sends; the #943 brake stays the only automatic pause. not_sent / unread /
+-- not_found at the cutoff is OUR side failing to measure: the day is held (the gate fails) and the finding is
+-- filed, but invite_enabled is not touched, so tomorrow's check runs on its own.
 create or replace function public.fn_invite_placement_settle(p_day date, p_now timestamptz default now())
 returns text
 language plpgsql
@@ -311,7 +344,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   r public.invite_placement_check;
-  v text; v_sent_g text; v_sent_o text; v_why text; v_ev jsonb; v_pause jsonb;
+  v text; v_sent_g text; v_sent_o text; v_why text; v_ev jsonb; v_lane text; v_handoff bigint; h record;
 begin
   select * into r from public.invite_placement_check where dubai_day = p_day for update;
   if r.dubai_day is null or r.verdict <> 'pending' then return r.verdict; end if;
@@ -333,6 +366,16 @@ begin
     update public.invite_placement_check set verdict = v, decided_at = p_now where dubai_day = p_day;
     perform public.fn_it_engineer_finding_close('deliverability:inbox_placement',
       'the seed of ' || p_day || ' landed in the Inbox of both seed mailboxes (token ' || r.token || ')');
+    -- The fix is proved by a placement: it_engineer closes marketing's open placement handoffs.
+    for h in select a.id from public.agent_actions a
+              where a.kind = 'handoff' and a.agent = 'marketing' and a.status <> 'done'
+                and a.detail ->> 'type' = 'deliverability.inbox_placement' and a.detail ->> 'from' = 'it_engineer'
+    loop
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer', 'verified_at', now(),
+        'proof', 'the seed of ' || p_day || ' landed in the Inbox of both seed mailboxes'));
+      perform set_config('qd.handoff_closer', '', true);
+    end loop;
     insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('it_engineer', 'ok', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v),
             'Inbox placement ' || p_day || ': Gmail inbox, Outlook inbox; the batch may send.', now(), now());
@@ -346,24 +389,27 @@ begin
               when 'unread' then 'could not be read back from a seed mailbox'
               else 'was not found in a seed mailbox' end
     || ' (Gmail ' || coalesce(r.gmail_folder, 'unread') || ', Outlook ' || coalesce(r.outlook_folder, 'unread') || ')';
-  v_ev := jsonb_build_object('token', r.token, 'from', r.from_address, 'subject', r.subject,
+  v_lane := case when coalesce((select lower(btrim(value)) from public.app_secrets where key = 'invite_lane_enabled'), '') = 'true'
+                 then 'invitation_lane' else 'email_from_supplier' end;
+  v_ev := jsonb_build_object('token', r.token, 'from', r.from_address, 'sender_lane', v_lane, 'subject', r.subject,
+            'diagnosis', jsonb_build_object('gmail', coalesce(r.gmail_detail -> 'messages', '[]'::jsonb),
+                                            'outlook', coalesce(r.outlook_detail -> 'messages', '[]'::jsonb)),
             'gmail', jsonb_build_object('to', r.gmail_to, 'folder', r.gmail_folder, 'detail', r.gmail_detail,
                                         'notification_id', r.gmail_notification_id, 'status', v_sent_g),
             'outlook', jsonb_build_object('to', r.outlook_to, 'folder', r.outlook_folder, 'detail', r.outlook_detail,
                                           'notification_id', r.outlook_notification_id, 'status', v_sent_o),
             'reads', r.reads);
-  -- THE ONE PAUSE (PR #961's fn_invite_campaign_pause, 4 arguments), only for a provider's placement and only on a
-  -- RUNNING campaign, as #961 does: stopping a stopped one would only write an error run and rewrite #943's finding.
-  if v in ('spam', 'elsewhere')
-     and coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true' then
-    v_pause := public.fn_invite_campaign_pause('it_engineer_inbox_placement', v_why, v_ev || jsonb_build_object('dubai_day', p_day),
-      jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v,
-                         'gmail', r.gmail_folder, 'outlook', r.outlook_folder));
-  end if;
-  update public.invite_placement_check set verdict = v, decided_at = p_now, paused = (v_pause is not null) where dubai_day = p_day;
+  update public.invite_placement_check set verdict = v, decided_at = p_now, paused = false where dubai_day = p_day;
   perform public.fn_invite_placement_finding(p_day, v, v_why, v_ev);
-  if v_pause is null then
-    -- The pause writes its own agent_runs row; a day held without a pause is recorded here.
+  if v in ('spam', 'elsewhere') then
+    -- A provider's placement: diagnose and hand the cause to marketing; the batch sends (ledger 1001).
+    v_handoff := public.fn_seat_handoff('it_engineer', 'marketing', 'deliverability.inbox_placement',
+      'invite_placement_check', p_day::text, v_ev || jsonb_build_object('dubai_day', p_day, 'verdict', v, 'why', v_why));
+    insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false,
+                                                      'handoff_id', v_handoff, 'sender_lane', v_lane),
+            'MISPLACED: ' || v_why || '; the day''s batch still sends, diagnosis filed in deliverability:inbox_placement, marketing handoff ' || v_handoff || ' opened.', now(), now());
+  else
     insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
     values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false),
             'HELD: ' || v_why || '; the day''s batch does not go, invite_enabled untouched, finding deliverability:inbox_placement filed.', now(), now());
@@ -507,7 +553,8 @@ begin
     if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
     v := public.fn_invite_placement_settle(v_day, p_now);
   end if;
-  if v <> 'inbox' then return 'fail:' || v; end if;
+  -- A measured placement lets the batch go, junk included (ledger 1001); only a failure to measure holds it.
+  if v not in ('inbox', 'spam', 'elsewhere') then return 'fail:' || v; end if;
   if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
   return 'pass';
 end
