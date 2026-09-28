@@ -45,6 +45,19 @@ Deno.test('no space dependency (every existing caller and test): gte, exactly as
   assertEquals(m.embeds.includes('ml'), false);
 });
 
+Deno.test('the trade and area of the case go to retrieval in both spaces; none known sends none (the call it always was)', async () => {
+  for (const space of ['ml', undefined] as const) {
+    const m = deps(space, true);
+    await think(m.d, { seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?', context: { trade: 'hvac', area: 'takeoff' } });
+    const r = m.rpcs.find(([f]) => /retrieve/.test(f))![1];
+    assertEquals([r.p_trade, r.p_area], ['hvac', 'takeoff']);
+    const n = deps(space, true);
+    await think(n.d, { seat: 'sales_engineer', surface: 'think.answer', question: 'what does a VRF quote need?' });
+    const r2 = n.rpcs.find(([f]) => /retrieve/.test(f))![1];
+    assertEquals(['p_trade' in r2, 'p_area' in r2], [false, false]);
+  }
+});
+
 Deno.test('a knowledge row is one text: title, newline, body, cut where gte-small is cut', () => {
   assertEquals(rowText('T', 'one'), 'T\none');
   assertEquals(rowText(null, 'body'), 'body');

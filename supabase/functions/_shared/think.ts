@@ -59,6 +59,7 @@ export interface ThinkContext {
   profile?: Record<string, unknown>;   // the asker's own row(s): emirate, trade, company ... never another person's
   case?: Record<string, unknown>;      // the inquiry / quote / command this is about
   trade?: string | null;
+  area?: string | null;                // the seat's own area when the caller knows it (an 'area:<area>' tag); never guessed
 }
 export interface DecisionSpec {
   name: string;
@@ -381,9 +382,13 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
     // without one it ranks by the multilingual space alone.
     const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    // The right area first (knowledge_lookup_goes_to_the_trade_first.sql): the routine resolves the trade and the
+    // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
+    // only when known, so a call without them is the call it always was.
+    const area = { ...(ctx.trade ? { p_trade: ctx.trade } : {}), ...(ctx.area ? { p_area: ctx.area } : {}) };
     const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
-      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6 }
-      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
+      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
+      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });
     const rows = !error && Array.isArray(data) ? data : [];
     for (const r of rows) {
       const id = `${r.source}:${r.id}`;
