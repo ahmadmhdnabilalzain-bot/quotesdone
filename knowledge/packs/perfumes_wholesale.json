@@ -1,0 +1,79 @@
+{
+  "trade": "perfumes_wholesale",
+  "entries": [
+    {
+      "id": "perfumes_wholesale:spec-checklist",
+      "topic": "Perfumes wholesale - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For perfumes wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) brand, product name and SKU; (2) concentration type (parfum, EDP, EDT, oil); (3) volume per unit in ml; (4) quantity in units and cartons; (5) genuine or inspired/private label; (6) batch number and production/expiry date; (7) Arabic/English labelling and ingredient list; (8) UAE product registration or conformity certificate; (9) packaging (tester, gift set, retail box); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the perfumes_wholesale trade.",
+      "body_ar": "لكي تُقارن عروض تجارة العطور بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) العلامة التجارية واسم المنتج ورمز الصنف؛ (2) نوع التركيز (عطر، أو دو بارفان، أو دو تواليت، أو زيت)؛ (3) الحجم لكل وحدة بالمليلتر؛ (4) الكمية بالوحدات والكراتين؛ (5) أصلي أو مستوحى أو علامة خاصة؛ (6) رقم الدفعة وتاريخ الإنتاج أو الانتهاء؛ (7) الملصق بالعربية والإنجليزية وقائمة المكونات؛ (8) تسجيل المنتج أو شهادة المطابقة في الإمارات؛ (9) التغليف (عينة اختبار، أو طقم هدايا، أو علبة بيع)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة perfumes_wholesale فقط.",
+      "required_specs": [
+        "brand, product name and SKU",
+        "concentration type (parfum, EDP, EDT, oil)",
+        "volume per unit in ml",
+        "quantity in units and cartons",
+        "genuine or inspired/private label",
+        "batch number and production/expiry date",
+        "Arabic/English labelling and ingredient list",
+        "UAE product registration or conformity certificate",
+        "packaging (tester, gift set, retail box)",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "perfumes_wholesale:uae-standards-and-approvals",
+      "topic": "Perfumes wholesale - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT; in Dubai, cosmetic and personal-care products are also subject to Dubai Municipality consumer-product requirements. What the cited sources do not establish: The sources read do not list which perfume categories need registration in each emirate or give a fee or timeline; the buyer must state whether registration is required for the exact products.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة؛ وفي دبي تخضع منتجات التجميل والعناية الشخصية أيضاً لمتطلبات بلدية دبي للمنتجات الاستهلاكية. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد فئات العطور التي تحتاج إلى تسجيل في كل إمارة ولا تذكر رسوماً أو مدة؛ على المشتري أن يحدد ما إذا كان التسجيل مطلوباً للمنتجات بعينها.",
+      "source_note": "The sources read do not list which perfume categories need registration in each emirate or give a fee or timeline; the buyer must state whether registration is required for the exact products.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for perfumes wholesale?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـتجارة العطور بالجملة؟",
+      "expected_entry_ids": [
+        "perfumes_wholesale:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to perfumes wholesale?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على تجارة العطور بالجملة؟",
+      "expected_entry_ids": [
+        "perfumes_wholesale:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "perfumes_wholesale:spec-checklist",
+      "perfumes_wholesale:uae-standards-and-approvals"
+    ],
+    "added": [
+      "perfumes_wholesale:spec-checklist",
+      "perfumes_wholesale:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
