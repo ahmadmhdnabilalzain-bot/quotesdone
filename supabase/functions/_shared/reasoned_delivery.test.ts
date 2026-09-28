@@ -1,6 +1,8 @@
 // A held question, reasoned after the hold lifts, is delivered on its own channel under the channel's rules.
 import { assertEquals, assertMatch } from 'jsr:@std/assert';
-import { deliverReasoned, holdingNotice, sendHeldNotices, type DeliveryIO } from './reasoned_delivery.ts';
+import { casSecrets, deliverReasoned, holdingNotice, liveDeliveryIO, replayHeldComment, sendHeldNotices, type CommentReplayIO, type DeliveryIO } from './reasoned_delivery.ts';
+import { call, processComment, replyRequest, type CommentEvent, type Store } from './marketing_social_comments.ts';
+import { accessToken, open, seal, type SocialPlatform } from './marketing_social_oauth.ts';
 import type { HeldRow, ThinkResult } from './think.ts';
 
 function io(windowOpen: boolean) {
@@ -195,4 +197,226 @@ Deno.test('a holding notice that failed is recorded as failed and sent again; a 
   const throwing: DeliveryIO = { ...x, waWindowOpen: () => Promise.reject(new Error('db down')) };
   const t = await sendHeldNotices([...rows, { ...rows[0], id: 8 }], throwing, record);
   assertEquals(t.map((r) => [r.id, r.delivered]), [[7, false], [8, false]]);
+});
+
+// ── A HELD COMMENT IS REPLAYED WITH ITS OWN PLATFORM'S TOKEN (24 Sep 2026; found in the review of PR #898) ─────────
+// Until this change the replay gave LinkedIn the Meta page token and YouTube none, so neither could post. Here the
+// real policy (processComment) runs over an in-memory store whose reply posts exactly as the live store does
+// (marketing_social_store.ts: call(f, replyRequest(ev, text, await tokenFor(ev)))), and fetch is stubbed: nothing
+// here can reach an account. The YouTube and LinkedIn tokens go through the real accessToken(), sealed and opened
+// with a test key.
+const MASTER = 'test-master-key-that-is-long-enough';
+type Req = { url: string; auth: string; body: string };
+function replayRig(o: { stored?: Partial<Record<SocialPlatform, Record<string, unknown>>>; refresh?: { status: number; json: unknown } } = {}) {
+  const posted: Req[] = []; const metaLookups: string[] = []; const saved: string[] = []; let processed = 0;
+  const f = (url: string, init?: RequestInit) => {
+    const h = (init?.headers ?? {}) as Record<string, string>;
+    if (url === 'https://oauth2.googleapis.com/token') {
+      const r = o.refresh ?? { status: 200, json: { access_token: 'yt-refreshed', expires_in: 3600 } };
+      return Promise.resolve(new Response(JSON.stringify(r.json), { status: r.status }));
+    }
+    posted.push({ url, auth: String(h.Authorization ?? ''), body: String(init?.body ?? '') });
+    return Promise.resolve(new Response(JSON.stringify({ id: 'reply-1' }), { status: 201 }));
+  };
+  const sealed: Record<string, string> = {};
+  const ready = (async () => {
+    for (const [p, t] of Object.entries(o.stored ?? {})) sealed[p + '_oauth'] = await seal(MASTER, t);
+  })();
+  const sec = async (k: string) => { await ready; return sealed[k] ?? ({ google_oauth_client_id: 'gid', google_oauth_client_secret: 'gsecret' } as Record<string, string>)[k]; };
+  const store = (tokenFor: (ev: CommentEvent) => Promise<string | null>): Store => ({
+    insertInbound: () => Promise.resolve(1), release: () => Promise.resolve(), threadAllowed: () => Promise.resolve(true),
+    record: () => Promise.resolve(), handoff: () => Promise.resolve(null), switchOn: () => Promise.resolve(true),
+    library: () => Promise.resolve('Thank you for the kind words.'), deterministic: () => Promise.resolve({ kind: 'unknown', key: 'unknown', text: '' }),
+    draft: () => Promise.resolve(null),
+    async reply(ev, text) { const t = await tokenFor(ev); return t ? await call(f, replyRequest(ev, text, t)) : { ok: false, error: 'no credential for ' + ev.platform }; },
+    async hide() { return { ok: false, error: 'not in this test' }; },
+  });
+  const rio = (ev: CommentEvent): CommentReplayIO => ({
+    ownToken: (p) => accessToken(f, p, MASTER, sec, async (k, v) => { saved.push(k); sealed[k] = v; }),
+    metaPageToken: (p, a) => { metaLookups.push(p + ':' + a); return Promise.resolve('meta-page-token'); },
+    process: (tokenFor) => { processed++; return processComment(store(tokenFor), ev, 'praise'); },
+  });
+  return { posted, metaLookups, saved, rio, processed: () => processed };
+}
+const heldComment = (platform: CommentEvent['platform'], over: Partial<CommentEvent> = {}): CommentEvent => ({
+  platform, accountId: platform === 'linkedin' ? 'urn:li:organization:111' : 'ACCOUNT', commentId: platform === 'linkedin' ? 'urn:li:comment:(urn:li:activity:9,77)' : 'cmt-1',
+  authorId: 'author-1', handle: null, text: 'Great work on this project', at: new Date(), threadId: platform === 'linkedin' ? 'urn:li:activity:9' : 'post-1', ...over,
+});
+const later = Date.now() + 3600_000;
+
+Deno.test('a replayed LinkedIn comment posts with the LinkedIn company-page token, never the Meta page token', async () => {
+  const rig = replayRig({ stored: { linkedin: { platform: 'linkedin', account_id: '111', access_token: 'li-token', expires_at: later, connected_at: '' } } });
+  const ev = heldComment('linkedin');
+  const s = await replayHeldComment(ev, rig.rio(ev));
+  assertEquals(s, { ok: true, err: 'replied' });
+  assertEquals(rig.metaLookups, [], 'the Meta page-token lookup is never asked for a LinkedIn comment');
+  assertEquals(rig.posted.length, 1);
+  assertEquals(rig.posted[0].auth, 'Bearer li-token');
+  // The same request the live path builds: the Community Management API, as the company page.
+  assertEquals(rig.posted[0].url, 'https://api.linkedin.com/rest/socialActions/' + encodeURIComponent(ev.commentId) + '/comments');
+  assertEquals(JSON.parse(rig.posted[0].body), { actor: ev.accountId, object: ev.threadId, parentComment: ev.commentId, message: { text: 'Thank you for the kind words.' } });
+});
+
+Deno.test('a replayed YouTube comment posts with the YouTube token, refreshed through accessToken when it has lapsed', async () => {
+  const rig = replayRig({ stored: { youtube: { platform: 'youtube', account_id: 'UC1', access_token: 'yt-old', expires_at: Date.now() - 1000, refresh_token: 'yt-refresh', connected_at: '' } } });
+  const ev = heldComment('youtube');
+  const s = await replayHeldComment(ev, rig.rio(ev));
+  assertEquals(s, { ok: true, err: 'replied' });
+  assertEquals(rig.metaLookups, []);
+  assertEquals(rig.saved, ['youtube_oauth'], 'the refreshed token set is re-sealed where it was read');
+  assertEquals(rig.posted.length, 1);
+  assertEquals(rig.posted[0].auth, 'Bearer yt-refreshed');
+  assertEquals(rig.posted[0].url, 'https://www.googleapis.com/youtube/v3/comments?part=snippet');
+  assertEquals(JSON.parse(rig.posted[0].body), { snippet: { parentId: ev.commentId, textOriginal: 'Thank you for the kind words.' } });
+});
+
+Deno.test('Instagram and Facebook are unchanged: the page token is looked up for the page, at the send', async () => {
+  for (const platform of ['instagram', 'facebook'] as const) {
+    const rig = replayRig();
+    const ev = heldComment(platform, { accountId: 'PAGE-' + platform });
+    const s = await replayHeldComment(ev, rig.rio(ev));
+    assertEquals(s, { ok: true, err: 'replied' });
+    assertEquals(rig.metaLookups, [platform + ':PAGE-' + platform]);
+    assertEquals(rig.posted.length, 1);
+    assertEquals(rig.posted[0].auth, 'Bearer meta-page-token');
+    assertEquals(rig.posted[0].url, 'https://graph.facebook.com/v21.0/cmt-1/' + (platform === 'instagram' ? 'replies' : 'comments'));
+  }
+});
+
+Deno.test('LinkedIn or YouTube not connected: a named skip, nothing run, nothing posted, nothing thrown', async () => {
+  for (const platform of ['linkedin', 'youtube'] as const) {
+    const rig = replayRig();
+    const ev = heldComment(platform);
+    const s = await replayHeldComment(ev, rig.rio(ev));
+    assertEquals(s, { ok: false, skipped: platform + ' token missing' });
+    assertEquals([rig.processed(), rig.posted.length, rig.metaLookups.length], [0, 0, 0], 'the policy never ran, so the comment stays held_classify');
+  }
+});
+
+Deno.test('a YouTube token that cannot be refreshed is a named skip too, not a throw', async () => {
+  const rig = replayRig({ stored: { youtube: { platform: 'youtube', account_id: 'UC1', access_token: 'yt-old', expires_at: Date.now() - 1000, refresh_token: 'revoked', connected_at: '' } },
+    refresh: { status: 400, json: { error: 'invalid_grant' } } });
+  const ev = heldComment('youtube');
+  const s = await replayHeldComment(ev, rig.rio(ev));
+  assertEquals(s.ok, false);
+  assertMatch(String(s.skipped), /^youtube token refresh failed: youtube token refresh HTTP 400: invalid_grant/);
+  assertEquals([rig.processed(), rig.posted.length], [0, 0]);
+});
+
+Deno.test('the held-comment delivery reports the skip by name and does not count it delivered', async () => {
+  const { x } = io(true);
+  const rig = replayRig();
+  x.socialCommentClassified = (subject) => replayHeldComment(heldComment(subject.platform as CommentEvent['platform']), rig.rio(heldComment(subject.platform as CommentEvent['platform'])));
+  const d = await deliverReasoned(row('marketing_social.comment_classify', 'nice', { platform: 'linkedin', message_id: 'c11' }), answered('praise'), x);
+  assertEquals(d, { delivered: false, via: 'social', detail: 'skipped: linkedin token missing' });
+});
+
+// ── THE LIVE WIRING (review of PR #969): liveDeliveryIO.socialCommentClassified reads the platform's own key through
+// accessToken, opened with the service-role key, and re-seals a refresh compare-and-set. A fake service-role client
+// holds app_secrets and the held comment; every other table answers with an error, so a run that gets past the token
+// stops at the store and never reaches a platform.
+function fakeAdmin(secrets: Record<string, string>, comment: Record<string, unknown>) {
+  const asked: string[] = []; const writes: { key: string; expected: string; wrote: boolean }[] = [];
+  const from = (table: string) => {
+    const f: Record<string, unknown> = {}; let op = 'select'; let payload: Record<string, unknown> = {};
+    const q = {
+      select() { return q; },
+      eq(c: string, v: unknown) { f[c] = v; return q; },
+      update(v: Record<string, unknown>) { op = 'update'; payload = v; return q; },
+      upsert() { op = 'upsert'; return q; },
+      maybeSingle() {
+        if (table === 'app_secrets') { const k = String(f.key); asked.push(k); return Promise.resolve({ data: k in secrets ? { value: secrets[k] } : null }); }
+        if (table === 'social_message') return Promise.resolve({ data: comment });
+        return Promise.resolve({ data: null, error: { message: 'fake: no ' + table } });
+      },
+      single() { return Promise.resolve({ data: null, error: { message: 'fake: no ' + table } }); },
+      then(res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) {
+        let out: unknown = { data: null, error: { message: 'fake: no ' + table } };
+        if (table === 'app_secrets' && op === 'update') {
+          const k = String(f.key); const hit = secrets[k] === f.value;
+          writes.push({ key: k, expected: String(f.value), wrote: hit });
+          if (hit) secrets[k] = String(payload.value);
+          out = { data: hit ? [{ key: k }] : [], error: null };
+        }
+        return Promise.resolve(out).then(res, rej);
+      },
+    };
+    return q;
+  };
+  return { admin: { from }, secrets, asked, writes };
+}
+const heldRow = (platform: string) => ({ id: 5, meta_message_id: 'cmt-9', platform, body: 'Great work on this project', parent_id: 'post-9',
+  occurred_at: new Date().toISOString(), outcome: 'held_classify', conversation: { user_id: 'author-9', handle: null, account_id: 'urn:li:organization:111' } });
+const noNetwork = () => Promise.reject(new Error('no network in this test'));
+
+Deno.test('live wiring: a LinkedIn comment with no stored token reads linkedin_oauth and skips by name', async () => {
+  const { admin, asked } = fakeAdmin({}, heldRow('linkedin'));
+  const s = await liveDeliveryIO(admin, { master: MASTER, fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  assertEquals(s, { ok: false, skipped: 'linkedin token missing' });
+  assertEquals(asked, ['linkedin_oauth']);
+});
+
+Deno.test('live wiring: a stored LinkedIn token is opened with the key and the replay goes on to the policy; a wrong key opens nothing', async () => {
+  const sealed = await seal(MASTER, { platform: 'linkedin', account_id: '111', access_token: 'li-token', expires_at: Date.now() + 3600_000, connected_at: '' });
+  const a = fakeAdmin({ linkedin_oauth: sealed }, heldRow('linkedin'));
+  const s = await liveDeliveryIO(a.admin, { master: MASTER, fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  // Past the token: the fake store refuses the conversation row, so the run stops there. Not skipped, not sent.
+  assertEquals(s, { ok: false, err: 'conversation: fake: no social_conversation' });
+  assertEquals(a.asked, ['linkedin_oauth']);
+  const b = fakeAdmin({ linkedin_oauth: sealed }, heldRow('linkedin'));
+  const w = await liveDeliveryIO(b.admin, { master: 'a-different-key-of-enough-length', fetch: noNetwork }).socialCommentClassified({ platform: 'linkedin', message_id: 'cmt-9' }, 'praise');
+  assertEquals(w, { ok: false, skipped: 'linkedin token missing' });
+});
+
+Deno.test('live wiring: a lapsed YouTube token is refreshed and re-sealed only over the value that was read', async () => {
+  const lapsed = { platform: 'youtube', account_id: 'UC1', access_token: 'yt-old', expires_at: Date.now() - 1000, refresh_token: 'yt-refresh', connected_at: '' };
+  const refreshed = () => new Response(JSON.stringify({ access_token: 'yt-refreshed', expires_in: 3600 }), { status: 200 });
+  const client = { google_oauth_client_id: 'gid', google_oauth_client_secret: 'gs' };
+  // Unchanged since the read: the refreshed set replaces it.
+  const old = await seal(MASTER, lapsed);
+  const a = fakeAdmin({ youtube_oauth: old, ...client }, heldRow('youtube'));
+  const s = await liveDeliveryIO(a.admin, { master: MASTER, fetch: (u) => Promise.resolve(u === 'https://oauth2.googleapis.com/token' ? refreshed() : new Response('{}', { status: 500 })) })
+    .socialCommentClassified({ platform: 'youtube', message_id: 'cmt-9' }, 'praise');
+  assertEquals(s.skipped, undefined);
+  assertEquals(a.asked, ['youtube_oauth', 'google_oauth_client_id', 'google_oauth_client_secret']);
+  assertEquals(a.writes, [{ key: 'youtube_oauth', expected: old, wrote: true }]);
+  assertEquals((await open<{ access_token: string }>(MASTER, a.secrets.youtube_oauth))?.access_token, 'yt-refreshed');
+  // The founder reconnects while the refresh is in flight: the newer token set is kept, not overwritten.
+  const b = fakeAdmin({ youtube_oauth: old, ...client }, heldRow('youtube'));
+  const reconnected = await seal(MASTER, { ...lapsed, access_token: 'yt-reconnected', expires_at: Date.now() + 3600_000, refresh_token: 'new' });
+  await liveDeliveryIO(b.admin, { master: MASTER, fetch: (u) => {
+    if (u === 'https://oauth2.googleapis.com/token') { b.secrets.youtube_oauth = reconnected; return Promise.resolve(refreshed()); }
+    return Promise.resolve(new Response('{}', { status: 500 }));
+  } }).socialCommentClassified({ platform: 'youtube', message_id: 'cmt-9' }, 'praise');
+  assertEquals(b.writes, [{ key: 'youtube_oauth', expected: old, wrote: false }], 'the save found a newer value and wrote nothing');
+  assertEquals(b.secrets.youtube_oauth, reconnected, 'the reconnected token set stands');
+});
+
+Deno.test('casSecrets: nothing read, nothing written', async () => {
+  const { admin, writes } = fakeAdmin({ youtube_oauth: 'v1.stored' }, {});
+  await casSecrets(admin).save('youtube_oauth', 'v1.other');
+  assertEquals(writes, []);
+});
+
+// ── e-mail (email_triage, 28 Sep 2026) ──────────────────────────────────────────────────────────────
+const mailIO = () => { const { x, log } = io(false); x.emailReply = (id, text, person) => { log.push(`mail ${id} ${person} ${text}`); return Promise.resolve({ ok: true }); }; return { x, log }; };
+
+Deno.test('e-mail: a held answer, once verified, follows the receipt into the same thread', async () => {
+  const { x, log } = mailIO();
+  const r = { ...answered(null, 'You pay 3% only when you reveal.'), verified: { status: 'agreed' as const, by: 'm', notes: '' } };
+  const d = await deliverReasoned(row('email_triage.reply', 'When do I pay?', { message_id: 42, channel: 'email' }, false), r, x);
+  assertEquals([d.delivered, d.via], [true, 'email']);
+  assertMatch(log[0], /^mail 42 false Hello,\n\nYou pay 3% only when you reveal\./);
+});
+
+Deno.test('e-mail: an unverified answer is not sent; a reasoned request for a person is', async () => {
+  const { x, log } = mailIO();
+  const d1 = await deliverReasoned(row('email_triage.reply', 'q', { message_id: 42, channel: 'email' }, false), answered(null, 'x'), x);
+  assertEquals(d1.delivered, false);
+  const d2 = await deliverReasoned(row('email_triage.needs_a_person', 'let me talk to a human', { message_id: 42, channel: 'email' }), answered('needs_a_person'), x);
+  assertEquals([d2.delivered, d2.via], [true, 'email']);
+  assertMatch(log[0], /^mail 42 true .*member of our team/s);
+  const d3 = await deliverReasoned(row('email_triage.needs_a_person', 'when do I pay', { message_id: 42, channel: 'email' }), answered('no_person'), x);
+  assertEquals(d3.delivered, false);
+  assertEquals(log.length, 1);
 });

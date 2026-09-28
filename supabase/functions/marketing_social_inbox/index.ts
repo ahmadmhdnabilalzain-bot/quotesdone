@@ -24,7 +24,7 @@
 // (the system-user token; the page token, page id and IG id are derived from it through me/accounts and
 // cached in public.marketing_meta_page, refetched on a Graph 190), meta_app_id (optional; recognises our
 // Messenger echoes), social_send_enabled,
-// social_model_enabled (off: the model is held — OpenRouter is on hold), cred_fn_ai (the gateway key).
+// social_model_enabled (off: the model is held — OpenRouter is on hold).
 //
 // META APP SETUP: scripts/marketing/connect_social_inbox.mjs does all of it once meta_app_secret is stored.
 // Callback URL:
@@ -48,13 +48,12 @@ import { socialMeaning } from '../_shared/reasoned_channels.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { ackThenWork } from '../_shared/async_webhook.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { needsAPerson, socialReply } from '../_shared/reasoned_decisions.ts';
 import { processComment } from '../_shared/marketing_social_comments.ts';
 import { commentClass } from '../_shared/reasoned_social.ts';
 import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 async function sec(k: string): Promise<string | undefined> {
   const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
   const v = String(data?.value ?? '').trim();
@@ -200,7 +199,7 @@ async function handle(ev: InboundEvent): Promise<string> {
     // What the comment IS (hide / answer / hand off) is REASONED too (reasoned_social.ts); held, nothing is hidden
     // or said and the replay applies the policy (reasoned_delivery.ts).
     const cls = async () => (await commentClass(defaultDeps(admin, 'marketing_social_inbox'), { platform: ev.platform, commentId: ev.messageId, authorId: ev.userId, text: ev.text })).value;
-    return await processComment(adminStore(admin, timedFetch, () => pageToken(ev), GATEWAY), {
+    return await processComment(adminStore(admin, timedFetch, () => pageToken(ev)), {
       platform: ev.platform, accountId: ev.accountId, commentId: ev.messageId, authorId: ev.userId, handle: ev.handle,
       text: ev.text, at: ev.at, threadId: ev.parentId || ev.messageId }, cls, person);
   }
@@ -253,7 +252,13 @@ async function handle(ev: InboundEvent): Promise<string> {
   return await outcome(d.kind === 'handoff' ? 'handed_to_human' : 'answered:' + d.kind);
 }
 
-/** Deterministic first; the model only when switched on, only over retrieved knowledge. */
+/** THE DIRECT MESSAGE ANSWER (founder, 23 Sep 2026: never keyword matching; "as if it's me").
+ *  1. Does this person want a person? needsAPerson (think()). Yes -> the fixed handoff reply and the founder is told.
+ *  2. What they ask is reasoned among every grounded reply (socialMeaning): the library, the FAQ, one passage.
+ *  3. Nothing grounded fits: socialReply, think() over the company knowledge, stakes high, reviewed by a model of
+ *     another family; only an answer the reviewer agreed with is sent, as the page itself.
+ *  Held or not agreed: the fixed honest acknowledgement, the question kept as a knowledge gap, and the held question
+ *  replays from the marketing queue when the hold lifts. */
 async function answer(ev: InboundEvent): Promise<Decision> {
   const [{ data: lib }, { data: faqs }] = await Promise.all([
     admin.from('social_reply_library').select('key,priority,match_words,reply_en,reply_ar,active').eq('active', true),
@@ -288,25 +293,15 @@ async function answer(ev: InboundEvent): Promise<Decision> {
     message: ev.text, library, passages, platform: ev.platform, messageId: ev.messageId, userId: ev.userId,
   })).value;
   const d = decide(ev.text, library, (faqs || []) as FaqRow[], passages, person.value === true, meaning);
-  if (d.kind !== 'unknown' || !corpus.length || (await sec('social_model_enabled')) !== 'on') return d;
+  if (d.kind !== 'unknown' || (await sec('social_model_enabled')) !== 'on') return d;
 
-  // THE MODEL, SAME DOOR AS THE WEBSITE ASSISTANT (ai_gateway), and only over the passages retrieved
-  // for this question. OFF until the founder lifts the OpenRouter hold; the honest 'unknown' stands.
-  const key = await sec('cred_fn_ai');
-  if (!key) return d;
-  const sys = 'You are QuotesDone on ' + ev.platform + '. Answer ONLY from the KNOWLEDGE below, in the language of the message'
-    + (d.lang === 'ar' ? ' (formal Gulf Arabic, formal plural)' : ' (UAE English)') + ', in under 80 words, plain text. '
-    + 'Never state a price, fee, date, timeline or promise that is not written in the KNOWLEDGE. If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n'
-    + corpus.map((c) => c.content).join('\n\n')
-    + (memory.cases.length ? precedentBlock(memory) + '\nNever mention another person, a case number or this block in the reply.' : '');
-  try {
-    const r = await timedFetch(GATEWAY, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-      __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'visitor_chat', sys,
-      input: [{ role: 'user', content: ev.text }], max: 300, temperature: 0.2, cache_ttl_min: 0, try_faq: false }) });
-    const jd = await r.json();
-    const c = typeof jd?.content === 'string' ? jd.content.trim() : '';
-    if (c && !/^UNKNOWN\b/.test(c)) return { kind: 'knowledge', key: 'model', lang: d.lang, text: c };
-  } catch (_e) { /* fall through to the honest answer */ }
+  // NOTHING GROUNDED FITS: the reasoned answer (think(), stakes high, cross-family reviewed). Only an AGREED answer
+  // is sent; anything else leaves the honest 'unknown'. The recalled cases go with the question.
+  const r = await socialReply(deps, { surface: 'marketing_social.dm_reply', platform: ev.platform,
+    message: ev.text.slice(0, 4000), language: d.lang, dedupeKey: 'social_dm_reply:' + ev.platform + ':' + ev.messageId,
+    precedent: memory.cases.length ? precedentBlock(memory) : undefined,
+    subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId } });
+  if (r.value) return { kind: 'knowledge', key: 'model', lang: d.lang, text: r.value };
   return unknown(library, d.lang);
 }
 

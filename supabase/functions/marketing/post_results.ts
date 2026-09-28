@@ -36,7 +36,13 @@ export async function postResults(ctx: DutyContext, f: Fetch = (u, i) => timedFe
   if (pErr) throw new Error('marketing_post unreadable: ' + pErr.message);
   const { data: tied } = await admin.from('marketing_post_platform').select('post_id,platform,platform_post_id').in('post_id', (pub || []).map((p: any) => p.id));
   const have = new Set((tied || []).filter((t: any) => t.platform_post_id).map((t: any) => t.post_id + ':' + t.platform));
-  const untied = (pub || []).filter((p: any) => (p.channels || []).some((c: string) => !have.has(p.id + ':' + c)));
+  // A channel marketing_post_channel_result stores as FAILED never published: there is no platform id to tie, so it
+  // is not retried for 60 days (review of #965). Before that table exists (its SQL pending) the read errors and
+  // nothing is skipped, exactly as before.
+  const { data: failedCh, error: fErr } = await admin.from('marketing_post_channel_result').select('post_id,channel')
+    .eq('state', 'failed').in('post_id', (pub || []).map((p: any) => p.id));
+  const never = new Set((fErr ? [] : failedCh || []).map((r: any) => r.post_id + ':' + r.channel));
+  const untied = (pub || []).filter((p: any) => (p.channels || []).some((c: string) => !have.has(p.id + ':' + c) && !never.has(p.id + ':' + c)));
   let newlyTied = 0;
   let igUser: string | null = null;
   if (untied.length) {

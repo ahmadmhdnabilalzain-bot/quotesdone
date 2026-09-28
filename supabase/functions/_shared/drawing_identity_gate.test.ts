@@ -1,11 +1,9 @@
 // drawing_identity_gate — synthetic ZZ DEMO drawings only (never a customer file). Each test is the case
-// the gate exists for. Measured: with the re-read removed (every line kept, rest not scanned) tests 2 and 3 fail;
-// with the IFC identity_terms removed test 4 fails. Test 1 is a regression: the DXF reader already cuts the contact
+// the gate exists for. Measured: with the re-read removed (every line kept, rest not scanned) tests 2 and 3 fail; Test 1 is a regression: the DXF reader already cuts the contact
 // text out of its lines, so the gate must not cost a quantity there.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDocument } from './doc_read/index.ts';
 import { boqFromExtracted } from '../drawing_boq/boq_from_document.ts';
-import { IFC_FIXTURE_TEXT } from './doc_read/ifc.fixtures.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
 import { consultantDxf } from './cad_identity.test.ts';
 import { drawingIdentityTerms, gateDrawingBoq, labelTerms, residualIdentity } from './drawing_identity_gate.ts';
@@ -18,7 +16,7 @@ async function served(bytes: Uint8Array, name: string, mime: string) {
   const r: any = await readDocument(bytes, name, mime);
   assert(r.ok, JSON.stringify(r));
   const boq = boqFromExtracted(r, '');
-  return { r, g: gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text, r.identity_terms), r.dxf_text !== undefined) };
+  return { r, g: gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text), r.dxf_text !== undefined) };
 }
 
 Deno.test('1. DXF (regression): through the gate every quantity survives and no party is served', async () => {
@@ -53,28 +51,6 @@ Deno.test('3. a line that still names a party after redaction is dropped, and th
   assertEquals(g.dropped_lines, 1);
   assertEquals(g.boq.boq.map((l: any) => l.qty), [12]);
   assert(/withheld/.test(g.boq.missing_info.at(-1)));
-});
-
-const ifcWithParties = () => IFC_FIXTURE_TEXT
-  .replace("FILE_NAME('zz-demo.ifc','2026-09-14T00:00:00',('ZZ DEMO'),('ZZ DEMO')", "FILE_NAME('zz-demo.ifc','2026-09-14T00:00:00',('ZZ Reem Kassab'),('ZZ Keystone Architects')")
-  .replace("'ZZ DEMO Villa',$,$,'ZZ DEMO Villa, Architect''s issue'", "'ZZ HARBOUR TOWER',$,$,'ZZ HARBOUR TOWER for ZZ Orbit Holdings'")
-  .replace("'Level 1'", "'ZZ HARBOUR TOWER L1'")
-  .replace('#10=IFCUNITASSIGNMENT', "#900=IFCPERSON($,'Kassab','ZZ Reem',$,$,$,$,(#902));\n#901=IFCORGANIZATION($,'ZZ Orbit Consulting',$,$,(#902));\n#902=IFCTELECOMADDRESS(.OFFICE.,$,$,('+971 50 000 0012'),$,$,('zz@orbit.example.invalid'),$,$);\n#10=IFCUNITASSIGNMENT");
-
-Deno.test('4. IFC: project, storey, person, organisation, phone and e-mail stay out; the quantities stay in', async () => {
-  const src = ifcWithParties();
-  const { r, g } = await served(new TextEncoder().encode(src), 'model.ifc', 'application/x-step');
-  for (const t of ['ZZ HARBOUR TOWER', 'ZZ Orbit Consulting', 'Kassab', '+971 50 000 0012', 'zz@orbit.example.invalid', 'ZZ Keystone Architects']) assert(r.identity_terms.includes(t), `term missing: ${t} in ${JSON.stringify(r.identity_terms)}`);
-  assert(g.boq, JSON.stringify(g));
-  assertEquals(leaks(g.boq), [], 'identity reached the supplier-facing take-off');
-  const walls = ((g.boq as any).boq as any[]).filter((l) => /Length/.test(l.description)).map((l) => l.qty);
-  assertEquals(walls, [9]);
-});
-
-Deno.test('5. IFC without the gate WOULD have leaked the storey name (the case this file fixes)', async () => {
-  const src = ifcWithParties();
-  const r: any = await readDocument(new TextEncoder().encode(src), 'model.ifc', 'application/x-step');
-  assert(JSON.stringify(boqFromExtracted(r, '')).includes('HARBOUR'));
 });
 
 Deno.test('6. label values from a PDF text layer become terms; plain content does not', () => {

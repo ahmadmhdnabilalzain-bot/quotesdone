@@ -2,16 +2,36 @@
 // Founder, 23 Sep 2026: social copy is English only, never the word "AI" (say "smart"), never the trade licence
 // number. Every month's calendar file in docs/marketing/ in the loader's shape (YYYY-MM_social_calendar.json)
 // is read; what fn_marketing_calendar_load would store and publish (caption, hashtags, title, alt text, first
-// comment) must carry none of them. Also: the five platforms of the plan, and every link on quotesdone.ae.
+// comment) must carry none of them. Also: every link on quotesdone.ae, and EVERY marketing channel on every video day.
+//
+// 28 Sep 2026: this check listed five platforms and refused 'x', so the month-1 calendar (#914) was written without X
+// although X is connected in Postiz and is in CHANNELS. The channel list is now read from
+// supabase/functions/_shared/marketing_channels.ts, and a video day missing a channel fails unless the calendar says
+// why in channels_not_planned: [{ platform, days, why }].
 //   node --test scripts/checks/the_social_calendar_obeys_the_copy_rules.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 
 const DIR = new URL('../../docs/marketing/', import.meta.url);
+const CHANNELS = JSON.parse(readFileSync(new URL('../../supabase/functions/_shared/marketing_channels.ts', import.meta.url), 'utf8')
+  .match(/export const CHANNELS = (\[[^\]]*\])/)[1].replace(/'/g, '"'));
 const files = readdirSync(DIR).filter((f) => /^\d{4}-\d{2}_social_calendar\.json$/.test(f));
 
 test('at least one month calendar is in the loader shape', () => assert.ok(files.length > 0));
+test('the channel list is read from marketing_channels.ts and includes x', () => assert.ok(CHANNELS.includes('x') && CHANNELS.length >= 6));
+
+for (const f of files) {
+  test(f + ' puts every marketing channel on every video day', () => {
+    const cal = JSON.parse(readFileSync(new URL(f, DIR), 'utf8'));
+    const excused = new Set((cal.channels_not_planned || []).filter((e) => String(e.why || '').trim())
+      .flatMap((e) => e.days.map((d) => e.platform + '@' + d)));
+    const have = new Set(cal.posts.map((p) => p.platform + '@' + p.at_dubai.slice(0, 10)));
+    const days = [...new Set(cal.posts.map((p) => p.at_dubai.slice(0, 10)))];
+    const missing = days.flatMap((d) => CHANNELS.filter((c) => !have.has(c + '@' + d) && !excused.has(c + '@' + d)).map((c) => c + '@' + d));
+    assert.deepEqual(missing, []);
+  });
+}
 
 for (const f of files) {
   test(f + ' obeys the copy rules', () => {
@@ -22,7 +42,7 @@ for (const f of files) {
       if (/[؀-ۿ]/.test(text) || p.caption_ar) bad.push(p.key + ': Arabic');
       if (/\bA\.?I\b/.test(text)) bad.push(p.key + ': the word AI');
       if (/1633275|licen[cs]e (no|number)/i.test(text)) bad.push(p.key + ': licence number');
-      if (!['linkedin', 'facebook', 'youtube', 'instagram', 'tiktok'].includes(p.platform)) bad.push(p.key + ': platform ' + p.platform);
+      if (!CHANNELS.includes(p.platform)) bad.push(p.key + ': platform ' + p.platform);
       // the alt text describes the video, whose end card prints quotesdone.com; what we WRITE links to quotesdone.ae
       if (/quotesdone\.com/i.test([p.caption_en, p.first_comment, p.cta_url].join(' '))) bad.push(p.key + ': quotesdone.com (the site is quotesdone.ae)');
     }

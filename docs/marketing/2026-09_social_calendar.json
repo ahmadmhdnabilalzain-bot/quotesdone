@@ -3,7 +3,7 @@
   "key": "2026-month1-supplier-recruitment",
   "month": "2026-09",
   "title": "First month (25 Sep to 21 Oct 2026): supplier recruitment and how QuotesDone works",
-  "theme": "Supplier recruitment (the first 1,000 suppliers join free, permanently) and how QuotesDone works; 12 founder-made videos on LinkedIn, Facebook, YouTube, Instagram and TikTok; English only; organic only"
+  "theme": "Supplier recruitment (the first 1,000 suppliers join free, permanently) and how QuotesDone works; 12 founder-made videos on LinkedIn, Facebook, X, YouTube, Instagram and TikTok; English only; organic only"
  },
  "posts": [
   {
@@ -330,6 +330,32 @@
    "language": "en"
   },
   {
+   "key": "m1-11-x",
+   "platform": "x",
+   "at_dubai": "2026-09-30T14:30:00",
+   "at_utc": "2026-09-30T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/11_Compete_On_Value_LoFiMix_60fps.mp4",
+    "sha256": "a731bf1794c2d9362e7b6b10af61da0164ce6a3f97fc0b0eb565576a2cb4f594",
+    "title": "Compete on Value"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/11.jpg",
+    "sha256": "d9afb6adf23aeb253bfe0ec0a7f35b5212247a8b7d149aa4269f0c59007a20e7"
+   },
+   "caption_en": "No featured suppliers. No paid ranking. On QuotesDone the strongest three quotations are compared on price, completeness and delivery, not on what a supplier pays. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"Your expertise. Not a paid position.\" \"No featured suppliers. No paid ranking. Membership does not buy a better position.\" \"Technical fit. Scope. Delivery. Value. Quotes are assessed against the customer's requirement.\" \"Compete on your offer. Let the customer choose. No paid preference. No guaranteed winner.\" End card: \"Bring your expertise. Join the first 1,000.\" A permanent subscription waiver, not a ranking boost. Register your business, quotesdone.com/supplier.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 83,
+    "mood": "drive"
+   }
+  },
+  {
    "key": "m1-11-facebook",
    "platform": "facebook",
    "at_dubai": "2026-09-30T13:00:00",
@@ -475,6 +501,32 @@
     "mood": "steady"
    },
    "language": "en"
+  },
+  {
+   "key": "m1-04-x",
+   "platform": "x",
+   "at_dubai": "2026-10-01T14:30:00",
+   "at_utc": "2026-10-01T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/04_Behind_The_Check_LoFiMix_60fps.mp4",
+    "sha256": "086c67282059e6d285f85c031eb227576951d2b9ce5801a280710cc2e3036fec",
+    "title": "Behind the Check"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/04.jpg",
+    "sha256": "143240a198f95f8cdf2192175a9d4a213887980f3c1405462b73ac9d30cd659e"
+   },
+   "caption_en": "A name is easy. A check matters. Before any matching, QuotesDone checks the trade licence, company profile, mobile, email and signed supplier terms. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video on a light background. Headlines: \"A name is easy. A check matters.\" \"Start with the licence. Number. Issuing authority. Expiry.\" \"Current documents. A stronger start. Expired licences stay out of matching.\" \"Checked before you're connected. An important first step. Not a quality guarantee.\" A wheel links business name, mobile, email, trade licence, company profile and signed terms. End card: \"Confidence starts with the checks.\" Meet QuotesDone, quotesdone.com. Licence checks do not certify workmanship.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 84,
+    "mood": "steady"
+   }
   },
   {
    "key": "m1-04-facebook",
@@ -624,6 +676,32 @@
    "language": "en"
   },
   {
+   "key": "m1-03-x",
+   "platform": "x",
+   "at_dubai": "2026-10-05T14:30:00",
+   "at_utc": "2026-10-05T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/03_On_Your_Terms_LoFiMix_60fps.mp4",
+    "sha256": "bd2ade2530f3cf56095312bb37441193a69c04965ed880e471435b4e16a5cf2f",
+    "title": "On Your Terms"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/03.jpg",
+    "sha256": "fc7bf4155bb82ec98f8c9f6724b63931fd844ae7f84bcde238ce8019995af3d6"
+   },
+   "caption_en": "Judged on the work, not on who you know. On QuotesDone you see the scope and quantities with personal details removed, and quote on the job itself. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"Your project. Not your identity.\" \"Share the brief. Keep your privacy. Your details are removed before suppliers see it.\" \"Let suppliers focus on the job. The work. Not who you are.\" A brief with scope and requirements goes to suppliers A, B and C. \"Every quote. Your decision.\" Sealed envelopes; only the chosen one opens. End card: \"Sourcing, on your terms.\" Get to know QuotesDone, quotesdone.com.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 78,
+    "mood": "soft"
+   }
+  },
+  {
    "key": "m1-03-facebook",
    "platform": "facebook",
    "at_dubai": "2026-10-05T13:00:00",
@@ -769,6 +847,32 @@
     "mood": "focused"
    },
    "language": "en"
+  },
+  {
+   "key": "m1-05-x",
+   "platform": "x",
+   "at_dubai": "2026-10-07T14:30:00",
+   "at_utc": "2026-10-07T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/05_Complete_Before_Compare_LoFiMix_60fps.mp4",
+    "sha256": "1acb308b8415f885cbc49cecb56950398b7e8bbe91679459ac31da9d5a4488b0",
+    "title": "Complete Before Compare"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/05.jpg",
+    "sha256": "d1be3f06be724118fdf64f6a739dee9cbe292a30f365adf2ebc359ee06078d8e"
+   },
+   "caption_en": "A quote should be complete before it is compared. QuotesDone checks price, lead time, warranty and validity, and a missing detail comes back with a clear note. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video in dark teal. Headlines: \"A quote should be complete. Not a number with missing details.\" A quotation check shows price, lead time, warranty and a missing validity. \"Missing a detail? Back for completion. Incomplete quotations are held.\" \"The supplier fills in what's missing.\" \"Complete first. Compare next.\" End card: \"Less back-and-forth. More clarity.\" Discover QuotesDone, quotesdone.com.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 80,
+    "mood": "focused"
+   }
   },
   {
    "key": "m1-05-facebook",
@@ -918,6 +1022,32 @@
    "language": "en"
   },
   {
+   "key": "m1-07-x",
+   "platform": "x",
+   "at_dubai": "2026-10-08T14:30:00",
+   "at_utc": "2026-10-08T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/07_The_First_1000_LoFiMix_60fps.mp4",
+    "sha256": "43cb3e528f3049443f2496d50b7dbbac6ad121c233a106b65cd5eac944359dee",
+    "title": "The First 1000"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/07.jpg",
+    "sha256": "747223e6fcb93da1b4c18359ec9e4197b3f1c07a8c3306a088de499b1b82687c"
+   },
+   "caption_en": "The first 1,000 suppliers to register on QuotesDone pay no subscription, permanently. From the 1,001st: AED 1,000 a year. Early entry, not paid preference. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. A gold \"1,000\" reads \"The first 1,000. A lasting advantage.\" \"Not a trial. Free. Forever. The first 1,000 pay no membership subscription.\" Year one, year two, every year: AED 0. \"Your capabilities. Relevant inquiries.\" \"First 1,000: AED 0. After that: membership. Annual subscriptions apply from registration 1,001. Same merit-based ranking.\" \"Early entry, not paid preference.\" End card: \"Register early. Keep the advantage.\" Register your business, quotesdone.com/supplier. Supplier verification and agreement apply.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 86,
+    "mood": "confident"
+   }
+  },
+  {
    "key": "m1-07-facebook",
    "platform": "facebook",
    "at_dubai": "2026-10-08T13:00:00",
@@ -1063,6 +1193,32 @@
     "mood": "poised"
    },
    "language": "en"
+  },
+  {
+   "key": "m1-12-x",
+   "platform": "x",
+   "at_dubai": "2026-10-12T14:30:00",
+   "at_utc": "2026-10-12T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/12_Procurement_With_Perspective_LoFiMix_60fps.mp4",
+    "sha256": "3a2931f0b1c4af61eb70340dea7a725553cffd58f07149c989f7586f42576ed5",
+    "title": "Procurement with Perspective"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/12.jpg",
+    "sha256": "7b4f05558cf73d3e5c349f108764306024ff8fd4c353a45e4ab21121f2be6c50"
+   },
+   "caption_en": "Procurement teams, your future customers, are looking beyond their supplier list. Register on QuotesDone to be considered on the quality of your offer. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"Your supplier list can go further. A foundation. Not a limit.\" \"One inquiry. Relevant new options.\" \"Align the scope. See the differences. Top three in one report. Every other quotation also available.\" A scale weighs price against overall value: \"The lowest number is not the whole story.\" End card: \"More options. A clearer decision.\" Submit your company request, quotesdone.com. Post and compare free. Reveal fees apply.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 81,
+    "mood": "poised"
+   }
   },
   {
    "key": "m1-12-facebook",
@@ -1212,6 +1368,32 @@
    "language": "en"
   },
   {
+   "key": "m1-06-x",
+   "platform": "x",
+   "at_dubai": "2026-10-14T14:30:00",
+   "at_utc": "2026-10-14T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/06_Stay_In_The_Loop_LoFiMix_60fps.mp4",
+    "sha256": "7a2271a7bf1eca53516920bf5068853b926f2f441cdca42aa1db0738942f4f34",
+    "title": "Stay in the Loop"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/06.jpg",
+    "sha256": "e656f206013fe59a9b57f52f4270b8bd713f9d80db300844d1a6ba61eb456222"
+   },
+   "caption_en": "Customers follow their requests on WhatsApp and email. Registered suppliers get each new request matching the trades they confirm the same way. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video in teal. A phone shows a project moving from request to quotes to review. Headlines: \"Your project moves. So do you.\" \"Updates come to you. On WhatsApp and email.\" A clock: \"Less checking. More doing.\" \"Stay in the loop. Keep your momentum.\" End card: \"Your day. Still yours.\" Explore QuotesDone, quotesdone.com. Project updates on WhatsApp and email.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 74,
+    "mood": "drift"
+   }
+  },
+  {
    "key": "m1-06-facebook",
    "platform": "facebook",
    "at_dubai": "2026-10-14T13:00:00",
@@ -1357,6 +1539,32 @@
     "mood": "deep"
    },
    "language": "en"
+  },
+  {
+   "key": "m1-08-x",
+   "platform": "x",
+   "at_dubai": "2026-10-15T14:30:00",
+   "at_utc": "2026-10-15T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/08_Beyond_Your_Contacts_LoFiMix_60fps.mp4",
+    "sha256": "8d84647e5d0c6d5269f6f9c34f7d9e73273f6867e9071bf74d64d18c2230006e",
+    "title": "Beyond Your Contacts"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/08.jpg",
+    "sha256": "7b8540b0ac99c44f8e8460f991089e7bcea27c0e699db42769958a6feb777cf0"
+   },
+   "caption_en": "Your future customers are looking beyond their own contacts. On QuotesDone their request reaches suppliers matched on the trades they confirm. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"A friend's contact is a starting point.\" with chat bubbles \"Who did you use?\", \"Do you have a contact?\", \"Any recommendations?\". \"Look beyond who you already know.\" \"Not just a name. A quote you can assess.\" showing scope, price, timing and terms. \"Compare options. Choose what fits.\" End card: \"More perspective. Your choice.\" Start your request, quotesdone.com. Post and compare free. Reveal fees apply.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 79,
+    "mood": "deep"
+   }
   },
   {
    "key": "m1-08-facebook",
@@ -1506,6 +1714,32 @@
    "language": "en"
   },
   {
+   "key": "m1-10-x",
+   "platform": "x",
+   "at_dubai": "2026-10-19T14:30:00",
+   "at_utc": "2026-10-19T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/10_You_Dont_Need_To_Be_The_Expert_LoFiMix_60fps.mp4",
+    "sha256": "d92fb67d42f509b076eb0e63e8ebf4fd8aafff7abe3dccdc3907cd0d3987e094",
+    "title": "You Don't Need to Be the Expert"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/10.jpg",
+    "sha256": "fc3864bfc91d920c308423e1460db1daf1d9ef39584c1f34d7d4dffa1dec52c5"
+   },
+   "caption_en": "Customers describe the outcome in their own words; follow-up questions turn it into a clearer brief before you price it. Register to receive them. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"Know what you need. Not every technical term.\" \"Describe the outcome. We ask the questions.\" with cards \"What do you need?\", \"What details matter?\", \"A clearer brief.\" \"Materials. Scope. The details that matter.\" \"Understand the options. Not just the numbers.\" End card: \"Less guesswork. More clarity.\" Start with your requirement, quotesdone.com. Post and compare free. Reveal fees apply.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 77,
+    "mood": "calm"
+   }
+  },
+  {
    "key": "m1-10-facebook",
    "platform": "facebook",
    "at_dubai": "2026-10-19T13:00:00",
@@ -1653,6 +1887,32 @@
    "language": "en"
   },
   {
+   "key": "m1-01-x",
+   "platform": "x",
+   "at_dubai": "2026-10-21T14:30:00",
+   "at_utc": "2026-10-21T10:30:00Z",
+   "video": {
+    "path": "campaigns/2026-month1-supplier-recruitment/videos/01_Stop_Chasing_Suppliers_LoFiMix_60fps.mp4",
+    "sha256": "d3ab892f1083a31d5433eedf6ef2b7da554118839d21fd8c6f76a477cce82522",
+    "title": "Stop Chasing Suppliers"
+   },
+   "keyframe": {
+    "path": "campaigns/2026-month1-supplier-recruitment/frames/01.jpg",
+    "sha256": "fc4f4906a6dd6408233259ebcdac9a056557f980a97b8bede1937b53a8249897"
+   },
+   "caption_en": "Suppliers stop chasing: on QuotesDone requests come to you, matched to the trades you confirm, with no commission on the work you win. https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "hashtags": [
+    "UAESuppliers"
+   ],
+   "alt_text": "Animated video. Headlines: \"Stop chasing suppliers. Start choosing.\" with messages \"Still waiting on a quote\", \"Could you resend the details?\", \"Just following up.\" \"Describe it. Just once.\" with a brief for SPC flooring for a villa. \"Compare quotes. Not guesswork.\" \"Reveal one. Keep control.\" End card: \"Your next project. Starts here. Post and compare for free.\" Post your job free, quotesdone.com.",
+   "cta_url": "https://quotesdone.ae/supplier?utm_source=x&utm_medium=social&utm_campaign=2026_10_supplier_recruitment",
+   "rationale": "X: 14:30 Dubai, between the LinkedIn and Facebook lunch slots and the evening video slots; same video, same working day.",
+   "music": {
+    "bpm": 76,
+    "mood": "warm"
+   }
+  },
+  {
    "key": "m1-01-facebook",
    "platform": "facebook",
    "at_dubai": "2026-10-21T13:00:00",
@@ -1769,6 +2029,16 @@
     "mood": "warm"
    },
    "language": "en"
+  }
+ ],
+ "channels_not_planned": [
+  {
+   "platform": "x",
+   "days": [
+    "2026-09-25",
+    "2026-09-28"
+   ],
+   "why": "X was left out when this file was converted to the loader shape (#914); it was added on 28 Sep 2026 from 29 Sep onward. These two days had already been published on the other channels."
   }
  ]
 }
