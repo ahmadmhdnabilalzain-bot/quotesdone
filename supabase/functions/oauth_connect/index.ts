@@ -30,13 +30,13 @@ function page(status: number, title: string, body = '', extra: Record<string, st
     { status, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer',
       'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'", ...extra } });
 }
-async function sec(k: string): Promise<string> {
+async function appSecret(k: string): Promise<string> {
   const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
   return String(data?.value || '');
 }
 async function client(p: Provider) {
-  if (SPEC[p].client === 'google') return { id: await sec('google_oauth_client_id'), secret: await sec('google_oauth_client_secret'), tenant: '' };
-  return { id: await sec('ms_graph_client_id'), secret: await sec('ms_graph_client_secret'), tenant: await sec('ms_graph_tenant_id') };
+  if (SPEC[p].client === 'google') return { id: await appSecret('google_oauth_client_id'), secret: await appSecret('google_oauth_client_secret'), tenant: '' };
+  return { id: await appSecret('ms_graph_client_id'), secret: await appSecret('ms_graph_client_secret'), tenant: await appSecret('ms_graph_tenant_id') };
 }
 const cookieOf = (req: Request) => (req.headers.get('cookie') || '').split(/;\s*/).find((c) => c.startsWith(COOKIE + '='))?.slice(COOKIE.length + 1) || '';
 const clear = { 'Set-Cookie': `${COOKIE}=; Path=${PATH}; Max-Age=0; HttpOnly; Secure; SameSite=Lax` };
