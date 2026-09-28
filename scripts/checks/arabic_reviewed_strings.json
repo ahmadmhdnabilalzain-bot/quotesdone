@@ -4438,6 +4438,14 @@
   "90499fad847d",
   "dc67015343c6"
  ],
+ "supabase/functions/_shared/customer_mail.ts": [
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "7784a68c401d",
+  "9c9347b8a06d",
+  "c607dba157a1"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
   "cbb176539761",
