@@ -6,5 +6,8 @@ then run the probe (every_support_conversation_is_one_case_measured_rated_and_re
 node scripts/qsql.mjs; it must print PROBE OK, as it did on 28 Sep 2026 when this file and the probe ran
 together in one rolled-back transaction on htdblwldjkcgjvmqkbeh.
 
+Deploy with it, after the apply (they call fn_support_portal_rate):
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production site_assistant sales_engineer
+
 Adds triggers on wa_messages, inbound_messages and assistant_logs (each catches its own error, so a
 defect can never refuse an inbound message). No campaign-hour apply: it takes brief locks on those tables.
