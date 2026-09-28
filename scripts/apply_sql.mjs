@@ -39,6 +39,12 @@ if (!file) {
   process.exit(2);
 }
 
+// Unreviewed code never reaches production (scripts/lib/release_guard.mjs). Before any read or write.
+if (APPLY) {
+  const { releaseRefusal } = await import('./lib/release_guard.mjs');
+  const why = releaseRefusal([file]);
+  if (why) { console.error('REFUSED: ' + why + '. Merge it, or wait for its PR to go green.'); process.exit(2); }
+}
 const sql = readFileSync(file, 'utf8');
 // Refused before anything is read from or written to the database (review of #661, scripts/lib/sql_text.mjs).
 {

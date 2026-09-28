@@ -1,0 +1,19 @@
+# Dependency vulnerability and update scanning (it_engineer, 28 Sep 2026).
+# The repository has one package.json (the root). Minor and patch bumps are grouped into one PR per
+# ecosystem per week to limit noise; majors and security updates still arrive individually.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]

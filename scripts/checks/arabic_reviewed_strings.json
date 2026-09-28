@@ -809,6 +809,12 @@
   "fa4b51d2ade2",
   "fffb93cafbf1"
  ],
+ "scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
+ ],
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
  ],
@@ -1052,6 +1058,9 @@
   "f8dddaab5755",
   "fd666cd4a8ef",
   "fe93b75ba546"
+ ],
+ "scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql": [
+  "f03ed6d53816"
  ],
  "scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql": [
   "0e3944a15f96",
@@ -2533,7 +2542,6 @@
   "027290433d84",
   "03e04e8a8dda",
   "051b56e3955b",
-  "06afdc13e23a",
   "0907ffad5d1e",
   "098fd8bfe804",
   "099ec14fa3c8",
@@ -2548,7 +2556,6 @@
   "136812001688",
   "13962c829494",
   "1414d5859c0e",
-  "146a5b00446b",
   "14849c72fb93",
   "1504bfc3a8dc",
   "15df8b2eee6f",
@@ -2560,6 +2567,7 @@
   "1d98a9586f91",
   "1dc995d97318",
   "1e95c36e8636",
+  "1eb68a264e50",
   "1fb631ff0a5f",
   "20ffc9b01a1e",
   "21830ed1d48b",
@@ -2670,6 +2678,7 @@
   "a3b3e5144a42",
   "a5a6dce84c28",
   "a6d0e65e97e9",
+  "aa3f55b6c243",
   "ab32250b9ce6",
   "ac6da840ea78",
   "ae41461c0e53",
@@ -2709,6 +2718,7 @@
   "cb93c4e62a13",
   "cc308a5e6acf",
   "d0150f86cbe5",
+  "d04f39d6f405",
   "d2479290cc2e",
   "d24e24552aa4",
   "d466a6a5871c",
@@ -3762,12 +3772,12 @@
   "410891bd6f08",
   "4ec6ed2981b8",
   "5e44d9452342",
+  "739c1a5cc8c3",
   "7d42323153da",
   "7fd69b7c6643",
   "b6d49d8ad10a",
   "c6465d24ce9a",
   "d3319643634a",
-  "ee77ffffb50f",
   "f4af52f37af8"
  ],
  "src/components/portal/supplier/SupplierCertifications.tsx": [
@@ -4438,10 +4448,21 @@
   "90499fad847d",
   "dc67015343c6"
  ],
+ "supabase/functions/_shared/customer_mail.ts": [
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "7784a68c401d",
+  "9c9347b8a06d",
+  "c607dba157a1"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
   "cbb176539761",
   "fbe144d11ac6"
+ ],
+ "supabase/functions/_shared/drawing_format.ts": [
+  "939055a3b61f"
  ],
  "supabase/functions/_shared/drawing_identity_gate.ts": [
   "a53833277648"
@@ -4801,6 +4822,13 @@
  "supabase/functions/_shared/supplier_services.ts": [
   "84a6acf814f6"
  ],
+ "supabase/functions/_shared/support_reply_guard.ts": [
+  "1c124ac36381",
+  "24c91058ee6f",
+  "29e16cbb341d",
+  "622dc4a7b5b1",
+  "713903274b9b"
+ ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
  ],
@@ -5028,6 +5056,7 @@
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",
   "32f673f57030",
+  "35a1a42cc34d",
   "488eec99c14e",
   "4c6a9cec02c0",
   "524c3be9b432",
@@ -5242,6 +5271,7 @@
   "0c779ad88625",
   "4061420fc991",
   "5cbb277245b5",
+  "61e5bb9d6ede",
   "6c8d4e17edaa",
   "c09183a62789",
   "e687fbf0ba76"
