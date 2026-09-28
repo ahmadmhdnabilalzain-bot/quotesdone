@@ -50,7 +50,7 @@ const EPS = 1e-6;
 const inside = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x >= b.x - EPS && r.y >= b.y - EPS && r.x + r.w <= b.x + b.w + EPS && r.y + r.h <= b.y + b.h + EPS;
 
 export type PdfRedactResult =
-  | { ok: true; bytes: Uint8Array; removed_runs: number; removed_images: number; kept_runs: number; terms: string[] }
+  | { ok: true; bytes: Uint8Array; removed_runs: number; removed_images: number; removed_paths: number; kept_runs: number; terms: string[] }
   | { ok: false; held: string; detail?: string };
 
 /** The identity terms: the customer's seeds plus what the sheet's own labels name. */
@@ -167,7 +167,8 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
   const drop = new Map<string, Set<number>>();       // stream key -> operator indexes to cut
   const dropImg = new Map<string, Set<string>>();    // stream key -> image names cut there
   const mark = (key: string, op: number) => { (drop.get(key) ?? drop.set(key, new Set()).get(key)!).add(op); };
-  let removedRuns = 0, keptRuns = 0, removedImages = 0;
+  let removedRuns = 0, keptRuns = 0, removedImages = 0, removedPaths = 0;
+  const areas = titleAreas(tb, boxes);
   view.pages.forEach((vp, i) => {
     const all = [...boxes[i], ...textLayerBoxes(pages, i).boxes];
     const keyOf = (at: string) => { const [s, op] = at.split(':'); return { key: s === 'p' ? 'p' + vp.num : s, op: Number(op) }; };
@@ -177,8 +178,16 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
       if (!r.at) return;
       const k = keyOf(r.at); mark(k.key, k.op); removedRuns++;
     }
+    // A VECTOR logo or stamp (28 Sep 2026): a painted path wholly inside the title strip is cut, operators and
+    // operands; a clipping path never is. Everything outside the strip stays byte-identical (verifyPdfRedaction).
+    for (const p of vp.page.paths ?? []) {
+      if (p.clip || !areas[i].some((b) => inside(b, p))) continue;
+      const k = keyOf(p.at + ':0');
+      for (const op of p.ops) mark(k.key, op);
+      removedPaths++;
+    }
     for (const im of vp.page.images ?? []) {
-      if (!im.at || !im.name || !boxes[i].some((b) => inside(b, im))) continue;
+      if (!im.at || !im.name || !areas[i].some((b) => inside(b, im))) continue;
       const k = keyOf(im.at); mark(k.key, k.op); removedImages++;
       (dropImg.get(k.key) ?? dropImg.set(k.key, new Set()).get(k.key)!).add(im.name);
     }
@@ -218,25 +227,20 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
   }
   scrubFile(doc, terms);
   const out = await doc.save({ useObjectStreams: false, updateFieldAppearances: false });
-  return { ok: true, bytes: out, removed_runs: removedRuns, removed_images: removedImages, kept_runs: keptRuns, terms };
+  return { ok: true, bytes: out, removed_runs: removedRuns, removed_images: removedImages, removed_paths: removedPaths, kept_runs: keptRuns, terms };
 }
 
 // ── verification ────────────────────────────────────────────────────────────────────────────────────
 
-/** Every path operator with its operands, in drawing order, per page and per form (by object number). */
-export function geometrySignature(view: NonNullable<Awaited<ReturnType<typeof pdfRedactionView>>>): string[] {
-  const sig = (src: string) => {
-    const out: string[] = []; let nums: string[] = [];
-    for (const tk of tokens(src)) {
-      if (tk.t === 'num') { nums.push(tk.v); continue; }
-      if (tk.t !== 'op') { nums = []; continue; }
-      if (PATH.has(tk.v)) out.push(nums.join(' ') + ' ' + tk.v);
-      nums = [];
-    }
-    return out.join('\n');
-  };
-  const forms = [...view.forms.entries()].sort((a, b) => a[0] - b[0]).map(([, s]) => sig(s));
-  return [...view.pages.map((p) => sig(p.content)), ...forms];
+/** The title area of each page: the title strip and the title-block boxes. */
+export function titleAreas(tb: { strips: (Box | null)[] }, boxes: Box[][]): Box[][] {
+  return boxes.map((b, i) => [...(tb.strips[i] ? [tb.strips[i]!] : []), ...b]);
+}
+
+/** Every painted path OUTSIDE the title areas, as its exact source text, per page in drawing order (forms included
+ *  where they are drawn). Equal before and after = the geometry a supplier measures is byte-identical. */
+export function geometrySignature(view: NonNullable<Awaited<ReturnType<typeof pdfRedactionView>>>, areas: Box[][]): string[] {
+  return view.pages.map((p, i) => (p.page.paths ?? []).filter((q) => q.clip || !(areas[i] ?? []).some((b) => inside(b, q))).map((q) => q.text).join('\n'));
 }
 
 /** Every string the file carries, decoded: streams (inflated), dictionary strings, names. */
@@ -276,17 +280,18 @@ export async function verifyPdfRedaction(before: Uint8Array, after: Uint8Array, 
   if (!va) problems.push('does not open in the reader');
   const pb = vb?.pages.length ?? 0, pa = va?.pages.length ?? 0;
   if (pb !== pa) problems.push(`page count ${pb} -> ${pa}`);
-  const gb = vb ? geometrySignature(vb) : [], ga = va ? geometrySignature(va) : [];
+  const lb = await pdfPages(before), la = await pdfPages(after);
+  const tb = titleBlockBoxes(await pdfPages(before, undefined, { layers: false }), [...new Set([...seeds, ...termsOf(lb, [])])]);
+  const areas = titleAreas(tb, tb.boxes);
+  const gb = vb ? geometrySignature(vb, areas) : [], ga = va ? geometrySignature(va, areas) : [];
   const nOps = (g: string[]) => g.reduce((n, s) => n + (s ? s.split('\n').length : 0), 0);
   // Pages first, then forms; a form's object number may change, its drawing order may not.
-  if (gb.join('\f') !== ga.join('\f')) problems.push('geometry changed (path operators differ)');
-  const lb = await pdfPages(before), la = await pdfPages(after);
+  if (gb.join('\f') !== ga.join('\f')) problems.push('geometry changed (a path outside the title block differs)');
+  const out = (i: number, xs: { x1?: number; y1?: number; x2?: number; y2?: number; x?: number; y?: number; w?: number; h?: number }[] | undefined) =>
+    JSON.stringify((xs ?? []).filter((q) => { const b = q.x1 !== undefined ? { x: q.x1, y: q.y1!, w: q.x2! - q.x1, h: q.y2! - q.y1! } : { x: q.x!, y: q.y!, w: q.w!, h: q.h! }; return !(areas[i] ?? []).some((a) => inside(a, b)); }));
   for (let i = 0; i < Math.min(lb.length, la.length); i++) {
-    for (const k of ['lines', 'layers', 'marks'] as const) {
-      const a = JSON.stringify(lb[i][k] ?? null), b = JSON.stringify(la[i][k] ?? null);
-      if (k === 'layers') { if (JSON.stringify(Object.values(lb[i].layers ?? {})) !== JSON.stringify(Object.values(la[i].layers ?? {}))) problems.push(`page ${i + 1}: CAD layer segments changed`); }
-      else if (a !== b) problems.push(`page ${i + 1}: measured ${k} changed`);
-    }
+    if (out(i, lb[i].lines) !== out(i, la[i].lines)) problems.push(`page ${i + 1}: measured lines outside the title block changed`);
+    if (out(i, lb[i].marks) !== out(i, la[i].marks)) problems.push(`page ${i + 1}: marks outside the title block changed`);
   }
   const cb = qtyMap(boqFromDrawingSet(lb, '')), ca = qtyMap(boqFromDrawingSet(la, ''));
   for (const [d, q] of cb) if (ca.get(d) !== q) problems.push(`count "${d}": ${q} -> ${ca.get(d) ?? 'missing'}`);

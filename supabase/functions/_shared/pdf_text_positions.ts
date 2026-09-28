@@ -51,7 +51,10 @@ export type PdfLine = { x1: number; y1: number; x2: number; y2: number };
 export type LayerSegs = Record<string, number[]>;
 /** A small closed outline (a keyed-note hexagon, a tag circle): its box, its vertex count and its layer. */
 export type PdfMark = { x: number; y: number; w: number; h: number; n: number; layer: string };
-export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean };
+/** A painted path (pdf_vector_redact.ts): where it was drawn, its operator indexes, its exact source text, and its
+ *  display-frame box. Collected only by pdfRedactionView; `clip` paths are never removed. */
+export type PdfPath = { at: string; ops: number[]; text: string; x: number; y: number; w: number; h: number; clip: boolean };
+export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean; paths?: PdfPath[] };
 
 const DEC = new TextDecoder('latin1');
 type Obj = { dict: string; stream: Uint8Array | null };
@@ -207,7 +210,7 @@ function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
   return { two, map };
 }
 
-type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean };
+type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean; paths?: boolean };
 async function fontOf(ctx: Ctx, num: number): Promise<Font> {
   const hit = ctx.fonts.get(num); if (hit) return hit;
   const o = ctx.objs.get(num); let f: Font = { two: false, map: null };
@@ -245,6 +248,7 @@ async function formContent(ctx: Ctx, num: number): Promise<string | null> {
 async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
   run: (text: string, m: M, size: number, n: number, at: string) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
   layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
+  paint?: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => void;
 }, active: Set<number>, layer0 = '', lw0 = 1, sid = 'p'): Promise<void> {
   let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0; let opn = 0;
   let tm: M = ID, tlm: M = ID; let size = 12, lead = 0; let font: Font | null = null;
@@ -291,13 +295,25 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     if (!curPath) return; const p0 = curPath[curPath.length - 1];
     for (let i = 1; i <= 8; i++) { const t = i / 8, u = 1 - t; const k0 = u * u * u, k1 = 3 * u * u * t, k2 = 3 * u * t * t, k3 = t * t * t; curPath.push([k0 * p0[0] + k1 * p1[0] + k2 * p2[0] + k3 * p3[0], k0 * p0[1] + k1 * p1[1] + k2 * p2[1] + k3 * p3[1]]); }
   };
+  // The path being built, for emit.paint: its first operand's offset, its operator indexes, whether it clips.
+  let argStart = -1, pathStart = -1, pathOps: number[] = [], pathClip = false;
+  const painted = (tk: { e: number }) => {
+    if (emit.paint && pathOps.length && pathStart >= 0) emit.paint(sid, [...pathOps, opn], src.slice(pathStart, tk.e), path.flat(), pathClip);
+    pathOps = []; pathStart = -1; pathClip = false;
+  };
   for (const tk of tokens(src)) {
+    if (tk.t !== 'op' && argStart < 0) argStart = tk.p;
     if (tk.t === 'num') { nums.push(Number(tk.v)); continue; }
     if (tk.t === 'str') { pStr = tk.v; continue; }
     if (tk.t === 'arr') { pArr = tk.v; continue; }
     if (tk.t === 'name') { pName = tk.v; continue; }
     if (++ctx.ops > MAX_OPS) { ctx.truncated = true; return; }
     opn++;
+    const opStart = argStart >= 0 ? argStart : tk.p; argStart = -1;
+    if (/^(?:m|l|c|v|y|re|h)$/.test(tk.v)) { if (!pathOps.length) pathStart = opStart; pathOps.push(opn); }
+    else if (tk.v === 'W' || tk.v === 'W*') { pathClip = true; pathOps.push(opn); }
+    else if (/^(?:S|s|B|B\*|b|b\*|f|F|f\*)$/.test(tk.v)) painted(tk);
+    else if (tk.v === 'n') { pathOps = []; pathStart = -1; pathClip = false; }
     const a = nums; const str = pStr; const arr = pArr; const name = pName;
     nums = []; pStr = undefined; pArr = undefined; pName = undefined;
     switch (tk.v) {
@@ -383,7 +399,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
     const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
   }
   const runs: TextRun[] = []; const images: PdfImage[] = []; const lines: PdfLine[] = [];
-  const layerSegs: LayerSegs = {}; const layerWidths: LayerSegs = {}; const marks: PdfMark[] = []; ctx.segs = 0;
+  const layerSegs: LayerSegs = {}; const layerWidths: LayerSegs = {}; const marks: PdfMark[] = []; ctx.segs = 0; let paths: PdfPath[] | undefined;
   const D = (x: number, y: number) => toDisplay(x, y, p.mb, p.rotate);
   const box = (pts: [number, number][]) => {
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
@@ -412,13 +428,14 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       if (x1 === x2 && y1 === y2) return;
       (layerSegs[l] ||= []).push(x1, y1, x2, y2); (layerWidths[l] ||= []).push(Math.round(wd * 100) / 100);
     },
+    ...(ctx.paths ? { paint: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => { if (pts.length) (paths ||= []).push({ at, ops, text, clip, ...box(pts.map(([x, y]) => D(x, y))) }); } } : {}),
     mark: (l, pts) => {
       const b = box(pts.map(([x, y]) => D(x, y)));
       if (b.w < 0.02 && b.h < 0.02 && b.w > 0 && b.h > 0) marks.push({ ...b, n: pts.length - 1, layer: l });
     },
   }, new Set());
   const hasLayers = Object.keys(layerSegs).length > 0;
-  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}) }, content: src };
+  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}), ...(paths ? { paths } : {}) }, content: src };
 }
 
 /** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
@@ -448,7 +465,7 @@ export async function pdfPageContents(bytes: Uint8Array, only?: [number, number]
 export async function pdfRedactionView(bytes: Uint8Array): Promise<{ pages: { num: number; page: PdfPage; content: string }[]; forms: Map<number, string> } | null> {
   if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return null;
   const objs = await readObjects(bytes);
-  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ocg: new Map(), ops: 0, truncated: false, segs: 0, layers: true };
+  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ocg: new Map(), ops: 0, truncated: false, segs: 0, layers: true, paths: true };
   const pages: { num: number; page: PdfPage; content: string }[] = [];
   for (const p of pageTree(objs)) pages.push({ num: p.num, ...(await readPage(ctx, p)) });
   const forms = new Map<number, string>();

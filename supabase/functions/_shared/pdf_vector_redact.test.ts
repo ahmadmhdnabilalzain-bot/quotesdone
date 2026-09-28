@@ -3,9 +3,9 @@
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. supabase/functions/_shared/pdf_vector_redact.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { cutOperators, redactPdfVector, verifyPdfRedaction } from './pdf_vector_redact.ts';
-import { linesFromRuns, pdfPages } from './pdf_text_positions.ts';
+import { linesFromRuns, pdfPages, pdfRedactionView } from './pdf_text_positions.ts';
 import { seedTerms } from './anonymise.ts';
-import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, PDF_COUNTS, zzPdfScan, zzPdfSet, zzPdfSheet } from './doc_read/zz_demo_drawings.fixtures.ts';
+import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, PDF_COUNTS, zzPdfScan, zzPdfSet, zzPdfSheet, zzPdfSheetWithLogo } from './doc_read/zz_demo_drawings.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
 
@@ -45,6 +45,23 @@ Deno.test('the check fails when the cause returns: an identity run left in, or a
   const moved = new Uint8Array([...src].map((c) => c.charCodeAt(0)));
   const bad = await verifyPdfRedaction(moved, r.bytes, seeds, IDENTITY);
   assert(bad.problems.some((p) => /geometry/.test(p)), bad.problems.join('\n'));
+});
+
+Deno.test('a VECTOR logo in the title strip is cut; every path outside the strip is byte-identical', async () => {
+  const before = zzPdfSheetWithLogo();
+  const r = await redactPdfVector(before, seeds);
+  assert(r.ok, 'held: ' + JSON.stringify(r));
+  if (!r.ok) return;
+  assertEquals(r.removed_paths >= 2, true, `only ${r.removed_paths} logo paths cut`);
+  const v = await verifyPdfRedaction(before, r.bytes, seeds, IDENTITY);
+  assert(v.ok, v.problems.join('\n'));
+  assertEquals(v.counts.before, v.counts.after);
+  // The logo's own operators are gone from the file; a plan wall is still there, character for character.
+  const view = await pdfRedactionView(r.bytes);
+  const content = view!.pages[0].content;
+  assert(/0\.1 0\.3 0\.6 rg [\d.]+ [\d.]+ 259\.2 86\.4 re f/.test(new TextDecoder('latin1').decode(before)), 'the fixture carries no logo badge');
+  assert(!/0\.1 0\.3 0\.6 rg [\d.]+ [\d.]+ 259\.2 86\.4 re f/.test(content), 'the logo badge is still drawn');
+  assert(content.includes('129.6 1555.2 m 907.2 1555.2 l S'), 'a wall outside the strip was changed');
 });
 
 Deno.test('a scanned sheet is held here (scan_redact paints it), never passed through', async () => {

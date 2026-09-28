@@ -566,10 +566,13 @@ async function completeMandatorySix(run, sups) {
     `update public.leads l
         set license_doc_path = v.lic, license_doc_name = 'trade_licence.pdf', trade_license_no = v.no,
             license_authority = 'Dubai DET (fixture)', license_expiry = current_date + 365,
-            license_city = 'Dubai', company_profile_doc_path = v.prof
-       from (values ${docs.map((d) => `(${num(d.leadId)}::bigint, ${q(d.lic)}, ${q(d.no)}, ${q(d.prof)})`).join(', ')})
-            as v(id, lic, no, prof)
+            license_city = 'Dubai', company_profile_doc_path = v.prof, licence_legal_name = v.legal
+       from (values ${docs.map((d) => `(${num(d.leadId)}::bigint, ${q(d.lic)}, ${q(d.no)}, ${q(d.prof)}, ${q(d.companyName)})`).join(', ')})
+            as v(id, lic, no, prof, legal)
       where l.id = v.id`, 'demo supplier documents');
+  // licence_legal_name is the name the licence reader takes off the document (a model surface, held): written here
+  // as the fixture fact it would read, because since the licence-name rule an UNREAD name holds every registration
+  // (fn_sales_engineer_verifies_supplier: licence_name_unread) and no demo supplier could be approved (28 Sep 2026).
   await eachLimit(docs, 8, async (d) => {
     await uploadObject('supplier-docs', d.lic,
       demoTradeLicence({ company: d.companyName, licenceNo: d.no }), 'application/pdf');
