@@ -69,3 +69,13 @@ Deno.test('the project host in a link or image is flagged, and ownDomain moves t
   assert(moved.html.includes('https://quotesdone.com/m/brand/kit/05_Logo_Lockups/horizontal_OnDark_trimmed.png'));
   assertEquals(ownDomain('x', PROJECT, ''), 'x');
 });
+
+Deno.test('a reply to a customer threads: In-Reply-To and References carry the inbound Message-ID, beside List-Unsubscribe', () => {
+  const base = { from: 'f', to: 'zz-demo@example.invalid', reply: 'r', subject: 'Re: q', html: 'h', text: 't', unsubMailto: 'u@x' };
+  const m = resendPayload({ ...base, unsub: UNSUB, inReplyTo: 'abc@mail.example.invalid' });
+  assertEquals(m.headers?.['In-Reply-To'], '<abc@mail.example.invalid>');
+  assertEquals(m.headers?.['References'], '<abc@mail.example.invalid>');
+  assert(m.headers?.['List-Unsubscribe']);
+  assertEquals(resendPayload({ ...base, unsub: '', inReplyTo: '<x@y>' }).headers, { 'In-Reply-To': '<x@y>', 'References': '<x@y>' });
+  assertEquals(resendPayload({ ...base, unsub: '' }).headers, undefined);
+});

@@ -138,6 +138,9 @@ verify_jwt = true
 [functions.mobile_otp]
 verify_jwt = false
 
+[functions.oauth_connect]
+verify_jwt = false
+
 [functions.pdf_native]
 verify_jwt = false
 
