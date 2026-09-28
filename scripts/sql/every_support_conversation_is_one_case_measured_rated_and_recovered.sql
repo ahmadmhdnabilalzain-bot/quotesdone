@@ -19,8 +19,11 @@
 --        email_triage       triages it; replied_at is our reply)
 --        site_assistant  -> public.assistant_logs   (signed-in widget chats; an anonymous visitor has no
 --                                                    identity to hold a case against)
---        portals         -> call public.fn_support_touch('portal', ...) with the signed-in party (there is
---                           no portal support store to trigger on; the RPC is the door).
+--        portals         -> the portal chat IS the assistant: sales_engineer 'assist' (customer portal) and
+--                           the ChatWidget's site_assistant on portal pages (supplier portal) both write
+--                           assistant_logs with the verified 'customer:<uuid>' / 'supplier:<lead id>' and a
+--                           portal path, so those rows open channel 'portal'. A portal rating goes through
+--                           action 'support_rating' on either function -> fn_support_portal_rate.
 --   4. Feedback after resolution: closing a case queues ONE CSAT + CES question on the channel the customer
 --      last used; a reply "4" or "4 6" (Arabic digits too) on WhatsApp or email is recorded into
 --      public.feedback against the case. fn_support_feedback_record takes it from a portal.
@@ -245,6 +248,26 @@ begin
   return jsonb_build_object('ok', true, 'case_ref', v_case.case_ref, 'csat_recorded', n = 1);
 end $fn$;
 revoke execute on function public.fn_support_feedback_record(text, numeric, numeric, text, text) from public, anon, authenticated;
+
+-- The portal door for a rating: the party is the VERIFIED session (site_assistant / sales_engineer
+-- action 'support_rating'), and the case must belong to that party's profile.
+create or replace function public.fn_support_portal_rate(p_party_kind text, p_party_id text, p_case_ref text,
+                                                         p_csat numeric, p_ces numeric default null, p_comment text default null)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_prof bigint := public.fn_support_profile_resolve(p_party_kind, p_party_id, null, null);
+begin
+  if p_csat is not null and p_csat not between 1 and 5 then return jsonb_build_object('ok', false, 'reason', 'csat is 1 to 5'); end if;
+  if p_ces is not null and p_ces not between 1 and 7 then return jsonb_build_object('ok', false, 'reason', 'ces is 1 to 7'); end if;
+  if v_prof is null or not exists (select 1 from public.support_case c where c.case_ref = upper(btrim(p_case_ref))
+                                      and c.customer_profile_id = v_prof and c.state = 'closed') then
+    return jsonb_build_object('ok', false, 'reason', 'no closed case ' || coalesce(p_case_ref, '') || ' for this account');
+  end if;
+  return public.fn_support_feedback_record(p_case_ref, p_csat, p_ces, p_comment, 'portal');
+end $fn$;
+revoke execute on function public.fn_support_portal_rate(text, text, text, numeric, numeric, text) from public, anon, authenticated;
 
 -- 6. A low CSAT opens a service-recovery case against the same person, linked to the case it recovers.
 create or replace function public.fn_support_low_csat_opens_recovery()
@@ -505,13 +528,19 @@ drop trigger if exists z50_support_wire_email on public.inbound_messages;
 create trigger z50_support_wire_email after update of triaged_at, replied_at on public.inbound_messages
   for each row execute function public.fn_support_wire_email();
 
--- site_assistant -> assistant_logs. audience is 'customer:<uuid>' or 'supplier:<lead id>' when signed in.
+-- site_assistant (the ChatWidget on every page, both portals included) and sales_engineer 'assist' (the
+-- customer portal assistant) -> assistant_logs. audience is 'customer:<uuid>' or 'supplier:<lead id>' for a
+-- verified session (site_assistant wrote 'customer:session' until this change and now writes the id).
+-- The channel is 'portal' when the chat happened inside a portal: sales_engineer logs path 'portal', the
+-- widget logs the page path (/me, /portal, /supplier, with or without the locale).
 create or replace function public.fn_support_wire_widget()
 returns trigger
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_kind text := split_part(coalesce(new.audience, ''), ':', 1); v_id text := split_part(coalesce(new.audience, ''), ':', 2);
+        v_ch text := case when coalesce(new.path, '') = 'portal'
+                            or coalesce(new.path, '') ~ '^(/(en|ar))?/(me|portal|supplier)(/|$|\?)' then 'portal' else 'widget' end;
 begin
   if not ((v_kind = 'customer' and v_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
           or (v_kind = 'supplier' and v_id ~ '^[0-9]+$')) then
@@ -519,10 +548,10 @@ begin
   end if;
   begin
     if nullif(btrim(new.message), '') is not null then
-      perform public.fn_support_touch('widget', 'in', v_kind, v_id, null, null, new.message);
+      perform public.fn_support_touch(v_ch, 'in', v_kind, v_id, null, null, new.message);
     end if;
     if new.reply is not null and new.answered is distinct from false then
-      perform public.fn_support_touch('widget', 'out', v_kind, v_id);
+      perform public.fn_support_touch(v_ch, 'out', v_kind, v_id);
     end if;
   exception when others then
     raise warning 'fn_support_wire_widget: assistant_logs % not recorded on a case: %', new.id, sqlerrm;

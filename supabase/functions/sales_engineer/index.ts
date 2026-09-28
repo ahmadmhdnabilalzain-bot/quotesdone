@@ -348,6 +348,17 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J({ ok: true, ...res });
     }
 
+    // The customer portal rates a closed support case here (CSAT 1-5, CES 1-7). The asker's questions in
+    // 'assist' reach their support case through the assistant_logs row it writes (path 'portal').
+    if (action === 'support_rating') {
+      if (caller?.kind !== 'customer') return J({ error: 'forbidden' }, 403);
+      const { data, error } = await admin.rpc('fn_support_portal_rate', {
+        p_party_kind: 'customer', p_party_id: caller.customerId, p_case_ref: String(body.case_ref || ''),
+        p_csat: body.csat == null ? null : Number(body.csat), p_ces: body.ces == null ? null : Number(body.ces),
+        p_comment: body.comment ? String(body.comment).slice(0, 2000) : null });
+      return error ? J({ error: 'rating_failed' }, 400) : J(data);
+    }
+
     if (action === 'assist') {
       const message = String(body.message || '').trim();
       if (!message) return J({ error: 'message_required' }, 400);

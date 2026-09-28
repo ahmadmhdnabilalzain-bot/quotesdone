@@ -11,18 +11,20 @@
 --
 -- VERDICT (in the error text): CHK<<PROBE OK ...>> only if
 --   1. a WhatsApp message and our sent reply open ONE case with a first-reply time;
---   2. an email and then a signed-in widget chat from the same person land on that SAME case and the
---      same single profile, across three channels, as one contact;
+--   2. an email, a signed-in widget chat and a customer-portal assistant chat land on that SAME case and the
+--      same single profile, across four channels, as one contact;
 --   3. closing records the resolution, FCR = true, and queues ONE CSAT question (on email, as the widget was
 --      the last channel; fn_wa_fanout adds its usual WhatsApp twin);
 --   4. a message naming the closed case reopens it (reopen_count 1) and FCR becomes false on the next close;
 --   5. the reply "٢ ٣" records CSAT 2 and CES 3 against the case, and the low CSAT opens a
 --      service_recovery case linked to it;
+--   5b. a supplier-portal chat opens a 'portal' case; the portal rating door records its rating and refuses
+--      another account's case;
 --   6. the founder's WhatsApp and an anonymous widget visitor open nothing;
 --   7. no support_case, profile or feedback row outside the probe's own profile was touched.
 do $probe$
 declare
-  v_cust uuid; v_ref text; v_case public.support_case; v_rec public.support_case; v_prof bigint; v_mail bigint;
+  v_cust uuid; v_ref text; v_case public.support_case; v_rec public.support_case; v_sup public.support_case; v_prof bigint; v_mail bigint;
   v_other_before bigint; v_other_after bigint; v_n int; v_r jsonb := '{}'::jsonb; v_fail text := '';
 begin
   select count(*) into v_other_before from public.support_case;
@@ -45,17 +47,21 @@ begin
   returning id into v_mail;
   update public.inbound_messages set triaged_at = now(), ai_category = 'question' where id = v_mail;
   update public.inbound_messages set replied_at = now(), replied_by = 'customer_support' where id = v_mail;
-  insert into public.assistant_logs (message, reply, audience, path, answered)
-  values ('where is my quote', 'It is on its way', 'customer:' || v_cust, '/portal', true);
+  -- the ChatWidget on the public site (site_assistant, verified session) ...
+  insert into public.assistant_logs (message, reply, audience, path, answered, seat)
+  values ('where is my quote', 'It is on its way', 'customer:' || v_cust, '/en/how-it-works', true, 'customer_support');
+  -- ... and the customer portal assistant (sales_engineer 'assist' logs path 'portal').
+  insert into public.assistant_logs (message, reply, audience, path, answered, seat)
+  values ('can I change the delivery date', 'Yes, from the request page', 'customer:' || v_cust, 'portal', true, 'sales_engineer');
 
   select count(*) into v_n from public.support_case where customer_profile_id = v_prof;
   select * into v_case from public.support_case where case_ref = v_ref;
-  v_r := v_r || jsonb_build_object('cases_after_3_channels', v_n, 'channels', v_case.channels, 'inbound', v_case.inbound_count,
+  v_r := v_r || jsonb_build_object('cases_after_4_channels', v_n, 'channels', v_case.channels, 'inbound', v_case.inbound_count,
                                    'outbound', v_case.outbound_count, 'contacts', v_case.contact_count,
                                    'first_reply_seconds', v_case.first_reply_seconds);
   if v_n <> 1 then v_fail := v_fail || ' channels split into ' || v_n || ' cases;'; end if;
-  if not v_case.channels @> array['whatsapp', 'email', 'widget'] then v_fail := v_fail || ' channels not all on the case;'; end if;
-  if v_case.inbound_count <> 3 or v_case.outbound_count <> 3 or v_case.contact_count <> 1 then v_fail := v_fail || ' counts wrong;'; end if;
+  if not v_case.channels @> array['whatsapp', 'email', 'widget', 'portal'] then v_fail := v_fail || ' channels not all on the case;'; end if;
+  if v_case.inbound_count <> 4 or v_case.outbound_count <> 4 or v_case.contact_count <> 1 then v_fail := v_fail || ' counts wrong;'; end if;
   select count(*) into v_n from public.support_customer_profile
    where customer_id = v_cust or email = 'zz.demo.support.probe@example.invalid' or phone_tail = '500000077';
   if v_n <> 1 then v_fail := v_fail || ' ' || v_n || ' profiles, not one;'; end if;
@@ -96,6 +102,24 @@ begin
   if v_n <> 2 then v_fail := v_fail || ' CSAT/CES not recorded;'; end if;
   if v_rec.case_id is null or v_rec.case_kind <> 'service_recovery' or v_rec.state <> 'open' then v_fail := v_fail || ' no service-recovery case;'; end if;
 
+  -- 5b. The supplier portal: ZZ DEMO supplier 126512 (leads.is_demo, @example.invalid) asks through the
+  --     ChatWidget on an Arabic supplier-portal page, the case is closed, and the portal rating door
+  --     (fn_support_portal_rate, behind action 'support_rating') records it — and refuses the customer.
+  insert into public.assistant_logs (message, reply, audience, path, answered, seat)
+  values ('كيف أعدّل خدماتي', 'من صفحة الخدمات', 'supplier:126512', '/ar/supplier/services', true, 'customer_support');
+  select * into v_sup from public.support_case where party_kind = 'supplier' and party_id = '126512' and state <> 'closed';
+  if v_sup.case_id is null or v_sup.channel <> 'portal' then v_fail := v_fail || ' supplier portal chat opened no portal case;'; end if;
+  perform public.fn_support_case_close(v_sup.case_ref, 'services page explained', 'probe');
+  v_r := v_r || jsonb_build_object('supplier_portal_case', v_sup.case_ref, 'supplier_channel', v_sup.channel,
+    'customer_rates_supplier_case', public.fn_support_portal_rate('customer', v_cust::text, v_sup.case_ref, 5, null, null) -> 'ok',
+    'supplier_portal_rating', public.fn_support_portal_rate('supplier', '126512', v_sup.case_ref, 5, 7, 'clear') -> 'ok');
+  -- read in its own statement: a subquery in the statement that wrote the rows cannot see them
+  v_r := v_r || jsonb_build_object('supplier_feedback_rows',
+    (select count(*) from public.feedback where case_id = v_sup.case_id and channel = 'portal'));
+  if (v_r ->> 'customer_rates_supplier_case')::boolean then v_fail := v_fail || ' a customer rated a supplier''s case;'; end if;
+  if not (v_r ->> 'supplier_portal_rating')::boolean or (v_r ->> 'supplier_feedback_rows')::int <> 2 then
+    v_fail := v_fail || ' portal rating not recorded;'; end if;
+
   -- 6. The founder and an anonymous visitor open nothing.
   select count(*) into v_n from public.support_case;
   insert into public.wa_messages (wa_from, wa_to, inbound, reply, sent, meta)
@@ -109,7 +133,7 @@ begin
     'metrics_rows', (select count(*) from public.v_support_case_metrics));
 
   -- 7. Nothing outside the probe's profile.
-  select count(*) into v_other_after from public.support_case where customer_profile_id is distinct from v_prof;
+  select count(*) into v_other_after from public.support_case where customer_profile_id is distinct from v_prof and case_id is distinct from v_sup.case_id;
   if v_other_after <> v_other_before then v_fail := v_fail || ' touched other cases (' || v_other_before || '->' || v_other_after || ');'; end if;
 
   if v_fail = '' then
