@@ -27,7 +27,7 @@
       "action": "Open the webhook in Stripe, check its failures and enable it", "link": "https://dashboard.stripe.com/webhooks"
     },
     "resend": {
-      "what": "every email the company sends, and the expenses inbox",
+      "what": "every email the company sends, and the expenses inbox. Sending domains: quotesdone.com (info@, every notice and sign-up code; the one resend_domain_id probes) and hello.quotesdone.com (verified 28 Sep 2026, all 5 DNS records; the supplier-invitation lane, app_secrets.invite_lane_from invite@hello.quotesdone.com, used only while invite_lane_enabled is true; send_outbox/invite_lane.ts re-checks it is verified before each lane batch and holds invitations if not). Replies are not received on either: Reply-To stays on mail.quotesdone.com (suppliers@, docs@), which resend_inbound reads",
       "hosts": ["api.resend.com"],
       "secrets": ["resend_api_key", "resend_domain_id"],
       "owner_seat": "customer_support", "blast": "customer_facing",
