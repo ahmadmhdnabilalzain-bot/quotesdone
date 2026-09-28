@@ -15,6 +15,7 @@ import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
+import { placementTick } from '../_shared/inbox_placement.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { defaultDeps, replayHeld } from '../_shared/think.ts';
@@ -1055,14 +1056,39 @@ async function itDutiesTick(): Promise<unknown> {
 // the fixes it can (a Stripe webhook Stripe disabled is re-enabled), and fn_it_integration_settle files one
 // finding per integration, closes it by its exact key on recovery, mails the founder only what the company could
 // not fix, and counts what it did fix for the IT daily line. Only counts come back: this endpoint is public.
-async function itIntegrationsTick(): Promise<unknown> {
+// THE MORNING INBOX PLACEMENT CHECK (24 Sep 2026, it_engineer). Rides on this step because it is the IT
+// engineer's 15-minute step (resilience_step every 15 min) and needs no new schedule row
+// (every_tick_step_is_scheduled.mjs), as PR #961's Postmaster reading rides on itlater. On a sending day the
+// database queues one seed from 04:30 UTC; the next beats read its folder in the Gmail and Microsoft 365 seed
+// inboxes (until 08:00 UTC) and fn_invite_placement_record decides. The batch waits for a verdict and goes only on
+// Inbox + Inbox (the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql). Outside that
+// window it is one indexed read. The answer is counts and verdicts only: this endpoint is public.
+async function inboxPlacement(): Promise<Record<string, unknown>> {
   try {
-    const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
-    const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
-    if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
-    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
-             settled: (data as Record<string, unknown> | null)?.failing ?? null };
+    // The rotated Graph refresh token is stored here; the result's {error} goes back to the reader, which records the
+    // message (never the token) in the reading's evidence.
+    return await placementTick((fn, args) => admin.rpc(fn, args) as never, fetch, sec,
+      async (k, v) => await admin.from('app_secrets').update({ value: v }).eq('key', k));
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+async function itIntegrationsTick(): Promise<unknown> {
+  // TWO INDEPENDENT PATHS, run side by side (review of #966): an integration settle that errors must not skip the
+  // morning's placement reading, and a placement error must not hide the integration result.
+  const integrations = (async (): Promise<Record<string, unknown>> => {
+    try {
+      const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
+      const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
+      if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
+      return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
+               settled: (data as Record<string, unknown> | null)?.failing ?? null };
+    } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  })();
+  const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
+  // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
+  // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
+  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement };
 }
 
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
