@@ -1,0 +1,6 @@
+Committed, not applied: the release operator (C:/Users/Opera/qd-release.lock) applies it. Seat: ceo.
+29 Sep 2026: re-proved (PROBE OK, rolled back) after the release review made the issuer idempotent per open condition (0 new directives in 22 further hourly runs; the pre-fix issuer added 22).
+Apply order: after a_lesson_is_one_improvement_and_the_ceo_closes_it_once_it_stops_recurring.sql (#971), and after any
+file that redefines fn_ceo_daily_run or fn_ceo_improvement_open (this file replaces both from their live definitions of
+28 Sep 2026; re-base it if either changed). Then run the_ceo_issues_directives_and_closes_them_on_their_own_condition_probe.sql
+and confirm PROBE OK. When applied: delete this note, append the .sql to the END of MANIFEST.txt, regenerate the schema mirror.
