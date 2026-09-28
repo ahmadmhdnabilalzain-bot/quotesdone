@@ -1,0 +1,9 @@
+Not applied: opened as a PR for the release operator (seat audit 28 Sep 2026, ceo gap 2 / marketing P1). Seat: ceo.
+Proved by the rolled-back probe (body + probe in one transaction on production, nothing committed).
+
+Apply order (after ad_spend_needs_the_founders_cap_and_go.sql, which it supersedes for fn_ads_autospend_state):
+  node scripts/apply_sql.mjs scripts/sql/the_ceo_tracks_the_supplier_target_by_trade_and_emirate.sql --apply --ddl
+  node scripts/qsql.mjs scripts/sql/the_ceo_tracks_the_supplier_target_by_trade_and_emirate_probe.sql   # must print CHK<<...>> with gate_A=true gate_AB=false tasks=1
+Then in the same commit: delete this note and append the .sql filename as the LAST line of scripts/sql/MANIFEST.txt.
+Effect on apply: fn_ads_autospend_state().live_allowed is false until every active trade has 10 verified suppliers
+(213 of 213 short on 28 Sep 2026); duty ceo.supplier_target starts daily.
