@@ -1,0 +1,13 @@
+PENDING, not applied. Seat: ceo. 28 Sep 2026.
+
+Why pending: the seat-audit build opens PRs only; the release operator applies.
+Apply order: after the_ceo_runs_the_company_on_the_founders_year_one_targets.sql and
+routine_work_is_code_and_the_model_answers_only_real_judgement.sql (both already applied). No other dependency.
+
+The release operator runs:
+  1. node scripts/apply_sql.mjs scripts/sql/the_ceo_target_verdict_and_forecast_read_the_year_plan.sql
+  2. add its MANIFEST line and delete this note in the same commit;
+  3. prove it: run the file's probe (the_ceo_target_verdict_and_forecast_read_the_year_plan_probe.sql) through
+     node scripts/qsql.mjs; it must end CHK<<... demo_delta=0 real_delta=1 notifications_delta=0>>;
+  4. read seat_duty ceo.target_verdict last_result after its next run: metrics non-empty, a
+     verified_suppliers_milestone entry present; target_contract CUSTOMERS_1000_BY_2027_10_01 status 'abandoned'.
