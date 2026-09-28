@@ -48,6 +48,17 @@ test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {
   assert.match(inbound, /rpc\('fn_marketing_approval_reply'/);
 });
 
+test('GEO asks the answer engines, and every new route is held like the rest', () => {
+  const sql = read(OWNER);
+  assert.match(sql, /values \('answer_search'\), \('answer_online'\)/);
+  assert.match(sql, /\('marketing_geo_search', 'small', 'perplexity\/sonar'/);
+  assert.match(sql, /insert into public\.llm_route_health \(model_id, open_until, opened_reason, updated_at\)/);
+  assert.doesNotMatch(sql, /set open_until = null/);
+  const duty = read('supabase/functions/marketing/duties.ts');
+  assert.match(duty, /if \(await modelHeld\(ctx\.admin\)\) return \{ due: false, held: true/);
+  assert.doesNotMatch(duty, /duckSearch\(/);
+});
+
 test('no blog link points at quotesdone.com', () => {
   assert.doesNotMatch(read('src/content/blog.json'), /https?:\/\/(www\.)?quotesdone\.com/);
   assert.match(read('supabase/functions/_shared/marketing_outreach.ts'), /export const SITE = 'https:\/\/quotesdone\.ae'/);

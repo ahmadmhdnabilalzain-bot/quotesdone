@@ -98,25 +98,7 @@ end $fn$;
 revoke execute on function public.fn_marketing_month_plan_duty() from public, anon, authenticated;
 
 -- ── 3. marketing.geo_check ───────────────────────────────────────────────────────────────────────
--- The web lookups are HTTP and parsing (supabase/functions/marketing/duties.ts geo_audit, every 30 minutes); this is
--- their clock. From the 10th of the month, web checks still owed with none recorded in two days is a failure.
-create or replace function public.fn_marketing_geo_check_duty()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare
-  v_today date := (now() at time zone 'Asia/Dubai')::date;
-  v_month date := date_trunc('month', v_today)::date;
-  v_owed int; v_last timestamptz;
-begin
-  select count(*) into v_owed from public.fn_marketing_geo_due(1000, false);
-  select max(checked_at) into v_last from public.marketing_geo_check;
-  if v_owed > 0 and extract(day from v_today) >= 10 and (v_last is null or v_last < now() - interval '2 days') then
-    raise exception 'GEO: % web check(s) owed for % and none recorded since %', v_owed, to_char(v_month, 'YYYY-MM'),
-      coalesce(to_char(v_last, 'YYYY-MM-DD HH24:MI'), 'ever');
-  end if;
-  return jsonb_build_object('month', v_month, 'web_owed', v_owed, 'last_check', v_last,
-    'summary', public.fn_marketing_geo_summary(v_month) - 'rows');
-end $fn$;
-revoke execute on function public.fn_marketing_geo_check_duty() from public, anon, authenticated;
+-- Defined in section 9c below, with the answer engines it measures.
 
 -- ── 4. marketing.article_release ─────────────────────────────────────────────────────────────────
 -- Only he approves an article (the 'claude' approver is refused from now on).
@@ -481,6 +463,127 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
                     'marketing_post_platform','marketing_post_metric','marketing_first_touch','marketing_goal','marketing_scorecard_report')
      or to_regclass('public.' || v.t) is not null
 $fn$;
+
+-- ── 9c. GEO IS MEASURED IN THE ANSWER ENGINES THEMSELVES ─────────────────────────────────────────
+-- Measured 28 Sep 2026: 0 marketing_geo_check rows ever; the edge geo_audit's DuckDuckGo scrape is answered with a
+-- bot-check page from every datacenter call (finding duty:marketing_duties:geo_audit). GEO means being named by AI
+-- answer engines, so they are asked directly through ai_gateway (coordinator, 28 Sep 2026): perplexity/sonar (a
+-- web-search answer engine) and the :online (web-grounded) variant of a routed model. No new key: both go through
+-- the existing OpenRouter gateway. A fixed set of 12 questions a month (6 trades x Dubai, Abu Dhabi) x 2 engines =
+-- 24 calls a month, bounded by 500 output tokens each; the estimate is well under USD 1 a month against the
+-- USD 1-2/day idle ceiling. Prices below are OpenRouter's list prices as last known, NOT measured on this estate.
+-- THE FOUNDER'S HOLD IS NOT TOUCHED: both new routes get llm_route_health rows held to the same date as every
+-- other route (fn_llm_preflight refuses an unmeasured or held route), and the edge duty calls nothing while held.
+alter table public.marketing_geo_question add column if not exists trade text;
+alter table public.marketing_geo_question add column if not exists city text;
+alter table public.marketing_geo_check add column if not exists competitors_cited text[] not null default '{}';
+alter table public.marketing_geo_check drop constraint if exists marketing_geo_check_engine_check;
+alter table public.marketing_geo_check add constraint marketing_geo_check_engine_check
+  check (engine in ('web', 'model', 'answer_search', 'answer_online'));
+
+-- the generic six are replaced by the trade x city set (their rows, none today, would stay readable)
+update public.marketing_geo_question set active = false where trade is null;
+insert into public.marketing_geo_question (question, audience, trade, city)
+select format('Where can I get quotes from several %s in %s?', t.label, c.city), 'customer', t.trade, c.city
+  from (values ('interior_fitout', 'fit-out contractors'), ('mep_general', 'MEP contractors'), ('hvac', 'HVAC and AC contractors'),
+               ('electrical', 'electrical contractors'), ('waterproofing', 'waterproofing contractors'), ('steel', 'steel and rebar suppliers')) t(trade, label)
+  cross join (values ('Dubai'), ('Abu Dhabi')) c(city)
+on conflict (question) do update set active = true, trade = excluded.trade, city = excluded.city;
+
+create or replace function public.fn_marketing_geo_due(p_limit integer default 2, p_include_model boolean default true)
+returns table (question_id bigint, question text, engine text, month date)
+language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  with m as (select date_trunc('month', now() at time zone 'Asia/Dubai')::date as month)
+  select q.id, q.question, e.engine, m.month
+    from public.marketing_geo_question q cross join (values ('answer_search'), ('answer_online')) e(engine) cross join m
+   where q.active and p_include_model and not exists (select 1 from public.marketing_geo_check c
+                                   where c.month = m.month and c.question_id = q.id and c.engine = e.engine)
+   order by q.id, e.engine limit greatest(p_limit, 0)
+$fn$;
+
+drop function if exists public.fn_marketing_geo_record(date, bigint, text, boolean, integer, text, text);
+create function public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean,
+  p_rank integer, p_evidence text, p_model text, p_competitors text[] default '{}')
+returns bigint language sql security definer set search_path to 'public', 'pg_temp' as $fn$
+  insert into public.marketing_geo_check (month, question_id, engine, cited, rank, evidence, model, competitors_cited)
+  values (p_month, p_question_id, p_engine, p_cited, p_rank, left(p_evidence, 2000), p_model, coalesce(p_competitors, '{}'))
+  on conflict (month, question_id, engine) do update set cited = excluded.cited, rank = excluded.rank, evidence = excluded.evidence,
+    model = excluded.model, competitors_cited = excluded.competitors_cited, checked_at = now()
+  returning id
+$fn$;
+revoke execute on function public.fn_marketing_geo_record(date, bigint, text, boolean, integer, text, text, text[]) from public, anon, authenticated;
+grant execute on function public.fn_marketing_geo_record(date, bigint, text, boolean, integer, text, text, text[]) to service_role;
+
+create or replace function public.fn_marketing_geo_summary(p_month date)
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select jsonb_build_object('month', p_month,
+    'questions', (select count(distinct question_id) from public.marketing_geo_check where month = p_month),
+    'answer_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine like 'answer_%'),
+    'answer_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine like 'answer_%' and cited),
+    'by_engine', (select coalesce(jsonb_object_agg(engine, jsonb_build_object('checked', n, 'cited', k)), '{}'::jsonb)
+                    from (select engine, count(*) n, count(*) filter (where cited) k from public.marketing_geo_check where month = p_month group by engine) e),
+    'competitors_cited', (select coalesce(jsonb_object_agg(name, n), '{}'::jsonb)
+                            from (select x name, count(*) n from public.marketing_geo_check, unnest(competitors_cited) x
+                                   where month = p_month group by x) z),
+    'blog_posts_published', (select count(*) from public.blog_posts where published),
+    'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', q.question, 'trade', q.trade, 'city', q.city, 'engine', c.engine,
+               'cited', c.cited, 'competitors', c.competitors_cited, 'evidence', left(c.evidence, 300)) order by q.id, c.engine), '[]'::jsonb)
+               from public.marketing_geo_check c join public.marketing_geo_question q on q.id = c.question_id where c.month = p_month))
+$fn$;
+
+insert into public.model_registry (model_id, provider, tier, in_per_mtok_usd, out_per_mtok_usd, supports_cache, supports_streaming,
+                                   context_len, approved, active, note, supports_vision, supports_audio, supports_tools)
+values ('perplexity/sonar', 'perplexity', 'small', 1, 1, false, true, 127000, true, true,
+        'GEO answer engine (marketing_geo_search), 28 Sep 2026. Web-search answers with citations. USD 1/1 per Mtok plus a per-request search fee, OpenRouter list price as last known; NOT measured on this estate.',
+        false, false, false)
+on conflict (model_id) do nothing;
+insert into public.model_registry (model_id, provider, tier, in_per_mtok_usd, out_per_mtok_usd, cache_read_per_mtok_usd, cache_write_per_mtok_usd,
+                                   supports_cache, supports_streaming, context_len, approved, active, quality_score, note, supports_vision, supports_audio, supports_tools)
+select 'google/gemini-3.8-flash:online', provider, tier, in_per_mtok_usd, out_per_mtok_usd, cache_read_per_mtok_usd, cache_write_per_mtok_usd,
+       supports_cache, supports_streaming, context_len, true, true, quality_score,
+       'GEO answer engine (marketing_geo_online), 28 Sep 2026: the web-grounded :online variant of google/gemini-3.8-flash. Token prices copied from the base row; OpenRouter adds a web-search fee per request (list price, NOT measured on this estate).',
+       supports_vision, supports_audio, supports_tools
+  from public.model_registry where model_id = 'google/gemini-3.8-flash'
+on conflict (model_id) do nothing;
+
+-- held exactly like every other route (the same open_until and the founder's own words)
+insert into public.llm_route_health (model_id, open_until, opened_reason, updated_at)
+select m, h.open_until, h.opened_reason, now()
+  from (values ('perplexity/sonar'), ('google/gemini-3.8-flash:online')) v(m)
+ cross join lateral (select open_until, opened_reason from public.llm_route_health order by open_until desc nulls last limit 1) h
+on conflict (model_id) do nothing;
+
+insert into public.model_policy (task_class, tier, model_primary, model_fallback, max_tokens, rationale, deterministic_alternative, active, cache_ttl_min) values
+ ('marketing_geo_search', 'small', 'perplexity/sonar', null, 500,
+  'GEO: ask a web-search answer engine the month''s trade x city buyer question; code reads whether QuotesDone and which competitors are named. The engine IS the measurement, so there is no fallback: another model would measure something else.',
+  'Citation and competitor matching are code (modelCitation, competitorsNamed)', true, 0),
+ ('marketing_geo_online', 'small', 'google/gemini-3.8-flash:online', null, 500,
+  'GEO: the same question to a routed model''s web-grounded (:online) variant. No fallback, for the same reason.',
+  'Citation and competitor matching are code (modelCitation, competitorsNamed)', true, 0)
+on conflict (task_class) do update set tier = excluded.tier, model_primary = excluded.model_primary, model_fallback = excluded.model_fallback,
+  max_tokens = excluded.max_tokens, rationale = excluded.rationale, deterministic_alternative = excluded.deterministic_alternative,
+  active = excluded.active, cache_ttl_min = excluded.cache_ttl_min;
+
+-- The duty's clock: while the founder's hold stands, no answer engine may be called, so owed checks are "held", not a
+-- stall. Once open, from the 10th, checks owed with none recorded in two days is a failure.
+create or replace function public.fn_marketing_geo_check_duty()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_month date := date_trunc('month', v_today)::date;
+  v_owed int; v_last timestamptz; v_held boolean;
+begin
+  v_held := not coalesce((public.fn_kernel_paid_provider_gate('perplexity/sonar')->>'allowed')::boolean, false);
+  select count(*) into v_owed from public.fn_marketing_geo_due(1000, true);
+  select max(checked_at) into v_last from public.marketing_geo_check where engine like 'answer_%';
+  if not v_held and v_owed > 0 and extract(day from v_today) >= 10 and (v_last is null or v_last < now() - interval '2 days') then
+    raise exception 'GEO: % answer-engine check(s) owed for % and none recorded since %', v_owed, to_char(v_month, 'YYYY-MM'),
+      coalesce(to_char(v_last, 'YYYY-MM-DD HH24:MI'), 'ever');
+  end if;
+  return jsonb_build_object('month', v_month, 'owed', v_owed, 'held_by_founder', v_held, 'last_check', v_last,
+    'summary', public.fn_marketing_geo_summary(v_month) - 'rows');
+end $fn$;
+revoke execute on function public.fn_marketing_geo_check_duty() from public, anon, authenticated;
 
 -- ── 10. verdict (no probe rows: every duty above reads, and the mail it could send is gated by date or state) ──
 select case

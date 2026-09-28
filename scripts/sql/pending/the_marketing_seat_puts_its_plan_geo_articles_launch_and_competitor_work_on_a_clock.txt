@@ -1,9 +1,12 @@
 Committed, not applied: the brief for this change (marketing seat, 28 Sep 2026) says nothing is applied to
 production before the PR merges. After the merge: node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql --apply --ddl
 (expects the verdict row PROBE OK), then delete this note and append the file to the END of MANIFEST.txt in the same
-commit, deploy resend_inbound and marketing_outreach, and regenerate the schema mirror.
+commit, deploy marketing, resend_inbound and marketing_outreach, and regenerate the schema mirror.
 Verified before commit by an aborted DO-block probe on production (everything rolled back): the file compiles, the 8
 marketing duties register, the studio blog count is 4 (the article table), no blog_posts body links to quotesdone.com,
-an approve reply from the authenticated founder approves the article, a 'claude' approval is refused.
-Known on apply: marketing.geo_check will fail truthfully - the edge geo_audit's web search is refused by a bot-check
-(open finding duty:marketing_duties:geo_audit); 0 GEO checks have ever been recorded.
+an approve reply from the authenticated founder approves the article, a 'claude' approval is refused, 24 GEO
+answer-engine checks are owed for the month (12 trade x city questions x 2 engines), fn_marketing_geo_record stores the
+competitors named, and both new routes (perplexity/sonar, google/gemini-3.8-flash:online) are refused by
+fn_llm_preflight as held, like every other route.
+On apply: marketing.geo_check reports held_by_founder = true and does not fail; the answer engines run the moment the
+founder's OpenRouter hold is released. Nothing in this file releases it.
