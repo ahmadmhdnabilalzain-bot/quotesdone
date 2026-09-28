@@ -68,3 +68,24 @@ export async function statedSpecs(deps: ThinkDeps, o: {
   });
   return { value: result.status === 'answered' ? result.decision?.fields ?? {} : null, result };
 }
+
+/** Social: the public or private reply, reasoned over the knowledge and checked by a model of another family.
+ *  Only an answer the independent reviewer AGREED with is returned; anything else is null (the caller escalates).
+ *  Its surfaces (marketing_social.comment_reply, marketing_social.dm_reply) deliberately have NO case in
+ *  reasoned_delivery.deliverReasoned: when think() holds, the person has ALREADY been answered on the spot (the comment
+ *  with the fixed acknowledgement and an escalation to customer_support, since an empty draft fails guard(); the DM with the honest "unknown" and its
+ *  knowledge gap). A late model answer released from the hold would be a second, unasked reply, so it is dropped. */
+export async function socialReply(deps: ThinkDeps, o: {
+  surface: string; platform: string; message: string; language: 'en' | 'ar'; dedupeKey?: string; subject?: Record<string, unknown>;
+  /** How this seat answered cases like it before (case_recall precedentBlock), recalled by the caller. */
+  precedent?: string;
+}): Promise<Reasoned<string>> {
+  const result = await think(deps, {
+    seat: 'marketing', surface: o.surface, dedupeKey: o.dedupeKey, subject: o.subject, stakes: 'high',
+    question: `Reply as QuotesDone on ${o.platform} to: ${o.message}\nIn ${o.language === 'ar' ? 'native formal Gulf Arabic (formal plural)' : 'UAE English'}, one or two short sentences, plain text, no hashtags. Never name a customer or supplier, never quote an unpublished price, never promise, never give a legal view.`
+      + (o.precedent ? o.precedent + '\nNever mention another person, a case number or this block in the reply.' : ''),
+    context: { audience: 'visitor', language: o.language },
+  });
+  const ok = result.status === 'answered' && result.verified?.status === 'agreed' && result.answer.trim();
+  return { value: ok ? result.answer.trim() : null, result };
+}
