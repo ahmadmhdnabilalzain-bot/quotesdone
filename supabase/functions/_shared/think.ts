@@ -296,9 +296,11 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const deciding = !!req.decision;
   let judgementId: number | null = null;
   // The judgement row (opened by the recall in step b) is closed with what was decided, or with 'held'.
-  const settle = async (status: 'answered' | 'held', o: { decision?: string | null; confidence?: number; model?: string | null; reason?: string }) => {
+  // `followed`: the recalled cases the answer cited (source ids 'case#<id>'), so the trace says which memory was
+  // USED, not only which was recalled (a_decision_names_the_recalled_case_it_followed.sql). Null when held.
+  const settle = async (status: 'answered' | 'held', o: { decision?: string | null; confidence?: number; model?: string | null; reason?: string; followed?: number[] | null }) => {
     if (judgementId == null) return;
-    try { await deps.rpc('fn_judgement_decided', { p_id: judgementId, p_status: status, p_decision: (o.decision ?? o.reason ?? '').slice(0, 2000) || null, p_confidence: o.confidence ?? null, p_model: o.model ?? null }); } catch (_e) { /* recording never fails the answer */ }
+    try { await deps.rpc('fn_judgement_decided', { p_id: judgementId, p_status: status, p_decision: (o.decision ?? o.reason ?? '').slice(0, 2000) || null, p_confidence: o.confidence ?? null, p_model: o.model ?? null, p_followed: o.followed ?? null }); } catch (_e) { /* recording never fails the answer */ }
   };
   const base = {
     context_used: { audience, language: ctx.language ?? 'en', profile: ctx.profile ?? null, case: ctx.case ?? null, trade: ctx.trade ?? null },
@@ -460,7 +462,8 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
 
   const fields: Record<string, { value: string; evidence: string }> = {};
   for (const [k, f] of Object.entries(draft.decision?.fields ?? {})) fields[k] = { value: String(f?.value ?? ''), evidence: String(f?.evidence ?? '') };
-  await settle('answered', { decision: deciding ? (draft.decision?.choice ? String(draft.decision.choice) : JSON.stringify(fields)) : String(draft.answer), confidence, model });
+  await settle('answered', { decision: deciding ? (draft.decision?.choice ? String(draft.decision.choice) : JSON.stringify(fields)) : String(draft.answer), confidence, model,
+    followed: (draft.cited ?? []).filter((id) => /^case#\d+$/.test(String(id))).map((id) => Number(String(id).slice(5))) });
   return {
     status: 'answered', answer: String(draft.answer).trim(),
     decision: deciding ? { choice: draft.decision?.choice ? String(draft.decision.choice) : null, fields } : null,
