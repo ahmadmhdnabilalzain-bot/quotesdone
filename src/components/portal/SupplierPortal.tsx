@@ -456,6 +456,9 @@ const CLAIM_REFUSAL = {
 export function claimRefusalKey(j) {
   const c = String((j && j.code) || '');
   if (CLAIM_REFUSAL[c]) return c;
+  // 24 Sep 2026: a listing whose name or licence another account already claimed is refused with the
+  // same code create_company uses; panelErrorText renders it from serverCopy.ts (no second copy).
+  if (c === 'company_already_registered') return c;
   const e = String((j && j.error) || '');
   if (/invalid_link/i.test(e)) return 'invalid_link';
   if (/not found/i.test(e)) return 'not_found';
@@ -1788,6 +1791,9 @@ function ProfileForm({ token, me, onSaved, lang, mode = 'register' }) {
         const ex = (j.extracted && j.extracted.license) || null;
         if (ex) { setF((o) => ({ ...o, trade_license_no: ex.license_number || o.trade_license_no, license_authority: ex.authority || o.license_authority, license_expiry: ex.expiry || o.license_expiry, trn: ex.trn || o.trn })); setLicNote(t(lang, 'read_lic') + (ex.license_number ? ' — ' + ex.license_number : '') + (ex.expiry ? t(lang, 'expires_comma') + ex.expiry : '') + '.'); }
         else setLicNote(t(lang, 'lic_uploaded_type'));
+        // The document was saved but its licence number belongs to another claimed company, so the number
+        // was set aside for a human (supabase/functions/_shared/duplicate_company.ts). Existing copy.
+        if (j.extracted && j.extracted.licence_set_aside) setMsg(srvText(lang, 'company_already_registered'));
       }
     } catch (_e) { setMsg(t(lang, 'lic_upload_failed')); }
     setUploading(false);

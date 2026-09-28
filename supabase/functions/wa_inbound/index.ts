@@ -43,6 +43,7 @@ import type { Figures } from './founder_queries.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
+import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
 // THE QUESTION IS UNDERSTOOD, NOT ONLY MATCHED (instruction 763). Measured 22 Sep 2026: wa_inbound
@@ -358,7 +359,10 @@ async function handleSupplierDoc(leadId: number, url: string, declaredMime: stri
     if (doc.city) upd.license_city = doc.city;
     if (doc.trn) { upd.trn = doc.trn; applied.push('TRN'); }
   }
-  const { error: uErr } = await admin.from('leads').update(upd).eq('id', leadId);
+  // Review of #962: a licence number another claimed company holds is set aside (the file and the other
+  // readings are still written) and sent to a human, instead of failing the whole record update.
+  const { error: uErr, licenceSetAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, leadId, upd, 'wa_inbound');
+  if (licenceSetAside) { const i = applied.findIndex((a) => a.startsWith('licence no ')); if (i >= 0) applied.splice(i, 1); }
   if (uErr) return { ok: false, applied: [], note: 'the file was stored but the record could not be updated' };
 
   try {
