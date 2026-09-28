@@ -59,7 +59,7 @@ jobs:
       - if: steps.gate.outputs.skip != '1'
         uses: actions/checkout@v4
       - if: steps.gate.outputs.skip != '1'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
       - if: steps.gate.outputs.skip != '1'
@@ -71,7 +71,7 @@ jobs:
       # THE DRAWING JOURNEYS, WALKED EVERY NIGHT AND REPORTED (24 Sep 2026, sales_engineer; drawings audit finding 3,
       # review of #967). drawing_reaches_suppliers (a PDF set: redacted, taken off, matched, printed EN/AR),
       # cad_identity_reaches_no_supplier (a CAD title block's parties never reach a supplier; only demo suppliers
-      # matched) and every_drawing_format_is_read (DXF ascii + binary, DWG small and queued, Revit, DGN) run here,
+      # matched) and every_drawing_format_is_read (DXF ascii + binary, DWG small and queued; Revit, IFC and DGN refused) run here,
       # BEFORE the report, and their PASS / FAIL lines are written into this run's steps.json as journey
       # "f-drawings/..." - so fn_it_journey_ingest hands a failure to the sales engineer instead of it dying in a log.
       # Up to 12 minutes each (drawing_journeys_into_report.mjs PER_SCRIPT_MS); the wall above grew by 36.

@@ -21,8 +21,14 @@ const T0 = Date.now();
 Deno.serve(async () => {
   // Log attempts: while disabled, any hit here is either a stale Twilio callback or someone
   // probing the old hole. Either is worth seeing.
+  // RECORDED AS THE REFUSAL IT IS (28 Sep 2026, it_engineer). The row said only {disabled:true} at
+  // status 'error', so the IT detector's run_failure rule (D1) could not tell a closed door turning a
+  // caller away from the function breaking: two hits at 12:38 UTC opened a CRITICAL "failed every one
+  // of its 2 attempts" finding on a function that did exactly what it is for. counts.http carries the
+  // 410 this answers, which is the refusal shape D1 already excludes from the failure rate; the hit is
+  // still logged and still counted as a refusal.
   try {
-    await admin.from('agent_runs').insert({ agent: 'voice_otp_capture', status: 'error', counts: { disabled: true },
+    await admin.from('agent_runs').insert({ agent: 'voice_otp_capture', status: 'error', counts: { disabled: true, http: 410 },
       note: 'voice_otp_capture is disabled (unauthenticated write into app_secrets). A caller reached it - stale Twilio callback or a probe of the closed hole.',
       started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
   } catch (_e) { /* never let logging matter here */ }
