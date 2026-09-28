@@ -1,0 +1,9 @@
+Committed, not applied: the brief for this change (marketing seat, 28 Sep 2026) says nothing is applied to
+production before the PR merges. After the merge: node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql --apply --ddl
+(expects the verdict row PROBE OK), then delete this note and append the file to the END of MANIFEST.txt in the same
+commit, deploy resend_inbound and marketing_outreach, and regenerate the schema mirror.
+Verified before commit by an aborted DO-block probe on production (everything rolled back): the file compiles, the 8
+marketing duties register, the studio blog count is 4 (the article table), no blog_posts body links to quotesdone.com,
+an approve reply from the authenticated founder approves the article, a 'claude' approval is refused.
+Known on apply: marketing.geo_check will fail truthfully - the edge geo_audit's web search is refused by a bot-check
+(open finding duty:marketing_duties:geo_audit); 0 GEO checks have ever been recorded.
