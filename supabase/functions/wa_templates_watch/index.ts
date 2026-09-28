@@ -51,9 +51,19 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // submitted-and-waiting, so the test is the absence of a verdict rather than a list of the
     // words Twilio currently uses for waiting. Same predicate as the scheduler's gate, so the two
     // cannot drift apart. A read failure does NOT short-circuit: if we cannot tell, we poll.
-    const { data: undecided, error: undecidedErr } = await sb.from('messaging_template')
-      .select('sid').eq('channel', 'whatsapp').not('status', 'in', '("approved","rejected")').limit(1);
-    if (!undecidedErr && (undecided?.length ?? 0) === 0
+    //
+    // AN APPROVAL IS NOT FOREVER (customer_support, 29 Sep 2026, review of #1049). Meta can PAUSE a
+    // template for quality or REJECT it after approving it, and send_whatsapp trusts an approved
+    // register row as read. So an approved row is due again once it has not been confirmed with
+    // Twilio for RECHECK_MS - the same 20 hours as fn_resilience_orphan_steps_due's wa_templates gate
+    // (scripts/sql/an_approved_whatsapp_template_is_rechecked_with_twilio_once_a_day.sql), so the
+    // two halves open and shut together. Rejected is final and is never asked again.
+    const RECHECK_MS = 20 * 3600 * 1000;
+    const { data: register, error: registerErr } = await sb.from('messaging_template')
+      .select('sid,template_key,status,last_checked_at').eq('channel', 'whatsapp').limit(500);
+    const unconfirmed = (r: any) => !r.last_checked_at || Date.now() - Date.parse(r.last_checked_at) >= RECHECK_MS;
+    const due = (register ?? []).filter((r: any) => r.status !== 'rejected' && (r.status !== 'approved' || unconfirmed(r)));
+    if (!registerErr && due.length === 0
         && ((await sec('wa_templates_ready')) || 'false') === 'true') {
       // nothing waiting on Meta and the channel is open = idle run, deliberately not logged
       return J({ ok:true, already_ready:true });
@@ -73,28 +83,28 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // also asks about every undecided register row, so the gate can close. Only the map's sids decide
     // `allApproved`, exactly as before.
     const tracked = new Set(sids.map((s) => s.sid));
-    const { data: pendingRows } = await sb.from('messaging_template').select('sid,template_key')
-      .eq('channel', 'whatsapp').not('status', 'in', '("approved","rejected")').limit(50);
-    const extra = (pendingRows ?? []).filter((r: any) => r.sid && !tracked.has(r.sid))
+    const extra = due.filter((r: any) => r.sid && !tracked.has(r.sid))
       .map((r: any) => ({ name: `${r.template_key}_register`, sid: r.sid as string }));
     if(!sids.length) { await logThrottled('no_template_sids', 60, 'error', { stage:'config', map_parse_failed: mapParseErr ? 1 : 0 }, (mapParseErr ? ('wa_template_sids is not valid JSON ('+mapParseErr+'), so no templates are tracked; ') : 'wa_template_sids is empty, so no templates are tracked; ')+'approval can never complete, wa_templates_ready is never flipped and WhatsApp alerts to suppliers and customers stay permanently off'); return J({ ok:false, error:'no_template_sids' }); }
-    // A VERDICT IS FINAL, SO DO NOT ASK FOR IT AGAIN, AND ASK THE REST AT ONCE. Measured 28 Sep: 17
+    // A FRESH VERDICT IS NOT ASKED FOR AGAIN, AND THE REST ARE ASKED AT ONCE. Measured 28 Sep: 17
     // sequential Twilio reads took this call past resilience_ping's 20 s timeout, and the heartbeat
-    // step `orphans` has failed every run since 16:46 UTC. Sids the register already holds as
-    // approved/rejected are read from the register; only undecided ones go to Twilio, in parallel.
-    const { data: decidedRows } = await sb.from('messaging_template').select('sid,status')
-      .eq('channel', 'whatsapp').in('status', ['approved', 'rejected']);
-    const decided = new Map((decidedRows ?? []).map((r: any) => [r.sid as string, r.status as string]));
+    // step `orphans` has failed every run since 16:46 UTC. A rejected sid, or an approved one confirmed
+    // within RECHECK_MS, is read from the register; everything else goes to Twilio, in parallel.
+    const decided = new Map((register ?? [])
+      .filter((r: any) => r.status === 'rejected' || (r.status === 'approved' && !unconfirmed(r)))
+      .map((r: any) => [r.sid as string, r.status as string]));
+    const wasApproved = new Set((register ?? []).filter((r: any) => r.status === 'approved').map((r: any) => r.sid as string));
     const statuses:any[] = await Promise.all([...sids, ...extra].map(async (s) => {
-      let st = decided.get(s.sid) || 'unknown';
+      let st = decided.get(s.sid) || 'unknown'; let reason: string | null = null;
       if (!decided.has(s.sid)) {
         try{
           const r=await fetch(`https://content.twilio.com/v1/Content/${s.sid}/ApprovalRequests`,{ headers:{ 'Authorization':auth }, signal: AbortSignal.timeout(8000) });
           const j=await r.json();
           st = j?.whatsapp?.status || j?.status || 'unknown';
+          reason = j?.whatsapp?.rejection_reason || null;
         }catch(e){ st='error:'+String(e); }
       }
-      return { name:s.name, sid:s.sid, status:st, polled: !decided.has(s.sid) };
+      return { name:s.name, sid:s.sid, status:st, reason, polled: !decided.has(s.sid) };
     }));
     let approved=0, rejected=0;
     for (const x of statuses) if (tracked.has(x.sid)) { if (x.status==='approved') approved++; else if (x.status==='rejected') rejected++; }
@@ -110,8 +120,12 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     for (const x of statuses) {
       if (!x.polled || x.status === 'unknown' || String(x.status).startsWith('error:')) continue;  // no fresh verdict, no stamp
       const now = new Date().toISOString();
+      // A verdict that is not 'approved' clears approved_at (send_whatsapp writes the same shape), so
+      // the register never says approved-at-a-time for a template Meta has since paused or rejected.
+      const patch = x.status === 'approved' ? { status: x.status, last_checked_at: now }
+        : { status: x.status, last_checked_at: now, approved_at: null, rejection_reason: x.reason };
       const { error: upErr, count } = await sb.from('messaging_template')
-        .update({ status: x.status, last_checked_at: now }, { count: 'exact' }).eq('sid', x.sid);
+        .update(patch, { count: 'exact' }).eq('sid', x.sid);
       if (upErr) { stampErrs++; continue; }
       stamped += count ?? 0;
       // approved_at is WHEN IT WAS APPROVED, so it is written once and never moved by a later poll
@@ -122,6 +136,33 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
         if (apErr) stampErrs++;
       }
     }
+    // AN APPROVED TEMPLATE THAT META PAUSED OR REJECTED (29 Sep 2026, review of #1049). The stamp above
+    // is the action: send_whatsapp uses a template only while its register row says 'approved', so
+    // from this write on it holds or falls back instead of sending into a paused template. What is left
+    // is to say so, once per template, to the seat that owns the templates - and to close it the day
+    // Meta approves it again.
+    const FINDING = 'whatsapp:template_not_approved:';
+    const regressed = statuses.filter((x: any) => x.polled && wasApproved.has(x.sid) && x.status !== 'approved'
+      && x.status !== 'unknown' && !String(x.status).startsWith('error:'));
+    for (const x of regressed) {
+      const { error: fErr } = await sb.rpc('fn_it_engineer_finding_upsert', {
+        p_issue_key: FINDING + x.sid,
+        p_title: `WhatsApp template ${x.name} was approved and Meta now says '${x.status}'`,
+        p_where: 'public.messaging_template', p_blast: 'agent_facing', p_affected: 1,
+        p_evidence: { sid: x.sid, template: x.name, was: 'approved', now: x.status, rejection_reason: x.reason,
+                      effect: 'send_whatsapp no longer uses this template: messages that need it are held or fall back to email' },
+        p_ruled_out: [], p_undetermined: ['whether to edit and resubmit the template or wait for Meta to lift a pause'],
+        p_raised_by: 'customer_support' });
+      if (fErr) stampErrs++;
+    }
+    const reapproved = statuses.filter((x: any) => x.polled && x.status === 'approved').map((x: any) => FINDING + x.sid);
+    if (reapproved.length) {
+      await sb.from('it_engineer_finding').update({ closed_at: new Date().toISOString(), close_note: 'Meta approved the template again' })
+        .in('issue_key', reapproved).is('closed_at', null);
+    }
+    if (regressed.length) await logRun('error', { regressed: regressed.length, statuses: regressed.map((x: any) => x.name + '=' + x.status) },
+      regressed.length + ' approved WhatsApp template(s) are no longer approved at Meta (' + regressed.map((x: any) => x.name + '=' + x.status).join(',')
+      + '); the register now says so, send_whatsapp stops using them, and a customer_support finding is open for each');
     if (stampErrs) await logThrottled('template_register_not_stamped', 60, 'error', { total: sids.length, stamp_errors: stampErrs }, stampErrs + ' of ' + statuses.length + ' template statuses could not be written to messaging_template; the register keeps showing a stale status and the scheduler gate that reads last_checked_at stays open, so this watcher polls Twilio every beat instead of once a day');
     const allApproved = approved===sids.length;
     if(allApproved && ((await sec('wa_templates_ready')) || 'false') === 'true'){
