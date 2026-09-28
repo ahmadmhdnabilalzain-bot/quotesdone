@@ -25,7 +25,8 @@
 -- ══ WHAT THIS ADDS ═══════════════════════════════════════════════════════════════════════════════════════
 --   fn_ceo_weekly_review_measure(p_at)  STABLE, code only: one row per target and owning seat —
 --       supply    sales_engineer   every category at 10 matchable suppliers
---       runway    accountant       runway at actual spend >= 6 months (the CEO's standard, stated here)
+--       runway    (information only) months at current spend. NOT a target: founder ruling 29 Sep 2026, he funds the
+--                                  company until profitable with no deadline. Revisited only if investor funding arrives.
 --       budget    accountant       an active budget for the year, and expense actuals YTD within it
 --       risks     each seat        no open risk it owns without a mitigation or past its review date
 --       findings  each seat        no finding attributed to it open more than 7 days
@@ -104,7 +105,6 @@ returns jsonb language plpgsql stable security definer set search_path to 'publi
 declare
   v_today date := (p_at at time zone 'Asia/Dubai')::date;
   v_min int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  v_runway_min numeric := 6;          -- the CEO's standard: six months of spend in hand
   v_out jsonb := '[]'::jsonb;
   v_trades int; v_short int; v_top jsonb;
   v_rf jsonb; v_months numeric; v_cash numeric; v_spend numeric;
@@ -135,15 +135,14 @@ begin
   v_rf := public.fn_accountant_runway_figures(date_trunc('month', v_today)::date);
   v_months := (v_rf->>'runway_months_at_actual_spend')::numeric;
   v_cash := (v_rf->>'available_aed')::numeric; v_spend := (v_rf->>'monthly_spend_aed')::numeric;
+  -- INFORMATION ONLY. Founder ruling, 29 Sep 2026 (ledger): there is NO runway target -- he funds the company himself,
+  -- with no deadline, until it is profitable. Runway is shown (months at current spend) and is never a missed target,
+  -- never opens an improvement and never escalates. Revisit ONLY if investor funding arrives.
   v_out := v_out || jsonb_build_object('key', 'runway', 'seat', 'accountant', 'label', 'Cash and runway',
-    'met', coalesce(v_months >= v_runway_min, false), 'value', v_months,
-    'target', format('%s months of spend in hand', v_runway_min),
+    'info_only', true, 'met', true, 'value', v_months,
+    'target', 'none: information only (founder funds the company until profitable; revisited only if investor funding arrives)',
     'actual', case when v_months is null then 'not measured: ' || coalesce(v_rf->>'missing', 'the books give no runway')
-                   else format('AED %s available, AED %s a month, %s months', to_char(v_cash, 'FM999,999,990.00'), to_char(v_spend, 'FM999,999,990.00'), v_months) end,
-    'action', case when v_months is null then 'Close the books so cash and monthly spend are measured.'
-                   else format('Put the funding need in the next cash report to the CEO: AED %s to reach %s months; defer the largest non-essential spend line.',
-                          to_char(greatest(0, v_runway_min * coalesce(v_spend, 0) - coalesce(v_cash, 0)), 'FM999,999,990'), v_runway_min) end,
-    'close_check', format('Closes when runway at actual spend is %s months or more.', v_runway_min),
+                   else format('AED %s available, AED %s a month, %s months at current spend', to_char(v_cash, 'FM999,999,990.00'), to_char(v_spend, 'FM999,999,990.00'), v_months) end,
     'detail', v_rf);
 
   -- SPEND AGAINST BUDGET (accountant): expense lines of active budgets for the year, to this month
@@ -217,8 +216,8 @@ begin
   v := jsonb_build_array(
     jsonb_build_object('t', 'h2', 'text', 'CEO weekly review'),
     jsonb_build_object('t', 'p', 'text', 'Week of ' || to_char(w.week, 'Dy DD Mon YYYY') || ' (Asia/Dubai). '
-      || (select count(*) from jsonb_array_elements(w.targets) x where (x->>'met')::boolean) || ' of '
-      || jsonb_array_length(w.targets) || ' targets met. Actions: ' || cardinality(w.opened) || ' opened, '
+      || (select count(*) from jsonb_array_elements(w.targets) x where (x->>'met')::boolean and not coalesce((x->>'info_only')::boolean, false)) || ' of '
+      || (select count(*) from jsonb_array_elements(w.targets) x where not coalesce((x->>'info_only')::boolean, false)) || ' targets met. Actions: ' || cardinality(w.opened) || ' opened, '
       || cardinality(w.escalated) || ' escalated, ' || cardinality(w.closed) || ' closed.'),
     jsonb_build_object('t', 'h3', 'text', 'Actions assigned'));
 
@@ -239,7 +238,8 @@ begin
   for t in select x from jsonb_array_elements(w.targets) x where x->>'key' in ('supply', 'runway', 'budget') loop
     v := v || jsonb_build_array(
       jsonb_build_object('t', 'h3', 'text', t->>'label'),
-      jsonb_build_object('t', 'li', 'text', case when (t->>'met')::boolean then 'MET. ' else 'MISSED. ' end
+      jsonb_build_object('t', 'li', 'text', case when coalesce((t->>'info_only')::boolean, false) then 'INFORMATION ONLY. '
+                                                        when (t->>'met')::boolean then 'MET. ' else 'MISSED. ' end
         || (t->>'actual') || '. Target: ' || (t->>'target') || '.'));
     if t->>'key' = 'supply' and jsonb_array_length(coalesce(t->'detail', '[]'::jsonb)) > 0 then
       v := v || jsonb_build_array(jsonb_build_object('t', 'li', 'text', 'Shortest where demand is: ' ||
@@ -344,7 +344,7 @@ begin
     begin
       v_res := public.fn_notify_founder(v_event,
         format(E'%s of %s targets missed this week. Actions: %s opened, %s escalated, %s closed.\nThe one-page review is attached as %s.',
-               v_missed, jsonb_array_length(w.targets), cardinality(w.opened), cardinality(w.escalated), cardinality(w.closed), v_file),
+               v_missed, (select count(*) from jsonb_array_elements(w.targets) x where not coalesce((x->>'info_only')::boolean, false)), cardinality(w.opened), cardinality(w.escalated), cardinality(w.closed), v_file),
         'info', 'ceo_weekly_review', 'ceo_weekly_review:' || w.week, 'ceo');
       if coalesce((v_res->>'emailed')::boolean, false) then
         -- fn_notify_founder answers jsonb, not the row id: the email it queued is the one of this kind in THIS transaction.

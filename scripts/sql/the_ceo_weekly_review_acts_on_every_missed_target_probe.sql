@@ -14,7 +14,7 @@ declare
   v_w1 jsonb; v_w2 jsonb; v_again jsonb; v_del jsonb; v_bad jsonb; v_blocks jsonb;
   v_risk bigint; v_imp_risk bigint; v_imp_status text; v_opened int; v_no_meta int; v_handoffs int;
   v_esc int; v_esc_tasks int; v_reopened int; v_kind text; v_natt int; v_to text; v_wa int;
-  v_left int; v_mail_before text; v_mail_after text; v_id2 bigint;
+  v_runway_imp int; v_runway_info boolean; v_left int; v_mail_before text; v_mail_after text; v_id2 bigint;
 begin
   set local statement_timeout = '60s';
   select value into v_mail_before from public.app_secrets where key = 'admin_emails';
@@ -46,6 +46,10 @@ begin
        and exists (select 1 from public.ceo_improvement e
                     where e.id in (select unnest(escalated) from public.ceo_weekly_review where week = date '2026-01-12')
                       and e.seat = n.seat and e.evidence->>'target' = n.evidence->>'target');
+    -- founder ruling 29 Sep 2026: runway is information only, never a missed target or an improvement
+    select count(*) into v_runway_imp from public.ceo_improvement where source_kind = 'weekly_review' and evidence->>'target' = 'runway';
+    select (x->>'info_only')::boolean and (x->>'met')::boolean into v_runway_info
+      from public.ceo_weekly_review w, jsonb_array_elements(w.targets) x where w.week = date '2026-01-12' and x->>'key' = 'runway';
     v_again := public.fn_ceo_weekly_review(date '2026-01-12');
     select id, pdf_blocks into v_id2, v_blocks from public.ceo_weekly_review where week = date '2026-01-12';
 
@@ -69,6 +73,9 @@ begin
   if v_opened <> (v_w1->>'missed')::int then raise exception 'week 1 missed % targets but opened % improvements', v_w1->>'missed', v_opened; end if;
   if v_no_meta <> 0 then raise exception '% improvement(s) opened without an owner, a due date or a closing check', v_no_meta; end if;
   if v_handoffs < 1 then raise exception 'no improvement was handed to its seat'; end if;
+  if v_runway_imp <> 0 or not coalesce(v_runway_info, false) then
+    raise exception 'runway must be information only (founder ruling 29 Sep): % improvement(s), info_only=%', v_runway_imp, v_runway_info;
+  end if;
   if v_imp_risk is null then raise exception 'the ZZ DEMO risk owned by marketing opened no improvement for marketing'; end if;
   if v_imp_status is distinct from 'done' then raise exception 'the fixed risk''s improvement did not close (status %)', v_imp_status; end if;
   if (v_w2->>'closed')::int < 1 then raise exception 'week 2 closed nothing: %', v_w2; end if;
@@ -88,7 +95,7 @@ begin
   if v_left <> 0 or v_mail_after is distinct from v_mail_before then raise exception 'the rollback left % row(s), or admin_emails changed', v_left; end if;
 
   perform set_config('qd.probe_verdict',
-    format('PROBE OK week1 missed=%s opened=%s (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each with a CEO task, due +7) duplicates=0; rerun=no-op; page shows ESCALATED; failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
+    format('PROBE OK week1 missed=%s opened=%s (owner, due, check on all; %s handed off); week2 closed=%s escalated=%s (each with a CEO task, due +7) duplicates=0; runway information only, no improvement; rerun=no-op; page shows ESCALATED; failed render retained; delivered kind=%s attachments=%s to the ZZ address, no WhatsApp; left_behind=0',
            v_w1->>'missed', v_opened, v_handoffs, v_w2->>'closed', v_w2->>'escalated', v_kind, v_natt), true);
 exception when others then
   perform set_config('qd.probe_verdict', 'PROBE FAILED ' || sqlerrm, true);
