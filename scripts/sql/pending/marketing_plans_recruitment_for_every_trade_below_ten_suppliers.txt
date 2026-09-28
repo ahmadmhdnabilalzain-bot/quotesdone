@@ -1,0 +1,14 @@
+Committed, NOT applied: founder instruction 1013 item 3 says do not apply before merge. Seat: marketing.
+
+What would move it: the PR is merged. Then apply it (node scripts/apply_sql.mjs
+scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql --apply --ddl), not in a campaign
+hour, delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit. It must be
+applied BEFORE the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql (sales_engineer), which
+reads its table; the probe is read after both.
+
+It also redefines fn_table_export_list (section 4, review of #1070) from its canonical body
+(the_calendar_resend_decisions_are_in_the_daily_export.sql) with marketing_recruitment_source and
+marketing_gap_recruitment_plan added, so both tables reach the daily export. If another file redefines
+fn_table_export_list and is applied first, re-copy that body here before applying. Measured 29 Sep 2026: this
+file, #1065's two files, the sales_engineer file and the probe in one aborted transaction on production: PROBE OK
+(gaps=217 plans=217 queue=200), both tables in the export list, nothing left behind.
