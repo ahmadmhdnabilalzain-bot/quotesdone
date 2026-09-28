@@ -4801,6 +4801,13 @@
  "supabase/functions/_shared/supplier_services.ts": [
   "84a6acf814f6"
  ],
+ "supabase/functions/_shared/support_reply_guard.ts": [
+  "1c124ac36381",
+  "24c91058ee6f",
+  "29e16cbb341d",
+  "622dc4a7b5b1",
+  "713903274b9b"
+ ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
  ],
@@ -5028,6 +5035,7 @@
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",
   "32f673f57030",
+  "35a1a42cc34d",
   "488eec99c14e",
   "4c6a9cec02c0",
   "524c3be9b432",
@@ -5242,6 +5250,7 @@
   "0c779ad88625",
   "4061420fc991",
   "5cbb277245b5",
+  "61e5bb9d6ede",
   "6c8d4e17edaa",
   "c09183a62789",
   "e687fbf0ba76"
