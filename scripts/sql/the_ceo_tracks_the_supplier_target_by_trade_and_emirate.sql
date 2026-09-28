@@ -155,7 +155,7 @@ on conflict (duty) do update set every = excluded.every, routine = excluded.rout
 -- the ad_decision guard trigger, fn_ads_manage and fn_ad_spend_daily_ceiling. Ledger 1004 is checked FIRST, so
 -- no switch the founder flips opens paid spend while any category is below ten.
 create or replace function public.fn_ads_autospend_state()
-returns jsonb language sql stable set search_path to 'public' as $function$
+returns jsonb language sql stable set search_path to 'public', 'pg_temp' as $function$
   with s as (
     select
       coalesce((select lower(trim(value)) from public.app_secrets where key = 'meta_autospend_golive'), 'false') = 'true' as golive,
