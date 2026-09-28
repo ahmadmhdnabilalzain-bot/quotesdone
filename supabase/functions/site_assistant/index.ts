@@ -29,6 +29,7 @@ import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -69,7 +70,7 @@ async function logRun(status: string, counts: Record<string, unknown>, note: str
   try { await admin.from('agent_runs').insert({ agent: 'site_assistant', status, counts, note: String(note || '').slice(0, 500), finished_at: new Date().toISOString() }); } catch (_e) { /* */ }
 }
 
-const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- SCOPE: we cover ALL trades and product categories - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- You can describe a job by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or the contact page /contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, DET Dubai Trader License No. 1633275.`;
+const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- SCOPE: we cover ALL trades and product categories - anything that can be quoted from specifications, drawings or photos. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- You can describe a job by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or the contact page /contact/. This number is published on our contact page.\n- Operator: QuotesDone Technologies, Dubai, UAE.`;
 
 const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee (shown in full before payment; no card fee is ever added) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job free at /me`;
 
@@ -309,7 +310,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       const qType = (['cost', 'count', 'timeline'].includes(String(asked)) ? asked : null) as QuestionType;
       const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
       if (faq) {
-        const reply = String(faq.answer || '').trim();
+        const reply = guardSupportReply(String(faq.answer || '').trim(), langOf(message, uiLang)).text;
         try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply, scope: live ? audience : 'public', routed: qType, faq_id: faq.id });
       }
@@ -559,8 +560,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     // answer, it is said, with where it came from. Which passage answers was decided by a shared word until
     // 23 Sep 2026 (a nearest neighbour is always found; one shared word is not relevance): it is reasoned now.
     if (!reply && !live && chosen?.content) {
-      reply = String(chosen.content).trim().slice(0, 700)
-        + '\n\nIf that does not cover it, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
+      // The closing line is in the visitor's language: an Arabic answer went out with this line in English
+      // (production assistant_logs, 9 Sep 2026).
+      const arChosen = langOf(message, uiLang) === 'ar';
+      reply = String(chosen.content).trim().slice(0, 700) + (arChosen ?
+        '\n\nإن لم يُجب ذلك عن سؤالك، تواصل معنا اتصالًا أو عبر واتساب على\n+971 50 931 9355\n(من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على\nmanagement@quotesdone.com'
+        : '\n\nIf that does not cover it, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.');
       answered = true;                       // cited, deterministic, from the corpus — a real answer
     }
 
@@ -597,6 +602,11 @@ Deno.serve(observe('site_assistant', async (req) => {
     if (!reply) reply = live
       ? 'Something went wrong on my side just now, so I could not read your account. Please ask me again in a moment. If it keeps happening, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.'
       : 'I can help with questions about how QuotesDone works, pricing, posting a job, or joining as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
+    // THE LAST CHECK BEFORE IT LEAVES (support_reply_guard.ts): no licence number, no "AI", no internal
+    // error or prompt wording — on the model path and the deterministic ones alike.
+    const guarded = guardSupportReply(reply, langOf(message, uiLang));
+    if (guarded.violations.length) await logRun('ok', { reply_guard: guarded.violations }, 'site_assistant reply guard changed a reply: ' + guarded.violations.join(','));
+    reply = guarded.text;
     reply = reply.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^\s*[-*•]\s+/gm, '').replace(/^#{1,6}\s+/gm, '');
 
     // ASKING FOR A PERSON IS READ FROM WHAT THEY ASKED, NOT FROM WHAT WE REPLIED. This is the same

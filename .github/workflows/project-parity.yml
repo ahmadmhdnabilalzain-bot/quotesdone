@@ -65,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       # No npm install: every check here uses fetch and node:fs only.
@@ -88,6 +88,15 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: node scripts/checks/canonical_routine_manifest.mjs --all
+      # 28 SEP 2026 (it_engineer) — THE FUNCTION HALF OF "PRODUCTION RUNS ONLY MAIN". The step above
+      # fails when a live routine differs from main's canonical file; this fails when a deployed edge
+      # function lacks what main's source carries (a deploy from a branch, or main never deployed).
+      # Daily and on demand only: a drift already on production must not red every unrelated PR.
+      - name: Every deployed edge function runs what main says
+        if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: node scripts/verify_deploy_parity.mjs --all
       # 17 AUG 2026 — THE `if:` IS GONE. It read
       #     if: ${{ github.event_name != 'pull_request' }}
       # so this step ran only AFTER a merge, where nothing gates on it. The independent acceptance
@@ -181,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: The production checks CI could not see

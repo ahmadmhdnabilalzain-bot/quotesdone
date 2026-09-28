@@ -82,13 +82,16 @@ export function scoreRead(key: Record<string, Field>, r: DrawingRead) {
     rooms: list(r.rooms, key.rooms.value as string[]),
   } as Record<string, string>;
 }
+// sharp is PINNED to the version deno.lock already holds (via next): an unpinned specifier resolved
+// to npm's newest, and on 28 Sep 2026 sharp 0.35.5 was tagged latest before its darwin-x64 binary
+// resolved, which failed every PR's deno test with 'Could not find npm package'.
 
 // sharp is loaded LAZILY: its module reads process.env on load, and the suite runner
 // (scripts/checks/run.mjs) grants no permissions, so a top-level import crashed the whole file
 // instead of letting this test report itself ignored (measured 14 Sep 2026: 357 passed, 1 failed).
 // deno-lint-ignore no-explicit-any
 let sharp: any;
-const loadSharp = async () => { if (!sharp) sharp = (await import('npm:sharp')).default; return sharp; };
+const loadSharp = async () => { if (!sharp) sharp = (await import('npm:sharp@0.34.5')).default; return sharp; };
 
 /** The OCR plan, exactly as the browser runs it, with sharp standing in for the canvas. */
 async function ocrPlan(bytes: Uint8Array) {

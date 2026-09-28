@@ -14,12 +14,20 @@ export type ResendMail = {
 export function resendPayload(o: {
   from: string; to: string; reply: string; subject: string; html: string; text: string;
   unsub: string; unsubMailto: string;
+  /** notifications.in_reply_to: the Message-ID this answers, so the reply lands in the customer's own thread. */
+  inReplyTo?: string | null;
 }): ResendMail {
   const mail: ResendMail = { from: o.from, to: [o.to], reply_to: o.reply, subject: o.subject || 'QuotesDone', html: o.html, text: o.text };
+  const irt = String(o.inReplyTo ?? '').trim();
+  if (irt) {
+    const id = irt.startsWith('<') ? irt : '<' + irt + '>';
+    mail.headers = { ...(mail.headers || {}), 'In-Reply-To': id, 'References': id };
+  }
   // RFC 8058 one-click: an https URL that accepts POST, plus the mailto fallback. Gmail and Yahoo
   // require this on bulk mail since Feb 2024; Microsoft since May 2025.
   if (o.unsub) {
     mail.headers = {
+      ...(mail.headers || {}),
       'List-Unsubscribe': `<${o.unsub}>, <mailto:${o.unsubMailto}?subject=unsubscribe>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
     };
