@@ -137,6 +137,571 @@
       "expected_facts": [
         "treat anything unconfirmed as zero"
       ]
+    },
+    {
+      "id": "ceo-exam-12",
+      "checklist": "CEO-PRO",
+      "q_en": "Is GMV our revenue?",
+      "q_ar": "هل إجمالي قيمة المعاملات هو إيرادنا؟",
+      "expected_entry_ids": [
+        "ceo:gmv-vs-revenue"
+      ],
+      "expected_facts": [
+        "it is not revenue"
+      ]
+    },
+    {
+      "id": "ceo-exam-13",
+      "checklist": "CEO-PRO",
+      "q_en": "How is customer acquisition cost calculated?",
+      "q_ar": "كيف تُحسب تكلفة اكتساب العميل؟",
+      "expected_entry_ids": [
+        "ceo:cac-ltv-payback"
+      ],
+      "expected_facts": [
+        "divided by the customers acquired"
+      ]
+    },
+    {
+      "id": "ceo-exam-14",
+      "checklist": "CEO-PRO",
+      "q_en": "Does each reveal leave money after its direct costs?",
+      "q_ar": "هل يترك كل كشف مالاً بعد تكاليفه المباشرة؟",
+      "expected_entry_ids": [
+        "ceo:contribution-per-reveal"
+      ],
+      "expected_facts": [
+        "card-processing fee"
+      ]
+    },
+    {
+      "id": "ceo-exam-15",
+      "checklist": "CEO-PRO",
+      "q_en": "Should newer customer cohorts retain better than older ones?",
+      "q_ar": "هل يجب أن تحتفظ الدفعات الأحدث بالعملاء أفضل من الأقدم؟",
+      "expected_entry_ids": [
+        "ceo:cohort-retention"
+      ],
+      "expected_facts": [
+        "newer cohorts should retain better"
+      ]
+    },
+    {
+      "id": "ceo-exam-16",
+      "checklist": "CEO-PRO",
+      "q_en": "Why not set the highest take rate the market will bear?",
+      "q_ar": "لماذا لا نضع أعلى نسبة عمولة يتحملها السوق؟",
+      "expected_entry_ids": [
+        "ceo:take-rate-strategy"
+      ],
+      "expected_facts": [
+        "A Rake Too Far"
+      ]
+    },
+    {
+      "id": "ceo-exam-17",
+      "checklist": "CEO-PRO",
+      "q_en": "How can we survey what buyers would pay for a reveal?",
+      "q_ar": "كيف نستطلع ما يدفعه المشترون مقابل الكشف؟",
+      "expected_entry_ids": [
+        "ceo:willingness-to-pay"
+      ],
+      "expected_facts": [
+        "Van Westendorp"
+      ]
+    },
+    {
+      "id": "ceo-exam-18",
+      "checklist": "CEO-PRO",
+      "q_en": "What is second-degree price discrimination?",
+      "q_ar": "ما هو التمييز السعري من الدرجة الثانية؟",
+      "expected_entry_ids": [
+        "ceo:price-discrimination-forms"
+      ],
+      "expected_facts": [
+        "second-degree"
+      ]
+    },
+    {
+      "id": "ceo-exam-19",
+      "checklist": "CEO-PRO",
+      "q_en": "Can a seat test a different fee percentage without the founder?",
+      "q_ar": "هل يجوز لمقعد اختبار نسبة رسوم مختلفة دون المؤسس؟",
+      "expected_entry_ids": [
+        "ceo:pricing-test-guardrails"
+      ],
+      "expected_facts": [
+        "founder hard rule"
+      ]
+    },
+    {
+      "id": "ceo-exam-20",
+      "checklist": "CEO-PRO",
+      "q_en": "How do we know if the marketplace is liquid?",
+      "q_ar": "كيف نعرف أن السوق يتمتع بالسيولة؟",
+      "expected_entry_ids": [
+        "ceo:marketplace-liquidity"
+      ],
+      "expected_facts": [
+        "match rate"
+      ]
+    },
+    {
+      "id": "ceo-exam-21",
+      "checklist": "CEO-PRO",
+      "q_en": "Which side reaches boiling point first in a new marketplace?",
+      "q_ar": "أي جانب يبلغ نقطة الغليان أولاً في سوق جديد؟",
+      "expected_entry_ids": [
+        "ceo:chicken-and-egg"
+      ],
+      "expected_facts": [
+        "boiling point"
+      ]
+    },
+    {
+      "id": "ceo-exam-22",
+      "checklist": "CEO-PRO",
+      "q_en": "What are the five focusing steps for the binding constraint?",
+      "q_ar": "ما خطوات التركيز الخمس للقيد الحاكم؟",
+      "expected_entry_ids": [
+        "ceo:binding-constraint"
+      ],
+      "expected_facts": [
+        "five focusing steps"
+      ]
+    },
+    {
+      "id": "ceo-exam-23",
+      "checklist": "CEO-PRO",
+      "q_en": "What is an atomic network?",
+      "q_ar": "ما هي الشبكة الذرية؟",
+      "expected_entry_ids": [
+        "ceo:atomic-network"
+      ],
+      "expected_facts": [
+        "Andrew Chen"
+      ]
+    },
+    {
+      "id": "ceo-exam-24",
+      "checklist": "CEO-PRO",
+      "q_en": "How do we recognise product/market fit?",
+      "q_ar": "كيف نتعرف على ملاءمة المنتج للسوق؟",
+      "expected_entry_ids": [
+        "ceo:product-market-fit"
+      ],
+      "expected_facts": [
+        "Marc Andreessen"
+      ]
+    },
+    {
+      "id": "ceo-exam-25",
+      "checklist": "CEO-PRO",
+      "q_en": "Why is concentration of GMV in a few buyers a risk?",
+      "q_ar": "لماذا يُعد تركز قيمة المعاملات في قلة من المشترين خطراً؟",
+      "expected_entry_ids": [
+        "ceo:concentration-risk"
+      ],
+      "expected_facts": [
+        "lower concentration as more defensible"
+      ]
+    },
+    {
+      "id": "ceo-exam-26",
+      "checklist": "CEO-PRO",
+      "q_en": "How do we run a pre-mortem on the launch plan?",
+      "q_ar": "كيف نجري تحليلاً استباقياً للفشل على خطة الإطلاق؟",
+      "expected_entry_ids": [
+        "ceo:premortem"
+      ],
+      "expected_facts": [
+        "Gary Klein"
+      ]
+    },
+    {
+      "id": "ceo-exam-27",
+      "checklist": "CEO-PRO",
+      "q_en": "Which third-party dependencies are critical for QuotesDone?",
+      "q_ar": "ما الاعتماديات الخارجية الحرجة لكوتس دن؟",
+      "expected_entry_ids": [
+        "ceo:platform-dependency-risk"
+      ],
+      "expected_facts": [
+        "Stripe"
+      ]
+    },
+    {
+      "id": "ceo-exam-28",
+      "checklist": "CEO-PRO",
+      "q_en": "What does each line of the risk register contain?",
+      "q_ar": "ماذا يتضمن كل سطر في سجل المخاطر؟",
+      "expected_entry_ids": [
+        "ceo:risk-register"
+      ],
+      "expected_facts": [
+        "who owns it"
+      ]
+    },
+    {
+      "id": "ceo-exam-29",
+      "checklist": "CEO-PRO",
+      "q_en": "How is runway computed?",
+      "q_ar": "كيف يُحسب المدرج النقدي؟",
+      "expected_entry_ids": [
+        "ceo:cash-runway-burn"
+      ],
+      "expected_facts": [
+        "cash at bank"
+      ]
+    },
+    {
+      "id": "ceo-exam-30",
+      "checklist": "CEO-PRO",
+      "q_en": "Is a SAFE a loan?",
+      "q_ar": "هل اتفاقية SAFE قرض؟",
+      "expected_entry_ids": [
+        "ceo:safe-and-convertibles"
+      ],
+      "expected_facts": [
+        "it is not debt"
+      ]
+    },
+    {
+      "id": "ceo-exam-31",
+      "checklist": "CEO-PRO",
+      "q_en": "What does a 1x liquidation preference mean?",
+      "q_ar": "ماذا يعني تفضيل التصفية بمقدار 1x؟",
+      "expected_entry_ids": [
+        "ceo:term-sheet-glossary"
+      ],
+      "expected_facts": [
+        "Liquidation preference"
+      ]
+    },
+    {
+      "id": "ceo-exam-32",
+      "checklist": "CEO-PRO",
+      "q_en": "Which bank does the company use and what is the account fee?",
+      "q_ar": "ما البنك الذي تتعامل معه الشركة وما رسوم الحساب؟",
+      "expected_entry_ids": [
+        "ceo:banking-relationship"
+      ],
+      "expected_facts": [
+        "Mashreq",
+        "AED 199"
+      ]
+    },
+    {
+      "id": "ceo-exam-33",
+      "checklist": "CEO-PRO",
+      "q_en": "How should the founder be reported to each month?",
+      "q_ar": "كيف يُرفع التقرير إلى المؤسس كل شهر؟",
+      "expected_entry_ids": [
+        "ceo:monthly-investor-update"
+      ],
+      "expected_facts": [
+        "bad news first"
+      ]
+    },
+    {
+      "id": "ceo-exam-34",
+      "checklist": "CEO-PRO",
+      "q_en": "What weekly growth rate counts as good for a startup?",
+      "q_ar": "ما معدل النمو الأسبوعي الجيد لشركة ناشئة؟",
+      "expected_entry_ids": [
+        "ceo:growth-rate-discipline"
+      ],
+      "expected_facts": [
+        "5-7% a week"
+      ]
+    },
+    {
+      "id": "ceo-exam-35",
+      "checklist": "CEO-PRO",
+      "q_en": "How do we measure whether our forecasts are any good?",
+      "q_ar": "كيف نقيس جودة توقعاتنا؟",
+      "expected_entry_ids": [
+        "ceo:forecast-accuracy"
+      ],
+      "expected_facts": [
+        "compare forecast with actual"
+      ]
+    },
+    {
+      "id": "ceo-exam-36",
+      "checklist": "CEO-PRO",
+      "q_en": "How do we find which assumption matters most in the plan?",
+      "q_ar": "كيف نعرف أي افتراض هو الأهم في الخطة؟",
+      "expected_entry_ids": [
+        "ceo:scenario-sensitivity"
+      ],
+      "expected_facts": [
+        "plus and minus 20%"
+      ]
+    },
+    {
+      "id": "ceo-exam-37",
+      "checklist": "CEO-PRO",
+      "q_en": "What are the plan scenarios now that the AED 1M target is withdrawn?",
+      "q_ar": "ما سيناريوهات الخطة بعد سحب هدف المليون درهم؟",
+      "expected_entry_ids": [
+        "ceo:target-revision"
+      ],
+      "expected_facts": [
+        "base about AED 245k"
+      ]
+    },
+    {
+      "id": "ceo-exam-38",
+      "checklist": "CEO-PRO",
+      "q_en": "How does monthly collected revenue break down into drivers?",
+      "q_ar": "كيف يتفكك الإيراد الشهري المحصل إلى محركات؟",
+      "expected_entry_ids": [
+        "ceo:driver-tree"
+      ],
+      "expected_facts": [
+        "monthly collected revenue ="
+      ]
+    },
+    {
+      "id": "ceo-exam-39",
+      "checklist": "CEO-PRO",
+      "q_en": "How many key results should an objective have?",
+      "q_ar": "كم نتيجة رئيسية يجب أن يكون لكل هدف؟",
+      "expected_entry_ids": [
+        "ceo:okrs"
+      ],
+      "expected_facts": [
+        "three to five measurable"
+      ]
+    },
+    {
+      "id": "ceo-exam-40",
+      "checklist": "CEO-PRO",
+      "q_en": "What is fill rate?",
+      "q_ar": "ما هو معدل الإنجاز؟",
+      "expected_entry_ids": [
+        "ceo:fill-rate-time-to-first-quote"
+      ],
+      "expected_facts": [
+        "fill rate"
+      ]
+    },
+    {
+      "id": "ceo-exam-41",
+      "checklist": "CEO-PRO",
+      "q_en": "When must a business register for UAE VAT?",
+      "q_ar": "متى يجب على المنشأة التسجيل في ضريبة القيمة المضافة؟",
+      "expected_entry_ids": [
+        "ceo:vat-threshold-watch"
+      ],
+      "expected_facts": [
+        "AED 375,000"
+      ]
+    },
+    {
+      "id": "ceo-exam-42",
+      "checklist": "CEO-PRO",
+      "q_en": "Which decision requires a beneficial owner register?",
+      "q_ar": "أي قرار يُلزم بسجل المستفيد الحقيقي؟",
+      "expected_entry_ids": [
+        "ceo:ubo-register"
+      ],
+      "expected_facts": [
+        "Cabinet Decision No. 109 of 2023"
+      ]
+    },
+    {
+      "id": "ceo-exam-43",
+      "checklist": "CEO-PRO",
+      "q_en": "When does the trade licence expire?",
+      "q_ar": "متى تنتهي الرخصة التجارية؟",
+      "expected_entry_ids": [
+        "ceo:trade-licence-renewal"
+      ],
+      "expected_facts": [
+        "24 June 2027"
+      ]
+    },
+    {
+      "id": "ceo-exam-44",
+      "checklist": "CEO-PRO",
+      "q_en": "When does the UAE e-invoicing pilot start?",
+      "q_ar": "متى يبدأ تجريب الفوترة الإلكترونية في الإمارات؟",
+      "expected_entry_ids": [
+        "ceo:e-invoicing-readiness"
+      ],
+      "expected_facts": [
+        "1 July 2026"
+      ]
+    },
+    {
+      "id": "ceo-exam-45",
+      "checklist": "CEO-PRO",
+      "q_en": "Which law governs personal data in the UAE mainland?",
+      "q_ar": "أي قانون يحكم البيانات الشخصية في البر الرئيسي؟",
+      "expected_entry_ids": [
+        "ceo:pdpl-ceo-obligations"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 45 of 2021"
+      ]
+    },
+    {
+      "id": "ceo-exam-46",
+      "checklist": "CEO-PRO",
+      "q_en": "Which law regulates commercial agencies?",
+      "q_ar": "أي قانون ينظم الوكالات التجارية؟",
+      "expected_entry_ids": [
+        "ceo:commercial-agency-law"
+      ],
+      "expected_facts": [
+        "Federal Law No. 3 of 2022"
+      ]
+    },
+    {
+      "id": "ceo-exam-47",
+      "checklist": "CEO-PRO",
+      "q_en": "How many principles does the UAE AI charter have?",
+      "q_ar": "كم عدد مبادئ ميثاق الذكاء الاصطناعي في الإمارات؟",
+      "expected_entry_ids": [
+        "ceo:uae-ai-charter"
+      ],
+      "expected_facts": [
+        "twelve principles"
+      ]
+    },
+    {
+      "id": "ceo-exam-48",
+      "checklist": "CEO-PRO",
+      "q_en": "How fast should a reversible decision be made?",
+      "q_ar": "بأي سرعة يُتخذ القرار القابل للتراجع؟",
+      "expected_entry_ids": [
+        "ceo:decision-reversibility"
+      ],
+      "expected_facts": [
+        "two-way doors"
+      ]
+    },
+    {
+      "id": "ceo-exam-49",
+      "checklist": "CEO-PRO",
+      "q_en": "How much profit must go to the statutory reserve?",
+      "q_ar": "كم من الأرباح يجب تحويله إلى الاحتياطي القانوني؟",
+      "expected_entry_ids": [
+        "ceo:llc-statutory-reserve"
+      ],
+      "expected_facts": [
+        "5% of its net profits"
+      ]
+    },
+    {
+      "id": "ceo-exam-50",
+      "checklist": "CEO-PRO",
+      "q_en": "When must the general assembly meet?",
+      "q_ar": "متى يجب أن تنعقد الجمعية العمومية؟",
+      "expected_entry_ids": [
+        "ceo:llc-annual-general-assembly"
+      ],
+      "expected_facts": [
+        "four months"
+      ]
+    },
+    {
+      "id": "ceo-exam-51",
+      "checklist": "CEO-PRO",
+      "q_en": "Who approves refunds?",
+      "q_ar": "من يعتمد الاستردادات؟",
+      "expected_entry_ids": [
+        "ceo:refund-dispute-authority"
+      ],
+      "expected_facts": [
+        "refunds included, belong to the CEO seat"
+      ]
+    },
+    {
+      "id": "ceo-exam-52",
+      "checklist": "CEO-PRO",
+      "q_en": "What format does the weekly management review follow?",
+      "q_ar": "ما الشكل الذي تتبعه المراجعة الإدارية الأسبوعية؟",
+      "expected_entry_ids": [
+        "ceo:weekly-management-review"
+      ],
+      "expected_facts": [
+        "Weekly Business Review"
+      ]
+    },
+    {
+      "id": "ceo-exam-53",
+      "checklist": "CEO-PRO",
+      "q_en": "What goes on the first line of the founder's summary?",
+      "q_ar": "ماذا يوضع في السطر الأول من ملخص المؤسس؟",
+      "expected_entry_ids": [
+        "ceo:founder-summary"
+      ],
+      "expected_facts": [
+        "First line: on track or not on track"
+      ]
+    },
+    {
+      "id": "ceo-exam-54",
+      "checklist": "CEO-PRO",
+      "q_en": "What must every directive to another seat have?",
+      "q_ar": "ما الذي يجب أن يتضمنه كل توجيه لمقعد آخر؟",
+      "expected_entry_ids": [
+        "ceo:directive-design"
+      ],
+      "expected_facts": [
+        "Owner: exactly one seat"
+      ]
+    },
+    {
+      "id": "ceo-exam-55",
+      "checklist": "CEO-PRO",
+      "q_en": "What framework does the seat scorecard use?",
+      "q_ar": "ما الإطار الذي تستخدمه بطاقة أداء المقعد؟",
+      "expected_entry_ids": [
+        "ceo:seat-scorecard"
+      ],
+      "expected_facts": [
+        "balanced scorecard"
+      ]
+    },
+    {
+      "id": "ceo-exam-56",
+      "checklist": "CEO-PRO",
+      "q_en": "How is end-of-service gratuity calculated?",
+      "q_ar": "كيف تُحسب مكافأة نهاية الخدمة؟",
+      "expected_entry_ids": [
+        "ceo:end-of-service-gratuity"
+      ],
+      "expected_facts": [
+        "21 days' basic wage"
+      ]
+    },
+    {
+      "id": "ceo-exam-57",
+      "checklist": "CEO-PRO",
+      "q_en": "What fee does the customer pay?",
+      "q_ar": "ما الرسوم التي يدفعها العميل؟",
+      "expected_entry_ids": [
+        "ceo:company-hard-rules"
+      ],
+      "expected_facts": [
+        "3% Reveal Fee"
+      ]
+    },
+    {
+      "id": "ceo-exam-58",
+      "checklist": "CEO-PRO",
+      "q_en": "Can the CEO seat change a price by itself?",
+      "q_ar": "هل يستطيع مقعد الرئيس التنفيذي تغيير السعر بنفسه؟",
+      "expected_entry_ids": [
+        "ceo:reasoning-pricing-change"
+      ],
+      "expected_facts": [
+        "never changes a price"
+      ]
     }
   ]
 }
