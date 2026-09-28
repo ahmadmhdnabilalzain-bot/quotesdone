@@ -14,8 +14,8 @@
 --   1. The p95 breach needs 5 runs, not 30 (MIN_RUNS). With 5-29 runs the finding says the sample is small.
 --   2. Per-function SLIs over 30 days, same rows: availability = good runs / runs, a good run being not a
 --      server error (http >= 500 or status 'error') AND inside budget_ms; error rate = server errors / runs;
---      p95. SLO 99.5 % availability, so the 30-day error budget is 0.5 % of runs. Burn rate = bad share over
---      the last 24 h / 0.005. Burn >= 2 over 24 h (>= 5 runs), or the 30-day budget spent, is a finding
+--      p95. SLO 99.9 % availability, so the 30-day error budget is 0.1 % of runs. Burn rate = bad share over
+--      the last 24 h / 0.001. Burn >= 2 over 24 h (>= 5 runs), or the 30-day budget spent, is a finding
 --      duty:latency_slo:<fn>:error_budget for the owning seat, through fn_it_duty_settle like the p95 one.
 --   The judgement is fn_it_slo_judge(), pure and immutable, so the probe below tests it with kyc's real numbers.
 --
@@ -28,15 +28,15 @@ returns jsonb
 language sql immutable
 set search_path to 'public', 'pg_temp'
 as $fn$
-  -- MIN_RUNS 5, SLO 99.5 % (error budget 0.005), burn-rate alarm 2x. One place for every threshold.
+  -- MIN_RUNS 5, SLO 99.9 % (error budget 0.001), burn-rate alarm 2x. One place for every threshold.
   select jsonb_build_object(
     'p95_breach',   coalesce(p_runs_24h, 0) >= 5 and p_p95_ms > p_budget_ms,
     'small_sample', coalesce(p_runs_24h, 0) between 5 and 29,
     'availability', case when p_runs_30d > 0 then round(1 - p_bad_30d::numeric / p_runs_30d, 4) end,
-    'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.005, 2) end,
-    'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.005, 2) end,
-    'budget_breach', (coalesce(p_runs_24h, 0) >= 5 and p_bad_24h::numeric / p_runs_24h / 0.005 >= 2)
-                     or (coalesce(p_runs_30d, 0) >= 5 and p_bad_30d::numeric / p_runs_30d > 0.005));
+    'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.001, 2) end,
+    'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.001, 2) end,
+    'budget_breach', (coalesce(p_runs_24h, 0) >= 5 and p_bad_24h::numeric / p_runs_24h / 0.001 >= 2)
+                     or (coalesce(p_runs_30d, 0) >= 5 and p_bad_30d::numeric / p_runs_30d > 0.001));
 $fn$;
 revoke execute on function public.fn_it_slo_judge(int, numeric, int, int, int, int) from public, anon, authenticated;
 grant execute on function public.fn_it_slo_judge(int, numeric, int, int, int, int) to service_role;
@@ -89,7 +89,7 @@ begin
       v_items := v_items || jsonb_build_object('item', x.fn || ':error_budget', 'subject', x.fn, 'blast', 'customer_facing',
         'affected', x.bad_24h, 'owner_seat', v_owner,
         'title', x.fn || ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h; 30-day availability '
-                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.5 % objective',
+                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.9 % objective',
         'evidence', j || jsonb_build_object('runs_24h', x.runs_24h, 'bad_24h', x.bad_24h, 'runs_30d', x.runs_30d,
                                             'bad_30d', x.bad_30d, 'server_errors_30d', x.err_30d));
     end if;
@@ -121,4 +121,6 @@ select case
     then 'PROBE FAILED: a healthy function is flagged'
   when (public.fn_it_slo_judge(3, 10923, 2500, 3, 3, 3)->>'p95_breach')::boolean
     then 'PROBE FAILED: 3 runs is below the floor and still breached'
+  when not (public.fn_it_slo_judge(20, 900, 2500, 0, 500, 1)->>'budget_breach')::boolean
+    then 'PROBE FAILED: 1 bad run in 500 (99.8 %) does not breach the 99.9 % objective'
   else 'PROBE OK' end as verdict;
