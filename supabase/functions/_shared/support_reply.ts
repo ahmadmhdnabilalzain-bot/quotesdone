@@ -17,8 +17,14 @@
 // every pass. Then — and only then — the caller's old deterministic road runs (fallback()). Nothing is
 // queued from here: the caller already answered, and a replay would send a second reply and pay for it.
 //
+// THE PLAIN-LANGUAGE GATE (founder instruction 1013 item 7): the guarded reply is scored by readability.ts
+// (sentence length, jargon, the customer's language). A failure is rewritten once through the model; a
+// second failure, or the hold, sends the plain canned answer. Every reply's scores are logged for the
+// monthly customer_support self-review (fn_customer_support_monthly_self_review).
+//
 // Tested with a stubbed model (support_reply.test.ts); the model hold is never lifted to test it.
-import { think, type Seat, type ThinkDeps, type Turn } from './think.ts';
+import { taskClassFor, think, type Seat, type ThinkDeps, type Turn } from './think.ts';
+import { checkReadability, rewritePrompt, type Readability } from './readability.ts';
 import { guardSupportReply, type GuardLang } from './support_reply_guard.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
@@ -61,14 +67,28 @@ export interface SupportReply {
   reason?: string;                // why the fallback ran
   model?: string | null;
   violations?: string[];
+  readability?: Readability;      // the plain-language gate's verdict on the reply that went out (1013 item 7)
+  rewritten?: boolean;            // the composed reply failed the gate and was rewritten once
 }
 
 /** The composed reply, or the caller's deterministic road when no model can answer. Never throws. */
 export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fallback: () => Promise<string | null>): Promise<SupportReply> {
+  // Every reply's readability is recorded for the monthly self-review. A failed write never blocks the reply.
+  const logged = async (out: SupportReply): Promise<SupportReply> => {
+    if (out.readability) {
+      try {
+        await deps.rpc('fn_support_reply_readability_log', { p_channel: req.channel, p_lang: req.lang, p_path: out.path,
+          p_rewritten: !!out.rewritten, p_score: out.readability.score, p_tone: out.readability.tone, p_issues: out.readability.issues,
+          p_reason: out.reason ?? null, p_demo: /^ZZ DEMO/.test(req.message) });
+      } catch (_e) { /* the reply matters more than its score */ }
+    }
+    return out;
+  };
   const fall = async (reason: string): Promise<SupportReply> => {
     let text: string | null = null;
     try { text = await fallback(); } catch (_e) { text = null; }
-    return { reply: text ? guardSupportReply(text, req.lang).text : '', path: 'fallback', seat: null, reason };
+    const reply = text ? guardSupportReply(text, req.lang).text : '';
+    return await logged({ reply, path: 'fallback', seat: null, reason, readability: reply ? checkReadability(reply, req.lang) : undefined });
   };
   try {
     let passages = (req.passages ?? []).filter((p) => p && String(p.content || '').trim());
@@ -86,8 +106,24 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       research: false, queueWhenHeld: false, dedupeKey: req.dedupeKey, subject: req.subject,
     });
     if (r.status !== 'answered' || !r.answer.trim()) return await fall(r.reason || 'not_answered');
-    const g = guardSupportReply(r.answer.trim(), req.lang);
-    return { reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations };
+    let g = guardSupportReply(r.answer.trim(), req.lang);
+    let rd = checkReadability(g.text, req.lang);
+    let rewritten = false;
+    if (!rd.ok) {
+      // THE PLAIN-LANGUAGE GATE (1013 item 7): one rewrite through the reasoning path; if that still fails,
+      // the approved canned answer goes out instead of a reply the customer cannot read.
+      const rw = await deps.llm('synthesise', rewritePrompt(req.lang), JSON.stringify({ reply: g.text, problems: rd.issues }),
+        { taskClass: taskClassFor('synthesise', req.audience, false, req.lang), seat: req.seat ?? 'customer_support', max: 600 });
+      let answer = '';
+      try { answer = String(JSON.parse(String(rw.content ?? '').replace(/^```(json)?|```$/g, '').trim())?.answer ?? ''); } catch (_e) { answer = ''; }
+      if (answer.trim()) {
+        const g2 = guardSupportReply(answer.trim(), req.lang);
+        const rd2 = checkReadability(g2.text, req.lang);
+        if (rd2.ok) { g = g2; rd = rd2; rewritten = true; }
+      }
+      if (!rewritten) return await fall('readability: ' + rd.issues.join(' '));
+    }
+    return await logged({ reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations, readability: rd, rewritten });
   } catch (e) {
     return await fall('error: ' + String((e as Error)?.message || e).slice(0, 200));
   }

@@ -73,3 +73,39 @@ Deno.test('the composed reply passes the outgoing guard; an unknown route is not
   assert(!/\bAI\b/.test(r.reply), r.reply);
   assertEquals(r.seat, null);
 });
+
+// ── the plain-language gate (founder instruction 1013 item 7) ──────────────────────────────────────
+const LONG = JSON.stringify({ answer: 'Pursuant to the aforementioned policy and notwithstanding any prior correspondence regarding the RFQ you submitted through the platform, the escalation of your matter will be facilitated by the relevant team within the applicable timeframe once all documentation has been received and reviewed in full by our staff.', reasoning: ['s1: FAQ 41'], cited: [], confidence: 0.8, route: 'customer_support' });
+
+Deno.test('1013/7: a jargon-heavy, one-long-sentence reply is rewritten through the model and the plain rewrite goes out', async () => {
+  const s = stub({ synth: [LONG, JSON.stringify({ answer: 'We have your request. Our team will reply within 2 working days.' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('canned'));
+  assertEquals(r.path, 'reasoned');
+  assertEquals(r.rewritten, true);
+  assertEquals(r.reply, 'We have your request. Our team will reply within 2 working days.');
+  assert(r.readability?.ok);
+  assert(s.rpcs.includes('fn_support_reply_readability_log'), 'the score is logged for the monthly self-review');
+});
+
+Deno.test('1013/7: a rewrite that is still not plain sends the canned answer, never the unreadable one', async () => {
+  const s = stub({ synth: [LONG, LONG], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'where is my quote?', lang: 'en', audience: 'customer' }, () => Promise.resolve('Thanks. Our team will reply soon.'));
+  assertEquals(r.path, 'fallback');
+  assertEquals(r.reply, 'Thanks. Our team will reply soon.');
+  assertMatch(r.reason ?? '', /^readability: /);
+});
+
+Deno.test('1013/7: an Arabic customer who gets an English reply is rewritten into Arabic', async () => {
+  const en = JSON.stringify({ answer: 'Your request is received. We will reply soon.', reasoning: ['s1: FAQ 41'], cited: [], confidence: 0.8, route: 'customer_support' });
+  const s = stub({ synth: [en, JSON.stringify({ answer: 'وصلنا طلبك. سنرد عليك قريبًا.' })], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'وين عرض السعر؟', lang: 'ar', audience: 'customer' }, () => Promise.resolve(null));
+  assertEquals(r.rewritten, true);
+  assertEquals(r.reply, 'وصلنا طلبك. سنرد عليك قريبًا.');
+});
+
+Deno.test('1013/7: a plain reply is not rewritten (no second model call)', async () => {
+  const s = stub({ synth: [ANSWER], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'q', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
+  assertEquals(r.rewritten, false);
+  assertEquals(s.calls.filter((c) => c.phase === 'synthesise').length, 1);
+});
