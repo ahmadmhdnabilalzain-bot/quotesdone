@@ -43,6 +43,7 @@ import type { Figures } from './founder_queries.ts';
 import { type Audience, humanAlert, type Lang, menuItems } from './menu.ts';
 import type { Trade } from './coverage.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
+import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 
@@ -205,8 +206,14 @@ function bidiSafe(s: string): string {
     .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, (m) => LRI + m + PDI)
     .replace(/\+?\d[\d\s\-()]{6,}\d/g, (m) => LRI + m + PDI);
 }
+// Every text to a customer or supplier goes through here: support_reply_guard.ts (no licence number, no
+// "AI", no internal error or prompt wording), then bidi isolation. Only the founder's command-channel
+// replies use bidiSafe alone. support_replies_never_carry_the_licence_or_ai.test.mjs counts the sites.
+function toContact(s: string): string {
+  return bidiSafe(guardSupportReply(s, /[؀-ۿ]/.test(s) ? 'ar' : 'en').text);
+}
 
-const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- A request is sent ONLY to suppliers of the exact trade it names (the trades in public.taxonomy_trade; never a neighbouring trade). Never claim a trade is covered unless the FAQ CONTEXT or FACT PACK names it. New trades are welcome: a supplier can register one we do not list yet. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact. This number is published on our contact page.\n- Operator: QuotesDone Technologies, DET Dubai Trader License No. 1633275.`;
+const FACTS_SHARED = `SHARED FACTS (safe for anyone):\n- QuotesDone is the UAE's anonymous quotation marketplace. A customer describes a job once; the Smart Engine structures it and sends it anonymously to vetted UAE suppliers, who send quotes the customer compares side by side.\n- Customer and supplier identities stay hidden until a paid reveal (anonymous by design). Suppliers never see each other's quotes.\n- A request is sent ONLY to suppliers of the exact trade it names (the trades in public.taxonomy_trade; never a neighbouring trade). Never claim a trade is covered unless the FAQ CONTEXT or FACT PACK names it. New trades are welcome: a supplier can register one we do not list yet. We do NOT cover food & beverage, or services that must be priced by an on-site visit. Minimum job value is AED 500.\n- Coverage: all 7 emirates (Dubai, Abu Dhabi, Sharjah, Ajman, Ras Al Khaimah, Umm Al Quwain, Fujairah).\n- A job can be described by text, voice, photo or drawing.\n- CONTACT A HUMAN: direct line +971 50 931 9355 (call or WhatsApp, Mon-Fri 9am-6pm GST), management@quotesdone.com, or https://quotesdone.com/contact. This number is published on our contact page.\n- Operator: QuotesDone Technologies, Dubai, UAE.`;
 
 const FACTS_CUSTOMER = `CUSTOMER-SIDE FACTS:\n- Posting a job and comparing quotes is FREE for customers. The 3% reveal fee (shown in full before payment; no card fee is ever added) applies ONLY when the customer chooses to reveal a supplier's contact details. No VAT is charged on the reveal fee. If the revealed supplier does not respond, everything the customer paid is refunded.\n- Post a job: https://quotesdone.com/me`;
 
@@ -560,7 +567,7 @@ async function handleInbound(req: Request): Promise<Response> {
         }
         // The answer is already recorded by the routine; a missing offer row must not make it silent.
         if (!text) text = lang === 'ar' ? 'شكرًا لكم، وصلنا ردّكم.' : 'Thank you, we have received your answer.';
-        const replyS = bidiSafe(text.slice(0, 1200));
+        const replyS = toContact(text.slice(0, 1200));
         const enabledS = (await sec('wa_autoreply_enabled')) === 'true';
         let sentS = false; let sendErrS: string | undefined;
         if (enabledS) { const r = await sendWa(From, replyS); sentS = r.ok; sendErrS = r.err; }
@@ -714,7 +721,10 @@ async function handleInbound(req: Request): Promise<Response> {
         try { const m = JSON.parse((await sec('wa_menu_content_sids')) || '{}'); return typeof m[key] === 'string' && /^HX[0-9a-f]{32}$/i.test(m[key]) ? m[key] : null; }
         catch (_e) { return null; }
       },
-      send: (to: string, text: string, content?: Content) => sendWa(to, content ? text : bidiSafe(text.slice(0, 1500)), null, content),
+      // A customer or supplier reply passes support_reply_guard.ts (FAQ rows can carry the licence number);
+      // the founder's own command channel is not a customer surface and is left as it is.
+      send: (to: string, text: string, content?: Content) => sendWa(to, content ? text
+        : (audience === 'founder' ? bidiSafe(text.slice(0, 1500)) : toContact(text.slice(0, 1500))), null, content),
       record: async (row) => {
         try {
           await admin.from('wa_messages').insert({
@@ -916,7 +926,7 @@ async function handleInbound(req: Request): Promise<Response> {
               : 'Sorry — I could not accept that file (' + results[0].replace('not stored — ', '') + '). Please send the trade licence as a PDF or a clear photo, or upload it at https://quotesdone.com/suppliers.';
         }
 
-        reply = bidiSafe(reply.slice(0, 1200));
+        reply = toContact(reply.slice(0, 1200));
         let sent = false; let sendErr: string | undefined;
         if (enabled) { const r = await sendWa(From, reply); sent = r.ok; sendErr = r.err; }
         try {
@@ -976,7 +986,7 @@ async function handleInbound(req: Request): Promise<Response> {
           });
           const out = String(applied?.message || applied?.refusal || '');
           if (out) {
-            const replyD = bidiSafe(out.slice(0, 1200));
+            const replyD = toContact(out.slice(0, 1200));
             const enabledD = (await sec('wa_autoreply_enabled')) === 'true';
             let sentD = false; let sendErrD: string | undefined;
             if (enabledD) { const r = await sendWa(From, replyD); sentD = r.ok; sendErrD = r.err; }
@@ -1070,7 +1080,7 @@ async function handleInbound(req: Request): Promise<Response> {
     const routeAction = String(route?.action || '');
     const detReply = String(route?.deterministic_reply || '');
     if (route && detReply && routeAction === 'send_deterministic') {
-      const replyR = bidiSafe(detReply.slice(0, 1200));
+      const replyR = toContact(detReply.slice(0, 1200));
       const enabledR = (await sec('wa_autoreply_enabled')) === 'true';
       let sentR = false; let sendErrR: string | undefined;
       if (enabledR) { const r = await sendWa(From, replyR); sentR = r.ok; sendErrR = r.err; }
@@ -1223,7 +1233,9 @@ FAQ CONTEXT (may be empty - and may contain facts for the OTHER audience, so sti
       return TW(200);
     }
     if (!reply) reply = 'Thanks for your message. I can help with how QuotesDone works, posting a job, or registering as a supplier. To speak with someone directly, call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
-    reply = bidiSafe(reply);
+    // The model's reply is checked before it is sent (support_reply_guard.ts): no licence number, no "AI",
+    // no internal error or prompt wording.
+    reply = toContact(reply);
 
     const enabled = (await sec('wa_autoreply_enabled')) === 'true';
     let sent = false; let sendErr: string | undefined;
