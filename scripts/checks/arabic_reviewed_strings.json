@@ -1053,6 +1053,9 @@
   "fd666cd4a8ef",
   "fe93b75ba546"
  ],
+ "scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql": [
+  "f03ed6d53816"
+ ],
  "scripts/sql/the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql": [
   "0e3944a15f96",
   "3fbfc9c44cae",
@@ -4438,6 +4441,14 @@
   "90499fad847d",
   "dc67015343c6"
  ],
+ "supabase/functions/_shared/customer_mail.ts": [
+  "4253a24f0090",
+  "586f6f44a448",
+  "6aa95d8fabfb",
+  "7784a68c401d",
+  "9c9347b8a06d",
+  "c607dba157a1"
+ ],
  "supabase/functions/_shared/document_expiry.ts": [
   "a26139843907",
   "cbb176539761",
@@ -4801,6 +4812,13 @@
  "supabase/functions/_shared/supplier_services.ts": [
   "84a6acf814f6"
  ],
+ "supabase/functions/_shared/support_reply_guard.ts": [
+  "1c124ac36381",
+  "24c91058ee6f",
+  "29e16cbb341d",
+  "622dc4a7b5b1",
+  "713903274b9b"
+ ],
  "supabase/functions/_shared/think.ts": [
   "4e2156827796"
  ],
@@ -5028,6 +5046,7 @@
  "supabase/functions/site_assistant/index.ts": [
   "0e0329c97c49",
   "32f673f57030",
+  "35a1a42cc34d",
   "488eec99c14e",
   "4c6a9cec02c0",
   "524c3be9b432",
@@ -5242,6 +5261,7 @@
   "0c779ad88625",
   "4061420fc991",
   "5cbb277245b5",
+  "61e5bb9d6ede",
   "6c8d4e17edaa",
   "c09183a62789",
   "e687fbf0ba76"
