@@ -37,6 +37,15 @@ export type CaseMemory = {
   seat: string; path: string; available: boolean; reason?: string;
   cases: RecalledCase[]; finalised_precedent: boolean; rule: string | null;
   judgement_id?: number | null;   // the seat_judgement row this recall opened (the outcome lands on it)
+  handoffs?: HandoffNote[];       // open handoffs to this seat on this case, each with its note - read FIRST
+};
+// THE HANDOFF NOTE (founder instruction 1013 item 6, 29 Sep 2026). Every handoff carries detail.summary -
+// known / tried / needed / evidence - built by code from the case's rows (scripts/sql/
+// every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql). The receiving seat reads it
+// before its past cases, the way a colleague reads the note on the file before anything else.
+export type HandoffNote = {
+  handoff_id: number; from: string | null; conversation: string | null; opened_at: string; status: string;
+  summary: { known: Record<string, unknown>; tried: Record<string, unknown>; needed: Record<string, unknown>; evidence: string[] };
 };
 
 export const RECALL_EMBED_MS = 1500;
@@ -66,6 +75,7 @@ export async function recallCases(admin: Rpc, o: {
   record?: boolean;                           // default true: every recall opens its judgement row
 }): Promise<CaseMemory> {
   const m = await recallOnly(admin, o);
+  m.handoffs = await handoffNotes(admin, o.seat, o.subject ?? (o.exclude ? { table: o.exclude.table, id: o.exclude.id } : null));
   if (o.record === false) return m;
   // THE RECALL RECORD (learning loop, 23 Sep 2026). Every judgement a seat makes is opened here WITH the
   // memory it recalled, so its real outcome can be written back onto it and the seat's accuracy measured
@@ -81,7 +91,7 @@ export async function recallCases(admin: Rpc, o: {
 }
 
 async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Promise<CaseMemory> {
-  const base = { seat: o.seat, path: o.path, cases: [] as RecalledCase[], finalised_precedent: false, rule: null };
+  const base = { seat: o.seat, path: o.path, cases: [] as RecalledCase[], finalised_precedent: false, rule: null, handoffs: [] as HandoffNote[] };
   const text = String(o.situation || '').trim();
   if (!text) return { ...base, available: false, reason: 'no_situation' };
   try {
@@ -107,9 +117,35 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
   }
 }
 
-/** The block a model path puts in its system prompt. Empty when there is nothing to remember. */
+/** Open handoffs to this seat on this case. Only with a named case: a note never leaks across cases. */
+async function handoffNotes(admin: Rpc, seat: string, subject: Record<string, unknown> | null): Promise<HandoffNote[]> {
+  const id = subject?.id == null ? '' : String(subject.id);
+  if (!id) return [];
+  try {
+    const { data, error } = await admin.rpc('fn_seat_handoff_notes', {
+      p_seat: seat, p_subject_table: subject?.table == null ? null : String(subject.table), p_subject_id: id,
+    });
+    return !error && Array.isArray(data) ? data as HandoffNote[] : [];
+  } catch (_e) { return []; }
+}
+
+/** The handoff notes, the FIRST thing a model path reads. Empty when no handoff is open on the case. */
+export function handoffBlock(m: CaseMemory): string {
+  if (!m.handoffs?.length) return '';
+  const lines = m.handoffs.map((h) => [
+    `handoff #${h.handoff_id} from ${h.from ?? 'a colleague'} (${h.conversation ?? 'handoff'}):`,
+    `  known: ${JSON.stringify(h.summary?.known ?? {}).slice(0, 500)}`,
+    `  tried: ${JSON.stringify(h.summary?.tried ?? {}).slice(0, 500)}`,
+    `  needed: ${JSON.stringify(h.summary?.needed ?? {}).slice(0, 400)}`,
+    `  evidence: ${(h.summary?.evidence ?? []).slice(0, 8).join(', ')}`,
+  ].join('\n'));
+  return `\n\nHANDOFF NOTES ON THIS CASE (read these first; internal, never quoted to a customer):\n${lines.join('\n')}`;
+}
+
+/** The block a model path puts in its system prompt: handoff notes first, then past cases. */
 export function precedentBlock(m: CaseMemory): string {
-  if (!m.cases.length) return '';
+  const notes = handoffBlock(m);
+  if (!m.cases.length) return notes;
   const lines = m.cases.map((c) => [
     `#${c.case_id} [${c.seat}/${c.case_kind}${c.trade ? ', ' + c.trade : ''}] similarity ${c.similarity}, ${c.finalised ? 'FINALISED' : 'NOT finalised'}`,
     `  situation: ${c.situation.slice(0, 400)}`,
@@ -118,7 +154,7 @@ export function precedentBlock(m: CaseMemory): string {
     c.correction ? `  CORRECTED (${c.corrected_by}): ${c.correction.slice(0, 300)}` : '',
     c.lessons?.length ? `  lessons: ${c.lessons.slice(0, 3).join(' / ').slice(0, 400)}` : '',
   ].filter(Boolean).join('\n'));
-  return `\n\nPAST CASES LIKE THIS ONE (institutional memory; identities are masked and must stay masked):\n${lines.join('\n')}\n${m.rule ?? ''}`;
+  return notes + `\n\nPAST CASES LIKE THIS ONE (institutional memory; identities are masked and must stay masked):\n${lines.join('\n')}\n${m.rule ?? ''}`;
 }
 
 /** What goes into a log or a customer-safe answer: case numbers only, never the text. */
@@ -126,4 +162,5 @@ export const recallTrace = (m: CaseMemory) => ({
   available: m.available, reason: m.reason ?? null,
   cases: m.cases.map((c) => ({ case_id: c.case_id, similarity: c.similarity, finalised: c.finalised })),
   finalised_precedent: m.finalised_precedent,
+  handoffs: (m.handoffs ?? []).map((h) => h.handoff_id),
 });
