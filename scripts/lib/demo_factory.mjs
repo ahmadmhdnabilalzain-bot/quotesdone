@@ -111,7 +111,7 @@ export async function keys() {
 export async function call(slug, jwt, body, timeoutMs = 90000) {
   const { ANON } = await keys();
   try {
-    const r = await fetch(`${BASE}/functions/v1/${slug}`, {
+    const r = await fetch(`${BASE}/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1`, {
       method: 'POST',
       headers: { apikey: ANON, Authorization: 'Bearer ' + (jwt || ANON), 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

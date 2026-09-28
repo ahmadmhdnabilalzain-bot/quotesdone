@@ -16,7 +16,6 @@ import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateTwilioKey } from '../_shared/it_rotate_by_api.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
-import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
@@ -1378,7 +1377,7 @@ async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> 
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {
-      const r = await fetch(FN + '/' + fn, { method: 'GET',
+      const r = await fetch(FN + '/' + fn + '?forceFunctionRegion=ap-southeast-1', { method: 'GET',
         headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
         signal: AbortSignal.timeout(8000) });
       await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
