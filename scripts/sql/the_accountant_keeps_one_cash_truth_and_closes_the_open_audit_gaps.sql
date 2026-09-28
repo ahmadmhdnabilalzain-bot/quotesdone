@@ -24,17 +24,28 @@
 --      plus the period lock below, which refuses a posting dated in a closed month.
 
 -- ── 2. one revenue measure ──────────────────────────────────────────────────────────────────────
+-- A reversal names its original in source_ref (fn_gl_reverse: source 'reversal', source_ref = the
+-- original's id) and, from fn_gl_reverse's mutual void, in reverses. The ORIGINAL's reverses points at
+-- its reversal in the older shape (690.reverses = 821). So the test "this row's original is not posted"
+-- starts from the reversal and follows ITS pointer to the original. The first draft started from any
+-- journal pointing AT the row, which is the wrong direction: a posted revenue journal whose reversal was
+-- voided (the reversal pointing back at it) was dropped from revenue (release review, 29 Sep 2026).
+-- Only a POSTED counterpart makes a row a reversal pair; a void one never counted.
 create or replace view public.gl_revenue_lines_measured as
 select l.id as line_id, l.journal_id, j.entry_date, j.source, l.account_code,
        (l.credit - l.debit) as revenue_aed,
-       (j.source = 'reversal' or exists (select 1 from public.gl_journal o where o.reverses = j.id)) as is_reversal
+       (j.source = 'reversal'
+        or exists (select 1 from public.gl_journal o where o.reverses = j.id and o.status = 'posted')) as is_reversal
   from public.gl_journal_lines l
   join public.gl_journal j on j.id = l.journal_id and j.status = 'posted'
   join public.gl_accounts a on a.code = l.account_code and a.type = 'revenue'
- where not exists (select 1 from public.gl_journal o where o.reverses = j.id and o.status <> 'posted');
+ where not (j.source = 'reversal' and exists (
+         select 1 from public.gl_journal o
+          where o.id = coalesce(j.reverses, case when j.source_ref ~ '^[0-9]+$' then j.source_ref::bigint end)
+            and o.status <> 'posted'));
 revoke all on public.gl_revenue_lines_measured from public, anon, authenticated;
 comment on view public.gl_revenue_lines_measured is
-  'Posted revenue lines. A posted reversal of a journal that is itself not posted (void) is excluded, because the original never counted. is_reversal marks a reversal of a posted original, reported on its own line.';
+  'Posted revenue lines. A posted reversal (source reversal) whose original - found from the reversal through reverses or source_ref - is not posted is excluded, because the original never counted. A posted original whose reversal is void is kept. is_reversal marks a reversal, or an original with a POSTED reversal; both are reported on their own line.';
 
 -- ── 1. the forecast reads the one cash truth ────────────────────────────────────────────────────
 create or replace function public.fn_finance_forecast()
