@@ -219,6 +219,7 @@ export const REGISTER = {
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
+  fn_invite_placement_finding: { relay: 'records the inbox-placement verdict fn_invite_placement_settle reached for a sending day (junk, elsewhere or no_check); no seed is sent on a healthy day with the campaign off, so nothing is settled and nothing fires' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },
   fn_it_dropbox_health_record: { baseline: 'rules over a Dropbox API reading passed in as jsonb; the readings are not stored with a time' },
