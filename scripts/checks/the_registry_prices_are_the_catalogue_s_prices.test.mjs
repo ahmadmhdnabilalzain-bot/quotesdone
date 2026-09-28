@@ -36,6 +36,8 @@ const OWNING_SQLS = [
   // The provider re-priced glm-5.3-flash on 24 Sep 2026 (0.15/0.50 -> 0.045/0.60). The correction is
   // a new file, not an edit to the applied one, so it is read LAST and its value wins.
   'scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql',
+  // ...and by 28 Sep 2026 it served 0.15/0.50 again; this later file puts it back and wins.
+  'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
 ];
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
