@@ -11,8 +11,8 @@
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, while two callers still called
 // it). See the CONTRACT note in the handler for what changed on the way back in.
 //
-// Not supported: IFC / RVT. sanitizeOrMessage is given SAFE_CAD, which is dwg + dxf only, so a BIM
-// file is refused as unsupported_type rather than silently guessed at.
+// Not supported: IFC / RVT / DGN, never (founder ruling 1000, 28 Sep 2026: drawings are PDF, DWG and DXF
+// only). sanitizeOrMessage is given SAFE_CAD, which is dwg + dxf only, so such a file is refused as unsupported_type.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

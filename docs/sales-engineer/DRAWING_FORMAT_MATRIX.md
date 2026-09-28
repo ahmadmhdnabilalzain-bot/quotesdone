@@ -1,5 +1,10 @@
 # Drawing format matrix — what the sales engineer reads, counts, prices and shares
 
+> **Superseded in part, 28 Sep 2026 — founder ruling 1000:** drawings are accepted as **PDF, DWG and DXF
+> only**. Revit (.rvt / .rfa), IFC and DGN are never accepted: their readers (`rvt.ts`, `ifc.ts`, `dgn.ts`)
+> and tests were removed, `attachment.ts` allows none of their types, and the portals no longer offer them.
+> The RVT, DGN and IFC rows below are history, not capability.
+
 Seat: `sales_engineer`. Written 24 Sep 2026 for founder instructions 30, 31, 32, 64, 579, 580, 696, 698,
 701 and 703. The capability bar is OpenConstructionERP's README (DWG/DGN/RVT/IFC take-off by
 category, type and level; DWG polylines and calibrated PDF measurement; a scoped BOQ with confidence;
