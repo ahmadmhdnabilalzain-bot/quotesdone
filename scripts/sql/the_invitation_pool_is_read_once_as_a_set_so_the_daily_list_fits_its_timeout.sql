@@ -16,12 +16,33 @@
 --
 -- THE FIX: fn_supplier_invite_eligible_ids() states the SAME rule once over the whole table (anti-joins
 -- the planner can hash), and the two set callers read it. fn_supplier_invite_eligible(leads) stays,
--- unchanged, for every single-row caller. The probe at the foot of this file refuses the apply unless
--- the two agree lead for lead (symmetric difference 0).
+-- unchanged, for every single-row caller.
+--
+-- THIS FILE IS THE ONE DEFINITION OF fn_supplier_invite_candidates FOR BOTH OPEN CHANGES (review of #1051
+-- and #1012, 29 Sep 2026). Both PRs had copied the body of
+-- the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql (MANIFEST 1757),
+-- which chose the Arabic copy and an /ar/portal link for an Arabic-locale lead, instead of the canonical
+-- the_supplier_invitation_ends_with_one_question_and_is_always_english.sql (MANIFEST 1824, #964). Applying
+-- either would have brought Arabic invitations back, and each would have overwritten the other. So:
+--   * fn_supplier_invite_candidates is the 1824 body, byte for byte, with exactly two lines changed:
+--       - the eligibility filter reads fn_supplier_invite_eligible_ids() (#1051, the speed-up);
+--       - {{link}} is built by fn_supplier_invite_link (#1012, the ref), which is always /en/portal and carries
+--         utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-<id>, so a supplier
+--         who registers from an invitation can be attributed (src/lib/firstTouch.ts keeps only utm-tagged links).
+--     lang is still always 'en' and the Arabic subject/body are still never read.
+--   * fn_supplier_invite_link takes no language: there is no argument through which /ar/ could come back.
+--   * #1012 (the funnel diagnosis and first touch) no longer defines either routine; it depends on this file.
+--   * fn_supplier_campaign_next_list is the canonical body of
+--     the_invitations_leave_on_their_own_subdomain_so_a_campaign_cannot_cost_the_sign_up_codes.sql (MANIFEST 1822)
+--     with the pool count reading the set.
 --
 -- MEASURED BEFORE APPLY, inside a transaction that rolled back (28 Sep 2026): the set and row rules agree
 -- on 17,401 eligible leads; fn_supplier_campaign_next_list 13.3 s -> 3.0 s; fn_supplier_invite_candidates(30)
 -- 6.5 s -> 2.3 s; the set query alone 0.7 s.
+--
+-- THE PROBE at the foot RAISES on any failure (review of #1051), so a failed apply takes this file's DDL back
+-- with it: set rule = row rule lead for lead, every candidate English, every candidate link /en/portal with its
+-- ref, and every candidate body ending with the invitation's one question.
 -- prevented by: scripts/checks/the_invitation_pool_set_states_the_row_rule.test.mjs
 
 create or replace function public.fn_supplier_invite_eligible_ids()
@@ -73,21 +94,30 @@ $fn$;
 revoke execute on function public.fn_supplier_invite_eligible_ids() from public, anon, authenticated;
 grant execute on function public.fn_supplier_invite_eligible_ids() to service_role;
 
-CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer)
+-- The invitation link: always English, and it carries its ref (from #1012). No language argument on purpose.
+create or replace function public.fn_supplier_invite_link(p_site text, p_token uuid, p_lead_id bigint)
+returns text
+language sql immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(nullif(btrim(p_site), ''), 'https://quotesdone.com') || '/en/portal?t=' || p_token::text
+         || '&utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-' || p_lead_id::text
+$fn$;
+revoke execute on function public.fn_supplier_invite_link(text, uuid, bigint) from public, anon, authenticated;
+
+create or replace function public.fn_supplier_invite_candidates(p_limit integer)
  RETURNS TABLE(lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_site text; v_target int;
-  v_subj text; v_body text; v_subj_ar text; v_body_ar text;
+  v_subj text; v_body text;
 begin
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
   v_site := coalesce(v_site, 'https://quotesdone.com');
   select value into v_subj    from app_secrets where key = 'invite_subject';
   select value into v_body    from app_secrets where key = 'invite_body';
-  select value into v_subj_ar from app_secrets where key = 'invite_subject_ar';
-  select value into v_body_ar from app_secrets where key = 'invite_body_ar';
   -- A template without the link placeholder is the 62-invitations-with-no-way-in failure. Refuse.
   if coalesce(v_body, '') not like '%{{link}}%' then
     raise exception 'app_secrets.invite_body has no {{link}} placeholder: an invitation with no way in is refused';
@@ -129,10 +159,10 @@ begin
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
-           -- Arabic only where the lead's own locale says so AND the Arabic copy exists; otherwise
-           -- English, which is also what a04 assumes for an unregistered recipient.
-           case when (lower(coalesce(l.locale, '')) like 'ar%' or coalesce(l.company_name, '') ~ '[؀-ۿ]') and coalesce(v_body_ar, '') like '%{{link}}%'   -- the language from the name too (#916, the_supplier_invitation_reads_the_language_from_the_name_and_skips_a_suppressed_address.sql)
-                     and coalesce(v_subj_ar, '') <> '' then 'ar' else 'en' end as lang
+           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4: "invitations always in English"). Until this file
+           -- a lead with an Arabic locale or an Arabic company name was given invite_body_ar: 116 of 6,863
+           -- eligible leads on 24 Sep 2026.
+           'en'::text as lang
     from leads l join keyed k on k.id = l.id
     where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
@@ -171,19 +201,13 @@ begin
     order by r.target_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang,
-         case when e.lang = 'ar' then v_subj_ar else v_subj end,
-         replace(
-           replace(case when e.lang = 'ar'
-                        then case when coalesce(btrim(e.company_name), '') = ''
-                                  then replace(v_body_ar, 'السادة/ {{company}} المحترمين،', 'السادة الكرام،')
-                                  else v_body_ar end
-                        else v_body end,
-                   '{{company}}', coalesce(nullif(btrim(e.company_name),''), case when e.lang = 'ar' then 'الكرام' else 'there' end)),
-           '{{link}}', v_site || '/' || e.lang || '/portal?t=' || e.claim_token::text)
+  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
+         replace(replace(v_body, '{{company}}', coalesce(nullif(btrim(e.company_name),''), 'there')),
+                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))   -- English, with its ref (see header)
   from elig e;
 end
 $function$;
+revoke execute on function public.fn_supplier_invite_candidates(integer) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_campaign_next_list(p_after date DEFAULT NULL::date)
  RETURNS jsonb
@@ -227,13 +251,38 @@ begin
   return jsonb_build_object('send_day', v_day, 'skipped', v_skipped, 'switch_on', v_switch, 'held_because', v_held,
                             'cap', v_cap, 'pool', v_pool, 'planned', v_n, 'rows', v_rows);
 end $function$;
+revoke execute on function public.fn_supplier_campaign_next_list(date) from public, anon, authenticated;
 
--- PROBE (reads only; this file holds DDL, so it returns a verdict row instead of raising).
-with row_rule as (select l.id from public.leads l where public.fn_supplier_invite_eligible(l)),
-     set_rule as (select e.id from public.fn_supplier_invite_eligible_ids() e(id)),
-     diff as ((select id from row_rule except select id from set_rule)
-              union all (select id from set_rule except select id from row_rule))
-select case when (select count(*) from diff) = 0 and (select count(*) from set_rule) > 0
-            then 'PROBE OK: the set rule and the row rule agree on ' || (select count(*) from set_rule) || ' eligible lead(s)'
-            else 'PROBE FAILED: the set rule and the row rule disagree on ' || (select count(*) from diff)
-                 || ' lead(s) (row ' || (select count(*) from row_rule) || ', set ' || (select count(*) from set_rule) || ')' end as verdict;
+-- PROBE. Reads only. It RAISES on any failure, which rolls back this whole file: a set rule that disagrees with
+-- the row rule, or an invitation that is not English or has lost its ref, is never left live.
+do $probe$
+declare v_row int; v_set int; v_diff int; v_n int; v_not_en int; v_bad_link int; v_no_q int;
+begin
+  select count(*) into v_row from public.leads l where public.fn_supplier_invite_eligible(l);
+  select count(*) into v_set from public.fn_supplier_invite_eligible_ids();
+  select count(*) into v_diff from (
+    (select l.id from public.leads l where public.fn_supplier_invite_eligible(l)
+     except select e.id from public.fn_supplier_invite_eligible_ids() e(id))
+    union all
+    (select e.id from public.fn_supplier_invite_eligible_ids() e(id)
+     except select l.id from public.leads l where public.fn_supplier_invite_eligible(l))) d;
+  if v_diff <> 0 or v_set = 0 then
+    raise exception 'PROBE FAILED: the set rule and the row rule disagree on % lead(s) (row %, set %)', v_diff, v_row, v_set;
+  end if;
+
+  select count(*),
+         count(*) filter (where c.lang is distinct from 'en'),
+         count(*) filter (where coalesce(c.body, '') !~ ('/en/portal[?]t=[0-9a-f-]{36}&utm_source=invite&utm_medium=email'
+                                                         || '&utm_campaign=supplier_invite&utm_content=lead-' || c.lead_id || '(\s|$)')
+                             or coalesce(c.body, '') ~ '/ar/portal'),
+         count(*) filter (where rtrim(coalesce(c.body, '')) not like '%which trades does your company cover?')
+    into v_n, v_not_en, v_bad_link, v_no_q
+    from public.fn_supplier_invite_candidates(50) c;
+  if v_not_en > 0 then raise exception 'PROBE FAILED: % of % candidate(s) are not English', v_not_en, v_n; end if;
+  if v_bad_link > 0 then raise exception 'PROBE FAILED: % of % candidate link(s) are not /en/portal with their ref', v_bad_link, v_n; end if;
+  if v_no_q > 0 then raise exception 'PROBE FAILED: % of % candidate body(ies) do not end with the question', v_no_q, v_n; end if;
+end
+$probe$;
+
+select 'PROBE OK: set rule = row rule on ' || (select count(*) from public.fn_supplier_invite_eligible_ids())
+       || ' lead(s); every candidate English, /en/portal with its ref, ending with the question' as verdict;
