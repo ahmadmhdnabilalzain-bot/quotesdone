@@ -447,6 +447,11 @@
   "ff564000c32a",
   "ffafacc477aa"
  ],
+ "scripts/sql/a_claimed_company_cannot_be_registered_twice_under_another_spelling_or_the_same_licence.sql": [
+  "24c7d3a2ff4f",
+  "ae0e6ff1cdcf",
+  "e5a8a05b7684"
+ ],
  "scripts/sql/a_confirmed_service_is_a_taxonomy_key_not_a_word.sql": [
   "496a302c86b0",
   "ec42828d58cb"

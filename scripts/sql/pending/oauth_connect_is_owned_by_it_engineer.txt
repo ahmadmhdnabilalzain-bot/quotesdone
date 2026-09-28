@@ -1,2 +1,0 @@
-Not applied yet: the release operator applies it together with the deploy of supabase/functions/oauth_connect.
-When applied, delete this note and append the .sql to the END of scripts/sql/MANIFEST.txt.

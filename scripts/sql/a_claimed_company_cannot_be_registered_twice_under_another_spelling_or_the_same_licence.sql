@@ -121,7 +121,7 @@ as $fn$
 $fn$;
 
 comment on function public.fn_company_registration_name_key(text) is
-  'The key two claimed companies may not share (leads_claimed_company_name_uidx). Folds case, whitespace, punctuation, HTML entities, & = and, Arabic letter forms, and the SPELLING of a legal form (L.L.C = LLC = ذ.م.م, F.Z.E = FZE, FZ-LLC = FZLLC, Establishment = EST, Company = CO). Drops no word: the legal form stays part of the key, so an FZE and an LLC of the same words are two companies.';
+  'The key two claimed companies may not share (leads_claimed_company_name_uidx). Folds case, whitespace, punctuation, HTML entities, & = and, Arabic letter forms, and the SPELLING of a legal form (L.L.C = LLC = the Arabic abbreviation of LLC, F.Z.E = FZE, FZ-LLC = FZLLC, Establishment = EST, Company = CO). Drops no word: the legal form stays part of the key, so an FZE and an LLC of the same words are two companies.';
 
 -- ---------------------------------------------------------------------------------------------
 -- 2. THE LICENCE KEY
