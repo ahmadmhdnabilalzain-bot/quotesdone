@@ -1,0 +1,3 @@
+Not applied: built and proved by a rolled-back probe on 28 Sep 2026 (seat audit items 1-6, G2-G7), held for review. Re-proved 29 Sep 2026 after the release review fixed the direction of the gl_revenue_lines_measured reversal filter (posted revenue with a voided reversal is kept; the probe now carries that case).
+Apply with: node scripts/apply_sql.mjs scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql --apply --ddl
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit. Seat: accountant.
