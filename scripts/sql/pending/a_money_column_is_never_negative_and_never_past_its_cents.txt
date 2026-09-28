@@ -1,2 +1,0 @@
-Committed, not applied. Seat: accountant. The session that wrote it was told not to apply before merge.
-After merge, outside a campaign hour (it takes a short lock on leads, 19,905 rows): node scripts/apply_sql.mjs scripts/sql/a_money_column_is_never_negative_and_never_past_its_cents.sql --apply --ddl, expect PROBE OK, regenerate the schema mirror, then delete this note and append the file to the END of MANIFEST.txt in one commit.
