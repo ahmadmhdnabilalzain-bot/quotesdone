@@ -101,6 +101,9 @@ begin
     'open', (select count(*) from public.ceo_improvement where status in ('open', 'assigned')));
 end $function$;
 
+-- Explicit, though CREATE OR REPLACE keeps the existing closed ACL (release review 28 Sep 2026).
+revoke execute on function public.fn_ceo_improvement_sweep() from public, anon, authenticated;
+
 -- ONE-OFF CLEANUP, 28 Sep 2026. Keeps the lowest id per (seat, case_kind, lesson), re-keys it to the new
 -- dedupe key, and supersedes the rest. Rows are updated, never deleted.
 do $cleanup$

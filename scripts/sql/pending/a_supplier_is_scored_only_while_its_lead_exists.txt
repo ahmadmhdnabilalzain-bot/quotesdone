@@ -1,3 +1,0 @@
-Committed, not applied: the release operator (C:/Users/Opera/qd-release.lock) applies it. When applied: delete this
-note, append the .sql to the END of MANIFEST.txt, confirm PROBE OK and that seat_duty sales_engineer.supplier_performance
-runs ok on its next tick (finding seat_duty:sales_engineer.supplier_performance then closes). Seat: sales_engineer.

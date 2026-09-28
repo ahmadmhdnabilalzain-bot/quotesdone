@@ -55,9 +55,10 @@ test('the fail-closed rules stand: no title block, a low-confidence title block,
   assert.match(checks, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
 });
 
-test('the queue reason is added by a file that is pending, not applied and not in the MANIFEST', () => {
+test('the queue reason is added by a file that is either pending or applied with a MANIFEST line, never both', () => {
   const sql = read(SQL);
   assert.ok(sql.includes("check (why in ('over_edge_ceiling', 'edge_worker_died', 'edge_reader_failed', 'pdf_lengths_worker_died', 'scan_needs_ocr'))"));
-  assert.ok(existsSync(new URL('../../scripts/sql/pending/a_scanned_drawing_is_queued_for_ocr_redaction.txt', import.meta.url)), 'no pending note');
-  assert.ok(!read('scripts/sql/MANIFEST.txt').split('\n').includes(SQL), 'a pending file must not have a MANIFEST line');
+  const pending = existsSync(new URL('../../scripts/sql/pending/a_scanned_drawing_is_queued_for_ocr_redaction.txt', import.meta.url));
+  const inManifest = read('scripts/sql/MANIFEST.txt').split('\n').includes(SQL);
+  assert.ok(pending !== inManifest, 'exactly one of: a pending note, or a MANIFEST line (applied 28 Sep 2026)');
 });

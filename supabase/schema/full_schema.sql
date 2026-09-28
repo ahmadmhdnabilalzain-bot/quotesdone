@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T11:33:32.507Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T11:54:38.827Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27881,7 +27881,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_improvement_sweep()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; n_new int := 0; n_done int := 0; c_id bigint; v bigint;
+declare r record; n_new int := 0; n_done int := 0; c_id bigint; v bigint; v_ans timestamptz;
 begin
   select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
 
@@ -27897,13 +27897,16 @@ begin
     n_new := n_new + (v is not null)::int;
   end loop;
 
-  -- a lesson a seat wrote down (seat_case_memory) in the last 30 days becomes a change to its routine
-  for r in select m.id, m.seat, m.case_kind, m.lessons[1] as lesson from public.seat_case_memory m
+  -- a lesson a seat wrote down in the last 30 days becomes ONE change to its routine: keyed on the
+  -- lesson, not on the case, so the tenth case with the same lesson finds the first improvement.
+  for r in select m.seat, m.case_kind, m.lessons[1] as lesson, max(m.id) as last_case, count(*) as cases
+             from public.seat_case_memory m
             where cardinality(m.lessons) > 0 and coalesce(m.updated_at, m.opened_at) > now() - interval '30 days'
-              and exists (select 1 from public.org_role o where o.role_id = m.seat and o.status = 'active') loop
-    v := public.fn_ceo_improvement_open('lesson', 'seat_case_memory:' || r.id, r.seat,
+              and exists (select 1 from public.org_role o where o.role_id = m.seat and o.status = 'active')
+            group by 1, 2, 3 loop
+    v := public.fn_ceo_improvement_open('lesson', 'lesson:' || r.seat || ':' || md5(r.case_kind || '|' || r.lesson), r.seat,
       format('Make this lesson part of the routine, so the same case does not come back: %s', r.lesson),
-      jsonb_build_object('case_memory_id', r.id, 'case_kind', r.case_kind));
+      jsonb_build_object('case_memory_id', r.last_case, 'case_kind', r.case_kind, 'lesson', r.lesson, 'cases', r.cases));
     n_new := n_new + (v is not null)::int;
   end loop;
 
@@ -27918,8 +27921,10 @@ begin
     end if;
   end loop;
 
-  -- tracked to done
-  for r in select i.* from public.ceo_improvement i where i.status in ('open', 'assigned') loop
+  -- tracked to done: the CEO is the originator, re-verifies, and is the one who closes
+  for r in select i.*, coalesce(i.evidence->>'lesson',
+                                (select m.lessons[1] from public.seat_case_memory m where m.id = (i.evidence->>'case_memory_id')::bigint)) as lesson
+             from public.ceo_improvement i where i.status in ('open', 'assigned') loop
     if r.source_kind in ('recurring_miss', 'month_miss')
        and (select count(*) filter (where d.status in ('on_track', 'within_tolerance')) = 7 and count(*) = 7
               from public.target_daily_verdict d where d.contract_id = c_id and d.metric_key = r.evidence->>'metric'
@@ -27930,10 +27935,19 @@ begin
        and exists (select 1 from public.it_engineer_finding f where f.issue_key = r.source_ref and f.closed_at is not null) then
       perform public.fn_ceo_improvement_close(r.id, format('Finding %s closed.', r.source_ref));
       n_done := n_done + 1;
-    elsif r.source_kind = 'lesson' and r.created_at < now() - interval '30 days'
-       and not exists (select 1 from public.seat_case_memory m where m.seat = r.seat and m.case_kind = r.evidence->>'case_kind' and m.opened_at > r.created_at) then
-      perform public.fn_ceo_improvement_close(r.id, format('No repeat of a %s case for %s in the 30 days since the lesson was assigned.', r.evidence->>'case_kind', r.seat));
-      n_done := n_done + 1;
+    elsif r.source_kind = 'lesson' and r.lesson is not null then
+      -- answered = the seat replied on the handoff (or there was no handoff: the CEO's own lesson)
+      select coalesce((a.detail->>'replied_at')::timestamptz, a.decided_at) into v_ans
+        from public.agent_actions a where a.id = r.handoff_id;
+      if r.handoff_id is null then v_ans := r.created_at; end if;
+      if v_ans is not null
+         and not exists (select 1 from public.seat_case_memory m
+                          where m.seat = r.seat and m.case_kind = r.evidence->>'case_kind' and m.lessons[1] = r.lesson
+                            and (not coalesce(m.finalised, false) or m.opened_at > v_ans)) then
+        perform public.fn_ceo_improvement_close(r.id, format('Re-verified by the CEO: every %s case of %s carrying this lesson is finalised and none has opened since the answer (%s).',
+                                                             r.evidence->>'case_kind', r.seat, v_ans));
+        n_done := n_done + 1;
+      end if;
     end if;
   end loop;
   return jsonb_build_object('proposed', n_new, 'closed', n_done,
@@ -64218,12 +64232,14 @@ begin
   v_refreshed := public.fn_supplier_score_refresh();
   -- WEIGHTED OVER WHAT WAS MEASURED: reliability 0.5, the customers' rating 0.3, disputes 0.2 (only once a customer
   -- has reviewed him). A part that does not exist is left out of both sides of the average, never counted as zero.
+  -- Only a supplier whose lead still exists is scored: supplier_performance keys on leads(id).
   with parts as (
     select s.lead_id,
            case when s.reliability is not null then least(1, greatest(0, s.reliability / 100.0)) end as rel,
            case when s.quality_rating is not null then least(1, greatest(0, s.quality_rating / 100.0)) end as qual,
            case when coalesce(r.review_count, 0) > 0 then 1 - least(1, greatest(0, coalesce(r.dispute_rate_pct, 0) / 100.0)) end as disp
       from public.supplier_score s
+      join public.leads l on l.id = s.lead_id
       left join public.supplier_reputation r on r.supplier_id = s.lead_id
      where s.reliability is not null or s.quality_rating is not null or coalesce(r.review_count, 0) > 0
   )
