@@ -22,8 +22,10 @@
 --     caller wrote, and a supplier-bound row carrying any Arabic script is replaced by the English copy
 --     (notification_copy) - the last net, so a new caller that forgets cannot reach a supplier in Arabic.
 --     A customer row about an inquiry takes the inquiry's language.
---  4. notifications_supplier_is_english: a CHECK that no supplier-bound row is lang 'ar' (NOT VALID: the
---     five historical seed rows stay as the record of what was sent; every new or updated row is checked).
+--  4. z05_notifications_supplier_is_english: a trigger that refuses a supplier-bound row in any language but
+--     English on insert, and on an update that changes its lang, subject, body or to_role. Not a CHECK: a
+--     NOT VALID CHECK still runs on every update, and would have refused the delivery/bounce webhooks'
+--     status update on the five historical seed rows, which stay unrewritten as the record of what was sent.
 --  5. The routines that read leads.locale or the company name themselves now write English to a supplier:
 --     fn_rfq_short_of_quotes_tick, fn_sales_engineer_supplier_documents_tick,
 --     fn_sales_engineer_supplier_onboarding, fn_supplier_portfolio_reminder_compose,
@@ -156,9 +158,38 @@ begin
 end $function$;
 
 -- ── 4. the rule in the schema ──────────────────────────────────────────────────────────────────────────
+-- A trigger, not a CHECK (release review, 29 Sep 2026). A NOT VALID CHECK is still evaluated on EVERY
+-- update of a row, so the delivery and bounce webhooks' status update on the five historical Arabic
+-- seed rows (37425, 38444, 69940, 69976, 70174) would have failed with 23514 and the outbox would have
+-- lost their delivery state. The rule is enforced when a row is written and whenever its language,
+-- wording or recipient role changes; a status-only update of a historical row passes, and the five
+-- rows' content is never rewritten. It runs after a04 (BEFORE triggers fire in name order), so on
+-- insert it sees the language a04 settled on.
 alter table public.notifications drop constraint if exists notifications_supplier_is_english;
-alter table public.notifications add constraint notifications_supplier_is_english
-  check (coalesce(to_role, '') <> 'supplier' or coalesce(lang, 'en') = 'en') not valid;
+
+create or replace function public.fn_notifications_supplier_is_english()
+returns trigger
+language plpgsql
+set search_path to 'public', 'pg_temp'
+as $function$
+begin
+  if tg_op = 'UPDATE'
+     and old.lang is not distinct from new.lang and old.subject is not distinct from new.subject
+     and old.body is not distinct from new.body and old.to_role is not distinct from new.to_role then
+    return new;
+  end if;
+  if coalesce(new.to_role, '') = 'supplier' and coalesce(new.lang, 'en') <> 'en' then
+    raise exception 'notifications_supplier_is_english: a supplier is always written in English (notification %, lang %)',
+      new.id, new.lang using errcode = '23514';
+  end if;
+  return new;
+end $function$;
+revoke execute on function public.fn_notifications_supplier_is_english() from public, anon, authenticated;
+
+drop trigger if exists z05_notifications_supplier_is_english on public.notifications;
+create trigger z05_notifications_supplier_is_english
+  before insert or update of lang, subject, body, to_role on public.notifications
+  for each row execute function public.fn_notifications_supplier_is_english();
 
 -- ── 5. the routines that chose the supplier's language themselves ──────────────────────────────────────
 

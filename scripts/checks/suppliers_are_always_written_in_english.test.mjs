@@ -15,7 +15,8 @@
 //       replace a supplier row that carries Arabic;
 //     - no routine may choose a language from a lead's locale or from Arabic script in a company name,
 //       except the ones listed in READS_LEADS_LOCALE_NOT_FOR_A_MESSAGE with the reason;
-//     - notifications must carry the notifications_supplier_is_english CHECK and inquiries the lang column.
+//     - notifications must carry the z05_notifications_supplier_is_english guard trigger (never a CHECK: a
+//       CHECK refuses a status update on the five historical rows) and inquiries the lang column.
 //   The senders: send_outbox's frame and send_whatsapp's template language refuse Arabic for a supplier;
 //   supplier_api and its review flow take SUPPLIER_LOCALE, never leads.locale or the request's language;
 //   customer_api create_inquiry stores the page language on every inquiries insert.
@@ -93,9 +94,17 @@ test('no routine chooses a supplier\'s language from leads.locale or an Arabic c
   assert.deepEqual(bad, [], 'a supplier could be written in Arabic again:\n  ' + bad.join('\n  '));
 });
 
-test('the schema carries the rule: the supplier CHECK and the inquiry language', () => {
+test('the schema carries the rule: the supplier guard trigger and the inquiry language', () => {
   const all = order.filter((p) => existsSync(new URL(p, ROOT))).map(read).join('\n');
-  assert.match(code(all), /add constraint notifications_supplier_is_english\s+check \(coalesce\(to_role, ''\) <> 'supplier' or coalesce\(lang, 'en'\) = 'en'\)/i);
+  // A trigger, not a CHECK (release review of #1065, 29 Sep 2026): a NOT VALID CHECK still runs on every
+  // UPDATE, so the delivery/bounce webhooks' status update on the five historical Arabic seed rows failed.
+  // The guard fires on insert and on an update of lang/subject/body/to_role only, never on status.
+  assert.doesNotMatch(code(all), /add constraint notifications_supplier_is_english/i,
+    'a CHECK on notifications would refuse a status update on the historical Arabic supplier rows');
+  assert.match(code(all), /create trigger z05_notifications_supplier_is_english\s+before insert or update of lang, subject, body, to_role on public\.notifications/i);
+  const g = body('fn_notifications_supplier_is_english');
+  assert.match(g, /old\.lang is not distinct from new\.lang/i, 'the guard must let an update that leaves the language alone through');
+  assert.match(g, /coalesce\(new\.to_role, ''\) = 'supplier' and coalesce\(new\.lang, 'en'\) <> 'en'/i);
   assert.match(code(all), /alter table public\.inquiries add column if not exists lang text/i);
   assert.match(code(all), /create trigger a00_inquiries_lang_default before insert on public\.inquiries/i);
 });
