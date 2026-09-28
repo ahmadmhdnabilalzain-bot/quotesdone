@@ -1,0 +1,142 @@
+{
+  "seat": "ceo",
+  "standard": "founder_instruction 889, 893, 894: professional knowledge for the seat's own work",
+  "items": [
+    {
+      "id": "ceo-exam-01",
+      "checklist": "CEO-PRO",
+      "q_en": "Do we have one network effect across the whole marketplace?",
+      "q_ar": "هل لدينا أثر شبكة واحد على مستوى السوق كله؟",
+      "expected_entry_ids": [
+        "ceo:network-effects-and-defensibility"
+      ],
+      "expected_facts": [
+        "one network per trade and area"
+      ]
+    },
+    {
+      "id": "ceo-exam-02",
+      "checklist": "CEO-PRO",
+      "q_en": "Should we add escrow so the marketplace is more managed?",
+      "q_ar": "هل نضيف حساب ضمان لتصبح المنصة أكثر إدارة؟",
+      "expected_entry_ids": [
+        "ceo:managed-vs-unmanaged-marketplace"
+      ],
+      "expected_facts": [
+        "lightly managed",
+        "founder"
+      ]
+    },
+    {
+      "id": "ceo-exam-03",
+      "checklist": "CEO-PRO",
+      "q_en": "What is the burn multiple and what counts as bad?",
+      "q_ar": "ما هو مضاعف الحرق ومتى يُعد سيئاً؟",
+      "expected_entry_ids": [
+        "ceo:burn-multiple-capital-efficiency"
+      ],
+      "expected_facts": [
+        "net burn divided by net new",
+        "above 3 bad"
+      ]
+    },
+    {
+      "id": "ceo-exam-04",
+      "checklist": "CEO-PRO",
+      "q_en": "An investor puts in AED 500,000 at AED 2,000,000 pre-money. What does he own?",
+      "q_ar": "مستثمر يضع 500,000 درهم بتقييم قبل الاستثمار 2,000,000 درهم، ما حصته؟",
+      "expected_entry_ids": [
+        "ceo:dilution-and-use-of-funds"
+      ],
+      "expected_facts": [
+        "the investor 20%"
+      ]
+    },
+    {
+      "id": "ceo-exam-05",
+      "checklist": "CEO-PRO",
+      "q_en": "How should subscription revenue be reported each month?",
+      "q_ar": "كيف تُعرض إيرادات الاشتراكات كل شهر؟",
+      "expected_entry_ids": [
+        "ceo:subscription-metrics-mrr-nrr"
+      ],
+      "expected_facts": [
+        "bridge of the four movements"
+      ]
+    },
+    {
+      "id": "ceo-exam-06",
+      "checklist": "CEO-PRO",
+      "q_en": "What does net revenue retention above 100% mean?",
+      "q_ar": "ماذا يعني الاحتفاظ الصافي بالإيراد فوق 100%؟",
+      "expected_entry_ids": [
+        "ceo:subscription-metrics-mrr-nrr"
+      ],
+      "expected_facts": [
+        "existing base grows on its own"
+      ]
+    },
+    {
+      "id": "ceo-exam-07",
+      "checklist": "CEO-PRO",
+      "q_en": "What goes into a board-quality monthly pack?",
+      "q_ar": "ماذا تتضمن الحزمة الشهرية بمستوى مجلس الإدارة؟",
+      "expected_entry_ids": [
+        "ceo:board-pack-structure"
+      ],
+      "expected_facts": [
+        "decisions requested",
+        "runway"
+      ]
+    },
+    {
+      "id": "ceo-exam-08",
+      "checklist": "CEO-PRO",
+      "q_en": "Can a seat sign a guarantee on behalf of the company?",
+      "q_ar": "هل يجوز لمقعد توقيع كفالة نيابة عن الشركة؟",
+      "expected_entry_ids": [
+        "ceo:llc-manager-duties-and-liability"
+      ],
+      "expected_facts": [
+        "Federal Decree-Law No. 32 of 2021",
+        "written authority"
+      ]
+    },
+    {
+      "id": "ceo-exam-09",
+      "checklist": "CEO-PRO",
+      "q_en": "Which strategic powers can QuotesDone realistically build first?",
+      "q_ar": "ما القوى الاستراتيجية التي يمكن لكوتس دن بناؤها أولاً بواقعية؟",
+      "expected_entry_ids": [
+        "ceo:seven-powers-strategy"
+      ],
+      "expected_facts": [
+        "counter-positioning"
+      ]
+    },
+    {
+      "id": "ceo-exam-10",
+      "checklist": "CEO-PRO",
+      "q_en": "What is the buyer really hiring QuotesDone to do?",
+      "q_ar": "ما المهمة التي يوظف المشتري كوتس دن لإنجازها فعلاً؟",
+      "expected_entry_ids": [
+        "ceo:jobs-to-be-done"
+      ],
+      "expected_facts": [
+        "comparable, compliant quotations"
+      ]
+    },
+    {
+      "id": "ceo-exam-11",
+      "checklist": "CEO-PRO",
+      "q_en": "Can we count on a Dubai SME grant in the forecast?",
+      "q_ar": "هل يمكن احتساب منحة دبي للمشاريع الصغيرة في التوقعات؟",
+      "expected_entry_ids": [
+        "ceo:non-dilutive-capital-uae"
+      ],
+      "expected_facts": [
+        "treat anything unconfirmed as zero"
+      ]
+    }
+  ]
+}
