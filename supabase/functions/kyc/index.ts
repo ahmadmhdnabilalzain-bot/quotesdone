@@ -24,7 +24,9 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // costs ~0.2-0.3 s from the US and ~0.1 s from India; 'state' made five in a row and send_sms up to nine. The
 // fix is fewer serial trips: secrets are cached per isolate for a minute, the reads every action needs go out
 // together, and the audit rows are written after the response. A minute is well inside a rotation's overlap
-// (a_rotated_credential_stays_valid_until_the_run_that_retires_it.sql), so a cached key is never a dead one.
+// (a_rotated_credential_stays_valid_until_the_run_that_retires_it.sql; for the Twilio API key never under 24 h,
+// a_provider_key_the_estate_can_rotate_by_api_is_rotated_and_recorded.sql), and a Twilio 401 re-reads the pair
+// (twilioVerifyPost below), so a cached key is never a dead one.
 const SEC_TTL_MS = 60_000;
 const _sec = new Map<string, { v: string | null; at: number }>();
 async function sec(k: string): Promise<string | null> {
@@ -76,13 +78,28 @@ async function phoneRateLimited(phone: string, email: string): Promise<boolean> 
   const mine = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
   return (mine.count || 0) >= KYC_PHONE_SENDS_PER_ACCOUNT_HOUR;
 }
+// A 401 FROM TWILIO RE-READS THE KEY AND TRIES ONCE MORE (29 Sep 2026, review of #1038). The pair is cached for
+// up to SEC_TTL_MS, and it_engineer now rotates the Twilio API key by API. The old key is kept for at least 24 h
+// after a rotation, so a cached key should never be a deleted one; this is the second line: a rejected key drops
+// the cached pair, reads app_secrets again and retries once, only if the pair actually changed.
+const TW_KEYS = ['twilio_api_key_sid', 'twilio_api_key_secret', 'twilio_verify_service_sid'];
+async function twilioVerifyPost(tw: TwAuth, path: string, body: URLSearchParams): Promise<Response> {
+  const post = () => timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/${path}`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+  let r = await post();
+  if (r.status === 401) {
+    for (const k of TW_KEYS) _sec.delete(k);
+    const fresh = await twilioAuth();
+    if (fresh && (fresh.hdr !== tw.hdr || fresh.va !== tw.va)) { tw.hdr = fresh.hdr; tw.va = fresh.va; r = await post(); }
+  }
+  return r;
+}
 async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
+  const r = await twilioVerifyPost(tw, 'Verifications', new URLSearchParams({ To: phone, Channel: channel, Locale: locale }));
   const jd: any = await r.json().catch(() => ({}));
   return { r, jd };
 }
 async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boolean> {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
+  const r = await twilioVerifyPost(tw, 'VerificationCheck', new URLSearchParams({ To: phone, Code: code }));
   const jd: any = await r.json().catch(() => ({}));
   return jd?.status === 'approved';
 }

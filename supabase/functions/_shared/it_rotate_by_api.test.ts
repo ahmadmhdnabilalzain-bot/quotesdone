@@ -1,11 +1,14 @@
 // deno test supabase/functions/_shared/it_rotate_by_api.test.ts
-// Replays the three ways a rotation can go: it works, the new key does not authenticate, the store fails.
-// The rule under test: the old key is never left without a working replacement, and no secret leaves the module.
+// Replays the ways a rotation can go: it works, the new key does not authenticate, the store fails, there is no
+// baseline yet, and a retire row names the key in use.
+// The rule under test: the old key is never left without a working replacement, the key in use is never deleted,
+// the first run never rotates (it records when the current key was created), and no secret leaves the module.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { rotateTwilioKey, type RotateDeps } from './it_rotate_by_api.ts';
 
 const SECRET = 'new-secret-value-never-returned';
-function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; retireDue?: { id: number; old_ref: string }[] } = {}) {
+function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
+                   retireDue?: { id: number; old_ref: string }[] } = {}) {
   const calls: string[] = []; const rpcs: [string, Record<string, unknown> | undefined][] = [];
   const d: RotateDeps = {
     sleep: async () => {},
@@ -13,7 +16,7 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; reti
     rpc: async (fn, args) => {
       rpcs.push([fn, args]);
       if (fn === 'fn_it_provider_rotation_retire_due') return o.retireDue ?? [];
-      if (fn === 'fn_it_provider_rotation_claim') return { due: o.due ?? true };
+      if (fn === 'fn_it_provider_rotation_claim') return o.baselineNeeded ? { due: false, baseline_needed: true } : { due: o.due ?? true };
       if (fn === 'fn_it_provider_rotation_record' && o.storeFails) throw new Error('store failed');
       return null;
     },
@@ -21,6 +24,9 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; reti
       calls.push(init.method + ' ' + url);
       if (init.method === 'POST') return new Response(JSON.stringify({ sid: 'SKnew', secret: SECRET }), { status: 201 });
       if (init.method === 'DELETE') return new Response(null, { status: 204 });
+      if (url.endsWith('/Keys/SKold.json')) {
+        return new Response(JSON.stringify(o.keyCreated === null ? {} : { sid: 'SKold', date_created: o.keyCreated ?? 'Thu, 25 Jun 2026 19:05:32 +0000' }), { status: 200 });
+      }
       return new Response('{}', { status: o.verifyOk === false ? 401 : 200 });
     },
   };
@@ -59,4 +65,29 @@ Deno.test('not due: no key is created; an overlap that ended deletes the old key
   assertEquals(r.rotated, false); assertEquals(r.retired, ['SKolder']);
   assert(!calls.some((c) => c.startsWith('POST')));
   assert(rpcs.some(([f, a]) => f === 'fn_it_provider_rotation_retired' && a?.p_id === 7));
+});
+
+Deno.test('no baseline: the current key creation date is recorded and nothing is rotated', async () => {
+  const { d, calls, rpcs } = deps({ baselineNeeded: true });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.rotated, false);
+  assert(!calls.some((c) => c.startsWith('POST') || c.startsWith('DELETE')), 'the first run creates and deletes nothing');
+  const b = rpcs.find(([f]) => f === 'fn_it_provider_rotation_baseline')!;
+  assertEquals(b[1], { p_provider: 'twilio', p_ref: 'SKold', p_created_at: '2026-06-25T19:05:32.000Z' });
+});
+
+Deno.test('no baseline and no readable creation date: nothing is recorded and nothing is rotated', async () => {
+  const { d, calls, rpcs } = deps({ baselineNeeded: true, keyCreated: null });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.rotated, false); assertEquals(r.ok, false);
+  assert(!rpcs.some(([f]) => f === 'fn_it_provider_rotation_baseline'));
+  assert(!calls.some((c) => c.startsWith('POST') || c.startsWith('DELETE')));
+});
+
+Deno.test('a retire row that names the key in use never deletes it', async () => {
+  const { d, calls, rpcs } = deps({ due: false, retireDue: [{ id: 9, old_ref: 'SKold' }] });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.ok, false); assertEquals(r.retired, []);
+  assert(!calls.some((c) => c.startsWith('DELETE')));
+  assert(!rpcs.some(([f]) => f === 'fn_it_provider_rotation_retired'));
 });
