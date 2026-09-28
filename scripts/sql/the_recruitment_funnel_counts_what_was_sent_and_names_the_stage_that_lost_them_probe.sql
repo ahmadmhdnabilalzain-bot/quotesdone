@@ -1,6 +1,7 @@
 -- PROBE (pure: no DDL, always raises, so nothing survives). Run AFTER
--- the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql, or in ONE transaction with it
--- (the raise rolls both back). It must say PROBE OK. marketing, 28 Sep 2026.
+-- the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql (#1051, which defines the
+-- invitation link and candidates) and the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql,
+-- or in ONE transaction with both (the raise rolls all back). It must say PROBE OK. marketing, 28 Sep 2026.
 --
 -- Fixtures: three ZZ DEMO leads (is_demo by name) with @example.invalid addresses and trade 'zz_demo_trade', marked
 -- invited with NO outbox row. The probe writes no notifications row at all, and asserts the outbox count is unchanged.
@@ -29,15 +30,18 @@ begin
     raise exception 'CHK<<PROBE FAILED: a fixture lead is not demo or not @example.invalid>>';
   end if;
 
-  -- (1) the ref
-  v_link := public.fn_supplier_invite_link('https://quotesdone.com', 'en', (select claim_token from public.leads where id = a), a);
+  -- (1) the ref (fn_supplier_invite_link is #1051's: always English, no language argument)
+  v_link := public.fn_supplier_invite_link('https://quotesdone.com', (select claim_token from public.leads where id = a), a);
   if v_link !~ ('/en/portal[?]t=[0-9a-f-]{36}&utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-' || a || '$') then
     v_fail := v_fail || ' link=' || v_link;
   end if;
-  -- (2) the real candidate query (a read; it writes nothing and sends nothing)
+  -- (2) the real candidate query (a read; it writes nothing and sends nothing): English, and its link carries the ref
   select body into v_body from public.fn_supplier_invite_candidates(1);
-  if v_body is not null and v_body !~ 'portal[?]t=[0-9a-f-]{36}&utm_source=invite&[^ ]*utm_content=lead-[0-9]+' then
-    v_fail := v_fail || ' candidate_body_has_no_ref';
+  if v_body is null or v_body !~ '/en/portal[?]t=[0-9a-f-]{36}&utm_source=invite&[^ ]*utm_content=lead-[0-9]+' or v_body ~ '/ar/portal' then
+    v_fail := v_fail || ' candidate_body_not_english_with_ref';
+  end if;
+  if exists (select 1 from public.fn_supplier_invite_candidates(50) x where x.lang is distinct from 'en') then
+    v_fail := v_fail || ' candidate_not_english';
   end if;
 
   -- (3) A registers through the link: what the browser keeps is the link's own tags (src/lib/firstTouch.ts)
