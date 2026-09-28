@@ -12,12 +12,11 @@
       "body_ar": "البلاستيك والأنابيب والتجهيزات في الإمارات: أنابيب uPVC للضغط (EN 1452/BS 3505، فئات PN 6-16) وللصرف (BS EN 1329/1401، 110-400 مم)، وCPVC للساخن والبارد، وPPR (PN10/16/20، DIN 8077/8078)، وأنابيب HDPE من PE100 وPE80 للضغط (ISO 4427/EN 12201، SDR 11/17) للمياه والري والغاز، وPEX/PE-RT، وأنابيب HDPE المموجة مزدوجة الجدار (SN4/SN8) لمياه الأمطار والصرف، وأنابيب GRP، ومواسير الكابلات (قنوات PVC وHDPE)، والتجهيزات (المحقونة، والصهر الكهربائي، والصهر التناكبي، والضغط، واللاصق)، وغرف التفتيش، والخزانات، والألواح والقضبان البلاستيكية (PVC وPP وHDPE والأكريليك والبولي كربونات). وتحتاج مشاريع المرافق علامات معتمدة من الجهات. يحدد المشتري المادة والمعيار والقطر وفئة الضغط/SDR والصلابة واللون والاعتماد.",
       "sources": [
         "https://www.iso.org",
-        "https://www.dewa.gov.ae",
-        "https://www.cosmoplast.com"
+        "https://www.dewa.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials); Cosmoplast. Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified."
+      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials). Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "plastics_pipes:uae-market-brands",
@@ -27,12 +26,11 @@
       "body_ar": "المنتجون المحليون: كوزموبلاست (مجموعة هروال)، والاتحاد لصناعة الأنابيب، والشركة العربية للصناعات البلاستيكية (أبيكو)، ومصنع دبي للأنابيب، ومصنّعون آخرون، مع راتنج بروج؛ والعالميون: Georg Fischer وAliaxis (Nicoll وAkatherm) وWavin (Orbia) وAquatherm وRehau وUponor وPolypipe؛ وأنابيب GRP من فيوتشر بايب وأميانتيت. والتجارة في ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح. المنشأ: الإمارات، الخليج، أوروبا، تركيا، الهند، الصين.",
       "sources": [
         "https://www.iso.org",
-        "https://www.dewa.gov.ae",
-        "https://www.cosmoplast.com"
+        "https://www.dewa.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials); Cosmoplast. Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified."
+      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials). Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "plastics_pipes:uae-market-sizes",
@@ -42,12 +40,11 @@
       "body_ar": "الأنابيب بالطول (uPVC بطول 6 م؛ وPPR بطول 4 م؛ وHDPE بطول 6/12 م أو لفائف حتى 100 م للأقطار الصغيرة) أو بالمتر؛ والتجهيزات بالقطعة؛ وقوائم أسعار بخصومات تجارية؛ وعروض المشاريع مقابل جدول كميات مع الالتزام بالعلامات المعتمدة. الأقطار: uPVC/PPR من 20 إلى 160 مم شائعة، وHDPE من 20 إلى 1,200 مم. وتذكر العروض المعيار والفئة واعتماد الجهة.",
       "sources": [
         "https://www.iso.org",
-        "https://www.dewa.gov.ae",
-        "https://www.cosmoplast.com"
+        "https://www.dewa.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials); Cosmoplast. Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified."
+      "source_note": "Primary sources named, not fetched in this session: ISO 4427 / EN 1452 (ISO/CEN); Dubai Electricity and Water Authority (approved materials). Could not be verified: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     }
   ],
   "eval": [
@@ -64,7 +61,7 @@
     "on": "2026-09-28",
     "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
     "fetched_live": 0,
-    "unverified": "Utility approved-make lists per emirate and some local producers' current names were not verified.",
+    "unverified": "Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
     "ledger": [
       899,
       900,

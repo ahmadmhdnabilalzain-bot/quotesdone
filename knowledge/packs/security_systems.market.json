@@ -12,12 +12,11 @@
       "body_ar": "أنظمة الأمن في الإمارات: المراقبة بالكاميرات (كاميرات IP، ومسجلات NVR، وبرامج إدارة الفيديو، وتحليلات الفيديو، والتعرف على اللوحات ANPR)، والتحكم بالدخول (البطاقة، والرمز، والقياسات الحيوية، والبوابات الدوارة، والحواجز، والأعمدة)، وإنذارات التسلل، والإنتركم المرئي، وأجهزة فحص الأمتعة بالأشعة وبوابات كشف المعادن، والكشف المحيطي، ومنصات الأمن المتكاملة (PSIM). والتنظيم قوي: في دبي تضع مؤسسة تنظيم الصناعة الأمنية (سيرا) معايير إلزامية للكاميرات لأنواع المنشآت المدرجة (دقة الكاميرا، ومدة حفظ التسجيل عادة 31 يوماً أو أكثر، والمواقع)، وتشترط شركات أنظمة أمنية مرخصة من سيرا ومنتجات معتمدة منها، وتصدر شهادات التركيب. ويؤدي مركز المراقبة والتحكم في أبوظبي دوراً مماثلاً. يحدد المشتري دقة الكاميرا (4-8 ميغابكسل)، والعدسة ومدى الأشعة تحت الحمراء، وأيام التخزين، والضغط (H.265)، والامتثال لسيرا أو مركز أبوظبي.",
       "sources": [
         "https://www.sira.gov.ae",
-        "https://www.admcc.gov.ae",
         "https://www.axis.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "security_systems:uae-market-brands",
@@ -27,12 +26,11 @@
       "body_ar": "الكاميرات: Hikvision وDahua وAxis وBosch وHanwha Vision وAvigilon (Motorola Solutions) وHoneywell وUniview، وMilestone وGenetec (برامج إدارة الفيديو). التحكم بالدخول: HID وSuprema وZKTeco وLenel (LenelS2) وGallagher وPaxton وdormakaba وNedap. التسلل: Honeywell وDSC وBosch وParadox وAjax. الفحص: Smiths Detection وRapiscan وNuctech وCEIA وGarrett. ويتركز الموزعون والمكاملون المرخصون من سيرا في دبي (ديرة والقوز وواحة دبي للسيليكون) وأبوظبي. المنشأ: الصين، أوروبا، كوريا، منتجات علامات أمريكية تُصنع في آسيا.",
       "sources": [
         "https://www.sira.gov.ae",
-        "https://www.admcc.gov.ae",
         "https://www.axis.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "security_systems:uae-market-sizes",
@@ -42,12 +40,11 @@
       "body_ar": "تُسعّر الأنظمة بنقطة الكاميرا (الكاميرا والكابلات والحامل والترخيص)، وبالباب (القارئ والقفل والمتحكم وزر الخروج وحساس الباب)، وبوحدة البوابة الدوارة/الحاجز، والتخزين بالتيرابايت حسب عدد الكاميرات ومعدل البت وأيام الحفظ. والتركيب والبرمجة واعتماد وشهادة سيرا أو مركز أبوظبي بنود مستقلة. وعقد الصيانة السنوي مع زيارات وقائية. والضمان 2-3 سنوات على الكاميرات والمسجلات من العلامات الرئيسية.",
       "sources": [
         "https://www.sira.gov.ae",
-        "https://www.admcc.gov.ae",
         "https://www.axis.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     }
   ],
   "eval": [
@@ -64,7 +61,7 @@
     "on": "2026-09-28",
     "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
     "fetched_live": 0,
-    "unverified": "The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified.",
+    "unverified": "The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
     "ledger": [
       899,
       900,

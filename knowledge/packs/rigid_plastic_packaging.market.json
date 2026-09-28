@@ -12,12 +12,11 @@
       "body_ar": "الحاويات البلاستيكية الصلبة في الإمارات (الاستخدامات غير الغذائية): جراكن HDPE (1-30 لتراً، معتمدة من الأمم المتحدة للكيماويات)، والدلاء (1-25 لتراً للدهانات واللواصق والزيوت)، وزجاجات HDPE وPET للمنظفات والكيماويات المنزلية ومستحضرات التجميل والعناية الشخصية، وبرطمانات PP، والأغطية (القلابة والقرصية والرشاشات الزنادية والمضخات والمقاومة للأطفال)، والحاويات الوسيطة (1,000 لتر)، والبراميل (HDPE من 120 إلى 220 لتراً مفتوحة/مغلقة)، والصناديق، والأشكال الأولية. العمليات: القولبة بالنفخ بالبثق، والحقن، والنفخ بالحقن والشد. يحدد المشتري السعة والوزن (غ) وتشطيب العنق (مثل 28/410 و38 مم) والمادة واللون وتصنيف الأمم المتحدة للبضائع الخطرة والعزل (متعدد الطبقات للمذيبات) والزخرفة (ملصقات داخل القالب وطباعة حريرية).",
       "sources": [
         "https://unece.org",
-        "https://www.cosmoplast.com",
         "https://www.aptar.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Aptar. Could not be verified: Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "rigid_plastic_packaging:uae-market-brands",
@@ -27,12 +26,11 @@
       "body_ar": "المنتجون المحليون: كوزموبلاست ونابكو وإنتربلاست (هروال) والبيادر ومنتجات البلاستيك الدقيقة، وكثير من مصانع القولبة بالنفخ في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي؛ والأغطية من Aptar وSilgan وBerry ومصانع محلية؛ والحاويات الوسيطة من Schütz وMauser وGreif. والراتنج من بروج وسابك. المنشأ: الإمارات، الخليج، الهند، الصين.",
       "sources": [
         "https://unece.org",
-        "https://www.cosmoplast.com",
         "https://www.aptar.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Aptar. Could not be verified: Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "rigid_plastic_packaging:uae-market-sizes",
@@ -42,12 +40,11 @@
       "body_ar": "التسعير بالقطعة حسب شرائح الكمية (الحد الأدنى للمتوفر بالكرتونة/المنصة؛ والألوان الخاصة غالباً 5,000-10,000 قطعة؛ والقوالب الجديدة تكلفة لمرة واحدة ومدة 6-10 أسابيع). الجراكن 1 و4 و5 و10 و20 و25 لتراً؛ والدلاء 1-20 لتراً. وتذكر العروض الوزن بالغرام والعنق واللون وعلامة الأمم المتحدة والتعبئة (أكياس سائبة أو كراتين لكل منصة).",
       "sources": [
         "https://unece.org",
-        "https://www.cosmoplast.com",
         "https://www.aptar.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Aptar. Could not be verified: Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     }
   ],
   "eval": [
@@ -64,7 +61,7 @@
     "on": "2026-09-28",
     "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
     "fetched_live": 0,
-    "unverified": "Names of several local blow-moulders were not verified.",
+    "unverified": "Names of several local blow-moulders were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
     "ledger": [
       899,
       900,

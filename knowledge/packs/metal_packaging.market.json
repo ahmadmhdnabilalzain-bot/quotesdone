@@ -12,12 +12,11 @@
       "body_ar": "العلب والبراميل والأسطوانات المعدنية في الإمارات (الاستخدامات غير الغذائية): علب الصفيح للدهانات والطلاءات واللواصق والكيماويات (علب دائرية 0.25-5 لترات بأغطية رافعة أو حلقة وسدادة، وعلب مربعة/مستطيلة، ودلاء وتنكات 18-20 لتراً)، وعلب الأيروسول (صفيح وألمنيوم لمعطرات الجو والمبيدات والدهانات ومزيلات العرق والعطور؛ مع الصمامات والرؤوس)، والبراميل الفولاذية (مفتوحة ومغلقة الرأس، 200-216.5 لتراً، معتمدة من الأمم المتحدة للبضائع الخطرة، مطلية أو بدون بطانة)، والبراميل المجددة، وزجاجات وأنابيب الألمنيوم لمستحضرات التجميل، وأسطوانات الغاز. يحدد المشتري السعة وسماكة المادة وتوافق الطلاء الداخلي مع المنتج والغطاء وتصنيف الأمم المتحدة (مثل 1A1/X1.4/250) والطباعة.",
       "sources": [
         "https://unece.org",
-        "https://www.hiraindustries.com",
         "https://www.greif.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Hira Industries; Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "metal_packaging:uae-market-brands",
@@ -27,12 +26,11 @@
       "body_ar": "المنتجون: Crown (مصانع إقليمية)، وحيرة للصناعات (دبي، علب الأيروسول والصفيح)، وGreif وMauser Packaging Solutions (البراميل الفولاذية)، ومصنّعو ومجددو براميل محليون في الشارقة والحمرية وجبل علي وأبوظبي. والصفيح من Tata وJFE وBaosteel وArcelorMittal. وصمامات الأيروسول: Aptar وPrecision وCoster وLindal. المنشأ: الإمارات، السعودية، الهند، الصين، أوروبا.",
       "sources": [
         "https://unece.org",
-        "https://www.hiraindustries.com",
         "https://www.greif.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Hira Industries; Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "metal_packaging:uae-market-sizes",
@@ -42,12 +40,11 @@
       "body_ar": "علب الدهان 0.5 و1 و3.6/4 و18/20 لتراً؛ وعلب الأيروسول حسب القطر × الارتفاع (مثل 65 × 195 مم)؛ والبراميل 200-216 لتراً. التسعير بالقطعة حسب شرائح الكمية، مطبوعة أو سادة، مع رسوم الأكليشيهات للصفيح المطبوع؛ والبراميل بالقطعة (جديدة مقابل مجددة). والحد الأدنى للعلب المطبوعة غالباً عشرات الآلاف. وتتضمن العروض شهادة الأمم المتحدة لعبوات البضائع الخطرة.",
       "sources": [
         "https://unece.org",
-        "https://www.hiraindustries.com",
         "https://www.greif.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Hira Industries; Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified."
+      "source_note": "Primary sources named, not fetched in this session: UN Model Regulations packaging codes (UNECE); Greif. Could not be verified: Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     }
   ],
   "eval": [
@@ -64,7 +61,7 @@
     "on": "2026-09-28",
     "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
     "fetched_live": 0,
-    "unverified": "Current UAE plants of Crown and Mauser and Hira's current product range were not verified.",
+    "unverified": "Current UAE plants of Crown and Mauser and Hira's current product range were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
     "ledger": [
       899,
       900,
