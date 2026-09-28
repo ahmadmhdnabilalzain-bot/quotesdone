@@ -17,8 +17,10 @@ import type { PdfPage } from './pdf_text_positions.ts';
 
 export type Box = { x: number; y: number; w: number; h: number }; // normalised 0..1, top-left origin
 
-/** Text that IS identity on its own: emails, URLs, UAE phones, company suffixes, Arabic firm words. */
-export const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
+/** Text that IS identity on its own: emails, URLs, UAE phones, company suffixes, Arabic firm words. The phone forms
+ *  "(04) 123-4567", "04.123.4567", "050 1234 567" and digit-spaced "0 5 0 1 2 3 4 5 6 7" were added 25 Sep 2026
+ *  (second review of #967: each reached a supplier's CAD page). */
+export const ID_TEXT = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}|\(?\b0\d{1,2}\)?[\s.\-]{0,2}\d{3,4}[\s.\-]?\d{3,4}\b|\b0(?:[\s.\-]\d){8,9}\b|\b(?:https?:\/\/|www\.)\S+|(?:\+|00)?971[\s-]?\d|\b0\d[\s-]?\d{3}[\s-]?\d{4}\b|\b05\d[\s-]?\d{3}[\s-]?\d{4}\b|\b(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Est\.|Establishment|Consultants?|Contracting|Architects?|Developers?|Properties)\b|شركة|مؤسسة|ذ\.م\.م|مكتب\s+هندسي/i;
 /** Labels whose VALUE (the text to their right on the same line) is identity. */
 export const ID_LABEL = /\b(drawn|checked|approved|prepared|reviewed|designed)\s*(by)?\b|\b(client|owner|employer|consultant|contractor|developer|project(?:\s*(?:name|no|number|title))?|plot(?:\s*no)?|makani|dwg\.?\s*no|drawing\s*no|address|tel|phone|mobile|fax|e-?mail)\b\s*[:.#]?|المالك|العميل|الاستشاري|المقاول|المشروع|رقم\s*القطعة|مكاني|رسم\s*بواسطة|اعتمد/i;
 

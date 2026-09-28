@@ -45,6 +45,7 @@ import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_s
 import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
+import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
@@ -753,7 +754,11 @@ export const handler = observe('resend_inbound', async (req) => {
               if (dc.emirate && !lead.emirate) u.emirate = dc.emirate;
               if (dc.trn && !lead.trn) { u.trn = dc.trn; fields.push('TRN'); }
             }
-            await admin.from('leads').update(u).eq('id', lead.id);
+            // Review of #962: this write's result was discarded. A licence number another claimed company
+            // holds is now set aside (the document path and expiry are still written) and sent to a human.
+            const w = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, lead.id, u, 'resend_inbound');
+            if (w.licenceSetAside) { const i = fields.findIndex((f) => f.startsWith('licence no ')); if (i >= 0) fields[i] = 'licence no set aside for review (held by another claimed company)'; }
+            if (w.error) { console.error('resend_inbound: licence readings not saved —', String(w.error.message ?? '')); fields.length = 0; }
           }
         } else if (cat === 'company_profile' || cat === 'catalogue') {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
