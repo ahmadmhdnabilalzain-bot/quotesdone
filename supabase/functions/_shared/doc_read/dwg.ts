@@ -57,21 +57,32 @@ export const DWG_MAX_BYTES = 1536 * 1024;
 type P = { x?: number; y?: number; z?: number };
 // deno-lint-ignore no-explicit-any
 type DwgEntity = Record<string, any> & { type: string; layer?: string };
-export type DwgDb = { header?: Record<string, unknown>; entities: DwgEntity[] };
+export type DwgDb = { header?: Record<string, unknown>; entities: DwgEntity[]; tables?: { BLOCK_RECORD?: { entries?: { name?: string; flags?: number; basePoint?: P; entities?: DwgEntity[] }[] } } };
 
 const RAD2DEG = 180 / Math.PI;
 const oneLine = (s: unknown) => String(s ?? '').replace(/\r?\n/g, '\\P');
+const isSpaceBlock = (n: string) => /^\*(?:model|paper)_space/i.test(n);
 
 /**
  * LibreDWG's entity JSON -> ASCII DXF text, for the kinds readDxf measures. Angles arrive in radians
  * and leave in degrees (DXF). Everything else is returned by type in `skipped`, so the caller can say
  * exactly what was not measured.
+ *
+ * 24 Sep 2026 (sales_engineer, founder instructions 32/580/703): the DXF also carries what DRAWING the
+ * sheet needs, so _shared/cad_render.ts can show a supplier the DWG itself with its identity left out:
+ * text positions, heights and rotations, INSERT scale and rotation, paper-space entities flagged 67 = 1
+ * (where title blocks live, never drawn), the BLOCKS section (block definitions, which readDxf never
+ * measures - it reads ENTITIES only), and ELLIPSE / SPLINE / SOLID geometry. None of it changes a
+ * quantity: readDxf measures the same kinds as before, and ELLIPSE / SPLINE / SOLID stay in `skipped`
+ * because they are drawn, not measured. dwg.test.ts pins both.
  */
 export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number> } {
   const out: string[] = [];
   const g = (c: number, v: unknown) => { out.push(String(c), String(v)); };
   const pt = (p: P | undefined, base = 10) => { g(base, p?.x ?? 0); g(base + 10, p?.y ?? 0); g(base + 20, p?.z ?? 0); };
+  const deg = (r: unknown) => (Number(r) || 0) * RAD2DEG;
   const skipped = new Map<string, number>();
+  const skip = (t: string) => skipped.set(t, (skipped.get(t) ?? 0) + 1);
   g(0, 'SECTION'); g(2, 'HEADER');
   const u = Number(db.header?.INSUNITS);
   if (Number.isFinite(u)) { g(9, '$INSUNITS'); g(70, u); }
@@ -81,9 +92,17 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
     const v = String(db.header?.[k] ?? '').trim();
     if (v) { g(9, '$' + k); g(1, oneLine(v)); }
   }
-  g(0, 'ENDSEC'); g(0, 'SECTION'); g(2, 'ENTITIES');
-  for (const e of db.entities) {
-    const head = (t: string) => { g(0, t); g(8, e.layer || '0'); };
+  g(0, 'ENDSEC');
+  const textBase = (e: DwgEntity, t: DwgEntity) => {
+    pt(t.startPoint, 10); if (t.textHeight) g(40, t.textHeight); if (t.rotation) g(50, deg(t.rotation));
+    if (t.xScale && t.xScale !== 1) g(41, t.xScale);
+    if (t.halign) g(72, t.halign);
+    if ((t.halign || t.valign) && t.endPoint) pt(t.endPoint, 11);
+    if (t.valign) g(e.type === 'ATTRIB' ? 74 : 73, t.valign);
+  };
+  const write = (e: DwgEntity, counted: boolean) => {
+    const head = (t: string) => { g(0, t); g(8, e.layer || '0'); if (e.isInPaperSpace) g(67, 1); };
+    const drawnOnly = (t: string) => { if (counted) skip(t); };
     switch (e.type) {
       case 'LINE': head('LINE'); pt(e.startPoint, 10); pt(e.endPoint, 11); break;
       case 'CIRCLE': head('CIRCLE'); pt(e.center); g(40, e.radius ?? 0); break;
@@ -101,15 +120,48 @@ export function dwgToDxf(db: DwgDb): { dxf: string; skipped: Map<string, number>
         head('POLYLINE'); g(70, (e.flag ?? 0) & 1);
         for (const v of e.vertices ?? []) { g(0, 'VERTEX'); g(8, e.layer || '0'); pt(v); if (v.bulge) g(42, v.bulge); }
         g(0, 'SEQEND'); break;
-      case 'INSERT': head('INSERT'); g(2, e.name ?? ''); pt(e.insertionPoint); break;
-      case 'TEXT': head('TEXT'); g(1, oneLine(e.text)); break;
+      case 'INSERT':
+        head('INSERT'); g(2, e.name ?? ''); pt(e.insertionPoint);
+        if (e.xScale && e.xScale !== 1) g(41, e.xScale); if (e.yScale && e.yScale !== 1) g(42, e.yScale);
+        if (e.rotation) g(50, deg(e.rotation));
+        if ((e.columnCount ?? 1) > 1) { g(70, e.columnCount); g(44, e.columnSpacing ?? 0); }
+        if ((e.rowCount ?? 1) > 1) { g(71, e.rowCount); g(45, e.rowSpacing ?? 0); }
+        break;
+      case 'TEXT': head('TEXT'); textBase(e, e); g(1, oneLine(e.text)); break;
       // The tag (CLIENT, PROJECT, DRAWN ...) is what tells cad_identity a value names a party.
-      case 'ATTRIB': head('ATTRIB'); g(1, oneLine(e.text?.text ?? e.text)); if (e.tag) g(2, oneLine(e.tag)); break;
-      case 'MTEXT': head('MTEXT'); g(1, oneLine(e.text)); break;
-      case 'DIMENSION': head('DIMENSION'); g(1, oneLine(e.text)); if (e.measurement) g(42, e.measurement); break; // R14 stores none (0)
-      default: skipped.set(e.type, (skipped.get(e.type) ?? 0) + 1);
+      case 'ATTRIB': head('ATTRIB'); if (e.text && typeof e.text === 'object') textBase(e, e.text); g(1, oneLine(e.text?.text ?? e.text)); if (e.tag) g(2, oneLine(e.tag)); if (e.flags) g(70, e.flags); break;
+      case 'MTEXT':
+        head('MTEXT'); pt(e.insertionPoint); if (e.textHeight) g(40, e.textHeight); if (e.attachmentPoint) g(71, e.attachmentPoint);
+        if (e.direction && (e.direction.x || e.direction.y) && !(e.direction.x === 1 && !e.direction.y)) { g(11, e.direction.x ?? 1); g(21, e.direction.y ?? 0); }
+        g(1, oneLine(e.text)); break;
+      case 'DIMENSION':
+        head('DIMENSION'); if (e.name) g(2, e.name); if (e.textPoint) { g(11, e.textPoint.x ?? 0); g(21, e.textPoint.y ?? 0); }
+        g(1, oneLine(e.text)); if (e.measurement) g(42, e.measurement); break; // R14 stores none (0)
+      case 'ELLIPSE':
+        drawnOnly('ELLIPSE'); head('ELLIPSE'); pt(e.center); pt(e.majorAxisEndPoint, 11); g(40, e.axisRatio ?? 1); g(41, e.startAngle ?? 0); g(42, e.endAngle ?? Math.PI * 2); break;
+      case 'SPLINE':
+        drawnOnly('SPLINE'); head('SPLINE');
+        for (const v of (e.fitPoints?.length ? [] : e.controlPoints ?? [])) { g(10, v.x ?? 0); g(20, v.y ?? 0); }
+        for (const v of e.fitPoints ?? []) { g(11, v.x ?? 0); g(21, v.y ?? 0); }
+        break;
+      case 'SOLID':
+        drawnOnly('SOLID'); head('SOLID'); pt(e.corner1, 10); pt(e.corner2, 11); pt(e.corner3, 12); pt(e.corner4 ?? e.corner3, 13); break;
+      default: if (counted) skip(e.type);
     }
+  };
+  // Block definitions: drawn by cad_render when an INSERT names them; never measured (readDxf reads ENTITIES).
+  const blocks = (db.tables?.BLOCK_RECORD?.entries ?? []).filter((b) => b?.name && !isSpaceBlock(b.name));
+  if (blocks.length) {
+    g(0, 'SECTION'); g(2, 'BLOCKS');
+    for (const b of blocks) {
+      g(0, 'BLOCK'); g(8, '0'); g(2, b.name); g(70, b.flags ?? 0); pt(b.basePoint);
+      for (const e of b.entities ?? []) { write(e, false); if (e.type === 'INSERT') for (const a of e.attribs ?? []) write(a, false); }
+      g(0, 'ENDBLK'); g(8, '0');
+    }
+    g(0, 'ENDSEC');
   }
+  g(0, 'SECTION'); g(2, 'ENTITIES');
+  for (const e of db.entities) write(e, true);
   g(0, 'ENDSEC'); g(0, 'EOF');
   return { dxf: out.join('\n') + '\n', skipped };
 }

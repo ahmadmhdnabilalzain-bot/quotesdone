@@ -22,11 +22,13 @@ test('analyze_drawing sends a CAD original to the reader, pictured or not', () =
 });
 
 test('the portal routes a .dwg to analyze_drawing or analyze_document', () => {
-  const doc = (portal.match(/const DOC_RE = (\/.*\/[a-z]*);/) || [])[1];
-  assert.ok(doc, 'DOC_RE not found in NewRequest.tsx');
-  const docRe = new RegExp(doc.slice(1, doc.lastIndexOf('/')), doc.slice(doc.lastIndexOf('/') + 1));   // the portal's own pattern
-  const toDocument = docRe.test('plan.dwg');
-  const toDrawing = /onAny = \(f\) => \(f && DOC_RE\.test\(f\.name\) \? onBoq\(f\) : onFile\(f\)\)/.test(portal) && /action: 'analyze_drawing'/.test(portal);
+  const src = (name) => (portal.match(new RegExp(`const ${name} = (\\/.*\\/[a-z]*);`)) || [])[1];
+  const re = (s) => new RegExp(s.slice(1, s.lastIndexOf('/')), s.slice(s.lastIndexOf('/') + 1));   // the portal's own pattern
+  const doc = src('DOC_RE'), refused = src('REFUSED_DRAWING_RE');
+  assert.ok(doc && refused, 'DOC_RE / REFUSED_DRAWING_RE not found in NewRequest.tsx');
+  assert.ok(!re(refused).test('plan.dwg'), 'a .dwg must not be refused');
+  const toDocument = re(doc).test('plan.dwg');
+  const toDrawing = /onAny = \(f\) => \([^\n]*DOC_RE\.test\(f\.name\) \? onBoq\(f\) : onFile\(f\)\)/.test(portal) && /action: 'analyze_drawing'/.test(portal);
   assert.ok(toDocument || toDrawing, 'a .dwg reaches neither analyze_document nor analyze_drawing');
 });
 
@@ -64,7 +66,15 @@ test('a PDF set whose lengths call dies is queued with its counted take-off, and
   assert.match(portal, /res\.note === 'lengths_queued'[\s\S]{0,80}pollCad\(res, file\.name, source, true\)/);
 });
 
-test('the portal accepts Revit and DGN and polls a queued CAD read', () => {
-  assert.match(portal, /accept="[^"]*\.rvt[^"]*\.dgn/);
+// Founder ruling 1000: drawings are accepted as PDF and CAD (DWG/DXF) only; Revit, IFC and DGN are refused.
+test('the portal refuses Revit, IFC and DGN, accepts DWG/DXF and polls a queued CAD read', () => {
+  const refused = new RegExp(portal.match(/const REFUSED_DRAWING_RE = \/(.*)\/i;/)[1], 'i');
+  for (const f of ['m.rvt', 'm.rfa', 'm.ifc', 'm.dgn']) assert.ok(refused.test(f), `${f} must be refused`);
+  for (const f of ['m.dwg', 'm.dxf', 'm.pdf']) assert.ok(!refused.test(f), `${f} must not be refused`);
+  assert.match(portal, /onAny = \(f\) => \(f && REFUSED_DRAWING_RE\.test\(f\.name\) \? refuseDrawing\(\)/);
+  const accept = portal.match(/ref=\{fileRef\} type="file" accept="([^"]*)"/)[1];
+  assert.match(accept, /\.dwg/);
+  assert.match(accept, /\.dxf/);
+  assert.doesNotMatch(accept, /\.(rvt|ifc|dgn)\b/);
   assert.match(portal, /action: 'cad_read_status'/);
 });

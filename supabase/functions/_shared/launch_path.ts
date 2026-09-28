@@ -114,7 +114,7 @@ export function launchPathProbes(anon: string): Probe[] {
       return `HTTP ${s} ${b.slice(0, 120)}`;
     },
   });
-  for (const fn of ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api']) {
+  for (const fn of ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api', 'supplier_api', 'supplier_pay']) {  // supplier_portal and claim_lookup already have api: probes above
     probes.push({
       id: 'health:' + fn, url: fnUrl(fn), init: { method: 'GET', headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + anon } },
       judge: (s) => (s === 204 ? null : 'HTTP ' + s),

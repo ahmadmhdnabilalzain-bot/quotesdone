@@ -1,0 +1,176 @@
+{
+  "zz_demo_electrical_gf.dxf": {
+    "format": "dxf",
+    "items": [
+      {
+        "id": "light_fitting",
+        "trade": "electrical",
+        "match": "LIGHT_FITTING",
+        "qty": 12,
+        "unit": "nos"
+      },
+      {
+        "id": "double_socket",
+        "trade": "electrical",
+        "match": "DOUBLE_SOCKET",
+        "qty": 9,
+        "unit": "nos"
+      },
+      {
+        "id": "smoke_detector",
+        "trade": "fire_alarm",
+        "match": "^smoke_detector ",
+        "qty": 6,
+        "unit": "nos"
+      },
+      {
+        "id": "manual_call_point",
+        "trade": "fire_alarm",
+        "match": "^manual_call_point ",
+        "qty": 2,
+        "unit": "nos"
+      },
+      {
+        "id": "door",
+        "trade": "doors",
+        "match": "DOOR_SINGLE",
+        "qty": 5,
+        "unit": "nos"
+      },
+      {
+        "id": "conduit_m",
+        "trade": "electrical",
+        "match": "layer E-CONDUIT",
+        "qty": 38.4,
+        "unit": "m"
+      }
+    ]
+  },
+  "zz_demo_plumbing_ff.dxf": {
+    "format": "dxf",
+    "items": [
+      {
+        "id": "water_closet",
+        "trade": "plumbing",
+        "match": "block WC$",
+        "qty": 4,
+        "unit": "nos"
+      },
+      {
+        "id": "wash_basin",
+        "trade": "plumbing",
+        "match": "WASH_BASIN",
+        "qty": 4,
+        "unit": "nos"
+      },
+      {
+        "id": "floor_drain",
+        "trade": "plumbing",
+        "match": "FLOOR_DRAIN",
+        "qty": 3,
+        "unit": "nos"
+      },
+      {
+        "id": "drain_pipe_m",
+        "trade": "plumbing",
+        "match": "layer P-DRAIN",
+        "qty": 27,
+        "unit": "m"
+      },
+      {
+        "id": "cold_water_pipe_m",
+        "trade": "plumbing",
+        "match": "layer P-COLD-WATER",
+        "qty": 18.4,
+        "unit": "m"
+      }
+    ]
+  },
+  "zz_demo_plumbing_p101.pdf": {
+    "format": "pdf",
+    "items": [
+      {
+        "id": "water_closet",
+        "trade": "plumbing",
+        "match": "water closet",
+        "qty": 5,
+        "unit": "nos"
+      },
+      {
+        "id": "lavatory",
+        "trade": "plumbing",
+        "match": "lavatory",
+        "qty": 5,
+        "unit": "nos"
+      },
+      {
+        "id": "floor_drain",
+        "trade": "plumbing",
+        "match": "floor drain",
+        "qty": 4,
+        "unit": "nos"
+      },
+      {
+        "id": "floor_cleanout",
+        "trade": "plumbing",
+        "match": "cleanout",
+        "qty": 2,
+        "unit": "nos"
+      },
+      {
+        "id": "exhaust_fan",
+        "trade": "hvac",
+        "match": "exhaust fan",
+        "qty": 1,
+        "unit": "nos"
+      },
+      {
+        "id": "fan_coil_unit",
+        "trade": "hvac",
+        "match": "fan coil",
+        "qty": 2,
+        "unit": "nos"
+      },
+      {
+        "id": "sanitary_pipe_m",
+        "trade": "plumbing",
+        "match": "^pipe:",
+        "qty": 6.1,
+        "unit": "m"
+      }
+    ]
+  },
+  "zz_demo_electrical_e101.pdf": {
+    "format": "pdf",
+    "items": [
+      {
+        "id": "light_fitting",
+        "trade": "electrical",
+        "match": "light|LT-1",
+        "qty": 10,
+        "unit": "nos"
+      },
+      {
+        "id": "double_socket",
+        "trade": "electrical",
+        "match": "socket|DS-1",
+        "qty": 8,
+        "unit": "nos"
+      },
+      {
+        "id": "door",
+        "trade": "doors",
+        "match": "door|\\bD-1",
+        "qty": 4,
+        "unit": "nos"
+      },
+      {
+        "id": "smoke_detector",
+        "trade": "fire_alarm",
+        "match": "smoke",
+        "qty": 3,
+        "unit": "nos"
+      }
+    ]
+  }
+}
