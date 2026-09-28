@@ -92,7 +92,7 @@ jobs:
       # After a merge the harness is the merged commit's. A dispatch runs the harness from the branch it
       # was dispatched on against the deployed site, so a harness fix can be proved before it merges.
       # The changed files are always the deployed commit's own.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || env.SHA }}
           fetch-depth: 0
