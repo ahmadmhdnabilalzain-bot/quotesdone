@@ -1,7 +1,0 @@
-Not applied: it seeds the separate invitation lane OFF (invite_lane_enabled = 'false'), stamps its activation, and scopes
-the existing fn_invite_ramp and the 18:00 list to the lane's own sends while it is on. Written 24 Sep 2026 without
-production write access. Seat: marketing (campaign) + it_engineer (mail path).
-What moves it: apply with node scripts/apply_sql.mjs scripts/sql/the_invitations_leave_on_their_own_subdomain_so_a_campaign_cannot_cost_the_sign_up_codes.sql --apply --ddl
-(it must print PROBE OK), then delete this note and append the file to the END of scripts/sql/MANIFEST.txt, then deploy
-send_outbox. Apply BEFORE deploying send_outbox is not required (a missing invite_lane_enabled row reads as OFF), but the
-lane may only be switched on after hello.quotesdone.com is verified in Resend (send_outbox refuses it otherwise).
