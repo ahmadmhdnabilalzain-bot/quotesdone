@@ -1817,3 +1817,4 @@ scripts/sql/a_customer_email_is_answered_in_its_own_thread_within_the_minute.sql
 scripts/sql/a_reversal_voids_both_sides_so_the_ledger_nets_to_zero.sql
 [INFO] Recording command outcome: echo
 [OK] Command outcome recorded
+scripts/sql/the_calendar_resend_decisions_are_in_the_daily_export.sql
