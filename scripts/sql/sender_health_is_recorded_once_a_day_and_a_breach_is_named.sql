@@ -11,6 +11,9 @@
 --   sender_complaint_rate_max 0.003  (Gmail/Yahoo bulk-sender rule, Feb 2024: under 0.3%)
 --   sender_bounce_rate_max    0.02   (hard bounces under 2%)
 --   sender_min_sends_7d       20     (below this the rates are not evaluated)
+-- The rate thresholds are FRACTIONS (0.003 = 0.3%) and are compared unscaled against
+-- complaints / sent, exactly as duty 10 compares them. (Review of #992: an earlier draft multiplied
+-- the complaint threshold by 10, so a breach fired only at 3%.)
 -- Findings stay with duty 10; this row does not raise a second copy of the same finding.
 --
 -- DMARC aggregate reports: MEASURED 28 Sep 2026, _dmarc.quotesdone.com is
@@ -55,10 +58,10 @@ create or replace function public.fn_it_sender_health_verdict(
 as $fn$
   select array_remove(array[
     case when p_sent >= coalesce(public.fn_it_threshold('sender_min_sends_7d'), 20)
-          and p_complaints / p_sent > coalesce(public.fn_it_threshold('sender_complaint_rate_max'), 0.003) * 10
+          and p_complaints / nullif(p_sent, 0) > coalesce(public.fn_it_threshold('sender_complaint_rate_max'), 0.003)
          then 'complaint_rate' end,
     case when p_sent >= coalesce(public.fn_it_threshold('sender_min_sends_7d'), 20)
-          and p_hard_bounces / p_sent > coalesce(public.fn_it_threshold('sender_bounce_rate_max'), 0.02)
+          and p_hard_bounces / nullif(p_sent, 0) > coalesce(public.fn_it_threshold('sender_bounce_rate_max'), 0.02)
          then 'bounce_rate' end,
     case when upper(coalesce(p_whatsapp_quality, 'UNKNOWN')) not in ('HIGH', 'GREEN', 'UNKNOWN')
          then 'whatsapp_quality' end,
