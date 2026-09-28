@@ -122,24 +122,24 @@ Deno.serve(observe('drawing_boq', async (req) => {
     }
     // 14 Sep 2026 (founder: "the sales agent need to be extremely capable of reading all types of
     // document"). ANY document _shared/doc_read opens — Word, PowerPoint, ODF, RTF, text, email, DXF,
-    // IFC, GAEB, zip, PDF — read with no model. ocr_text is the customer's browser OCR of a photo.
+    // GAEB, zip, PDF — read with no model. ocr_text is the customer's browser OCR of a photo.
     const ocrText = String(body.ocr_text || '').slice(0, 200_000);
     // 14 Sep 2026. The OCR plan's lines WITH their page boxes (ocrPlan.ts) and the browser's symbol
     // counts. Both are customer-controlled input: shapes are validated here, and the counts are only
     // ever ESTIMATES the customer is asked to confirm — the server re-does the address cross-check.
     const drawing = drawingInput(body.ocr_lines, body.ocr_width, body.symbol_counts, ocrText);
     if (body.mode === 'document') {
-      const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''));
+      const r = await readDocument(String(body.file_b64 || ''), String(body.filename || ''), String(body.mime || ''), 0, { pdfCadDrawingsOnly: true });
       if (!r.ok) return J({ ok: false, error: r.error, detail: r.detail }, 422);
       // 22 Sep 2026 (redaction audit, #827): nothing a CAD file says about its own job reaches a BOQ line.
       // Every CAD reader (ASCII and binary DXF, DWG) hands back the DXF text it measured as dxf_text.
       const boq = boqFromExtracted(r, hint, ocrText, drawing);
-      // 23 Sep 2026 (founder 696/698/701/703): a DRAWING's take-off (DXF, DWG, IFC, PDF, DGN, RVT) is redacted
+      // 23 Sep 2026 (founder 696/698/701/703): a DRAWING's take-off (DXF, DWG, PDF) is redacted
       // with the terms the file states about itself, then RE-READ; a line still naming a party is dropped and
       // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
       const cad = r.dxf_text !== undefined;
       if (!cad && !DRAWING_KINDS.has(r.kind)) return J({ ok: true, boq: withCodeAuthor(boq), kind: r.kind, needs: r.needs });
-      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text, r.identity_terms), cad);
+      const g = gateDrawingBoq(boq, drawingIdentityTerms(r.text, r.dxf_text), cad);
       return J({ ok: true, boq: g.boq ? withCodeAuthor(g.boq) : null, kind: r.kind, needs: r.needs, identity_dropped_lines: g.dropped_lines, ...(g.boq ? {} : { identity_held: true }) });
     }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Every model route is held, so the vision call below

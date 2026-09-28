@@ -150,3 +150,16 @@ test('the clause 33 arithmetic charges the rates and fees company_facts.json sta
   // not vacuous: a stale rate is caught
   assert.equal(chargeArithmeticFindings('export const INTEREST_RATE_PA_FROM_V14 = 0.09;\nexport const INTEREST_RATE_PA = 0.09;\nexport const ADMIN_FEE_AED_FROM_V13 = 500;\nexport const ADMIN_FEE_AED = 250;').length, 1);
 });
+
+// 28 Sep 2026 (founder ruling, sales_engineer): a drawing is uploaded as PDF or CAD (DWG/DXF) only. The rule
+// drawing_upload_formats is read by the repository test above and by sync_company_facts.mjs --probe (FAQ,
+// knowledge rows); these prove it catches a surface that lists another format and spares the ones it must.
+test('a surface that tells anyone to upload Revit, IFC or DGN is caught', () => {
+  const caught = (s) => wrongWordings(s).some((w) => w.rule === 'drawing_upload_formats');
+  for (const s of ['You can upload PDF, DWG, DXF, IFC or RVT files.', 'Please export it from Revit and upload the .ifc file.',
+    'We accept MicroStation DGN drawings.', 'Send your Revit model and we read it.', 'يمكنك رفع ملفات PDF أو DWG أو IFC.', 'أرسل ملف ريفيت.'])
+    assert.equal(caught(s), true, s);
+  for (const s of ['Please upload your drawing as PDF or CAD (DWG/DXF).', 'يُرجى رفع المخطط بصيغة PDF أو CAD (DWG/DXF).',
+    'Issued for Construction (IFC) drawings are the approved set the contractor builds from.'])
+    assert.equal(caught(s), false, s);
+});

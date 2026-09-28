@@ -221,6 +221,9 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
       owner_email_verified = true, owner_phone_verified = true,
       license_doc_path = ${q(path)}, license_doc_name = 'trade_licence.pdf', trade_license_no = ${q(licenceNo)},
       license_authority = 'Dubai DET (fixture)', license_expiry = (current_date + 365), license_city = 'Dubai',
+      -- what supplier_api's code reader takes off an uploaded licence; this upload bypasses it, and
+      -- since 24 Sep an unread licence name holds the supplier at 'pending' (licence_name_unread)
+      licence_legal_name = ${q(company)},
       company_profile_doc_path = ${q(profilePath)}
     where id = ${num(s.leadId)}`, 'demo supplier documents');
   // 6: the Supplier Agreement, accepted and signed through the real endpoint. The signed PDF lands
