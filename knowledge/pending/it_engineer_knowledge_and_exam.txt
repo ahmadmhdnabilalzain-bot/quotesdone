@@ -1,0 +1,4 @@
+Not loaded. knowledge/seats/it_engineer.json (15 new entries) and knowledge/exams/it_engineer.json (70 items)
+reach production only when `node scripts/kb/load_it_engineer_knowledge_pack.mjs --apply` runs after merge.
+The company-kpis entry now states the job description's 99.9% uptime target (it said 99.5% proposed).
+Delete this note in the commit that records the load.
