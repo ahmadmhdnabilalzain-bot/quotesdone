@@ -1,0 +1,697 @@
+{
+  "seat": "customer_support",
+  "standard": "scratchpad/seats_v3/JOB_DESCRIPTIONS.md section 3",
+  "items": [
+    {
+      "id": "customer_support-exam-01",
+      "checklist": "CS-01",
+      "q_en": "Who is allowed to send email and WhatsApp for QuotesDone?",
+      "q_ar": "من المسموح له بإرسال البريد ورسائل واتساب باسم كوتس دن؟",
+      "expected_entry_ids": [
+        "customer_support:seat-mission-communication"
+      ],
+      "expected_facts": [
+        "only seat with WhatsApp"
+      ]
+    },
+    {
+      "id": "customer_support-exam-02",
+      "checklist": "CS-01",
+      "q_en": "Does customer support handle reveals?",
+      "q_ar": "هل تتولى خدمة العملاء عمليات الكشف؟",
+      "expected_entry_ids": [
+        "customer_support:seat-mission-communication"
+      ],
+      "expected_facts": [
+        "does NOT own reveals"
+      ]
+    },
+    {
+      "id": "customer_support-exam-03",
+      "checklist": "CS-01",
+      "q_en": "What standard did the founder set for the support chat?",
+      "q_ar": "ما المعيار الذي حدده المؤسس لمحادثة الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:seat-mission-communication"
+      ],
+      "expected_facts": [
+        "Amazon chat bot"
+      ]
+    },
+    {
+      "id": "customer_support-exam-04",
+      "checklist": "CS-02",
+      "q_en": "A visitor opens WhatsApp for the first time. What does he see?",
+      "q_ar": "زائر يفتح واتساب لأول مرة، ماذا يرى؟",
+      "expected_entry_ids": [
+        "customer_support:welcome-and-four-option-menu"
+      ],
+      "expected_facts": [
+        "Report a problem",
+        "Existing inquiry"
+      ]
+    },
+    {
+      "id": "customer_support-exam-05",
+      "checklist": "CS-02",
+      "q_en": "A person ignores the menu and types a question. What do we do?",
+      "q_ar": "شخص تجاهل القائمة وكتب سؤالاً، ماذا نفعل؟",
+      "expected_entry_ids": [
+        "customer_support:welcome-and-four-option-menu"
+      ],
+      "expected_facts": [
+        "not by matching words"
+      ]
+    },
+    {
+      "id": "customer_support-exam-06",
+      "checklist": "CS-03",
+      "q_en": "A supplier asks how many suppliers we have registered. Can we tell him?",
+      "q_ar": "مورد يسأل كم عدد الموردين المسجلين لدينا، هل نخبره؟",
+      "expected_entry_ids": [
+        "customer_support:never-reveal-internal-numbers"
+      ],
+      "expected_facts": [
+        "never reveals internal numbers"
+      ]
+    },
+    {
+      "id": "customer_support-exam-07",
+      "checklist": "CS-03",
+      "q_en": "The chat showed an error message with a table name. Is that allowed?",
+      "q_ar": "ظهرت في المحادثة رسالة خطأ فيها اسم جدول، هل هذا مسموح؟",
+      "expected_entry_ids": [
+        "customer_support:never-reveal-internal-numbers"
+      ],
+      "expected_facts": [
+        "technical error text"
+      ]
+    },
+    {
+      "id": "customer_support-exam-08",
+      "checklist": "CS-03",
+      "q_en": "Why were the leak rules tightened in September?",
+      "q_ar": "لماذا شُددت قواعد منع التسريب في سبتمبر؟",
+      "expected_entry_ids": [
+        "customer_support:never-reveal-internal-numbers"
+      ],
+      "expected_facts": [
+        "22 Sep 2026"
+      ]
+    },
+    {
+      "id": "customer_support-exam-09",
+      "checklist": "CS-04",
+      "q_en": "An angry customer on email demands a manager. Do we hand over to a human?",
+      "q_ar": "عميل غاضب عبر البريد يطلب مديراً، هل نحوله إلى إنسان؟",
+      "expected_entry_ids": [
+        "customer_support:no-escalation-to-a-human"
+      ],
+      "expected_facts": [
+        "no escalation to a human"
+      ]
+    },
+    {
+      "id": "customer_support-exam-10",
+      "checklist": "CS-04",
+      "q_en": "A customer on WhatsApp asks to talk to a person. What happens?",
+      "q_ar": "عميل على واتساب يطلب التحدث إلى شخص، ماذا يحدث؟",
+      "expected_entry_ids": [
+        "customer_support:no-escalation-to-a-human"
+      ],
+      "expected_facts": [
+        "founder is then emailed"
+      ]
+    },
+    {
+      "id": "customer_support-exam-11",
+      "checklist": "CS-04",
+      "q_en": "The customer wrote \"I don't need a human\". Is that a handoff request?",
+      "q_ar": "كتب العميل \"لا أحتاج إلى موظف\"، هل هذا طلب تحويل؟",
+      "expected_entry_ids": [
+        "customer_support:no-escalation-to-a-human"
+      ],
+      "expected_facts": [
+        "not a request"
+      ]
+    },
+    {
+      "id": "customer_support-exam-12",
+      "checklist": "CS-05",
+      "q_en": "The sales engineer asks support to send a final call to a supplier. What must come back?",
+      "q_ar": "طلب مهندس المبيعات من الدعم إرسال إشعار أخير لمورد، ما الذي يجب أن يعود إليه؟",
+      "expected_entry_ids": [
+        "customer_support:delivering-for-other-seats"
+      ],
+      "expected_facts": [
+        "delivery outcome",
+        "proof of response"
+      ]
+    },
+    {
+      "id": "customer_support-exam-13",
+      "checklist": "CS-05",
+      "q_en": "The lead row says \"invited\". Does that prove the invitation went out?",
+      "q_ar": "سجل العميل المحتمل يقول \"مدعو\"، هل يثبت ذلك إرسال الدعوة؟",
+      "expected_entry_ids": [
+        "customer_support:delivering-for-other-seats"
+      ],
+      "expected_facts": [
+        "verified through the outbox",
+        "171 leads"
+      ]
+    },
+    {
+      "id": "customer_support-exam-14",
+      "checklist": "CS-05",
+      "q_en": "Who closes a handoff between seats?",
+      "q_ar": "من يغلق الإحالة بين المقاعد؟",
+      "expected_entry_ids": [
+        "customer_support:delivering-for-other-seats"
+      ],
+      "expected_facts": [
+        "only the originator closes"
+      ]
+    },
+    {
+      "id": "customer_support-exam-15",
+      "checklist": "CS-06",
+      "q_en": "A supplier reports the portal upload failing again. What first?",
+      "q_ar": "مورد يبلغ مجدداً عن تعطل الرفع في البوابة، ما الخطوة الأولى؟",
+      "expected_entry_ids": [
+        "customer_support:report-a-problem-lookup"
+      ],
+      "expected_facts": [
+        "looks up earlier reports"
+      ]
+    },
+    {
+      "id": "customer_support-exam-16",
+      "checklist": "CS-06",
+      "q_en": "Can we identify a reporter by phone number alone?",
+      "q_ar": "هل يمكن تحديد صاحب البلاغ برقم الهاتف وحده؟",
+      "expected_entry_ids": [
+        "customer_support:report-a-problem-lookup"
+      ],
+      "expected_facts": [
+        "email is the identity"
+      ]
+    },
+    {
+      "id": "customer_support-exam-17",
+      "checklist": "CS-06",
+      "q_en": "A report about WhatsApp not delivering: who gets it?",
+      "q_ar": "بلاغ عن عدم وصول رسائل واتساب، إلى من يُحال؟",
+      "expected_entry_ids": [
+        "customer_support:report-a-problem-lookup"
+      ],
+      "expected_facts": [
+        "to the IT engineer"
+      ]
+    },
+    {
+      "id": "customer_support-exam-18",
+      "checklist": "CS-07",
+      "q_en": "Can old conversations be purged after a year?",
+      "q_ar": "هل يمكن حذف المحادثات القديمة بعد سنة؟",
+      "expected_entry_ids": [
+        "customer_support:conversations-kept-no-purge"
+      ],
+      "expected_facts": [
+        "no purge"
+      ]
+    },
+    {
+      "id": "customer_support-exam-19",
+      "checklist": "CS-07",
+      "q_en": "How long does Resend keep inbound mail, and what do we do about it?",
+      "q_ar": "كم يحتفظ Resend بالبريد الوارد، وماذا نفعل حيال ذلك؟",
+      "expected_entry_ids": [
+        "customer_support:conversations-kept-no-purge"
+      ],
+      "expected_facts": [
+        "about 1 month",
+        "PDF"
+      ]
+    },
+    {
+      "id": "customer_support-exam-20",
+      "checklist": "CS-07",
+      "q_en": "Where are the email PDFs backed up?",
+      "q_ar": "أين تُحفظ نسخ البريد بصيغة PDF؟",
+      "expected_entry_ids": [
+        "customer_support:conversations-kept-no-purge"
+      ],
+      "expected_facts": [
+        "Dropbox"
+      ]
+    },
+    {
+      "id": "customer_support-exam-21",
+      "checklist": "CS-07",
+      "q_en": "Which conversations may be deleted?",
+      "q_ar": "ما المحادثات التي يجوز حذفها؟",
+      "expected_entry_ids": [
+        "customer_support:conversations-kept-no-purge"
+      ],
+      "expected_facts": [
+        "provably test data"
+      ]
+    },
+    {
+      "id": "customer_support-exam-22",
+      "checklist": "CS-08",
+      "q_en": "What time does the founder receive tomorrow's supplier list?",
+      "q_ar": "في أي ساعة يتلقى المؤسس قائمة موردي الغد؟",
+      "expected_entry_ids": [
+        "customer_support:supplier-campaign-daily"
+      ],
+      "expected_facts": [
+        "18:00 Dubai time"
+      ]
+    },
+    {
+      "id": "customer_support-exam-23",
+      "checklist": "CS-08",
+      "q_en": "Can support start sending invitations on its own?",
+      "q_ar": "هل يستطيع الدعم بدء إرسال الدعوات من تلقاء نفسه؟",
+      "expected_entry_ids": [
+        "customer_support:supplier-campaign-daily"
+      ],
+      "expected_facts": [
+        "founder says go"
+      ]
+    },
+    {
+      "id": "customer_support-exam-24",
+      "checklist": "CS-08",
+      "q_en": "How many suppliers before customers launch?",
+      "q_ar": "كم عدد الموردين المطلوب قبل إطلاق العملاء؟",
+      "expected_entry_ids": [
+        "customer_support:supplier-campaign-daily"
+      ],
+      "expected_facts": [
+        "1,000 suppliers"
+      ]
+    },
+    {
+      "id": "customer_support-exam-25",
+      "checklist": "CS-09",
+      "q_en": "How do we know Resend is still reporting bounces?",
+      "q_ar": "كيف نعرف أن Resend ما زال يبلغ عن الرسائل المرتدة؟",
+      "expected_entry_ids": [
+        "customer_support:delivery-health-watch"
+      ],
+      "expected_facts": [
+        "test bounce",
+        "30 minutes of silence"
+      ]
+    },
+    {
+      "id": "customer_support-exam-26",
+      "checklist": "CS-09",
+      "q_en": "An address hard-bounced last week. Can we retry it?",
+      "q_ar": "عنوان ارتد نهائياً الأسبوع الماضي، هل نعيد الإرسال إليه؟",
+      "expected_entry_ids": [
+        "customer_support:delivery-health-watch"
+      ],
+      "expected_facts": [
+        "email_suppressions"
+      ]
+    },
+    {
+      "id": "customer_support-exam-27",
+      "checklist": "CS-09",
+      "q_en": "What is the delivery KPI?",
+      "q_ar": "ما مؤشر التسليم؟",
+      "expected_entry_ids": [
+        "customer_support:delivery-health-watch"
+      ],
+      "expected_facts": [
+        "delivery success rate, per channel"
+      ]
+    },
+    {
+      "id": "customer_support-exam-28",
+      "checklist": "CS-10",
+      "q_en": "A customer signed up three days ago with no request. What happens?",
+      "q_ar": "عميل سجّل قبل ثلاثة أيام ولم يقدم طلباً، ماذا يحدث؟",
+      "expected_entry_ids": [
+        "customer_support:activation-and-winback"
+      ],
+      "expected_facts": [
+        "written to once"
+      ]
+    },
+    {
+      "id": "customer_support-exam-29",
+      "checklist": "CS-10",
+      "q_en": "When does a win-back message go out?",
+      "q_ar": "متى تُرسل رسالة الاستعادة؟",
+      "expected_entry_ids": [
+        "customer_support:activation-and-winback"
+      ],
+      "expected_facts": [
+        "60 to 90 days"
+      ]
+    },
+    {
+      "id": "customer_support-exam-30",
+      "checklist": "CS-10",
+      "q_en": "Are activation messages running now?",
+      "q_ar": "هل رسائل التفعيل تعمل حالياً؟",
+      "expected_entry_ids": [
+        "customer_support:activation-and-winback"
+      ],
+      "expected_facts": [
+        "January 2027"
+      ]
+    },
+    {
+      "id": "customer_support-exam-31",
+      "checklist": "CS-11",
+      "q_en": "How long does each party have to send dispute evidence?",
+      "q_ar": "كم يوماً لدى كل طرف لتقديم أدلة النزاع؟",
+      "expected_entry_ids": [
+        "customer_support:post-reveal-dispute-evidence"
+      ],
+      "expected_facts": [
+        "5 working days"
+      ]
+    },
+    {
+      "id": "customer_support-exam-32",
+      "checklist": "CS-11",
+      "q_en": "Who decides a post-reveal dispute and how fast?",
+      "q_ar": "من يبت في النزاع بعد الكشف وخلال كم؟",
+      "expected_entry_ids": [
+        "customer_support:post-reveal-dispute-evidence"
+      ],
+      "expected_facts": [
+        "3 working days"
+      ]
+    },
+    {
+      "id": "customer_support-exam-33",
+      "checklist": "CS-11",
+      "q_en": "Can support promise a refund in a dispute?",
+      "q_ar": "هل يستطيع الدعم أن يَعِد باسترداد في نزاع؟",
+      "expected_entry_ids": [
+        "customer_support:post-reveal-dispute-evidence"
+      ],
+      "expected_facts": [
+        "never promises a refund"
+      ]
+    },
+    {
+      "id": "customer_support-exam-34",
+      "checklist": "CS-12",
+      "q_en": "What happens to a question the chat could not answer?",
+      "q_ar": "ماذا يحدث للسؤال الذي لم تستطع المحادثة الإجابة عنه؟",
+      "expected_entry_ids": [
+        "customer_support:weekly-case-review"
+      ],
+      "expected_facts": [
+        "knowledge request"
+      ]
+    },
+    {
+      "id": "customer_support-exam-35",
+      "checklist": "CS-12",
+      "q_en": "How many chat questions went unanswered in the week ending 24 Sep?",
+      "q_ar": "كم سؤالاً في المحادثة بقي بلا إجابة في الأسبوع المنتهي 24 سبتمبر؟",
+      "expected_entry_ids": [
+        "customer_support:weekly-case-review"
+      ],
+      "expected_facts": [
+        "12 not answered"
+      ]
+    },
+    {
+      "id": "customer_support-exam-36",
+      "checklist": "CS-12",
+      "q_en": "Why is WhatsApp first-reply time missing from the review?",
+      "q_ar": "لماذا لا يظهر زمن الرد الأول على واتساب في المراجعة؟",
+      "expected_entry_ids": [
+        "customer_support:weekly-case-review"
+      ],
+      "expected_facts": [
+        "no reply time"
+      ]
+    },
+    {
+      "id": "customer_support-exam-37",
+      "checklist": "CS-13",
+      "q_en": "A customer asks about a drawing specification. Who answers?",
+      "q_ar": "عميل يسأل عن مواصفة في مخطط، من يجيب؟",
+      "expected_entry_ids": [
+        "customer_support:decides-alone-and-routes"
+      ],
+      "expected_facts": [
+        "go to the sales engineer"
+      ]
+    },
+    {
+      "id": "customer_support-exam-38",
+      "checklist": "CS-13",
+      "q_en": "What can support decide without anyone else?",
+      "q_ar": "ما الذي يقرره الدعم دون الرجوع إلى أحد؟",
+      "expected_entry_ids": [
+        "customer_support:decides-alone-and-routes"
+      ],
+      "expected_facts": [
+        "when a case is closed"
+      ]
+    },
+    {
+      "id": "customer_support-exam-39",
+      "checklist": "CS-13",
+      "q_en": "Can support reply \"I need to check and get back to you\"?",
+      "q_ar": "هل يجوز للدعم أن يرد \"سأتحقق وأعود إليكم\"؟",
+      "expected_entry_ids": [
+        "customer_support:always-answer-standard"
+      ],
+      "expected_facts": [
+        "not acceptable"
+      ]
+    },
+    {
+      "id": "customer_support-exam-40",
+      "checklist": "CS-14",
+      "q_en": "What is the first-response target for chat?",
+      "q_ar": "ما هدف زمن الرد الأول في المحادثة؟",
+      "expected_entry_ids": [
+        "customer_support:seat-kpis-jd-2026-09"
+      ],
+      "expected_facts": [
+        "under a minute"
+      ]
+    },
+    {
+      "id": "customer_support-exam-41",
+      "checklist": "CS-14",
+      "q_en": "How is support proven ready?",
+      "q_ar": "كيف يثبت أن الدعم جاهز؟",
+      "expected_entry_ids": [
+        "customer_support:seat-kpis-jd-2026-09"
+      ],
+      "expected_facts": [
+        "automated scenario suite"
+      ]
+    },
+    {
+      "id": "customer_support-exam-42",
+      "checklist": "CS-14",
+      "q_en": "What are the supplier campaign KPIs?",
+      "q_ar": "ما مؤشرات حملة الموردين؟",
+      "expected_entry_ids": [
+        "customer_support:seat-kpis-jd-2026-09"
+      ],
+      "expected_facts": [
+        "reply rate and registrations"
+      ]
+    },
+    {
+      "id": "customer_support-exam-43",
+      "checklist": "CS-15",
+      "q_en": "A customer registered in English writes in Arabic. Which language is the reply?",
+      "q_ar": "عميل سجّل بالإنجليزية وكتب بالعربية، بأي لغة يكون الرد؟",
+      "expected_entry_ids": [
+        "customer_support:language-and-reasoning-rules"
+      ],
+      "expected_facts": [
+        "language the person registered in"
+      ]
+    },
+    {
+      "id": "customer_support-exam-44",
+      "checklist": "CS-15",
+      "q_en": "Should Arabic replies be translated from English drafts?",
+      "q_ar": "هل تُترجم الردود العربية من مسودات إنجليزية؟",
+      "expected_entry_ids": [
+        "customer_support:language-and-reasoning-rules"
+      ],
+      "expected_facts": [
+        "not translated from English"
+      ]
+    },
+    {
+      "id": "customer_support-exam-45",
+      "checklist": "CS-15",
+      "q_en": "How should an Arabic reply greet someone who said السلام عليكم?",
+      "q_ar": "كيف يرد الدعم على من قال السلام عليكم؟",
+      "expected_entry_ids": [
+        "customer_support:tone-arabic-gulf-formal"
+      ],
+      "expected_facts": [
+        "وعليكم السلام ورحمة الله"
+      ]
+    },
+    {
+      "id": "customer_support-exam-46",
+      "checklist": "CS-16",
+      "q_en": "What must the WhatsApp profile never say?",
+      "q_ar": "ما الذي يجب ألا يرد أبداً في ملف واتساب؟",
+      "expected_entry_ids": [
+        "customer_support:profile-consistency"
+      ],
+      "expected_facts": [
+        "no trade-licence number"
+      ]
+    },
+    {
+      "id": "customer_support-exam-47",
+      "checklist": "CS-16",
+      "q_en": "Who else shares the profile consistency duty?",
+      "q_ar": "من يشارك مهمة اتساق الملفات التعريفية؟",
+      "expected_entry_ids": [
+        "customer_support:profile-consistency"
+      ],
+      "expected_facts": [
+        "marketing seat"
+      ]
+    },
+    {
+      "id": "customer_support-exam-48",
+      "checklist": "CS-17",
+      "q_en": "A supplier has not responded 3 working days after the reveal. What now?",
+      "q_ar": "مورد لم يرد بعد 3 أيام عمل من الكشف، ماذا الآن؟",
+      "expected_entry_ids": [
+        "customer_support:supplier-non-response"
+      ],
+      "expected_facts": [
+        "Working day 3",
+        "customer copied"
+      ]
+    },
+    {
+      "id": "customer_support-exam-49",
+      "checklist": "CS-18",
+      "q_en": "What is the Reveal Fee?",
+      "q_ar": "ما رسوم الكشف؟",
+      "expected_entry_ids": [
+        "customer_support:company-hard-rules-fees-refunds"
+      ],
+      "expected_facts": [
+        "3% of the value"
+      ]
+    },
+    {
+      "id": "customer_support-exam-50",
+      "checklist": "CS-18",
+      "q_en": "Is VAT charged on the Reveal Fee?",
+      "q_ar": "هل تُفرض ضريبة القيمة المضافة على رسوم الكشف؟",
+      "expected_entry_ids": [
+        "customer_support:company-hard-rules-fees-refunds"
+      ],
+      "expected_facts": [
+        "no VAT on the Reveal Fee"
+      ]
+    },
+    {
+      "id": "customer_support-exam-51",
+      "checklist": "CS-19",
+      "q_en": "A buyer asks which supplier offered the lowest price before choosing. Can we say?",
+      "q_ar": "مشترٍ يسأل قبل الاختيار أي مورد قدم أقل سعر، هل نخبره؟",
+      "expected_entry_ids": [
+        "customer_support:confidentiality-before-reveal"
+      ],
+      "expected_facts": [
+        "never discloses"
+      ]
+    },
+    {
+      "id": "customer_support-exam-52",
+      "checklist": "CS-20",
+      "q_en": "We have not heard from a customer for two days on WhatsApp. Can we send free text?",
+      "q_ar": "لم يراسلنا العميل على واتساب منذ يومين، هل نرسل نصاً حراً؟",
+      "expected_entry_ids": [
+        "customer_support:whatsapp-24h-window-templates"
+      ],
+      "expected_facts": [
+        "24-hour customer service window",
+        "pre-approved message templates"
+      ]
+    },
+    {
+      "id": "customer_support-exam-53",
+      "checklist": "CS-21",
+      "q_en": "A supplier asks us to delete all his personal data. Which law applies?",
+      "q_ar": "مورد يطلب حذف جميع بياناته الشخصية، أي قانون ينطبق؟",
+      "expected_entry_ids": [
+        "customer_support:pdpl-scope-and-roles"
+      ],
+      "expected_facts": [
+        "Decree-Law No. 45 of 2021"
+      ]
+    },
+    {
+      "id": "customer_support-exam-54",
+      "checklist": "CS-22",
+      "q_en": "A customer says the supplier's bank account changed. What do we advise?",
+      "q_ar": "عميل يقول إن الحساب البنكي للمورد تغيّر، بماذا ننصحه؟",
+      "expected_entry_ids": [
+        "customer_support:invoice-redirection-bank-change"
+      ],
+      "expected_facts": [
+        "Do not pay to the new details yet"
+      ]
+    },
+    {
+      "id": "customer_support-exam-55",
+      "checklist": "CS-23",
+      "q_en": "Which days are the UAE government working days?",
+      "q_ar": "ما أيام عمل الجهات الحكومية في الإمارات؟",
+      "expected_entry_ids": [
+        "customer_support:uae-working-week"
+      ],
+      "expected_facts": [
+        "Monday to Friday"
+      ]
+    },
+    {
+      "id": "customer_support-exam-56",
+      "checklist": "CS-24",
+      "q_en": "How do we convert a VAT-inclusive quote to exclusive?",
+      "q_ar": "كيف نحوّل عرضاً شاملاً للضريبة إلى غير شامل؟",
+      "expected_entry_ids": [
+        "customer_support:vat-on-quotations-basics"
+      ],
+      "expected_facts": [
+        "divide by 1.05"
+      ]
+    },
+    {
+      "id": "customer_support-exam-57",
+      "checklist": "CS-25",
+      "q_en": "How does support use past cases before replying?",
+      "q_ar": "كيف يستفيد الدعم من الحالات السابقة قبل الرد؟",
+      "expected_entry_ids": [
+        "customer_support:case-memory-learning-loop"
+      ],
+      "expected_facts": [
+        "retrieve the most similar resolved cases"
+      ]
+    }
+  ]
+}

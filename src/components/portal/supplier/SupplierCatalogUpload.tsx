@@ -71,12 +71,12 @@ async function imagesOf(file: File): Promise<{ mime: string; data: string }[]> {
 
 // Every format the ingester can route. Kept here as one list so the accept attribute and the help
 // text can never disagree about what the supplier may upload.
-const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf,.ifc,.rvt';
+const ACCEPT = '.csv,.tsv,.txt,.xlsx,.xls,.pdf,.png,.jpg,.jpeg,.webp,.dwg,.dxf';
 
 const T = {
   en: {
     title: 'Catalog AI', lead: 'Upload your product catalog, price list, spreadsheet or drawing. We read it and build your product records.',
-    formats: 'Price lists and spreadsheets (CSV, Excel), catalogs (PDF, images), and CAD or BIM drawings (DWG, DXF, IFC, RVT).',
+    formats: 'Price lists and spreadsheets (CSV, Excel), catalogs (PDF, images), and drawings as PDF or CAD (DWG/DXF).',
     choose: 'Choose a catalog file', working: 'Reading your catalog…',
     created: 'products added to your catalog', found: 'found in the document',
     none: 'We read the document and it lists no products. Nothing was added.',
@@ -88,7 +88,7 @@ const T = {
   },
   ar: {
     title: 'قراءة الكتالوج بالذكاء الاصطناعي', lead: 'ارفعوا كتالوج منتجاتكم أو قائمة الأسعار أو الجدول أو المخطط، ونتولى قراءته وإنشاء سجلات منتجاتكم.',
-    formats: 'قوائم الأسعار والجداول (CSV وExcel)، والكتالوجات (PDF والصور)، ومخططات CAD أو BIM (DWG وDXF وIFC وRVT).',
+    formats: 'قوائم الأسعار والجداول (CSV وExcel)، والكتالوجات (PDF والصور)، والمخططات بصيغة PDF أو CAD ‏(DWG/DXF).',
     choose: 'اختيار ملف الكتالوج', working: 'جارٍ قراءة الكتالوج…',
     created: 'منتج أُضيف إلى كتالوجكم', found: 'وُجد في المستند',
     none: 'قرأنا المستند ولم نجد فيه منتجات، فلم يُضف أي شيء.',
