@@ -1,0 +1,3 @@
+Committed, not applied: the release operator holds qd-release.lock. Apply with --apply --ddl; it must print PROBE OK.
+Then append the file to the END of MANIFEST.txt and delete this note. After the apply, fn_ceo_marketing_plan_watch's next
+run closes ceo_improvement 4412 (October marked late though campaign 7 covers it). Seat: marketing (with ceo).
