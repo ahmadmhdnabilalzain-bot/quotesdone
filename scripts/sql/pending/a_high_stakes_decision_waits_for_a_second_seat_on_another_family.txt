@@ -1,10 +1,11 @@
-Pending, not applied before merge (founder_instruction 1009 upgrade 10). Adds fn_high_stakes_reviewer,
-fn_high_stakes_challenge and fn_high_stakes_clearance over the existing seat_deliberation machine. Applied by the
-release operator (C:/Users/Opera/qd-release.lock) after merge. NOT LIVE even once applied: every reviewer turn needs a
-paid model (the model hold is on) and only marketing -> ceo has a seat_deliberation_ceiling row, so the other pairs
-hold as pair_ceiling; the clearance says 'held' and the decision waits. No decision path calls
-challengeBeforeDeciding yet (supabase/functions/_shared/high_stakes_challenge.ts); wiring pricing, campaign launch,
-supplier choice and refund paths is the follow-up once the hold lifts.
-Measured 16/16 PASS, 29 Sep 2026, 0 rows left. Proved in an aborted transaction on production (stubbed reviewer) by scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs
-and with a stubbed model by supabase/functions/_shared/high_stakes_challenge.test.ts.
+Pending, not applied before merge (founder_instruction 1009 upgrade 10). Removes the per-pair review cap as a condition
+(fn_seat_deliberation_budget always ok, instruction 987); lets a decision taken by code be reviewed (author model
+'deterministic' in fn_seat_deliberation_open and both deliberation guards); adds fn_high_stakes_gate / _may_proceed /
+_clearance / _challenge / _reviewer, trg_high_stakes_review (z93, a later disagreement opens a finding for the deciding
+seat) and trg_high_stakes_campaign_approved; and wires the gate into fn_refund_decide, fn_ceo_review_applies and
+fn_marketing_post_publish_refusal (quote_compare's supplier choice is in the same PR's edge function).
+APPLY AFTER every_real_outcome_lands_on_the_seat_that_decided_it_with_its_reason.sql (fn_outcome_record), and deploy
+quote_compare with it. Applied by the release operator (C:/Users/Opera/qd-release.lock) after merge.
+Measured 21/21 PASS, 29 Sep 2026, 0 rows left, by scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs (aborted
+transaction on production, stubbed reviewer), and 4/4 by supabase/functions/_shared/high_stakes_challenge.test.ts.
 When applied: delete this note and append the .sql to the END of MANIFEST.txt. Seat: it_engineer.

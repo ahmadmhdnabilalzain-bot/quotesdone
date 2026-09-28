@@ -40,6 +40,7 @@ const probe = `
 do $p$
 declare
   t0 timestamptz := now();
+  rf bigint; dr bigint; vm text; rd jsonb; mp0 boolean; mp1 boolean;
   j bigint; jl bigint; lead_id bigint; o jsonb; o2 jsonb; c jsonb; d bigint; d2 bigint; dq bigint; st jsonb;
   r jsonb := '{}'; e text;
 begin
@@ -91,6 +92,45 @@ begin
   r := r || jsonb_build_object('agreed', (public.fn_high_stakes_clearance('refund', '${TAG}', '${TAG}:q') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat'),
     'refund_reviewer', (select reviewer_seat from public.seat_deliberation where id = dq));
 
+  -- 5. NO CAP HOLDS A REVIEW; the real refund path under the model hold proceeds with its review owed; a later
+  --    disagreement opens a finding for the deciding seat (the CEO); an unreviewed decision may not proceed.
+  r := r || jsonb_build_object('no_cap', public.fn_seat_deliberation_budget('sales_engineer', 'ceo')->'ok',
+                               'model_held', public.fn_high_stakes_model_held());
+  -- The fixture refund names no real payment, so the three checks that refuse a paymentless refund (a00, a01 on refunds,
+  -- a05 on ceo_approval) are disabled for this aborted transaction only; every other trigger, and the gate inside
+  -- fn_refund_decide, runs as in production. Both tables are idle (0 refunds ever, measured 29 Sep 2026).
+  alter table public.refunds disable trigger a00_refund_amount_is_the_fee_paid;
+  alter table public.refunds disable trigger a01_refunds_never_return_more_than_was_paid;
+  alter table public.ceo_approval disable trigger a05_ceo_refund_approval_checks_the_process;
+  insert into public.refunds (reason_code, reason_note, requested_by, amount_fils, status)
+  values ('duplicate_charge', 'ZZ DEMO 1009 refund proof', '${TAG}', 100, 'requested') returning id into rf;
+  insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, rationale, amount_aed)
+  values ('refund', rf::text, 'approved', 'ceo', 'ZZ DEMO 1009 the charge was taken twice', 1);
+  rd := public.fn_refund_decide(rf, true, 'ceo');
+  select id into dr from public.seat_deliberation where kind = 'high_stakes.refund' and subject_table = 'refunds' and subject_id = rf::text;
+  if dr is null then raise exception 'CHK<<%>>', jsonb_build_object('error', 'the refund review was not opened: ' || coalesce((select evidence->>'error' from public.it_engineer_finding where issue_key = 'high_stakes_open:refund:refunds:' || rf), rd::text)); end if;
+  r := r || jsonb_build_object('refund_decide', rd - 'clearance', 'refund_status', (select status from public.refunds where id = rf),
+    'refund_review', (select jsonb_build_object('reviewer', reviewer_seat, 'author_model', author_model, 'owed', proceeded_at is not null)
+                        from public.seat_deliberation where id = dr));
+  select r2.model_id into vm from public.model_registry r2
+   where lower(r2.provider) in ('openai', 'anthropic') and lower(r2.provider) is distinct from
+         (select lower(t.provider) from public.seat_deliberation_turn t where t.deliberation_id = dr and t.phase = 'proposal')
+   order by r2.model_id limit 1;
+  perform public.fn_seat_deliberation_record(dr, 'blind', vm, ${turn('reject', 'ZZ DEMO a duplicate charge may have been refunded already by the bank')});
+  perform public.fn_seat_deliberation_record(dr, 'compare', vm, ${turn('reject', 'ZZ DEMO the CEO may have seen the bank statement I cannot see',
+    { agreements: 'none', disagreements: 'ZZ DEMO the second charge was reversed by the card issuer, so this refund pays twice' })});
+  r := r || jsonb_build_object('finding', (select jsonb_build_object('owner', evidence->>'owner_seat', 'raised_by', raised_by, 'open', closed_at is null)
+                                            from public.it_engineer_finding where issue_key = 'high_stakes_disagreement:' || dr));
+  -- an unreviewed decision that did not go ahead may not proceed; agreement then lets it
+  d := public.fn_high_stakes_challenge('campaign_launch', 'marketing', '${TAG}', '${TAG}:c', 'ZZ DEMO launch this campaign?',
+         '{"month":"2026-10"}'::jsonb, '{"posts":"twelve"}'::jsonb, '${AUTHOR}', null, true);
+  mp0 := public.fn_high_stakes_may_proceed('campaign_launch', '${TAG}', '${TAG}:c');
+  perform public.fn_seat_deliberation_record(d, 'blind', '${REVIEWER}', ${turn('approve', 'ZZ DEMO twelve posts in a month may tire a small audience')});
+  perform public.fn_seat_deliberation_record(d, 'compare', '${REVIEWER}', ${turn('approve', 'ZZ DEMO the timing may clash with a public holiday week',
+    { agreements: 'ZZ DEMO organic only and within the approved calendar', disagreements: 'none' })});
+  mp1 := public.fn_high_stakes_may_proceed('campaign_launch', '${TAG}', '${TAG}:c');
+  r := r || jsonb_build_object('may_proceed_before', mp0, 'may_proceed_after', mp1);
+
   r := r || jsonb_build_object('notifications_queued', (select count(*) from public.notifications where created_at >= t0 and to_email = '${EMAIL}'),
     'misses', (select count(*) from public.seat_case_memory_miss where (source_id like '${TAG}%' or source_id = '${EMAIL}')));
   raise exception 'CHK<<%>>', r;
@@ -109,7 +149,9 @@ const [left] = await sql(`select
   (select count(*) from public.email_suppressions where email = '${EMAIL}')::int suppressions,
   (select count(*) from public.seat_judgement where surface = '${TAG}' or subject_id like '${TAG}%')::int judgements,
   (select count(*) from public.seat_case_memory where source_table = '${TAG}')::int cases,
-  (select count(*) from public.seat_deliberation where subject_table = '${TAG}')::int deliberations`, { readOnly: true });
+  (select count(*) from public.seat_deliberation where subject_table = '${TAG}')::int deliberations,
+  (select count(*) from public.refunds where requested_by = '${TAG}')::int refunds,
+  (select count(*) from public.it_engineer_finding where issue_key like 'high_stakes_disagreement:%' and evidence->>'disagreements' like 'ZZ DEMO%')::int findings`, { readOnly: true });
 const rowsLeft = Object.values(left).reduce((a, b) => a + b, 0);
 console.log(JSON.stringify({ replayed_pending: replayed, ...r, rows_left_after: left }, null, 2));
 
@@ -128,6 +170,11 @@ const checks = [
   ['4 a reviewer of the author\'s family is refused', /SAME_FAMILY_REVIEW/.test(String(r.same_family))],
   ['4 a disagreement is not cleared and carries its reason', r.disagreed?.state === 'disagreed' && r.disagreed?.cleared === false && /win-rate/.test(r.disagreed?.reason ?? '')],
   ['4 an agreement on another family clears', r.agreed?.state === 'agreed' && r.agreed?.cleared === true && r.agreed?.reviewer_model === REVIEWER],
+  ['5 no cap: an uncapped pair is allowed', r.no_cap === true],
+  ['5 the real refund path, model held: approved, review owed, the accountant reviews', r.model_held === true && r.refund_decide?.ok === true && r.refund_status === 'approved' && r.refund_review?.owed === true && r.refund_review?.reviewer === 'accountant'],
+  ['5 a later disagreement opens a finding owned by the deciding seat', r.finding?.owner === 'ceo' && r.finding?.raised_by === 'accountant' && r.finding?.open === true],
+  ['5 an unreviewed decision may not proceed; agreement lets it', r.may_proceed_before === false && r.may_proceed_after === true],
+  ['3 held for the model hold, never for a cap', !/pair_ceiling/.test(String(r.held?.reason))],
   ['no trigger failure recorded, nothing sent', Number(r.misses) === 0 && Number(r.notifications_queued) === 0],
   ['zero ZZ DEMO rows left', rowsLeft === 0],
 ];
