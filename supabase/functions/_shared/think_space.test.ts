@@ -63,3 +63,25 @@ Deno.test('a knowledge row is one text: title, newline, body, cut where gte-smal
   assertEquals(rowText(null, 'body'), 'body');
   assertEquals(rowText('T', 'x'.repeat(5000)).length, TEXT_CUT);
 });
+
+// UNDERSTAND THE QUESTION FIRST (28 Sep 2026): the planner reads the question's trade and kind, and retrieval is asked
+// for that area. The stub stands in for the model; the routine resolves the values exactly (checked in SQL separately).
+Deno.test("the planner's trade and kind reach retrieval; the caller's trade wins; no trade from either sends neither", async () => {
+  const run = async (plan: Record<string, unknown>, context?: Record<string, unknown>) => {
+    const rpcs: [string, Record<string, unknown>][] = [];
+    const d: ThinkDeps = {
+      gate: () => Promise.resolve({ allowed: true } as never),
+      llm: (phase) => Promise.resolve({ content: phase === 'decompose' ? J({ steps: [{ id: 's1', goal: 'g', query: 'VRF submittal' }], facts: [], ...plan })
+        : phase === 'verify' ? J({ verdict: 'agree', problems: [] }) : J({ answer: 'a', reasoning: [], cited: [], confidence: 0.9 }), model: 'm' }),
+      embed: () => Promise.resolve([0.1, 0.2]),
+      rpc: (fn, args) => { rpcs.push([fn, args]); return Promise.resolve({ data: fn.startsWith('fn_case_recall') ? { cases: [] } : [], error: null }); },
+    };
+    await think(d, { seat: 'sales_engineer', surface: 'think.answer', question: 'What must a VRF submittal include?', ...(context ? { context } : {}) });
+    const r = rpcs.find(([f]) => /retrieve/.test(f))![1];
+    return [r.p_trade ?? null, r.p_kind ?? null];
+  };
+  assertEquals(await run({ trade: 'HVAC', kind: 'spec_checklist' }), ['hvac', 'spec_checklist']);
+  assertEquals(await run({ trade: 'plumbing', kind: 'standard' }, { trade: 'hvac' }), ['hvac', 'standard']);
+  assertEquals(await run({ trade: null, kind: 'spec_checklist' }), [null, null]);
+  assertEquals(await run({}), [null, null]);
+});
