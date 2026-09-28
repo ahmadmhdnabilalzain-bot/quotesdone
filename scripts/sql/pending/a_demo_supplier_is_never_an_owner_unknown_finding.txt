@@ -1,0 +1,14 @@
+Not applied: written by the accountant 28 Sep 2026, awaiting the release operator.
+Apply: node scripts/apply_sql.mjs scripts/sql/a_demo_supplier_is_never_an_owner_unknown_finding.sql --apply --ddl
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit.
+
+After the apply, handoff 98486 (it.finding acct:ubo:owner_unknown, incident 471) closes only once its learning
+is recorded (trg_new_bug_closes_with_learning needs cause, fix, regression check, and a playbook class or the
+reason it cannot be automated). Record it with:
+  select public.fn_it_attach_learning(98486,
+    'fn_accountant_ubo_watch_tick excluded demo leads by a private name literal (ZZ DEMO + em dash) and @example.invalid; probe lead 133960 "ZZ DEMO holds probe 0b04d2d2" had no em dash and was counted as a real supplier with no owner',
+    'the watch filters on the generated column leads.is_demo (fn_is_demo_email, fn_is_demo_phone, ZZ DEMO%, qd_demo tag, demo sources) in both real and fixture mode',
+    'scripts/checks/the_ubo_watch_uses_the_leads_demo_column.test.mjs',
+    null,
+    'a code defect in a demo filter, fixed in code; there is no runtime remedy a playbook could apply',
+    'accountant');
