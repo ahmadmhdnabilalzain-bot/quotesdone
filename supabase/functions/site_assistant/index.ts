@@ -375,7 +375,6 @@ Deno.serve(observe('site_assistant', async (req) => {
         conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
         profile: live ?? undefined,
         facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
-        subject: conv.startsWith('zzdemo') ? { fixture: true } : undefined,
       }, () => Promise.resolve(null));
       if (sr.path === 'reasoned' && sr.reply) {
         try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source) + ':reasoned', path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
