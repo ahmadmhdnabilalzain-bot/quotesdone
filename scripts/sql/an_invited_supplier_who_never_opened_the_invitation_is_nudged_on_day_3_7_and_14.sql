@@ -29,6 +29,9 @@
 --     send_outbox). Fixture mode touches ONLY ZZ DEMO leads at @example.invalid.
 --   fn_sales_engineer_supplier_onboarding calls it and reports 'invite_nudges'.
 --
+-- REVIEW, 29 Sep 2026: a nudge is ALWAYS ENGLISH (lang 'en', the /en/ portal, no Arabic copy; founder rule: suppliers
+--   are always English, ledger 993), and send_outbox carries 'supplier_invite_nudge' on the invitation lane
+--   (invite_lane.ts INVITE_LANE_TYPES), inside the lane's one daily cap, so a nudge never leaves from info@.
 -- ORGANIC ONLY (founder 866): email through the company's own outbox; no paid channel, no ad spend, no LLM.
 -- Prevented by: scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14_probe.sql
 
@@ -46,7 +49,9 @@ as $fn$
        and (n.status = 'sent' or n.sent_at is not null)
      group by n.lead_id
   ), c as (
-    select l.id, lower(btrim(l.email)) as to_email, case when lower(coalesce(l.locale, '')) like 'ar%' then 'ar' else 'en' end as lang,
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English, ledger 993). The column
+    -- stays so the signature does not change; send_outbox would hold an Arabic row of this type anyway.
+    select l.id, lower(btrim(l.email)) as to_email, 'en'::text as lang,
            l as lead,
            case when p_now >= i.sent_at + interval '14 days' then 3
                 when p_now >= i.sent_at + interval '7 days'  then 2
@@ -82,7 +87,7 @@ as $fn$
 declare
   v_dxb timestamp := p_now at time zone 'Asia/Dubai';
   v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
-  v_hol text; v_cap int; v_used int; v_left int; v_queued int := 0; v_due int := 0; r record; v_ar boolean; v_link text;
+  v_hol text; v_cap int; v_used int; v_left int; v_queued int := 0; v_due int := 0; r record; v_link text;
 begin
   select c.event_name into v_hol from public.company_calendar c
    where c.kind = 'public_holiday' and v_dxb::date between c.starts_on and coalesce(c.ends_on, c.starts_on) limit 1;
@@ -109,27 +114,18 @@ begin
              join public.leads l on l.id = d.lead_id loop
     v_due := v_due + 1;
     continue when v_queued >= v_left;
-    v_ar := r.lang = 'ar';
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English): one copy, the /en/ portal.
     v_link := coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com')
-              || '/' || r.lang || '/portal' || case when r.claim_token is not null then '?t=' || r.claim_token::text else '' end;
+              || '/en/portal' || case when r.claim_token is not null then '?t=' || r.claim_token::text else '' end;
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'supplier_invite_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
-      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', r.lang, 'dedupe_key', r.dedupe_key,
-      'subject', case when v_ar then case when r.step = 3 then 'تذكير أخير: ' else '' end || 'دعوتكم للانضمام إلى الموردين في QuotesDone'
-                      else case when r.step = 3 then 'A last reminder: ' else '' end || 'your invitation to join QuotesDone as a supplier' end,
-      'body', case when v_ar then
-          coalesce('السادة/ ' || nullif(btrim(r.company_name), '') || ' المحترمين،', 'السادة الكرام،') || E'\n\nتحية طيبة وبعد،\n\n'
-          || 'نودّ تذكيركم بدعوتنا لتسجيل شركتكم مورِّدًا على QuotesDone. التسجيل مجاني ويستغرق دقائق معدودة.'
-          || E'\n\n' || v_link
-          || case when r.step = 3 then E'\n\nوهذا آخر تذكير نرسله إليكم بهذا الشأن.' else '' end
-          || E'\n\nوفي حال عدم رغبتكم في تلقي هذه الرسائل، يكفي الرد على هذه الرسالة لإزالة عنوانكم من القائمة.'
-          || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،'
-        else
-          coalesce('Dear ' || nullif(btrim(r.company_name), '') || ',', 'Dear Sir or Madam,') || E'\n\n'
+      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en', 'dedupe_key', r.dedupe_key,
+      'subject', case when r.step = 3 then 'A last reminder: ' else '' end || 'your invitation to join QuotesDone as a supplier',
+      'body', coalesce('Dear ' || nullif(btrim(r.company_name), '') || ',', 'Dear Sir or Madam,') || E'\n\n'
           || 'A reminder of our invitation to register your company as a supplier on QuotesDone. It is free and takes a few minutes.'
           || E'\n\n' || v_link
           || case when r.step = 3 then E'\n\nThis is the last reminder we will send about it.' else '' end
-          || E'\n\nIf you would rather not receive these e-mails, reply to this one and we will remove your address.' end)));
+          || E'\n\nIf you would rather not receive these e-mails, reply to this one and we will remove your address.')));
     v_queued := v_queued + 1;
   end loop;
   return jsonb_build_object('held', null, 'due', v_due, 'queued', v_queued, 'cap', v_cap, 'used_before', v_used);
@@ -139,13 +135,14 @@ revoke execute on function public.fn_sales_engineer_nudges_invited_suppliers(tim
 grant execute on function public.fn_sales_engineer_nudges_invited_suppliers(timestamptz, integer, boolean) to service_role;
 
 -- The duty that measured "171 invited, 0 nudged" now acts on the 'invited' stage. Body unchanged from
--- the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql except the call and its report line.
+-- the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql except the call, its report line, and the
+-- first-quote nudge, which is English only (review, 29 Sep 2026: suppliers are always English).
 create or replace function public.fn_sales_engineer_supplier_onboarding()
 returns jsonb
 language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-declare r record; v_nudged int := 0; v_ar boolean; v_stages jsonb; v_inv jsonb;
+declare r record; v_nudged int := 0; v_stages jsonb; v_inv jsonb;
 begin
   with m as (
     select im.supplier_id, min(im.sent_at) as first_match_at,
@@ -183,7 +180,7 @@ begin
   v_inv := public.fn_sales_engineer_nudges_invited_suppliers();
 
   for r in
-    select o.lead_id, o.open_matches, l.company_name, l.locale, lower(nullif(btrim(coalesce(l.claimed_by, l.email)), '')) as to_email
+    select o.lead_id, o.open_matches, l.company_name, lower(nullif(btrim(coalesce(l.claimed_by, l.email)), '')) as to_email
       from public.supplier_onboarding o join public.leads l on l.id = o.lead_id
      where o.stage = 'matched' and o.open_matches > 0 and o.first_match_at < now() - interval '3 days'
        and o.nudges < 2 and (o.last_nudge_at is null or o.last_nudge_at < now() - interval '7 days')
@@ -191,23 +188,17 @@ begin
      limit 50
   loop
     continue when r.to_email is null;
-    v_ar := r.locale = 'ar';
+    -- ALWAYS ENGLISH (review, 29 Sep 2026; founder rule: suppliers are always English). Until this file an
+    -- Arabic-locale supplier was given an Arabic nudge and an /ar/portal link.
     perform public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
       'type', 'supplier_first_quote_nudge', 'requested_by', 'sales_engineer', 'channel', 'email',
-      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', case when v_ar then 'ar' else 'en' end,
+      'to_email', r.to_email, 'to_role', 'supplier', 'lead_id', r.lead_id, 'lang', 'en',
       'dedupe_key', 'first_quote_nudge:' || r.lead_id || ':' || (select nudges from public.supplier_onboarding where lead_id = r.lead_id),
-      'subject', case when v_ar then 'طلبات عملاء بانتظار عروض أسعاركم في QuotesDone'
-                      else 'Customer requests are waiting for your quotation' end,
-      'body', case when v_ar then
-          'السادة/ ' || coalesce(r.company_name, 'المورّد') || ' المحترمين،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-          || 'لديكم ' || r.open_matches || ' من طلبات العملاء المطابقة لتخصصكم لم تُقدَّم لها عروض أسعار حتى الآن. '
-          || 'يمكنكم الاطلاع عليها وتقديم عروضكم من بوابة المورّدين: https://quotesdone.com/ar/portal' || chr(10) || chr(10)
-          || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
-        else
-          'Dear ' || coalesce(r.company_name, 'supplier') || ',' || chr(10) || chr(10)
+      'subject', 'Customer requests are waiting for your quotation',
+      'body', 'Dear ' || coalesce(r.company_name, 'supplier') || ',' || chr(10) || chr(10)
           || r.open_matches || ' customer request(s) matched to your trade are open and have no quotation from you yet. '
-          || 'You can read them and quote in your supplier portal: https://quotesdone.com/portal' || chr(10) || chr(10)
-          || 'QuotesDone' end)));
+          || 'You can read them and quote in your supplier portal: https://quotesdone.com/en/portal' || chr(10) || chr(10)
+          || 'QuotesDone')));
     update public.supplier_onboarding set nudges = nudges + 1, last_nudge_at = now() where lead_id = r.lead_id;
     v_nudged := v_nudged + 1;
   end loop;

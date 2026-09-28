@@ -14,8 +14,9 @@ begin
   end if;
   select count(*) into v_real_before from public.notifications where type = 'supplier_invite_nudge' and not public.fn_is_demo_email(to_email);
 
-  insert into public.leads (company_name, email, invited_at) values
-    ('ZZ DEMO — nudge day 4',   'zz-demo-nudge-a@example.invalid', p_now - interval '4 days')  returning id into a;
+  -- lead a has an Arabic locale on purpose: its nudge must still be English (review, 29 Sep 2026)
+  insert into public.leads (company_name, email, invited_at, locale) values
+    ('ZZ DEMO — nudge day 4',   'zz-demo-nudge-a@example.invalid', p_now - interval '4 days', 'ar')  returning id into a;
   insert into public.leads (company_name, email, invited_at) values
     ('ZZ DEMO — nudge day 8',   'zz-demo-nudge-b@example.invalid', p_now - interval '8 days')  returning id into b;
   insert into public.leads (company_name, email, invited_at) values
@@ -30,8 +31,9 @@ begin
   insert into public.email_suppressions (email, reason, source) values ('zz-demo-nudge-d@example.invalid', 'ZZ DEMO probe', 'probe');
 
   -- the invitation as the outbox records it (the anchor), dated per lead
-  insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, created_at, sent_at, channel)
-  select 'supplier_invite', l.email, 'supplier', l.id, 'ZZ DEMO', 'ZZ DEMO https://quotesdone.com/en/portal?t=' || gen_random_uuid()::text, 'sent', l.invited_at, l.invited_at, 'email'
+  -- lang 'en' as the invitation is always English (without it a04 reads lead a's 'ar' locale and swaps the copy)
+  insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, created_at, sent_at, channel, lang)
+  select 'supplier_invite', l.email, 'supplier', l.id, 'ZZ DEMO', 'ZZ DEMO https://quotesdone.com/en/portal?t=' || gen_random_uuid()::text, 'sent', l.invited_at, l.invited_at, 'email', 'en'
     from public.leads l where l.id = any(ids);
   update public.notifications set status = 'sent', sent_at = created_at where type = 'supplier_invite' and lead_id = any(ids);
 
@@ -63,6 +65,13 @@ begin
     fail := fail || 'outbox rows=' || (select count(*) from public.notifications where type = 'supplier_invite_nudge' and lead_id = any(ids)) || '; '; end if;
   if exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = any(ids) and to_email not like '%@example.invalid') then
     fail := fail || 'a nudge left the fixture domain; '; end if;
+  -- always English, the Arabic-locale lead included: lang 'en', the /en/ portal, no Arabic script anywhere
+  if exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = any(ids)
+              and (lang is distinct from 'en' or body !~ '/en/portal[?]t=' or body ~ '/ar/'
+                   or coalesce(subject, '') || coalesce(body, '') ~ '[؀-ۿ]')) then
+    fail := fail || 'a nudge is not English; '; end if;
+  if not exists (select 1 from public.notifications where type = 'supplier_invite_nudge' and lead_id = a) then
+    fail := fail || 'the Arabic-locale lead was not nudged (in English); '; end if;
   select count(*) into v_real_after from public.notifications where type = 'supplier_invite_nudge' and not public.fn_is_demo_email(to_email);
   if v_real_after <> v_real_before then fail := fail || 'a real address was queued; '; end if;
   -- real mode with the campaign closed is held and queues nothing

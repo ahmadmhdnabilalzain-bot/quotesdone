@@ -14,7 +14,7 @@ import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
-import { heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -169,13 +169,13 @@ Deno.serve(observe('send_outbox', async (req) => {
       needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type)),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000),
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; } });
-    // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations actually sent today.
+    // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations and nudges actually sent today.
     const laneCapRaw = parseInt((await sec('invite_daily_cap')) || '', 10);
     const laneCap = Number.isFinite(laneCapRaw) && laneCapRaw >= 0 ? laneCapRaw : 30;
     let laneSentToday = 0;
     if (lane.active) {
       const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-        .eq('type', 'supplier_invite').eq('status', 'sent').gte('sent_at', since.toISOString());
+        .in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
       laneSentToday = count || 0;
     }
     let laneHeld = 0;
@@ -289,7 +289,7 @@ Deno.serve(observe('send_outbox', async (req) => {
           try { providerId = ((await r.json()) as { id?: string })?.id ?? null; } catch (_e) { /* a 2xx with no body is still an acceptance */ }
           await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: providerId }).eq('id', n.id);
           sent++;
-          if (lane.active && n.type === 'supplier_invite' && from === lane.from) laneSentToday++;
+          if (lane.active && LANE_CAPPED_TYPES.includes(n.type) && from === lane.from) laneSentToday++;
         }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
       } catch (e) {
