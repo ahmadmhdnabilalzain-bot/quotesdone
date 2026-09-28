@@ -253,7 +253,7 @@ Deno.serve(observe('quote_compare', async (req) => {
       a.second_seat = { state: g.state, owed: g.owed ?? false, deliberation_id: g.deliberation_id ?? null };
       if (!g.proceed) {
         a.top3 = []; a.on_review = true;
-        a.review_note = lang === 'ar' ? 'توصيتنا قيد المراجعة الداخلية؛ جميع العروض معروضة أدناه.' : 'Our recommendation is under internal review; every quote is listed below.';
+        a.review_note = lang === 'ar' ? 'توصيتنا قيد المراجعة الداخلية، وتجدون جميع العروض أدناه.' : 'Our recommendation is under internal review; every quote is listed below.';
       }
       return a;
     };
