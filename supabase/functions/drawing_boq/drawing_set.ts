@@ -75,9 +75,18 @@ const FIXTURE: Record<string, string> = {
   WHY: 'Wall hydrant', EWC: 'Electric water cooler / drinking fountain', DF: 'Drinking fountain', FCO: 'Floor cleanout', CO: 'Cleanout',
   WCO: 'Wall cleanout', RD: 'Roof drain', OD: 'Overflow drain', TP: 'Trap primer', IW: 'Ice maker box', WB: 'Washer box', ES: 'Eyewash station',
   EW: 'Emergency eyewash', SS_SHOWER: 'Safety shower',
+  // Electrical, fire-alarm and door symbols tagged on a plan (28 Sep 2026: the drawing benchmark read 0
+  // of the lighting/power sheet because these were missing). Counted per occurrence, like a fixture.
+  LT: 'Light fitting', LF: 'Light fitting', EL: 'Emergency light fitting', DS: 'Double socket outlet', SSO: 'Single socket outlet',
+  SW: 'Light switch', SD: 'Smoke detector', HD: 'Heat detector', MCP: 'Manual call point', D: 'Door', DR: 'Door',
+};
+// Section of a counted fixture line; a type not listed is a plumbing fixture (the table's original scope).
+const SECTION_OF: Record<string, string> = {
+  LT: 'Electrical devices', LF: 'Electrical devices', EL: 'Electrical devices', DS: 'Electrical devices', SSO: 'Electrical devices', SW: 'Electrical devices',
+  SD: 'Fire alarm devices', HD: 'Fire alarm devices', MCP: 'Fire alarm devices', D: 'Doors', DR: 'Doors',
 };
 // Types written with no number are rare and specific; anything else needs a number to be a tag.
-const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO']);
+const NO_NUMBER_OK = new Set(['EWC', 'FCO', 'DF', 'WCO', 'CO', 'SD', 'HD', 'MCP']);
 const SHEET_NO = /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/;
 const PREFIX = /^\((E|R|N|D|ER|EX)\)\s*/;
 const statusOf = (p: string | undefined): Status => p === 'E' || p === 'EX' ? 'existing' : p === 'R' || p === 'ER' ? 'relocate' : p === 'D' ? 'demolish' : 'new';
@@ -365,7 +374,7 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
     const spec = specFor(tag.replace(/^\((E|R|N|D)\)/, ''));
     const verb = f.status === 'demolish' ? 'remove' : f.status === 'relocate' ? 'relocate / reuse' : '';
     lines.push({
-      section: f.status === 'demolish' ? 'Demolition' : 'Plumbing fixtures', type: `tag:${tag}:${f.status}`, status: f.status,
+      section: f.status === 'demolish' ? 'Demolition' : SECTION_OF[f.type] || 'Plumbing fixtures', type: `tag:${tag}:${f.status}`, status: f.status,
       item: `${tag} ${nameOf(f.type)}`, description: `${tag} — ${nameOf(f.type)}${spec ? ` — ${spec}` : ''}${verb ? ` (${verb})` : ''}`,
       qty, unit: 'nos', qty_status: 'read', confidence: 'medium', sheets: per.map(([s]) => s),
       basis: `tag ${tag} drawn ${per.map(([s, n]) => `${n}x on ${s}`).join(', ')}; the same fixture appears on each system's plan, so the count is the largest on one sheet, not the sum`,
