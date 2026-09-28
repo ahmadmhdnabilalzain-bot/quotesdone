@@ -1,0 +1,5 @@
+NOT APPLIED. Seat: it_engineer. Committed for review (dry run passed 28 Sep 2026, guards green, 2 routines:
+fn_it_slo_judge, fn_it_engineer_latency_slo). It moves when the release batch applies it with
+`node scripts/apply_sql.mjs scripts/sql/a_slow_function_breaches_its_budget_however_few_runs_it_had.sql --apply --ddl --seat it_engineer`,
+the file prints PROBE OK, this note is deleted and the file is appended to the END of MANIFEST.txt in the same commit.
+Expected on the next hourly tick: duty:latency_slo:kyc opens (p95 ~10.6 s over 14 runs vs 2.5 s).
