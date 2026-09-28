@@ -179,9 +179,12 @@ export const handler = observe('resend_inbound', async (req) => {
     const rkey = await sec('resend_api_key'); const key = await sec('cred_fn_resend_inbound'); const inbSecret = await sec('cred_fn_ai');
     let text = pickBody(d);
     let atts: any[] = Array.isArray(d.attachments) ? d.attachments : [];
+    // The RFC headers a customer reply needs (Message-ID, for In-Reply-To) and the ones that say a machine sent
+    // it (Auto-Submitted, Content-Type); kept from the webhook, or from the full read below when it runs.
+    let hdrs: Record<string, unknown> | null = (d.headers && typeof d.headers === 'object') ? d.headers : null;
     if ((!text || text.length < 20 || !atts.length) && emailId && rkey) {
       const full = await fetchInboundEmail(emailId, rkey);
-      if (full) { const fd = full.data || full; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
+      if (full) { const fd = full.data || full; if (fd.headers && typeof fd.headers === 'object') hdrs = { ...fd.headers, ...(hdrs || {}) }; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
       else if (emailId) await logRun('error', { email_id: emailId }, 'could not fetch full inbound email from Resend - body and attachments may be incomplete');
     }
     // 14 SEP 2026 (founder: "all conversations need to be saved"). The 8,000-character cut below is
@@ -785,7 +788,19 @@ export const handler = observe('resend_inbound', async (req) => {
       const { data: rev } = await admin.from('doc_reviews').insert({ lead_id: lead?.id||null, from_email: from, subject, file_name: fname, file_path: path, mime, ai_relevant: ai.relevant, ai_category: ai.category, ai_summary: String(ai.summary||'').slice(0,1000), ai_suggested_field: ai.suggested_field, ai_confidence: ai.confidence, status: 'pending', auto_applied: fields.length>0, extracted: extracted }).select('id').maybeSingle();
       if (rev?.id) reviews.push(rev.id);
     }
-    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: stored>0 && appliedSummary.length===0 }).select('id').maybeSingle();
+    // 28 SEP 2026 (customer_support): a mail with no document to apply is correspondence, and email_triage answers
+    // it. It was needs_review=false, which email_triage's selection excludes, so a customer's question was stored
+    // and never read. raw keeps what the reply and noAutoReply need (_shared/customer_mail.ts).
+    const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
+    const rawFacts = { message_id: String(d.message_id || hv('message-id') || '') || null, auto_submitted: hv('auto-submitted'),
+      content_type: hv('content-type'), calendar: atts.some((a: any) => /text\/calendar|application\/ics/i.test(String(a.content_type || a.contentType || '')) || /\.ics$/i.test(String(a.filename || ''))) };
+    const { data: inbRow } = await admin.from('inbound_messages').insert({ lead_id: lead?.id||null, from_email: from, to_email: to, subject, body: fullText, html: fullHtml, provider_email_id: providerEmailId, attachments_count: stored, matched_existing: !!lead, needs_review: appliedSummary.length===0 && (stored>0 || !receiptish), raw: rawFacts }).select('id').maybeSingle();
+    // Answered within the minute, not on the 15-minute tick: email_triage is woken for this one message.
+    if (inbRow?.id && appliedSummary.length === 0 && !receiptish && (await sec('email_triage_enabled')) === 'true') {
+      const wake = timedFetch(`${SUPA_URL}/functions/v1/email_triage`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ __secret: await sec('cred_fn_resend_inbound'), message_id: inbRow.id }) }, 55_000).then((r) => r.body?.cancel()).catch(() => {});
+      (globalThis as any).EdgeRuntime?.waitUntil?.(wake);
+    }
     // 6 Sep 2026: a receipt-ish email that reached this path was NOT booked. It is finance's work from here —
     // one org_task for the bookkeeper, and the rows carry that owner so neither OS surface shows them to the founder.
     if (receiptish && !lead && !reasoningHeld) await handToBookkeeper(inbRow?.id, reviews, receiptReason || 'The receipt path did not book this email.');
