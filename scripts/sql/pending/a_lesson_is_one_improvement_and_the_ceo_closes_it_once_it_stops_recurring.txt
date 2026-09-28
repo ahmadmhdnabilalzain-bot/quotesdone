@@ -1,0 +1,3 @@
+Committed, not applied: the release operator (C:/Users/Opera/qd-release.lock) applies it. It re-keys lesson improvements
+and supersedes duplicates (rows updated, none deleted). When applied: delete this note, append the .sql to the END of
+MANIFEST.txt, confirm the verdict row reads PROBE OK. Seat: ceo.
