@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T14:29:08.985Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T14:54:54.382Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -39542,8 +39542,6 @@ declare
   v_dr    numeric;
   v_cr    numeric;
 begin
-  -- A REASON IS NOT OPTIONAL. Undoing a posted entry is a decision, and a ledger that records the
-  -- reversal without the reason records that something was changed and hides why.
   if p_reason is null or btrim(p_reason) = '' then
     raise exception 'a reversal needs a reason: reversing a posted entry is a decision and the ledger must carry why';
   end if;
@@ -39559,8 +39557,6 @@ begin
     raise exception 'journal % has already been reversed; reversing it twice would double the correction', p_journal_id;
   end if;
 
-  -- Every line, with debit and credit exchanged. Built from the stored lines rather than recomputed,
-  -- so a reversal cannot disagree with what was actually posted.
   select coalesce(jsonb_agg(jsonb_build_object(
              'account', l.account_code,
              'debit',   l.credit,
@@ -39580,12 +39576,16 @@ begin
     'REVERSAL of journal ' || p_journal_id || ' (' || coalesce(v_orig.memo, '') || ') — ' || p_reason,
     'reversal', p_journal_id::text, v_lines, 'fn_gl_reverse');
 
-  -- The exemption the immutability trigger allows: posted -> void, with reverses set.
-  update public.gl_journal
-     set status = 'void', reverses = v_new
-   where id = p_journal_id;
+  -- BOTH SIDES GO VOID, each pointing at the other, through the one exit the immutability trigger
+  -- allows. Reports count posted journals only; voiding just the original left the reversal
+  -- counted on its own and overstated the ledger.
+  update public.gl_journal set status = 'void', reverses = v_new        where id = p_journal_id;
+  update public.gl_journal set status = 'void', reverses = p_journal_id where id = v_new;
 
-  -- THE PAIR MUST NET TO ZERO. If it does not, the correction is itself a defect and must not stand.
+  if exists (select 1 from public.gl_journal where id in (p_journal_id, v_new) and status <> 'void') then
+    raise exception 'journal % or its reversal % is still posted; the pair would not net to zero in the reports', p_journal_id, v_new;
+  end if;
+
   select sum(l.debit), sum(l.credit) into v_dr, v_cr
     from public.gl_journal_lines l
    where l.journal_id in (p_journal_id, v_new);
@@ -72429,7 +72429,7 @@ AS $function$
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
     ('marketing_campaign','marketing'), ('marketing_founder_request','marketing'), ('marketing_video_idea','marketing'), ('supplier_campaign_daily_list','supplier'), ('marketing_post_variant','marketing'),
-    ('marketing_post_platform','marketing'), ('marketing_post_channel_result','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
+    ('marketing_post_platform','marketing'), ('marketing_post_channel_result','marketing'), ('marketing_calendar_resend_decision','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
     ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('marketing_asset_feature','marketing'), ('marketing_asset_perception','marketing'), ('marketing_asset_review','marketing'),
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
