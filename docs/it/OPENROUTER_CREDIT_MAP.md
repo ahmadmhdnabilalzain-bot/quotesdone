@@ -63,6 +63,7 @@ request-driven: at idle their only traffic is ours.
   - Prevented by: `supabase/functions/_shared/think.test.ts` ("704: a fixture never reaches a model…").
 - **Not fixed: the one-off backlog of about USD 2.1 on day one.** It goes above USD 1–2 on the day of the lift only;
   it is catch-up, not idle spend.
-- **Watch: supply gap is the biggest steady class (row 1).** It is a high-stakes judgement for trades nobody is
-  waiting on. A trade with no uninvited leads cannot be recruited for, so "defer" follows by rule. That is a SQL change,
-  left for a separate apply.
+- **Row 1, the biggest steady class, is cut by rule (in this PR, pending apply at merge).** A trade and area with no
+  uninvited lead left cannot be recruited for, so `scripts/sql/a_supply_gap_with_no_leads_left_is_deferred_by_rule.sql`
+  defers it in code before any gap is filed for paid reasoning. Only gaps that have leads to recruit still reach the
+  model. Prevented by: `scripts/checks/a_supply_gap_with_no_leads_is_never_a_paid_judgement.test.mjs`.
