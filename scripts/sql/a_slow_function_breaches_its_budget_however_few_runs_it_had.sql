@@ -35,8 +35,8 @@ as $fn$
     'availability', case when p_runs_30d > 0 then round(1 - p_bad_30d::numeric / p_runs_30d, 4) end,
     'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.001, 2) end,
     'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.001, 2) end,
-    'budget_breach', (coalesce(p_runs_24h, 0) >= 5 and p_bad_24h::numeric / p_runs_24h / 0.001 >= 2)
-                     or (coalesce(p_runs_30d, 0) >= 5 and p_bad_30d::numeric / p_runs_30d > 0.001));
+    'budget_breach', (case when coalesce(p_runs_24h, 0) >= 5 then p_bad_24h::numeric / p_runs_24h / 0.001 >= 2 else false end)
+                     or (case when coalesce(p_runs_30d, 0) >= 5 then p_bad_30d::numeric / p_runs_30d > 0.001 else false end));
 $fn$;
 revoke execute on function public.fn_it_slo_judge(int, numeric, int, int, int, int) from public, anon, authenticated;
 grant execute on function public.fn_it_slo_judge(int, numeric, int, int, int, int) to service_role;
@@ -71,7 +71,7 @@ begin
       from (select r.*, r.started_at > now() - interval '24 hours' d1 from r) z
      group by fn
   loop
-    j := public.fn_it_slo_judge(x.n::int, x.p95, x.budget, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
+    j := public.fn_it_slo_judge(x.runs_24h::int, x.p95, x.budget, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
     v_owner := coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer');
     v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget,
       'runs_30d', x.runs_30d, 'availability_30d', j->'availability',
