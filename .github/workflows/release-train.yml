@@ -24,14 +24,21 @@ on:
         description: 'Consider only this PR number (optional)'
         required: false
 
-# One run acts at a time; a run that is already acting is never cancelled halfway through a release.
+# One release acts at a time, the train or a manual one: a person releases by hand through this same
+# workflow (gh workflow run release-train.yml -f pr=N -f dry_run=false), so both share the group.
+# A run that is already acting is never cancelled halfway through a release.
 concurrency:
-  group: release-train
+  group: release
   cancel-in-progress: false
 
 permissions:
   contents: write
   pull-requests: write
+  # statusCheckRollup reads check runs and commit statuses; without these gh pr list fails with
+  # "Resource not accessible by integration" and the train releases nothing (29 Sep 2026).
+  checks: read
+  statuses: read
+  actions: read
 
 jobs:
   release:
