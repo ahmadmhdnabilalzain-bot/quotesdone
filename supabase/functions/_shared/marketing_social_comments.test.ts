@@ -2,7 +2,7 @@
 // The marketing seat answers public comments with no person approving a reply (instruction 866, 23 Sep 2026).
 // Every platform is replayed with a mocked fetch and an in-memory store: nothing here can reach an account.
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, unhideRequest,
+import { call, guard, hideRequest, LIMIT, normalise, processComment, replyRequest, tiktokComments, unhideRequest,
   type Class, type CommentEvent, type Decided, type Outcome, type Platform, type Store } from './marketing_social_comments.ts';
 
 // The fixed replies are read from the SQL that ships them, so the test pins the rows production gets.
@@ -262,6 +262,24 @@ Deno.test('Instagram, Facebook and YouTube: replies, hides and un-hides go to th
   assertEquals(hideRequest(li, 'T'), null, 'LinkedIn has no reversible hide');
   assertEquals((await call(mock({}), hideRequest(li, 'T'))).ok, false);
   assert(!LIMIT['x' as Platform], 'X is removed (founder, 23 Sep 2026)');
+  const tt = ev('x', { platform: 'tiktok', accountId: 'BIZ', threadId: 'V1' });
+  const tr = replyRequest(tt, 'a', 'T');
+  assertEquals(tr.headers['Access-Token'], 'T', 'the business account itself answers');
+  assertEquals(JSON.parse(tr.body!), { business_id: 'BIZ', video_id: 'V1', comment_id: tt.commentId, text: 'a' });
+  assertEquals(JSON.parse(hideRequest(tt, 'T')!.body!).action, 'HIDE');
+  assertEquals(JSON.parse(unhideRequest(tt, 'T')!.body!).action, 'UNHIDE');
+  assertEquals((await call(mock({ code: 40001, message: 'no permission' }), tr)).ok, false, 'a TikTok non-zero code is a failure');
+});
+
+Deno.test('TikTok comments: only newer than since, never our own', async () => {
+  const f = (async (u: string) => new Response(JSON.stringify(u.includes('video/list') ? { code: 0, data: { videos: [{ item_id: 'V1' }] } }
+    : { code: 0, data: { comments: [
+      { comment_id: 'c1', user_id: 'u1', username: 'a', text: 'hi', create_time: Math.floor(Date.now() / 1000) },
+      { comment_id: 'c2', user_id: 'u2', text: 'old', create_time: 1 },
+      { comment_id: 'c3', user_id: 'BIZ', text: 'ours', create_time: Math.floor(Date.now() / 1000), owner: true } ] } }), { status: 200 })) as unknown as typeof fetch;
+  const out = await tiktokComments(f, 'T', 'BIZ', new Date(Date.now() - 3600_000));
+  assertEquals(out.map((c) => c.commentId), ['c1']);
+  assertEquals(out[0].threadId, 'V1');
 });
 
 
