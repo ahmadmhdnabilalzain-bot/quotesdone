@@ -38,6 +38,7 @@ Deno.test('the gateway answers: the reply is COMPOSED, the canned road never run
   assertEquals(canned, 0);
   assertMatch(r.reply, /5 working days/);
   assertEquals(r.seat, 'ceo');
+  assertEquals(r.grounded, true, 'the corpus answered this topic');
   assert(s.rpcs.includes('fn_support_corpus_search'), 'the knowledge was narrowed before reasoning');
   assertMatch(s.calls.find((c) => c.phase === 'synthesise')!.input, /FAQ 41/);
   assertMatch(s.calls.find((c) => c.phase === 'synthesise')!.system, /"route"/);
@@ -72,4 +73,5 @@ Deno.test('the composed reply passes the outgoing guard; an unknown route is not
   assertEquals(r.path, 'reasoned');
   assert(!/\bAI\b/.test(r.reply), r.reply);
   assertEquals(r.seat, null);
+  assertEquals(r.grounded, false, 'no topic knowledge and nothing cited: the widget files this as a knowledge gap');
 });

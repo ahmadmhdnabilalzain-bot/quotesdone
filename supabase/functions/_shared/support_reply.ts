@@ -61,6 +61,7 @@ export interface SupportReply {
   reason?: string;                // why the fallback ran
   model?: string | null;
   violations?: string[];
+  grounded: boolean;              // company knowledge was found for this message, or the reply cited a source
 }
 
 /** The composed reply, or the caller's deterministic road when no model can answer. Never throws. */
@@ -68,7 +69,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     let text: string | null = null;
     try { text = await fallback(); } catch (_e) { text = null; }
-    return { reply: text ? guardSupportReply(text, req.lang).text : '', path: 'fallback', seat: null, reason };
+    return { reply: text ? guardSupportReply(text, req.lang).text : '', path: 'fallback', seat: null, reason, grounded: false };
   };
   try {
     let passages = (req.passages ?? []).filter((p) => p && String(p.content || '').trim());
@@ -87,7 +88,8 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     });
     if (r.status !== 'answered' || !r.answer.trim()) return await fall(r.reason || 'not_answered');
     const g = guardSupportReply(r.answer.trim(), req.lang);
-    return { reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations };
+    return { reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations,
+      grounded: passages.length > 0 || r.sources.length > 0 };
   } catch (e) {
     return await fall('error: ' + String((e as Error)?.message || e).slice(0, 200));
   }
