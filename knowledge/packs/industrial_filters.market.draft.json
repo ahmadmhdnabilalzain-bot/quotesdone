@@ -15,9 +15,9 @@
         "https://www.cencenelec.eu",
         "https://www.camfil.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 16890 (ISO); EN 1822 HEPA (CEN); Camfil. Could not be verified: Location of Camfil's regional plant and local filter makers' names were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
     },
     {
       "id": "industrial_filters:uae-market-brands",
@@ -30,9 +30,9 @@
         "https://www.cencenelec.eu",
         "https://www.camfil.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 16890 (ISO); EN 1822 HEPA (CEN); Camfil. Could not be verified: Location of Camfil's regional plant and local filter makers' names were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
     },
     {
       "id": "industrial_filters:uae-market-sizes",
@@ -45,9 +45,9 @@
         "https://www.cencenelec.eu",
         "https://www.camfil.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 16890 (ISO); EN 1822 HEPA (CEN); Camfil. Could not be verified: Location of Camfil's regional plant and local filter makers' names were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
     }
   ],
   "eval": [
@@ -59,16 +59,9 @@
       ]
     }
   ],
-  "verified": {
-    "by": "sales_engineer",
+  "not_verified": {
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
-    "unverified": "Location of Camfil's regional plant and local filter makers' names were not verified.",
-    "ledger": [
-      899,
-      900,
-      903
-    ]
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Location of Camfil's regional plant and local filter makers' names were not verified."
   }
 }

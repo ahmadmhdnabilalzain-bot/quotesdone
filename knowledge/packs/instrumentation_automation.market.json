@@ -11,28 +11,30 @@
       "body_en": "Instrumentation and automation (PLC) in the UAE: PLCs and PACs, DCS for process plants, SCADA and HMI, VFDs (see motors and drives), field instruments (pressure and differential pressure transmitters, temperature RTDs/thermocouples and transmitters, flow meters: electromagnetic, Coriolis, ultrasonic, vortex, turbine; level: radar, ultrasonic, guided wave, DP; analysers: pH, conductivity, chlorine, gas detectors), control valves and positioners, gauges and switches, safety instrumented systems (IEC 61511/SIL), industrial networking (Profinet, Modbus, EtherNet/IP, HART, Foundation Fieldbus), and hazardous-area equipment (ATEX/IECEx, Zone 1/2). Oil and gas work follows ADNOC/owner vendor lists. Buyers specify range, accuracy, process connection, wetted materials, output (4-20 mA HART), and area classification.",
       "body_ar": "الأجهزة والأتمتة في الإمارات: وحدات التحكم المنطقي المبرمجة PLC وPAC، وأنظمة التحكم الموزع DCS لمحطات المعالجة، وSCADA وواجهات HMI، ومحولات التردد، والأجهزة الحقلية (مرسلات الضغط والضغط التفاضلي، ومجسات الحرارة RTD والمزدوجات الحرارية ومرسلاتها، ومقاييس التدفق الكهرومغناطيسية وكوريوليس وفوق الصوتية والدوامية والتوربينية؛ ومقاييس المنسوب بالرادار وفوق الصوتية والموجة الموجهة والضغط التفاضلي؛ والمحللات: الحموضة، والموصلية، والكلور، وكواشف الغاز)، وصمامات التحكم والموضعات، والمقاييس والمفاتيح، وأنظمة الأجهزة الآمنة (IEC 61511/SIL)، والشبكات الصناعية (Profinet وModbus وEtherNet/IP وHART وFoundation Fieldbus)، ومعدات المناطق الخطرة (ATEX/IECEx، المنطقة 1/2). وتتبع أعمال النفط والغاز قوائم موردي أدنوك/المالك. يحدد المشتري النطاق والدقة ووصلة العملية والمواد الملامسة والخرج (4-20 مللي أمبير HART) وتصنيف المنطقة.",
       "sources": [
+        "https://www.ae.endress.com/en",
         "https://www.iec.ch",
         "https://www.iecex.com",
         "https://www.endress.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: IEC 61511 (IEC); IECEx scheme; Endress+Hauser. Could not be verified: ADNOC's current approved vendor list for instruments was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Endress+Hauser serves the UAE (regional company, Dubai events) -> confirmed. Not checked: ADNOC's current approved vendor list for instruments was not verified."
     },
     {
       "id": "instrumentation_automation:uae-market-brands",
       "topic": "Instrumentation & automation (PLC): makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Brands: Siemens, Rockwell Automation (Allen-Bradley), Schneider Electric, ABB, Emerson (Rosemount, Fisher, DeltaV), Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger and MSA (gas detection). Distributors and system integrators in Dubai (JAFZA, Al Quoz, Dubai Silicon Oasis), Sharjah and Abu Dhabi (Musaffah, near ADNOC operations). Origins: Germany, Switzerland, Japan, USA-brand, Italy, China.",
-      "body_ar": "العلامات: Siemens وRockwell Automation (Allen-Bradley) وSchneider Electric وABB وEmerson (Rosemount وFisher وDeltaV) وHoneywell وYokogawa وEndress+Hauser وKrohne وVega وWIKA وOmron وMitsubishi Electric وDelta وPhoenix Contact وPepperl+Fuchs، وDräger وMSA (كشف الغاز). والموزعون ومكاملو الأنظمة في دبي (المنطقة الحرة لجبل علي والقوز وواحة دبي للسيليكون) والشارقة وأبوظبي (مصفح قرب عمليات أدنوك). المنشأ: ألمانيا، سويسرا، اليابان، علامات أمريكية، إيطاليا، الصين.",
+      "body_en": "Brands in the market: Siemens, Rockwell Automation, Schneider Electric, ABB, Emerson, Honeywell, Yokogawa, Endress+Hauser, Krohne, Vega, WIKA, Omron, Mitsubishi Electric, Delta, Phoenix Contact, Pepperl+Fuchs, Dräger, MSA. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
+      "body_ar": "العلامات في السوق: Siemens، Rockwell Automation، Schneider Electric، ABB، Emerson، Honeywell، Yokogawa، Endress+Hauser، Krohne، Vega، WIKA، Omron، Mitsubishi Electric، Delta، Phoenix Contact، Pepperl+Fuchs، Dräger، MSA. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
       "sources": [
+        "https://www.ae.endress.com/en",
         "https://www.iec.ch",
         "https://www.iecex.com",
         "https://www.endress.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: IEC 61511 (IEC); IECEx scheme; Endress+Hauser. Could not be verified: ADNOC's current approved vendor list for instruments was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Endress+Hauser serves the UAE (regional company, Dubai events) -> confirmed. Not checked: ADNOC's current approved vendor list for instruments was not verified."
     },
     {
       "id": "instrumentation_automation:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Instruments are priced per tag (each configured instrument) from a datasheet; PLC systems per I/O count and panel with engineering hours, FAT/SAT and documentation; SCADA per licence tag count. Calibration certificates per instrument. Lead times for configured instruments 4-12 weeks. Integrators charge engineering per man-day; AMC per year.",
       "body_ar": "تُسعّر الأجهزة بالرمز (كل جهاز مهيأ) من ورقة البيانات؛ وأنظمة PLC حسب عدد نقاط الإدخال/الإخراج واللوحة مع ساعات الهندسة واختبارات القبول في المصنع والموقع والتوثيق؛ وSCADA حسب عدد نقاط الترخيص. وشهادات المعايرة لكل جهاز. ومدة توريد الأجهزة المهيأة 4-12 أسبوعاً. ويتقاضى المكاملون الهندسة باليوم؛ وعقد صيانة سنوي.",
       "sources": [
+        "https://www.ae.endress.com/en",
         "https://www.iec.ch",
         "https://www.iecex.com",
         "https://www.endress.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: IEC 61511 (IEC); IECEx scheme; Endress+Hauser. Could not be verified: ADNOC's current approved vendor list for instruments was not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Endress+Hauser serves the UAE (regional company, Dubai events) -> confirmed. Not checked: ADNOC's current approved vendor list for instruments was not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Endress+Hauser serves the UAE (regional company, Dubai events)",
+        "url": "https://www.ae.endress.com/en",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "ADNOC's current approved vendor list for instruments was not verified.",
     "ledger": [
       899,

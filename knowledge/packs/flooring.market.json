@@ -11,28 +11,30 @@
       "body_en": "Flooring sold in the UAE: porcelain and ceramic tiles (glazed, full-body, polished, matt, R9-R13 slip resistance to DIN 51130; large formats up to 1200 x 2400 mm and slabs), natural stone (marble, granite, limestone, travertine), engineered and solid wood, laminate (AC3-AC5 wear class to EN 13329), luxury vinyl tile and SPC click flooring, sheet vinyl and homogeneous vinyl for hospitals (EN 649), rubber, carpet tiles and broadloom (nylon 6/6, solution-dyed, Class 33 commercial), raised access floors (for data centres and offices, EN 12825), epoxy and polyurethane resin floors (industrial, car parks), polished concrete and terrazzo, and sports flooring. Buyers specify wear class, thickness, slip rating, fire classification (EN 13501-1 Bfl-s1 for public areas) and adhesive/subfloor preparation.",
       "body_ar": "الأرضيات المباعة في الإمارات: بلاط البورسلان والسيراميك (مزجج، كامل الجسم، مصقول، مطفي، ومقاومة انزلاق R9-R13 وفق DIN 51130؛ ومقاسات كبيرة حتى 1200 × 2400 مم وألواح)، والحجر الطبيعي (رخام، جرانيت، حجر جيري، ترافرتين)، والخشب الهندسي والمصمت، واللامينيت (فئة تآكل AC3-AC5 وفق EN 13329)، وبلاط الفينيل الفاخر وأرضيات SPC بالتعشيق، والفينيل اللفائف والفينيل المتجانس للمستشفيات (EN 649)، والمطاط، والموكيت البلاطات والسجاد العريض (نايلون 6/6 مصبوغ بالمحلول، فئة 33 تجارية)، والأرضيات المرتفعة (لمراكز البيانات والمكاتب، EN 12825)، وأرضيات الإيبوكسي والبولي يوريثان (الصناعية ومواقف السيارات)، والخرسانة المصقولة والتيرازو، والأرضيات الرياضية. يحدد المشتري فئة التآكل والسماكة ومقاومة الانزلاق وتصنيف الحريق (EN 13501-1 فئة Bfl-s1 للأماكن العامة) واللاصق وتحضير الأرضية.",
       "sources": [
+        "https://en.wikipedia.org/wiki/RAK_Ceramics",
         "https://www.rakceramics.com",
         "https://www.cencenelec.eu",
         "https://www.din.de"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: RAK Ceramics; EN 13329 / EN 649 / EN 13501-1 (CEN); DIN 51130 slip resistance (DIN). Could not be verified: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers -> confirmed. Not checked: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
     },
     {
       "id": "flooring:uae-market-brands",
       "topic": "Flooring: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Tiles: RAK Ceramics (Ras Al Khaimah, one of the largest producers worldwide), plus Italian (Marazzi, Atlas Concorde, Florim, Porcelanosa from Spain), Spanish, Indian (Kajaria, Somany) and Chinese imports; showrooms along Sheikh Zayed Road, Al Quoz and Sharjah. Vinyl and LVT: Tarkett, Gerflor, Forbo, Polyflor, Armstrong. Carpet tiles: Interface, Milliken, Desso (Tarkett), Shaw. Laminate and wood: Kronotex, Egger, Quick-Step, Kährs, Boen. Raised floors: Kingspan, Lindner, Tate. Resin: Sika, BASF (Master Builders Solutions), Flowcrete (Tremco CPG), Fosroc. Adhesives: Mapei, Laticrete, Weber. Origins: UAE, Italy, Spain, India, China, Germany, Belgium.",
-      "body_ar": "البلاط: رأس الخيمة للسيراميك (من أكبر المنتجين عالمياً)، إضافة إلى واردات إيطالية (Marazzi وAtlas Concorde وFlorim) وإسبانية (Porcelanosa) وهندية (Kajaria وSomany) وصينية؛ وتنتشر المعارض على شارع الشيخ زايد والقوز والشارقة. الفينيل وLVT: Tarkett وGerflor وForbo وPolyflor وArmstrong. الموكيت البلاطات: Interface وMilliken وDesso (Tarkett) وShaw. اللامينيت والخشب: Kronotex وEgger وQuick-Step وKährs وBoen. الأرضيات المرتفعة: Kingspan وLindner وTate. الراتنجات: Sika وBASF (Master Builders Solutions) وFlowcrete وFosroc. اللواصق: Mapei وLaticrete وWeber. المنشأ: الإمارات، إيطاليا، إسبانيا، الهند، الصين، ألمانيا، بلجيكا.",
+      "body_en": "Brands sold in the UAE: RAK Ceramics, Marazzi, Atlas Concorde, Florim, Porcelanosa, Kajaria, Somany, Tarkett, Gerflor, Forbo, Polyflor, Armstrong, Interface, Milliken, Desso, Kronotex, Egger, Quick-Step, Kährs, Boen, Kingspan, Lindner, Sika, Master Builders Solutions, Flowcrete, Fosroc, Mapei, Laticrete, Weber. RAK Ceramics (Ras Al Khaimah) is the local producer; the others are imported and sold through showrooms and distributors along Sheikh Zayed Road, Al Quoz and Sharjah. Their current UAE distributors were not checked. Origins: UAE, Italy, Spain, India, China, Germany, Belgium.",
+      "body_ar": "العلامات المباعة في الإمارات: RAK Ceramics، Marazzi، Atlas Concorde، Florim، Porcelanosa، Kajaria، Somany، Tarkett، Gerflor، Forbo، Polyflor، Armstrong، Interface، Milliken، Desso، Kronotex، Egger، Quick-Step، Kährs، Boen، Kingspan، Lindner، Sika، Master Builders Solutions، Flowcrete، Fosroc، Mapei، Laticrete، Weber. ورأس الخيمة للسيراميك (RAK Ceramics) هي المنتج المحلي؛ والبقية مستوردة وتُباع عبر معارض وموزعين على شارع الشيخ زايد والقوز والشارقة، ولم يُتحقق من موزعيها الحاليين. المنشأ: الإمارات، إيطاليا، إسبانيا، الهند، الصين، ألمانيا، بلجيكا.",
       "sources": [
+        "https://en.wikipedia.org/wiki/RAK_Ceramics",
         "https://www.rakceramics.com",
         "https://www.cencenelec.eu",
         "https://www.din.de"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: RAK Ceramics; EN 13329 / EN 649 / EN 13501-1 (CEN); DIN 51130 slip resistance (DIN). Could not be verified: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers -> confirmed. Not checked: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
     },
     {
       "id": "flooring:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Tiles common sizes: 600 x 600, 600 x 1200, 800 x 800, 300 x 600 mm, 9-11 mm thick (20 mm for outdoor pavers); sold per m2 by box. Carpet tiles 500 x 500 mm per m2; broadloom 4 m rolls. LVT/SPC planks about 180 x 1220 mm, 4-8 mm thick. Laminate 8-12 mm. Resin floors per m2 by system thickness (roller coat 0.3-0.5 mm, self-levelling 2-4 mm, heavy-duty screed 6-9 mm). Supply-and-install is quoted per m2, skirting per linear metre, with wastage (5-10%), levelling screed and moisture testing as separate items.",
       "body_ar": "مقاسات البلاط الشائعة: 600 × 600 و600 × 1200 و800 × 800 و300 × 600 مم، بسماكة 9-11 مم (20 مم لبلاط الخارج)؛ ويُباع بالمتر المربع بالكرتونة. والموكيت البلاطات 500 × 500 مم بالمتر المربع؛ والسجاد العريض بلفائف 4 م. وألواح LVT/SPC نحو 180 × 1220 مم بسماكة 4-8 مم. واللامينيت 8-12 مم. وأرضيات الراتنج بالمتر المربع حسب سماكة النظام (طلاء بالرول 0.3-0.5 مم، وذاتي التسوية 2-4 مم، وطبقات ثقيلة 6-9 مم). ويُسعّر التوريد والتركيب بالمتر المربع، والوزرات بالمتر الطولي، مع الهالك (5-10%) وطبقة التسوية واختبار الرطوبة كبنود مستقلة.",
       "sources": [
+        "https://en.wikipedia.org/wiki/RAK_Ceramics",
         "https://www.rakceramics.com",
         "https://www.cencenelec.eu",
         "https://www.din.de"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: RAK Ceramics; EN 13329 / EN 649 / EN 13501-1 (CEN); DIN 51130 slip resistance (DIN). Could not be verified: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers -> confirmed. Not checked: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers",
+        "url": "https://en.wikipedia.org/wiki/RAK_Ceramics",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Current UAE distributors for each named imported brand and stock availability of specific formats were not verified.",
     "ledger": [
       899,

@@ -11,28 +11,30 @@
       "body_en": "Elevators and escalators in the UAE: machine-room-less (MRL) traction passenger lifts (the norm for new buildings), traction lifts with machine room for high-rise (up to 10 m/s in towers), hydraulic lifts (low-rise villas and goods lifts), home lifts and platform lifts, goods and service lifts, bed/stretcher lifts for hospitals, firefighting lifts (EN 81-72, required in tall buildings by the UAE Fire Code), car lifts, dumbwaiters, escalators and moving walks (EN 115-1). Design to EN 81-20/50; controls with destination dispatch in towers. Installation and maintenance need approval and periodic inspection certificates from the emirate authority (Dubai Municipality, Abu Dhabi DMT); annual third-party inspection is required. Buyers specify load (kg/persons), speed (m/s), stops, travel, car size, door type and finish.",
       "body_ar": "المصاعد والسلالم المتحركة في الإمارات: مصاعد الركاب بالجر بدون غرفة ماكينات MRL (المعتاد للمباني الجديدة)، ومصاعد الجر بغرفة ماكينات للأبراج العالية (حتى 10 م/ث)، والمصاعد الهيدروليكية (للفلل منخفضة الارتفاع ومصاعد البضائع)، والمصاعد المنزلية والمنصات، ومصاعد البضائع والخدمة، ومصاعد الأسرّة والنقالات للمستشفيات، ومصاعد رجال الإطفاء (EN 81-72، مطلوبة في المباني العالية وفق كود الحريق الإماراتي)، ومصاعد السيارات، ومصاعد الأطباق، والسلالم والممرات المتحركة (EN 115-1). والتصميم وفق EN 81-20/50؛ ونظام الإرسال حسب الوجهة في الأبراج. ويحتاج التركيب والصيانة اعتماداً وشهادات تفتيش دورية من جهة الإمارة (بلدية دبي، ودائرة البلديات والنقل في أبوظبي)؛ والتفتيش السنوي من طرف ثالث مطلوب. يحدد المشتري الحمولة (كغ/أشخاص)، والسرعة (م/ث)، وعدد التوقفات، والمشوار، ومقاس الكابينة، ونوع الباب، والتشطيب.",
       "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
         "https://www.cencenelec.eu",
         "https://www.dm.gov.ae",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EN 81-20 / EN 81-72 / EN 115-1 (CEN); Dubai Municipality (lift permits and inspection); UAE Fire and Life Safety Code. Could not be verified: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai lifts need periodic third-party inspection -> confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident). Not checked: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
     },
     {
       "id": "elevators:uae-market-brands",
       "topic": "Elevators & escalators: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Major OEMs with UAE operations: Otis, Schindler, KONE, TK Elevator (thyssenkrupp), Mitsubishi Electric, Hitachi, Fujitec, Toshiba, Hyundai Elevator, and Chinese makers (e.g. Canny, SJEC, Sigma). Local agents and independent installers sell Italian and Spanish components (Sematic doors, Montanari, Ziehl-Abegg and Monarch drives) and home-lift brands. Maintenance is dominated by OEM service units plus licensed independent maintenance companies. Origins: Europe, Japan, Korea, China (major factory base for many OEMs).",
-      "body_ar": "الشركات المصنعة الرئيسية العاملة في الإمارات: Otis وSchindler وKONE وTK Elevator (thyssenkrupp) وMitsubishi Electric وHitachi وFujitec وToshiba وHyundai Elevator ومصنّعون صينيون (مثل Canny وSJEC وSigma). ويبيع وكلاء محليون ومركّبون مستقلون مكونات إيطالية وإسبانية (أبواب Sematic، وMontanari، ومحركات Ziehl-Abegg وMonarch) وعلامات المصاعد المنزلية. وتهيمن على الصيانة وحدات خدمة الشركات المصنعة إضافة إلى شركات صيانة مستقلة مرخصة. المنشأ: أوروبا، اليابان، كوريا، الصين (قاعدة تصنيع رئيسية لكثير من الشركات).",
+      "body_en": "Lift makers and component brands in the market: Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric, Hitachi, Fujitec, Toshiba, Hyundai Elevator, Canny, SJEC, Sigma, Sematic, Montanari, Ziehl-Abegg, Monarch. Their UAE branches and agents were not checked. Maintenance is split between the makers' own service units and licensed independent maintenance companies, and the third-party inspector must be independent of the maintainer. Origins: Europe, Japan, Korea, and China, where many makers have their main factories.",
+      "body_ar": "مصنّعو المصاعد وعلامات المكونات في السوق: Otis، Schindler، KONE، TK Elevator، Mitsubishi Electric، Hitachi، Fujitec، Toshiba، Hyundai Elevator، Canny، SJEC، Sigma، Sematic، Montanari، Ziehl-Abegg، Monarch، ولم يُتحقق من فروعها ووكلائها في الإمارات. وتتوزع الصيانة بين وحدات الخدمة لدى المصنّعين وشركات صيانة مستقلة مرخصة، ويجب أن يكون مفتش الطرف الثالث مستقلاً عن مقاول الصيانة. المنشأ: أوروبا، اليابان، كوريا، الصين (قاعدة تصنيع رئيسية لكثير من الشركات).",
       "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
         "https://www.cencenelec.eu",
         "https://www.dm.gov.ae",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EN 81-20 / EN 81-72 / EN 115-1 (CEN); Dubai Municipality (lift permits and inspection); UAE Fire and Life Safety Code. Could not be verified: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai lifts need periodic third-party inspection -> confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident). Not checked: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
     },
     {
       "id": "elevators:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Common passenger ratings: 630 kg (8 persons), 1000 kg (13), 1275 kg (17), 1600 kg (21); speeds 1.0-2.5 m/s for mid-rise; villa lifts 250-400 kg at 0.4-1.0 m/s. Lifts are quoted per unit (supply, install, test, commission) with finish options; escalators per unit by rise and step width (600/800/1000 mm). Maintenance contracts are per unit per month or year: comprehensive (parts included) versus semi-comprehensive or labour-only. Warranty typically 12-24 months with free maintenance in that period.",
       "body_ar": "الحمولات الشائعة لمصاعد الركاب: 630 كغ (8 أشخاص)، و1000 كغ (13)، و1275 كغ (17)، و1600 كغ (21)؛ وسرعات 1.0-2.5 م/ث للمباني المتوسطة؛ ومصاعد الفلل 250-400 كغ بسرعة 0.4-1.0 م/ث. وتُسعّر المصاعد بالوحدة (توريد وتركيب واختبار وتشغيل) مع خيارات التشطيب؛ والسلالم المتحركة بالوحدة حسب الارتفاع وعرض الدرجة (600/800/1000 مم). وعقود الصيانة بالوحدة شهرياً أو سنوياً: شاملة (مع القطع) أو شبه شاملة أو عمالة فقط. والضمان عادة 12-24 شهراً مع صيانة مجانية خلالها.",
       "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
         "https://www.cencenelec.eu",
         "https://www.dm.gov.ae",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EN 81-20 / EN 81-72 / EN 115-1 (CEN); Dubai Municipality (lift permits and inspection); UAE Fire and Life Safety Code. Could not be verified: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai lifts need periodic third-party inspection -> confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident). Not checked: Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai lifts need periodic third-party inspection",
+        "url": "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU48-ECLA2_Technical-Guidelines-for-Examination-and-Certification-of-Cranes-Hoists-Lifts-and-Other-Lifting-Equipment_V4.pdf",
+        "result": "confirmed (DM technical guidelines; EIAC-accredited inspection, commonly every 12 months, and after major modification or an incident)"
+      }
+    ],
     "unverified": "Which Chinese OEMs currently have direct UAE branches and the exact inspection interval per emirate were not verified.",
     "ledger": [
       899,

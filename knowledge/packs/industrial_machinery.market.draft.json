@@ -15,9 +15,9 @@
         "https://moiat.gov.ae",
         "https://www.trumpf.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current dealer appointments per brand were not verified."
     },
     {
       "id": "industrial_machinery:uae-market-brands",
@@ -30,9 +30,9 @@
         "https://moiat.gov.ae",
         "https://www.trumpf.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current dealer appointments per brand were not verified."
     },
     {
       "id": "industrial_machinery:uae-market-sizes",
@@ -45,9 +45,9 @@
         "https://moiat.gov.ae",
         "https://www.trumpf.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current dealer appointments per brand were not verified."
     }
   ],
   "eval": [
@@ -59,16 +59,9 @@
       ]
     }
   ],
-  "verified": {
-    "by": "sales_engineer",
+  "not_verified": {
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
-    "unverified": "Current dealer appointments per brand were not verified.",
-    "ledger": [
-      899,
-      900,
-      903
-    ]
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Current dealer appointments per brand were not verified."
   }
 }

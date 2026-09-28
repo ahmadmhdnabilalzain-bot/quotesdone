@@ -15,9 +15,9 @@
         "https://www.tesa.com",
         "https://www.signode.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Names of local tape converters and strap extruders were not verified."
     },
     {
       "id": "packaging_tapes_strapping:uae-market-brands",
@@ -30,9 +30,9 @@
         "https://www.tesa.com",
         "https://www.signode.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Names of local tape converters and strap extruders were not verified."
     },
     {
       "id": "packaging_tapes_strapping:uae-market-sizes",
@@ -45,9 +45,9 @@
         "https://www.tesa.com",
         "https://www.signode.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Names of local tape converters and strap extruders were not verified."
     }
   ],
   "eval": [
@@ -59,16 +59,9 @@
       ]
     }
   ],
-  "verified": {
-    "by": "sales_engineer",
+  "not_verified": {
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
-    "unverified": "Names of local tape converters and strap extruders were not verified.",
-    "ledger": [
-      899,
-      900,
-      903
-    ]
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Names of local tape converters and strap extruders were not verified."
   }
 }

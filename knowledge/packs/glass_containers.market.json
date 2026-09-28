@@ -8,31 +8,33 @@
       "id": "glass_containers:uae-market-products",
       "topic": "Glass bottles & jars: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Glass bottles and jars in the UAE market (non-food uses in scope: perfumes, cosmetics, pharmaceuticals, chemicals, candles, decorative; food and beverage uses are excluded): perfume bottles (flint and extra-flint, crimp neck FEA 15/18/20 and screw neck, heavy-base luxury bottles, decorated by spray coating, frosting, metallisation, screen printing, hot stamping), attar/oud oil bottles and roll-ons, cosmetic jars, pharmaceutical Type I (borosilicate), Type II and Type III glass vials and bottles to Ph. Eur./USP-type standards, amber bottles for chemicals and essential oils, reagent bottles, and candle jars. The UAE's large perfume and oud industry drives demand for decorative perfume glass. Buyers specify capacity (ml), neck finish, glass colour, weight, decoration and closure compatibility.",
+      "body_en": "Glass bottles and jars in the UAE market (non-food uses in scope: perfumes, cosmetics, pharmaceuticals, chemicals, candles, decorative; food and beverage uses are excluded): perfume bottles (flint and extra-flint, crimp neck FEA 15/18/20 and screw neck, heavy-base luxury bottles, decorated by spray coating, frosting, metallisation, screen printing, hot stamping), attar/oud oil bottles and roll-ons, cosmetic jars, pharmaceutical Type I (borosilicate), Type II and Type III glass vials and bottles to pharmacopoeia standards (Ph. Eur.), amber bottles for chemicals and essential oils, reagent bottles, and candle jars. The UAE's large perfume and oud industry drives demand for decorative perfume glass. Buyers specify capacity (ml), neck finish, glass colour, weight, decoration and closure compatibility.",
       "body_ar": "الزجاجات والبرطمانات الزجاجية في السوق الإماراتي (الاستخدامات غير الغذائية: العطور ومستحضرات التجميل والأدوية والكيماويات والشموع والديكور؛ وتُستثنى الأغذية والمشروبات): زجاجات العطور (شفاف وفائق الشفافية، بعنق كبس FEA 15/18/20 وعنق لولبي، وزجاجات فاخرة بقاعدة ثقيلة، ومزخرفة بالرش والصنفرة والتمعدن والطباعة الحريرية والختم الساخن)، وزجاجات دهن العود والعطور الزيتية والرول أون، وبرطمانات التجميل، والقوارير والزجاجات الدوائية من النوع I (بوروسيليكات) وII وIII وفق معايير الدساتير الدوائية، والزجاجات الكهرمانية للكيماويات والزيوت العطرية، وزجاجات الكواشف، وبرطمانات الشموع. وتدفع صناعة العطور والعود الكبيرة في الإمارات الطلب على زجاج العطور الزخرفي. يحدد المشتري السعة (مل) وتشطيب العنق ولون الزجاج والوزن والزخرفة وتوافق الغطاء.",
       "sources": [
+        "https://www.schott.com",
+        "https://www.ajmal.com",
         "https://www.aerosol.org",
-        "https://www.edqm.eu",
-        "https://www.schott.com"
+        "https://www.edqm.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEA perfume neck standards (European Aerosol Federation); European Pharmacopoeia glass types (EDQM); Schott. Could not be verified: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Schott supplies pharma glass -> confirmed | Ajmal is a UAE perfume house (bottle buyer) -> confirmed; other perfume houses not checked. Not checked: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
     },
     {
       "id": "glass_containers:uae-market-brands",
       "topic": "Glass bottles & jars: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Perfume glass: Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Vitro, and many Chinese and Indian decorators (e.g. from Guangdong and Firozabad); UAE decoration and filling houses in Sharjah, Ajman and Dubai serve oud and perfume brands (e.g. regional perfume houses such as Ajmal, Arabian Oud, Rasasi, Lattafa sourcing bottles). Pharma glass: Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal Glass. Regional container glass: Emirates Glass-type plants and Saudi producers. Origins: France, Italy, Germany, Spain, China, India.",
-      "body_ar": "زجاج العطور: Verescence وPochet du Courval وEstal وStoelzle وBormioli Luigi وVitro ومزخرفون صينيون وهنود كثيرون (من قوانغدونغ وفيروز آباد)؛ ودور الزخرفة والتعبئة الإماراتية في الشارقة وعجمان ودبي تخدم علامات العود والعطور (مثل أجمل والعربية للعود والرصاصي ولطافة التي تورد الزجاجات). زجاج الأدوية: Schott وGerresheimer وStevanato وSGD Pharma وPiramal Glass. المنشأ: فرنسا، إيطاليا، ألمانيا، إسبانيا، الصين، الهند.",
+      "body_en": "Glass brands: Verescence, Pochet du Courval, Estal, Stoelzle, Bormioli Luigi, Vitro, Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal Glass, Ajmal. Ajmal is a UAE perfume house that buys decorated bottles; the others are glass makers whose UAE agents were not checked. Decoration and filling houses in Sharjah, Ajman and Dubai serve the perfume and oud brands, and many bottles are decorated in China and India. Origins: France, Italy, Germany, Spain, China, India.",
+      "body_ar": "علامات الزجاج: Verescence، Pochet du Courval، Estal، Stoelzle، Bormioli Luigi، Vitro، Schott، Gerresheimer، Stevanato، SGD Pharma، Piramal Glass، Ajmal. وAjmal دار عطور إماراتية تشتري الزجاجات المزخرفة، والبقية مصنّعو زجاج لم يُتحقق من وكلائهم في الإمارات. وتخدم دور الزخرفة والتعبئة في الشارقة وعجمان ودبي علامات العطور والعود، وتُزخرف زجاجات كثيرة في الصين والهند. المنشأ: فرنسا، إيطاليا، ألمانيا، إسبانيا، الصين، الهند.",
       "sources": [
+        "https://www.schott.com",
+        "https://www.ajmal.com",
         "https://www.aerosol.org",
-        "https://www.edqm.eu",
-        "https://www.schott.com"
+        "https://www.edqm.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEA perfume neck standards (European Aerosol Federation); European Pharmacopoeia glass types (EDQM); Schott. Could not be verified: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Schott supplies pharma glass -> confirmed | Ajmal is a UAE perfume house (bottle buyer) -> confirmed; other perfume houses not checked. Not checked: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
     },
     {
       "id": "glass_containers:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Perfume bottles in 3, 6, 12, 30, 50, 100, 200 ml; attar bottles 3-12 ml; vials 2-50 ml. Priced per piece with MOQ (stock designs 1,000-5,000 pcs; custom moulds 20,000+ with mould cost); decoration priced per operation per piece. Lead times: stock 1-4 weeks, custom 8-16 weeks. Packed in cartons with partitions per pallet.",
       "body_ar": "زجاجات العطور بسعات 3 و6 و12 و30 و50 و100 و200 مل؛ وزجاجات العطور الزيتية 3-12 مل؛ والقوارير 2-50 مل. التسعير بالقطعة مع حد أدنى (التصاميم المتوفرة 1,000-5,000 قطعة؛ والقوالب الخاصة 20,000 فأكثر مع تكلفة القالب)؛ والزخرفة لكل عملية لكل قطعة. مدد التوريد: المتوفر 1-4 أسابيع، والخاص 8-16 أسبوعاً. وتُعبأ في كراتين بفواصل لكل منصة.",
       "sources": [
+        "https://www.schott.com",
+        "https://www.ajmal.com",
         "https://www.aerosol.org",
-        "https://www.edqm.eu",
-        "https://www.schott.com"
+        "https://www.edqm.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEA perfume neck standards (European Aerosol Federation); European Pharmacopoeia glass types (EDQM); Schott. Could not be verified: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Schott supplies pharma glass -> confirmed | Ajmal is a UAE perfume house (bottle buyer) -> confirmed; other perfume houses not checked. Not checked: Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Schott supplies pharma glass",
+        "url": "https://www.schott.com",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Ajmal is a UAE perfume house (bottle buyer)",
+        "url": "https://www.ajmal.com",
+        "result": "confirmed; other perfume houses not checked"
+      }
+    ],
     "unverified": "Whether any container glass furnace currently operates in the UAE, and which perfume houses source which bottle makers, were not verified.",
     "ledger": [
       899,

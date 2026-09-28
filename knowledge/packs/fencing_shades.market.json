@@ -11,28 +11,30 @@
       "body_en": "Fencing, shades and tensile structures sold in the UAE: car-park shades (cantilever, T-type, M-type, hyperbolic), tensile membrane structures, sail shades, pergolas, and fencing (chain-link, welded mesh/3D panel, palisade, GRP, timber/WPC, and temporary construction hoarding). Shade fabrics: HDPE knitted shade cloth (e.g. 340 gsm, UV stabilised, 90-95% shade factor), PVC-coated polyester (Type I-III, 650-1050 gsm, fire-retardant to DIN 4102 B1 or NFPA 701), and PTFE-coated glass fibre for permanent architectural structures. Steel frames are hot-dip galvanised (ISO 1461) and often powder coated; structures need structural calculations and, for larger shades, municipality building permits. Fencing specs: wire gauge, mesh aperture, height, coating (galvanised, PVC, powder coat) and post spacing.",
       "body_ar": "تُباع في الإمارات منتجات السياج والمظلات والهياكل الشدّية: مظلات المواقف (الكابولية، ونوع T، ونوع M، والزائدية)، والهياكل الغشائية الشدّية، والمظلات الشراعية، والبرجولات، والأسوار (الشبك المجدول، والشبك الملحوم/الألواح ثلاثية الأبعاد، والأسوار الحديدية ذات الأوتاد، وأسوار الألياف الزجاجية GRP، والخشب/WPC، والسياج المؤقت للمواقع). أقمشة المظلات: قماش HDPE المحبوك (مثل 340 غ/م2، معالج ضد الأشعة فوق البنفسجية، ونسبة تظليل 90-95%)، والبوليستر المغطى بالـPVC (النوع I-III، بين 650 و1050 غ/م2، مقاوم للحريق وفق DIN 4102 B1 أو NFPA 701)، والألياف الزجاجية المغطاة بالـPTFE للهياكل المعمارية الدائمة. تُجلفن الهياكل الفولاذية بالغمس الساخن (ISO 1461) وغالباً تُطلى بالبودرة؛ وتحتاج الهياكل حسابات إنشائية، وتحتاج المظلات الكبيرة تصاريح بناء من البلدية. مواصفات الأسوار: قطر السلك، وفتحة الشبك، والارتفاع، والطلاء (مجلفن أو PVC أو بودرة)، والمسافة بين الأعمدة.",
       "sources": [
+        "https://parkingshades.weebly.com/shades-fabrics-suppliers.html",
         "https://www.iso.org",
         "https://www.sergeferrari.com",
         "https://www.dm.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 1461 hot-dip galvanizing (ISO); Serge Ferrari; Dubai Municipality building permits. Could not be verified: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames -> confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked). Not checked: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
     },
     {
       "id": "fencing_shades:uae-market-brands",
       "topic": "Fencing, shades & tensile structures: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Fabrics: Serge Ferrari (France), Mehler Texnologies (Germany), Sattler, Heytex, Verseidag, Saint-Gobain Sheerfill (PTFE), Monotec and Coolaroo-type HDPE brands, and Chinese and Korean HDPE makers. Installation is by local shade and tent fabricators, concentrated in Sharjah Industrial Area, Ajman and Al Quoz; many operate their own galvanising partners (e.g. Emirates Galvanising, Hot-dip galvanising plants in Jebel Ali and Sharjah). Fencing mesh: local wire-mesh factories plus imports from China, India, Oman and Turkey. Origins: Europe (PVC and PTFE fabrics), China and Korea (HDPE), UAE fabrication.",
-      "body_ar": "الأقمشة: Serge Ferrari (فرنسا)، وMehler Texnologies (ألمانيا)، وSattler وHeytex وVerseidag، وSaint-Gobain Sheerfill (PTFE)، وعلامات HDPE مثل Monotec وCoolaroo، ومصنّعون صينيون وكوريون. ويتولى التركيب مصنّعو المظلات والخيام المحليون المتركزون في المنطقة الصناعية بالشارقة وعجمان والقوز، ولكثير منهم شركاء جلفنة (مثل مصانع الجلفنة بالغمس الساخن في جبل علي والشارقة). شبك الأسوار: مصانع شبك محلية وواردات من الصين والهند وعُمان وتركيا. المنشأ: أوروبا (أقمشة PVC وPTFE)، الصين وكوريا (HDPE)، والتصنيع محلي.",
+      "body_en": "Fabric brands used for shades and tensile structures: Serge Ferrari, Mehler Texnologies, Verseidag, Heytex, Saint-Gobain Sheerfill, Gale Pacific, plus Chinese and Korean HDPE makers. Fabrication and installation is by local shade and tent contractors across Dubai, Sharjah, Ajman and Abu Dhabi, mostly on hot-dip galvanised steel frames. Fencing mesh comes from local wire-mesh factories and imports from China, India, Oman and Turkey.",
+      "body_ar": "علامات الأقمشة المستخدمة للمظلات والهياكل الشدية: Serge Ferrari، Mehler Texnologies، Verseidag، Heytex، Saint-Gobain Sheerfill، Gale Pacific، إضافة إلى مصنّعي HDPE صينيين وكوريين. ويتولى التصنيع والتركيب مقاولو مظلات وخيام محليون في دبي والشارقة وعجمان وأبوظبي، غالباً على هياكل فولاذية مجلفنة بالغمس الساخن. ويأتي شبك الأسوار من مصانع شبك محلية وواردات من الصين والهند وعُمان وتركيا.",
       "sources": [
+        "https://parkingshades.weebly.com/shades-fabrics-suppliers.html",
         "https://www.iso.org",
         "https://www.sergeferrari.com",
         "https://www.dm.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 1461 hot-dip galvanizing (ISO); Serge Ferrari; Dubai Municipality building permits. Could not be verified: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames -> confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked). Not checked: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
     },
     {
       "id": "fencing_shades:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Car-park shades are quoted per parking bay (typically 2.5 x 5.0 m per bay) or per m2 of shaded area; tensile structures per m2 of membrane or lump sum with design. Shade cloth rolls are 3-6 m wide x 50 m long. Fencing is quoted per linear metre by height (1.8, 2.0, 2.4 m common; construction hoarding 2.4-3.0 m) including posts and gates as separate items. Quotes should state fabric brand and weight, warranty on fabric (often 5-10 years HDPE and PVC, 25+ years PTFE), steel section sizes, galvanising and paint system, and foundation design.",
       "body_ar": "تُسعّر مظلات المواقف بالموقف (عادة 2.5 × 5.0 م للموقف) أو بالمتر المربع من المساحة المظللة؛ والهياكل الشدية بالمتر المربع من الغشاء أو بمبلغ مقطوع مع التصميم. ولفائف قماش التظليل بعرض 3-6 م وطول 50 م. وتُسعّر الأسوار بالمتر الطولي حسب الارتفاع (1.8 و2.0 و2.4 م شائعة؛ وسياج المواقع 2.4-3.0 م) شاملة الأعمدة، والبوابات بنود مستقلة. ويجب أن يذكر العرض علامة القماش ووزنه، وضمان القماش (غالباً 5-10 سنوات لـHDPE وPVC، وأكثر من 25 سنة لـPTFE)، ومقاطع الحديد، ونظام الجلفنة والدهان، وتصميم الأساسات.",
       "sources": [
+        "https://parkingshades.weebly.com/shades-fabrics-suppliers.html",
         "https://www.iso.org",
         "https://www.sergeferrari.com",
         "https://www.dm.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 1461 hot-dip galvanizing (ISO); Serge Ferrari; Dubai Municipality building permits. Could not be verified: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames -> confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked). Not checked: Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "PVC (Serge Ferrari, Mehler, Verseidag) and HDPE knitted fabrics used for UAE car-park shades on galvanised frames",
+        "url": "https://parkingshades.weebly.com/shades-fabrics-suppliers.html",
+        "result": "confirmed; Gale Pacific (Coolaroo) confirmed for HDPE; Emirates Galvanising and Monotec removed (not checked)"
+      }
+    ],
     "unverified": "Current local distributors of each fabric brand and typical warranty terms offered by specific UAE fabricators were not verified.",
     "ledger": [
       899,

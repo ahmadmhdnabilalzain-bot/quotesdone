@@ -11,28 +11,32 @@
       "body_en": "Tools and light equipment rental in the UAE: power tools (breakers, rotary hammers, core drills, saws), access (mobile towers, ladders, scissor and boom lifts), generators (5-100 kVA), compressors, welding machines, light towers, compaction (plate compactors, rammers, small rollers), concrete tools (vibrators, power floats, mixers), pumps (submersible dewatering, trash pumps), cooling (spot coolers, portable AC, misting fans, which are in heavy summer demand), heaters and dehumidifiers, cleaning equipment (pressure washers, scrubbers), surveying instruments, and event power. Rental companies provide equipment with safety inspection certificates (lifting and access), operator training or operators on request.",
       "body_ar": "تأجير العدد والمعدات الخفيفة في الإمارات: العدد الكهربائية (الكسارات، والمطارق الدوارة، والمثاقب اللبية، والمناشير)، ومعدات الوصول (الأبراج المتنقلة، والسلالم، والمنصات المقصية والذراعية)، والمولدات (5-100 كيلوفولت أمبير)، والضواغط، وآلات اللحام، وأبراج الإنارة، والدمك (الدكاكات الصفيحية، والمدقات، والمداحل الصغيرة)، وأدوات الخرسانة (الهزازات، والمالج الآلي، والخلاطات)، والمضخات (الغاطسة لنزح المياه ومضخات المخلفات)، والتبريد (المبردات الموضعية، والمكيفات المتنقلة، ومراوح الرذاذ عالية الطلب صيفاً)، والسخانات ومزيلات الرطوبة، ومعدات التنظيف (الغسالات بالضغط والماسحات)، وأجهزة المساحة، والطاقة للمناسبات. وتوفر شركات التأجير المعدات مع شهادات فحص السلامة (للرفع والوصول) وتدريب المشغلين أو المشغلين عند الطلب.",
       "sources": [
+        "https://www.aggreko.com/en-ae/sectors/construction",
+        "https://www.hilti.ae",
         "https://www.dm.gov.ae",
         "https://www.aggreko.com",
         "https://www.ipaf.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (lifting and access equipment inspection); Aggreko; IPAF (access equipment training). Could not be verified: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Aggreko rents power and temperature control in the UAE -> confirmed | Hilti fleet management in the UAE -> confirmed. Not checked: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
     },
     {
       "id": "tool_equipment_rental:uae-market-brands",
       "topic": "Tools & light equipment rental: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Rental companies: Aggreko (power, cooling), Atlas Copco rental, United Rentals-type regional brands, Byrne Equipment Rental, Rentokil Initial is not equipment; local firms like Al Faris (cranes and heavy), Sharaf-type rental groups, Hilti fleet management, and numerous SME rental shops in Al Quoz, Sharjah Industrial Area and Musaffah. Equipment brands in fleets: Hilti, Makita, Bosch, Honda, Wacker Neuson, Genie, JLG, Atlas Copco. Origins not applicable.",
-      "body_ar": "شركات التأجير: Aggreko (الطاقة والتبريد)، وتأجير Atlas Copco، وByrne Equipment Rental، والفارس (الرافعات والمعدات الثقيلة)، وإدارة أسطول Hilti، ومحلات تأجير صغيرة ومتوسطة كثيرة في القوز والمنطقة الصناعية بالشارقة ومصفح. وعلامات المعدات في الأساطيل: Hilti وMakita وBosch وHonda وWacker Neuson وGenie وJLG وAtlas Copco.",
+      "body_en": "Rental companies and fleet brands: Aggreko, Atlas Copco, Hilti, Makita, Bosch, Honda, Wacker Neuson, Genie, JLG. Aggreko rents power and cooling, and Hilti offers fleet management. Numerous SME rental shops operate in Al Quoz, Sharjah Industrial Area and Musaffah and were not checked by name.",
+      "body_ar": "شركات التأجير وعلامات الأساطيل: Aggreko، Atlas Copco، Hilti، Makita، Bosch، Honda، Wacker Neuson، Genie، JLG. وتؤجر Aggreko الطاقة والتبريد، وتقدم Hilti إدارة الأساطيل، وتعمل محلات تأجير صغيرة ومتوسطة كثيرة في القوز والمنطقة الصناعية بالشارقة ومصفح ولم يُتحقق منها بالاسم.",
       "sources": [
+        "https://www.aggreko.com/en-ae/sectors/construction",
+        "https://www.hilti.ae",
         "https://www.dm.gov.ae",
         "https://www.aggreko.com",
         "https://www.ipaf.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (lifting and access equipment inspection); Aggreko; IPAF (access equipment training). Could not be verified: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Aggreko rents power and temperature control in the UAE -> confirmed | Hilti fleet management in the UAE -> confirmed. Not checked: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
     },
     {
       "id": "tool_equipment_rental:uae-market-sizes",
@@ -41,13 +45,15 @@
       "body_en": "Rental is priced per day, per week (often about 3-4 days' rate) or per month (about 2-3 weeks' rate), plus delivery/collection, fuel (for engines), consumables and damage waiver; a deposit or credit account is required. Lifting and access equipment comes with inspection certificates; operators billed per shift. Minimum hire is usually one day.",
       "body_ar": "يُسعّر التأجير باليوم أو بالأسبوع (غالباً ما يعادل 3-4 أيام) أو بالشهر (ما يعادل 2-3 أسابيع)، إضافة إلى التوصيل والاستلام والوقود (للمحركات) والمستهلكات وتأمين الأضرار؛ ويُطلب تأمين أو حساب ائتماني. وتأتي معدات الرفع والوصول مع شهادات الفحص؛ والمشغلون بالوردية. والحد الأدنى للتأجير عادة يوم واحد.",
       "sources": [
+        "https://www.aggreko.com/en-ae/sectors/construction",
+        "https://www.hilti.ae",
         "https://www.dm.gov.ae",
         "https://www.aggreko.com",
         "https://www.ipaf.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (lifting and access equipment inspection); Aggreko; IPAF (access equipment training). Could not be verified: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Aggreko rents power and temperature control in the UAE -> confirmed | Hilti fleet management in the UAE -> confirmed. Not checked: Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured."
     }
   ],
   "eval": [
@@ -62,8 +68,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Aggreko rents power and temperature control in the UAE",
+        "url": "https://www.aggreko.com/en-ae/sectors/construction",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Hilti fleet management in the UAE",
+        "url": "https://www.hilti.ae",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Named rental companies' current UAE operations were not verified; the weekly and monthly rate ratios are typical market practice, not measured.",
     "ledger": [
       899,

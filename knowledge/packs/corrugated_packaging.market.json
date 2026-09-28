@@ -11,26 +11,32 @@
       "body_en": "Corrugated boxes and cartons in the UAE: regular slotted cartons (RSC, FEFCO 0201), die-cut boxes, trays, shelf-ready packaging, e-commerce mailers, heavy-duty double and triple wall boxes, partitions and dividers, and corrugated sheets and rolls. Flute types: E (1.5 mm), B (3 mm), C (4 mm), BC double wall, AAA/triple wall. Board grades by liner/fluting paper (kraft liner, test liner, recycled medium) and GSM; performance by ECT, BCT (box compression) and burst strength. Printing: flexo (1-4 colours), litho-laminated for retail, digital for short runs. Food-contact packaging is out of scope here; export cartons need humidity and stacking allowances for UAE climate and containers.",
       "body_ar": "الكراتين المضلعة في الإمارات: الكراتين المشقوقة العادية (FEFCO 0201)، والصناديق المقطوعة بالقالب، والصواني، والتغليف الجاهز للرف، وأغلفة الشحن للتجارة الإلكترونية، والصناديق مزدوجة وثلاثية الجدار للأحمال الثقيلة، والفواصل، والألواح واللفائف المضلعة. أنواع التضليع: E (1.5 مم)، وB (3 مم)، وC (4 مم)، والمزدوج BC، والثلاثي AAA. ودرجات الكرتون حسب ورق البطانة والتضليع (كرافت، وتست لاينر، ووسط معاد تدويره) والوزن؛ والأداء بمقاومة الضغط الطرفي ECT وضغط الصندوق BCT ومقاومة الانفجار. الطباعة: فلكسو (1-4 ألوان)، وليثو مصفح للتجزئة، ورقمية للكميات القصيرة. وتحتاج كراتين التصدير هوامش للرطوبة والتكديس لمناخ الإمارات والحاويات.",
       "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://falconpack.com/",
+        "https://www.unionpapermills.com",
         "https://www.fefco.org",
         "https://www.iso.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEFCO code (FEFCO); ISO 3037 ECT (ISO). Could not be verified: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "corrugated_packaging:uae-market-brands",
       "topic": "Corrugated boxes & cartons: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Local converters are many: e.g. Al Ghurair Printing and Publishing-type packaging divisions, Hotpack (mainly food service, out of scope), Emirates Packaging, Falcon Pack (Al Bayader-type), Rotopak-type and dozens of corrugators in Sharjah, Ajman, Umm Al Quwain, RAK, Jebel Ali and Dubai Investments Park. Paper comes from regional mills (e.g. Middle East Paper Company in Saudi Arabia, Union Paper Mills in Dubai producing recycled fluting and test liner) and imports from Europe, India and China.",
-      "body_ar": "المحولون المحليون كثيرون، مع عشرات مصانع الكرتون المضلع في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي ومجمع دبي للاستثمار. ويأتي الورق من مصانع إقليمية (مثل شركة الشرق الأوسط للورق في السعودية، ومصانع الاتحاد للورق في دبي التي تنتج ورق التضليع والتست لاينر المعاد تدويره) ومن الاستيراد من أوروبا والهند والصين.",
+      "body_en": "Many corrugators operate in Sharjah, Ajman, Umm Al Quwain, RAK, Jebel Ali and Dubai Investments Park, and only one of them was checked by name. Names in the market: Falcon Pack, MEPCO, Mondi, Smurfit Westrock, Nine Dragons; the last four are board and paper sources. Paper comes from regional mills, such as MEPCO in Saudi Arabia, and imports from Europe, India and China.",
+      "body_ar": "تعمل مصانع كرتون مضلع كثيرة في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي ومجمع دبي للاستثمار، ولم يُتحقق بالاسم إلا من أحدها. الأسماء في السوق: Falcon Pack، MEPCO، Mondi، Smurfit Westrock، Nine Dragons، والأربعة الأخيرة مصادر للكرتون والورق. ويأتي الورق من مصانع إقليمية مثل MEPCO في السعودية ومن الاستيراد من أوروبا والهند والصين.",
       "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://falconpack.com/",
+        "https://www.unionpapermills.com",
         "https://www.fefco.org",
         "https://www.iso.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEFCO code (FEFCO); ISO 3037 ECT (ISO). Could not be verified: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     },
     {
       "id": "corrugated_packaging:uae-market-sizes",
@@ -39,12 +45,15 @@
       "body_en": "Boxes are quoted per piece at quantity breaks (MOQ often 500-2,000 per size) against inside dimensions L x W x H in mm, board spec (e.g. 5-ply BC flute, 150/120/150/120/150 GSM) and print; printing plates and dies are one-off charges. Lead time 1-3 weeks. Sheets per piece or per m2.",
       "body_ar": "تُسعّر الصناديق بالقطعة حسب شرائح الكمية (الحد الأدنى غالباً 500-2,000 لكل مقاس) مقابل الأبعاد الداخلية الطول × العرض × الارتفاع بالمليمتر ومواصفة الكرتون (مثل 5 طبقات تضليع BC، بأوزان 150/120/150/120/150 غ/م2) والطباعة؛ وأكليشيهات الطباعة والقوالب رسوم لمرة واحدة. ومدة التنفيذ 1-3 أسابيع. والألواح بالقطعة أو بالمتر المربع.",
       "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://falconpack.com/",
+        "https://www.unionpapermills.com",
         "https://www.fefco.org",
         "https://www.iso.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: FEFCO code (FEFCO); ISO 3037 ECT (ISO). Could not be verified: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO (Saudi) makes containerboard -> confirmed | Falcon Pack is a UAE packaging maker -> confirmed | Union Paper Mills -> removed: the site did not answer; Hotpack removed (connection refused). Not checked: Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
     }
   ],
   "eval": [
@@ -59,8 +68,24 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "MEPCO (Saudi) makes containerboard",
+        "url": "https://www.mep.co/Website/En/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Falcon Pack is a UAE packaging maker",
+        "url": "https://falconpack.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Union Paper Mills",
+        "url": "https://www.unionpapermills.com",
+        "result": "removed: the site did not answer; Hotpack removed (connection refused)"
+      }
+    ],
     "unverified": "Current names, ownership and capacity of local corrugators and the Union Paper Mills website address were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
     "ledger": [
       899,

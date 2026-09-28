@@ -8,31 +8,33 @@
       "id": "flexible_packaging:uae-market-products",
       "topic": "Flexible packaging & films: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Flexible packaging and films in the UAE: stretch film (cast LLDPE, hand and machine grades, 17-30 microns, pre-stretched), shrink film (LDPE/POF), PE bags and liners, poly mailers, BOPP, PET, CPP and metallised films, laminated pouches (stand-up, zipper, spouted, retort) and rollstock for non-food products (detergents, chemicals, pet food, personal care), agricultural films (greenhouse, mulch), bubble films, and protective films. Printing: rotogravure and flexographic up to 8-10 colours. The UAE is phasing out single-use plastic bags (Abu Dhabi and Dubai bans/charges, federal ban on single-use plastic bags from 2024 and further items from 2026), which affects carrier bags but not industrial films. Buyers specify structure (e.g. PET12/AL9/PE80), thickness, width, core, print colours, and barrier properties.",
-      "body_ar": "التغليف المرن والأفلام في الإمارات: أفلام التغليف المطاطية (LLDPE مصبوب، يدوي وآلي، 17-30 ميكرون، مسبق التمدد)، وأفلام الانكماش (LDPE/POF)، وأكياس وبطانات البولي إيثيلين، وأكياس الشحن، وأفلام BOPP وPET وCPP والمعدنة، والأكياس المصفحة (الواقفة، بسحاب، بفوهة، المعقمة) واللفائف للمنتجات غير الغذائية (المنظفات والكيماويات وطعام الحيوانات الأليفة والعناية الشخصية)، والأفلام الزراعية (البيوت المحمية والتغطية)، وأفلام الفقاعات، والأفلام الواقية. الطباعة: روتوغرافور وفلكسو حتى 8-10 ألوان. وتتخلص الإمارات تدريجياً من الأكياس البلاستيكية أحادية الاستخدام (حظر ورسوم في أبوظبي ودبي، وحظر اتحادي للأكياس أحادية الاستخدام من 2024 وبنود أخرى من 2026)، ما يؤثر على أكياس التسوق دون الأفلام الصناعية. يحدد المشتري التركيب (مثل PET12/AL9/PE80) والسماكة والعرض والقلب وألوان الطباعة وخصائص العزل.",
+      "body_en": "Flexible packaging and films in the UAE: stretch film (cast LLDPE, hand and machine grades, 17-30 microns, pre-stretched), shrink film (LDPE/POF), PE bags and liners, poly mailers, BOPP, PET, CPP and metallised films, laminated pouches (stand-up, zipper, spouted, retort) and rollstock for non-food products (detergents, chemicals, pet food, personal care), agricultural films (greenhouse, mulch), bubble films, and protective films. Printing: rotogravure and flexographic up to 8-10 colours. The UAE is phasing out single-use plastic bags (a federal ban on single-use plastic bags has applied since 1 January 2024; the later phases for other items were not checked), which affects carrier bags but not industrial films. Buyers specify structure (e.g. PET12/AL9/PE80), thickness, width, core, print colours, and barrier properties.",
+      "body_ar": "التغليف المرن والأفلام في الإمارات: أفلام التغليف المطاطية (LLDPE مصبوب، يدوي وآلي، 17-30 ميكرون، مسبق التمدد)، وأفلام الانكماش (LDPE/POF)، وأكياس وبطانات البولي إيثيلين، وأكياس الشحن، وأفلام BOPP وPET وCPP والمعدنة، والأكياس المصفحة (الواقفة، بسحاب، بفوهة، المعقمة) واللفائف للمنتجات غير الغذائية (المنظفات والكيماويات وطعام الحيوانات الأليفة والعناية الشخصية)، والأفلام الزراعية (البيوت المحمية والتغطية)، وأفلام الفقاعات، والأفلام الواقية. الطباعة: روتوغرافور وفلكسو حتى 8-10 ألوان. وتتخلص الإمارات تدريجياً من الأكياس البلاستيكية أحادية الاستخدام (يسري حظر اتحادي على الأكياس البلاستيكية أحادية الاستخدام منذ 1 يناير 2024؛ ولم يُتحقق من المراحل اللاحقة لبنود أخرى)، ما يؤثر على أكياس التسوق دون الأفلام الصناعية. يحدد المشتري التركيب (مثل PET12/AL9/PE80) والسماكة والعرض والقلب وألوان الطباعة وخصائص العزل.",
       "sources": [
-        "https://www.moccae.gov.ae",
         "https://www.ti-films.com",
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.moccae.gov.ae",
         "https://www.borouge.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Ministry of Climate Change and Environment (single-use plastic policy); Taghleef Industries; Borouge. Could not be verified: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef Industries makes BOPP/CPP films, Dubai-based -> confirmed | UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked. Not checked: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
     },
     {
       "id": "flexible_packaging:uae-market-brands",
       "topic": "Flexible packaging & films: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Local producers include Cosmoplast, Emirates Printing Press-type converters, Constantia-type flexible packaging plants, Napco (regional), Taghleef Industries (Dubai-based BOPP/CPP film maker with global plants), Rotopak, Falcon Pack, Gulf East Paper and Plastic, and many PE film extruders in Sharjah, Ajman and UAQ. Resin from Borouge and SABIC. Origins: UAE, Saudi Arabia, Oman, India, China.",
-      "body_ar": "من المنتجين المحليين: كوزموبلاست، وتغليف (Taghleef Industries، ومقرها دبي لإنتاج أفلام BOPP وCPP ولها مصانع عالمية)، وروتوباك، وفالكون باك، ونابكو (إقليمياً)، وكثير من مصانع بثق أفلام البولي إيثيلين في الشارقة وعجمان وأم القيوين. والراتنج من بروج وسابك. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.",
+      "body_en": "Producers and resin sources: Taghleef Industries, Cosmoplast, Falcon Pack, Borouge, SABIC. Taghleef, based in Dubai, makes BOPP and CPP films, and there are many PE film extruders in Sharjah, Ajman and Umm Al Quwain that were not checked by name. Origins: UAE, Saudi Arabia, Oman, India, China.",
+      "body_ar": "المنتجون ومصادر الراتنج: Taghleef Industries، Cosmoplast، Falcon Pack، Borouge، SABIC. وتصنع Taghleef، ومقرها دبي، أفلام BOPP وCPP، وتوجد مصانع بثق أفلام بولي إيثيلين كثيرة في الشارقة وعجمان وأم القيوين لم يُتحقق منها بالاسم. المنشأ: الإمارات، السعودية، عُمان، الهند، الصين.",
       "sources": [
-        "https://www.moccae.gov.ae",
         "https://www.ti-films.com",
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.moccae.gov.ae",
         "https://www.borouge.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Ministry of Climate Change and Environment (single-use plastic policy); Taghleef Industries; Borouge. Could not be verified: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef Industries makes BOPP/CPP films, Dubai-based -> confirmed | UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked. Not checked: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
     },
     {
       "id": "flexible_packaging:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Stretch film sold per roll (e.g. 500 mm x 23 micron, 2.5-3 kg hand rolls; 16-17 kg machine rolls) or per kg; printed laminates per kg or per 1,000 pouches with cylinder/plate charges; MOQ often 300-500 kg per design. Quotes state structure, microns, width, core ID (76 mm), print colours and lead time (2-4 weeks).",
       "body_ar": "تُباع أفلام التغليف المطاطية باللفة (مثل 500 مم × 23 ميكرون، ولفائف يدوية 2.5-3 كغ؛ ولفائف آلية 16-17 كغ) أو بالكيلوغرام؛ والمصفحات المطبوعة بالكيلوغرام أو لكل 1,000 كيس مع رسوم الأسطوانات/الأكليشيهات؛ والحد الأدنى غالباً 300-500 كغ لكل تصميم. وتذكر العروض التركيب والسماكة والعرض وقطر القلب الداخلي (76 مم) وألوان الطباعة ومدة التنفيذ (2-4 أسابيع).",
       "sources": [
-        "https://www.moccae.gov.ae",
         "https://www.ti-films.com",
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.moccae.gov.ae",
         "https://www.borouge.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Ministry of Climate Change and Environment (single-use plastic policy); Taghleef Industries; Borouge. Could not be verified: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef Industries makes BOPP/CPP films, Dubai-based -> confirmed | UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked. Not checked: Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Taghleef Industries makes BOPP/CPP films, Dubai-based",
+        "url": "https://www.ti-films.com",
+        "result": "confirmed"
+      },
+      {
+        "claim": "UAE ban on single-use plastic bags since 1 January 2024",
+        "url": "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "result": "confirmed (secondary source); emirate-level dates and later phases not checked"
+      }
+    ],
     "unverified": "Exact dates and item lists of the federal single-use plastic phase-out, and the current names of local converters, were not verified.",
     "ledger": [
       899,

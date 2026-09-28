@@ -8,46 +8,52 @@
       "id": "lpg_gas:uae-market-products",
       "topic": "LPG & gas supply: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "LPG and gas supply in the UAE: LPG (propane/butane mixture) in cylinders for homes, restaurants and small commercial users; bulk LPG to centralised gas systems in residential towers and villa communities (piped from a building tank to individual meters); natural gas pipelines in some areas (e.g. Abu Dhabi); and gas system installation (tanks, vaporisers, regulators, copper/steel/PE piping, meters, leak detectors and automatic shut-off valves). Cylinders must be approved and periodically tested; the UAE moved to standardised safety cylinders with ADNOC Distribution/Emirates Gas-type composite and steel cylinders. Gas works require Civil Defence approval and a licensed gas contractor; commercial kitchens need gas leak detection linked to shut-off. Buyers specify consumption (kg/day), cylinder or bulk, and connection type.",
-      "body_ar": "توريد الغاز المسال والغاز في الإمارات: الغاز البترولي المسال (خليط البروبان والبيوتان) في أسطوانات للمنازل والمطاعم والمستخدمين التجاريين الصغار؛ والغاز المسال السائب لأنظمة الغاز المركزية في الأبراج السكنية ومجمعات الفلل (يُمدد بالأنابيب من خزان المبنى إلى عدادات فردية)؛ وخطوط الغاز الطبيعي في بعض المناطق (مثل أبوظبي)؛ وتركيب أنظمة الغاز (الخزانات، والمبخرات، والمنظمات، والأنابيب النحاسية والفولاذية والبولي إيثيلين، والعدادات، وكواشف التسرب، وصمامات الإغلاق التلقائي). ويجب أن تكون الأسطوانات معتمدة ومفحوصة دورياً؛ وانتقلت الإمارات إلى أسطوانات السلامة الموحدة المركبة والفولاذية. وتحتاج أعمال الغاز اعتماد الدفاع المدني ومقاول غاز مرخصاً؛ وتحتاج المطابخ التجارية كشف تسرب الغاز مربوطاً بالإغلاق. يحدد المشتري الاستهلاك (كغ/يوم)، والأسطوانات أو السائب، ونوع التوصيل.",
+      "body_en": "LPG and gas supply in the UAE: LPG (propane/butane mixture) in cylinders for homes, restaurants and small commercial users; bulk LPG to centralised gas systems in residential towers and villa communities (piped from a building tank to individual meters); natural gas pipelines in some areas (e.g. Abu Dhabi); and gas system installation (tanks, vaporisers, regulators, copper/steel/PE piping, meters, leak detectors and automatic shut-off valves). Cylinders must be approved and periodically tested; suppliers such as Emirates Gas now sell composite cylinders alongside steel ones. Gas works require Civil Defence approval and a licensed gas contractor; commercial kitchens need gas leak detection linked to shut-off. Buyers specify consumption (kg/day), cylinder or bulk, and connection type.",
+      "body_ar": "توريد الغاز المسال والغاز في الإمارات: الغاز البترولي المسال (خليط البروبان والبيوتان) في أسطوانات للمنازل والمطاعم والمستخدمين التجاريين الصغار؛ والغاز المسال السائب لأنظمة الغاز المركزية في الأبراج السكنية ومجمعات الفلل (يُمدد بالأنابيب من خزان المبنى إلى عدادات فردية)؛ وخطوط الغاز الطبيعي في بعض المناطق (مثل أبوظبي)؛ وتركيب أنظمة الغاز (الخزانات، والمبخرات، والمنظمات، والأنابيب النحاسية والفولاذية والبولي إيثيلين، والعدادات، وكواشف التسرب، وصمامات الإغلاق التلقائي). ويجب أن تكون الأسطوانات معتمدة ومفحوصة دورياً؛ وتبيع شركات مثل Emirates Gas الآن أسطوانات مركبة إلى جانب الفولاذية. وتحتاج أعمال الغاز اعتماد الدفاع المدني ومقاول غاز مرخصاً؛ وتحتاج المطابخ التجارية كشف تسرب الغاز مربوطاً بالإغلاق. يحدد المشتري الاستهلاك (كغ/يوم)، والأسطوانات أو السائب، ونوع التوصيل.",
       "sources": [
+        "https://www.emiratesgas.com/en/our-products/lpg-steel-cylinder/",
+        "https://lootahgas.com/aboutus",
         "https://www.adnocdistribution.ae",
         "https://www.enoc.com",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ADNOC Distribution; Emirates Gas (ENOC); Dubai Civil Defence (gas installations). Could not be verified: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg -> confirmed; composite 11 and 16 kg also launched | Lootah BCGas central gas utility -> confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed. Not checked: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
     },
     {
       "id": "lpg_gas:uae-market-brands",
       "topic": "LPG & gas supply: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Suppliers: ADNOC Distribution (LPG cylinders and bulk), Emirates Gas (ENOC group), Emarat, and licensed private distributors in each emirate (many in Sharjah, Ajman and Dubai such as Oasis Gas-type and Al Fardan-type gas companies), plus centralised gas service providers for communities (e.g. Lootah Gas, Emirates Gas, Dubai's district gas operators). Cylinders from licensed fillers; composite cylinders from Hexagon Ragasco-type makers. Equipment: Fisher (Emerson), Itron and Elster meters, Reca and GOK regulators. Origins: UAE-produced LPG from ADNOC gas processing.",
-      "body_ar": "الموردون: أدنوك للتوزيع (أسطوانات الغاز المسال والسائب)، وغاز الإمارات (مجموعة إينوك)، وإمارات، وموزعون خاصون مرخصون في كل إمارة (كثير منهم في الشارقة وعجمان ودبي)، إضافة إلى مزودي خدمات الغاز المركزي للمجمعات (مثل لوتاه للغاز وغاز الإمارات ومشغلي الغاز في مناطق دبي). والأسطوانات من معبئين مرخصين؛ والأسطوانات المركبة من مصنّعين مثل Hexagon Ragasco. المعدات: Fisher (Emerson)، وعدادات Itron وElster، ومنظمات Reca وGOK. المنشأ: غاز مسال منتج محلياً من معالجة الغاز لدى أدنوك.",
+      "body_en": "Suppliers and equipment brands: Emirates Gas (ENOC), Emarat, ADNOC Distribution, Lootah BCGas, Fisher, Itron, Elster, Reca, GOK. Emirates Gas leads cylinder and bulk LPG and has launched composite cylinders. Lootah BCGas runs central gas systems in Dubai, Sharjah and Abu Dhabi. Licensed private distributors in each emirate also supply cylinders. LPG is produced locally from ADNOC gas processing.",
+      "body_ar": "الموردون وعلامات المعدات: Emirates Gas (ENOC)، Emarat، ADNOC Distribution، Lootah BCGas، Fisher، Itron، Elster، Reca، GOK. وتتصدر Emirates Gas سوق الأسطوانات والغاز السائب وأطلقت أسطوانات مركبة، وتدير Lootah BCGas أنظمة الغاز المركزي في دبي والشارقة وأبوظبي، ويورد موزعون خاصون مرخصون في كل إمارة الأسطوانات أيضاً. والغاز المسال منتج محلياً من معالجة الغاز لدى ADNOC.",
       "sources": [
+        "https://www.emiratesgas.com/en/our-products/lpg-steel-cylinder/",
+        "https://lootahgas.com/aboutus",
         "https://www.adnocdistribution.ae",
         "https://www.enoc.com",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ADNOC Distribution; Emirates Gas (ENOC); Dubai Civil Defence (gas installations). Could not be verified: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg -> confirmed; composite 11 and 16 kg also launched | Lootah BCGas central gas utility -> confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed. Not checked: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
     },
     {
       "id": "lpg_gas:uae-market-sizes",
       "topic": "LPG & gas supply: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "Cylinders: 11 kg (domestic, previously 25 lb), 22 kg and 44 kg (commercial, often 50 lb and 100 lb in trade talk); bulk tanks 1-10 tonnes or more. Cylinder pricing is per refill plus a deposit for the cylinder; bulk and piped gas per kg or per unit metered (m3 or kWh equivalent), plus monthly meter or service charges and a connection deposit. Installation of gas systems is quoted per point and per metre of piping with Civil Defence approval fees separate; maintenance per year.",
-      "body_ar": "الأسطوانات: 11 كغ (منزلية، سابقاً 25 رطلاً)، و22 كغ و44 كغ (تجارية، وتُسمى غالباً 50 و100 رطل في السوق)؛ والخزانات السائبة 1-10 أطنان أو أكثر. وتُسعّر الأسطوانات بالتعبئة مع تأمين للأسطوانة؛ والغاز السائب والممدد بالكيلوغرام أو بالوحدة المقاسة (متر مكعب أو ما يعادله بالكيلوواط ساعة)، مع رسوم شهرية للعداد أو الخدمة وتأمين توصيل. ويُسعّر تركيب أنظمة الغاز بالنقطة وبالمتر من الأنابيب مع رسوم اعتماد الدفاع المدني منفصلة؛ والصيانة سنوياً.",
+      "body_en": "Cylinders: 5.5 kg and 11 kg (domestic; composite 11 kg and 16 kg also sold), 22 kg and 44 kg (commercial, often called 50 lb and 100 lb in the trade); bulk tanks 1-10 tonnes or more. Cylinder pricing is per refill plus a deposit for the cylinder; bulk and piped gas per kg or per unit metered (m3 or kWh equivalent), plus monthly meter or service charges and a connection deposit. Installation of gas systems is quoted per point and per metre of piping with Civil Defence approval fees separate; maintenance per year.",
+      "body_ar": "الأسطوانات: 5.5 و11 كغ (منزلية؛ وتُباع أيضاً أسطوانات مركبة 11 و16 كغ)، و22 كغ و44 كغ (تجارية، وتُسمى غالباً 50 و100 رطل في السوق)؛ والخزانات السائبة 1-10 أطنان أو أكثر. وتُسعّر الأسطوانات بالتعبئة مع تأمين للأسطوانة؛ والغاز السائب والممدد بالكيلوغرام أو بالوحدة المقاسة (متر مكعب أو ما يعادله بالكيلوواط ساعة)، مع رسوم شهرية للعداد أو الخدمة وتأمين توصيل. ويُسعّر تركيب أنظمة الغاز بالنقطة وبالمتر من الأنابيب مع رسوم اعتماد الدفاع المدني منفصلة؛ والصيانة سنوياً.",
       "sources": [
+        "https://www.emiratesgas.com/en/our-products/lpg-steel-cylinder/",
+        "https://lootahgas.com/aboutus",
         "https://www.adnocdistribution.ae",
         "https://www.enoc.com",
         "https://www.dcd.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ADNOC Distribution; Emirates Gas (ENOC); Dubai Civil Defence (gas installations). Could not be verified: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg -> confirmed; composite 11 and 16 kg also launched | Lootah BCGas central gas utility -> confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed. Not checked: Current cylinder size standards per emirate, current refill prices and private distributor names were not verified."
     }
   ],
   "eval": [
@@ -62,8 +68,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Emirates Gas (ENOC) is the LPG cylinder and bulk market leader; cylinder sizes 5.5, 11, 22, 44 kg",
+        "url": "https://www.emiratesgas.com/en/our-products/lpg-steel-cylinder/",
+        "result": "confirmed; composite 11 and 16 kg also launched"
+      },
+      {
+        "claim": "Lootah BCGas central gas utility",
+        "url": "https://lootahgas.com/aboutus",
+        "result": "confirmed (Dubai, Sharjah, Abu Dhabi); Oasis Gas and Al Fardan removed"
+      }
+    ],
     "unverified": "Current cylinder size standards per emirate, current refill prices and private distributor names were not verified.",
     "ledger": [
       899,

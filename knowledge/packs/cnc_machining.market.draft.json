@@ -12,12 +12,11 @@
       "body_ar": "خدمات التشغيل الآلي بالتحكم الرقمي والتصنيع في الإمارات: الخراطة والتفريز بالـCNC (ثلاثي وخماسي المحاور)، والتفريغ الكهربائي بالسلك والغاطس، والجلخ، وقطع التروس، والقطع بالليزر (ليزر الألياف لألواح الحديد والستانلس والألمنيوم حتى 25-30 مم)، والقطع بالبلازما والماء النفاث، والثني بمكابس CNC، والتثقيب، وتصنيع اللحام (MIG وTIG والقوس، بلحامين معتمدين وفق ISO 9606/ASME IX)، وصناديق الصاج، وقطع الغيار المشغولة للنفط والغاز والبحرية ومصانع المعالجة (الهندسة العكسية للقطع البالية)، والمعالجات السطحية (الأنودة والطلاء بالزنك والطلاء بالبودرة). يحدد المشتري المخطط (DWG/STEP) والمادة ودرجتها والتفاوتات (ISO 2768 العامة أو المحددة) وخشونة السطح (Ra) والكميات والفحص (تقرير CMM وشهادات المواد).",
       "sources": [
         "https://www.iso.org",
-        "https://www.api.org",
-        "https://www.iso.org"
+        "https://www.api.org"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 2768 general tolerances (ISO); API Spec Q1 (API); ISO 9606 welder qualification (ISO). Could not be verified: Which specific workshops hold API Q1 or ADNOC approval was not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Which specific workshops hold API Q1 or ADNOC approval was not verified."
     },
     {
       "id": "cnc_machining:uae-market-brands",
@@ -27,12 +26,11 @@
       "body_ar": "تتركز الورش في المنطقة الصناعية بالشارقة والحمرية وعجمان والقوز وجبل علي ومدينة دبي الصناعية ومصفح وICAD، من ورش صغيرة إلى ورش حاصلة على ISO 9001 وAPI Q1 تخدم أدنوك وشركات خدمات حقول النفط. علامات الآلات المستخدمة: Mazak وDMG Mori وHaas وOkuma وDoosan/DN Solutions وHurco وTrumpf وBystronic وAmada وLVD وليزرات صينية (Han's وHSG وBodor). ومنشأ المواد الخام: انظر مهن الحديد والمعادن غير الحديدية.",
       "sources": [
         "https://www.iso.org",
-        "https://www.api.org",
-        "https://www.iso.org"
+        "https://www.api.org"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 2768 general tolerances (ISO); API Spec Q1 (API); ISO 9606 welder qualification (ISO). Could not be verified: Which specific workshops hold API Q1 or ADNOC approval was not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Which specific workshops hold API Q1 or ADNOC approval was not verified."
     },
     {
       "id": "cnc_machining:uae-market-sizes",
@@ -42,12 +40,11 @@
       "body_ar": "تُسعّر الأعمال بالقطعة (سعر الوحدة حسب شرائح الكمية) أو بساعة الآلة (تختلف الأسعار بين اليدوي وثلاثي وخماسي المحاور)، والقطع بالليزر بالمتر من القطع أو باللوح مع المادة، والثني بالثنية، والتصنيع بالكيلوغرام من الحديد المصنع. وتنطبق رسوم الإعداد على الدفعات الصغيرة. ومدة التنفيذ أيام إلى أسابيع. ويجب أن يذكر العرض توريد المادة (من الورشة أو العميل) والتفاوتات الممكنة وتقرير الفحص والتسليم.",
       "sources": [
         "https://www.iso.org",
-        "https://www.api.org",
-        "https://www.iso.org"
+        "https://www.api.org"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 2768 general tolerances (ISO); API Spec Q1 (API); ISO 9606 welder qualification (ISO). Could not be verified: Which specific workshops hold API Q1 or ADNOC approval was not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Which specific workshops hold API Q1 or ADNOC approval was not verified."
     }
   ],
   "eval": [
@@ -59,16 +56,9 @@
       ]
     }
   ],
-  "verified": {
-    "by": "sales_engineer",
+  "not_verified": {
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
-    "unverified": "Which specific workshops hold API Q1 or ADNOC approval was not verified.",
-    "ledger": [
-      899,
-      900,
-      903
-    ]
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Which specific workshops hold API Q1 or ADNOC approval was not verified."
   }
 }

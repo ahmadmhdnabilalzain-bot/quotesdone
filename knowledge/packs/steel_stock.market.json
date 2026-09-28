@@ -11,28 +11,34 @@
       "body_en": "Steel stock and trading in the UAE: rebar (B500B, 8-32 mm), wire rod, merchant bars (angles, flats, rounds, squares, channels), structural sections (IPE, HEA/HEB, UB/UC, UPN), hollow sections (SHS, RHS, CHS; black and galvanised, EN 10219/ASTM A500), hot-rolled coil and plate (S275JR, S355JR/J2, A36, A572), cold-rolled and galvanised coil/sheet (GI, Z120-Z275, and pre-painted PPGI), chequered plates, stainless coil/sheet/pipe (304/316), seamless and ERW pipes (API 5L, ASTM A53/A106, BS 1387), wire mesh and BRC fabric, and scaffold tubes. Stockholders cut-to-length, slit, shear, bend and deliver. Buyers specify grade, standard, size, thickness, length, coating, quantity and mill certificate; origin matters for projects with approved-origin rules.",
       "body_ar": "مخزون الحديد وتجارته في الإمارات: حديد التسليح (B500B، 8-32 مم)، والأسلاك، والقضبان التجارية (الزوايا والمسطحات والمستديرة والمربعة والمجاري)، والمقاطع الإنشائية (IPE وHEA/HEB وUB/UC وUPN)، والمقاطع المجوفة (SHS وRHS وCHS؛ أسود ومجلفن، EN 10219/ASTM A500)، واللفائف والألواح المدرفلة على الساخن (S275JR وS355JR/J2 وA36 وA572)، واللفائف والألواح المدرفلة على البارد والمجلفنة (GI من Z120 إلى Z275، والمطلية مسبقاً PPGI)، والألواح المضلعة، ولفائف وألواح وأنابيب الستانلس (304/316)، والأنابيب غير الملحومة وERW (API 5L وASTM A53/A106 وBS 1387)، والشبك الملحوم وشبك BRC، وأنابيب السقالات. ويقوم المخزّنون بالقص حسب الطول والتشريح والقص والثني والتوصيل. يحدد المشتري الدرجة والمعيار والمقاس والسماكة والطول والطلاء والكمية وشهادة المصنع؛ ويهم المنشأ للمشاريع ذات قواعد المنشأ المعتمد.",
       "sources": [
+        "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
+        "https://www.conares.com/about/",
+        "https://www.alghurair.com/industries/al-ghurair-iron-steel/",
         "https://www.emsteel.com",
         "https://www.cencenelec.eu",
         "https://www.bsigroup.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EMSTEEL (formerly Emirates Steel Arkan); EN 10025 / EN 10219 (CEN); BS 4449 (BSI). Could not be verified: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
     },
     {
       "id": "steel_stock:uae-market-brands",
       "topic": "Steel stock & trading: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Mills and stockists: Emirates Steel Arkan (rebar, wire rod, sections), Conares, Al Ghurair Iron & Steel (galvanised/PPGI), Universal Tube and Plastic Industries (UTP) and Goodhope-type pipe mills, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Hebei mills, Turkish mills (Kardemir, Habas), Qatar Steel, Jindal Shadeed (Oman), SABIC Hadeed; stockists concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah. Origins: UAE, Oman, Qatar, Saudi Arabia, Turkey, India, China, Korea, Japan.",
-      "body_ar": "المصانع والمخزّنون: الإمارات للصلب أركان (التسليح والأسلاك والمقاطع)، وكونارس، والغرير للحديد والصلب (المجلفن والمطلي مسبقاً)، ومصانع أنابيب محلية، وTata Steel وJSW وPOSCO وHyundai Steel وBaosteel ومصانع هيبي ومصانع تركية (Kardemir وHabas) وقطر ستيل وجندال شديد (عُمان) وحديد سابك؛ ويتركز المخزّنون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح. المنشأ: الإمارات، عُمان، قطر، السعودية، تركيا، الهند، الصين، كوريا، اليابان.",
+      "body_en": "Mills and brands: EMSTEEL, Conares, Al Ghurair Iron & Steel, Tata Steel, JSW, POSCO, Hyundai Steel, Baosteel, Kardemir, Habas, Qatar Steel, Jindal Shadeed, SABIC Hadeed. EMSTEEL (Abu Dhabi), Conares (Jebel Ali) and Al Ghurair Iron & Steel (galvanised and coated coil) are UAE producers. The rest are imported, and the stockists were not checked by name. Stockists are concentrated in Jebel Ali, Sharjah (Industrial Area, Hamriyah), Ajman and Musaffah.",
+      "body_ar": "المصانع والعلامات: EMSTEEL، Conares، Al Ghurair Iron & Steel، Tata Steel، JSW، POSCO، Hyundai Steel، Baosteel، Kardemir، Habas، Qatar Steel، Jindal Shadeed، SABIC Hadeed. وEMSTEEL (أبوظبي) وConares (جبل علي) وAl Ghurair Iron & Steel (اللفائف المجلفنة والمطلية) منتجون إماراتيون، والبقية مستوردة ولم يُتحقق من المخزّنين بالاسم. ويتركز المخزّنون في جبل علي والشارقة (المنطقة الصناعية والحمرية) وعجمان ومصفح.",
       "sources": [
+        "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
+        "https://www.conares.com/about/",
+        "https://www.alghurair.com/industries/al-ghurair-iron-steel/",
         "https://www.emsteel.com",
         "https://www.cencenelec.eu",
         "https://www.bsigroup.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EMSTEEL (formerly Emirates Steel Arkan); EN 10025 / EN 10219 (CEN); BS 4449 (BSI). Could not be verified: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
     },
     {
       "id": "steel_stock:uae-market-sizes",
@@ -41,13 +47,16 @@
       "body_en": "Priced per tonne (sections, plates, coil, rebar) or per piece/length (pipes and hollow sections in 6 m or 12 m); sheets 1219/1250/1500 x 2438/2500/3000/6000 mm; coil by width and thickness. Prices move with regional steel indices (e.g. Emirates Steel monthly rebar price, Chinese export HRC); quotes carry short validity (days), cutting charges, delivery by trailer (20-25 t) and mill certificate EN 10204 3.1.",
       "body_ar": "التسعير بالطن (المقاطع والألواح واللفائف والتسليح) أو بالقطعة/الطول (الأنابيب والمقاطع المجوفة بطول 6 م أو 12 م)؛ والألواح 1219/1250/1500 × 2438/2500/3000/6000 مم؛ واللفائف حسب العرض والسماكة. وتتحرك الأسعار مع مؤشرات الحديد الإقليمية (مثل سعر التسليح الشهري للإمارات للصلب، وصادرات اللفائف الساخنة الصينية)؛ والعروض بصلاحية قصيرة (أيام) مع رسوم القص والتوصيل بمقطورة (20-25 طناً) وشهادة المصنع EN 10204 3.1.",
       "sources": [
+        "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
+        "https://www.conares.com/about/",
+        "https://www.alghurair.com/industries/al-ghurair-iron-steel/",
         "https://www.emsteel.com",
         "https://www.cencenelec.eu",
         "https://www.bsigroup.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: EMSTEEL (formerly Emirates Steel Arkan); EN 10025 / EN 10219 (CEN); BS 4449 (BSI). Could not be verified: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: EMSTEEL rebar and sections -> confirmed (renamed from Emirates Steel Arkan) | Conares (JAFZA) -> confirmed | Al Ghurair Iron & Steel -> confirmed; UTP and other pipe mills removed (not checked). Not checked: Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified."
     }
   ],
   "eval": [
@@ -62,8 +71,24 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EMSTEEL rebar and sections",
+        "url": "https://www.emsteel.com/emirates-steel-arkan-rebrands-as-emsteel-to-drive-operational-evolution-and-global-growth/",
+        "result": "confirmed (renamed from Emirates Steel Arkan)"
+      },
+      {
+        "claim": "Conares (JAFZA)",
+        "url": "https://www.conares.com/about/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al Ghurair Iron & Steel",
+        "url": "https://www.alghurair.com/industries/al-ghurair-iron-steel/",
+        "result": "confirmed; UTP and other pipe mills removed (not checked)"
+      }
+    ],
     "unverified": "Current product ranges of named local mills and whether Emirates Steel publishes a monthly rebar price publicly were not verified.",
     "ledger": [
       899,

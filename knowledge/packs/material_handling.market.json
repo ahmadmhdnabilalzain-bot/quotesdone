@@ -12,27 +12,31 @@
       "body_ar": "الرافعات الشوكية ومناولة المواد في الإمارات: الرافعات الشوكية الموازنة (ديزل، غاز، كهربائية؛ 1.5-10 أطنان، وأكبر للموانئ وساحات الحديد)، ورافعات الوصول والممرات الضيقة جداً للمستودعات، وعربات المنصات (يدوية وكهربائية)، والمكدسات، وملتقطات الطلبات، والرافعات التلسكوبية، والرافعات الجانبية، ومناولات الحاويات ورافعات الوصول (الموانئ)، وجرارات السحب، والسيور وأنظمة الفرز (مراكز اللوجستيات والتجارة الإلكترونية)، والرافعات العلوية والرافعات السلسلية، ومسويات الأرصفة وأبوابها، والمركبات الموجهة آلياً، وملحقات الرفع (الحبال والشكالات). وتحتاج معدات الرفع شهادات فحص طرف ثالث (عادة كل 6-12 شهراً) ويحتاج المشغلون تدريباً معتمداً. يحدد المشتري السعة عند مركز الحمل (مثل 3 أطنان عند 500 مم) وارتفاع الرفع ونوع الصاري والوقود/الطاقة والإطارات والملحقات.",
       "sources": [
         "https://www.iso.org",
+        "https://www.alfuttaim.com/en/",
+        "https://www.jungheinrich.com/en/locations/dubai-530598",
         "https://www.dm.gov.ae",
         "https://toyota-forklifts.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: forklift capacity at load centre, ISO 3691 safety -> standard named; not read | Al-Futtaim as Toyota Material Handling dealer -> not confirmed on the page opened; dealer removed, brand kept | Jungheinrich has a Dubai location -> confirmed. Not checked: Current dealer appointments and inspection intervals per emirate were not verified."
     },
     {
       "id": "material_handling:uae-market-brands",
       "topic": "Forklifts & material handling: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Brands: Toyota (Al-Futtaim Toyota Material Handling), Linde, Still (KION), Jungheinrich, Crown, Hyster-Yale, Komatsu, Mitsubishi Logisnext, Doosan/Develon (now Bobcat forklifts), Heli, Hangcha, EP, Kalmar and Konecranes (ports), Demag, GH Cranes. Dealers and rental companies in Dubai (JAFZA, Al Quoz, DIP), Sharjah and Musaffah; rental on monthly or long-term leases is common. Origins: Japan, Germany, USA-brand, China, Finland.",
-      "body_ar": "العلامات: Toyota (الفطيم تويوتا لمناولة المواد) وLinde وStill (KION) وJungheinrich وCrown وHyster-Yale وKomatsu وMitsubishi Logisnext وDoosan/Develon وHeli وHangcha وEP، وKalmar وKonecranes (الموانئ)، وDemag وGH Cranes. والوكلاء وشركات التأجير في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة ومصفح؛ والتأجير الشهري أو طويل الأجل شائع. المنشأ: اليابان، ألمانيا، علامات أمريكية، الصين، فنلندا.",
+      "body_en": "Brands in the market: Toyota, Linde, Still, Jungheinrich, Crown, Hyster-Yale, Komatsu, Mitsubishi Logisnext, Bobcat, Heli, Hangcha, EP, Kalmar, Konecranes, Demag, GH Cranes. Which UAE distributor carries each brand was not checked. Distributors and integrators are in Dubai (JAFZA, Al Quoz, Dubai Investments Park), Sharjah and Abu Dhabi (Musaffah, ICAD).",
+      "body_ar": "العلامات في السوق: Toyota، Linde، Still، Jungheinrich، Crown، Hyster-Yale، Komatsu، Mitsubishi Logisnext، Bobcat، Heli، Hangcha، EP، Kalmar، Konecranes، Demag، GH Cranes. ولم يُتحقق من الموزع الإماراتي لكل علامة. والموزعون والمكاملون في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة وأبوظبي (مصفح وICAD).",
       "sources": [
         "https://www.iso.org",
+        "https://www.alfuttaim.com/en/",
+        "https://www.jungheinrich.com/en/locations/dubai-530598",
         "https://www.dm.gov.ae",
         "https://toyota-forklifts.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: forklift capacity at load centre, ISO 3691 safety -> standard named; not read | Al-Futtaim as Toyota Material Handling dealer -> not confirmed on the page opened; dealer removed, brand kept | Jungheinrich has a Dubai location -> confirmed. Not checked: Current dealer appointments and inspection intervals per emirate were not verified."
     },
     {
       "id": "material_handling:uae-market-sizes",
@@ -42,12 +46,14 @@
       "body_ar": "تُباع الرافعات الشوكية بالوحدة أو تُؤجر شهرياً (غالباً مع الصيانة، بعقود 1-5 سنوات) مع مشغل اختياري؛ وتُسعّر البطاريات والشواحن للكهربائية منفصلة. وارتفاعات الرفع المتوافقة مع الرفوف 4.5-12 م. والرافعات العلوية بالوحدة حسب الحمولة الآمنة والبحر. وشهادات الفحص لكل بند في كل فحص. والضمان 12 شهراً أو 2,000 ساعة عادة.",
       "sources": [
         "https://www.iso.org",
+        "https://www.alfuttaim.com/en/",
+        "https://www.jungheinrich.com/en/locations/dubai-530598",
         "https://www.dm.gov.ae",
         "https://toyota-forklifts.eu"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: forklift capacity at load centre, ISO 3691 safety -> standard named; not read | Al-Futtaim as Toyota Material Handling dealer -> not confirmed on the page opened; dealer removed, brand kept | Jungheinrich has a Dubai location -> confirmed. Not checked: Current dealer appointments and inspection intervals per emirate were not verified."
     }
   ],
   "eval": [
@@ -62,8 +68,24 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "forklift capacity at load centre, ISO 3691 safety",
+        "url": "https://www.iso.org",
+        "result": "standard named; not read"
+      },
+      {
+        "claim": "Al-Futtaim as Toyota Material Handling dealer",
+        "url": "https://www.alfuttaim.com/en/",
+        "result": "not confirmed on the page opened; dealer removed, brand kept"
+      },
+      {
+        "claim": "Jungheinrich has a Dubai location",
+        "url": "https://www.jungheinrich.com/en/locations/dubai-530598",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Current dealer appointments and inspection intervals per emirate were not verified.",
     "ledger": [
       899,

@@ -15,9 +15,9 @@
         "https://www.iso.org",
         "https://www.esab.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current distributors of each brand in the UAE were not verified."
     },
     {
       "id": "welding_equipment:uae-market-brands",
@@ -30,9 +30,9 @@
         "https://www.iso.org",
         "https://www.esab.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current distributors of each brand in the UAE were not verified."
     },
     {
       "id": "welding_equipment:uae-market-sizes",
@@ -45,9 +45,9 @@
         "https://www.iso.org",
         "https://www.esab.com"
       ],
-      "confidence": "medium",
+      "confidence": "low",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Current distributors of each brand in the UAE were not verified."
     }
   ],
   "eval": [
@@ -59,16 +59,9 @@
       ]
     }
   ],
-  "verified": {
-    "by": "sales_engineer",
+  "not_verified": {
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
-    "unverified": "Current distributors of each brand in the UAE were not verified.",
-    "ledger": [
-      899,
-      900,
-      903
-    ]
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Current distributors of each brand in the UAE were not verified."
   }
 }

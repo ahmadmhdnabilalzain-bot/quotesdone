@@ -11,28 +11,30 @@
       "body_en": "Air compressors in the UAE: oil-injected rotary screw compressors (fixed and variable speed drive, 5.5-500 kW, 7-13 bar) for factories and workshops, oil-free screw and scroll compressors (ISO 8573-1 Class 0) for food packaging, pharma, electronics and hospitals, reciprocating piston compressors for small workshops and garages, portable diesel compressors (tow-behind, 185-1,600 cfm) for construction and blasting, high-pressure boosters, and air treatment (refrigerated and desiccant dryers, filters, receivers, condensate drains, piping in aluminium such as Transair). Hot UAE ambient needs compressors rated for 46-50 C and good ventilation; specs: FAD (free air delivery) in m3/min or cfm at pressure, kW, pressure dew point, ISO 8573-1 air quality class, noise dB(A), energy (specific power kW per m3/min).",
       "body_ar": "ضواغط الهواء في الإمارات: الضواغط اللولبية المحقونة بالزيت (ثابتة ومتغيرة السرعة، 5.5-500 كيلوواط، 7-13 بار) للمصانع والورش، والضواغط اللولبية واللفافية الخالية من الزيت (الفئة 0 وفق ISO 8573-1) لتغليف الأغذية والأدوية والإلكترونيات والمستشفيات، والضواغط الترددية المكبسية للورش الصغيرة والكراجات، والضواغط الديزل المتنقلة (مقطورة، 185-1,600 قدم مكعب/دقيقة) للبناء والسفع، ومعززات الضغط العالي، ومعالجة الهواء (المجففات بالتبريد والامتصاص، والفلاتر، والخزانات، وتصريف المكثفات، والأنابيب الألمنيوم). وتحتاج حرارة الإمارات ضواغط مصنفة لـ46-50 مئوية وتهوية جيدة؛ المواصفات: تدفق الهواء الحر بالمتر المكعب/دقيقة أو قدم مكعب/دقيقة عند ضغط محدد، والكيلوواط، ونقطة الندى تحت الضغط، وفئة جودة الهواء، والضوضاء، والقدرة النوعية.",
       "sources": [
+        "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
         "https://www.atlascopco.com",
         "https://www.kaeser.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 8573-1 compressed air quality (ISO); Atlas Copco; Kaeser. Could not be verified: Current dealer appointments per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Atlas Copco operates a UAE company -> confirmed. Not checked: Current dealer appointments per emirate were not verified."
     },
     {
       "id": "air_compressors:uae-market-brands",
       "topic": "Air compressors: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Brands: Atlas Copco (with regional HQ in Dubai), Ingersoll Rand (incl. Gardner Denver, CompAir), Kaeser, Sullair (Hitachi), Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan portable (Develon/Bobcat), Airman, and Chinese brands (e.g. Kaishan). Service and distribution through brand subsidiaries and dealers in Dubai (JAFZA, Al Quoz), Sharjah and Musaffah; rental fleets for portables. Origins: Belgium/Sweden, Germany, India, USA-brand plants, Japan, China.",
-      "body_ar": "العلامات: Atlas Copco (مقرها الإقليمي في دبي) وIngersoll Rand (ومنها Gardner Denver وCompAir) وKaeser وSullair (Hitachi) وBoge وELGi وKirloskar وChicago Pneumatic وFusheng وHitachi والضواغط المتنقلة Doosan (Develon/Bobcat) وAirman وعلامات صينية مثل Kaishan. والخدمة والتوزيع عبر فروع العلامات والوكلاء في دبي (المنطقة الحرة لجبل علي والقوز) والشارقة ومصفح؛ وأساطيل تأجير للمتنقلة. المنشأ: بلجيكا/السويد، ألمانيا، الهند، مصانع علامات أمريكية، اليابان، الصين.",
+      "body_en": "Brands in the market: Atlas Copco, Ingersoll Rand, Kaeser, Sullair, Boge, ELGi, Kirloskar, Chicago Pneumatic, Fusheng, Hitachi, Doosan Portable Power, Airman, Kaishan. Which UAE distributor carries each brand was not checked. Distributors, workshops and service centres cluster in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah.",
+      "body_ar": "العلامات في السوق: Atlas Copco، Ingersoll Rand، Kaeser، Sullair، Boge، ELGi، Kirloskar، Chicago Pneumatic، Fusheng، Hitachi، Doosan Portable Power، Airman، Kaishan. ولم يُتحقق من الموزع الإماراتي لكل علامة. ويتجمع الموزعون والورش ومراكز الخدمة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح.",
       "sources": [
+        "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
         "https://www.atlascopco.com",
         "https://www.kaeser.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 8573-1 compressed air quality (ISO); Atlas Copco; Kaeser. Could not be verified: Current dealer appointments per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Atlas Copco operates a UAE company -> confirmed. Not checked: Current dealer appointments per emirate were not verified."
     },
     {
       "id": "air_compressors:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Priced per unit by kW and FAD; dryers and filters per unit by flow; receivers by litre (500, 1,000, 2,000 L) with pressure vessel certification. Portable compressor rental per day/week/month by cfm. Service contracts per year by running hours (service every 2,000-4,000 hours), with parts kits priced separately. Warranty 1-2 years (extended airend warranties with service plans).",
       "body_ar": "يُسعّر بالوحدة حسب الكيلوواط والتدفق؛ والمجففات والفلاتر بالوحدة حسب التدفق؛ والخزانات باللتر (500 و1,000 و2,000 لتر) مع شهادة أوعية الضغط. وتأجير الضواغط المتنقلة يومياً/أسبوعياً/شهرياً حسب القدم المكعب/دقيقة. وعقود الخدمة سنوياً حسب ساعات التشغيل (خدمة كل 2,000-4,000 ساعة) مع أطقم القطع مسعرة منفصلة. والضمان 1-2 سنة (ضمانات ممددة لوحدة الضغط مع خطط الخدمة).",
       "sources": [
+        "https://www.atlascopco.com/en-ae",
         "https://www.iso.org",
         "https://www.atlascopco.com",
         "https://www.kaeser.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 8573-1 compressed air quality (ISO); Atlas Copco; Kaeser. Could not be verified: Current dealer appointments per emirate were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Atlas Copco operates a UAE company -> confirmed. Not checked: Current dealer appointments per emirate were not verified."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Atlas Copco operates a UAE company",
+        "url": "https://www.atlascopco.com/en-ae",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Current dealer appointments per emirate were not verified.",
     "ledger": [
       899,

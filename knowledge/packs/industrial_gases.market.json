@@ -11,28 +11,34 @@
       "body_en": "Industrial gases in the UAE: oxygen (industrial and medical USP/EP grade), nitrogen (industrial, food-grade, high purity 5.0), argon and argon mixes for welding (Ar/CO2 82/18, Ar/O2), carbon dioxide (industrial, beverage-grade supply is out of scope here), acetylene, hydrogen, helium (balloons, leak testing, MRI), specialty and calibration gas mixtures, refrigerant gases (R410A, R32, R134a, R407C, R22 phase-out), nitrous oxide (medical), and LPG (see lpg trade). Supply modes: cylinders (40-50 L water capacity, 150-200 bar; cylinder bundles/MCPs), liquid bulk in cryogenic tanks (VIE) with telemetry, on-site generation (PSA/membrane nitrogen and oxygen generators), and pipeline supply to large industrial users. Medical gases need DoH/DHA/MOHAP-compliant supply; cylinders follow ISO 9809 and colour coding per ISO 32 / EN 1089-3.",
       "body_ar": "الغازات الصناعية في الإمارات: الأكسجين (صناعي وطبي بدرجة USP/EP)، والنيتروجين (صناعي وغذائي وعالي النقاوة 5.0)، والأرجون وخلطاته للحام (أرجون/ثاني أكسيد الكربون 82/18، وأرجون/أكسجين)، وثاني أكسيد الكربون الصناعي، والأسيتيلين، والهيدروجين، والهيليوم (البالونات، وكشف التسرب، والرنين المغناطيسي)، وخلطات الغازات الخاصة والمعايرة، وغازات التبريد (R410A وR32 وR134a وR407C، مع التخلص التدريجي من R22)، وأكسيد النيتروز (طبي)، والغاز المسال. أنماط التوريد: الأسطوانات (سعة مائية 40-50 لتراً، 150-200 بار؛ وحزم الأسطوانات)، والسائل السائب في خزانات التبريد العميق مع القياس عن بعد، والتوليد في الموقع (مولدات النيتروجين والأكسجين بتقنية PSA/الأغشية)، والتوريد بالأنابيب للمستخدمين الصناعيين الكبار. وتحتاج الغازات الطبية توريداً متوافقاً مع الجهات الصحية؛ والأسطوانات وفق ISO 9809 وترميز الألوان وفق ISO 32 وEN 1089-3.",
       "sources": [
+        "https://www.gulfcryo.com/",
+        "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
+        "https://moccae.gov.ae/en/media-center/news/15/5/2023/ministry-of-climate-change-and-environment-issues-a-ministerial-decree-on-the-regulation-of-hydroflu",
         "https://www.iso.org",
         "https://www.moccae.gov.ae",
         "https://www.gulfcryo.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 9809 gas cylinders (ISO); Ministry of Climate Change and Environment (ozone-depleting substances); Gulf Cryo. Could not be verified: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
     },
     {
       "id": "industrial_gases:uae-market-brands",
       "topic": "Industrial gases: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Suppliers: Air Products (with ADNOC JV and Abu Dhabi presence), Linde (via regional companies), Air Liquide (Al-Futtaim-related partnerships in the past), Gulf Cryo (Kuwait-based, strong UAE presence), Emirates Industrial Gases (EIG, Dubai), Buhler-type and Sharjah/Ajman local fillers, Abu Dhabi Industrial Gases, and refrigerant traders (Honeywell, Chemours, Daikin, Arkema gases, plus Chinese refrigerants). Generators: Atlas Copco, Parker, Inmatec. Refrigerant imports are controlled under the Montreal Protocol by MOCCAE (quota and licence).",
-      "body_ar": "الموردون: Air Products (مع مشروع مشترك مع أدنوك وحضور في أبوظبي)، وLinde (عبر شركات إقليمية)، وAir Liquide، وGulf Cryo (مقرها الكويت، حضور قوي في الإمارات)، والإمارات للغازات الصناعية (دبي)، ومعبئون محليون في الشارقة وعجمان، وأبوظبي للغازات الصناعية، وتجار غازات التبريد (Honeywell وChemours وDaikin وArkema إضافة إلى غازات صينية). المولدات: Atlas Copco وParker وInmatec. واستيراد غازات التبريد خاضع لبروتوكول مونتريال عبر وزارة التغير المناخي والبيئة (حصص وتراخيص).",
+      "body_en": "Suppliers and brands: Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, Air Products, Linde, ADNOC Gas, Brothers Gas, Honeywell, Chemours, Daikin, Arkema, Atlas Copco, Parker, Inmatec. The first seven supply gases in the UAE, and Gulf Cryo is headquartered in Dubai. Honeywell, Chemours, Daikin and Arkema are refrigerant brands, and Atlas Copco, Parker and Inmatec make on-site generators. HFC refrigerant imports need MOCCAE registration, a licence and annual reporting.",
+      "body_ar": "الموردون والعلامات: Gulf Cryo، Emirates Industrial Gases، Dubai Industrial Gases، Air Products، Linde، ADNOC Gas، Brothers Gas، Honeywell، Chemours، Daikin، Arkema، Atlas Copco، Parker، Inmatec. والسبعة الأوائل موردو غازات في الإمارات، ومقر Gulf Cryo في دبي؛ وHoneywell وChemours وDaikin وArkema علامات غازات تبريد؛ وAtlas Copco وParker وInmatec لمولدات الموقع. ويحتاج استيراد غازات التبريد HFC تسجيلاً لدى وزارة التغير المناخي والبيئة وترخيصاً وتقارير سنوية.",
       "sources": [
+        "https://www.gulfcryo.com/",
+        "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
+        "https://moccae.gov.ae/en/media-center/news/15/5/2023/ministry-of-climate-change-and-environment-issues-a-ministerial-decree-on-the-regulation-of-hydroflu",
         "https://www.iso.org",
         "https://www.moccae.gov.ae",
         "https://www.gulfcryo.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 9809 gas cylinders (ISO); Ministry of Climate Change and Environment (ozone-depleting substances); Gulf Cryo. Could not be verified: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
     },
     {
       "id": "industrial_gases:uae-market-sizes",
@@ -41,13 +47,16 @@
       "body_en": "Cylinder gas is priced per refill by gas and cylinder size (e.g. 6 m3 oxygen, 50 L argon) plus monthly cylinder rental or a deposit, and delivery charges; bulk liquid per m3 or per kg with tank rental per month on multi-year contracts; generators sold per unit or on a gas-as-a-service monthly fee. Refrigerants per cylinder (e.g. 11.3 kg R410A, 13.6 kg R134a). Purity grade and certificate of analysis are stated per delivery for specialty gases.",
       "body_ar": "يُسعّر غاز الأسطوانات بالتعبئة حسب الغاز وحجم الأسطوانة (مثل 6 م3 أكسجين، و50 لتراً أرجون) مع إيجار شهري للأسطوانة أو تأمين، ورسوم توصيل؛ والسائل السائب بالمتر المكعب أو الكيلوغرام مع إيجار الخزان شهرياً بعقود متعددة السنوات؛ والمولدات بالوحدة أو برسوم شهرية كخدمة. وغازات التبريد بالأسطوانة (مثل 11.3 كغ R410A و13.6 كغ R134a). وتُذكر درجة النقاوة وشهادة التحليل لكل توريد للغازات الخاصة.",
       "sources": [
+        "https://www.gulfcryo.com/",
+        "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
+        "https://moccae.gov.ae/en/media-center/news/15/5/2023/ministry-of-climate-change-and-environment-issues-a-ministerial-decree-on-the-regulation-of-hydroflu",
         "https://www.iso.org",
         "https://www.moccae.gov.ae",
         "https://www.gulfcryo.com"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISO 9809 gas cylinders (ISO); Ministry of Climate Change and Environment (ozone-depleting substances); Gulf Cryo. Could not be verified: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Gulf Cryo is headquartered in Dubai -> corrected: Dubai-headquartered (not Kuwait-based) | UAE gas suppliers -> confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed | HFC imports regulated by MOCCAE ministerial decree -> confirmed (registration, licence, reporting). Not checked: Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified."
     }
   ],
   "eval": [
@@ -62,8 +71,24 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Gulf Cryo is headquartered in Dubai",
+        "url": "https://www.gulfcryo.com/",
+        "result": "corrected: Dubai-headquartered (not Kuwait-based)"
+      },
+      {
+        "claim": "UAE gas suppliers",
+        "url": "https://www.marknteladvisors.com/research-library/uae-industrial-gases-market.html",
+        "result": "confirmed Air Products, Linde, Gulf Cryo, Emirates Industrial Gases, Dubai Industrial Gases, ADNOC Gas, Brothers Gas; Abu Dhabi Industrial Gases removed"
+      },
+      {
+        "claim": "HFC imports regulated by MOCCAE ministerial decree",
+        "url": "https://moccae.gov.ae/en/media-center/news/15/5/2023/ministry-of-climate-change-and-environment-issues-a-ministerial-decree-on-the-regulation-of-hydroflu",
+        "result": "confirmed (registration, licence, reporting)"
+      }
+    ],
     "unverified": "Current structure of Linde and Air Liquide operations in the UAE and named local fillers were not verified.",
     "ledger": [
       899,

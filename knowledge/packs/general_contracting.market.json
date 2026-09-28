@@ -11,28 +11,30 @@
       "body_en": "General building contracting in the UAE covers design-bid-build and design-and-build delivery of villas, residential and commercial buildings, warehouses, schools and fit-out-plus-shell works. Scope lines: enabling works, substructure and superstructure, blockwork and plaster, MEP (usually subcontracted), façade, finishes, external works, testing and commissioning, authority approvals and handover (building completion certificate). Contractors are classified by the municipality: Dubai Municipality contractor grades and Abu Dhabi DMT classification limit project value by grade; Sharjah and northern emirates have their own registers. Buyers specify the drawings and specifications set, BOQ or lump sum basis, programme, and the contract form (FIDIC Red/Yellow Book, or a simple villa contract for private owners).",
       "body_ar": "تشمل المقاولات العامة للمباني في الإمارات تنفيذ الفلل والمباني السكنية والتجارية والمستودعات والمدارس وأعمال الهيكل مع التشطيب، بنظام التصميم ثم المناقصة ثم التنفيذ أو بنظام التصميم والتنفيذ. بنود النطاق: الأعمال التمهيدية، والأعمال تحت الأرض وفوقها، والطابوق واللياسة، والأعمال الكهروميكانيكية (غالباً بالتعاقد من الباطن)، والواجهات، والتشطيبات، والأعمال الخارجية، والاختبار والتشغيل، واعتمادات الجهات، والتسليم (شهادة إنجاز المبنى). تُصنّف البلدية المقاولين: فئات مقاولي بلدية دبي وتصنيف دائرة البلديات والنقل في أبوظبي تحدد قيمة المشروع المسموحة حسب الفئة؛ وللشارقة والإمارات الشمالية سجلاتها الخاصة. يحدد المشتري مجموعة المخططات والمواصفات، وأساس التسعير (جدول كميات أو مبلغ مقطوع)، والبرنامج الزمني، ونوع العقد (فيديك الأحمر أو الأصفر، أو عقد فيلا مبسط للملاك الأفراد).",
       "sources": [
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.dm.gov.ae",
         "https://www.dmt.gov.ae",
         "https://fidic.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality contractor classification; Abu Dhabi Department of Municipalities and Transport; FIDIC. Could not be verified: Current classification grades and status of named contractors were not verified; names are market examples only."
+      "source_note": "Checked on 2026-09-28 against pages opened then: large UAE main contractors -> confirmed ALEC, Al Naboodah, Khansaheb, Dutco, Wade Adams, Trojan; Arabian Construction Company, China State and Al Futtaim Carillion removed (not confirmed as current). Not checked: Current classification grades and status of named contractors were not verified; names are market examples only."
     },
     {
       "id": "general_contracting:uae-market-brands",
       "topic": "General building contracting: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "The market ranges from large main contractors (e.g. ALEC, Al Naboodah, Khansaheb, Al Futtaim Carillion-era entities, Arabian Construction Company, China State Construction, Wade Adams, Trojan General Contracting, NCC) to mid-size and small villa contractors registered in each emirate. Consultants (engineer of record) supervise under municipality rules. Subcontract trades are sourced locally. When comparing contractors, buyers check the trade licence activity, municipality classification grade, insurance (contractor's all risks, third-party liability, workmen's compensation), and track record of completed similar projects.",
-      "body_ar": "يتراوح السوق من المقاولين الرئيسيين الكبار (مثل ALEC والنابودة وخان صاحب والشركة العربية للإنشاءات وChina State Construction وWade Adams وتروجان للمقاولات العامة وNCC) إلى المقاولين المتوسطين والصغار للفلل المسجلين في كل إمارة. ويشرف الاستشاري (المهندس المسجل) وفق قواعد البلدية. وتُورَّد أعمال الباطن محلياً. عند مقارنة المقاولين يتحقق المشتري من نشاط الرخصة التجارية، وفئة تصنيف البلدية، والتأمين (جميع أخطار المقاولين، والمسؤولية تجاه الغير، وتعويض العمال)، وسجل المشاريع المماثلة المنجزة.",
+      "body_en": "The market runs from large main contractors, such as ALEC, Al Naboodah Construction Group, Khansaheb, Dutco, Wade Adams, Trojan Construction Group, down to mid-size and small villa contractors registered in each emirate. A consultant, the engineer of record, supervises under municipality rules, and subcontract trades are sourced locally. When comparing contractors, buyers check the trade licence activity, the municipality classification grade, insurance (contractor's all risks, third-party liability and workmen's compensation) and a track record of similar completed projects.",
+      "body_ar": "يتراوح السوق من المقاولين الرئيسيين الكبار مثل ALEC، Al Naboodah Construction Group، Khansaheb، Dutco، Wade Adams، Trojan Construction Group إلى مقاولين متوسطين وصغار للفلل مسجلين في كل إمارة. ويشرف الاستشاري (المهندس المسجل) وفق قواعد البلدية، وتُورَّد أعمال الباطن محلياً. وعند المقارنة يتحقق المشتري من نشاط الرخصة التجارية وفئة تصنيف البلدية والتأمين (جميع أخطار المقاولين، والمسؤولية تجاه الغير، وتعويض العمال) وسجل المشاريع المماثلة المنجزة.",
       "sources": [
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.dm.gov.ae",
         "https://www.dmt.gov.ae",
         "https://fidic.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality contractor classification; Abu Dhabi Department of Municipalities and Transport; FIDIC. Could not be verified: Current classification grades and status of named contractors were not verified; names are market examples only."
+      "source_note": "Checked on 2026-09-28 against pages opened then: large UAE main contractors -> confirmed ALEC, Al Naboodah, Khansaheb, Dutco, Wade Adams, Trojan; Arabian Construction Company, China State and Al Futtaim Carillion removed (not confirmed as current). Not checked: Current classification grades and status of named contractors were not verified; names are market examples only."
     },
     {
       "id": "general_contracting:uae-market-sizes",
@@ -41,13 +43,14 @@
       "body_en": "Quotes are either lump sum against drawings or re-measured against a BOQ; buyers often compare cost per m2 of built-up area (BUA) as a sanity check, stated separately for shell-and-core versus fully finished. Standard commercial terms: advance payment 10-20% against a bank guarantee, monthly interim payments against valuations, retention 5-10% released at handover and after the defects liability period (usually 12 months), performance bond about 10%, and delay damages capped by contract. Villa contracts in Dubai are often paid in stages tied to milestones (foundation, structure, blockwork, finishes).",
       "body_ar": "تكون العروض إما بمبلغ مقطوع مقابل المخططات أو بإعادة القياس مقابل جدول كميات؛ وكثيراً ما يقارن المشتري التكلفة للمتر المربع من المساحة المبنية كفحص للمعقولية، مع التمييز بين الهيكل والقلب مقابل التشطيب الكامل. الشروط التجارية المعتادة: دفعة مقدمة 10-20% مقابل ضمان بنكي، ودفعات شهرية مقابل التقييمات، ومحتجزات 5-10% تُفرج عند التسليم وبعد فترة مسؤولية العيوب (عادة 12 شهراً)، وضمان حسن تنفيذ نحو 10%، وغرامات تأخير بسقف في العقد. وغالباً ما تُدفع عقود الفلل في دبي على مراحل مرتبطة بالإنجاز (الأساسات، الهيكل، الطابوق، التشطيبات).",
       "sources": [
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.dm.gov.ae",
         "https://www.dmt.gov.ae",
         "https://fidic.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality contractor classification; Abu Dhabi Department of Municipalities and Transport; FIDIC. Could not be verified: Current classification grades and status of named contractors were not verified; names are market examples only."
+      "source_note": "Checked on 2026-09-28 against pages opened then: large UAE main contractors -> confirmed ALEC, Al Naboodah, Khansaheb, Dutco, Wade Adams, Trojan; Arabian Construction Company, China State and Al Futtaim Carillion removed (not confirmed as current). Not checked: Current classification grades and status of named contractors were not verified; names are market examples only."
     }
   ],
   "eval": [
@@ -62,8 +65,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "large UAE main contractors",
+        "url": "https://www.rib-software.com/en/blogs/construction-companies-uae",
+        "result": "confirmed ALEC, Al Naboodah, Khansaheb, Dutco, Wade Adams, Trojan; Arabian Construction Company, China State and Al Futtaim Carillion removed (not confirmed as current)"
+      }
+    ],
     "unverified": "Current classification grades and status of named contractors were not verified; names are market examples only.",
     "ledger": [
       899,

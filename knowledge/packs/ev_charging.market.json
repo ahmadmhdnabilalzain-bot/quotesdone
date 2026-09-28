@@ -11,6 +11,9 @@
       "body_en": "EV charging installation in the UAE: AC chargers (Mode 3, Type 2 connector, 7.4 kW single-phase and 11/22 kW three-phase wallboxes and pedestals) for villas, residential towers, offices and hotels; DC fast chargers (CCS2 is the main standard; CHAdeMO on some older units; GB/T for some Chinese vehicles) at 30-60 kW, 120-180 kW and 300-400 kW+ for fleets and public hubs; load management and OCPP 1.6/2.0.1 back-end software; RFID and app-based payment; cable management, protection (Type A/B RCD, DC leakage detection) and earthing. In Dubai, chargers connect under DEWA's EV Green Charger programme and installers need DEWA approval; Abu Dhabi has its own framework (via ADDC/AADC and the UAEV network by Etihad WE and the Ministry of Energy). Specs: power (kW), connector, number of outlets, IP/IK rating, OCPP, metering (MID), and heat derating (outdoor 50 C).",
       "body_ar": "تركيب شواحن المركبات الكهربائية في الإمارات: الشواحن المتناوبة (الوضع 3، موصل Type 2، وحدات جدارية وأعمدة بقدرة 7.4 كيلوواط أحادي الطور و11/22 كيلوواط ثلاثي الطور) للفلل والأبراج السكنية والمكاتب والفنادق؛ والشواحن السريعة المستمرة (CCS2 المعيار الرئيسي؛ وCHAdeMO في بعض الوحدات القديمة؛ وGB/T لبعض السيارات الصينية) بقدرة 30-60 و120-180 و300-400 كيلوواط وأكثر للأساطيل والمحطات العامة؛ وإدارة الأحمال وبرمجيات الخلفية OCPP 1.6/2.0.1؛ والدفع بالبطاقة RFID والتطبيقات؛ وإدارة الكابلات والحماية (RCD نوع A/B وكشف التسرب المستمر) والتأريض. في دبي ترتبط الشواحن ببرنامج الشاحن الأخضر لدى هيئة كهرباء ومياه دبي ويحتاج المركّبون اعتمادها؛ ولأبوظبي إطارها الخاص، وتدير شبكة UAEV الاتحاد للماء والكهرباء ووزارة الطاقة. المواصفات: القدرة (كيلوواط)، والموصل، وعدد المخارج، وتصنيف IP/IK، وOCPP، والقياس (MID)، وخفض القدرة بسبب الحرارة (50 مئوية خارجاً).",
       "sources": [
+        "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger-instructions/ev-green-chargers-faq",
+        "https://gulfbusiness.com/en/2024/uae/uae-energy-ministry-etihad-we-set-up-ev-venture/",
+        "https://www.taqa.com/press-releases/adnoc-distribution-and-taqa-reveal-e2go-to-provide-ev-charging-points-across-uae/",
         "https://www.dewa.gov.ae",
         "https://www.moei.gov.ae",
         "https://www.iec.ch",
@@ -18,15 +21,18 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: DEWA EV Green Charger; UAEV network (Ministry of Energy and Infrastructure); IEC 61851 (IEC); Open Charge Alliance (OCPP). Could not be verified: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA public EV tariff -> confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024 | UAEV is a MOEI and Etihad WE joint venture -> confirmed (launched May 2024) | E2GO is ADNOC Distribution with TAQA -> confirmed. Not checked: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
     },
     {
       "id": "ev_charging:uae-market-brands",
       "topic": "EV charging installation: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Charger brands: ABB E-mobility, Schneider Electric (EVlink), Siemens (Sicharge/VersiCharge), Kempower, Alpitronic, Tritium, Wallbox, Delta, Autel, Star Charge, XCharge, Zaptec, Easee, Tesla (Superchargers and wall connectors). Operators: DEWA EV Green Charger, UAEV (Etihad WE and Ministry of Energy), ADNOC Distribution E2GO (with TAQA), Tesla, and private CPOs. Installers: electrical contractors with utility approval and specialised EV EPCs in Dubai and Abu Dhabi. Origins: Europe, China, Taiwan, Finland.",
-      "body_ar": "علامات الشواحن: ABB E-mobility وSchneider Electric (EVlink) وSiemens وKempower وAlpitronic وTritium وWallbox وDelta وAutel وStar Charge وXCharge وZaptec وEasee وTesla (الشواحن الفائقة والجدارية). المشغلون: الشاحن الأخضر من هيئة كهرباء ومياه دبي، وUAEV (الاتحاد للماء والكهرباء ووزارة الطاقة)، وE2GO من أدنوك للتوزيع (مع طاقة)، وTesla، ومشغلون خاصون. المركّبون: مقاولو كهرباء باعتماد الهيئة ومقاولون متخصصون في دبي وأبوظبي. المنشأ: أوروبا، الصين، تايوان، فنلندا.",
+      "body_en": "Operators and charger brands: DEWA EV Green Charger, UAEV, E2GO, Tesla, ABB E-mobility, Schneider Electric, Siemens, Kempower, Alpitronic, Tritium, Wallbox, Delta, Autel, Star Charge, XCharge, Zaptec, Easee. DEWA runs Dubai's public network. UAEV is the Ministry of Energy and Infrastructure and Etihad WE joint venture, and E2GO belongs to ADNOC Distribution and TAQA. The charger brands' local distributors were not checked. Installers are electrical contractors approved by the utility and specialised EV firms in Dubai and Abu Dhabi.",
+      "body_ar": "المشغلون وعلامات الشواحن: DEWA EV Green Charger، UAEV، E2GO، Tesla، ABB E-mobility، Schneider Electric، Siemens، Kempower، Alpitronic، Tritium، Wallbox، Delta، Autel، Star Charge، XCharge، Zaptec، Easee. وتدير هيئة كهرباء ومياه دبي الشبكة العامة في دبي، وUAEV مشروع مشترك بين وزارة الطاقة والبنية التحتية والاتحاد للماء والكهرباء، وE2GO لأدنوك للتوزيع وTAQA. ولم يُتحقق من الموزعين المحليين لعلامات الشواحن. والمركّبون مقاولو كهرباء معتمدون من الهيئة وشركات متخصصة في دبي وأبوظبي.",
       "sources": [
+        "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger-instructions/ev-green-chargers-faq",
+        "https://gulfbusiness.com/en/2024/uae/uae-energy-ministry-etihad-we-set-up-ev-venture/",
+        "https://www.taqa.com/press-releases/adnoc-distribution-and-taqa-reveal-e2go-to-provide-ev-charging-points-across-uae/",
         "https://www.dewa.gov.ae",
         "https://www.moei.gov.ae",
         "https://www.iec.ch",
@@ -34,15 +40,18 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: DEWA EV Green Charger; UAEV network (Ministry of Energy and Infrastructure); IEC 61851 (IEC); Open Charge Alliance (OCPP). Could not be verified: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA public EV tariff -> confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024 | UAEV is a MOEI and Etihad WE joint venture -> confirmed (launched May 2024) | E2GO is ADNOC Distribution with TAQA -> confirmed. Not checked: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
     },
     {
       "id": "ev_charging:uae-market-sizes",
       "topic": "EV charging installation: typical sizes, units and how it is quoted in the UAE",
       "kind": "uae_market_sizes",
-      "body_en": "AC wallboxes are priced per unit plus installation (cable run per metre, breaker/RCD, trenching or containment), DC chargers per unit plus civil works, transformer or LV upgrade, and utility approval. Buildings often need a load study and a dedicated EV distribution board. Software/back-end per charger per month or year; AMC per charger per year. Warranty 2-3 years (extendable to 5). Public charging tariffs are set by the operator per kWh (DEWA publishes its tariff), which buyers use to model payback.",
-      "body_ar": "تُسعّر الشواحن الجدارية المتناوبة بالوحدة مع التركيب (مسار الكابل بالمتر، والقاطع/RCD، والحفر أو المسارات)، والشواحن المستمرة بالوحدة مع الأعمال المدنية وترقية المحول أو الجهد المنخفض واعتماد الهيئة. وكثيراً ما تحتاج المباني دراسة أحمال ولوحة توزيع مخصصة للشحن. والبرمجيات لكل شاحن شهرياً أو سنوياً؛ والصيانة لكل شاحن سنوياً. والضمان 2-3 سنوات (قابل للتمديد إلى 5). ويحدد المشغل تعرفة الشحن العام بالكيلوواط ساعة (تنشر هيئة كهرباء ومياه دبي تعرفتها)، ويستخدمها المشترون لحساب فترة الاسترداد.",
+      "body_en": "AC wallboxes are priced per unit plus installation (cable run per metre, breaker/RCD, trenching or containment), DC chargers per unit plus civil works, transformer or LV upgrade, and utility approval. Buildings often need a load study and a dedicated EV distribution board. Software/back-end per charger per month or year; AMC per charger per year. Warranty 2-3 years (extendable to 5). Public charging is priced per kWh by the operator: DEWA charges registered users AED 0.70/kWh for AC and AED 1.20/kWh for DC plus VAT (since 30 September 2024), which buyers use to model payback.",
+      "body_ar": "تُسعّر الشواحن الجدارية المتناوبة بالوحدة مع التركيب (مسار الكابل بالمتر، والقاطع/RCD، والحفر أو المسارات)، والشواحن المستمرة بالوحدة مع الأعمال المدنية وترقية المحول أو الجهد المنخفض واعتماد الهيئة. وكثيراً ما تحتاج المباني دراسة أحمال ولوحة توزيع مخصصة للشحن. والبرمجيات لكل شاحن شهرياً أو سنوياً؛ والصيانة لكل شاحن سنوياً. والضمان 2-3 سنوات (قابل للتمديد إلى 5). ويسعّر المشغل الشحن العام بالكيلوواط ساعة: تتقاضى هيئة كهرباء ومياه دبي من المستخدمين المسجلين 0.70 درهم للكيلوواط ساعة للشحن المتناوب و1.20 درهم للمستمر مع ضريبة القيمة المضافة (منذ 30 سبتمبر 2024)، ويستخدمها المشترون لحساب فترة الاسترداد.",
       "sources": [
+        "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger-instructions/ev-green-chargers-faq",
+        "https://gulfbusiness.com/en/2024/uae/uae-energy-ministry-etihad-we-set-up-ev-venture/",
+        "https://www.taqa.com/press-releases/adnoc-distribution-and-taqa-reveal-e2go-to-provide-ev-charging-points-across-uae/",
         "https://www.dewa.gov.ae",
         "https://www.moei.gov.ae",
         "https://www.iec.ch",
@@ -50,7 +59,7 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: DEWA EV Green Charger; UAEV network (Ministry of Energy and Infrastructure); IEC 61851 (IEC); Open Charge Alliance (OCPP). Could not be verified: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: DEWA public EV tariff -> confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024 | UAEV is a MOEI and Etihad WE joint venture -> confirmed (launched May 2024) | E2GO is ADNOC Distribution with TAQA -> confirmed. Not checked: Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified."
     }
   ],
   "eval": [
@@ -65,8 +74,24 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "DEWA public EV tariff",
+        "url": "https://www.dewa.gov.ae/en/consumer/ev-community/ev-green-charger-instructions/ev-green-chargers-faq",
+        "result": "confirmed and made specific: AED 0.70/kWh AC and AED 1.20/kWh DC plus VAT from 30 September 2024"
+      },
+      {
+        "claim": "UAEV is a MOEI and Etihad WE joint venture",
+        "url": "https://gulfbusiness.com/en/2024/uae/uae-energy-ministry-etihad-we-set-up-ev-venture/",
+        "result": "confirmed (launched May 2024)"
+      },
+      {
+        "claim": "E2GO is ADNOC Distribution with TAQA",
+        "url": "https://www.taqa.com/press-releases/adnoc-distribution-and-taqa-reveal-e2go-to-provide-ev-charging-points-across-uae/",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Current DEWA installer approval process, current tariffs and the current operator arrangement of UAEV and E2GO were not verified.",
     "ledger": [
       899,

@@ -8,31 +8,35 @@
       "id": "road_works:uae-market-products",
       "topic": "Roads, asphalt & interlock paving: products, variants and grades sold in the UAE",
       "kind": "uae_market_products",
-      "body_en": "Roads, asphalt and interlock paving in the UAE: flexible pavement layers (subgrade preparation, granular sub-base, aggregate road base, asphalt base course and wearing course), asphalt mixes to authority specifications (Dubai RTA and Abu Dhabi ITC/DMT road standards; Superpave or Marshall designs; polymer-modified bitumen PG 76-10 for heavy traffic in hot climate), concrete pavements, interlock concrete paving blocks (60 mm pedestrian, 80 mm vehicular, 100 mm heavy duty; rectangular, zigzag, cobble), kerbstones and channels, road markings (thermoplastic, reflective), road studs (cat's eyes), traffic signs, crash barriers (W-beam, concrete), speed humps, and street lighting. Private parking lots and plots need authority-approved designs when connected to public roads.",
-      "body_ar": "الطرق والأسفلت ورصف الإنترلوك في الإمارات: طبقات الرصف المرن (تحضير التربة، وطبقة الأساس المساعد الحبيبية، وطبقة الأساس الركامية، وطبقة الأسفلت الرابطة والسطحية)، وخلطات أسفلتية وفق مواصفات الجهات (معايير الطرق لهيئة الطرق والمواصلات في دبي والجهات المختصة في أبوظبي؛ تصاميم Superpave أو مارشال؛ بيتومين معدل بالبوليمر PG 76-10 لحركة المرور الثقيلة في المناخ الحار)، والرصف الخرساني، وبلوكات الإنترلوك الخرسانية (60 مم للمشاة، و80 مم للمركبات، و100 مم للأحمال الثقيلة؛ مستطيلة، ومتعرجة، وحجرية)، والبردورات والقنوات، والتخطيط الأرضي (ثيرموبلاستيك عاكس)، وعيون القطط، واللوحات المرورية، والحواجز (W-beam والخرسانية)، ومطبات السرعة، وإنارة الشوارع. وتحتاج المواقف الخاصة والقطع تصاميم معتمدة عند اتصالها بالطرق العامة.",
+      "body_en": "Roads, asphalt and interlock paving in the UAE: flexible pavement layers (subgrade preparation, granular sub-base, aggregate road base, asphalt base course and wearing course), asphalt mixes to authority specifications (Dubai RTA and Abu Dhabi ITC/DMT road standards, whose current binder grades were not checked; Superpave or Marshall designs; polymer-modified binders such as PG 76-10 are supplied in the region for hot-climate heavy traffic), concrete pavements, interlock concrete paving blocks (60 mm pedestrian, 80 mm vehicular, 100 mm heavy duty; rectangular, zigzag, cobble), kerbstones and channels, road markings (thermoplastic, reflective), road studs (cat's eyes), traffic signs, crash barriers (W-beam, concrete), speed humps, and street lighting. Private parking lots and plots need authority-approved designs when connected to public roads.",
+      "body_ar": "الطرق والأسفلت ورصف الإنترلوك في الإمارات: طبقات الرصف المرن (تحضير التربة، وطبقة الأساس المساعد الحبيبية، وطبقة الأساس الركامية، وطبقة الأسفلت الرابطة والسطحية)، وخلطات أسفلتية وفق مواصفات الجهات (معايير الطرق لهيئة الطرق والمواصلات في دبي والجهات المختصة في أبوظبي؛ تصاميم Superpave أو مارشال؛ وتتوفر في المنطقة روابط معدلة بالبوليمر مثل PG 76-10 لحركة المرور الثقيلة في المناخ الحار، ولم يُتحقق من الدرجة المحددة حالياً لدى الجهات)، والرصف الخرساني، وبلوكات الإنترلوك الخرسانية (60 مم للمشاة، و80 مم للمركبات، و100 مم للأحمال الثقيلة؛ مستطيلة، ومتعرجة، وحجرية)، والبردورات والقنوات، والتخطيط الأرضي (ثيرموبلاستيك عاكس)، وعيون القطط، واللوحات المرورية، والحواجز (W-beam والخرسانية)، ومطبات السرعة، وإنارة الشوارع. وتحتاج المواقف الخاصة والقطع تصاميم معتمدة عند اتصالها بالطرق العامة.",
       "sources": [
+        "https://dubaibitumen.com/products/performance-grade-bitumen/bitumen-pg-76-10",
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.rta.ae",
         "https://www.dmt.gov.ae",
         "https://www.adnoc.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Roads and Transport Authority Dubai; Abu Dhabi Department of Municipalities and Transport; ADNOC (bitumen). Could not be verified: The exact current binder grade specified by each authority and the status of named contractors were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PG 76-10 polymer-modified binder is used in the region -> confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so | named road contractors -> confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic. Not checked: The exact current binder grade specified by each authority and the status of named contractors were not verified."
     },
     {
       "id": "road_works:uae-market-brands",
       "topic": "Roads, asphalt & interlock paving: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Road contractors range from large authority-registered firms (e.g. Al Naboodah, Dutco Balfour Beatty-era entities, Arabian Construction, Al Habtoor, Al Jaber, Trojan) to paving subcontractors. Asphalt plants are run by major contractors and suppliers in Jebel Ali, Sharjah, Al Ain and Musaffah; bitumen from ADNOC, Emirates National Oil Company-linked suppliers and imports. Interlock and kerbs from local precast factories (e.g. Emirates Precast-type, Al Rawabi-type block plants). Road safety products: 3M reflective sheeting, Swarco, local steel barrier fabricators. Origins: UAE aggregates (Fujairah, RAK), bitumen from UAE refineries and imports.",
-      "body_ar": "يتراوح مقاولو الطرق من شركات كبيرة مسجلة لدى الجهات (مثل النابودة والشركة العربية للإنشاءات والحبتور والجابر وتروجان) إلى مقاولي رصف من الباطن. وتدير مصانع الأسفلت شركات مقاولات وموردون رئيسيون في جبل علي والشارقة والعين ومصفح؛ والبيتومين من أدنوك وموردين آخرين ومن الاستيراد. والإنترلوك والبردورات من مصانع مسبقة الصب محلية. ومنتجات السلامة المرورية: أغطية 3M العاكسة وSwarco ومصنّعو حواجز حديدية محليون. المنشأ: ركام إماراتي (الفجيرة ورأس الخيمة)، وبيتومين من المصافي المحلية والاستيراد.",
+      "body_en": "Road work is done by authority-registered contractors, such as the first three here: Al Naboodah Construction Group, Dutco, Trojan Construction Group, ADNOC, 3M, Swarco. ADNOC supplies bitumen, and 3M and Swarco are road-safety product brands. Major contractors and suppliers run asphalt plants in Jebel Ali, Sharjah, Al Ain and Musaffah. Interlock and kerbs come from local precast factories. Aggregates come from Fujairah and RAK.",
+      "body_ar": "ينفذ أعمال الطرق مقاولون مسجلون لدى الجهات، ومنهم الثلاثة الأوائل هنا: Al Naboodah Construction Group، Dutco، Trojan Construction Group، ADNOC، 3M، Swarco؛ وتورد ADNOC البيتومين، و3M وSwarco علامات منتجات السلامة المرورية. وتدير شركات مقاولات وموردون كبار مصانع أسفلت في جبل علي والشارقة والعين ومصفح. ويأتي الإنترلوك والبردورات من مصانع مسبقة الصب محلية، والركام من الفجيرة ورأس الخيمة.",
       "sources": [
+        "https://dubaibitumen.com/products/performance-grade-bitumen/bitumen-pg-76-10",
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.rta.ae",
         "https://www.dmt.gov.ae",
         "https://www.adnoc.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Roads and Transport Authority Dubai; Abu Dhabi Department of Municipalities and Transport; ADNOC (bitumen). Could not be verified: The exact current binder grade specified by each authority and the status of named contractors were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PG 76-10 polymer-modified binder is used in the region -> confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so | named road contractors -> confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic. Not checked: The exact current binder grade specified by each authority and the status of named contractors were not verified."
     },
     {
       "id": "road_works:uae-market-sizes",
@@ -41,13 +45,15 @@
       "body_en": "Interlock is priced per m2 by thickness and colour, kerbs per linear metre (common kerb 150 x 300 x 1000 mm); asphalt per m2 by layer thickness (e.g. 50 mm wearing, 60-80 mm base) or per tonne laid; road base and sub-base per m3 compacted (or per m2 at thickness); markings per linear metre or m2; signs per number. Quotes should include compaction and material testing, traffic management and diversion permits, and NOCs. Warranty and defects liability usually 12 months.",
       "body_ar": "يُسعّر الإنترلوك بالمتر المربع حسب السماكة واللون، والبردورات بالمتر الطولي (البردورة الشائعة 150 × 300 × 1000 مم)؛ والأسفلت بالمتر المربع حسب سماكة الطبقة (مثل 50 مم سطحية و60-80 مم أساس) أو بالطن المفروش؛ وطبقات الأساس والأساس المساعد بالمتر المكعب المدموك (أو بالمتر المربع بسماكة محددة)؛ والتخطيط بالمتر الطولي أو المربع؛ واللوحات بالعدد. ويجب أن يتضمن العرض اختبارات الدمك والمواد، وإدارة المرور وتصاريح التحويلات، وشهادات عدم الممانعة. والضمان ومسؤولية العيوب عادة 12 شهراً.",
       "sources": [
+        "https://dubaibitumen.com/products/performance-grade-bitumen/bitumen-pg-76-10",
+        "https://www.rib-software.com/en/blogs/construction-companies-uae",
         "https://www.rta.ae",
         "https://www.dmt.gov.ae",
         "https://www.adnoc.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Roads and Transport Authority Dubai; Abu Dhabi Department of Municipalities and Transport; ADNOC (bitumen). Could not be verified: The exact current binder grade specified by each authority and the status of named contractors were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: PG 76-10 polymer-modified binder is used in the region -> confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so | named road contractors -> confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic. Not checked: The exact current binder grade specified by each authority and the status of named contractors were not verified."
     }
   ],
   "eval": [
@@ -62,8 +68,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "PG 76-10 polymer-modified binder is used in the region",
+        "url": "https://dubaibitumen.com/products/performance-grade-bitumen/bitumen-pg-76-10",
+        "result": "confirmed as supplied in the region; RTA's current specified grade not confirmed, so the text now says so"
+      },
+      {
+        "claim": "named road contractors",
+        "url": "https://www.rib-software.com/en/blogs/construction-companies-uae",
+        "result": "confirmed Al Naboodah, Dutco, Trojan; Arabian Construction, Al Habtoor, Al Jaber and unnamed precast plants removed or kept generic"
+      }
+    ],
     "unverified": "The exact current binder grade specified by each authority and the status of named contractors were not verified.",
     "ledger": [
       899,

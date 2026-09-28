@@ -17,14 +17,14 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Borouge; SABIC; ISO 1133 melt flow rate (ISO). Could not be verified: Current Borouge grades and local masterbatch plants were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
     },
     {
       "id": "polymers_resins:uae-market-brands",
       "topic": "Plastics & polymer raw materials: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Producers and suppliers: Borouge (ADNOC/Borealis, Ruwais), SABIC, Sipchem, Tasnee, Petro Rabigh, OQ (Oman), Qatar's QAPCO/Q-Chem, EQUATE (Kuwait), plus imports from Asia and Europe; distributors and traders in Jebel Ali, Sharjah (Hamriyah) and DMCC; masterbatch makers locally (e.g. Ampacet regional plant, Clariant/Avient, local compounders in Sharjah and RAK). Origins: UAE, GCC, Asia, Europe.",
-      "body_ar": "المنتجون والموردون: بروج (أدنوك/بورياليس، الرويس)، وسابك، وسبكيم، والتصنيع، وبترورابغ، وأوكيو (عُمان)، وقابكو/كيوكيم (قطر)، وإيكويت (الكويت)، إضافة إلى واردات من آسيا وأوروبا؛ والموزعون والتجار في جبل علي والشارقة (الحمرية) ومركز دبي للسلع المتعددة؛ ومصنّعو الماستر باتش محلياً (مثل مصنع Ampacet الإقليمي وClariant/Avient ومركّبون محليون في الشارقة ورأس الخيمة). المنشأ: الإمارات، الخليج، آسيا، أوروبا.",
+      "body_en": "Producers and masterbatch brands: Borouge, SABIC, Sipchem, Tasnee, Petro Rabigh, OQ, QAPCO, Q-Chem, EQUATE, Ampacet, Avient, Clariant. Borouge produces polyolefins at Ruwais, and the other producers are GCC petrochemical companies. Distributors and traders are in Jebel Ali, Sharjah (Hamriyah) and DMCC. Local compounders were not checked by name.",
+      "body_ar": "المنتجون وعلامات الماستر باتش: Borouge، SABIC، Sipchem، Tasnee، Petro Rabigh، OQ، QAPCO، Q-Chem، EQUATE، Ampacet، Avient، Clariant. وتنتج Borouge البولي أوليفينات في الرويس، والبقية منتجون بتروكيماويون خليجيون. والموزعون والتجار في جبل علي والشارقة (الحمرية) ومركز دبي للسلع المتعددة، ولم يُتحقق من المركّبين المحليين بالاسم.",
       "sources": [
         "https://www.borouge.com",
         "https://www.sabic.com",
@@ -32,7 +32,7 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Borouge; SABIC; ISO 1133 melt flow rate (ISO). Could not be verified: Current Borouge grades and local masterbatch plants were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
     },
     {
       "id": "polymers_resins:uae-market-sizes",
@@ -47,7 +47,7 @@
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: Borouge; SABIC; ISO 1133 melt flow rate (ISO). Could not be verified: Current Borouge grades and local masterbatch plants were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
     }
   ],
   "eval": [
@@ -62,8 +62,14 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Borouge polyolefins, Ruwais",
+        "url": "https://www.borouge.com",
+        "result": "confirmed"
+      }
+    ],
     "unverified": "Current Borouge grades and local masterbatch plants were not verified.",
     "ledger": [
       899,

@@ -11,28 +11,32 @@
       "body_en": "Recycling and scrap buying in the UAE: ferrous scrap (HMS 1&2 heavy melting steel, shredded scrap, rebar cut-offs, cast iron), non-ferrous scrap (copper grades such as Millberry/bare bright, #2 copper, brass honey, aluminium grades such as UBC cans, extrusion 6063, cast, taint/tabor; stainless 304/316 solids and turnings; lead, zinc), cables (insulated copper and aluminium wire), e-waste (IT equipment, PCBs, data destruction with certificates), paper and cardboard (OCC, mixed paper, ONP), plastics (PET bottles, HDPE, LDPE film, PP), tyres, used cooking oil (for biodiesel), glass, and construction and demolition waste. Traders must hold a scrap trading licence and, for export, customs and environment permits; ISRI-style grade names are used in trade. Buyers selling scrap specify grade, quantity, location and whether loading and cutting are included.",
       "body_ar": "إعادة التدوير وشراء الخردة في الإمارات: الخردة الحديدية (HMS 1&2 الحديد الثقيل للصهر، والخردة المفرومة، وقصاصات حديد التسليح، والحديد الزهر)، والخردة غير الحديدية (درجات النحاس مثل Millberry/اللامع، والنحاس رقم 2، والنحاس الأصفر Honey، ودرجات الألمنيوم مثل علب UBC، وقطاعات 6063، والمصبوب، وTaint/Tabor؛ والفولاذ المقاوم للصدأ 304/316 قطعاً وبرادة؛ والرصاص والزنك)، والكابلات (أسلاك نحاس وألمنيوم معزولة)، والنفايات الإلكترونية (معدات تقنية المعلومات، واللوحات الإلكترونية، وإتلاف البيانات مع شهادات)، والورق والكرتون (OCC، والورق المختلط، والجرائد)، والبلاستيك (زجاجات PET وHDPE وأفلام LDPE وPP)، والإطارات، وزيت الطهي المستعمل (للديزل الحيوي)، والزجاج، ومخلفات البناء والهدم. ويجب أن يحمل التجار رخصة تجارة خردة، وللتصدير تصاريح الجمارك والبيئة؛ وتُستخدم أسماء الدرجات على طريقة ISRI في التجارة. ويحدد بائع الخردة الدرجة والكمية والموقع وما إذا كان التحميل والقص مشمولين.",
       "sources": [
+        "https://www.alsalehrecycling.com/metal-products.html",
+        "https://neutralfuels.com/",
         "https://www.lme.com",
         "https://www.beeah.ae",
         "https://www.moccae.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: London Metal Exchange; Bee'ah; Ministry of Climate Change and Environment. Could not be verified: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: scrap metal recyclers in Sharjah -> confirmed Al Saleh Recycling and Al Sifah Metal Scrap (Sharjah) | e-waste and used cooking oil recyclers -> confirmed Enviroserve (e-waste) and Neutral Fuels (used cooking oil); Union Paper Mills and 'Emirates Recycling' removed. Not checked: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
     },
     {
       "id": "recycling_scrap:uae-market-brands",
       "topic": "Recycling & scrap buying: makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Market players: large scrap processors and exporters in Sharjah (Al Sajaa, Industrial Area 12-13), Ajman, Dubai (Ras Al Khor, Al Qusais), Jebel Ali and Abu Dhabi (Musaffah); e-waste processors such as Enviroserve (Dubai); paper recyclers (e.g. Al Ghurair-linked or Union Paper Mills-type mills, Emirates Recycling); plastic recyclers; Bee'ah (Sharjah material recovery), Tadweer-contracted operators; used cooking oil collectors (e.g. Neutral Fuels). Ferrous scrap feeds Emirates Steel's melt shop and exports to India, Pakistan, Bangladesh, Turkey; non-ferrous goes to India, China and Asia. Pricing references: LME for non-ferrous, regional HMS 80:20 prices for ferrous.",
-      "body_ar": "اللاعبون في السوق: معالجو ومصدرو خردة كبار في الشارقة (الصجعة والمنطقة الصناعية 12-13) وعجمان ودبي (رأس الخور والقصيص) وجبل علي وأبوظبي (مصفح)؛ ومعالجو النفايات الإلكترونية مثل Enviroserve (دبي)؛ ومصانع إعادة تدوير الورق؛ ومعيدو تدوير البلاستيك؛ وبيئة (استرداد المواد في الشارقة)، والمشغلون المتعاقدون مع تدوير؛ وجامعو زيت الطهي المستعمل (مثل Neutral Fuels). وتغذي الخردة الحديدية مصهر الإمارات للصلب وتُصدّر إلى الهند وباكستان وبنغلاديش وتركيا؛ وتذهب غير الحديدية إلى الهند والصين وآسيا. مراجع التسعير: بورصة لندن للمعادن لغير الحديدية، وأسعار HMS 80:20 الإقليمية للحديدية.",
+      "body_en": "Named players: Al Saleh Recycling, Al Sifah Metal Scrap, Enviroserve, Neutral Fuels, Bee'ah, Tadweer. There are many more scrap processors and exporters in Sharjah (Al Sajaa, Industrial Areas), Ajman, Dubai (Ras Al Khor, Al Qusais), Jebel Ali and Musaffah. Non-ferrous scrap is priced against the LME, and exports go mainly to India, Pakistan, Bangladesh, Turkey, China and the rest of Asia.",
+      "body_ar": "أسماء مؤكدة: Al Saleh Recycling، Al Sifah Metal Scrap، Enviroserve، Neutral Fuels، Bee'ah، Tadweer. ويوجد معالجو ومصدرو خردة آخرون كثيرون في الشارقة (الصجعة والمناطق الصناعية) وعجمان ودبي (رأس الخور والقصيص) وجبل علي ومصفح. وتُسعّر الخردة غير الحديدية وفق بورصة لندن للمعادن، وتذهب الصادرات أساساً إلى الهند وباكستان وبنغلاديش وتركيا والصين وآسيا.",
       "sources": [
+        "https://www.alsalehrecycling.com/metal-products.html",
+        "https://neutralfuels.com/",
         "https://www.lme.com",
         "https://www.beeah.ae",
         "https://www.moccae.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: London Metal Exchange; Bee'ah; Ministry of Climate Change and Environment. Could not be verified: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: scrap metal recyclers in Sharjah -> confirmed Al Saleh Recycling and Al Sifah Metal Scrap (Sharjah) | e-waste and used cooking oil recyclers -> confirmed Enviroserve (e-waste) and Neutral Fuels (used cooking oil); Union Paper Mills and 'Emirates Recycling' removed. Not checked: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
     },
     {
       "id": "recycling_scrap:uae-market-sizes",
@@ -41,13 +45,15 @@
       "body_en": "Scrap is bought per kg (non-ferrous) or per tonne (ferrous, paper, plastic), with price linked to LME (e.g. a percentage of LME copper for copper grades) or to regional indices, on a weighbridge ticket. Terms state collection by buyer or delivery to yard, cutting/dismantling charges, bins/skips provided, payment on collection (cash/cheque/transfer), and certificates of recycling or data destruction for corporate sellers. Export trade is by container (20 ft, about 20-25 t) FOB Jebel Ali/Sharjah.",
       "body_ar": "تُشترى الخردة بالكيلوغرام (غير الحديدية) أو بالطن (الحديدية والورق والبلاستيك)، مع ربط السعر ببورصة لندن للمعادن (مثل نسبة من سعر النحاس لدرجات النحاس) أو بمؤشرات إقليمية، بموجب تذكرة ميزان. وتذكر الشروط الجمع من قبل المشتري أو التسليم إلى الساحة، ورسوم القص/التفكيك، والحاويات المقدمة، والدفع عند الاستلام (نقداً/شيك/تحويل)، وشهادات إعادة التدوير أو إتلاف البيانات للبائعين من الشركات. وتجارة التصدير بالحاوية (20 قدماً، نحو 20-25 طناً) FOB جبل علي/الشارقة.",
       "sources": [
+        "https://www.alsalehrecycling.com/metal-products.html",
+        "https://neutralfuels.com/",
         "https://www.lme.com",
         "https://www.beeah.ae",
         "https://www.moccae.gov.ae"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: London Metal Exchange; Bee'ah; Ministry of Climate Change and Environment. Could not be verified: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: scrap metal recyclers in Sharjah -> confirmed Al Saleh Recycling and Al Sifah Metal Scrap (Sharjah) | e-waste and used cooking oil recyclers -> confirmed Enviroserve (e-waste) and Neutral Fuels (used cooking oil); Union Paper Mills and 'Emirates Recycling' removed. Not checked: Named recyclers' current licences and the current export permit requirements for scrap were not verified."
     }
   ],
   "eval": [
@@ -62,8 +68,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "scrap metal recyclers in Sharjah",
+        "url": "https://www.alsalehrecycling.com/metal-products.html",
+        "result": "confirmed Al Saleh Recycling and Al Sifah Metal Scrap (Sharjah)"
+      },
+      {
+        "claim": "e-waste and used cooking oil recyclers",
+        "url": "https://neutralfuels.com/",
+        "result": "confirmed Enviroserve (e-waste) and Neutral Fuels (used cooking oil); Union Paper Mills and 'Emirates Recycling' removed"
+      }
+    ],
     "unverified": "Named recyclers' current licences and the current export permit requirements for scrap were not verified.",
     "ledger": [
       899,

@@ -11,28 +11,32 @@
       "body_en": "Pallets in the UAE: wooden pallets (new and used; Euro pallet 1200 x 800 mm EPAL, standard 1200 x 1000 mm, 1100 x 1100 mm, custom), heat-treated pallets stamped ISPM 15 (HT, with the IPPC mark) mandatory for export wood packaging, plastic pallets (HDPE/PP; nestable, rackable, stackable, hygienic for pharma), presswood/moulded wood pallets (exempt from ISPM 15), paper/cardboard pallets for air freight, and pallet collars and boxes. Rackable load ratings (dynamic, static, racking) matter for warehouses. Buyers specify size, entry (2-way or 4-way), static/dynamic/racking load (kg), wood species and moisture, HT certification, and quantity.",
       "body_ar": "المنصات (الطبليات) في الإمارات: المنصات الخشبية (جديدة ومستعملة؛ المنصة الأوروبية 1200 × 800 مم EPAL، والقياسية 1200 × 1000 مم، و1100 × 1100 مم، وحسب الطلب)، والمنصات المعالجة حرارياً والمختومة وفق ISPM 15 (HT مع علامة IPPC) الإلزامية لمواد التغليف الخشبية المصدرة، والمنصات البلاستيكية (HDPE/PP؛ قابلة للتداخل وللرفوف والتكديس، والصحية للأدوية)، والمنصات الخشبية المضغوطة (معفاة من ISPM 15)، والمنصات الورقية والكرتونية للشحن الجوي، وإطارات وصناديق المنصات. وتهم أحمال الرفوف (الديناميكي والثابت والرفوف) للمستودعات. يحدد المشتري المقاس والمداخل (اتجاهين أو أربعة) والأحمال بالكيلوغرام ونوع الخشب ورطوبته وشهادة المعالجة الحرارية والكمية.",
       "sources": [
+        "https://en.wikipedia.org/wiki/ISPM_15",
+        "https://www.chep.com/ae/en",
         "https://www.ippc.int",
         "https://www.moccae.gov.ae",
         "https://www.epal-pallets.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC/FAO); Ministry of Climate Change and Environment; EPAL. Could not be verified: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging -> confirmed (secondary) | CHEP operates in the UAE -> confirmed (UAE site). Not checked: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
     },
     {
       "id": "pallets_wood_plastic:uae-market-brands",
       "topic": "Pallets (wood & plastic): makes, brands, distributors and origins in the UAE",
       "kind": "uae_market_brands",
-      "body_en": "Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah; used pallet traders recycle and repair. Plastic pallets: Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme and Nilkamal (India), Emirates-made pallets (e.g. Cosmoplast-type injection moulders). Pallet pooling: CHEP operates in the UAE. HT treatment by MOCCAE-registered treatment providers. Timber from Europe, Russia, and pine from New Zealand and Chile.",
-      "body_ar": "تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح؛ ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. المنصات البلاستيكية: Schoeller Allibert وCraemer وCabka وRehrig وSupreme وNilkamal (الهند) ومنصات مصنوعة في الإمارات. وتعمل CHEP لتجميع المنصات في الإمارات. والمعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا، والصنوبر من نيوزيلندا وتشيلي.",
+      "body_en": "Wooden pallets are made by many local factories in Sharjah (Al Sajaa, Industrial Area), Ajman, Umm Al Quwain, Jebel Ali and Musaffah, not checked by name; used-pallet traders recycle and repair. Pooling and plastic pallet brands: CHEP, Schoeller Allibert, Craemer, Cabka, Rehrig, Supreme, Nilkamal. Heat treatment is done by treatment providers registered with MOCCAE. Timber comes from Europe, Russia, New Zealand and Chile.",
+      "body_ar": "تصنع المنصات الخشبية مصانع محلية كثيرة في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين وجبل علي ومصفح، ولم يُتحقق منها بالاسم، ويعيد تجار المنصات المستعملة تدويرها وإصلاحها. علامات التجميع والمنصات البلاستيكية: CHEP، Schoeller Allibert، Craemer، Cabka، Rehrig، Supreme، Nilkamal. وتتم المعالجة الحرارية لدى مقدمي معالجة مسجلين لدى وزارة التغير المناخي والبيئة. والخشب من أوروبا وروسيا ونيوزيلندا وتشيلي.",
       "sources": [
+        "https://en.wikipedia.org/wiki/ISPM_15",
+        "https://www.chep.com/ae/en",
         "https://www.ippc.int",
         "https://www.moccae.gov.ae",
         "https://www.epal-pallets.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC/FAO); Ministry of Climate Change and Environment; EPAL. Could not be verified: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging -> confirmed (secondary) | CHEP operates in the UAE -> confirmed (UAE site). Not checked: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
     },
     {
       "id": "pallets_wood_plastic:uae-market-sizes",
@@ -41,13 +45,15 @@
       "body_en": "Priced per pallet by size and load class, with volume breaks; used pallets graded A/B; plastic pallets per piece (much higher unit cost, long life); pooling per pallet per trip/day. Delivery per truck (about 400-600 wooden pallets per truckload depending on size). ISPM 15 certificate or stamp stated in quotes.",
       "body_ar": "تُسعّر بالمنصة حسب المقاس وفئة الحمل، مع شرائح للكميات؛ والمستعملة مصنفة A/B؛ والبلاستيكية بالقطعة (تكلفة وحدة أعلى بكثير وعمر طويل)؛ والتجميع بالمنصة لكل رحلة/يوم. والتوصيل بالشاحنة (نحو 400-600 منصة خشبية للحمولة حسب المقاس). وتُذكر شهادة أو ختم ISPM 15 في العروض.",
       "sources": [
+        "https://en.wikipedia.org/wiki/ISPM_15",
+        "https://www.chep.com/ae/en",
         "https://www.ippc.int",
         "https://www.moccae.gov.ae",
         "https://www.epal-pallets.org"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
-      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC/FAO); Ministry of Climate Change and Environment; EPAL. Could not be verified: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
+      "source_note": "Checked on 2026-09-28 against pages opened then: ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging -> confirmed (secondary) | CHEP operates in the UAE -> confirmed (UAE site). Not checked: The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified."
     }
   ],
   "eval": [
@@ -62,8 +68,19 @@
   "verified": {
     "by": "sales_engineer",
     "on": "2026-09-28",
-    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
-    "fetched_live": 0,
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "ISPM 15 requires debarked, heat-treated or fumigated and marked wood packaging",
+        "url": "https://en.wikipedia.org/wiki/ISPM_15",
+        "result": "confirmed (secondary)"
+      },
+      {
+        "claim": "CHEP operates in the UAE",
+        "url": "https://www.chep.com/ae/en",
+        "result": "confirmed (UAE site)"
+      }
+    ],
     "unverified": "The current MOCCAE register of treatment providers and CHEP's UAE coverage were not verified.",
     "ledger": [
       899,
