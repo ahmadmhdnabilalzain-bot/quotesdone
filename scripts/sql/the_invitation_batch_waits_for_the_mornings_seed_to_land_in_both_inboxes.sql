@@ -779,3 +779,21 @@ begin
 end;
 $fn$;
 revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;
+
+-- Verdict (release operator, 28 Sep 2026): every routine this file defines exists, none is callable by
+-- anon or authenticated, and the new table is RLS-on with a policy. Reads only; writes nothing.
+with r as (
+  select p.oid, p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname in ('enqueue_supplier_invites', 'fn_invite_campaign_pause',
+     'fn_invite_placement_cutoff', 'fn_invite_placement_day_closed', 'fn_invite_placement_deadline',
+     'fn_invite_placement_due', 'fn_invite_placement_finding', 'fn_invite_placement_gate',
+     'fn_invite_placement_record', 'fn_invite_placement_sender', 'fn_invite_placement_settle',
+     'fn_invite_same_day_brake', 'fn_sales_engineer_supplier_outreach_tick'))
+select case when (select count(distinct proname) from r) = 13
+             and not exists (select 1 from r where has_function_privilege('anon', oid, 'execute')
+                                                or has_function_privilege('authenticated', oid, 'execute'))
+             and (select relrowsecurity from pg_class where oid = 'public.invite_placement_check'::regclass)
+             and exists (select 1 from pg_policy where polrelid = 'public.invite_placement_check'::regclass)
+            then 'PROBE OK :: 13 routines present and closed; invite_placement_check is RLS-on with a policy'
+            else 'PROBE FAILED :: routines ' || (select count(distinct proname) from r) || '/13, or one is open, or the table lacks RLS/policy'
+       end as verdict;
