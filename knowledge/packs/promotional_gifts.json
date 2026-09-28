@@ -1,0 +1,77 @@
+{
+  "trade": "promotional_gifts",
+  "entries": [
+    {
+      "id": "promotional_gifts:spec-checklist",
+      "topic": "Promotional gifts - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For promotional gifts quotes to be compared like-for-like, every quoted line (goods) must state: (1) item description and model; (2) material and colour; (3) size or capacity; (4) branding method (print, engrave, emboss) and number of colours; (5) logo position and size; (6) quantity per item; (7) individual packaging; (8) sample or proof approval; (9) conformity for electronics (power banks, chargers); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the promotional_gifts trade.",
+      "body_ar": "لكي تُقارن عروض الهدايا الترويجية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) وصف الصنف وطرازه؛ (2) المادة واللون؛ (3) المقاس أو السعة؛ (4) طريقة وضع الشعار (طباعة، أو حفر، أو نقش بارز) وعدد الألوان؛ (5) موقع الشعار وحجمه؛ (6) الكمية لكل صنف؛ (7) التغليف الفردي؛ (8) اعتماد العينة أو البروفة؛ (9) المطابقة للأجهزة الإلكترونية (بطاريات متنقلة وشواحن)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة promotional_gifts فقط.",
+      "required_specs": [
+        "item description and model",
+        "material and colour",
+        "size or capacity",
+        "branding method (print, engrave, emboss) and number of colours",
+        "logo position and size",
+        "quantity per item",
+        "individual packaging",
+        "sample or proof approval",
+        "conformity for electronics (power banks, chargers)",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "promotional_gifts:uae-standards-and-approvals",
+      "topic": "Promotional gifts - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. Electronic gift items such as chargers and power banks fall within regulated electrical products. What the cited sources do not establish: The sources read do not list which gift items need certification; the buyer must ask for the conformity certificate for any electrical item.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. وتندرج الهدايا الإلكترونية مثل الشواحن والبطاريات المتنقلة ضمن المنتجات الكهربائية الخاضعة للتنظيم. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد أصناف الهدايا التي تحتاج إلى شهادة؛ على المشتري أن يطلب شهادة المطابقة لأي صنف كهربائي.",
+      "source_note": "The sources read do not list which gift items need certification; the buyer must ask for the conformity certificate for any electrical item.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for promotional gifts?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالهدايا الترويجية؟",
+      "expected_entry_ids": [
+        "promotional_gifts:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to promotional gifts?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الهدايا الترويجية؟",
+      "expected_entry_ids": [
+        "promotional_gifts:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "promotional_gifts:spec-checklist",
+      "promotional_gifts:uae-standards-and-approvals"
+    ],
+    "added": [
+      "promotional_gifts:spec-checklist",
+      "promotional_gifts:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

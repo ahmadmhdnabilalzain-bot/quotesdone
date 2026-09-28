@@ -65,14 +65,32 @@ export function inCampaignHours(now = new Date(), window = process.env.RELEASE_C
 export const offHoursOnly = (sqlText = '') => /apply-window:\s*off-hours/i.test(sqlText);
 export const isProbeNote = (note = '') => /^\s*A PROBE\b/.test(note);
 
-// entries: [{ sql: 'scripts/sql/x.sql', note }]. A note that names another entry's file runs after
-// it; otherwise name order. A cycle falls back to name order for what is left.
+// entries: [{ sql: 'scripts/sql/x.sql', note }].
+// 1. A note may carry a line `apply-order: N`. When any note does, entries sort by N (none = last),
+//    then by name.
+// 2. Otherwise a note that names another entry's file runs after it - unless it says it runs BEFORE
+//    that file ("applied BEFORE b.sql"), the reverse relation (#1070's marketing note). Name order
+//    breaks ties; a cycle falls back to name order for what is left.
+export const noteOrder = (note = '') => {
+  const m = note.match(/^\s*apply-order:\s*(\d+)/im);
+  return m ? Number(m[1]) : null;
+};
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const saysBefore = (note, file) => new RegExp(`\\bbefore\\s+\\W?(?:scripts/sql/)?${escRe(file)}`, 'i').test(note);
+
 export function applyOrder(entries) {
-  const left = [...entries].sort((a, b) => a.sql.localeCompare(b.sql));
+  const byName = [...entries].sort((a, b) => a.sql.localeCompare(b.sql));
+  if (byName.some((e) => noteOrder(e.note) !== null)) {
+    const n = (e) => noteOrder(e.note) ?? Infinity;
+    return byName.sort((a, b) => n(a) - n(b));
+  }
   const base = (p) => p.split('/').pop();
-  const out = [];
+  // e must wait for o
+  const needs = (e, o) => (e.note.includes(base(o.sql)) && !saysBefore(e.note, base(o.sql)))
+    || saysBefore(o.note, base(e.sql));
+  const left = byName, out = [];
   while (left.length) {
-    const i = left.findIndex((e) => !left.some((o) => o !== e && e.note.includes(base(o.sql))));
+    const i = left.findIndex((e) => !left.some((o) => o !== e && needs(e, o)));
     out.push(...left.splice(i < 0 ? 0 : i, 1));
   }
   return out;
@@ -128,20 +146,15 @@ function openFinding(pr, file, output) {
   log(r.code === 0 ? `finding opened for ${file}` : `COULD NOT OPEN FINDING: ${r.out}`);
 }
 
-function drift(DRY, campaign) {
-  const check = () => node(['scripts/checks/canonical_routine_manifest.mjs', '--all']);
-  const first = check();
-  const files = driftFiles(first.out);
+// DRIFT IS REPORTED, NEVER REPAIRED (29 Sep 2026, ruling of the release coordinator). A repair applied
+// the canonical file of a main that was already stale while an operator was between merge and apply,
+// reverting fn_ceo_root_cause_applies and resurrecting superseded bodies. Drift now opens an
+// it_engineer finding and the train releases nothing on that tick; a person repairs it in MANIFEST order.
+function drift(DRY) {
+  const files = driftFiles(node(['scripts/checks/canonical_routine_manifest.mjs', '--all']).out);
   log(`drift: ${files.length} canonical file(s) not deployed${files.length ? ': ' + files.join(', ') : ''}`);
-  let applied = 0;
-  for (const f of files) {
-    if (!existsSync(f)) { log(`  ${f}: not on disk, skipped`); continue; }
-    if (campaign && offHoursOnly(readFileSync(f, 'utf8'))) { log(`  ${f}: off-hours file, campaign hours, skipped`); continue; }
-    if (DRY) { log(`  DRY RUN would apply ${f}`); continue; }
-    const r = node(['scripts/apply_sql.mjs', f, '--apply', '--ddl']);
-    log(`  apply ${f} -> exit ${r.code}`); if (r.code) log(r.out.slice(-2000)); else applied++;
-  }
-  if (applied) log(`drift re-check: ${driftFiles(check().out).length} file(s) still not deployed`);
+  if (files.length && !DRY) openFinding({ number: 0 }, 'drift', `canonical files not deployed on main: ${files.join(', ')}`);
+  return files;
 }
 
 export function prSql(pr, oid) {
@@ -159,7 +172,7 @@ export async function main(argv = process.argv.slice(2)) {
   const campaign = inCampaignHours();
   log(`release train ${DRY ? '(DRY RUN) ' : ''}- campaign hours: ${campaign}`);
 
-  drift(DRY, campaign);
+  if (drift(DRY).length) { log('drift on main: releasing nothing this tick'); return 1; }
 
   const fields = 'number,title,author,labels,createdAt,body,mergeable,statusCheckRollup,files,isDraft,baseRefName,headRefOid';
   let prs = JSON.parse(gh(['pr', 'list', '--state', 'open', '--base', 'main', '--limit', '200', '--json', fields]));
@@ -194,7 +207,17 @@ export async function main(argv = process.argv.slice(2)) {
   const base = git(['rev-parse', 'origin/main']);
   gh(['pr', 'merge', String(chosen.number), '--squash', '--match-head-commit', chosen.headRefOid]);
   git(['fetch', '-q', 'origin', 'main']);
-  git(['reset', '-q', '--hard', 'origin/main']);
+  // Apply only onto the merge just made: main's tip must BE that merge commit, or another release is
+  // in flight and this tick stops before writing anything to production.
+  const mergeOid = JSON.parse(gh(['pr', 'view', String(chosen.number), '--json', 'mergeCommit'])).mergeCommit?.oid;
+  const tip = git(['rev-parse', 'origin/main']);
+  if (!mergeOid || tip !== mergeOid) {
+    log(`main's tip ${tip.slice(0, 7)} is not #${chosen.number}'s merge ${String(mergeOid).slice(0, 7)}: nothing applied`);
+    openFinding(chosen, 'merge-tip', `main moved past the merge before its SQL was applied (tip ${tip}, merge ${mergeOid})`);
+    run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']);
+    return 1;
+  }
+  git(['reset', '-q', '--hard', mergeOid]);
   log(`merged #${chosen.number}; main ${base.slice(0, 7)} -> ${git(['rev-parse', '--short', 'HEAD'])}`);
 
   let failed = null;
@@ -226,7 +249,10 @@ export async function main(argv = process.argv.slice(2)) {
   if (run('git', ['diff', '--cached', '--quiet']).code) {
     git(['-c', 'user.name=it_engineer release train', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com',
       'commit', '-q', '-m', `it_engineer: release train - #${chosen.number} applied, MANIFEST and mirror recorded`]);
-    git(['push', '-q', 'origin', 'HEAD:main']);
+    if (run('git', ['push', '-q', 'origin', 'HEAD:main']).code) {   // main moved: replay the bookkeeping on top once
+      git(['pull', '-q', '--rebase', 'origin', 'main']);
+      git(['push', '-q', 'origin', 'HEAD:main']);
+    }
     log('bookkeeping pushed to main');
   }
   return failed ? 1 : 0;
