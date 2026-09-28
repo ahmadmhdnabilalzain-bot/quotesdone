@@ -1068,7 +1068,13 @@ async function itScheduledTick(): Promise<unknown> {
     const readings = await takeScheduledReadings(admin as never, sec, list, Number(n) || 5);
     const { data, error } = await admin.rpc('fn_it_duties_scheduled', { p_r: readings });
     if (error) return { ok: false, error: error.message };
-    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>) };
+    // Duty 10 settles findings; this keeps the day's numbers (scripts/sql/sender_health_is_recorded_once_a_day_and_a_breach_is_named.sql).
+    let senderRow: unknown = null;
+    if (readings.sender) {
+      const { data: row, error: rerr } = await admin.rpc('fn_it_sender_health_record', { p_sender: readings.sender });
+      senderRow = rerr ? { ok: false, error: rerr.message } : { breaches: (row as { breaches?: string[] })?.breaches ?? [] };
+    }
+    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>), sender_health: senderRow };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
