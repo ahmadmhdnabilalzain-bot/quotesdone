@@ -19,8 +19,8 @@
 // never resolves an external link, embedded object or template. Password-protected files (an OOXML
 // "EncryptedPackage" inside OLE2, an ODF manifest with encryption-data) are refused as 'encrypted'.
 // Deleted revisions (w:delText) and field codes (w:instrText) are not text.
-// @deno-types="../vendor/sheetjs-0.20.3/types/index.d.ts"
-import * as XLSX from '../vendor/sheetjs-0.20.3/xlsx.mjs';
+// SheetJS (~1 MB of source) is loaded on the first workbook, not at boot — see ../vendor/xlsx_lazy.ts.
+import { loadXlsx } from '../vendor/xlsx_lazy.ts';
 import { looksMacroEnabled } from '../attachment.ts';
 import { empty, LIMITS, ok, refuse, type Cell, type ReadContext, type ReadResult, type Refusal } from './types.ts';
 import { findAll, local, parseXml, type XmlNode } from './xml.ts';
@@ -233,6 +233,7 @@ export async function readWorkbook(bytes: Uint8Array, _ctx: ReadContext): Promis
       const m = looksMacroEnabled(bytes, 'application/vnd.ms-excel');
       if (m) return refuse('unsafe_file_content', m);
     }
+    const XLSX = await loadXlsx();
     let wb: ReturnType<typeof XLSX.read>;
     try {
       wb = XLSX.read(bytes, { type: 'array', cellFormula: false, cellHTML: false, cellNF: false, cellStyles: false, bookVBA: false, sheetRows: LIMITS.maxTableRows + 1 });

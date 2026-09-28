@@ -11,7 +11,9 @@
 //   3. customer_api analyze_document (the portal's route for .dxf) -> the BOQ the portal will send;
 //   4. the intake, customer_api create_inquiry -> the live matcher;
 //   5. the supplier's inbox and its inquiry PDF, read back for every identity string;
-// then everything is torn down and the teardown is proved. Before customer_api / supplier_api carry
+// then everything is torn down and the teardown is proved.
+// 24 Sep 2026: the DRAWING reaches the supplier too, drawn from the file's own entities with its identity left
+// out (_shared/cad_render.ts via drawing_redact mode 'cad'); the checks below expect one redacted page. Before customer_api / supplier_api carry
 // cad_identity, steps 3 and 5 FAIL on the identity checks — that is the evidence of the leak.
 //
 //   node scripts/e2e/cad_identity_reaches_no_supplier.mjs          run, report, tear down
@@ -66,7 +68,9 @@ try {
   check('no name from the file in the BOQ the portal will send', leaked(lines).length === 0, JSON.stringify(leaked(lines)));
   const q = (re) => lines.filter((l) => re.test(String(l.description))).map((l) => l.qty);
   check('every quantity survives (FCU 24, diffusers 12, fans 6)', q(/FCU/)[0] === 24 && q(/DIFFUSERS/)[0] === 12 && q(/EXHAUST FANS/)[0] === 6, JSON.stringify([q(/FCU/), q(/DIFFUSERS/), q(/EXHAUST FANS/)]));
-  check('the customer is told the CAD file itself is not shared', res.drawing_held === true && res.share_redacted === false, `drawing_held ${res.drawing_held}`);
+  const pages = Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths : [];
+  check('the CAD drawing is drawn for suppliers with its identity left out (one recorded page, not held)', res.redaction_complete === true && pages.length === 1 && res.drawing_held === false,
+    `redaction_complete ${res.redaction_complete}, ${pages.length} page(s), held ${res.drawing_held}`);
 
   const answers = [
     'Budget around AED 90,000. HVAC only: supply and install ductwork, fan coil units, diffusers and exhaust fans in an existing office in Dubai, as per the attached CAD take-off.',
@@ -84,7 +88,7 @@ try {
     intake = { ...intake, status: r.json?.status ?? intake.status, missing: Array.isArray(r.json?.missing) ? r.json.missing.map(String) : [], turns: intake.turns + 1 };
   }
   check('the intake reached ready', intake.status === 'ready', `${intake.status}, missing ${intake.missing.join(', ')}`);
-  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: [], boq: res.boq, brief_source: 'drawing', share_redacted: false };
+  const drawing = { drawing_file_path: res.drawing_file_path, drawing_file_name: res.drawing_file_name, drawing_redacted_paths: pages, redaction_job_id: res.redaction_job_id || null, boq: res.boq, brief_source: 'drawing' };
   const ci = await call('customer_api', cust.jwt, { action: 'create_inquiry', intake_id: intake.intakeId, category: 'hvac', emirate: 'Dubai', trades: ['hvac'], scope_type: 'single', summary: 'ZZ DEMO HVAC per CAD take-off', raw_input: answers.join('\n'), spec: {}, drawing }, 120000);
   const iid = ci.json?.id ?? ci.json?.inquiry_id ?? null;
   check('create_inquiry posted the request', !!iid, `HTTP ${ci.status} ${ci.text?.slice(0, 200)}`);
@@ -96,7 +100,8 @@ try {
     const item = (inbox.json?.inquiries || [])[0];
     check('the supplier sees the request', !!item, `HTTP ${inbox.status}`);
     check('no name from the file anywhere in what the supplier is served', !!item && leaked(item).length === 0, JSON.stringify(leaked(item)));
-    check('the supplier is told a file exists that is not shown', item?.drawing_withheld === true, `drawing_withheld ${item?.drawing_withheld}`);
+    check('the supplier is served the redacted drawing page, not the CAD file', Array.isArray(item?.drawing_pages) && item.drawing_pages.length === 1 && item?.drawing_withheld !== true,
+      `${item?.drawing_pages?.length ?? 0} page(s), drawing_withheld ${item?.drawing_withheld}`);
     check('the supplier still receives the take-off', Array.isArray(item?.boq?.boq) && item.boq.boq.length > 0, `${item?.boq?.boq?.length ?? 0} lines, withheld ${item?.boq_withheld}`);
     const pdfR = await call('supplier_api', hvac.jwt, { action: 'inquiry_pdf', inquiry_id: iid, lang: 'en' }, 120000);
     if (pdfR.json?.url) {

@@ -15,7 +15,7 @@
 //     comparison and says so. A check that goes red because openrouter.ai was briefly unreachable
 //     teaches people to ignore it, and a check people ignore is worse than no check.
 //   * A MISMATCH IS a finding, and fails. That is the whole point: it means the file's comments, the
-//     rationale text quoting those prices, and the AED 1,170 budget arithmetic derived from them are
+//     rationale text quoting those prices, and the AED 1,600 budget arithmetic derived from them are
 //     all stating a number that is no longer true.
 //
 // It reads the expected values out of the SQL file itself, so there is one place to correct when a
@@ -33,6 +33,11 @@ const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const OWNING_SQLS = [
   'scripts/sql/the_catalogue_names_every_model_the_seats_run_and_the_hold_covers_all_of_them.sql',
   'scripts/sql/gpt_sol_takes_every_qwen_class_and_one_gemini_takes_every_gemini_class.sql',
+  // The provider re-priced glm-5.3-flash on 24 Sep 2026 (0.15/0.50 -> 0.045/0.60). The correction is
+  // a new file, not an edit to the applied one, so it is read LAST and its value wins.
+  'scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql',
+  // ...and by 28 Sep 2026 it served 0.15/0.50 again; this later file puts it back and wins.
+  'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
 ];
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
@@ -40,20 +45,33 @@ const CATALOGUE = 'https://openrouter.ai/api/v1/models';
 // The `update public.model_registry set context_len = <n>, in_per_mtok_usd = <a>,
 //  out_per_mtok_usd = <b>, ... where model_id = '<id>';` statements, plus the three inserted rows.
 const claimed = () => {
-  const sql = OWNING_SQLS.map((f) => readFileSync(join(REPO, f), 'utf8')).join('\n');
   const out = new Map();
 
-  for (const m of sql.matchAll(
-    /update public\.model_registry set context_len = (\d+), in_per_mtok_usd = ([\d.]+),\s*\n?\s*out_per_mtok_usd = ([\d.]+),[\s\S]{0,400}?where model_id = '([^']+)';/g,
-  )) {
-    out.set(m[4], { ctx: Number(m[1]), in: Number(m[2]), out: Number(m[3]) });
-  }
+  // FILE BY FILE, IN OWNING_SQLS ORDER, AND WITHIN A FILE IN STATEMENT ORDER — the order the rows were
+  // written in production. A later statement about a model supersedes an earlier one. Concatenating the
+  // files and running the update pattern before the insert pattern (the first shape of this check) let
+  // the 23 Sep INSERT of glm-5.3-flash overwrite the 24 Sep UPDATE that corrected it, so the check
+  // would have compared the stale price for ever.
+  for (const f of OWNING_SQLS) {
+    const sql = readFileSync(join(REPO, f), 'utf8');
+    const found = [];
 
-  // values ('<id>', '<provider>', '<tier>', <in>, <out>,\n <cr>, <cw>, <bool>, <bool>, <ctx>, ...
-  for (const m of sql.matchAll(
-    /\('([a-z0-9~./-]+)', '(?:anthropic|google|openai|qwen|z-ai)', '(?:small|medium|large|xlarge)', ([\d.]+), ([\d.]+),\s*\n\s*(?:[\d.]+|null), (?:[\d.]+|null), (?:true|false), true, (\d+),/g,
-  )) {
-    out.set(m[1], { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]) });
+    // `update public.model_registry set context_len = <n>, in_per_mtok_usd = <a>,
+    //  out_per_mtok_usd = <b>, ... where model_id = '<id>';`
+    for (const m of sql.matchAll(
+      /update public\.model_registry set context_len = (\d+), in_per_mtok_usd = ([\d.]+),\s*\n?\s*out_per_mtok_usd = ([\d.]+),[\s\S]{0,400}?where model_id = '([^']+)';/g,
+    )) {
+      found.push({ at: m.index, id: m[4], v: { ctx: Number(m[1]), in: Number(m[2]), out: Number(m[3]), from: f } });
+    }
+
+    // values ('<id>', '<provider>', '<tier>', <in>, <out>,\n <cr>, <cw>, <bool>, <bool>, <ctx>, ...
+    for (const m of sql.matchAll(
+      /\('([a-z0-9~./-]+)', '(?:anthropic|google|openai|qwen|z-ai)', '(?:small|medium|large|xlarge)', ([\d.]+), ([\d.]+),\s*\n\s*(?:[\d.]+|null), (?:[\d.]+|null), (?:true|false), true, (\d+),/g,
+    )) {
+      found.push({ at: m.index, id: m[1], v: { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]), from: f } });
+    }
+
+    for (const { id, v } of found.sort((a, b) => a.at - b.at)) out.set(id, v);
   }
 
   // Every file must contribute what it registers. The size floor alone cannot see a later file's row
@@ -61,6 +79,10 @@ const claimed = () => {
   // and this check would stay green (measured in the review of PR #867).
   assert.ok(out.has('openai/gpt-5.6-sol'),
     'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
+  // The same for the re-price: if its statement stops parsing, the 23 Sep insert silently becomes the
+  // claim again and the check compares a price the registry no longer holds.
+  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, OWNING_SQLS.at(-1),
+    'z-ai/glm-5.3-flash was not taken from its re-pricing file, so the check is comparing a superseded price');
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
     + 'check stopped reading them, which would make it pass by finding nothing');
@@ -108,8 +130,12 @@ test('every price and context length the registry file claims is the one the cat
 
   assert.deepEqual(wrong, [],
     'model_registry states a price or context length the provider does not. The file\'s comments, the '
-    + 'model_policy rationale text that quotes these prices, and the AED 1,170/month budget '
-    + `arithmetic derived from them are all now wrong:\n  ${wrong.join('\n  ')}`);
+    + 'model_policy rationale text that quotes these prices, the model_rate row fn_llm_log prices every '
+    + 'call from, and the AED 1,600/month budget arithmetic derived from them (gpt_sol_takes_every_qwen_'
+    + 'class_and_one_gemini_takes_every_gemini_class.sql section 6) are all now wrong, and a price that '
+    + 'reorders a tier moves every cheapest-in-tier route. Correct them in a NEW file '
+    + 'appended to OWNING_SQLS (glm_5_3_flash_costs_what_the_catalogue_now_charges.sql is the pattern):'
+    + `\n  ${wrong.join('\n  ')}`);
 });
 
 // The three models this PR added are the ones the seats' judgement classes run on. If any of them
