@@ -111,8 +111,12 @@ const SURFACES = [
   // four authenticate a supplier by leads.claimed_by just as completely and were found by the
   // 18 Sep security review, not by the session that wrote the first five. Verification, payment,
   // catalogue upload and the assistant are all "acting".
+  // kyc reads the ban in the same round trip as its other reads (28 Sep 2026, latency), then refuses before acting.
   ['supabase/functions/kyc/index.ts',
-   'if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);',
+   'const [sanctioned, bodyIn, leadR, custR, leadWaR, custWaR] = await Promise.all([\n      sanctionedEmail(admin, email),',
+   'kyc must read the ban for the signed-in email'],
+  ['supabase/functions/kyc/index.ts',
+   'if (sanctioned) return J(SANCTIONED_REFUSAL, 403);',
    'kyc must refuse a sanctioned party (it verifies identity and accepts terms)'],
   ['supabase/functions/supplier_pay/index.ts',
    'if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);',

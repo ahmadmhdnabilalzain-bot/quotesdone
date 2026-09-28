@@ -14,6 +14,9 @@ import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
+import { rotateTwilioKey } from '../_shared/it_rotate_by_api.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
+import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
@@ -1155,6 +1158,9 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     await rpc('fn_it_restore_table_record', { p: await runRestoreTable(admin, pick) });
     return { due: true };
   });
+  // Duty 15's third-party half: a provider key the estate can rotate by API is rotated and recorded; the database
+  // decides when (fn_it_provider_rotation_claim) and the old key is deleted only after the overlap (_shared/it_rotate_by_api.ts).
+  await step('rotate_by_api', async () => rotateTwilioKey({ rpc, sec, fetch: (u, i) => timedFetch(u, i, 20_000) }));
   // The sales engineer's daily document duty, on this heartbeat because pg_cron is not coming back:
   // expiry reconcile and final notice, approved suppliers re-verified, 14-day incomplete registrations
   // closed (the_sales_engineer_closes_a_registration_left_incomplete_for_fourteen_days.sql). Counts only.
