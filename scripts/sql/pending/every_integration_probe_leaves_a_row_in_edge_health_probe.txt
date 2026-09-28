@@ -1,0 +1,1 @@
+Not applied yet: written by an it_engineer session with read-only production access. Apply with --apply --ddl (it must print PROBE OK), then delete this note and append the file to the END of MANIFEST.txt. No edge deploy is needed: resilience_ping already calls fn_it_integration_settle every 15 minutes. Seat: it_engineer.
