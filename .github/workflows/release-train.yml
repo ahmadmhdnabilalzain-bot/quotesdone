@@ -1,0 +1,70 @@
+# THE RELEASE TRAIN (it_engineer, 29 Sep 2026). The founder asked for a release agent that runs ALL
+# the time, not tied to a chat session. It is code, not a model: scripts/it/release_train.mjs.
+# Every 10 minutes and whenever a check finishes, it applies any drift, then releases at most ONE
+# reviewed, green, mergeable, unblocked pull request: merge (squash), apply its pending SQL, run its
+# probes, record MANIFEST and the schema mirror, deploy its changed edge functions.
+#
+# A merge made with GITHUB_TOKEN starts no other workflow, which is why the train deploys the
+# changed functions itself instead of relying on deploy-functions.yml's push trigger.
+name: release train
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  check_suite:
+    types: [completed]
+  status:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Evaluate and print every decision; merge, apply and deploy nothing'
+        type: boolean
+        default: true
+      pr:
+        description: 'Consider only this PR number (optional)'
+        required: false
+
+# One release acts at a time, the train or a manual one: a person releases by hand through this same
+# workflow (gh workflow run release-train.yml -f pr=N -f dry_run=false), so both share the group.
+# A run that is already acting is never cancelled halfway through a release.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  # statusCheckRollup reads check runs and commit statuses; without these gh pr list fails with
+  # "Resource not accessible by integration" and the train releases nothing (29 Sep 2026).
+  checks: read
+  statuses: read
+  actions: read
+
+jobs:
+  release:
+    name: release one pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - run: npm ci
+      # Pinned for the reason deploy-functions.yml gives: `latest` fails on a rate-limited hour.
+      - uses: supabase/setup-cli@v3
+        with:
+          version: 2.117.0
+      - name: Run the train
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TRAIN_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::error::SUPABASE_ACCESS_TOKEN is not set; the train cannot apply or deploy"; exit 1; fi
+          pr=""
+          if [ -n "${{ inputs.pr }}" ]; then pr="--pr=${{ inputs.pr }}"; fi
+          node scripts/it/release_train.mjs $pr

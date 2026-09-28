@@ -9,9 +9,9 @@
 // WHAT THIS ASSERTS
 //   1. The SQL file applies exactly the alias list the TypeScript tests read (trade_aliases_ar.json).
 //      Runs everywhere — it reads the repository.
-//   2. Against production: every Arabic alias is in taxonomy_trade, and for every case in the shared
-//      fixture (trade_words.fixtures.json) production fn_norm_trades, the TS twin fed the LIVE
-//      vocabulary, and the expected codes are all the same. Skipped without a management token.
+//   2. Against production: every Arabic alias is in taxonomy_trade; since #893 (ruling 890) fn_norm_trades
+//      resolves no fixture sentence from its words and every expected code to itself (see the note on the
+//      test). Skipped without a management token.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
@@ -37,9 +37,15 @@ test('the SQL file applies exactly the alias list the TypeScript tests read', ()
   assert.deepEqual(JSON.parse(m[1]), ALIASES);
 });
 
-test('production fn_norm_trades and the TS twin agree on every shared fixture', { skip: SKIP }, async () => {
-  // Node strips the types of a .ts file natively (Node >= 22.18; CI runs 24). trade_words.ts has no imports.
-  const { tradesFromText } = await import(pathToFileURL(join(SHARED, 'trade_words.ts')).href);
+// 29 SEP 2026. The SQL half of the shared rule is gone on purpose: #893
+// (trades_categories_and_product_matches_are_reasoned_not_word_matched.sql, founder ledger 890, "no word matching
+// anywhere") made fn_norm_trades accept an exact taxonomy code or intake slug only; free text is reasoned upstream,
+// never resolved from its words. The parity assertion below compared TS with a SQL word-matcher that no longer exists
+// and failed on the first fixture. It now asserts the rule production holds: every fixture sentence resolves to
+// NOTHING in SQL (a word matcher creeping back fails here), and every code a fixture expects resolves to itself.
+// supabase/functions/_shared/trade_words.ts still reads words for suppliers' documents; whether that survives ruling
+// 890 is the sales_engineer's open question, not something this check may settle by going green.
+test('production fn_norm_trades reads no words: a fixture sentence resolves to nothing, an exact code to itself', { skip: SKIP }, async () => {
   const vocab = await sql('select code, aliases from public.taxonomy_trade where active');
   const live = new Set(vocab.flatMap((v) => v.aliases || []));
   const missing = Object.values(ALIASES).flat().filter((a) => !live.has(a));
@@ -47,10 +53,11 @@ test('production fn_norm_trades and the TS twin agree on every shared fixture', 
 
   const rows = await sql(`select u.o::int as i, public.fn_norm_trades(u.t) as codes
     from unnest(array[${FIXTURES.map((f) => q(f.text)).join(',')}]::text[]) with ordinality u(t, o) order by u.o`);
-  for (const [k, f] of FIXTURES.entries()) {
-    const fromSql = [...(rows[k].codes || [])].sort();
-    const fromTs = tradesFromText(f.text, vocab).map((h) => h.code).sort();
-    assert.deepEqual(fromTs, fromSql, `SQL and TS disagree on: ${f.text}`);
-    assert.deepEqual(fromSql, [...f.codes].sort(), `wrong codes for: ${f.text}`);
-  }
+  const worded = FIXTURES.map((f, k) => [f.text, rows[k].codes]).filter(([, c]) => c && c.length);
+  assert.deepEqual(worded, [], 'fn_norm_trades resolved free text from its words (ruling 890)');
+
+  const codes = [...new Set(FIXTURES.flatMap((f) => f.codes))].sort();
+  const exact = await sql(`select c, public.fn_norm_trades(c) as codes from unnest(array[${codes.map(q).join(',')}]::text[]) c`);
+  assert.deepEqual(exact.filter((r) => JSON.stringify(r.codes) !== JSON.stringify([r.c])).map((r) => r.c), [],
+    'an exact taxonomy code no longer resolves to itself');
 });
