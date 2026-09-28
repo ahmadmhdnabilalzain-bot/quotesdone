@@ -1,0 +1,77 @@
+{
+  "trade": "steel_stock",
+  "entries": [
+    {
+      "id": "steel_stock:spec-checklist",
+      "topic": "Steel stockholding - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For steel stockholding quotes to be compared like-for-like, every quoted line (goods) must state: (1) product form (plate, sheet, section, pipe, rebar, bar); (2) steel grade and standard (S275JR, S355, ASTM A36, BS 4449 B500B); (3) dimensions and thickness; (4) length (fixed or random); (5) quantity in tonnes or pieces; (6) mill test certificate (EN 10204 3.1); (7) origin mill; (8) cutting or processing; (9) surface condition (black, galvanised, painted); (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the steel_stock trade.",
+      "body_ar": "لكي تُقارن عروض مخزون الفولاذ على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) شكل المنتج (لوح، أو صفيحة، أو مقطع، أو أنبوب، أو حديد تسليح، أو قضيب)؛ (2) درجة الفولاذ والمعيار (S275JR أو S355 أو BS 4449 B500B)؛ (3) الأبعاد والسماكة؛ (4) الطول (ثابت أو عشوائي)؛ (5) الكمية بالأطنان أو القطع؛ (6) شهادة اختبار المصنع (EN 10204 3.1)؛ (7) المصنع المنتج؛ (8) القص أو المعالجة؛ (9) حالة السطح (أسود، أو مجلفن، أو مطلي)؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة steel_stock فقط.",
+      "required_specs": [
+        "product form (plate, sheet, section, pipe, rebar, bar)",
+        "steel grade and standard (S275JR, S355, ASTM A36, BS 4449 B500B)",
+        "dimensions and thickness",
+        "length (fixed or random)",
+        "quantity in tonnes or pieces",
+        "mill test certificate (EN 10204 3.1)",
+        "origin mill",
+        "cutting or processing",
+        "surface condition (black, galvanised, painted)",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "steel_stock:uae-standards-and-approvals",
+      "topic": "Steel stockholding - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. Reinforcing steel is among the construction products subject to UAE conformity requirements; structural grades are specified to EN or BS material standards. What the cited sources do not establish: The MoIAT page read does not list rebar specifically; the regulated status of each steel product must be confirmed and the grade stated per line.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. ويُعد حديد التسليح من منتجات البناء الخاضعة لمتطلبات المطابقة الإماراتية؛ وتُحدَّد الدرجات الإنشائية وفق معايير المواد EN أو BS. ما لا تثبته المصادر المذكورة: صفحة الوزارة المقروءة لا تذكر حديد التسليح تحديداً؛ يجب التأكد من وضع كل منتج فولاذي التنظيمي وتحديد الدرجة في كل بند.",
+      "source_note": "The MoIAT page read does not list rebar specifically; the regulated status of each steel product must be confirmed and the grade stated per line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for steel stockholding?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـمخزون الفولاذ؟",
+      "expected_entry_ids": [
+        "steel_stock:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to steel stockholding?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على مخزون الفولاذ؟",
+      "expected_entry_ids": [
+        "steel_stock:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "steel_stock:spec-checklist",
+      "steel_stock:uae-standards-and-approvals"
+    ],
+    "added": [
+      "steel_stock:spec-checklist",
+      "steel_stock:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

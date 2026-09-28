@@ -882,6 +882,553 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-23"
+    },
+    {
+      "id": "sales_engineer:senior-sales-engineer-standard",
+      "topic": "The standard: what a senior UAE sales engineer / quantity surveyor knows",
+      "kind": "standard",
+      "body_en": "The QuotesDone sales engineer is held to the standard of a senior UAE sales engineer and quantity surveyor in nine domains: (1) reading drawings and specifications; (2) quantity take-off per trade under a named method of measurement; (3) UAE and GCC authorities and standards (Dubai Municipality, Dubai Civil Defence, DEWA, MoIAT for ECAS and EQM, Trakhees, Abu Dhabi DMT, ADCD and the distribution companies, SEWA); (4) a per-line spec checklist for every trade in the taxonomy; (5) pricing and bills of quantities; (6) supplier evaluation; (7) alternatives when no exact spec exists; (8) negotiation; (9) enterprise accounts. The hard rules that sit over all nine: exact trade match or none; exact specs or the quote is held; no word matching (meaning is reasoned, never keyword-scored); UAE, GCC and international law and standards only. The seat is qualified by a graded exam of at least 57 items in knowledge/exams/sales_engineer.json. This standard is QuotesDone's own job definition; no single external source defines the role.",
+      "body_ar": "يُقاس مهندس المبيعات في كوتس دن بمعيار مهندس مبيعات ومسّاح كميات أول في الإمارات عبر تسعة مجالات: (١) قراءة المخططات والمواصفات؛ (٢) حصر الكميات لكل حرفة وفق طريقة قياس مسمّاة؛ (٣) الجهات والمعايير في الإمارات والخليج (بلدية دبي، الدفاع المدني بدبي، هيئة كهرباء ومياه دبي، وزارة الصناعة والتكنولوجيا المتقدمة لنظامي ECAS وEQM، تراخيص، دائرة البلديات والنقل في أبوظبي والدفاع المدني وشركات التوزيع، هيئة كهرباء ومياه الشارقة)؛ (٤) قائمة مواصفات لكل بند لكل حرفة في التصنيف؛ (٥) التسعير وجداول الكميات؛ (٦) تقييم الموردين؛ (٧) البدائل حين لا توجد مواصفة مطابقة؛ (٨) التفاوض؛ (٩) حسابات الشركات الكبرى. القواعد الثابتة فوقها جميعاً: مطابقة الحرفة تماماً أو لا مطابقة؛ مواصفات دقيقة أو يُعلَّق العرض؛ لا مطابقة بالكلمات؛ قانون ومعايير الإمارات والخليج والمعايير الدولية فقط. يُؤهَّل المقعد باختبار مصحَّح من 57 سؤالاً على الأقل. هذا المعيار تعريف كوتس دن للوظيفة؛ ولا يحدد أي مصدر خارجي واحد هذا الدور.",
+      "sources": [
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://moiat.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The domains are the company's own definition; the cited sources support individual domains, none defines the whole role."
+    },
+    {
+      "id": "sales_engineer:reading-drawings",
+      "topic": "Reading a drawing set before pricing",
+      "kind": "method",
+      "body_en": "Before any quantity is taken, read the drawing set as a set. Start with the title block: project, drawing number, discipline, scale, revision letter or number and its date, and status (for tender, for construction, for approval). Quote only against a named revision and list the drawing numbers and revisions priced; a quote without them cannot be levelled when the drawings change. Read the legend and general notes first, then plans, sections and elevations together, then details and schedules (door, window, finishes, equipment schedules often carry the quantities). Use the scale bar and written dimensions; where a note says do not scale, never scale a dimension - ask. Check that disciplines agree (architectural against structural and MEP) and list each conflict as a written clarification rather than choosing one. Customer drawings on QuotesDone are PDF or CAD (DWG/DXF) only. Missing information on a drawing is a question to the customer, never an assumption in the price.",
+      "body_ar": "قبل حصر أي كمية تُقرأ مجموعة المخططات كوحدة واحدة. يبدأ القارئ بإطار العنوان: المشروع، رقم المخطط، التخصص، المقياس، حرف أو رقم المراجعة وتاريخها، والحالة (للمناقصة، للتنفيذ، للاعتماد). لا يُسعَّر إلا على مراجعة مسمّاة، وتُذكر أرقام المخططات ومراجعاتها المسعَّرة؛ فالعرض الذي يخلو منها لا يمكن مقارنته حين تتغير المخططات. تُقرأ وسيلة الإيضاح والملاحظات العامة أولاً، ثم المساقط والقطاعات والواجهات معاً، ثم التفاصيل والجداول (جداول الأبواب والنوافذ والتشطيبات والمعدات كثيراً ما تحمل الكميات). يُستخدم شريط المقياس والأبعاد المكتوبة، وإذا نصّت ملاحظة على عدم القياس بالمسطرة فلا يُقاس أي بُعد بل يُسأل عنه. يُتحقق من توافق التخصصات (المعماري مع الإنشائي والكهروميكانيكي) ويُدرج كل تعارض كاستيضاح مكتوب بدلاً من اختيار أحدهما. مخططات العملاء في كوتس دن بصيغة PDF أو CAD (DWG/DXF) فقط. والمعلومة الناقصة في المخطط سؤال للعميل، لا افتراض في السعر.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "NRM2 sets out the information a bill needs from the designers; it does not prescribe how a sales engineer reads a drawing. The method is professional practice."
+    },
+    {
+      "id": "sales_engineer:reading-specifications",
+      "topic": "Reading a specification and its conflicts with the drawings",
+      "kind": "method",
+      "body_en": "A specification says what quality is required; the drawings say where and how much. Specifications are usually organised by work section (CSI MasterFormat divisions or the UK NBS structure) and are either prescriptive (a named product, grade or method) or performance-based (a result to achieve, such as a fire rating or U-value, leaving the product to the supplier). Read for: named products and whether \"or approved equal\" is allowed; standards cited (BS EN, ISO, GSO, UAE.S); test certificates and approvals required; submittals (datasheets, samples, shop drawings); warranties; and workmanship clauses. When the drawings and the specification disagree, the contract's order of precedence decides, and many contracts have none: treat every conflict as a clarification to the customer in writing, never pick the cheaper reading. A performance specification must be quoted with the product the supplier proposes and the evidence it meets the performance. The sources do not establish a universal UAE order of precedence.",
+      "body_ar": "تحدد المواصفة الجودة المطلوبة، وتحدد المخططات المكان والكمية. تُنظَّم المواصفات عادةً حسب أقسام الأعمال (تقسيمات CSI MasterFormat أو هيكل NBS البريطاني)، وهي إما وصفية (منتج أو درجة أو طريقة محددة) أو أدائية (نتيجة مطلوبة كتصنيف حريق أو قيمة انتقال حراري، مع ترك اختيار المنتج للمورد). يُقرأ فيها: المنتجات المسمّاة وهل يُسمح بـ\"أو ما يعادله المعتمد\"؛ المعايير المذكورة (BS EN، ISO، الخليجية، الإماراتية)؛ شهادات الاختبار والاعتمادات المطلوبة؛ المستندات المقدَّمة (النشرات الفنية، العينات، مخططات الورشة)؛ الضمانات؛ وبنود جودة التنفيذ. وعند تعارض المخططات مع المواصفة يحسم ترتيب الأولوية في العقد، وكثير من العقود بلا ترتيب: يُعامَل كل تعارض كاستيضاح مكتوب للعميل، ولا تُختار القراءة الأرخص أبداً. والمواصفة الأدائية تُسعَّر مع المنتج المقترح من المورد والدليل على تحقيقه للأداء. ولا تثبت المصادر ترتيب أولوية موحداً في الإمارات.",
+      "sources": [
+        "https://www.csiresources.org/standards/masterformat",
+        "https://www.thenbs.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "CSI and NBS define section structures; neither sets an order of precedence between drawings and specification, which is a contract matter."
+    },
+    {
+      "id": "sales_engineer:methods-of-measurement",
+      "topic": "Methods of measurement: POMI, NRM2 and CESMM4",
+      "kind": "standard",
+      "body_en": "A bill of quantities is only comparable when every quantity follows one named method of measurement, stated in the BOQ preamble. In the UAE three are common: POMI (Principles of Measurement International, RICS, 1979), still found on older and Gulf projects; NRM2 (RICS New Rules of Measurement 2, Detailed measurement for building works; second edition published October 2021, effective 1 December 2021) for building works; and CESMM4 (ICE Civil Engineering Standard Method of Measurement, fourth edition) for civil and infrastructure works. Under these methods quantities are measured net as fixed in position, and waste, laps and cutting are allowed for in the rate, not added to the quantity. Before levelling quotes, check that every supplier measured under the same method and units; if the customer supplied no BOQ, state the measurement basis on each line of the quote. The sources do not say which method a UAE authority requires; that is set by the contract.",
+      "body_ar": "لا يمكن مقارنة جدول الكميات إلا حين تتبع كل كمية طريقة قياس واحدة مسمّاة في مقدمة الجدول. ثلاث طرق شائعة في الإمارات: POMI (مبادئ القياس الدولية، RICS، 1979) وما زالت في المشاريع الأقدم والخليجية؛ وNRM2 (قواعد القياس الجديدة 2 من RICS للقياس التفصيلي لأعمال المباني، الطبعة الثانية صدرت في أكتوبر 2021 وسرت من 1 ديسمبر 2021) لأعمال المباني؛ وCESMM4 (الطريقة القياسية لقياس الأعمال المدنية من ICE، الطبعة الرابعة) للأعمال المدنية والبنية التحتية. وفق هذه الطرق تُقاس الكميات صافية كما هي مثبتة في موقعها، ويُحتسب الهدر والتراكب والقص ضمن سعر الوحدة لا بإضافته إلى الكمية. قبل مقارنة العروض يُتحقق من أن كل مورد قاس بالطريقة والوحدات نفسها؛ وإن لم يقدّم العميل جدول كميات يُذكر أساس القياس على كل بند من العرض. ولا تحدد المصادر طريقة تفرضها جهة إماراتية؛ فذلك يحدده العقد.",
+      "sources": [
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm",
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf",
+        "https://www.ice.org.uk"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "The sources do not name a method required by any UAE authority; the contract names it."
+    },
+    {
+      "id": "sales_engineer:takeoff-civil-structure",
+      "topic": "Quantity take-off: civil and structural trades",
+      "kind": "method",
+      "body_en": "Units a senior surveyor uses for civil and structural work, measured net: excavation in m3 (stating the depth band and whether rock), disposal in m3 or loads, backfill in m3; plain and reinforced concrete in m3 by grade (for example C40), formwork in m2 of contact area by type (sides of foundations, soffits, columns); reinforcement in tonnes by bar type and diameter (take from the bar bending schedule where issued); blockwork in m2 by block thickness and type (hollow, solid, thermal); waterproofing and membranes in m2 of surface covered, laps in the rate; screeds in m2 by thickness; precast items by number. Each line states grade, thickness or diameter, and the standard (for example BS EN 206 for concrete, BS 4449 for reinforcing steel). Common errors that make quotes incomparable: concrete priced per truck rather than per m3, formwork left out, rebar priced per piece, and waste added to the quantity instead of the rate.",
+      "body_ar": "الوحدات التي يستخدمها المسّاح الأول للأعمال المدنية والإنشائية، مقيسة صافية: الحفر بالمتر المكعب (مع فئة العمق وهل هو صخري)، والترحيل بالمتر المكعب أو بالحمولة، والردم بالمتر المكعب؛ الخرسانة العادية والمسلحة بالمتر المكعب حسب الرتبة (مثل C40)، والشدات بالمتر المربع لمساحة التلامس حسب النوع (جوانب القواعد، البلاطات، الأعمدة)؛ حديد التسليح بالطن حسب نوع القضيب وقطره (من جدول تفريد الحديد إن صدر)؛ البلوك بالمتر المربع حسب سماكته ونوعه (مفرغ، مصمت، عازل)؛ العزل المائي والأغشية بالمتر المربع للسطح المغطى مع احتساب التراكب في السعر؛ طبقات التسوية بالمتر المربع حسب السماكة؛ والعناصر سابقة الصب بالعدد. يذكر كل بند الرتبة أو السماكة أو القطر والمعيار (مثل BS EN 206 للخرسانة وBS 4449 لحديد التسليح). أخطاء شائعة تجعل العروض غير قابلة للمقارنة: تسعير الخرسانة بالشاحنة بدلاً من المتر المكعب، وإغفال الشدات، وتسعير الحديد بالقطعة، وإضافة الهدر إلى الكمية بدلاً من السعر.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf",
+        "https://www.ice.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "NRM2 and CESMM4 set units and rules; the standards named per material are the ones commonly specified in UAE projects, not a legal requirement."
+    },
+    {
+      "id": "sales_engineer:takeoff-finishes",
+      "topic": "Quantity take-off: finishes and fit-out trades",
+      "kind": "method",
+      "body_en": "Finishes are measured net by area or count: floor and wall tiles in m2 by tile size, grade and adhesive, with skirting in linear metres; stone in m2 by thickness and finish; paint in m2 of surface stating the full system (primer, number of coats, product) and substrate; gypsum partitions and ceilings in m2 by board type and fire or moisture rating; doors, windows, ironmongery sets and sanitary fittings by number against the schedule; joinery by number or linear metre with a drawing reference; wallpaper by m2 of wall (the supplier converts to rolls using the pattern repeat). Tile and stone waste (breakage, cutting) belongs in the rate; a supplier who adds 10% to the quantity has changed the quantity, not the rate. Openings under a threshold set by the measurement method are not deducted; state that threshold when measuring. Every line carries its finish reference from the finishes schedule, so a quote for \"tiles\" without size, grade and brand or approved equal is held.",
+      "body_ar": "تُقاس التشطيبات صافية بالمساحة أو العدد: بلاط الأرضيات والجدران بالمتر المربع حسب مقاس البلاطة ودرجتها والمادة اللاصقة، والنعلات بالمتر الطولي؛ الحجر بالمتر المربع حسب السماكة والتشطيب؛ الدهان بالمتر المربع للسطح مع ذكر النظام كاملاً (الأساس، عدد الطبقات، المنتج) ونوع السطح؛ القواطع والأسقف الجبسية بالمتر المربع حسب نوع اللوح وتصنيفه للحريق أو الرطوبة؛ الأبواب والنوافذ وأطقم الإكسسوارات والأدوات الصحية بالعدد وفق الجدول؛ أعمال النجارة بالعدد أو المتر الطولي مع مرجع المخطط؛ ورق الجدران بالمتر المربع للجدار (ويحوّله المورد إلى لفائف حسب تكرار النقش). هدر البلاط والحجر (الكسر والقص) يُحتسب في السعر؛ والمورد الذي يضيف 10% إلى الكمية غيّر الكمية لا السعر. الفتحات الأصغر من حد تحدده طريقة القياس لا تُخصم، ويُذكر هذا الحد عند القياس. ويحمل كل بند مرجع التشطيب من جدول التشطيبات، فعرض \"بلاط\" دون مقاس ودرجة وعلامة أو ما يعادلها المعتمد يُعلَّق.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "NRM2 sets the net-measurement and opening-deduction rules; the threshold values differ by method and are not restated here - read them from the named method."
+    },
+    {
+      "id": "sales_engineer:takeoff-mep",
+      "topic": "Quantity take-off: MEP trades",
+      "kind": "method",
+      "body_en": "MEP is measured by length, number and capacity: cables in linear metres by size, cores and type (for example 4C x 16 mm2 XLPE/SWA), containment (conduit, trunking, tray) in metres by size; wiring points (lighting, socket, data) by number; distribution boards, isolators and fittings by number from the schedule; pipes in metres by material and nominal diameter, with fittings either enumerated or stated as a percentage allowance (say which); ductwork in m2 of surface or kg by gauge, with insulation in m2; air-conditioning units by number with the cooling capacity in kW or TR, the refrigerant and the efficiency rating; pumps, tanks and fans by number with duty point. Testing and commissioning, authority inspections (DEWA or the relevant distribution company for power, Civil Defence for fire systems) and as-built drawings are separate lines. A quote that prices \"complete MEP\" as one lump sum cannot be levelled; ask for the breakdown by system.",
+      "body_ar": "تُقاس الأعمال الكهروميكانيكية بالطول والعدد والسعة: الكابلات بالمتر الطولي حسب المقطع وعدد الأسلاك والنوع (مثل 4C x 16 مم2 XLPE/SWA)، والمسارات (المواسير، المجاري، الحوامل) بالمتر حسب المقاس؛ نقاط التمديد (إنارة، مقابس، بيانات) بالعدد؛ لوحات التوزيع والعوازل والتجهيزات بالعدد من الجدول؛ المواسير بالمتر حسب المادة والقطر الاسمي، مع تعداد القطع أو ذكرها كنسبة مئوية (مع بيان أيهما)؛ مجاري الهواء بالمتر المربع للسطح أو بالكيلوغرام حسب السماكة، والعزل بالمتر المربع؛ وحدات التكييف بالعدد مع سعة التبريد بالكيلوواط أو الطن التبريدي ونوع غاز التبريد وتصنيف الكفاءة؛ المضخات والخزانات والمراوح بالعدد مع نقطة التشغيل. الاختبار والتشغيل وفحوص الجهات (هيئة كهرباء ومياه دبي أو شركة التوزيع المختصة للكهرباء، والدفاع المدني لأنظمة الحريق) والمخططات النهائية بنود مستقلة. والعرض الذي يسعّر \"الأعمال الكهروميكانيكية كاملة\" بمبلغ مقطوع واحد لا يمكن مقارنته؛ يُطلب التفصيل حسب النظام.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf",
+        "https://www.dewa.gov.ae",
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The units follow NRM2 practice; the sources do not set a UAE-specific unit for any MEP item."
+    },
+    {
+      "id": "sales_engineer:boq-structure",
+      "topic": "The structure of a bill of quantities",
+      "kind": "concept",
+      "body_en": "A bill of quantities (BOQ) lists every priced item so tenders are comparable. Its parts: preamble (the method of measurement, the specification and drawings it is based on, and pricing rules); preliminaries (site set-up, supervision, insurances, temporary works, programme-dependent costs); measured work sections by trade, each line carrying item description, unit, quantity, rate and amount; provisional sums (work that cannot yet be defined, instructed later); prime cost (PC) sums (named goods priced by the client, with the contractor's profit and attendance added); dayworks (labour and plant rates for unforeseen work); and a summary. A supplier fills rates, not quantities: if a supplier changes a quantity it must say so as a qualification. On QuotesDone a customer's BOQ is the request itself; each line becomes a quote line and each line is checked against the trade's spec checklist before a quote is released.",
+      "body_ar": "يسرد جدول الكميات كل بند مسعَّر لتكون العطاءات قابلة للمقارنة. أجزاؤه: المقدمة (طريقة القياس، والمواصفة والمخططات التي بُني عليها، وقواعد التسعير)؛ الأعمال التمهيدية (تجهيز الموقع، الإشراف، التأمينات، الأعمال المؤقتة، التكاليف المرتبطة بالمدة)؛ أقسام الأعمال المقيسة حسب الحرفة، ويحمل كل بند الوصف والوحدة والكمية والسعر والمبلغ؛ المبالغ الاحتياطية (أعمال لا يمكن تحديدها بعد وتصدر بها تعليمات لاحقاً)؛ مبالغ التكلفة الأولية (سلع مسمّاة يسعّرها المالك ويضاف إليها ربح المقاول وخدماته)؛ أعمال اليومية (أسعار العمالة والمعدات للأعمال غير المتوقعة)؛ والملخص. يملأ المورد الأسعار لا الكميات: وإذا غيّر المورد كمية فعليه أن يذكر ذلك كتحفّظ. وفي كوتس دن يكون جدول كميات العميل هو الطلب نفسه؛ فيصبح كل بند فيه بنداً في العرض، ويُفحص كل بند مقابل قائمة مواصفات الحرفة قبل إطلاق العرض.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf",
+        "https://www.rics.org/profession-standards/rics-standards-and-guidance/sector-standards/construction-standards/nrm"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "NRM2 defines these components for building works; the QuotesDone rule in the last sentence is the platform's own."
+    },
+    {
+      "id": "sales_engineer:unit-rate-build-up",
+      "topic": "Building up and checking a unit rate",
+      "kind": "method",
+      "body_en": "A unit rate is built as: materials (quantity per unit plus waste, at delivered cost) + labour (hours per unit at the all-in hourly cost, from an output rate) + plant and tools + a share of overheads and profit. Example shape for blockwork per m2: blocks and mortar per m2 plus breakage, mason and helper hours per m2, scaffold or access share, then overhead and profit. The sales engineer uses build-ups to test a quote, not to write it: check arithmetic (rate x quantity = amount, and the sum), look for a rate that could not cover its own materials, compare the same item's rate across suppliers, and ask for a breakdown only for a large line, an outlier or a variation. When rate x quantity does not equal the amount, the contract or the tender instructions decide which governs; if silent, ask the supplier to confirm in writing - never correct it silently. Market percentages for overhead and profit are reported in the cost-structure entry and are ranges, not rules.",
+      "body_ar": "يُبنى سعر الوحدة من: المواد (الكمية لكل وحدة مع الهدر، بسعر التسليم) + العمالة (ساعات لكل وحدة بتكلفة الساعة الشاملة، وفق معدل الإنتاجية) + المعدات والأدوات + حصة من المصاريف العامة والربح. مثال لبناء البلوك لكل متر مربع: البلوك والمونة لكل متر مربع مع الكسر، وساعات البنّاء والمساعد لكل متر مربع، وحصة السقالات أو وسائل الوصول، ثم المصاريف العامة والربح. يستخدم مهندس المبيعات تحليل الأسعار لاختبار العرض لا لكتابته: يتحقق من الحساب (السعر × الكمية = المبلغ، والمجموع)، ويبحث عن سعر لا يغطي حتى مواده، ويقارن سعر البند نفسه بين الموردين، ولا يطلب التفصيل إلا لبند كبير أو سعر شاذ أو تغيير. وحين لا يساوي السعر × الكمية المبلغ، يحسم العقد أو تعليمات العطاء أيهما يسود؛ وإن سكتا يُطلب من المورد التأكيد كتابةً، ولا يُصحَّح بصمت أبداً. ونسب المصاريف العامة والربح السوقية مذكورة في مدخل هيكل التكلفة، وهي نطاقات لا قواعد.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The build-up method is standard estimating practice; the sources do not fix any output rate or margin for the UAE."
+    },
+    {
+      "id": "sales_engineer:uae-authorities-map",
+      "topic": "Which UAE authority approves what",
+      "kind": "law",
+      "body_en": "Approvals depend on the emirate and, inside Dubai, on the zone. Federal: MoIAT (Ministry of Industry and Advanced Technology, which absorbed ESMA in 2020) runs product conformity - ECAS certification for regulated products and the Emirates Quality Mark (EQM). Dubai: Dubai Municipality issues building permits under the Dubai Building Code and runs the Dubai Central Laboratory for material testing; Dubai Civil Defence approves fire and life safety systems and products under the UAE Fire and Life Safety Code of Practice (2018 edition); DEWA approves electrical and water connections and solar under Shams Dubai; Trakhees (the regulator of the Ports, Customs and Free Zone Corporation) approves building and EHS in its zones such as Jebel Ali. Abu Dhabi: the Department of Municipalities and Transport and the municipalities for permits, Abu Dhabi Civil Defence for fire, and the distribution companies for utility connections. Sharjah: the municipality and SEWA. These sources do not say which authority governs a given plot; ask the location and the free zone before naming an approval.",
+      "body_ar": "تعتمد الموافقات على الإمارة، وداخل دبي على المنطقة. اتحادياً: تتولى وزارة الصناعة والتكنولوجيا المتقدمة (التي دُمجت فيها هيئة الإمارات للمواصفات والمقاييس عام 2020) مطابقة المنتجات - شهادة ECAS للمنتجات المنظَّمة وعلامة الجودة الإماراتية EQM. في دبي: تصدر بلدية دبي تراخيص البناء وفق كود دبي للبناء وتدير مختبر دبي المركزي لفحص المواد؛ ويعتمد الدفاع المدني بدبي أنظمة ومنتجات الحريق والسلامة وفق كود الإمارات للحريق وحماية الأرواح (إصدار 2018)؛ وتعتمد هيئة كهرباء ومياه دبي توصيلات الكهرباء والمياه والطاقة الشمسية ضمن مبادرة شمس دبي؛ وتعتمد \"تراخيص\" (الجهة التنظيمية لمؤسسة الموانئ والجمارك والمنطقة الحرة) البناء والصحة والسلامة والبيئة في مناطقها مثل جبل علي. في أبوظبي: دائرة البلديات والنقل والبلديات للتراخيص، والدفاع المدني في أبوظبي للحريق، وشركات التوزيع لتوصيل المرافق. في الشارقة: البلدية وهيئة كهرباء ومياه الشارقة. ولا تحدد هذه المصادر الجهة التي تحكم قطعة أرض بعينها؛ يُسأل عن الموقع والمنطقة الحرة قبل تسمية أي موافقة.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dewa.gov.ae",
+        "https://www.trakhees.ae",
+        "https://www.dmt.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The authorities' own sites confirm their remits; none of them publishes a plot-to-authority lookup, so jurisdiction is always asked, never inferred."
+    },
+    {
+      "id": "sales_engineer:green-building-rules",
+      "topic": "Green building rules: Al Sa'fat and Estidama",
+      "kind": "law",
+      "body_en": "Dubai: Al Sa'fat, the Dubai Green Building System of Dubai Municipality, certifies buildings at four levels - Bronze, Silver, Gold and Platinum - and a level is achieved only by meeting all of its requirements, not by collecting points. Its requirements are grouped under ecology and planning, building vitality, and resource effectiveness for energy, water, and materials and waste; the second edition was issued in January 2023, and new buildings must achieve at least the Silver level. Abu Dhabi: Estidama, with its Pearl Rating System under the Department of Municipalities and Transport, rates buildings from 1 to 5 Pearls; 1 Pearl is the minimum for new buildings and 2 Pearls for government-funded buildings. For quoting: a product on an Al Sa'fat or Estidama project may need evidence such as low-VOC content, recycled content, thermal performance or water-flow rates; ask the customer which level applies and which evidence the consultant needs, and hold the line if that evidence is missing.",
+      "body_ar": "في دبي: يمنح نظام السعفات، نظام دبي للمباني الخضراء التابع لبلدية دبي، شهادات على أربعة مستويات - البرونزي والفضي والذهبي والبلاتيني - ولا يُنال المستوى إلا باستيفاء جميع متطلباته لا بجمع النقاط. تُجمع متطلباته تحت البيئة والتخطيط، وحيوية المبنى، وكفاءة الموارد للطاقة والمياه والمواد والنفايات؛ وصدرت الطبعة الثانية في يناير 2023، ويجب أن تحقق المباني الجديدة المستوى الفضي على الأقل. في أبوظبي: يصنّف برنامج استدامة، بنظام تقييم اللؤلؤ التابع لدائرة البلديات والنقل، المباني من لؤلؤة واحدة إلى خمس؛ واللؤلؤة الواحدة حد أدنى للمباني الجديدة، ولؤلؤتان للمباني الممولة حكومياً. عند التسعير: قد يحتاج المنتج في مشروع خاضع للسعفات أو استدامة إلى إثبات مثل انخفاض المركبات العضوية المتطايرة أو المحتوى المعاد تدويره أو الأداء الحراري أو معدلات تدفق المياه؛ يُسأل العميل عن المستوى المطبَّق والإثبات الذي يحتاجه الاستشاري، ويُعلَّق البند إن غاب ذلك الإثبات.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/",
+        "https://www.dm.gov.ae/wp-content/uploads/2023/01/Al-Safat-%E2%80%93-Dubai-Green-Building-System-2nd-editionJan2023.pdf",
+        "https://www.dmt.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The Estidama minimums are stated from the programme's published rule as commonly cited; the DMT page was not fetched in this build, so the entry is medium."
+    },
+    {
+      "id": "sales_engineer:exact-specs-or-held",
+      "topic": "Exact specs or the quote is held: the per-line spec checklist",
+      "kind": "decision_rule",
+      "body_en": "Founder's rule: a quote line is released only when it states every spec its trade requires; otherwise it is held and the missing specs are asked for. What is required comes from the trade's own spec checklist (the spec_checklist entries of knowledge/packs/<trade>.json, loaded into public.trade_spec_checklist). After the 28 Sep 2026 build every one of the 213 trades in the taxonomy has a checklist. The seat never fills a missing spec with a guess, a typical value or a \"standard\" grade, and never treats silence as acceptance. Each hold names the exact missing spec labels, in the customer's or supplier's language, in one message. A spec stated by the supplier that differs from the customer's request is not a missing spec; it is a deviation and goes through the no-exact-spec offer loop. The rule applies to services too: scope, deliverables, licences, service levels and duration are the specs of a service.",
+      "body_ar": "قاعدة المؤسس: لا يُطلق بند العرض إلا حين يذكر كل مواصفة تتطلبها حرفته؛ وإلا يُعلَّق ويُطلب ما نقص من مواصفات. ويأتي المطلوب من قائمة مواصفات الحرفة نفسها (مدخلات spec_checklist في knowledge/packs/<trade>.json، المحمَّلة في public.trade_spec_checklist). بعد بناء 28 سبتمبر 2026 أصبح لكل حرفة من الحرف الـ213 في التصنيف قائمة مواصفات. لا يملأ المقعد مواصفة ناقصة بتخمين أو قيمة شائعة أو درجة \"قياسية\"، ولا يعدّ السكوت قبولاً. ويسمّي كل تعليق تسميات المواصفات الناقصة بدقة، بلغة العميل أو المورد، في رسالة واحدة. والمواصفة التي يذكرها المورد وتختلف عن طلب العميل ليست مواصفة ناقصة؛ بل انحراف يمرّ عبر حلقة عرض البديل عند غياب المواصفة المطابقة. وتنطبق القاعدة على الخدمات أيضاً: النطاق والمخرجات والتراخيص ومستويات الخدمة والمدة هي مواصفات الخدمة.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule (founder ruling, exact specs or the quote is held); no external source."
+    },
+    {
+      "id": "sales_engineer:exact-trade-match",
+      "topic": "Exact trade match or none",
+      "kind": "decision_rule",
+      "body_en": "Founder's rule: an inquiry is matched only to suppliers registered for its exact trade in the taxonomy (public.taxonomy_trade, 213 trades on 28 Sep 2026). There is no nearest mapping: a request for swimming pool construction is not sent to plumbing or civil works suppliers because the words look close, and matching is never decided by keyword overlap. If the request mixes trades, it is split into one request per trade. If no trade fits, the request is held and the new trade is proposed for the taxonomy; categories stay open and new trades are welcome, but a trade is added before anything is matched to it. A supplier's declared trades must fall within the activities on its trade licence. The trade decides which spec checklist applies, so a wrong trade would also apply the wrong checklist.",
+      "body_ar": "قاعدة المؤسس: لا يُطابَق الاستفسار إلا مع موردين مسجّلين في حرفته بالضبط في التصنيف (public.taxonomy_trade، 213 حرفة في 28 سبتمبر 2026). لا يوجد ربط بالأقرب: طلب إنشاء مسبح لا يُرسل إلى موردي السباكة أو الأعمال المدنية لأن الكلمات تبدو متقاربة، ولا تُحسم المطابقة أبداً بتشابه الكلمات. وإذا جمع الطلب عدة حرف يُقسَّم إلى طلب لكل حرفة. وإذا لم تنطبق أي حرفة يُعلَّق الطلب وتُقترح الحرفة الجديدة للتصنيف؛ فالفئات مفتوحة والحرف الجديدة مرحّب بها، لكن تُضاف الحرفة قبل مطابقة أي شيء بها. ويجب أن تقع الحرف التي يعلنها المورد ضمن الأنشطة المذكورة في رخصته التجارية. والحرفة هي التي تحدد قائمة المواصفات المطبَّقة، فالحرفة الخاطئة تطبّق قائمة خاطئة أيضاً.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule (founder ruling, exact trade match or none); no external source."
+    },
+    {
+      "id": "sales_engineer:no-exact-spec-offer-loop",
+      "topic": "When no supplier can meet the exact spec",
+      "kind": "playbook",
+      "body_en": "When a supplier cannot offer the exact specification, the alternative is never accepted on the customer's behalf. The supplier states the alternative line by line (brand, grade, rating, dimensions, standard, approvals, warranty, lead time and price difference). Customer support then asks the customer one clear question: accept this alternative, yes or no. Yes: the alternative becomes the accepted specification for that line and the quote proceeds. No: the supplier receives a polite apology and the line stays unquoted by that supplier. Silence is not yes: the line stays held. The sales engineer's part is technical: state exactly how the alternative differs, whether it meets the same standard and the same UAE approvals (for example Civil Defence listing for fire products or ECAS for regulated products), and whether it affects other trades. An alternative that lacks a required UAE approval is not offered at all.",
+      "body_ar": "حين لا يستطيع المورد تقديم المواصفة المطابقة، لا يُقبل البديل نيابةً عن العميل أبداً. يذكر المورد البديل بنداً بنداً (العلامة، الدرجة، التصنيف، الأبعاد، المعيار، الاعتمادات، الضمان، مدة التوريد وفرق السعر). ثم يسأل فريق دعم العملاء العميل سؤالاً واحداً واضحاً: هل تقبل هذا البديل، نعم أم لا. نعم: يصبح البديل المواصفة المقبولة لذلك البند ويمضي العرض. لا: يتلقى المورد اعتذاراً مهذباً ويبقى البند دون تسعير من ذلك المورد. والسكوت ليس موافقة: يبقى البند معلّقاً. ودور مهندس المبيعات فني: يبيّن بدقة كيف يختلف البديل، وهل يستوفي المعيار نفسه واعتمادات الإمارات نفسها (مثل إدراج الدفاع المدني لمنتجات الحريق أو شهادة ECAS للمنتجات المنظَّمة)، وهل يؤثر على حرف أخرى. والبديل الذي يفتقد اعتماداً إماراتياً مطلوباً لا يُعرض أصلاً.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule (no exact spec: offer alternatives; yes becomes the accepted spec, no is an apology); no external source."
+    },
+    {
+      "id": "sales_engineer:technical-submittals",
+      "topic": "Technical submittals a quote must carry",
+      "kind": "checklist",
+      "body_en": "A quote for a specified product is technically assessable only with its submittals: the manufacturer's datasheet for the exact model offered; the country of origin and manufacturer name; test reports or certificates against the standard named in the specification (issued by an accredited laboratory, ideally ISO/IEC 17025 accredited); the UAE conformity or approval that applies (ECAS or EQM certificate for regulated products, Civil Defence approval for fire and life safety products, DEWA approval for items connected to its network); samples where the finish matters; shop drawings for fabricated or installed items; and the warranty terms from the manufacturer. The seat checks that the model on the datasheet is the model priced, that certificates are in date, and that the certificate covers the product offered and not only a family name. A missing submittal that the trade's checklist requires holds the line.",
+      "body_ar": "لا يمكن تقييم عرض لمنتج محدد فنياً إلا بمستنداته: النشرة الفنية من المصنّع للطراز المعروض بالضبط؛ بلد المنشأ واسم المصنّع؛ تقارير الاختبار أو الشهادات وفق المعيار المذكور في المواصفة (صادرة عن مختبر معتمد، ويُفضَّل اعتماده وفق ISO/IEC 17025)؛ المطابقة أو الموافقة الإماراتية المنطبقة (شهادة ECAS أو EQM للمنتجات المنظَّمة، وموافقة الدفاع المدني لمنتجات الحريق وحماية الأرواح، وموافقة هيئة كهرباء ومياه دبي للبنود المتصلة بشبكتها)؛ العينات حيث يهم التشطيب؛ مخططات الورشة للبنود المصنَّعة أو المركَّبة؛ وشروط ضمان المصنّع. يتحقق المقعد من أن الطراز في النشرة هو الطراز المسعَّر، وأن الشهادات سارية، وأن الشهادة تغطي المنتج المعروض لا اسم عائلته فقط. والمستند الناقص الذي تتطلبه قائمة الحرفة يعلّق البند.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.iso.org/standard/66912.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "ISO/IEC 17025 is the laboratory competence standard; the sources do not require 17025 for every test report in the UAE - it is preferred evidence, not a legal rule."
+    },
+    {
+      "id": "sales_engineer:technical-compliance-matrix",
+      "topic": "Supplier technical evaluation: the compliance matrix",
+      "kind": "method",
+      "body_en": "Before any price is compared, each quote is marked line by line against the request in a technical compliance matrix: compliant (states the required spec and meets it), deviation (states a different spec - listed exactly), or not stated (the spec is missing - held and asked). Beyond lines, the supplier is assessed on: trade licence activities covering the work; relevant approvals held (for example Civil Defence contractor approval for fire systems work, or a DEWA-registered contractor for electrical connections); capacity for the quantity and the programme; comparable past work; the platform performance score; and financial and commercial risk (advance demanded, validity, payment terms). A technically non-compliant quote is never ranked above a compliant one because it is cheaper. The customer decides; the seat's job is to make every deviation visible.",
+      "body_ar": "قبل مقارنة أي سعر يُقيَّم كل عرض بنداً بنداً مقابل الطلب في مصفوفة امتثال فني: مطابق (يذكر المواصفة المطلوبة ويستوفيها)، أو انحراف (يذكر مواصفة مختلفة تُدرج بدقة)، أو غير مذكور (المواصفة ناقصة فيُعلَّق البند ويُسأل عنها). وإلى جانب البنود يُقيَّم المورد على: أن أنشطة رخصته التجارية تغطي العمل؛ الاعتمادات ذات الصلة (مثل اعتماد الدفاع المدني لمقاولي أنظمة الحريق، أو مقاول مسجل لدى هيئة كهرباء ومياه دبي لتوصيلات الكهرباء)؛ القدرة على الكمية والجدول الزمني؛ أعمال سابقة مماثلة؛ درجة الأداء في المنصة؛ والمخاطر المالية والتجارية (الدفعة المقدمة المطلوبة، مدة السريان، شروط الدفع). ولا يُرتَّب عرض غير مطابق فنياً فوق عرض مطابق لأنه أرخص. العميل هو صاحب القرار؛ ومهمة المقعد إظهار كل انحراف.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The authorities' sites describe contractor registration; they do not publish a compliance-matrix method, which is professional practice."
+    },
+    {
+      "id": "sales_engineer:negotiation-sequence",
+      "topic": "The negotiation sequence the seat follows",
+      "kind": "playbook",
+      "body_en": "Negotiation on QuotesDone follows a fixed sequence. (1) Prepare: level the quotes first, so every figure is like for like; know the customer's target, its walk-away point and its real alternative (the next-best levelled quote). (2) Clarify before bargaining: many apparent price gaps are scope gaps; close them with written clarifications. (3) Trade, do not squeeze: offer something the supplier values (faster payment, a firmer quantity, a phased delivery, a quicker decision) for what the customer values. (4) Never disclose one supplier's price, identity or terms to another; say the offer is not yet competitive, never whose price is lower. (5) Record every concession in writing on the quote, with its revision. (6) Stop when the customer decides; the seat advises, the customer chooses. Pressure tactics, false deadlines and invented competing offers are never used.",
+      "body_ar": "يتبع التفاوض في كوتس دن تسلسلاً ثابتاً. (١) التحضير: تُسوّى العروض أولاً لتكون كل الأرقام متماثلة الأساس؛ ويُعرف هدف العميل ونقطة انسحابه وبديله الحقيقي (أفضل عرض تالٍ بعد التسوية). (٢) الاستيضاح قبل المساومة: كثير من فروق الأسعار الظاهرة فروق نطاق؛ تُغلق باستيضاحات مكتوبة. (٣) المقايضة لا الضغط: يُقدَّم ما يقدّره المورد (دفع أسرع، كمية أثبت، توريد على مراحل، قرار أسرع) مقابل ما يقدّره العميل. (٤) لا يُكشف أبداً سعر مورد أو هويته أو شروطه لمورد آخر؛ يُقال إن العرض لم يصبح منافساً بعد، ولا يُقال أبداً من الأرخص. (٥) يُسجَّل كل تنازل كتابةً على العرض مع رقم مراجعته. (٦) يتوقف التفاوض حين يقرر العميل؛ فالمقعد ينصح والعميل يختار. ولا تُستخدم أبداً أساليب الضغط أو المهل الزائفة أو العروض المنافسة المختلقة.",
+      "sources": [
+        "https://www.pon.harvard.edu/tag/batna/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The Program on Negotiation supports the BATNA and value-trading principles; the confidentiality and no-pressure rules are QuotesDone conduct rules."
+    },
+    {
+      "id": "sales_engineer:enterprise-account-plan",
+      "topic": "Enterprise accounts: the account plan",
+      "kind": "playbook",
+      "body_en": "An enterprise customer (a contractor, developer, facilities manager or large corporate buying across many trades) gets an account plan, reviewed each quarter. It holds: the stakeholder map (procurement, the technical approver, finance who pays, and the end user on site) with who decides what; spend by trade and emirate, from the platform's own inquiry history; the approved vendor or pre-qualification requirements the customer applies (licences, insurances, approvals, HSE records) so only suppliers who can be accepted are matched; standard commercial terms (payment terms, retention, validity) so quotes arrive comparable; service levels (response time, complete-quote rate); and a list of open items and risks. The quarterly review shows what was requested, quoted, awarded and why lost, and agrees the next quarter's actions. The sources do not provide a UAE-specific enterprise method; this is general key-account practice applied to procurement.",
+      "body_ar": "يحصل العميل المؤسسي (مقاول أو مطوّر أو مدير مرافق أو شركة كبيرة تشتري عبر حرف كثيرة) على خطة حساب تُراجع كل ربع سنة. تتضمن: خريطة أصحاب المصلحة (المشتريات، والمعتمِد الفني، والمالية التي تدفع، والمستخدم النهائي في الموقع) ومن يقرر ماذا؛ الإنفاق حسب الحرفة والإمارة من سجل استفسارات المنصة نفسها؛ متطلبات قائمة الموردين المعتمدين أو التأهيل المسبق لدى العميل (التراخيص، التأمينات، الاعتمادات، سجلات الصحة والسلامة) حتى لا يُطابَق إلا الموردون المقبولون؛ الشروط التجارية القياسية (شروط الدفع، المحتجزات، مدة السريان) لتصل العروض قابلة للمقارنة؛ مستويات الخدمة (زمن الاستجابة، نسبة العروض المكتملة)؛ وقائمة البنود المفتوحة والمخاطر. وتعرض المراجعة الربعية ما طُلب وما سُعّر وما رُسي وأسباب الخسارة، وتتفق على إجراءات الربع التالي. ولا تقدّم المصادر طريقة إماراتية خاصة؛ فهذه ممارسة عامة لإدارة الحسابات الرئيسية مطبّقة على المشتريات.",
+      "sources": [
+        "https://www.iso.org/standard/74296.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "ISO 20400 gives procurement guidance; it does not describe account plans. The plan is general key-account practice."
+    },
+    {
+      "id": "sales_engineer:framework-and-rate-agreements",
+      "topic": "Framework agreements and rate contracts",
+      "kind": "concept",
+      "body_en": "Enterprise buyers often agree a framework (rate contract) instead of quoting every order: fixed unit rates for a list of items or services, a term (commonly one year), call-off orders placed as needed, and usually no guaranteed volume. What a senior sales engineer checks in one: the item list with exact specs per line, so each call-off is like for like; the pricing basis and any escalation clause (tied to a named index or a supplier notice, with a cap); delivery or response times per call-off; minimum order values; how new items are priced; payment terms; and termination. For QuotesDone, a framework between a customer and a supplier must still respect the platform's reveal rule and exact-spec rule: each call-off is a request with its own quote lines. The sources do not establish standard UAE framework terms; they are negotiated case by case.",
+      "body_ar": "كثيراً ما يتفق المشترون المؤسسيون على اتفاقية إطارية (عقد أسعار) بدلاً من تسعير كل طلب: أسعار وحدات ثابتة لقائمة بنود أو خدمات، ومدة (غالباً سنة واحدة)، وأوامر استدعاء تُصدر حسب الحاجة، وعادةً دون حجم مضمون. ما يفحصه مهندس المبيعات الأول فيها: قائمة البنود بمواصفات دقيقة لكل بند ليكون كل استدعاء متماثل الأساس؛ أساس التسعير وأي بند لتعديل الأسعار (مرتبط بمؤشر مسمّى أو بإشعار من المورد، مع سقف)؛ مدد التسليم أو الاستجابة لكل استدعاء؛ الحد الأدنى لقيمة الطلب؛ طريقة تسعير البنود الجديدة؛ شروط الدفع؛ والإنهاء. وفي كوتس دن يجب أن تحترم الاتفاقية الإطارية بين عميل ومورد قاعدة الكشف في المنصة وقاعدة المواصفات الدقيقة: فكل استدعاء طلب له بنود عرضه الخاصة. ولا تثبت المصادر شروطاً إطارية قياسية في الإمارات؛ فهي تُتفاوض حالةً بحالة.",
+      "sources": [
+        "https://fidic.org",
+        "https://www.iso.org/standard/74296.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Neither FIDIC nor ISO 20400 sets standard UAE framework terms."
+    },
+    {
+      "id": "sales_engineer:drawing-discipline-conflicts",
+      "topic": "When architectural, structural and MEP drawings disagree",
+      "kind": "decision_rule",
+      "body_en": "When the architectural drawings disagree with the structural or MEP drawings, do not price either one by choice. List each conflict (drawing numbers, revisions, what differs) and send it to the customer as a written clarification rather than choosing one. Until it is answered, the affected lines are held, or priced with the assumption stated on the line and flagged. A supplier that silently prices the cheaper discipline has changed the scope.",
+      "body_ar": "حين تتعارض المخططات المعمارية مع الإنشائية أو الكهروميكانيكية، لا يُسعَّر أحدها باختيار. يُدرج كل تعارض (أرقام المخططات والمراجعات وما يختلف) ويُرسل إلى العميل كاستيضاح مكتوب بدلاً من اختيار أحدها. وحتى تصل الإجابة تُعلَّق البنود المتأثرة، أو تُسعَّر مع ذكر الافتراض على البند وتمييزه. والمورد الذي يسعّر التخصص الأرخص بصمت قد غيّر النطاق.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Professional practice; NRM2 does not rule on discipline conflicts."
+    },
+    {
+      "id": "sales_engineer:spec-versus-drawing-precedence",
+      "topic": "Specification and drawings conflict: which prevails",
+      "kind": "decision_rule",
+      "body_en": "When the specification and the drawings conflict, the contract's order of precedence decides which prevails. Many requests on QuotesDone have no contract yet and no stated precedence, so the seat must never pick the cheaper reading: it asks the customer in writing which governs, and holds the affected lines until answered. There is no universal UAE rule that drawings beat specifications or the reverse.",
+      "body_ar": "حين تتعارض المواصفة مع المخططات، يحسم ترتيب الأولوية في العقد أيهما يسود. وكثير من الطلبات في كوتس دن بلا عقد بعد ولا ترتيب أولوية، لذا لا يختار المقعد القراءة الأرخص أبداً: يسأل العميل كتابةً أيهما يحكم، ويعلّق البنود المتأثرة حتى تصل الإجابة. ولا توجد قاعدة إماراتية عامة تقدّم المخططات على المواصفات أو العكس.",
+      "sources": [
+        "https://fidic.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "FIDIC contracts carry an order of precedence; the sources establish no UAE-wide default."
+    },
+    {
+      "id": "sales_engineer:nrm2-edition",
+      "topic": "NRM2 second edition: dates",
+      "kind": "standard",
+      "body_en": "NRM2 (RICS New Rules of Measurement 2: Detailed measurement for building works) second edition was published in October 2021 and became effective 1 December 2021. It gives the rules for measuring and describing building works in a bill of quantities, including preliminaries, contractor-designed works and risks.",
+      "body_ar": "صدرت الطبعة الثانية من NRM2 (قواعد القياس الجديدة 2 من RICS: القياس التفصيلي لأعمال المباني) في أكتوبر 2021 وأصبحت سارية في 1 ديسمبر 2021. وهي تحدد قواعد قياس أعمال المباني ووصفها في جدول الكميات، بما في ذلك الأعمال التمهيدية والأعمال التي يصممها المقاول والمخاطر.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "The source does not say whether any UAE authority mandates NRM2."
+    },
+    {
+      "id": "sales_engineer:waste-in-rate-not-quantity",
+      "topic": "Waste belongs in the rate, not the quantity",
+      "kind": "decision_rule",
+      "body_en": "Under the methods of measurement (POMI, NRM2, CESMM4) quantities are measured net as fixed in position. Waste, cutting, breakage and laps are allowed for in the rate, not added to the quantity. If a supplier adds a waste percentage to the measured quantity, its total is no longer comparable: ask it to restate the quantity net and move the allowance into the rate.",
+      "body_ar": "وفق طرق القياس (POMI وNRM2 وCESMM4) تُقاس الكميات صافية كما هي مثبتة في موقعها. ويُحتسب الهدر والقص والكسر والتراكب في السعر، ولا يُضاف إلى الكمية. وإذا أضاف مورد نسبة هدر إلى الكمية المقيسة لم يعد مجموعه قابلاً للمقارنة: يُطلب منه إعادة ذكر الكمية صافية ونقل النسبة إلى السعر.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "The methods state net measurement; they do not fix any waste percentage."
+    },
+    {
+      "id": "sales_engineer:concrete-rebar-formwork-units",
+      "topic": "Units for concrete, reinforcement and formwork",
+      "kind": "method",
+      "body_en": "Concrete is measured in m3 by grade (for example C40); reinforcement in tonnes by bar type and diameter, from the bar bending schedule; formwork in m2 of contact area by type. A quote with concrete priced per truck rather than per m3, rebar per piece, or leaving formwork out cannot be levelled against a measured BOQ; ask for the same units.",
+      "body_ar": "تُقاس الخرسانة بالمتر المكعب حسب الرتبة (مثل C40)؛ وحديد التسليح بالطن حسب نوع القضيب وقطره من جدول تفريد الحديد؛ والشدات بالمتر المربع لمساحة التلامس حسب النوع. والعرض الذي يسعّر الخرسانة بالشاحنة بدلاً من المتر المكعب، أو الحديد بالقطعة، أو يغفل الشدات، لا يمكن مقارنته بجدول كميات مقيس؛ يُطلب منه الوحدات نفسها.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Units per NRM2 practice; no UAE authority prescribes them."
+    },
+    {
+      "id": "sales_engineer:ac-unit-description",
+      "topic": "Describing air-conditioning units in a take-off",
+      "kind": "method",
+      "body_en": "Air-conditioning units are counted by number, each described by type (split, ducted, VRF indoor or outdoor, package), cooling capacity in kW or TR (1 TR = 3.517 kW), refrigerant, efficiency rating and power supply. Two quotes with the same count but different capacity or efficiency are not the same item.",
+      "body_ar": "تُعدّ وحدات التكييف بالعدد، وتوصف كل وحدة بنوعها (جداري، مخفي بمجارٍ، وحدة داخلية أو خارجية لنظام VRF، مجمّع)، وسعة التبريد بالكيلوواط أو الطن التبريدي (1 طن تبريدي = 3.517 كيلوواط)، وغاز التبريد، وتصنيف الكفاءة، ومصدر الكهرباء. والعرضان بالعدد نفسه وبسعة أو كفاءة مختلفة ليسا البند نفسه.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Unit conversion is standard physics; no single source cited."
+    },
+    {
+      "id": "sales_engineer:ecas-issuer-moiat",
+      "topic": "Who issues ECAS and EQM",
+      "kind": "law",
+      "body_en": "ECAS (Emirates Conformity Assessment Scheme) certificates and the EQM (Emirates Quality Mark) are issued under MoIAT, the Ministry of Industry and Advanced Technology, which absorbed ESMA in 2020. ECAS is mandatory for regulated products before they are sold in the UAE; EQM also assesses the manufacturer's quality system.",
+      "body_ar": "تصدر شهادات ECAS (نظام الإمارات لتقييم المطابقة) وعلامة الجودة الإماراتية EQM تحت مظلة وزارة الصناعة والتكنولوجيا المتقدمة، التي دُمجت فيها هيئة الإمارات للمواصفات والمقاييس عام 2020. شهادة ECAS إلزامية للمنتجات المنظَّمة قبل بيعها في الدولة؛ وتقيّم علامة EQM أيضاً نظام جودة المصنّع.",
+      "sources": [
+        "https://moiat.gov.ae"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "The sources do not list every regulated product; check the product against MoIAT's current list."
+    },
+    {
+      "id": "sales_engineer:civil-defence-fls-code",
+      "topic": "Dubai Civil Defence and the fire code",
+      "kind": "law",
+      "body_en": "Dubai Civil Defence applies the UAE Fire and Life Safety Code of Practice (2018 edition) to the design, approval, installation, testing and handover of fire and life safety systems, and approves fire products and fire contractors. A fire alarm, sprinkler or extinguisher line without Civil Defence approval evidence is held.",
+      "body_ar": "يطبّق الدفاع المدني بدبي كود الإمارات للحريق وحماية الأرواح (إصدار 2018) على تصميم أنظمة الحريق وحماية الأرواح واعتمادها وتركيبها واختبارها وتسليمها، ويعتمد منتجات الحريق ومقاوليه. وأي بند لإنذار حريق أو رشاشات أو طفايات دون إثبات اعتماد الدفاع المدني يُعلَّق.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/preventive-safety/rules-regulations/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Amendments after 2018 exist; confirm the current edition with the authority."
+    },
+    {
+      "id": "sales_engineer:trakhees-jebel-ali",
+      "topic": "Trakhees approves building in its zones",
+      "kind": "law",
+      "body_en": "In Jebel Ali and the other zones of the Ports, Customs and Free Zone Corporation (PCFC), building permits and EHS approvals come from Trakhees, not Dubai Municipality. Ask whether the site is in a Trakhees zone before naming the approving authority.",
+      "body_ar": "في جبل علي والمناطق الأخرى التابعة لمؤسسة الموانئ والجمارك والمنطقة الحرة، تصدر تراخيص البناء وموافقات الصحة والسلامة والبيئة من \"تراخيص\" لا من بلدية دبي. يُسأل هل الموقع ضمن منطقة تتبع تراخيص قبل تسمية الجهة المعتمدة.",
+      "sources": [
+        "https://www.trakhees.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The zone list changes; the source does not give a plot lookup."
+    },
+    {
+      "id": "sales_engineer:dewa-shams-dubai",
+      "topic": "DEWA and Shams Dubai solar connections",
+      "kind": "law",
+      "body_en": "In Dubai, DEWA approves electricity and water connections, and connection of rooftop solar under the Shams Dubai initiative, through DEWA-enrolled solar contractors and approved equipment. A solar quote must name the DEWA-enrolled contractor and equipment on DEWA's approved list.",
+      "body_ar": "في دبي تعتمد هيئة كهرباء ومياه دبي توصيلات الكهرباء والمياه، وتوصيل الطاقة الشمسية على الأسطح ضمن مبادرة شمس دبي، عبر مقاولي طاقة شمسية مسجلين لديها ومعدات معتمدة. ويجب أن يسمّي عرض الطاقة الشمسية المقاول المسجل لدى الهيئة والمعدات المدرجة في قائمتها المعتمدة.",
+      "sources": [
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Outside Dubai the distribution company differs (ADDC/AADC, SEWA, EtihadWE)."
+    },
+    {
+      "id": "sales_engineer:dubai-central-laboratory",
+      "topic": "Material testing in Dubai",
+      "kind": "law",
+      "body_en": "Dubai Municipality runs the Dubai Central Laboratory, which tests construction materials and products and issues conformity and product certificates used in Dubai approvals. Where the consultant requires a Dubai Central Laboratory certificate, a quote without it is held.",
+      "body_ar": "تدير بلدية دبي مختبر دبي المركزي الذي يفحص مواد البناء والمنتجات ويصدر شهادات المطابقة والمنتجات المستخدمة في موافقات دبي. وحين يشترط الاستشاري شهادة من مختبر دبي المركزي يُعلَّق العرض الذي يخلو منها.",
+      "sources": [
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The source does not say which products always need a DCL certificate."
+    },
+    {
+      "id": "sales_engineer:ask-location-before-authority",
+      "topic": "Which authority governs a plot",
+      "kind": "decision_rule",
+      "body_en": "No source gives a plot-to-authority lookup. Before naming an approving authority, ask the location and the free zone: the emirate, the community and whether the site is in a free zone (for example a Trakhees zone, DMCC or a Dubai Development Authority area), because the permit authority differs. Never assume Dubai Municipality.",
+      "body_ar": "لا يقدّم أي مصدر جدولاً يربط قطعة الأرض بالجهة. قبل تسمية الجهة المعتمدة يُسأل عن الإمارة والمنطقة وهل الموقع في منطقة حرة (مثل مناطق تراخيص أو مركز دبي للسلع المتعددة أو مناطق سلطة دبي للتطوير)، لأن جهة الترخيص تختلف. ولا تُفترض بلدية دبي أبداً.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Company practice built on the authorities' own remits."
+    },
+    {
+      "id": "sales_engineer:al-safat-levels",
+      "topic": "Al Sa'fat levels and the Silver minimum",
+      "kind": "law",
+      "body_en": "Al Sa'fat, the Dubai Green Building System of Dubai Municipality, has four levels: Bronze, Silver, Gold and Platinum. A level is reached only by meeting all its requirements. New buildings in Dubai must reach at least the Silver level. The second edition was issued in January 2023.",
+      "body_ar": "لنظام السعفات، نظام دبي للمباني الخضراء التابع لبلدية دبي، أربعة مستويات: البرونزي والفضي والذهبي والبلاتيني. ولا يُبلغ المستوى إلا باستيفاء جميع متطلباته. ويجب أن تبلغ المباني الجديدة في دبي المستوى الفضي على الأقل. وصدرت الطبعة الثانية في يناير 2023.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/al-safat-dubai-green-building-system/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "The source does not list product-level evidence per requirement; ask the consultant."
+    },
+    {
+      "id": "sales_engineer:estidama-pearl-minimum",
+      "topic": "Estidama Pearl minimums in Abu Dhabi",
+      "kind": "law",
+      "body_en": "In Abu Dhabi the Estidama Pearl Rating System rates buildings from 1 to 5 Pearls. 1 Pearl is the minimum for new buildings (all of them) and 2 Pearls for government-funded buildings.",
+      "body_ar": "في أبوظبي يصنّف نظام استدامة لتقييم اللؤلؤ المباني من لؤلؤة واحدة إلى خمس. واللؤلؤة الواحدة هي الحد الأدنى لجميع المباني الجديدة، ولؤلؤتان للمباني الممولة حكومياً.",
+      "sources": [
+        "https://www.dmt.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "The DMT page was not fetched in this build."
+    },
+    {
+      "id": "sales_engineer:services-have-specs",
+      "topic": "Services have specs too",
+      "kind": "decision_rule",
+      "body_en": "The rule applies to services too: the exact-spec rule is not only for goods. The specs of a service are its scope, deliverables, licences and qualifications held, service levels, duration and pricing basis. A service quote that omits any of these for its trade is held exactly like a goods line missing a grade.",
+      "body_ar": "تنطبق قاعدة المواصفات الدقيقة على الخدمات أيضاً. ومواصفات الخدمة هي نطاقها ومخرجاتها والتراخيص والمؤهلات ومستويات الخدمة والمدة وأساس التسعير. وعرض الخدمة الذي يُغفل أياً منها لحرفته يُعلَّق تماماً كبند سلعة ينقصه ذكر الدرجة.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule."
+    },
+    {
+      "id": "sales_engineer:certificate-must-cover-model",
+      "topic": "A certificate must cover the model offered",
+      "kind": "decision_rule",
+      "body_en": "A test certificate or approval counts only if it covers the exact model offered, not only a family name. Check the model on the datasheet, the model on the certificate and the model priced are the same, and that the certificate is in date. Otherwise the line is held.",
+      "body_ar": "لا تُحتسب شهادة الاختبار أو الاعتماد إلا إذا غطّت الطراز المعروض بالضبط، لا اسم عائلة المنتج فقط. يُتحقق من أن الطراز في النشرة الفنية والطراز في الشهادة والطراز المسعَّر واحد، وأن الشهادة سارية. وإلا يُعلَّق البند.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Professional practice."
+    },
+    {
+      "id": "sales_engineer:prime-cost-and-provisional-sums",
+      "topic": "Prime cost sums and provisional sums",
+      "kind": "concept",
+      "body_en": "Prime cost (PC) sums are amounts the client names in the BOQ for specific goods or work from a nominated source; the contractor adds its profit and attendance. A provisional sum covers work that cannot yet be defined and is instructed later. Neither is a supplier's own price, so quotes are compared on the lines outside them.",
+      "body_ar": "مبلغ التكلفة الأولية مبلغ يحدده المالك في جدول الكميات لسلع أو أعمال محددة من مصدر مسمّى، ويضيف إليه المقاول ربحه وخدماته. والمبلغ الاحتياطي يغطي أعمالاً لا يمكن تحديدها بعد وتصدر بها تعليمات لاحقاً. ولا يمثل أي منهما سعر المورد نفسه، لذا تُقارن العروض على البنود الخارجة عنهما.",
+      "sources": [
+        "https://www.rics.org/content/dam/ricsglobal/documents/standards/october_2021_nrm_2.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "NRM2 defines both; the source sets no UAE-specific rule."
+    },
+    {
+      "id": "sales_engineer:arithmetic-error-rule",
+      "topic": "Rate times quantity does not equal the amount",
+      "kind": "decision_rule",
+      "body_en": "When rate x quantity does not equal the amount on a quote line, or the lines do not add up to the total, the tender instructions or contract decide which governs. If silent, ask the supplier to confirm in writing which figure it stands by; never correct it silently.",
+      "body_ar": "حين لا يساوي السعر × الكمية المبلغ في بند العرض، أو لا تساوي البنود المجموع، تحسم تعليمات العطاء أو العقد أيهما يسود. وإن سكتت يُطلب من المورد التأكيد كتابةً على الرقم الذي يلتزم به؛ ولا يُصحَّح بصمت أبداً.",
+      "sources": [],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Professional practice."
+    },
+    {
+      "id": "sales_engineer:compliant-before-cheapest",
+      "topic": "Ranking: compliant quotes before cheaper non-compliant ones",
+      "kind": "decision_rule",
+      "body_en": "In a technical evaluation each line is marked compliant, deviation, or not stated. A technically non-compliant quote is never ranked above a compliant one because it is cheaper; its deviations are shown and the customer decides.",
+      "body_ar": "في التقييم الفني يُصنَّف كل بند مطابقاً أو انحرافاً أو غير مذكور. ولا يُرتَّب عرض غير مطابق فنياً فوق عرض مطابق لأنه أرخص؛ تُعرض انحرافاته والعميل يقرر.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule."
+    },
+    {
+      "id": "sales_engineer:alternative-needs-uae-approval",
+      "topic": "An alternative without the required UAE approval",
+      "kind": "decision_rule",
+      "body_en": "An alternative that lacks a required UAE approval (for example Civil Defence approval for a fire product, or ECAS for a regulated product) is not offered at all. It never reaches the yes/no question to the customer.",
+      "body_ar": "البديل الذي يفتقد اعتماداً إماراتياً مطلوباً (مثل اعتماد الدفاع المدني لمنتج حريق، أو ECAS لمنتج منظَّم) لا يُعرض أصلاً. ولا يصل أبداً إلى سؤال نعم أو لا للعميل.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule."
+    },
+    {
+      "id": "sales_engineer:no-competitor-price-disclosure",
+      "topic": "Never tell a supplier a competitor's price",
+      "kind": "decision_rule",
+      "body_en": "Never disclose one supplier's price, identity or terms to another supplier, not even \"a competitor is 10% cheaper\". The seat may say the offer is not yet competitive; it never says whose price is lower or by how much.",
+      "body_ar": "لا يُكشف أبداً سعر مورد أو هويته أو شروطه لمورد آخر، ولا حتى \"منافس أرخص بنسبة 10%\". يمكن للمقعد أن يقول إن العرض لم يصبح منافساً بعد؛ ولا يقول أبداً من الأرخص ولا بكم.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule."
+    },
+    {
+      "id": "sales_engineer:no-nearest-trade",
+      "topic": "No nearest trade: a swimming pool is not plumbing",
+      "kind": "decision_rule",
+      "body_en": "A request is matched only to its exact trade. There is no nearest mapping: a swimming pool request goes to swimming_pools suppliers only, never to plumbing or civil works because the words look close.",
+      "body_ar": "لا يُطابَق الطلب إلا مع حرفته بالضبط. لا يوجد ربط بالأقرب: طلب المسبح يذهب إلى موردي حرفة المسابح فقط، ولا يذهب أبداً إلى السباكة أو الأعمال المدنية لأن الكلمات تبدو متقاربة.",
+      "sources": [
+        "public.founder_instruction (founder ruling, recorded verbatim)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28",
+      "source_note": "Company rule."
     }
   ],
   "eval": [
@@ -1094,6 +1641,57 @@
       "expected_entry_ids": [
         "sales_engineer:e-invoicing-roadmap"
       ]
+    },
+    {
+      "q_en": "Which drawing revision should a supplier price against?",
+      "q_ar": "على أي مراجعة من المخططات يجب أن يسعّر المورد؟",
+      "expected_entry_ids": [
+        "sales_engineer:reading-drawings"
+      ]
+    },
+    {
+      "q_en": "Which method of measurement should our bill of quantities follow?",
+      "q_ar": "ما طريقة القياس التي يجب أن يتبعها جدول الكميات لدينا؟",
+      "expected_entry_ids": [
+        "sales_engineer:methods-of-measurement"
+      ]
+    },
+    {
+      "q_en": "How do I measure tiles and paint for a quote?",
+      "q_ar": "كيف أقيس البلاط والدهان لعرض سعر؟",
+      "expected_entry_ids": [
+        "sales_engineer:takeoff-finishes"
+      ]
+    },
+    {
+      "q_en": "Who approves fire alarm products in Dubai?",
+      "q_ar": "من يعتمد منتجات إنذار الحريق في دبي؟",
+      "expected_entry_ids": [
+        "sales_engineer:uae-authorities-map"
+      ]
+    },
+    {
+      "q_en": "The supplier left out the tile size. Can we send the quote?",
+      "q_ar": "أغفل المورد مقاس البلاط. هل نرسل العرض؟",
+      "expected_entry_ids": [
+        "sales_engineer:exact-specs-or-held"
+      ]
+    },
+    {
+      "q_en": "Nobody supplies the exact brand the customer asked for. What now?",
+      "q_ar": "لا أحد يورد العلامة التي طلبها العميل بالضبط. ماذا الآن؟",
+      "expected_entry_ids": [
+        "sales_engineer:no-exact-spec-offer-loop",
+        "sales_engineer:alternates-and-options"
+      ]
+    },
+    {
+      "q_en": "A big contractor wants a yearly rate contract. What must it contain?",
+      "q_ar": "مقاول كبير يريد عقد أسعار سنوي. ماذا يجب أن يتضمن؟",
+      "expected_entry_ids": [
+        "sales_engineer:framework-and-rate-agreements",
+        "sales_engineer:enterprise-account-plan"
+      ]
     }
   ],
   "verified": {
@@ -1119,6 +1717,61 @@
     ],
     "removed": [],
     "still_unverified": [],
-    "note": "S3 pass 23 Sep 2026. Fetched this pass: VATupdate (MD 243/244 of 2025), MoIAT ECAS service page, DLA Piper UAE, Afridi & Angell, Charles Russell Speechlys; ICC Incoterms page failed (socket hang up), so Incoterms rest on the build-session ICC fetch. FTA tax-invoice page fetched but its output was unreliable, not cited. Three internal-rule entries carry source_note (founder rulings, not external facts). Items marked not established are commercial (prices, lead times, payment-practice percentages) plus ECAS certificate validity (technical, 1 of 69 = 1.4%). Other entries rely on build-session fetches in seats/se_build/src.js. S3b 23 Sep 2026: claim-by-claim pass on the 61 entries S3 had not re-fetched. Fetched: Turner & Townsend UAE 2025, Knight Frank H1 2025, Buildr, Meltplan, ISM, TenderScan, Fakher & Co, Kayrouz, Nour Attorneys, Mondaq, LexAid, Moores Rowland, u.ae e-transactions, Wafeq, Al Maazmi, PON Harvard (BATNA, anchoring), ICC Incoterms 2020 and Wikipedia Incoterms (via curl), Kraljic, a16z (13 metrics, glossary), Marketplace Guide, MRPeasy, Clozd, Scratchpad. Corrected 14 entries (listed). Not fetched this pass: itmad.ae (ESMA guide, only cited as supporting in alternates/vetting)."
+    "note": "S3 pass 23 Sep 2026. Fetched this pass: VATupdate (MD 243/244 of 2025), MoIAT ECAS service page, DLA Piper UAE, Afridi & Angell, Charles Russell Speechlys; ICC Incoterms page failed (socket hang up), so Incoterms rest on the build-session ICC fetch. FTA tax-invoice page fetched but its output was unreliable, not cited. Three internal-rule entries carry source_note (founder rulings, not external facts). Items marked not established are commercial (prices, lead times, payment-practice percentages) plus ECAS certificate validity (technical, 1 of 69 = 1.4%). Other entries rely on build-session fetches in seats/se_build/src.js. S3b 23 Sep 2026: claim-by-claim pass on the 61 entries S3 had not re-fetched. Fetched: Turner & Townsend UAE 2025, Knight Frank H1 2025, Buildr, Meltplan, ISM, TenderScan, Fakher & Co, Kayrouz, Nour Attorneys, Mondaq, LexAid, Moores Rowland, u.ae e-transactions, Wafeq, Al Maazmi, PON Harvard (BATNA, anchoring), ICC Incoterms 2020 and Wikipedia Incoterms (via curl), Kraljic, a16z (13 metrics, glossary), Marketplace Guide, MRPeasy, Clozd, Scratchpad. Corrected 14 entries (listed). Not fetched this pass: itmad.ae (ESMA guide, only cited as supporting in alternates/vetting).",
+    "added": [
+      "sales_engineer:senior-sales-engineer-standard",
+      "sales_engineer:reading-drawings",
+      "sales_engineer:reading-specifications",
+      "sales_engineer:methods-of-measurement",
+      "sales_engineer:takeoff-civil-structure",
+      "sales_engineer:takeoff-finishes",
+      "sales_engineer:takeoff-mep",
+      "sales_engineer:boq-structure",
+      "sales_engineer:unit-rate-build-up",
+      "sales_engineer:uae-authorities-map",
+      "sales_engineer:green-building-rules",
+      "sales_engineer:exact-specs-or-held",
+      "sales_engineer:exact-trade-match",
+      "sales_engineer:no-exact-spec-offer-loop",
+      "sales_engineer:technical-submittals",
+      "sales_engineer:technical-compliance-matrix",
+      "sales_engineer:negotiation-sequence",
+      "sales_engineer:enterprise-account-plan",
+      "sales_engineer:framework-and-rate-agreements",
+      "sales_engineer:drawing-discipline-conflicts",
+      "sales_engineer:spec-versus-drawing-precedence",
+      "sales_engineer:nrm2-edition",
+      "sales_engineer:waste-in-rate-not-quantity",
+      "sales_engineer:concrete-rebar-formwork-units",
+      "sales_engineer:ac-unit-description",
+      "sales_engineer:ecas-issuer-moiat",
+      "sales_engineer:civil-defence-fls-code",
+      "sales_engineer:trakhees-jebel-ali",
+      "sales_engineer:dewa-shams-dubai",
+      "sales_engineer:dubai-central-laboratory",
+      "sales_engineer:ask-location-before-authority",
+      "sales_engineer:al-safat-levels",
+      "sales_engineer:estidama-pearl-minimum",
+      "sales_engineer:services-have-specs",
+      "sales_engineer:certificate-must-cover-model",
+      "sales_engineer:prime-cost-and-provisional-sums",
+      "sales_engineer:arithmetic-error-rule",
+      "sales_engineer:compliant-before-cheapest",
+      "sales_engineer:alternative-needs-uae-approval",
+      "sales_engineer:no-competitor-price-disclosure",
+      "sales_engineer:no-nearest-trade"
+    ],
+    "as_of": "2026-09-28",
+    "build_1005": {
+      "instruction": 1005,
+      "entries_added": 41,
+      "searched_claims": [
+        "NRM2 2nd edition Oct 2021 effective 1 Dec 2021",
+        "UAE FLS Code 2018 edition",
+        "ESMA merged into MoIAT 2020; ECAS mandatory for regulated products, EQM",
+        "Al Sa'fat four levels, 2nd edition Jan 2023"
+      ],
+      "note": "Estidama Pearl minimums and CESMM4 were not fetched in this build; those entries are medium."
+    }
   }
 }
