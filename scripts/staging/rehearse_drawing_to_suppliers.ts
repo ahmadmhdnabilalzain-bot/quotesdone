@@ -41,7 +41,7 @@ await withRun(async (run: any) => {
   // 1. the suppliers
   const sups: any[] = [];
   for (const [i, trade] of TRADES.entries()) {
-    sups.push(await makeSupplier(run, { trade, email: `qd-${run.tag}-sup${i}@example.invalid`, company_name: `ZZ DEMO ${trade.toUpperCase()} Supplier ${run.tag}`, emirate: 'Dubai' }));
+    sups.push(await makeSupplier(run, { trade, email: `qd-${run.tag}-sup${i}@example.invalid`, company_name: `ZZ DEMO ${trade.toUpperCase()} Supplier ${run.tag}`, emirate: 'Dubai', services: 'all' }));
   }
   const approved = await mgmtRead(REF, `select id, approval_status from public.leads where id in (${sups.map((s) => s.leadId).join(',')})`);
   step('three ZZ DEMO suppliers at @example.invalid, approved', approved.length === 3 && approved.every((r: any) => r.approval_status === 'approved'), JSON.stringify(approved));
@@ -81,7 +81,7 @@ await withRun(async (run: any) => {
   await mgmtFixture(REF, `update public.inquiries set provenance = coalesce(provenance,'{}'::jsonb) || ${q(JSON.stringify({ qd_run: run.tag }))}::jsonb where id = ${q(inquiryId)}`, 'tag demo inquiry');
   const matched = await mgmtRead(REF, `select supplier_id from public.inquiry_matches where inquiry_id = ${q(inquiryId)}`);
   const ours = sups.filter((s) => matched.some((m: any) => Number(m.supplier_id) === Number(s.leadId)));
-  step('routing reached the ZZ DEMO suppliers', ours.length >= 1, `${matched.length} match(es); demo suppliers routed: ${ours.map((s) => s.trade).join(', ') || 'none'}`);
+  step('routing reached every ZZ DEMO supplier (plumbing, HVAC, MEP)', ours.length === 3, `${matched.length} match(es); demo suppliers routed: ${ours.map((s) => s.trade).join(', ') || 'none'}`);
 
   // 4. what each routed supplier receives
   for (const s of ours) {
@@ -99,7 +99,7 @@ await withRun(async (run: any) => {
     step(`${s.trade} supplier receives the anonymised drawing file`, !!fileUrl && (await sha(bytes)) === (await sha(f.bytes)), `${urls.length} url(s); downloaded ${bytes.length} bytes, sha ${bytes.length ? await sha(bytes) : '-'} vs ${await sha(f.bytes)}`);
     step(`${s.trade} supplier sees no identifier`, leaks.length === 0, leaks.length ? leaks.join(', ') : '0 of ' + IDENTITY.length + ' identity strings in the file or the inbox row');
   }
-}, { quiet: false });
+}, { quiet: false, keep: Deno.env.get('QD_KEEP') === '1' });
 
 const pass = checks.filter((c) => c.ok).length;
 console.log(`\nDRAWING TO SUPPLIERS ${pass}/${checks.length} on ${REF}`);
