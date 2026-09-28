@@ -1,0 +1,12 @@
+NOT APPLIED — held for the release operator, who applies it at merge (seat: accountant).
+
+Review blocker on #1063: the close waits for the month's Mashreq statement, a late item for a closed month posts as a
+prior-period adjustment in the open period (fn_gl_post), and each booking routine handles its lines one by one.
+
+Apply it FIRST, before the_accountant_sends_the_founder_one_close_pack_by_the_fifth.sql, which reads
+gl_prior_period_adjustment and fn_accountant_month_close_status:
+node scripts/apply_sql.mjs scripts/sql/the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql --apply --ddl
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit (above the close
+pack file's line), then run the probe (the_accountant_books_a_late_item_as_a_prior_period_adjustment_probe.sql) through
+node scripts/qsql.mjs once both files are live; it must print PROBE OK, as it did on 29 Sep 2026 when this file, the
+close pack file and the probe ran together in one rolled-back transaction on htdblwldjkcgjvmqkbeh.

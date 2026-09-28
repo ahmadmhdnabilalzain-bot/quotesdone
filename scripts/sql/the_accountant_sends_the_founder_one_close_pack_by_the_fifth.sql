@@ -27,8 +27,10 @@
 --        unusual   by rule, never by reading words: a budget variance past gl_settings close_pack_variance_pct
 --                  (default 25) AND close_pack_variance_min_aed (default 200); a single P&L line of at least
 --                  close_pack_large_line_aed (default 1000); a reversal posted in the month; an unbooked statement
---                  line. Each carries its journals and their memos as the explanation; a journal with no memo
---                  prints UNEXPLAINED and counts in unexplained_items.
+--                  line; a prior-period adjustment booked in the month (a late item for a closed month,
+--                  gl_prior_period_adjustment) with its original date and statement line. Each carries its journals
+--                  and their memos as the explanation; a journal with no memo prints UNEXPLAINED and counts in
+--                  unexplained_items.
 --   3. THE PERIOD LOCK IS RESPECTED: a pack is built only for a month that is closed (it has its
 --      accountant_month_close row, so a05_gl_period_lock already refuses postings dated in it), and it is built
 --      once — the stored figures are the locked month's, never re-read after a reopen.
@@ -40,7 +42,12 @@
 --      the PDF is attached to the email row fn_notify_founder queued (the notification's own attachments column,
 --      which send_outbox v43 delivers). A kind the policy does not allow is recorded as not sent, never forced.
 --   6. seat_duty accountant.founder_close_pack (daily): builds the previous month once it is closed, re-sends a
---      rendered pack that did not go, and past day 5 (Asia/Dubai) with nothing sent reports the miss to the CEO.
+--      rendered pack that did not go, and past the due date with nothing sent reports the miss to the CEO. The due
+--      date is fn_accountant_month_close_status's: the 5th (Asia/Dubai), or two days after the Mashreq statement
+--      arrived when it came later; a month still waiting for its statement is reported as waiting, never as missed.
+--
+-- APPLY ORDER: scripts/sql/the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql FIRST (it creates
+-- gl_prior_period_adjustment and fn_accountant_month_close_status, which the figures and the tick read).
 --
 -- Proved by scripts/sql/the_accountant_sends_the_founder_one_close_pack_by_the_fifth_probe.sql (aborted
 -- transaction, ZZ DEMO month 2020-01, must print PROBE OK).
@@ -81,7 +88,7 @@ declare
   v_end date := (date_trunc('month', p_month) + interval '1 month' - interval '1 day')::date;
   v_close jsonb; v_stmt record; v_gl numeric; v_unbooked numeric; v_bookonly numeric; v_rest numeric;
   v_unb jsonb; v_bo jsonb; v_pnl jsonb; v_unusual jsonb := '[]'::jsonb; v_pct numeric; v_min numeric; v_large numeric;
-  r record; v_bank jsonb;
+  r record; v_bank jsonb; v_ppa jsonb;
 begin
   select figures into v_close from public.accountant_month_close where month = v_m;
   if v_close is null then
@@ -187,6 +194,21 @@ begin
     v_unusual := v_unusual || jsonb_build_object('rule', 'reversal', 'reverses', r.original,
       'journals', jsonb_build_array(jsonb_build_object('journal', r.entry_no, 'memo', nullif(btrim(r.memo), ''))));
   end loop;
+  -- a late item for a month already closed, booked in this month (fn_gl_post, gl_prior_period_adjustment)
+  select coalesce(jsonb_agg(jsonb_build_object('journal', j.entry_no, 'posted_on', a.posted_on, 'original_date', a.original_date,
+                            'closed_month', to_char(a.closed_month, 'YYYY-MM'), 'statement_line_id', a.statement_line_id,
+                            'source', a.source, 'amount_aed', a.amount_aed, 'memo', nullif(btrim(j.memo), ''))
+                            order by a.posted_on, a.journal_id), '[]'::jsonb)
+    into v_ppa
+    from public.gl_prior_period_adjustment a join public.gl_journal j on j.id = a.journal_id and j.status = 'posted'
+   where a.posted_on between v_m and v_end;
+  for r in select e from jsonb_array_elements(v_ppa) e loop
+    v_unusual := v_unusual || jsonb_build_object('rule', 'prior_period_adjustment', 'amount_aed', (r.e->>'amount_aed')::numeric,
+      'journals', jsonb_build_array(jsonb_build_object('journal', r.e->>'journal', 'memo', r.e->>'memo')),
+      'explanation', (r.e->>'journal') || ': dated ' || (r.e->>'original_date') || ' in ' || (r.e->>'closed_month') || ', which was already closed'
+                     || coalesce(' (statement line ' || (r.e->>'statement_line_id') || ')', '')
+                     || '; booked in this month as a prior-period adjustment (IFRS for SMEs Section 10: an immaterial prior-period item is corrected in the current period)');
+  end loop;
   for r in select e from jsonb_array_elements(v_unb) e where (e->>'date')::date between v_m and v_end loop
     v_unusual := v_unusual || jsonb_build_object('rule', 'unbooked_statement_line', 'amount_aed', (r.e->>'amount_aed')::numeric,
       'journals', '[]'::jsonb, 'explanation', 'statement line ' || (r.e->>'line_id') || ' (' || coalesce(r.e->>'description', '') || ') has no posted journal');
@@ -204,6 +226,7 @@ begin
              'note', 'QuotesDone is not VAT-registered; registration is required only past the threshold (fn_vat_threshold_position).'),
     'pnl_vs_budget', v_pnl,
     'runway', public.fn_accountant_runway_figures(v_m) - 'cash_13_weeks',
+    'prior_period_adjustments', v_ppa,
     'unusual', v_unusual,
     'unusual_items', jsonb_array_length(v_unusual),
     'unexplained_items', (select count(*) from jsonb_array_elements(v_unusual) u where not (u->>'explained')::boolean),
@@ -275,7 +298,7 @@ begin
         jsonb_build_array('Runway at budget (months)', coalesce(f#>>'{runway,runway_months_at_budget}', 'missing')))),
       jsonb_build_object('t', 'h3', 'text', '5. Unusual items (' || v_n || ', ' || (f->>'unexplained_items') || ' unexplained)'),
       case when v_n = 0 then jsonb_build_object('t', 'p', 'text', 'None under the rules: variance past ' || (f#>>'{rules,variance_pct}') || '% and AED '
-                                                || (f#>>'{rules,variance_min_aed}') || ', a line of AED ' || (f#>>'{rules,large_line_aed}') || ' or more, a reversal, an unbooked statement line.')
+                                                || (f#>>'{rules,variance_min_aed}') || ', a line of AED ' || (f#>>'{rules,large_line_aed}') || ' or more, a reversal, a prior-period adjustment, an unbooked statement line.')
            else jsonb_build_object('t', 'table', 'head', jsonb_build_array('Item', 'AED', 'Explanation'), 'widths', jsonb_build_array(0.25, 0.15, 0.6), 'rows', v_unu) end,
       jsonb_build_object('t', 'note', 'text', 'Prepared by the QuotesDone accountant from gl_journal, bank_statement_line/intake, budget_lines and the month close. Informational; nothing here needs your approval.')));
 end $fn$;
@@ -344,8 +367,12 @@ returns jsonb language plpgsql security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_local date := (now() at time zone 'Asia/Dubai')::date; v_prev date; v_b jsonb; v_s jsonb; p public.accountant_founder_close_pack; v_rep jsonb;
+        v_close jsonb;
 begin
   v_prev := (date_trunc('month', v_local) - interval '1 month')::date;
+  -- the pack follows the close: a month waiting for its Mashreq statement is waiting, not missed, and a statement
+  -- that arrived after the 3rd moves the due date to two days after it (fn_accountant_month_close_status)
+  v_close := public.fn_accountant_month_close_status(v_prev, v_local);
   if exists (select 1 from public.accountant_month_close where month = v_prev) then
     v_b := public.fn_accountant_founder_close_pack_build(v_prev);
   end if;
@@ -354,17 +381,19 @@ begin
     v_s := public.fn_accountant_founder_close_pack_send(v_prev);
     select * into p from public.accountant_founder_close_pack where month = v_prev;
   end if;
-  if p.sent_at is null and extract(day from v_local) > 5 then
+  if p.sent_at is null and v_close->>'status' <> 'waiting_for_statement'
+     and v_local > coalesce((v_close->>'due_by')::date, (v_prev + interval '1 month' + interval '4 days')::date) then
     v_rep := public.fn_support_report_to_ceo(
       p_idempotency_key => 'accountant_close_pack_day5:' || to_char(v_prev, 'YYYY-MM'), p_severity => 'elevated',
-      p_subject => 'The founder''s ' || to_char(v_prev, 'Mon YYYY') || ' close pack was not sent by day 5',
-      p_evidence => jsonb_build_object('month', to_char(v_prev, 'YYYY-MM'), 'month_closed', exists (select 1 from public.accountant_month_close where month = v_prev),
+      p_subject => 'The founder''s ' || to_char(v_prev, 'Mon YYYY') || ' close pack was not sent by ' || coalesce(v_close->>'due_by', 'day 5'),
+      p_evidence => jsonb_build_object('month', to_char(v_prev, 'YYYY-MM'), 'close', v_close,
                                        'built_at', p.built_at, 'rendered_at', p.rendered_at, 'render_error', p.render_error, 'send_result', p.send_result),
       p_attempted => '[]'::jsonb,
       p_requested => 'None from you: the accountant builds, renders and sends it on its next tick; this records the missed day.',
       p_review_in => interval '30 days', p_source_agent => 'accountant');
   end if;
-  return jsonb_build_object('month', to_char(v_prev, 'YYYY-MM'), 'build', v_b, 'send', v_s, 'sent_at', p.sent_at,
+  return jsonb_build_object('month', to_char(v_prev, 'YYYY-MM'), 'close_status', v_close->>'status', 'due_by', v_close->'due_by',
+                            'build', v_b, 'send', v_s, 'sent_at', p.sent_at,
                             'late_reported', v_rep is not null);
 end $fn$;
 revoke execute on function public.fn_accountant_founder_close_pack_tick() from public, anon, authenticated;
