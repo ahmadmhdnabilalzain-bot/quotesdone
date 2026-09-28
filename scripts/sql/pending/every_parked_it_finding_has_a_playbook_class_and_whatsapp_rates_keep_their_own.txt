@@ -1,0 +1,3 @@
+Committed, not applied: applied at merge (seat it_engineer). Proved on htdblwldjkcgjvmqkbeh 29 Sep 2026 in one
+rolled-back transaction: verdict PROBE OK. When applied: delete this note and append the file to the END of
+scripts/sql/MANIFEST.txt in the same commit.
