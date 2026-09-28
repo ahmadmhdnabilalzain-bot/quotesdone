@@ -1,0 +1,5 @@
+Committed, not applied (it_engineer, 28 Sep 2026). Part 1 writes 532 it_incident rows (one per historical
+critical/high handoff in the 11 classes that have a postmortem in docs/it/postmortems/); part 2 registers the
+it_engineer.finding_chase duty, which on its first run sends up to 17 it.finding handoffs to owning seats.
+Apply by the release operator after review: node scripts/apply_sql.mjs <file> --apply --ddl; it must print PROBE OK.
+Dry run on 28 Sep 2026: guards passed, all 4 called routines present.
