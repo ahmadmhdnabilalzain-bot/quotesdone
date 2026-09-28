@@ -715,6 +715,14 @@ async function orphanTick(): Promise<unknown> {
     // that call, rather than widening fn.resilience_ping's scope — widening it would make scoped
     // credentials decorative, which is the one thing audit 9.5 exists to prevent.
     const complianceSecret = await sec('cred_cron_compliance');
+    // THE SAME RULE FOR THE OTHER FIVE (28 Sep 2026, it_engineer). wa_templates_watch answered 403 on
+    // every hourly run: internal_credential_audit, 137 rows in 48 h, context fn.resilience_ping,
+    // reason out_of_scope. send_sms, email_cron, email_triage and doc_extract were out of scope the
+    // same way and only silent because their gates were shut. Each presents its owning context's
+    // credential (scripts/sql/the_template_watcher_is_called_with_a_credential_scoped_to_it.sql);
+    // prevented by scripts/checks/resilience_orphan_jobs_present_a_scoped_credential.test.mjs.
+    const notificationsSecret = await sec('cred_cron_notifications');
+    const documentsSecret = await sec('cred_cron_documents');
     // A 200 CARRYING A FAILED BODY IS A FAILURE, AND failureOf CANNOT SEE INSIDE `body` (third finding
     // from independent review). Returning {status, body} meant only a fetch exception or a 4xx/5xx was
     // ever counted: a callee answering HTTP 200 {ok:false, error:'…'} — which is how every one of these
@@ -744,14 +752,14 @@ async function orphanTick(): Promise<unknown> {
     // afford to finish. Gating on "any time left at all" would make ORPHAN_BUDGET_MS a suggestion: 500 ms
     // left is enough to start a 55 s download, and the step would overrun the whole tick's 110 s.
     const jobs: Array<[string, string, number, () => Promise<unknown>]> = [
-      ['send_sms', 'send_sms', 30000, () => call('send_sms', 30000, { limit: 25 })],
-      ['email_cron', 'email_cron', 20000, () => call('email_cron')],
-      ['wa_templates', 'wa_templates_watch', 20000, () => call('wa_templates_watch')],
+      ['send_sms', 'send_sms', 30000, () => call('send_sms', 30000, { limit: 25 }, notificationsSecret)],
+      ['email_cron', 'email_cron', 20000, () => call('email_cron', 20000, {}, notificationsSecret)],
+      ['wa_templates', 'wa_templates_watch', 20000, () => call('wa_templates_watch', 20000, {}, notificationsSecret)],
       ['doc_extract', 'doc_extract', 25000, async () => {
         const d0 = Date.now();
         const runs: unknown[] = [];
         for (let i = 0; i < DOC_MAX && left() > 25_000; i++) {
-          const r = await call('doc_extract', 25000);
+          const r = await call('doc_extract', 25000, {}, documentsSecret);
           runs.push(r);
           // deno-lint-ignore no-explicit-any
           if ((r as any)?.body?.note === 'no pending documents' || (r as any)?.error) break;
@@ -765,7 +773,7 @@ async function orphanTick(): Promise<unknown> {
           ? { ok: false, error: bad, calls: runs.length, ms: Date.now() - d0, runs }
           : { calls: runs.length, ms: Date.now() - d0, runs };
       }],
-      ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000)],
+      ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000, {}, notificationsSecret)],
       ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000, {}, complianceSecret)],
     ];
     const out: Record<string, unknown> = {};
@@ -1355,7 +1363,12 @@ async function itDetectTick(): Promise<unknown> {
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
 async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
-  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api'];
+  // The SUPPLIER journey's four joined 28 Sep 2026 (it_engineer): measured on the 24 Sep walk, each first
+  // call to supplier_api, supplier_portal, supplier_pay and claim_lookup paid a 2.5-4.5 s isolate boot —
+  // the landing-to-claim step and the Billing tab were almost entirely boot. Each answers x-qd-warm with
+  // a 204 before auth or the database, exactly like the five above.
+  const targets = ['kyc', 'customer_api', 'customer_portal', 'project_api', 'messages_api',
+    'supplier_api', 'supplier_portal', 'supplier_pay', 'claim_lookup'];
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {

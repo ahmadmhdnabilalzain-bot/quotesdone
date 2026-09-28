@@ -45,7 +45,8 @@ export const DECISION_PATHS = [
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'triage', "return J({ ok: true, seat: 'it_engineer', issue_key"],
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
   ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const d = decide(ev.text'],
-  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await f(gateway'],
+  // The comment answer is think() (socialReply) since #898; the recall still comes first and rides with the question.
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await socialReply(defaultDeps(admin'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];

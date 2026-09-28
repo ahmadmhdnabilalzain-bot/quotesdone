@@ -14,6 +14,9 @@
 //   linkedin             — ONLY the QuotesDone company page, through the Community Management API with the
 //                          organization scopes the same link grants; the actor of every reply is the page, never
 //                          a member (never a personal profile).
+//   tiktok               — the TikTok for Business Accounts API (comment list / reply / hide) with the business
+//                          account's own token (app_secrets.tiktok_business_token + tiktok_business_id): the reply posts
+//                          AS the QuotesDone account. Not connected: skipped, and says so.
 //   x                    — REMOVED (founder, 23 Sep 2026: no paid X API). Nothing here reads or answers X.
 //
 // THE POLICY, applied to the REASONED class (processComment; the class itself is reasoned, reasoned_social.ts):
@@ -23,8 +26,9 @@
 //                    -> handed to customer_support ('social.escalation') + a fixed acknowledgement
 //   sales_lead / supplier_enquiry -> handed to sales_engineer ('social.lead') + the fixed reply
 //   praise           -> the fixed thanks
-//   question         -> the comment library / FAQ / knowledge answer; only when none exists does the model
-//                       draft. While the model is held: recorded 'held_not_run', nothing sent.
+//   question         -> the comment library / FAQ / knowledge answer (which one fits is reasoned, socialMeaning);
+//                       only when none fits, the reasoned answer over the company knowledge (think(), with its
+//                       cross-family review). While the model is held: recorded 'held_not_run', nothing sent.
 //   off_topic        -> ignored
 // EVERY text that would be sent — library, FAQ, knowledge or model — passes guard() and the platform's
 // length limit, or it is NOT sent: the comment is escalated and the fixed acknowledgement goes instead. A
@@ -34,7 +38,7 @@
 import { langOf, type Lang } from './chat_answers.ts';
 import { LI_REST, liHeaders } from './marketing_social_oauth.ts';
 
-export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin';
+export type Platform = 'facebook' | 'instagram' | 'youtube' | 'linkedin' | 'tiktok';
 export type Class = 'question' | 'praise' | 'complaint' | 'spam_abuse' | 'sales_lead' | 'supplier_enquiry' | 'sensitive_legal' | 'off_topic';
 
 export interface CommentEvent {
@@ -91,7 +95,7 @@ export const FACTS = {
   domains: /^(www\.)?quotesdone\.(com|ae)$/,
   emails: ['management@quotesdone.com'],
 };
-export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500 };
+export const LIMIT: Record<Platform, number> = { instagram: 300, facebook: 300, youtube: 500, linkedin: 500, tiktok: 150 };
 const AR = /[؀-ۿ]/g;
 const arabicShare = (s: string) => (s.match(AR) || []).length / Math.max(1, (s.match(/[A-Za-z؀-ۿ]/g) || []).length);
 const NUM_WORDS = 'one|two|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|half|zero'
@@ -164,7 +168,7 @@ export interface Store {
   switchOn(key: 'social_send_enabled' | 'social_model_enabled'): Promise<boolean>;
   library(key: string, lang: Lang): Promise<string>;
   deterministic(ev: CommentEvent): Promise<Decided>;                 // comment_* library rows, FAQ, knowledge
-  draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // the model, only over retrieved knowledge
+  draft(ev: CommentEvent, lang: Lang): Promise<string | null>;        // think() over the knowledge, cross-family reviewed
   reply(ev: CommentEvent, text: string): Promise<SendResult>;
   hide(ev: CommentEvent): Promise<SendResult>;
   /** Already handled (an inbound row with an outcome): a redelivery must not re-ask the reasoning. Optional for test stores. */
@@ -273,6 +277,8 @@ export type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 export interface Req { url: string; method: string; headers: Record<string, string>; body?: string }
 const J = { 'Content-Type': 'application/json' };
 const GRAPH = 'https://graph.facebook.com/v21.0/';
+export const TIKTOK = 'https://business-api.tiktok.com/open_api/v1.3/business/';
+const ttHeaders = (token: string) => ({ ...J, 'Access-Token': token });
 
 export function replyRequest(ev: CommentEvent, text: string, token: string): Req {
   const auth = { ...J, Authorization: 'Bearer ' + token };
@@ -285,6 +291,9 @@ export function replyRequest(ev: CommentEvent, text: string, token: string): Req
     case 'linkedin': return { url: LI_REST + 'socialActions/' + encodeURIComponent(ev.commentId) + '/comments', method: 'POST',
       headers: { ...J, ...liHeaders(token) },
       body: JSON.stringify({ actor: ev.accountId, object: ev.threadId, parentComment: ev.commentId, message: { text } }) };
+    // The business account's own token: the reply is posted AS the QuotesDone TikTok account.
+    case 'tiktok': return { url: TIKTOK + 'comment/reply/create/', method: 'POST', headers: ttHeaders(token),
+      body: JSON.stringify({ business_id: ev.accountId, video_id: ev.threadId, comment_id: ev.commentId, text }) };
   }
 }
 /** Hides (hidden = true) or restores (hidden = false) a comment. Every hide can be reversed by the reviewing seat. */
@@ -297,6 +306,8 @@ export function hideRequest(ev: CommentEvent, token: string, hidden = true): Req
       + '&moderationStatus=' + (hidden ? 'heldForReview' : 'published'), method: 'POST', headers: auth };
     // LinkedIn offers only DELETE, which cannot be reversed: nothing is hidden, the comment goes to review.
     case 'linkedin': return null;
+    case 'tiktok': return { url: TIKTOK + 'comment/hide/', method: 'POST', headers: ttHeaders(token),
+      body: JSON.stringify({ business_id: ev.accountId, video_id: ev.threadId, comment_id: ev.commentId, action: hidden ? 'HIDE' : 'UNHIDE' }) };
   }
 }
 export const unhideRequest = (ev: CommentEvent, token: string) => hideRequest(ev, token, false);
@@ -307,7 +318,9 @@ export async function call(f: Fetch, r: Req | null): Promise<SendResult> {
     const res = await f(r.url, { method: r.method, headers: r.headers, body: r.body });
     const j = await res.json().catch(() => ({})) as any;
     if (!res.ok) return { ok: false, error: String(j?.error?.message || j?.detail || j?.title || res.status).slice(0, 300) };
-    return { ok: true, id: j?.data?.id ?? j?.id ?? null };
+    // TikTok answers HTTP 200 with a non-zero code on failure.
+    if (typeof j?.code === 'number' && j.code !== 0) return { ok: false, error: String(j.message || 'tiktok code ' + j.code).slice(0, 300) };
+    return { ok: true, id: j?.data?.comment_id ?? j?.data?.id ?? j?.id ?? null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
 }
 
@@ -346,6 +359,30 @@ export async function linkedinComments(f: Fetch, token: string, orgId: string, s
       if (!urn || at < since) continue;
       out.push({ platform: 'linkedin', accountId: org, commentId: urn, authorId: String(e.actor || ''), handle: null,
         text: String(e?.message?.text || ''), at, threadId: post });
+    }
+  }
+  return out;
+}
+
+// TikTok: the business account's recent videos, then each video's comments newer than `since`.
+export async function tiktokComments(f: Fetch, token: string, businessId: string, since: Date): Promise<CommentEvent[]> {
+  const get = async (path: string) => {
+    const r = await f(TIKTOK + path, { headers: ttHeaders(token) });
+    const j = await r.json().catch(() => ({})) as any;
+    if (!r.ok || (typeof j?.code === 'number' && j.code !== 0)) throw new Error('tiktok ' + path.split('?')[0] + ' HTTP ' + r.status + ': ' + String(j?.message || '').slice(0, 120));
+    return j?.data || {};
+  };
+  const b = encodeURIComponent(businessId);
+  const vids = await get('video/list/?business_id=' + b + '&max_count=10&fields=' + encodeURIComponent('["item_id"]'));
+  const out: CommentEvent[] = [];
+  for (const v of vids.videos || []) {
+    const vid = String(v.item_id || ''); if (!vid) continue;
+    const cs = await get('comment/list/?business_id=' + b + '&video_id=' + encodeURIComponent(vid) + '&max_count=30&sort_field=create_time&sort_order=desc');
+    for (const c of cs.comments || []) {
+      const at = new Date(Number(c.create_time || 0) * 1000);
+      if (!c.comment_id || at < since || c.owner) continue;          // owner: our own comment
+      out.push({ platform: 'tiktok', accountId: businessId, commentId: String(c.comment_id), authorId: String(c.user_id || ''), handle: c.username ?? null,
+        text: String(c.text || ''), at, threadId: vid });
     }
   }
   return out;
