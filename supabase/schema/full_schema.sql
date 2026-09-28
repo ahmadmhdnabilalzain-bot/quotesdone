@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T19:20:28.812Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T20:48:21.541Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -68919,14 +68919,12 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_invite_candidates(p_limit integer)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_site text; v_target int;
-  v_subj text; v_body text; v_subj_ar text; v_body_ar text;
+  v_subj text; v_body text;
 begin
   select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
   v_site := coalesce(v_site, 'https://quotesdone.com');
   select value into v_subj    from app_secrets where key = 'invite_subject';
   select value into v_body    from app_secrets where key = 'invite_body';
-  select value into v_subj_ar from app_secrets where key = 'invite_subject_ar';
-  select value into v_body_ar from app_secrets where key = 'invite_body_ar';
   -- A template without the link placeholder is the 62-invitations-with-no-way-in failure. Refuse.
   if coalesce(v_body, '') not like '%{{link}}%' then
     raise exception 'app_secrets.invite_body has no {{link}} placeholder: an invitation with no way in is refused';
@@ -68968,10 +68966,10 @@ begin
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
-           -- Arabic only where the lead's own locale says so AND the Arabic copy exists; otherwise
-           -- English, which is also what a04 assumes for an unregistered recipient.
-           case when (lower(coalesce(l.locale, '')) like 'ar%' or coalesce(l.company_name, '') ~ '[؀-ۿ]') and coalesce(v_body_ar, '') like '%{{link}}%'   -- the language from the name too (#916, the_supplier_invitation_reads_the_language_from_the_name_and_skips_a_suppressed_address.sql)
-                     and coalesce(v_subj_ar, '') <> '' then 'ar' else 'en' end as lang
+           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4: "invitations always in English"). Until this file
+           -- a lead with an Arabic locale or an Arabic company name was given invite_body_ar: 116 of 6,863
+           -- eligible leads on 24 Sep 2026.
+           'en'::text as lang
     from leads l join keyed k on k.id = l.id
     where public.fn_supplier_invite_eligible(l)
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
@@ -69010,16 +69008,9 @@ begin
     order by r.target_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang,
-         case when e.lang = 'ar' then v_subj_ar else v_subj end,
-         replace(
-           replace(case when e.lang = 'ar'
-                        then case when coalesce(btrim(e.company_name), '') = ''
-                                  then replace(v_body_ar, 'السادة/ {{company}} المحترمين،', 'السادة الكرام،')
-                                  else v_body_ar end
-                        else v_body end,
-                   '{{company}}', coalesce(nullif(btrim(e.company_name),''), case when e.lang = 'ar' then 'الكرام' else 'there' end)),
-           '{{link}}', v_site || '/' || e.lang || '/portal?t=' || e.claim_token::text)
+  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
+         replace(replace(v_body, '{{company}}', coalesce(nullif(btrim(e.company_name),''), 'there')),
+                 '{{link}}', v_site || '/en/portal?t=' || e.claim_token::text)
   from elig e;
 end
 $function$
