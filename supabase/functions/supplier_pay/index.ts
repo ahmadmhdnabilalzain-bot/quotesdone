@@ -51,6 +51,9 @@ function owed(d: any): number {
 
 Deno.serve(observe('supplier_pay', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
+  // what needs exercising. See warmPortal() in resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     // main's shared identity router decides who this is; #858 keeps the stable code on the 401 so the
     // portal can translate it (SP-I-03) instead of printing "Not signed in" in English on /ar.
