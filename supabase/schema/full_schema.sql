@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T23:32:07.305Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T23:38:28.374Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (656) =====
+-- ===== TABLES (658) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -5055,6 +5055,22 @@ CREATE TABLE IF NOT EXISTS public.marketing_founder_request (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.marketing_gap_recruitment_plan (
+  trade text NOT NULL,
+  emirate text NOT NULL,
+  rank integer NOT NULL,
+  matchable integer NOT NULL,
+  target integer NOT NULL,
+  gap integer NOT NULL,
+  demand_90d integer NOT NULL,
+  uninvited_pool integer NOT NULL,
+  gap_status text NOT NULL,
+  sources jsonb DEFAULT '[]'::jsonb NOT NULL,
+  invite_subject text NOT NULL,
+  invite_body text NOT NULL,
+  built_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.marketing_geo_check (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   month date NOT NULL,
@@ -5345,6 +5361,18 @@ CREATE TABLE IF NOT EXISTS public.marketing_prospect (
   is_demo boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_recruitment_source (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  scope text NOT NULL,
+  kind text NOT NULL,
+  name text NOT NULL,
+  url text NOT NULL,
+  http_status integer NOT NULL,
+  verified boolean NOT NULL,
+  checked_at timestamp with time zone NOT NULL,
+  evidence text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_report (
@@ -9461,6 +9489,7 @@ ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connectio
 ALTER TABLE public.marketing_duty_run ADD CONSTRAINT marketing_duty_run_pkey PRIMARY KEY (duty);
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_pkey PRIMARY KEY (trade, emirate);
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_pkey PRIMARY KEY (month, platform, metric);
@@ -9481,6 +9510,7 @@ ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_pk
 ALTER TABLE public.marketing_post_platform ADD CONSTRAINT marketing_post_platform_pkey PRIMARY KEY (post_id, platform);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_recruitment_source ADD CONSTRAINT marketing_recruitment_source_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_pkey PRIMARY KEY (report_date);
 ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_pkey PRIMARY KEY (period_key);
@@ -9820,6 +9850,7 @@ ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_revi
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_platform_checkpoint_metric_key UNIQUE (post_id, platform, checkpoint, metric);
 ALTER TABLE public.marketing_post_variant ADD CONSTRAINT marketing_post_variant_post_id_platform_seq_key UNIQUE (post_id, platform, seq);
+ALTER TABLE public.marketing_recruitment_source ADD CONSTRAINT marketing_recruitment_source_scope_url_key UNIQUE (scope, url);
 ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_kind_period_key UNIQUE (kind, period);
 ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_url_key UNIQUE (url);
 ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_feed_url_key UNIQUE (feed_url);
@@ -10261,6 +10292,7 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
+ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body ~~ '%{{link}}%'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text])));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
@@ -10360,6 +10392,8 @@ ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_role_tit
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_segment_check CHECK ((segment = ANY (ARRAY['developer'::text, 'contractor_procurement'::text, 'consultant'::text, 'facility_manager'::text])));
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_source_urls_check CHECK ((cardinality(source_urls) > 0));
 ALTER TABLE public.marketing_prospect ADD CONSTRAINT marketing_prospect_status_check CHECK ((status = ANY (ARRAY['new'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
+ALTER TABLE public.marketing_recruitment_source ADD CONSTRAINT marketing_recruitment_source_kind_check CHECK ((kind = ANY (ARRAY['directory'::text, 'association'::text, 'chamber'::text, 'linkedin_group'::text, 'trade_fair'::text])));
+ALTER TABLE public.marketing_recruitment_source ADD CONSTRAINT marketing_recruitment_source_url_check CHECK ((url ~ '^https?://'::text));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_check CHECK ((window_to > window_from));
 ALTER TABLE public.marketing_report ADD CONSTRAINT marketing_report_figures_check CHECK ((jsonb_typeof(figures) = 'object'::text));
 ALTER TABLE public.marketing_review ADD CONSTRAINT marketing_review_kind_check CHECK ((kind = ANY (ARRAY['geo_monthly'::text, 'brand_quarterly'::text])));
@@ -10896,6 +10930,7 @@ ALTER TABLE public.marketing_calendar_resend_decision ADD CONSTRAINT marketing_c
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE SET NULL;
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id);
+ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_trade_emirate_fkey FOREIGN KEY (trade, emirate) REFERENCES supply_gap(trade, emirate) ON DELETE CASCADE;
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_question_id_fkey FOREIGN KEY (question_id) REFERENCES marketing_geo_question(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_prospect_id_fkey FOREIGN KEY (prospect_id) REFERENCES marketing_prospect(id);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_month_fkey FOREIGN KEY (month) REFERENCES marketing_month_plan(month);
@@ -11389,6 +11424,7 @@ CREATE INDEX marketing_asset_review_sha ON public.marketing_asset_review USING b
 CREATE INDEX marketing_calendar_resend_decision_campaign ON public.marketing_calendar_resend_decision USING btree (campaign_id, id DESC);
 CREATE INDEX marketing_first_touch_post ON public.marketing_first_touch USING btree (post_id) WHERE (post_id IS NOT NULL);
 CREATE UNIQUE INDEX marketing_founder_request_one_per_message ON public.marketing_founder_request USING btree (message_id) WHERE ((message_id IS NOT NULL) AND (message_id <> ''::text));
+CREATE INDEX marketing_gap_recruitment_plan_trade_idx ON public.marketing_gap_recruitment_plan USING btree (trade, rank);
 CREATE INDEX marketing_knowledge_emb_hnsw ON public.marketing_knowledge USING hnsw (embedding_gte vector_cosine_ops);
 CREATE UNIQUE INDEX marketing_model_run_held_once_a_day ON public.marketing_model_run USING btree (step, subject, run_day) WHERE (outcome = 'held_not_run'::text);
 CREATE INDEX marketing_outreach_message_day_idx ON public.marketing_outreach_message USING btree (listed_on);
@@ -50559,6 +50595,113 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_gap_recruitment_plans()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_body text := (select value from public.app_secrets where key = 'invite_body');
+  v_anchor constant text := 'Whatever your trade or product, if it can be quoted from specifications, drawings or photos, it belongs here.';
+  v_rows int; v_dropped int;
+begin
+  if coalesce(v_body, '') not like '%{{link}}%' then
+    raise exception 'app_secrets.invite_body has no {{link}} placeholder: no trade variant is built from it';
+  end if;
+
+  delete from public.marketing_gap_recruitment_plan p
+   where not exists (select 1 from public.supply_gap g where g.trade = p.trade and g.emirate = p.emirate
+                       and g.closed_at is null and g.status <> 'closed' and g.matchable < g.target);
+  get diagnostics v_dropped = row_count;
+
+  with gaps as (
+    select g.*, coalesce(t.label, g.trade) as label, t.group_code,
+           row_number() over (order by (g.target - g.matchable) desc, g.demand_90d desc, g.uninvited_pool desc, g.trade, g.emirate) as rk
+      from public.supply_gap g left join public.taxonomy_trade t on t.code = g.trade
+     where g.closed_at is null and g.status <> 'closed' and g.matchable < g.target
+  ),
+  txt as (
+    select g.*,
+      -- the trade sentence: what was measured, nothing more (demand only where customers asked in 90 days)
+      case when g.demand_90d > 0
+        then 'Clients have already asked for ' || g.label || ' work' || case when g.emirate <> 'UAE' then ' in ' || g.emirate else '' end
+             || ', and fewer than ' || g.target || ' ' || g.label || ' suppliers are registered to quote for it, so a registered '
+             || g.label || ' supplier is matched with little competition.'
+        else 'We are building the ' || g.label || ' supplier list now: fewer than ' || g.target || ' ' || g.label
+             || ' suppliers are registered, so an early ' || g.label || ' supplier is among the first matched when '
+             || g.label || ' requests arrive.' end
+      || ' ' || case g.group_code
+        when 'construction_building'          then 'Requests in your trade usually arrive as a BOQ, drawings or site photos.'
+        when 'mep_building_systems'           then 'Requests in your trade usually arrive as a BOQ, drawings, a schedule of equipment or site photos.'
+        when 'industrial_manufacturing'       then 'Requests in your trade usually arrive as part numbers, datasheets, drawings or photos of the part.'
+        when 'materials_packaging'            then 'Requests in your trade usually arrive as a specification, quantities and a sample photo.'
+        when 'energy_environment'             then 'Requests in your trade usually arrive as a site description, capacities and quantities.'
+        when 'facilities_property'            then 'Requests in your trade usually arrive as a scope of services, areas and frequency.'
+        when 'furniture_hospitality_consumer' then 'Requests in your trade usually arrive as a product list, quantities and reference photos.'
+        when 'health_lab_safety'              then 'Requests in your trade usually arrive as a product list with specifications and quantities.'
+        when 'marketing_media_events'         then 'Requests in your trade usually arrive as a brief, dates, quantities and reference images.'
+        when 'professional_business'          then 'Requests in your trade usually arrive as a scope of work and the deliverables expected.'
+        when 'technology_telecom'             then 'Requests in your trade usually arrive as a list of equipment or a scope of work.'
+        when 'transport_mobility'             then 'Requests in your trade usually arrive as routes, volumes, vehicle or part details.'
+        else 'Requests in your trade arrive as specifications, drawings or photos.' end as trade_line
+    from gaps g
+  )
+  insert into public.marketing_gap_recruitment_plan as p
+    (trade, emirate, rank, matchable, target, gap, demand_90d, uninvited_pool, gap_status, sources, invite_subject, invite_body, built_at)
+  select x.trade, x.emirate, x.rk, x.matchable, x.target, x.target - x.matchable, x.demand_90d, x.uninvited_pool, x.status,
+         coalesce((select jsonb_agg(jsonb_build_object('kind', s.kind, 'name', s.name, 'url', s.url, 'scope', s.scope,
+                                                       'http_status', s.http_status, 'verified', s.verified, 'checked_at', s.checked_at)
+                                    order by (s.scope = x.trade) desc, (s.scope = x.group_code) desc, s.verified desc, s.kind, s.name)
+                     from public.marketing_recruitment_source s
+                    where s.scope in ('all', x.trade, coalesce(x.group_code, '-'))), '[]'::jsonb),
+         'Invitation: ' || x.label || ' supplier on QuotesDone (free, no commission)',
+         -- the approved body, with its "whatever your trade" sentence replaced by this trade's; if that sentence is
+         -- ever reworded, the trade sentence goes after the greeting instead, so a variant is never built without it
+         case when position(v_anchor in v_body) > 0 then replace(v_body, v_anchor, x.trade_line)
+              else regexp_replace(v_body, E'^([^\\n]*\\n\\n)', E'\\1' || replace(x.trade_line, '\', '\\') || E'\n\n') end,
+         now()
+    from txt x
+  on conflict (trade, emirate) do update set rank = excluded.rank, matchable = excluded.matchable, target = excluded.target,
+    gap = excluded.gap, demand_90d = excluded.demand_90d, uninvited_pool = excluded.uninvited_pool, gap_status = excluded.gap_status,
+    sources = excluded.sources, invite_subject = excluded.invite_subject, invite_body = excluded.invite_body, built_at = excluded.built_at;
+  get diagnostics v_rows = row_count;
+
+  -- a planned trade with no checked source is marketing's own finding (where to look is the gap, not the invitation)
+  perform public.fn_it_engineer_finding_upsert('recruitment:no_source:' || p.trade,
+      'No checked recruitment source is recorded for ' || p.trade, 'public.marketing_recruitment_source', 'monitor', 1,
+      jsonb_build_object('trade', p.trade, 'owner_seat', 'marketing'), '{}'::text[],
+      array['a directory, association, chamber, LinkedIn group or trade fair where this trade gathers'], 'marketing')
+    from (select distinct trade from public.marketing_gap_recruitment_plan
+           where not exists (select 1 from jsonb_array_elements(sources) e where (e->>'verified')::boolean)) p;
+  update public.it_engineer_finding f set closed_at = now(), close_note = 'a checked source is recorded'
+   where f.issue_key like 'recruitment:no_source:%' and f.closed_at is null
+     and not exists (select 1 from public.marketing_gap_recruitment_plan p where 'recruitment:no_source:' || p.trade = f.issue_key
+                       and not exists (select 1 from jsonb_array_elements(p.sources) e where (e->>'verified')::boolean));
+
+  return public.fn_marketing_gap_recruitment_report() || jsonb_build_object('plans_written', v_rows, 'plans_dropped', v_dropped);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_gap_recruitment_report()
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object(
+    'plans', (select count(*) from public.marketing_gap_recruitment_plan),
+    'plans_with_checked_source', (select count(*) from public.marketing_gap_recruitment_plan p
+                                   where exists (select 1 from jsonb_array_elements(p.sources) e where (e->>'verified')::boolean)),
+    'sources', (select count(*) from public.marketing_recruitment_source),
+    'sources_verified', (select count(*) from public.marketing_recruitment_source where verified),
+    'uninvited_pool_in_plans', (select coalesce(sum(uninvited_pool), 0) from public.marketing_gap_recruitment_plan),
+    'top', (select coalesce(jsonb_agg(jsonb_build_object('rank', rank, 'trade', trade, 'emirate', emirate, 'gap', gap,
+                                                         'demand_90d', demand_90d, 'uninvited_pool', uninvited_pool, 'gap_status', gap_status,
+                                                         'sources', jsonb_array_length(sources)) order by rank), '[]'::jsonb)
+              from public.marketing_gap_recruitment_plan where rank <= 20))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_geo_due(p_limit integer DEFAULT 2, p_include_model boolean DEFAULT true)
  RETURNS TABLE(question_id bigint, question text, engine text, month date)
  LANGUAGE sql
@@ -58523,6 +58666,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -58693,16 +58846,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -69713,12 +69856,12 @@ begin
   ),
   touched_d as materialized (select distinct dkey from keyed where touched),
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
+  -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
+  plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
-           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4: "invitations always in English"). Until this file
-           -- a lead with an Arabic locale or an Arabic company name was given invite_body_ar: 116 of 6,863
-           -- eligible leads on 24 Sep 2026.
+           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4; #1065): suppliers are always written in English.
            'en'::text as lang
     from leads l join keyed k on k.id = l.id
     where public.fn_supplier_invite_eligible(l)
@@ -69729,10 +69872,12 @@ begin
   ),
   prio as (
     select c.id, c.email, c.company_name, c.claim_token, c.email_domain, c.lang, c.dkey, c.nkey,
-      -- 23 Sep 2026 (marketing.recruitment_funnel): a lead in a trade the sales engineer marked for recruitment
-      -- (public.supply_gap, status 'recruit') goes first. Trade codes compared for equality; no word is read.
+      -- 23 Sep 2026: a lead in a trade the sales engineer marked for recruitment (supply_gap 'recruit') goes first;
+      -- 29 Sep 2026 (instr 1013): then a lead in any trade marketing planned, by the plan's rank.
       case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
-                          and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0 else 1 end as target_rank,
+                          and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
+           when pl.rank is not null then 1 else 2 end as target_rank,
+      coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
       case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
@@ -69741,9 +69886,12 @@ begin
               'support','hello','marketing','general','accounts','reception','careers','hr')
            then 1 else 0 end as role_rank
     from cand c
+    left join lateral (select p.rank, p.invite_subject, p.invite_body from plans p
+                        where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
+                        order by p.rank limit 1) pl on true
   ),
   elig as (
-    select r.id, r.email, r.company_name, r.claim_token, r.lang from (
+    select r.id, r.email, r.company_name, r.claim_token, r.lang, r.plan_subject, r.plan_body from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
         row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
@@ -69755,11 +69903,13 @@ begin
       from prio p
     ) r
     where r.domain_rk <= 5 and r.company_rk = 1 and r.name_rk = 1
-    order by r.target_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
+    order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
-         replace(replace(v_body, '{{company}}', coalesce(nullif(btrim(e.company_name),''), 'there')),
+  select e.id, btrim(e.email), e.company_name, e.lang, coalesce(e.plan_subject, v_subj),
+         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200)
+         replace(replace(coalesce(e.plan_body, v_body), '{{company}}',
+                         coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), 'there')),
                  '{{link}}', v_site || '/en/portal?t=' || e.claim_token::text)
   from elig e;
 end
@@ -74165,6 +74315,7 @@ AS $function$
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
@@ -83899,6 +84050,7 @@ ALTER TABLE public.marketing_connection_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_duty_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_first_touch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_founder_request ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_gap_recruitment_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_geo_question ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_goal ENABLE ROW LEVEL SECURITY;
@@ -83919,6 +84071,7 @@ ALTER TABLE public.marketing_post_metric ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post_platform ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_post_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_prospect ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_recruitment_source ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_scorecard_report ENABLE ROW LEVEL SECURITY;
@@ -84300,6 +84453,7 @@ CREATE POLICY marketing_connection_check_service_role_only ON public.marketing_c
 CREATE POLICY marketing_duty_run_service_role_only ON public.marketing_duty_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_first_touch_service_role_only ON public.marketing_first_touch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_founder_request_service_role_only ON public.marketing_founder_request AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_gap_recruitment_plan_service_role_only ON public.marketing_gap_recruitment_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_check_service_role_only ON public.marketing_geo_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_geo_question_service_role_only ON public.marketing_geo_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_goal_service_role_only ON public.marketing_goal AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -84319,6 +84473,7 @@ CREATE POLICY marketing_post_metric_service_role_only ON public.marketing_post_m
 CREATE POLICY marketing_post_platform_service_role_only ON public.marketing_post_platform AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_post_variant_service_role_only ON public.marketing_post_variant AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_prospect_service_role_only ON public.marketing_prospect AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_recruitment_source_service_role_only ON public.marketing_recruitment_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_report_service_role_only ON public.marketing_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_review_service_role_only ON public.marketing_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_scorecard_report_service_role_only ON public.marketing_scorecard_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

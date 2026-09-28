@@ -1,7 +1,0 @@
-Committed, NOT applied: founder instruction 1013 item 3 says do not apply before merge. Seat: sales_engineer.
-
-What would move it: this PR merged, AND marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql applied
-(the table it reads), AND #1065's the_supplier_invitation_ends_with_one_question_and_is_always_english.sql applied
-(this file extends its always-English definition; applied before it, #1065 would drop the plan tier). Then apply,
-delete this note and append the file to the END of scripts/sql/MANIFEST.txt, below both, and read
-probe_marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql (must say PROBE OK).
