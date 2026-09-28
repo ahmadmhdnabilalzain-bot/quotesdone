@@ -1,5 +1,0 @@
-Not applied: left for the release operator to apply on merge (marketing, 28 Sep 2026). Apply with
-node scripts/apply_sql.mjs scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating.sql --apply --ddl,
-then delete this note, append the file to the END of scripts/sql/MANIFEST.txt, regenerate the schema mirror, and run
-the _probe.sql beside it (must print PROBE OK). Proven 28 Sep 2026 on htdblwldjkcgjvmqkbeh with this file and its
-probe in one aborted transaction: PROBE OK, nothing left behind. Seat: marketing.
