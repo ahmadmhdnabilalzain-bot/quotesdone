@@ -1,2 +1,0 @@
-Committed, not applied. Seat: accountant. The session that wrote it was told not to apply before merge.
-After merge: node scripts/apply_sql.mjs scripts/sql/a_void_journal_never_moves_a_balance.sql --apply --ddl, expect PROBE OK (forecast cash_now = posted cash, 582.96 on 28 Sep), regenerate the schema mirror, then delete this note and append the file to the END of MANIFEST.txt in one commit.

@@ -66,3 +66,4 @@ begin
   end if;
   raise notice 'PROBE OK: no void line moves a balance; forecast cash = cash position = %', v_fc;
 end $chk$;
+select 'PROBE OK' as verdict;   -- reached only when the check above did not raise
