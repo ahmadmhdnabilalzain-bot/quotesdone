@@ -1,0 +1,10 @@
+Pending, not applied before merge (founder_instruction 1009 upgrade 10). Adds fn_high_stakes_reviewer,
+fn_high_stakes_challenge and fn_high_stakes_clearance over the existing seat_deliberation machine. Applied by the
+release operator (C:/Users/Opera/qd-release.lock) after merge. NOT LIVE even once applied: every reviewer turn needs a
+paid model (the model hold is on) and only marketing -> ceo has a seat_deliberation_ceiling row, so the other pairs
+hold as pair_ceiling; the clearance says 'held' and the decision waits. No decision path calls
+challengeBeforeDeciding yet (supabase/functions/_shared/high_stakes_challenge.ts); wiring pricing, campaign launch,
+supplier choice and refund paths is the follow-up once the hold lifts.
+Measured 16/16 PASS, 29 Sep 2026, 0 rows left. Proved in an aborted transaction on production (stubbed reviewer) by scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs
+and with a stubbed model by supabase/functions/_shared/high_stakes_challenge.test.ts.
+When applied: delete this note and append the .sql to the END of MANIFEST.txt. Seat: it_engineer.
