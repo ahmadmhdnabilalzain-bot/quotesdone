@@ -130,18 +130,27 @@ function openFinding(pr, file, output) {
 
 function drift(DRY, campaign) {
   const check = () => node(['scripts/checks/canonical_routine_manifest.mjs', '--all']);
-  const first = check();
-  const files = driftFiles(first.out);
+  // A drifting file can also define routines a LATER file owns, so applying it resurrects their old
+  // bodies (29 Sep 2026: the daily-supplier-list file brought back fn_invite_ramp and
+  // fn_supplier_campaign_next_list). Apply in MANIFEST order and re-check until nothing moves:
+  // the later owner then re-lands in the next pass.
+  const manifest = existsSync('scripts/sql/MANIFEST.txt') ? readFileSync('scripts/sql/MANIFEST.txt', 'utf8').split(/\r?\n/) : [];
+  const pos = (f) => { const i = manifest.indexOf(f); return i < 0 ? Infinity : i; };
+  let files = driftFiles(check().out);
   log(`drift: ${files.length} canonical file(s) not deployed${files.length ? ': ' + files.join(', ') : ''}`);
-  let applied = 0;
-  for (const f of files) {
-    if (!existsSync(f)) { log(`  ${f}: not on disk, skipped`); continue; }
-    if (campaign && offHoursOnly(readFileSync(f, 'utf8'))) { log(`  ${f}: off-hours file, campaign hours, skipped`); continue; }
-    if (DRY) { log(`  DRY RUN would apply ${f}`); continue; }
-    const r = node(['scripts/apply_sql.mjs', f, '--apply', '--ddl', '--seat', 'it_engineer']);
-    log(`  apply ${f} -> exit ${r.code}`); if (r.code) log(r.out.slice(-2000)); else applied++;
+  for (let pass = 1; files.length && pass <= 4; pass++) {
+    let applied = 0;
+    for (const f of [...files].sort((a, b) => pos(a) - pos(b))) {
+      if (!existsSync(f)) { log(`  ${f}: not on disk, skipped`); continue; }
+      if (campaign && offHoursOnly(readFileSync(f, 'utf8'))) { log(`  ${f}: off-hours file, campaign hours, skipped`); continue; }
+      if (DRY) { log(`  DRY RUN would apply ${f}`); continue; }
+      const r = node(['scripts/apply_sql.mjs', f, '--apply', '--ddl', '--seat', 'it_engineer']);
+      log(`  apply ${f} -> exit ${r.code}`); if (r.code) log(r.out.slice(-2000)); else applied++;
+    }
+    if (!applied) break;
+    files = driftFiles(check().out);
+    log(`drift re-check (pass ${pass}): ${files.length} file(s) still not deployed${files.length ? ': ' + files.join(', ') : ''}`);
   }
-  if (applied) log(`drift re-check: ${driftFiles(check().out).length} file(s) still not deployed`);
 }
 
 export function prSql(pr, oid) {
