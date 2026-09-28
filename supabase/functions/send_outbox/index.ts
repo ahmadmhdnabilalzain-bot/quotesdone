@@ -265,7 +265,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX });
+          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         // IDEMPOTENCY-KEY AND A DEADLINE (22 Sep 2026, it_engineer, CONN-03). Resend deduplicates on
         // this header for 24 hours, so the one case a claim cannot prevent — the POST left, the answer

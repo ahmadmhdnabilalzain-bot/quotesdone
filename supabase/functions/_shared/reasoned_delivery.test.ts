@@ -397,3 +397,26 @@ Deno.test('casSecrets: nothing read, nothing written', async () => {
   await casSecrets(admin).save('youtube_oauth', 'v1.other');
   assertEquals(writes, []);
 });
+
+// ── e-mail (email_triage, 28 Sep 2026) ──────────────────────────────────────────────────────────────
+const mailIO = () => { const { x, log } = io(false); x.emailReply = (id, text, person) => { log.push(`mail ${id} ${person} ${text}`); return Promise.resolve({ ok: true }); }; return { x, log }; };
+
+Deno.test('e-mail: a held answer, once verified, follows the receipt into the same thread', async () => {
+  const { x, log } = mailIO();
+  const r = { ...answered(null, 'You pay 3% only when you reveal.'), verified: { status: 'agreed' as const, by: 'm', notes: '' } };
+  const d = await deliverReasoned(row('email_triage.reply', 'When do I pay?', { message_id: 42, channel: 'email' }, false), r, x);
+  assertEquals([d.delivered, d.via], [true, 'email']);
+  assertMatch(log[0], /^mail 42 false Hello,\n\nYou pay 3% only when you reveal\./);
+});
+
+Deno.test('e-mail: an unverified answer is not sent; a reasoned request for a person is', async () => {
+  const { x, log } = mailIO();
+  const d1 = await deliverReasoned(row('email_triage.reply', 'q', { message_id: 42, channel: 'email' }, false), answered(null, 'x'), x);
+  assertEquals(d1.delivered, false);
+  const d2 = await deliverReasoned(row('email_triage.needs_a_person', 'let me talk to a human', { message_id: 42, channel: 'email' }), answered('needs_a_person'), x);
+  assertEquals([d2.delivered, d2.via], [true, 'email']);
+  assertMatch(log[0], /^mail 42 true .*member of our team/s);
+  const d3 = await deliverReasoned(row('email_triage.needs_a_person', 'when do I pay', { message_id: 42, channel: 'email' }), answered('no_person'), x);
+  assertEquals(d3.delivered, false);
+  assertEquals(log.length, 1);
+});
