@@ -1,0 +1,7 @@
+Not applied. Written 24 Sep 2026 because OpenRouter re-priced z-ai/glm-5.3-flash to USD 0.045 in / 0.60 out (was 0.15 / 0.50), measured by the_registry_prices_are_the_catalogue_s_prices in CI. It corrects model_registry, model_rate and 12 model_policy rationales, and pins one route. No other model changes, and no ceiling changes (AED 1,600/month; GLM expected spend AED 2.33 -> 1.86).
+Routing, before -> after the new price (enumerated read-only over 82 classes x 5 caps shapes x escalate, and all 6 seats + 3 identity rows on the generic path):
+  sales_engineer catch-all (unmapped fn)   openai/gpt-6-luna -> z-ai/glm-5.3-flash   PINNED to openai/gpt-6-luna (customer/supplier/Arabic-facing)
+  speech_transcription fallback, vision/tools caps without audio   openai/gpt-6-luna -> z-ai/glm-5.3-flash   not pinned: unreachable, every transcription carries audio
+  fn_llm_log could_be_cheaper (advisory flag only)   compares to gpt-6-luna -> compares to GLM
+  every other class and seat: unchanged.
+What moves it: apply with node scripts/apply_sql.mjs scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql --apply --ddl (it must print PROBE OK with columns 1, 1, 0, 3, 0), then delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: it_engineer.
