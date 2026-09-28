@@ -199,6 +199,14 @@
       "probe": { "kind": "marketing", "by": "the Postiz linkedin channel and marketing_connection_check linkedin.via_postiz" },
       "action": "Sign in again with the one-time connect link", "link": "connect-link:linkedin"
     },
+    "tiktok_business": {
+      "what": "TikTok business account comments: read, answered and hidden as the QuotesDone account (publishing stays with Postiz)",
+      "hosts": ["business-api.tiktok.com"],
+      "secrets": ["tiktok_business_token", "tiktok_business_id"],
+      "owner_seat": "marketing", "blast": "agent_facing",
+      "probe": { "kind": "marketing", "by": "the marketing duty social_comments tiktok step: not connected is a named skip, a refused call is the duty's error" },
+      "action": "Store the TikTok business account token and id in app_secrets (tiktok_business_token, tiktok_business_id)"
+    },
     "code_cdns": {
       "what": "modules and model files the edge functions load at boot",
       "hosts": ["esm.sh", "cdn.jsdelivr.net", "deno.land", "huggingface.co"], "secrets": [],

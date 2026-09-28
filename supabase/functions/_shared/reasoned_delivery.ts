@@ -168,6 +168,8 @@ export interface CommentReplayIO {
   ownToken(p: 'youtube' | 'linkedin'): Promise<{ access_token: string } | null>;
   /** metaPageToken(): the Instagram / Facebook page's own token; null = not derivable. */
   metaPageToken(platform: 'facebook' | 'instagram', accountId: string): Promise<string | null>;
+  /** tiktokToken(): the TikTok business account's own token (#898); null = not connected. */
+  tiktokToken?(): Promise<string | null>;
   /** processComment over the live store, which posts every reply and hide with tokenFor(ev). */
   process(tokenFor: (ev: CommentEvent) => Promise<string | null>): Promise<string>;
 }
@@ -182,6 +184,8 @@ export async function replayHeldComment(ev: Pick<CommentEvent, 'platform' | 'acc
     catch (e) { return { ok: false, skipped: ev.platform + ' token refresh failed: ' + String((e as Error)?.message || e).slice(0, 160) }; }
     if (!token) return { ok: false, skipped: ev.platform + ' token missing' };
     tokenFor = () => Promise.resolve(token);
+  } else if (ev.platform === 'tiktok') {
+    tokenFor = () => io.tiktokToken ? io.tiktokToken() : Promise.resolve(null);
   } else {
     // Meta: looked up at the send, exactly as before (a comment the policy ignores never derives a page token).
     tokenFor = (e) => io.metaPageToken(e.platform as 'facebook' | 'instagram', e.accountId);
@@ -339,6 +343,8 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       return await replayHeldComment(ev, {
         ownToken: (p) => accessToken(f, p, seams.master ?? (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''), secrets.sec, secrets.save),
         metaPageToken: (p, accountId) => metaPageToken(admin, f, p, accountId),
+        // TikTok (#898): the business account's own token, as the marketing duty uses it; replies post AS that account.
+        tiktokToken: async () => String((await admin.from('app_secrets').select('value').eq('key', 'tiktok_business_token').maybeSingle()).data?.value ?? '').trim() || null,
         // deno-lint-ignore no-explicit-any
         process: (tokenFor) => processComment(adminStore(admin, f, tokenFor, Deno.env.get('SUPABASE_URL') + '/functions/v1/ai_gateway'), ev, cls as any),
       });
