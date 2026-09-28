@@ -44,6 +44,14 @@
       "probe": { "kind": "covered", "by": "resilience_ping deliveryCanary: a daily mail to Resend's bounce sink must come back through resend_webhook" },
       "action": "Open Webhooks in Resend and check the endpoint is enabled", "link": "https://resend.com/webhooks"
     },
+    "inbox_placement_seeds": {
+      "what": "the morning inbox placement check reads, read-only, which folder the day's seed invitation landed in: the founder's Gmail through the Gmail API (the Google client the YouTube connection already uses, plus its own gmail.readonly refresh token) and his Microsoft 365 mailbox through Microsoft Graph Mail.Read",
+      "hosts": ["gmail.googleapis.com", "graph.microsoft.com", "login.microsoftonline.com"],
+      "secrets": ["gmail_seed_refresh_token", "ms_graph_tenant_id", "ms_graph_client_id", "ms_graph_client_secret", "ms_graph_seed_refresh_token"],
+      "owner_seat": "it_engineer", "blast": "customer_facing",
+      "probe": { "kind": "covered", "by": "resilience_ping inboxPlacement: a mailbox that cannot be read by the window's start is verdict 'unread', which holds the batch and files deliverability:inbox_placement" },
+      "action": "Store a Gmail refresh token (scope gmail.readonly) as app_secrets.gmail_seed_refresh_token and the Microsoft Graph app's tenant, client id and secret as ms_graph_tenant_id / ms_graph_client_id / ms_graph_client_secret", "link": "https://console.cloud.google.com/apis/credentials"
+    },
     "twilio": {
       "what": "WhatsApp, SMS and the account every Twilio product bills to",
       "hosts": ["api.twilio.com", "content.twilio.com", "monitor.twilio.com"],
@@ -191,6 +199,15 @@
       "self_fix": "the access token is refreshed from the refresh token",
       "action": "Sign in again with the one-time connect link", "link": "connect-link:youtube"
     },
+    "google_postmaster": {
+      "what": "Gmail Postmaster Tools for quotesdone.com: spam rate, domain reputation, SPF/DKIM/DMARC (IT duty 'postmaster', daily)",
+      "hosts": ["gmailpostmastertools.googleapis.com", "oauth2.googleapis.com"],
+      "secrets": ["google_postmaster_refresh_token", "google_oauth_client_id", "google_oauth_client_secret"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "duty:postmaster (fn_it_postmaster_record) files duty:postmaster:unreadable:<domain> once and holds it when the token is missing or refused" },
+      "action": "Grant the postmaster.readonly consent with the Google account that verified quotesdone.com and store the refresh token as app_secrets.google_postmaster_refresh_token",
+      "link": "https://postmaster.google.com/managedomains"
+    },
     "linkedin": {
       "what": "the LinkedIn company page (published through Postiz; the direct API only for comments)",
       "hosts": ["api.linkedin.com", "www.linkedin.com"],
@@ -198,6 +215,14 @@
       "owner_seat": "marketing", "blast": "agent_facing",
       "probe": { "kind": "marketing", "by": "the Postiz linkedin channel and marketing_connection_check linkedin.via_postiz" },
       "action": "Sign in again with the one-time connect link", "link": "connect-link:linkedin"
+    },
+    "tiktok_business": {
+      "what": "TikTok business account comments: read, answered and hidden as the QuotesDone account (publishing stays with Postiz)",
+      "hosts": ["business-api.tiktok.com"],
+      "secrets": ["tiktok_business_token", "tiktok_business_id"],
+      "owner_seat": "marketing", "blast": "agent_facing",
+      "probe": { "kind": "marketing", "by": "the marketing duty social_comments tiktok step: not connected is a named skip, a refused call is the duty's error" },
+      "action": "Store the TikTok business account token and id in app_secrets (tiktok_business_token, tiktok_business_id)"
     },
     "code_cdns": {
       "what": "modules and model files the edge functions load at boot",
@@ -246,7 +271,7 @@
     "_about": "Secrets and env the company mints itself or plain settings stored beside the credentials. Nothing outside answers for them, so there is nothing external to probe; internal credentials are rotated by fn_it_credential_rotate.",
     "prefixes": { "cred_": "an internal credential between our own functions (internal_credential)" },
     "secrets": {
-      "admin_emails": "setting", "admin_mfa_phone": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
+      "admin_emails": "setting", "admin_mfa_phone": "setting", "email_triage_enabled": "setting", "invite_preheader": "setting", "ceo_model_slot": "setting", "compliance_ref": "setting",
       "customer_terms_label": "setting", "customer_terms_version": "setting", "supplier_terms_html": "setting", "supplier_terms_label": "setting",
       "supplier_terms_version": "setting", "terms_version": "setting", "daily_send_cap": "setting", "drawing_boq_confirm_enabled": "setting",
       "email_asset_public_base": "setting", "email_enabled": "setting", "email_from_info": "setting", "email_from_supplier": "setting",

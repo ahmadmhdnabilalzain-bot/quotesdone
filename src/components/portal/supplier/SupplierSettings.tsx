@@ -17,6 +17,7 @@
 // reads; and the fetch is the portal's shared call() rather than a second copy.
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
+import { firstRead } from './tabPrefetch';
 import { WhatsAppChoice } from '../WhatsAppChoice';
 import type { WaState } from '../whatsappChoiceText';
 import { Ltr } from '@/lib/Ltr';
@@ -125,9 +126,11 @@ export default function SupplierSettings({ token, lang = 'en', onLang }: { token
   // useBusy().run(), which guards a PRESS. This is a first-load region fetch that never goes
   // through run(), which is exactly how a tab reached "still busy" past a 30 s ceiling.
   // The live-ref shape is SupplierInsightsSummary.tsx's, so the two read the same way.
+  const first = React.useRef(true);
   const load = React.useCallback(() => {
     setErr('');
-    return call('supplier_api', { action: 'settings' }, token).then((j) => {
+    const f = first.current; first.current = false;
+    return (f ? firstRead(token, 'sup_tab:settings') : call('supplier_api', { action: 'settings' }, token)).then((j) => {
       if (!live.current) return;
       if (j && j.ok) {
         const x: Settings = j.settings || {};

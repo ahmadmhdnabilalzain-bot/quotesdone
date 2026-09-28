@@ -69,8 +69,12 @@ export async function sanctionedEmail(admin: Admin, email: string | null | undef
   // Two plain equality reads rather than one .or() string: an address is interpolated into a
   // PostgREST filter expression there, and a filter grammar that takes a stranger's input as
   // syntax is the shape of an injection, not a shortcut.
-  const a = await admin.from('sanctions_ban').select('lead_id').eq('account_email', e).limit(1);
+  // Issued together (28 Sep 2026): every supplier_api request waited on the two in turn. Both are
+  // still must()-checked, so an unreadable table refuses exactly as before.
+  const [a, c] = await Promise.all([
+    admin.from('sanctions_ban').select('lead_id').eq('account_email', e).limit(1),
+    admin.from('sanctions_ban').select('lead_id').eq('contact_email', e).limit(1),
+  ]);
   if (must<Array<unknown>>(a, 'by account e-mail').length) return true;
-  const c = await admin.from('sanctions_ban').select('lead_id').eq('contact_email', e).limit(1);
   return must<Array<unknown>>(c, 'by contact e-mail').length > 0;
 }

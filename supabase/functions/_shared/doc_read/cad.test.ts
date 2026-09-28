@@ -117,3 +117,48 @@ Deno.test('redactDxf on a BINARY DXF: the supplier gets a redacted ASCII DXF wit
 Deno.test('MTEXT formatting codes', () => {
   assertEquals(stripMtext('{\\H2.5;\\C1;A}\\PB\\LC\\l \\S1^2; %%d'), 'A\nBC 1/2 °');
 });
+
+// Review of #967 (24 Sep 2026): the legend window scaled with the heading's height, so a 250 mm LEGEND heading
+// opened a 10 m x 20 m window and five real detectors beside CORRIDOR tags were dropped as "samples". The window
+// is now bounded in real units, a sample needs a legend-style description, and it must stand in the column.
+Deno.test('legend samples: a big heading does not swallow real detectors beside room tags', async () => {
+  const ins = (x: number, y: number): [number, string | number][] => [[0, 'INSERT'], [8, 'E-FIRE'], [2, 'SD'], [10, x], [20, y], [30, 0]];
+  const txt = (x: number, y: number, h: number, s: string): [number, string | number][] => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  const real: [number, number][] = [[2000, -2500], [4500, -4000], [7000, -6000], [3000, -9000], [8500, -12000]];
+  // And one 5 m below the heading whose neighbour even reads like a legend entry: 4.6 m past the legend's last row
+  // (more than a row's gap), it is work.
+  const described: [number, number] = [300, -5000];
+  const src = dxfFrom([
+    [0, 'SECTION'], [2, 'HEADER'], [9, '$INSUNITS'], [70, 4], [0, 'ENDSEC'],
+    [0, 'SECTION'], [2, 'ENTITIES'],
+    ...txt(0, 0, 250, 'LEGEND'),
+    ...ins(100, -400), ...txt(500, -450, 160, 'SD - SMOKE DETECTOR'),
+    ...real.flatMap(([x, y]) => [...ins(x, y), ...txt(x + 400, y - 50, 160, 'CORRIDOR')]),
+    ...ins(described[0], described[1]), ...txt(described[0] + 400, described[1] - 50, 160, 'SD - NORTH WALL'),
+    [0, 'ENDSEC'], [0, 'EOF'],
+  ]);
+  const r = await readDxf(src, { filename: 'plan.dxf', depth: 0 });
+  if (!r.ok) throw new Error(r.error);
+  assertEquals(r.quantities.find((q) => q.description === 'block SD')?.qty, 6);
+  assert(r.notes.some((n) => n.startsWith('1 block insert(s) drawn as legend samples')), r.notes.join(' | '));
+});
+
+// Second review of #967 (25 Sep 2026): a hard 3 m stop under the heading counted the last rows of a real legend as
+// work - a 10-row legend at 600 mm pitch (6 mm on paper at 1:100) runs 6 m down. The window now walks down the
+// legend's column while its description rows continue, and stops at the first gap wider than a row.
+Deno.test('legend samples: a 10-row legend at 400 and 600 mm pitch is set aside whole; the plan counts 4 of each', async () => {
+  const ins = (b: string, x: number, y: number): [number, string | number][] => [[0, 'INSERT'], [8, 'E-DEV'], [2, b], [10, x], [20, y], [30, 0]];
+  const txt = (x: number, y: number, h: number, s: string): [number, string | number][] => [[0, 'TEXT'], [8, 'A-ANNO'], [10, x], [20, y], [30, 0], [40, h], [1, s]];
+  const syms = ['SD', 'HD', 'MCP', 'SKT', 'DSKT', 'SW1', 'SW2', 'DL', 'EL', 'FCU'];
+  for (const pitch of [400, 600]) {
+    const src = dxfFrom([[0, 'SECTION'], [2, 'HEADER'], [9, '$INSUNITS'], [70, 4], [0, 'ENDSEC'], [0, 'SECTION'], [2, 'ENTITIES'],
+      ...txt(30000, 0, 350, 'LEGEND'),
+      ...syms.flatMap((s, i) => [...ins(s, 30100, -600 - i * pitch), ...txt(30600, -650 - i * pitch, 200, `${s} - DESCRIPTION ${i}`)]),
+      ...syms.flatMap((s, i) => [0, 1, 2, 3].flatMap((k) => ins(s, 2000 + k * 3000, 2000 + i * 1500))),
+      [0, 'ENDSEC'], [0, 'EOF']]);
+    const r = await readDxf(src, { filename: 'plan.dxf', depth: 0 });
+    if (!r.ok) throw new Error(r.error);
+    assertEquals(syms.map((s) => r.quantities.find((q) => q.description === 'block ' + s)?.qty), syms.map(() => 4), `pitch ${pitch} mm`);
+    assert(r.notes.some((n) => n.startsWith('10 block insert(s) drawn as legend samples')), r.notes.join(' | '));
+  }
+});
