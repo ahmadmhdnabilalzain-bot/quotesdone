@@ -1,0 +1,78 @@
+{
+  "trade": "metal_packaging",
+  "entries": [
+    {
+      "id": "metal_packaging:spec-checklist",
+      "topic": "Metal packaging - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For metal packaging (trade code metal_packaging only), every quoted line must state: Container type and capacity; Metal and thickness; Internal lacquer; Closure type; Printing; Food-contact declaration; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط العبوات المعدنية (رمز النشاط metal_packaging فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع العبوة وسعتها؛ المعدن وسماكته؛ الطلاء الداخلي؛ نوع الإغلاق؛ الطباعة؛ إقرار ملامسة الأغذية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Container type and capacity",
+        "Metal and thickness",
+        "Internal lacquer",
+        "Closure type",
+        "Printing",
+        "Food-contact declaration",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.gso.org.sa/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "metal_packaging:uae-standards-and-approvals",
+      "topic": "Metal packaging - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to metal packaging in the UAE: MoIAT (Ministry of Industry and Advanced Technology, which took over the former ESMA functions) lists products conformity certificates, national conformity marks, efficiency labels, UAE RoHS and Halal certification among its services, and separates regulated from non-regulated products. GSO (GCC Standardization Organization) develops Gulf standards, and products under GCC technical regulations can carry the G-Mark registered by Gulf notified bodies. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for metal packaging. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط العبوات المعدنية في الإمارات: تدرج وزارة الصناعة والتكنولوجيا المتقدمة (التي تولت مهام هيئة الإمارات للمواصفات والمقاييس سابقاً) ضمن خدماتها شهادات مطابقة المنتجات، وعلامات المطابقة الوطنية، وملصقات الكفاءة، ونظام تقييد المواد الخطرة (UAE RoHS)، وشهادات الحلال، وتفرّق بين المنتجات الخاضعة للتنظيم وغير الخاضعة له. تُعد هيئة التقييس لدول مجلس التعاون الخليجي المواصفات الخليجية، ويمكن للمنتجات الخاضعة للوائح الفنية الخليجية أن تحمل علامة المطابقة الخليجية (G-Mark) المسجلة عبر جهات تقويم المطابقة الخليجية المعتمدة. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط العبوات المعدنية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for metal packaging. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.gso.org.sa/en/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on metal packaging?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالعبوات المعدنية؟",
+      "expected_entry_ids": [
+        "metal_packaging:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a metal packaging supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد العبوات المعدنية؟",
+      "expected_entry_ids": [
+        "metal_packaging:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "metal_packaging:spec-checklist"
+    ],
+    "added": [
+      "metal_packaging:spec-checklist",
+      "metal_packaging:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}
