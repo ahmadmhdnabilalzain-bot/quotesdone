@@ -39,8 +39,9 @@ test('the list and the candidates read the set, not the per-row call', { skip: !
 });
 
 // REVIEW OF #1051 AND #1012 (29 Sep 2026): both PRs copied an OLD body of fn_supplier_invite_candidates (MANIFEST
-// 1757: Arabic copy, /ar/portal links) instead of the canonical always-English body (MANIFEST 1824, #964), so
-// applying either would have brought Arabic invitations back, and each would have overwritten the other.
+// 1757: Arabic copy, /ar/portal links) instead of the canonical always-English body (then MANIFEST 1824, #964; since
+// #1070, MANIFEST 1835), so applying either would have brought Arabic invitations back, and each would have
+// overwritten the other.
 const ROOT = new URL('../../', import.meta.url);
 const read = (p) => readFileSync(new URL(p, ROOT), 'utf8');
 const code = (s) => s.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
@@ -68,6 +69,24 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
     assert.doesNotMatch(fn, /invite_body_ar|invite_subject_ar|then 'ar'|\/ar\/|'\/' \|\| e\.lang/, `${f}: reads or chooses the Arabic invitation`);
     assert.match(fn, /'\{\{link\}\}', (public\.fn_supplier_invite_link\(v_site, e\.claim_token, e\.id\)|v_site \|\| '\/en\/portal\?t=')/,
       `${f}: {{link}} is not the English portal link`);
+  }
+});
+
+// RE-REVIEW (29 Sep 2026): #1070 moved the canonical body (MANIFEST 1835) while this PR was open, so a copy of 1824
+// was stale again. A pending redefinition must be the LATEST applied body with only this PR's two lines changed.
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the set read and the ref\'d link changed', () => {
+  const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
+  const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
+  const canon = lines(canonFile);
+  for (const f of pendingSql.filter((p) => defines('fn_supplier_invite_candidates').test(code(read(p))))) {
+    const mine = lines(f);
+    const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
+    const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim());
+    assert.deepEqual(gone, ["where public.fn_supplier_invite_eligible(l)",
+      "'{{link}}', v_site || '/en/portal?t=' || e.claim_token::text)"], `${f} is not ${canonFile} with two lines changed`);
+    assert.equal(added.length, 2, `${f} adds more than two lines to ${canonFile}: ${added.join(' | ')}`);
+    assert.match(added[0], /^where l\.id in \(select e\.id from public\.fn_supplier_invite_eligible_ids\(\) e\(id\)\)/);
+    assert.match(added[1], /^'\{\{link\}\}', public\.fn_supplier_invite_link\(v_site, e\.claim_token, e\.id\)\)/);
   }
 });
 

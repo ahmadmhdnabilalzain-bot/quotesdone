@@ -24,7 +24,10 @@
 -- which chose the Arabic copy and an /ar/portal link for an Arabic-locale lead, instead of the canonical
 -- the_supplier_invitation_ends_with_one_question_and_is_always_english.sql (MANIFEST 1824, #964). Applying
 -- either would have brought Arabic invitations back, and each would have overwritten the other. So:
---   * fn_supplier_invite_candidates is the 1824 body, byte for byte, with exactly two lines changed:
+--   * fn_supplier_invite_candidates is main's CURRENT canonical body,
+--     the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql (MANIFEST 1835, #1070: marketing's
+--     gap-plan ordering and trade variants, and no Arabic-script company name in the English greeting), byte for
+--     byte except exactly two lines (re-review, 29 Sep 2026):
 --       - the eligibility filter reads fn_supplier_invite_eligible_ids() (#1051, the speed-up);
 --       - {{link}} is built by fn_supplier_invite_link (#1012, the ref), which is always /en/portal and carries
 --         utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-<id>, so a supplier
@@ -42,7 +45,7 @@
 --
 -- THE PROBE at the foot RAISES on any failure (review of #1051), so a failed apply takes this file's DDL back
 -- with it: set rule = row rule lead for lead, every candidate English, every candidate link /en/portal with its
--- ref, and every candidate body ending with the invitation's one question.
+-- ref, no Arabic script in any subject or body, and every default-copy body ending with the invitation's one question.
 -- prevented by: scripts/checks/the_invitation_pool_set_states_the_row_rule.test.mjs
 
 create or replace function public.fn_supplier_invite_eligible_ids()
@@ -156,12 +159,12 @@ begin
   ),
   touched_d as materialized (select distinct dkey from keyed where touched),
   touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
+  -- instr 1013: marketing's ranking of the trades below ten suppliers, with each trade's English variant
+  plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
   cand as (
     select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
            l.invite_trades, l.emirate, k.dkey, k.nkey,
-           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4: "invitations always in English"). Until this file
-           -- a lead with an Arabic locale or an Arabic company name was given invite_body_ar: 116 of 6,863
-           -- eligible leads on 24 Sep 2026.
+           -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4; #1065): suppliers are always written in English.
            'en'::text as lang
     from leads l join keyed k on k.id = l.id
     where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
@@ -172,10 +175,12 @@ begin
   ),
   prio as (
     select c.id, c.email, c.company_name, c.claim_token, c.email_domain, c.lang, c.dkey, c.nkey,
-      -- 23 Sep 2026 (marketing.recruitment_funnel): a lead in a trade the sales engineer marked for recruitment
-      -- (public.supply_gap, status 'recruit') goes first. Trade codes compared for equality; no word is read.
+      -- 23 Sep 2026: a lead in a trade the sales engineer marked for recruitment (supply_gap 'recruit') goes first;
+      -- 29 Sep 2026 (instr 1013): then a lead in any trade marketing planned, by the plan's rank.
       case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
-                          and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0 else 1 end as target_rank,
+                          and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
+           when pl.rank is not null then 1 else 2 end as target_rank,
+      coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
       coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
                  where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
       case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
@@ -184,9 +189,12 @@ begin
               'support','hello','marketing','general','accounts','reception','careers','hr')
            then 1 else 0 end as role_rank
     from cand c
+    left join lateral (select p.rank, p.invite_subject, p.invite_body from plans p
+                        where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
+                        order by p.rank limit 1) pl on true
   ),
   elig as (
-    select r.id, r.email, r.company_name, r.claim_token, r.lang from (
+    select r.id, r.email, r.company_name, r.claim_token, r.lang, r.plan_subject, r.plan_body from (
       select p.*,
         case when p.pdomain='~none' then 1 else 0 end as is_none,
         row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
@@ -198,15 +206,18 @@ begin
       from prio p
     ) r
     where r.domain_rk <= 5 and r.company_rk = 1 and r.name_rk = 1
-    order by r.target_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
+    order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
     limit greatest(coalesce(p_limit, 0), 0)
   )
-  select e.id, btrim(e.email), e.company_name, e.lang, v_subj,
-         replace(replace(v_body, '{{company}}', coalesce(nullif(btrim(e.company_name),''), 'there')),
+  select e.id, btrim(e.email), e.company_name, e.lang, coalesce(e.plan_subject, v_subj),
+         -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200)
+         replace(replace(coalesce(e.plan_body, v_body), '{{company}}',
+                         coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), 'there')),
                  '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))   -- English, with its ref (see header)
   from elig e;
 end
 $function$;
+
 revoke execute on function public.fn_supplier_invite_candidates(integer) from public, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_campaign_next_list(p_after date DEFAULT NULL::date)
@@ -271,13 +282,17 @@ begin
   end if;
 
   select count(*),
-         count(*) filter (where c.lang is distinct from 'en'),
+         -- not English: another language, or Arabic script anywhere in the letter (#1070's greeting guard included)
+         count(*) filter (where c.lang is distinct from 'en' or coalesce(c.subject, '') || coalesce(c.body, '') ~ '[؀-ۿ]'),
          count(*) filter (where coalesce(c.body, '') !~ ('/en/portal[?]t=[0-9a-f-]{36}&utm_source=invite&utm_medium=email'
                                                          || '&utm_campaign=supplier_invite&utm_content=lead-' || c.lead_id || '(\s|$)')
                              or coalesce(c.body, '') ~ '/ar/portal'),
-         count(*) filter (where rtrim(coalesce(c.body, '')) not like '%which trades does your company cover?')
+         -- the stored default copy ends with #964's question; a trade variant from marketing's plan (#1070) is not
+         -- held to it here (send_outbox appends the question at send time to any English invitation without one)
+         count(*) filter (where c.subject is not distinct from (select value from public.app_secrets where key = 'invite_subject')
+                            and rtrim(coalesce(c.body, '')) not like '%which trades does your company cover?')
     into v_n, v_not_en, v_bad_link, v_no_q
-    from public.fn_supplier_invite_candidates(50) c;
+    from public.fn_supplier_invite_candidates(200) c;   -- 200: #1070 found 11 Arabic names in the first 200
   if v_not_en > 0 then raise exception 'PROBE FAILED: % of % candidate(s) are not English', v_not_en, v_n; end if;
   if v_bad_link > 0 then raise exception 'PROBE FAILED: % of % candidate link(s) are not /en/portal with their ref', v_bad_link, v_n; end if;
   if v_no_q > 0 then raise exception 'PROBE FAILED: % of % candidate body(ies) do not end with the question', v_no_q, v_n; end if;
