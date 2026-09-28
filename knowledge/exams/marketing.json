@@ -1,0 +1,160 @@
+{
+  "seat": "marketing",
+  "standard": "founder_instruction 889, 893, 894: professional knowledge for the seat's own work",
+  "items": [
+    {
+      "id": "marketing-exam-01",
+      "checklist": "MKT-PRO",
+      "q_en": "Should the site redirect Arabic-speaking visitors automatically to the Arabic pages?",
+      "q_ar": "هل يعيد الموقع توجيه الزوار الناطقين بالعربية تلقائياً إلى الصفحات العربية؟",
+      "expected_entry_ids": [
+        "marketing:hreflang-bilingual-seo"
+      ],
+      "expected_facts": [
+        "Do not redirect visitors automatically"
+      ]
+    },
+    {
+      "id": "marketing-exam-02",
+      "checklist": "MKT-PRO",
+      "q_en": "What must hreflang annotations between English and Arabic pages look like?",
+      "q_ar": "كيف يجب أن تكون وسوم hreflang بين الصفحات الإنجليزية والعربية؟",
+      "expected_entry_ids": [
+        "marketing:hreflang-bilingual-seo"
+      ],
+      "expected_facts": [
+        "reciprocal",
+        "x-default"
+      ]
+    },
+    {
+      "id": "marketing-exam-03",
+      "checklist": "MKT-PRO",
+      "q_en": "What are the Core Web Vitals thresholds?",
+      "q_ar": "ما حدود مؤشرات أداء الويب الأساسية؟",
+      "expected_entry_ids": [
+        "marketing:core-web-vitals"
+      ],
+      "expected_facts": [
+        "2.5 seconds",
+        "200 milliseconds",
+        "0.1"
+      ]
+    },
+    {
+      "id": "marketing-exam-04",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we pay a construction blog for a link to our site?",
+      "q_ar": "هل يمكن أن ندفع لمدونة بناء مقابل رابط لموقعنا؟",
+      "expected_entry_ids": [
+        "marketing:digital-pr-link-earning"
+      ],
+      "expected_facts": [
+        "rel=\"sponsored\"",
+        "never pay for a followed link"
+      ]
+    },
+    {
+      "id": "marketing-exam-05",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we get our explainer videos to show in Google search?",
+      "q_ar": "كيف نجعل فيديوهاتنا التعريفية تظهر في بحث جوجل؟",
+      "expected_entry_ids": [
+        "marketing:video-seo"
+      ],
+      "expected_facts": [
+        "VideoObject"
+      ]
+    },
+    {
+      "id": "marketing-exam-06",
+      "checklist": "MKT-PRO",
+      "q_en": "Our reel got views but nobody clicked. Which numbers should we read?",
+      "q_ar": "حقق مقطعنا مشاهدات لكن لم ينقر أحد، أي أرقام نقرأ؟",
+      "expected_entry_ids": [
+        "marketing:short-form-video-metrics"
+      ],
+      "expected_facts": [
+        "hook rate",
+        "link clicks"
+      ]
+    },
+    {
+      "id": "marketing-exam-07",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we know whether our Meta ads actually caused the sign-ups?",
+      "q_ar": "كيف نعرف أن إعلانات ميتا سببت التسجيلات فعلاً؟",
+      "expected_entry_ids": [
+        "marketing:incrementality-lift-and-mmm"
+      ],
+      "expected_facts": [
+        "holdout",
+        "upper bound"
+      ]
+    },
+    {
+      "id": "marketing-exam-08",
+      "checklist": "MKT-PRO",
+      "q_en": "What does Gmail require from our bulk marketing emails?",
+      "q_ar": "ماذا تشترط جيميل على رسائلنا التسويقية الجماعية؟",
+      "expected_entry_ids": [
+        "marketing:lifecycle-onboarding-emails"
+      ],
+      "expected_facts": [
+        "one-click unsubscribe",
+        "0.3%"
+      ]
+    },
+    {
+      "id": "marketing-exam-09",
+      "checklist": "MKT-PRO",
+      "q_en": "How fast should we respond to a supplier who started sign-up?",
+      "q_ar": "بأي سرعة نرد على مورد بدأ التسجيل؟",
+      "expected_entry_ids": [
+        "marketing:lead-scoring-and-speed-to-lead"
+      ],
+      "expected_facts": [
+        "within an hour",
+        "minutes, not days"
+      ]
+    },
+    {
+      "id": "marketing-exam-10",
+      "checklist": "MKT-PRO",
+      "q_en": "How do we measure share of voice against competitors?",
+      "q_ar": "كيف نقيس حصة الصوت مقابل المنافسين؟",
+      "expected_entry_ids": [
+        "marketing:share-of-voice-brand-tracking"
+      ],
+      "expected_facts": [
+        "excess share of voice",
+        "same competitor set"
+      ]
+    },
+    {
+      "id": "marketing-exam-11",
+      "checklist": "MKT-PRO",
+      "q_en": "Can we launch a free first month for suppliers in Dubai right away?",
+      "q_ar": "هل نطلق شهراً أول مجانياً للموردين في دبي فوراً؟",
+      "expected_entry_ids": [
+        "marketing:det-promotion-permits"
+      ],
+      "expected_facts": [
+        "Department of Economy and Tourism",
+        "permit check"
+      ]
+    },
+    {
+      "id": "marketing-exam-12",
+      "checklist": "MKT-PRO",
+      "q_en": "What content belongs at the bottom of the funnel?",
+      "q_ar": "ما المحتوى الذي ينتمي إلى أسفل القمع؟",
+      "expected_entry_ids": [
+        "marketing:messaging-house-and-funnel-content"
+      ],
+      "expected_facts": [
+        "pricing pages"
+      ]
+    }
+  ]
+}
