@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T22:39:45.512Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T22:40:15.908Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -21247,6 +21247,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -21272,16 +21282,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -23914,31 +23914,6 @@ begin
     v := public.fn_ceo_plan_measure('registrations_verified', timestamptz '2026-01-01', p_to);
   when 'reveals_paid_cumulative' then
     v := public.fn_ceo_plan_measure('reveals_paid', timestamptz '2026-01-01', p_to);
-  when 'quotes_received' then
-    -- quotes received on real requests, created in the window
-    select count(*) into v from public.quotes q join public.inquiries i on i.id = q.inquiry_id join public.customers c on c.id = i.customer_id
-     where q.created_at >= p_from and q.created_at < p_to and i.parent_inquiry_id is null
-       and coalesce(i.provenance->>'source', '') not in ('demo_factory', 'e2e')
-       and not (coalesce(c.is_demo, false) or coalesce(c.full_name, '') ilike 'ZZ DEMO%'
-                or coalesce(c.email, '') ilike '%@example.invalid' or coalesce(c.phone, '') like '+9715000000%');
-  when 'costs_aed' then
-    -- company costs booked in the expense ledger in the window (Dubai dates), in AED at the fixed USD peg 3.6725.
-    -- A currency other than AED or USD has no fixed rate here: the reading is then not measurable, never understated.
-    select case when count(*) filter (where currency not in ('AED', 'USD')) > 0 then null
-                else coalesce(sum(case currency when 'AED' then amount else amount * 3.6725 end), 0) end
-      into v from public.expense_entries
-     where charged_on >= (p_from at time zone 'Asia/Dubai')::date
-       and charged_on <= ((p_to - interval '1 microsecond') at time zone 'Asia/Dubai')::date;
-  when 'uptime_pct' then
-    -- the platform's own health checks in the window; under 20 checks is not a rate
-    select count(*) filter (where ok), count(*) into v_num, v_den from public.health_checks where created_at >= p_from and created_at < p_to;
-    v := case when v_den >= 20 then round(100.0 * v_num / v_den, 2) end;
-  when 'duties_on_clock_pct' then
-    -- enabled seat duties whose last success is within twice their interval, at p_to
-    select count(*) filter (where last_ok_at >= p_to - 2 * every), count(*) into v_num, v_den from public.seat_duty where enabled;
-    v := case when v_den > 0 then round(100.0 * v_num / v_den, 1) end;
-  when 'it_findings_open' then
-    select count(*) into v from public.it_engineer_finding where closed_at is null and started_at < p_to;
   else
     v := public.fn_ceo_plan_measure(p_key, p_from, p_to);   -- raises on an unknown key
   end case;
@@ -30020,7 +29995,7 @@ begin
    where task_id = v_task;
   if v_hid is not null and exists (select 1 from public.agent_actions where id = v_hid and status = 'pending') then
     perform set_config('qd.handoff_closer', 'ceo', true);
-    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('kind', 'ceo.root_cause', 'verified_by', 'ceo', 'root_cause', v_choice, 'fields', v_f, 'held_id', p_id));
+    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('verified_by', 'ceo', 'root_cause', v_choice, 'fields', v_f, 'held_id', p_id));
     perform set_config('qd.handoff_closer', '', true);
   end if;
   -- the other side reads it on a model of another family: the CEO for a seat's answer, the accountant for the CEO's own
@@ -30460,25 +30435,19 @@ declare v_local timestamp := p_at at time zone 'Asia/Dubai'; v_day date := v_loc
   p record; v_exp numeric; v_act numeric; v_gap numeric; v_status text; v_task bigint; v_hid bigint; v_prev_cum numeric;
   n_miss int := 0; n_new int := 0; n_closed int := 0; v_out jsonb := '[]'::jsonb; c_id bigint;
 begin
-  select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
+  select id into c_id from public.target_contract where contract_key = 'REVEAL_FEES_BASE_PATH_BY_2027_08_31' and status = 'active';
   if c_id is null then return jsonb_build_object('day', v_day, 'contract', null); end if;
 
   for p in select * from public.target_path where contract_id = c_id and month = v_m0 order by metric_key loop
     v_act := public.fn_ambition_measure(p.metric_key, v_from, p_at);
     if p.kind = 'cumulative' then
-      -- the day's line starts from last month's TARGET; a real shortfall is carried by the month directive (still_needed)
       select coalesce(max(value), 0) into v_prev_cum from public.target_path where contract_id = c_id and metric_key = p.metric_key and month < v_m0;
       v_exp := round(v_prev_cum + (p.value - v_prev_cum) * v_frac, 1);
-    elsif p.kind = 'month' and p.direction = 'min' then v_exp := round(p.value * v_frac, 1);
-    else v_exp := p.value; end if;   -- a ceiling (direction max) is the whole month's: costs are lumpy, never pro-rated
+    elsif p.kind = 'month' then v_exp := round(p.value * v_frac, 1);
+    else v_exp := p.value; end if;
 
     v_gap := case when v_exp > 0 and v_act is not null then round(100.0 * (v_act - v_exp) / v_exp, 1) end;
-    v_status := case when p.direction = 'max' then
-                       case when v_act is null then 'not_measurable'
-                            when v_act <= v_exp then 'on_track'
-                            when v_gap <= p.tolerance_pct then 'within_tolerance'
-                            else 'miss' end
-                     when p.kind in ('month', 'cumulative') and extract(day from v_local) < 7 then 'too_early'
+    v_status := case when p.kind in ('month', 'cumulative') and extract(day from v_local) < 7 then 'too_early'
                      when v_exp is null or v_exp <= 0 then 'no_target'
                      when v_act is null then 'not_measurable'
                      when v_act >= v_exp then 'on_track'
@@ -30494,9 +30463,8 @@ begin
       n_miss := n_miss + 1;
       if v_task is null then
         v_task := public.fn_ceo_task_open(format('Target miss: %s (%s) %s', p.metric_key, p.owner_seat, to_char(v_m0, 'Mon YYYY')),
-          format(E'On %s %s read %s against %s (%s) on the founder''s year-one path (%s%% gap, tolerance %s%%).\nOwner: %s. The root-cause question went to the owner; this task closes when the measure is back within tolerance.',
-                 v_day, p.metric_key, v_act, v_exp, case when p.direction = 'max' then 'the month''s ceiling' else 'expected by today' end,
-                 v_gap, p.tolerance_pct, p.owner_seat));
+          format(E'On %s %s read %s against %s expected by today on the base-case path (%s%% gap, tolerance %s%%).\nOwner: %s. The root-cause question went to the owner; this task closes when the measure is back within tolerance.',
+                 v_day, p.metric_key, v_act, v_exp, v_gap, p.tolerance_pct, p.owner_seat));
         n_new := n_new + 1;
         if p.owner_seat = 'ceo' then
           perform public.fn_ceo_root_cause_ask('ceo', v_task, jsonb_build_object('metric', p.metric_key, 'day', v_day, 'expected', v_exp,
@@ -45051,24 +45019,52 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_latency_slo()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare x record; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_site numeric; v_site_n int;
+declare x record; j jsonb; v_owner text; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb;
+        v_site numeric; v_site_n int;
 begin
   for x in
-    select substring(r.agent from 4) fn, max((r.counts->>'budget_ms')::int) budget, count(*) n,
-           percentile_cont(0.95) within group (order by (r.counts->>'ms')::numeric) p95
-      from public.agent_runs r
-     where r.agent like 'fn:%' and r.started_at > now() - interval '24 hours'
-       and r.counts ? 'budget_ms' and r.status = 'ok'
-       and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
-       and coalesce(r.counts->>'region', '') not like 'us-%'
-     group by 1
+    with r as (
+      select substring(r.agent from 4) fn, r.started_at, (r.counts->>'ms')::numeric ms,
+             (r.counts->>'budget_ms')::int budget,
+             r.status, (coalesce((r.counts->>'http')::int, 0) >= 500 or r.status = 'error') srv_err
+        from public.agent_runs r
+       where r.agent like 'fn:%' and r.started_at > now() - interval '30 days'
+         and r.counts ? 'budget_ms'
+         and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
+         and coalesce(r.counts->>'region', '') not like 'us-%')
+    select fn, max(budget) budget,
+           count(*) filter (where d1 and status = 'ok') n,
+           percentile_cont(0.95) within group (order by ms) filter (where d1 and status = 'ok') p95,
+           count(*) filter (where d1) runs_24h,
+           count(*) filter (where d1 and (srv_err or ms > budget)) bad_24h,
+           count(*) runs_30d,
+           count(*) filter (where srv_err or ms > budget) bad_30d,
+           count(*) filter (where srv_err) err_30d,
+           percentile_cont(0.95) within group (order by ms) p95_30d
+      from (select r.*, r.started_at > now() - interval '24 hours' d1 from r) z
+     group by fn
   loop
-    v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget);
-    if x.n >= 30 and x.p95 > x.budget then
+    j := public.fn_it_slo_judge(x.runs_24h::int, x.p95, x.budget, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
+    v_owner := coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer');
+    v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget,
+      'runs_30d', x.runs_30d, 'availability_30d', j->'availability',
+      'error_rate_30d', case when x.runs_30d > 0 then round(x.err_30d::numeric / x.runs_30d, 4) end,
+      'p95_30d_ms', round(x.p95_30d), 'error_budget_spent', j->'budget_spent', 'burn_rate_24h', j->'burn_rate_24h');
+    if (j->>'p95_breach')::boolean then
       v_items := v_items || jsonb_build_object('item', x.fn, 'subject', x.fn, 'blast', 'customer_facing', 'affected', x.n,
-        'owner_seat', coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer'),
-        'title', x.fn || ' answered in ' || round(x.p95) || ' ms at p95 over the last 24 h (' || x.n || ' runs); the budget is ' || x.budget || ' ms',
+        'owner_seat', v_owner,
+        'title', x.fn || ' answered in ' || round(x.p95) || ' ms at p95 over the last 24 h (' || x.n || ' runs'
+                 || case when (j->>'small_sample')::boolean then ', a small sample' else '' end
+                 || '); the budget is ' || x.budget || ' ms',
         'evidence', jsonb_build_object('p95_ms', round(x.p95), 'runs', x.n, 'budget_ms', x.budget, 'window', '24 hours'));
+    end if;
+    if (j->>'budget_breach')::boolean then
+      v_items := v_items || jsonb_build_object('item', x.fn || ':error_budget', 'subject', x.fn, 'blast', 'customer_facing',
+        'affected', x.bad_24h, 'owner_seat', v_owner,
+        'title', x.fn || ' is burning its error budget at ' || (j->>'burn_rate_24h') || 'x over 24 h; 30-day availability '
+                 || round((j->>'availability')::numeric * 100, 2) || ' % against a 99.9 % objective',
+        'evidence', j || jsonb_build_object('runs_24h', x.runs_24h, 'bad_24h', x.bad_24h, 'runs_30d', x.runs_30d,
+                                            'bad_30d', x.bad_30d, 'server_errors_30d', x.err_30d));
     end if;
   end loop;
 
@@ -46792,6 +46788,24 @@ AS $function$
     when p_state = 'delayed'               then 'low'
     else 'low'
   end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_slo_judge(p_runs_24h integer, p_p95_ms numeric, p_budget_ms integer, p_bad_24h integer, p_runs_30d integer, p_bad_30d integer)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- MIN_RUNS 5, SLO 99.9 % (error budget 0.001), burn-rate alarm 2x. One place for every threshold.
+  select jsonb_build_object(
+    'p95_breach',   coalesce(p_runs_24h, 0) >= 5 and p_p95_ms > p_budget_ms,
+    'small_sample', coalesce(p_runs_24h, 0) between 5 and 29,
+    'availability', case when p_runs_30d > 0 then round(1 - p_bad_30d::numeric / p_runs_30d, 4) end,
+    'budget_spent', case when p_runs_30d > 0 then round((p_bad_30d::numeric / p_runs_30d) / 0.001, 2) end,
+    'burn_rate_24h', case when p_runs_24h > 0 then round((p_bad_24h::numeric / p_runs_24h) / 0.001, 2) end,
+    'budget_breach', (case when coalesce(p_runs_24h, 0) >= 5 then p_bad_24h::numeric / p_runs_24h / 0.001 >= 2 else false end)
+                     or (case when coalesce(p_runs_30d, 0) >= 5 then p_bad_30d::numeric / p_runs_30d > 0.001 else false end));
 $function$
 
 
