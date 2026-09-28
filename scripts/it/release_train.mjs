@@ -138,7 +138,7 @@ function drift(DRY, campaign) {
     if (!existsSync(f)) { log(`  ${f}: not on disk, skipped`); continue; }
     if (campaign && offHoursOnly(readFileSync(f, 'utf8'))) { log(`  ${f}: off-hours file, campaign hours, skipped`); continue; }
     if (DRY) { log(`  DRY RUN would apply ${f}`); continue; }
-    const r = node(['scripts/apply_sql.mjs', f, '--apply', '--ddl']);
+    const r = node(['scripts/apply_sql.mjs', f, '--apply', '--ddl', '--seat', 'it_engineer']);
     log(`  apply ${f} -> exit ${r.code}`); if (r.code) log(r.out.slice(-2000)); else applied++;
   }
   if (applied) log(`drift re-check: ${driftFiles(check().out).length} file(s) still not deployed`);
