@@ -1,0 +1,1 @@
+Pure probe for next_months_video_plan_leans_on_what_brought_suppliers.sql; runs after that file is applied: node scripts/apply_sql.mjs scripts/sql/next_months_video_plan_leans_on_what_brought_suppliers_probe.sql --apply (raises CHK<<PROBE OK ...>>, commits nothing). Then delete this note and append the probe to MANIFEST.txt after the file.
