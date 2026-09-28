@@ -1,0 +1,19 @@
+PENDING, not applied (seat: marketing, 28 Sep 2026). The seat-audit build brief forbids applying from the build
+branch; the release operator applies it after review.
+
+Apply order:
+  1. scripts/sql/the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them.sql
+     (after the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql,
+     each_post_is_measured_and_names_the_suppliers_it_brought.sql,
+     marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql and
+     the_ceo_turns_the_binding_constraint_into_an_improvement_every_week.sql, whose routines/constraint it replaces;
+     it becomes their canonical definition, so it takes the highest MANIFEST key for them).
+  2. Add its MANIFEST line in the same commit as the apply.
+  3. Run the probe the_recruitment_funnel_counts_what_was_sent_and_names_the_stage_that_lost_them_probe.sql with
+     node scripts/qsql.mjs; it must print PROBE OK (it always raises, so it writes nothing).
+  4. Regenerate supabase/schema/full_schema.sql.
+
+No edge function changes: supplier_api (create_company, claim) already passes the browser's first touch to
+fn_marketing_first_touch_record, and src/lib/firstTouch.ts already keeps any link with utm_source.
+The first run of marketing.recruitment_funnel after the apply files one ceo_improvement ('funnel_stage_drop',
+email: 171 invited, 0 sent through the outbox, cause not_actually_sent). That is intended.
