@@ -1,0 +1,78 @@
+{
+  "trade": "inspection_ndt",
+  "entries": [
+    {
+      "id": "inspection_ndt:spec-checklist",
+      "topic": "Inspection and NDT - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For inspection and ndt (trade code inspection_ndt only), every quoted line must state: Inspection method; Items and extent of inspection; Acceptance standard; Inspector certification level; Accreditation of the inspection body; Report format and turnaround; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط الفحص والاختبارات غير الإتلافية (رمز النشاط inspection_ndt فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: طريقة الفحص؛ البنود ونطاق الفحص؛ معيار القبول؛ مستوى شهادة الفاحص؛ اعتماد جهة الفحص؛ صيغة التقرير ومدة إصداره؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Inspection method",
+        "Items and extent of inspection",
+        "Acceptance standard",
+        "Inspector certification level",
+        "Accreditation of the inspection body",
+        "Report format and turnaround",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.eiac.gov.ae/",
+        "https://www.iaf.nu/en/about-iaf-mla/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "inspection_ndt:uae-standards-and-approvals",
+      "topic": "Inspection and NDT - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to inspection and ndt in the UAE: EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. Management-system certificates such as ISO 9001 are recognised across borders when the certification body is accredited by a signatory of the international mutual-recognition arrangement formerly run by IAF; IAF ceased operations on 1 January 2026 and was replaced by Global Accreditation Cooperation Incorporated. A buyer may also name, as the test or product standard for a line, ISO 9712 (qualification and certification of NDT personnel); ISO/IEC 17020 (inspection bodies); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for inspection and ndt. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط الفحص والاختبارات غير الإتلافية في الإمارات: يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. يُعترف بشهادات أنظمة الإدارة مثل ISO 9001 دولياً عندما تكون جهة منح الشهادة معتمدة من جهة اعتماد موقِّعة على ترتيب الاعتراف المتبادل الدولي الذي كان يديره المنتدى الدولي للاعتماد (IAF)؛ وقد توقف IAF عن العمل في 1 يناير 2026 وحلّت محله Global Accreditation Cooperation Incorporated. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل ISO 9712 (تأهيل واعتماد أفراد الاختبارات غير الإتلافية)؛ ISO/IEC 17020 (جهات الفحص)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط الفحص والاختبارات غير الإتلافية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for inspection and ndt. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.eiac.gov.ae/",
+        "https://www.iaf.nu/en/about-iaf-mla/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on inspection and ndt?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالفحص والاختبارات غير الإتلافية؟",
+      "expected_entry_ids": [
+        "inspection_ndt:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a inspection and ndt supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد الفحص والاختبارات غير الإتلافية؟",
+      "expected_entry_ids": [
+        "inspection_ndt:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "inspection_ndt:spec-checklist",
+      "inspection_ndt:uae-standards-and-approvals"
+    ],
+    "added": [
+      "inspection_ndt:spec-checklist",
+      "inspection_ndt:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

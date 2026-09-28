@@ -37,6 +37,7 @@ concurrency:
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   schedule:
@@ -64,8 +65,8 @@ jobs:
     name: the database is running what this repository says
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       # No npm install: every check here uses fetch and node:fs only.
@@ -187,10 +188,19 @@ jobs:
   # ============================================================================================
   kernel-gate:
     name: the kernel and handler gate, against production
+    # 29 SEP 2026 - ONE AT A TIME, AND ONLY WHERE A MERGE IS NEAR. This job takes 15-30 minutes
+    # against production. Sixty PRs ran it at once and slowed each other (and the management API)
+    # until nothing finished. It now runs on main, the schedule, a manual dispatch, and on a pull
+    # request only once it carries `review-approved` (the label the release train merges on), and
+    # only one copy runs at a time. The cheap checks above still run on every push.
+    if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'review-approved') }}
+    concurrency:
+      group: kernel-gate
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
       - name: The production checks CI could not see
