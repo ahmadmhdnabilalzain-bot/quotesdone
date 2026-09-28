@@ -41,7 +41,8 @@ test('a supplier registration records the post that brought it', () => {
   const api = R('supabase/functions/supplier_api/index.ts');
   assert.match(api, /rpc\('fn_marketing_first_touch_record', \{ p_lead_id: leadId, p_touch: touch \}\)/);
   assert.match(api, /setRegistration\(ins!\.id\); await recordFirstTouch\(ins!\.id, body\.first_touch\)/, 'create_company does not record the first touch');
-  assert.match(api, /setRegistration\(id\); await recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
+  // #979 (28 Sep 2026) issues the two together: Promise.all([setRegistration(id, false), recordFirstTouch(...)]).
+  assert.match(api, /setRegistration\(id(, false)?\)(; await |, )recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
   const portal = R('src/components/portal/SupplierPortal.tsx');
   assert.match(portal, /action: 'create_company'[^}]*first_touch: /);
   assert.match(portal, /action: 'claim', t, first_touch: /);

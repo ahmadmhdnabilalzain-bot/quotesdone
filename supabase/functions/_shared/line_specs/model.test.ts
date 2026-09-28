@@ -62,3 +62,17 @@ Deno.test('a new taxonomy code resolves exactly: branded goods on brand + model,
   }
   assertEquals(TRADES.branded_goods.attrs.filter((a) => a.mandatory).map((a) => a.code).sort(), ['brand', 'model']);
 });
+
+// 24 Sep 2026: the trades that were a service under a neighbour are held on the spec trade that already
+// reads that work (demolition, pools, movers ...), and lighting fixtures on brand + model.
+Deno.test('the 24 Sep trades resolve to a spec trade the catalogue knows (or a composite)', () => {
+  assertEquals(tradeOfCategory('demolition_works'), 'demolition');
+  assertEquals(tradeOfCategory('swimming_pools'), 'pools');
+  assertEquals(tradeOfCategory('removals_relocation'), 'movers');
+  assertEquals(tradeOfCategory('lighting_fixtures'), 'branded_goods');
+  assertEquals(tradeOfCategory('pharma_packaging'), 'pharma_packaging');
+  for (const c of ['demolition_works', 'general_contracting', 'masonry_blockwork', 'swimming_pools', 'marble_stone', 'thermal_insulation', 'curtains_blinds', 'removals_relocation', 'design_consultancy']) {
+    const t = tradeOfCategory(c);
+    assert(TRADES[t] || COMPOSITE.has(t), `${c} -> ${t} is not a spec trade`);
+  }
+});

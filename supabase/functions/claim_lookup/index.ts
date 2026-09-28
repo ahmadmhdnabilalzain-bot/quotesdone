@@ -39,6 +39,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 Deno.serve(observe('claim_lookup', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
+  // what needs exercising. See warmPortal() in resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     const body = await req.json().catch(() => ({} as any));
     const token = String(body.token || body.t || '').trim();
@@ -76,14 +79,16 @@ Deno.serve(observe('claim_lookup', async (req) => {
     // is what fn_supplier_registration_reminders_due follows up on day 2 and day 6. Only the first one
     // (`is null`), so a reload does not restart the supplier's clock. A failure here must never cost the
     // supplier the page, so it is logged and the lookup answers as before.
-    if (!l.claimed) {
+    // The click stamp and the run log are independent writes, so they run together (28 Sep 2026,
+    // it_engineer): the supplier's answer waited on two round trips in turn.
+    const stampClick = async () => {
+      if (l.claimed) return;
       const { error: clickErr } = await admin.from('leads').update({ invite_clicked_at: new Date().toISOString() })
         .eq('id', l.id).is('invite_clicked_at', null);
       if (clickErr) console.error('claim_lookup: could not record the click —', clickErr.message);
-    }
-
-    await logRun('ok', { found: 1, already_claimed: l.claimed ? 1 : 0 },
-      'claim_lookup resolved a valid invitation token' + (l.claimed ? ' for a lead that has ALREADY been claimed - the supplier will be told it is taken.' : ' for an unclaimed lead; the supplier can proceed to claim it.'));
+    };
+    await Promise.all([stampClick(), logRun('ok', { found: 1, already_claimed: l.claimed ? 1 : 0 },
+      'claim_lookup resolved a valid invitation token' + (l.claimed ? ' for a lead that has ALREADY been claimed - the supplier will be told it is taken.' : ' for an unclaimed lead; the supplier can proceed to claim it.'))]);
 
     return J({ ok: true, company_name: l.company_name || null, emirate: l.emirate || null,
       claimable: !l.claimed, already_claimed: !!l.claimed });

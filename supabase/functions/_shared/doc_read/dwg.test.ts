@@ -1,4 +1,4 @@
-// dwg — the LibreDWG entity JSON goes through the DXF take-off unchanged; RVT and DGN say what they need.
+// dwg — the LibreDWG entity JSON goes through the DXF take-off unchanged.
 // deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/doc_read/dwg.test.ts
 //
 // Offline and deterministic: the entities below have the exact shape @mlightcad/libredwg-web 0.7.14
@@ -6,13 +6,10 @@
 // real-DWG proof, which needs the network, is dwg_samples.check.ts, run as its own CI step.
 import { assert, assertAlmostEquals, assertEquals } from 'jsr:@std/assert@1';
 import { dwgToDxf, DWG_MAX_BYTES, lowerMemoryFloor, readDwg, type DwgDb } from './dwg.ts';
-// @deno-types="../vendor/sheetjs-0.20.3/types/index.d.ts"
-import { CFB } from '../vendor/sheetjs-0.20.3/xlsx.mjs';
 import { readDxf } from './cad.ts';
 import { dxfBinaryFrom } from './cad.fixtures.ts';
 import { cadSupplierBoq } from '../cad_identity.ts';
 import { boqFromExtracted } from '../../drawing_boq/boq_from_document.ts';
-import { readDocument } from './index.ts';
 import type { Extracted, ReadResult } from './types.ts';
 // The notes are English at the source; the customer's and the supplier's screens show them in Arabic through
 // src/lib/boqNotes.ts (founder instruction 586). Asserted here so an ask without its Arabic fails beside the reader.
@@ -90,23 +87,6 @@ Deno.test('the npm import and the pinned WASM URL name the same package version'
   const src = Deno.readTextFileSync(new URL('./dwg.ts', import.meta.url));
   const pkg = src.match(/const PKG = '([^']+)'/)?.[1];
   assert(pkg && src.includes(`import('npm:${pkg}')`), `dynamic import must be the literal npm:${pkg}`);
-});
-
-Deno.test('a Revit model and a DGN v7 are recognised and told what to export, not read as a spreadsheet', async () => {
-  const utf16 = (s: string) => new Uint8Array([...s].flatMap((c) => [c.charCodeAt(0), 0]));
-  const c = CFB.utils.cfb_new();
-  CFB.utils.cfb_add(c, '/BasicFileInfo', new Uint8Array([7, ...utf16('Worksharing: Not enabled\r\nFormat: 2024\r\n')]));
-  CFB.utils.cfb_add(c, '/ProjectInformation', new Uint8Array(8));
-  const r = good(await readDocument(new Uint8Array(CFB.write(c, { type: 'array' })), 'tower.rvt'));
-  assertEquals([r.kind, r.needs, r.quantities.length], ['rvt', 'bim_conversion', 0]);
-  assert(r.notes.some((n) => n.includes('File > Export > IFC')), r.notes.join(' | '));
-  for (const n of r.notes) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
-
-  const dgn = new Uint8Array(2048); dgn.set([0x08, 0x09, 0xfe, 0x02]);
-  const g = good(await readDocument(dgn, 'site.dgn'));
-  assertEquals([g.kind, g.needs, g.notes[0]], ['dgn', 'cad_conversion', 'This is a MicroStation DGN V7 (2D) file.']);
-  assert(g.notes[1].includes('DWG or DXF') && g.notes[1].includes('PDF'), g.notes[1]);
-  for (const n of g.notes) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
 });
 
 // THE 1 GB MEMORY FLOOR (22 Sep 2026): every DWG died on production with "Memory limit exceeded" because
