@@ -30,3 +30,14 @@ test('spot checks: the founder rules are caught directly', () => {
   const all = grade(s, { reply: 'You describe the job once and verified suppliers quote it anonymously.', seat: 'customer_support' });
   assert.ok(Object.values(all).every((v) => v === true), JSON.stringify(all));
 });
+
+// 781 (28 Sep 2026): every scenario goes through the ONE reasoning path (_shared/support_reply.ts) with a stubbed
+// model, is COMPOSED (never the canned fallback), carries its routed seat, and grades clean. Breaks if a channel's
+// reply stops coming from the model, or the routed seat stops reaching the grader.
+test('every scenario is composed by supportReply (stubbed model), routed to its seat and graded clean', async () => {
+  const { runStub } = await import('../eval/support_reply_suite.mjs');
+  const rows = await runStub();
+  assert.equal(rows.length, buildScenarios().length);
+  const bad = rows.filter((r) => r.path !== 'reasoned' || r.canned || !Object.values(r.grades).every((v) => v === true));
+  assert.deepEqual(bad, []);
+});

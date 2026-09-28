@@ -30,6 +30,8 @@ import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { supportReply, type Channel } from '../_shared/support_reply.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -298,7 +300,10 @@ Deno.serve(observe('site_assistant', async (req) => {
     // CUS_RE, the tok() FAQ scoring and the one-shared-word passage gate. Held (the model hold), nothing is guessed
     // and nothing is queued (an anonymous visitor cannot be answered later): the gateway, the price guide, or a
     // recorded knowledge gap (fn_support_knowledge_gap) answers.
-    const wm = await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
+    // 781 (28 Sep 2026): while a model can answer, NO stored answer is chosen here — the reply is composed below
+    // (supportReply). This canned road runs only under the hold or with the gateway down.
+    const reasoningOpen = !(await modelHeld(admin));
+    const wm = reasoningOpen ? { question: null as string | null, side: null } : await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
     const asked = wm.question;
     if (wm.side) { audience = wm.side; source = 'text'; }
     if (asked === 'size') {
@@ -358,6 +363,25 @@ Deno.serve(observe('site_assistant', async (req) => {
     }
 
     const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
+
+    // ── THE REPLY IS COMPOSED BY REASONING (founder instruction 781, 28 Sep 2026, customer_support) ──
+    // The retrieved pack is the narrowed topic; the company block, the published facts, the price bands and
+    // the caller's own record are the facts. Only when no model can answer does the road below run.
+    if (reasoningOpen) {
+      const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
+      const sr = await supportReply(defaultDeps(admin, 'site_assistant'), {
+        channel: ch, message, lang: langOf(message, uiLang), audience: audience === 'unknown' ? 'visitor' : audience,
+        seat: seatForSurface === 'sales_engineer' ? 'sales_engineer' : 'customer_support', passages: packRows,
+        conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
+        profile: live ?? undefined,
+        facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
+        subject: conv.startsWith('zzdemo') ? { fixture: true } : undefined,
+      }, () => Promise.resolve(null));
+      if (sr.path === 'reasoned' && sr.reply) {
+        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source) + ':reasoned', path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });
+      }
+    }
 
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: this visitor is on a SUPPLIER page${path ? ' (' + path + ')' : ''} or is writing as a supplier. Treat them as a SUPPLIER.`

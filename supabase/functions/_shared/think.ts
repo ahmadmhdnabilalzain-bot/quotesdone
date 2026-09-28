@@ -76,6 +76,9 @@ export interface ThinkRequest {
   subject?: Record<string, unknown>;   // what a replay acts on (a command id, a phone, a message id)
   dedupeKey?: string;       // one held row per inbound message
   queueWhenHeld?: boolean;  // default true
+  // An ANSWER that also names which seat owns the matter (support_reply.ts, founder_instruction 781). Unlike
+  // `decision`, the answer stays the reply; the chosen id comes back as result.route (null if not one of these).
+  route?: { id: string; meaning: string }[];
 }
 export interface Step { id: string; kind: string; goal: string; status: 'done' | 'held' | 'skipped' | 'failed' | 'refused'; detail?: unknown }
 export interface Fact { name: string; why: string; changes_answer: boolean; value: string | null; from: string | null }
@@ -94,6 +97,7 @@ export interface ThinkResult {
   model?: string | null;
   held_id?: number | null;
   reason?: string;
+  route?: string | null;
 }
 
 export interface LlmReply { content: string | null; model?: string | null; error?: string | null; used_llm?: boolean }
@@ -168,7 +172,7 @@ export function substanceWords(text: string): number {
   return t.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
 }
 export interface Draft {
-  answer: string; reasoning?: string[]; cited?: string[]; confidence?: number; asked_back?: string | null;
+  answer: string; reasoning?: string[]; cited?: string[]; confidence?: number; asked_back?: string | null; route?: string | null;
   decision?: { choice?: string | null; fields?: Record<string, { value?: string; evidence?: string }> } | null;
 }
 /** Why a draft is refused, or null when it may go out. Pure: think.test.ts pins every rule. */
@@ -235,7 +239,8 @@ Return ONE JSON object:
 At most ${MAX_STEPS} steps. Fill a fact's value ONLY from what you were given; never guess it.`;
 }
 
-export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec): string {
+export function synthesisPrompt(seat: Seat, audience: string, language: string, decision?: DecisionSpec, route?: { id: string; meaning: string }[]): string {
+  const rt = !decision && route?.length ? `,"route":"<exactly one of: ${route.map((o) => `${o.id} (${o.meaning})`).join('; ')}>"` : '';
   const dec = decision
     ? decision.options?.length
       ? `\nThis is a DECISION. Set "decision":{"choice":"<exactly one id>"} with one of: ${decision.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}. "answer" states the reasoning in two or three sentences.`
@@ -246,7 +251,7 @@ export function synthesisPrompt(seat: Seat, audience: string, language: string, 
 You are the ${seat} seat, answering a ${audience} in ${language === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}.
 You are given the question, the plan, the facts known and missing, and numbered SOURCES. Answer from the sources; cite every source you rely on by its id. Where sources are thin, reason as a senior UAE practitioner would and say which authority governs it.${dec}
 Return ONE JSON object:
-{"answer":"<the reply>","reasoning":["<plan step id>: <the fact from the sources it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}}`;
+{"answer":"<the reply>","reasoning":["<plan step id>: <the fact from the sources it established>"],"cited":["<source id>"],"confidence":<0..1>,"asked_back":"<a question for a missing decision-changing fact, or null>"${decision ? ',"decision":{...}' : ''}${rt}}`;
 }
 
 export const VERIFY_PROMPT = `${RULINGS}
@@ -413,7 +418,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // e. SYNTHESISE, with the validator forcing re-passes
   const missing = facts.filter((f) => !f.value);
   const sourceIds = new Set(sources.map((s) => s.id));
-  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision);
+  const synthSys = synthesisPrompt(req.seat, audience, ctx.language ?? 'en', req.decision, req.route);
   const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
@@ -467,6 +472,7 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps, context_used: { ...base.context_used, facts_known: facts.filter((f) => f.value) },
     missing_context: missing, sources: sources.filter((s) => (draft!.cited ?? []).includes(s.id)),
     confidence, asked_back: draft.asked_back ? String(draft.asked_back) : null, verified, model,
+    route: req.route?.some((o) => o.id === String(draft!.route ?? '')) ? String(draft!.route) : null,
   };
 }
 
