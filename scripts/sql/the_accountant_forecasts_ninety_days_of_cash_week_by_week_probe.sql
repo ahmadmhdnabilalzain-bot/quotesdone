@@ -14,6 +14,9 @@
 --   2. the real 'mashreq' forecast has 13 weeks, projects Anthropic and OpenAI as account outflows (founder
 --      ruling 1011), the week outflows add up to every outflow, and its opening is the statement closing plus
 --      only the lines of later statements;
+--   2b. the register follows ruling 1011: Anthropic and OpenAI are company_card now, the change table holds
+--      two effective-dated rows per vendor, the payer AS OF Sep 2026's charge dates is still owner_card and
+--      as of Oct 2026's is company_card, and fn_accountant_owner_card_tick runs on the new body;
 --   3. a ceo_weekly_report row inserted with a body gains the CASH FORECAST section and figures.cash_forecast_90d;
 --   4. fn_accountant_month_close_figures for Aug 2026 carries cash_forecast_90d with 13 weeks.
 do $probe$
@@ -49,6 +52,18 @@ begin
                                           from public.bank_statement_line where account = 'mashreq' and source_ref <> m#>>'{opening,statement}'
                                            and value_date > (m#>>'{opening,balance_on}')::date and value_date <= v_as)
     then v_fail := v_fail || ' mashreq opening counts its own statement''s lines;'; end if;
+
+  -- ruling 1011 in the register: current payer is the company, history kept, past months stay on the owner's card
+  if (select count(*) from public.accountant_owner_ruled_subscription where vendor in ('Anthropic', 'OpenAI') and paid_from = 'company_card') <> 2
+    then v_fail := v_fail || ' register rows not company_card;'; end if;
+  if (select count(*) from public.accountant_subscription_paid_from_change where vendor in ('Anthropic', 'OpenAI')) <> 4
+    then v_fail := v_fail || ' paid_from history not 2 rows per vendor;'; end if;
+  if public.fn_accountant_subscription_paid_from('OpenAI', date '2026-09-19') <> 'owner_card'
+     or public.fn_accountant_subscription_paid_from('Anthropic', date '2026-09-23') <> 'owner_card'
+     or public.fn_accountant_subscription_paid_from('OpenAI', date '2026-10-19') <> 'company_card'
+     or public.fn_accountant_subscription_paid_from('Anthropic', date '2026-10-23') <> 'company_card'
+    then v_fail := v_fail || ' payer as of the charge date wrong;'; end if;
+  perform public.fn_accountant_owner_card_tick(v_as);
 
   insert into public.ceo_weekly_report (iso_year, iso_week, week_start, week_end, report_key, subject, body)
   values (2099, 1, date '2099-01-05', date '2099-01-11', 'zz-demo:forecast-probe', 'ZZ DEMO', 'ZZ DEMO body')

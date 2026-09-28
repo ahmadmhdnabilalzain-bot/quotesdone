@@ -13,6 +13,10 @@
 -- figures.cash_forecast_90d) and the monthly close pack (figures.cash_forecast_90d, a table in the PDF, lines
 -- in the CSV).
 --
+-- Also in this file (ruling 1011): the subscription register moves Anthropic and OpenAI from owner_card to
+-- company_card from 29 Sep 2026, with the history kept in accountant_subscription_paid_from_change, and
+-- fn_accountant_owner_card_tick reads the payer as of each month. See the section at the end.
+--
 -- Known outflows, and where each comes from (measured 29 Sep 2026):
 --   1. recurring lines SEEN IN THE BANK STATEMENTS: a debit whose description (digits stripped) appears in
 --      at least two different months of the last 120 days, projected monthly on the day it last fell at the
@@ -423,4 +427,172 @@ begin
   insert into public.accountant_month_close (month, figures, ceo_report_id)
   values (v_m, f, (v_rep->>'report_id')::bigint);
   return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'ceo_report', v_rep);
+end $function$;
+
+-- ------------------------------------------------------------------ the register follows ruling 1011
+-- FOUNDER RULING 1011 (29 Sep 2026): all company payments, Anthropic and OpenAI included, come from the company
+-- Mashreq account. In the register's own vocabulary that is paid_from 'company_card': the charge is on the
+-- company's Mashreq card and appears on the Mashreq statement, where fn_accountant_owner_card_tick step (b)
+-- looks for it. The only other value is 'owner_card'.
+--
+-- HISTORY IS KEPT, NOT REWRITTEN. The register has one row per vendor (primary key vendor), so the switch is
+-- recorded in accountant_subscription_paid_from_change as effective-dated rows: the payer since expected_from,
+-- and company_card from 29 Sep 2026. fn_accountant_owner_card_tick reads the payer AS OF each month's charge
+-- date. So Sep 2026 (OpenAI on the 19th, Anthropic on the 23rd) stays on the owner's card and keeps its
+-- due-to-owner booking. Oct 2026 is the first company month. The register row then carries the current payer.
+create table if not exists public.accountant_subscription_paid_from_change (
+  vendor         text not null references public.accountant_owner_ruled_subscription (vendor),
+  effective_from date not null,
+  paid_from      text not null check (paid_from in ('owner_card', 'company_card')),
+  basis          text not null,
+  recorded_at    timestamptz not null default now(),
+  primary key (vendor, effective_from)
+);
+alter table public.accountant_subscription_paid_from_change enable row level security;
+drop policy if exists accountant_subscription_paid_from_change_service_role_only on public.accountant_subscription_paid_from_change;
+create policy accountant_subscription_paid_from_change_service_role_only on public.accountant_subscription_paid_from_change
+  as permissive for all to public using (false) with check (false);
+revoke all on public.accountant_subscription_paid_from_change from anon, authenticated;
+
+create or replace function public.fn_accountant_subscription_paid_from(p_vendor text, p_on date)
+returns text
+language sql
+stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select coalesce(
+    (select paid_from from public.accountant_subscription_paid_from_change
+      where vendor = p_vendor and effective_from <= p_on order by effective_from desc limit 1),
+    (select paid_from from public.accountant_owner_ruled_subscription where vendor = p_vendor));
+$fn$;
+
+revoke execute on function public.fn_accountant_subscription_paid_from(text, date) from public, anon, authenticated;
+
+-- the payer before the switch, as the register recorded it, from the row's own start
+insert into public.accountant_subscription_paid_from_change (vendor, effective_from, paid_from, basis)
+select vendor, expected_from, paid_from, 'as the register recorded it from ' || expected_from || ', before founder ruling 1011'
+  from public.accountant_owner_ruled_subscription where vendor in ('Anthropic', 'OpenAI')
+on conflict (vendor, effective_from) do nothing;
+
+insert into public.accountant_subscription_paid_from_change (vendor, effective_from, paid_from, basis)
+select vendor, date '2026-09-29', 'company_card',
+       'founder ruling 1011, 29 Sep 2026: all company payments, Anthropic and OpenAI included, come from the company Mashreq account'
+  from public.accountant_owner_ruled_subscription where vendor in ('Anthropic', 'OpenAI')
+on conflict (vendor, effective_from) do nothing;
+
+update public.accountant_owner_ruled_subscription
+   set paid_from = 'company_card',
+       basis = basis || ' | 29 Sep 2026, founder ruling 1011: paid from the company Mashreq account from this date; earlier months stay on the owner''s card (accountant_subscription_paid_from_change).'
+ where vendor in ('Anthropic', 'OpenAI') and paid_from = 'owner_card';
+
+-- fn_accountant_owner_card_tick: the live body (full_schema.sql, 29 Sep 2026) with the payer read per month (v_pf).
+CREATE OR REPLACE FUNCTION public.fn_accountant_owner_card_tick(p_as_of date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
+  s record; m date; v_exp date; e record; v_posted numeric(18,2); v_diff numeric(18,2); v_lines jsonb;
+  v_booked jsonb := '[]'::jsonb; v_matched jsonb := '[]'::jsonb; v_items jsonb := '[]'::jsonb;
+  v_missing jsonb; v_noline jsonb; v_odd jsonb := '[]'::jsonb; v_line bigint; v_pf text;
+begin
+  for s in select * from public.accountant_owner_ruled_subscription order by vendor loop
+    v_missing := '[]'::jsonb; v_noline := '[]'::jsonb;
+    for m in select generate_series(date_trunc('month', s.expected_from), date_trunc('month', v_as_of), interval '1 month')::date loop
+      v_exp := m + (least(s.usual_day, extract(day from (m + interval '1 month - 1 day'))::int) - 1);
+      if v_exp < s.expected_from then continue; end if;
+      -- 29 Sep 2026, ruling 1011: who paid is read AS OF the month's charge date, so a month before the switch
+      -- keeps the owner's card and a month after it is the company's. Past months are never re-read as company.
+      v_pf := public.fn_accountant_subscription_paid_from(s.vendor, v_exp);
+      -- The month's charge: the vendor's entry nearest the usual date, within 5 days (a receipt, or his word).
+      select x.* into e from public.expense_entries x
+       where x.vendor ~* s.vendor_pattern and x.charged_on between v_exp - 5 and v_exp + 5
+         and not ((coalesce(x.vendor, '') || ' ' || coalesce(x.note, '')) ~* 'zz[ _-]?demo')
+       order by abs(x.charged_on - v_exp), x.id limit 1;
+      if not found then
+        if v_as_of > v_exp + 5 then
+          v_missing := v_missing || jsonb_build_object('month', to_char(m, 'YYYY-MM'), 'expected_on', v_exp);
+        end if;
+        continue;
+      end if;
+
+      -- (a) Restate it at the bank value, once, after its expense journal has posted.
+      if not exists (select 1 from public.gl_journal g where g.source = 'owner_card_bank_value' and g.source_ref = e.id::text) then
+        select sum(jl.credit) into v_posted from public.gl_journal g join public.gl_journal_lines jl on jl.journal_id = g.id
+         where g.source = 'expense' and g.source_ref = e.id::text and g.status = 'posted' and jl.account_code = '1000';
+        if v_posted is not null then
+          v_diff := s.bank_value_aed - v_posted;
+          if v_diff < 0 or v_diff > 0.15 * s.bank_value_aed then
+            -- ponytail: a gap over 15% is not FX and card fees; it is reported, never forced to the bank value.
+            v_odd := v_odd || jsonb_build_object('vendor', s.vendor, 'entry', e.id, 'posted_aed', v_posted, 'bank_value_aed', s.bank_value_aed);
+          elsif v_diff > 0 or v_pf = 'owner_card' then
+            v_lines := '[]'::jsonb;
+            if v_pf = 'owner_card' then
+              v_lines := v_lines || jsonb_build_object('account', '1000', 'debit', v_posted,
+                                      'memo', 'Not paid from the company bank: the owner''s card paid it');
+            end if;
+            if v_diff > 0 then
+              v_lines := v_lines || jsonb_build_object('account', '6300', 'debit', v_diff, 'memo', 'FX and card fees above the receipt');
+            end if;
+            v_lines := v_lines || jsonb_build_object('account', case when v_pf = 'owner_card' then '2500' else '1000' end,
+                         'credit', case when v_pf = 'owner_card' then s.bank_value_aed else v_diff end);
+            perform public.fn_gl_entry(e.charged_on,
+              s.vendor || ' ' || to_char(m, 'Mon YYYY') || ' at the bank value AED ' || s.bank_value_aed
+                || ' (booked ' || v_posted || ', FX and card ' || v_diff || ')'
+                || case when v_pf = 'owner_card' then ', paid on the owner''s card: due to owner' else '' end,
+              'owner_card_bank_value', e.id::text, v_lines, 'accountant');
+            v_booked := v_booked || jsonb_build_object('vendor', s.vendor, 'entry', e.id, 'posted_aed', v_posted, 'fx_card_aed', v_diff,
+                                                       'bank_value_aed', s.bank_value_aed, 'paid_from', v_pf);
+          end if;
+        end if;
+      end if;
+
+      -- (b) A company_card charge is also on the Mashreq statement, once a statement covering it has arrived.
+      if v_pf = 'company_card'
+         and exists (select 1 from public.bank_statement_line b where b.account = 'mashreq' and b.value_date >= v_exp + 5) then
+        v_line := null;
+        select b.id into v_line from public.bank_statement_line b
+         where b.account = 'mashreq' and b.value_date between v_exp - 5 and v_exp + 5
+           and b.amount_aed between -1.02 * s.bank_value_aed and -0.98 * s.bank_value_aed
+           and (s.bank_pattern is null or b.description ~* s.bank_pattern)
+         order by abs(b.value_date - v_exp) limit 1;
+        if v_line is null then
+          v_noline := v_noline || jsonb_build_object('month', to_char(m, 'YYYY-MM'), 'entry', e.id);
+        else
+          v_matched := v_matched || jsonb_build_object('vendor', s.vendor, 'entry', e.id, 'bank_line', v_line);
+        end if;
+      end if;
+    end loop;
+
+    if jsonb_array_length(v_missing) > 0 then
+      v_items := v_items || jsonb_build_object('item', 'missing_charge:' || lower(s.vendor), 'owner_seat', 'accountant',
+        'subject', 'expense_entries', 'blast', 'internal', 'affected', jsonb_array_length(v_missing),
+        'title', s.vendor || ': ' || jsonb_array_length(v_missing) || ' month(s) with no '
+                 || case when s.receipt_emailed then 'receipt' else 'owner confirmation' end
+                 || ' 5 days after the usual date (AED ' || s.bank_value_aed || ' a month, ' || replace(s.paid_from, '_', ' ') || ')',
+        'evidence', jsonb_build_object('vendor', s.vendor, 'months', v_missing, 'paid_from', s.paid_from,
+          'remedy', case when s.receipt_emailed then 'forward the month''s receipt to expenses@mail.quotesdone.com'
+                         else 'the founder confirms the month''s charge; it is booked as a founder_statement at the bank value' end));
+    end if;
+    if jsonb_array_length(v_noline) > 0 then
+      v_items := v_items || jsonb_build_object('item', 'bank_line_missing:' || lower(s.vendor), 'owner_seat', 'accountant',
+        'subject', 'bank_statement_line', 'blast', 'internal', 'affected', jsonb_array_length(v_noline),
+        'title', s.vendor || ' is paid by the company card but ' || jsonb_array_length(v_noline)
+                 || ' month(s) have no Mashreq line of AED ' || s.bank_value_aed,
+        'evidence', jsonb_build_object('vendor', s.vendor, 'months', v_noline,
+          'remedy', 'read the statement for the charge; if the card did not move, set paid_from back to owner_card'));
+    end if;
+  end loop;
+
+  if jsonb_array_length(v_odd) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'bank_value_mismatch', 'owner_seat', 'accountant', 'subject', 'gl_journal',
+      'blast', 'internal', 'affected', jsonb_array_length(v_odd),
+      'title', jsonb_array_length(v_odd) || ' ruled subscription charge(s) differ from the bank value by more than FX and card fees explain',
+      'evidence', jsonb_build_object('entries', v_odd, 'remedy', 'read the receipt; a plan change needs a new bank value from the founder'));
+  end if;
+
+  return jsonb_build_object('as_of', v_as_of, 'restated', v_booked, 'bank_lines_matched', v_matched,
+    'findings', public.fn_accountant_duty_settle('owner_card', v_items));
 end $function$;
