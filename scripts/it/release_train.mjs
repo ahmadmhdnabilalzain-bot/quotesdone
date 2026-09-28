@@ -65,14 +65,32 @@ export function inCampaignHours(now = new Date(), window = process.env.RELEASE_C
 export const offHoursOnly = (sqlText = '') => /apply-window:\s*off-hours/i.test(sqlText);
 export const isProbeNote = (note = '') => /^\s*A PROBE\b/.test(note);
 
-// entries: [{ sql: 'scripts/sql/x.sql', note }]. A note that names another entry's file runs after
-// it; otherwise name order. A cycle falls back to name order for what is left.
+// entries: [{ sql: 'scripts/sql/x.sql', note }].
+// 1. A note may carry a line `apply-order: N`. When any note does, entries sort by N (none = last),
+//    then by name.
+// 2. Otherwise a note that names another entry's file runs after it - unless it says it runs BEFORE
+//    that file ("applied BEFORE b.sql"), the reverse relation (#1070's marketing note). Name order
+//    breaks ties; a cycle falls back to name order for what is left.
+export const noteOrder = (note = '') => {
+  const m = note.match(/^\s*apply-order:\s*(\d+)/im);
+  return m ? Number(m[1]) : null;
+};
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const saysBefore = (note, file) => new RegExp(`\\bbefore\\s+\\W?(?:scripts/sql/)?${escRe(file)}`, 'i').test(note);
+
 export function applyOrder(entries) {
-  const left = [...entries].sort((a, b) => a.sql.localeCompare(b.sql));
+  const byName = [...entries].sort((a, b) => a.sql.localeCompare(b.sql));
+  if (byName.some((e) => noteOrder(e.note) !== null)) {
+    const n = (e) => noteOrder(e.note) ?? Infinity;
+    return byName.sort((a, b) => n(a) - n(b));
+  }
   const base = (p) => p.split('/').pop();
-  const out = [];
+  // e must wait for o
+  const needs = (e, o) => (e.note.includes(base(o.sql)) && !saysBefore(e.note, base(o.sql)))
+    || saysBefore(o.note, base(e.sql));
+  const left = byName, out = [];
   while (left.length) {
-    const i = left.findIndex((e) => !left.some((o) => o !== e && e.note.includes(base(o.sql))));
+    const i = left.findIndex((e) => !left.some((o) => o !== e && needs(e, o)));
     out.push(...left.splice(i < 0 ? 0 : i, 1));
   }
   return out;
