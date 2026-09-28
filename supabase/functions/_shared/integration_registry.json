@@ -199,6 +199,15 @@
       "self_fix": "the access token is refreshed from the refresh token",
       "action": "Sign in again with the one-time connect link", "link": "connect-link:youtube"
     },
+    "google_postmaster": {
+      "what": "Gmail Postmaster Tools for quotesdone.com: spam rate, domain reputation, SPF/DKIM/DMARC (IT duty 'postmaster', daily)",
+      "hosts": ["gmailpostmastertools.googleapis.com", "oauth2.googleapis.com"],
+      "secrets": ["google_postmaster_refresh_token", "google_oauth_client_id", "google_oauth_client_secret"],
+      "owner_seat": "it_engineer", "blast": "internal",
+      "probe": { "kind": "covered", "by": "duty:postmaster (fn_it_postmaster_record) files duty:postmaster:unreadable:<domain> once and holds it when the token is missing or refused" },
+      "action": "Grant the postmaster.readonly consent with the Google account that verified quotesdone.com and store the refresh token as app_secrets.google_postmaster_refresh_token",
+      "link": "https://postmaster.google.com/managedomains"
+    },
     "linkedin": {
       "what": "the LinkedIn company page (published through Postiz; the direct API only for comments)",
       "hosts": ["api.linkedin.com", "www.linkedin.com"],
