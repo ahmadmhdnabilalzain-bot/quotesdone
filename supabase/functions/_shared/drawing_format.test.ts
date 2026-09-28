@@ -19,8 +19,8 @@ Deno.test('.pdf, .dwg and .dxf are accepted, and a BOQ spreadsheet is not a draw
     assertEquals(drawingFormatRefusal(n, m), null, n);
 });
 
-// The server decides on the SNIFFED type too: an IFC renamed .txt is refused on the customer path, and the
-// internal reader still opens it when the flag is off (it is not deleted, only unreachable for customers).
+// The server decides on the SNIFFED type too: an IFC renamed .txt is refused on the customer path with the
+// ruling's message. The IFC reader is deleted (#1022), so without the flag it is a plain file_type_not_allowed.
 const IFC = new TextEncoder().encode("ISO-10303-21;\nHEADER;\nFILE_SCHEMA(('IFC4'));\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n");
 Deno.test('readDocument refuses a renamed IFC when pdfCadDrawingsOnly is set', async () => {
   const r = await readDocument(IFC, 'notes.txt', '', 0, { pdfCadDrawingsOnly: true });
