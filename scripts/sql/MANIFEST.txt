@@ -1814,3 +1814,6 @@ scripts/sql/the_template_watcher_is_called_with_a_credential_scoped_to_it.sql
 scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run.sql
 scripts/sql/the_calendar_resend_waits_on_real_edits_not_on_a_held_posts_dry_run_probe.sql
 scripts/sql/a_customer_email_is_answered_in_its_own_thread_within_the_minute.sql
+scripts/sql/a_reversal_voids_both_sides_so_the_ledger_nets_to_zero.sql
+[INFO] Recording command outcome: echo
+[OK] Command outcome recorded
