@@ -38,7 +38,7 @@
 -- WARNING, so a defect in case keeping cannot lose a customer's WhatsApp or email.
 --
 -- Proved by scripts/sql/every_support_conversation_is_one_case_measured_rated_and_recovered_probe.sql
--- (aborted transaction on ZZ DEMO @example.invalid data; must print PROBE OK).
+-- (aborted transaction on ZZ DEMO @example.invalid data; its probe file must report the OK verdict).
 
 -- ── 1. the single profile ────────────────────────────────────────────────────────────────────────
 create table if not exists public.support_customer_profile (
