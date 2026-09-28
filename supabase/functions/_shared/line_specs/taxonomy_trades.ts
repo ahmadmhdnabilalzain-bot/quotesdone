@@ -17,6 +17,15 @@ export const SAME_AS: Readonly<Record<string, string>> = {
   pest_control: 'pestcontrol',
   tents_shades: 'shade',
   fencing_shades: 'shade',
+  demolition_works: 'demolition',
+  general_contracting: 'general',
+  masonry_blockwork: 'masonry',
+  swimming_pools: 'pools',
+  marble_stone: 'tiling',
+  thermal_insulation: 'insulation',
+  curtains_blinds: 'upholstery',
+  removals_relocation: 'movers',
+  design_consultancy: 'interiordesign',
 };
 
 export const BRANDED_GOODS: ReadonlySet<string> = new Set([
@@ -25,7 +34,7 @@ export const BRANDED_GOODS: ReadonlySet<string> = new Set([
   'motors_drives', 'instrumentation_automation', 'commercial_kitchen', 'laundry_equipment', 'vending_machines',
   'water_dispensers', 'medical_equipment', 'electronics_wholesale', 'mobile_phones_wholesale', 'home_appliances',
   'vehicles_fleet', 'auto_parts', 'tyres_batteries', 'batteries_storage', 'fitness_equipment', 'salon_equipment',
-  'musical_pro_audio',
+  'musical_pro_audio', 'lighting_fixtures',
 ]);
 
 export const NO_LINE_SPECS_YET: ReadonlySet<string> = new Set([
@@ -54,5 +63,5 @@ export const NO_LINE_SPECS_YET: ReadonlySet<string> = new Set([
   'prefab_buildings', 'corrosion_insulation', 'machinery_repair', 'fleet_maintenance', 'tool_equipment_rental',
   'laundry_services', 'ev_charging', 'aircraft_parts_mro', 'shipbuilding_repair', 'leather_footwear',
   'bitumen_petroleum_products', 'device_repair', 'event_entertainment', 'railway_equipment', 'furniture_repair',
-  'investigation_screening',
+  'investigation_screening', 'facilities_management', 'labels_sleeves', 'protective_packaging', 'bulk_bags_sacks', 'luxury_rigid_boxes', 'paper_bags', 'pharma_packaging', 'packaging_tapes_strapping',
 ]);

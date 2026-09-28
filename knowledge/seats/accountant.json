@@ -1618,6 +1618,203 @@
       ],
       "confidence": "high",
       "as_of": "2026-09-24"
+    },
+    {
+      "id": "accountant:company-reveal-payment-confirmation",
+      "topic": "At every reveal: confirm the Stripe payment, file the invoice, back it up, show it in the portal",
+      "kind": "company",
+      "body_en": "At every reveal the accountant confirms the Stripe payment before anything else happens. The charge is 3% of the selected quotation plus Stripe fees, grossed up so the company nets exactly 3%, with no VAT because QuotesDone is not VAT-registered (instr 87, 88, 169: \"any service charge is added to the customer invoice, nothing on us\"). Then four steps, all owned by the accountant: (1) retrieve the Stripe invoice and file it in the books (instr 28); (2) back the invoice up to Dropbox (instr 28); (3) make the Stripe invoice PDF visible in the customer's portal in the right tab, openable at any time (instr 85); (4) hand the confirmation to the sales engineer, who tells the customer (instr 86, 177: \"anything related to payment is under the accountant agent\", in communication back and forth with the sales agent). The live routine that files the invoice is fn_accountant_files_reveal_invoice. A reveal whose payment is not confirmed is not revealed. The accountant never emails the customer itself: only customer_support sends email and WhatsApp.",
+      "body_ar": "عند كل كشف يتأكد المحاسب أولاً من اكتمال الدفع عبر Stripe قبل أي خطوة أخرى. الرسم 3% من قيمة العرض المختار مضافاً إليه رسوم Stripe بطريقة التحميل الكامل بحيث يصافي للشركة 3% بالضبط، ودون ضريبة قيمة مضافة لأن كويتس دن غير مسجّلة (التعليمات 87 و88 و169: أي رسوم خدمة تُضاف على فاتورة العميل ولا نتحمّل منها شيئاً). ثم أربع خطوات يملكها المحاسب: (1) استخراج فاتورة Stripe وقيدها في الدفاتر (التعليمة 28)؛ (2) حفظ نسخة احتياطية منها على Dropbox (التعليمة 28)؛ (3) إظهار ملف PDF للفاتورة في بوابة العميل في التبويب الصحيح ليفتحه متى شاء (التعليمة 85)؛ (4) تسليم التأكيد لمهندس المبيعات الذي يبلّغ العميل (التعليمتان 86 و177). الروتين الحي الذي يقيد الفاتورة هو fn_accountant_files_reveal_invoice. لا يُكشف أي عرض قبل تأكيد دفعه، والمحاسب لا يراسل العميل مباشرة؛ خدمة العملاء وحدها ترسل البريد والواتساب.",
+      "sources": [
+        "internal:founder_instruction/28",
+        "internal:founder_instruction/85",
+        "internal:founder_instruction/86",
+        "internal:founder_instruction/87",
+        "internal:founder_instruction/88",
+        "internal:founder_instruction/169",
+        "internal:scripts/sql (fn_accountant_files_reveal_invoice)"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-refund-execution-rule",
+      "topic": "Refunds: the CEO approves, the accountant executes against the exact Stripe invoice ID",
+      "kind": "company",
+      "body_en": "Every refund needs a CEO approval and is executed by the accountant; approval from the CEO, execution from the accountant, always, whenever it is money (instr 1). One approval never covers unlimited refunds: every refund is tied to one Stripe invoice and issued against that exact invoice ID (instr 7). The amount is everything the customer paid, the 3% and the processing part together, and QuotesDone absorbs Stripe's own fee (instr 180). Flow for a supplier non-response: customer support contacts the supplier; if there is no response within the refund limit it goes to the CEO, the CEO checks the records and confirms, then the accountant refunds (instr 1). Before executing, ask Stripe what refunds already exist on that charge so a retry cannot pay twice; a refund can never exceed what was paid. In the database the rules are enforced by fn_refund_execution_requires_ceo_approval, fn_refund_amount_is_the_fee_paid and fn_refunds_never_return_more_than_was_paid; the resilience step \"refunds\" runs every 15 minutes so an approved refund never waits a cadence. After a non-response refund the supplier charge is raised (see the non-response entries).",
+      "body_ar": "كل استرداد يحتاج اعتماد الرئيس التنفيذي وينفّذه المحاسب؛ الاعتماد من الرئيس التنفيذي والتنفيذ من المحاسب دائماً في كل ما يخص المال (التعليمة 1). الاعتماد الواحد لا يغطي استردادات غير محدودة: كل استرداد مرتبط بفاتورة Stripe واحدة ويُصدر مقابل رقمها بالضبط (التعليمة 7). المبلغ هو كل ما دفعه العميل، أي الـ3% وجزء المعالجة معاً، وتتحمّل كويتس دن رسوم Stripe الخاصة بها (التعليمة 180). في حالة عدم رد المورّد: تتواصل خدمة العملاء مع المورّد، فإن لم يرد ضمن المهلة يُحال الأمر إلى الرئيس التنفيذي الذي يراجع السجلات ويؤكد، ثم ينفّذ المحاسب الاسترداد. قبل التنفيذ يُسأل Stripe عن أي استرداد قائم على العملية حتى لا يُدفع مرتين، ولا يتجاوز الاسترداد ما دُفع. تفرض قاعدة البيانات ذلك عبر fn_refund_execution_requires_ceo_approval وfn_refund_amount_is_the_fee_paid وfn_refunds_never_return_more_than_was_paid، وتعمل خطوة refunds كل 15 دقيقة.",
+      "sources": [
+        "internal:founder_instruction/1",
+        "internal:founder_instruction/7",
+        "internal:founder_instruction/180",
+        "internal:memory/refunds-belong-to-the-ceo.md",
+        "https://docs.stripe.com/refunds"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-supplier-charge-legal-recovery",
+      "topic": "Unpaid supplier charge: the legal recovery document and the UAE court clock",
+      "kind": "company",
+      "body_en": "When a supplier does not pay the non-response charge and the lawful deadline passes, the accountant issues a formal legal document, with stamp and signature, that the founder can file himself without a lawyer (instr 343, 345). Venue: an unpaid charge is a civil/commercial debt that goes to the Dubai Courts as a payment order (writ of debt), not to Dubai Police. Clock from the Civil Procedure Law, Federal Decree-Law 42 of 2022: before filing, serve a notice for payment giving at least 5 days (Art 144(1)); QuotesDone gives 7; the judge decides within 3 business days (Art 144(4)); the order is void if not served within 3 months (Art 146(2)); the supplier may file a grievance within 15 days of service (Art 147(1)). Arabic is the official language of the courts (Art 5(1)). Interest is 9% a year simple, never compounded (Commercial Transactions Law Art 88). Limitation between merchants: 5 years (CTL Art 92). The law, timeline and documents live in docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md; each claim is tracked in v_accountant_recovery_ledger; court steps are recorded by fn_accountant_record_court_step. Going to court is a CEO escalation.",
+      "body_ar": "إذا لم يسدّد المورّد رسوم عدم الرد وانقضت المهلة القانونية، يُصدر المحاسب مستنداً قانونياً رسمياً مختوماً وموقّعاً يستطيع المؤسس تقديمه بنفسه دون محامٍ (التعليمتان 343 و345). الجهة: المبلغ غير المسدد دين مدني/تجاري يُرفع إلى محاكم دبي بطلب أمر أداء، وليس إلى شرطة دبي. المواعيد وفق قانون الإجراءات المدنية، المرسوم بقانون اتحادي 42 لسنة 2022: قبل التقديم يُوجَّه إنذار بالوفاء بمهلة لا تقل عن 5 أيام (المادة 144/1) وكويتس دن تمنح 7 أيام؛ يصدر القاضي قراره خلال 3 أيام عمل (144/4)؛ يسقط الأمر إن لم يُعلن خلال 3 أشهر (146/2)؛ وللمورّد التظلم خلال 15 يوماً من الإعلان (147/1). العربية لغة المحاكم الرسمية (المادة 5/1). الفائدة 9% سنوياً بسيطة ولا تُركّب (قانون المعاملات التجارية م 88)، والتقادم بين التجار 5 سنوات (م 92). المرجع docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md، ويُتابع كل مطالبة v_accountant_recovery_ledger. اللجوء للمحكمة يُرفع للرئيس التنفيذي.",
+      "sources": [
+        "internal:founder_instruction/343",
+        "internal:founder_instruction/345",
+        "internal:docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md",
+        "https://uaelegislation.gov.ae/en/legislations/1602",
+        "https://uaelegislation.gov.ae/en/legislations/1610/download",
+        "https://www.dc.gov.ae/PublicServices/GessServiceDetails.aspx?lang=en&ServiceCode=C5",
+        "internal:scripts/sql/every_supplier_charge_claim_is_tracked_to_payment_or_court_on_the_uae_clock.sql"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-stripe-customer-emails-off",
+      "topic": "Stripe customer emails are off: only QuotesDone template receipts go out",
+      "kind": "company",
+      "body_en": "Stripe's own customer emails for successful payments and refunds are turned off, so customers receive only QuotesDone receipts made on the QuotesDone template (instr 697, applying rule 569: \"not a single pdf should be generated by our team unless its as per our template\"). In Stripe the switch is Settings > Business > Customer emails, under Payments: \"Successful payments\" and \"Refunds\". No code sets receipt_email (supabase/functions/stripe_checkout/index.ts). Consequences for the accountant: (1) every payment and refund needs its own QuotesDone document, issued by the accountant and delivered by customer_support, because Stripe will not send one; (2) if a Stripe receipt ever reaches a customer, the setting was changed: treat it as a control finding; (3) Stripe receipt URLs still exist on the Charge object (receipt_url) and links expire after 30 days, so the portal shows the Stripe invoice PDF stored at filing time, not a live link.",
+      "body_ar": "رسائل Stripe الخاصة للعملاء عن المدفوعات الناجحة والاستردادات مُطفأة، فلا يتلقى العميل إلا إيصالات كويتس دن المعدّة على قالب الشركة (التعليمة 697 تطبيقاً للقاعدة 569: لا يُصدر أي ملف PDF إلا على قالبنا). الإعداد في Stripe هو Settings ثم Business ثم Customer emails، تحت Payments: Successful payments وRefunds. لا يوجد في الكود ما يضبط receipt_email. النتائج على المحاسب: (1) كل دفعة واسترداد يحتاج مستنداً من كويتس دن يُصدره المحاسب وتسلّمه خدمة العملاء لأن Stripe لن يرسل شيئاً؛ (2) إن وصل إيصال من Stripe لعميل فالإعداد تغيّر، ويُعامل كملاحظة رقابية؛ (3) روابط إيصالات Stripe تنتهي بعد 30 يوماً، لذلك تعرض البوابة ملف الفاتورة المحفوظ وقت القيد لا رابطاً حياً.",
+      "sources": [
+        "internal:founder_instruction/697",
+        "internal:founder_instruction/569",
+        "https://docs.stripe.com/receipts",
+        "internal:supabase/functions/stripe_checkout/index.ts"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-expenses-mailbox-intake",
+      "topic": "The expenses mailbox: where every receipt and bank statement arrives",
+      "kind": "company",
+      "body_en": "The founder forwards every receipt to expenses@mail.quotesdone.com; that mailbox is the source of truth for costs, and Stripe is the source of truth for revenue: the only two sources of money in and out. The accountant reads the mailbox daily and books every receipt (instr 585: receipts arrive at any time, it is an ongoing routine). Only mail.quotesdone.com can receive; an address at the bare quotesdone.com domain silently accepts nothing. Resend keeps inbound mail only about one month, so public.inbound_messages (captured on arrival) is the durable record, then the founder's Gmail sent folder. A receipt whose amount is in the email body with no attachment is still a receipt. Company subscriptions Claude and OpenAI (AED 799 a month each) were paid on the founder's personal card until early October 2026: book them as expenses the owner paid on the company's behalf and never match them to the Mashreq statement until he says the card moved (instr 980). A receipt that cannot be read is held, never guessed (see held-receipts-policy).",
+      "body_ar": "يحوّل المؤسس كل إيصال إلى expenses@mail.quotesdone.com، وهذا البريد هو مرجع التكاليف، وStripe مرجع الإيرادات، وهما المصدران الوحيدان للأموال الداخلة والخارجة. يقرأ المحاسب البريد يومياً ويقيد كل إيصال (التعليمة 585: الإيصالات تصل في أي وقت وهي مهمة مستمرة). النطاق mail.quotesdone.com وحده يستقبل البريد، والعنوان على quotesdone.com لا يستقبل شيئاً. يحتفظ Resend بالرسائل الواردة نحو شهر فقط، لذا السجل الدائم هو public.inbound_messages ثم مجلد المرسل في بريد المؤسس. الإيصال الذي مبلغه في نص الرسالة دون مرفق يبقى إيصالاً. اشتراكا Claude وOpenAI (799 درهماً شهرياً لكل منهما) كانا يُدفعان من البطاقة الشخصية للمؤسس حتى بداية أكتوبر 2026: يُقيدان مصروفاً دفعه المالك نيابة عن الشركة ولا يُطابقان مع كشف مشرق حتى يُبلغ بانتقال البطاقة (التعليمة 980). الإيصال غير المقروء يُعلّق ولا يُخمَّن.",
+      "sources": [
+        "internal:founder_instruction/585",
+        "internal:founder_instruction/980",
+        "internal:memory/expenses-email-source-of-truth.md",
+        "internal:memory/resend-inbound-retention-is-about-a-month.md",
+        "internal:memory/subscriptions-paid-from-personal-card.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-mashreq-statement-monthly",
+      "topic": "The Mashreq statement: monthly PDF, read by the accountant, founder money in is capital",
+      "kind": "company",
+      "body_en": "The bank is Mashreq and there is no bank API: the founder forwards the statement as a PDF at every month end to the same expenses mailbox he uses for invoices (instr 21, 369, 382). The accountant imports it (fn_accountant_bank_statement_ingest), books every line and reconciles it. An unreadable statement is our own defect, a reader fix for the it_engineer, never a question to the founder (instr 384: \"if the agent cant read it then fix it\"). Founder money in from his other account is capital, not a loan, unless he says loan (instr 357). Measured on the August 2026 statement: the monthly account fee is AED 199 plus AED 9.95 VAT, both booked to 6300 General and Administrative because the company is not VAT-registered; bank interest (AED 0.86) goes to 7000 other income. It is the same account Stripe pays out into, so payouts are matched to its credit lines (fn_accountant_bank_reconcile), never treated as an independent second source.",
+      "body_ar": "البنك هو مشرق ولا توجد واجهة ربط بنكية: يحوّل المؤسس الكشف بصيغة PDF في نهاية كل شهر إلى بريد المصروفات نفسه (التعليمات 21 و369 و382). يستورده المحاسب (fn_accountant_bank_statement_ingest) ويقيد كل سطر ويطابقه. الكشف غير المقروء عيب لدينا يصلحه مهندس تقنية المعلومات، ولا يُسأل عنه المؤسس (التعليمة 384). الأموال التي يحوّلها المؤسس من حسابه الآخر رأس مال لا قرض ما لم يقل إنها قرض (التعليمة 357). وفق كشف أغسطس 2026: رسوم الحساب الشهرية 199 درهماً زائد 9.95 درهم ضريبة، وتُقيدان معاً على 6300 مصاريف عمومية وإدارية لأن الشركة غير مسجلة ضريبياً، وفائدة البنك (0.86 درهم) على 7000 إيرادات أخرى. هو الحساب نفسه الذي تُحوَّل إليه دفعات Stripe، فتُطابق الدفعات مع قيوده الدائنة.",
+      "sources": [
+        "internal:founder_instruction/21",
+        "internal:founder_instruction/357",
+        "internal:founder_instruction/369",
+        "internal:founder_instruction/382",
+        "internal:founder_instruction/384",
+        "internal:memory/the-bank-is-mashreq-and-statements-come-monthly.md",
+        "internal:memory/owner-money-in-is-capital.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-renewal-fees-budget",
+      "topic": "Renewal fees budgeted: the DET eTrader licence is AED 1,200",
+      "kind": "company",
+      "body_en": "The accountant budgets the company's renewal fees as one of its five monthly duties (instr 327). The DET eTrader licence costs AED 1,200 (instr 352); the founder asked only that the number be noted (instr 359). The trade licence is DET 1633275, expiring 24 June 2027; licence renewal work starts at least 60 days before expiry. The TDRA NOL for www.quotesdone.ae is NOL-26-100000665, expiring 14 September 2027. The routines are fn_accountant_renewals_tick, fn_accountant_renewal_budget_line and fn_accountant_renewal_position; the renewal line appears in the monthly close so cash and runway already carry the cost before it is paid. An unexpected charge, or a renewal above the budgeted amount, is escalated to the CEO.",
+      "body_ar": "يضع المحاسب رسوم التجديد في الموازنة ضمن مهامه الشهرية الخمس (التعليمة 327). تكلفة رخصة التاجر الإلكتروني eTrader من دائرة الاقتصاد والسياحة 1,200 درهم (التعليمة 352)، وطلب المؤسس تسجيل الرقم فقط (التعليمة 359). الرخصة التجارية رقم DET 1633275 وتنتهي في 24 يونيو 2027، ويبدأ العمل على التجديد قبل 60 يوماً على الأقل. شهادة عدم الممانعة من هيئة تنظيم الاتصالات للنطاق www.quotesdone.ae رقمها NOL-26-100000665 وتنتهي في 14 سبتمبر 2027. الروتينات: fn_accountant_renewals_tick وfn_accountant_renewal_budget_line وfn_accountant_renewal_position، ويظهر بند التجديد في الإقفال الشهري. أي رسم غير متوقع أو تجديد يتجاوز الموازنة يُرفع للرئيس التنفيذي.",
+      "sources": [
+        "internal:founder_instruction/327",
+        "internal:founder_instruction/352",
+        "internal:founder_instruction/359",
+        "internal:memory/trade-licence-and-vat-status-are-closed.md",
+        "internal:memory/tdra-nol-received.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-corporate-tax-instruction-344",
+      "topic": "Corporate tax: the founder's instruction 344 and what the seat does",
+      "kind": "company",
+      "body_en": "On 14 Sep 2026 the founder said \"just ignore the corporate tax matter for companies\" (instr 344). The job description therefore gives the seat no corporate-tax calendar: there is no CT duty in public.seat_duty and none should be built. The quarterly and yearly tax duty of the seat is the VAT threshold: at AED 375,000 of revenue, read from Stripe, tell the CEO that VAT registration is due (instr 9). What the seat still does: the corporate-tax law entries in this pack stay as reference knowledge, so a question about corporate tax is answered correctly from them; the seat does not open CT tasks, reminders or deadlines on its own. What is not established by instr 344: that any statutory CT registration or filing obligation is waived; a question that turns on it is escalated to the CEO with the law entries attached, not answered by assumption.",
+      "body_ar": "في 14 سبتمبر 2026 قال المؤسس: تجاهلوا موضوع ضريبة الشركات (التعليمة 344). لذلك لا يتضمن الوصف الوظيفي تقويماً لضريبة الشركات، ولا توجد مهمة لها في public.seat_duty ولا تُبنى. المهمة الضريبية الفصلية والسنوية للمقعد هي حد ضريبة القيمة المضافة: عند بلوغ الإيرادات 375,000 درهم وفق Stripe يُبلغ الرئيس التنفيذي بأن التسجيل مستحق (التعليمة 9). ما يبقى: مداخل قانون ضريبة الشركات في هذه الحزمة مرجع معرفي يُجاب منه عن أي سؤال بدقة، لكن المقعد لا يفتح مهام أو تذكيرات أو مواعيد لها من تلقاء نفسه. ما لم تُثبته التعليمة 344: أن أي التزام قانوني بالتسجيل أو الإقرار قد سقط؛ والسؤال الذي يتوقف على ذلك يُرفع للرئيس التنفيذي مع المداخل القانونية لا بالافتراض.",
+      "sources": [
+        "internal:founder_instruction/344",
+        "internal:founder_instruction/9"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-accountant-authority-and-escalations",
+      "topic": "What the accountant decides alone and what goes to the CEO",
+      "kind": "company",
+      "body_en": "Decides alone: booking, categorisation, the calculation of every document (refund, charge, invoice), and flagging fraud. Escalates to the CEO: every refund (for approval), a non-response charge reaching its legal stage, crossing the VAT threshold of AED 375,000, a mismatch (Stripe, books or bank do not agree), and an unexpected charge. The accountant owns everything financial: money in, money out, the documents and the books (seat map 24 Sep; instr 86, 177), including every payment path in code: collection (instr 19), subscriptions from supplier 1,001 onward (instr 856) and the ad-spend books (instr 721). Working rules shared by every seat: only customer_support sends email and WhatsApp, so the accountant asks it to deliver (instr 93, 178); every generated PDF uses the QuotesDone template (instr 569); every handoff is a loop the accountant tracks and closes (instr 207); approvals are the CEO seat's, never the founder's.",
+      "body_ar": "يقرر المحاسب وحده: القيد، والتصنيف، واحتساب كل مستند (استرداد أو مطالبة أو فاتورة)، والإبلاغ عن الاحتيال. ويرفع إلى الرئيس التنفيذي: كل استرداد للاعتماد، ومطالبة عدم الرد عند بلوغها المرحلة القانونية، وتجاوز حد ضريبة القيمة المضافة 375,000 درهم، وأي عدم تطابق بين Stripe والدفاتر والبنك، وأي رسم غير متوقع. يملك المحاسب كل ما هو مالي: الأموال الداخلة والخارجة والمستندات والدفاتر (التعليمتان 86 و177)، بما في ذلك كل مسارات الدفع في الكود: التحصيل (19)، واشتراكات الموردين من المورد 1,001 فصاعداً (856)، ودفاتر الإنفاق الإعلاني (721). قواعد مشتركة: خدمة العملاء وحدها ترسل البريد والواتساب فيطلب المحاسب منها التسليم؛ كل ملف PDF على قالب كويتس دن (569)؛ كل تسليم حلقة يتابعها المحاسب ويغلقها (207)؛ الاعتمادات للرئيس التنفيذي لا للمؤسس.",
+      "sources": [
+        "internal:founder_instruction/19",
+        "internal:founder_instruction/86",
+        "internal:founder_instruction/93",
+        "internal:founder_instruction/177",
+        "internal:founder_instruction/178",
+        "internal:founder_instruction/207",
+        "internal:founder_instruction/569",
+        "internal:founder_instruction/721",
+        "internal:founder_instruction/856",
+        "internal:memory/refunds-belong-to-the-ceo.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-launch-timing-and-revenue-streams",
+      "topic": "When revenue starts: suppliers only until December 2026, customers from January 2027",
+      "kind": "company",
+      "body_en": "From October to December 2026 the company registers suppliers only. Customers launch in January 2027, so there is no customer revenue (no reveal fees, no refunds, no non-response charges) before then. Suppliers first: no customers until the supplier base can quote every inquiry, roughly the first 1,000 suppliers (instr 844). Supplier subscriptions: the first 1,000 suppliers are free forever under the signed Supplier Agreement; supplier 1,001 onwards pays AED 1,000 a year (instr 856). Revenue streams the accountant books once live: reveal fees (3% net), supplier subscriptions, non-response charges and anti-circumvention penalties. Until January 2027 the books are costs, capital from the founder and bank interest; a revenue line before then is an anomaly to investigate (a test-mode charge or a ZZ DEMO fixture), not income. The VAT threshold test still runs every hour (resilience step vat) so the first revenue is counted from day one.",
+      "body_ar": "من أكتوبر إلى ديسمبر 2026 تسجّل الشركة الموردين فقط، ويبدأ استقبال العملاء في يناير 2027، فلا توجد إيرادات من العملاء قبل ذلك (لا رسوم كشف ولا استردادات ولا مطالبات عدم رد). الموردون أولاً: لا عملاء حتى تستطيع قاعدة الموردين تسعير كل طلب، أي نحو أول 1,000 مورد (التعليمة 844). اشتراكات الموردين: أول 1,000 مورد مجاناً دائماً وفق اتفاقية المورد الموقعة، ومن المورد 1,001 فصاعداً 1,000 درهم سنوياً (التعليمة 856). مصادر الإيراد بعد الإطلاق: رسوم الكشف (3% صافية)، واشتراكات الموردين، ومطالبات عدم الرد، وغرامات الالتفاف. قبل يناير 2027 تحتوي الدفاتر تكاليف ورأس مال من المؤسس وفوائد بنكية فقط، وأي إيراد قبل ذلك حالة شاذة تُفحص (عملية تجريبية أو بيانات ZZ DEMO) لا دخل. يعمل اختبار حد الضريبة كل ساعة.",
+      "sources": [
+        "internal:founder_instruction/844",
+        "internal:founder_instruction/856",
+        "internal:memory/seat-ownership-map-24-sep.md",
+        "internal:memory/demo-fixture-convention.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-accountant-duty-cadence",
+      "topic": "The accountant's duties by cadence and the KPIs they are measured on",
+      "kind": "company",
+      "body_en": "KPIs from the job description: books current within 24 hours; Stripe equals the books, reconciled daily; refund execution correct 100%; charges recovered; monthly close by day 5; every receipt booked. Continuous: confirm the Stripe payment at every reveal; execute CEO-approved refunds (step refunds, every 15 minutes); raise non-response charges; handle Stripe disputes; fraud watch for duplicate accounts and fee circumvention (duty accountant.fraud_watch, every 6 hours). Daily: read the expenses mailbox and book every receipt; reconcile Stripe payouts against revenue; re-screen suppliers against sanctions (accountant.sanctions_rescreen and accountant.ubo_rescreen). The daily money duties run inside fn_accountant_duties (step accountantDuties, every 30 minutes, gated to at most hourly): stripe, bank, collections, subscriptions, expenses, disputes, costs, books, recovery, renewals, close. Weekly: finance report to the CEO (step weekly). Monthly: import the Mashreq statement, close the month, CEO report with runway (accountant.runway_report), ad spend against Meta invoices (accountant.ad_spend_reconcile), recovery ledger, renewal fees. Quarterly/yearly: VAT threshold (step vat, hourly) and the year-end pack.",
+      "body_ar": "مؤشرات الأداء في الوصف الوظيفي: الدفاتر محدّثة خلال 24 ساعة؛ Stripe يساوي الدفاتر بتسوية يومية؛ تنفيذ الاستردادات صحيح بنسبة 100%؛ المطالبات محصّلة؛ الإقفال الشهري بحلول اليوم الخامس؛ كل إيصال مقيد. المستمر: تأكيد دفع Stripe عند كل كشف، وتنفيذ الاستردادات المعتمدة (كل 15 دقيقة)، وإصدار مطالبات عدم الرد، ومعالجة نزاعات Stripe، ومراقبة الاحتيال والحسابات المكررة والالتفاف على الرسوم (كل 6 ساعات). اليومي: قراءة بريد المصروفات وقيد كل إيصال، وتسوية دفعات Stripe مع الإيراد، وإعادة فحص الموردين على قوائم العقوبات. تعمل المهام المالية اليومية داخل fn_accountant_duties. الأسبوعي: التقرير المالي للرئيس التنفيذي. الشهري: استيراد كشف مشرق، والإقفال، وتقرير المدة التشغيلية المتاحة، ومطابقة الإعلانات مع فواتير Meta، وسجل التحصيل، ورسوم التجديد. الفصلي والسنوي: حد ضريبة القيمة المضافة وحزمة نهاية السنة.",
+      "sources": [
+        "internal:public.seat_duty (owner_seat accountant)",
+        "internal:public.resilience_step (accountantDuties, refunds, vat, weekly)",
+        "internal:supabase/functions/accountant/index.ts",
+        "internal:founder_instruction/327",
+        "internal:founder_instruction/585"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "accountant:company-sanctions-match-banned-sealed",
+      "topic": "A sanctions match is banned and sealed, never deleted",
+      "kind": "company",
+      "body_en": "A supplier or lead that matches a sanctions list is banned and sealed, never deleted (instr 516: \"better banned\"; instr 898 added ongoing sanctions and UBO checks as duties). The accountant re-screens every registered or approved supplier daily (accountant.sanctions_rescreen) against the UAE Local Terrorist List and the UN Consolidated List (4,396 entries on 28 Sep 2026: 618 local, 3,778 UN) and every beneficial owner daily (accountant.ubo_rescreen); a stale list is itself a finding. In the database the ban cannot be undone or erased: fn_sanctions_ban_is_append_only, fn_leads_sanctioned_row_is_permanent, fn_leads_sanctioned_identity_cannot_re_register, and fn_notifications_never_reach_a_sanctioned_party stops any message reaching them. A match goes to the CEO. Keeping the sealed record is what lets the company prove later that it screened, refused and did not deal.",
+      "body_ar": "المورّد أو العميل المحتمل الذي يطابق قائمة عقوبات يُحظر ويُختم سجله ولا يُحذف أبداً (التعليمة 516: الحظر أفضل؛ والتعليمة 898 أضافت فحص العقوبات والمستفيد الحقيقي المستمر). يعيد المحاسب يومياً فحص كل مورد مسجل أو معتمد (accountant.sanctions_rescreen) مقابل القائمة المحلية للإرهاب في الإمارات والقائمة الموحدة للأمم المتحدة (4,396 اسماً في 28 سبتمبر 2026: 618 محلية و3,778 أممية)، وكل مستفيد حقيقي يومياً (accountant.ubo_rescreen)، والقائمة القديمة بحد ذاتها ملاحظة. في قاعدة البيانات لا يمكن إلغاء الحظر أو محوه: fn_sanctions_ban_is_append_only وfn_leads_sanctioned_row_is_permanent وfn_leads_sanctioned_identity_cannot_re_register، وfn_notifications_never_reach_a_sanctioned_party يمنع وصول أي رسالة إليهم. تُرفع المطابقة للرئيس التنفيذي، والسجل المختوم دليل أن الشركة فحصت ورفضت ولم تتعامل.",
+      "sources": [
+        "internal:founder_instruction/516",
+        "internal:founder_instruction/898",
+        "internal:scripts/sql/the_accountant_watches_for_fee_circumvention_and_rescreens_sanctions.sql",
+        "internal:scripts/sql/the_accountant_rescreens_every_beneficial_owner.sql"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
     }
   ],
   "eval": [
@@ -2110,6 +2307,146 @@
       "expected_entry_ids": [
         "accountant:audit-readiness-pack"
       ]
+    },
+    {
+      "q_en": "A customer just paid the reveal fee. What exactly does the accountant do next?",
+      "q_ar": "دفع العميل رسوم الكشف للتو، ما الذي يفعله المحاسب بالضبط بعد ذلك؟",
+      "expected_entry_ids": [
+        "accountant:company-reveal-payment-confirmation"
+      ]
+    },
+    {
+      "q_en": "Where does the customer find the Stripe invoice PDF after paying?",
+      "q_ar": "أين يجد العميل ملف فاتورة Stripe بعد الدفع؟",
+      "expected_entry_ids": [
+        "accountant:company-reveal-payment-confirmation"
+      ]
+    },
+    {
+      "q_en": "The CEO approved one refund last week. Can I use that approval for three more?",
+      "q_ar": "اعتمد الرئيس التنفيذي استرداداً واحداً الأسبوع الماضي، هل أستخدم الاعتماد نفسه لثلاثة أخرى؟",
+      "expected_entry_ids": [
+        "accountant:company-refund-execution-rule"
+      ]
+    },
+    {
+      "q_en": "When we refund a reveal, who pays the Stripe fee?",
+      "q_ar": "عند استرداد رسوم كشف، من يتحمّل رسوم Stripe؟",
+      "expected_entry_ids": [
+        "accountant:company-refund-execution-rule"
+      ]
+    },
+    {
+      "q_en": "A supplier ignored our charge. Do we go to Dubai Police?",
+      "q_ar": "مورّد تجاهل مطالبتنا، هل نتوجه إلى شرطة دبي؟",
+      "expected_entry_ids": [
+        "accountant:company-supplier-charge-legal-recovery"
+      ]
+    },
+    {
+      "q_en": "How many days notice must we give before filing a payment order?",
+      "q_ar": "كم يوماً مهلة الإنذار قبل تقديم طلب أمر الأداء؟",
+      "expected_entry_ids": [
+        "accountant:company-supplier-charge-legal-recovery"
+      ]
+    },
+    {
+      "q_en": "Why did the customer not get an email receipt from Stripe after paying?",
+      "q_ar": "لماذا لم يصل العميل إيصال بريدي من Stripe بعد الدفع؟",
+      "expected_entry_ids": [
+        "accountant:company-stripe-customer-emails-off"
+      ]
+    },
+    {
+      "q_en": "Where do I send a receipt so the accountant books it?",
+      "q_ar": "إلى أين أرسل الإيصال ليقيده المحاسب؟",
+      "expected_entry_ids": [
+        "accountant:company-expenses-mailbox-intake"
+      ]
+    },
+    {
+      "q_en": "The Claude subscription is not on the Mashreq statement. Is that a reconciliation error?",
+      "q_ar": "اشتراك Claude غير موجود في كشف مشرق، هل هذا خطأ في التسوية؟",
+      "expected_entry_ids": [
+        "accountant:company-expenses-mailbox-intake"
+      ]
+    },
+    {
+      "q_en": "The bank statement PDF could not be parsed. Should we ask the founder to send it again in another format?",
+      "q_ar": "تعذّر قراءة ملف كشف البنك، هل نطلب من المؤسس إرساله بصيغة أخرى؟",
+      "expected_entry_ids": [
+        "accountant:company-mashreq-statement-monthly"
+      ]
+    },
+    {
+      "q_en": "What is the monthly Mashreq account fee and where is it booked?",
+      "q_ar": "كم رسوم حساب مشرق الشهرية وعلى أي حساب تُقيد؟",
+      "expected_entry_ids": [
+        "accountant:company-mashreq-statement-monthly"
+      ]
+    },
+    {
+      "q_en": "How much should we budget for the eTrader licence renewal?",
+      "q_ar": "كم نخصص في الموازنة لتجديد رخصة التاجر الإلكتروني؟",
+      "expected_entry_ids": [
+        "accountant:company-renewal-fees-budget"
+      ]
+    },
+    {
+      "q_en": "Should the accountant set up corporate tax reminders and a CT calendar?",
+      "q_ar": "هل يضع المحاسب تذكيرات وتقويماً لضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:company-corporate-tax-instruction-344"
+      ]
+    },
+    {
+      "q_en": "Can the accountant change an expense category without asking anyone?",
+      "q_ar": "هل يستطيع المحاسب تغيير تصنيف مصروف دون الرجوع لأحد؟",
+      "expected_entry_ids": [
+        "accountant:company-accountant-authority-and-escalations"
+      ]
+    },
+    {
+      "q_en": "Stripe and the books disagree by AED 40. Who needs to know?",
+      "q_ar": "هناك فرق 40 درهماً بين Stripe والدفاتر، من يجب إبلاغه؟",
+      "expected_entry_ids": [
+        "accountant:company-accountant-authority-and-escalations"
+      ]
+    },
+    {
+      "q_en": "When will we see the first reveal-fee revenue?",
+      "q_ar": "متى نرى أول إيراد من رسوم الكشف؟",
+      "expected_entry_ids": [
+        "accountant:company-launch-timing-and-revenue-streams"
+      ]
+    },
+    {
+      "q_en": "Which supplier is the first to pay a subscription, and how much?",
+      "q_ar": "من أول مورد يدفع اشتراكاً وكم المبلغ؟",
+      "expected_entry_ids": [
+        "accountant:company-launch-timing-and-revenue-streams"
+      ]
+    },
+    {
+      "q_en": "By which day of the month must the close be done?",
+      "q_ar": "بحلول أي يوم من الشهر يجب إنهاء الإقفال؟",
+      "expected_entry_ids": [
+        "accountant:company-accountant-duty-cadence"
+      ]
+    },
+    {
+      "q_en": "How often is Stripe reconciled with the books?",
+      "q_ar": "كم مرة تتم مطابقة Stripe مع الدفاتر؟",
+      "expected_entry_ids": [
+        "accountant:company-accountant-duty-cadence"
+      ]
+    },
+    {
+      "q_en": "A supplier matched the UN list. Can we just delete the account?",
+      "q_ar": "مورّد طابق قائمة الأمم المتحدة، هل نحذف حسابه ببساطة؟",
+      "expected_entry_ids": [
+        "accountant:company-sanctions-match-banned-sealed"
+      ]
     }
   ],
   "verified": {
@@ -2314,6 +2651,33 @@
       ],
       "note": "Primary texts read in full via pdftotext this pass: CT Law consolidated (MoF, v13.1.26) Arts 3, 18, 21, 28, 32, 33, 36, 40, 45, 56, 57, 58; VAT Decree-Law consolidated to FDL 18/2022 (FTA) Arts 29-31, 45, 48, 65, 67, 78; Ministerial Decisions 114/2023 and 84/2025 (MoF); Commercial Companies Law FDL 32/2021 Arts 26, 27, 102 (MoET). The VAT consolidation predates FDL 16/2025 (effective 1 Jan 2026); its changes are taken from the MoF announcement and DLA Piper.",
       "corrected_note": "tax-penalties: added AED 2,500 per late tax invoice / credit note / e-invoice breach and settled record-keeping at AED 10,000 (20,000 repeat), both read from the MoF consolidated decision text."
+    },
+    "wave3": {
+      "upgraded": "2026-09-28 instr 888",
+      "added": [
+        "accountant:company-reveal-payment-confirmation",
+        "accountant:company-refund-execution-rule",
+        "accountant:company-supplier-charge-legal-recovery",
+        "accountant:company-stripe-customer-emails-off",
+        "accountant:company-expenses-mailbox-intake",
+        "accountant:company-mashreq-statement-monthly",
+        "accountant:company-renewal-fees-budget",
+        "accountant:company-corporate-tax-instruction-344",
+        "accountant:company-accountant-authority-and-escalations",
+        "accountant:company-launch-timing-and-revenue-streams",
+        "accountant:company-accountant-duty-cadence",
+        "accountant:company-sanctions-match-banned-sealed"
+      ],
+      "fetched_urls": [
+        "https://docs.stripe.com/receipts"
+      ],
+      "fetch_failed": [
+        "https://uaelegislation.gov.ae/en/legislations/1602 (HTTP 403); CPL articles taken from docs/legal/SUPPLIER_CHARGE_RECOVERY_UAE.md, which quotes the official text"
+      ],
+      "not_established": [
+        "Whether instr 344 waives any statutory corporate-tax registration or filing obligation"
+      ],
+      "note": "Company/process facts sourced to public.founder_instruction ids (read 28 Sep 2026), memory files, live seat_duty/resilience_step rows and repo paths."
     }
   }
 }

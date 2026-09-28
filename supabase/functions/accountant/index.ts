@@ -563,7 +563,7 @@ Deno.serve(observe('accountant', async (req) => {
       const vec = await embed(question);
       // Past cases before the answer (23 Sep 2026): refunds, classifications, and what other seats
       // finalised on the same subject. Returned as evidence beside the knowledge.
-      const memory = await recallCases(admin, { seat: 'accountant', path: 'assist', situation: question, embedding: vec });
+      const memory = await recallCases(admin, { seat: 'accountant', path: 'assist', situation: question, embedding: vec, otherSeats: true });
       const { data, error } = await admin.rpc('fn_accountant_assist', {
         p_text: question,
         p_embedding: vec,

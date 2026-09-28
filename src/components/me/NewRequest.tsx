@@ -65,8 +65,11 @@ import { blobToWavB64 } from '@/lib/wavEncode';
 // 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every
 // document drawing_boq's 'document' mode reads goes to analyze_document; PDFs, photos and DWG keep the
 // drawing path (redacted pages for suppliers).
-const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|ifc|xml|x8[1-6]|zip|dxf|rvt|rfa|dgn)$/i;
-const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type' };
+const DOC_RE = /\.(xlsx|xlsm|xls|csv|ods|docx?|pptx|odt|odp|rtf|txt|eml|msg|xml|x8[1-6]|zip|dxf)$/i;
+// Founder ruling 28 Sep 2026: a drawing is PDF or CAD (DWG/DXF) only. The server refuses the rest the same way
+// (supabase/functions/_shared/drawing_format.ts); refused here first so nothing is uploaded.
+const REFUSED_DRAWING_RE = /\.(rvt|rfa|rte|rft|ifc|ifczip|ifcxml|dgn|dgnlib|dwf|dwfx|skp|3dm|nwd|nwc|nwf|step|stp|pln)$/i;
+const BOQ_ERR = { file_too_large: 'nr_boq_err_too_large', unsafe_file_content: 'nr_boq_err_macro', encrypted: 'nr_boq_err_encrypted', file_type_not_allowed: 'nr_boq_err_type', unsafe_file_type: 'nr_boq_err_type', drawing_format_not_accepted: 'nr_drawing_format' };
 
 // A question may arrive as a sentence or as {key, text|question|label}; the chip needs text.
 const qText = (q) => (q == null ? '' : typeof q === 'string' ? q : String(q.text || q.question || q.label || q.key || ''));
@@ -201,7 +204,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && s.ok && s.status === 'done') {
         const n = s.boq && Array.isArray(s.boq.boq) ? s.boq.boq.length : 0;
         if (!n) { push({ role: 'assistant', text: t(lang, 'nr_cad_failed') }); return; }
-        const adopted = adopt({ ...res, boq: s.boq }, name, source);
+        // A CAD file the edge could not open is drawn by the CAD worker too: its redacted page replaces the hold.
+        const drawn = Array.isArray(s.drawing_redacted_paths) && s.drawing_redacted_paths.length ? { drawing_redacted_paths: s.drawing_redacted_paths, drawing_held: false } : {};
+        const adopted = adopt({ ...res, boq: s.boq, ...drawn }, name, source);
         push({ role: 'assistant', text: lengths ? t(lang, 'nr_lengths_ready') : tf(lang, n === 1 ? 'nr_boq_read_one' : 'nr_boq_read_many', { n, c: countPhrase(lang, n, 'line', { oblique: true }), cat: s.boq.category ? ' (' + s.boq.category + ')' : '' }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
         return;
@@ -210,6 +215,24 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && !s.ok && s.error === 'not_found') return;
     }
     if (!lengths) push({ role: 'assistant', text: t(lang, 'nr_cad_slow') });
+  };
+  // A SCANNED DRAWING OR A PHOTO (24 Sep 2026): it has no text layer, so the edge holds it and customer_api queues
+  // its pages for the CAD worker's OCR redaction (_shared/scan_redact.ts). When the worker proves a page clean,
+  // its redacted page replaces the hold; when it cannot, the drawing simply stays held, as the card already says.
+  const pollScan = async (res, name, source) => {
+    for (let i = 0; i < 48; i++) {
+      await new Promise((r) => setTimeout(r, 15000));
+      const s = await call('customer_api', { action: 'cad_read_status', job_id: res.cad_job_id }, token).catch(() => null);
+      if (s && s.ok && s.status === 'done') {
+        const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
+        if (!pages.length) return;
+        adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
+        push({ role: 'assistant', text: tf(lang, 'nr_scan_pages_ready', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
+        return;
+      }
+      if (s && s.ok && s.status === 'failed') return;
+      if (s && !s.ok && s.error === 'not_found') return;
+    }
   };
   const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // customer_api analyze_document refuses more
   // Returns true when it has already told the customer and cleared the pickers.
@@ -221,6 +244,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   };
   const onFile = async (file, source = 'drawing') => {
     if (!file) return; setMsg('');
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     push({ role: 'user', text: '', chip: file.name });
     if (tooBig(file)) return;
     setAnalyzing(true); setEditor(false);
@@ -284,6 +308,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (n >= 1) await runIntake('', adopted);
       // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
       if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
+      if (res && res.note === 'scan_queued' && res.cad_job_id) pollScan(res, file.name, source);
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
@@ -291,6 +316,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // drawing_boq and create_inquiry stores it on the RFQ suppliers read.
   const onBoq = async (file) => {
     if (!file) return;
+    if (REFUSED_DRAWING_RE.test(file.name)) return refuseDrawing();
     if (!DOC_RE.test(file.name)) return onFile(file, 'boq');
     setMsg(''); push({ role: 'user', text: '', chip: file.name });
     const reset = () => { try { if (boqRef.current) boqRef.current.value = ''; if (fileRef.current) fileRef.current.value = ''; } catch (_e) {} };
@@ -302,8 +328,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const rows = (res && res.ok && res.boq && res.boq.boq) || [];
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
       else if (res.note === 'cad_queued' && res.cad_job_id) { adopt(res, file.name, 'drawing'); push({ role: 'assistant', text: t(lang, 'nr_cad_queued') }); pollCad(res, file.name, 'drawing'); }
-      // A Revit model or a DGN (22 Sep 2026): read for what is certain, with the reader's own ask for an
-      // export (IFC / DWG / DXF / PDF), shown in the customer's language through boqNotes.
+      // A read that says what it needs (a photo's OCR, a DWG past the edge ceiling): the reader's own
+      // notes, shown in the customer's language through boqNotes.
       else if (!rows.length && res.needs && res.boq && Array.isArray(res.boq.missing_info) && res.boq.missing_info.length) {
         adopt(res, file.name, 'drawing');
         push({ role: 'assistant', text: res.boq.missing_info.map((s) => boqNote(s, lang)).join(' ') });
@@ -317,7 +343,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }
     setAnalyzing(false); reset();
   };
-  const onAny = (f) => (f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const onAny = (f) => (f && REFUSED_DRAWING_RE.test(f.name) ? refuseDrawing() : f && DOC_RE.test(f.name) ? onBoq(f) : onFile(f));
+  const refuseDrawing = () => { push({ role: 'assistant', text: t(lang, 'nr_drawing_format') }); try { if (fileRef.current) fileRef.current.value = ''; if (boqRef.current) boqRef.current.value = ''; } catch (_e) {} };
   const applyBoxes = async (boxes) => {
     if (!pages) return false;
     const res = await analyze(pages, boxes).catch(() => null);
@@ -549,7 +576,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <div className="flex items-end gap-2">
           {/* .dwg/.dxf listed as extensions too: some browsers send an empty MIME for CAD files. */}
           {/* Sheets are accepted here too, because the drop surface above advertises Excel and CSV; onAny routes them. */}
-          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.ifc,.rvt,.rfa,.dgn,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
+          <input ref={fileRef} type="file" accept="image/*,.heic,.heif,.tif,.tiff,application/pdf,.dwg,.dxf,image/vnd.dwg,image/vnd.dxf,.xlsx,.xls,.csv,.ods,.doc,.docx,.pptx,.odt,.odp,.rtf,.txt,.eml,.msg,.xml,.x83,.x84,.x86,.zip" className="hidden" aria-label={t(lang, 'nr_attach')} onChange={(e) => onAny(e.target.files[0])} />
           <button type="button" title={t(lang, 'nr_attach')} aria-label={t(lang, 'nr_attach')} className="grid h-10 w-10 place-items-center rounded-xl text-primary hover:bg-primary/10 disabled:opacity-40" disabled={analyzing || thinking} onClick={() => fileRef.current && fileRef.current.click()}><Paperclip className="h-5 w-5" aria-hidden /></button>
           {/* Founder, 14 Sep 2026: "boq can be anything: a photo, pdf, png, jpg, excel". Photos and PDFs take the
               drawing path (onFile, source 'boq'). HEIC is deliberately NOT listed: storage and the redactor cannot

@@ -32,7 +32,7 @@ const SRC = 'supabase/functions/email_triage/index.ts';
 const POLICY_SQL = 'scripts/sql/every_seat_gets_the_model_its_own_work_needs.sql';
 const src = readFileSync(join(REPO, SRC), 'utf8');
 
-test('email_triage files the draft for a person and does not send it', () => {
+test('email_triage keeps the draft for the Inbox and never sends it', () => {
   // The gate itself: the draft is stored on the row and raised as a pending action.
   assert.match(src, /ai_draft_reply:/,
     `${SRC} no longer stores the drafted reply as ai_draft_reply. If the draft has stopped being a `
@@ -54,8 +54,16 @@ test('email_triage files the draft for a person and does not send it', () => {
     .filter((l) => !l.trimStart().startsWith('//'))
     .join('\n');
 
+  // 28 Sep 2026 (customer_support, the founder: a customer is answered in under a minute). email_triage now
+  // SENDS - but never this draft. Its one send is fn_inbox_send with a body built by composeMailReply from
+  // think() on the customer-facing route, a reviewed knowledge passage, or a fixed receipt; and it wakes
+  // send_outbox, which only sends what is already queued. So the draft's routing justification stands, and
+  // this check now pins the thing that justification needs: the `reply` draft never reaches the send.
+  assert.match(code, /rpc\('fn_inbox_send', \{ p_id: m\.id, p_body: text,/, `${SRC}: the send must carry the composed text`);
+  assert.match(code, /text = composeMailReply\(/, `${SRC}: the sent text must be built by composeMailReply`);
+  assert.doesNotMatch(code, /p_body:\s*reply\b|composeMailReply\(\{[^}]*answer:\s*reply\b/,
+    `${SRC} sends the internal-model draft. Move the class to a customer-facing row in ${POLICY_SQL} in the same change.`);
   const senders = [
-    ['send_outbox', /send_outbox/],
     ['notifications insert', /from\('notifications'\)\s*\n?\s*\.insert/],
     ['resend api', /api\.resend\.com/],
     ['fn_notify_founder', /fn_notify_founder/],
