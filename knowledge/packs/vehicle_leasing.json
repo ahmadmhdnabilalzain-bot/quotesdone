@@ -1,0 +1,75 @@
+{
+  "trade": "vehicle_leasing",
+  "entries": [
+    {
+      "id": "vehicle_leasing:spec-checklist",
+      "topic": "Vehicle leasing - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For vehicle leasing quotes to be compared like-for-like, every quoted line (services) must state: (1) vehicle make, model and year; (2) number of vehicles; (3) lease term in months; (4) annual mileage allowance and excess rate; (5) maintenance, registration and insurance included; (6) replacement vehicle; (7) Salik and fines handling; (8) early termination terms; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vehicle_leasing trade.",
+      "body_ar": "لكي تُقارن عروض تأجير المركبات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) ماركة المركبة وطرازها وسنة الصنع؛ (2) عدد المركبات؛ (3) مدة الإيجار بالأشهر؛ (4) الحد السنوي للمسافة وسعر الزيادة؛ (5) الصيانة والتسجيل والتأمين مشمولة؛ (6) المركبة البديلة؛ (7) التعامل مع سالك والمخالفات؛ (8) شروط الإنهاء المبكر؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vehicle_leasing فقط.",
+      "required_specs": [
+        "vehicle make, model and year",
+        "number of vehicles",
+        "lease term in months",
+        "annual mileage allowance and excess rate",
+        "maintenance, registration and insurance included",
+        "replacement vehicle",
+        "Salik and fines handling",
+        "early termination terms",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "vehicle_leasing:uae-standards-and-approvals",
+      "topic": "Vehicle leasing - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Vehicle rental and leasing companies in Dubai operate under Roads and Transport Authority (RTA) licensing; vehicle registration and insurance are required under UAE federal traffic law. What the cited sources do not establish: The RTA page read does not describe the leasing licence itself; ask the provider for its licence.",
+      "body_ar": "تعمل شركات تأجير المركبات في دبي بترخيص من هيئة الطرق والمواصلات؛ ويُشترط تسجيل المركبة وتأمينها وفق قانون السير الاتحادي. ما لا تثبته المصادر المذكورة: صفحة هيئة الطرق المقروءة لا تصف ترخيص التأجير نفسه؛ اطلب من المزود ترخيصه.",
+      "source_note": "The RTA page read does not describe the leasing licence itself; ask the provider for its licence.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for vehicle leasing?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـتأجير المركبات؟",
+      "expected_entry_ids": [
+        "vehicle_leasing:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to vehicle leasing?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على تأجير المركبات؟",
+      "expected_entry_ids": [
+        "vehicle_leasing:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "vehicle_leasing:spec-checklist",
+      "vehicle_leasing:uae-standards-and-approvals"
+    ],
+    "added": [
+      "vehicle_leasing:spec-checklist",
+      "vehicle_leasing:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
