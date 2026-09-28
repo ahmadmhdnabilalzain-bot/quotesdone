@@ -26,7 +26,9 @@ import { boqFromPages } from '../../supabase/functions/drawing_boq/boq_from_text
 // lighting/power PDF: the PDF take-off knows plumbing and HVAC tags only, so light fittings (LT-1),
 // sockets (DS-1), doors (D-1) and detectors (SD) on a PDF are not counted. A regression fails the run;
 // raise a floor when the reader improves.
-const THRESHOLDS = { recall: 0.818, precision: 0.905, maxMeanQtyErrPct: 0 };
+// Raised 28 Sep 2026 after the electrical, fire-alarm and door tags joined the PDF vocabulary (drawing_set.ts):
+// 22 of 22 items, every quantity exact; precision 0.92 (the 2 unmatched lines are still the A-WALL linework).
+const THRESHOLDS = { recall: 1, precision: 0.92, maxMeanQtyErrPct: 0 };
 
 type Item = { id: string; trade: string; match: string; qty: number; unit: 'nos' | 'm' };
 type Line = { type?: string; description: string; qty: number | null; unit: string };
