@@ -44,11 +44,11 @@ Deno.test('the same words in two sections are two items, and an unknown unit is 
   assertEquals(unitOf('No.'), ['count', 1]);
 });
 
-Deno.test('boqFromExtracted carries the findings: a ZZ DEMO IFC and its sheet disagreeing reach missing_info', async () => {
+Deno.test('boqFromExtracted carries the findings: a ZZ DEMO drawing and its sheet disagreeing reach missing_info', async () => {
   const { boqFromExtracted } = await import('../drawing_boq/boq_from_document.ts');
   const { empty } = await import('./doc_read/types.ts');
-  const q = (qty: number, basis: string) => ({ section: 'ZZ DEMO Level 1', description: 'IfcSlab NetArea', qty, unit: 'sqm', basis, confidence: 'medium' as const });
-  const r = boqFromExtracted({ ...empty('ifc'), quantities: [q(120, 'model A'), q(95, 'model B')] });
+  const q = (qty: number, basis: string) => ({ section: 'ZZ DEMO Level 1', description: 'Slab area', qty, unit: 'sqm', basis, confidence: 'medium' as const });
+  const r = boqFromExtracted({ ...empty('dxf'), quantities: [q(120, 'model A'), q(95, 'model B')] });
   assertEquals(r.validation, [{ check: 'conflict', lines: [0, 1] }]);
   assertEquals(r.missing_info.some((m: string) => m.includes('different quantities')), true);
 });

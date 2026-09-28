@@ -145,7 +145,12 @@ export const handler = observe('resend_inbound', async (req) => {
     const url = new URL(req.url);
     const s = url.searchParams.get('s');
     const ibs = await sec('inbound_secret'); const rit = await sec('resend_inbound_token');
-    if (!s || (s !== ibs && s !== rit)) { await logRun('error', { authorised: 0, stage: 'query_token' }, 'resend_inbound rejected a caller with a bad or missing ?s token. No inbound email was processed - if this was genuine Resend traffic, a supplier document or forwarded receipt has been dropped.'); return J({ error: 'forbidden' }, 403); }
+    // 28 Sep 2026: two refusals at 12:37 UTC could not be attributed - the row said nothing about the
+    // caller. A genuine Resend delivery always carries svix-* headers; record whether this one did, the
+    // user agent, and the token's length only (never its value), so the next refusal names its source.
+    if (!s || (s !== ibs && s !== rit)) { await logRun('error', { authorised: 0, stage: 'query_token',
+        token_len: s ? s.length : 0, svix_headers: !!(req.headers.get('svix-id') || req.headers.get('webhook-id')),
+        user_agent: (req.headers.get('user-agent') || '').slice(0, 120), method: req.method },'resend_inbound rejected a caller with a bad or missing ?s token. No inbound email was processed - if this was genuine Resend traffic, a supplier document or forwarded receipt has been dropped.'); return J({ error: 'forbidden' }, 403); }
     // AUDIT 9.5 (3 Aug 2026) - THE INSTRUMENT, not the fix. This endpoint accepts the omnipotent
     // shared secret as a ?s= query token, and the shared secret is due to be withdrawn on 10 Aug.
     // Whether that breaks inbound email depends entirely on which value Resend's configured webhook
