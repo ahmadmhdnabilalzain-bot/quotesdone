@@ -1,6 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+/* Tailwind 4 reads the JS config only when told to; every brand key stays in tailwind.config.ts. */
+@config "../../tailwind.config.ts";
+
+/* Tailwind 4 changed the default border colour to currentColor; v3 used gray-200. Kept as v3 had it so no
+   bordered element changes colour with the upgrade (the official upgrade guide's compatibility rule). */
+@layer base {
+  *, ::after, ::before, ::backdrop, ::file-selector-button { border-color: var(--color-gray-200, currentColor); }
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    QuotesDone — brand direction A, "SEALED" (chosen 14 Sep 2026)
