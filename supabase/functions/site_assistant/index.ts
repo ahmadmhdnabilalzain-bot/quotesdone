@@ -103,7 +103,7 @@ function audienceFromPath(p: string): 'customer' | 'supplier' | 'unknown' {
 // token, never from the request body, and the scope that identity unlocks is decided in SQL by
 // fn_wa_context — not by a sentence in a prompt. That is the whole point: a model that is asked
 // nicely to only discuss your own rows will eventually not.
-async function identify(req: Request): Promise<{ email: string; audience: 'customer' | 'supplier' } | null> {
+async function identify(req: Request): Promise<{ email: string; audience: 'customer' | 'supplier'; id: string } | null> {
   const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '').trim();
   // The widget sends the publishable anon key when nobody is signed in. That is a valid JWT and
   // getUser() rejects it, but checking the role claim first saves a network round trip on every
@@ -114,13 +114,13 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
     const email = String(data?.user?.email || '').toLowerCase().trim();
     if (!email) return null;
     const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
-    if (cust) return { email, audience: 'customer' };
+    if (cust) return { email, audience: 'customer', id: String(cust.id) };
     const { data: sup } = await admin.from('leads').select('id').ilike('claimed_by', email).maybeSingle();
     // A SANCTIONED PARTY IS NOBODY HERE (founder instruction 516, 18 Sep 2026). Returning null
     // drops them to the anonymous voice every stranger gets — no account-scoped answers, no
     // supplier surface — rather than refusing outright, because this widget serves the public
     // homepage and a 403 here would tell a passer-by something about somebody else's account.
-    if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier' };
+    if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: String(sup.id) };
     return null;
   } catch (_e) { return null; }
 }
@@ -303,7 +303,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     if (wm.side) { audience = wm.side; source = 'text'; }
     if (asked === 'size') {
       const reply = capabilityStatement(langOf(message, uiLang));
-      try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+      try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
       return J({ reply, scope: live ? audience : 'public', routed: 'capability' });
     }
     {
@@ -311,7 +311,7 @@ Deno.serve(observe('site_assistant', async (req) => {
       const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
       if (faq) {
         const reply = guardSupportReply(String(faq.answer || '').trim(), langOf(message, uiLang)).text;
-        try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply, scope: live ? audience : 'public', routed: qType, faq_id: faq.id });
       }
     }
@@ -641,7 +641,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     // deno-lint-ignore no-explicit-any
     (globalThis as any).EdgeRuntime?.waitUntil?.(personWork);
 
-    try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+    try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     // scope lets the portal say "answering from your account" instead of leaving the customer to
     // wonder whether it can see them - which is the thing that made it feel like a stranger.
     return J({ reply, scope: live ? audience : 'public' });

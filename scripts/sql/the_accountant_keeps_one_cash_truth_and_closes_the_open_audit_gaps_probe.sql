@@ -5,6 +5,7 @@ declare
   f jsonb; cp jsonb; vat jsonb; ue jsonb; rw jsonb; c13 jsonb; mc jsonb; d5 jsonb;
   g2 jsonb; g5 jsonb; g6 jsonb; g7 jsonb; tr jsonb; v_lock text := 'not refused'; v_bud int; v_duties int; v_g4 boolean;
   v_aug_before int; v_aug_after int;
+  f2 jsonb; v_p bigint; v_r bigint; v_p_rev numeric; v_p_isrev boolean; v_r_rows int; v_821_rows int;
 begin
   select count(*) into v_aug_before from public.accountant_month_close;
   f := public.fn_finance_forecast();
@@ -33,7 +34,23 @@ begin
   v_g4 := pg_get_functiondef('public.fn_accountant_duties(jsonb)'::regprocedure) not like '%held'', ''for the marketing seat%';
   select count(*) into v_aug_after from public.accountant_month_close;
 
-  raise exception 'PROBE forecast_cash=% cash_position=% truth_agree=% gl_minus_bank=% rev30=% reversals30=% | vat_turnover=% | ue_reveals=% ue_llm=% ue_missing=% | budget_lines=% runway_at_budget=% budget_spend=% weeks13=% c13_missing=% | july_close_ok=% lock="%" day5=% closes %->% | g2=% g5_incomplete=% g6=% g7_on=% g7_stale=% duties=% g4_stub_gone=%',
+  -- Release review, 29 Sep 2026: POSTED revenue plus a VOIDED reversal of it. The reversal points back at
+  -- the original (fn_gl_reverse's shape); the original must stay in revenue and in the run rate, the void
+  -- reversal must not appear, and the 690/821 shape (posted reversal of a void original) stays excluded.
+  v_p := public.fn_gl_entry(current_date, 'ZZ DEMO probe revenue', 'manual', null,
+    '[{"account":"1100","debit":123.45},{"account":"4400","credit":123.45}]'::jsonb, 'probe');
+  v_r := public.fn_gl_entry(current_date, 'ZZ DEMO probe reversal', 'reversal', v_p::text,
+    '[{"account":"4400","debit":123.45},{"account":"1100","credit":123.45}]'::jsonb, 'probe');
+  update public.gl_journal set status = 'void', reverses = v_p where id = v_r;
+  select coalesce(sum(revenue_aed), 0), coalesce(bool_or(is_reversal), false) into v_p_rev, v_p_isrev
+    from public.gl_revenue_lines_measured where journal_id = v_p;
+  select count(*) into v_r_rows from public.gl_revenue_lines_measured where journal_id = v_r;
+  select count(*) into v_821_rows from public.gl_revenue_lines_measured where journal_id = 821;
+  f2 := public.fn_finance_forecast();
+
+  raise exception 'PROBE void_reversal_case: posted_rev=% (want 123.45) is_reversal=% (want f) void_reversal_rows=% (want 0) rows_821=% (want 0) rev30_delta=% (want 123.45) | forecast_cash=% cash_position=% truth_agree=% gl_minus_bank=% rev30=% reversals30=% | vat_turnover=% | ue_reveals=% ue_llm=% ue_missing=% | budget_lines=% runway_at_budget=% budget_spend=% weeks13=% c13_missing=% | july_close_ok=% lock="%" day5=% closes %->% | g2=% g5_incomplete=% g6=% g7_on=% g7_stale=% duties=% g4_stub_gone=%',
+    v_p_rev, v_p_isrev, v_r_rows, v_821_rows,
+    (f2#>>'{assumptions,revenue_run_rate_30d}')::numeric - (f#>>'{assumptions,revenue_run_rate_30d}')::numeric,
     f->'cash_now', cp#>'{cash_in_bank,aed}', tr->'agree', f->'gl_minus_bank_aed', f#>'{assumptions,revenue_run_rate_30d}', f#>'{assumptions,reversals_30d_not_carried_forward}',
     vat->'turnover_aed',
     ue->'reveals', ue->'llm_cost_aed', jsonb_array_length(ue->'missing'),

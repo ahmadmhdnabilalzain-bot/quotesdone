@@ -1,0 +1,76 @@
+{
+  "trade": "sports_equipment",
+  "entries": [
+    {
+      "id": "sports_equipment:spec-checklist",
+      "topic": "Sports equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For sports equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) item type and model; (2) sport and level of use (school, club, professional); (3) dimensions and weight; (4) material; (5) federation approval if required (FIFA, FIBA); (6) safety standard (EN 957, EN 748); (7) installation and anchoring; (8) quantity per item; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the sports_equipment trade.",
+      "body_ar": "لكي تُقارن عروض المعدات الرياضية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الصنف وطرازه؛ (2) الرياضة ومستوى الاستخدام (مدرسي، أو نادٍ، أو احترافي)؛ (3) الأبعاد والوزن؛ (4) المادة؛ (5) اعتماد الاتحاد الرياضي إن لزم (فيفا أو فيبا)؛ (6) معيار السلامة (EN 957 أو EN 748)؛ (7) التركيب والتثبيت؛ (8) الكمية لكل صنف؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة sports_equipment فقط.",
+      "required_specs": [
+        "item type and model",
+        "sport and level of use (school, club, professional)",
+        "dimensions and weight",
+        "material",
+        "federation approval if required (FIFA, FIBA)",
+        "safety standard (EN 957, EN 748)",
+        "installation and anchoring",
+        "quantity per item",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "sports_equipment:uae-standards-and-approvals",
+      "topic": "Sports equipment - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. Fitness and sports equipment safety is commonly specified to EN standards (for example EN ISO 20957 for stationary training equipment). What the cited sources do not establish: The sources read do not make any sports equipment standard mandatory; state it explicitly.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. وتُحدَّد سلامة معدات اللياقة والرياضة عادةً وفق معايير EN (مثل EN ISO 20957 لمعدات التدريب الثابتة). ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل أي معيار للمعدات الرياضية إلزامياً؛ حدده صراحةً.",
+      "source_note": "The sources read do not make any sports equipment standard mandatory; state it explicitly.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for sports equipment?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالمعدات الرياضية؟",
+      "expected_entry_ids": [
+        "sports_equipment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to sports equipment?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على المعدات الرياضية؟",
+      "expected_entry_ids": [
+        "sports_equipment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "sports_equipment:spec-checklist",
+      "sports_equipment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "sports_equipment:spec-checklist",
+      "sports_equipment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

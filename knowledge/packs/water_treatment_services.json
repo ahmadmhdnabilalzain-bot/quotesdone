@@ -1,0 +1,77 @@
+{
+  "trade": "water_treatment_services",
+  "entries": [
+    {
+      "id": "water_treatment_services:spec-checklist",
+      "topic": "Water treatment services - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For water treatment services quotes to be compared like-for-like, every quoted line (services) must state: (1) system served (cooling tower, chiller, boiler, pool, potable tank); (2) chemical programme and products; (3) visit frequency; (4) tests per visit and parameters; (5) Legionella risk assessment and testing; (6) tank cleaning and disinfection; (7) accredited laboratory for samples; (8) service reports; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment_services trade.",
+      "body_ar": "لكي تُقارن عروض خدمات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النظام المخدوم (برج تبريد، أو مبرد، أو غلاية، أو مسبح، أو خزان مياه شرب)؛ (2) البرنامج الكيماوي والمواد؛ (3) تكرار الزيارات؛ (4) الاختبارات لكل زيارة والمؤشرات؛ (5) تقييم مخاطر الليجيونيلا واختبارها؛ (6) تنظيف الخزانات وتعقيمها؛ (7) مختبر معتمد للعينات؛ (8) تقارير الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment_services فقط.",
+      "required_specs": [
+        "system served (cooling tower, chiller, boiler, pool, potable tank)",
+        "chemical programme and products",
+        "visit frequency",
+        "tests per visit and parameters",
+        "Legionella risk assessment and testing",
+        "tank cleaning and disinfection",
+        "accredited laboratory for samples",
+        "service reports",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "water_treatment_services:uae-standards-and-approvals",
+      "topic": "Water treatment services - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Water tank cleaning, cooling towers and Legionella control in Dubai fall under Dubai Municipality public-health requirements, which cover water treatment; laboratory analyses should be from an ISO/IEC 17025 accredited lab. What the cited sources do not establish: The Dubai Municipality page read does not give cleaning frequencies or Legionella limits; state them in the request.",
+      "body_ar": "يخضع تنظيف خزانات المياه وأبراج التبريد ومكافحة الليجيونيلا في دبي لمتطلبات الصحة العامة لبلدية دبي التي تشمل معالجة المياه؛ ويجب أن تكون التحاليل من مختبر معتمد وفق ISO/IEC 17025. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة لا تذكر تكرار التنظيف ولا حدود الليجيونيلا؛ حددها في الطلب.",
+      "source_note": "The Dubai Municipality page read does not give cleaning frequencies or Legionella limits; state them in the request.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for water treatment services?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـخدمات معالجة المياه؟",
+      "expected_entry_ids": [
+        "water_treatment_services:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to water treatment services?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على خدمات معالجة المياه؟",
+      "expected_entry_ids": [
+        "water_treatment_services:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "water_treatment_services:spec-checklist",
+      "water_treatment_services:uae-standards-and-approvals"
+    ],
+    "added": [
+      "water_treatment_services:spec-checklist",
+      "water_treatment_services:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

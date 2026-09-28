@@ -1,0 +1,77 @@
+{
+  "trade": "pharma_wholesale",
+  "entries": [
+    {
+      "id": "pharma_wholesale:spec-checklist",
+      "topic": "Pharmaceutical wholesale - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For pharmaceutical wholesale quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and dosage form; (2) manufacturer and country of origin; (3) UAE registration number; (4) pack size; (5) quantity in packs; (6) minimum remaining shelf life; (7) storage and cold-chain requirements; (8) licensed distributor or warehouse; (9) batch and certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pharma_wholesale trade.",
+      "body_ar": "لكي تُقارن عروض تجارة الأدوية بالجملة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله الصيدلاني؛ (2) الشركة المصنعة وبلد المنشأ؛ (3) رقم التسجيل في الإمارات؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) الحد الأدنى للصلاحية المتبقية؛ (7) متطلبات التخزين وسلسلة التبريد؛ (8) الموزع أو المستودع المرخص؛ (9) الدفعة وشهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pharma_wholesale فقط.",
+      "required_specs": [
+        "product name, strength and dosage form",
+        "manufacturer and country of origin",
+        "UAE registration number",
+        "pack size",
+        "quantity in packs",
+        "minimum remaining shelf life",
+        "storage and cold-chain requirements",
+        "licensed distributor or warehouse",
+        "batch and certificate of analysis",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.mohap.gov.ae/en/services"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "pharma_wholesale:uae-standards-and-approvals",
+      "topic": "Pharmaceutical wholesale - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Medicines must be registered in the UAE and handled by licensed establishments; MOHAP lists pharmacist and pharmacy licensing services and keeps a registered medical product directory. The Emirates Drug Establishment took over federal drug regulation functions from 2024; Dubai Health Authority and the Department of Health Abu Dhabi license facilities in their emirates. What the cited sources do not establish: The MOHAP page read does not describe the warehouse or wholesale licence itself; the buyer must require the supplier's current licence and each product's registration number.",
+      "body_ar": "يجب أن تكون الأدوية مسجلة في الإمارات وأن تتعامل معها منشآت مرخصة؛ وتعرض وزارة الصحة ووقاية المجتمع خدمات ترخيص الصيادلة والصيدليات ودليلاً للمنتجات الطبية المسجلة. وتولت مؤسسة الإمارات للدواء وظائف تنظيم الأدوية الاتحادية منذ 2024، وترخص هيئة الصحة بدبي ودائرة الصحة في أبوظبي المنشآت في إمارتيهما. ما لا تثبته المصادر المذكورة: صفحة وزارة الصحة المقروءة لا تصف ترخيص المستودع أو البيع بالجملة نفسه؛ على المشتري أن يطلب ترخيص المورد الساري ورقم تسجيل كل منتج.",
+      "source_note": "The MOHAP page read does not describe the warehouse or wholesale licence itself; the buyer must require the supplier's current licence and each product's registration number.",
+      "sources": [
+        "https://www.mohap.gov.ae/en/services"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for pharmaceutical wholesale?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـتجارة الأدوية بالجملة؟",
+      "expected_entry_ids": [
+        "pharma_wholesale:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to pharmaceutical wholesale?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على تجارة الأدوية بالجملة؟",
+      "expected_entry_ids": [
+        "pharma_wholesale:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "pharma_wholesale:spec-checklist",
+      "pharma_wholesale:uae-standards-and-approvals"
+    ],
+    "added": [
+      "pharma_wholesale:spec-checklist",
+      "pharma_wholesale:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

@@ -1,0 +1,80 @@
+{
+  "trade": "hse_consultancy",
+  "entries": [
+    {
+      "id": "hse_consultancy:spec-checklist",
+      "topic": "HSE consultancy - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For hse consultancy (trade code hse_consultancy only), every quoted line must state: Service type; Site and activity covered; Consultant qualifications; Standard or regulation to comply with; Reports and documents delivered; Number of site visits; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط استشارات الصحة والسلامة والبيئة (رمز النشاط hse_consultancy فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الخدمة؛ الموقع والنشاط المشمول؛ مؤهلات الاستشاري؛ المواصفة أو اللائحة المطلوب الامتثال لها؛ التقارير والمستندات المسلّمة؛ عدد الزيارات الميدانية؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Service type",
+        "Site and activity covered",
+        "Consultant qualifications",
+        "Standard or regulation to comply with",
+        "Reports and documents delivered",
+        "Number of site visits",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/",
+        "https://www.dm.gov.ae/",
+        "https://www.iaf.nu/en/about-iaf-mla/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "hse_consultancy:uae-standards-and-approvals",
+      "topic": "HSE consultancy - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to hse consultancy in the UAE: Dubai Civil Defence applies the UAE Fire and Life Safety Code of Practice and issues approvals for engineering drawings, companies and hazardous material handling; outside Dubai the civil defence authority of the emirate applies. Dubai Municipality oversees building and construction, food and consumer goods, and waste management in Dubai; each other emirate has its own municipality. Management-system certificates such as ISO 9001 are recognised across borders when the certification body is accredited by a signatory of the international mutual-recognition arrangement formerly run by IAF; IAF ceased operations on 1 January 2026 and was replaced by Global Accreditation Cooperation Incorporated. A buyer may also name, as the test or product standard for a line, ISO 45001 and ISO 14001 (management systems), where the buyer asks for them; it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hse consultancy. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط استشارات الصحة والسلامة والبيئة في الإمارات: يطبّق الدفاع المدني في دبي قانون الإمارات للحماية من الحريق وسلامة الأرواح، ويصدر موافقات المخططات الهندسية واعتماد الشركات ومناولة المواد الخطرة؛ وخارج دبي تختص سلطة الدفاع المدني في الإمارة المعنية. تشرف بلدية دبي على البناء والتشييد والأغذية والسلع الاستهلاكية وإدارة النفايات في دبي؛ ولكل إمارة أخرى بلديتها الخاصة. يُعترف بشهادات أنظمة الإدارة مثل ISO 9001 دولياً عندما تكون جهة منح الشهادة معتمدة من جهة اعتماد موقِّعة على ترتيب الاعتراف المتبادل الدولي الذي كان يديره المنتدى الدولي للاعتماد (IAF)؛ وقد توقف IAF عن العمل في 1 يناير 2026 وحلّت محله Global Accreditation Cooperation Incorporated. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل ISO 45001 و ISO 14001 (أنظمة الإدارة) عندما يطلبها المشتري؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط استشارات الصحة والسلامة والبيئة. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hse consultancy. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.dcd.gov.ae/",
+        "https://www.dm.gov.ae/",
+        "https://www.iaf.nu/en/about-iaf-mla/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on hse consultancy?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـاستشارات الصحة والسلامة والبيئة؟",
+      "expected_entry_ids": [
+        "hse_consultancy:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a hse consultancy supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد استشارات الصحة والسلامة والبيئة؟",
+      "expected_entry_ids": [
+        "hse_consultancy:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 3,
+    "claims_checked": 3,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "hse_consultancy:spec-checklist",
+      "hse_consultancy:uae-standards-and-approvals"
+    ],
+    "added": [
+      "hse_consultancy:spec-checklist",
+      "hse_consultancy:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

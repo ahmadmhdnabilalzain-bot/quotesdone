@@ -138,6 +138,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'delivery.request', from: 'marketing', to: 'customer_support' },
   { type: 'delivery.result', from: 'customer_support', to: 'marketing' },
   { type: 'it.finding', from: 'it_engineer', to: 'marketing' },
+  // a seed invitation landed in junk or elsewhere: the batch still sends, marketing fixes the cause (ledger 1001;
+  // scripts/sql/the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql)
+  { type: 'deliverability.inbox_placement', from: 'it_engineer', to: 'marketing' },
   // a public comment the seat must not answer in public, and a lead from a comment; marketing re-checks and
   // closes each once the receiving seat has answered (scripts/sql/the_marketing_seat_answers_comments_on_every_channel.sql)
   { type: 'social.escalation', from: 'marketing', to: 'customer_support' },

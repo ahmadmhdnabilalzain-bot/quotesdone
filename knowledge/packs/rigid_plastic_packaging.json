@@ -1,0 +1,78 @@
+{
+  "trade": "rigid_plastic_packaging",
+  "entries": [
+    {
+      "id": "rigid_plastic_packaging:spec-checklist",
+      "topic": "Rigid plastic packaging - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For rigid plastic packaging quotes to be compared like-for-like, every quoted line (goods) must state: (1) container type (bottle, jar, tub, crate, preform); (2) material (PET, HDPE, PP); (3) capacity in ml and weight in grams; (4) neck finish and closure type; (5) colour and transparency; (6) food-contact compliance; (7) printing or labelling; (8) quantity and pallet configuration; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the rigid_plastic_packaging trade.",
+      "body_ar": "لكي تُقارن عروض عبوات البلاستيك الصلبة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع العبوة (زجاجة، أو برطمان، أو علبة، أو صندوق، أو قالب أولي)؛ (2) المادة (PET أو HDPE أو PP)؛ (3) السعة بالمليلتر والوزن بالغرام؛ (4) مقاس العنق ونوع الغطاء؛ (5) اللون والشفافية؛ (6) المطابقة لملامسة الغذاء؛ (7) الطباعة أو الملصقات؛ (8) الكمية وترتيب المنصات؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة rigid_plastic_packaging فقط.",
+      "required_specs": [
+        "container type (bottle, jar, tub, crate, preform)",
+        "material (PET, HDPE, PP)",
+        "capacity in ml and weight in grams",
+        "neck finish and closure type",
+        "colour and transparency",
+        "food-contact compliance",
+        "printing or labelling",
+        "quantity and pallet configuration",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.gso.org.sa/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "rigid_plastic_packaging:uae-standards-and-approvals",
+      "topic": "Rigid plastic packaging - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Food-contact plastics must meet the applicable UAE/GSO food-contact standards available through MoIAT, and single-use plastic restrictions apply at federal and emirate level. What the cited sources do not establish: The sources read do not name the food-contact standard number; the buyer must state which standard applies.",
+      "body_ar": "يجب أن تطابق البلاستيكات الملامسة للغذاء المواصفات الإماراتية والخليجية المعنية المتاحة عبر وزارة الصناعة والتكنولوجيا المتقدمة، وتنطبق قيود البلاستيك أحادي الاستخدام على المستويين الاتحادي والمحلي. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر رقم مواصفة ملامسة الغذاء؛ على المشتري أن يحدد المواصفة المطبقة.",
+      "source_note": "The sources read do not name the food-contact standard number; the buyer must state which standard applies.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.gso.org.sa/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for rigid plastic packaging?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـعبوات البلاستيك الصلبة؟",
+      "expected_entry_ids": [
+        "rigid_plastic_packaging:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to rigid plastic packaging?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على عبوات البلاستيك الصلبة؟",
+      "expected_entry_ids": [
+        "rigid_plastic_packaging:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "rigid_plastic_packaging:spec-checklist",
+      "rigid_plastic_packaging:uae-standards-and-approvals"
+    ],
+    "added": [
+      "rigid_plastic_packaging:spec-checklist",
+      "rigid_plastic_packaging:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

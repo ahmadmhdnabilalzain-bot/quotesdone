@@ -487,6 +487,25 @@ const handle = async (req: Request): Promise<Response> => {
     // read and CONFIRM another company's scope by changing one number - the same enumeration defect
     // claim_lookup was hardened against on 19 Jul, one layer up. Here the id is resolved from the
     // caller's own JWT via claimed_by and the client's id is never consulted.
+    // A closed support case asks the supplier for its rating inside the portal (CSAT 1-5, CES 1-7; customer_support
+    // #1036). The portal is the sales engineer's, so it asks here and never calls Support's widget. The party is the
+    // company this session claimed, never an id from the client, and fn_support_portal_rate refuses a case that is
+    // not that company's. A sanctioned session never reaches this line (refused above).
+    if (action === 'support_rating_due' || action === 'support_rating') {
+      const { data: mine } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (action === 'support_rating_due') {
+        if (!mine) return J({ ok: true, due: [] });
+        const { data, error } = await admin.rpc('fn_support_rating_due', { p_party_kind: 'supplier', p_party_id: String(mine.id) });
+        return error ? J({ error: 'rating_due_failed' }, 400) : J({ ok: true, due: data || [] });
+      }
+      if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company' }, 400);
+      const { data, error } = await admin.rpc('fn_support_portal_rate', {
+        p_party_kind: 'supplier', p_party_id: String(mine.id), p_case_ref: String(body.case_ref || ''),
+        p_csat: body.csat == null ? null : Number(body.csat), p_ces: body.ces == null ? null : Number(body.ces),
+        p_comment: body.comment ? String(body.comment).slice(0, 2000) : null });
+      return error ? J({ error: 'rating_failed' }, 400) : J(data);
+    }
+
     if (action === 'capability_state' || action === 'capability_confirm') {
       const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company', message: 'Claim your company before confirming what it can quote for.' }, 400);
