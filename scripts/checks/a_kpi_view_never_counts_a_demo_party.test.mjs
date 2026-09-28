@@ -37,7 +37,7 @@ test('finance_kpis excludes demo receivables', () => {
 });
 
 // The routines the KPI views read their figures from.
-for (const fn of ['fn_ops_metrics', 'funnel_metrics', 'fn_strategy_metrics']) {
+for (const fn of ['fn_ops_metrics', 'funnel_metrics', 'fn_strategy_metrics', 'fn_marketplace_analytics']) {
   test(`${fn} excludes demo inquiries`, () => {
     const m = new RegExp(`create or replace function public\\.${fn}\\s*\\([\\s\\S]*?\\$function\\$[\\s\\S]*?\\$function\\$`, 'i').exec(SRC);
     assert.ok(m, fn + ' is defined');

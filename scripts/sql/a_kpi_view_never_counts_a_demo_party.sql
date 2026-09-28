@@ -33,9 +33,9 @@
 --     at posting time, not a report's to hide.
 --   Bodies are the live definitions of 28 Sep with only the demo test added; signatures, volatility,
 --   security and search_path are unchanged, so CREATE OR REPLACE keeps each routine's ACL.
---   NOT covered: fn_marketplace_analytics, which fn_ops_metrics and fn_strategy_metrics call for
---   avg_first_quote_hours, response_rate_pct and the 'funnel' block. It is a separate routine with its
---   own readers and is named here so it is not mistaken for covered.
+--   * fn_marketplace_analytics (read by fn_ops_metrics, fn_strategy_metrics and the exec-home boards) -
+--     every inquiry, quote and match it counts skips demo inquiries, and quotes also skip demo suppliers.
+--     Its readers get the same keys and types; only demo rows leave the counts.
 --
 -- Prevented by: scripts/checks/a_kpi_view_never_counts_a_demo_party.test.mjs (fails if any of the seven
 -- views loses its demo exclusion). Verdict row at the end reads the live views back.
@@ -315,6 +315,62 @@ create or replace view public.strategy_kpis as
            from simulations) as last_simulation_at
    from agg, fin, rk;
 
+create or replace function public.fn_marketplace_analytics()
+ returns jsonb
+ language plpgsql
+ stable
+ set search_path to 'public', 'pg_temp'
+as $function$
+declare res jsonb;
+begin
+  with ri as (  -- real inquiries only
+    select i.* from inquiries i where not public.fn_inquiry_is_demo(i.id)
+  ),
+  rq as (       -- real quotes: a real inquiry and a real supplier
+    select q.* from quotes q join ri on ri.id = q.inquiry_id
+     where not exists (select 1 from leads l where l.id = q.supplier_id and l.is_demo)
+  ),
+  q_first as (  -- first quote latency per rfq
+    select i.id, min(qq.created_at) as first_quote_at, i.created_at, i.category
+    from ri i left join rq qq on qq.inquiry_id = i.id group by i.id, i.created_at, i.category
+  ),
+  spread as (  -- savings potential per rfq with >=2 quotes
+    select inquiry_id, min(quote_amount) lo, max(quote_amount) hi, count(*) n
+    from rq where quote_amount > 0 group by inquiry_id having count(*) >= 2
+  )
+  select jsonb_build_object(
+    'rfqs_today',   (select count(*) from ri where created_at >= date_trunc('day', now())),
+    'rfqs_7d',      (select count(*) from ri where created_at >= now() - interval '7 days'),
+    'rfqs_30d',     (select count(*) from ri where created_at >= now() - interval '30 days'),
+    'avg_first_quote_hours', (select round(avg(extract(epoch from (first_quote_at - created_at))/3600.0)::numeric,1) from q_first where first_quote_at is not null),
+    'response_rate_pct', (
+      select case when count(*)>0 then round(100.0 * count(*) filter (where exists (
+        select 1 from rq q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id)) / count(*), 1) else null end
+      from inquiry_matches m join ri on ri.id = m.inquiry_id),
+    'avg_savings_pct', (select round(avg(case when hi>0 then 100.0*(hi-lo)/hi else 0 end)::numeric,1) from spread),
+    'abandoned_rfqs', (select count(*) from ri i where i.created_at < now() - interval '7 days'
+                        and coalesce(i.status,'') not in ('completed','cancelled')
+                        and not exists (select 1 from rq q where q.inquiry_id = i.id)),
+    'active_suppliers_30d', (select count(distinct supplier_id) from rq where created_at >= now() - interval '30 days'),
+    'supplier_capacity_avg', (select round(avg(c)::numeric,1) from (select supplier_id, count(*) c from rq where created_at >= now() - interval '30 days' group by supplier_id) s),
+    'competitive_categories', (
+      select coalesce(jsonb_agg(x order by x.avg_quotes desc), '[]'::jsonb) from (
+        select i.category, round(avg(qc.c)::numeric,2) as avg_quotes, count(*) as rfqs
+        from ri i join (select inquiry_id, count(*) c from rq group by inquiry_id) qc on qc.inquiry_id=i.id
+        where i.created_at >= now() - interval '90 days' and i.category is not null
+        group by i.category order by avg_quotes desc limit 8) x),
+    'category_growth', (
+      select coalesce(jsonb_agg(g), '[]'::jsonb) from (
+        select category,
+          count(*) filter (where created_at >= now() - interval '30 days') as this_30d,
+          count(*) filter (where created_at >= now() - interval '60 days' and created_at < now() - interval '30 days') as prev_30d
+        from ri where category is not null and created_at >= now() - interval '60 days'
+        group by category order by this_30d desc limit 10) g),
+    'generated_at', now()
+  ) into res;
+  return res;
+end $function$;
+
 create or replace function public.fn_ops_metrics()
  returns jsonb
  language plpgsql
@@ -447,8 +503,15 @@ select case when (select count(*) from pg_views
                      and definition ~ '(fn_inquiry_is_demo|is_demo|fn_gl_fixture_or_orphan)') = 8
              and (select count(*) from pg_proc
                    where pronamespace = 'public'::regnamespace
-                     and proname in ('fn_ops_metrics','funnel_metrics','fn_strategy_metrics')
-                     and prosrc ~ 'fn_inquiry_is_demo') = 3
+                     and proname in ('fn_ops_metrics','funnel_metrics','fn_strategy_metrics','fn_marketplace_analytics')
+                     and prosrc ~ 'fn_inquiry_is_demo') = 4
+             and (public.fn_marketplace_analytics() ->> 'rfqs_30d')::int
+                 = (select count(*) from public.inquiries i
+                     where i.created_at >= now() - interval '30 days' and not public.fn_inquiry_is_demo(i.id))
+             and (public.fn_marketplace_analytics() ->> 'active_suppliers_30d')::int
+                 = (select count(distinct q.supplier_id) from public.quotes q
+                     where q.created_at >= now() - interval '30 days' and not public.fn_inquiry_is_demo(q.inquiry_id)
+                       and not exists (select 1 from public.leads l where l.id = q.supplier_id and l.is_demo))
              and (public.funnel_metrics(36500) ->> 'inquiries')::int
                  = (select count(*) from public.inquiries i
                      where i.created_at >= now() - interval '36500 days' and not public.fn_inquiry_is_demo(i.id))
