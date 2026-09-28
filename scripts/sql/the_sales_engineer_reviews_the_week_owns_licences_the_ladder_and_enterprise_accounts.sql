@@ -154,8 +154,15 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_n int := 0; v_stale jsonb;
 begin
-  update public.enterprise_account a set totals = public.fn_enterprise_account_report(a.id), totals_at = now();
-  get diagnostics v_n = row_count;
+  -- 28 Sep 2026: this statement had no WHERE, so the safe-update guard refused it on every run since 24 Sep.
+  -- Scope: only an account whose totals were never computed or no longer match its report is rewritten;
+  -- an unchanged account keeps its row. `accounts` still counts every account.
+  update public.enterprise_account a
+     set totals = r.report, totals_at = now()
+    from (select e.id, public.fn_enterprise_account_report(e.id) as report from public.enterprise_account e) r
+   where r.id = a.id
+     and (a.totals_at is null or a.totals is distinct from r.report);
+  select count(*) into v_n from public.enterprise_account;
   select coalesce(jsonb_agg(jsonb_build_object('account_id', id, 'name', name) order by id), '[]') into v_stale
     from public.enterprise_account
    where plan is null or plan_reviewed_at is null or plan_reviewed_at < now() - interval '90 days';
