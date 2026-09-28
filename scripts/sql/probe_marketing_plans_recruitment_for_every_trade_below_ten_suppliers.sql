@@ -32,6 +32,11 @@ begin
       or position(coalesce(t.label, p.trade) in p.invite_body) = 0 or position(coalesce(t.label, p.trade) in p.invite_subject) = 0;
   if v_bad_body > 0 then v_fail := v_fail || format('%s variants without the link, with Arabic, or not naming the trade', v_bad_body); end if;
 
+  -- both tables reach the daily export (every_marketing_table_is_in_the_daily_export.test.mjs, review of #1070)
+  if (select count(*) from public.fn_table_export_list() e
+       where e.table_name in ('marketing_recruitment_source', 'marketing_gap_recruitment_plan')) <> 2 then
+    v_fail := v_fail || 'a recruitment table is missing from fn_table_export_list'::text; end if;
+
   select count(*) into v_unchecked from public.marketing_recruitment_source where checked_at is null or http_status is null or url !~ '^https?://';
   if v_unchecked > 0 then v_fail := v_fail || format('%s sources without a recorded lookup', v_unchecked); end if;
   if (select count(*) from public.marketing_gap_recruitment_plan where jsonb_array_length(sources) = 0) > 0 then
