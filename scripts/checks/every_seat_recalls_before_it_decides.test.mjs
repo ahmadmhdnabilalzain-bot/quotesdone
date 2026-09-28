@@ -45,7 +45,8 @@ export const DECISION_PATHS = [
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'triage', "return J({ ok: true, seat: 'it_engineer', issue_key"],
   ['supabase/functions/marketing/index.ts', 'marketing', 'assist', 'return error ? J('],
   ['supabase/functions/marketing_social_inbox/index.ts', 'marketing', 'social_reply', 'const d = decide(ev.text'],
-  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await f(gateway'],
+  // The comment answer is think() (socialReply) since #898; the recall still comes first and rides with the question.
+  ['supabase/functions/_shared/marketing_social_store.ts', 'marketing', 'comment_reply', 'await socialReply(defaultDeps(admin'],
   ['supabase/functions/marketing_channels/index.ts', 'marketing', 'plan', "admin.rpc('fn_marketing_campaign_hash'"],
 ];
 export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing'];
@@ -72,6 +73,13 @@ test('every seat decision path recalls its past cases before it decides', () => 
   assert.deepEqual(missing, [], missing.join('\n'));
   // Every seat is covered by at least one path.
   assert.deepEqual(SEATS.filter((s) => !DECISION_PATHS.some((p) => p[1] === s)), []);
+});
+
+// 28 Sep 2026: the shared recall defaulted to every seat's cases, so think() for customer_support could read the
+// accountant's and the CEO's internal cases. A seat reads its own unless it asks; the CEO keeps the wide view.
+test('a seat recalls its own cases by default; only the CEO reads across seats without asking', () => {
+  const src = read('supabase/functions/_shared/case_recall.ts');
+  assert.match(src, /p_other_seats: o\.otherSeats \?\? o\.seat === 'ceo'/, 'the recall no longer defaults to the seat\'s own cases');
 });
 
 test('every seat writes its cases back, and recall is by meaning (a vector), never by words', () => {
