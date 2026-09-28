@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T17:52:36.859Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T19:20:28.812Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -209,7 +209,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (652) =====
+-- ===== TABLES (653) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3907,6 +3907,28 @@ CREATE TABLE IF NOT EXISTS public.inv_items (
   reorder_point numeric(18,4) DEFAULT 0 NOT NULL,
   is_active boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.invite_placement_check (
+  dubai_day date NOT NULL,
+  token text NOT NULL,
+  from_address text NOT NULL,
+  subject text NOT NULL,
+  gmail_to text NOT NULL,
+  outlook_to text NOT NULL,
+  gmail_notification_id bigint,
+  outlook_notification_id bigint,
+  queued_at timestamp with time zone DEFAULT now() NOT NULL,
+  gmail_folder text,
+  outlook_folder text,
+  gmail_detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  outlook_detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  reads integer DEFAULT 0 NOT NULL,
+  last_read_at timestamp with time zone,
+  verdict text DEFAULT 'pending'::text NOT NULL,
+  decided_at timestamp with time zone,
+  paused boolean DEFAULT false NOT NULL,
+  note text
 );
 
 CREATE TABLE IF NOT EXISTS public.invite_schedule (
@@ -9286,6 +9308,7 @@ ALTER TABLE public.integration_matrix ADD CONSTRAINT integration_matrix_pkey PRI
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_pkey PRIMARY KEY (id);
 ALTER TABLE public.internal_credential_audit ADD CONSTRAINT internal_credential_audit_pkey PRIMARY KEY (id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_pkey PRIMARY KEY (id);
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_pkey PRIMARY KEY (dubai_day);
 ALTER TABLE public.invite_schedule ADD CONSTRAINT invite_schedule_pkey PRIMARY KEY (day);
 ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_pkey PRIMARY KEY (system, principal);
 ALTER TABLE public.it_change_acceptance ADD CONSTRAINT it_change_acceptance_pkey PRIMARY KEY (txid);
@@ -9703,6 +9726,7 @@ ALTER TABLE public.inquiry_workstream ADD CONSTRAINT inquiry_workstream_group_id
 ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_group_inquiry_id_key UNIQUE (inquiry_id);
 ALTER TABLE public.inquiry_workstream_requirement ADD CONSTRAINT inquiry_workstream_requirement_workstream_id_field_id_key UNIQUE (workstream_id, field_id);
 ALTER TABLE public.inv_items ADD CONSTRAINT inv_items_sku_key UNIQUE (sku);
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_token_key UNIQUE (token);
 ALTER TABLE public.it_hold_signature ADD CONSTRAINT it_hold_signature_subject_counts_match_note_like_key UNIQUE NULLS NOT DISTINCT (subject, counts_match, note_like);
 ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_handoff_id_key UNIQUE (handoff_id);
 ALTER TABLE public.kb_operational_route ADD CONSTRAINT kb_operational_route_route_key_key UNIQUE (route_key);
@@ -10019,6 +10043,12 @@ ALTER TABLE public.inquiry_workstream_group ADD CONSTRAINT inquiry_workstream_gr
 ALTER TABLE public.intake_trade_taxonomy ADD CONSTRAINT intake_trade_taxonomy_trade_codes_check CHECK ((cardinality(trade_codes) > 0));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_context_check CHECK ((length(btrim(context)) > 2));
 ALTER TABLE public.internal_credential ADD CONSTRAINT internal_credential_scope_check CHECK ((array_length(scope, 1) >= 1));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_gmail_folder_check CHECK ((gmail_folder = ANY (ARRAY['inbox'::text, 'spam'::text, 'trash'::text, 'other'::text, 'not_found'::text])));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_gmail_to_check CHECK ((gmail_to = 'ahmadmhdnabilalzain@gmail.com'::text));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_outlook_folder_check CHECK ((outlook_folder = ANY (ARRAY['inbox'::text, 'spam'::text, 'trash'::text, 'other'::text, 'not_found'::text])));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_outlook_to_check CHECK ((outlook_to = 'management@doratajewelries.com'::text));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_token_check CHECK ((token ~ '^QD[0-9A-F]{10}$'::text));
+ALTER TABLE public.invite_placement_check ADD CONSTRAINT invite_placement_check_verdict_check CHECK ((verdict = ANY (ARRAY['pending'::text, 'inbox'::text, 'spam'::text, 'elsewhere'::text, 'not_found'::text, 'unread'::text, 'not_sent'::text])));
 ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_accepted_by_check CHECK ((btrim(accepted_by) <> ''::text));
 ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_reason_check CHECK ((btrim(reason) <> ''::text));
 ALTER TABLE public.it_change_acceptance ADD CONSTRAINT it_change_acceptance_accepted_by_check CHECK ((accepted_by = ANY (ARRAY['ceo'::text, 'founder'::text])));
@@ -14815,6 +14845,7 @@ declare
   v_hol_name text; v_hol_action text; v_hol_end date;
   v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
   v_win_start timestamptz; v_win_end timestamptz;
+  v_gate text;
 begin
   select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
     from public.company_calendar c
@@ -14865,6 +14896,18 @@ begin
     return 0;
   end if;
   if v_planned <= 0 then return 0; end if;
+
+  -- PLACEMENT GATE (24 Sep 2026, it_engineer). Nothing is queued unless this morning's seed invitation landed
+  -- in the Inbox of both seed mailboxes under today's effective sender (fn_invite_placement_gate). Fail closed: a check
+  -- that is still running, failed, or never ran all hold the batch.
+  v_gate := public.fn_invite_placement_gate((now() at time zone 'Asia/Dubai')::date);
+  if v_gate <> 'pass' then
+    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
+    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
+            'Invites held: the morning inbox placement check answered ' || v_gate || ', so nothing was written to the outbox.', now(), now());
+    return 0;
+  end if;
 
   -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
   -- and the end of the Dubai working day, evenly spaced. Past the window nothing is queued: a cold
@@ -21950,6 +21993,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -22465,135 +22637,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -40568,6 +40611,39 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_invite_campaign_pause(p_source text, p_why text, p_evidence jsonb, p_counts jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_cancelled int;
+begin
+  if coalesce(btrim(p_source), '') = '' or coalesce(btrim(p_why), '') = '' then
+    raise exception 'fn_invite_campaign_pause(source, why, evidence, counts): a source and a reason are required';
+  end if;
+  update app_secrets set value = 'false' where key = 'invite_enabled';
+  update notifications set status = 'cancelled'
+   where type = 'supplier_invite' and status = 'queued';
+  get diagnostics v_cancelled = row_count;
+
+  insert into it_watch_finding(detector_key, detector, subject, state, severity, title, evidence)
+  values ('deliverability:supplier_invite', 'deliverability', 'supplier_invite', 'paused', 'high',
+          'Supplier invitations auto-paused: ' || p_why,
+          coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled, 'paused_by', p_source,
+                             'resume', 'set app_secrets.invite_enabled=true after reading the bounces/complaints'))
+  on conflict (detector_key) do update
+     set state = excluded.state, severity = excluded.severity, title = excluded.title, evidence = excluded.evidence,
+         last_seen_at = now(), seen_count = it_watch_finding.seen_count + 1, status = 'open', resolved_at = null;
+
+  insert into agent_runs(agent, status, counts, note, finished_at)
+  values (p_source, 'error', coalesce(p_counts, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled),
+          'PAUSED: ' || p_why || '; invite_enabled=false, ' || v_cancelled || ' queued invitation(s) cancelled, it_engineer finding opened.', now());
+  return jsonb_build_object('paused', true, 'cancelled_queued', v_cancelled, 'source', p_source);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_invite_lane_sent(p_lead_id bigint)
  RETURNS boolean
  LANGUAGE sql
@@ -40595,6 +40671,311 @@ begin
   end;
   -- ON with no readable stamp: count nothing before now, so the lane starts at day 1 rather than inheriting.
   return coalesce(v_since, now());
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_cutoff(p_day date)
+ RETURNS timestamp with time zone
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_invite_placement_deadline(p_day) + interval '2 hours';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_day_closed(p_now timestamp with time zone DEFAULT now())
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when extract(isodow from (p_now at time zone 'Asia/Dubai')) in (6, 7) then 'the UAE weekend'
+    when exists (select 1 from public.company_calendar c
+                  where c.kind = 'public_holiday'
+                    and (p_now at time zone 'Asia/Dubai')::date between c.starts_on and coalesce(c.ends_on, c.starts_on))
+      then 'a company_calendar public holiday'
+    when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive is false'
+    when coalesce((select lower(btrim(value)) from public.app_secrets where key = 'invite_enabled'), 'false') <> 'true'
+      then 'invite_enabled is false'
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_deadline(p_day date)
+ RETURNS timestamp with time zone
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select (p_day + make_interval(hours => coalesce(
+            (select (nullif(value,'')::jsonb ->> 'window_start_hour')::int from app_secrets where key = 'invite_warmup'), 10)))
+         at time zone 'Asia/Dubai';
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_due(p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_day date := (p_now at time zone 'Asia/Dubai')::date;
+  v_deadline timestamptz := public.fn_invite_placement_deadline(v_day);
+  v_cutoff timestamptz := public.fn_invite_placement_cutoff(v_day);
+  r public.invite_placement_check;
+  v_closed text; v_token text; v_subject text; v_body text; v_site text; v_from text;
+  v_g bigint; v_o bigint; v_sg text; v_so text;
+begin
+  select * into r from public.invite_placement_check where dubai_day = v_day;
+
+  if r.dubai_day is null then
+    -- Queued from 04:30 UTC; not later than 30 minutes before the cutoff, which leaves beats to read it.
+    if p_now < v_deadline - interval '90 minutes' or p_now >= v_cutoff - interval '30 minutes' then
+      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', 'outside the seed window');
+    end if;
+    v_closed := public.fn_invite_placement_day_closed(p_now);
+    if v_closed is not null then
+      return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'reason', v_closed);
+    end if;
+
+    select coalesce(max(value) filter (where key = 'invite_subject'), ''),
+           coalesce(max(value) filter (where key = 'invite_body'), ''),
+           coalesce(nullif(max(value) filter (where key = 'public_site_url'), ''), 'https://quotesdone.com')
+      into v_subject, v_body, v_site
+      from public.app_secrets where key in ('invite_subject', 'invite_body', 'public_site_url');
+    v_from := public.fn_invite_placement_sender();
+    -- The body exactly as scripts/invitation_inbox_check.mjs inviteBody() fills it: a ZZ DEMO company and a
+    -- zero portal token. The token goes in the subject, the one field both the Gmail and Graph APIs match
+    -- without a full-text index lag.
+    v_token := 'QD' || upper(substr(md5(gen_random_uuid()::text), 1, 10));
+    v_subject := v_subject || ' (ref ' || v_token || ')';
+    v_body := replace(replace(v_body, '{{company}}', 'ZZ DEMO Supplier'),
+                      '{{link}}', v_site || '/en/portal?t=00000000-0000-0000-0000-000000000000');
+
+    insert into public.invite_placement_check(dubai_day, token, from_address, subject, gmail_to, outlook_to, queued_at)
+    values (v_day, v_token, v_from, v_subject, 'ahmadmhdnabilalzain@gmail.com', 'management@doratajewelries.com', p_now)
+    returning * into r;
+
+    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
+    values ('supplier_invite_seed', r.gmail_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
+    returning id into v_g;
+    insert into public.notifications (type, to_email, to_role, subject, body, lang, status, requested_by)
+    values ('supplier_invite_seed', r.outlook_to, 'supplier', v_subject, v_body, 'en', 'queued', 'it_engineer')
+    returning id into v_o;
+    update public.invite_placement_check set gmail_notification_id = v_g, outlook_notification_id = v_o
+     where dubai_day = v_day;
+    return jsonb_build_object('action', 'queued', 'dubai_day', v_day);
+  end if;
+
+  if r.verdict <> 'pending' then
+    return jsonb_build_object('action', 'idle', 'dubai_day', v_day, 'verdict', r.verdict);
+  end if;
+  if p_now >= v_cutoff then
+    return jsonb_build_object('action', 'settled', 'dubai_day', v_day, 'verdict', public.fn_invite_placement_settle(v_day, p_now));
+  end if;
+
+  select status into v_sg from public.notifications where id = r.gmail_notification_id;
+  select status into v_so from public.notifications where id = r.outlook_notification_id;
+  return jsonb_build_object('action', 'read', 'dubai_day', v_day, 'token', r.token, 'since', r.queued_at,
+    'sender', lower(coalesce(substring(r.from_address from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), btrim(r.from_address))),
+    'gmail', jsonb_build_object('to', r.gmail_to, 'sent', v_sg = 'sent', 'folder', r.gmail_folder),
+    'outlook', jsonb_build_object('to', r.outlook_to, 'sent', v_so = 'sent', 'folder', r.outlook_folder));
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_finding(p_day date, p_verdict text, p_why text, p_evidence jsonb)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_key constant text := 'deliverability:inbox_placement';
+begin
+  if exists (select 1 from public.it_engineer_finding
+              where issue_key = v_key and closed_at is null
+                and evidence ->> 'dubai_day' = p_day::text and evidence ->> 'verdict' = p_verdict) then
+    return;
+  end if;
+  perform public.fn_it_engineer_finding_upsert(v_key,
+    left(case when p_verdict in ('spam', 'elsewhere') then 'Supplier invitation seed misplaced (batch still sending): '
+              else 'Supplier invitations held: ' end || p_why, 300),
+    'supplier invitation inbox placement: the daily seed to the Gmail and Microsoft 365 seed inboxes',
+    'customer_facing', 1,
+    coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('dubai_day', p_day, 'verdict', p_verdict),
+    array['the seed goes through the real path: send_outbox, the effective From (invitation lane or email_from_supplier), Reply-To and frame'],
+    case p_verdict
+      when 'unread' then array['whether the Gmail / Microsoft Graph credentials in app_secrets are present and still consented',
+                               'whether the itintegrations heartbeat step ran between 04:30 and 08:00 UTC']
+      when 'not_sent' then array['why send_outbox did not send the seed (email_enabled, supplier_emails_enabled, the daily cap)',
+                                 'invite_lane_domain_unverified: with the invitation lane on, send_outbox holds the seed while the lane''s domain is not verified in Resend']
+      when 'no_check' then array['whether the itintegrations heartbeat step ran between 04:30 and 08:00 UTC, or resilience_ping is deployed without the placement code',
+                                 'invite_lane_domain_unverified, if the lane is on']
+      when 'not_found' then array['whether a mailbox rule moved or deleted the seed', 'whether the seed arrived from a different From than the one recorded']
+      else array['which content, sender or domain signal the mailbox provider acted on'] end,
+    'it_engineer');
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_gate(p_day date DEFAULT NULL::date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_day date := coalesce(p_day, (p_now at time zone 'Asia/Dubai')::date);
+  r public.invite_placement_check; v text;
+begin
+  select * into r from public.invite_placement_check where dubai_day = v_day;
+  if r.dubai_day is null then
+    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
+    if public.fn_invite_placement_day_closed(p_now) is null then
+      perform public.fn_invite_placement_finding(v_day, 'no_check',
+        'no inbox placement check ran on ' || v_day || ', an open sending day',
+        jsonb_build_object('checked_at', p_now, 'sender', public.fn_invite_placement_sender()));
+    end if;
+    return 'fail:no_check';
+  end if;
+  v := r.verdict;
+  if v = 'pending' then
+    if p_now < public.fn_invite_placement_cutoff(v_day) then return 'wait'; end if;
+    v := public.fn_invite_placement_settle(v_day, p_now);
+  end if;
+  -- A measured placement lets the batch go, junk included (ledger 1001); only a failure to measure holds it.
+  if v not in ('inbox', 'spam', 'elsewhere') then return 'fail:' || v; end if;
+  if public.fn_invite_placement_sender() is distinct from r.from_address then return 'fail:from_changed'; end if;
+  return 'pass';
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_record(p_day date, p_gmail jsonb, p_outlook jsonb, p_now timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_g text := nullif(p_gmail ->> 'folder', ''); v_o text := nullif(p_outlook ->> 'folder', ''); v text;
+begin
+  update public.invite_placement_check
+     set gmail_folder   = case when v_g is null or (v_g = 'not_found' and gmail_folder is not null and gmail_folder <> 'not_found')
+                               then gmail_folder else v_g end,
+         outlook_folder = case when v_o is null or (v_o = 'not_found' and outlook_folder is not null and outlook_folder <> 'not_found')
+                               then outlook_folder else v_o end,
+         gmail_detail   = case when p_gmail is null then gmail_detail else coalesce(p_gmail -> 'detail', '{}'::jsonb) end,
+         outlook_detail = case when p_outlook is null then outlook_detail else coalesce(p_outlook -> 'detail', '{}'::jsonb) end,
+         reads = reads + 1, last_read_at = p_now
+   where dubai_day = p_day and verdict = 'pending';
+  if not found then
+    return jsonb_build_object('recorded', false, 'dubai_day', p_day, 'reason', 'no pending check for this day');
+  end if;
+  v := public.fn_invite_placement_settle(p_day, p_now);
+  return jsonb_build_object('recorded', true, 'dubai_day', p_day, 'verdict', v);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_sender()
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce((select lower(btrim(value)) from public.app_secrets where key = 'invite_lane_enabled'), 'false') = 'true'
+     and coalesce((select btrim(value) from public.app_secrets where key = 'invite_lane_from'), '') <> ''
+      then (select btrim(value) from public.app_secrets where key = 'invite_lane_from')
+    else coalesce(nullif((select btrim(value) from public.app_secrets where key = 'email_from_supplier'), ''),
+                  'QuotesDone <supplier@quotesdone.com>')
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_invite_placement_settle(p_day date, p_now timestamp with time zone DEFAULT now())
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  r public.invite_placement_check;
+  v text; v_sent_g text; v_sent_o text; v_why text; v_ev jsonb; v_lane text; v_handoff bigint; h record;
+begin
+  select * into r from public.invite_placement_check where dubai_day = p_day for update;
+  if r.dubai_day is null or r.verdict <> 'pending' then return r.verdict; end if;
+
+  if 'spam' in (r.gmail_folder, r.outlook_folder) then v := 'spam';
+  elsif r.gmail_folder in ('trash', 'other') or r.outlook_folder in ('trash', 'other') then v := 'elsewhere';
+  elsif r.gmail_folder = 'inbox' and r.outlook_folder = 'inbox' then v := 'inbox';
+  elsif p_now >= public.fn_invite_placement_cutoff(p_day) then
+    select status into v_sent_g from public.notifications where id = r.gmail_notification_id;
+    select status into v_sent_o from public.notifications where id = r.outlook_notification_id;
+    v := case when coalesce(v_sent_g, '') <> 'sent' or coalesce(v_sent_o, '') <> 'sent' then 'not_sent'
+              when r.gmail_folder is null or r.outlook_folder is null then 'unread'
+              else 'not_found' end;
+  else
+    return 'pending';
+  end if;
+
+  if v = 'inbox' then
+    update public.invite_placement_check set verdict = v, decided_at = p_now where dubai_day = p_day;
+    perform public.fn_it_engineer_finding_close('deliverability:inbox_placement',
+      'the seed of ' || p_day || ' landed in the Inbox of both seed mailboxes (token ' || r.token || ')');
+    -- The fix is proved by a placement: it_engineer closes marketing's open placement handoffs.
+    for h in select a.id from public.agent_actions a
+              where a.kind = 'handoff' and a.agent = 'marketing' and a.status <> 'done'
+                and a.detail ->> 'type' = 'deliverability.inbox_placement' and a.detail ->> 'from' = 'it_engineer'
+    loop
+      perform set_config('qd.handoff_closer', 'it_engineer', true);
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'it_engineer', 'verified_at', now(),
+        'proof', 'the seed of ' || p_day || ' landed in the Inbox of both seed mailboxes'));
+      perform set_config('qd.handoff_closer', '', true);
+    end loop;
+    insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'ok', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v),
+            'Inbox placement ' || p_day || ': Gmail inbox, Outlook inbox; the batch may send.', now(), now());
+    return v;
+  end if;
+
+  v_why := 'the inbox placement seed of ' || p_day || ' '
+    || case v when 'spam' then 'landed in spam/junk'
+              when 'elsewhere' then 'did not land in the Inbox'
+              when 'not_sent' then 'was not sent by the read cutoff'
+              when 'unread' then 'could not be read back from a seed mailbox'
+              else 'was not found in a seed mailbox' end
+    || ' (Gmail ' || coalesce(r.gmail_folder, 'unread') || ', Outlook ' || coalesce(r.outlook_folder, 'unread') || ')';
+  v_lane := case when coalesce((select lower(btrim(value)) from public.app_secrets where key = 'invite_lane_enabled'), '') = 'true'
+                 then 'invitation_lane' else 'email_from_supplier' end;
+  v_ev := jsonb_build_object('token', r.token, 'from', r.from_address, 'sender_lane', v_lane, 'subject', r.subject,
+            'diagnosis', jsonb_build_object('gmail', coalesce(r.gmail_detail -> 'messages', '[]'::jsonb),
+                                            'outlook', coalesce(r.outlook_detail -> 'messages', '[]'::jsonb)),
+            'gmail', jsonb_build_object('to', r.gmail_to, 'folder', r.gmail_folder, 'detail', r.gmail_detail,
+                                        'notification_id', r.gmail_notification_id, 'status', v_sent_g),
+            'outlook', jsonb_build_object('to', r.outlook_to, 'folder', r.outlook_folder, 'detail', r.outlook_detail,
+                                          'notification_id', r.outlook_notification_id, 'status', v_sent_o),
+            'reads', r.reads);
+  update public.invite_placement_check set verdict = v, decided_at = p_now, paused = false where dubai_day = p_day;
+  perform public.fn_invite_placement_finding(p_day, v, v_why, v_ev);
+  if v in ('spam', 'elsewhere') then
+    -- A provider's placement: diagnose and hand the cause to marketing; the batch sends (ledger 1001).
+    v_handoff := public.fn_seat_handoff('it_engineer', 'marketing', 'deliverability.inbox_placement',
+      'invite_placement_check', p_day::text, v_ev || jsonb_build_object('dubai_day', p_day, 'verdict', v, 'why', v_why));
+    insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false,
+                                                      'handoff_id', v_handoff, 'sender_lane', v_lane),
+            'MISPLACED: ' || v_why || '; the day''s batch still sends, diagnosis filed in deliverability:inbox_placement, marketing handoff ' || v_handoff || ' opened.', now(), now());
+  else
+    insert into public.agent_runs(agent, status, counts, note, started_at, finished_at)
+    values ('it_engineer', 'warn', jsonb_build_object('job', 'inbox_placement', 'dubai_day', p_day, 'verdict', v, 'paused', false),
+            'HELD: ' || v_why || '; the day''s batch does not go, invite_enabled untouched, finding deliverability:inbox_placement filed.', now(), now());
+  end if;
+  return v;
 end
 $function$
 
@@ -40750,7 +41131,7 @@ declare
   v_cr_max numeric := coalesce((c->>'pause_complaint_rate')::numeric, 0.003);
   v_c_min  int     := coalesce((c->>'same_day_pause_min_complaints')::int, 1);
   v_day date := (now() at time zone 'Asia/Dubai')::date;
-  v_sent int; v_b int; v_c int; v_why text; v_cancelled int;
+  v_sent int; v_b int; v_c int; v_why text;
 begin
   if coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') <> 'true' then
     return null;  -- already stopped; nothing more to stop
@@ -40771,24 +41152,9 @@ begin
     return null;
   end if;
 
-  update app_secrets set value = 'false' where key = 'invite_enabled';
-  update notifications set status = 'cancelled'
-   where type = 'supplier_invite' and status = 'queued';
-  get diagnostics v_cancelled = row_count;
-
-  insert into it_watch_finding(detector_key, detector, subject, state, severity, title, evidence)
-  values ('deliverability:supplier_invite', 'deliverability', 'supplier_invite', 'paused', 'high',
-          'Supplier invitations auto-paused: ' || v_why,
-          jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'bounced', v_b, 'complained', v_c,
-                             'cancelled_queued', v_cancelled, 'resume', 'set app_secrets.invite_enabled=true after reading the bounces/complaints'))
-  on conflict (detector_key) do update
-     set state = excluded.state, severity = excluded.severity, title = excluded.title, evidence = excluded.evidence,
-         last_seen_at = now(), seen_count = it_watch_finding.seen_count + 1, status = 'open', resolved_at = null;
-
-  insert into agent_runs(agent, status, counts, note, finished_at)
-  values ('invite_same_day_brake', 'error',
-          jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c, 'cancelled_queued', v_cancelled),
-          'PAUSED: ' || v_why || '; invite_enabled=false, ' || v_cancelled || ' queued invitation(s) cancelled, it_engineer finding opened.', now());
+  perform public.fn_invite_campaign_pause('invite_same_day_brake', v_why,
+    jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'bounced', v_b, 'complained', v_c),
+    jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
   return null;
 end
 $function$
@@ -51617,6 +51983,19 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_takes_the_inbox_placement_fix(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_build_object('waiting', 'marketing to fix the cause the diagnosis names ('
+           || coalesce(a.detail ->> 'verdict', 'misplaced') || ' on ' || coalesce(a.detail ->> 'dubai_day', a.target_id)
+           || '); it_engineer closes this when a seed lands in both Inboxes')
+    from public.agent_actions a where a.id = p_id
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_tick(p_at timestamp with time zone DEFAULT now())
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -57397,16 +57776,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -57577,6 +57946,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -64381,13 +64760,22 @@ declare
   v_now_dxb timestamp := now() at time zone 'Asia/Dubai';
   v_go boolean; v_weekend boolean; v_invited int; r record; s jsonb; v_cap int;
   v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
+  v_gate text; v_daily_done boolean; v_batch_done boolean; v_batch_why text; v_batch_wait boolean := false;
 begin
+  select exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date),
+         exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer'
+                    and ((a.counts->>'job' = 'supplier_outreach' and coalesce(a.counts->>'batch_waiting', 'false') <> 'true')
+                         or a.counts->>'job' = 'supplier_outreach_batch')
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date)
+    into v_daily_done, v_batch_done;
   if not p_force then
     if extract(hour from v_now_dxb) < 9 then return jsonb_build_object('due', false, 'reason', 'before 09:00 Dubai'); end if;
-    if exists (select 1 from public.agent_runs a
-                where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
-                  and a.started_at > now() - interval '1 day'
-                  and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date) then
+    if v_daily_done and v_batch_done then
       return jsonb_build_object('due', false, 'reason', 'already ran this Dubai day');
     end if;
   end if;
@@ -64399,14 +64787,44 @@ begin
                 when not v_go then 'invite_enabled is false'
                 when v_weekend then 'it is the UAE weekend' end;
 
-  -- 0. THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of
-  --    bounces and complaints. Open days only: a held day sends nothing, so it must not move the cap.
-  if v_why is null then v_cap := public.fn_invite_ramp(); end if;
+  -- 1. THE BATCH, behind the PLACEMENT GATE (24 Sep 2026, it_engineer). On an open day it goes only after that
+  --    morning's seed landed in the Inbox of both seed mailboxes; while the check can still finish it waits (the
+  --    next beat asks again); any other answer holds it (fail closed). enqueue_supplier_invites asks the same gate.
+  if p_force or not v_batch_done then
+    v_batch_why := v_why;
+    if v_why is null then
+      v_gate := public.fn_invite_placement_gate(v_now_dxb::date);
+      if v_gate = 'wait' and not p_force then
+        v_batch_wait := true;
+      elsif v_gate <> 'pass' then
+        v_batch_why := 'the morning inbox placement check did not clear (' || v_gate || ')';
+      end if;
+    end if;
+    if not v_batch_wait then
+      -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
+      -- complaints. Open days only: a held day sends nothing, so it must not move the cap.
+      if v_batch_why is null then v_cap := public.fn_invite_ramp(); end if;
+      -- enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
+      v_invited := public.enqueue_supplier_invites(null);
+    end if;
+  end if;
 
-  -- 1. The batch. enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap).
-  v_invited := public.enqueue_supplier_invites(null);
+  -- A later beat of the same day: the daily work is done, only the batch was owed.
+  if v_daily_done and not p_force then
+    if v_batch_wait then
+      return jsonb_build_object('due', false, 'reason', 'the batch waits for the morning inbox placement check');
+    end if;
+    v_out := jsonb_build_object('job', 'supplier_outreach_batch', 'dubai_day', v_now_dxb::date, 'held', v_batch_why is not null,
+      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap));
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('sales_engineer', 'ok', now(), now(), v_out,
+            case when v_batch_why is not null
+                 then 'Supplier invitation batch HELD (' || v_batch_why || '): ' || coalesce(v_invited, 0) || ' queued.'
+                 else 'Supplier invitation batch: ' || coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') || '.' end);
+    return v_out;
+  end if;
 
-  -- 2. Reminders: always counted; written only on an open weekday.
+  -- 2. Reminders: always counted; written only on an open weekday (the campaign gates, not the placement gate).
   for r in select * from public.fn_supplier_registration_reminders_due() loop
     v_due := v_due + 1;
     if v_why is not null then continue; end if;
@@ -64420,15 +64838,20 @@ begin
   v_clock := public.fn_sales_engineer_raises_undecided_submissions(false);
 
   v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
-    'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap),
+    'placement_gate', v_gate, 'batch_waiting', v_batch_wait, 'batch_held_because', v_batch_why,
+    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap),
     'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
     'submissions', v_clock);
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
   values ('sales_engineer', case when jsonb_array_length(v_failed) > 0 then 'warn' else 'ok' end, now(), now(), v_out,
           case when v_why is not null
-               then 'Supplier outreach HELD (' || v_why || '): ' || v_invited || ' invitation(s) queued, ' || v_due
+               then 'Supplier outreach HELD (' || v_why || '): ' || coalesce(v_invited, 0) || ' invitation(s) queued, ' || v_due
                     || ' reminder(s) due and none written; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
-               else 'Supplier outreach: ' || v_invited || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') || ', ' || v_sent || ' of ' || v_due
+               else 'Supplier outreach: '
+                    || case when v_batch_wait then 'the invitation batch waits for the morning inbox placement check'
+                            when v_batch_why is not null then 'the invitation batch was HELD (' || v_batch_why || ')'
+                            else coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') end
+                    || ', ' || v_sent || ' of ' || v_due
                     || ' reminder(s) sent; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.' end);
   return v_out;
 end
@@ -82184,6 +82607,7 @@ ALTER TABLE public.integration_matrix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.internal_credential_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inv_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invite_placement_check ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.invite_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_access_known ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_acceptance ENABLE ROW LEVEL SECURITY;
@@ -82619,6 +83043,7 @@ CREATE POLICY glm_judgement_service_role_only ON public.glm_judgement AS PERMISS
 CREATE POLICY governance_sensitive_service_role_only ON public.governance_sensitive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.inquiries AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY intake_trade_taxonomy_service_role_only ON public.intake_trade_taxonomy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY invite_placement_check_service_role_only ON public.invite_placement_check AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_acceptance_service_role_only ON public.it_change_acceptance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_revision_service_role_only ON public.it_change_revision AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
