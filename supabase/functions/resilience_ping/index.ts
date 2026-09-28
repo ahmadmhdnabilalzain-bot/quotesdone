@@ -715,6 +715,9 @@ async function orphanTick(): Promise<unknown> {
     // that call, rather than widening fn.resilience_ping's scope — widening it would make scoped
     // credentials decorative, which is the one thing audit 9.5 exists to prevent.
     const complianceSecret = await sec('cred_cron_compliance');
+    // The accountant's own credential for its expense_sweep (reasoned_books.ts presents the same one):
+    // this function's credential is not scoped to the accountant, and widening it is what audit 9.5 forbids.
+    const accountantSecret = await sec('cred_fn_accountant');
     // A 200 CARRYING A FAILED BODY IS A FAILURE, AND failureOf CANNOT SEE INSIDE `body` (third finding
     // from independent review). Returning {status, body} meant only a fetch exception or a 4xx/5xx was
     // ever counted: a callee answering HTTP 200 {ok:false, error:'…'} — which is how every one of these
@@ -766,6 +769,9 @@ async function orphanTick(): Promise<unknown> {
           : { calls: runs.length, ms: Date.now() - d0, runs };
       }],
       ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000)],
+      // 28 Sep 2026: held expense mail is swept daily, so a receipt from a sender the books know is booked
+      // without a model (scripts/sql/the_books_catch_up_under_the_model_hold_from_known_senders.sql).
+      ['expense_sweep', 'accountant.expense_sweep', 55000, () => call('accountant', 55000, { action: 'expense_sweep' }, accountantSecret)],
       ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000, {}, complianceSecret)],
     ];
     const out: Record<string, unknown> = {};
