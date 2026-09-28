@@ -1,0 +1,6 @@
+Committed, not applied (it_engineer, 28 Sep 2026). Redefines fn_it_detect so a public surface with a
+measured refusal baseline is judged by the departure rule (30 points above its own baseline), not by
+the absolute 50%/90% line. Release operator: apply with --apply --ddl, delete this note and append the
+file as the LAST line of MANIFEST.txt in the same commit, then regenerate the schema mirror. On the
+next it-watch tick refusal_rate:claim_lookup and refusal_rate:supplier_portal resolve, and handoffs
+#100487 and #100488 close through the watch-finding loop.
