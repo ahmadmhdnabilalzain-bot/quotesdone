@@ -1,3 +1,18 @@
-[INFO] Recording command outcome: cd
+Not applied yet. Seats: sales_engineer (the rule), it_engineer (the routine).
 
-[OK] Command outcome recorded
+ORDER, and it is not optional: APPLY THIS SQL BEFORE deploying ANY edge function that includes the new
+_shared/think.ts. That think.ts sends p_trade, p_kind and p_area to fn_reason_retrieve and fn_reason_retrieve_ml
+whenever the caller knows them; against the old signatures PostgREST finds no matching routine and refuses the
+call, so those think() retrievals would fail. Applying the SQL first is safe: the three new parameters default to
+NULL, so the think.ts already deployed keeps working against the new routines unchanged.
+
+What moves it: #1040 (this PR's base) and #1041 (whose loader writes the area: tag) merged, then
+  node scripts/apply_sql.mjs scripts/sql/knowledge_lookup_goes_to_the_trade_first.sql --apply --ddl
+then, in the same commit, delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt.
+Only after that, deploy the functions that import _shared/think.ts.
+
+Measured before apply (staged in aborted transactions, nothing committed; seat_qualification_exam grading on the
+gte routine): sales_engineer 38/69 before and after, customer_support 40/67, accountant 40/67, it_engineer 55/80,
+ceo 51/58, marketing 9/12. No item changed, as expected: the exam items carry no trade or area. With each item's
+own area passed as p_area: customer_support 41/67, accountant 44/67, it_engineer 56/80, ceo 51/58, marketing 10/12.
+Prevented by: scripts/checks/knowledge_lookup_goes_to_the_trade_first.test.mjs.
