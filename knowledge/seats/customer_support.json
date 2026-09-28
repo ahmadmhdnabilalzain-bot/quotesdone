@@ -237,15 +237,15 @@
       "id": "customer_support:sla-targets",
       "topic": "Service level targets for QuotesDone support",
       "kind": "decision_rule",
-      "body_en": "Service levels make promises measurable. QuotesDone has not published external SLAs, and no UAE law fixes response times for B2B marketplace support, so the following are internal decision rules chosen to beat typical regional expectations, not statutory figures.\n\nFirst response (a human-quality, relevant reply, not an auto-acknowledgement): WhatsApp and widget — within 5 minutes during operating hours and within 60 minutes outside them, given that automation is always on; email — within 4 business hours. Acknowledgement of a complaint with case reference: immediate on every channel. Resolution targets by priority: P1 (money taken wrongly, data exposed, account locked during an active RFQ deadline, safety issue) — owner engaged within 1 hour, resolution or workaround within 8 hours; P2 (quotation missing, supplier not responding past the platform's deadline, portal defect blocking a task) — within 1 business day; P3 (how-to questions, profile edits, general feedback) — within 2 business days; P4 (feature requests) — acknowledged and logged, no resolution SLA.\n\nClock rules: the clock pauses only while waiting on the customer; waiting on another seat does not pause it. Per u.ae, government and semi-government offices work Monday to Friday, most private companies close only on Sunday and some on Saturday and Sunday; public holidays follow the official calendar. Breaches are reported, never hidden: each SLA breach is a line in the weekly report to the CEO seat with its cause.",
-      "body_ar": "تجعل مستويات الخدمة الوعود قابلة للقياس. ولم تنشر كوتس دن مستويات خدمة خارجية، ولا يحدد أي قانون إماراتي أزمنة الاستجابة لدعم الأسواق الإلكترونية بين الشركات، لذا فإن ما يلي قواعد قرار داخلية اختيرت لتتجاوز التوقعات المعتادة في المنطقة، وليست أرقاماً نظامية.\n\nأول رد (رد ذو صلة بجودة بشرية، لا إقرار آلي): واتساب ونافذة الموقع خلال 5 دقائق في ساعات العمل وخلال 60 دقيقة خارجها لأن الأتمتة تعمل دائماً؛ والبريد الإلكتروني خلال 4 ساعات عمل. والإقرار بالشكوى مع رقم القضية فوري في كل القنوات. وأهداف الحل بحسب الأولوية: الأولوية الأولى (خصم مالي خاطئ، أو كشف بيانات، أو قفل حساب أثناء موعد نهائي لطلب تسعير، أو مسألة سلامة): تفاعل المسؤول خلال ساعة، والحل أو البديل المؤقت خلال 8 ساعات؛ الثانية (عرض مفقود، أو مورد لم يرد بعد المهلة، أو خلل في البوابة يمنع إنجاز مهمة): خلال يوم عمل؛ الثالثة (أسئلة الاستخدام وتعديل الملف والملاحظات العامة): خلال يومي عمل؛ الرابعة (طلبات الميزات): إقرار وتسجيل دون مهلة حل.\n\nقواعد الاحتساب: يتوقف العدّاد فقط عند انتظار العميل، ولا يتوقف عند انتظار مقعد آخر. وبحسب البوابة الرسمية تعمل الجهات الحكومية وشبه الحكومية من الاثنين إلى الجمعة، وتغلق معظم شركات القطاع الخاص يوم الأحد فقط وبعضها السبت والأحد، والعطل الرسمية وفق التقويم الرسمي. ولا تُخفى أي مخالفة للمهلة، بل تُدرج كل مخالفة مع سببها في التقرير الأسبوعي لمقعد الرئيس التنفيذي.\n\nأهداف مستوى الخدمة هنا قواعد داخلية.",
+      "body_en": "QuotesDone service levels (founder, 28 Sep 2026): the first reply on every channel, WhatsApp, homepage chat and email, goes out in UNDER ONE MINUTE, at any hour, because the seat answers itself and automation is always on. A first reply is a relevant answer, not an auto-acknowledgement. First-reply time is measured from the inbound message timestamp to the outbound reply timestamp and reported weekly.\n\nResolution targets by priority (internal rules, not statutory figures): P1 (money taken wrongly, data exposed, account locked during an active RFQ deadline, safety issue): owning seat engaged within 1 hour, resolution or workaround within 8 hours. P2 (quotation missing, supplier past the platform deadline, a portal defect blocking a task): within 1 business day. P3 (how-to, profile edits, feedback): within 2 business days. P4 (feature requests): acknowledged and logged. Complaints (ISO 10002): acknowledged immediately with a ticket, final response within 10 working days.\n\nClock rules: the clock pauses only while waiting on the customer; waiting on another seat does not pause it. Every breach is a line in the weekly report to the ceo seat with its cause.",
+      "body_ar": "مستويات الخدمة في كويتس دن (المؤسس، 28 سبتمبر 2026): يصدر الرد الأول في كل قناة، واتساب ودردشة الموقع والبريد، في أقل من دقيقة واحدة وفي أي ساعة، لأن المقعد يجيب بنفسه والأتمتة تعمل دائماً. الرد الأول إجابة ذات صلة لا إشعار استلام آلي. يُقاس زمن الرد الأول من توقيت الرسالة الواردة إلى توقيت الرد الصادر ويُبلَّغ أسبوعياً.\n\nأهداف الحل حسب الأولوية (قواعد داخلية لا أرقام قانونية): الأولوية 1 (مال أُخذ خطأً، بيانات مكشوفة، حساب مقفل أثناء موعد طلب عروض، مسألة سلامة): تدخل المقعد المختص خلال ساعة، والحل أو البديل خلال 8 ساعات. الأولوية 2 (عرض مفقود، مورّد تجاوز المهلة، عطل يمنع مهمة): خلال يوم عمل. الأولوية 3 (استفسارات، تعديل ملف، ملاحظات): خلال يومي عمل. الأولوية 4 (طلبات ميزات): تُسجَّل ويُقرّ باستلامها. الشكاوى (ISO 10002): إقرار فوري برقم تذكرة ورد نهائي خلال 10 أيام عمل.\n\nقواعد الساعة: تتوقف فقط أثناء انتظار العميل، ولا تتوقف أثناء انتظار مقعد آخر. كل تجاوز يُذكر في التقرير الأسبوعي للرئيس التنفيذي مع سببه.",
       "sources": [
-        "https://www.addleshawgoddard.com/en/insights/insights-briefings/2021/employment/new-working-week-in-the-uae/",
+        "internal:founder ruling relayed 28 Sep 2026 (a person only on an explicit request on WhatsApp or social; first reply under one minute)",
         "https://u.ae/en/information-and-services/public-holidays-and-religious-affairs/public-holidays",
         "https://u.ae/en/about-the-uae/fact-sheet"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23",
+      "as_of": "2026-09-28",
       "gap_kind": "commercial"
     },
     {
@@ -265,13 +265,14 @@
       "id": "customer_support:escalation-matrix",
       "topic": "Escalation matrix: functional and hierarchical escalation",
       "kind": "playbook",
-      "body_en": "Escalation has two directions. Functional escalation moves a case to the seat with the right expertise (support to sales engineer for a specification question). Hierarchical escalation moves it to the seat with authority (support to CEO for an exception, a refund above policy, a legal threat). Both must be triggered by explicit criteria, recorded, and closed back into the case.\n\nQuotesDone escalation matrix: Money — any refund, fee reversal or credit: support investigates, accountant reviews the numbers, CEO approves; support never promises an amount before approval. Legal — mention of lawyers, courts, police, regulators, defamation, or a PDPL request that may be refused: CEO within the same business day. Security — suspected breach, impersonation, phishing using our brand: IT engineer immediately, CEO informed. Supplier conduct — fraud allegations, fake documents, threats: CEO plus sales engineer; supplier suspended from new matches pending review if evidence is credible. Service failure — SLA breach on a P1, repeated contact (third contact on the same issue), or a customer asking for a person: CEO with a stated response time. Media or public post — a complaint posted publicly: CEO the same day.\n\nEach escalation message must be self-contained: case reference, customer, what happened, what has been tried, what decision is needed, by when. An escalation that forces the receiver to reread the whole thread is a slow escalation.\n\nVerification note (23 Sep 2026): the method and thresholds here are QuotesDone internal operating practice, not externally published figures; any number not tied to a cited source is an internal rule; as an external benchmark it is not established.",
-      "body_ar": "للتصعيد اتجاهان: التصعيد الوظيفي ينقل القضية إلى المقعد صاحب الخبرة (من الدعم إلى مهندس المبيعات في سؤال عن المواصفات)، والتصعيد الهرمي ينقلها إلى المقعد صاحب الصلاحية (من الدعم إلى الرئيس التنفيذي لاستثناء أو استرداد خارج السياسة أو تهديد قانوني). ويجب أن يُفعَّل كلاهما بمعايير صريحة، وأن يُسجَّل، وأن يعود إلى القضية ليُغلق.\n\nمصفوفة التصعيد في كوتس دن: المال — أي استرداد أو عكس رسوم أو رصيد: يحقق الدعم، ويراجع المحاسب الأرقام، ويعتمد الرئيس التنفيذي، ولا يَعِد الدعم بأي مبلغ قبل الاعتماد. القانون — ذكر المحامين أو المحاكم أو الشرطة أو الجهات الرقابية أو التشهير، أو طلب بموجب قانون حماية البيانات قد يُرفض: إلى الرئيس التنفيذي في يوم العمل نفسه. الأمن — اختراق مشتبه به أو انتحال شخصية أو تصيّد باسمنا: إلى مهندس تقنية المعلومات فوراً مع إبلاغ الرئيس التنفيذي. سلوك المورد — ادعاءات احتيال أو مستندات مزورة أو تهديدات: إلى الرئيس التنفيذي ومهندس المبيعات، ويُوقف المورد عن المطابقات الجديدة إلى حين المراجعة إذا كانت الأدلة معقولة. إخفاق الخدمة — مخالفة مهلة أولوية أولى، أو التواصل الثالث بشأن المشكلة نفسها، أو طلب العميل التحدث إلى شخص: إلى الرئيس التنفيذي مع تحديد زمن الرد. الإعلام أو النشر العلني: إلى الرئيس التنفيذي في اليوم نفسه.\n\nويجب أن تكون رسالة التصعيد مكتفية بذاتها: رقم القضية، والعميل، وما حدث، وما جُرّب، والقرار المطلوب، وموعده.\n\nملاحظة تحقق (23 سبتمبر 2026): المنهج والحدود الواردة هنا ممارسة تشغيلية داخلية لدى كوتس دن وليست أرقاماً منشورة خارجياً؛ وأي رقم غير مرتبط بمصدر مذكور هو قاعدة داخلية وليس معياراً ثابتاً.",
+      "body_en": "Escalation at QuotesDone goes from seat to seat, never to a person, unless the contact explicitly asks for a person on WhatsApp or social (then see human-handoff-standard). Functional escalation moves a case to the seat with the expertise; hierarchical escalation moves it to the seat with the authority (the ceo seat). Both are typed seat handoffs, recorded, and closed back into the case by the originator.\n\nMatrix: Money (any refund, fee reversal or credit): support investigates, the accountant reviews the numbers, the ceo seat decides; support never promises an amount. Legal (lawyers, courts, police, regulators, defamation, a PDPL request that may be refused): ceo seat the same business day. Security (suspected breach, impersonation, phishing with our brand): it_engineer immediately, ceo informed. Supplier conduct (fraud allegations, fake documents, threats): ceo plus sales_engineer; the supplier paused from new matches while evidence is reviewed. Service failure (SLA breach, third contact on the same issue): ceo seat with a stated response time. A complaint posted publicly: ceo seat and marketing the same day.\n\nEvery escalation is self-contained: case reference, who, what happened, what was tried, the decision needed, by when. These are internal operating rules, not external benchmarks.",
+      "body_ar": "التصعيد في كويتس دن يكون من مقعد إلى مقعد، لا إلى شخص، إلا إذا طلب المتواصل صراحةً شخصاً عبر واتساب أو التواصل الاجتماعي (انظر معيار التسليم إلى إنسان). التصعيد الوظيفي ينقل الحالة إلى المقعد صاحب الخبرة، والتصعيد الهرمي إلى المقعد صاحب الصلاحية (الرئيس التنفيذي). كلاهما تسليم مسجَّل يغلقه منشئه داخل الحالة.\n\nالمصفوفة: المال (أي استرداد أو عكس رسوم أو رصيد): تحقق خدمة العملاء، ويراجع المحاسب الأرقام، ويقرر الرئيس التنفيذي؛ ولا تَعِد خدمة العملاء بأي مبلغ. القانون (محامون، محاكم، شرطة، جهات رقابية، تشهير، طلب حماية بيانات قد يُرفض): الرئيس التنفيذي في يوم العمل نفسه. الأمن (اختراق مشتبه، انتحال، تصيّد باسمنا): مهندس تقنية المعلومات فوراً مع إبلاغ الرئيس التنفيذي. سلوك المورّد (اتهامات احتيال، مستندات مزيفة، تهديدات): الرئيس التنفيذي ومهندس المبيعات، مع إيقاف المورّد عن المطابقات الجديدة أثناء المراجعة. إخفاق الخدمة (تجاوز مستوى الخدمة، التواصل الثالث في المسألة نفسها): الرئيس التنفيذي مع موعد رد محدد. شكوى منشورة علناً: الرئيس التنفيذي والتسويق في اليوم نفسه.\n\nكل تصعيد مكتفٍ بذاته: رقم الحالة، من، ماذا حدث، ما جُرّب، القرار المطلوب، والموعد. هذه قواعد تشغيل داخلية لا معايير خارجية.",
       "sources": [
+        "internal:founder ruling relayed 28 Sep 2026 (a person only on an explicit request on WhatsApp or social; first reply under one minute)",
         "https://sre.google/sre-book/managing-incidents/"
       ],
       "confidence": "medium",
-      "as_of": "2026-09-23",
+      "as_of": "2026-09-28",
       "gap_kind": "commercial"
     },
     {
@@ -393,14 +394,15 @@
       "id": "customer_support:human-handoff-standard",
       "topic": "Handing a conversation from automation to a person",
       "kind": "method",
-      "body_en": "Nielsen Norman Group's chatbot study found users struggled when they left the bot's script and when bots forgot context, and responded well when a bot admitted failure and offered an escape hatch to a person or phone number; WhatsApp's policy also requires prompt, clear escalation paths for automated service.\n\nTrigger a handoff when: the customer asks for a person, in any wording or language (a reasoning classifier, not a keyword list, should detect it, including negations such as \"I don't need a human\"); the automated assistant has failed to answer twice in a row; the issue is P1; the matter involves money decisions, legal threats, safety, or a privacy request that may be refused; sentiment is deteriorating across turns; or the customer is a repeat contact on the same unresolved issue.\n\nHow to hand off: tell the customer what is happening and when to expect contact (\"I have passed this to our operations lead with the full conversation; you will hear back by 3 pm today\"); pass a complete, self-contained summary to the receiving seat: who, what, what has been tried, what the customer wants, deadline, language; keep the automated assistant from replying in parallel on the same case, which confuses customers; and bring the outcome back into the same case. For QuotesDone, person requests route to the CEO seat with an SLA; the founder's personal number is shared only under the standing rule for explicit person requests. Measure handoff rate and post-handoff resolution time; a rising handoff rate is a knowledge-gap signal.",
-      "body_ar": "تفيد أبحاث مجموعة نيلسن نورمان حول روبوتات المحادثة بأن المستخدمين يُحبطون حين تعجز الروبوتات عن فهمهم دون أن تقدم لهم طريقاً للمتابعة، فالتحويل إلى شخص هو اللحظة التي يكسب فيها الدعم الآلي الثقة أو يخسرها.\n\nيُفعَّل التحويل عندما: يطلب العميل التحدث إلى شخص بأي صياغة أو لغة (ويكتشف ذلك مصنّف استدلالي لا قائمة كلمات، مع مراعاة النفي مثل \"لا أحتاج إلى موظف\")؛ أو يعجز المساعد الآلي عن الإجابة مرتين متتاليتين؛ أو تكون القضية من الأولوية الأولى؛ أو تتعلق بقرارات مالية أو تهديدات قانونية أو السلامة أو طلب خصوصية قد يُرفض؛ أو تتدهور مشاعر العميل عبر الرسائل؛ أو يكون العميل متكرر التواصل بشأن المشكلة نفسها دون حل.\n\nطريقة التحويل: إبلاغ العميل بما يجري وموعد التواصل المتوقع (\"أحلت الموضوع إلى مسؤول العمليات مع المحادثة كاملة، وسيتواصل معكم قبل الساعة الثالثة عصراً\")؛ وتسليم ملخص كامل مكتفٍ بذاته إلى المقعد المستلم: من، وماذا، وما جُرّب، وما يريده العميل، والمهلة، واللغة؛ ومنع المساعد الآلي من الرد بالتوازي على القضية نفسها؛ وإعادة النتيجة إلى القضية ذاتها. وفي كوتس دن تُحال طلبات التحدث إلى شخص إلى مقعد الرئيس التنفيذي بمهلة محددة، ولا يُشارك رقم المؤسس الشخصي إلا وفق القاعدة المعتمدة. ويُقاس معدل التحويل وزمن الحل بعده، فارتفاع معدل التحويل مؤشر على فجوة معرفية.\n\nتصحيح: وجدت دراسة Nielsen Norman Group أن المستخدمين يتعثرون عند الخروج عن نص الروبوت وعند نسيانه للسياق، ويتقبلون الروبوت الذي يعترف بالعجز ويعرض مخرجاً إلى موظف؛ كما تشترط سياسة واتساب مسارات تصعيد واضحة.",
+      "body_en": "QuotesDone rule (founder, 28 Sep 2026): the seat answers every contact itself, on every channel, and a human is brought in ONLY when the person explicitly asks for a person on WhatsApp or on a social channel. Nothing else triggers a human: not two failed answers, not a P1, not money, not a legal threat, not falling sentiment, not a repeat contact. Those cases go to the owning SEAT as a typed handoff (money and refunds to the ceo, payments to the accountant, specs and quotes to the sales_engineer, faults to the it_engineer), never to a person.\n\nWhen someone explicitly asks for a person on WhatsApp or social: detect the request by meaning, not a keyword list (a negation such as \"I don't need a human\" is not a request); tell them plainly what happens next and give the published contact; record the request against their case (fn_support_report_to_ceo); keep the case open and keep answering anything else they ask. There is no human queue (ruling 17, 9 Sep). On the homepage chat and email, a request for a person is answered with the published contact and recorded the same way.\n\nA handoff to a seat carries a self-contained summary (who, what, what was tried, what they want, deadline, language) and the outcome comes back into the same case. Nielsen Norman Group's chatbot research supports admitting a failure and offering a clear next step rather than looping.",
+      "body_ar": "قاعدة كويتس دن (المؤسس، 28 سبتمبر 2026): يجيب المقعد بنفسه على كل تواصل في كل القنوات، ولا يُشرَك إنسان إلا إذا طلب الشخص صراحةً التحدث إلى شخص عبر واتساب أو إحدى قنوات التواصل الاجتماعي. لا شيء آخر يستدعي إنساناً: لا فشل الإجابة مرتين، ولا الأولوية القصوى، ولا المال، ولا التهديد القانوني، ولا تراجع المزاج، ولا تكرار التواصل. هذه الحالات تُحال إلى المقعد المختص كتسليم مسجَّل (المال والاسترداد إلى الرئيس التنفيذي، والمدفوعات إلى المحاسب، والمواصفات والعروض إلى مهندس المبيعات، والأعطال إلى مهندس تقنية المعلومات)، لا إلى شخص.\n\nعند الطلب الصريح لشخص عبر واتساب أو التواصل الاجتماعي: يُفهم الطلب بمعناه لا بقائمة كلمات (عبارة مثل \"لا أحتاج إلى إنسان\" ليست طلباً)؛ يُبلَّغ الشخص بوضوح بما سيحدث ويُعطى وسيلة التواصل المنشورة؛ يُسجَّل الطلب على حالته (fn_support_report_to_ceo)؛ وتبقى الحالة مفتوحة ويستمر الرد على أي سؤال آخر. لا توجد قائمة انتظار بشرية (القاعدة 17، 9 سبتمبر). في دردشة الموقع والبريد يُجاب طلب الشخص بوسيلة التواصل المنشورة ويُسجَّل بالطريقة نفسها.\n\nيحمل التسليم إلى أي مقعد ملخصاً مكتفياً بذاته (من، ماذا، ما جُرّب، المطلوب، الموعد، اللغة) وتعود النتيجة إلى الحالة نفسها.",
       "sources": [
+        "internal:founder ruling relayed 28 Sep 2026 (a person only on an explicit request on WhatsApp or social; first reply under one minute)",
         "https://www.nngroup.com/articles/chatbots/",
         "https://whatsappbusiness.com/policy/"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-28"
     },
     {
       "id": "customer_support:metric-csat",
@@ -1182,15 +1184,16 @@
       "id": "customer_support:company-customer-support-kpis",
       "topic": "Customer support seat KPIs",
       "kind": "company",
-      "body_en": "The customer support seat owns these measures. The first four come from the company plan's seat targets (plan section 10); the rest are the seat's operating standards set in this pack. All are reported weekly to the CEO seat with the count behind each rate, because a rate without its denominator is not a finding.\n\nPlan-linked KPIs:\n1. Reveal conversion: share of requests with at least one complete quotation where the customer pays to reveal. Plan target at least 18% of quoted requests from November 2026. Support's lever: explaining the comparison report and the full list of quotations clearly, answering pre-reveal questions quickly, and never letting a customer stall for lack of an answer.\n2. Release rate: share of posted requests released to suppliers (complete enough to quote). Plan target at least 75%. Lever: helping customers complete exact specifications fast, working with the sales engineer seat.\n3. Refund rate: refunds as a share of reveals. Plan ceiling 5%. Lever: the day-3 supplier chase with the customer copied, done on time for every reveal.\n4. CSAT: satisfaction after resolved cases, measured by a one-question survey in the customer's language; tracked by channel and by buyer versus supplier.\n\nOperating KPIs:\n5. First response time: 90% of WhatsApp and chat contacts acknowledged within 1 hour in staffed hours; email within 1 business day.\n6. Complaint decisions on time: at least 90% within the committed 5 or 10 business days.\n7. Supplier chase compliance: 100% of reveals chased at working day 3 and decided on day 5.\n8. Privacy requests: 100% acknowledged in 1 business day and answered within 14 days of verification.\n9. Zero confidentiality leaks before reveal.\n10. Reopen rate and knowledge gaps closed: every gap raised is answered or assigned within 5 business days.\n\nA KPI that misses target is traced to its cause and corrected, not explained away.",
-      "body_ar": "يملك مقعد خدمة العملاء المؤشرات التالية. الأربعة الأولى مأخوذة من أهداف المقاعد في خطة الشركة (القسم العاشر)، والبقية معايير تشغيلية لهذا المقعد حددتها هذه الحزمة. وتُرفع جميعها أسبوعياً إلى الرئيس التنفيذي مع العدد الذي تستند إليه كل نسبة، فالنسبة بلا مقام ليست نتيجة.\n\nمؤشرات مرتبطة بالخطة:\n1. التحويل إلى الكشف: نسبة الطلبات التي تلقت عرضاً مكتملاً واحداً على الأقل ودفع فيها العميل للكشف. هدف الخطة 18% على الأقل من الطلبات التي تلقت عروضاً اعتباراً من نوفمبر 2026. ودور الدعم: شرح تقرير المقارنة والقائمة الكاملة للعروض بوضوح، والإجابة السريعة على أسئلة ما قبل الكشف، وعدم ترك عميل متوقفاً لغياب إجابة.\n2. معدل الطرح: نسبة الطلبات المنشورة التي تُطرح على الموردين لاكتمالها. هدف الخطة 75% على الأقل. ودور الدعم: مساعدة العملاء على استكمال المواصفات الدقيقة بسرعة بالتعاون مع مهندس المبيعات.\n3. معدل الاسترداد: نسبة عمليات الاسترداد إلى عمليات الكشف. سقف الخطة 5%. ودور الدعم: متابعة المورد في يوم العمل الثالث مع إشراك العميل، في موعدها لكل كشف.\n4. رضا العملاء: يُقاس بعد الحالات المحلولة بسؤال واحد بلغة العميل، ويُتابع بحسب القناة وبحسب المشتري والمورد.\n\nمؤشرات تشغيلية:\n5. زمن الرد الأول: الإقرار بـ 90% من رسائل واتساب والمحادثة خلال ساعة في ساعات العمل، والبريد خلال يوم عمل.\n6. قرارات الشكاوى في موعدها: 90% على الأقل خلال 5 أو 10 أيام عمل بحسب الالتزام.\n7. الالتزام بمتابعة الموردين: 100% من عمليات الكشف تُتابع في يوم العمل الثالث ويُقرر فيها في اليوم الخامس.\n8. طلبات الخصوصية: 100% يُقر بها خلال يوم عمل ويُرد عليها خلال 14 يوماً من التحقق.\n9. صفر تسريب للسرية قبل الكشف.\n10. معدل إعادة فتح الحالات وإغلاق فجوات المعرفة: كل فجوة تُجاب أو تُسند خلال 5 أيام عمل.\n\nالمؤشر الذي يخفق في بلوغ هدفه يُتتبع إلى سببه ويُصحح، لا يُبرر.",
+      "body_en": "The customer support seat owns these measures. The first four come from the company plan's seat targets (plan section 10); the rest are the seat's operating standards set in this pack. All are reported weekly to the CEO seat with the count behind each rate, because a rate without its denominator is not a finding.\n\nPlan-linked KPIs:\n1. Reveal conversion: share of requests with at least one complete quotation where the customer pays to reveal. Plan target at least 18% of quoted requests from November 2026. Support's lever: explaining the comparison report and the full list of quotations clearly, answering pre-reveal questions quickly, and never letting a customer stall for lack of an answer.\n2. Release rate: share of posted requests released to suppliers (complete enough to quote). Plan target at least 75%. Lever: helping customers complete exact specifications fast, working with the sales engineer seat.\n3. Refund rate: refunds as a share of reveals. Plan ceiling 5%. Lever: the day-3 supplier chase with the customer copied, done on time for every reveal.\n4. CSAT: satisfaction after resolved cases, measured by a one-question survey in the customer's language; tracked by channel and by buyer versus supplier.\n\nOperating KPIs:\n5. First response time: every first reply on WhatsApp, homepage chat and email in under one minute (founder, 28 Sep 2026), measured from the inbound to the outbound timestamp. A person is involved only when someone explicitly asks for one on WhatsApp or social.\n6. Complaint decisions on time: at least 90% within the committed 5 or 10 business days.\n7. Supplier chase compliance: 100% of reveals chased at working day 3 and decided on day 5.\n8. Privacy requests: 100% acknowledged in 1 business day and answered within 14 days of verification.\n9. Zero confidentiality leaks before reveal.\n10. Reopen rate and knowledge gaps closed: every gap raised is answered or assigned within 5 business days.\n\nA KPI that misses target is traced to its cause and corrected, not explained away.",
+      "body_ar": "يملك مقعد خدمة العملاء المؤشرات التالية. الأربعة الأولى مأخوذة من أهداف المقاعد في خطة الشركة (القسم العاشر)، والبقية معايير تشغيلية لهذا المقعد حددتها هذه الحزمة. وتُرفع جميعها أسبوعياً إلى الرئيس التنفيذي مع العدد الذي تستند إليه كل نسبة، فالنسبة بلا مقام ليست نتيجة.\n\nمؤشرات مرتبطة بالخطة:\n1. التحويل إلى الكشف: نسبة الطلبات التي تلقت عرضاً مكتملاً واحداً على الأقل ودفع فيها العميل للكشف. هدف الخطة 18% على الأقل من الطلبات التي تلقت عروضاً اعتباراً من نوفمبر 2026. ودور الدعم: شرح تقرير المقارنة والقائمة الكاملة للعروض بوضوح، والإجابة السريعة على أسئلة ما قبل الكشف، وعدم ترك عميل متوقفاً لغياب إجابة.\n2. معدل الطرح: نسبة الطلبات المنشورة التي تُطرح على الموردين لاكتمالها. هدف الخطة 75% على الأقل. ودور الدعم: مساعدة العملاء على استكمال المواصفات الدقيقة بسرعة بالتعاون مع مهندس المبيعات.\n3. معدل الاسترداد: نسبة عمليات الاسترداد إلى عمليات الكشف. سقف الخطة 5%. ودور الدعم: متابعة المورد في يوم العمل الثالث مع إشراك العميل، في موعدها لكل كشف.\n4. رضا العملاء: يُقاس بعد الحالات المحلولة بسؤال واحد بلغة العميل، ويُتابع بحسب القناة وبحسب المشتري والمورد.\n\nمؤشرات تشغيلية:\n5. زمن الرد الأول: كل رد أول عبر واتساب ودردشة الموقع والبريد في أقل من دقيقة (المؤسس، 28 سبتمبر 2026)، مقيساً من توقيت الوارد إلى توقيت الصادر. لا يُشرَك شخص إلا بطلب صريح عبر واتساب أو التواصل الاجتماعي.\n6. قرارات الشكاوى في موعدها: 90% على الأقل خلال 5 أو 10 أيام عمل بحسب الالتزام.\n7. الالتزام بمتابعة الموردين: 100% من عمليات الكشف تُتابع في يوم العمل الثالث ويُقرر فيها في اليوم الخامس.\n8. طلبات الخصوصية: 100% يُقر بها خلال يوم عمل ويُرد عليها خلال 14 يوماً من التحقق.\n9. صفر تسريب للسرية قبل الكشف.\n10. معدل إعادة فتح الحالات وإغلاق فجوات المعرفة: كل فجوة تُجاب أو تُسند خلال 5 أيام عمل.\n\nالمؤشر الذي يخفق في بلوغ هدفه يُتتبع إلى سببه ويُصحح، لا يُبرر.",
       "sources": [
+        "internal:founder ruling relayed 28 Sep 2026 (a person only on an explicit request on WhatsApp or social; first reply under one minute)",
         "internal:plan/plan.md",
         "internal:plan/aed1m_summary.md",
         "internal:memory/the-only-hard-rules-and-operating-doctrine.md"
       ],
       "confidence": "high",
-      "as_of": "2026-09-23"
+      "as_of": "2026-09-28"
     },
     {
       "id": "customer_support:civil-code-2026-offer-acceptance",
@@ -1724,6 +1727,262 @@
       "confidence": "high",
       "as_of": "2026-09-24",
       "gap_kind": "commercial"
+    },
+    {
+      "id": "customer_support:seat-mission-communication",
+      "topic": "What the customer support seat is and owns: the one voice of QuotesDone",
+      "kind": "company",
+      "body_en": "Customer support is the communication seat: the one voice of QuotesDone on every channel. It owns the homepage chat for visitors who are not registered (instr 16), the email channel and the WhatsApp channel. It is the only seat with WhatsApp, and only customer_support sends email and WhatsApp: every other seat asks it to deliver (instr 93, 178). OTP codes are a platform service, not a support send. Support is always up to date with the full case.\n\nCustomer support does NOT own reveals. Under the founder's seat map of 24 Sep 2026, the sales engineer owns suppliers and customers, inquiries, specifications, matching, quotes, the comparison report and reveals; the accountant owns everything financial; the CEO decides disputes and refunds; the IT engineer monitors the platform.\n\nThe standard is \"better than the Amazon chat bot\" (instr 781): the model is always on for customer conversations, grounded in company knowledge, with deterministic guardrails around it (no internal figures, no technical errors, identity rules). It is never declared ready without the score of the automated scenario suite.\n\nWhat excellent looks like: no customer or supplier ever gets a wrong, robotic or leaking reply, and every other seat's message arrives with a receipt to its sender.",
+      "body_ar": "خدمة العملاء هي مقعد التواصل، أي الصوت الواحد لكوتس دن على جميع القنوات. ويتولى هذا المقعد محادثة الصفحة الرئيسية للزوار غير المسجلين (التعليمات 16)، وقناة البريد الإلكتروني، وقناة واتساب. وهو المقعد الوحيد الذي يملك واتساب، ولا يرسل البريد الإلكتروني أو رسائل واتساب أحد سواه؛ فكل مقعد آخر يطلب منه التسليم (التعليمات 93 و178). أما رموز التحقق فهي خدمة من المنصة وليست رسالة من الدعم. ويبقى الدعم مطّلعاً على الملف كاملاً في كل وقت.\n\nخدمة العملاء لا تملك عمليات الكشف. فبحسب توزيع المقاعد الذي اعتمده المؤسس في 24 سبتمبر 2026، يتولى مهندس المبيعات الموردين والعملاء والطلبات والمواصفات والمطابقة والعروض وتقرير المقارنة وعمليات الكشف، ويتولى المحاسب كل ما يتعلق بالمال، ويبت الرئيس التنفيذي في النزاعات والمبالغ المستردة، ويراقب مهندس تقنية المعلومات المنصة.\n\nوالمعيار أن نكون \"أفضل من روبوت محادثة أمازون\" (التعليمات 781): النموذج يعمل دائماً في محادثات العملاء مستنداً إلى معرفة الشركة، وتحيط به ضوابط ثابتة (لا أرقام داخلية، ولا أخطاء تقنية، وقواعد الهوية). ولا يُعلن جاهزاً إلا بنتيجة مجموعة السيناريوهات الآلية.\n\nوالتميز يعني ألا يتلقى أي عميل أو مورد رداً خاطئاً أو آلياً جافاً أو كاشفاً لمعلومة داخلية، وأن تصل رسالة كل مقعد آخر ويتلقى مُرسلها إيصالاً بذلك.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/16",
+        "internal:founder_instruction/93",
+        "internal:founder_instruction/178",
+        "internal:founder_instruction/781",
+        "internal:memory/seat-ownership-map-24-sep.md",
+        "internal:memory/customer-support-better-than-amazon.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:welcome-and-four-option-menu",
+      "topic": "The professional welcome and the four-option menu on chat and WhatsApp",
+      "kind": "company",
+      "body_en": "Every new conversation on the homepage chat and on WhatsApp opens with a professional welcome and a menu of four options (instr 759, 763):\n1. General information (general inquiry).\n2. Existing inquiry.\n3. New inquiry.\n4. Report a problem.\n\nThe menu is a door, not a script. A general question is answered by understanding it, not by matching words (instr 763, 769); if the person types a question instead of choosing, support answers the question. The model is always on for this channel (instr 781). An existing-inquiry answer uses the sender's own record (status, dates, counts) and gives the actual figure; a step that needs an upload or a new inquiry is pointed to the portal. The WhatsApp menu is implemented in supabase/functions/wa_inbound/menu.ts and menu_flow.ts.\n\nReplies stay in the language the person registered in, from sign-up to the reveal (instr 193).",
+      "body_ar": "تبدأ كل محادثة جديدة على محادثة الصفحة الرئيسية وعلى واتساب بترحيب مهني وقائمة من أربعة خيارات (التعليمات 759 و763):\n1. معلومات عامة (استفسار عام).\n2. طلب قائم.\n3. طلب جديد.\n4. الإبلاغ عن مشكلة.\n\nالقائمة مدخل وليست نصاً جامداً. فالسؤال العام يُجاب بفهمه لا بمطابقة الكلمات (التعليمات 763 و769)، وإذا كتب الشخص سؤالاً بدلاً من اختيار رقم أجبنا عن سؤاله. والنموذج يعمل دائماً على هذه القناة (التعليمات 781). والرد على الطلب القائم يعتمد على سجل المرسل نفسه (الحالة والتواريخ والأعداد) ويذكر الرقم الفعلي، أما الخطوة التي تتطلب رفع مستند أو إنشاء طلب جديد فيُوجَّه فيها إلى البوابة. وقائمة واتساب مبنية في الملفين menu.ts وmenu_flow.ts ضمن وظيفة wa_inbound.\n\nويبقى الرد باللغة التي سجّل بها الشخص من التسجيل حتى الكشف (التعليمات 193).",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/759",
+        "internal:founder_instruction/763",
+        "internal:founder_instruction/769",
+        "internal:founder_instruction/193",
+        "supabase/functions/wa_inbound/menu.ts"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:never-reveal-internal-numbers",
+      "topic": "Never reveal internal numbers, founder-only hints or technical errors",
+      "kind": "decision_rule",
+      "body_en": "Support never reveals internal numbers to a customer, supplier or visitor (instr 777) and never shows founder-only hints (instr 780). Internal numbers include: how many suppliers are registered or were invited, campaign counts, how many quotations competitors sent, internal scores and thresholds, costs, model names, targets and revenue. Founder-only hints are anything written for the founder's command channel (admin menus, numbers he asks for on WhatsApp, operating notes).\n\nAlso never shown: technical error text, table or routine names, stack traces, or internal wording such as seat names used as jargon. These rules exist because on 22 Sep 2026 two WhatsApp replies leaked internal wording (instr 781).\n\nWhat to say instead: answer the customer's real need in plain words (\"your request has received quotations; you can compare them in your portal\") and, if pressed for a figure that is internal, say that it is not something we share and explain what they can see. Before reveal, confidentiality of quotations and identities also applies.",
+      "body_ar": "لا يكشف الدعم أي أرقام داخلية لعميل أو مورد أو زائر (التعليمات 777)، ولا يعرض أبداً الملاحظات الخاصة بالمؤسس (التعليمات 780). ومن الأرقام الداخلية: عدد الموردين المسجلين أو المدعوين، وأعداد الحملة، وعدد العروض التي قدمها المنافسون، والدرجات والحدود الداخلية، والتكاليف، وأسماء النماذج، والأهداف والإيرادات. أما الملاحظات الخاصة بالمؤسس فهي كل ما كُتب لقناة أوامره (قوائم الإدارة، والأرقام التي يطلبها عبر واتساب، وملاحظات التشغيل).\n\nولا يُعرض كذلك نص أي خطأ تقني، ولا أسماء الجداول أو الإجراءات، ولا المصطلحات الداخلية كأسماء المقاعد. وقد وُضعت هذه القواعد لأن ردّين على واتساب في 22 سبتمبر 2026 كشفا صياغة داخلية (التعليمات 781).\n\nوبدلاً من ذلك: نجيب عن حاجة العميل الفعلية بعبارة واضحة (\"وصلت عروض على طلبكم، ويمكنكم مقارنتها من البوابة\")، وإذا أصرّ على رقم داخلي نوضح بلطف أنه مما لا نشاركه، ونبيّن له ما يمكنه الاطلاع عليه. وتنطبق قبل الكشف أيضاً قواعد سرية العروض والهويات.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/777",
+        "internal:founder_instruction/780",
+        "internal:founder_instruction/781",
+        "internal:memory/customer-support-better-than-amazon.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:no-escalation-to-a-human",
+      "topic": "There is no escalation to a human, except when a person explicitly asks for one on WhatsApp or social",
+      "kind": "decision_rule",
+      "body_en": "The founder's rule (instr 17, 721, 763): there is no escalation to a human. Support resolves the case itself or routes it to the seat that owns the decision. The only exception is a person who explicitly asks for a human on WhatsApp or social media; the founder is then emailed and carries on the conversation himself.\n\nHow to apply:\n- Detect the request by reasoning, not keywords; \"I don't need a human\" is not a request.\n- On WhatsApp the request opens a human-request record (fn_wa_human_request) and the founder is emailed; support tells the person that a member of the team will continue the conversation and does not keep answering over him (fn_wa_human_hold).\n- On social media the same rule runs through the marketing seat's hand-to-human path (fn_marketing_social_hand_to_human).\n- On email and the homepage chat there is no human handoff: support answers.\n- Failing to answer twice, a P1, money, legal threats or anger are NOT reasons to hand to a human; they are reasons to answer better or route to the owning seat (money to the accountant, disputes and refunds to the CEO).\n\nThis supersedes the broader trigger list in the entry human-handoff-standard.",
+      "body_ar": "قاعدة المؤسس (التعليمات 17 و721 و763): لا يوجد تصعيد إلى موظف بشري. يحل الدعم الحالة بنفسه أو يحيلها إلى المقعد صاحب القرار. والاستثناء الوحيد هو الشخص الذي يطلب صراحةً التحدث إلى إنسان عبر واتساب أو وسائل التواصل الاجتماعي، وعندها يُرسل بريد إلكتروني إلى المؤسس ليتابع المحادثة بنفسه.\n\nطريقة التطبيق:\n- يُفهم الطلب بالاستدلال لا بالكلمات المفتاحية؛ فعبارة \"لا أحتاج إلى موظف\" ليست طلباً.\n- على واتساب يُفتح سجل طلب تحدث إلى إنسان ويُراسَل المؤسس، ويُبلَّغ الشخص بأن أحد أعضاء الفريق سيتابع معه، ولا يستمر الدعم في الرد فوق المؤسس.\n- على وسائل التواصل الاجتماعي تسري القاعدة نفسها عبر مسار مقعد التسويق.\n- على البريد الإلكتروني ومحادثة الصفحة الرئيسية لا يوجد تحويل إلى إنسان، والدعم هو من يجيب.\n- الإخفاق في الإجابة مرتين، أو الحالة العاجلة، أو المال، أو التهديد القانوني، أو غضب العميل، ليست أسباباً للتحويل إلى إنسان، بل أسباب لإجابة أفضل أو لإحالة إلى المقعد المختص (المال للمحاسب، والنزاعات والاسترداد للرئيس التنفيذي).\n\nوتحل هذه القاعدة محل قائمة المسببات الأوسع الواردة في مدخل معيار التحويل إلى إنسان.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/17",
+        "internal:founder_instruction/721",
+        "internal:founder_instruction/763",
+        "scripts/sql/the_founder_asks_the_numbers_on_whatsapp_and_gets_them.sql"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:delivering-for-other-seats",
+      "topic": "Delivering messages for the other seats and returning a delivery outcome",
+      "kind": "company",
+      "body_en": "Support delivers every message other seats need sent: hold notices, the 2nd-strike warning, portfolio-gap guides, chases, the final call, receipts and notices (instr 92, 143, 158, 181, 858). A seat hands the message over; support decides how and when to phrase and deliver it, sends it, and returns a delivery outcome to the sender. For the sales engineer it also returns proof of response, or confirmation of no response, from the supplier.\n\nRules:\n- Every exchange is a loop (instr 207): the sender gets a receipt, and only the originator closes its handoff.\n- A delivery is verified through the outbox (notifications, then send_outbox, then the provider's report), never through a status column on the subject row. On 9 Sep 2026, 171 leads read \"invited\" while 0 invitations had ever been sent.\n- An address that fn_email_sendable refuses (suppressed, malformed, dead domain) is not sent to; the sender is told why.\n- The one door to customers and suppliers is fn_customer_support_takes_delivery; the outcome goes back through fn_delivery_request_outcome.",
+      "body_ar": "يسلّم الدعم كل رسالة تحتاج المقاعد الأخرى إلى إرسالها: إشعارات التعليق، والإنذار الثاني، وأدلة النواقص في ملف أعمال المورد، والمتابعات، والإشعار الأخير، والإيصالات والإشعارات (التعليمات 92 و143 و158 و181 و858). يسلّم المقعد الرسالة، ويقرر الدعم صياغتها وتوقيت إرسالها، ثم يرسلها ويعيد إلى المُرسل نتيجة التسليم. ولمهندس المبيعات يعيد كذلك ما يثبت رد المورد، أو يؤكد عدم رده.\n\nالقواعد:\n- كل تبادل حلقة مغلقة (التعليمات 207): يتلقى المُرسل إيصالاً، ولا يغلق الإحالة إلا من أنشأها.\n- يُتحقق من التسليم عبر صندوق الإرسال (الإشعارات ثم وظيفة الإرسال ثم تقرير مزود الخدمة)، لا عبر عمود الحالة في السجل. ففي 9 سبتمبر 2026 ظهر 171 عميلاً محتملاً بحالة \"مدعو\" بينما لم تُرسل أي دعوة.\n- العنوان المرفوض (محظور أو غير صالح أو نطاقه متوقف) لا يُرسل إليه، ويُبلَّغ المُرسل بالسبب.\n- الباب الوحيد إلى العملاء والموردين هو إجراء التسليم الخاص بالدعم، وتعود النتيجة إلى المقعد المُرسل.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/92",
+        "internal:founder_instruction/858",
+        "internal:founder_instruction/207",
+        "internal:memory/a-status-column-is-not-a-delivery-record.md",
+        "scripts/sql/every_send_comes_back_to_whoever_asked.sql"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:report-a-problem-lookup",
+      "topic": "Report a problem: look up the person's earlier reports before replying",
+      "kind": "method",
+      "body_en": "When a person chooses \"Report a problem\" or describes a fault, support looks up earlier reports for the same person in the database before replying (instr 763). The lookup is by the person's identity (email is the identity; a phone may confirm, never select), not by the wording of the message.\n\nSteps:\n1. Identify the person and pull their open and past reports (fn_support_open_reports) and similar resolved cases (case memory).\n2. If the same problem was reported before, say so, give its status and what was done, and do not make them explain again.\n3. If it is new, record it, give the reference, and state what happens next and when.\n4. Route by owner: a channel or platform fault to the IT engineer, a specification or quote issue to the sales engineer, money to the accountant, a dispute or refund decision to the CEO.\n5. When the case closes, the reporter is told (fn_support_case_closed_tells_the_reporter).",
+      "body_ar": "عندما يختار الشخص \"الإبلاغ عن مشكلة\" أو يصف خللاً، يبحث الدعم في قاعدة البيانات عن بلاغاته السابقة قبل الرد (التعليمات 763). ويكون البحث بهوية الشخص (البريد الإلكتروني هو الهوية، والهاتف يؤكدها ولا يحددها)، لا بصياغة رسالته.\n\nالخطوات:\n1. تحديد هوية الشخص واستخراج بلاغاته المفتوحة والسابقة والحالات المشابهة التي حُلّت.\n2. إذا سبق الإبلاغ عن المشكلة نفسها نذكر ذلك ونوضح حالتها وما تم فيها، دون أن نطلب منه الشرح من جديد.\n3. إذا كانت جديدة نسجلها ونعطيه رقم المرجع ونوضح الخطوة التالية وموعدها.\n4. الإحالة إلى صاحب القرار: خلل القناة أو المنصة لمهندس تقنية المعلومات، ومسائل المواصفات أو العروض لمهندس المبيعات، والمال للمحاسب، وقرار النزاع أو الاسترداد للرئيس التنفيذي.\n5. عند إغلاق الحالة يُبلَّغ صاحب البلاغ بذلك.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/763",
+        "internal:memory/a-phone-may-confirm-never-select.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:conversations-kept-no-purge",
+      "topic": "Every conversation is kept: no purge, and a PDF of anything a provider keeps only a month",
+      "kind": "company",
+      "body_en": "Every conversation is kept permanently, with no purge (instr 191; memory all-conversations-are-kept-for-sales). The sales engineer can read every conversation at any time, for disputes, refunds and supplier incidents.\n\nThe one exception (instr 408): a conversation may be deleted only if it is provably test data, meaning the row itself carries a test fixture marker (a +9715000000XX number, an @example.invalid email, a ZZ DEMO name, demo_factory, or an e2e run tag). Never infer \"test\" from timing.\n\nProviders that keep history for only about a month: Resend keeps inbound mail for about 1 month, so every email in or out is printed to a PDF (instr 192) and kept in two backup points: the private Supabase bucket \"backups\" and Dropbox. The archive step runs every 15 minutes so every conversation message gets its PDF within one beat.\n\nA customer who asks us to delete a conversation is a PDPL request: see the erasure entry; retention for disputes and legal claims is a lawful reason to keep records.",
+      "body_ar": "تُحفظ كل محادثة بشكل دائم دون حذف (التعليمات 191). ويستطيع مهندس المبيعات الاطلاع على أي محادثة في أي وقت، لأغراض النزاعات والاسترداد وحوادث الموردين.\n\nوالاستثناء الوحيد (التعليمات 408): لا تُحذف محادثة إلا إذا ثبت أنها بيانات اختبار، أي أن السجل نفسه يحمل علامة اختبار (رقم يبدأ بـ +9715000000، أو بريد ينتهي بـ example.invalid، أو اسم ZZ DEMO، أو وسم تشغيل اختباري). ولا يُستنتج أنها اختبار من التوقيت.\n\nومزودو الخدمة الذين يحتفظون بالسجل نحو شهر فقط: يحتفظ Resend بالبريد الوارد قرابة شهر، لذا يُطبع كل بريد وارد أو صادر في ملف PDF (التعليمات 192) ويُحفظ في موضعين احتياطيين: حاوية النسخ الاحتياطية الخاصة في Supabase، وDropbox. وتعمل خطوة الأرشفة كل 15 دقيقة.\n\nوإذا طلب عميل حذف محادثة فهذا طلب بموجب قانون حماية البيانات الشخصية، ويُعد الاحتفاظ لأغراض النزاعات والمطالبات القانونية سبباً مشروعاً للإبقاء على السجلات.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/191",
+        "internal:founder_instruction/192",
+        "internal:founder_instruction/408",
+        "internal:memory/all-conversations-are-kept-for-sales.md",
+        "internal:resilience_step/archive"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:supplier-campaign-daily",
+      "topic": "The daily supplier campaign: the 18:00 PDF, then the invitations, only after the founder says go",
+      "kind": "company",
+      "body_en": "The supplier campaign is a daily duty of customer support and is fully coded (instr 973, 972). It starts only when the founder says go (instr 636); support never asks him about the go.\n\nThe daily sequence:\n1. At 18:00 Dubai time, support emails the founder a PDF of the suppliers the campaign will invite on the next sending day (resilience step supportCampaignList: fn_customer_support_campaign_list_tick, rendered by pdf_native, attached by fn_customer_support_campaign_list_attach).\n2. On the sending day, the invitations are sent to those suppliers through the outbox, only to addresses fn_email_sendable accepts.\n3. The results are measured at the send path: invitations sent, delivered, bounced, replies and registrations.\n\nWhy it matters now: from October to December 2026 QuotesDone registers suppliers only; customers launch in January 2027, once the supplier base can quote every inquiry, roughly the first 1,000 suppliers (instr 844). The campaign's KPIs are invitations sent and delivered, reply rate and registrations.\n\nRoutine work is code: the campaign does not spend LLM calls on list building or sending (instr 972).",
+      "body_ar": "حملة الموردين مهمة يومية لخدمة العملاء، وهي مبرمجة بالكامل (التعليمات 973 و972). ولا تبدأ إلا عندما يعطي المؤسس الإذن بالانطلاق (التعليمات 636)، ولا يسأله الدعم عن ذلك.\n\nالتسلسل اليومي:\n1. في الساعة 18:00 بتوقيت دبي يرسل الدعم إلى المؤسس بالبريد ملف PDF بأسماء الموردين الذين ستدعوهم الحملة في يوم الإرسال التالي.\n2. في يوم الإرسال تُرسل الدعوات إلى هؤلاء الموردين عبر صندوق الإرسال، وفقط إلى العناوين المقبولة للإرسال.\n3. تُقاس النتائج من مسار الإرسال: الدعوات المرسلة، والمسلّمة، والمرتدة، والردود، والتسجيلات.\n\nولماذا الآن: من أكتوبر إلى ديسمبر 2026 تسجل كوتس دن الموردين فقط، ويبدأ استقبال العملاء في يناير 2027 بعد أن تصبح قاعدة الموردين قادرة على تسعير كل طلب، أي نحو أول 1,000 مورد (التعليمات 844). ومؤشرات الحملة: الدعوات المرسلة والمسلّمة ونسبة الردود وعدد التسجيلات.\n\nوالعمل الروتيني يُنفذ بالبرمجة، فلا تستهلك الحملة استدعاءات النموذج في إعداد القوائم أو الإرسال (التعليمات 972).",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/636",
+        "internal:founder_instruction/972",
+        "internal:founder_instruction/973",
+        "internal:founder_instruction/844",
+        "internal:resilience_step/supportCampaignList"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:delivery-health-watch",
+      "topic": "Watching the delivery health of support's own sends: bounces, WhatsApp failures, suppressions",
+      "kind": "method",
+      "body_en": "Every day support watches the delivery health of its own sends: email bounces and complaints, WhatsApp failures, and messages suppressed or skipped. It fixes the cause and re-sends. The KPI is delivery success rate, per channel.\n\nHow it is measured:\n- Email: every send goes notifications, then send_outbox, then Resend; Resend's webhook reports delivered, bounced and complained. A hard bounce or complaint adds the address to email_suppressions and fn_email_sendable refuses it afterwards.\n- Delivery canary: once a day a test bounce is sent to Resend's sink to prove resend_webhook still receives reports; 30 minutes of silence is the finding delivery_feedback:bounce_reports_silent (fn_delivery_feedback_canary_tick).\n- WhatsApp: every WhatsApp says whether it arrived (wa_status callbacks); failures are read per template and per number.\n- fn_customer_support_delivery_watch reads the outcomes; a message that did not arrive goes back to its sender seat with the reason.\n\nFix and re-send means: correct the address or channel (for example email instead of WhatsApp outside the 24-hour window), never re-send to a suppressed address, and never count a message as delivered because a status column says so.",
+      "body_ar": "يراقب الدعم يومياً سلامة تسليم رسائله: ارتداد البريد والشكاوى، وإخفاق رسائل واتساب، والرسائل المحجوبة أو المتخطاة. ثم يعالج السبب ويعيد الإرسال. والمؤشر هو نسبة نجاح التسليم لكل قناة.\n\nطريقة القياس:\n- البريد: يمر كل إرسال بالإشعارات ثم وظيفة الإرسال ثم Resend، الذي يبلغ بالتسليم والارتداد والشكوى. والارتداد النهائي أو الشكوى يضيف العنوان إلى قائمة الحظر فلا يُرسل إليه بعدها.\n- اختبار التسليم اليومي: تُرسل مرة يومياً رسالة ارتداد تجريبية إلى عنوان الاختبار لدى Resend للتأكد من أن التقارير ما زالت تصل؛ وانقطاعها 30 دقيقة يُسجل ملاحظة.\n- واتساب: كل رسالة تفيد بوصولها أو عدمه، وتُقرأ حالات الإخفاق لكل قالب ولكل رقم.\n- الرسالة التي لم تصل تعود إلى المقعد المُرسل مع السبب.\n\nوالمعالجة وإعادة الإرسال تعني تصحيح العنوان أو القناة (كالبريد بدلاً من واتساب خارج نافذة الـ 24 ساعة)، وعدم الإرسال أبداً إلى عنوان محظور، وعدم اعتبار الرسالة مسلّمة لأن عمود الحالة يقول ذلك.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:resilience_step/deliveryCanary",
+        "scripts/sql/every_whatsapp_says_whether_it_arrived.sql",
+        "internal:memory/a-status-column-is-not-a-delivery-record.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:activation-and-winback",
+      "topic": "Activation (3, 5 and 10 days) and win-back (60 to 90 days): dormant until January 2027",
+      "kind": "company",
+      "body_en": "Two customer duties belong to support (instr 898). Both are dormant until customers launch in January 2027, but the routines already run.\n\nActivation (seat_duty customer_support.activation, every 6 hours, fn_customer_support_activation_tick):\n- A customer with no request 3 days after sign-up is written to once.\n- A request with no quote after 5 days is written to once.\n- A request still with no quote after 10 days is a judgement: what to tell this customer is reasoned, not templated.\n\nWin-back (seat_duty customer_support.winback, daily, fn_customer_support_winback_tick): a customer whose last activity is a revealed job 60 to 90 days ago gets ONE win-back message per dormant spell. It starts in 2027.\n\nRules for both: each message is sent once per stage and subject (fn_customer_support_duty_send), only to an address fn_email_sendable accepts; banned and demo customers are never selected. Today they send email only; WhatsApp needs its own opt-in path. A win-back is marketing in nature, so opt-outs are respected. Last run on 28 Sep 2026 found 0 customers to activate and 0 dormant.",
+      "body_ar": "هناك مهمتان تخصان العملاء يتولاهما الدعم (التعليمات 898). وكلتاهما في وضع السكون حتى إطلاق العملاء في يناير 2027، لكن الإجراءات تعمل من الآن.\n\nالتفعيل (كل 6 ساعات):\n- العميل الذي لم يقدم أي طلب بعد 3 أيام من التسجيل تُرسل إليه رسالة واحدة.\n- الطلب الذي لم يتلق أي عرض بعد 5 أيام تُرسل بشأنه رسالة واحدة.\n- الطلب الذي ما زال بلا عرض بعد 10 أيام يحتاج إلى تقدير: ما يُقال لهذا العميل يُبنى على الاستدلال لا على قالب.\n\nالاستعادة (يومياً): العميل الذي كان آخر نشاط له عملية كشف قبل 60 إلى 90 يوماً تصله رسالة استعادة واحدة فقط في كل فترة خمول. وتبدأ في 2027.\n\nقواعد مشتركة: كل رسالة تُرسل مرة واحدة لكل مرحلة وموضوع، وفقط إلى عنوان مقبول للإرسال، ولا يُختار أبداً عميل محظور أو تجريبي. وهي حالياً بالبريد فقط، إذ يحتاج واتساب إلى مسار موافقة خاص. ورسالة الاستعادة ذات طابع تسويقي، فتُحترم طلبات إلغاء الاشتراك. وفي آخر تشغيل بتاريخ 28 سبتمبر 2026 لم يوجد أي عميل للتفعيل ولا أي عميل خامل.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/898",
+        "scripts/sql/customer_support_activates_wins_back_and_settles_disputes.sql",
+        "internal:seat_duty/customer_support.activation",
+        "internal:seat_duty/customer_support.winback"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:post-reveal-dispute-evidence",
+      "topic": "Disputes after a reveal: support collects the evidence on time and passes it to the CEO",
+      "kind": "playbook",
+      "body_en": "Support does not own reveals and does not decide disputes. Its job in a customer-versus-supplier dispute after a reveal is to collect the evidence on time and pass it to the CEO (instr 898).\n\nThe case file is public.post_reveal_dispute, with stages and clocks:\n1. Intake: whether a party's message IS a dispute is reasoned, not keyword-matched (fn_customer_support_dispute_open).\n2. Evidence: both parties have 5 working days to send their evidence; support records what arrives by email (fn_customer_support_dispute_evidence) and chases on time.\n3. Finding: a reasoned finding on fault, reviewed by a different model family.\n4. Decision: the CEO decides within 3 working days; an overdue decision is a finding owned by the CEO.\n\nThe scheduled dispute duty now runs under the sales engineer (seat_duty sales_engineer.disputes), because the sales engineer owns reveals; support remains the channel that collects evidence and tells both parties.\n\nMoney: support never promises a refund. A refund stays the accountant's, approved by the CEO. A card chargeback is a different process, owned by the accountant.",
+      "body_ar": "لا يملك الدعم عمليات الكشف ولا يبت في النزاعات. ودوره في النزاع بين العميل والمورد بعد الكشف أن يجمع الأدلة في موعدها ويرفعها إلى الرئيس التنفيذي (التعليمات 898).\n\nملف الحالة له مراحل ومواعيد:\n1. الاستلام: تحديد ما إذا كانت رسالة الطرف نزاعاً يتم بالاستدلال لا بمطابقة الكلمات.\n2. الأدلة: لكل طرف 5 أيام عمل لتقديم أدلته، ويسجل الدعم ما يصل بالبريد ويتابع في الموعد.\n3. النتيجة: استنتاج مسبب بشأن المسؤولية، تراجعه عائلة نماذج مختلفة.\n4. القرار: يبت الرئيس التنفيذي خلال 3 أيام عمل، والتأخر في القرار يُسجل ملاحظة على الرئيس التنفيذي.\n\nوتعمل مهمة النزاعات المجدولة حالياً ضمن مقعد مهندس المبيعات لأنه يملك عمليات الكشف، ويبقى الدعم القناة التي تجمع الأدلة وتبلغ الطرفين.\n\nالمال: لا يَعِد الدعم أبداً باسترداد. فالاسترداد من اختصاص المحاسب بموافقة الرئيس التنفيذي. أما الاعتراض على عملية البطاقة لدى البنك فهو مسار مختلف يتولاه المحاسب.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/898",
+        "scripts/sql/customer_support_activates_wins_back_and_settles_disputes.sql",
+        "internal:seat_duty/sales_engineer.disputes",
+        "internal:memory/seat-ownership-map-24-sep.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:weekly-case-review",
+      "topic": "The weekly case review and turning unanswered questions into knowledge requests",
+      "kind": "method",
+      "body_en": "Every week support runs a case review (seat_duty customer_support.case_review, every 7 days, fn_customer_support_case_review_tick). It measures: first-response time, resolution, repeat contacts, complaints, and every question it could not answer. Each unanswered question becomes a knowledge request (fn_support_knowledge_gap), so what was not known this week is known next week (instr 838, 887).\n\nThe review for the week ending 24 Sep 2026 measured: chat 39 questions, 27 answered, 12 not answered; email 4 received, 0 replied; WhatsApp 0 received; 12 knowledge requests still open, 9 opened that week; 0 complaints. WhatsApp first-reply time was not recorded, because the reply is written on the inbound row with no reply time.\n\nHow to read it: every rate is reported with its count; an email received and not replied is a failure to fix, not a statistic; a question asked again is a knowledge gap that was not closed. The review feeds the weekly report to the CEO.",
+      "body_ar": "يجري الدعم مراجعة أسبوعية للحالات (كل 7 أيام). وتقيس: زمن الرد الأول، والحل، وتكرار التواصل، والشكاوى، وكل سؤال لم يستطع الإجابة عنه. ويتحول كل سؤال بلا إجابة إلى طلب معرفة، فما لم نعرفه هذا الأسبوع نعرفه في الأسبوع التالي (التعليمات 838 و887).\n\nوقاست مراجعة الأسبوع المنتهي في 24 سبتمبر 2026: في المحادثة 39 سؤالاً، أُجيب عن 27 ولم يُجب عن 12؛ وفي البريد 4 رسائل واردة دون أي رد؛ وفي واتساب لا شيء؛ و12 طلب معرفة ما زالت مفتوحة، فُتح منها 9 في ذلك الأسبوع؛ ولا شكاوى. ولم يُسجل زمن الرد الأول على واتساب لأن الرد يُكتب في سجل الرسالة الواردة دون وقت للرد.\n\nوطريقة القراءة: كل نسبة تُذكر مع عددها، والبريد الوارد بلا رد إخفاق يجب علاجه لا مجرد رقم، والسؤال المتكرر فجوة معرفة لم تُغلق. وتغذي المراجعة التقرير الأسبوعي إلى الرئيس التنفيذي.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/838",
+        "internal:founder_instruction/887",
+        "internal:seat_duty/customer_support.case_review",
+        "scripts/sql/customer_support_reviews_its_week_and_files_what_it_could_not_answer.sql"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:decides-alone-and-routes",
+      "topic": "What support decides alone and where everything else goes",
+      "kind": "decision_rule",
+      "body_en": "Support decides alone: how and when to phrase and deliver a message, the answers to general questions, and when a case is closed.\n\nEverything else goes to the seat that owns it:\n- Technical questions (specifications, trades, drawings, quotes, matching, reveals) go to the sales engineer.\n- Money (payments, charges, receipts, invoices, refund documents, chargebacks) goes to the accountant.\n- Disputes and refunds are decided by the CEO.\n- Channel faults (WhatsApp down, email not delivering, the site chat failing) go to the IT engineer.\n\nRouting is a handoff, not a disappearance: support tells the person what is being decided, who decides it (by seat, never \"someone\"), and when they will hear back; it tracks the handoff and closes the loop with the person. It never answers \"I need to check and get back to you\" (instr 903), and it never answers at random with a yes or a no (instr 888).",
+      "body_ar": "يقرر الدعم وحده: صياغة الرسالة وتوقيت تسليمها، والإجابة عن الأسئلة العامة، ومتى تُغلق الحالة.\n\nوكل ما عدا ذلك يذهب إلى المقعد المختص:\n- الأسئلة الفنية (المواصفات والتخصصات والمخططات والعروض والمطابقة وعمليات الكشف) إلى مهندس المبيعات.\n- المال (المدفوعات والرسوم والإيصالات والفواتير ومستندات الاسترداد والاعتراضات البنكية) إلى المحاسب.\n- النزاعات والاسترداد يبت فيها الرئيس التنفيذي.\n- أعطال القنوات (توقف واتساب، أو عدم وصول البريد، أو تعطل المحادثة على الموقع) إلى مهندس تقنية المعلومات.\n\nوالإحالة تسليم لا اختفاء: يبلغ الدعم الشخص بما يُبت فيه، ومن يبت فيه (بالمقعد، لا \"أحد الزملاء\")، ومتى سيصله الرد، ثم يتابع الإحالة ويغلق الحلقة معه. ولا يقول أبداً \"سأتحقق وأعود إليكم\" (التعليمات 903)، ولا يجيب عشوائياً بنعم أو لا (التعليمات 888).",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/903",
+        "internal:founder_instruction/888",
+        "internal:memory/seat-ownership-map-24-sep.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:seat-kpis-jd-2026-09",
+      "topic": "Customer support KPIs under the job description of 24 Sep 2026",
+      "kind": "company",
+      "body_en": "The customer support KPIs set in the job description (24 Sep 2026):\n1. Delivery success rate, per channel (email, WhatsApp, SMS).\n2. First-response time: under a minute for chat and WhatsApp.\n3. Resolution without re-contact.\n4. The score on the automated scenario suite (instr 781); support is never called ready without it.\n5. Complaints.\n6. Supplier campaign: invitations sent and delivered, reply rate and registrations.\n\nThese supersede the older first-response figures (1 hour, or 5 minutes) in the entries sla-targets and company-customer-support-kpis: because the model is always on, chat and WhatsApp are answered in under a minute; email targets stay as set there. Reveal conversion and refund rate are company measures support contributes to, but reveals are owned by the sales engineer.\n\nEvery rate is reported with the count behind it, measured at the send path or the conversation record, never estimated.",
+      "body_ar": "مؤشرات أداء خدمة العملاء بحسب الوصف الوظيفي (24 سبتمبر 2026):\n1. نسبة نجاح التسليم لكل قناة (البريد وواتساب والرسائل النصية).\n2. زمن الرد الأول: أقل من دقيقة في المحادثة وواتساب.\n3. الحل دون أن يعاود العميل التواصل.\n4. نتيجة مجموعة السيناريوهات الآلية (التعليمات 781)، ولا يُعلن الدعم جاهزاً دونها.\n5. الشكاوى.\n6. حملة الموردين: الدعوات المرسلة والمسلّمة ونسبة الردود وعدد التسجيلات.\n\nوتحل هذه المؤشرات محل أرقام الرد الأول الأقدم (ساعة أو خمس دقائق) الواردة في مدخلي أهداف مستوى الخدمة ومؤشرات المقعد، لأن النموذج يعمل دائماً فتُجاب المحادثة وواتساب في أقل من دقيقة، وتبقى أهداف البريد كما هي. أما التحويل إلى الكشف ومعدل الاسترداد فهما مؤشران للشركة يسهم فيهما الدعم، لكن عمليات الكشف من اختصاص مهندس المبيعات.\n\nوكل نسبة تُذكر مع العدد الذي تستند إليه، وتُقاس من مسار الإرسال أو سجل المحادثة، ولا تُقدّر.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/781"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:language-and-reasoning-rules",
+      "topic": "Language stays as registered; Arabic is native; reasoning, never word matching",
+      "kind": "decision_rule",
+      "body_en": "Rules every support reply follows:\n- Language: a conversation stays in the language the person registered in, from sign-up through to the reveal (instr 193). A message that arrives in the other language is still understood, but the reply stays in the registered language unless the person asks to switch.\n- Arabic is written natively in Gulf business style, not translated from English (instr 586), at a native professional standard (instr 12).\n- Reasoning, never word matching: no decision is made by matching words (instr 575, 890). A general question is answered by understanding it (instr 763, 769).\n- Think in steps before answering (instr 903): work out which facts apply, then which rule, then its limits, then the answer.\n- Learning loop: before replying, recall whether a similar case was handled and whether it was finished (instr 887).\n- UAE only: the knowledge covers UAE facts; no US law (instr 535).",
+      "body_ar": "قواعد يلتزم بها كل رد من الدعم:\n- اللغة: تبقى المحادثة باللغة التي سجّل بها الشخص من التسجيل حتى الكشف (التعليمات 193). والرسالة التي تصل باللغة الأخرى تُفهم، لكن الرد يبقى بلغة التسجيل ما لم يطلب الشخص التغيير.\n- تُكتب العربية أصلاً بأسلوب الأعمال الخليجي لا ترجمةً عن الإنجليزية (التعليمات 586)، وبمستوى مهني أصيل (التعليمات 12).\n- الاستدلال لا مطابقة الكلمات: لا يُتخذ أي قرار بمطابقة الكلمات (التعليمات 575 و890)، والسؤال العام يُجاب بفهمه (التعليمات 763 و769).\n- التفكير خطوة بخطوة قبل الإجابة (التعليمات 903): ما الوقائع المنطبقة، ثم القاعدة، ثم حدودها، ثم الإجابة.\n- حلقة التعلم: قبل الرد نستحضر هل عولجت حالة مشابهة وهل أُنجزت (التعليمات 887).\n- الإمارات فقط: المعرفة تغطي وقائع الإمارات، ولا مكان للقانون الأمريكي (التعليمات 535).",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/193",
+        "internal:founder_instruction/586",
+        "internal:founder_instruction/575",
+        "internal:founder_instruction/890",
+        "internal:founder_instruction/903",
+        "internal:founder_instruction/887"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "customer_support:profile-consistency",
+      "topic": "Keeping the WhatsApp profile and every social profile consistent",
+      "kind": "company",
+      "body_en": "Support keeps the WhatsApp Business profile and every social profile consistent (instr 920); this duty is shared with the marketing seat, which posts on social media.\n\nThe profile copy rules (memory profile-copy-rules, 23 Sep 2026): English only; no trade-licence number; never the word \"AI\". The name, description, website (www.quotesdone.ae) and contact details must read the same everywhere.\n\nHow to keep it consistent: when company knowledge changes, it changes everywhere at once: the website, every seat's knowledge, and every profile (instr 11, 965). A difference between profiles is a defect to fix, not a style choice.\n\nOpen gap: no routine yet compares the live WhatsApp profile with the social profiles; the check is manual until one is built (listed in the seat audit).",
+      "body_ar": "يحافظ الدعم على اتساق ملف واتساب للأعمال وجميع ملفات التواصل الاجتماعي (التعليمات 920)، وهذه مهمة مشتركة مع مقعد التسويق الذي ينشر على وسائل التواصل.\n\nقواعد نص الملف التعريفي (23 سبتمبر 2026): بالإنجليزية فقط، ودون رقم الرخصة التجارية، ودون كلمة \"AI\" أبداً. ويجب أن يظهر الاسم والوصف والموقع (www.quotesdone.ae) وبيانات التواصل بالصيغة نفسها في كل مكان.\n\nوطريقة الحفاظ على الاتساق: عندما تتغير معرفة الشركة تتغير في كل مكان في آن واحد: الموقع، ومعرفة كل مقعد، وكل ملف تعريفي (التعليمات 11 و965). وأي اختلاف بين الملفات خلل يجب إصلاحه لا اختيار في الأسلوب.\n\nفجوة قائمة: لا يوجد بعد إجراء يقارن ملف واتساب الفعلي بملفات التواصل الاجتماعي، فيبقى التحقق يدوياً حتى يُبنى.",
+      "sources": [
+        "internal:scratchpad/seats_v3/JOB_DESCRIPTIONS.md#3",
+        "internal:founder_instruction/920",
+        "internal:founder_instruction/965",
+        "internal:memory/profile-copy-rules.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
     }
   ],
   "eval": [
@@ -2258,6 +2517,118 @@
       "expected_entry_ids": [
         "customer_support:commercial-transactions-law-50-2022"
       ]
+    },
+    {
+      "q_en": "Which seat sends WhatsApp messages for the company?",
+      "q_ar": "أي مقعد يرسل رسائل واتساب عن الشركة؟",
+      "expected_entry_ids": [
+        "customer_support:seat-mission-communication"
+      ]
+    },
+    {
+      "q_en": "What options does the WhatsApp welcome menu show?",
+      "q_ar": "ما الخيارات التي تظهر في قائمة الترحيب على واتساب؟",
+      "expected_entry_ids": [
+        "customer_support:welcome-and-four-option-menu"
+      ]
+    },
+    {
+      "q_en": "A supplier asks how many other suppliers quoted. What do we say?",
+      "q_ar": "مورد يسأل كم مورداً آخر قدّم عرضاً، بماذا نجيبه؟",
+      "expected_entry_ids": [
+        "customer_support:never-reveal-internal-numbers"
+      ]
+    },
+    {
+      "q_en": "A customer on WhatsApp says he wants to speak to a real person.",
+      "q_ar": "عميل على واتساب يقول إنه يريد التحدث إلى شخص حقيقي.",
+      "expected_entry_ids": [
+        "customer_support:no-escalation-to-a-human"
+      ]
+    },
+    {
+      "q_en": "How do we prove a message to a supplier was delivered?",
+      "q_ar": "كيف نثبت أن رسالة إلى المورد قد وصلت؟",
+      "expected_entry_ids": [
+        "customer_support:delivering-for-other-seats"
+      ]
+    },
+    {
+      "q_en": "Someone reports a problem again; what do we check first?",
+      "q_ar": "شخص يبلغ عن مشكلة مرة أخرى، ماذا نتحقق منه أولاً؟",
+      "expected_entry_ids": [
+        "customer_support:report-a-problem-lookup"
+      ]
+    },
+    {
+      "q_en": "Can we delete old chat conversations to save space?",
+      "q_ar": "هل يمكن حذف المحادثات القديمة لتوفير المساحة؟",
+      "expected_entry_ids": [
+        "customer_support:conversations-kept-no-purge"
+      ]
+    },
+    {
+      "q_en": "When is the list of suppliers for tomorrow sent to the founder?",
+      "q_ar": "متى تُرسل قائمة موردي الغد إلى المؤسس؟",
+      "expected_entry_ids": [
+        "customer_support:supplier-campaign-daily"
+      ]
+    },
+    {
+      "q_en": "Emails are bouncing. What does support do?",
+      "q_ar": "رسائل البريد ترتد، ماذا يفعل الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:delivery-health-watch"
+      ]
+    },
+    {
+      "q_en": "A customer registered a week ago and posted nothing. Do we contact him?",
+      "q_ar": "عميل سجّل قبل أسبوع ولم يقدم أي طلب، هل نتواصل معه؟",
+      "expected_entry_ids": [
+        "customer_support:activation-and-winback"
+      ]
+    },
+    {
+      "q_en": "A buyer and supplier disagree after the reveal. What is support's role?",
+      "q_ar": "خلاف بين المشتري والمورد بعد الكشف، ما دور الدعم؟",
+      "expected_entry_ids": [
+        "customer_support:post-reveal-dispute-evidence"
+      ]
+    },
+    {
+      "q_en": "What does the weekly case review measure?",
+      "q_ar": "ماذا تقيس المراجعة الأسبوعية للحالات؟",
+      "expected_entry_ids": [
+        "customer_support:weekly-case-review"
+      ]
+    },
+    {
+      "q_en": "Who handles a question about a card charge?",
+      "q_ar": "من يتولى سؤالاً عن رسوم البطاقة؟",
+      "expected_entry_ids": [
+        "customer_support:decides-alone-and-routes"
+      ]
+    },
+    {
+      "q_en": "What is the first-response target on WhatsApp?",
+      "q_ar": "ما هدف زمن الرد الأول على واتساب؟",
+      "expected_entry_ids": [
+        "customer_support:seat-kpis-jd-2026-09"
+      ]
+    },
+    {
+      "q_en": "A supplier registered in Arabic writes in English. Which language do we reply in?",
+      "q_ar": "مورد سجّل بالعربية وكتب بالإنجليزية، بأي لغة نرد؟",
+      "expected_entry_ids": [
+        "customer_support:language-and-reasoning-rules"
+      ]
+    },
+    {
+      "q_en": "Can the WhatsApp profile mention our licence number?",
+      "q_ar": "هل يجوز ذكر رقم الرخصة في ملف واتساب؟",
+      "expected_entry_ids": [
+        "customer_support:profile-consistency"
+      ]
     }
   ],
   "verified": {
@@ -2366,6 +2737,29 @@
         "customer_support:public-holidays-2026-and-deadlines",
         "customer_support:working-day-deadline-calculation"
       ]
+    },
+    "wave3": {
+      "upgraded": "2026-09-28 instr 888",
+      "added": [
+        "customer_support:seat-mission-communication",
+        "customer_support:welcome-and-four-option-menu",
+        "customer_support:never-reveal-internal-numbers",
+        "customer_support:no-escalation-to-a-human",
+        "customer_support:delivering-for-other-seats",
+        "customer_support:report-a-problem-lookup",
+        "customer_support:conversations-kept-no-purge",
+        "customer_support:supplier-campaign-daily",
+        "customer_support:delivery-health-watch",
+        "customer_support:activation-and-winback",
+        "customer_support:post-reveal-dispute-evidence",
+        "customer_support:weekly-case-review",
+        "customer_support:decides-alone-and-routes",
+        "customer_support:seat-kpis-jd-2026-09",
+        "customer_support:language-and-reasoning-rules",
+        "customer_support:profile-consistency"
+      ],
+      "fetched_urls": [],
+      "method": "Seat audit against JOB_DESCRIPTIONS.md section 3: company and process facts sourced to founder_instruction ids, memory files, seat_duty/resilience_step rows read from production on 28 Sep 2026, and the repo files that implement them; no law claims added, so no URLs fetched."
     }
   }
 }
