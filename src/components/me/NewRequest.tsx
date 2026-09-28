@@ -350,7 +350,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const res = await analyze(pages, boxes).catch(() => null);
     const ok = !!(res && res.redaction_complete === true && Number(res.redaction_pages_in) > 0);
     const dr = adopt(res, pages.name, pages.source);
-    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { c: countPhrase(lang, ((res && res.drawing_redacted_paths) || []).length || Number(res.redaction_pages_out), 'page') }) : t(lang, 'rd_failed') });
+    push({ role: 'assistant', text: ok ? tf(lang, 'rd_done', { c: countPhrase(lang, ((res && res.drawing_redacted_paths) || []).filter((p: string) => !/[.](pdf|dxf)$/i.test(p)).length || Number(res.redaction_pages_out), 'page') }) : t(lang, 'rd_failed') });
     if (ok) setEditor(false);
     if (res && res.boq && res.boq.boq && res.boq.boq.length && !ready) await runIntake('', dr);
     return ok;
