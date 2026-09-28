@@ -98,6 +98,8 @@ async function main() {
   const c = await liveConfig();
   if (flag('send-seed')) {
     const to = arg('to'); const lang = arg('lang') === 'ar' ? 'ar' : 'en';
+    // Suppliers are written to in English only (founder rule, 28 Sep 2026): an Arabic SUPPLIER seed is refused.
+    if (lang === 'ar' && arg('role') !== 'customer') { console.error('REFUSED: supplier mail is English only; an Arabic seed is sent only with --role=customer.'); process.exit(2); }
     if (!seedAddressAllowed(to)) { console.error(`REFUSED: ${to || '(no --to)'} is not on an inbox-test service (${SEED_DOMAINS.join(', ')}).`); process.exit(2); }
     const readOpt = (k) => (arg(k) ? readFileSync(arg(k), 'utf8').trim() : undefined);
     const subject = readOpt('subject-file') ?? (lang === 'ar' ? c.invite_subject_ar : c.invite_subject);
