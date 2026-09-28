@@ -75,10 +75,17 @@ revoke all on public.customer_followup from anon, authenticated;
 
 -- ── 2. the language a customer is written in about a request ─────────────────────────────────────
 create or replace function public.fn_customer_message_lang(p_inquiry uuid, p_customer_locale text)
-returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  -- the language chosen for the request; the registered one only when the request carries none
-  select coalesce(public.fn_inquiry_locale(p_inquiry), case when p_customer_locale = 'ar' then 'ar' else 'en' end)
-$fn$;
+returns text language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v text;
+begin
+  -- the language chosen for the request; the registered one only when the request carries none.
+  -- ponytail: fn_inquiry_locale is looked up at run time so this file can be replayed (seat-duty probes) before
+  -- #1065 is applied; once #1065 is live the lookup always succeeds and this is a plain call.
+  if to_regprocedure('public.fn_inquiry_locale(uuid)') is not null then
+    execute 'select public.fn_inquiry_locale($1)' into v using p_inquiry;
+  end if;
+  return coalesce(v, case when p_customer_locale = 'ar' then 'ar' else 'en' end);
+end $fn$;
 revoke execute on function public.fn_customer_message_lang(uuid, text) from public, anon, authenticated;
 
 -- ── 3. the follow-up copy (a rule, testable on its own) ──────────────────────────────────────────
@@ -292,7 +299,9 @@ begin
   end loop;
   return jsonb_build_object('dormant', v_seen, 'written', v_sent);
 end $fn$;
--- CREATE OR REPLACE keeps the existing ACL of fn_customer_support_winback_tick; nothing to revoke.
+-- CREATE OR REPLACE keeps the existing ACL; restated so this file alone says who may run it (the duty checks read it).
+revoke execute on function public.fn_customer_support_winback_tick() from public, anon, authenticated;
+grant execute on function public.fn_customer_support_winback_tick() to service_role;
 
 -- ── 7. the clock ─────────────────────────────────────────────────────────────────────────────────
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values

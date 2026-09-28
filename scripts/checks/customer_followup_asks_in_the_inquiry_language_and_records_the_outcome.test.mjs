@@ -36,7 +36,7 @@ test('every message is in the inquiry language and goes through the one door', (
     assert.match(b, /not coalesce\(c\.banned, false\)/, `${fn} selects banned customers`);
     assert.match(b, /qd\.duty_fixtures/, `${fn} lost the fixture guard`);
   }
-  assert.match(body('fn_customer_message_lang'), /fn_inquiry_locale\(p_inquiry\)/, 'the language does not come from the inquiry first');
+  assert.match(body('fn_customer_message_lang'), /fn_inquiry_locale\(\$1\)' into v using p_inquiry/, 'the language does not come from the inquiry first');
 });
 
 test('the answer is an outcome; "not yet" is not', () => {
@@ -60,7 +60,7 @@ test('routines pinned and revoked, the table closed, one of pending note or MANI
     const i = SQL.indexOf(`function public.${fn}(`);
     const head = SQL.slice(i, SQL.indexOf(' as $fn$', i) + 8);
     assert.match(head, /set search_path to 'public', 'pg_temp'/, `${fn} has no pinned search_path`);
-    if (fn !== 'fn_customer_support_winback_tick') assert.match(SQL, new RegExp(`revoke execute on function public\\.${fn}\\(`), `${fn} is not revoked`);
+    assert.match(SQL, new RegExp(`revoke execute on function public\\.${fn}\\(`), `${fn} is not revoked`);
   }
   assert.match(SQL, /alter table public\.customer_followup enable row level security/);
   assert.match(SQL, /create policy customer_followup_service_role_only on public\.customer_followup[\s\S]{0,80}using \(false\) with check \(false\)/);
