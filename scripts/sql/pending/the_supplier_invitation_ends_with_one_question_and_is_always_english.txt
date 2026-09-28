@@ -1,0 +1,4 @@
+NOT APPLIED. Seat: marketing. Committed for review; the release train applies it after merge with
+`node scripts/apply_sql.mjs scripts/sql/the_supplier_invitation_ends_with_one_question_and_is_always_english.sql --apply --ddl`,
+then this note is deleted and the file is appended to the END of MANIFEST.txt in the same commit.
+Deploy after apply: send_outbox.
