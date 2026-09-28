@@ -416,7 +416,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         if (sr.path === 'reasoned' && sr.reply) {
           try {
             await admin.from('assistant_logs').insert({ message, reply: sr.reply, seat: 'sales_engineer', answered: true,
-              audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: null });
+              audience: caller.kind === 'customer' ? 'customer:' + caller.customerId : caller.kind, path: 'portal:reasoned', gap_task_id: (r.task_id as number | undefined) ?? null });  // the gap fn_sales_assist filed stays linked (review of #1043)
           } catch { /* the customer already has the answer */ }
           await run('assist', 'ok', { answered: true, basis: 'reasoned', routed_seat: sr.seat, precedent: recallTrace(memory) });
           return J({ ok: true, seat: 'sales_engineer', answered: true, reply: sr.reply, routed_seat: sr.seat, basis: 'composed by reasoning over the retrieved records' });

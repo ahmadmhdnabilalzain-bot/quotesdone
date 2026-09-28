@@ -69,6 +69,7 @@ export interface SupportReply {
   violations?: string[];
   readability?: Readability;      // the plain-language gate's verdict on the reply that went out (1013 item 7)
   rewritten?: boolean;            // the composed reply failed the gate and was rewritten once
+  grounded: boolean;              // company knowledge was found for this message, or the reply cited a source
 }
 
 /** The composed reply, or the caller's deterministic road when no model can answer. Never throws. */
@@ -88,7 +89,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
     let text: string | null = null;
     try { text = await fallback(); } catch (_e) { text = null; }
     const reply = text ? guardSupportReply(text, req.lang).text : '';
-    return await logged({ reply, path: 'fallback', seat: null, reason, readability: reply ? checkReadability(reply, req.lang) : undefined });
+    return await logged({ reply, path: 'fallback', seat: null, reason, grounded: false, readability: reply ? checkReadability(reply, req.lang) : undefined });
   };
   try {
     let passages = (req.passages ?? []).filter((p) => p && String(p.content || '').trim());
@@ -123,7 +124,8 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       }
       if (!rewritten) return await fall('readability: ' + rd.issues.join(' '));
     }
-    return await logged({ reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations, readability: rd, rewritten });
+    return await logged({ reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations, readability: rd, rewritten,
+      grounded: passages.length > 0 || r.sources.length > 0 });
   } catch (e) {
     return await fall('error: ' + String((e as Error)?.message || e).slice(0, 200));
   }

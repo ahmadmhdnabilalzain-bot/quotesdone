@@ -30,6 +30,7 @@ import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
 import { supportReply, type Channel } from '../_shared/support_reply.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -367,6 +368,31 @@ Deno.serve(observe('site_assistant', async (req) => {
     // ── THE REPLY IS COMPOSED BY REASONING (founder instruction 781, 28 Sep 2026, customer_support) ──
     // The retrieved pack is the narrowed topic; the company block, the published facts, the price bands and
     // the caller's own record are the facts. Only when no model can answer does the road below run.
+    //
+    // BOTH ROADS FILE THE SAME TWO SIDE EFFECTS (review of #1043): the knowledge gap when company knowledge could
+    // not source the answer, and the CEO's visibility report when the visitor asked for a person. They live in
+    // widget_reply_effects.ts and both exits below call it; widget_reply_effects.test.ts fails if either does not.
+    //
+    // ASKING FOR A PERSON IS READ FROM WHAT THEY ASKED, NOT FROM WHAT WE REPLIED. This is the same
+    // matter wa_inbound already reports (its "A customer asked to speak to a person" branch), and it
+    // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
+    // published number we gave them is real and answered — it is printed on /contact/. The
+    // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
+    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
+    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
+    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
+    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
+    const rpc = (fn: string, args: Record<string, unknown>) => admin.rpc(fn, args);
+    const askedForAPerson = async () => {
+      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
+      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
+      const hour = new Date().toISOString().slice(0, 13);
+      return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
+        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
+      })).value;
+    };
     if (reasoningOpen) {
       const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
       const sr = await supportReply(defaultDeps(admin, 'site_assistant'), {
@@ -377,7 +403,11 @@ Deno.serve(observe('site_assistant', async (req) => {
         facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
       }, () => Promise.resolve(null));
       if (sr.path === 'reasoned' && sr.reply) {
-        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: audience + (source==='none' ? '' : ':' + source) + ':reasoned', path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        const fx = await widgetReplyEffects(rpc, { message, live: !!live, grounded: sr.grounded, answered: true,
+          refusal: 'reasoned_without_company_knowledge', ip, path, askedForAPerson });
+        // deno-lint-ignore no-explicit-any
+        (globalThis as any).EdgeRuntime?.waitUntil?.(fx.person);
+        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: audience + (source==='none' ? '' : ':' + source) + ':reasoned', path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });
       }
     }
@@ -604,20 +634,13 @@ Deno.serve(observe('site_assistant', async (req) => {
     // A refusal now records a KNOWLEDGE GAP, the same mechanism the founder already accepted on the
     // sales side: the question is kept word for word, counted, and owned by an org_tasks row. That
     // is a corpus that improves, which is the only thing that actually helps the next person to ask.
-    let gapTaskId: number | null = null;
-    if (!reply && !live) {
-      const ar = /[؀-ۿ]/.test(message) || uiLang === 'ar';
-      try {
-        const { data: g } = await admin.rpc('fn_support_knowledge_gap', {
-          p_question: message, p_refusal: errText || 'no_grounded_answer', p_surface: 'website_widget',
-        });
-        const gg = g as Record<string, unknown> | null;
-        if (gg && gg.ok === true) {
-          gapTaskId = (gg.task_id as number) ?? null;
-          reply = String((ar ? gg.reply_ar : gg.reply_en) || '');
-        }
-      } catch (_e) { /* the visitor still gets the fallback below; a log write must not eat the turn */ }
-    }
+    // The person report (widget_reply_effects.ts) is started here too, beside the reply, never in its way.
+    const fx = await widgetReplyEffects(rpc, { message, live: !!live, grounded: !!reply, answered,
+      refusal: errText || 'no_grounded_answer', ip, path, askedForAPerson });
+    // deno-lint-ignore no-explicit-any
+    (globalThis as any).EdgeRuntime?.waitUntil?.(fx.person);
+    const gapTaskId = fx.gapTaskId;
+    if (!reply && fx.gapReply) reply = (/[؀-ۿ]/.test(message) || uiLang === 'ar') ? fx.gapReply.ar : fx.gapReply.en;
     // An Arabic visitor used to get this last fallback in English only (instruction 586 review).
     if (!reply && (/[؀-ۿ]/.test(message) || uiLang === 'ar')) reply = live
       ? 'تعذّر عليّ قراءة بيانات حسابك في هذه اللحظة بسبب خلل من جهتنا. يُرجى إعادة السؤال بعد قليل، وإن تكرر ذلك فتواصل معنا اتصالًا أو عبر واتساب على +971 50 931 9355 (من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على management@quotesdone.com.'
@@ -631,38 +654,6 @@ Deno.serve(observe('site_assistant', async (req) => {
     if (guarded.violations.length) await logRun('ok', { reply_guard: guarded.violations }, 'site_assistant reply guard changed a reply: ' + guarded.violations.join(','));
     reply = guarded.text;
     reply = reply.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^\s*[-*•]\s+/gm, '').replace(/^#{1,6}\s+/gm, '');
-
-    // ASKING FOR A PERSON IS READ FROM WHAT THEY ASKED, NOT FROM WHAT WE REPLIED. This is the same
-    // matter wa_inbound already reports (its "A customer asked to speak to a person" branch), and it
-    // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
-    // published number we gave them is real and answered — it is printed on /contact/. The
-    // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
-    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
-    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
-    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
-    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
-    const hour = new Date().toISOString().slice(0, 13);
-    const personWork = (async () => {
-      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
-      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
-      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
-      const person = await needsAPerson(defaultDeps(admin, 'site_assistant'), {
-        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
-        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
-      });
-      if (person.value !== true) return;
-      await admin.rpc('fn_support_report_to_ceo', {
-        p_idempotency_key: 'widget:person:' + ip + ':' + hour,
-        p_severity: 'routine',
-        p_subject: 'A website visitor asked to speak to a person and was given the public contact',
-        p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
-        p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
-        p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
-        p_source_agent: 'customer_support',
-      });
-    })().catch(() => { /* the visitor already has their answer; visibility must not block it */ });
-    // deno-lint-ignore no-explicit-any
-    (globalThis as any).EdgeRuntime?.waitUntil?.(personWork);
 
     try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     // scope lets the portal say "answering from your account" instead of leaving the customer to
