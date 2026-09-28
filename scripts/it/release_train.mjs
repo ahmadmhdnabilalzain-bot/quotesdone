@@ -144,7 +144,7 @@ function drift(DRY, campaign) {
   if (applied) log(`drift re-check: ${driftFiles(check().out).length} file(s) still not deployed`);
 }
 
-function prSql(pr, oid) {
+export function prSql(pr, oid) {
   const at = (p) => { try { return git(['show', `${oid}:${p}`]); } catch { return ''; } };
   const notes = (pr.files || []).map((f) => f.path).filter((p) => /^scripts\/sql\/pending\/[^/]+\.txt$/.test(p));
   return notes.map((n) => {
