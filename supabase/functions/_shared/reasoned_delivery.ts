@@ -28,6 +28,7 @@ import { coverageReply, type Trade } from '../wa_inbound/coverage.ts';
 import { capabilityAnswer } from '../wa_inbound/founder_queries.ts';
 import type { ThinkResult } from './think.ts';
 import type { CommentEvent } from './marketing_social_comments.ts';
+import { composeMailReply } from './customer_mail.ts';
 // Batch 8 (accountant + marketing): an expense email's reasoned kind or vendor re-runs the accountant's sweep, and
 // a LinkedIn reply's reasoned class drafts its follow-up. Their branches live with their decisions.
 import { deliverBooks, liveBooksIO, type BooksIO } from './reasoned_books.ts';
@@ -55,8 +56,11 @@ export interface DeliveryIO extends BooksIO, OutreachIO {
   arabicFinishReady?(): Promise<Sent>;
   /** A public comment whose CLASS was held: run it through the comment policy with the reasoned class (marketing_social_comments.ts). */
   socialCommentClassified(subject: Record<string, unknown>, cls: string): Promise<Sent>;
+  /** E-mail (email_triage, 28 Sep 2026): reply in the inbound message's own thread (fn_inbox_send). `person` also
+   *  files the pending inbound_review a customer who asked for a person is owed. */
+  emailReply?(messageId: number, text: string, person: boolean): Promise<Sent>;
 }
-export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'none'; detail?: string };
+export type Delivery = { delivered: boolean; via: 'whatsapp_text' | 'whatsapp_template' | 'social' | 'accountant_sweep' | 'bookkeeper' | 'outreach_follow_up' | 'email' | 'none'; detail?: string };
 
 const isAr = (s: string) => /[؀-ۿ]/.test(s);
 
@@ -150,6 +154,22 @@ export async function deliverReasoned(row: HeldRow, r: ThinkResult, io: Delivery
     await io.reportToCeo('widget:person:held:' + row.id, 'A website visitor asked to speak to a person and was given the public contact',
       { surface: 'website_widget', held_id: row.id, path: subject.path ?? null, message: question.slice(0, 300), reasoning: r.answer.slice(0, 500) });
     return { delivered: true, via: 'none', detail: 'reported to the CEO for visibility' };
+  }
+
+  // E-MAIL (email_triage, 28 Sep 2026). The customer already has a reply in the thread: a knowledge passage or a
+  // receipt that said the answer would follow there. The replay keeps that promise, and a reasoned request for a
+  // person gets the person.
+  if (row.surface === 'email_triage.needs_a_person') {
+    if (choice !== 'needs_a_person') return { delivered: false, via: 'none', detail: 'reasoned: no person is needed; the reply already went' };
+    if (!io.emailReply || !Number(subject.message_id)) return { delivered: false, via: 'none', detail: 'no e-mail sender or message id' };
+    const s = await io.emailReply(Number(subject.message_id), composeMailReply({ lang: isAr(question) ? 'ar' : 'en', person: true }), true);
+    return { delivered: s.ok, via: 'email', detail: s.err };
+  }
+  if (row.surface === 'email_triage.reply' && subject.channel === 'email') {
+    const ok = r.verified?.status === 'agreed' && r.answer.trim();
+    if (!ok || !io.emailReply || !Number(subject.message_id)) return { delivered: false, via: 'none', detail: ok ? 'no e-mail sender or message id' : 'the answer was not verified; the receipt stands' };
+    const s = await io.emailReply(Number(subject.message_id), composeMailReply({ lang: isAr(question) ? 'ar' : 'en', answer: r.answer }), false);
+    return { delivered: s.ok, via: 'email', detail: s.err };
   }
 
   // A held ANSWER (think.answer on a channel): the answer itself goes back where the question came from.
@@ -272,6 +292,15 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       return error ? { ok: false, err: error.message } : { ok: true };
     },
     founderContact: async () => (await sec('founder_public_phone')) || null,
+    emailReply: async (messageId, text, person) => {
+      const { data, error } = await admin.rpc('fn_inbox_send', { p_id: messageId, p_body: text, p_by: 'customer_support' });
+      const err = error?.message ?? (data as { error?: string } | null)?.error;
+      if (err) return { ok: false, err };
+      if (person) await admin.from('agent_actions').insert({ agent: 'email', kind: 'inbound_review', status: 'pending', risk: 'low',
+        title: 'Inbox: a customer asked for a person', recommendation: 'The customer asked to speak to a person and was told a member of the team will reply in the same thread. Reply from the Inbox.',
+        target_table: 'inbound_messages', target_id: String(messageId), detail: { via: 'reasoned replay' } });
+      return { ok: true };
+    },
     reportToCeo: async (key, subject, evidence) => {
       await admin.rpc('fn_support_report_to_ceo', { p_idempotency_key: key, p_severity: 'routine', p_subject: subject, p_evidence: evidence,
         p_attempted: ['reasoned the held message', 'gave the approved public contact'], p_requested: 'Visibility only. No action is requested.' });

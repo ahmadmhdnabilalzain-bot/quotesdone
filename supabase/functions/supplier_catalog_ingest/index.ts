@@ -15,7 +15,7 @@
 //   pdf / png / jpg      otherwise read by ai_gateway's vision path; while every model route is on
 //                        hold that answer is 'unread_llm_hold' — never 'no_products_found', which
 //                        would tell the supplier a file nobody read lists nothing
-//   dwg / dxf / ifc / rvt  converted to PDF by cad_convert (CloudConvert) first, then read
+//   dwg / dxf              converted to PDF by cad_convert (CloudConvert) first, then read
 //
 // A drawing is geometry. Converting it and reading the title block and schedule tables is honest;
 // claiming to derive a product catalogue from a 3D model is not, so the CAD route extracts what a
@@ -75,8 +75,8 @@ const CAD = ['image/vnd.dwg', 'image/vnd.dxf'];
 // be identified by shape here — an .rvt is an OLE2 compound document, byte-identical in its header
 // to a legacy .xls, so accepting it on trust would mean handing an unidentified binary to SheetJS on
 // the strength of its filename, which is the exact defect this change removes. supplier_catalog and
-// supplier_product are both 0 rows, so no catalogue loses a route it ever used. Restore them by
-// giving sniff() a real signature for each, never by trusting the extension again.
+// supplier_product are both 0 rows, so no catalogue loses a route it ever used. They are not to be
+// restored: founder ruling 1000 (28 Sep 2026), drawings are PDF, DWG and DXF only.
 
 // The zip caps, and why these numbers. A genuine supplier price list is a few hundred KB of XML plus
 // a logo: SheetJS's own test corpus tops out around 40 entries, and a workbook with images still
