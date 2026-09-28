@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T23:16:08.889Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T23:25:20.171Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -7593,7 +7593,8 @@ CREATE TABLE IF NOT EXISTS public.seat_judgement (
   outcome_correct boolean,
   finalised boolean DEFAULT false NOT NULL,
   outcome_at timestamp with time zone,
-  made_at timestamp with time zone DEFAULT now() NOT NULL
+  made_at timestamp with time zone DEFAULT now() NOT NULL,
+  followed_case_ids bigint[]
 );
 
 CREATE TABLE IF NOT EXISTS public.seat_knowledge_eval_question (
@@ -47736,15 +47737,28 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_judgement_decided(p_id bigint, p_status text, p_decision text, p_confidence numeric, p_model text)
+CREATE OR REPLACE FUNCTION public.fn_judgement_decided(p_id bigint, p_status text, p_decision text, p_confidence numeric, p_model text, p_followed bigint[] DEFAULT NULL::bigint[])
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+declare v_recalled bigint[]; v_stray bigint[];
 begin
+  if p_followed is not null then
+    select coalesce(array_agg((c->>'case_id')::bigint), '{}') into v_recalled
+      from public.seat_judgement j, jsonb_array_elements(coalesce(j.recall->'cases', '[]'::jsonb)) c
+     where j.id = p_id;
+    select coalesce(array_agg(x), '{}') into v_stray from unnest(p_followed) x where not (x = any (coalesce(v_recalled, '{}')));
+    if cardinality(v_stray) > 0 then
+      raise exception 'judgement % did not recall case(s) %, so it cannot have followed them', p_id, v_stray using errcode = '22023';
+    end if;
+  end if;
   update public.seat_judgement
-     set status = p_status, decision = left(p_decision, 2000), confidence = p_confidence, model = p_model, decided_at = now()
+     set status = p_status, decision = left(p_decision, 2000), confidence = p_confidence, model = p_model, decided_at = now(),
+         -- array_agg over nothing is null, and '{}' (no precedent followed) must stay distinct from null (not said)
+         followed_case_ids = case when p_followed is not null
+                                  then coalesce((select array_agg(distinct x order by x) from unnest(p_followed) x), '{}') end
    where id = p_id and p_status in ('answered','held');
   return found;
 end $function$
@@ -58439,6 +58453,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -58609,16 +58633,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
