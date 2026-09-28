@@ -43,7 +43,8 @@ jobs:
     # (35 + ~24 worst in-flight + ~5 npm ci and playwright install + teardown and the report).
     # 21 Sep 2026: +6 minutes for journey h (the audit's presses), measured at ~6 min on its first
     # production run, and it runs before the crawl, so the crawl keeps the room it had.
-    timeout-minutes: 81
+    # 24 Sep 2026: +36 minutes for the three drawing journeys (3 x 12 minute ceiling), run before the report.
+    timeout-minutes: 117
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       QD_E2E_REPORTS: e2e-out
@@ -58,7 +59,7 @@ jobs:
       - if: steps.gate.outputs.skip != '1'
         uses: actions/checkout@v4
       - if: steps.gate.outputs.skip != '1'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '24'
       - if: steps.gate.outputs.skip != '1'
@@ -66,6 +67,16 @@ jobs:
       # A failed step is the finding, not a failed job: the report below always runs.
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/run.mjs
+        continue-on-error: true
+      # THE DRAWING JOURNEYS, WALKED EVERY NIGHT AND REPORTED (24 Sep 2026, sales_engineer; drawings audit finding 3,
+      # review of #967). drawing_reaches_suppliers (a PDF set: redacted, taken off, matched, printed EN/AR),
+      # cad_identity_reaches_no_supplier (a CAD title block's parties never reach a supplier; only demo suppliers
+      # matched) and every_drawing_format_is_read (DXF ascii + binary, DWG small and queued; Revit, IFC and DGN refused) run here,
+      # BEFORE the report, and their PASS / FAIL lines are written into this run's steps.json as journey
+      # "f-drawings/..." - so fn_it_journey_ingest hands a failure to the sales engineer instead of it dying in a log.
+      # Up to 12 minutes each (drawing_journeys_into_report.mjs PER_SCRIPT_MS); the wall above grew by 36.
+      - if: steps.gate.outputs.skip != '1'
+        run: node scripts/e2e/drawing_journeys_into_report.mjs e2e-out
         continue-on-error: true
       - if: steps.gate.outputs.skip != '1'
         run: node scripts/e2e/report_to_it_engineer.mjs e2e-out

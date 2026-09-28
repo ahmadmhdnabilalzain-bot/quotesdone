@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
       # 4 Aug 2026. `npm test` now runs the Deno suite as well as the Node checks, because
@@ -84,6 +84,28 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-net=raw.githubusercontent.com,cdn.jsdelivr.net
           supabase/functions/_shared/doc_read/dwg_samples.check.ts
+      # 24 SEP 2026 — THE PAGE A SUPPLIER SEES, PIXEL BY PIXEL (founder instructions 580, 703). drawing_redact
+      # decodes and encodes with imagescript, whose Deno build fetches its codec .wasm from deno.land on
+      # import, so this cannot run inside `npm test` (no network there). It proves every identity run of a
+      # synthetic ZZ DEMO PDF sheet and 3-sheet set is under solid black, every room / tag / dimension is
+      # still inked, a scan is HELD, and neither a PDF page nor a CAD drawing's JPEG carries metadata or
+      # identity bytes. The drawing decisions themselves are proved offline in the npm test suite
+      # (cad_render.test.ts, drawing_boq/every_drawing_format.test.ts).
+      - name: A redacted drawing page covers every identity and keeps the drawing
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=.
+          --allow-net=deno.land
+          supabase/functions/_shared/drawing_redact_page.check.ts
+      # 24 SEP 2026 — A SCANNED DRAWING IS REDACTED BY OCR OR HELD (founder instruction 579). The real engine
+      # (tesseract.js 7.0.0 with the repository's own eng + ara data) on a synthetic ZZ DEMO scan: the title block
+      # blacked out, rooms / dimensions / legend kept, a second OCR reads no identity, a title block read below
+      # 70% confidence is held, a sheet with no title block is held, and the CAD worker publishes a clean page as
+      # one recorded run. The engine's worker thread needs --allow-env and imagescript's codec comes from deno.land.
+      - name: A scanned drawing is redacted by OCR, or held
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
+          --allow-net=deno.land
+          supabase/functions/_shared/scan_redact.check.ts
 
   # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
   # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a
@@ -102,7 +124,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm
@@ -128,7 +150,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           cache: npm

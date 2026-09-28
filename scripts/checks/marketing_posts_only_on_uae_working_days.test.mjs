@@ -56,7 +56,7 @@ test('the first calendar starts on Friday 25 Sep 2026 and nothing in it says Oct
   const days = [...new Set(cal.posts.map((p) => p.at_dubai.slice(0, 10)))].sort();
   assert.equal(days[0], '2026-09-25');
   assert.equal(days.length, 12, 'twelve video days');
-  assert.equal(cal.posts.length, 60);
+  assert.equal(cal.posts.length, 70, '12 days x 6 channels, less X on the two days before X was added (channels_not_planned)');
   assert.doesNotMatch(JSON.stringify(cal.campaign) + cal.posts.map((p) => p.key).join(','), /october|oct26/i);
 });
 
