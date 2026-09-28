@@ -23,7 +23,6 @@ import SupplierMailbox from './supplier/SupplierMailbox';
 import SupplierSupportingDocuments from './supplier/SupplierSupportingDocuments';
 import DocActions from './DocActions';
 import SupportRatingPrompt from './SupportRatingPrompt';
-import SupportRatingPrompt from './SupportRatingPrompt';
 import { ws } from './supplier/workspaceCopy';
 import ServicesTab from './supplier/ServicesTab';
 import EmirateCheckboxes from './supplier/EmirateCheckboxes';
@@ -714,8 +713,7 @@ export function SupplierPortal() {
           : <>
               {claimRefusal ? <ClaimRefusal code={claimRefusal} lang={lang} onClose={() => setClaimRefusal('')} /> : null}
               <Dashboard token={token} lang={lang} onExpired={onExpired} />
-              {token ? <SupportRatingPrompt token={token} lang={lang} /> : null}
-              {token ? <SupportRatingPrompt token={token} lang={lang} /> : null}
+              {token ? <SupportRatingPrompt token={token} lang={lang} api="supplier_api" /> : null}
             </>)}
       </>)}
       </main>

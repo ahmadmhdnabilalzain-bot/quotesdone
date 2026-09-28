@@ -348,8 +348,14 @@ Deno.serve(observe('sales_engineer', async (req) => {
       return J({ ok: true, ...res });
     }
 
-    // The customer portal rates a closed support case here (CSAT 1-5, CES 1-7). The asker's questions in
-    // 'assist' reach their support case through the assistant_logs row it writes (path 'portal').
+    // The customer portal asks for and records the rating of a closed support case here (CSAT 1-5, CES 1-7):
+    // the portal is the sales engineer's, so it never calls Support's widget. The asker's questions in 'assist'
+    // reach their support case through the assistant_logs row it writes (path 'portal').
+    if (action === 'support_rating_due') {
+      if (caller?.kind !== 'customer') return J({ error: 'forbidden' }, 403);
+      const { data, error } = await admin.rpc('fn_support_rating_due', { p_party_kind: 'customer', p_party_id: caller.customerId });
+      return error ? J({ error: 'rating_due_failed' }, 400) : J({ ok: true, due: data || [] });
+    }
     if (action === 'support_rating') {
       if (caller?.kind !== 'customer') return J({ error: 'forbidden' }, 403);
       const { data, error } = await admin.rpc('fn_support_portal_rate', {

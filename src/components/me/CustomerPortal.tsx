@@ -343,7 +343,7 @@ export function CustomerPortal() {
           them is on screen at a time (login / profile gate / the shell), so the id is never doubled. */}
       {phase === 'login' && <>{strip}<main id="main"><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
-      {phase === 'app' && token ? <SupportRatingPrompt token={token} lang={lang} /> : null}
+      {phase === 'app' && token ? <SupportRatingPrompt token={token} lang={lang} api="sales_engineer" /> : null}
     </>)}
   </div>);
 }

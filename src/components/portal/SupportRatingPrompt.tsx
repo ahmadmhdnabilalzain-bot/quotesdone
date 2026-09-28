@@ -1,8 +1,10 @@
 'use client';
 // The rating a closed support case asks for, shown inside both portals (customer_support, #1036).
-// site_assistant answers for either side from the verified session: 'support_rating_due' lists this
-// account's closed cases still waiting for a rating, 'support_rating' records CSAT 1-5 and, optionally,
-// CES 1-7 through fn_support_portal_rate, which refuses a case that is not this account's.
+// The portals are the sales engineer's (founder, 14 Sep 2026: "no other agent is involved in customer or
+// supplier portal"), so the portal asks its own sales-owned function, never Support's widget: sales_engineer
+// for a customer, supplier_api for a supplier. Each answers from the verified session: 'support_rating_due'
+// lists this account's closed cases still waiting for a rating, 'support_rating' records CSAT 1-5 and,
+// optionally, CES 1-7 through fn_support_portal_rate, which refuses a case that is not this account's.
 import { useEffect, useState } from 'react';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 
@@ -26,8 +28,10 @@ const COPY = {
   },
 };
 
-async function post(token: string, body: Record<string, unknown>) {
-  const r = await fetch(fnUrl('site_assistant'), {
+type Api = 'sales_engineer' | 'supplier_api';
+
+async function post(api: Api, token: string, body: Record<string, unknown>) {
+  const r = await fetch(fnUrl(api), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify(body),
@@ -52,7 +56,7 @@ function Scale({ label, lo, hi, max, value, onPick, rtl }: { label: string; lo: 
   );
 }
 
-export default function SupportRatingPrompt({ token, lang }: { token: string; lang: string }) {
+export default function SupportRatingPrompt({ token, lang, api }: { token: string; lang: string; api: Api }) {
   const L: Lang = lang === 'ar' ? 'ar' : 'en';
   const t = COPY[L];
   const [due, setDue] = useState<Due[]>([]);
@@ -63,9 +67,9 @@ export default function SupportRatingPrompt({ token, lang }: { token: string; la
   useEffect(() => {
     if (!token) return;
     let live = true;
-    post(token, { action: 'support_rating_due' }).then((j) => { if (live && j && j.ok && Array.isArray(j.due)) setDue(j.due); }).catch(() => {});
+    post(api, token, { action: 'support_rating_due' }).then((j) => { if (live && j && j.ok && Array.isArray(j.due)) setDue(j.due); }).catch(() => {});
     return () => { live = false; };
-  }, [token]);
+  }, [api, token]);
 
   const cur = due[0];
   if (!cur && state !== 'done') return null;
@@ -73,7 +77,7 @@ export default function SupportRatingPrompt({ token, lang }: { token: string; la
   const send = async () => {
     if (!cur || csat == null) return;
     setState('sending');
-    const j = await post(token, { action: 'support_rating', case_ref: cur.case_ref, csat, ces }).catch(() => null);
+    const j = await post(api, token, { action: 'support_rating', case_ref: cur.case_ref, csat, ces }).catch(() => null);
     if (j && j.ok) { setState('done'); setTimeout(next, 2500); } else setState('failed');
   };
 

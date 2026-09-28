@@ -23,7 +23,9 @@
 --                           the ChatWidget's site_assistant on portal pages (supplier portal) both write
 --                           assistant_logs with the verified 'customer:<uuid>' / 'supplier:<lead id>' and a
 --                           portal path, so those rows open channel 'portal'. A portal rating goes through
---                           action 'support_rating' on either function -> fn_support_portal_rate.
+--                           the portal's own sales-owned function (founder, 14 Sep 2026: no other agent in
+--                           either portal): actions 'support_rating_due' / 'support_rating' on sales_engineer
+--                           (customer) and supplier_api (supplier) -> fn_support_rating_due / fn_support_portal_rate.
 --   4. Feedback after resolution: closing a case queues ONE CSAT + CES question on the channel the customer
 --      last used; a reply "4" or "4 6" (Arabic digits too) on WhatsApp or email is recorded into
 --      public.feedback against the case. fn_support_feedback_record takes it from a portal.
@@ -249,8 +251,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_support_feedback_record(text, numeric, numeric, text, text) from public, anon, authenticated;
 
--- The portal door for a rating: the party is the VERIFIED session (site_assistant / sales_engineer
--- action 'support_rating'), and the case must belong to that party's profile.
+-- The portal door for a rating: the party is the VERIFIED session (sales_engineer for a customer, supplier_api
+-- for a supplier; action 'support_rating'), and the case must belong to that party's profile.
 create or replace function public.fn_support_portal_rate(p_party_kind text, p_party_id text, p_case_ref text,
                                                          p_csat numeric, p_ces numeric default null, p_comment text default null)
 returns jsonb
