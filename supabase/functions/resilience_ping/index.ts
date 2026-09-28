@@ -288,6 +288,21 @@ async function ceoWeeklyTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE CEO WEEKLY REVIEW THAT ACTS (29 Sep 2026, ceo, founder instruction 1009). fn_ceo_weekly_review_tick measures the
+// five targets by code, closes, escalates and opens the seats' tracked improvements, and hands back one page; this
+// renders it and fn_ceo_weekly_review_attach_pdf sends it through fn_notify_founder (kind ceo_weekly_review) with the
+// PDF attached. scripts/sql/the_ceo_weekly_review_acts_on_every_missed_target.sql
+async function ceoWeeklyReviewTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_weekly_review_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    return await renderPdfAndAttach(t, 'ceo/weekly_review', 'ceo_weekly_review', false, 'fn_ceo_weekly_review_attach_pdf');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE FOUNDER'S 18:00 SUPPLIER LIST (24 Sep 2026, customer_support). fn_customer_support_campaign_list_tick
 // builds, by code, the list of suppliers the campaign invites on the next sending day from the sender's own
 // fn_supplier_invite_candidates, with the day's counts; this renders it on the company template and
@@ -1429,6 +1444,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   weekly: { run: accountantWeeklyTick },
   vat: { run: vatThresholdTick },
   ceoWeekly: { run: ceoWeeklyTick },
+  ceoWeeklyReview: { run: ceoWeeklyReviewTick },
   ceoDecisions: { run: ceoDecisionsTick },
   ceoPlan: { run: ceoPlanTick },
   openrouter: { run: openrouterMeterTick },

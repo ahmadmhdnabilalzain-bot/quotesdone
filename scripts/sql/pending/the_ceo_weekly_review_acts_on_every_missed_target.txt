@@ -1,0 +1,4 @@
+Committed, not applied: the founder's instruction 1009 says do not apply before merge (seat: ceo). It is proved by
+the_ceo_weekly_review_acts_on_every_missed_target_probe.sql run in ONE rolled-back transaction together with this file
+(PROBE OK, 29 Sep 2026). After merge: apply with --apply --ddl --seat ceo, append it to the END of MANIFEST.txt, delete this
+note, and deploy resilience_ping (step ceoWeeklyReview). Apply BEFORE every_seat_reviews_itself_every_month.sql.
