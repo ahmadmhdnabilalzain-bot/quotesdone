@@ -1,0 +1,88 @@
+// customer_support: every outgoing support reply passes supabase/functions/_shared/support_reply_guard.ts.
+//
+// Measured 28 Sep 2026: 4 production widget replies carried the trade licence number (latest 22 Sep, to
+// "What does QuotesDone do?"), and an Arabic corpus answer went out with an English contact line on the
+// end. This fails if the guard stops catching either, if a support channel stops calling it, or if the
+// number comes back into a support prompt.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { guardSupportReply, replyViolations, safeReply } from '../../supabase/functions/_shared/support_reply_guard.ts';
+
+const src = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+// Built from parts so this file never holds the number it forbids.
+const LIC = ['163', '3275'].join('');
+
+test('the production leak is caught and only its sentence is removed', () => {
+  const leaked = `QuotesDone is the UAE's anonymous quotation marketplace. It is operated by QuotesDone Technologies, a Dubai DET-licensed business (E-Trader Licence No. ${LIC}).\n\nIf that does not cover it, call us.`;
+  const g = guardSupportReply(leaked, 'en');
+  assert.deepEqual(g.violations, ['licence']);
+  assert.ok(!g.text.includes(LIC));
+  assert.match(g.text, /anonymous quotation marketplace/);
+  assert.match(g.text, /\n\nIf that does not cover it/);
+});
+
+test('the Arabic form of the licence is caught', () => {
+  const g = guardSupportReply(`نحن سوق عروض أسعار. رخصة تاجر إلكتروني رقم ${LIC}.`, 'ar');
+  assert.ok(g.violations.includes('licence'));
+  assert.ok(!g.text.includes(LIC));
+});
+
+test('"AI" becomes "smart" in both scripts; Dubai and "said" are untouched', () => {
+  const g = guardSupportReply('Our AI-powered engine said Dubai jobs are matched by AI.', 'en');
+  assert.deepEqual(g.violations, ['ai_word']);
+  assert.equal(g.text, 'Our smart engine said Dubai jobs are matched by smart.');
+  assert.ok(guardSupportReply('نستخدم الذكاء الاصطناعي', 'ar').text.includes('التقنية الذكية'));
+  assert.deepEqual(replyViolations('We serve Dubai and Abu Dhabi.'), []);
+});
+
+test('an internal error or prompt wording replaces the whole reply, in the right language', () => {
+  for (const bad of ['Sorry, ai_gateway returned circuit_open', 'TypeError: x is undefined at run (index.ts:4:2)',
+                     'fn_support_corpus_search failed', 'Per the AUDIENCE RULES I cannot say']) {
+    const g = guardSupportReply(bad, 'en');
+    assert.equal(g.text, safeReply('en'), bad);
+  }
+  assert.equal(guardSupportReply('supabase error', 'ar').text, safeReply('ar'));
+});
+
+test('a clean reply passes unchanged', () => {
+  const ok = 'Comparing quotes is free. The 3% reveal fee applies only when you reveal a supplier.';
+  assert.deepEqual(guardSupportReply(ok, 'en'), { text: ok, violations: [] });
+});
+
+test('the safe replies themselves pass the guard', () => {
+  assert.deepEqual(replyViolations(safeReply('en')), []);
+  assert.deepEqual(replyViolations(safeReply('ar')), []);
+});
+
+test('both support channels call the guard, and neither prompt carries the number', () => {
+  for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/wa_inbound/index.ts']) {
+    const s = src(f);
+    assert.match(s, /import \{[^}]*guardSupportReply[^}]*\} from '\.\.\/_shared\/support_reply_guard\.ts'/, f);
+    assert.match(s, /guardSupportReply\(/, f);
+    assert.ok(!s.includes(LIC), f + ' still carries the licence number');
+  }
+});
+
+test('every WhatsApp send to a customer or supplier is guarded; only the founder reply is bidiSafe alone', () => {
+  const s = src('supabase/functions/wa_inbound/index.ts');
+  assert.match(s, /function toContact\(s: string\): string \{\s*return bidiSafe\(guardSupportReply\(/);
+  // bidiSafe( call sites outside its own definition and toContact: exactly the founder directive reply
+  // and the founder branch of the menu send.
+  const bare = s.split('\n').filter((l) => /bidiSafe\(/.test(l) && !/function bidiSafe|return bidiSafe\(guardSupportReply/.test(l));
+  assert.equal(bare.length, 2, 'unguarded bidiSafe sites:\n' + bare.join('\n'));
+  assert.ok(bare.every((l) => /founder|reply = bidiSafe\(reply\.slice\(0, 1200\)\)/.test(l)), bare.join('\n'));
+  assert.ok((s.match(/toContact\(/g) || []).length >= 7);
+});
+
+test('a supplier\'s own licence number in an upload confirmation survives', () => {
+  const t = 'Got it — your trade licence is on file (updated: licence no 705522).';
+  assert.equal(guardSupportReply(t, 'en').text, t);
+});
+
+test('an Arabic corpus answer is not closed with an English line', () => {
+  const s = src('supabase/functions/site_assistant/index.ts');
+  const i = s.indexOf('chosen?.content');
+  assert.ok(i > 0);
+  assert.match(s.slice(i, i + 900), /ar(?:Reply|Chosen)?\s*\?/, 'the corpus-answer suffix must pick its language');
+});

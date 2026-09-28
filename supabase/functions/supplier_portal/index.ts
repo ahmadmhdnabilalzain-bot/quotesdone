@@ -22,6 +22,7 @@ import { readExpiry, type ExpiryRead } from '../_shared/document_expiry.ts';
 import { removeRefusal, versionRow, type ExpiryNote, type VersionSnapshot } from './document_actions.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { productsAsked } from '../_shared/reasoned_matching.ts';
+import { COMPANY_ALREADY_REGISTERED, type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
 // The model path (license_extract → ai_gateway) is OFF unless app_secrets.document_expiry_ai is
 // 'on'. OpenRouter is on hold; a closed door must not be knocked on for every upload.
 async function flagOn(key: string): Promise<boolean> { const { data } = await admin.from('app_secrets').select('value').eq('key', key).maybeSingle(); return /^(on|true|1)$/i.test(String(data?.value || '').trim()); }
@@ -153,6 +154,9 @@ async function listDocuments(supId: number) {
 
 Deno.serve(observe('supplier_portal', async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
+  // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
+  // what needs exercising. See warmPortal() in resilience_ping/index.ts.
+  if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
   try {
     // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
     const who = await signedInUser(admin, req.headers.get('Authorization'));
@@ -417,6 +421,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const items = Array.isArray(b.items) ? b.items.slice(0, 15) : [];
       const upd: Record<string, unknown> = { portal_updated_at: new Date().toISOString() };
       const saved: string[] = [];
+      let licenceNotice = false;
       const failedUploads: { kind: string; reason: string }[] = [];  // NOT 'failed' - that name belongs to the module-level refusal helper above, and shadowing it here is how the raw Postgres message stayed in this reply until 22 Sep 2026.
       const { data: _isec } = await admin.from('app_secrets').select('value').eq('key', 'cred_fn_supplier_portal').maybeSingle();
       const INBOUND_SECRET = (_isec?.value as string) || '';
@@ -559,7 +564,10 @@ Deno.serve(observe('supplier_portal', async (req) => {
       // reported every file as saved while no path ever reached the row — the same defect as
       // supplier_api's process_docs and save_profile.
       if (Object.keys(upd).length > 1) {
-        const { error: updErr } = await admin.from('leads').update(upd).eq('id', sup.id);
+        // A licence number another claimed company holds is set aside, the rest of the row is written,
+        // and the clash goes to a human (_shared/duplicate_company.ts, review of #962).
+        const { error: updErr, licenceSetAside } = await updateLeadSettingAsideClashingLicence(admin as unknown as LeadWriter, sup.id, upd, 'supplier_portal.save_documents');
+        if (licenceSetAside) { licenceNotice = true; failedUploads.push({ kind: 'license', reason: COMPANY_ALREADY_REGISTERED.error }); }
         if (updErr) {
           // SP-I-01, the one that survived #858 (review, 22 Sep 2026): this still put the raw
           // Postgres text in `detail` for the browser. Same treatment as the other thirteen — the
@@ -583,7 +591,7 @@ Deno.serve(observe('supplier_portal', async (req) => {
       const documents_read = readQueue.length ? await proposeTradesFromDocs(admin, Number(sup.id), readQueue.slice(0, 7)) : undefined;
       // The fresh list rides on the answer (finding 16): what the row holds NOW, not what the tab guessed.
       const fresh = await listDocuments(Number(sup.id));
-      return J({ ok:true, saved, failed: failedUploads, read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
+      return J({ ok:true, saved, failed: failedUploads, ...(licenceNotice ? { licence_set_aside: true, licence_notice: COMPANY_ALREADY_REGISTERED } : {}), read, versioned, documents: fresh.documents, expiries: fresh.expiries, summary: fresh.summary, ...(documents_read ? { documents_read } : {}) });
     }
 
     // REMOVE HIDES, NEVER DESTROYS (instruction 524). The column is cleared and what it held goes to

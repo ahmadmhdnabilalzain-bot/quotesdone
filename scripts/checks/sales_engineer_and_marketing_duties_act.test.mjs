@@ -101,7 +101,8 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
   -- REPUTATION: no link -> a finding and nothing sent; a link -> one ask through customer_support, never two
   c := (select id from public.customers where email like '%@example.invalid' order by email limit 1);
   delete from public.app_secrets where key = 'public_review_url';
-  insert into public.company_review_ask (customer_id, rating, status) values (c, 5, 'waiting_link') on conflict (customer_id) do update set status = 'waiting_link';
+  delete from public.company_review_ask where customer_id = c;
+  insert into public.company_review_ask (customer_id, status) values (c, 'waiting_link');
   v := public.fn_marketing_reputation();
   o := o || jsonb_build_object('no_link_asked', v->'asked', 'no_link_finding', (select count(*) from public.it_engineer_finding where issue_key = 'reputation:no_public_review_link' and closed_at is null));
   insert into public.app_secrets (key, value) values ('public_review_url', 'https://example.invalid/review');
