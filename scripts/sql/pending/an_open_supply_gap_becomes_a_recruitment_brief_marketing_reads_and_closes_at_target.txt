@@ -1,0 +1,3 @@
+Committed, not applied (agent PR; production is read-only for this seat run). Seat: sales_engineer.
+What moves it: review + merge, then node scripts/apply_sql.mjs scripts/sql/an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target.sql --apply --ddl, delete this note and append the file to the END of MANIFEST.txt.
+On first run it lists ~150 briefs and moves those gaps to recruit (measured by the aborted probe, 28 Sep 2026).
