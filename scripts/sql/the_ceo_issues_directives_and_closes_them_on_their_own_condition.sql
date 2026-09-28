@@ -234,6 +234,7 @@ begin
   update public.ceo_improvement set status = 'assigned', task_id = v_task, handoff_id = v_hid where id = v_id;
   return v_id;
 end $function$;
+revoke execute on function public.fn_ceo_improvement_open(text, text, text, text, jsonb) from public, anon, authenticated;
 
 -- the daily run: the seat's first priority is its top open directive (copied from the live definition, 28 Sep 2026)
 CREATE OR REPLACE FUNCTION public.fn_ceo_daily_run(p_at timestamp with time zone DEFAULT now())
