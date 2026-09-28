@@ -9,8 +9,11 @@
 --   1. on 'zz_demo' with an opening balance of AED 1,000 and a ZZ DEMO debit of AED 600 in each of the two
 --      months before, the forecast has 13 weeks, projects that debit, adds the policy bank fee (no fee line
 --      on that account), goes below zero in some week and names a positive top-up;
---   2. the real 'mashreq' forecast has 13 weeks and LISTS the owner-card subscriptions without subtracting
---      them (the week outflows never include an owner_card flow);
+--      A line value-dated after the balance date but on the SAME statement does not move the opening (the
+--      first version counted such lines twice and opened Mashreq at AED 374.87 instead of 582.96);
+--   2. the real 'mashreq' forecast has 13 weeks, projects Anthropic and OpenAI as account outflows (founder
+--      ruling 1011), the week outflows add up to every outflow, and its opening is the statement closing plus
+--      only the lines of later statements;
 --   3. a ceo_weekly_report row inserted with a body gains the CASH FORECAST section and figures.cash_forecast_90d;
 --   4. fn_accountant_month_close_figures for Aug 2026 carries cash_forecast_90d with 13 weeks.
 do $probe$
@@ -20,7 +23,9 @@ begin
   values ('zz-demo-forecast-probe', 'zz_demo', date_trunc('month', v_as)::date, 'parsed', 2, 1000, v_as - 1);
   insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash)
   values ('zz_demo', 'zz-demo-forecast-probe', v_as - 35, 'ZZ DEMO HOSTING 001', -600, 'zz-demo-forecast-probe-1'),
-         ('zz_demo', 'zz-demo-forecast-probe', v_as - 5,  'ZZ DEMO HOSTING 002', -600, 'zz-demo-forecast-probe-2');
+         ('zz_demo', 'zz-demo-forecast-probe', v_as - 5,  'ZZ DEMO HOSTING 002', -600, 'zz-demo-forecast-probe-2'),
+         -- value-dated after balance_on but on the SAME statement: already inside the 1,000, must not move the opening
+         ('zz_demo', 'zz-demo-forecast-probe', v_as,      'ZZ DEMO FEE ON THE SAME STATEMENT', -50, 'zz-demo-forecast-probe-3');
 
   f := public.fn_accountant_cash_forecast(v_as, 'zz_demo');
   if jsonb_array_length(f->'weeks') <> 13 then v_fail := v_fail || ' demo weeks<>13;'; end if;
@@ -34,11 +39,16 @@ begin
 
   m := public.fn_accountant_cash_forecast(v_as);
   if jsonb_array_length(m->'weeks') <> 13 then v_fail := v_fail || ' mashreq weeks<>13;'; end if;
-  if jsonb_array_length(m->'paid_by_the_founders_card_not_the_account') = 0 then v_fail := v_fail || ' owner-card subscriptions not listed;'; end if;
+  if (select count(distinct e->>'item') from jsonb_array_elements(m->'flows') e
+       where e->>'source' = 'subscription_register' and e->>'paid_from' = 'account' and e->>'item' in ('Anthropic', 'OpenAI')) <> 2
+    then v_fail := v_fail || ' Anthropic/OpenAI not account outflows;'; end if;
   if (select coalesce(sum((w->>'out_aed')::numeric), 0) from jsonb_array_elements(m->'weeks') w)
-     <> (select coalesce(-sum((e->>'amount_aed')::numeric), 0) from jsonb_array_elements(m->'flows') e
-          where e->>'paid_from' <> 'owner_card' and (e->>'amount_aed')::numeric < 0)
-    then v_fail := v_fail || ' week outflows include owner-card flows;'; end if;
+     <> (select coalesce(-sum((e->>'amount_aed')::numeric), 0) from jsonb_array_elements(m->'flows') e where (e->>'amount_aed')::numeric < 0)
+    then v_fail := v_fail || ' week outflows leave a flow out;'; end if;
+  if (m#>>'{opening,aed}')::numeric <> (select (m#>>'{opening,statement_balance_aed}')::numeric + coalesce(sum(amount_aed), 0)
+                                          from public.bank_statement_line where account = 'mashreq' and source_ref <> m#>>'{opening,statement}'
+                                           and value_date > (m#>>'{opening,balance_on}')::date and value_date <= v_as)
+    then v_fail := v_fail || ' mashreq opening counts its own statement''s lines;'; end if;
 
   insert into public.ceo_weekly_report (iso_year, iso_week, week_start, week_end, report_key, subject, body)
   values (2099, 1, date '2099-01-05', date '2099-01-11', 'zz-demo:forecast-probe', 'ZZ DEMO', 'ZZ DEMO body')

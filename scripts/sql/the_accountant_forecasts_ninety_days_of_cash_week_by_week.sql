@@ -20,9 +20,16 @@
 --   2. the bank fee from decision_policy accountant_bank_fee_monthly_aed (AED 208.95 = 199 + 9.95 VAT) ONLY
 --      when (1) found no fee line, so a thin statement history does not drop the fee.
 --   3. recurring subscriptions from the accountant's register accountant_owner_ruled_subscription (built
---      from the books). A row paid_from 'owner_card' is paid by the founder's own card, not by the account,
---      so it is LISTED but not subtracted (today Anthropic and OpenAI, AED 799 each). A register row with a
---      bank_pattern suppresses the same charge in (1) so it is never counted twice.
+--      from the books). FOUNDER RULING 1011 (29 Sep 2026): ALL company payments, Anthropic and OpenAI
+--      included, now come from the company Mashreq account. So every register row is an account outflow
+--      whatever its paid_from column still says (today Anthropic and OpenAI, AED 799 each). A register row
+--      with a bank_pattern suppresses the same charge in (1) so it is never counted twice.
+--
+-- The opening balance is the last recorded statement closing balance, plus only the lines of LATER
+-- statements. The Aug 2026 statement (bank_statement_intake source_ref resend:4073be03-..., closing
+-- AED 582.96, balance_on 31 Aug) carries six lines, three of them value-dated 1 Sep, and those six sum to
+-- the 582.96. The first version added lines dated after balance_on regardless of statement and so took
+-- the 1 Sep fee, VAT and interest off twice, opening at AED 374.87. That figure was no statement's closing.
 --   4. renewals in accountant_renewal_budget whose pay_by (else expires_on) falls in the window, at their
 --      budget; an unbudgeted one is listed with amount 0 and flagged. The trade licence renewal of
 --      24 Jun 2027 (pay by 10 Jun 2027, budget AED 1,200) sits beyond a 29 Sep window, so it is reported
@@ -44,16 +51,18 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   v_as_of date := coalesce(p_as_of, (now() at time zone 'Asia/Dubai')::date);
-  v_end date; v_bal numeric; v_bal_on date; v_after numeric; v_open numeric;
-  v_items jsonb; v_weeks jsonb; v_low jsonb; v_owner jsonb; v_next jsonb; v_fee numeric;
+  v_end date; v_bal numeric; v_bal_on date; v_bal_ref text; v_after numeric; v_open numeric;
+  v_items jsonb; v_weeks jsonb; v_low jsonb; v_next jsonb; v_fee numeric;
 begin
   v_end := v_as_of + 91;
-  select closing_balance_aed, balance_on into v_bal, v_bal_on
+  select closing_balance_aed, balance_on, source_ref into v_bal, v_bal_on, v_bal_ref
     from public.bank_statement_intake
    where account = p_account and closing_balance_aed is not null and balance_on <= v_as_of
    order by balance_on desc, received_at desc limit 1;
+  -- only lines from OTHER statements: the balance's own statement already includes every one of its lines
   select coalesce(sum(amount_aed), 0) into v_after
-    from public.bank_statement_line where account = p_account and value_date > v_bal_on and value_date <= v_as_of;
+    from public.bank_statement_line
+   where account = p_account and source_ref is distinct from v_bal_ref and value_date > v_bal_on and value_date <= v_as_of;
   v_open := v_bal + v_after;
   v_fee := (select (value #>> '{}')::numeric from public.decision_policy where key = 'accountant_bank_fee_monthly_aed');
 
@@ -73,7 +82,7 @@ begin
            extract(day from (date_trunc('month', v_as_of) + interval '1 month - 1 day'))::int, null
      where v_fee is not null and not exists (select 1 from bank_rec where k ~ 'fee|charge')
     union all
-    select 'subscription_register', vendor, paid_from, -bank_value_aed, cadence, usual_day, expected_from
+    select 'subscription_register', vendor, 'account', -bank_value_aed, cadence, usual_day, expected_from
       from public.accountant_owner_ruled_subscription where vendor !~* 'zz[_ -]?demo'),
   occ as (
     select i.*, make_date(extract(year from m)::int, extract(month from m)::int,
@@ -111,7 +120,7 @@ begin
                    coalesce(-sum((e->>'amount_aed')::numeric) filter (where (e->>'amount_aed')::numeric < 0), 0) out_aed
               from generate_series(0, 12) n
               left join jsonb_array_elements(v_items) e
-                on e->>'paid_from' <> 'owner_card'
+                on true
                and (e->>'on')::date between v_as_of + 1 + 7 * n and v_as_of + 7 * (n + 1)
              group by n) z) s;
 
@@ -121,7 +130,6 @@ begin
     into v_low
     from jsonb_array_elements(v_weeks) w where (w->>'closing_aed')::numeric < 0 order by (w->>'week')::int limit 1;
 
-  select coalesce(jsonb_agg(e), '[]'::jsonb) into v_owner from jsonb_array_elements(v_items) e where e->>'paid_from' = 'owner_card';
   select jsonb_build_object('item', item, 'pay_by', coalesce(pay_by, expires_on), 'budget_aed', budget_aed) into v_next
     from public.accountant_renewal_budget
    where item !~* 'zz[_ -]?demo' and coalesce(pay_by, expires_on) > v_end order by coalesce(pay_by, expires_on) limit 1;
@@ -131,14 +139,13 @@ begin
     'nature', 'information, never an alarm: there is no runway target and the founder funds the company (instruction 1013)',
     'opening', case when v_bal is null
       then jsonb_build_object('aed', null, 'missing', 'no closing balance recorded for ' || p_account || ' on or before ' || v_as_of)
-      else jsonb_build_object('aed', v_open, 'statement_balance_aed', v_bal, 'balance_on', v_bal_on, 'lines_since_aed', v_after) end,
+      else jsonb_build_object('aed', v_open, 'statement_balance_aed', v_bal, 'balance_on', v_bal_on, 'statement', v_bal_ref, 'later_statement_lines_aed', v_after) end,
     'weeks', v_weeks,
     'below_zero', coalesce(v_low, jsonb_build_object('first_week', null, 'note',
                     case when v_open is null then 'not measurable without an opening balance' else 'the balance stays at or above zero for the 13 weeks' end)),
     'flows', v_items,
-    'paid_by_the_founders_card_not_the_account', v_owner,
     'next_known_beyond_window', v_next,
-    'basis', 'Opening = last Mashreq closing balance plus statement lines after it. Outflows: recurring statement debits (2+ months in 120 days), the bank fee policy only if no fee line recurs, the subscription register (owner-card rows listed, not subtracted), renewals at budget. Inflows: Stripe payouts in transit and supplier charges due. Owner transfers are capital and not projected.');
+    'basis', 'Opening = last Mashreq statement closing balance plus the lines of later statements only. Outflows: recurring statement debits (2+ months in 120 days), the bank fee policy only if no fee line recurs, the subscription register (all from the account, founder ruling 1011), renewals at budget. Inflows: Stripe payouts in transit and supplier charges due. Owner transfers are capital and not projected.');
 end $fn$;
 
 revoke execute on function public.fn_accountant_cash_forecast(date, text) from public, anon, authenticated;
