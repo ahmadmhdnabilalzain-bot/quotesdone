@@ -28,14 +28,6 @@ const { sql } = await import('../lib/db.mjs');
 const NAME = 'a_supplier_sees_its_monthly_scorecard_against_its_trade';
 const replay = existsSync(join(REPO, 'scripts/sql/pending', NAME + '.txt')) ? readFileSync(join(REPO, 'scripts/sql', NAME + '.sql'), 'utf8') : '';
 
-// PROBE-SCOPED OVERRIDE, rolled back with everything else: the mandatory-six gate refuses an 'approved' supplier
-// without a verified mobile, licence, profile and terms, and the tick mails approved suppliers only. The gate is
-// not what is being proved here; the scorecard is. Other sessions keep the real gate (catalog MVCC).
-const OVERRIDE = String.raw`
-create or replace function public.fn_leads_mandatory_six_gate() returns trigger language plpgsql security definer
-  set search_path to 'public', 'pg_temp' as $g$ begin return new; end $g$;
-`;
-
 const PROBE = String.raw`
 do $p$ declare o jsonb := '{}'; c uuid; s bigint[] := '{}'; x bigint; i uuid; q uuid; n int; t0 timestamptz; k jsonb := '{}';
 begin
@@ -46,8 +38,17 @@ begin
   t0 := ((date_trunc('month', now() at time zone 'Asia/Dubai') - interval '1 month' + interval '9 days 12 hours')::timestamp at time zone 'Asia/Dubai');
   insert into customers (full_name, email) values ('ZZ DEMO 1013 buyer', 'zz.1013.buyer@example.invalid') returning id into c;
   for n in 1..7 loop
-    insert into leads (company_name, email, claimed, claimed_by, approval_status, verified)
-      values ('ZZ DEMO 1013 S' || n, 'zz.1013.s' || n || '@example.invalid', true, 'zz.1013.s' || n || '@example.invalid', 'approved', true) returning id into x;
+    -- THE FOUNDER'S MANDATORY SIX, supplied as evidence (the gate is never softened): a verified +9715 mobile, a
+    -- verified owner e-mail, a licence and a company profile that storage.objects HOLDS, signed terms. The storage
+    -- rows are written inside this aborted transaction and roll back with it; no file is uploaded.
+    insert into storage.objects (bucket_id, name) values ('supplier-docs', 'zz_demo_1013/s' || n || '/licence.pdf'),
+                                                         ('supplier-docs', 'zz_demo_1013/s' || n || '/profile.pdf');
+    insert into leads (company_name, email, claimed, claimed_by, phone, phone_e164, owner_phone_verified, owner_email_verified,
+                       license_doc_path, company_profile_doc_path, signed_terms_path, verified, approval_status)
+      values ('ZZ DEMO 1013 S' || n, 'zz.1013.s' || n || '@example.invalid', true, 'zz.1013.s' || n || '@example.invalid',
+              '+97150000013' || n, '+97150000013' || n, true, true,
+              'zz_demo_1013/s' || n || '/licence.pdf', 'zz_demo_1013/s' || n || '/profile.pdf', 'zz_demo_1013/s' || n || '/terms.pdf',
+              true, 'approved') returning id into x;
     s := s || x; k := k || jsonb_build_object(x::text, 's' || n);
     if n <= 4 then insert into lead_trade_class (lead_id, trade_code, evidence) values (x, 'zz_demo_1013_a', 'ZZ DEMO');
     elsif n in (5, 7) then insert into lead_trade_class (lead_id, trade_code, evidence) values (x, 'zz_demo_1013_b', 'ZZ DEMO'); end if;
@@ -94,7 +95,7 @@ end $p$;
 `;
 
 let o;
-try { await sql(replay + '\n' + OVERRIDE + '\n' + PROBE, { retry: false }); }
+try { await sql(replay + '\n' + PROBE, { retry: false }); }
 catch (e) {
   const m = String(e.message).match(/CHK<<(.*?)>>/s);
   if (!m) { console.error('the probe failed before it could report:', String(e.message).slice(0, 1500)); process.exit(1); }
