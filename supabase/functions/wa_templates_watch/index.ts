@@ -65,18 +65,39 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     let map:any={}; try{ map=JSON.parse((await sec('wa_template_sids'))||'{}'); }catch(_){ mapParseErr=String(_); map={}; }
     const sids:{name:string,sid:string}[]=[];
     for(const [k,v] of Object.entries(map)){ for(const [lang,sid] of Object.entries(v as any)){ sids.push({name:`${k}_${lang}`, sid:sid as string}); } }
+    // THE GATE AND THE POLL READ DIFFERENT LISTS (it_engineer, 28 Sep 2026, ledger 760). The gate above
+    // asks messaging_template "is anything undecided?"; the poll only ever asked Twilio about the sids
+    // in wa_template_sids. Measured: 9 register rows sat at 'received' (support_reply, login_code,
+    // supplier_account_notice, ...) that are not in that map, so nothing ever stamped them, the gate
+    // never shut, and every run took the all-approved branch again - 8 error rows in 24 h. The poll now
+    // also asks about every undecided register row, so the gate can close. Only the map's sids decide
+    // `allApproved`, exactly as before.
+    const tracked = new Set(sids.map((s) => s.sid));
+    const { data: pendingRows } = await sb.from('messaging_template').select('sid,template_key')
+      .eq('channel', 'whatsapp').not('status', 'in', '("approved","rejected")').limit(50);
+    const extra = (pendingRows ?? []).filter((r: any) => r.sid && !tracked.has(r.sid))
+      .map((r: any) => ({ name: `${r.template_key}_register`, sid: r.sid as string }));
     if(!sids.length) { await logThrottled('no_template_sids', 60, 'error', { stage:'config', map_parse_failed: mapParseErr ? 1 : 0 }, (mapParseErr ? ('wa_template_sids is not valid JSON ('+mapParseErr+'), so no templates are tracked; ') : 'wa_template_sids is empty, so no templates are tracked; ')+'approval can never complete, wa_templates_ready is never flipped and WhatsApp alerts to suppliers and customers stay permanently off'); return J({ ok:false, error:'no_template_sids' }); }
-    const statuses:any[]=[]; let approved=0, rejected=0;
-    for(const s of sids){
-      let st='unknown';
-      try{
-        const r=await fetch(`https://content.twilio.com/v1/Content/${s.sid}/ApprovalRequests`,{ headers:{ 'Authorization':auth } });
-        const j=await r.json();
-        st = j?.whatsapp?.status || j?.status || 'unknown';
-      }catch(e){ st='error:'+String(e); }
-      if(st==='approved') approved++; else if(st==='rejected') rejected++;
-      statuses.push({ name:s.name, sid:s.sid, status:st });
-    }
+    // A VERDICT IS FINAL, SO DO NOT ASK FOR IT AGAIN, AND ASK THE REST AT ONCE. Measured 28 Sep: 17
+    // sequential Twilio reads took this call past resilience_ping's 20 s timeout, and the heartbeat
+    // step `orphans` has failed every run since 16:46 UTC. Sids the register already holds as
+    // approved/rejected are read from the register; only undecided ones go to Twilio, in parallel.
+    const { data: decidedRows } = await sb.from('messaging_template').select('sid,status')
+      .eq('channel', 'whatsapp').in('status', ['approved', 'rejected']);
+    const decided = new Map((decidedRows ?? []).map((r: any) => [r.sid as string, r.status as string]));
+    const statuses:any[] = await Promise.all([...sids, ...extra].map(async (s) => {
+      let st = decided.get(s.sid) || 'unknown';
+      if (!decided.has(s.sid)) {
+        try{
+          const r=await fetch(`https://content.twilio.com/v1/Content/${s.sid}/ApprovalRequests`,{ headers:{ 'Authorization':auth }, signal: AbortSignal.timeout(8000) });
+          const j=await r.json();
+          st = j?.whatsapp?.status || j?.status || 'unknown';
+        }catch(e){ st='error:'+String(e); }
+      }
+      return { name:s.name, sid:s.sid, status:st, polled: !decided.has(s.sid) };
+    }));
+    let approved=0, rejected=0;
+    for (const x of statuses) if (tracked.has(x.sid)) { if (x.status==='approved') approved++; else if (x.status==='rejected') rejected++; }
     // WRITE DOWN WHAT TWILIO SAID (22 Sep 2026). This loop has always asked Twilio per sid and then
     // thrown the answer away: nothing here wrote public.messaging_template, so that table's
     // last_checked_at was 12 days stale and a rejection was visible only in an agent_runs note that
@@ -87,7 +108,7 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     // insert would have to invent the name, category and template_key columns it does not know.
     let stamped = 0, stampErrs = 0;
     for (const x of statuses) {
-      if (x.status === 'unknown' || String(x.status).startsWith('error:')) continue;  // no verdict, no stamp
+      if (!x.polled || x.status === 'unknown' || String(x.status).startsWith('error:')) continue;  // no fresh verdict, no stamp
       const now = new Date().toISOString();
       const { error: upErr, count } = await sb.from('messaging_template')
         .update({ status: x.status, last_checked_at: now }, { count: 'exact' }).eq('sid', x.sid);
@@ -103,14 +124,21 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
     }
     if (stampErrs) await logThrottled('template_register_not_stamped', 60, 'error', { total: sids.length, stamp_errors: stampErrs }, stampErrs + ' of ' + statuses.length + ' template statuses could not be written to messaging_template; the register keeps showing a stale status and the scheduler gate that reads last_checked_at stays open, so this watcher polls Twilio every beat instead of once a day');
     const allApproved = approved===sids.length;
+    if(allApproved && ((await sec('wa_templates_ready')) || 'false') === 'true'){
+      // Already live: the founder was told on the transition. Re-announcing every run is noise
+      // (it failed to queue 8 times on 28 Sep and logged an error each time).
+      await logThrottled('register_polled', 60, 'ok', { total: sids.length, register_extra: extra.length, stamped }, 'all tracked templates approved and the channel is already live; polled ' + extra.length + ' undecided register template(s) so the gate can close');
+      return J({ ok:true, already_ready:true, register_extra: extra.length, stamped });
+    }
     if(allApproved){
       const { error: readyErr } = await sb.from('app_secrets').upsert({ key:'wa_templates_ready', value:'true' }, { onConflict:'key' });
       // Founder email: prefer founder_email secret, else first admin_emails entry (OPEN_ISSUES #5).
       const founder = (await sec('founder_email')) || (((await sec('admin_emails'))||'').split(',')[0]||'').trim() || 'management@quotesdone.com';
       const { error: notifErr } = await requestDelivery(sb, { type:'wa_templates_ready', to_role:'admin', to_email:founder, channel:'email', status:'queued', subject:'✅ WhatsApp templates approved — notifications are now LIVE', body:'All 6 WhatsApp templates have been approved by Meta. QuotesDone will now send WhatsApp alerts (new job, new quote, supplier unlocked) to opted-in suppliers and customers automatically. No action needed.' });
-      // stop future polling
-      let cronErr='';
-      try{ const { error: rpcErr } = await sb.rpc('cron_unschedule_wa_watch'); if(rpcErr) cronErr=String(rpcErr.message); }catch(_){ cronErr=String(_); /* ignore if not present */ }
+      // No unschedule step: pg_cron has no wa_watch job (measured 28 Sep: cron.job holds one inactive
+      // row) and cron_unschedule_wa_watch does not exist. The scheduler gate in
+      // fn_resilience_orphan_steps_due stops calling once nothing in the register is undecided.
+      const cronErr='';
       const anotes:string[]=[];
       if(readyErr) anotes.push('all '+sids.length+' WhatsApp templates are approved but writing wa_templates_ready=true FAILED ('+String(readyErr.message)+'); WhatsApp alerts stay switched off for suppliers and customers and this watcher will re-run and re-notify every 15 minutes');
       if(notifErr) anotes.push('founder notification insert failed ('+String(notifErr.message)+'); nobody was told that WhatsApp notifications are now live');

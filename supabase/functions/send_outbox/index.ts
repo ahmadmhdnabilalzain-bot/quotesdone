@@ -21,7 +21,30 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
-async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// ONE READ FOR THE SETTINGS, NOT TWENTY (it_engineer, 28 Sep 2026, ledger 760). Every call read ~20
+// app_secrets keys one round trip at a time before looking at the queue: an IDLE poll averaged 8.4 s
+// (agent_runs fn:send_outbox, 64 runs in 6 h, max 26 s), past resilience_ping's 20 s outbox timeout
+// often enough that heartbeat step `outbox` failed with "Signal timed out". The keys are read together
+// once per request (never cached across requests, so a rotated secret is seen on the next call);
+// a key outside the list still reads on its own, exactly as before.
+// prevented by: supabase/functions/send_outbox/settings_read_once.test.ts
+export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplier_emails_enabled', 'email_stale_hours',
+  'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
+  'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
+  'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
+  'invite_lane_from', 'invite_daily_cap'];
+let secCache: Map<string, string | undefined> | null = null;
+async function warmSecrets() {
+  secCache = null;
+  const { data, error } = await admin.from('app_secrets').select('key,value').in('key', OUTBOX_KEYS);
+  if (error) return;   // fall back to one read per key
+  secCache = new Map(OUTBOX_KEYS.map((k) => [k, undefined]));
+  for (const r of (data || []) as { key: string; value: string }[]) secCache.set(r.key, r.value);
+}
+async function sec(k: string) {
+  if (secCache?.has(k)) return secCache.get(k);
+  const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined;
+}
 // FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
 // app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
 // posting {} matched and gained full service-role authority on a function that requires no JWT. The
@@ -104,6 +127,7 @@ Deno.serve(observe('send_outbox', async (req) => {
   const claimedIds: number[] = [];
   try {
     const body = await req.json().catch(() => ({}));
+    await warmSecrets();
     // AUDIT 9.5 (3 Aug 2026): the unsubscribe footer and the RFC 8058 List-Unsubscribe headers
     // are signed with a dedicated long-lived key. They used to be signed with inbound_secret, so
     // withdrawing it would have both invalidated every delivered link AND - because the link is
