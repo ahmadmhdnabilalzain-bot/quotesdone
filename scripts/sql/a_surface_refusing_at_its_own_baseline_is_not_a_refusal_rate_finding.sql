@@ -107,9 +107,9 @@ begin
 --                it starts covers no instant in either form and is left out, because a range
 --                cannot be built from it.
 -- Proved equal on the live slice before this was written, 21 Sep 2026: 46,618 rows, 0 mismatches
--- on each flag (643 held, 999 refused, 32,565 in a rehearsal window, 151 policy). The probe at the
--- foot of this file repeats that comparison against the helpers on every apply, so if a helper's
--- rule changes and this copy does not, the apply says PROBE FAILED instead of drifting silently.
+-- on each flag (643 held, 999 refused, 32,565 in a rehearsal window, 151 policy). (That comparison
+-- lives in the_it_detector_evaluates_its_row_rules_as_sets_not_as_function_calls.sql; this file
+-- ends with a verdict row that RUNS fn_it_detect unpersisted and requires ok.)
 drop table if exists pg_temp.it_runs7;
 create temp table it_runs7 on commit drop as
   select x.agent, regexp_replace(x.agent, '^fn:', '') subject, x.started_at, x.finished_at,
@@ -1080,3 +1080,8 @@ end
 $function$;
 
 revoke execute on function public.fn_it_detect(jsonb, boolean) from public, anon, authenticated;
+
+-- Verdict (release operator, 28 Sep 2026): the routine RUNS, unpersisted, and answers ok.
+select case when (public.fn_it_detect(null::jsonb, false) ->> 'ok') = 'true'
+            then 'PROBE OK :: fn_it_detect runs unpersisted and answers ok'
+            else 'PROBE FAILED :: fn_it_detect did not answer ok' end as verdict;

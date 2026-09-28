@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T12:05:56.291Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T12:31:53.347Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -19545,8 +19545,7 @@ begin
       from public.leads l
      where (l.lifecycle_stage = 'registered' or l.approval_status = 'approved')
        and not coalesce(l.banned, false)
-       and case when v_fx then l.company_name like 'ZZ DEMO — %'
-                else coalesce(l.company_name, '') not like 'ZZ DEMO — %' and coalesce(l.email, '') not ilike '%@example.invalid' end;
+       and coalesce(l.is_demo, false) = v_fx;
 
   select coalesce(jsonb_agg(jsonb_build_object('lead_id', id, 'company', company_name) order by id), '[]'::jsonb), count(*)
     into v_none, v_none_n from tmp_ubo where owner_name is null;
@@ -21186,6 +21185,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -21211,16 +21220,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -41875,9 +41874,9 @@ begin
 --                it starts covers no instant in either form and is left out, because a range
 --                cannot be built from it.
 -- Proved equal on the live slice before this was written, 21 Sep 2026: 46,618 rows, 0 mismatches
--- on each flag (643 held, 999 refused, 32,565 in a rehearsal window, 151 policy). The probe at the
--- foot of this file repeats that comparison against the helpers on every apply, so if a helper's
--- rule changes and this copy does not, the apply says PROBE FAILED instead of drifting silently.
+-- on each flag (643 held, 999 refused, 32,565 in a rehearsal window, 151 policy). (That comparison
+-- lives in the_it_detector_evaluates_its_row_rules_as_sets_not_as_function_calls.sql; this file
+-- ends with a verdict row that RUNS fn_it_detect unpersisted and requires ok.)
 drop table if exists pg_temp.it_runs7;
 create temp table it_runs7 on commit drop as
   select x.agent, regexp_replace(x.agent, '^fn:', '') subject, x.started_at, x.finished_at,
@@ -42745,8 +42744,11 @@ loop
   v_share  := r.ref::numeric / r.n;
   v_bshare := case when r.bn >= c_ref_min then r.bref::numeric / r.bn else null end;
   v_state := case
-               when r.pub and v_share >= 0.90 then 'stopped'
-               when r.pub and v_share >= 0.50 then 'degraded'
+               -- the absolute arm only while the surface has no measured baseline of its own
+               when r.pub and v_bshare is null and v_share >= 0.90 then 'stopped'
+               when r.pub and v_bshare is null and v_share >= 0.50 then 'degraded'
+               -- a baselined public surface that departs AND is refusing nearly everything is still 'stopped'
+               when r.pub and v_share >= 0.90 and (v_share - v_bshare) >= 0.30 then 'stopped'
                when v_bshare is not null and (v_share - v_bshare) >= 0.30 then 'degraded'
                else null end;
   continue when v_state is null;
@@ -42767,7 +42769,7 @@ loop
       'baseline_attempts', r.bn, 'baseline_refused', r.bref,
       'baseline_refusal_share', case when v_bshare is null then null else round(v_bshare,4) end,
       'baseline_basis', case when r.bn >= c_ref_min then 'measured' else 'insufficient_history' end,
-      'arm', case when r.pub and v_share >= 0.50
+      'arm', case when r.pub and v_bshare is null and v_share >= 0.50
                   then 'dominance: a public surface refusing at least half of its logged traffic'
                   else 'departure: refusal share at least 30 points above this subject''s own baseline' end,
       'public_surface', r.pub,
@@ -63711,8 +63713,15 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_enterprise_pipeline()
 AS $function$
 declare v_n int := 0; v_stale jsonb;
 begin
-  update public.enterprise_account a set totals = public.fn_enterprise_account_report(a.id), totals_at = now();
-  get diagnostics v_n = row_count;
+  -- 28 Sep 2026: this statement had no WHERE, so the safe-update guard refused it on every run since 24 Sep.
+  -- Scope: only an account whose totals were never computed or no longer match its report is rewritten;
+  -- an unchanged account keeps its row. `accounts` still counts every account.
+  update public.enterprise_account a
+     set totals = r.report, totals_at = now()
+    from (select e.id, public.fn_enterprise_account_report(e.id) as report from public.enterprise_account e) r
+   where r.id = a.id
+     and (a.totals_at is null or a.totals is distinct from r.report);
+  select count(*) into v_n from public.enterprise_account;
   select coalesce(jsonb_agg(jsonb_build_object('account_id', id, 'name', name) order by id), '[]') into v_stale
     from public.enterprise_account
    where plan is null or plan_reviewed_at is null or plan_reviewed_at < now() - interval '90 days';
