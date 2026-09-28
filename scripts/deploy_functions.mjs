@@ -113,6 +113,12 @@ console.log(`${slugs.length} function(s): ${slugs.join(' ')}\n`);
 // --dry-run prints the set and stops. What --changed resolves to is the part most able to be
 // silently wrong — deploying nothing looks identical to having nothing to deploy — so it has to be
 // inspectable without a deploy to inspect it.
+// Unreviewed code never reaches production (scripts/lib/release_guard.mjs).
+if (ref === PROD_REF && !has('dry-run')) {
+  const { releaseRefusal } = await import('./lib/release_guard.mjs');
+  const why = releaseRefusal(slugs.map((s) => `supabase/functions/${s}`));
+  if (why) die('REFUSED: ' + why + '. Merge it, or wait for its PR to go green.');
+}
 if (has('dry-run')) { console.log('--dry-run: stopping before the drift check.'); process.exit(0); }
 
 // Everything past this point talks to the API, so the token is required from here.

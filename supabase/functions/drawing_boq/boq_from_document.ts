@@ -6,7 +6,7 @@
 // supplier sees, and it is the single place the CUSTOMER rules are applied:
 //   * a table is read through boqFromRows, which finds the header (NRM / FIDIC / MasterFormat /
 //     DIN 276 / Arabic) and NEVER reads a rate, price or amount column;
-//   * quantities a format states or measures (DXF, IFC, GAEB, a scaled PDF) are kept as they are;
+//   * quantities a format states or measures (DXF, DWG, GAEB, a scaled PDF) are kept as they are;
 //   * free text is read line by line through boqFromLines, AFTER every currency amount and "@ rate"
 //     is stripped, so a price written in a sentence does not reach a competing supplier either;
 //   * every string passes scrubIdentity (emails, URLs, UAE phones, company names).
