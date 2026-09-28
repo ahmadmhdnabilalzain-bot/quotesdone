@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T14:40:26.802Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T15:29:21.318Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27682,7 +27682,8 @@ begin
     -- recheck found "nothing was queued"). A subject that no longer exists cannot be re-checked.
     select * into v_req from public.agent_actions
      where id = nullif(r.verified_evidence ->> 'request_id', '')::bigint and kind = 'handoff';
-    v_subject := coalesce(nullif(v_req.detail ->> 'subject_id', '')::bigint,
+    -- subject_id is a notifications.id only when it is all digits; a never-queued message carries a text dedupe key.
+    v_subject := coalesce(case when v_req.detail ->> 'subject_id' ~ '^[0-9]{1,18}$' then (v_req.detail ->> 'subject_id')::bigint end,
                           (r.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint);
     if v_req.id is not null and v_req.detail ->> 'subject_table' = 'notifications' and v_subject is not null
        and not exists (select 1 from public.notifications x where x.id = v_subject) then
@@ -29910,6 +29911,48 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_review_week()
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select date_trunc('week', (now() at time zone 'Asia/Dubai'))::date $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_reviews_answered_improvements()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; n_closed int := 0; n_returned int := 0; v_why text;
+begin
+  for h in select a.id, a.agent, a.evidence, i.id imp_id, i.status imp_status, i.seat imp_seat, i.task_id, i.done_evidence
+             from public.agent_actions a
+             left join public.ceo_improvement i on i.handoff_id = a.id
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.improvement'
+              and a.detail ? 'replied_at'
+            order by a.id for update of a loop
+    v_why := case
+      when h.imp_id is null then 'no ceo_improvement carries this handoff'
+      when h.imp_status in ('done', 'dropped') then null
+      when coalesce(h.evidence->>'accepted', '') <> 'true' then 'the answer does not accept the improvement'
+      when h.evidence->>'seat' is distinct from h.agent or h.imp_seat is distinct from h.agent then 'answered by a seat other than the one asked'
+      end;
+    if v_why is null then
+      perform set_config('qd.handoff_closer', 'ceo', true);
+      perform public.fn_seat_handoff_complete(h.id, h.evidence || jsonb_build_object(
+        'verified_by', 'ceo', 'reviewed_at', now(), 'improvement_id', h.imp_id,
+        'receipt', case when h.imp_status in ('done', 'dropped')
+                        then format('Improvement #%s is %s: %s', h.imp_id, h.imp_status, coalesce(h.done_evidence, 'no evidence recorded'))
+                        else format('Reviewed by the CEO: %s accepted improvement #%s. The work is tracked on ceo_task #%s and closed by the CEO sweep when its source recovers.',
+                                    h.agent, h.imp_id, coalesce(h.task_id::text, 'none')) end));
+      perform set_config('qd.handoff_closer', '', true);
+      n_closed := n_closed + 1;
+    else
+      update public.agent_actions
+         set detail = (detail - 'replied_at') || jsonb_build_object('returned', jsonb_build_object('at', now(), 'by', 'ceo', 'reason', v_why))
+       where id = h.id;
+      perform public.fn_seat_handoff_event(h.id, 'returned');
+      n_returned := n_returned + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('closed', n_closed, 'returned', n_returned);
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_root_cause_applies(p_id bigint, p_result jsonb)

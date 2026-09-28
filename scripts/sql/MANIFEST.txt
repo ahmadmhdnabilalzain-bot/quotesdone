@@ -1818,3 +1818,4 @@ scripts/sql/a_reversal_voids_both_sides_so_the_ledger_nets_to_zero.sql
 [INFO] Recording command outcome: echo
 [OK] Command outcome recorded
 scripts/sql/the_calendar_resend_decisions_are_in_the_daily_export.sql
+scripts/sql/the_ceo_reviews_every_answered_improvement_within_its_window.sql
