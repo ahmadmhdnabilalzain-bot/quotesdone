@@ -22,7 +22,6 @@ import { readDocument } from '../_shared/doc_read/index.ts';
 import { readDxf } from '../_shared/doc_read/cad.ts';
 import { dwgToDxf } from '../_shared/doc_read/dwg.ts';
 import type { Extracted, ReadResult } from '../_shared/doc_read/types.ts';
-import { ifcFixture } from '../_shared/doc_read/ifc.fixtures.ts';
 import { CAD_COUNTS, CONTENT, CUSTOMER, FILE_NAME, IDENTITY, IMAGE_COUNTS, PDF_COUNTS, PDF_TITLE, zzDwgDb, zzDxf, zzDxfBinary, zzPdfScan, zzPdfSet, zzPdfSheet } from '../_shared/doc_read/zz_demo_drawings.fixtures.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { boqFromDrawingSet } from './drawing_set.ts';
@@ -88,7 +87,7 @@ function assertPdfs(p: Awaited<ReturnType<typeof supplierPdfs>>, want: [RegExp, 
 // ── CAD ─────────────────────────────────────────────────────────────────────────────────────────────
 // customer_api / drawing_boq: readDocument -> boqFromExtracted -> gateDrawingBoq (cad) -> cadSupplierBoq.
 async function cadTakeoff(e: Extracted) {
-  const g = gateDrawingBoq(boqFromExtracted(e, '', '', {}), drawingIdentityTerms(e.text, e.dxf_text, e.identity_terms), true);
+  const g = gateDrawingBoq(boqFromExtracted(e, '', '', {}), drawingIdentityTerms(e.text, e.dxf_text), true);
   assert(g.boq, 'the identity gate withheld the whole CAD take-off: ' + g.found.join('; '));
   return cadSupplierBoq(g.boq, e.dxf_text ?? '') as any;
 }
@@ -186,28 +185,17 @@ Deno.test('image (JPG/PNG): symbols counted against the legend: 7 smoke detector
   assertEquals([r.kind, r.needs], ['image', 'ocr']);
 });
 
-// ── BIM / other CAD: recognised, read for what is certain, and asked for an export in EN and AR ─────
-Deno.test('IFC: counted per type and storey, quantities in metres, and no party reaches the take-off', async () => {
-  const e = good(await readDocument(ifcFixture(), 'model.ifc'));
-  assertEquals(e.kind, 'ifc');
-  const walls = e.quantities.filter((q) => /wall/i.test(q.description) && q.unit === 'nos').reduce((n, q) => n + (q.qty ?? 0), 0);
-  assertEquals(walls, 2);
-  const g = gateDrawingBoq(boqFromExtracted(e, '', '', {}), drawingIdentityTerms(e.text, e.dxf_text, e.identity_terms), false);
-  assert(g.boq);
-  assert(!/ZZ DEMO Villa/.test(JSON.stringify(g.boq)), 'the IFC project name reached the take-off');
-});
-
-Deno.test('RVT and DGN (V7, V8): recognised by their bytes, never guessed at, and asked for IFC / DWG in English and Arabic', async () => {
+// ── Founder ruling 1000 (28 Sep 2026): drawings are PDF, DWG and DXF only ───────────────────────────
+Deno.test('Revit, IFC and DGN are refused by their bytes, never read and never misread as a sheet or CSV', async () => {
   const utf16 = (s: string) => new Uint8Array([...s].flatMap((c) => [c.charCodeAt(0), 0]));
   const c = CFB.utils.cfb_new();
-  CFB.utils.cfb_add(c, '/BasicFileInfo', new Uint8Array([7, ...utf16('Worksharing: Not enabled\r\nFormat: 2024\r\nLast Save Path: C:\\ZZ DEMO\\Harbour.rvt\r\n')]));
+  CFB.utils.cfb_add(c, '/BasicFileInfo', new Uint8Array([7, ...utf16('Worksharing: Not enabled\r\nFormat: 2024\r\n')]));
   CFB.utils.cfb_add(c, '/ProjectInformation', new Uint8Array(8));
-  const rvt = good(await readDocument(new Uint8Array(CFB.write(c, { type: 'array' })), 'tower.rvt'));
-  assertEquals([rvt.kind, rvt.needs, rvt.quantities.length], ['rvt', 'bim_conversion', 0]);
-  assert(rvt.notes.some((n) => n.includes('IFC')));
-  assertEquals(leaks(rvt.text + rvt.notes.join(' ')), []);
-  const v7 = new Uint8Array(2048); v7.set([0x08, 0x09, 0xfe, 0x02]);
-  const dgn = good(await readDocument(v7, 'site.dgn'));
-  assertEquals([dgn.kind, dgn.needs], ['dgn', 'cad_conversion']);
-  for (const n of [...rvt.notes, ...dgn.notes]) assert(/[؀-ۿ]/.test(boqNoteAr(n) || ''), `no Arabic for: ${n}`);
+  const rvt = new Uint8Array(CFB.write(c, { type: 'array' }));
+  const ifc = new TextEncoder().encode("ISO-10303-21;\nHEADER;\nFILE_NAME('zz-demo.ifc','2026-09-28',('ZZ DEMO'),('ZZ DEMO'),'','','');\nENDSEC;\nDATA;\n#1=IFCWALL('a',$,'W1',$,$,$,$,$,$);\nENDSEC;\nEND-ISO-10303-21;\n");
+  const dgn = new Uint8Array(2048); dgn.set([0x08, 0x09, 0xfe, 0x02]);
+  for (const [bytes, name] of [[rvt, 'tower.rvt'], [rvt, 'door.rfa'], [ifc, 'model.ifc'], [dgn, 'site.dgn']] as const) {
+    const r = await readDocument(bytes, name);
+    assert(!r.ok, `${name} was read: ${JSON.stringify(r).slice(0, 160)}`);
+  }
 });
