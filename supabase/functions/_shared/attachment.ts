@@ -36,7 +36,6 @@
 //     where it applies.
 
 // Pure (no I/O): a bounded scan of the OLE2 directory for Bentley's DGN V8 storage names.
-import { isDgnV8 } from './doc_read/dgn.ts';
 
 export type SanitizeResult =
   | { ok: true;  mime: string; ext: string; bytes: Uint8Array; size: number; strippedMetadata: boolean; declaredMismatch: boolean }
@@ -90,9 +89,10 @@ export const SAFE_OFFICE = [
   'text/plain',
 ] as const;
 export const SAFE_MAIL = ['message/rfc822', 'application/vnd.ms-outlook'] as const;      // eml, msg
-export const SAFE_BIM  = ['application/x-step', 'application/x-gaeb+xml',               // ifc, GAEB DA XML
-                          // 22 Sep 2026: recognised so doc_read can say what they need; they are not read.
-                          'application/vnd.autodesk.revit', 'image/vnd.dgn'] as const;     // rvt, DGN v7
+// Founder ruling 1000 (28 Sep 2026): drawings are PDF, DWG and DXF only. IFC, Revit and DGN v7 are still
+// SNIFFED below, so each is refused as what it is and never misread as CSV or a spreadsheet, but no
+// allow-list names them.
+export const SAFE_BIM  = ['application/x-gaeb+xml'] as const;                             // GAEB DA XML
 export const SAFE_PHOTO_EXTRA = ['image/tiff', 'image/heic', 'image/gif'] as const;      // stored; need OCR
 export const SAFE_DOCS = [...SAFE_UPLOAD, ...SAFE_SHEET, ...SAFE_CAD, ...SAFE_OFFICE, ...SAFE_MAIL, ...SAFE_BIM,
                           ...SAFE_PHOTO_EXTRA, 'application/zip'] as const;
@@ -125,10 +125,7 @@ const EXT: Record<string, string> = {
   'text/plain': 'txt',
   'message/rfc822': 'eml',
   'application/vnd.ms-outlook': 'msg',
-  'application/x-step': 'ifc',
   'application/x-gaeb+xml': 'xml',
-  'application/vnd.autodesk.revit': 'rvt',
-  'image/vnd.dgn': 'dgn',
   'application/zip': 'zip',
   'image/tiff': 'tif',
   'image/heic': 'heic',
@@ -207,7 +204,7 @@ export function sniff(b: Uint8Array): string {
   // means a newer AutoCAD release does not silently become an unrecognised upload.
   if (/^AC10\d\d$/.test(asciiAt(b, 0, 6))) return 'image/vnd.dwg';
   // MicroStation DGN v7 (ISFF) opens with the type-9 design-file header element: bytes 08|C8 09 FE 02
-  // (2D|3D), the test GDAL's DGN driver makes. DGN V8 is an OLE2 container: see the OLE2 branch below.
+  // (2D|3D). Sniffed only so it is refused as DGN (ruling 1000); no allow-list accepts it.
   if ((b[0] === 0x08 || b[0] === 0xc8) && b[1] === 0x09 && b[2] === 0xfe && b[3] === 0x02) return 'image/vnd.dgn';
   if (asciiAt(b, 0, 18) === 'AutoCAD Binary DXF') return 'image/vnd.dxf';
   // ASCII DXF, added 9 Sep 2026 while restoring cad_convert. Only the BINARY variant was
@@ -233,10 +230,7 @@ export function sniff(b: Uint8Array): string {
     // 22 Sep 2026: a Revit model is OLE2 too and was answered as a spreadsheet, so a customer's .rvt
     // failed inside SheetJS with no word about what it was. Every .rvt carries the stream BasicFileInfo.
     if (indexOfBytes(b, utf16le('BasicFileInfo'), LIM) >= 0) return 'application/vnd.autodesk.revit';
-    // 22 Sep 2026: a MicroStation DGN V8 is OLE2 too (Bentley storages "Dgn~H", "Dgn~S", "Dgn-Md" ...,
-    // checked on GDAL's test_dgnv8.dgn) and was answered as a spreadsheet. It is answered as DGN now, so
-    // the customer is asked for a DWG / DXF / PDF instead of seeing a spreadsheet error.
-    if (isDgnV8(b)) return 'image/vnd.dgn';
+    // A DGN V8 (Bentley OLE2) falls through to the spreadsheet answer and fails in SheetJS: DGN is not accepted.
     if (indexOfBytes(b, utf16le('Workbook'), LIM) >= 0 || indexOfBytes(b, utf16le('Book'), LIM) >= 0) return 'application/vnd.ms-excel';
     if (indexOfBytes(b, utf16le('WordDocument'), LIM) >= 0) return 'application/msword';
     if (indexOfBytes(b, utf16le('__substg1.0_'), LIM) >= 0) return 'application/vnd.ms-outlook';

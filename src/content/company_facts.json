@@ -455,6 +455,21 @@
           "why": "a card surcharge on the buyer; rewrite by hand to the one wording"
         }
       ]
+    },
+    "drawing_upload_formats": {
+      "en": "Please upload your drawing as PDF or CAD (DWG/DXF)",
+      "ar": "يُرجى رفع المخطط بصيغة PDF أو CAD ‏(DWG/DXF)",
+      "why": "Founder ruling 28 Sep 2026 (sales_engineer): customer drawing uploads accept ONLY PDF and CAD (DWG and DXF). Revit (RVT/RFA), IFC, DGN and any other drawing format are not accepted, and no surface may tell a customer or supplier to upload one. Enforced in code by supabase/functions/_shared/drawing_format.ts (customer_api by name, drawing_boq by the sniffed type) and src/components/me/NewRequest.tsx. \"IFC\" meaning Issued For Construction is not an upload instruction and is not matched: the rule reads an upload verb followed by the format in the same sentence.",
+      "forbid": [
+        {
+          "re": "(?:upload|send|attach|accept|submit)(?:[^.\\n]|\\.(?=\\w)){0,120}?\\b(?:Revit|RVT|RFA|IFC|DGN|MicroStation)\\b",
+          "why": "tells someone to upload a drawing format the founder ruled out on 28 Sep 2026; rewrite by hand to PDF or CAD (DWG/DXF)"
+        },
+        {
+          "re": "(?:ارفع|رفع|أرسل|أرفق|يقبل|نقبل)(?:[^.\\n]|\\.(?=\\w)){0,120}?(?:ريفيت|Revit|RVT|RFA|IFC|DGN|مايكروستيشن)",
+          "why": "the Arabic of the same: a drawing is uploaded as PDF or CAD (DWG/DXF) only"
+        }
+      ]
     }
   },
   "marketing_surfaces": {
