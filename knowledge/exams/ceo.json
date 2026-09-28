@@ -702,6 +702,55 @@
       "expected_facts": [
         "never changes a price"
       ]
+    },
+    {
+      "id": "ceo-exam-59",
+      "checklist": "CEO-PRO",
+      "q_en": "How is a percentage variance on the P&L calculated?",
+      "q_ar": "كيف يُحسب الانحراف بالنسبة المئوية في قائمة الأرباح والخسائر؟",
+      "expected_entry_ids": [
+        "ceo:pnl-variance-analysis"
+      ],
+      "expected_facts": [
+        "divided by the absolute value"
+      ]
+    },
+    {
+      "id": "ceo-exam-60",
+      "checklist": "CEO-PRO",
+      "q_en": "Revenue fell this month. How do we break the variance down?",
+      "q_ar": "انخفض الإيراد هذا الشهر، كيف نحلل الانحراف؟",
+      "expected_entry_ids": [
+        "ceo:pnl-variance-analysis"
+      ],
+      "expected_facts": [
+        "volume",
+        "mix"
+      ]
+    },
+    {
+      "id": "ceo-exam-61",
+      "checklist": "CEO-PRO",
+      "q_en": "A risk is high likelihood and high impact. What level is it?",
+      "q_ar": "خطر احتماله مرتفع وأثره مرتفع، ما مستواه؟",
+      "expected_entry_ids": [
+        "ceo:risk-scoring-matrix"
+      ],
+      "expected_facts": [
+        "is critical"
+      ]
+    },
+    {
+      "id": "ceo-exam-62",
+      "checklist": "CEO-PRO",
+      "q_en": "How often are high risks reviewed?",
+      "q_ar": "كم مرة تُراجع المخاطر العالية؟",
+      "expected_entry_ids": [
+        "ceo:risk-scoring-matrix"
+      ],
+      "expected_facts": [
+        "reviewed weekly"
+      ]
     }
   ]
 }

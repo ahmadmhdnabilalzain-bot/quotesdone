@@ -1955,6 +1955,36 @@
    "confidence": "medium",
    "source_note": "Not verified: current eligibility, amounts and terms of each programme, and whether QuotesDone qualifies.",
    "as_of": "2026-09-28"
+  },
+  {
+   "id": "ceo:pnl-variance-analysis",
+   "topic": "Reading the monthly P&L: comparisons, materiality and variance decomposition",
+   "kind": "method",
+   "area": "metrics_forecasting",
+   "body_en": "The monthly profit and loss is read in columns: current period, prior period, the variance in dirhams and in percent, and budget with its variance. Dollar (dirham) variance is current minus comparison; percentage variance is (current minus comparison) divided by the absolute value of the comparison; a change in a margin is stated in percentage points or basis points (1 bp = 0.01%). Under IAS 1, which the IFRS for SMEs follows in substance, expenses are presented by nature or by function, operating and non-operating items are kept apart, and income tax is a separate line. Not every movement deserves a question: set a materiality threshold, for example a variance above AED 1,000 or above 15%, either one triggering review, and adjust it as the company grows. Each material variance is decomposed into drivers: volume (more or fewer reveals), rate or price (average fee per reveal), mix (which trades the reveals came from), one-off items, timing (a cost booked in a different month) and currency. Decision rule: every material variance gets a one-line cause, a flag for favourable or unfavourable, and a verdict of temporary or trend; an unexplained variance goes back to the accountant, never into the founder summary as a guess.",
+   "body_ar": "تُقرأ قائمة الأرباح والخسائر الشهرية في أعمدة: الفترة الحالية، والفترة السابقة، والانحراف بالدرهم وبالنسبة المئوية، والموازنة مع انحرافها. الانحراف بالقيمة هو الحالي ناقص المقارَن، والانحراف بالنسبة هو (الحالي ناقص المقارَن) مقسوماً على القيمة المطلقة للمقارَن، ويُعبَّر عن تغير الهامش بالنقاط المئوية أو بنقاط الأساس (نقطة الأساس = 0.01%). وفق معيار المحاسبة الدولي 1، الذي يتبعه معيار الشركات الصغيرة والمتوسطة في جوهره، تُعرض المصروفات حسب طبيعتها أو وظيفتها، وتُفصل البنود التشغيلية عن غير التشغيلية، وتظهر ضريبة الدخل في سطر مستقل. ليست كل حركة تستحق سؤالاً: يُحدد حد للأهمية النسبية، مثل انحراف يتجاوز 1,000 درهم أو 15%، وأيهما تحقق يستدعي المراجعة، ويُعدَّل الحد مع نمو الشركة. يُحلَّل كل انحراف جوهري إلى محركاته: الحجم (عدد الكشوف)، والسعر (متوسط الرسوم لكل كشف)، والمزيج (التخصصات التي جاءت منها الكشوف)، والبنود غير المتكررة، والتوقيت (تكلفة قُيدت في شهر آخر)، والعملة. قاعدة القرار: لكل انحراف جوهري سبب في سطر واحد، وتصنيف كموات أو غير موات، وحكم مؤقت أو اتجاه؛ والانحراف غير المفسَّر يعود إلى المحاسب ولا يدخل ملخص المؤسس كتخمين.",
+   "sources": [
+    "https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements/",
+    "https://www.ifrs.org/issued-standards/ifrs-for-smes/"
+   ],
+   "confidence": "high",
+   "source_note": "The AED 1,000 / 15% threshold is a QuotesDone working threshold, not a figure from a standard.",
+   "as_of": "2026-09-28"
+  },
+  {
+   "id": "ceo:risk-scoring-matrix",
+   "topic": "Scoring risks: the likelihood-impact matrix and the risk register fields",
+   "kind": "method",
+   "area": "risk",
+   "body_en": "Each risk is scored on two axes, likelihood and impact, each high, medium or low, and the matrix gives the level: high likelihood with high impact is critical; high with medium, or medium with high, is high; medium with medium, high with low, or low with high is medium; the rest are low. Risks are grouped by category so none is forgotten: operational (process failures, outages), financial (cost overruns, revenue impact), compliance (regulatory breaches, audit findings), strategic (market and competitor shifts), reputational (customer or public harm) and security (data breaches, access failures, third-party weaknesses). Every register line records the description, likelihood, impact, level, the mitigation that reduces likelihood or impact, the owner seat, and a status of open, mitigated, accepted or closed. An accepted risk is a decision and belongs in the decision log with who accepted it. Decision rule: critical and high risks are reviewed weekly with a named mitigation and a date; medium monthly; the register is prioritised by level, and attention goes to risks that are both material and controllable.",
+   "body_ar": "يُقيَّم كل خطر على محورين: الاحتمال والأثر، ولكل منهما مستوى مرتفع أو متوسط أو منخفض، وتعطي المصفوفة المستوى: احتمال مرتفع مع أثر مرتفع حرج؛ ومرتفع مع متوسط، أو متوسط مع مرتفع، عالٍ؛ ومتوسط مع متوسط، أو مرتفع مع منخفض، أو منخفض مع مرتفع، متوسط؛ والباقي منخفض. تُجمع المخاطر في فئات حتى لا يُنسى أي منها: تشغيلية (أعطال العمليات والانقطاعات)، ومالية (تجاوز التكاليف وأثر الإيراد)، وامتثال (مخالفات تنظيمية وملاحظات تدقيق)، واستراتيجية (تحولات السوق والمنافسين)، وسمعة (ضرر للعملاء أو الجمهور)، وأمن (اختراق البيانات وإخفاق التحكم بالوصول وضعف الأطراف الثالثة). يسجل كل سطر في السجل الوصف والاحتمال والأثر والمستوى والإجراء الذي يخفض الاحتمال أو الأثر والمقعد المسؤول والحالة: مفتوح أو مُخفَّف أو مقبول أو مغلق. الخطر المقبول قرار، ومكانه سجل القرارات مع اسم من قبله. قاعدة القرار: تُراجع المخاطر الحرجة والعالية أسبوعياً مع إجراء مسمى وتاريخ، والمتوسطة شهرياً؛ ويُرتب السجل حسب المستوى، ويُوجَّه الاهتمام إلى المخاطر الجوهرية القابلة للتحكم.",
+   "sources": [
+    "https://www.coso.org/enterprise-risk-management",
+    "https://www.iso.org/iso-31000-risk-management.html"
+   ],
+   "confidence": "high",
+   "source_note": "The three-by-three matrix and review cadence are common practice (ISO 31000 and COSO describe the process, not one fixed matrix).",
+   "as_of": "2026-09-28"
   }
  ],
  "eval": [
@@ -2583,6 +2613,34 @@
    "expected_entry_ids": [
     "ceo:non-dilutive-capital-uae"
    ]
+  },
+  {
+   "q_en": "How is a percentage variance on the P&L calculated?",
+   "q_ar": "كيف يُحسب الانحراف بالنسبة المئوية في قائمة الأرباح والخسائر؟",
+   "expected_entry_ids": [
+    "ceo:pnl-variance-analysis"
+   ]
+  },
+  {
+   "q_en": "Revenue fell this month. How do we break the variance down?",
+   "q_ar": "انخفض الإيراد هذا الشهر، كيف نحلل الانحراف؟",
+   "expected_entry_ids": [
+    "ceo:pnl-variance-analysis"
+   ]
+  },
+  {
+   "q_en": "A risk is high likelihood and high impact. What level is it?",
+   "q_ar": "خطر احتماله مرتفع وأثره مرتفع، ما مستواه؟",
+   "expected_entry_ids": [
+    "ceo:risk-scoring-matrix"
+   ]
+  },
+  {
+   "q_en": "How often are high risks reviewed?",
+   "q_ar": "كم مرة تُراجع المخاطر العالية؟",
+   "expected_entry_ids": [
+    "ceo:risk-scoring-matrix"
+   ]
   }
  ],
  "verified": {
@@ -2701,7 +2759,9 @@
     "ceo:llc-manager-duties-and-liability",
     "ceo:seven-powers-strategy",
     "ceo:jobs-to-be-done",
-    "ceo:non-dilutive-capital-uae"
+    "ceo:non-dilutive-capital-uae",
+    "ceo:pnl-variance-analysis",
+    "ceo:risk-scoring-matrix"
    ],
    "unverified_parts": [
     {
@@ -2719,9 +2779,22 @@
     {
      "id": "ceo:non-dilutive-capital-uae",
      "note": "Not verified: current eligibility, amounts and terms of each programme, and whether QuotesDone qualifies."
+    },
+    {
+     "id": "ceo:pnl-variance-analysis",
+     "note": "The AED 1,000 / 15% threshold is a QuotesDone working threshold, not a figure from a standard."
+    },
+    {
+     "id": "ceo:risk-scoring-matrix",
+     "note": "The three-by-three matrix and review cadence are common practice (ISO 31000 and COSO describe the process, not one fixed matrix)."
     }
    ],
-   "area_tag": "every entry carries area; the loader writes it as tag area:<area> and structured_data.area"
+   "area_tag": "every entry carries area; the loader writes it as tag area:<area> and structured_data.area",
+   "skills_used": [
+    "finance:financial-statements",
+    "daloopa:unit-economics",
+    "operations:risk-assessment"
+   ]
   }
  }
 }
