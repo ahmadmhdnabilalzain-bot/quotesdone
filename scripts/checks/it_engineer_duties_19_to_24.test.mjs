@@ -257,8 +257,11 @@ test('the table drill passes a page identical to live and names a stale export',
   assert.equal(r.restore_open, true, 'a drill with no table to restore must fail');
 });
 
-test('an empty page passes only when the export itself says the table was empty', { skip: SKIP }, async () => {
+test('an empty page never passes: a lost export is named, and an empty one proves nothing', { skip: SKIP }, async () => {
   // ZZ DEMO: a scratch table in the drill list, empty live, so the only difference is what the export says.
+  // 24 Sep 2026 (#912, the_restore_drill_passes_only_on_rows_it_actually_restored.sql): the drill's only historical
+  // "pass" was a restore of 0 rows against an empty live table, so an empty restore is now a failure with its own
+  // reason. This test used to assert that pass; it asserts the stricter rule now.
   const r = await probe(`
     declare v_lost jsonb; v_empty jsonb;
     begin
@@ -273,8 +276,8 @@ test('an empty page passes only when the export itself says the table was empty'
         'restore_open_after_empty', (select closed_at is null from public.it_engineer_finding where issue_key = 'duty:restore_table:restore'));
     end`);
   assert.match(r.lost_error, /export holds 3 row\(s\) and none reached the restore/, 'an export that lost its rows passed because the live table is empty');
-  assert.equal(r.empty_error, null);
-  assert.equal(r.restore_open_after_empty, false, 'an empty table exported empty must pass');
+  assert.match(r.empty_error ?? '', /holds 0 rows, so nothing was restored and nothing was proved/, 'an empty restore passed the drill');
+  assert.equal(r.restore_open_after_empty, true, 'an empty restore closed the restore finding');
 });
 
 test('a drill that has not completed for 33 days is its own finding, and a completed drill closes it', { skip: OVERDUE_SKIP }, async () => {
