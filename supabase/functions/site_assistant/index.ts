@@ -131,6 +131,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     const b = await req.json().catch(()=>({} as any));
     // A signed-in customer or supplier rates a closed support case from the portal (CSAT 1-5, CES 1-7).
     // The identity is the verified session; fn_support_portal_rate refuses a case that is not theirs.
+    if (b.action === 'support_rating_due') {
+      const me = await identify(req);
+      if (!me) return J({ error: 'sign_in_required' }, 401);
+      const { data, error } = await admin.rpc('fn_support_rating_due', { p_party_kind: me.audience, p_party_id: me.id });
+      return error ? J({ error: 'rating_due_failed' }, 400) : J({ ok: true, due: data || [] });
+    }
     if (b.action === 'support_rating') {
       const me = await identify(req);
       if (!me) return J({ error: 'sign_in_required' }, 401);

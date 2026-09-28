@@ -269,6 +269,28 @@ begin
 end $fn$;
 revoke execute on function public.fn_support_portal_rate(text, text, text, numeric, numeric, text) from public, anon, authenticated;
 
+-- What the portal shows: this party's closed cases that asked for a rating in the last 14 days and have none.
+create or replace function public.fn_support_rating_due(p_party_kind text, p_party_id text)
+returns jsonb
+language plpgsql stable security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_prof bigint;
+begin
+  select p.id into v_prof from public.support_customer_profile p
+   where (p_party_kind = 'customer' and p.customer_id::text = p_party_id)
+      or (p_party_kind = 'supplier' and p.lead_id::text = p_party_id)
+   limit 1;
+  if v_prof is null then return '[]'::jsonb; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('case_ref', c.case_ref, 'subject', left(c.subject, 140), 'closed_at', c.closed_at)
+                                    order by c.closed_at desc)
+                     from public.support_case c
+                    where c.customer_profile_id = v_prof and c.state = 'closed'
+                      and c.csat_requested_at > now() - interval '14 days'
+                      and not exists (select 1 from public.feedback f where f.case_id = c.case_id and f.kind = 'csat')), '[]'::jsonb);
+end $fn$;
+revoke execute on function public.fn_support_rating_due(text, text) from public, anon, authenticated;
+
 -- 6. A low CSAT opens a service-recovery case against the same person, linked to the case it recovers.
 create or replace function public.fn_support_low_csat_opens_recovery()
 returns trigger
