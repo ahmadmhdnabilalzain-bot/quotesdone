@@ -27,7 +27,7 @@
 --      asked once (stage day_three); a reveal 14-30 days old is asked once more (day_fourteen) unless the customer
 --      already answered hired or not hired. A refunded or disputed reveal is not asked.
 --   3. fn_customer_followup_view / fn_customer_followup_answer: the one-tap page (edge function customer_followup,
---      served on quotesdone.com/u/followup) reads the question by token and records the answer:
+--      served on quotesdone.ae/u/followup) reads the question by token and records the answer:
 --        hired yes     -> fn_outcome_record(inquiry and quote, 'hired', correct) and inquiries.hired_supplier_id when
 --                         empty;
 --        hired no      -> fn_outcome_record(inquiry and quote, 'not_hired', wrong, with the customer's words);
@@ -161,7 +161,7 @@ begin
     v_lang := public.fn_customer_message_lang(r.inquiry_id, r.locale);
     v_tok := gen_random_uuid();
     m := public.fn_customer_followup_copy(v_stage, v_lang, r.full_name, r.company_name, r.rfq_no,
-           public.fn_trade_label(r.trade, v_lang), 'https://quotesdone.com/u/followup?t=' || v_tok);
+           public.fn_trade_label(r.trade, v_lang), 'https://quotesdone.ae/u/followup?t=' || v_tok);
     v := public.fn_customer_support_duty_send('followup.' || v_stage, r.tx::text, 'customer', r.email, v_lang,
            m->>'subject', m->>'body', r.cid, null, r.inquiry_id);
     -- a question counts as asked only when it went out; a suppressed address is recorded by duty_send, not here
@@ -285,14 +285,14 @@ begin
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
         || 'مضى بعض الوقت على آخر طلب لكم معنا' || coalesce(' في ' || v_labels, '') || '.'
         || case when v_n > 0 then ' ويقدّم اليوم ' || v_n || ' من الموردين الموثّقين في الإمارات عروضهم في ' || v_first || '.' else '' end
-        || ' وحين يحين مشروعكم القادم، يكفي أن تنشروه مرة واحدة، فنقارن العروض ونوصي بأفضل ثلاثة منها من حيث القيمة. ولا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها: https://quotesdone.com/ar/me' || chr(10) || chr(10)
+        || ' وحين يحين مشروعكم القادم، يكفي أن تنشروه مرة واحدة، فنقارن العروض ونوصي بأفضل ثلاثة منها من حيث القيمة. ولا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% إلا حينها: https://quotesdone.ae/ar/me' || chr(10) || chr(10)
         || 'وإن كنتم لا ترغبون في تلقّي مثل هذه الرسائل، فيكفي أن تردّوا على هذه الرسالة لنتوقف عن إرسالها.' || chr(10) || chr(10)
         || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
       else
         'Dear ' || v_name || ',' || chr(10) || chr(10)
         || 'It has been a while since your last request with us' || coalesce(' for ' || v_labels, '') || '.'
         || case when v_n > 0 then ' Today ' || v_n || ' verified UAE supplier' || case when v_n = 1 then ' quotes' else 's quote' end || ' for ' || v_first || '.' else '' end
-        || ' When the next job comes up, post it once; we compare the quotes and recommend the top three by value. You reveal only the one you choose, and pay 3% only then: https://quotesdone.com/me' || chr(10) || chr(10)
+        || ' When the next job comes up, post it once; we compare the quotes and recommend the top three by value. You reveal only the one you choose, and pay 3% only then: https://quotesdone.ae/me' || chr(10) || chr(10)
         || 'If you would rather not hear from us like this, reply to this e-mail and we will stop.' end,
       r.id, null, r.last_inquiry);
     if coalesce((v->>'sent')::boolean, false) then v_sent := v_sent + 1; end if;

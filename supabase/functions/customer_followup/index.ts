@@ -1,5 +1,5 @@
 // customer_followup — the one-tap answer to "did you hire, and how was the supplier?" (customer_support,
-// founder_instruction 1013 item 1). Served to the customer on quotesdone.com/u/followup (src/app/u/followup),
+// founder_instruction 1013 item 1). Served to the customer on quotesdone.ae/u/followup (src/app/u/followup),
 // because Supabase serves an edge function's HTML as text/plain.
 //   GET  ?t=<token>  shows the question (fn_customer_followup_view). Never writes.
 //   POST ?t=<token>  records the answer (fn_customer_followup_answer): the outcome on the seat that decided, and

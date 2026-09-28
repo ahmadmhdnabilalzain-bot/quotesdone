@@ -99,7 +99,7 @@ begin
   o := o || jsonb_build_object('fu1', fn_customer_support_followup_tick(), 'fu2', fn_customer_support_followup_tick());
   o := o || jsonb_build_object('asked', (select jsonb_object_agg(k->>t.customer_id::text, f.stage || '/' || f.lang) from customer_followup f join transactions t on t.id = f.transaction_id where t.id in (ta, tb, tc, td)));
   o := o || jsonb_build_object('ledger', (select jsonb_object_agg(k->>customer_id::text, stage || '/' || outcome) from customer_support_duty_message where customer_id in (ca, cb, cc, cd) and stage like 'followup.%'));
-  o := o || jsonb_build_object('note_a', (select jsonb_build_object('lang', lang, 'subject', subject, 'link', body ~ 'https://quotesdone.com/u/followup\?t=[0-9a-f-]{36}') from notifications where to_email = 'zz.1013.a@example.invalid' and type = 'duty_followup_day_three' limit 1));
+  o := o || jsonb_build_object('note_a', (select jsonb_build_object('lang', lang, 'subject', subject, 'link', body ~ '^.*https://quotesdone[.]ae/u/followup\?t=[0-9a-f-]{36}') from notifications where to_email = 'zz.1013.a@example.invalid' and type = 'duty_followup_day_three' limit 1));
 
   -- 3. the answers
   o := o || jsonb_build_object('view_a', fn_customer_followup_view((select f.token from customer_followup f where f.transaction_id = ta)) - 'company');
@@ -123,7 +123,7 @@ begin
   -- 5. the win-back clock
   o := o || jsonb_build_object('wb1', fn_customer_support_winback_tick(), 'wb2', fn_customer_support_winback_tick());
   o := o || jsonb_build_object('wb_ledger', (select jsonb_object_agg(k->>customer_id::text, outcome) from customer_support_duty_message where customer_id in (ce, cf, cg) and stage = 'winback.dormant'));
-  o := o || jsonb_build_object('wb_note', (select jsonb_build_object('lang', lang, 'label', body like '%الدهانات والتشطيبات%', 'n', count(*) over ()) from notifications where to_email = 'zz.1013.e@example.invalid' and type = 'duty_winback_dormant' limit 1));
+  o := o || jsonb_build_object('wb_note', (select jsonb_build_object('lang', lang, 'label', body like '%الدهانات والتشطيبات%', 'ae', body like '%https://quotesdone.ae/ar/me%' and body not like '%quotesdone.com%', 'ae', body like '%https://quotesdone.ae/ar/me%' and body not like '%quotesdone.com%', 'n', count(*) over ()) from notifications where to_email = 'zz.1013.e@example.invalid' and type = 'duty_winback_dormant' limit 1));
   raise exception 'CHK<<%>>', o::text;
 end $p$;
 `;
@@ -155,7 +155,7 @@ const checks = [
   ['day 14: "yes" is not asked again, "not yet" is', () => assert.deepEqual(o.day14, [I.d])],
   ['win-back: the quiet customer once, the suppressed one recorded, the active one not', () => assert.deepEqual(o.wb_ledger, { [I.e]: 'queued', [I.g]: 'not_sendable: suppressed' })],
   ['win-back writes once', () => assert.equal(o.wb_note.n, 1)],
-  ['win-back is in the last request language and names their trade', () => assert.deepEqual([o.wb_note.lang, o.wb_note.label], ['ar', true])],
+  ['win-back is in the last request language, names their trade, links to quotesdone.ae', () => assert.deepEqual([o.wb_note.lang, o.wb_note.label, o.wb_note.ae], ['ar', true, true])],
 ];
 let failed = 0;
 for (const [name, fn] of checks) {

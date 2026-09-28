@@ -45,6 +45,12 @@ test('the answer is an outcome; "not yet" is not', () => {
   assert.match(b, /if f\.hired in \('yes', 'no'\) then return/, 'a later tap can overwrite the first definite answer');
 });
 
+test('customer links are on quotesdone.ae, where UAE visitors are served', () => {
+  const links = [...SQL.matchAll(/https:\/\/[a-z.]+\/[^\s']*/g)].map((m) => m[0]);
+  assert.ok(links.length >= 3, 'the follow-up and win-back links were not found');
+  for (const l of links) assert.match(l, /^https:\/\/quotesdone\.ae\//, `${l} is not on quotesdone.ae`);
+});
+
 test('plain code: no model anywhere', () => {
   for (const s of [SQL, EDGE]) assert.doesNotMatch(s, /fn_seat_duty_reason|fn_reason_hold|ai_gateway|_shared\/llm|think\(/);
 });
