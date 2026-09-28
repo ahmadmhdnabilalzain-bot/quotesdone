@@ -110,7 +110,7 @@ begin
   select * into v_sup from public.support_case where party_kind = 'supplier' and party_id = '126512' and state <> 'closed';
   if v_sup.case_id is null or v_sup.channel <> 'portal' then v_fail := v_fail || ' supplier portal chat opened no portal case;'; end if;
   perform public.fn_support_case_close(v_sup.case_ref, 'services page explained', 'probe');
-  -- the portal's rating control asks fn_support_rating_due (site_assistant 'support_rating_due') what to show
+  -- the portal's rating control asks fn_support_rating_due (supplier_api 'support_rating_due') what to show
   v_r := v_r || jsonb_build_object('rating_due_before', public.fn_support_rating_due('supplier', '126512') -> 0 ->> 'case_ref');
   if v_r ->> 'rating_due_before' is distinct from v_sup.case_ref then v_fail := v_fail || ' the portal is not shown the rating due;'; end if;
   v_r := v_r || jsonb_build_object('supplier_portal_case', v_sup.case_ref, 'supplier_channel', v_sup.channel,
