@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T14:40:26.802Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T15:05:54.035Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -27682,7 +27682,8 @@ begin
     -- recheck found "nothing was queued"). A subject that no longer exists cannot be re-checked.
     select * into v_req from public.agent_actions
      where id = nullif(r.verified_evidence ->> 'request_id', '')::bigint and kind = 'handoff';
-    v_subject := coalesce(nullif(v_req.detail ->> 'subject_id', '')::bigint,
+    -- subject_id is a notifications.id only when it is all digits; a never-queued message carries a text dedupe key.
+    v_subject := coalesce(case when v_req.detail ->> 'subject_id' ~ '^[0-9]{1,18}$' then (v_req.detail ->> 'subject_id')::bigint end,
                           (r.verified_evidence -> 'rechecked' ->> 'notification_id')::bigint);
     if v_req.id is not null and v_req.detail ->> 'subject_table' = 'notifications' and v_subject is not null
        and not exists (select 1 from public.notifications x where x.id = v_subject) then
