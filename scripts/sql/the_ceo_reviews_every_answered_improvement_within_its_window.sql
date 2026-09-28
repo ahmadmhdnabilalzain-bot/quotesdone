@@ -31,7 +31,6 @@
 --
 --   node scripts/apply_sql.mjs scripts/sql/the_ceo_reviews_every_answered_improvement_within_its_window.sql --apply --ddl
 
-begin;
 
 create or replace function public.fn_ceo_reviews_answered_improvements()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -78,4 +77,3 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
    'scripts/sql/the_ceo_reviews_every_answered_improvement_within_its_window.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
-commit;
