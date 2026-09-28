@@ -1,0 +1,80 @@
+{
+  "trade": "laboratory_equipment",
+  "entries": [
+    {
+      "id": "laboratory_equipment:spec-checklist",
+      "topic": "Laboratory equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For laboratory equipment (trade code laboratory_equipment only), every quoted line must state: Instrument type, make and model; Performance specification; Power and utilities needed; Software and licences; Installation and qualification; Calibration certificate; User training; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط معدات المختبرات (رمز النشاط laboratory_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ مواصفة الأداء؛ الطاقة والمرافق المطلوبة؛ البرمجيات والتراخيص؛ التركيب والتأهيل؛ شهادة المعايرة؛ تدريب المستخدمين؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Instrument type, make and model",
+        "Performance specification",
+        "Power and utilities needed",
+        "Software and licences",
+        "Installation and qualification",
+        "Calibration certificate",
+        "User training",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "laboratory_equipment:uae-standards-and-approvals",
+      "topic": "Laboratory equipment - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to laboratory equipment in the UAE: MoIAT (Ministry of Industry and Advanced Technology, which took over the former ESMA functions) lists products conformity certificates, national conformity marks, efficiency labels, UAE RoHS and Halal certification among its services, and separates regulated from non-regulated products. EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. A buyer may also name, as the test or product standard for a line, IEC 61010-1 (safety of laboratory electrical equipment); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for laboratory equipment. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط معدات المختبرات في الإمارات: تدرج وزارة الصناعة والتكنولوجيا المتقدمة (التي تولت مهام هيئة الإمارات للمواصفات والمقاييس سابقاً) ضمن خدماتها شهادات مطابقة المنتجات، وعلامات المطابقة الوطنية، وملصقات الكفاءة، ونظام تقييد المواد الخطرة (UAE RoHS)، وشهادات الحلال، وتفرّق بين المنتجات الخاضعة للتنظيم وغير الخاضعة له. يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل IEC 61010-1 (سلامة المعدات الكهربائية المخبرية)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط معدات المختبرات. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for laboratory equipment. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on laboratory equipment?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـمعدات المختبرات؟",
+      "expected_entry_ids": [
+        "laboratory_equipment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a laboratory equipment supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد معدات المختبرات؟",
+      "expected_entry_ids": [
+        "laboratory_equipment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "laboratory_equipment:spec-checklist",
+      "laboratory_equipment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "laboratory_equipment:spec-checklist",
+      "laboratory_equipment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

@@ -98,6 +98,10 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
               where source_table = 'ceo_experiment_verdict' and source_id like e || ':%'));
 
   -- the competitor watch
+  -- Every live competitor was fetched on 24 Sep, so for 30 days the real scan has nothing due and starts 0 fetches
+  -- (29 Sep 2026). A watched ZZ DEMO competitor, due now, is the one the scan must start; its request is queued
+  -- inside this transaction and rolled back with it.
+  insert into public.competitor (name, url, kind, threat_level, watched, what_they_do) values ('ZZ DEMO watched competitor', 'https://zz-watched.example.invalid', 'marketplace', 'low', true, 'ZZ DEMO');
   v := public.fn_marketing_competitor_scan();
   o := o || jsonb_build_object('fetches_started', v->'requested');
   insert into public.competitor (name, url, kind, threat_level, watched, what_they_do, business_model, overlap, strength, weakness) values ('ZZ DEMO competitor', 'https://zz.example.invalid', 'marketplace', 'low', false, 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO', 'ZZ DEMO') returning id into c;
