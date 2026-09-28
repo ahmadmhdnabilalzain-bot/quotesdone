@@ -51,6 +51,17 @@
 -- then deletes the pending note and appends this file to the END of MANIFEST.txt. Idempotent: every
 -- insert is on conflict, every alter is if-not-exists. PROBE: the last statement returns one verdict row.
 
+-- 24 SEP 2026 (sales_engineer, same subject, so this file and not a second one): 18 more trades, 195 -> 213.
+-- MEASURED: demolition, general contracting, masonry, swimming pools, marble & stone, insulation, curtains &
+-- blinds, facilities management, home/office removals and architectural/interior design existed only as a
+-- SERVICE under a neighbour (civil_works, landscaping, flooring, waterproofing, upholstery, cleaning,
+-- logistics_moving, interior_fitout), and the intake words for them resolved to that neighbour; lighting
+-- fixtures were a service of electrical; packaging "in all its kinds" (founder, 895) lacked labels & sleeves,
+-- protective, woven sacks / FIBC, luxury boxes, paper bags, pharma packaging and tapes & strapping as trades
+-- (they were services under packaging). Each is added the same way as the 153: own two names as aliases, a
+-- group, EN + AR services, umbrella_code = the trade it was a service of (the old services stay, nothing is
+-- remapped). The intake words are repointed in an_intake_trade_word_names_its_own_trade_never_a_neighbour.sql.
+
 -- 1. THE TWELVE PARENT GROUPS ----------------------------------------------------------------------
 create table if not exists public.taxonomy_trade_group (
   code     text primary key check (code ~ '^[a-z][a-z0-9_]*$'),
@@ -300,7 +311,26 @@ from (values
   ('musical_pro_audio','Musical Instruments & Pro Audio','الآلات الموسيقية والصوتيات الاحترافية',array['musical instruments & pro audio','الآلات الموسيقية والصوتيات الاحترافية']::text[],449,'furniture_hospitality_consumer'),
   ('furniture_repair','Furniture Repair & Refurbishment','إصلاح الأثاث وتجديده',array['furniture repair & refurbishment','إصلاح الأثاث وتجديده']::text[],450,'facilities_property'),
   ('investigation_screening','Investigation & Background Screening','التحريات والتحقق من الخلفيات',array['investigation & background screening','التحريات والتحقق من الخلفيات']::text[],451,'professional_business'),
-  ('tents_shades','Tents, Shades & Canopies','الخيام والمظلات',array['tents, shades & canopies','الخيام والمظلات']::text[],452,'construction_building')
+  ('tents_shades','Tents, Shades & Canopies','الخيام والمظلات',array['tents, shades & canopies','الخيام والمظلات']::text[],452,'construction_building'),
+  -- 24 Sep 2026 (sales_engineer): the trades a UAE buyer names that were still only a service under a neighbour.
+  ('demolition_works','Demolition & strip-out','أعمال الهدم والإزالة',array['demolition & strip-out','أعمال الهدم والإزالة']::text[],460,'construction_building'),
+  ('general_contracting','General building contracting','المقاولات العامة للمباني',array['general building contracting','المقاولات العامة للمباني']::text[],461,'construction_building'),
+  ('masonry_blockwork','Masonry, blockwork & plastering','أعمال البناء بالطابوق واللياسة',array['masonry, blockwork & plastering','أعمال البناء بالطابوق واللياسة']::text[],462,'construction_building'),
+  ('swimming_pools','Swimming pools & water features','المسابح والنوافير المائية',array['swimming pools & water features','المسابح والنوافير المائية']::text[],463,'construction_building'),
+  ('marble_stone','Marble, granite & natural stone','الرخام والجرانيت والحجر الطبيعي',array['marble, granite & natural stone','الرخام والجرانيت والحجر الطبيعي']::text[],464,'construction_building'),
+  ('thermal_insulation','Thermal & acoustic insulation','العزل الحراري والصوتي',array['thermal & acoustic insulation','العزل الحراري والصوتي']::text[],465,'construction_building'),
+  ('curtains_blinds','Curtains & blinds','الستائر بأنواعها',array['curtains & blinds','الستائر بأنواعها']::text[],466,'furniture_hospitality_consumer'),
+  ('facilities_management','Facilities management (hard & soft FM)','إدارة المرافق',array['facilities management (hard & soft fm)','إدارة المرافق']::text[],467,'facilities_property'),
+  ('removals_relocation','Home & office removals','نقل الأثاث المنزلي والمكتبي',array['home & office removals','نقل الأثاث المنزلي والمكتبي']::text[],468,'transport_mobility'),
+  ('design_consultancy','Architectural & interior design','التصميم المعماري والداخلي',array['architectural & interior design','التصميم المعماري والداخلي']::text[],469,'professional_business'),
+  ('lighting_fixtures','Lighting fixtures & luminaires','وحدات الإنارة والمصابيح',array['lighting fixtures & luminaires','وحدات الإنارة والمصابيح']::text[],470,'mep_building_systems'),
+  ('labels_sleeves','Labels & shrink sleeves','الملصقات والأغلفة الانكماشية',array['labels & shrink sleeves','الملصقات والأغلفة الانكماشية']::text[],471,'materials_packaging'),
+  ('protective_packaging','Protective packaging','مواد التغليف الواقية',array['protective packaging','مواد التغليف الواقية']::text[],472,'materials_packaging'),
+  ('bulk_bags_sacks','Woven sacks & bulk bags (FIBC)','الأكياس المنسوجة والأكياس الكبيرة للمواد السائبة',array['woven sacks & bulk bags (fibc)','الأكياس المنسوجة والأكياس الكبيرة للمواد السائبة']::text[],473,'materials_packaging'),
+  ('luxury_rigid_boxes','Luxury & gift boxes','علب الهدايا والتغليف الفاخر',array['luxury & gift boxes','علب الهدايا والتغليف الفاخر']::text[],474,'materials_packaging'),
+  ('paper_bags','Paper bags & carrier bags','الأكياس الورقية وأكياس التسوق',array['paper bags & carrier bags','الأكياس الورقية وأكياس التسوق']::text[],475,'materials_packaging'),
+  ('pharma_packaging','Pharmaceutical packaging','التغليف الدوائي',array['pharmaceutical packaging','التغليف الدوائي']::text[],476,'materials_packaging'),
+  ('packaging_tapes_strapping','Packaging tapes & strapping','أشرطة التغليف وأحزمة الربط',array['packaging tapes & strapping','أشرطة التغليف وأحزمة الربط']::text[],477,'materials_packaging')
 ) as v(code, label, label_ar, aliases, sort, group_code)
 -- A code a supplier proposal already added (fn_trade_proposal_decide, sort 900) takes the reviewed names, its
 -- own two names as aliases (kept with any it had), and its group. It is not reactivated if someone retired it.
@@ -362,7 +392,25 @@ with v(code, umbrella_code) as (values
   ('fencing_shades','aluminium'),
   ('corrosion_insulation','painting'),
   ('tool_equipment_rental','heavy_equipment'),
-  ('ev_charging','electrical')
+  ('ev_charging','electrical'),
+  ('demolition_works','civil_works'),
+  ('general_contracting','civil_works'),
+  ('masonry_blockwork','civil_works'),
+  ('swimming_pools','landscaping'),
+  ('marble_stone','flooring'),
+  ('thermal_insulation','waterproofing'),
+  ('curtains_blinds','upholstery'),
+  ('facilities_management','cleaning'),
+  ('removals_relocation','logistics_moving'),
+  ('design_consultancy','interior_fitout'),
+  ('lighting_fixtures','electrical'),
+  ('labels_sleeves','packaging'),
+  ('protective_packaging','packaging'),
+  ('bulk_bags_sacks','packaging'),
+  ('luxury_rigid_boxes','packaging'),
+  ('paper_bags','packaging'),
+  ('pharma_packaging','packaging'),
+  ('packaging_tapes_strapping','packaging')
 )
 update public.taxonomy_trade t set umbrella_code = v.umbrella_code
   from v where t.code = v.code and t.umbrella_code is distinct from v.umbrella_code;
@@ -1110,7 +1158,79 @@ values
   ('tents_shades','tensile_structures','Tensile membrane structures','الهياكل الغشائية المشدودة',20),
   ('tents_shades','event_tents','Event tents and marquees','خيام الفعاليات',30),
   ('tents_shades','shade_sails','Shade sails','أشرعة التظليل',40),
-  ('tents_shades','awnings_tarpaulins','Awnings and tarpaulins','المظلات الجانبية والأغطية المشمعة',50)
+  ('tents_shades','awnings_tarpaulins','Awnings and tarpaulins','المظلات الجانبية والأغطية المشمعة',50),
+  ('demolition_works','building_demolition','Building demolition','هدم المباني',10),
+  ('demolition_works','interior_strip_out','Interior strip-out','إزالة التشطيبات الداخلية',20),
+  ('demolition_works','concrete_cutting_coring','Concrete cutting & core drilling','قص الخرسانة والحفر الأسطواني',30),
+  ('demolition_works','debris_removal','Debris removal & disposal','ترحيل المخلفات والتخلص منها',40),
+  ('general_contracting','villa_construction','Villa construction','إنشاء الفلل',10),
+  ('general_contracting','building_construction','Commercial & residential buildings','إنشاء المباني التجارية والسكنية',20),
+  ('general_contracting','extensions_annexes','Extensions & annexes','الإضافات والملاحق',30),
+  ('general_contracting','design_and_build','Design and build','التصميم والتنفيذ',40),
+  ('masonry_blockwork','blockwork','Blockwork','البناء بالطابوق',10),
+  ('masonry_blockwork','plastering','Plastering','أعمال اللياسة',20),
+  ('masonry_blockwork','screeding','Floor screeding','تسوية الأرضيات بالمونة',30),
+  ('masonry_blockwork','stone_cladding','Stone cladding installation','تركيب التكسيات الحجرية',40),
+  ('swimming_pools','pool_construction','Pool construction','إنشاء المسابح',10),
+  ('swimming_pools','pool_maintenance','Pool maintenance','صيانة المسابح',20),
+  ('swimming_pools','pool_equipment','Pumps, filters & pool equipment','مضخات ومرشحات ومعدات المسابح',30),
+  ('swimming_pools','water_features','Fountains & water features','النوافير والمجسمات المائية',40),
+  ('marble_stone','marble_supply','Marble & granite slabs','ألواح الرخام والجرانيت',10),
+  ('marble_stone','stone_fabrication','Cutting & fabrication','القص والتصنيع',20),
+  ('marble_stone','worktops_vanities','Worktops & vanity tops','أسطح المطابخ والمغاسل',30),
+  ('marble_stone','stone_polishing','Polishing & restoration','التلميع والترميم',40),
+  ('thermal_insulation','roof_insulation','Roof insulation','عزل الأسطح',10),
+  ('thermal_insulation','wall_insulation','Wall & facade insulation','عزل الجدران والواجهات',20),
+  ('thermal_insulation','acoustic_insulation','Acoustic insulation','العزل الصوتي',30),
+  ('thermal_insulation','pipe_duct_insulation','Pipe & duct insulation','عزل الأنابيب ومجاري الهواء',40),
+  ('curtains_blinds','curtains','Curtains & sheers','الستائر القماشية والشفافة',10),
+  ('curtains_blinds','roller_blinds','Roller & blackout blinds','الستائر الدوارة والمعتمة',20),
+  ('curtains_blinds','motorised_blinds','Motorised curtains & blinds','الستائر الآلية',30),
+  ('curtains_blinds','office_blinds','Office vertical & venetian blinds','الستائر العمودية والشرائحية للمكاتب',40),
+  ('facilities_management','integrated_fm','Integrated facilities management','الإدارة المتكاملة للمرافق',10),
+  ('facilities_management','mep_amc','MEP maintenance contracts (AMC)','عقود الصيانة السنوية للأنظمة الكهروميكانيكية',20),
+  ('facilities_management','soft_services','Soft services','الخدمات المساندة',30),
+  ('facilities_management','building_maintenance','Building maintenance','صيانة المباني',40),
+  ('removals_relocation','home_moving','Home moving','نقل المنازل',10),
+  ('removals_relocation','office_relocation','Office relocation','نقل المكاتب',20),
+  ('removals_relocation','packing_crating','Packing & unpacking','التغليف وفك التغليف',30),
+  ('removals_relocation','furniture_assembly','Furniture dismantling & assembly','فك الأثاث وتركيبه',40),
+  ('design_consultancy','interior_design','Interior design','التصميم الداخلي',10),
+  ('design_consultancy','architectural_design','Architectural design','التصميم المعماري',20),
+  ('design_consultancy','visualisation_3d','3D visualisation','التصور ثلاثي الأبعاد',30),
+  ('design_consultancy','design_approvals','Design authority approvals','اعتماد التصاميم لدى الجهات',40),
+  ('lighting_fixtures','indoor_lighting','Indoor luminaires','وحدات الإنارة الداخلية',10),
+  ('lighting_fixtures','outdoor_lighting','Outdoor & facade lighting','الإنارة الخارجية وإنارة الواجهات',20),
+  ('lighting_fixtures','decorative_lighting','Decorative lighting','الإنارة الديكورية',30),
+  ('lighting_fixtures','lighting_controls','Lighting controls','أنظمة التحكم بالإنارة',40),
+  ('labels_sleeves','self_adhesive_labels','Self-adhesive labels','الملصقات اللاصقة',10),
+  ('labels_sleeves','shrink_sleeves','Shrink sleeves','الأغلفة الانكماشية',20),
+  ('labels_sleeves','barcode_labels','Barcode & thermal labels','ملصقات الباركود والملصقات الحرارية',30),
+  ('labels_sleeves','in_mould_labels','In-mould labels','الملصقات داخل القالب',40),
+  ('protective_packaging','bubble_wrap','Bubble wrap & air cushions','أغلفة الفقاعات والوسائد الهوائية',10),
+  ('protective_packaging','foam_inserts','Foam inserts & sheets','حشوات وألواح الفوم',20),
+  ('protective_packaging','edge_protectors','Edge & corner protectors','واقيات الحواف والزوايا',30),
+  ('protective_packaging','void_fill','Void fill','مواد ملء الفراغات',40),
+  ('bulk_bags_sacks','pp_woven_sacks','PP woven sacks','أكياس البولي بروبيلين المنسوجة',10),
+  ('bulk_bags_sacks','jumbo_bags','Jumbo bags (FIBC)','الأكياس الكبيرة (جامبو)',20),
+  ('bulk_bags_sacks','liners','Sack & bag liners','البطانات الداخلية للأكياس',30),
+  ('bulk_bags_sacks','printed_sacks','Printed sacks','الأكياس المطبوعة',40),
+  ('luxury_rigid_boxes','rigid_gift_boxes','Rigid gift boxes','علب الهدايا الصلبة',10),
+  ('luxury_rigid_boxes','magnetic_closure_boxes','Magnetic closure boxes','العلب ذات الإغلاق المغناطيسي',20),
+  ('luxury_rigid_boxes','perfume_jewellery_boxes','Perfume & jewellery boxes','علب العطور والمجوهرات',30),
+  ('luxury_rigid_boxes','corporate_gift_packaging','Corporate gift packaging','تغليف هدايا الشركات',40),
+  ('paper_bags','kraft_paper_bags','Kraft paper bags','الأكياس الورقية من ورق الكرافت',10),
+  ('paper_bags','printed_carrier_bags','Printed carrier bags','أكياس التسوق المطبوعة',20),
+  ('paper_bags','non_woven_bags','Non-woven reusable bags','الأكياس القابلة لإعادة الاستخدام من القماش غير المنسوج',30),
+  ('paper_bags','luxury_retail_bags','Luxury retail bags','الأكياس الفاخرة للمتاجر',40),
+  ('pharma_packaging','blister_foil','Blister films & foils','أغشية ورقائق البليستر',10),
+  ('pharma_packaging','pharma_cartons','Pharmaceutical cartons','الكراتين الدوائية',20),
+  ('pharma_packaging','vials_ampoules','Vials & ampoules','القوارير والأمبولات',30),
+  ('pharma_packaging','leaflets_inserts','Leaflets & inserts','النشرات الدوائية',40),
+  ('packaging_tapes_strapping','bopp_tapes','BOPP packing tapes','أشرطة التغليف اللاصقة',10),
+  ('packaging_tapes_strapping','printed_tapes','Printed tapes','الأشرطة المطبوعة',20),
+  ('packaging_tapes_strapping','pet_pp_strapping','PET & PP strapping','أحزمة الربط البلاستيكية',30),
+  ('packaging_tapes_strapping','steel_strapping','Steel strapping','أحزمة الربط الفولاذية',40)
 on conflict (trade_code, code) do nothing;
 
 -- 5. WHAT THE RESEARCH CALLED A MERGE: services added under the existing trade, never a trade of its own.
@@ -1557,7 +1677,7 @@ with bad as (
 select case
   when (select count(*) from public.taxonomy_trade_group) <> 12 then 'PROBE FAILED: taxonomy_trade_group does not hold twelve groups'
   when (select codes from bad) is not null then 'PROBE FAILED: no name, service or group: ' || (select codes from bad)
-  when (select count(*) from public.taxonomy_trade where active and code in ('corrugated_packaging','flexible_packaging','rigid_plastic_packaging','glass_containers','metal_packaging','pallets_wood_plastic','industrial_crating','packaging_machinery','industrial_machinery','machinery_spare_parts','industrial_pumps','valves_actuators','bearings_power_transmission','hand_power_tools','fasteners_fixings','hydraulics_pneumatics','air_compressors','welding_equipment','material_handling','racking_storage','electrical_wholesale','cables_wires','motors_drives','instrumentation_automation','steel_stock','non_ferrous_metals','polymers_resins','rubber_products','industrial_gases','lubricants_industrial_oils','paper_board','abrasives_surface_finishing','industrial_filters','industrial_textiles','castings_forgings','cnc_machining','additive_manufacturing','mining_quarry_supplies','office_furniture','hotel_furniture','outdoor_furniture','school_furniture','retail_shelving','mannequins_visual_merchandising','commercial_kitchen','refrigeration_cold_rooms','laundry_equipment','hospitality_supplies','vending_machines','water_dispensers','cleaning_chemicals','tissue_disposables','medical_equipment','medical_consumables','dental_supplies','laboratory_equipment','pharma_wholesale','uniforms_corporate_apparel','textiles_fabrics','stationery_office_supplies','promotional_gifts','books_educational','software_licensing','telecom_services','electronics_wholesale','mobile_phones_wholesale','home_appliances','vehicles_fleet','vehicle_leasing','auto_parts','tyres_batteries','fuel_diesel','lpg_gas','batteries_storage','water_treatment','fitness_equipment','sports_equipment','playground_equipment','salon_equipment','cosmetics_wholesale','perfumes_wholesale','toys_wholesale','jewellery_supplies','agri_inputs','veterinary_supplies','legal_services','pro_government_services','accounting_bookkeeping','audit_assurance','tax_advisory','insurance_brokerage','recruitment_executive_search','hr_outsourcing','corporate_training','management_consultancy','marketing_advertising','digital_marketing','public_relations','market_research','event_management','exhibition_stands','event_equipment_rental','photo_video_production','translation_interpretation','commercial_printing','software_development','call_centre_bpo','debt_collection','real_estate_services','business_centres','corporate_travel','staff_transport','courier_express','cold_chain_logistics','records_management','security_guarding','iso_certification','hse_consultancy','environmental_consultancy','energy_services','quantity_surveying','land_survey','testing_labs','inspection_ndt','calibration_services','waste_management','recycling_scrap','hazardous_waste','sewage_tanker','water_treatment_services','pest_control','facade_access_maintenance','road_works','infrastructure_utilities','fencing_shades','prefab_buildings','corrosion_insulation','machinery_repair','fleet_maintenance','tool_equipment_rental','laundry_services','ev_charging','aircraft_parts_mro','shipbuilding_repair','leather_footwear','bitumen_petroleum_products','device_repair','event_entertainment','railway_equipment','musical_pro_audio','furniture_repair','investigation_screening','tents_shades')) <> 153
+  when (select count(*) from public.taxonomy_trade where active and code in ('corrugated_packaging','flexible_packaging','rigid_plastic_packaging','glass_containers','metal_packaging','pallets_wood_plastic','industrial_crating','packaging_machinery','industrial_machinery','machinery_spare_parts','industrial_pumps','valves_actuators','bearings_power_transmission','hand_power_tools','fasteners_fixings','hydraulics_pneumatics','air_compressors','welding_equipment','material_handling','racking_storage','electrical_wholesale','cables_wires','motors_drives','instrumentation_automation','steel_stock','non_ferrous_metals','polymers_resins','rubber_products','industrial_gases','lubricants_industrial_oils','paper_board','abrasives_surface_finishing','industrial_filters','industrial_textiles','castings_forgings','cnc_machining','additive_manufacturing','mining_quarry_supplies','office_furniture','hotel_furniture','outdoor_furniture','school_furniture','retail_shelving','mannequins_visual_merchandising','commercial_kitchen','refrigeration_cold_rooms','laundry_equipment','hospitality_supplies','vending_machines','water_dispensers','cleaning_chemicals','tissue_disposables','medical_equipment','medical_consumables','dental_supplies','laboratory_equipment','pharma_wholesale','uniforms_corporate_apparel','textiles_fabrics','stationery_office_supplies','promotional_gifts','books_educational','software_licensing','telecom_services','electronics_wholesale','mobile_phones_wholesale','home_appliances','vehicles_fleet','vehicle_leasing','auto_parts','tyres_batteries','fuel_diesel','lpg_gas','batteries_storage','water_treatment','fitness_equipment','sports_equipment','playground_equipment','salon_equipment','cosmetics_wholesale','perfumes_wholesale','toys_wholesale','jewellery_supplies','agri_inputs','veterinary_supplies','legal_services','pro_government_services','accounting_bookkeeping','audit_assurance','tax_advisory','insurance_brokerage','recruitment_executive_search','hr_outsourcing','corporate_training','management_consultancy','marketing_advertising','digital_marketing','public_relations','market_research','event_management','exhibition_stands','event_equipment_rental','photo_video_production','translation_interpretation','commercial_printing','software_development','call_centre_bpo','debt_collection','real_estate_services','business_centres','corporate_travel','staff_transport','courier_express','cold_chain_logistics','records_management','security_guarding','iso_certification','hse_consultancy','environmental_consultancy','energy_services','quantity_surveying','land_survey','testing_labs','inspection_ndt','calibration_services','waste_management','recycling_scrap','hazardous_waste','sewage_tanker','water_treatment_services','pest_control','facade_access_maintenance','road_works','infrastructure_utilities','fencing_shades','prefab_buildings','corrosion_insulation','machinery_repair','fleet_maintenance','tool_equipment_rental','laundry_services','ev_charging','aircraft_parts_mro','shipbuilding_repair','leather_footwear','bitumen_petroleum_products','device_repair','event_entertainment','railway_equipment','musical_pro_audio','furniture_repair','investigation_screening','tents_shades','demolition_works','general_contracting','masonry_blockwork','swimming_pools','marble_stone','thermal_insulation','curtains_blinds','facilities_management','removals_relocation','design_consultancy','lighting_fixtures','labels_sleeves','protective_packaging','bulk_bags_sacks','luxury_rigid_boxes','paper_bags','pharma_packaging','packaging_tapes_strapping')) <> 171
     then 'PROBE FAILED: a new trade is missing or inactive'
   when (select count(*) from public.taxonomy_trade where active and code in ('aluminium','building_materials','civil_works','doors','flooring','glazing','gypsum','interior_fitout','joinery','painting','scaffolding','steel','wallpaper','waterproofing','landscaping','heavy_equipment','electrical','elevators','fire_fighting','home_automation','hvac','mep_general','plumbing','security_systems','av_it','oilfield','chemicals','packaging','plastics_pipes','solar','power_generators','logistics_moving','marine','it_services','office_equipment','pos_retail','cleaning','engineering_consultancy','labour_supply','signage','safety_equipment','upholstery')) <> 42
     then 'PROBE FAILED: one of the 42 existing trades is missing or inactive'

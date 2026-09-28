@@ -10,12 +10,13 @@ import type { FaqRow, Lang } from './chat_answers.ts';
 import { pickPage, type PageAccount } from '../marketing_social_inbox/meta.ts';
 import { call, hideRequest, replyRequest, type CommentEvent, type Fetch, type Store } from './marketing_social_comments.ts';
 import { raiseSocialHandoff } from '../marketing/social_handoffs.ts';
+import { socialReply } from './reasoned_decisions.ts';
 import { precedentBlock, recallCases } from './case_recall.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) => Promise<string | null>, gateway: string): Store {
+export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) => Promise<string | null>, _gateway?: string): Store {
   const sec = async (k: string) => {
     const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
     return String(data?.value ?? '').trim() || undefined;
@@ -106,27 +107,16 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       const d = decide(ev.text, library, (faqs || []) as FaqRow[], passages, false, meaning);
       return d.kind === 'unknown' ? { ...unknown(library, d.lang), text: '' } : d;
     },
+    // THE ANSWER: think() over the company knowledge, stakes high, so a model of another family reviews it; only an
+    // agreed answer comes back. processComment still runs every guard on it before anything is posted.
     async draft(ev, lang: Lang) {
-      const key = await sec('cred_fn_ai');
-      if (!key) return null;
-      let corpus: CorpusRow[] = [];
-      try { corpus = ((await admin.rpc('fn_support_corpus_search', { p_query: ev.text, p_public: true, p_limit: 6 })).data || []) as CorpusRow[]; } catch (_e) { return null; }
-      if (!corpus.length) return null;
       // How did we answer a comment like this before? (23 Sep 2026.) Marketing's own replies only —
       // a public comment's prompt never carries another seat's case.
       const memory = await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
-      const sys = 'You are QuotesDone replying publicly to a comment on ' + ev.platform + '. Answer ONLY from the KNOWLEDGE below, in '
-        + (lang === 'ar' ? 'native formal Gulf Arabic (formal plural)' : 'UAE English') + ', in one or two short sentences, plain text, no hashtags. '
-        + 'Never name or describe any customer or supplier, never quote a price, never promise, never give legal views. '
-        + 'If the KNOWLEDGE does not answer it, reply exactly UNKNOWN.\n\nKNOWLEDGE:\n' + corpus.map((c) => c.content).join('\n\n')
-        + (memory.cases.length ? precedentBlock(memory) + '\nNever mention another person, a case number or this block in the reply.' : '');
-      try {
-        const r = await f(gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-          __secret: key, fn: 'marketing_social_inbox', agent: 'marketing', task_class: 'marketing_copy', sys,
-          input: [{ role: 'user', content: ev.text }], max: 300, temperature: 0.2, cache_ttl_min: 0, try_faq: false }) });
-        const j = await r.json().catch(() => ({})) as any;
-        return typeof j?.content === 'string' ? j.content.trim() : null;
-      } catch (_e) { return null; }
+      return (await socialReply(defaultDeps(admin, 'marketing'), { surface: 'marketing_social.comment_reply', platform: ev.platform,
+        message: String(ev.text || '').slice(0, 4000), language: lang, dedupeKey: 'social_comment_reply:' + ev.platform + ':' + ev.commentId,
+        precedent: memory.cases.length ? precedentBlock(memory) : undefined,
+        subject: { platform: ev.platform, message_id: ev.commentId } })).value;
     },
     async reply(ev, text) {
       const t = await tokenFor(ev);
