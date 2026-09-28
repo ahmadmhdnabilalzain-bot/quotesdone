@@ -1,0 +1,6 @@
+Pending. Adds seat_judgement.followed_case_ids and replaces fn_judgement_decided with a 6-argument form
+(p_followed bigint[] default null) that refuses a case the judgement never recalled. Applied by the release
+operator (C:/Users/Opera/qd-release.lock) together with the deploy of case_recall.ts, think.ts, accountant and
+marketing_channels from the same PR; the old 5-argument callers keep working either way. Probed 28 Sep 2026 in an
+aborted transaction on production. When applied: delete this note and append the .sql to the END of MANIFEST.txt.
+Seat: it_engineer.

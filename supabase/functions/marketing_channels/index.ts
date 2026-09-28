@@ -34,7 +34,7 @@ import { accessToken } from '../_shared/marketing_social_oauth.ts';
 import { calendarBlocks, calendarRows, calendarSheet, type CalPost } from '../_shared/marketing_calendar_doc.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
-import { recallCases } from '../_shared/case_recall.ts';
+import { decideJudgement, recallCases } from '../_shared/case_recall.ts';
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -377,6 +377,8 @@ async function calendarSend(key: string) {
   const { data: sent, error } = await admin.rpc('fn_marketing_calendar_sent', { p_campaign_key: c.campaign_key, p_hash: hash,
     p_pdf_path: `${stem}.pdf`, p_xlsx_path: `${stem}.xlsx`, p_subject: `Social calendar ${monthName}: ${rows.length} posts for your approval`, p_body: body });
   if (error) return { ok: false, error: error.message };
+  // The plan goes to him as drafted; past plans are shown with it, not followed, so none is named.
+  await decideJudgement(admin, memory, `calendar ${c.campaign_key} sent for approval (${rows.length} posts)`, []);
   return { ...(sent as Record<string, unknown>), pdf: `${stem}.pdf`, xlsx: `${stem}.xlsx`, posts: rows.length, links: pdf.meta.links, pages: pdf.meta.pages, precedent: memory };
 }
 

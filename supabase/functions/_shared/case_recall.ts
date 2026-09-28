@@ -104,6 +104,20 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
   }
 }
 
+/**
+ * A DETERMINISTIC path closes the judgement its recall opened (28 Sep 2026). think() closes its own; before
+ * this, every other path left its judgement at 'recalled' forever (9 of 9 on production). `followed` is the
+ * recalled cases the decision actually used ([] = decided without a precedent); fn_judgement_decided refuses
+ * a case that was not recalled. Recording never fails the decision.
+ */
+export async function decideJudgement(admin: Rpc, m: CaseMemory, decision: string, followed: number[]): Promise<void> {
+  if (m.judgement_id == null) return;
+  try {
+    await admin.rpc('fn_judgement_decided', { p_id: m.judgement_id, p_status: 'answered', p_decision: decision.slice(0, 2000),
+      p_confidence: null, p_model: 'deterministic', p_followed: followed });
+  } catch (_e) { /* recording never fails the decision */ }
+}
+
 /** The block a model path puts in its system prompt. Empty when there is nothing to remember. */
 export function precedentBlock(m: CaseMemory): string {
   if (!m.cases.length) return '';

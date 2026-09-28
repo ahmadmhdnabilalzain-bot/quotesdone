@@ -64,7 +64,7 @@ import { safeFetch } from '../_shared/safe_url.ts';
 // A receipt whose email carried no vendor file gets a PDF PRINT of the email, not a .html blob.
 import { emailPrintPdf } from '../_shared/email_print.ts';
 import { observe } from '../_shared/observe.ts';
-import { recallCases } from '../_shared/case_recall.ts';
+import { decideJudgement, recallCases } from '../_shared/case_recall.ts';
 import { confirmRefundOutcome, refundIdempotencyKey, refundKey, stripeRefund } from '../_shared/stripe_refund.ts';
 import { isDemoEmail } from '../_shared/demo_identity.ts';
 // 14 Sep 2026 — the duties (founder: "yea add them all", "yea add them"). Nothing is re-implemented:
@@ -1086,6 +1086,9 @@ Deno.serve(observe('accountant', async (req) => {
           entryId = (won?.[0]?.id as number | undefined) ?? null;
         }
         if (!entryId) { failed++; say('book_failed', { vendor, amount, currency, charged_on: charged }); continue; }
+        // The classification's judgement names the corrected precedent it followed (or none), in the trace
+        // rather than only in the note text.
+        await decideJudgement(admin, memory, `expense ${entryId} classified ${category}`, precedentCase ? [precedentCase.case_id] : []);
 
         // THE LEDGER. Nothing calls fn_gl_sync_business on a schedule, so the entry is posted here
         // under source='expense'/source_ref — the same key the bulk routine uses, so neither can
