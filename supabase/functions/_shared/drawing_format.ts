@@ -1,7 +1,7 @@
 // drawing_format — which drawing formats a customer may upload. Assigned: sales_engineer.
 // Founder ruling, 28 Sep 2026: customer drawing uploads accept ONLY PDF and CAD (DWG and DXF). Revit
 // (RVT/RFA), IFC, DGN and every other drawing/model format are refused with one friendly message.
-// The internal readers (doc_read/rvt.ts, ifc.ts, dgn.ts) stay in the tree; no customer path reaches them:
+// The Revit, IFC and DGN readers were deleted (PR #1022, folded into #983); the refusal happens here:
 // customer_api refuses by name and mime before storing, and drawing_boq refuses by the SNIFFED type
 // (readDocument's pdfCadDrawingsOnly), which also covers a renamed file and a model inside a zip.
 // Spreadsheets, Word, email and GAEB are BOQ/documents, not drawings, and are not affected.

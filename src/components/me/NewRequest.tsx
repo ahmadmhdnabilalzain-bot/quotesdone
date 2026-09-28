@@ -328,8 +328,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       const rows = (res && res.ok && res.boq && res.boq.boq) || [];
       if (!res || !res.ok) push({ role: 'assistant', text: t(lang, BOQ_ERR[res && res.error] || 'nr_boq_err_generic') });
       else if (res.note === 'cad_queued' && res.cad_job_id) { adopt(res, file.name, 'drawing'); push({ role: 'assistant', text: t(lang, 'nr_cad_queued') }); pollCad(res, file.name, 'drawing'); }
-      // A Revit model or a DGN (22 Sep 2026): read for what is certain, with the reader's own ask for an
-      // export (IFC / DWG / DXF / PDF), shown in the customer's language through boqNotes.
+      // A read that says what it needs (a photo's OCR, a DWG past the edge ceiling): the reader's own
+      // notes, shown in the customer's language through boqNotes.
       else if (!rows.length && res.needs && res.boq && Array.isArray(res.boq.missing_info) && res.boq.missing_info.length) {
         adopt(res, file.name, 'drawing');
         push({ role: 'assistant', text: res.boq.missing_info.map((s) => boqNote(s, lang)).join(' ') });
