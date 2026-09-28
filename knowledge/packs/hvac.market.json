@@ -1,0 +1,74 @@
+{
+  "trade": "hvac",
+  "layer": "uae-market",
+  "label_en": "HVAC & air conditioning",
+  "label_ar": "التكييف والتهوية",
+  "entries": [
+    {
+      "id": "hvac:uae-market-products",
+      "topic": "HVAC & air conditioning: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "HVAC and air conditioning in the UAE (designed for 46-50 C ambient, T3 rated units): split units (wall-mounted, 1-3 TR), ducted splits and concealed units, cassettes, packaged rooftop units, VRF/VRV systems (the standard for villas and mid-size buildings), chillers (air-cooled and water-cooled, screw and centrifugal, magnetic-bearing), district cooling connections (Empower in Dubai, Tabreed, with energy transfer stations and plate heat exchangers), fan coil units, air handling units (with heat recovery wheels, fresh-air units), ventilation fans, ductwork (GI, pre-insulated panels), diffusers and grilles, dampers (volume, fire, smoke), refrigerant piping (R410A, R32, R454B), chilled-water pumps and valves. Units must carry the ESMA/MoIAT energy efficiency label (star rating, minimum EER/SEER per UAE.S 5010) to be sold. Capacity is spoken in tons of refrigeration (TR): 1 TR = 12,000 Btu/h = 3.517 kW.",
+      "body_ar": "التكييف والتهوية في الإمارات (بتصميم لدرجات حرارة خارجية 46-50 مئوية، ووحدات مصنفة T3): وحدات السبليت (الجدارية، 1-3 طن تبريد)، والسبليت المخفي بالدكت، والكاسيت، والوحدات المجمعة على الأسطح، وأنظمة VRF/VRV (المعيار للفلل والمباني المتوسطة)، والمبردات (بالتبريد الهوائي والمائي، لولبية وطاردة مركزية ومحامل مغناطيسية)، وتوصيلات تبريد المناطق (إمباور في دبي، وتبريد، مع محطات نقل الطاقة والمبادلات الحرارية)، ووحدات ملفات المراوح، ووحدات مناولة الهواء (مع عجلات استرجاع الحرارة ووحدات الهواء النقي)، ومراوح التهوية، ومجاري الهواء (مجلفنة وألواح معزولة مسبقاً)، والفتحات والشبكات، والمخمدات (للحجم والحريق والدخان)، وأنابيب وسائط التبريد (R410A وR32 وR454B)، ومضخات وصمامات المياه المبردة. ويجب أن تحمل الوحدات ملصق كفاءة الطاقة من وزارة الصناعة (تصنيف النجوم، والحد الأدنى لـEER/SEER وفق UAE.S 5010) لتُباع. وتُذكر السعة بطن التبريد: 1 طن = 12,000 وحدة حرارية بريطانية/ساعة = 3.517 كيلوواط.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.empower.ae",
+        "https://www.daikinmea.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT energy efficiency labelling (UAE.S 5010); Empower district cooling; Daikin Middle East. Could not be verified: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified."
+    },
+    {
+      "id": "hvac:uae-market-brands",
+      "topic": "HVAC & air conditioning: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Daikin, Mitsubishi Electric, Mitsubishi Heavy Industries, Carrier (with local Toshiba-Carrier), Trane, York (Johnson Controls), LG, Samsung, Gree, Midea, Hisense, O General (Fujitsu General, strong in the UAE split market), Hitachi, Panasonic, and regional makers such as Zamil Air Conditioners (Saudi), SKM Air Conditioning (Sharjah, packaged and AHUs), Petra (Jordan), Clima-Tech. Distributors: e.g. Al Futtaim (Carrier-Toshiba), Eros Group, Jumbo, Juma Al Majid-group agencies, Galadari, and brand subsidiaries in JAFZA and Dubai. Ducts and diffusers from local factories (e.g. Emirates duct makers, Waves-type diffuser makers). Origins: Thailand, Malaysia, China, Japan, Korea, Saudi Arabia, UAE.",
+      "body_ar": "العلامات: Daikin وMitsubishi Electric وMitsubishi Heavy Industries وCarrier (مع Toshiba-Carrier) وTrane وYork (Johnson Controls) وLG وSamsung وGree وMidea وHisense وO General (Fujitsu General، قوية في سوق السبليت الإماراتي) وHitachi وPanasonic، ومصنّعون إقليميون مثل الزامل للمكيفات (السعودية) وSKM للتكييف (الشارقة، الوحدات المجمعة ووحدات مناولة الهواء) وPetra (الأردن). الموزعون: مثل الفطيم (Carrier-Toshiba) ومجموعة إيروس وجمبو ووكالات مجموعة جمعة الماجد والجلاداري وفروع العلامات في المنطقة الحرة لجبل علي ودبي. والدكت والفتحات من مصانع محلية. المنشأ: تايلاند، ماليزيا، الصين، اليابان، كوريا، السعودية، الإمارات.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.empower.ae",
+        "https://www.daikinmea.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT energy efficiency labelling (UAE.S 5010); Empower district cooling; Daikin Middle East. Could not be verified: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified."
+    },
+    {
+      "id": "hvac:uae-market-sizes",
+      "topic": "HVAC & air conditioning: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Splits are sold by tonnage (1, 1.5, 2, 2.5 TR) and star rating; VRF by outdoor HP/kW with indoor units per unit; chillers per TR capacity; AHUs by airflow (CFM or m3/h) and cooling coil capacity. HVAC installation is quoted per unit installed (with copper piping per metre beyond a standard length, e.g. 3-5 m), ductwork per m2 of sheet or per kg, insulation per m2, diffusers per piece, and testing, adjusting and balancing (TAB) lump sum. AMC per unit per year with 2-4 service visits. Compressor warranty often 3-5 years (some 10 on inverter compressors), general parts 1-2 years.",
+      "body_ar": "تُباع وحدات السبليت حسب الطن (1 و1.5 و2 و2.5 طن) وتصنيف النجوم؛ وVRF حسب قدرة الوحدة الخارجية بالحصان/كيلوواط مع الوحدات الداخلية بالوحدة؛ والمبردات حسب سعة الطن؛ ووحدات مناولة الهواء حسب تدفق الهواء (قدم مكعب/دقيقة أو م3/ساعة) وسعة ملف التبريد. ويُسعّر التركيب بالوحدة المركّبة (مع أنابيب النحاس بالمتر فوق طول قياسي مثل 3-5 م)، والدكت بالمتر المربع من الصفيح أو بالكيلوغرام، والعزل بالمتر المربع، والفتحات بالقطعة، والاختبار والضبط والموازنة بمبلغ مقطوع. وعقد الصيانة السنوي بالوحدة سنوياً مع 2-4 زيارات. وضمان الضاغط غالباً 3-5 سنوات (أحياناً 10 لضواغط الإنفرتر)، وقطع الغيار العامة 1-2 سنة.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.empower.ae",
+        "https://www.daikinmea.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT energy efficiency labelling (UAE.S 5010); Empower district cooling; Daikin Middle East. Could not be verified: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How many tons of AC does a 20 m2 bedroom need in Dubai?",
+      "q_ar": "كم طن تكييف تحتاج غرفة نوم مساحتها 20 م2 في دبي؟",
+      "expected_entry_ids": [
+        "hvac:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

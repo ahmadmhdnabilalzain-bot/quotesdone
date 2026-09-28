@@ -1,0 +1,74 @@
+{
+  "trade": "labels_sleeves",
+  "layer": "uae-market",
+  "label_en": "Labels & shrink sleeves",
+  "label_ar": "الملصقات والأغلفة الانكماشية",
+  "entries": [
+    {
+      "id": "labels_sleeves:uae-market-products",
+      "topic": "Labels & shrink sleeves: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Labels and shrink sleeves in the UAE: self-adhesive (pressure-sensitive) labels on paper and film (PP, PE, PET, vinyl) facestocks with permanent, removable, freezer or high-tack adhesives; thermal transfer and direct thermal labels for logistics and barcodes; RFID labels; shrink sleeves (PETG, PVC, OPS) with up to 360-degree print; stretch sleeves; wrap-around labels (BOPP) for bottles; in-mould labels (IML); security and tamper-evident labels (holographic, VOID); and variable-data printing (barcodes, QR, serialisation for pharma track-and-trace). Printing: flexo, digital (HP Indigo), offset; embellishments: foil, embossing, spot UV. Regulated products need Arabic labelling per UAE/GSO labelling standards (e.g. cosmetics, chemicals). Buyers specify size, material, adhesive, finish, core size and roll direction.",
+      "body_ar": "الملصقات وأغلفة الانكماش في الإمارات: الملصقات ذاتية اللصق على الورق والأفلام (PP وPE وPET والفينيل) بلواصق دائمة أو قابلة للإزالة أو للتجميد أو عالية الالتصاق؛ وملصقات النقل الحراري والحرارية المباشرة للوجستيات والباركود؛ وملصقات RFID؛ وأغلفة الانكماش (PETG وPVC وOPS) بطباعة 360 درجة؛ والأغلفة المطاطية؛ والملصقات الملتفة (BOPP) للزجاجات؛ والملصقات داخل القالب؛ وملصقات الأمان وكشف العبث (الهولوغرامية وVOID)؛ والطباعة بالبيانات المتغيرة (الباركود وQR والترقيم التسلسلي لتتبع الأدوية). الطباعة: فلكسو، ورقمية (HP Indigo)، وأوفست؛ والتحسينات: الرقائق المعدنية، والنقش البارز، والورنيش الموضعي. وتحتاج المنتجات المنظمة ملصقات عربية وفق معايير الملصقات الإماراتية والخليجية. يحدد المشتري المقاس والمادة واللاصق والتشطيب ومقاس القلب واتجاه اللف.",
+      "sources": [
+        "https://www.gso.org.sa",
+        "https://www.averydennison.com",
+        "https://www.gs1ae.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: GSO labelling standards (GCC Standardization Organization); Avery Dennison; GS1 UAE (barcodes). Could not be verified: The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified."
+    },
+    {
+      "id": "labels_sleeves:uae-market-brands",
+      "topic": "Labels & shrink sleeves: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Materials: Avery Dennison, UPM Raflatac, Herma, Fasson; sleeve films Bonset, Klöckner Pentaplast. Label converters are numerous in Sharjah, Ajman, Dubai (Al Quoz, DIP, JAFZA) and Abu Dhabi; thermal printers and ribbons Zebra, Honeywell, TSC, SATO; ribbons Armor (IIMAK), Ricoh. Origins: Europe, USA-brand, Asia; local conversion.",
+      "body_ar": "المواد: Avery Dennison وUPM Raflatac وHerma وFasson؛ وأفلام الأغلفة Bonset وKlöckner Pentaplast. ومحولو الملصقات كثيرون في الشارقة وعجمان ودبي (القوز ومجمع دبي للاستثمار والمنطقة الحرة لجبل علي) وأبوظبي؛ والطابعات الحرارية والأشرطة Zebra وHoneywell وTSC وSATO؛ والأشرطة Armor وRicoh. المنشأ: أوروبا، علامات أمريكية، آسيا؛ مع تحويل محلي.",
+      "sources": [
+        "https://www.gso.org.sa",
+        "https://www.averydennison.com",
+        "https://www.gs1ae.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: GSO labelling standards (GCC Standardization Organization); Avery Dennison; GS1 UAE (barcodes). Could not be verified: The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified."
+    },
+    {
+      "id": "labels_sleeves:uae-market-sizes",
+      "topic": "Labels & shrink sleeves: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Labels priced per 1,000 labels by size, material and colours, with plate/die costs for flexo (digital avoids plates); MOQ from a few thousand for flexo. Thermal labels per roll (e.g. 100 x 150 mm, 500-1,000 labels, 76 mm core). Sleeves per 1,000 with cylinder costs. Lead time 5-15 working days.",
+      "body_ar": "تُسعّر الملصقات لكل 1,000 ملصق حسب المقاس والمادة والألوان، مع تكاليف الأكليشيهات/القوالب للفلكسو (الرقمية دون أكليشيهات)؛ والحد الأدنى بضعة آلاف للفلكسو. والملصقات الحرارية باللفة (مثل 100 × 150 مم، 500-1,000 ملصق، قلب 76 مم). والأغلفة لكل 1,000 مع تكاليف الأسطوانات. ومدة التنفيذ 5-15 يوم عمل.",
+      "sources": [
+        "https://www.gso.org.sa",
+        "https://www.averydennison.com",
+        "https://www.gs1ae.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: GSO labelling standards (GCC Standardization Organization); Avery Dennison; GS1 UAE (barcodes). Could not be verified: The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How are self-adhesive labels priced?",
+      "q_ar": "كيف تُسعّر الملصقات ذاتية اللصق؟",
+      "expected_entry_ids": [
+        "labels_sleeves:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The GS1 UAE website address and current Arabic-labelling requirements per product class were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

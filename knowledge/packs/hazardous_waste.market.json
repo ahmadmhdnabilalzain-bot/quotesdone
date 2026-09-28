@@ -1,0 +1,77 @@
+{
+  "trade": "hazardous_waste",
+  "layer": "uae-market",
+  "label_en": "Hazardous & medical waste",
+  "label_ar": "النفايات الخطرة والطبية",
+  "entries": [
+    {
+      "id": "hazardous_waste:uae-market-products",
+      "topic": "Hazardous & medical waste: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Hazardous and medical waste services in the UAE: collection, transport, treatment and disposal of industrial hazardous waste (used oils, oily sludge, solvents, paint waste, chemical residues, contaminated soil, spent catalysts, batteries, e-waste, fluorescent lamps, asbestos), medical and healthcare waste (infectious, sharps, pathological, pharmaceutical, cytotoxic; segregated by colour-coded bags: yellow, red, black per authority rules), and oilfield waste (drill cuttings, produced-water sludge). Treatment technologies: incineration, autoclave and microwave sterilisation for medical waste, stabilisation/solidification, oil recovery, and secure hazardous landfill. Every consignment needs a manifest/waste tracking form; generators, transporters and facilities must be licensed by the emirate authority (Dubai Municipality waste department, Tadweer and EAD in Abu Dhabi, Bee'ah and Sharjah municipality, MOCCAE federally) and follow the Basel Convention for transboundary shipment.",
+      "body_ar": "خدمات النفايات الخطرة والطبية في الإمارات: جمع ونقل ومعالجة والتخلص من النفايات الصناعية الخطرة (الزيوت المستعملة، والحمأة الزيتية، والمذيبات، ونفايات الدهانات، والبقايا الكيميائية، والتربة الملوثة، والمحفزات المستهلكة، والبطاريات، والنفايات الإلكترونية، ومصابيح الفلورسنت، والأسبستوس)، والنفايات الطبية ونفايات الرعاية الصحية (المعدية، والأدوات الحادة، والتشريحية، والدوائية، والسامة للخلايا؛ مفصولة بأكياس ملونة: الأصفر والأحمر والأسود وفق قواعد الجهة)، ونفايات حقول النفط (فتات الحفر، وحمأة المياه المصاحبة). تقنيات المعالجة: الحرق، والتعقيم بالبخار أو الميكروويف للنفايات الطبية، والتثبيت/التصليب، واسترداد الزيت، والمدافن الآمنة للنفايات الخطرة. وتحتاج كل شحنة بيان نقل/نموذج تتبع؛ ويجب ترخيص المنتجين والناقلين والمنشآت من جهة الإمارة (إدارة النفايات في بلدية دبي، وتدوير وهيئة البيئة في أبوظبي، وبيئة وبلدية الشارقة، ووزارة التغير المناخي والبيئة اتحادياً) واتباع اتفاقية بازل للشحن عبر الحدود.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae",
+        "https://www.basel.int"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality waste management; Tadweer (Abu Dhabi Waste Management Centre); Bee'ah; Basel Convention. Could not be verified: Named operators' current licences per waste category, and the colour-coding rule for each emirate, were not verified."
+    },
+    {
+      "id": "hazardous_waste:uae-market-brands",
+      "topic": "Hazardous & medical waste: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Licensed operators include: Tadweer (Abu Dhabi Waste Management Centre, with contracted operators), Bee'ah (Sharjah), Dubai Municipality-licensed treatment facilities (e.g. Enviroserve for e-waste, Dulsco, Veolia, SUEZ-linked operators, Averda, Imdaad), medical waste handlers (e.g. Hi-Tech-type medical waste incinerators, Dubai Municipality's medical waste plants, Enviromed-type firms), and oilfield waste specialists (e.g. Newpark-type drilling waste and local ADNOC-approved contractors). Used oil is re-refined by licensed recyclers. Buyers check the operator's licence per waste category and emirate.",
+      "body_ar": "من المشغلين المرخصين: تدوير (مركز أبوظبي لإدارة النفايات مع مشغلين متعاقدين)، وبيئة (الشارقة)، ومنشآت معالجة مرخصة من بلدية دبي (مثل Enviroserve للنفايات الإلكترونية، ودلسكو، وVeolia، ومشغلون مرتبطون بـSUEZ، وAverda، وإمداد)، ومتعاملو النفايات الطبية (محارق النفايات الطبية ومحطات بلدية دبي للنفايات الطبية)، ومتخصصو نفايات حقول النفط (مقاولون محليون معتمدون من أدنوك). وتعيد مصانع مرخصة تكرير الزيت المستعمل. ويتحقق المشتري من ترخيص المشغل لكل فئة نفايات وإمارة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae",
+        "https://www.basel.int"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality waste management; Tadweer (Abu Dhabi Waste Management Centre); Bee'ah; Basel Convention. Could not be verified: Named operators' current licences per waste category, and the colour-coding rule for each emirate, were not verified."
+    },
+    {
+      "id": "hazardous_waste:uae-market-sizes",
+      "topic": "Hazardous & medical waste: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Pricing is per kg or per tonne by waste category (medical waste often per kg or per bin collected; industrial by tonne with lab characterisation first), per trip for collection by vehicle type, plus container rental (sharps containers, 120/240 L bins, drums, skips) per month. Clinics commonly sign annual contracts with weekly or daily collection and a fixed monthly fee up to a weight cap. Certificates of destruction/disposal per consignment are a deliverable. Authority tipping and treatment fees may be passed through.",
+      "body_ar": "التسعير بالكيلوغرام أو بالطن حسب فئة النفايات (النفايات الطبية غالباً بالكيلوغرام أو بالحاوية المجمعة؛ والصناعية بالطن بعد التوصيف المخبري)، وبالرحلة للجمع حسب نوع المركبة، مع إيجار الحاويات (حاويات الأدوات الحادة، وحاويات 120/240 لتراً، والبراميل، والحاويات الكبيرة) شهرياً. وتوقع العيادات عادة عقوداً سنوية بجمع أسبوعي أو يومي ورسوم شهرية ثابتة حتى سقف وزن. وشهادات الإتلاف/التخلص لكل شحنة من المخرجات. وقد تُحمّل رسوم الجهات للمعالجة والمكب على العميل.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae",
+        "https://www.basel.int"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality waste management; Tadweer (Abu Dhabi Waste Management Centre); Bee'ah; Basel Convention. Could not be verified: Named operators' current licences per waste category, and the colour-coding rule for each emirate, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is medical waste collection from a clinic usually charged?",
+      "q_ar": "كيف يُحتسب جمع النفايات الطبية من العيادة عادة؟",
+      "expected_entry_ids": [
+        "hazardous_waste:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Named operators' current licences per waste category, and the colour-coding rule for each emirate, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

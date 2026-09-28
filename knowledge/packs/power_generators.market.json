@@ -1,0 +1,74 @@
+{
+  "trade": "power_generators",
+  "layer": "uae-market",
+  "label_en": "Generators & Power Equipment",
+  "label_ar": "المولدات ومعدات الطاقة",
+  "entries": [
+    {
+      "id": "power_generators:uae-market-products",
+      "topic": "Generators & Power Equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Generators and power equipment in the UAE: diesel generator sets (open and silent/canopy, 10 kVA to 3,000 kVA; prime, standby and continuous ratings to ISO 8528), gas generators, portable petrol generators, containerised power plants, lighting towers (diesel and solar/hybrid), automatic transfer switches and synchronising panels, load banks, UPS systems (online double-conversion, modular, 1-800 kVA), transformers (distribution 11/0.415 kV, oil-immersed and cast resin), and hybrid generator-battery systems. Critical UAE factor: derating for 50 C ambient and dust; buyers must check the rated output at site conditions and radiator sizing (tropical/50 C radiators). Specs: kVA/kW at 0.8 pf, prime vs standby rating, engine and alternator brand, fuel consumption at 75% load, noise at 7 m (dBA), fuel tank autonomy, controller, and emission level.",
+      "body_ar": "المولدات ومعدات الطاقة في الإمارات: أطقم مولدات الديزل (المفتوحة والصامتة، من 10 إلى 3,000 كيلوفولت أمبير؛ بتصنيفات رئيسية واحتياطية ومستمرة وفق ISO 8528)، ومولدات الغاز، ومولدات البنزين المحمولة، ومحطات الطاقة في حاويات، وأبراج الإنارة (ديزل وشمسية/هجينة)، ومفاتيح التحويل الآلي ولوحات التزامن، وأحمال الاختبار، وأنظمة UPS (مزدوجة التحويل، والنمطية، 1-800 كيلوفولت أمبير)، والمحولات (توزيع 11/0.415 كيلوفولت، مغمورة بالزيت وراتنج مصبوب)، والأنظمة الهجينة من مولد وبطاريات. العامل الحاسم في الإمارات: خفض القدرة لحرارة 50 مئوية والغبار؛ ويجب على المشتري التحقق من القدرة الفعلية في ظروف الموقع وحجم المشعاع (مشعاعات استوائية لـ50 مئوية). المواصفات: كيلوفولت أمبير/كيلوواط عند معامل قدرة 0.8، والتصنيف الرئيسي مقابل الاحتياطي، وعلامة المحرك والمولد، واستهلاك الوقود عند حمل 75%، والضوضاء على بعد 7 م (ديسيبل)، ومدة تشغيل خزان الوقود، والمتحكم، ومستوى الانبعاثات.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cummins.com",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 8528 (ISO); Cummins; Caterpillar. Could not be verified: Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified."
+    },
+    {
+      "id": "power_generators:uae-market-brands",
+      "topic": "Generators & Power Equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Engines and gensets: Caterpillar (Al-Bahar), Cummins (Cummins Arabia and dealers), Perkins (via FG Wilson and local assemblers), Volvo Penta, MTU (Rolls-Royce Power Systems), Mitsubishi, Doosan, Kohler-SDMO, Himoinsa, Aksa, Teksan, Atlas Copco and Aggreko (rental). Alternators: Leroy-Somer, Stamford (Cummins), Mecc Alte. Controllers: Deep Sea, ComAp, Woodward. Many gensets are assembled (packaged) locally in Sharjah, Dubai and Jebel Ali. UPS: Schneider (APC/Galaxy), Vertiv, Eaton, ABB, Socomec, Riello. Transformers: local makers (e.g. Emirates Transformer-type factories) plus ABB/Hitachi Energy, Siemens Energy. Rental fleets: Aggreko, Atlas Copco, and many local rental firms. Origins: UK, USA-brand engines, Germany, Japan, Turkey, China, UAE assembly.",
+      "body_ar": "المحركات والمولدات: Caterpillar (البحر) وCummins (كمنز العربية والوكلاء) وPerkins (عبر FG Wilson ومجمّعين محليين) وVolvo Penta وMTU وMitsubishi وDoosan وKohler-SDMO وHimoinsa وAksa وTeksan، وAtlas Copco وAggreko (للتأجير). المولدات الكهربائية: Leroy-Somer وStamford (Cummins) وMecc Alte. المتحكمات: Deep Sea وComAp وWoodward. ويُجمّع كثير من المولدات محلياً في الشارقة ودبي وجبل علي. أنظمة UPS: Schneider (APC/Galaxy) وVertiv وEaton وABB وSocomec وRiello. المحولات: مصنّعون محليون إضافة إلى ABB/Hitachi Energy وSiemens Energy. أساطيل التأجير: Aggreko وAtlas Copco وشركات تأجير محلية كثيرة. المنشأ: المملكة المتحدة، محركات علامات أمريكية، ألمانيا، اليابان، تركيا، الصين، تجميع إماراتي.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cummins.com",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 8528 (ISO); Cummins; Caterpillar. Could not be verified: Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified."
+    },
+    {
+      "id": "power_generators:uae-market-sizes",
+      "topic": "Generators & Power Equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Common sizes: 20, 30, 60, 100, 150, 250, 500, 1,000, 1,500, 2,000 kVA. Purchase priced per set with ATS, installation, exhaust and fuel system as options; rental per day, week or month by kVA (often 26-day month, fuel excluded, with operator/technician optional) plus delivery and cabling. Warranty typically 12 months or 1,000-2,000 running hours; service contracts at 250- or 500-hour intervals. Load bank tests and site acceptance tests are separate lines.",
+      "body_ar": "المقاسات الشائعة: 20 و30 و60 و100 و150 و250 و500 و1,000 و1,500 و2,000 كيلوفولت أمبير. ويُسعّر الشراء بالطقم مع مفتاح التحويل الآلي والتركيب ونظام العادم والوقود كخيارات؛ والتأجير باليوم أو الأسبوع أو الشهر حسب القدرة (غالباً شهر 26 يوماً دون الوقود، مع مشغل/فني اختياري) إضافة إلى التوصيل والكابلات. والضمان عادة 12 شهراً أو 1,000-2,000 ساعة تشغيل؛ وعقود الخدمة كل 250 أو 500 ساعة. واختبارات الحمل واختبارات القبول في الموقع بنود مستقلة.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cummins.com",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 8528 (ISO); Cummins; Caterpillar. Could not be verified: Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between prime and standby generator rating?",
+      "q_ar": "ما الفرق بين التصنيف الرئيسي والاحتياطي للمولد؟",
+      "expected_entry_ids": [
+        "power_generators:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current dealer appointments for each brand in each emirate and local transformer makers' names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

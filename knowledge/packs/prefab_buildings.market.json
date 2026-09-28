@@ -1,0 +1,74 @@
+{
+  "trade": "prefab_buildings",
+  "layer": "uae-market",
+  "label_en": "Porta cabins & modular buildings",
+  "label_ar": "الكرفانات والمباني الجاهزة",
+  "entries": [
+    {
+      "id": "prefab_buildings:uae-market-products",
+      "topic": "Porta cabins & modular buildings: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Porta cabins and modular buildings in the UAE: site offices, labour accommodation cabins, security cabins, toilet and shower blocks, prayer rooms, portable kitchens and canteens (structure only), stores, and permanent modular buildings (schools, clinics, villas). Construction types: steel frame with sandwich panels (PU or rock-wool core, 50-100 mm, rock wool where fire resistance is needed), container conversions (20 and 40 ft ISO containers), light-gauge steel framing, and precast/volumetric modular. Interiors: PVC or vinyl flooring on cement board, gypsum or PVC ceilings, split AC units, electrical to DEWA/ADDC wiring rules. Labour accommodation must follow emirate labour accommodation standards (space per worker, ventilation, sanitary ratios) and Civil Defence fire rules.",
+      "body_ar": "الكبائن الجاهزة والمباني المسبقة الصنع في الإمارات: مكاتب المواقع، وكبائن سكن العمال، وكبائن الأمن، ووحدات الحمامات والدش، والمصليات، والمطابخ والمقاصف المتنقلة (الهيكل فقط)، والمخازن، والمباني المسبقة الصنع الدائمة (المدارس والعيادات والفلل). أنواع البناء: هيكل فولاذي مع ألواح ساندويتش (قلب بولي يوريثان أو صوف صخري 50-100 مم، والصوف الصخري حيث تلزم مقاومة الحريق)، وتحويل الحاويات (حاويات ISO مقاس 20 و40 قدماً)، والإطارات الفولاذية الخفيفة، والوحدات الحجمية مسبقة الصب. التشطيب الداخلي: أرضيات PVC أو فينيل على ألواح إسمنتية، وأسقف جبس أو PVC، ومكيفات سبليت، وتمديدات كهربائية وفق قواعد هيئة الكهرباء. ويجب أن يتبع سكن العمال معايير سكن العمال في الإمارة (المساحة لكل عامل، والتهوية، ونسب المرافق الصحية) وقواعد الدفاع المدني للحريق.",
+      "sources": [
+        "https://www.dcd.gov.ae",
+        "https://www.mohre.gov.ae",
+        "https://www.kingspan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Civil Defence; Ministry of Human Resources and Emiratisation (worker accommodation); Kingspan. Could not be verified: Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified."
+    },
+    {
+      "id": "prefab_buildings:uae-market-brands",
+      "topic": "Porta cabins & modular buildings: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Local manufacturers dominate, concentrated in Sharjah (Sajaa, Industrial Area), Ajman, Umm Al Quwain, Ras Al Khaimah and Abu Dhabi (Musaffah, ICAD): e.g. Red Sea International-type accommodation makers, Karmod-type Turkish modular firms, Emirates Industrial Buildings-type factories and many porta-cabin workshops. Panels: Kingspan, local sandwich-panel lines, Chinese imports. Rental fleets of cabins are available from several suppliers. Origins: UAE manufacture, some Turkish and Chinese flat-pack imports.",
+      "body_ar": "يهيمن المصنّعون المحليون المتركزون في الشارقة (الصجعة والمنطقة الصناعية) وعجمان وأم القيوين ورأس الخيمة وأبوظبي (مصفح وICAD)، ومنهم مصنّعو سكن عمال وشركات مبانٍ حديثة تركية وورش كبائن كثيرة. الألواح: Kingspan وخطوط ألواح ساندويتش محلية وواردات صينية. وتتوفر أساطيل كبائن للتأجير لدى عدة موردين. المنشأ: تصنيع محلي، مع بعض الوحدات المسطحة المستوردة من تركيا والصين.",
+      "sources": [
+        "https://www.dcd.gov.ae",
+        "https://www.mohre.gov.ae",
+        "https://www.kingspan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Civil Defence; Ministry of Human Resources and Emiratisation (worker accommodation); Kingspan. Could not be verified: Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified."
+    },
+    {
+      "id": "prefab_buildings:uae-market-sizes",
+      "topic": "Porta cabins & modular buildings: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Standard cabin sizes follow container modules: 6 x 3 m (20 ft), 12 x 3 m (40 ft), and custom multiples; height about 2.6-3.0 m internal. Porta cabins are priced per unit by size and specification, or per m2 for larger modular buildings; rental per month per unit (minimum often 3-6 months) plus delivery and crane offloading. Quotes should state panel type and thickness, wall and roof U-values, floor loading, AC tonnage, electrical load, toilets included, and transportation permits for oversize loads.",
+      "body_ar": "تتبع مقاسات الكبائن القياسية وحدات الحاويات: 6 × 3 م (20 قدماً)، و12 × 3 م (40 قدماً)، ومضاعفات حسب الطلب؛ بارتفاع داخلي نحو 2.6-3.0 م. وتُسعّر الكبائن بالوحدة حسب المقاس والمواصفات، أو بالمتر المربع للمباني الكبيرة؛ والتأجير شهرياً للوحدة (بحد أدنى غالباً 3-6 أشهر) مع التوصيل والتنزيل بالرافعة. ويجب أن يذكر العرض نوع الألواح وسماكتها، وقيم U للجدران والسقف، وحمل الأرضية، وطنية التكييف، والحمل الكهربائي، والحمامات المشمولة، وتصاريح نقل الحمولات الكبيرة.",
+      "sources": [
+        "https://www.dcd.gov.ae",
+        "https://www.mohre.gov.ae",
+        "https://www.kingspan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Civil Defence; Ministry of Human Resources and Emiratisation (worker accommodation); Kingspan. Could not be verified: Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What size is a standard porta cabin in the UAE?",
+      "q_ar": "ما مقاس الكبينة الجاهزة القياسية في الإمارات؟",
+      "expected_entry_ids": [
+        "prefab_buildings:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Specific manufacturers named as types are illustrative; the current labour accommodation standard details per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "trade": "valves_actuators",
+  "layer": "uae-market",
+  "label_en": "Valves & actuators",
+  "label_ar": "الصمامات والمشغلات",
+  "entries": [
+    {
+      "id": "valves_actuators:uae-market-products",
+      "topic": "Valves & actuators: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Valves and actuators in the UAE: gate, globe and check valves (API 600/602/594, BS 1414/1868/1873), ball valves (floating and trunnion, API 6D/ISO 17292), butterfly valves (concentric rubber-lined for water and HVAC to EN 593, double and triple offset for process), plug valves, control valves, safety and pressure relief valves (API 526, ASME VIII), knife gate valves, HVAC valves (PICVs, balancing valves, motorised zone valves), water utility valves (resilient-seated gate to EN 1171/BS 5163, air valves, PRVs; utility-approved), fire valves (UL/FM), and actuators (electric multi-turn and quarter-turn, pneumatic rack-and-pinion and scotch-yoke, hydraulic) with positioners and limit switches. Buyers specify size (DN/NPS), pressure class (PN or ASME class), body/trim/seat materials, end connection, operator, standard, fire-safe (API 607), and fugitive emission (ISO 15848) requirements.",
+      "body_ar": "الصمامات والمشغلات في الإمارات: صمامات البوابة والكروية المقعد وعدم الرجوع (API 600/602/594 وBS 1414/1868/1873)، والصمامات الكروية (العائمة والمحورية، API 6D/ISO 17292)، وصمامات الفراشة (المركزية المبطنة بالمطاط للمياه والتكييف وفق EN 593، واللامركزية المزدوجة والثلاثية للعمليات)، والصمامات السدادية، وصمامات التحكم، وصمامات الأمان وتخفيف الضغط (API 526 وASME VIII)، والصمامات السكينية، وصمامات التكييف (المستقلة عن الضغط، والموازنة، والمنطقية المحركة)، وصمامات مرافق المياه (البوابة ذات المقعد المرن وفق EN 1171/BS 5163، وصمامات الهواء، ومخفضات الضغط؛ معتمدة من الجهات)، وصمامات الحريق، والمشغلات (الكهربائية متعددة الدورات وربع الدورة، والهوائية بالترس والجريدة والنير، والهيدروليكية) مع الموضعات ومفاتيح النهاية. يحدد المشتري المقاس (DN/NPS) وفئة الضغط والمواد والتوصيل والمشغل والمعيار ومتطلبات مقاومة الحريق (API 607) والانبعاثات (ISO 15848).",
+      "sources": [
+        "https://www.api.org",
+        "https://www.cencenelec.eu",
+        "https://www.rotork.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 6D / API 598 (API); EN 593 (CEN); Rotork. Could not be verified: Utility approval lists for water valves per emirate were not verified."
+    },
+    {
+      "id": "valves_actuators:uae-market-brands",
+      "topic": "Valves & actuators: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Cameron, Emerson (Fisher, Keystone, Bettis), Flowserve, KSB, Velan, Neles (Valmet), Samson, Rotork, AUMA, Belimo (HVAC actuators and PICVs), Danfoss, TA Hydronics (IMI), Crane, Pegler, AVK, Saint-Gobain PAM valves, Bray, Zwick, L&T, and Chinese and Indian manufacturers; local assembly/automation centres in Jebel Ali, Sharjah and Musaffah. Origins: USA-brand, Italy, Germany, UK, Finland, Switzerland, Denmark, India, China.",
+      "body_ar": "العلامات: Cameron وEmerson (Fisher وKeystone وBettis) وFlowserve وKSB وVelan وNeles (Valmet) وSamson وRotork وAUMA وBelimo (مشغلات التكييف وصمامات PICV) وDanfoss وTA Hydronics (IMI) وCrane وPegler وAVK وصمامات Saint-Gobain PAM وBray وZwick وL&T ومصنّعون صينيون وهنود؛ ومراكز تجميع وأتمتة محلية في جبل علي والشارقة ومصفح. المنشأ: علامات أمريكية، إيطاليا، ألمانيا، المملكة المتحدة، فنلندا، سويسرا، الدنمارك، الهند، الصين.",
+      "sources": [
+        "https://www.api.org",
+        "https://www.cencenelec.eu",
+        "https://www.rotork.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 6D / API 598 (API); EN 593 (CEN); Rotork. Could not be verified: Utility approval lists for water valves per emirate were not verified."
+    },
+    {
+      "id": "valves_actuators:uae-market-sizes",
+      "topic": "Valves & actuators: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per piece by size and class (e.g. DN150 PN16 butterfly with gearbox; 4 inch ASME 300 trunnion ball valve, RF, API 6D, fire-safe); actuated valves as an assembly with actuator, bracket and accessories. Quotes state standards, materials, testing (API 598 or ISO 5208), certificates and lead time (stock for HVAC/water; weeks to months for process valves).",
+      "body_ar": "تُسعّر بالقطعة حسب المقاس والفئة (مثل صمام فراشة DN150 PN16 مع علبة تروس؛ وصمام كروي محوري 4 إنش ASME 300 بوجه RF وفق API 6D مقاوم للحريق)؛ والصمامات المشغلة كمجموعة مع المشغل والحامل والملحقات. وتذكر العروض المعايير والمواد والاختبار (API 598 أو ISO 5208) والشهادات ومدة التوريد (من المخزون للتكييف والمياه؛ أسابيع إلى أشهر لصمامات العمليات).",
+      "sources": [
+        "https://www.api.org",
+        "https://www.cencenelec.eu",
+        "https://www.rotork.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 6D / API 598 (API); EN 593 (CEN); Rotork. Could not be verified: Utility approval lists for water valves per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which butterfly valve suits chilled water in a building?",
+      "q_ar": "ما صمام الفراشة المناسب للمياه المبردة في مبنى؟",
+      "expected_entry_ids": [
+        "valves_actuators:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Utility approval lists for water valves per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

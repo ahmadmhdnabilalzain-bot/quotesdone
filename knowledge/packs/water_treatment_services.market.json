@@ -1,0 +1,74 @@
+{
+  "trade": "water_treatment_services",
+  "layer": "uae-market",
+  "label_en": "Water treatment plant O&M & tank cleaning",
+  "label_ar": "تشغيل محطات المعالجة وتنظيف الخزانات",
+  "entries": [
+    {
+      "id": "water_treatment_services:uae-market-products",
+      "topic": "Water treatment plant O&M & tank cleaning: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Water treatment plant O&M and tank cleaning in the UAE: operation and maintenance of sewage treatment plants (STPs), RO and desalination plants, and swimming-pool plant rooms; chemical treatment programmes for cooling towers and chilled-water/condenser systems (scale and corrosion inhibitors, biocides, Legionella control with testing per Dubai Municipality/Abu Dhabi rules), closed-loop treatment; water tank cleaning and disinfection for buildings (mandatory periodic cleaning in Dubai, with the tank cleaning company approved by Dubai Municipality, and in Abu Dhabi per ADPHC/municipal rules), water quality testing (bacteriological and chemical by accredited labs), and drainage and pipeline flushing. Deliverables: logbooks, lab reports, cleaning certificates, and compliance with the municipality's building water tank rules.",
+      "body_ar": "تشغيل وصيانة محطات معالجة المياه وتنظيف الخزانات في الإمارات: تشغيل وصيانة محطات معالجة الصرف، ومحطات التناضح العكسي والتحلية، وغرف معدات المسابح؛ وبرامج المعالجة الكيميائية لأبراج التبريد وأنظمة المياه المبردة والمكثفات (مثبطات الترسبات والتآكل، والمبيدات الحيوية، والتحكم بالليجيونيلا مع الفحص وفق قواعد بلدية دبي وأبوظبي)، ومعالجة الدوائر المغلقة؛ وتنظيف وتعقيم خزانات المياه في المباني (تنظيف دوري إلزامي في دبي بشركة تنظيف خزانات معتمدة من بلدية دبي، وفي أبوظبي وفق قواعد مركز أبوظبي للصحة العامة والبلدية)، وفحص جودة المياه (البكتيري والكيميائي في مختبرات معتمدة)، وغسيل خطوط الصرف والأنابيب. المخرجات: سجلات التشغيل، والتقارير المخبرية، وشهادات التنظيف، والامتثال لقواعد البلدية لخزانات مياه المباني.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.adphc.gov.ae",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (water tank cleaning and Legionella control); Abu Dhabi Public Health Centre; ISO/IEC 17025 (ISO). Could not be verified: The current required cleaning frequency for building water tanks in each emirate was not verified."
+    },
+    {
+      "id": "water_treatment_services:uae-market-brands",
+      "topic": "Water treatment plant O&M & tank cleaning: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Service providers: specialised water treatment companies (e.g. Ecolab/Nalco, Veolia Water Technologies, SUEZ, Metito, Aquatech, BWT, local chemical treatment firms in Dubai and Sharjah), STP operators (e.g. Metito, Veolia, local O&M companies), FM companies (Emrill, Imdaad, Farnek, Transguard) providing tank cleaning, and many Dubai Municipality-approved tank cleaning SMEs. Chemicals: Nalco, Kurita, Solenis, GE-era Suez chemicals, BWA. Accredited labs: Dubai Central Laboratory, and private ISO 17025 labs.",
+      "body_ar": "مزوّدو الخدمات: شركات معالجة المياه المتخصصة (مثل Ecolab/Nalco وVeolia Water Technologies وSUEZ وميتيتو وAquatech وBWT وشركات معالجة كيميائية محلية في دبي والشارقة)، ومشغلو محطات الصرف (مثل ميتيتو وVeolia وشركات تشغيل محلية)، وشركات إدارة المرافق (إمريل وإمداد وفارنك وترانسجارد) التي تقدم تنظيف الخزانات، وشركات صغيرة كثيرة معتمدة من بلدية دبي لتنظيف الخزانات. الكيماويات: Nalco وKurita وSolenis وBWA. المختبرات المعتمدة: مختبر دبي المركزي ومختبرات خاصة معتمدة وفق ISO 17025.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.adphc.gov.ae",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (water tank cleaning and Legionella control); Abu Dhabi Public Health Centre; ISO/IEC 17025 (ISO). Could not be verified: The current required cleaning frequency for building water tanks in each emirate was not verified."
+    },
+    {
+      "id": "water_treatment_services:uae-market-sizes",
+      "topic": "Water treatment plant O&M & tank cleaning: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Tank cleaning is priced per tank by capacity (in gallons or m3) or per building per visit, typically every 6 or 12 months per the municipality rule, with the cleaning certificate and lab test as part of the price or separate. O&M contracts are monthly lump sums with operator staffing and consumables included or excluded, plus performance guarantees on effluent quality. Cooling tower treatment per tower per month including chemicals and Legionella tests at stated frequency.",
+      "body_ar": "يُسعّر تنظيف الخزانات بالخزان حسب السعة (بالجالون أو المتر المكعب) أو بالمبنى لكل زيارة، عادة كل 6 أو 12 شهراً وفق قاعدة البلدية، مع شهادة التنظيف والفحص المخبري ضمن السعر أو منفصلين. وعقود التشغيل والصيانة بمبالغ شهرية مقطوعة مع طاقم التشغيل والمستهلكات مشمولة أو مستثناة، وضمانات أداء لجودة المياه المعالجة. ومعالجة أبراج التبريد لكل برج شهرياً شاملة الكيماويات وفحوص الليجيونيلا بتكرار محدد.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.adphc.gov.ae",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (water tank cleaning and Legionella control); Abu Dhabi Public Health Centre; ISO/IEC 17025 (ISO). Could not be verified: The current required cleaning frequency for building water tanks in each emirate was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How often must a building water tank be cleaned in Dubai?",
+      "q_ar": "كم مرة يجب تنظيف خزان مياه المبنى في دبي؟",
+      "expected_entry_ids": [
+        "water_treatment_services:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current required cleaning frequency for building water tanks in each emirate was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

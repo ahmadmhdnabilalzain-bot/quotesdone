@@ -1,0 +1,74 @@
+{
+  "trade": "mep_general",
+  "layer": "uae-market",
+  "label_en": "MEP (combined)",
+  "label_ar": "الأعمال الكهروميكانيكية المتكاملة (MEP)",
+  "entries": [
+    {
+      "id": "mep_general:uae-market-products",
+      "topic": "MEP (combined): products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Combined MEP (mechanical, electrical, plumbing) contracting in the UAE covers design coordination, supply, installation, testing and commissioning of HVAC, electrical power and lighting, plumbing and drainage, fire fighting and alarm, low current (data, CCTV, access, PA), BMS, and sometimes gas and specialised systems (medical gas, kitchen extract). Deliverables include shop drawings, combined services/coordination drawings (BIM LOD 300-400 on larger projects), material submittals from approved vendor lists, method statements, testing and commissioning, authority inspections (DEWA/ADDC, Civil Defence, Dubai Municipality drainage), as-built drawings and O&M manuals. MEP is also the largest share of annual maintenance (hard FM) contracts. Buyers specify design responsibility (consultant design vs design-and-build), approved makes list, testing standards and handover documents.",
+      "body_ar": "تشمل مقاولات الأعمال الكهروميكانيكية المجمعة (الميكانيكية والكهربائية والصحية) في الإمارات تنسيق التصميم والتوريد والتركيب والاختبار والتشغيل للتكييف، والقوى والإنارة، والتمديدات الصحية والصرف، ومكافحة الحريق وإنذاره، والتيار الخفيف (البيانات والكاميرات والتحكم بالدخول والنداء العام)، وأنظمة إدارة المباني، وأحياناً الغاز والأنظمة الخاصة (الغازات الطبية وشفط المطابخ). وتشمل المخرجات المخططات التنفيذية، ومخططات التنسيق المجمعة (BIM بمستوى 300-400 في المشاريع الكبيرة)، وتقديمات المواد من قوائم الموردين المعتمدين، وبيانات الطرق، والاختبار والتشغيل، وتفتيشات الجهات (هيئة الكهرباء، والدفاع المدني، وصرف بلدية دبي)، ومخططات ما بعد التنفيذ، وأدلة التشغيل والصيانة. كما تشكل الأعمال الكهروميكانيكية الحصة الأكبر من عقود الصيانة السنوية. يحدد المشتري مسؤولية التصميم (تصميم الاستشاري أو التصميم والتنفيذ)، وقائمة العلامات المعتمدة، ومعايير الاختبار، ووثائق التسليم.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Electricity and Water Authority; Dubai Civil Defence; Dubai Municipality. Could not be verified: Named MEP contractors are market examples; their current status was not verified. The MEP cost share ranges are commonly cited benchmarks, not measured in this session."
+    },
+    {
+      "id": "mep_general:uae-market-brands",
+      "topic": "MEP (combined): makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "MEP contractors range from large firms (e.g. Drake & Scull-era entities, ETA Star-group MEP, Emirates Trading Agency, Voltas, Khansaheb MEP, Emco, Al Shirawi Electrical & Mechanical, Belhasa Engineering, Transgulf Electromechanical, Arabian Construction's MEP arms) to many mid-size and SME contractors. Equipment brands are those of each trade (Daikin, Carrier, Trane; Schneider, ABB; Grohe, Geberit; Tyco, Naffco; Honeywell). Contractors must hold utility and Civil Defence registrations for the respective works.",
+      "body_ar": "يتراوح مقاولو الأعمال الكهروميكانيكية من شركات كبيرة (مثل ETA Star، ووكالة الإمارات التجارية، وVoltas، وخان صاحب للأعمال الكهروميكانيكية، وEmco، والشيراوي للأعمال الكهربائية والميكانيكية، وبالحصا للهندسة، وترانس جلف للأعمال الكهروميكانيكية) إلى مقاولين متوسطين وصغار كثيرين. وعلامات المعدات هي علامات كل مهنة (Daikin وCarrier وTrane؛ Schneider وABB؛ Grohe وGeberit؛ Tyco ونافكو؛ Honeywell). ويجب أن يحمل المقاولون تسجيلات هيئة الكهرباء والدفاع المدني للأعمال المعنية.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Electricity and Water Authority; Dubai Civil Defence; Dubai Municipality. Could not be verified: Named MEP contractors are market examples; their current status was not verified. The MEP cost share ranges are commonly cited benchmarks, not measured in this session."
+    },
+    {
+      "id": "mep_general:uae-market-sizes",
+      "topic": "MEP (combined): typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "MEP packages are priced from a BOQ per discipline (mechanical, electrical, plumbing, fire) or as a lump sum; benchmarks are often expressed as a percentage of total construction cost (commonly 25-40% for buildings, higher for hospitals and data centres) or cost per m2 of BUA. Maintenance contracts are per year per building or per m2, with PPM schedule, response times (SLA) and call-out rates. Payment terms mirror the main contract: advance, monthly valuations, retention 5-10%, 12-month defects liability.",
+      "body_ar": "تُسعّر حزم الأعمال الكهروميكانيكية من جدول كميات لكل تخصص (ميكانيكي، كهربائي، صحي، حريق) أو بمبلغ مقطوع؛ وكثيراً ما يُعبّر عن المرجعية كنسبة من إجمالي تكلفة البناء (عادة 25-40% للمباني، وأعلى للمستشفيات ومراكز البيانات) أو كتكلفة للمتر المربع من المساحة المبنية. وعقود الصيانة سنوياً لكل مبنى أو بالمتر المربع، مع جدول الصيانة الوقائية وأوقات الاستجابة (اتفاقية مستوى الخدمة) وأسعار الاستدعاء. وتعكس شروط الدفع العقد الرئيسي: دفعة مقدمة، وتقييمات شهرية، ومحتجزات 5-10%، ومسؤولية عيوب 12 شهراً.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Electricity and Water Authority; Dubai Civil Defence; Dubai Municipality. Could not be verified: Named MEP contractors are market examples; their current status was not verified. The MEP cost share ranges are commonly cited benchmarks, not measured in this session."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What share of a building's cost is usually MEP?",
+      "q_ar": "ما النسبة المعتادة للأعمال الكهروميكانيكية من تكلفة المبنى؟",
+      "expected_entry_ids": [
+        "mep_general:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Named MEP contractors are market examples; their current status was not verified. The MEP cost share ranges are commonly cited benchmarks, not measured in this session.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

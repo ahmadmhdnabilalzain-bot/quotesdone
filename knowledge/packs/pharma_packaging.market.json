@@ -1,0 +1,77 @@
+{
+  "trade": "pharma_packaging",
+  "layer": "uae-market",
+  "label_en": "Pharmaceutical packaging",
+  "label_ar": "التغليف الدوائي",
+  "entries": [
+    {
+      "id": "pharma_packaging:uae-market-products",
+      "topic": "Pharmaceutical packaging: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Pharmaceutical packaging in the UAE: primary packaging — blister films (PVC, PVC/PVDC, PVC/PE/PVDC, cold-form Alu-Alu) and push-through lidding foil, glass vials and ampoules (Type I borosilicate), HDPE and PET bottles with child-resistant and tamper-evident closures, droppers, prefilled syringes, IV bags, tubes (aluminium and laminate), sachets and strip packs; secondary packaging — folding cartons with Braille, leaflets/patient information inserts in Arabic and English, labels with serialisation; tertiary — shipper cartons and temperature-controlled shippers (EPS, PU, VIP panels with gel packs). UAE regulation: MOHAP (now the Emirates Drug Establishment for registration) and DoH/DHA require Arabic/English labelling and the UAE track-and-trace (Tatmeen) GS1 DataMatrix serialisation on medicine packs. Buyers specify material, dimensions, barrier (WVTR), compliance (Ph. Eur./USP, DMF), and GMP of supplier (ISO 15378).",
+      "body_ar": "تغليف الأدوية في الإمارات: التغليف الأولي — أفلام البليستر (PVC وPVC/PVDC وPVC/PE/PVDC والألمنيوم المشكل على البارد)، ورقائق الغطاء القابلة للضغط، والقوارير والأمبولات الزجاجية (بوروسيليكات النوع I)، والزجاجات من HDPE وPET بأغطية مقاومة للأطفال وكاشفة للعبث، والقطارات، والمحاقن المعبأة مسبقاً، وأكياس المحاليل الوريدية، والأنابيب (ألمنيوم ومصفحة)، والأكياس الصغيرة والشرائط؛ والتغليف الثانوي — العلب المطوية بطريقة برايل، ونشرات المريض بالعربية والإنجليزية، والملصقات مع الترقيم التسلسلي؛ والثالثي — كراتين الشحن والحاويات المضبوطة الحرارة (EPS وPU وألواح VIP مع أكياس الجل). التنظيم الإماراتي: تشترط الجهات الصحية الاتحادية ومؤسسة الإمارات للدواء ودائرة الصحة وهيئة الصحة ملصقات عربية/إنجليزية ونظام التتبع الإماراتي (تتمين) بترميز GS1 DataMatrix على عبوات الأدوية. يحدد المشتري المادة والأبعاد والعزل ومعدل نفاذ بخار الماء والامتثال والتصنيع الجيد لدى المورد (ISO 15378).",
+      "sources": [
+        "https://www.ede.gov.ae",
+        "https://www.tatmeen.ae",
+        "https://www.iso.org",
+        "https://www.gs1.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Emirates Drug Establishment; Tatmeen UAE pharmaceutical track and trace; ISO 15378 (ISO); GS1 DataMatrix (GS1). Could not be verified: The current registration authority division between the Emirates Drug Establishment and MOHAP, and the EDE and Tatmeen website addresses, were not verified."
+    },
+    {
+      "id": "pharma_packaging:uae-market-brands",
+      "topic": "Pharmaceutical packaging: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Suppliers: Amcor, Constantia Flexibles, Huhtamaki, Klöckner Pentaplast, Bilcare, Uflex (films and foils); Schott, Gerresheimer, Stevanato, SGD Pharma, Piramal (glass); Berry Global, Aptar (closures, droppers); local and GCC carton printers with pharma GMP (e.g. in Sharjah, Dubai Science Park, KEZAD); cold-chain shippers Sofrigam, Peli BioThermal, Softbox, Va-Q-tec. Local pharma manufacturers (Julphar, Neopharma, Gulf Pharmaceutical Industries) are buyers. Origins: Europe, India, UAE.",
+      "body_ar": "الموردون: Amcor وConstantia Flexibles وHuhtamaki وKlöckner Pentaplast وBilcare وUflex (الأفلام والرقائق)؛ وSchott وGerresheimer وStevanato وSGD Pharma وPiramal (الزجاج)؛ وBerry Global وAptar (الأغطية والقطارات)؛ ومطابع علب محلية وخليجية بمعايير التصنيع الجيد (في الشارقة ودبي للعلوم وكيزاد)؛ وحاويات سلسلة التبريد Sofrigam وPeli BioThermal وSoftbox وVa-Q-tec. ومصنعو الأدوية المحليون (جلفار ونيوفارما والخليج للصناعات الدوائية) مشترون. المنشأ: أوروبا، الهند، الإمارات.",
+      "sources": [
+        "https://www.ede.gov.ae",
+        "https://www.tatmeen.ae",
+        "https://www.iso.org",
+        "https://www.gs1.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Emirates Drug Establishment; Tatmeen UAE pharmaceutical track and trace; ISO 15378 (ISO); GS1 DataMatrix (GS1). Could not be verified: The current registration authority division between the Emirates Drug Establishment and MOHAP, and the EDE and Tatmeen website addresses, were not verified."
+    },
+    {
+      "id": "pharma_packaging:uae-market-sizes",
+      "topic": "Pharmaceutical packaging: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Blister films per kg or per roll by width (e.g. 250 micron PVC); foils per kg; vials and bottles per 1,000; cartons and leaflets per 1,000 with artwork approval cycles; temperature-controlled shippers per unit by payload volume and duration (e.g. 2-8 C for 48-96 hours). MOQs and lead times are longer due to GMP and artwork validation (4-12 weeks).",
+      "body_ar": "أفلام البليستر بالكيلوغرام أو باللفة حسب العرض (مثل PVC بسماكة 250 ميكرون)؛ والرقائق بالكيلوغرام؛ والقوارير والزجاجات لكل 1,000؛ والعلب والنشرات لكل 1,000 مع دورات اعتماد التصميم؛ وحاويات التبريد بالوحدة حسب حجم الحمولة والمدة (مثل 2-8 مئوية لمدة 48-96 ساعة). والحدود الدنيا ومدد التوريد أطول بسبب التصنيع الجيد واعتماد التصاميم (4-12 أسبوعاً).",
+      "sources": [
+        "https://www.ede.gov.ae",
+        "https://www.tatmeen.ae",
+        "https://www.iso.org",
+        "https://www.gs1.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Emirates Drug Establishment; Tatmeen UAE pharmaceutical track and trace; ISO 15378 (ISO); GS1 DataMatrix (GS1). Could not be verified: The current registration authority division between the Emirates Drug Establishment and MOHAP, and the EDE and Tatmeen website addresses, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What serialisation is needed on medicine packs sold in the UAE?",
+      "q_ar": "ما الترقيم التسلسلي المطلوب على عبوات الأدوية المباعة في الإمارات؟",
+      "expected_entry_ids": [
+        "pharma_packaging:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current registration authority division between the Emirates Drug Establishment and MOHAP, and the EDE and Tatmeen website addresses, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

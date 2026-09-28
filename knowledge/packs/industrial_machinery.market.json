@@ -1,0 +1,74 @@
+{
+  "trade": "industrial_machinery",
+  "layer": "uae-market",
+  "label_en": "Industrial machinery & plant equipment",
+  "label_ar": "الآلات والمعدات الصناعية",
+  "entries": [
+    {
+      "id": "industrial_machinery:uae-market-products",
+      "topic": "Industrial machinery & plant equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Industrial machinery and plant equipment traded in the UAE: metalworking machines (lathes, milling, CNC centres, press brakes, shears, laser and plasma cutters), woodworking machines (panel saws, edge banders, CNC routers), plastic machinery (injection moulding, extrusion, blow moulding), food-processing machinery is excluded here, packaging lines (see packaging machinery), concrete block and precast machines, crushers and screening plants, industrial boilers and steam generators, chillers and cooling towers for process, conveyors, mixers and reactors, industrial ovens, and used/refurbished machinery (a large re-export trade to Africa and Asia). Machines must be CE-marked or equivalent, 380-415 V 50 Hz three-phase; buyers specify capacity, power, control system, tooling, installation and training.",
+      "body_ar": "الآلات الصناعية ومعدات المصانع المتداولة في الإمارات: آلات تشغيل المعادن (المخارط، والفرايز، ومراكز CNC، ومكابس الثني، والمقصات، وآلات القطع بالليزر والبلازما)، وآلات النجارة (مناشير الألواح، وآلات لصق الحواف، وراوترات CNC)، وآلات البلاستيك (الحقن، والبثق، والنفخ)، وخطوط التعبئة، وآلات الطابوق والخرسانة المسبقة الصب، والكسارات ومحطات الغربلة، والغلايات الصناعية ومولدات البخار، والمبردات وأبراج التبريد للعمليات، والسيور الناقلة، والخلاطات والمفاعلات، والأفران الصناعية، والآلات المستعملة والمجددة (تجارة إعادة تصدير كبيرة إلى أفريقيا وآسيا). ويجب أن تحمل الآلات علامة CE أو ما يعادلها وتعمل على 380-415 فولت 50 هيرتز ثلاثي الطور؛ ويحدد المشتري السعة والقدرة ونظام التحكم والأدوات والتركيب والتدريب.",
+      "sources": [
+        "https://single-market-economy.ec.europa.eu",
+        "https://moiat.gov.ae",
+        "https://www.trumpf.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+    },
+    {
+      "id": "industrial_machinery:uae-market-brands",
+      "topic": "Industrial machinery & plant equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: DMG Mori, Mazak, Haas, Trumpf, Amada, Bystronic, Biesse, Homag, SCM, Engel, Arburg, Haitian, Krauss-Maffei, Sandvik and Metso (crushers), Terex, Bosch Industriekessel, Cleaver-Brooks, Thermax, and many Chinese, Turkish, Indian and Italian machine makers. Agents and dealers are concentrated in Sharjah, Dubai (JAFZA, Al Quoz, Dubai Investments Park) and Abu Dhabi; used machinery traders in Sharjah and Ajman. Machinery exhibitions (e.g. at Dubai World Trade Centre) are key sourcing points.",
+      "body_ar": "العلامات: DMG Mori وMazak وHaas وTrumpf وAmada وBystronic وBiesse وHomag وSCM وEngel وArburg وHaitian وKrauss-Maffei، وSandvik وMetso (الكسارات)، وTerex، وBosch Industriekessel وCleaver-Brooks وThermax، وكثير من مصنّعي الآلات الصينيين والأتراك والهنود والإيطاليين. ويتركز الوكلاء في الشارقة ودبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) وأبوظبي؛ وتجار الآلات المستعملة في الشارقة وعجمان. والمعارض (مثل مركز دبي التجاري العالمي) نقاط توريد رئيسية.",
+      "sources": [
+        "https://single-market-economy.ec.europa.eu",
+        "https://moiat.gov.ae",
+        "https://www.trumpf.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+    },
+    {
+      "id": "industrial_machinery:uae-market-sizes",
+      "topic": "Industrial machinery & plant equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Machines are quoted per unit (EXW, FOB origin, CIF Jebel Ali, or delivered and installed) with commissioning, training, spare parts package and warranty (typically 12 months). Payment often 30-50% advance with balance before shipment or via LC. Lead times: stock machines weeks, built-to-order 2-6 months. Used machines sold as-is with inspection. Quotes state voltage, CE conformity, dimensions and weight for foundations and rigging.",
+      "body_ar": "تُسعّر الآلات بالوحدة (تسليم المصنع، أو FOB المنشأ، أو CIF جبل علي، أو مسلمة ومركبة) مع التشغيل والتدريب وحزمة قطع الغيار والضمان (عادة 12 شهراً). والدفع غالباً 30-50% مقدماً والباقي قبل الشحن أو عبر اعتماد مستندي. مدد التوريد: آلات المخزون أسابيع، والمصنعة حسب الطلب 2-6 أشهر. والآلات المستعملة تُباع بحالتها مع الفحص. وتذكر العروض الجهد ومطابقة CE والأبعاد والوزن للأساسات والرفع.",
+      "sources": [
+        "https://single-market-economy.ec.europa.eu",
+        "https://moiat.gov.ae",
+        "https://www.trumpf.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EU Machinery Directive / CE (European Commission); MoIAT; Trumpf. Could not be verified: Current dealer appointments per brand were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What should a quotation for an imported CNC machine include?",
+      "q_ar": "ماذا يجب أن يتضمن عرض سعر لآلة CNC مستوردة؟",
+      "expected_entry_ids": [
+        "industrial_machinery:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current dealer appointments per brand were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "trade": "castings_forgings",
+  "layer": "uae-market",
+  "label_en": "Castings & forgings",
+  "label_ar": "المسبوكات والمطروقات",
+  "entries": [
+    {
+      "id": "castings_forgings:uae-market-products",
+      "topic": "Castings & forgings: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Castings and forgings in the UAE market: sand castings (grey iron EN-GJL-250, ductile iron EN-GJS-500-7, carbon and alloy steel, stainless CF8/CF8M, bronze and aluminium), investment castings for valves and pump parts, die castings in aluminium and zinc, manhole covers and gratings (EN 124 classes B125, C250, D400, E600, F900), forgings (flanges to ASME B16.5 and EN 1092-1, fittings, shafts, rings, gears, open-die and closed-die), and valve and pump bodies for oil and gas (NACE MR0175 compliance often required). Local foundries serve construction and utilities; most precision castings and forgings are imported. Buyers specify material grade, standard, drawing tolerances, heat treatment, NDT (radiography, UT, MPI) and certificates (EN 10204 3.1/3.2).",
+      "body_ar": "المسبوكات والمطروقات في السوق الإماراتي: المسبوكات الرملية (حديد رمادي EN-GJL-250، وحديد مرن EN-GJS-500-7، وفولاذ كربوني وسبائكي، وستانلس CF8/CF8M، وبرونز وألمنيوم)، والمسبوكات الدقيقة لقطع الصمامات والمضخات، والصب بالقوالب للألمنيوم والزنك، وأغطية غرف التفتيش والمشبكات (فئات EN 124: B125 وC250 وD400 وE600 وF900)، والمطروقات (الفلنجات وفق ASME B16.5 وEN 1092-1، والتجهيزات، والأعمدة، والحلقات، والتروس، بالقوالب المفتوحة والمغلقة)، وأجسام الصمامات والمضخات للنفط والغاز (يُطلب غالباً الامتثال لـNACE MR0175). وتخدم المسابك المحلية البناء والمرافق؛ ومعظم المسبوكات والمطروقات الدقيقة مستوردة. يحدد المشتري درجة المادة والمعيار وتفاوتات المخطط والمعالجة الحرارية والفحوص غير الإتلافية والشهادات (EN 10204 3.1/3.2).",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.asme.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 124 manhole covers (CEN); ASME B16.5 flanges (ASME); NACE MR0175/ISO 15156 (ISO). Could not be verified: Names and capacities of local UAE foundries were not verified."
+    },
+    {
+      "id": "castings_forgings:uae-market-brands",
+      "topic": "Castings & forgings: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Local foundries and fabricators in Sharjah, Ajman, Jebel Ali, Hamriyah and Abu Dhabi (ICAD) produce ductile iron manhole covers, gratings and general castings; flanges and fittings are imported from India (e.g. many Mumbai and Rajkot forges), China, Italy, Germany and Korea; valve castings from India and China. EN 124 covers: local makers plus Saint-Gobain PAM, EJ, and Indian brands. Traders of flanges and fittings are concentrated in Deira and Sharjah Industrial Area.",
+      "body_ar": "تنتج المسابك والمصنعون المحليون في الشارقة وعجمان وجبل علي والحمرية وأبوظبي (ICAD) أغطية غرف التفتيش من الحديد المرن والمشبكات والمسبوكات العامة؛ وتُستورد الفلنجات والتجهيزات من الهند (مطارق كثيرة في مومباي وراجكوت) والصين وإيطاليا وألمانيا وكوريا؛ ومسبوكات الصمامات من الهند والصين. أغطية EN 124: مصنّعون محليون إضافة إلى Saint-Gobain PAM وEJ وعلامات هندية. ويتركز تجار الفلنجات والتجهيزات في ديرة والمنطقة الصناعية بالشارقة.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.asme.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 124 manhole covers (CEN); ASME B16.5 flanges (ASME); NACE MR0175/ISO 15156 (ISO). Could not be verified: Names and capacities of local UAE foundries were not verified."
+    },
+    {
+      "id": "castings_forgings:uae-market-sizes",
+      "topic": "Castings & forgings: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Castings are priced per kg or per piece against a drawing, with pattern/tooling as a one-off charge; forgings per piece or per kg; flanges per piece by size (NPS 1/2-48 inch), class (150-2500) and face (RF, RTJ). Manhole covers per piece by clear opening (e.g. 600 x 600 mm) and load class. MOQ applies for die castings. Lead times for imported forgings are typically weeks to months; mill test certificates and third-party inspection are standard for oil and gas.",
+      "body_ar": "تُسعّر المسبوكات بالكيلوغرام أو بالقطعة مقابل مخطط، مع تكلفة النموذج/القالب لمرة واحدة؛ والمطروقات بالقطعة أو بالكيلوغرام؛ والفلنجات بالقطعة حسب المقاس (من 1/2 إلى 48 إنش) والفئة (150-2500) والوجه (RF وRTJ). وأغطية غرف التفتيش بالقطعة حسب الفتحة الصافية (مثل 600 × 600 مم) وفئة الحمل. ويوجد حد أدنى للطلب في الصب بالقوالب. ومدة توريد المطروقات المستوردة عادة أسابيع إلى أشهر؛ وشهادات المصنع وفحص الطرف الثالث معتادة للنفط والغاز.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.asme.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 124 manhole covers (CEN); ASME B16.5 flanges (ASME); NACE MR0175/ISO 15156 (ISO). Could not be verified: Names and capacities of local UAE foundries were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which load class of manhole cover is needed for a road?",
+      "q_ar": "ما فئة الحمل المطلوبة لغطاء غرفة تفتيش في طريق؟",
+      "expected_entry_ids": [
+        "castings_forgings:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Names and capacities of local UAE foundries were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

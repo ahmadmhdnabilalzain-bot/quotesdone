@@ -1,0 +1,77 @@
+{
+  "trade": "fuel_diesel",
+  "layer": "uae-market",
+  "label_en": "Fuel & diesel supply",
+  "label_ar": "توريد ديزل ووقود",
+  "entries": [
+    {
+      "id": "fuel_diesel:uae-market-products",
+      "topic": "Fuel & diesel supply: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Fuel and diesel supply in the UAE: road diesel (EN 590-based UAE specification, ultra-low sulphur 10 ppm), industrial/marine gasoil, gasoline grades (Super 98, Special 95, E-Plus 91) at stations, fuel oil and marine fuels (VLSFO 0.5% sulphur, MGO) through bunkering at Fujairah (one of the world's largest bunkering hubs), Jebel Ali and Khor Fakkan, jet fuel (Jet A-1) for aviation via licensed suppliers, lubricants (see lubricants trade), AdBlue (DEF, ISO 22241 AUS 32) for Euro 5/6 engines, and biodiesel blends (B5-B20, including UAE-made biodiesel from used cooking oil). Bulk diesel delivery to sites, generators and fleets is by licensed distributors with tankers; storage requires Civil Defence approval for tanks. Monthly retail fuel prices are set by the UAE Fuel Price Committee.",
+      "body_ar": "توريد الوقود والديزل في الإمارات: ديزل الطرق (مواصفة إماراتية مبنية على EN 590، منخفض الكبريت جداً 10 أجزاء في المليون)، والغاز أويل الصناعي/البحري، ودرجات البنزين (سوبر 98 وخصوصي 95 وإي-بلس 91) في المحطات، وزيت الوقود ووقود السفن (VLSFO بكبريت 0.5% وMGO) عبر التزويد في الفجيرة (من أكبر مراكز تزويد السفن بالوقود عالمياً) وجبل علي وخورفكان، ووقود الطائرات (Jet A-1) عبر موردين مرخصين، ومحلول AdBlue (سائل عادم الديزل وفق ISO 22241 AUS 32) لمحركات يورو 5/6، وخلطات الديزل الحيوي (B5-B20، ومنها ديزل حيوي إماراتي من زيت الطهي المستعمل). ويوصل الديزل السائب للمواقع والمولدات والأساطيل موزعون مرخصون بصهاريج؛ ويحتاج تخزين الوقود اعتماد الدفاع المدني للخزانات. وتحدد لجنة أسعار الوقود في الإمارات أسعار الوقود بالتجزئة شهرياً.",
+      "sources": [
+        "https://www.moei.gov.ae",
+        "https://www.adnocdistribution.ae",
+        "https://www.fujairahport.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UAE Ministry of Energy and Infrastructure (Fuel Price Committee); ADNOC Distribution; Port of Fujairah; EN 590 (CEN). Could not be verified: The current monthly fuel prices and each named private distributor's licence status were not verified."
+    },
+    {
+      "id": "fuel_diesel:uae-market-brands",
+      "topic": "Fuel & diesel supply: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Suppliers: ADNOC Distribution (stations and bulk fuel, 'ADNOC Fuels' and on-site delivery), ENOC/EPPCO (Dubai and northern emirates), Emarat (federal), and licensed private diesel distributors (e.g. Neutral Fuels for biodiesel, and many bulk diesel traders in Sharjah, Hamriyah and Jebel Ali). Bunkering: ADNOC, ENOC, Monjasa, Bunker One, Peninsula, GP Global-era traders and many Fujairah bunker suppliers licensed by the Port of Fujairah. Aviation: ADNOC Aviation, Emirates National Oil Company Aviation, BP and Shell at airports. Origins: UAE refineries (Ruwais, Jebel Ali) plus imports.",
+      "body_ar": "الموردون: أدنوك للتوزيع (المحطات والوقود السائب والتوصيل في الموقع)، وإينوك/إبكو (دبي والإمارات الشمالية)، وإمارات (الاتحادية)، وموزعو ديزل خاصون مرخصون (مثل Neutral Fuels للديزل الحيوي، وتجار ديزل كثيرون في الشارقة والحمرية وجبل علي). تزويد السفن: أدنوك وإينوك وMonjasa وBunker One وPeninsula وموردون كثيرون في الفجيرة مرخصون من ميناء الفجيرة. الطيران: أدنوك للطيران وإينوك للطيران وBP وShell في المطارات. المنشأ: مصافي الإمارات (الرويس وجبل علي) إضافة إلى الواردات.",
+      "sources": [
+        "https://www.moei.gov.ae",
+        "https://www.adnocdistribution.ae",
+        "https://www.fujairahport.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UAE Ministry of Energy and Infrastructure (Fuel Price Committee); ADNOC Distribution; Port of Fujairah; EN 590 (CEN). Could not be verified: The current monthly fuel prices and each named private distributor's licence status were not verified."
+    },
+    {
+      "id": "fuel_diesel:uae-market-sizes",
+      "topic": "Fuel & diesel supply: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Bulk diesel is sold per litre or per imperial gallon (the local trade often quotes per gallon, 1 imperial gallon = 4.546 L) delivered by tanker (5,000-36,000 L), usually referenced to the monthly Fuel Price Committee diesel price with a discount for volume. Marine fuels per metric tonne indexed to Platts Fujairah assessments. AdBlue in 10-20 L cans, 208 L drums, 1,000 L IBCs or bulk. Contracts state delivery frequency, minimum drop, tank dip or flow-meter measurement, and payment terms (commonly 15-30 days for account customers).",
+      "body_ar": "يُباع الديزل السائب باللتر أو بالجالون الإمبراطوري (كثيراً ما يسعّر السوق المحلي بالجالون، والجالون الإمبراطوري = 4.546 لتر) ويُوصل بصهاريج (5,000-36,000 لتر)، وعادة يُربط بسعر الديزل الشهري للجنة أسعار الوقود مع خصم حسب الكمية. ووقود السفن بالطن المتري مربوطاً بتقييمات Platts للفجيرة. وAdBlue في عبوات 10-20 لتراً وبراميل 208 لترات وحاويات 1,000 لتر أو سائباً. وتذكر العقود تكرار التوصيل، والحد الأدنى للتفريغ، والقياس بالغمس أو بالعداد، وشروط الدفع (عادة 15-30 يوماً لعملاء الحسابات).",
+      "sources": [
+        "https://www.moei.gov.ae",
+        "https://www.adnocdistribution.ae",
+        "https://www.fujairahport.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UAE Ministry of Energy and Infrastructure (Fuel Price Committee); ADNOC Distribution; Port of Fujairah; EN 590 (CEN). Could not be verified: The current monthly fuel prices and each named private distributor's licence status were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is bulk diesel for a construction site priced in the UAE?",
+      "q_ar": "كيف يُسعّر الديزل السائب لموقع بناء في الإمارات؟",
+      "expected_entry_ids": [
+        "fuel_diesel:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current monthly fuel prices and each named private distributor's licence status were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

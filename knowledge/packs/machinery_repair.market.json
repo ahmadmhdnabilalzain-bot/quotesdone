@@ -1,0 +1,74 @@
+{
+  "trade": "machinery_repair",
+  "layer": "uae-market",
+  "label_en": "Industrial machinery repair & maintenance",
+  "label_ar": "صيانة وإصلاح الآلات الصناعية",
+  "entries": [
+    {
+      "id": "machinery_repair:uae-market-products",
+      "topic": "Industrial machinery repair & maintenance: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Industrial machinery repair and maintenance in the UAE: electric motor rewinding and overhaul (LV and MV motors, bearing replacement, balancing), pump and compressor overhaul, gearbox repair, hydraulic cylinder and pump repair, generator overhaul (top/major overhaul), CNC and machine-tool repair (spindles, controls), welding and machining of worn parts (metal spraying, sleeving, line boring), dynamic balancing, laser alignment, vibration analysis and thermography (condition monitoring), valve repair and testing, heat exchanger cleaning and retubing, and preventive maintenance contracts. Workshops serving oil and gas and utilities hold ISO 9001 and often owner approvals (ADNOC, DEWA). Buyers specify equipment make/model, fault, scope (inspection, repair, test), OEM parts vs equivalents, and test certificates.",
+      "body_ar": "إصلاح وصيانة الآلات الصناعية في الإمارات: إعادة لف المحركات الكهربائية وعمرتها (المحركات منخفضة ومتوسطة الجهد، واستبدال المحامل، والموازنة)، وعمرة المضخات والضواغط، وإصلاح علب التروس، وإصلاح الأسطوانات والمضخات الهيدروليكية، وعمرة المولدات (العلوية والرئيسية)، وإصلاح آلات CNC والأدوات الآلية (المغازل وأنظمة التحكم)، واللحام والتشغيل للقطع البالية (الرش المعدني، والتجليب، والتجويف الخطي)، والموازنة الديناميكية، والمحاذاة بالليزر، وتحليل الاهتزاز والتصوير الحراري (مراقبة الحالة)، وإصلاح الصمامات واختبارها، وتنظيف المبادلات الحرارية وإعادة تأنيبها، وعقود الصيانة الوقائية. وتحمل الورش التي تخدم النفط والغاز والمرافق ISO 9001 وغالباً اعتمادات المالكين (أدنوك وهيئة كهرباء ومياه دبي). يحدد المشتري ماركة المعدة وطرازها والعطل والنطاق وقطع المصنع مقابل البديلة وشهادات الاختبار.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.easa.com",
+        "https://www.adnoc.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 9001 (ISO); EASA motor repair standard (EASA); ADNOC. Could not be verified: Which independent workshops currently hold owner approvals was not verified."
+    },
+    {
+      "id": "machinery_repair:uae-market-brands",
+      "topic": "Industrial machinery repair & maintenance: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Service providers: OEM service centres (Siemens, ABB, WEG, Atlas Copco, Grundfos, Caterpillar and Cummins dealers), and independent workshops concentrated in Sharjah Industrial Area, Ajman, Al Quoz, Ras Al Khor, Jebel Ali and Musaffah/ICAD; condition-monitoring firms using SKF, Fluke, Emerson (CSI) and Pruftechnik tools. Origins not applicable; parts from OEMs or aftermarket suppliers.",
+      "body_ar": "مقدمو الخدمة: مراكز خدمة المصنّعين (Siemens وABB وWEG وAtlas Copco وGrundfos ووكلاء Caterpillar وCummins)، وورش مستقلة متركزة في المنطقة الصناعية بالشارقة وعجمان والقوز ورأس الخور وجبل علي ومصفح/ICAD؛ وشركات مراقبة الحالة التي تستخدم أدوات SKF وFluke وEmerson (CSI) وPruftechnik. والقطع من المصنّعين أو موردي القطع البديلة.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.easa.com",
+        "https://www.adnoc.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 9001 (ISO); EASA motor repair standard (EASA); ADNOC. Could not be verified: Which independent workshops currently hold owner approvals was not verified."
+    },
+    {
+      "id": "machinery_repair:uae-market-sizes",
+      "topic": "Industrial machinery repair & maintenance: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Repairs are quoted after inspection: strip-down and inspection fee, then a repair quote itemising parts and labour (labour per hour or lump sum), with turnaround time. Motor rewinds priced by kW and poles. Field service per technician-hour or per day plus call-out. PPM contracts per year per asset list. Warranty on repairs typically 3-12 months.",
+      "body_ar": "تُسعّر الإصلاحات بعد الفحص: رسوم الفك والفحص، ثم عرض إصلاح يفصل القطع والعمالة (العمالة بالساعة أو بمبلغ مقطوع)، مع مدة التنفيذ. وتُسعّر إعادة لف المحركات حسب القدرة وعدد الأقطاب. والخدمة الميدانية بساعة الفني أو باليوم مع رسوم الاستدعاء. وعقود الصيانة الوقائية سنوياً حسب قائمة الأصول. وضمان الإصلاحات عادة 3-12 شهراً.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.easa.com",
+        "https://www.adnoc.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 9001 (ISO); EASA motor repair standard (EASA); ADNOC. Could not be verified: Which independent workshops currently hold owner approvals was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is an electric motor rewind priced?",
+      "q_ar": "كيف تُسعّر إعادة لف محرك كهربائي؟",
+      "expected_entry_ids": [
+        "machinery_repair:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Which independent workshops currently hold owner approvals was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

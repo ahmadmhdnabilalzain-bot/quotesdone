@@ -1,0 +1,71 @@
+{
+  "trade": "sewage_tanker",
+  "layer": "uae-market",
+  "label_en": "Sewage & water tanker services",
+  "label_ar": "صهاريج الصرف الصحي والمياه",
+  "entries": [
+    {
+      "id": "sewage_tanker:uae-market-products",
+      "topic": "Sewage & water tanker services: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Sewage and water tanker services in the UAE: septic tank and soak-away emptying (sewage suction tankers) for villas, farms, labour camps and sites not connected to the sewer network; grease trap cleaning and disposal for commercial kitchens (mandatory periodic cleaning with manifests in Dubai and Abu Dhabi); portable toilet servicing; potable water delivery by tanker (from authorised filling stations, tanks disinfected, for sites, camps, farms and buildings during outages); non-potable/irrigation water and treated sewage effluent (TSE) delivery for construction and landscaping; and drainage line jetting and CCTV inspection. Sewage must be discharged only at authorised treatment plant reception points (e.g. Al Aweer, Jebel Ali in Dubai) with the municipality's tracking system; tankers need municipality permits and GPS tracking.",
+      "body_ar": "خدمات صهاريج الصرف الصحي والمياه في الإمارات: تفريغ خزانات التحليل والآبار الماصة (صهاريج شفط الصرف) للفلل والمزارع ومساكن العمال والمواقع غير المتصلة بشبكة الصرف؛ وتنظيف مصائد الدهون والتخلص منها للمطابخ التجارية (تنظيف دوري إلزامي مع بيانات تتبع في دبي وأبوظبي)؛ وخدمة الحمامات المتنقلة؛ وتوصيل مياه الشرب بالصهاريج (من محطات تعبئة معتمدة، بصهاريج معقمة، للمواقع والمساكن والمزارع والمباني أثناء الانقطاع)؛ وتوصيل المياه غير الصالحة للشرب ومياه الري ومياه الصرف المعالجة للبناء والتنسيق؛ وتنظيف خطوط الصرف بالضغط والفحص بالكاميرات. ويجب تفريغ الصرف فقط في نقاط استقبال محطات المعالجة المعتمدة (مثل العوير وجبل علي في دبي) مع نظام التتبع التابع للبلدية؛ وتحتاج الصهاريج تصاريح من البلدية وتتبعاً بالـGPS.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.taqa.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (sewage tanker and grease trap regulation); Abu Dhabi sewerage services (TAQA Water Solutions). Could not be verified: Current discharge fees, the exact grease trap cleaning frequency rule per emirate, and the current name of the Abu Dhabi sewerage operator were not verified."
+    },
+    {
+      "id": "sewage_tanker:uae-market-brands",
+      "topic": "Sewage & water tanker services: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Providers are licensed transport and environmental service companies in each emirate, many based in Al Quoz, Al Qusais, Sharjah Industrial Area, Ajman and Musaffah, plus FM companies (Imdaad, Emrill, Farnek) that subcontract tanker work, and grease-trap specialists. Tanker trucks are typically Mercedes-Benz Actros, Volvo FM, MAN, Isuzu and Ashok Leyland chassis with local or Turkish/Chinese tank bodies (vacuum pumps from Jurop, Moro, Battioni). Municipality tracking and discharge are run by Dubai Municipality and, in Abu Dhabi, by the relevant sewerage company (ADSSC/Taqa Water Solutions).",
+      "body_ar": "المزوّدون شركات نقل وخدمات بيئية مرخصة في كل إمارة، كثير منها في القوز والقصيص والمنطقة الصناعية بالشارقة وعجمان ومصفح، إضافة إلى شركات إدارة المرافق (إمداد وإمريل وفارنك) التي تتعاقد من الباطن على أعمال الصهاريج، ومتخصصو مصائد الدهون. وشاحنات الصهاريج عادة على هياكل Mercedes-Benz Actros وVolvo FM وMAN وIsuzu وAshok Leyland مع أجسام صهاريج محلية أو تركية/صينية (مضخات تفريغ من Jurop وMoro وBattioni). ويدير التتبع والتفريغ بلدية دبي، وفي أبوظبي شركة الصرف الصحي المختصة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.taqa.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (sewage tanker and grease trap regulation); Abu Dhabi sewerage services (TAQA Water Solutions). Could not be verified: Current discharge fees, the exact grease trap cleaning frequency rule per emirate, and the current name of the Abu Dhabi sewerage operator were not verified."
+    },
+    {
+      "id": "sewage_tanker:uae-market-sizes",
+      "topic": "Sewage & water tanker services: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Tankers are sized in imperial gallons: 1,500, 3,000, 5,000 gallons (about 6.8, 13.6, 22.7 m3); priced per trip/load by size and distance, with municipality discharge fees included or itemised. Grease trap cleaning is per visit (monthly or quarterly schedules) or per annual contract. Potable water per gallon load or per trip, with tank cleaning certificates. Monthly contracts for camps and sites state trips per week and emergency call-out times.",
+      "body_ar": "تُقاس الصهاريج بالجالون الإمبراطوري: 1,500 و3,000 و5,000 جالون (نحو 6.8 و13.6 و22.7 م3)؛ وتُسعّر بالرحلة/الحمولة حسب الحجم والمسافة، مع رسوم التفريغ في البلدية مشمولة أو مفصلة. وتنظيف مصائد الدهون بالزيارة (جداول شهرية أو ربع سنوية) أو بعقد سنوي. ومياه الشرب بحمولة الجالونات أو بالرحلة مع شهادات تنظيف الصهريج. وتذكر العقود الشهرية للمساكن والمواقع عدد الرحلات أسبوعياً وأوقات الاستجابة الطارئة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.taqa.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (sewage tanker and grease trap regulation); Abu Dhabi sewerage services (TAQA Water Solutions). Could not be verified: Current discharge fees, the exact grease trap cleaning frequency rule per emirate, and the current name of the Abu Dhabi sewerage operator were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What tanker sizes are available for septic tank emptying?",
+      "q_ar": "ما أحجام الصهاريج المتاحة لتفريغ خزان التحليل؟",
+      "expected_entry_ids": [
+        "sewage_tanker:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current discharge fees, the exact grease trap cleaning frequency rule per emirate, and the current name of the Abu Dhabi sewerage operator were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

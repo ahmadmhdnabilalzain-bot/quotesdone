@@ -1,0 +1,74 @@
+{
+  "trade": "material_handling",
+  "layer": "uae-market",
+  "label_en": "Forklifts & material handling",
+  "label_ar": "الرافعات الشوكية ومعدات المناولة",
+  "entries": [
+    {
+      "id": "material_handling:uae-market-products",
+      "topic": "Forklifts & material handling: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Forklifts and material handling in the UAE: counterbalance forklifts (diesel, LPG, electric; 1.5-10 t, larger for ports and steel yards), reach trucks and very-narrow-aisle trucks for warehouses, pallet trucks (manual and electric), stackers, order pickers, telehandlers, side loaders, container handlers and reach stackers (ports), tow tractors, conveyors and sortation systems (logistics and e-commerce hubs), overhead cranes and hoists (EOT cranes, chain hoists), dock levellers and doors, AGVs/AMRs, and lifting accessories (slings, shackles). Lifting equipment needs third-party inspection certificates (typically every 6-12 months) and operators need certified training. Buyers specify capacity at load centre (e.g. 3 t at 500 mm), lift height, mast type (duplex/triplex), fuel/power, tyres (pneumatic/solid/cushion), attachments (side shift, forks positioner).",
+      "body_ar": "الرافعات الشوكية ومناولة المواد في الإمارات: الرافعات الشوكية الموازنة (ديزل، غاز، كهربائية؛ 1.5-10 أطنان، وأكبر للموانئ وساحات الحديد)، ورافعات الوصول والممرات الضيقة جداً للمستودعات، وعربات المنصات (يدوية وكهربائية)، والمكدسات، وملتقطات الطلبات، والرافعات التلسكوبية، والرافعات الجانبية، ومناولات الحاويات ورافعات الوصول (الموانئ)، وجرارات السحب، والسيور وأنظمة الفرز (مراكز اللوجستيات والتجارة الإلكترونية)، والرافعات العلوية والرافعات السلسلية، ومسويات الأرصفة وأبوابها، والمركبات الموجهة آلياً، وملحقات الرفع (الحبال والشكالات). وتحتاج معدات الرفع شهادات فحص طرف ثالث (عادة كل 6-12 شهراً) ويحتاج المشغلون تدريباً معتمداً. يحدد المشتري السعة عند مركز الحمل (مثل 3 أطنان عند 500 مم) وارتفاع الرفع ونوع الصاري والوقود/الطاقة والإطارات والملحقات.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.dm.gov.ae",
+        "https://toyota-forklifts.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+    },
+    {
+      "id": "material_handling:uae-market-brands",
+      "topic": "Forklifts & material handling: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Toyota (Al-Futtaim Toyota Material Handling), Linde, Still (KION), Jungheinrich, Crown, Hyster-Yale, Komatsu, Mitsubishi Logisnext, Doosan/Develon (now Bobcat forklifts), Heli, Hangcha, EP, Kalmar and Konecranes (ports), Demag, GH Cranes. Dealers and rental companies in Dubai (JAFZA, Al Quoz, DIP), Sharjah and Musaffah; rental on monthly or long-term leases is common. Origins: Japan, Germany, USA-brand, China, Finland.",
+      "body_ar": "العلامات: Toyota (الفطيم تويوتا لمناولة المواد) وLinde وStill (KION) وJungheinrich وCrown وHyster-Yale وKomatsu وMitsubishi Logisnext وDoosan/Develon وHeli وHangcha وEP، وKalmar وKonecranes (الموانئ)، وDemag وGH Cranes. والوكلاء وشركات التأجير في دبي (المنطقة الحرة لجبل علي والقوز ومجمع دبي للاستثمار) والشارقة ومصفح؛ والتأجير الشهري أو طويل الأجل شائع. المنشأ: اليابان، ألمانيا، علامات أمريكية، الصين، فنلندا.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.dm.gov.ae",
+        "https://toyota-forklifts.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+    },
+    {
+      "id": "material_handling:uae-market-sizes",
+      "topic": "Forklifts & material handling: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Forklifts are sold per unit or rented per month (often with maintenance included, 1-5 year leases), with operator optional; batteries and chargers for electric trucks priced separately. Racking-compatible lift heights 4.5-12 m. Overhead cranes per unit by SWL and span. Inspection certificates per item per inspection. Warranty 12 months or 2,000 hours typical.",
+      "body_ar": "تُباع الرافعات الشوكية بالوحدة أو تُؤجر شهرياً (غالباً مع الصيانة، بعقود 1-5 سنوات) مع مشغل اختياري؛ وتُسعّر البطاريات والشواحن للكهربائية منفصلة. وارتفاعات الرفع المتوافقة مع الرفوف 4.5-12 م. والرافعات العلوية بالوحدة حسب الحمولة الآمنة والبحر. وشهادات الفحص لكل بند في كل فحص. والضمان 12 شهراً أو 2,000 ساعة عادة.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.dm.gov.ae",
+        "https://toyota-forklifts.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 3691 industrial trucks safety (ISO); Dubai Municipality / emirate lifting equipment inspection; Toyota Material Handling. Could not be verified: Current dealer appointments and inspection intervals per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What does 3 tonnes at 500 mm load centre mean on a forklift?",
+      "q_ar": "ماذا يعني 3 أطنان عند مركز حمل 500 مم في الرافعة الشوكية؟",
+      "expected_entry_ids": [
+        "material_handling:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current dealer appointments and inspection intervals per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

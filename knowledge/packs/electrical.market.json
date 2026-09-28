@@ -1,0 +1,74 @@
+{
+  "trade": "electrical",
+  "layer": "uae-market",
+  "label_en": "Electrical",
+  "label_ar": "الأعمال الكهربائية",
+  "entries": [
+    {
+      "id": "electrical:uae-market-products",
+      "topic": "Electrical: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Electrical contracting and products in the UAE: LV distribution (main distribution boards MDB, sub-main SMDB, final distribution boards DB, form 2-4 separation, IEC 61439 type-tested), switchgear and protection (ACB, MCCB, MCB, RCD/RCBO), cable containment (trays, ladders, trunking, GI and PVC conduits), wiring accessories (sockets BS 1363 13 A three-pin, switches, isolators), lighting circuits, earthing and lightning protection (BS EN 62305, BS 7430), power factor correction, ATS and generator interfacing, EV charger circuits, and small-power installation in villas, offices and warehouses. Rules: DEWA Regulations for Electrical Installations (Dubai), ADDC/ADWEA wiring regulations (Abu Dhabi), SEWA and FEWA/EtihadWE rules elsewhere; 230/400 V, 50 Hz; load approval and inspection by the utility before connection.",
+      "body_ar": "المقاولات والمنتجات الكهربائية في الإمارات: توزيع الجهد المنخفض (لوحات التوزيع الرئيسية MDB والفرعية SMDB والنهائية DB، بفصل من الشكل 2 إلى 4، ومختبرة وفق IEC 61439)، والمفاتيح والحماية (قواطع ACB وMCCB وMCB وRCD/RCBO)، ومسارات الكابلات (الصواني والسلالم والمجاري والأنابيب المجلفنة وPVC)، ولوازم التمديدات (المقابس ثلاثية المسامير 13 أمبير وفق BS 1363، والمفاتيح، والعوازل)، ودوائر الإنارة، والتأريض والحماية من الصواعق (BS EN 62305 وBS 7430)، وتحسين معامل القدرة، ومفاتيح التحويل الآلي وربط المولدات، ودوائر شواحن المركبات الكهربائية، وتمديدات القوى في الفلل والمكاتب والمستودعات. القواعد: لوائح هيئة كهرباء ومياه دبي للتمديدات الكهربائية، ولوائح التمديدات في أبوظبي، وقواعد هيئة الشارقة والاتحاد للماء والكهرباء في باقي الإمارات؛ الجهد 230/400 فولت و50 هيرتز؛ واعتماد الأحمال والتفتيش من الهيئة قبل التوصيل.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: DEWA Regulations for Electrical Installations; IEC 61439 (IEC); BS 1363 / BS 7671 (BSI). Could not be verified: The current edition of each utility's wiring regulations and local panel builders' licences were not verified."
+    },
+    {
+      "id": "electrical:uae-market-brands",
+      "topic": "Electrical: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Switchgear and boards: Schneider Electric, ABB, Siemens, Eaton, Legrand, Hager, and local panel builders licensed by these brands in Sharjah, Dubai (Al Quoz, Jebel Ali) and Abu Dhabi (Musaffah). Accessories: MK (Honeywell), Legrand, Schneider, Crabtree, Clipsal, and value brands (e.g. Chinese and Turkish). Containment: local manufacturers (e.g. Unitech, OBO Bettermann imports). Distribution through electrical wholesalers in Deira (Naif), Al Quoz, Sharjah and Musaffah. Contractors must hold a utility-registered electrical contractor licence and a licensed engineer to sign drawings.",
+      "body_ar": "المفاتيح واللوحات: Schneider Electric وABB وSiemens وEaton وLegrand وHager، ومصنّعو لوحات محليون مرخصون من هذه العلامات في الشارقة ودبي (القوز وجبل علي) وأبوظبي (مصفح). اللوازم: MK (Honeywell) وLegrand وSchneider وCrabtree وClipsal وعلامات اقتصادية صينية وتركية. المسارات: مصنّعون محليون وواردات OBO Bettermann. ويجري التوزيع عبر تجار الجملة الكهربائيين في ديرة (نايف) والقوز والشارقة ومصفح. ويجب أن يحمل المقاول رخصة مقاول كهرباء مسجلة لدى الهيئة ومهندساً مرخصاً للتوقيع على المخططات.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: DEWA Regulations for Electrical Installations; IEC 61439 (IEC); BS 1363 / BS 7671 (BSI). Could not be verified: The current edition of each utility's wiring regulations and local panel builders' licences were not verified."
+    },
+    {
+      "id": "electrical:uae-market-sizes",
+      "topic": "Electrical: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Electrical works are quoted against a BOQ: per point for wiring (light point, socket outlet, switch, including conduit and wire), boards per number with schedule of breakers, cable per metre by size, containment per metre by width (tray 100-600 mm), earthing pits per number, and lightning protection lump sum. Villa electrical packages are often per point or lump sum. Utility fees, load approvals and final inspection are separate lines. Materials are typically quoted from an approved vendor list with brand per item.",
+      "body_ar": "تُسعّر الأعمال الكهربائية مقابل جدول كميات: بالنقطة للتمديدات (نقطة إنارة، مخرج مقبس، مفتاح، شاملة الأنابيب والأسلاك)، واللوحات بالعدد مع جدول القواطع، والكابلات بالمتر حسب المقطع، والمسارات بالمتر حسب العرض (صواني 100-600 مم)، وحفر التأريض بالعدد، والحماية من الصواعق بمبلغ مقطوع. وغالباً ما تكون باقات كهرباء الفلل بالنقطة أو بمبلغ مقطوع. ورسوم الهيئة واعتماد الأحمال والتفتيش النهائي بنود مستقلة. وعادة تُسعّر المواد من قائمة موردين معتمدين مع ذكر العلامة لكل بند.",
+      "sources": [
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: DEWA Regulations for Electrical Installations; IEC 61439 (IEC); BS 1363 / BS 7671 (BSI). Could not be verified: The current edition of each utility's wiring regulations and local panel builders' licences were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What socket type is used in the UAE?",
+      "q_ar": "ما نوع المقابس المستخدم في الإمارات؟",
+      "expected_entry_ids": [
+        "electrical:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current edition of each utility's wiring regulations and local panel builders' licences were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

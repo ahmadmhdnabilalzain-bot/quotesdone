@@ -1,0 +1,74 @@
+{
+  "trade": "gypsum",
+  "layer": "uae-market",
+  "label_en": "Gypsum, partitions & ceilings",
+  "label_ar": "الجبس والقواطع والأسقف",
+  "entries": [
+    {
+      "id": "gypsum:uae-market-products",
+      "topic": "Gypsum, partitions & ceilings: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Gypsum, partitions and ceilings in the UAE: plasterboard (standard 12.5 mm, moisture-resistant green board, fire-rated pink/red board type F, impact-resistant, acoustic perforated, and cement boards for wet areas), metal studs and tracks (galvanised, 50-146 mm widths, 0.5-0.6 mm gauge), drywall partitions tested for fire rating (30-120 minutes) and acoustic rating (Rw 40-60 dB), suspended ceilings (exposed grid with 600 x 600 mineral fibre tiles, concealed gypsum ceilings, metal clip-in and lay-in tiles, linear metal ceilings, baffles), GRG (glass-reinforced gypsum) decorative mouldings and cornices, gypsum plaster (machine-applied), and joint compounds. Fire-rated systems must match the tested system of the manufacturer and be accepted by Civil Defence.",
+      "body_ar": "الجبس والقواطع والأسقف في الإمارات: ألواح الجبس (القياسية 12.5 مم، والمقاومة للرطوبة الخضراء، والمقاومة للحريق الوردية/الحمراء نوع F، والمقاومة للصدمات، والمثقبة الصوتية، والألواح الإسمنتية للأماكن الرطبة)، والقوائم والمجاري المعدنية (مجلفنة، بعرض 50-146 مم وسماكة 0.5-0.6 مم)، وقواطع الجدران الجافة المختبرة لمقاومة الحريق (30-120 دقيقة) والعزل الصوتي (Rw بين 40 و60 ديسيبل)، والأسقف المعلقة (شبكة ظاهرة مع بلاطات ألياف معدنية 600 × 600، وأسقف جبس مخفية، وبلاطات معدنية بالتثبيت أو بالوضع، وأسقف معدنية طولية، وألواح معلقة)، والديكورات والكرانيش من الجبس المقوى بالألياف الزجاجية GRG، ولياسة الجبس (آلية)، ومعاجين الفواصل. ويجب أن تطابق أنظمة الحريق النظام المختبر لدى المصنّع وأن يقبلها الدفاع المدني.",
+      "sources": [
+        "https://www.gyproc.ae",
+        "https://www.knauf.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Saint-Gobain Gyproc; Knauf; UAE Fire and Life Safety Code (Civil Defence). Could not be verified: The exact locations of regional board plants and the current product listings with Civil Defence were not verified."
+    },
+    {
+      "id": "gypsum:uae-market-brands",
+      "topic": "Gypsum, partitions & ceilings: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Boards and systems: Gyproc (Saint-Gobain, with a plant in Dubai), Knauf (plants in the region), USG Boral (Sheetrock), Siniat (Etex), and Gulf Gypsum/National Gypsum from the region, plus Omani and Saudi board makers. Ceiling tiles: Armstrong, USG, AMF (Knauf Ceiling Solutions), Rockfon (Rockwool), Ecophon (Saint-Gobain), and Hunter Douglas and Luxalon for metal and linear ceilings. Studs are also roll-formed locally by many Sharjah and Ajman factories. GRG is produced by local workshops. Distribution through building-materials traders in Sharjah, Al Quoz and Musaffah. Origins: UAE, Oman, Saudi Arabia, Europe, China.",
+      "body_ar": "الألواح والأنظمة: Gyproc (سان غوبان، ولها مصنع في دبي)، وKnauf (مصانع في المنطقة)، وUSG Boral (Sheetrock)، وSiniat (Etex)، إضافة إلى منتجي ألواح عُمانيين وسعوديين. بلاطات الأسقف: Armstrong وUSG وAMF (Knauf Ceiling Solutions) وRockfon (Rockwool) وEcophon (سان غوبان)، وHunter Douglas وLuxalon للأسقف المعدنية والطولية. وتُشكّل القوائم المعدنية محلياً في مصانع كثيرة في الشارقة وعجمان. وتنتج ورش محلية منتجات GRG. ويجري التوزيع عبر تجار مواد البناء في الشارقة والقوز ومصفح. المنشأ: الإمارات، عُمان، السعودية، أوروبا، الصين.",
+      "sources": [
+        "https://www.gyproc.ae",
+        "https://www.knauf.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Saint-Gobain Gyproc; Knauf; UAE Fire and Life Safety Code (Civil Defence). Could not be verified: The exact locations of regional board plants and the current product listings with Civil Defence were not verified."
+    },
+    {
+      "id": "gypsum:uae-market-sizes",
+      "topic": "Gypsum, partitions & ceilings: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Plasterboard sheets are 1200 x 2400 mm (also 2700/3000 mm lengths), 9.5, 12.5 and 15 mm thick. Ceiling tiles 600 x 600 mm (also 600 x 1200). Studs in 3 m lengths. Works are quoted per m2 of partition (stating stud size, spacing at 400 or 600 mm, layers of board each side, insulation infill and fire/acoustic rating) and per m2 of ceiling (with bulkheads and access panels as extra items per linear metre or per piece). Cornices per linear metre. Materials are traded per sheet, per box of tiles and per bundle of studs.",
+      "body_ar": "مقاس ألواح الجبس 1200 × 2400 مم (وأطوال 2700/3000 مم أيضاً)، بسماكات 9.5 و12.5 و15 مم. وبلاطات الأسقف 600 × 600 مم (و600 × 1200 أيضاً). والقوائم بأطوال 3 م. وتُسعّر الأعمال بالمتر المربع من القاطع (مع ذكر مقاس القائم، والتباعد 400 أو 600 مم، وعدد طبقات الألواح لكل جانب، وحشوة العزل، وتصنيف الحريق والصوت) وبالمتر المربع من السقف (مع الأجزاء المنخفضة وفتحات الصيانة كبنود إضافية بالمتر الطولي أو بالقطعة). والكرانيش بالمتر الطولي. وتُتداول المواد باللوح وبكرتونة البلاط وبحزمة القوائم.",
+      "sources": [
+        "https://www.gyproc.ae",
+        "https://www.knauf.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Saint-Gobain Gyproc; Knauf; UAE Fire and Life Safety Code (Civil Defence). Could not be verified: The exact locations of regional board plants and the current product listings with Civil Defence were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What board should I use for a bathroom ceiling?",
+      "q_ar": "ما نوع اللوح المناسب لسقف حمام؟",
+      "expected_entry_ids": [
+        "gypsum:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The exact locations of regional board plants and the current product listings with Civil Defence were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

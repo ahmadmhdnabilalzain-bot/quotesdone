@@ -1,0 +1,74 @@
+{
+  "trade": "industrial_pumps",
+  "layer": "uae-market",
+  "label_en": "Industrial pumps",
+  "label_ar": "المضخات الصناعية",
+  "entries": [
+    {
+      "id": "industrial_pumps:uae-market-products",
+      "topic": "Industrial pumps: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Industrial pumps in the UAE: end-suction and split-case centrifugal pumps (EN 733, ISO 2858/5199) for HVAC chilled water and water transfer, vertical multistage and booster sets for buildings, submersible pumps (borewell, drainage, sewage with cutters, dewatering), inline circulators, API 610 process pumps for oil and gas (OH, BB, VS types), positive displacement pumps (gear, screw, lobe, diaphragm/AODD, peristaltic, progressive cavity), metering/dosing pumps, fire pumps (UL/FM listed, see fire fighting), and slurry pumps. Buyers specify flow (m3/h or l/s), head (m), NPSH, fluid and temperature, materials (cast iron, bronze impeller, stainless 316, duplex for seawater), seal type (mechanical seal to API 682), motor kW and efficiency (IE3/IE4), and VFD.",
+      "body_ar": "المضخات الصناعية في الإمارات: المضخات الطاردة المركزية ذات الشفط الطرفي والغلاف المشقوق (EN 733 وISO 2858/5199) للمياه المبردة ونقل المياه، ووحدات الرفع متعددة المراحل العمودية للمباني، والمضخات الغاطسة (للآبار والصرف والمجاري بالقواطع ونزح المياه)، ومضخات التدوير الخطية، ومضخات العمليات وفق API 610 للنفط والغاز، ومضخات الإزاحة الموجبة (الترسية واللولبية والفصية والغشائية AODD والتمعجية والتجويف التقدمي)، ومضخات القياس والجرعات، ومضخات الحريق، ومضخات الطين. يحدد المشتري التدفق (م3/ساعة أو لتر/ث) والرفع (م) وNPSH والسائل والحرارة والمواد (حديد زهر، دفاعة برونزية، ستانلس 316، دوبلكس لمياه البحر) ونوع السداد (ميكانيكي وفق API 682) وقدرة المحرك وكفاءته (IE3/IE4) ومحول التردد.",
+      "sources": [
+        "https://www.api.org",
+        "https://www.iso.org",
+        "https://www.grundfos.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 610 (API); ISO 5199 (ISO); Grundfos. Could not be verified: Regional HQ locations and distributor appointments were not verified."
+    },
+    {
+      "id": "industrial_pumps:uae-market-brands",
+      "topic": "Industrial pumps: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Grundfos (regional HQ in Dubai), KSB, Wilo, Xylem (Lowara, Flygt, Goulds), Sulzer, Flowserve, Ebara, Pentair, Armstrong, Aurora, DAB, Pedrollo, Calpeda, Kirloskar, CRI, Tsurumi, Netzsch, Seepex, Graco, Wilden, ProMinent, Grundfos dosing. Distributors and service centres in Al Quoz, Jebel Ali, Sharjah and Musaffah; pump repair shops rewind motors and replace seals. Origins: Denmark, Germany, Italy, Japan, India, China, USA-brand.",
+      "body_ar": "العلامات: Grundfos (مقر إقليمي في دبي) وKSB وWilo وXylem (Lowara وFlygt وGoulds) وSulzer وFlowserve وEbara وPentair وArmstrong وAurora وDAB وPedrollo وCalpeda وKirloskar وCRI وTsurumi وNetzsch وSeepex وGraco وWilden وProMinent. والموزعون ومراكز الخدمة في القوز وجبل علي والشارقة ومصفح؛ وتعيد ورش المضخات لف المحركات وتستبدل السدادات. المنشأ: الدنمارك، ألمانيا، إيطاليا، اليابان، الهند، الصين، علامات أمريكية.",
+      "sources": [
+        "https://www.api.org",
+        "https://www.iso.org",
+        "https://www.grundfos.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 610 (API); ISO 5199 (ISO); Grundfos. Could not be verified: Regional HQ locations and distributor appointments were not verified."
+    },
+    {
+      "id": "industrial_pumps:uae-market-sizes",
+      "topic": "Industrial pumps: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Pumps are priced per unit or per set (duty/standby with control panel and VFD), with performance curve and datasheet in the offer. Booster sets by flow and pressure; submersibles by kW and outlet size. Spares (seals, impellers) per piece. Warranty 12-24 months; installation and commissioning separate; AMC per year for buildings. API pumps have long lead times (months) and witnessed performance tests.",
+      "body_ar": "تُسعّر المضخات بالوحدة أو بالطقم (تشغيل/احتياط مع لوحة تحكم ومحول تردد)، مع منحنى الأداء وورقة البيانات في العرض. ووحدات الرفع حسب التدفق والضغط؛ والغاطسة حسب القدرة ومقاس المخرج. وقطع الغيار (السدادات والدفاعات) بالقطعة. والضمان 12-24 شهراً؛ والتركيب والتشغيل منفصلان؛ وعقد صيانة سنوي للمباني. ومضخات API لها مدد توريد طويلة (أشهر) واختبارات أداء بحضور العميل.",
+      "sources": [
+        "https://www.api.org",
+        "https://www.iso.org",
+        "https://www.grundfos.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: API 610 (API); ISO 5199 (ISO); Grundfos. Could not be verified: Regional HQ locations and distributor appointments were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What data do I need to size a booster pump for a building?",
+      "q_ar": "ما البيانات التي أحتاجها لتحديد مضخة رفع لمبنى؟",
+      "expected_entry_ids": [
+        "industrial_pumps:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Regional HQ locations and distributor appointments were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

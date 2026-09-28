@@ -1,0 +1,77 @@
+{
+  "trade": "thermal_insulation",
+  "layer": "uae-market",
+  "label_en": "Thermal & acoustic insulation",
+  "label_ar": "العزل الحراري والصوتي",
+  "entries": [
+    {
+      "id": "thermal_insulation:uae-market-products",
+      "topic": "Thermal & acoustic insulation: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Thermal and acoustic insulation in the UAE: extruded polystyrene (XPS) boards for roofs and foundations, expanded polystyrene (EPS) for blocks and walls, polyurethane (PU/PIR) spray foam and boards, glass wool and rock wool (mineral wool) slabs and rolls for walls, ceilings and HVAC, closed-cell elastomeric foam (nitrile rubber) for chilled-water and refrigerant pipes, pre-insulated duct panels (phenolic, PIR), acoustic insulation (mineral wool, acoustic foams, mass-loaded vinyl, resilient channels), and reflective foils. Dubai's Green Building Regulations (Al Sa'fat) and Abu Dhabi Estidama set maximum U-values for roofs and walls; fire classification (EN 13501-1 A1/A2 for non-combustible, and Civil Defence approval) is decisive for façades and ducts. Specs: density (kg/m3), thickness, thermal conductivity lambda (W/mK), fire class.",
+      "body_ar": "العزل الحراري والصوتي في الإمارات: ألواح البوليسترين المبثوق XPS للأسطح والأساسات، والبوليسترين الممدد EPS للطابوق والجدران، ورغوة البولي يوريثان (PU/PIR) بالرش والألواح، والصوف الزجاجي والصوف الصخري (الصوف المعدني) ألواحاً ولفائف للجدران والأسقف والتكييف، والرغوة المطاطية المغلقة الخلايا (مطاط النتريل) لأنابيب المياه المبردة ووسائط التبريد، وألواح الدكت المعزولة مسبقاً (فينوليك وPIR)، والعزل الصوتي (الصوف المعدني والرغوات الصوتية والفينيل الثقيل والقنوات المرنة)، والرقائق العاكسة. وتحدد لوائح دبي للمباني الخضراء (السعفات) واستدامة أبوظبي قيم U القصوى للأسطح والجدران؛ ويكون تصنيف الحريق (EN 13501-1 فئة A1/A2 لغير القابل للاحتراق، واعتماد الدفاع المدني) حاسماً للواجهات والدكت. المواصفات: الكثافة (كغ/م3)، والسماكة، والموصلية الحرارية لامدا (واط/م.ك)، وفئة الحريق.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.rockwool.com",
+        "https://www.armacell.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality Al Sa'fat; Rockwool; Armacell; EN 13501-1 (CEN). Could not be verified: Current U-value limits per building type in each emirate and local XPS makers' names were not verified."
+    },
+    {
+      "id": "thermal_insulation:uae-market-brands",
+      "topic": "Thermal & acoustic insulation: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Mineral wool: Rockwool, Knauf Insulation, Saint-Gobain Isover, URSA, Afico (Saudi glass wool), Owens Corning. XPS: Dow/DuPont Styrofoam, Ravago/Ravatherm, local XPS makers (e.g. in Sharjah and Abu Dhabi), and Kingspan. Elastomeric: Armacell (Armaflex), K-Flex, Kaiflex (Kaimann), Aeroflex. PU spray: local applicators using Huntsman, BASF, Covestro systems. Duct panels: Kingspan KoolDuct, P3ductal. Distribution through HVAC and building-material traders in Sharjah, Dubai (Deira, Al Quoz) and Musaffah. Origins: UAE and Saudi manufacture, Europe, Asia.",
+      "body_ar": "الصوف المعدني: Rockwool وKnauf Insulation وSaint-Gobain Isover وURSA وأفيكو (صوف زجاجي سعودي) وOwens Corning. XPS: Styrofoam (Dow/DuPont) وRavatherm ومصنّعو XPS محليون (في الشارقة وأبوظبي مثلاً) وKingspan. العزل المطاطي: Armacell (Armaflex) وK-Flex وKaiflex وAeroflex. رش البولي يوريثان: مطبقون محليون بأنظمة Huntsman وBASF وCovestro. ألواح الدكت: Kingspan KoolDuct وP3ductal. ويجري التوزيع عبر تجار التكييف ومواد البناء في الشارقة ودبي (ديرة والقوز) ومصفح. المنشأ: تصنيع إماراتي وسعودي، أوروبا، آسيا.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.rockwool.com",
+        "https://www.armacell.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality Al Sa'fat; Rockwool; Armacell; EN 13501-1 (CEN). Could not be verified: Current U-value limits per building type in each emirate and local XPS makers' names were not verified."
+    },
+    {
+      "id": "thermal_insulation:uae-market-sizes",
+      "topic": "Thermal & acoustic insulation: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "XPS boards 600 x 1200 mm (or 1250), 25-100 mm thick; mineral wool slabs 600 x 1200 mm, densities 24-140 kg/m3, thickness 25-100 mm; rolls by m2. Elastomeric pipe insulation by pipe size and wall thickness (9-32 mm) in 2 m lengths, sheets in rolls. Priced per m2 (boards, spray foam by thickness), per m3 (bulk boards), per linear metre (pipe insulation) or per roll. Installed works per m2 or per linear metre including cladding/jacketing (aluminium or PVC) for pipes.",
+      "body_ar": "ألواح XPS بمقاس 600 × 1200 مم (أو 1250) وسماكة 25-100 مم؛ وألواح الصوف المعدني 600 × 1200 مم بكثافات 24-140 كغ/م3 وسماكة 25-100 مم؛ واللفائف بالمتر المربع. وعزل الأنابيب المطاطي حسب مقاس الأنبوب وسماكة الجدار (9-32 مم) بأطوال 2 م، والألواح في لفائف. ويُسعّر بالمتر المربع (الألواح، والرش حسب السماكة) أو بالمتر المكعب (الألواح بالجملة) أو بالمتر الطولي (عزل الأنابيب) أو باللفة. والأعمال المركبة بالمتر المربع أو بالمتر الطولي شاملة التغليف (ألمنيوم أو PVC) للأنابيب.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.rockwool.com",
+        "https://www.armacell.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality Al Sa'fat; Rockwool; Armacell; EN 13501-1 (CEN). Could not be verified: Current U-value limits per building type in each emirate and local XPS makers' names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What insulation is used on chilled water pipes in the UAE?",
+      "q_ar": "ما العزل المستخدم على أنابيب المياه المبردة في الإمارات؟",
+      "expected_entry_ids": [
+        "thermal_insulation:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current U-value limits per building type in each emirate and local XPS makers' names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "trade": "packaging_tapes_strapping",
+  "layer": "uae-market",
+  "label_en": "Packaging tapes & strapping",
+  "label_ar": "أشرطة التغليف وأحزمة الربط",
+  "entries": [
+    {
+      "id": "packaging_tapes_strapping:uae-market-products",
+      "topic": "Packaging tapes & strapping: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Packaging tapes and strapping in the UAE: BOPP carton sealing tapes (acrylic water-based and hot-melt adhesives; clear, brown, printed; 40-50 micron), PVC tapes, masking tapes (general and automotive), duct/cloth tapes, double-sided tapes (tissue, foam, VHB-type acrylic), filament and reinforced tapes, aluminium foil tapes (HVAC duct sealing), electrical PVC insulation tapes, anti-slip and floor marking tapes, warning/barricade tapes; strapping: PP strapping (hand and machine grade, 5-19 mm), PET strapping (high tension, embossed, 12-19 mm) replacing steel in many uses, steel strapping (painted/galvanised, for heavy steel and bricks), cord/woven polyester strapping, and tools (dispensers, tensioners, sealers, battery tools). Buyers specify width, length, thickness, adhesive type, tensile strength (break load), and core size.",
+      "body_ar": "أشرطة التغليف والأربطة في الإمارات: أشرطة إغلاق الكراتين BOPP (لاصق أكريليك مائي وحار؛ شفاف وبني ومطبوع؛ 40-50 ميكرون)، وأشرطة PVC، وأشرطة التقنيع (العامة والسيارات)، وأشرطة القماش، والأشرطة مزدوجة الوجه (نسيجية وفوم وأكريليك عالي التحمل)، والأشرطة المقواة بالألياف، وأشرطة رقائق الألمنيوم (لإغلاق دكت التكييف)، وأشرطة العزل الكهربائي PVC، والأشرطة المانعة للانزلاق وتخطيط الأرضيات، وأشرطة التحذير؛ والأربطة: أربطة البولي بروبيلين (يدوية وآلية، 5-19 مم)، وأربطة PET (عالية الشد، منقوشة، 12-19 مم) التي تحل محل الفولاذ في استخدامات كثيرة، وأربطة الفولاذ (مدهونة/مجلفنة للحديد الثقيل والطابوق)، والأربطة البوليستر المنسوجة، والأدوات (الموزعات، والشدادات، والمغلقات، والأدوات بالبطارية). يحدد المشتري العرض والطول والسماكة ونوع اللاصق ومقاومة الشد (حمل الكسر) ومقاس القلب.",
+      "sources": [
+        "https://www.3m.com",
+        "https://www.tesa.com",
+        "https://www.signode.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+    },
+    {
+      "id": "packaging_tapes_strapping:uae-market-brands",
+      "topic": "Packaging tapes & strapping: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: 3M, tesa, Nitto, Scapa, Shurtape, Intertape, local tape converters (many in Sharjah, Ajman and UAQ making BOPP tapes from jumbo rolls), Signode, Mosca, Cyklop, Fromm, Titan (strapping), and Chinese/Indian strapping producers; local PP/PET strap extruders exist in the northern emirates. Origins: UAE conversion, China, India, Europe, USA-brand.",
+      "body_ar": "العلامات: 3M وtesa وNitto وScapa وShurtape وIntertape، ومحولو أشرطة محليون (كثيرون في الشارقة وعجمان وأم القيوين يصنعون أشرطة BOPP من اللفائف الكبيرة)، وSignode وMosca وCyklop وFromm وTitan (الأربطة)، ومنتجو أربطة صينيون وهنود؛ ويوجد مصنّعو أربطة PP/PET محليون في الإمارات الشمالية. المنشأ: تحويل محلي، الصين، الهند، أوروبا، علامات أمريكية.",
+      "sources": [
+        "https://www.3m.com",
+        "https://www.tesa.com",
+        "https://www.signode.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+    },
+    {
+      "id": "packaging_tapes_strapping:uae-market-sizes",
+      "topic": "Packaging tapes & strapping: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Carton tapes 48 mm x 50/100/300 m (36 rolls per carton typical); masking tapes 12-48 mm; strapping by coil (e.g. PP 12 mm x 3,000 m; PET 16 mm x 1,200 m) priced per coil or per kg; steel strap per kg. Printed tapes have MOQs (e.g. 1,000-2,000 rolls). Quotes state micron, adhesive and break strength.",
+      "body_ar": "أشرطة الكراتين 48 مم × 50/100/300 م (36 لفة في الكرتونة عادة)؛ وأشرطة التقنيع 12-48 مم؛ والأربطة باللفة (مثل PP بعرض 12 مم × 3,000 م؛ وPET بعرض 16 مم × 1,200 م) وتُسعّر باللفة أو بالكيلوغرام؛ وأربطة الفولاذ بالكيلوغرام. وللأشرطة المطبوعة حد أدنى (مثل 1,000-2,000 لفة). وتذكر العروض السماكة واللاصق ومقاومة الكسر.",
+      "sources": [
+        "https://www.3m.com",
+        "https://www.tesa.com",
+        "https://www.signode.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: 3M; tesa; Signode. Could not be verified: Names of local tape converters and strap extruders were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should I use PET or steel strapping for bricks on pallets?",
+      "q_ar": "هل أستخدم أربطة PET أم الفولاذ لطابوق على المنصات؟",
+      "expected_entry_ids": [
+        "packaging_tapes_strapping:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Names of local tape converters and strap extruders were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

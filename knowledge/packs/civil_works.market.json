@@ -1,0 +1,77 @@
+{
+  "trade": "civil_works",
+  "layer": "uae-market",
+  "label_en": "Civil & construction works",
+  "label_ar": "الأعمال المدنية والإنشائية",
+  "entries": [
+    {
+      "id": "civil_works:uae-market-products",
+      "topic": "Civil & construction works: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Civil and construction works in the UAE cover: excavation and shoring (sheet piling, secant/contiguous piles, soldier piles), dewatering (wellpoints, deep wells, with discharge permits), piling (bored cast-in-situ, driven precast, CFA), substructure concrete (raft, isolated footings, pile caps), superstructure frames (RC flat slab, post-tensioned slabs, precast hollow-core), waterproofing and backfilling with compaction testing, site grading, roads and external works. Concrete grades are specified by cube strength (C35-C50 common for structures), with sulphate-resisting or GGBS mixes below ground. Main standards: Dubai Building Code, Abu Dhabi International Building Code, BS EN 1992 (Eurocode 2)/ACI 318 for design, and Dubai Municipality or Abu Dhabi DMT (Department of Municipalities and Transport) approvals and permits for shoring, dewatering and excavation.",
+      "body_ar": "تشمل الأعمال المدنية والإنشائية في الإمارات: الحفر والتدعيم (الستائر اللوحية والخوازيق المتقاطعة والمتلاصقة والخوازيق الجندية)، ونزح المياه الجوفية (نقاط الآبار والآبار العميقة مع تصاريح التصريف)، والخوازيق (المحفورة المصبوبة في الموقع، والمسبقة الصب المدقوقة، وCFA)، والخرسانة تحت الأرض (اللبشة والقواعد المنفصلة وقبعات الخوازيق)، والهياكل العلوية (البلاطات المسطحة، والبلاطات لاحقة الشد، وبلاطات الهولوكور مسبقة الصب)، والعزل المائي والردم مع اختبارات الدمك، وتسوية الموقع والطرق والأعمال الخارجية. تُحدد رتب الخرسانة بمقاومة المكعب (C35-C50 شائعة للهياكل) مع خلطات مقاومة للكبريتات أو بخبث الأفران تحت الأرض. المعايير الرئيسية: كود البناء في دبي، وكود أبوظبي الدولي للبناء، وBS EN 1992 (يوروكود 2) أو ACI 318 للتصميم، واعتمادات وتصاريح بلدية دبي أو دائرة البلديات والنقل في أبوظبي للتدعيم ونزح المياه والحفر.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://fidic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (Dubai Building Code, permits); Abu Dhabi Department of Municipalities and Transport; FIDIC contracts; BS EN 1992 Eurocode 2 (CEN). Could not be verified: Current contractor classifications and which named contractors are active in each emirate were not verified; contractor names are given as examples of the market, not endorsements."
+    },
+    {
+      "id": "civil_works:uae-market-brands",
+      "topic": "Civil & construction works: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Providers are licensed contractors rather than brands: large civil contractors (e.g. Arabtec-era firms, ALEC, Al Naboodah, Khansaheb, Dutco, China State, NCC in Abu Dhabi), specialist piling and shoring contractors (e.g. Bauer, Keller, Swissboring, Middle East Foundations) and dewatering specialists. Equipment brands on site: Bauer, Liebherr, Soilmec and Casagrande piling rigs; Caterpillar, Komatsu, Volvo and Hyundai earthmoving. Materials come from UAE cement and ready-mix plants and Emirates Steel. Contractors must hold a trade licence with the matching activity and a Dubai Municipality or DMT contractor classification (grade) appropriate to project value.",
+      "body_ar": "المزوّدون هنا مقاولون مرخّصون وليسوا علامات تجارية: مقاولو الأعمال المدنية الكبار (مثل ALEC والنابودة وخان صاحب ودوتكو وChina State وNCC في أبوظبي)، ومقاولو الخوازيق والتدعيم المتخصصون (مثل Bauer وKeller وSwissboring وMiddle East Foundations)، ومتخصصو نزح المياه. ومن علامات المعدات في المواقع: حفارات الخوازيق Bauer وLiebherr وSoilmec وCasagrande؛ ومعدات الحفر Caterpillar وKomatsu وVolvo وHyundai. وتأتي المواد من مصانع الإسمنت والخرسانة الجاهزة المحلية ومن الإمارات للصلب. ويجب أن يحمل المقاول رخصة تجارية بالنشاط المطابق وتصنيف مقاولين (فئة) من بلدية دبي أو دائرة البلديات والنقل يناسب قيمة المشروع.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://fidic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (Dubai Building Code, permits); Abu Dhabi Department of Municipalities and Transport; FIDIC contracts; BS EN 1992 Eurocode 2 (CEN). Could not be verified: Current contractor classifications and which named contractors are active in each emirate were not verified; contractor names are given as examples of the market, not endorsements."
+    },
+    {
+      "id": "civil_works:uae-market-sizes",
+      "topic": "Civil & construction works: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Civil works are quoted against a bill of quantities (BOQ) measured to POMI or CESMM: excavation per m3, piling per linear metre by diameter (600-1500 mm typical) plus mobilisation lump sum, concrete per m3 by grade, reinforcement per tonne, formwork per m2, waterproofing per m2, backfill per m3. Dewatering and shoring are often lump sum or per month. Contracts are usually FIDIC Red Book (1999 or 2017) based, with 5-10% retention, performance bond around 10%, and advance payment guarantee. Pile load tests and integrity tests are separate items.",
+      "body_ar": "تُسعّر الأعمال المدنية مقابل جدول كميات مقاس وفق POMI أو CESMM: الحفر بالمتر المكعب، والخوازيق بالمتر الطولي حسب القطر (600-1500 مم شائع) مع مبلغ مقطوع للتجهيز، والخرسانة بالمتر المكعب حسب الرتبة، والتسليح بالطن، والقوالب بالمتر المربع، والعزل بالمتر المربع، والردم بالمتر المكعب. وكثيراً ما يكون نزح المياه والتدعيم بمبلغ مقطوع أو بالشهر. وتستند العقود عادة إلى الكتاب الأحمر لفيديك (1999 أو 2017) مع محتجزات 5-10% وضمان حسن تنفيذ نحو 10% وضمان الدفعة المقدمة. واختبارات تحميل الخوازيق واختبارات السلامة بنود منفصلة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://fidic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (Dubai Building Code, permits); Abu Dhabi Department of Municipalities and Transport; FIDIC contracts; BS EN 1992 Eurocode 2 (CEN). Could not be verified: Current contractor classifications and which named contractors are active in each emirate were not verified; contractor names are given as examples of the market, not endorsements."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is piling usually priced in a UAE tender?",
+      "q_ar": "كيف تُسعّر الخوازيق عادة في مناقصة إماراتية؟",
+      "expected_entry_ids": [
+        "civil_works:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current contractor classifications and which named contractors are active in each emirate were not verified; contractor names are given as examples of the market, not endorsements.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

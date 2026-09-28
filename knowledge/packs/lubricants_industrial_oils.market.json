@@ -1,0 +1,74 @@
+{
+  "trade": "lubricants_industrial_oils",
+  "layer": "uae-market",
+  "label_en": "Lubricants & industrial oils",
+  "label_ar": "الزيوت ومواد التشحيم",
+  "entries": [
+    {
+      "id": "lubricants_industrial_oils:uae-market-products",
+      "topic": "Lubricants & industrial oils: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Lubricants and industrial oils in the UAE: engine oils (PCMO 5W-30, 10W-40; heavy-duty diesel 15W-40 API CK-4/CI-4, ACEA E-classes), gear oils (ISO VG 68-680, API GL-4/GL-5), hydraulic oils (ISO VG 32/46/68, HM/HV, zinc-free), turbine oils, compressor oils, refrigeration oils (POE for HFCs), transformer oil (IEC 60296), heat transfer oils, metalworking fluids (soluble and neat cutting oils), greases (lithium complex NLGI 2, calcium sulphonate, EP greases), marine lubricants (cylinder and system oils), and base oils (Group I-III). Local blending is significant (Hamriyah, Sharjah, Jebel Ali, Ras Al Khaimah, Fujairah). Products sold in the UAE must meet the MoIAT/ESMA lubricant conformity scheme (UAE.S GSO standards for engine oils); buyers specify viscosity grade, specification (API, ACEA, OEM approvals such as MB, Volvo, Cummins), and pack size.",
+      "body_ar": "مواد التشحيم والزيوت الصناعية في الإمارات: زيوت المحركات (سيارات الركاب 5W-30 و10W-40؛ وديزل الخدمة الشاقة 15W-40 بمعيار API CK-4/CI-4 وفئات ACEA E)، وزيوت التروس (ISO VG 68-680، وAPI GL-4/GL-5)، والزيوت الهيدروليكية (ISO VG 32/46/68، HM/HV، خالية من الزنك)، وزيوت التوربينات، وزيوت الضواغط، وزيوت التبريد (POE لغازات HFC)، وزيت المحولات (IEC 60296)، وزيوت نقل الحرارة، وسوائل التشغيل المعدني (زيوت القطع القابلة للذوبان والصافية)، والشحوم (مركب الليثيوم NLGI 2، وسلفونات الكالسيوم، والشحوم EP)، والزيوت البحرية، والزيوت الأساسية (المجموعات I-III). والخلط المحلي كبير (الحمرية والشارقة وجبل علي ورأس الخيمة والفجيرة). ويجب أن تستوفي المنتجات المباعة في الإمارات نظام مطابقة مواد التشحيم لدى وزارة الصناعة؛ ويحدد المشتري درجة اللزوجة والمواصفة واعتمادات المصنّعين وحجم العبوة.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.api.org",
+        "https://www.adnocdistribution.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT lubricant conformity; API engine oil licensing (API); ADNOC Distribution lubricants. Could not be verified: Current MoIAT lubricant scheme details and brand ownership changes were not verified."
+    },
+    {
+      "id": "lubricants_industrial_oils:uae-market-brands",
+      "topic": "Lubricants & industrial oils: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: ADNOC (Voyager), ENOC (Protec), Emarat, Shell, Mobil (ExxonMobil), Castrol (BP), Total (TotalEnergies), Fuchs, Petronas, Chevron (Caltex/Texaco), Valvoline, Motul, Liqui Moly, Klüber (specialty greases), Houghton (Quaker, metalworking), and many local private-label blenders in Hamriyah and Sharjah (a big export hub to Africa and Asia). Origins: UAE blending plants, Europe, Asia.",
+      "body_ar": "العلامات: أدنوك (Voyager) وإينوك (Protec) وإمارات وShell وMobil (ExxonMobil) وCastrol (BP) وTotal (TotalEnergies) وFuchs وPetronas وChevron (Caltex/Texaco) وValvoline وMotul وLiqui Moly وKlüber (الشحوم الخاصة) وHoughton (Quaker، التشغيل المعدني)، وكثير من الخلاطين المحليين بعلامات خاصة في الحمرية والشارقة (مركز تصدير كبير لأفريقيا وآسيا). المنشأ: مصانع خلط إماراتية، أوروبا، آسيا.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.api.org",
+        "https://www.adnocdistribution.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT lubricant conformity; API engine oil licensing (API); ADNOC Distribution lubricants. Could not be verified: Current MoIAT lubricant scheme details and brand ownership changes were not verified."
+    },
+    {
+      "id": "lubricants_industrial_oils:uae-market-sizes",
+      "topic": "Lubricants & industrial oils: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Packs: 1 L, 4 L, 5 L, 20 L pails, 208/209 L drums, 1,000 L IBCs and bulk tanker; greases in 400 g cartridges, 15-18 kg pails, 180 kg drums. Priced per litre or per pack; industrial supply often on annual contracts with oil analysis programmes. Quotes state specification, OEM approvals, batch certificate and delivery.",
+      "body_ar": "العبوات: 1 و4 و5 لترات، ودلاء 20 لتراً، وبراميل 208/209 لترات، وحاويات 1,000 لتر، وصهاريج سائبة؛ والشحوم في خراطيش 400 غ، ودلاء 15-18 كغ، وبراميل 180 كغ. والتسعير باللتر أو بالعبوة؛ والتوريد الصناعي غالباً بعقود سنوية مع برامج تحليل الزيت. وتذكر العروض المواصفة واعتمادات المصنّعين وشهادة الدفعة والتوصيل.",
+      "sources": [
+        "https://moiat.gov.ae",
+        "https://www.api.org",
+        "https://www.adnocdistribution.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: MoIAT lubricant conformity; API engine oil licensing (API); ADNOC Distribution lubricants. Could not be verified: Current MoIAT lubricant scheme details and brand ownership changes were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which engine oil specification should a heavy diesel fleet use?",
+      "q_ar": "ما مواصفة زيت المحرك المناسبة لأسطول ديزل ثقيل؟",
+      "expected_entry_ids": [
+        "lubricants_industrial_oils:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current MoIAT lubricant scheme details and brand ownership changes were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "trade": "industrial_crating",
+  "layer": "uae-market",
+  "label_en": "Export crating & industrial packing",
+  "label_ar": "صناديق التصدير والتغليف الصناعي",
+  "entries": [
+    {
+      "id": "industrial_crating:uae-market-products",
+      "topic": "Export crating & industrial packing: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Export crating and industrial packing in the UAE: wooden crates and cases (sheathed and open frame, plywood or OSB panels) built to ISPM 15 heat-treated timber, skids, seaworthy packing for machinery, VCI (volatile corrosion inhibitor) wrapping and desiccants for sea freight, vacuum barrier foil packing (to DIN 55473/55474 style), shrink-wrapping of large items, container stuffing, lashing and securing (CTU Code), blocking and bracing, dangerous goods packing (IMDG), project cargo packing for oil and gas and power plants, and on-site packing services. Buyers specify item dimensions and weight, transport mode (sea, air, road), storage duration and climate, lifting points, marking (shipping marks, centre of gravity, handling symbols ISO 780), and inspection.",
+      "body_ar": "صناديق التصدير والتغليف الصناعي في الإمارات: الصناديق الخشبية (المغلقة والمفتوحة الإطار، بألواح أبلكاش أو OSB) المصنوعة من خشب معالج حرارياً وفق ISPM 15، والقواعد الخشبية، والتغليف البحري للآلات، والتغليف بمثبطات التآكل الطيارة VCI ومجففات الرطوبة للشحن البحري، والتغليف بالرقائق العازلة المفرغة، والتغليف الانكماشي للقطع الكبيرة، وتحميل الحاويات، والربط والتثبيت (مدونة CTU)، والتدعيم، وتغليف البضائع الخطرة (IMDG)، وتغليف شحنات المشاريع للنفط والغاز ومحطات الطاقة، وخدمات التغليف في الموقع. يحدد المشتري أبعاد القطعة ووزنها ووسيلة النقل (بحري، جوي، بري) ومدة التخزين والمناخ ونقاط الرفع والوسم (علامات الشحن، ومركز الثقل، ورموز المناولة ISO 780) والفحص.",
+      "sources": [
+        "https://www.ippc.int",
+        "https://unece.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC); IMO/ILO/UNECE CTU Code (UNECE); ISO 780 handling marks (ISO). Could not be verified: Which forwarders currently operate in-house packing units in the UAE was not verified."
+    },
+    {
+      "id": "industrial_crating:uae-market-brands",
+      "topic": "Export crating & industrial packing: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Providers: specialist packing companies in Jebel Ali, JAFZA, Dubai Industrial City, Sharjah (Hamriyah, Al Sajaa), Abu Dhabi (Musaffah, KEZAD, Khalifa Port) and freight forwarders' packing units (e.g. DHL, DB Schenker, Kuehne+Nagel, Agility, Al Futtaim Logistics). VCI and desiccant brands: Cortec, Branopac, Clariant. Timber from Europe, Russia, New Zealand; plywood from Asia.",
+      "body_ar": "المزودون: شركات تغليف متخصصة في جبل علي والمنطقة الحرة لجبل علي ومدينة دبي الصناعية والشارقة (الحمرية والصجعة) وأبوظبي (مصفح وكيزاد وميناء خليفة)، ووحدات التغليف لدى وكلاء الشحن (مثل DHL وDB Schenker وKuehne+Nagel وأجيليتي والفطيم للخدمات اللوجستية). علامات VCI والمجففات: Cortec وBranopac وClariant. والخشب من أوروبا وروسيا ونيوزيلندا؛ والأبلكاش من آسيا.",
+      "sources": [
+        "https://www.ippc.int",
+        "https://unece.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC); IMO/ILO/UNECE CTU Code (UNECE); ISO 780 handling marks (ISO). Could not be verified: Which forwarders currently operate in-house packing units in the UAE was not verified."
+    },
+    {
+      "id": "industrial_crating:uae-market-sizes",
+      "topic": "Export crating & industrial packing: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Crates are priced per unit by external dimensions and design load, or per m3 of crate volume; packing labour per job or per man-day; lashing per container; VCI per m2. Quotes list timber treatment certificate, packing list, photographs and marking. Lead time days for standard crates; on-site packing by appointment.",
+      "body_ar": "تُسعّر الصناديق بالوحدة حسب الأبعاد الخارجية والحمل التصميمي أو بالمتر المكعب من حجم الصندوق؛ وعمالة التغليف بالعمل أو باليوم؛ والتثبيت بالحاوية؛ وVCI بالمتر المربع. وتتضمن العروض شهادة معالجة الخشب وقائمة التعبئة والصور والوسم. ومدة التنفيذ أيام للصناديق القياسية؛ والتغليف في الموقع بموعد.",
+      "sources": [
+        "https://www.ippc.int",
+        "https://unece.org",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISPM 15 (IPPC); IMO/ILO/UNECE CTU Code (UNECE); ISO 780 handling marks (ISO). Could not be verified: Which forwarders currently operate in-house packing units in the UAE was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How should machinery be packed for a long sea voyage?",
+      "q_ar": "كيف تُغلف الآلات لرحلة بحرية طويلة؟",
+      "expected_entry_ids": [
+        "industrial_crating:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Which forwarders currently operate in-house packing units in the UAE was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

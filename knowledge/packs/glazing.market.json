@@ -1,0 +1,74 @@
+{
+  "trade": "glazing",
+  "layer": "uae-market",
+  "label_en": "Glass & glazing",
+  "label_ar": "الزجاج والواجهات الزجاجية",
+  "entries": [
+    {
+      "id": "glazing:uae-market-products",
+      "topic": "Glass & glazing: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Glass and glazing in the UAE: clear and extra-clear float (low-iron), tinted, solar-control reflective and low-E coated glass (hard coat and soft coat, often double silver or triple silver for the UAE sun), tempered/toughened glass (EN 12150, heat-soak tested to EN 14179 for façades to reduce nickel-sulphide breakage), heat-strengthened (EN 1863), laminated safety glass with PVB or SentryGlas interlayer (EN ISO 12543), insulated glass units (IGU, EN 1279, argon filled, warm-edge spacers), fire-rated glass (integrity E or insulation EI, 30-120 minutes), acoustic laminated glass, switchable smart glass, mirrors, and back-painted glass. Façade glass must meet Dubai Green Building Regulations/Al Sa'fat and Estidama limits on U-value, shading coefficient/SHGC and visible light transmission.",
+      "body_ar": "الزجاج وأعمال التزجيج في الإمارات: الزجاج العائم الشفاف وفائق الشفافية (منخفض الحديد)، والملوّن، والعاكس للتحكم الشمسي، والزجاج المطلي منخفض الانبعاثية (طلاء صلب وطلاء ناعم، غالباً فضة مزدوجة أو ثلاثية لشمس الإمارات)، والزجاج المقسّى (EN 12150، مع اختبار الغمر الحراري وفق EN 14179 للواجهات لتقليل الكسر بسبب كبريتيد النيكل)، والزجاج المقوى حرارياً (EN 1863)، وزجاج الأمان المصفح بطبقة PVB أو SentryGlas (EN ISO 12543)، ووحدات الزجاج العازل (EN 1279، مملوءة بالأرغون مع فواصل دافئة)، والزجاج المقاوم للحريق (سلامة E أو عزل EI، 30-120 دقيقة)، والزجاج المصفح العازل للصوت، والزجاج الذكي القابل للتبديل، والمرايا، والزجاج المطلي من الخلف. ويجب أن يحقق زجاج الواجهات حدود لوائح المباني الخضراء في دبي/السعفات واستدامة لقيمة U ومعامل التظليل/SHGC ونفاذية الضوء المرئي.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.guardianglass.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12150 / EN 14179 / EN 1279 (CEN); Guardian Glass; Dubai Municipality Al Sa'fat. Could not be verified: Emirates Float Glass current product range and ownership, and which processors hold current approvals, were not verified."
+    },
+    {
+      "id": "glazing:uae-market-brands",
+      "topic": "Glass & glazing: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Float and coated glass: Emirates Float Glass (Abu Dhabi, the UAE float line), Guardian Glass (plants in Ras Al Khaimah), Saint-Gobain, AGC, Pilkington (NSG), Sisecam and Chinese makers (CSG, Xinyi, Taiwan Glass). Processors (tempering, laminating, IGU) are local: e.g. Emirates Glass (Emirates Float group), Guardian's RAK processing, Saint-Gobain processors and many processors in Sharjah, Ajman, Umm Al Quwain and Jebel Ali. Fire glass: Pyroguard, Pilkington Pyrostop, Vetrotech (Saint-Gobain), Schott Pyran. Interlayers: Kuraray (Trosifol, SentryGlas), Eastman (Saflex). Origins: UAE, Europe, China, Turkey.",
+      "body_ar": "الزجاج العائم والمطلي: الإمارات للزجاج العائم (أبوظبي، خط الزجاج العائم في الدولة)، وGuardian Glass (مصانع في رأس الخيمة)، وSaint-Gobain وAGC وPilkington (NSG) وSisecam ومصنّعون صينيون (CSG وXinyi وTaiwan Glass). والمعالجون (التقسية والتصفيح ووحدات الزجاج العازل) محليون: مثل زجاج الإمارات، ومعالجة Guardian في رأس الخيمة، ومعالجو Saint-Gobain، وعدد كبير في الشارقة وعجمان وأم القيوين وجبل علي. زجاج الحريق: Pyroguard وPilkington Pyrostop وVetrotech (Saint-Gobain) وSchott Pyran. الطبقات البينية: Kuraray (Trosifol وSentryGlas) وEastman (Saflex). المنشأ: الإمارات، أوروبا، الصين، تركيا.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.guardianglass.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12150 / EN 14179 / EN 1279 (CEN); Guardian Glass; Dubai Municipality Al Sa'fat. Could not be verified: Emirates Float Glass current product range and ownership, and which processors hold current approvals, were not verified."
+    },
+    {
+      "id": "glazing:uae-market-sizes",
+      "topic": "Glass & glazing: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Float is produced in jumbo sheets 3210 x 6000 mm and split sizes 2140 x 3210 mm, thicknesses 3-19 mm (6, 8, 10, 12 mm most common). A typical façade IGU is 6 mm coated tempered + 12-16 mm argon cavity + 6 mm clear (or 6+6 laminated). Glass is priced per m2 by make-up, with minimum chargeable area per pane (often 0.5-1 m2), and extras for edge work, holes, cut-outs, heat-soak and ceramic frit. Installed glazing is per m2 of elevation. Shower screens and balustrades are per set or per linear metre. Technical data sheets must state U-value, SHGC, VLT and light reflectance.",
+      "body_ar": "يُنتج الزجاج العائم بألواح كبيرة 3210 × 6000 مم ومقاسات مقسومة 2140 × 3210 مم، بسماكات 3-19 مم (6 و8 و10 و12 مم الأكثر شيوعاً). ووحدة الزجاج العازل النموذجية للواجهة: 6 مم مقسّى مطلي + فراغ أرغون 12-16 مم + 6 مم شفاف (أو 6+6 مصفح). ويُسعّر الزجاج بالمتر المربع حسب التركيب، مع حد أدنى لمساحة اللوح (غالباً 0.5-1 م2)، وإضافات لتشطيب الحواف والثقوب والفتحات والغمر الحراري والطباعة الخزفية. والتزجيج المركّب بالمتر المربع من الواجهة. وحواجز الدش والدرابزين بالطقم أو بالمتر الطولي. ويجب أن تذكر نشرات البيانات الفنية قيمة U وSHGC وVLT والانعكاس الضوئي.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.guardianglass.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12150 / EN 14179 / EN 1279 (CEN); Guardian Glass; Dubai Municipality Al Sa'fat. Could not be verified: Emirates Float Glass current product range and ownership, and which processors hold current approvals, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Do façade tempered panes need heat-soak testing in the UAE?",
+      "q_ar": "هل يحتاج الزجاج المقسّى للواجهات اختبار الغمر الحراري في الإمارات؟",
+      "expected_entry_ids": [
+        "glazing:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Emirates Float Glass current product range and ownership, and which processors hold current approvals, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

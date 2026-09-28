@@ -1,0 +1,74 @@
+{
+  "trade": "motors_drives",
+  "layer": "uae-market",
+  "label_en": "Electric motors & drives",
+  "label_ar": "المحركات الكهربائية ومحركات التحكم بالسرعة",
+  "entries": [
+    {
+      "id": "motors_drives:uae-market-products",
+      "topic": "Electric motors & drives: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Electric motors and drives in the UAE: LV three-phase induction motors (IEC frame, 0.18 kW-1 MW, 400 V 50 Hz, IP55, efficiency IE2/IE3/IE4 to IEC 60034-30-1; minimum efficiency regulation under MoIAT energy rules is expected to push IE3), MV motors (3.3-11 kV), explosion-proof motors (Ex d/Ex e, ATEX/IECEx) for oil and gas, single-phase motors, geared motors, servo motors, and variable frequency drives (VFDs, 0.37 kW to MW, harmonic filters, HVAC-specific drives), soft starters, and motor control centres (MCC). Buyers specify kW, poles/speed, frame size, mounting (B3/B5/B35), voltage, IP, insulation class F with B rise, ambient derating for 50 C, efficiency class, and for VFDs overload duty and EMC class.",
+      "body_ar": "المحركات الكهربائية ومحولات التردد في الإمارات: المحركات الحثية ثلاثية الطور منخفضة الجهد (إطار IEC، من 0.18 كيلوواط إلى 1 ميغاواط، 400 فولت 50 هيرتز، IP55، كفاءة IE2/IE3/IE4 وفق IEC 60034-30-1)، والمحركات متوسطة الجهد (3.3-11 كيلوفولت)، والمحركات المقاومة للانفجار (Ex d/Ex e، ATEX/IECEx) للنفط والغاز، والمحركات أحادية الطور، والمحركات المزودة بالتروس، والمحركات المؤازرة، ومحولات التردد (من 0.37 كيلوواط إلى الميغاواط، مع مرشحات التوافقيات ومحولات خاصة بالتكييف)، والبادئات الناعمة، ومراكز التحكم بالمحركات. يحدد المشتري القدرة وعدد الأقطاب/السرعة ومقاس الإطار والتثبيت (B3/B5/B35) والجهد والحماية وفئة العزل F بارتفاع B وخفض القدرة لحرارة 50 مئوية وفئة الكفاءة، ولمحولات التردد نوع الحمل الزائد وفئة التوافق الكهرومغناطيسي.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.weg.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 60034-30-1 (IEC); MoIAT energy efficiency regulations; WEG. Could not be verified: Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified."
+    },
+    {
+      "id": "motors_drives:uae-market-brands",
+      "topic": "Electric motors & drives: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: ABB, Siemens, WEG, Schneider (Altivar), Danfoss (VLT), Nidec (Leroy-Somer), TECO, Toshiba, Hyundai Electric, Marathon/Regal Rexnord, Lafert, Crompton Greaves (CG Power), Bharat Bijlee, Yaskawa, Mitsubishi, Delta, INVT, Chinese motors (Wolong). Distributors and rewinding workshops in Deira, Sharjah, Al Quoz and Musaffah. Origins: Europe, Brazil, Japan, Korea, India, China.",
+      "body_ar": "العلامات: ABB وSiemens وWEG وSchneider (Altivar) وDanfoss (VLT) وNidec (Leroy-Somer) وTECO وToshiba وHyundai Electric وMarathon/Regal Rexnord وLafert وCG Power وBharat Bijlee وYaskawa وMitsubishi وDelta وINVT ومحركات صينية (Wolong). والموزعون وورش اللف في ديرة والشارقة والقوز ومصفح. المنشأ: أوروبا، البرازيل، اليابان، كوريا، الهند، الصين.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.weg.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 60034-30-1 (IEC); MoIAT energy efficiency regulations; WEG. Could not be verified: Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified."
+    },
+    {
+      "id": "motors_drives:uae-market-sizes",
+      "topic": "Electric motors & drives: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Motors priced per unit by kW, poles and frame (e.g. 11 kW 4-pole 160M, B3); VFDs per unit by kW and voltage with options (braking chopper, filters, keypads). MCCs per panel. Warranty typically 12-24 months (some brands 3 years on premium motors). Stock availability in Dubai for common ratings; large/MV and Ex motors weeks to months.",
+      "body_ar": "تُسعّر المحركات بالوحدة حسب القدرة والأقطاب والإطار (مثل 11 كيلوواط 4 أقطاب 160M، B3)؛ ومحولات التردد بالوحدة حسب القدرة والجهد مع الخيارات (المقطع الكابح، والمرشحات، ولوحات المفاتيح). ومراكز التحكم باللوحة. والضمان عادة 12-24 شهراً (بعض العلامات 3 سنوات للمحركات الممتازة). والتوفر من مخزون دبي للقدرات الشائعة؛ والمحركات الكبيرة ومتوسطة الجهد والمقاومة للانفجار أسابيع إلى أشهر.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.weg.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 60034-30-1 (IEC); MoIAT energy efficiency regulations; WEG. Could not be verified: Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Should I buy an IE3 or IE4 motor for a pump running all day?",
+      "q_ar": "هل أشتري محركاً بكفاءة IE3 أم IE4 لمضخة تعمل طوال اليوم؟",
+      "expected_entry_ids": [
+        "motors_drives:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Whether a mandatory minimum motor efficiency class is currently in force in the UAE was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

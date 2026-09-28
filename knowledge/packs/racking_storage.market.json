@@ -1,0 +1,74 @@
+{
+  "trade": "racking_storage",
+  "layer": "uae-market",
+  "label_en": "Racking & storage systems",
+  "label_ar": "الرفوف وأنظمة التخزين",
+  "entries": [
+    {
+      "id": "racking_storage:uae-market-products",
+      "topic": "Racking & storage systems: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Racking and storage systems in the UAE: selective pallet racking (the most common, EN 15512/EN 15635 design and inspection), drive-in/drive-through, push-back, pallet flow, narrow aisle and VNA racking, double-deep, mobile racking, cantilever racking (steel, pipes, timber), long-span shelving, boltless and slotted-angle shelving, mezzanine floors and multi-tier shelving, carton flow, cold-store racking (galvanised), automated systems (AS/RS, shuttle, vertical lift modules, carousels), and rack protection (column guards, end-of-aisle barriers, mesh decks). Civil Defence approval is needed for high-piled storage with sprinklers (in-rack sprinklers at certain heights); racks need annual inspection. Buyers specify pallet size and weight, lift height, aisle width (forklift type), bay load, seismic/anchor design and finish.",
+      "body_ar": "أنظمة الرفوف والتخزين في الإمارات: رفوف المنصات الانتقائية (الأكثر شيوعاً، تصميم وفحص وفق EN 15512/EN 15635)، والرفوف بالدخول/العبور، والدفع للخلف، وتدفق المنصات، والممرات الضيقة والضيقة جداً، والعمق المزدوج، والرفوف المتحركة، والرفوف الكابولية (للحديد والأنابيب والخشب)، والأرفف الطويلة، والأرفف بدون براغي والزوايا المثقبة، والميزانين والأرفف متعددة الطوابق، وتدفق الكراتين، ورفوف غرف التبريد (مجلفنة)، والأنظمة الآلية (AS/RS، والمكوك، ووحدات الرفع العمودية، والدوارات)، وحماية الرفوف (واقيات الأعمدة، وحواجز نهاية الممر، والأسطح الشبكية). ويحتاج التخزين المرتفع مع الرشاشات اعتماد الدفاع المدني (رشاشات داخل الرفوف عند ارتفاعات معينة)؛ وتحتاج الرفوف فحصاً سنوياً. يحدد المشتري مقاس المنصة ووزنها وارتفاع الرفع وعرض الممر (نوع الرافعة) وحمل المقطع وتصميم التثبيت والتشطيب.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.dcd.gov.ae",
+        "https://www.sema.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 15512 / EN 15635 (CEN); UAE Fire and Life Safety Code (storage); SEMA (Storage Equipment Manufacturers' Association). Could not be verified: Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified."
+    },
+    {
+      "id": "racking_storage:uae-market-brands",
+      "topic": "Racking & storage systems: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Mecalux, Stow, SSI Schäfer, Dexion, AR Racking, Kardex, Constructor, Averys, Nedcon, Godrej, and locally manufactured racking by UAE factories (e.g. in Sharjah, Jebel Ali and Dubai Industrial City), plus Chinese imports. Installers and rack inspectors (SEMA-trained) operate across Dubai, Sharjah and Abu Dhabi. Origins: Spain, Belgium, Germany, UK, India, China, UAE.",
+      "body_ar": "العلامات: Mecalux وStow وSSI Schäfer وDexion وAR Racking وKardex وConstructor وAverys وNedcon وGodrej، ورفوف مصنعة محلياً في مصانع إماراتية (في الشارقة وجبل علي ومدينة دبي الصناعية)، إضافة إلى واردات صينية. ويعمل المركبون ومفتشو الرفوف في دبي والشارقة وأبوظبي. المنشأ: إسبانيا، بلجيكا، ألمانيا، المملكة المتحدة، الهند، الصين، الإمارات.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.dcd.gov.ae",
+        "https://www.sema.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 15512 / EN 15635 (CEN); UAE Fire and Life Safety Code (storage); SEMA (Storage Equipment Manufacturers' Association). Could not be verified: Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified."
+    },
+    {
+      "id": "racking_storage:uae-market-sizes",
+      "topic": "Racking & storage systems: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Racking is quoted per pallet position or per bay (uprights, beams, decking) with installation, layout drawings and load signs; mezzanines per m2 by load (e.g. 500 kg/m2); shelving per bay. Common upright heights 4-12 m, beam lengths 1.8-3.9 m (2.7 m for three 800 mm pallets). Rack inspections priced per bay or per site visit. Lead time for local manufacture 2-6 weeks.",
+      "body_ar": "تُسعّر الرفوف بموقع المنصة أو بالمقطع (القوائم والعوارض والأسطح) مع التركيب ومخططات التوزيع ولوحات الأحمال؛ والميزانين بالمتر المربع حسب الحمل (مثل 500 كغ/م2)؛ والأرفف بالمقطع. ارتفاعات القوائم الشائعة 4-12 م، وأطوال العوارض 1.8-3.9 م (2.7 م لثلاث منصات 800 مم). وفحوصات الرفوف بالمقطع أو بزيارة الموقع. ومدة التصنيع المحلي 2-6 أسابيع.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.dcd.gov.ae",
+        "https://www.sema.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 15512 / EN 15635 (CEN); UAE Fire and Life Safety Code (storage); SEMA (Storage Equipment Manufacturers' Association). Could not be verified: Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is pallet racking priced for a new warehouse?",
+      "q_ar": "كيف تُسعّر رفوف المنصات لمستودع جديد؟",
+      "expected_entry_ids": [
+        "racking_storage:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Names of local racking factories and the current in-rack sprinkler thresholds in the UAE Fire Code were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

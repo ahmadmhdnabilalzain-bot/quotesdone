@@ -1,0 +1,74 @@
+{
+  "trade": "bearings_power_transmission",
+  "layer": "uae-market",
+  "label_en": "Bearings & power transmission",
+  "label_ar": "المحامل ونقل الحركة",
+  "entries": [
+    {
+      "id": "bearings_power_transmission:uae-market-products",
+      "topic": "Bearings & power transmission: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Bearings and power transmission in the UAE: deep groove ball bearings (6000/6200/6300 series, 2RS/ZZ seals, C3 clearance), angular contact, cylindrical, spherical and taper roller bearings, thrust bearings, pillow block and flange units (UCP/UCF), linear bearings and guides, bushings, seals and O-rings, V-belts (classical A/B/C, wedge SPA/SPB/SPC, narrow), timing belts (HTD, T5/T10), roller chains (ISO 606, ANSI-standard sizes 40-160) and sprockets, pulleys (taper-lock), couplings (jaw, gear, tyre, disc), gearboxes and geared motors (helical, worm, bevel), and lubricants for bearings. Buyers specify bearing designation (ISO numbering), seal type, clearance, cage material, precision class, and for belts the profile and length.",
+      "body_ar": "المحامل ونقل الحركة في الإمارات: المحامل الكروية ذات الأخدود العميق (السلاسل 6000/6200/6300، بسدادات 2RS/ZZ، وخلوص C3)، والمحامل ذات التماس الزاوي والأسطوانية والكروية والمخروطية، ومحامل الدفع، ووحدات الحوامل والفلنجات (UCP/UCF)، والمحامل والأدلة الخطية، والجلب، والسدادات والحلقات الدائرية، وسيور V (الكلاسيكية A/B/C والإسفينية SPA/SPB/SPC)، وسيور التوقيت (HTD وT5/T10)، والسلاسل الأسطوانية (ISO 606 والمقاسات 40-160) والتروس، والبكرات (Taper-lock)، والوصلات (الفكية والترسية والإطارية والقرصية)، وعلب التروس والمحركات المزودة بالتروس (الحلزونية والدودية والمخروطية)، وشحوم المحامل. يحدد المشتري رمز المحمل (ترقيم ISO) ونوع السداد والخلوص ومادة القفص ودرجة الدقة، وللسيور المقطع والطول.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.skf.com",
+        "https://www.schaeffler.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 15 / ISO 355 bearing dimensions (ISO); SKF; Schaeffler. Could not be verified: Authorised distributor lists per brand in the UAE were not verified."
+    },
+    {
+      "id": "bearings_power_transmission:uae-market-brands",
+      "topic": "Bearings & power transmission: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Bearings: SKF, FAG and INA (Schaeffler), NSK, NTN, Koyo (JTEKT), Timken, NACHI, ZWZ, HRB, and many Chinese brands; counterfeit bearings are a known risk in the region, so buyers ask for authorised-distributor certificates. Belts: Gates, Optibelt, Continental, Bando, Mitsuboshi, Fenner. Chains: Tsubaki, Renold, Rexnord, iwis. Gearboxes: SEW-Eurodrive, Bonfiglioli, Nord, Flender (Siemens), Sumitomo. Traders concentrate in Deira (Al Ras, Naif), Sharjah Industrial Area and Musaffah; authorised distributors in JAFZA and Dubai. Origins: Sweden/Germany, Japan, USA-brand, Italy, China.",
+      "body_ar": "المحامل: SKF وFAG وINA (Schaeffler) وNSK وNTN وKoyo (JTEKT) وTimken وNACHI وZWZ وHRB وعلامات صينية كثيرة؛ والمحامل المقلدة خطر معروف في المنطقة، لذا يطلب المشترون شهادات الموزع المعتمد. السيور: Gates وOptibelt وContinental وBando وMitsuboshi وFenner. السلاسل: Tsubaki وRenold وRexnord وiwis. علب التروس: SEW-Eurodrive وBonfiglioli وNord وFlender (Siemens) وSumitomo. ويتركز التجار في ديرة (الراس ونايف) والمنطقة الصناعية بالشارقة ومصفح؛ والموزعون المعتمدون في المنطقة الحرة لجبل علي ودبي. المنشأ: السويد/ألمانيا، اليابان، علامات أمريكية، إيطاليا، الصين.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.skf.com",
+        "https://www.schaeffler.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 15 / ISO 355 bearing dimensions (ISO); SKF; Schaeffler. Could not be verified: Authorised distributor lists per brand in the UAE were not verified."
+    },
+    {
+      "id": "bearings_power_transmission:uae-market-sizes",
+      "topic": "Bearings & power transmission: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Bearings sold per piece by designation (e.g. 6205-2RS C3: 25 mm bore, 52 mm OD, 15 mm width); belts per piece by profile and length (e.g. SPB 2000); chains per 5 m or 10 ft box by pitch; gearboxes per unit by ratio and torque. Pricing is list minus discount; genuine versus copy price gaps are large. Quotes state brand, origin and authorised supply confirmation.",
+      "body_ar": "تُباع المحامل بالقطعة حسب الرمز (مثل 6205-2RS C3: ثقب 25 مم، وقطر خارجي 52 مم، وعرض 15 مم)؛ والسيور بالقطعة حسب المقطع والطول (مثل SPB 2000)؛ والسلاسل بعلبة 5 م أو 10 أقدام حسب الخطوة؛ وعلب التروس بالوحدة حسب النسبة والعزم. والتسعير سعر القائمة ناقص خصم؛ والفجوة بين الأصلي والمقلد كبيرة. وتذكر العروض العلامة والمنشأ وتأكيد التوريد المعتمد.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.skf.com",
+        "https://www.schaeffler.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: ISO 15 / ISO 355 bearing dimensions (ISO); SKF; Schaeffler. Could not be verified: Authorised distributor lists per brand in the UAE were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What does 6205-2RS C3 mean on a bearing?",
+      "q_ar": "ماذا يعني الرمز 6205-2RS C3 على المحمل؟",
+      "expected_entry_ids": [
+        "bearings_power_transmission:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Authorised distributor lists per brand in the UAE were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

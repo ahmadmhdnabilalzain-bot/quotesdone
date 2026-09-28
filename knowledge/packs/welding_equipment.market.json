@@ -1,0 +1,74 @@
+{
+  "trade": "welding_equipment",
+  "layer": "uae-market",
+  "label_en": "Welding equipment & consumables",
+  "label_ar": "معدات ومستهلكات اللحام",
+  "entries": [
+    {
+      "id": "welding_equipment:uae-market-products",
+      "topic": "Welding equipment & consumables: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Welding equipment and consumables in the UAE: inverter welding machines (MMA/stick, TIG AC/DC, MIG/MAG, multiprocess), engine-driven welders for sites, submerged-arc and orbital welding systems, plasma cutters, oxy-fuel cutting sets, consumables (electrodes E6013 and E7018 to AWS A5.1/ISO 2560, stainless E308L/E316L, MIG wire ER70S-6 in 0.8-1.2 mm, flux-cored E71T-1, TIG rods, tungsten electrodes, SAW wire and flux), gases (see industrial gases), welding PPE (helmets with auto-darkening filters, gloves, jackets), fume extraction, and positioners and welding tables. Oil and gas welding follows ASME IX/API 1104 procedures with consumables certified to AWS/EN, often with low-hydrogen and impact requirements. Buyers specify process, amperage and duty cycle (at 40 C), input voltage (230 V/400 V), consumable classification and diameter.",
+      "body_ar": "معدات ومستهلكات اللحام في الإمارات: آلات اللحام بالعاكس (القوس اليدوي، وTIG متردد/مستمر، وMIG/MAG، ومتعددة العمليات)، وآلات اللحام بالمحرك للمواقع، وأنظمة اللحام بالقوس المغمور واللحام المداري، وقاطعات البلازما، وأطقم القطع بالأكسجين والوقود، والمستهلكات (أسلاك اللحام E6013 وE7018 وفق AWS A5.1/ISO 2560، والستانلس E308L/E316L، وسلك MIG من نوع ER70S-6 بقطر 0.8-1.2 مم، والسلك المحشو E71T-1، وقضبان TIG، وأقطاب التنجستن، وسلك وتدفق القوس المغمور)، والغازات، ومعدات الوقاية (الخوذ ذاتية التعتيم، والقفازات، والسترات)، وشفط الأبخرة، والمواضع وطاولات اللحام. ويتبع لحام النفط والغاز إجراءات ASME IX/API 1104 بمستهلكات معتمدة، غالباً بمتطلبات هيدروجين منخفض واختبار الصدم. يحدد المشتري العملية والتيار ودورة العمل (عند 40 مئوية) وجهد الدخل ونوع المستهلك وقطره.",
+      "sources": [
+        "https://www.aws.org",
+        "https://www.iso.org",
+        "https://www.esab.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+    },
+    {
+      "id": "welding_equipment:uae-market-brands",
+      "topic": "Welding equipment & consumables: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Lincoln Electric, ESAB, Miller (ITW), Kemppi, Fronius, Hypertherm (plasma), Panasonic, OTC Daihen, Jasic, Riland, GYS, and consumables Lincoln, ESAB, Böhler/voestalpine, Kobe Steel, Hyundai Welding, Ador and D&H Secheron (India), Gemini. Distributors in Deira, Sharjah Industrial Area, Al Quoz, Jebel Ali and Musaffah. Origins: USA-brand, Sweden, Finland, Austria, Japan, Korea, India, China.",
+      "body_ar": "العلامات: Lincoln Electric وESAB وMiller (ITW) وKemppi وFronius وHypertherm (البلازما) وPanasonic وOTC Daihen وJasic وRiland وGYS، والمستهلكات Lincoln وESAB وBöhler/voestalpine وKobe Steel وHyundai Welding وAdor وD&H Secheron (الهند) وGemini. والموزعون في ديرة والمنطقة الصناعية بالشارقة والقوز وجبل علي ومصفح. المنشأ: علامات أمريكية، السويد، فنلندا، النمسا، اليابان، كوريا، الهند، الصين.",
+      "sources": [
+        "https://www.aws.org",
+        "https://www.iso.org",
+        "https://www.esab.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+    },
+    {
+      "id": "welding_equipment:uae-market-sizes",
+      "topic": "Welding equipment & consumables: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Electrodes sold per box/packet (5 kg typical; 2.5, 3.2, 4.0 mm diameters) or per carton (15-20 kg); MIG wire per 15 kg spool; flux-cored per 15 kg spool; machines per unit by amperage (e.g. 200 A, 400 A, 500 A). Quotes state classification, certificates (batch 3.1 for oil and gas), warranty (machines 1-3 years) and accessories included.",
+      "body_ar": "تُباع أسلاك اللحام بالعلبة (5 كغ عادة؛ أقطار 2.5 و3.2 و4.0 مم) أو بالكرتونة (15-20 كغ)؛ وسلك MIG ببكرة 15 كغ؛ والسلك المحشو ببكرة 15 كغ؛ والآلات بالوحدة حسب التيار (مثل 200 و400 و500 أمبير). وتذكر العروض التصنيف والشهادات (شهادة الدفعة 3.1 للنفط والغاز) والضمان (الآلات 1-3 سنوات) والملحقات المشمولة.",
+      "sources": [
+        "https://www.aws.org",
+        "https://www.iso.org",
+        "https://www.esab.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: AWS A5 filler metal specifications (American Welding Society); ISO 2560 (ISO); ESAB. Could not be verified: Current distributors of each brand in the UAE were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which electrode is used for structural steel welding on site?",
+      "q_ar": "ما سلك اللحام المستخدم لحديد الإنشاءات في الموقع؟",
+      "expected_entry_ids": [
+        "welding_equipment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current distributors of each brand in the UAE were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

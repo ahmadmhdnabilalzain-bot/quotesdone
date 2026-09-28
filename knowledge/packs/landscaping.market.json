@@ -1,0 +1,74 @@
+{
+  "trade": "landscaping",
+  "layer": "uae-market",
+  "label_en": "Landscaping & pools",
+  "label_ar": "تنسيق الحدائق والمسابح",
+  "entries": [
+    {
+      "id": "landscaping:uae-market-products",
+      "topic": "Landscaping & pools: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Landscaping in the UAE covers softscape (native and adapted plants such as ghaf, sidr, date palms, bougainvillea, and turf such as Paspalum and Bermuda), hardscape (interlock and stone paving, pergolas, planters, water features, boundary walls), irrigation systems (drip and bubbler for trees and shrubs, pop-up sprinklers for turf, controllers, filters, using treated sewage effluent where available), artificial grass, soil and growing media (sweet soil, compost, soil conditioners), lighting, and landscape maintenance contracts. Water efficiency rules apply: Dubai Municipality and Abu Dhabi Estidama favour native, low-water planting and restrict turf areas; municipal plant lists and palm health (red palm weevil) rules govern imports and planting.",
+      "body_ar": "يشمل تنسيق الحدائق في الإمارات العناصر النباتية (النباتات المحلية والمتأقلمة مثل الغاف والسدر ونخيل التمر والجهنمية، والعشب مثل الباسبالوم والبرمودا)، والعناصر الصلبة (رصف الإنترلوك والحجر، والبرجولات، والأحواض، والنوافير، والأسوار)، وأنظمة الري (التنقيط والفقاعات للأشجار والشجيرات، والرشاشات المنبثقة للعشب، والمتحكمات، والفلاتر، باستخدام مياه الصرف المعالجة حيث تتوفر)، والعشب الصناعي، والتربة ووسائط الزراعة (التربة الحلوة، والسماد العضوي، ومحسنات التربة)، والإنارة، وعقود صيانة الحدائق. وتنطبق قواعد كفاءة المياه: تفضل بلدية دبي واستدامة أبوظبي الزراعة المحلية قليلة الاستهلاك للمياه وتقيّد مساحات العشب؛ وتنظم قوائم النباتات البلدية وقواعد صحة النخيل (سوسة النخيل الحمراء) الاستيراد والزراعة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://www.rainbird.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (landscape and plant lists); Estidama (Abu Dhabi DMT); Rain Bird. Could not be verified: Current municipal approved plant lists and turf restrictions per emirate were not verified."
+    },
+    {
+      "id": "landscaping:uae-market-brands",
+      "topic": "Landscaping & pools: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Irrigation: Rain Bird, Hunter, Toro, Netafim, Jain Irrigation, with local distributors in Dubai and Sharjah. Nurseries: large nurseries in Al Warqa'a, Al Aweer (Dubai), Al Ain and Sharjah supply trees and shrubs; palms from Al Ain and imported specimen trees from Thailand, Malaysia, Spain and Italy. Turf farms in Al Ain and the Western region. Artificial grass: Chinese, Dutch (TenCate yarns) and Belgian brands via local installers. Contractors range from large landscape firms serving master developers to SME gardeners. Paving from local precast factories.",
+      "body_ar": "الري: Rain Bird وHunter وToro وNetafim وJain Irrigation مع موزعين محليين في دبي والشارقة. المشاتل: مشاتل كبيرة في الورقاء والعوير (دبي) والعين والشارقة توفر الأشجار والشجيرات؛ والنخيل من العين، والأشجار المميزة مستوردة من تايلاند وماليزيا وإسبانيا وإيطاليا. مزارع العشب في العين والمنطقة الغربية. العشب الصناعي: علامات صينية وهولندية (خيوط TenCate) وبلجيكية عبر مركّبين محليين. ويتراوح المقاولون من شركات تنسيق كبيرة تخدم المطورين إلى بستانيين صغار. والرصف من مصانع مسبقة الصب محلية.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://www.rainbird.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (landscape and plant lists); Estidama (Abu Dhabi DMT); Rain Bird. Could not be verified: Current municipal approved plant lists and turf restrictions per emirate were not verified."
+    },
+    {
+      "id": "landscaping:uae-market-sizes",
+      "topic": "Landscaping & pools: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Softscape is priced per plant by species and size (trees by height and trunk girth or container size, e.g. 2-3 m height, 25-45 litre pots; palms by clear trunk height; shrubs by pot size), turf per m2 (sod or seeded), artificial grass per m2 by pile height (25-40 mm) and density, irrigation per m2 of planted area or per point, hardscape per m2, and maintenance per month per site or per m2 per year. Plant warranty (replacement) periods, usually 6-12 months, must be stated.",
+      "body_ar": "تُسعّر النباتات بالقطعة حسب النوع والحجم (الأشجار حسب الارتفاع ومحيط الجذع أو حجم الوعاء، مثل ارتفاع 2-3 م وأوعية 25-45 لتراً؛ والنخيل حسب ارتفاع الجذع الصافي؛ والشجيرات حسب حجم الأصيص)، والعشب بالمتر المربع (مسطحات جاهزة أو بذور)، والعشب الصناعي بالمتر المربع حسب طول الوبر (25-40 مم) والكثافة، والري بالمتر المربع من المساحة المزروعة أو بالنقطة، والعناصر الصلبة بالمتر المربع، والصيانة شهرياً للموقع أو بالمتر المربع سنوياً. ويجب ذكر فترة ضمان النباتات (الاستبدال) وهي عادة 6-12 شهراً.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.dmt.gov.ae",
+        "https://www.rainbird.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality (landscape and plant lists); Estidama (Abu Dhabi DMT); Rain Bird. Could not be verified: Current municipal approved plant lists and turf restrictions per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How are trees priced in a UAE landscaping quote?",
+      "q_ar": "كيف تُسعّر الأشجار في عرض تنسيق حدائق بالإمارات؟",
+      "expected_entry_ids": [
+        "landscaping:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current municipal approved plant lists and turf restrictions per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

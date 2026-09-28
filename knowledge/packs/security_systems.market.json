@@ -1,0 +1,74 @@
+{
+  "trade": "security_systems",
+  "layer": "uae-market",
+  "label_en": "Security systems",
+  "label_ar": "الأنظمة الأمنية",
+  "entries": [
+    {
+      "id": "security_systems:uae-market-products",
+      "topic": "Security systems: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Security systems in the UAE: CCTV (IP cameras, NVRs, VMS, video analytics, ANPR), access control (card, PIN, biometric, turnstiles, barriers, bollards), intrusion alarms, video intercoms, X-ray baggage scanners and walk-through metal detectors, perimeter detection, and integrated security platforms (PSIM). Regulation is strong: in Dubai, the Security Industry Regulatory Agency (SIRA) sets mandatory CCTV standards for listed facility types (camera resolution, recording retention typically 31 days or more, placement), requires SIRA-licensed security system companies and SIRA-approved products, and issues certificates for installation. Abu Dhabi's Monitoring and Control Centre (ADMCC) plays a similar role in Abu Dhabi. Buyers specify camera resolution (4-8 MP), lens and IR range, storage days, compression (H.265), and compliance with SIRA/ADMCC.",
+      "body_ar": "أنظمة الأمن في الإمارات: المراقبة بالكاميرات (كاميرات IP، ومسجلات NVR، وبرامج إدارة الفيديو، وتحليلات الفيديو، والتعرف على اللوحات ANPR)، والتحكم بالدخول (البطاقة، والرمز، والقياسات الحيوية، والبوابات الدوارة، والحواجز، والأعمدة)، وإنذارات التسلل، والإنتركم المرئي، وأجهزة فحص الأمتعة بالأشعة وبوابات كشف المعادن، والكشف المحيطي، ومنصات الأمن المتكاملة (PSIM). والتنظيم قوي: في دبي تضع مؤسسة تنظيم الصناعة الأمنية (سيرا) معايير إلزامية للكاميرات لأنواع المنشآت المدرجة (دقة الكاميرا، ومدة حفظ التسجيل عادة 31 يوماً أو أكثر، والمواقع)، وتشترط شركات أنظمة أمنية مرخصة من سيرا ومنتجات معتمدة منها، وتصدر شهادات التركيب. ويؤدي مركز المراقبة والتحكم في أبوظبي دوراً مماثلاً. يحدد المشتري دقة الكاميرا (4-8 ميغابكسل)، والعدسة ومدى الأشعة تحت الحمراء، وأيام التخزين، والضغط (H.265)، والامتثال لسيرا أو مركز أبوظبي.",
+      "sources": [
+        "https://www.sira.gov.ae",
+        "https://www.admcc.gov.ae",
+        "https://www.axis.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+    },
+    {
+      "id": "security_systems:uae-market-brands",
+      "topic": "Security systems: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "CCTV: Hikvision, Dahua, Axis, Bosch, Hanwha Vision, Avigilon (Motorola Solutions), Honeywell, Uniview, Milestone and Genetec (VMS). Access control: HID, Suprema, ZKTeco, Lenel (LenelS2), Gallagher, Paxton, dormakaba, Nedap. Intrusion: Honeywell, DSC, Bosch, Paradox, Ajax. Screening: Smiths Detection, Rapiscan, Nuctech, CEIA, Garrett. Distributors and SIRA-licensed integrators are concentrated in Dubai (Deira, Al Quoz, Dubai Silicon Oasis) and Abu Dhabi. Origins: China, Europe, Korea, USA-brand products made in Asia.",
+      "body_ar": "الكاميرات: Hikvision وDahua وAxis وBosch وHanwha Vision وAvigilon (Motorola Solutions) وHoneywell وUniview، وMilestone وGenetec (برامج إدارة الفيديو). التحكم بالدخول: HID وSuprema وZKTeco وLenel (LenelS2) وGallagher وPaxton وdormakaba وNedap. التسلل: Honeywell وDSC وBosch وParadox وAjax. الفحص: Smiths Detection وRapiscan وNuctech وCEIA وGarrett. ويتركز الموزعون والمكاملون المرخصون من سيرا في دبي (ديرة والقوز وواحة دبي للسيليكون) وأبوظبي. المنشأ: الصين، أوروبا، كوريا، منتجات علامات أمريكية تُصنع في آسيا.",
+      "sources": [
+        "https://www.sira.gov.ae",
+        "https://www.admcc.gov.ae",
+        "https://www.axis.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+    },
+    {
+      "id": "security_systems:uae-market-sizes",
+      "topic": "Security systems: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Systems are quoted per camera point (camera, cabling, bracket, licence), per door (reader, lock, controller, exit button, door contact), per turnstile/barrier unit, and storage per TB sized to camera count, bitrate and retention days. Installation, programming and SIRA/ADMCC approval and certification are separate lines. AMC per year with preventive visits. Warranty 2-3 years on cameras and recorders from major brands.",
+      "body_ar": "تُسعّر الأنظمة بنقطة الكاميرا (الكاميرا والكابلات والحامل والترخيص)، وبالباب (القارئ والقفل والمتحكم وزر الخروج وحساس الباب)، وبوحدة البوابة الدوارة/الحاجز، والتخزين بالتيرابايت حسب عدد الكاميرات ومعدل البت وأيام الحفظ. والتركيب والبرمجة واعتماد وشهادة سيرا أو مركز أبوظبي بنود مستقلة. وعقد الصيانة السنوي مع زيارات وقائية. والضمان 2-3 سنوات على الكاميرات والمسجلات من العلامات الرئيسية.",
+      "sources": [
+        "https://www.sira.gov.ae",
+        "https://www.admcc.gov.ae",
+        "https://www.axis.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Security Industry Regulatory Agency Dubai (SIRA); Abu Dhabi Monitoring and Control Centre; Axis Communications. Could not be verified: The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How many days of CCTV recording does SIRA require in Dubai?",
+      "q_ar": "كم يوماً من تسجيل الكاميرات تشترط سيرا في دبي؟",
+      "expected_entry_ids": [
+        "security_systems:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "The current SIRA retention period and camera resolution requirement for each facility type, and the ADMCC website address, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

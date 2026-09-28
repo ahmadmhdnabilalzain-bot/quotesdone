@@ -1,0 +1,74 @@
+{
+  "trade": "demolition_works",
+  "layer": "uae-market",
+  "label_en": "Demolition & strip-out",
+  "label_ar": "أعمال الهدم والإزالة",
+  "entries": [
+    {
+      "id": "demolition_works:uae-market-products",
+      "topic": "Demolition & strip-out: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Demolition and strip-out in the UAE covers: soft strip-out of fit-out (ceilings, partitions, flooring, MEP), selective demolition inside operating buildings, full structural demolition (mechanical high-reach, long-boom excavators with crushers and shears, top-down for towers), concrete cutting (wall saw, wire saw, core drilling), hydro-demolition, asbestos removal (licensed, as asbestos-containing material was banned in the UAE but remains in older buildings), hazardous material survey, and waste segregation and recycling of concrete and steel. Permits required: Dubai Municipality demolition permit (or DMT in Abu Dhabi), utility disconnection certificates (DEWA/ADDC, Etisalat/du, gas), Civil Defence where fire systems are isolated, and landfill/recycling tickets from the waste authority.",
+      "body_ar": "تشمل أعمال الهدم والإزالة في الإمارات: الإزالة الخفيفة للتشطيبات (الأسقف والقواطع والأرضيات والأعمال الكهروميكانيكية)، والهدم الانتقائي داخل المباني المشغّلة، والهدم الإنشائي الكامل (بحفارات ذات أذرع طويلة مزوّدة بكسارات ومقصات، والهدم من الأعلى للأسفل للأبراج)، وقص الخرسانة (منشار الجدار ومنشار السلك والحفر اللبّي)، والهدم بالمياه عالية الضغط، وإزالة الأسبستوس (بترخيص، إذ حُظر الأسبستوس في الإمارات لكنه ما زال موجوداً في المباني القديمة)، ومسح المواد الخطرة، وفرز المخلفات وإعادة تدوير الخرسانة والحديد. التصاريح المطلوبة: تصريح هدم من بلدية دبي (أو دائرة البلديات والنقل في أبوظبي)، وشهادات فصل المرافق (هيئة كهرباء ومياه دبي أو أدنوك للتوزيع/شركة أبوظبي للتوزيع، واتصالات ودو، والغاز)، والدفاع المدني عند عزل أنظمة الحريق، وتذاكر المكب أو إعادة التدوير من جهة النفايات.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality demolition permits; Abu Dhabi Waste Management Centre (Tadweer); Dubai Electricity and Water Authority (disconnection). Could not be verified: Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified."
+    },
+    {
+      "id": "demolition_works:uae-market-brands",
+      "topic": "Demolition & strip-out: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Services are delivered by licensed demolition contractors (e.g. specialist firms in Dubai, Sharjah and Abu Dhabi such as Al Shafar-group or Hi-Tech demolition contractors, and the demolition arms of civil contractors). Equipment brands: Caterpillar, Komatsu, Volvo and Hitachi high-reach excavators; Brokk remote demolition robots; Husqvarna and Hilti concrete cutting tools; Epiroc and Indeco hydraulic breakers. Recycled aggregate is processed at facilities such as Dubai's construction waste recycling plants (e.g. Al Dhafra Recycling) and Abu Dhabi's Tadweer-regulated sites. Asbestos work requires a municipality-approved specialist.",
+      "body_ar": "تُقدَّم الخدمة من مقاولي هدم مرخصين (شركات متخصصة في دبي والشارقة وأبوظبي، وأقسام الهدم لدى مقاولي الأعمال المدنية). علامات المعدات: حفارات الأذرع الطويلة Caterpillar وKomatsu وVolvo وHitachi؛ وروبوتات الهدم عن بعد Brokk؛ وأدوات قص الخرسانة Husqvarna وHilti؛ والكسارات الهيدروليكية Epiroc وIndeco. ويُعالج الركام المعاد تدويره في منشآت إعادة تدوير مخلفات البناء في دبي (مثل الظفرة لإعادة التدوير) وفي مواقع أبوظبي الخاضعة لتنظيم تدوير. وتتطلب أعمال الأسبستوس متخصصاً معتمداً من البلدية.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality demolition permits; Abu Dhabi Waste Management Centre (Tadweer); Dubai Electricity and Water Authority (disconnection). Could not be verified: Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified."
+    },
+    {
+      "id": "demolition_works:uae-market-sizes",
+      "topic": "Demolition & strip-out: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Strip-out is priced per m2 of floor area; structural demolition per m2 of gross floor area or per m3 of building volume, or lump sum per building; concrete cutting per linear metre by depth, and core drilling per hole by diameter; asbestos removal per m2 or lump sum after survey. Waste disposal is per truckload or per tonne with landfill tipping fees separate. Quotes should state salvage credit (steel scrap value), hoarding, dust and noise control, working hours permitted by the municipality, and programme in weeks.",
+      "body_ar": "تُسعّر الإزالة الخفيفة بالمتر المربع من مساحة الطابق؛ والهدم الإنشائي بالمتر المربع من إجمالي المساحة الطابقية أو بالمتر المكعب من حجم المبنى أو بمبلغ مقطوع للمبنى؛ وقص الخرسانة بالمتر الطولي حسب العمق، والحفر اللبي بالثقب حسب القطر؛ وإزالة الأسبستوس بالمتر المربع أو بمبلغ مقطوع بعد المسح. والتخلص من المخلفات بالحمولة أو بالطن مع رسوم المكب منفصلة. ويجب أن يذكر العرض قيمة الخردة المستردة (حديد)، والسياج المؤقت، والتحكم في الغبار والضوضاء، وساعات العمل المسموحة من البلدية، والبرنامج الزمني بالأسابيع.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality demolition permits; Abu Dhabi Waste Management Centre (Tadweer); Dubai Electricity and Water Authority (disconnection). Could not be verified: Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What permits are needed before demolishing a building in Dubai?",
+      "q_ar": "ما التصاريح المطلوبة قبل هدم مبنى في دبي؟",
+      "expected_entry_ids": [
+        "demolition_works:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Named demolition contractors and recycling facilities are examples; their current licences and operating status were not verified. Current landfill fees were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

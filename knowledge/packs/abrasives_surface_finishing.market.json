@@ -1,0 +1,74 @@
+{
+  "trade": "abrasives_surface_finishing",
+  "layer": "uae-market",
+  "label_en": "Abrasives & surface finishing",
+  "label_ar": "المواد الكاشطة وتشطيب الأسطح",
+  "entries": [
+    {
+      "id": "abrasives_surface_finishing:uae-market-products",
+      "topic": "Abrasives & surface finishing: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Abrasives and surface finishing in the UAE: bonded abrasives (cutting and grinding discs for steel and stainless/INOX, 115-230 mm, EN 12413 with max RPM marked; depressed-centre and flat), flap discs (zirconia, ceramic, aluminium oxide; grits 40-120), coated abrasives (sanding belts, rolls, sheets, velcro discs), non-woven surface conditioning (Scotch-Brite type), wire brushes, diamond blades and cup wheels for concrete and stone, blasting media (garnet, copper slag, steel grit and shot, glass bead, aluminium oxide) for ISO 8501-1 Sa 2.5 preparation, blasting and painting equipment (blast pots, dust collectors, airless sprayers), and polishing compounds. Buyers specify abrasive grain, grit, disc size and bore (22.23 mm), thickness (1.0-1.6 mm for cutting), material to be worked and safety marking (oSa).",
+      "body_ar": "المواد الكاشطة وتشطيب الأسطح في الإمارات: الكاشطات الملتصقة (أقراص القطع والجلخ للحديد والستانلس، 115-230 مم، وفق EN 12413 مع أقصى سرعة دوران مدونة؛ مقعرة الوسط ومسطحة)، والأقراص الريشية (زركونيا، سيراميك، أكسيد الألمنيوم؛ خشونة 40-120)، والكاشطات المغلفة (أحزمة الصنفرة واللفائف والأوراق وأقراص الفلكرو)، وتهيئة الأسطح غير المنسوجة، وفرش السلك، وأقراص وأكواب الألماس للخرسانة والحجر، ووسائط السفع (الجارنت، وخبث النحاس، وحبيبات وكرات الحديد، والخرز الزجاجي، وأكسيد الألمنيوم) لتحضير Sa 2.5 وفق ISO 8501-1، ومعدات السفع والدهان (أوعية السفع، ومجمعات الغبار، والرشاشات عالية الضغط)، ومركبات التلميع. يحدد المشتري حبيبات الكاشط والخشونة ومقاس القرص والثقب (22.23 مم) والسماكة (1.0-1.6 مم للقطع) والمادة المشغولة وعلامة السلامة oSa.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.iso.org",
+        "https://www.osa-abrasives.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12413 bonded abrasives (CEN); ISO 8501-1 (ISO); oSa Organisation for the Safety of Abrasives. Could not be verified: Current UAE distributors of each named brand were not verified."
+    },
+    {
+      "id": "abrasives_surface_finishing:uae-market-brands",
+      "topic": "Abrasives & surface finishing: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: 3M, Norton (Saint-Gobain Abrasives), Klingspor, Pferd, Tyrolit, Bosch, Makita, DeWalt, Flexovit, Rhodius, Cumi (Carborundum Universal), Awuko, Mirka, Sia, and Chinese and Turkish value brands. Blasting media: garnet from India and Australia, copper slag regional; equipment Graco, Clemco, Blastline. Distributors cluster in Deira (Naif, Al Ras), Sharjah Industrial Area, Al Quoz and Musaffah; blasting contractors in Jebel Ali, Hamriyah and Musaffah. Origins: Germany, Austria, Italy, India, China, Turkey.",
+      "body_ar": "العلامات: 3M وNorton (Saint-Gobain Abrasives) وKlingspor وPferd وTyrolit وBosch وMakita وDeWalt وFlexovit وRhodius وCumi وAwuko وMirka وSia وعلامات اقتصادية صينية وتركية. وسائط السفع: جارنت من الهند وأستراليا، وخبث نحاس إقليمي؛ والمعدات Graco وClemco وBlastline. ويتركز الموزعون في ديرة (نايف والراس) والمنطقة الصناعية بالشارقة والقوز ومصفح؛ ومقاولو السفع في جبل علي والحمرية ومصفح. المنشأ: ألمانيا، النمسا، إيطاليا، الهند، الصين، تركيا.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.iso.org",
+        "https://www.osa-abrasives.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12413 bonded abrasives (CEN); ISO 8501-1 (ISO); oSa Organisation for the Safety of Abrasives. Could not be verified: Current UAE distributors of each named brand were not verified."
+    },
+    {
+      "id": "abrasives_surface_finishing:uae-market-sizes",
+      "topic": "Abrasives & surface finishing: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Discs sold per piece or per box (25 or 50 pieces); flap discs per box of 10; belts per piece by size (e.g. 75 x 533 mm, 100 x 915 mm); rolls by width x 50 m; blasting media per 25 kg bag or per tonne (1 t jumbo bags). Blasting and painting services are quoted per m2 of surface by preparation grade and coating system. Distributor pricing is list less discount by volume.",
+      "body_ar": "تُباع الأقراص بالقطعة أو بالعلبة (25 أو 50 قطعة)؛ والأقراص الريشية بعلبة 10؛ والأحزمة بالقطعة حسب المقاس (مثل 75 × 533 مم و100 × 915 مم)؛ واللفائف حسب العرض × 50 م؛ ووسائط السفع بكيس 25 كغ أو بالطن (أكياس جامبو طن). وتُسعّر خدمات السفع والدهان بالمتر المربع حسب درجة التحضير ونظام الطلاء. وتسعير الموزع سعر القائمة ناقص خصم حسب الكمية.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.iso.org",
+        "https://www.osa-abrasives.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 12413 bonded abrasives (CEN); ISO 8501-1 (ISO); oSa Organisation for the Safety of Abrasives. Could not be verified: Current UAE distributors of each named brand were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which cutting disc thickness is best for stainless steel?",
+      "q_ar": "ما سماكة قرص القطع الأنسب للفولاذ المقاوم للصدأ؟",
+      "expected_entry_ids": [
+        "abrasives_surface_finishing:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current UAE distributors of each named brand were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

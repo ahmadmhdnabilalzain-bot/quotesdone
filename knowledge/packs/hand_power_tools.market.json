@@ -1,0 +1,74 @@
+{
+  "trade": "hand_power_tools",
+  "layer": "uae-market",
+  "label_en": "Hand & power tools",
+  "label_ar": "العدد اليدوية والكهربائية",
+  "entries": [
+    {
+      "id": "hand_power_tools:uae-market-products",
+      "topic": "Hand & power tools: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Hand and power tools in the UAE: corded and cordless power tools (drills, hammer drills, SDS-plus and SDS-max rotary hammers, breakers, angle grinders 115-230 mm, circular saws, jigsaws, reciprocating saws, impact drivers and wrenches, magnetic drills, core drills, planers, routers, sanders), cordless platforms (18 V / 20 V MAX, 36 V / 54 V FlexVolt, 12 V) with battery ecosystems, pneumatic tools, measuring tools (laser levels, distance meters, detectors), hand tools (spanners, sockets, pliers, screwdrivers, hammers, torque wrenches, VDE 1000 V insulated tools), tool storage, and garden tools. Voltage: 230 V 50 Hz UK-style plugs (BS 1363) or 110 V site transformers on some sites. Buyers specify power (W), voltage, battery Ah, chuck type, and brand ecosystem.",
+      "body_ar": "العدد اليدوية والكهربائية في الإمارات: العدد الكهربائية السلكية واللاسلكية (المثاقب، والمثاقب الطرقية، ومطارق SDS-plus وSDS-max، والكسارات، والصواريخ 115-230 مم، والمناشير الدائرية، ومناشير الأركت، والمناشير الترددية، ومفكات ومفاتيح الصدم، والمثاقب المغناطيسية، والمثاقب اللبية، والفارات، والراوترات، والصنافر)، والمنصات اللاسلكية (18 فولت/20 فولت، و36/54 فولت، و12 فولت) مع أنظمة البطاريات، والعدد الهوائية، وأدوات القياس (موازين الليزر، ومقاييس المسافة، والكواشف)، والعدد اليدوية (المفاتيح، واللقم، والزراديات، والمفكات، والمطارق، ومفاتيح العزم، والعدد المعزولة VDE 1000 فولت)، وتخزين العدد، وأدوات الحدائق. الجهد: 230 فولت 50 هيرتز بمقابس بريطانية (BS 1363) أو محولات 110 فولت في بعض المواقع. يحدد المشتري القدرة (واط)، والجهد، وسعة البطارية، ونوع الظرف، ونظام العلامة.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.bosch-pt.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 62841 hand-held power tool safety (IEC); MoIAT conformity (ECAS); Bosch Power Tools. Could not be verified: Which tool categories fall under mandatory ECAS registration today and brand distributor appointments were not verified."
+    },
+    {
+      "id": "hand_power_tools:uae-market-brands",
+      "topic": "Hand & power tools: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Bosch, Makita, DeWalt, Milwaukee, Hilti, Metabo, Stanley, Black+Decker, Ryobi, Festool, Hikoki (Hitachi), Ingco, Total, Tolsen, Crown and other Chinese value brands; hand tools Stanley, Bahco, Knipex, Wera, Wiha, Beta, Facom, Snap-on, Gedore, Taparia. Distribution: brand distributors and tool traders in Deira (Al Ras, Naif), Sharjah Industrial Area, Musaffah, Al Quoz, Dragon Mart; retail at ACE, Dragon Mart and hypermarkets. Origins: Germany, Japan, USA-brand tools made in China/Mexico, China, Taiwan, India.",
+      "body_ar": "العلامات: Bosch وMakita وDeWalt وMilwaukee وHilti وMetabo وStanley وBlack+Decker وRyobi وFestool وHikoki (Hitachi) وIngco وTotal وTolsen وCrown وعلامات صينية اقتصادية؛ والعدد اليدوية Stanley وBahco وKnipex وWera وWiha وBeta وFacom وSnap-on وGedore وTaparia. التوزيع: موزعو العلامات وتجار العدد في ديرة (الراس ونايف) والمنطقة الصناعية بالشارقة ومصفح والقوز ودراجون مارت؛ والتجزئة في ACE ودراجون مارت والهايبرماركت. المنشأ: ألمانيا، اليابان، علامات أمريكية مصنوعة في الصين/المكسيك، الصين، تايوان، الهند.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.bosch-pt.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 62841 hand-held power tool safety (IEC); MoIAT conformity (ECAS); Bosch Power Tools. Could not be verified: Which tool categories fall under mandatory ECAS registration today and brand distributor appointments were not verified."
+    },
+    {
+      "id": "hand_power_tools:uae-market-sizes",
+      "topic": "Hand & power tools: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Sold per unit (bare tool or kit with batteries and charger), batteries per piece by Ah (2.0-12.0 Ah), accessories per piece or set. Trade pricing is list less discount; project supply may include tool-management or rental options (e.g. Hilti fleet management per tool per month). Warranty per brand, typically 1-3 years (some register for extended). Genuine versus grey import matters for warranty.",
+      "body_ar": "تُباع بالوحدة (الأداة وحدها أو طقم مع البطاريات والشاحن)، والبطاريات بالقطعة حسب السعة (2.0-12.0 أمبير ساعة)، والملحقات بالقطعة أو الطقم. والتسعير التجاري سعر القائمة ناقص خصم؛ وقد يشمل توريد المشاريع خيارات إدارة العدد أو التأجير (مثل إدارة أسطول Hilti لكل أداة شهرياً). والضمان حسب العلامة، عادة 1-3 سنوات (بعضها ممدد بالتسجيل). ويهم الفرق بين الوارد الأصلي والموازي للضمان.",
+      "sources": [
+        "https://www.iec.ch",
+        "https://moiat.gov.ae",
+        "https://www.bosch-pt.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: IEC 62841 hand-held power tool safety (IEC); MoIAT conformity (ECAS); Bosch Power Tools. Could not be verified: Which tool categories fall under mandatory ECAS registration today and brand distributor appointments were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which rotary hammer type do I need for 32 mm holes in concrete?",
+      "q_ar": "ما نوع المطرقة الدوارة الذي أحتاجه لثقوب 32 مم في الخرسانة؟",
+      "expected_entry_ids": [
+        "hand_power_tools:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Which tool categories fall under mandatory ECAS registration today and brand distributor appointments were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

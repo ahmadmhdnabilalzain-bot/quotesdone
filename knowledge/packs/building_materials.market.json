@@ -1,0 +1,77 @@
+{
+  "trade": "building_materials",
+  "layer": "uae-market",
+  "label_en": "Building & Construction Materials",
+  "label_ar": "مواد البناء والتشييد",
+  "entries": [
+    {
+      "id": "building_materials:uae-market-products",
+      "topic": "Building & Construction Materials: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Core UAE building materials: Portland cement (OPC CEM I 42.5N/R and 52.5, sulphate-resisting SRC, GGBS blends CEM III), ready-mix concrete by grade C20-C60 (cube strength, often with GGBS or micro-silica for durability), concrete blocks (hollow, solid, thermal/insulated blocks with polystyrene inserts, AAC blocks), rebar (steel reinforcement B500B to BS 4449, sizes 8-40 mm), washed sand, dune sand (fill only), aggregates 5/10/20 mm gabbro from Fujairah and Ras Al Khaimah quarries, plaster (cement and gypsum), tile adhesives and grouts (EN 12004 C1/C2), cement boards, precast items (kerbs, interlock pavers, manholes), bitumen membranes and timber/plywood for shuttering. Dubai Municipality conformity (and the Al Sa'fat green building rules) and MoIAT/ECAS marks apply to many products; thermal blocks must meet the U-value of the green code.",
+      "body_ar": "مواد البناء الأساسية في الإمارات: الإسمنت البورتلاندي (OPC CEM I 42.5N/R و52.5، والإسمنت المقاوم للكبريتات SRC، وخلطات خبث الأفران GGBS من نوع CEM III)، والخرسانة الجاهزة حسب الرتبة C20-C60 (مقاومة المكعب، غالباً مع GGBS أو الميكروسيليكا للديمومة)، والطابوق الخرساني (المفرّغ والمصمت والطابوق الحراري المعزول بحشوات البوليسترين وطابوق AAC)، وحديد التسليح B500B وفق BS 4449 بأقطار 8-40 مم، والرمل المغسول، والرمل الصحراوي (للردم فقط)، والركام 5/10/20 مم من الغابرو من محاجر الفجيرة ورأس الخيمة، واللياسة (إسمنتية وجبسية)، ولواصق وروبة البلاط (EN 12004 فئة C1/C2)، والألواح الإسمنتية، والمنتجات مسبقة الصب (البردورات والإنترلوك وغرف التفتيش)، والأغشية البيتومينية، والخشب والأبلكاش للقوالب. وتنطبق مطابقة بلدية دبي (وقواعد السعفات للمباني الخضراء) وعلامات وزارة الصناعة ECAS على كثير من المنتجات؛ ويجب أن يحقق الطابوق الحراري قيمة U المطلوبة في كود المباني الخضراء.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com",
+        "https://www.emiratessteelarkan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality building regulations and Al Sa'fat; Ministry of Industry and Advanced Technology (MoIAT) conformity schemes; BS 4449 reinforcing steel (BSI); Emirates Steel Arkan. Could not be verified: Which ready-mix and block producers currently hold Dubai Municipality approval, current quarry output, and import shares for rebar were not verified."
+    },
+    {
+      "id": "building_materials:uae-market-brands",
+      "topic": "Building & Construction Materials: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Cement: Arabian Cement, Emirates Cement, Union Cement (RAK), Sharjah Cement, Fujairah Cement, Gulf Cement, Al Ain Cement (Emirates Steel Arkan group). Ready-mix: Unimix, Transgulf Readymix, Al Falah, Emirates Beton and Conmix. Blocks: Emirates Blocks and many regional block factories in Sharjah and Ajman. Rebar: Emirates Steel (Abu Dhabi, the dominant local mill), plus imports from Oman, Qatar and Turkey. Adhesives and chemicals: Mapei, Sika, Fosroc, Weber (Saint-Gobain), Henkel (Ceresit), Laticrete. Aggregates: Fujairah and RAK quarries (e.g. Stevin Rock). Trading hubs: Al Quoz, Sharjah Industrial Area and Musaffah. Origins mostly UAE-made; timber and plywood from Malaysia, Indonesia, Russia and China.",
+      "body_ar": "الإسمنت: الإسمنت العربية، وإسمنت الإمارات، والاتحاد للإسمنت (رأس الخيمة)، وإسمنت الشارقة، وإسمنت الفجيرة، وإسمنت الخليج، وإسمنت العين (مجموعة الإمارات للصلب أركان). الخرسانة الجاهزة: يونيمكس وترانس جلف ريدي مكس والفلاح وبيتون الإمارات وكونمكس. الطابوق: الإمارات للطابوق والعديد من مصانع الطابوق في الشارقة وعجمان. حديد التسليح: الإمارات للصلب (أبوظبي، المصنع المحلي المهيمن) إضافة إلى واردات من عُمان وقطر وتركيا. اللواصق والكيماويات: Mapei وSika وFosroc وWeber (سان غوبان) وHenkel (Ceresit) وLaticrete. الركام: محاجر الفجيرة ورأس الخيمة (مثل Stevin Rock). مراكز التجارة: القوز والمنطقة الصناعية بالشارقة ومصفح. المنشأ غالباً محلي؛ والخشب والأبلكاش من ماليزيا وإندونيسيا وروسيا والصين.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com",
+        "https://www.emiratessteelarkan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality building regulations and Al Sa'fat; Ministry of Industry and Advanced Technology (MoIAT) conformity schemes; BS 4449 reinforcing steel (BSI); Emirates Steel Arkan. Could not be verified: Which ready-mix and block producers currently hold Dubai Municipality approval, current quarry output, and import shares for rebar were not verified."
+    },
+    {
+      "id": "building_materials:uae-market-sizes",
+      "topic": "Building & Construction Materials: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Cement is sold in 50 kg bags (per bag or per tonne) or bulk by the tonne; ready-mix per cubic metre by grade, with pump hire per shift or per m3. Blocks are quoted per piece by size: 400 x 200 mm face with thickness 100, 150, 200, 250 or 300 mm (written 4, 6, 8, 10, 12 inch). Rebar per tonne, in 12 m bars, with cut-and-bend as a separate rate. Sand and aggregates per tonne or per truckload (about 20-30 m3). Tile adhesive in 20-25 kg bags. Plywood 1220 x 2440 mm, 12/18 mm. Quotes should state delivery site, unloading, and whether the price includes VAT.",
+      "body_ar": "يُباع الإسمنت في أكياس 50 كغ (بالكيس أو بالطن) أو سائباً بالطن؛ والخرسانة الجاهزة بالمتر المكعب حسب الرتبة مع أجرة المضخة بالوردية أو بالمتر المكعب. ويُسعّر الطابوق بالقطعة حسب المقاس: وجه 400 × 200 مم وسماكة 100 أو 150 أو 200 أو 250 أو 300 مم (تُكتب 4 و6 و8 و10 و12 إنش). وحديد التسليح بالطن في قضبان 12 م، مع سعر منفصل للقص والثني. والرمل والركام بالطن أو بالحمولة (نحو 20-30 م3). ولاصق البلاط في أكياس 20-25 كغ. والأبلكاش 1220 × 2440 مم بسماكة 12/18 مم. ويجب أن يذكر العرض موقع التسليم والتنزيل وما إذا كان السعر شاملاً ضريبة القيمة المضافة.",
+      "sources": [
+        "https://www.dm.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com",
+        "https://www.emiratessteelarkan.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: Dubai Municipality building regulations and Al Sa'fat; Ministry of Industry and Advanced Technology (MoIAT) conformity schemes; BS 4449 reinforcing steel (BSI); Emirates Steel Arkan. Could not be verified: Which ready-mix and block producers currently hold Dubai Municipality approval, current quarry output, and import shares for rebar were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What block sizes are standard in the UAE and what does an 8 inch block mean?",
+      "q_ar": "ما مقاسات الطابوق المعتادة في الإمارات وماذا يعني طابوق 8 إنش؟",
+      "expected_entry_ids": [
+        "building_materials:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Which ready-mix and block producers currently hold Dubai Municipality approval, current quarry output, and import shares for rebar were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

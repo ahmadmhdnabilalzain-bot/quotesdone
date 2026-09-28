@@ -1,0 +1,7 @@
+Not loaded. knowledge/packs/<trade>.market.json for 103 trades (construction_building, mep_building_systems,
+energy_environment, industrial_manufacturing, materials_packaging; 309 entries, each English + Arabic) reach
+production only when `node scripts/kb/load_verified_packs.mjs --apply` runs after merge.
+Founder ledger 899, 900, 903. Every entry names its primary sources; none was fetched live when written, and each
+file's verified.unverified says what could not be verified. Confidence is medium throughout for that reason.
+After the load, run `node scripts/eval/knowledge_pack_eval.mjs` and confirm every .market pack is at or above FLOOR.
+Delete this note in the commit that records the load.

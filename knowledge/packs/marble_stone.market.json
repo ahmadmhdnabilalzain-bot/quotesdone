@@ -1,0 +1,74 @@
+{
+  "trade": "marble_stone",
+  "layer": "uae-market",
+  "label_en": "Marble, granite & natural stone",
+  "label_ar": "الرخام والجرانيت والحجر الطبيعي",
+  "entries": [
+    {
+      "id": "marble_stone:uae-market-products",
+      "topic": "Marble, granite & natural stone: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Natural stone sold in the UAE: marbles (Carrara, Calacatta, Statuario, Botticino, Crema Marfil, Emperador, Greek Thassos and Volakas, Turkish Afyon, Omani and Iranian marbles), granites (Absolute Black, Tan Brown, Black Galaxy, Kashmir White, Chinese G603/G654), limestones (Jerusalem stone, Egyptian Galala and Sinai Pearl, Portuguese Moleanos, Omani stone), travertine, sandstone, onyx, slate, and engineered stone (quartz surfaces, sintered stone/porcelain slabs). Finishes: polished, honed, brushed, leathered, flamed, bush-hammered, sandblasted. Uses: flooring, wall cladding (dry-fixed with stainless steel anchors on façades), countertops, stairs, pool copings. Specs: stone name and origin, grade/selection, thickness, finish, water absorption and flexural strength (EN 1469/EN 12058), and sealing.",
+      "body_ar": "الحجر الطبيعي المباع في الإمارات: الرخام (كرارا، كالاكاتا، ستاتواريو، بوتيتشينو، كريما مارفيل، إمبرادور، ثاسوس وفولاكاس اليوناني، أفيون التركي، الرخام العُماني والإيراني)، والجرانيت (أبسولوت بلاك، تان براون، بلاك جالاكسي، كشمير وايت، الصيني G603/G654)، والحجر الجيري (حجر القدس، الجلالة وسيناء بيرل المصري، موليانوس البرتغالي، الحجر العُماني)، والترافرتين، والحجر الرملي، والأونيكس، والأردواز، والحجر الهندسي (أسطح الكوارتز، والحجر الملبّد/ألواح البورسلان). التشطيبات: مصقول، مطفي، مفرّش، جلدي، محروق باللهب، مطروق، مرمل. الاستخدامات: الأرضيات، وتكسية الجدران (تثبيت جاف بمراسي فولاذ مقاوم للصدأ على الواجهات)، وأسطح العمل، والسلالم، وحواف المسابح. المواصفات: اسم الحجر ومنشؤه، والدرجة/الانتقاء، والسماكة، والتشطيب، وامتصاص الماء ومقاومة الانحناء (EN 1469/EN 12058)، والعزل.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.cosentino.com",
+        "https://www.caesarstone.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 1469 / EN 12058 natural stone (CEN); Cosentino; Caesarstone. Could not be verified: Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified."
+    },
+    {
+      "id": "marble_stone:uae-market-brands",
+      "topic": "Marble, granite & natural stone: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Stone is imported as blocks and slabs from Italy, Spain, Turkey, Greece, India, China, Egypt, Iran, Oman, Portugal and Brazil, and processed in UAE factories in Sharjah, Ajman, Ras Al Khaimah, Al Quoz and Jebel Ali. Trading is concentrated in Sharjah Industrial Area and Ras Al Khaimah. Quartz brands: Caesarstone, Silestone (Cosentino), Compac, Technistone, and many Chinese and Indian quartz makers; sintered stone: Dekton (Cosentino), Neolith, Laminam, Lapitec. Omani and RAK quarries supply local limestone and aggregates.",
+      "body_ar": "يُستورد الحجر كتلاً وألواحاً من إيطاليا وإسبانيا وتركيا واليونان والهند والصين ومصر وإيران وعُمان والبرتغال والبرازيل، ويُعالج في مصانع إماراتية في الشارقة وعجمان ورأس الخيمة والقوز وجبل علي. وتتركز التجارة في المنطقة الصناعية بالشارقة ورأس الخيمة. علامات الكوارتز: Caesarstone وSilestone (Cosentino) وCompac وTechnistone ومصنّعون صينيون وهنود كثيرون؛ والحجر الملبّد: Dekton (Cosentino) وNeolith وLaminam وLapitec. وتوفر محاجر عُمان ورأس الخيمة الحجر الجيري المحلي والركام.",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.cosentino.com",
+        "https://www.caesarstone.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 1469 / EN 12058 natural stone (CEN); Cosentino; Caesarstone. Could not be verified: Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified."
+    },
+    {
+      "id": "marble_stone:uae-market-sizes",
+      "topic": "Marble, granite & natural stone: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Slabs are sold per m2 (typical slab about 2.8-3.2 x 1.6-2.0 m, 18-20 mm or 30 mm thick); tiles cut-to-size 600 x 600, 600 x 300, 800 x 800 mm, 20 mm thick; façade cladding 30-40 mm. Countertops per linear metre (600 mm deep) or per m2 with edge profiles and cut-outs as extras. Installed flooring per m2 including polishing and sealing; stairs per step (tread and riser). Price depends heavily on selection grade (first choice, commercial) and vein-matching (bookmatch) requirements.",
+      "body_ar": "تُباع الألواح بالمتر المربع (اللوح النموذجي نحو 2.8-3.2 × 1.6-2.0 م، بسماكة 18-20 مم أو 30 مم)؛ والبلاط المقطوع حسب المقاس 600 × 600 و600 × 300 و800 × 800 مم بسماكة 20 مم؛ وتكسية الواجهات 30-40 مم. وأسطح العمل بالمتر الطولي (عمق 600 مم) أو بالمتر المربع مع إضافات لتشكيل الحواف والفتحات. والأرضيات المركبة بالمتر المربع شاملة الجلي والعزل؛ والسلالم بالدرجة (النائمة والقائمة). ويعتمد السعر كثيراً على درجة الانتقاء (الفرز الأول، التجاري) ومتطلبات مطابقة العروق (بوك ماتش).",
+      "sources": [
+        "https://www.cencenelec.eu",
+        "https://www.cosentino.com",
+        "https://www.caesarstone.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: EN 1469 / EN 12058 natural stone (CEN); Cosentino; Caesarstone. Could not be verified: Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between quartz and sintered stone for a countertop?",
+      "q_ar": "ما الفرق بين الكوارتز والحجر الملبّد لسطح عمل المطبخ؟",
+      "expected_entry_ids": [
+        "marble_stone:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Current quarry availability of specific named stones and the share of each origin in UAE imports were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "trade": "luxury_rigid_boxes",
+  "layer": "uae-market",
+  "label_en": "Luxury & gift boxes",
+  "label_ar": "علب الهدايا والتغليف الفاخر",
+  "entries": [
+    {
+      "id": "luxury_rigid_boxes:uae-market-products",
+      "topic": "Luxury & gift boxes: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Luxury and gift boxes in the UAE: rigid set-up boxes (greyboard 1.5-3 mm wrapped in art paper, specialty paper, leatherette or fabric) in lid-and-base, magnetic closure, book-style, drawer/slide, shoulder-and-neck and collapsible designs; inserts (EVA foam, velvet-flocked, card, moulded pulp); perfume and oud boxes (a large local niche), jewellery and watch boxes, corporate gift boxes, Ramadan and Eid hampers packaging, chocolate-style boxes for non-food gifts, wooden and leather presentation boxes, and luxury shopping bags. Finishes: hot foil stamping (gold/silver), embossing/debossing, spot UV, soft-touch lamination, magnets, ribbons. Buyers specify dimensions, board thickness, wrap material, print (CMYK/Pantone), finishes, insert, and quantity.",
+      "body_ar": "العلب الفاخرة وعلب الهدايا في الإمارات: العلب الصلبة (كرتون رمادي 1.5-3 مم مغلف بورق فني أو ورق خاص أو جلد صناعي أو قماش) بتصاميم الغطاء والقاعدة والإغلاق المغناطيسي وشكل الكتاب والدرج المنزلق والكتف والعنق والقابلة للطي؛ والحشوات (فوم EVA، ومخملية، وكرتونية، ولب مقولب)؛ وعلب العطور والعود (تخصص محلي كبير)، وعلب المجوهرات والساعات، وعلب هدايا الشركات، وتغليف سلال رمضان والعيد، والعلب الخشبية والجلدية للتقديم، وأكياس التسوق الفاخرة. التشطيبات: الختم بالرقائق الساخنة (ذهبي/فضي)، والنقش البارز والغائر، والورنيش الموضعي، والتصفيح الناعم، والمغناطيس، والأشرطة. يحدد المشتري الأبعاد وسماكة الكرتون ومادة التغليف والطباعة والتشطيبات والحشوة والكمية.",
+      "sources": [
+        "https://www.ecma.org",
+        "https://www.fedrigoni.com",
+        "https://www.dubaichamber.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: FEFCO/ECMA packaging codes (ECMA); Fedrigoni; Dubai Chamber (member directory). Could not be verified: Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured."
+    },
+    {
+      "id": "luxury_rigid_boxes:uae-market-brands",
+      "topic": "Luxury & gift boxes: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Local makers in Sharjah, Ajman, Dubai (Al Quoz, Ras Al Khor, DIP) and Umm Al Quwain produce short to medium runs; large volumes are often made in China (Guangdong, Shenzhen) and India, with some from Turkey. Specialty papers: Fedrigoni, GMUND, Arjowiggins-type. UAE perfume houses are key buyers. Origins: UAE, China, India, Turkey.",
+      "body_ar": "ينتج مصنّعون محليون في الشارقة وعجمان ودبي (القوز ورأس الخور ومجمع دبي للاستثمار) وأم القيوين الكميات القصيرة والمتوسطة؛ وكثيراً ما تُصنع الكميات الكبيرة في الصين (قوانغدونغ وشنتشن) والهند، وبعضها من تركيا. الأوراق الخاصة: Fedrigoni وGMUND. ودور العطور الإماراتية مشترون رئيسيون. المنشأ: الإمارات، الصين، الهند، تركيا.",
+      "sources": [
+        "https://www.ecma.org",
+        "https://www.fedrigoni.com",
+        "https://www.dubaichamber.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: FEFCO/ECMA packaging codes (ECMA); Fedrigoni; Dubai Chamber (member directory). Could not be verified: Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured."
+    },
+    {
+      "id": "luxury_rigid_boxes:uae-market-sizes",
+      "topic": "Luxury & gift boxes: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per box by size and specification with quantity breaks; MOQ locally often 300-1,000, overseas 1,000-3,000+; one-off costs for foil blocks, dies and samples. Lead time locally 2-4 weeks; imports 5-8 weeks plus shipping. Quotes should include a physical or digital sample approval step.",
+      "body_ar": "تُسعّر بالعلبة حسب المقاس والمواصفات مع شرائح الكمية؛ والحد الأدنى محلياً غالباً 300-1,000، وفي الخارج 1,000-3,000 فأكثر؛ وتكاليف لمرة واحدة لقوالب الختم والقص والعينات. ومدة التنفيذ محلياً 2-4 أسابيع؛ والمستورد 5-8 أسابيع مع الشحن. ويجب أن تتضمن العروض خطوة اعتماد عينة فعلية أو رقمية.",
+      "sources": [
+        "https://www.ecma.org",
+        "https://www.fedrigoni.com",
+        "https://www.dubaichamber.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: FEFCO/ECMA packaging codes (ECMA); Fedrigoni; Dubai Chamber (member directory). Could not be verified: Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the usual minimum order for custom perfume gift boxes?",
+      "q_ar": "ما الحد الأدنى المعتاد لطلب علب هدايا عطور بتصميم خاص؟",
+      "expected_entry_ids": [
+        "luxury_rigid_boxes:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Names and capacities of local rigid-box makers were not verified; MOQs are typical market ranges, not measured.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

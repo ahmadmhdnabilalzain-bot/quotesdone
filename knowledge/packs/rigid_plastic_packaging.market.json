@@ -1,0 +1,74 @@
+{
+  "trade": "rigid_plastic_packaging",
+  "layer": "uae-market",
+  "label_en": "Rigid plastic containers",
+  "label_ar": "العبوات البلاستيكية الصلبة",
+  "entries": [
+    {
+      "id": "rigid_plastic_packaging:uae-market-products",
+      "topic": "Rigid plastic containers: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Rigid plastic containers in the UAE (non-food uses): HDPE jerry cans (1-30 L, UN-rated for chemicals), pails and buckets (1-25 L, for paints, adhesives, lubricants), HDPE and PET bottles for detergents, household chemicals, cosmetics and personal care, PP jars, closures and caps (flip-top, disc-top, trigger sprayers, pumps, child-resistant), IBCs (1,000 L), drums (HDPE 120-220 L open/tight head), crates and boxes, and preforms. Processes: extrusion blow moulding (EBM), injection moulding, injection stretch blow moulding (ISBM). Buyers specify capacity, weight (g), neck finish (e.g. 28/410, 38 mm), material and colour, UN rating for dangerous goods, barrier (co-ex for solvents), and decoration (in-mould labels, screen print).",
+      "body_ar": "الحاويات البلاستيكية الصلبة في الإمارات (الاستخدامات غير الغذائية): جراكن HDPE (1-30 لتراً، معتمدة من الأمم المتحدة للكيماويات)، والدلاء (1-25 لتراً للدهانات واللواصق والزيوت)، وزجاجات HDPE وPET للمنظفات والكيماويات المنزلية ومستحضرات التجميل والعناية الشخصية، وبرطمانات PP، والأغطية (القلابة والقرصية والرشاشات الزنادية والمضخات والمقاومة للأطفال)، والحاويات الوسيطة (1,000 لتر)، والبراميل (HDPE من 120 إلى 220 لتراً مفتوحة/مغلقة)، والصناديق، والأشكال الأولية. العمليات: القولبة بالنفخ بالبثق، والحقن، والنفخ بالحقن والشد. يحدد المشتري السعة والوزن (غ) وتشطيب العنق (مثل 28/410 و38 مم) والمادة واللون وتصنيف الأمم المتحدة للبضائع الخطرة والعزل (متعدد الطبقات للمذيبات) والزخرفة (ملصقات داخل القالب وطباعة حريرية).",
+      "sources": [
+        "https://unece.org",
+        "https://www.cosmoplast.com",
+        "https://www.aptar.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+    },
+    {
+      "id": "rigid_plastic_packaging:uae-market-brands",
+      "topic": "Rigid plastic containers: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Local producers: Cosmoplast, Emirates Industry for Plastic-type makers, Napco, Interplast (Harwal), Al Bayader, Precision Plastic Products, and many blow-moulders in Sharjah, Ajman, UAQ, RAK and Jebel Ali; closures from Aptar, Silgan, Berry and local moulders; IBCs from Schütz, Mauser, Greif. Resin from Borouge and SABIC. Origins: UAE, GCC, India, China.",
+      "body_ar": "المنتجون المحليون: كوزموبلاست ونابكو وإنتربلاست (هروال) والبيادر ومنتجات البلاستيك الدقيقة، وكثير من مصانع القولبة بالنفخ في الشارقة وعجمان وأم القيوين ورأس الخيمة وجبل علي؛ والأغطية من Aptar وSilgan وBerry ومصانع محلية؛ والحاويات الوسيطة من Schütz وMauser وGreif. والراتنج من بروج وسابك. المنشأ: الإمارات، الخليج، الهند، الصين.",
+      "sources": [
+        "https://unece.org",
+        "https://www.cosmoplast.com",
+        "https://www.aptar.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+    },
+    {
+      "id": "rigid_plastic_packaging:uae-market-sizes",
+      "topic": "Rigid plastic containers: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per piece at quantity breaks (MOQ for stock items per carton/pallet; custom colours often 5,000-10,000 pcs; new moulds are a one-off cost with 6-10 weeks lead time). Jerry cans 1, 4, 5, 10, 20, 25 L; pails 1-20 L. Quotes state weight in grams, neck, colour, UN mark and packing (bulk bags or cartons per pallet).",
+      "body_ar": "التسعير بالقطعة حسب شرائح الكمية (الحد الأدنى للمتوفر بالكرتونة/المنصة؛ والألوان الخاصة غالباً 5,000-10,000 قطعة؛ والقوالب الجديدة تكلفة لمرة واحدة ومدة 6-10 أسابيع). الجراكن 1 و4 و5 و10 و20 و25 لتراً؛ والدلاء 1-20 لتراً. وتذكر العروض الوزن بالغرام والعنق واللون وعلامة الأمم المتحدة والتعبئة (أكياس سائبة أو كراتين لكل منصة).",
+      "sources": [
+        "https://unece.org",
+        "https://www.cosmoplast.com",
+        "https://www.aptar.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Primary sources named, not fetched in this session: UN packaging performance tests (UNECE); Cosmoplast; Aptar. Could not be verified: Names of several local blow-moulders were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the minimum order for jerry cans in a custom colour?",
+      "q_ar": "ما الحد الأدنى لطلب جراكن بلون خاص؟",
+      "expected_entry_ids": [
+        "rigid_plastic_packaging:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "compiled from named primary sources (standards bodies, UAE authorities, manufacturer and distributor publications); no source was fetched live in this session",
+    "fetched_live": 0,
+    "unverified": "Names of several local blow-moulders were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
