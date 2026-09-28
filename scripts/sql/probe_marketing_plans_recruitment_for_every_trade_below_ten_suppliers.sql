@@ -2,7 +2,9 @@
 -- Pure probe, no DDL. It RUNS the duty (writes plan rows), reads the queue's dry run, and always ends in
 -- raise exception 'CHK<<...>>', so the transaction rolls back and nothing it wrote survives.
 -- Read with: node scripts/qsql.mjs scripts/sql/probe_marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql
--- Before merge it is run appended to the migration in one aborted transaction (see the PR).
+-- Covers both seats' files: the marketing plans and the sales engineer's queue
+-- (the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql). Before merge it is run appended to
+-- both in one aborted transaction (see the PR).
 do $probe$
 declare
   v_brakes_before jsonb := (select jsonb_object_agg(key, value) from public.app_secrets
@@ -51,13 +53,13 @@ begin
   select count(*),
          count(*) filter (where tier <= 1),
          count(*) filter (where tier < ptier or (tier = 1 and ptier = 1 and prank < pprank)),
-         count(*) filter (where tier = 1 and lang = 'en' and subject is distinct from invite_subject),
-         count(*) filter (where lang = 'en' and (subject ~ '[؀-ۿ]'))
+         count(*) filter (where tier = 1 and subject is distinct from invite_subject),
+         count(*) filter (where lang is distinct from 'en' or subject ~ '[؀-ۿ]' or body ~ '[؀-ۿ]' or body !~ '/en/portal[?]t=')
     into v_n, v_planned, v_order_breaks, v_variant_miss, v_arabic_variant
     from t;
   if v_order_breaks > 0 then v_fail := v_fail || format('%s queue positions out of tier/plan order', v_order_breaks); end if;
-  if v_variant_miss > 0 then v_fail := v_fail || format('%s English planned invitations without the trade variant', v_variant_miss); end if;
-  if v_arabic_variant > 0 then v_fail := v_fail || format('%s English invitations with Arabic subject', v_arabic_variant); end if;
+  if v_variant_miss > 0 then v_fail := v_fail || format('%s planned invitations without the trade variant', v_variant_miss); end if;
+  if v_arabic_variant > 0 then v_fail := v_fail || format('%s invitations not wholly English (lang, Arabic text or a non-/en link)', v_arabic_variant); end if;
 
   -- the brakes: nothing sent, no go switch or cap moved
   if (select jsonb_object_agg(key, value) from public.app_secrets where key in ('invite_enabled', 'supplier_outreach_golive', 'invite_daily_cap'))
