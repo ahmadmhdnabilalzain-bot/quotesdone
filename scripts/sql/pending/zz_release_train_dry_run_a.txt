@@ -1,0 +1,1 @@
+ZZ DEMO fixture; applies after zz_release_train_dry_run_b.sql. Never applied: the PR is closed unmerged.
