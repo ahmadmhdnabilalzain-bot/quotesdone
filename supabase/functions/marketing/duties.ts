@@ -25,7 +25,7 @@ import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts'
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { defaultDeps, think } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
-import { modelCitation, parseDuckResults, parseRss, webCitation } from '../_shared/marketing_trends.ts';
+import { duckSearch, modelCitation, parseRss, webCitation } from '../_shared/marketing_trends.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Admin = any;
@@ -448,12 +448,10 @@ export const geoAudit: Duty = {
     for (const q of rows) {
       let rec: { cited: boolean; rank: number | null; evidence: string | null; model: string | null };
       if (q.engine === 'web') {
-        const r = await timedFetch('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q.question),
-          { headers: { 'User-Agent': 'QuotesDone-marketing-geo/1.0 (+https://www.quotesdone.ae)' } }, 12_000);
-        if (!r.ok) throw new Error('web search HTTP ' + r.status);
-        const results = parseDuckResults(await r.text());
         // No results is a blocked or changed page, not "we are not cited": nothing is recorded, and it is a finding.
-        if (!results.length) throw new Error('web search returned no results for GEO question ' + q.question_id + ' (blocked or page changed)');
+        let results;
+        try { results = await duckSearch(q.question, (u, i) => timedFetch(u, i, 12_000)); }
+        catch (e) { throw new Error((e as Error).message + ' for GEO question ' + q.question_id); }
         rec = { ...webCitation(results), model: null };
       } else {
 
