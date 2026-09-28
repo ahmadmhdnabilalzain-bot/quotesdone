@@ -32,6 +32,11 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  # statusCheckRollup reads check runs and commit statuses; without these gh pr list fails with
+  # "Resource not accessible by integration" and the train releases nothing (29 Sep 2026).
+  checks: read
+  statuses: read
+  actions: read
 
 jobs:
   release:
