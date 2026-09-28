@@ -3,8 +3,11 @@
 //
 // Founder, 14 Sep 2026 (founder_instruction #193): "are you making sure things are aligned in terms of
 // the language. so if someone registered while the language was arabic then arabic follows through the
-// whole workflow till the reveal. and if english then all english." The supplier follows the same rule
-// with the supplier's own registered language; a customer and a supplier on one request can differ.
+// whole workflow till the reveal. and if english then all english."
+// SUPERSEDED FOR SUPPLIERS on 28 Sep 2026: every message to a supplier is English, whatever leads.locale
+// says, so fn_registered_locale answers 'en' for a supplier and the walk's "Arabic supplier" now expects
+// English (scripts/checks/suppliers_are_always_written_in_english.test.mjs holds that rule). A customer
+// is written in the language they chose when they created the inquiry (inquiries.lang).
 //
 // Three parts, and the check fails if any one of them does:
 //   1. THE WALK (production, one aborted transaction). An Arabic-registered and an English-registered
