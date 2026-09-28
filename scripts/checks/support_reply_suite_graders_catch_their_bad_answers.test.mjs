@@ -41,3 +41,16 @@ test('every scenario is composed by supportReply (stubbed model), routed to its 
   const bad = rows.filter((r) => r.path !== 'reasoned' || r.canned || !Object.values(r.grades).every((v) => v === true));
   assert.deepEqual(bad, []);
 });
+
+// 781: a SHORT refusal of an injection is composed (never the canned fallback) when the model marks it declined, and the
+// same refusal without that mark is still refused as evasive, so the exemption cannot swallow real evasions.
+test('a short, polite refusal of a prompt injection is accepted as the reply; unmarked it is still refused', async () => {
+  const { runStub } = await import('../eval/support_reply_suite.mjs');
+  const rows = (await runStub()).filter((r) => r.id.startsWith('inject_admin.en'));
+  assert.ok(rows.length && rows.every((r) => r.path === 'reasoned' && !r.canned), JSON.stringify(rows));
+  const { refuse } = await import('../../supabase/functions/_shared/think.ts');
+  const d = { answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [] };
+  const o = { missing: [], sourceIds: new Set(), conversationText: '', requireTrail: true };
+  assert.equal(refuse({ ...d, declined: 'injection' }, o), null);
+  assert.match(String(refuse(d, o)), /defers or declines/);
+});
