@@ -1,7 +1,7 @@
 // The customer's Messages -> e-mail channel must never show back-office mail. Pure function, no
 // permissions: `deno test supabase/functions/_shared/customer_mail.test.ts`.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { isCustomerCorrespondence, isInternalMailbox } from './customer_mail.ts';
+import { composeMailReply, isCustomerCorrespondence, isInternalMailbox, noAutoReply } from './customer_mail.ts';
 
 Deno.test('the GoDaddy expense forward seen live on 14 Sep 2026 is excluded', () => {
   // The exact shape accountant/index.ts writes for a booked historical-sweep receipt.
@@ -36,4 +36,38 @@ Deno.test('a normal customer message is kept', () => {
     to_email: 'info@mail.quotesdone.com', owner_role: null,
     body: 'Hi, I posted a kitchen fit-out request yesterday — when will I see quotes?',
   }), true);
+});
+
+// ── the automatic reply (28 Sep 2026, customer_support) ─────────────────────────────────────────────
+const FOUNDER = ['management@quotesdone.com', 'owner@example.invalid'];
+const cust = (o: Record<string, unknown> = {}) => ({ from_email: 'zz-demo-customer@example.invalid', to_email: 'info@mail.quotesdone.com', body: 'Hello', ...o });
+
+Deno.test('a customer writing to info@ is answered', () => {
+  assertEquals(noAutoReply(cust(), FOUNDER), null);
+  assertEquals(noAutoReply(cust({ raw: { auto_submitted: 'no' } }), FOUNDER), null);
+});
+
+Deno.test('the four classes the founder named are never answered', () => {
+  assertEquals(noAutoReply(cust({ from_email: 'Owner@Example.invalid' }), FOUNDER), 'founder');
+  assertEquals(noAutoReply(cust({ from_email: 'management@quotesdone.com' }), FOUNDER), 'founder');
+  assertEquals(noAutoReply(cust({ from_email: 'security-noreply@linkedin.com' }), FOUNDER), 'no_reply'); // inbound 159, 23 Sep
+  assertEquals(noAutoReply(cust({ from_email: 'no-reply@accounts.google.com' }), FOUNDER), 'no_reply');
+  assertEquals(noAutoReply(cust({ from_email: 'verify@example.invalid' }), FOUNDER), 'no_reply');
+  assertEquals(noAutoReply(cust({ from_email: 'MAILER-DAEMON@amazonses.com' }), FOUNDER), 'bounce');
+  assertEquals(noAutoReply(cust({ raw: { content_type: 'multipart/report; report-type=delivery-status' } }), FOUNDER), 'bounce');
+  assertEquals(noAutoReply(cust({ raw: { calendar: true } }), FOUNDER), 'calendar');
+  assertEquals(noAutoReply(cust({ to_email: 'calendar+b3a7@mail.quotesdone.com' }), FOUNDER), 'calendar');
+  assertEquals(noAutoReply(cust({ raw: { auto_submitted: 'auto-replied' } }), FOUNDER), 'auto_submitted');
+  assertEquals(noAutoReply(cust({ to_email: 'expenses@mail.quotesdone.com' }), FOUNDER), 'internal');
+  assertEquals(noAutoReply(cust({ from_email: 'x@mail.quotesdone.com' }), FOUNDER), 'internal');
+  assertEquals(noAutoReply(cust({ from_email: '' }), FOUNDER), 'no_reply');
+});
+
+Deno.test('the reply carries the answer, else a passage, else an honest receipt, in the asker\'s language', () => {
+  const a = composeMailReply({ lang: 'en', answer: 'You pay 3% only when you reveal.' });
+  assertEquals(a.includes('You pay 3% only when you reveal.') && a.endsWith('The QuotesDone Team'), true);
+  assertEquals(composeMailReply({ lang: 'en', passage: 'PASSAGE' }).includes('PASSAGE'), true);
+  assertEquals(composeMailReply({ lang: 'en' }).includes('same thread'), true);
+  assertEquals(composeMailReply({ lang: 'ar' }).startsWith('مرحباً'), true);
+  assertEquals(composeMailReply({ lang: 'en', person: true, answer: 'x' }).includes('member of our team'), true);
 });
