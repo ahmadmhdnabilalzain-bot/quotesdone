@@ -21,8 +21,8 @@
 // compressed RTF (10090102) yields no body; an attached .msg (embedded storage, 3701000D) is not read;
 // in a .doc an EMPTY table cell reads as a row end, because the row-end mark is told apart from a cell
 // mark only by paragraph properties this reader does not parse.
-// @deno-types="../vendor/sheetjs-0.20.3/types/index.d.ts"
-import { CFB } from '../vendor/sheetjs-0.20.3/xlsx.mjs';
+// SheetJS's CFB reader is loaded on the first OLE2 file, not at boot — see ../vendor/xlsx_lazy.ts.
+import { loadXlsx } from '../vendor/xlsx_lazy.ts';
 import { capText, empty, LIMITS, ok, refuse, type Cell, type ReadContext, type ReadResult } from './types.ts';
 import { attacher, stripHtml } from './email.ts';
 
@@ -31,7 +31,8 @@ const dec16 = new TextDecoder('utf-16le');
 const dec1252 = new TextDecoder('windows-1252');
 
 /** Every stream and storage keyed by its lowercased path below the root ('worddocument', 'macros/'). */
-function openOle(bytes: Uint8Array): Map<string, Uint8Array> | null {
+async function openOle(bytes: Uint8Array): Promise<Map<string, Uint8Array> | null> {
+  const { CFB } = await loadXlsx();
   let c: { FullPaths: string[]; FileIndex: Entry[] };
   try { c = CFB.read(bytes, { type: 'array' }); } catch { return null; }
   if (!c?.FullPaths?.length) return null;
@@ -110,7 +111,7 @@ function printableRuns(wd: Uint8Array): string {
 }
 
 export async function readDoc(bytes: Uint8Array, _ctx: ReadContext): Promise<ReadResult> {
-  const ole = openOle(bytes);
+  const ole = await openOle(bytes);
   if (!ole) return refuse('unreadable_file', 'not an OLE2 compound file');
   const wd = ole.get('worddocument');
   if (!wd || wd.length < 0x1AA) return refuse('unreadable_file', 'no Word 97-2003 WordDocument stream');
@@ -133,7 +134,7 @@ export async function readDoc(bytes: Uint8Array, _ctx: ReadContext): Promise<Rea
 }
 
 export async function readMsg(bytes: Uint8Array, ctx: ReadContext): Promise<ReadResult> {
-  const ole = openOle(bytes);
+  const ole = await openOle(bytes);
   if (!ole) return refuse('unreadable_file', 'not an OLE2 compound file');
   if (![...ole.keys()].some((k) => k.startsWith('__substg1.0_'))) return refuse('unreadable_file', 'no Outlook message properties');
   const str = (dir: string, id: string): string => {
