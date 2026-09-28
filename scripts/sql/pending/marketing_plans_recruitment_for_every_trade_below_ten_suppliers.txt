@@ -2,7 +2,6 @@ Committed, NOT applied: founder instruction 1013 item 3 says do not apply before
 
 What would move it: the PR is merged. Then apply it (node scripts/apply_sql.mjs
 scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql --apply --ddl), not in a campaign
-hour, delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit (it redefines
-fn_supplier_invite_candidates, so it must sit below
-the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql), then read
-probe_marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, whose CHK<<...>> must say PROBE OK.
+hour, delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit. It must be
+applied BEFORE the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql (sales_engineer), which
+reads its table; the probe is read after both.

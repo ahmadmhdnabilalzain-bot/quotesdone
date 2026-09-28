@@ -4,8 +4,7 @@
 -- gather, each source with a URL checked by a real lookup), an ENGLISH-only invitation variant tailored to the
 -- trade, the category's uninvited leads queued first, and the categories ranked by gap size and customer demand.
 -- Organic only; the invitation brakes, daily cap and the founder's go switch all still apply; no LLM in selection.
--- Needs the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql (public.supply_gap) and
--- the_daily_supplier_list_goes_only_before_a_sending_day_and_a_company_is_invited_once.sql (the queue redefined below).
+-- Needs the_sales_engineer_owns_onboarding_performance_and_supply_gaps.sql (public.supply_gap).
 --
 -- WHAT WAS MEASURED (production, 29 Sep 2026): 217 supply_gap rows below target and not closed (matchable < target,
 -- target 10 everywhere): 8 'recruit', the rest 'open'/'deciding'. Only the 'recruit' rows moved a lead up the queue;
@@ -19,12 +18,11 @@
 --   fn_marketing_gap_recruitment_plans()  the daily duty marketing.gap_recruitment_plans: rebuilds the plans from
 --                                         supply_gap by fixed rules (no model), drops plans whose gap closed, and
 --                                         returns the report the seat reads (top of the ranking, sources, pools).
---   fn_supplier_invite_candidates         one more ordering tier: after the sales engineer's 'recruit' leads, the
---                                         leads of every planned trade, in plan rank order; an English invitation to
---                                         such a lead uses its trade's variant. Nothing else changes: eligibility,
---                                         one-company-once, the daily cap (enqueue_supplier_invites), invite_enabled
---                                         and supplier_outreach_golive are untouched and still decide whether anything
---                                         is sent at all.
+--
+-- THE QUEUE IS NOT MARKETING'S (instr 625 stands): the invitation order belongs to the sales engineer. Its routine,
+-- fn_supplier_invite_candidates, reads this plan table as an input in
+-- the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql (seat sales_engineer). This file
+-- produces the ranking, the sources and the English variants only.
 --
 -- WHAT THIS DOES NOT DO: send anything, buy anything (no paid channel is a source kind), write Arabic copy, or read
 -- any lead's words to choose it (trade codes compared by equality, as before).
@@ -181,7 +179,7 @@ grant execute on function public.fn_marketing_gap_recruitment_report() to servic
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('marketing.gap_recruitment_plans', 'marketing', interval '1 day', 'fn_marketing_gap_recruitment_plans',
-   'A recruitment plan per trade below ten suppliers: ranked by gap and customer demand, the checked places its suppliers gather, and an English invitation variant; its leads queue right after the sales engineer''s recruit leads (instr 1013).',
+   'A recruitment plan per trade below ten suppliers: ranked by gap and customer demand, the checked places its suppliers gather, and an English invitation variant. The sales engineer''s invitation queue reads the ranking (instr 1013, instr 625).',
    'scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
@@ -276,125 +274,3 @@ insert into public.marketing_recruitment_source (scope, kind, name, url, http_st
   ('cleaning', 'association', 'MEFMA - Middle East Facilities Management Association', 'https://mefma.org/', 200, true, '2026-09-28T20:37:09Z', 'HTTP 200, title ''MEFMA - Middle East Facilities Management Association''')
 on conflict (scope, url) do update set kind = excluded.kind, name = excluded.name, http_status = excluded.http_status,
   verified = excluded.verified, checked_at = excluded.checked_at, evidence = excluded.evidence;
-
--- ── 4. the queue: planned trades first, their English variant (otherwise the_daily_supplier_list_... unchanged) ──
-create or replace function public.fn_supplier_invite_candidates(p_limit integer)
-returns table (lead_id bigint, to_email text, company_name text, lang text, subject text, body text)
-language plpgsql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare v_site text; v_target int;
-  v_subj text; v_body text; v_subj_ar text; v_body_ar text;
-begin
-  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from app_secrets where key = 'public_site_url';
-  v_site := coalesce(v_site, 'https://quotesdone.com');
-  select value into v_subj    from app_secrets where key = 'invite_subject';
-  select value into v_body    from app_secrets where key = 'invite_body';
-  select value into v_subj_ar from app_secrets where key = 'invite_subject_ar';
-  select value into v_body_ar from app_secrets where key = 'invite_body_ar';
-  -- A template without the link placeholder is the 62-invitations-with-no-way-in failure. Refuse.
-  if coalesce(v_body, '') not like '%{{link}}%' then
-    raise exception 'app_secrets.invite_body has no {{link}} placeholder: an invitation with no way in is refused';
-  end if;
-  v_target := coalesce((select nullif(value,'')::int from app_secrets where key='invite_target_per_category'),
-                       (select nullif(value,'')::int from app_secrets where key='invite_target_per_trade'), 10);
-
-  -- MATERIALIZED, 4 Aug 2026, and it is load-bearing (see enqueue_supplier_invites' history): both
-  -- CTEs are read from a correlated subquery and would otherwise be recomputed per candidate.
-  return query
-  with activated as materialized (
-    select ls.domain_slug, count(distinct l.id) ct
-    from leads l join lead_subcategory ls on ls.lead_id = l.id
-    where coalesce(l.claimed,false) = true
-    group by ls.domain_slug
-  ),
-  under as materialized (
-    select d.slug as domain_slug, coalesce(a.ct,0) as have
-    from catalog_domains d left join activated a on a.domain_slug = d.slug
-    where coalesce(a.ct,0) < v_target
-  ),
-  -- ONE COMPANY, ONE INVITATION (24 Sep 2026, marketing). A company is its email domain, unless the domain is
-  -- a shared mailbox provider (gmail, emirates.net.ae ...: measured as a domain carrying 3+ different company
-  -- names), where it is the address itself; and, independently, its normalised company name.
-  shared as materialized (
-    select split_part(lower(btrim(l.email)), '@', 2) as dom from leads l where coalesce(btrim(l.email), '') <> ''
-    group by 1 having count(distinct lower(regexp_replace(coalesce(l.company_name, ''), '[^[:alnum:]]', '', 'g'))) >= 3
-  ),
-  keyed as materialized (
-    select l.id,
-           case when s.dom is null then split_part(lower(btrim(l.email)), '@', 2) else lower(btrim(l.email)) end as dkey,
-           nullif(lower(regexp_replace(coalesce(l.company_name, ''), '[^[:alnum:]]', '', 'g')), '') as nkey,
-           (l.invite_status is not null or l.invited_at is not null or coalesce(l.claimed, false)) as touched
-    from leads l left join shared s on s.dom = split_part(lower(btrim(l.email)), '@', 2)
-    where coalesce(btrim(l.email), '') <> ''
-  ),
-  touched_d as materialized (select distinct dkey from keyed where touched),
-  touched_n as materialized (select distinct nkey from keyed where touched and nkey is not null),
-  -- instr 1013: marketing's plan per trade below ten suppliers (rank, English variant)
-  plans as materialized (select p.trade, p.emirate, p.rank, p.invite_subject, p.invite_body from public.marketing_gap_recruitment_plan p),
-  cand as (
-    select distinct on (lower(l.email)) l.id, l.email, l.company_name, l.claim_token, l.email_domain, l.email_verified,
-           l.invite_trades, l.emirate, k.dkey, k.nkey,
-           -- Arabic only where the lead's own locale says so AND the Arabic copy exists; otherwise
-           -- English, which is also what a04 assumes for an unregistered recipient.
-           case when (lower(coalesce(l.locale, '')) like 'ar%' or coalesce(l.company_name, '') ~ '[؀-ۿ]') and coalesce(v_body_ar, '') like '%{{link}}%'   -- the language from the name too (#916, the_supplier_invitation_reads_the_language_from_the_name_and_skips_a_suppressed_address.sql)
-                     and coalesce(v_subj_ar, '') <> '' then 'ar' else 'en' end as lang
-    from leads l join keyed k on k.id = l.id
-    where public.fn_supplier_invite_eligible(l)
-      -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
-      and not exists (select 1 from touched_d t where t.dkey = k.dkey)
-      and (k.nkey is null or not exists (select 1 from touched_n t where t.nkey = k.nkey))
-    order by lower(l.email), l.id
-  ),
-  prio as (
-    select c.id, c.email, c.company_name, c.claim_token, c.email_domain, c.lang, c.dkey, c.nkey,
-      -- 23 Sep 2026 (marketing.recruitment_funnel): a lead in a trade the sales engineer marked for recruitment
-      -- (public.supply_gap, status 'recruit') goes first. Trade codes compared for equality; no word is read.
-      -- 29 Sep 2026 (instr 1013): then a lead in any trade marketing planned (below ten suppliers), by plan rank.
-      case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))
-                          and (g.emirate = 'UAE' or g.emirate = c.emirate)) then 0
-           when pl.rank is not null then 1 else 2 end as target_rank,
-      coalesce(pl.rank, 2147483647) as plan_rank, pl.invite_subject as plan_subject, pl.invite_body as plan_body,
-      coalesce((select u.domain_slug from lead_subcategory ls join under u on u.domain_slug = ls.domain_slug
-                 where ls.lead_id = c.id order by u.have asc, ls.score desc limit 1), '~none') as pdomain,
-      case when c.email_verified in ('verified','true') then 0 else 1 end as unverified_rank,
-      case when split_part(lower(c.email),'@',1) in
-             ('info','sales','admin','contact','enquiry','enquiries','inquiry','office','mail',
-              'support','hello','marketing','general','accounts','reception','careers','hr')
-           then 1 else 0 end as role_rank
-    from cand c
-    left join lateral (select p.rank, p.invite_subject, p.invite_body from plans p
-                        where p.trade = any(coalesce(c.invite_trades, '{}'::text[])) and (p.emirate = 'UAE' or p.emirate = c.emirate)
-                        order by p.rank limit 1) pl on true
-  ),
-  elig as (
-    select r.id, r.email, r.company_name, r.claim_token, r.lang, r.plan_subject, r.plan_body from (
-      select p.*,
-        case when p.pdomain='~none' then 1 else 0 end as is_none,
-        row_number() over (partition by p.pdomain order by p.unverified_rank, p.role_rank, p.id) as rk,
-        row_number() over (partition by coalesce(p.email_domain, split_part(p.email,'@',2)) order by p.unverified_rank, p.role_rank, p.id) as domain_rk,
-        -- the best contact per company: a verified, named mailbox before info@/sales@ (a role address goes only
-        -- when it is the company's only one). ponytail: a lead that wins one key and loses the other waits a day.
-        row_number() over (partition by p.dkey order by p.unverified_rank, p.role_rank, p.id) as company_rk,
-        row_number() over (partition by coalesce(p.nkey, p.email) order by p.unverified_rank, p.role_rank, p.id) as name_rk
-      from prio p
-    ) r
-    where r.domain_rk <= 5 and r.company_rk = 1 and r.name_rk = 1
-    order by r.target_rank, r.plan_rank, r.is_none, r.rk, r.unverified_rank, r.role_rank, r.pdomain
-    limit greatest(coalesce(p_limit, 0), 0)
-  )
-  select e.id, btrim(e.email), e.company_name, e.lang,
-         case when e.lang = 'ar' then v_subj_ar else coalesce(e.plan_subject, v_subj) end,
-         replace(
-           replace(case when e.lang = 'ar'
-                        then case when coalesce(btrim(e.company_name), '') = ''
-                                  then replace(v_body_ar, 'السادة/ {{company}} المحترمين،', 'السادة الكرام،')
-                                  else v_body_ar end
-                        else coalesce(e.plan_body, v_body) end,
-                   '{{company}}', coalesce(nullif(btrim(e.company_name),''), case when e.lang = 'ar' then 'الكرام' else 'there' end)),
-           '{{link}}', v_site || '/' || e.lang || '/portal?t=' || e.claim_token::text)
-  from elig e;
-end
-$fn$;
