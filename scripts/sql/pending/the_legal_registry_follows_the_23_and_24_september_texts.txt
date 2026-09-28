@@ -1,3 +1,0 @@
-Committed, not applied: applied at merge (seat ceo). Proved on htdblwldjkcgjvmqkbeh 29 Sep 2026 in one rolled-back
-transaction: verdict PROBE OK, and the registry read privacy 1.4 again afterwards. When applied: delete this note and
-append the file to the END of scripts/sql/MANIFEST.txt in the same commit.

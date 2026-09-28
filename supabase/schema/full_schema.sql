@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T22:37:40.452Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T22:39:13.175Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -30020,7 +30020,7 @@ begin
    where task_id = v_task;
   if v_hid is not null and exists (select 1 from public.agent_actions where id = v_hid and status = 'pending') then
     perform set_config('qd.handoff_closer', 'ceo', true);
-    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('verified_by', 'ceo', 'root_cause', v_choice, 'fields', v_f, 'held_id', p_id));
+    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('kind', 'ceo.root_cause', 'verified_by', 'ceo', 'root_cause', v_choice, 'fields', v_f, 'held_id', p_id));
     perform set_config('qd.handoff_closer', '', true);
   end if;
   -- the other side reads it on a model of another family: the CEO for a seat's answer, the accountant for the CEO's own
