@@ -1,0 +1,79 @@
+{
+  "trade": "lubricants_industrial_oils",
+  "entries": [
+    {
+      "id": "lubricants_industrial_oils:spec-checklist",
+      "topic": "Lubricants and industrial oils - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For lubricants and industrial oils (trade code lubricants_industrial_oils only), every quoted line must state: Product type and brand; Viscosity grade; Performance specification or OEM approval; Pack size; Technical and safety data sheets; Batch and shelf life; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط مواد التشحيم والزيوت الصناعية (رمز النشاط lubricants_industrial_oils فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المنتج والعلامة؛ درجة اللزوجة؛ مواصفة الأداء أو اعتماد المصنّع؛ حجم العبوة؛ صحائف البيانات الفنية والسلامة؛ الدفعة ومدة الصلاحية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Product type and brand",
+        "Viscosity grade",
+        "Performance specification or OEM approval",
+        "Pack size",
+        "Technical and safety data sheets",
+        "Batch and shelf life",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "lubricants_industrial_oils:uae-standards-and-approvals",
+      "topic": "Lubricants and industrial oils - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to lubricants and industrial oils in the UAE: MoIAT (Ministry of Industry and Advanced Technology, which took over the former ESMA functions) lists products conformity certificates, national conformity marks, efficiency labels, UAE RoHS and Halal certification among its services, and separates regulated from non-regulated products. EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. A buyer may also name, as the test or product standard for a line, ISO 3448 (industrial liquid lubricant viscosity classification); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for lubricants and industrial oils. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط مواد التشحيم والزيوت الصناعية في الإمارات: تدرج وزارة الصناعة والتكنولوجيا المتقدمة (التي تولت مهام هيئة الإمارات للمواصفات والمقاييس سابقاً) ضمن خدماتها شهادات مطابقة المنتجات، وعلامات المطابقة الوطنية، وملصقات الكفاءة، ونظام تقييد المواد الخطرة (UAE RoHS)، وشهادات الحلال، وتفرّق بين المنتجات الخاضعة للتنظيم وغير الخاضعة له. يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل ISO 3448 (تصنيف لزوجة زيوت التشحيم الصناعية)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط مواد التشحيم والزيوت الصناعية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for lubricants and industrial oils. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on lubricants and industrial oils?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـمواد التشحيم والزيوت الصناعية؟",
+      "expected_entry_ids": [
+        "lubricants_industrial_oils:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a lubricants and industrial oils supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد مواد التشحيم والزيوت الصناعية؟",
+      "expected_entry_ids": [
+        "lubricants_industrial_oils:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "lubricants_industrial_oils:spec-checklist",
+      "lubricants_industrial_oils:uae-standards-and-approvals"
+    ],
+    "added": [
+      "lubricants_industrial_oils:spec-checklist",
+      "lubricants_industrial_oils:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

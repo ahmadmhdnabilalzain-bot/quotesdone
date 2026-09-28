@@ -1,0 +1,77 @@
+{
+  "trade": "pallets_wood_plastic",
+  "entries": [
+    {
+      "id": "pallets_wood_plastic:spec-checklist",
+      "topic": "Pallets, wood and plastic - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For pallets, wood and plastic (trade code pallets_wood_plastic only), every quoted line must state: Pallet material; Dimensions and entry; Static and dynamic load; Racking load; Heat treatment for export; New or recycled; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط المنصات الخشبية والبلاستيكية (رمز النشاط pallets_wood_plastic فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: مادة المنصة؛ الأبعاد وجهات الدخول؛ الحمولة الثابتة والمتحركة؛ حمولة الرفوف؛ المعالجة الحرارية للتصدير؛ جديدة أو معاد تدويرها؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Pallet material",
+        "Dimensions and entry",
+        "Static and dynamic load",
+        "Racking load",
+        "Heat treatment for export",
+        "New or recycled",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.moccae.gov.ae/en/home.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "pallets_wood_plastic:uae-standards-and-approvals",
+      "topic": "Pallets, wood and plastic - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to pallets, wood and plastic in the UAE: MOCCAE (Ministry of Climate Change and Environment) is the federal environment ministry; its page could not be read on 2026-09-28, so its specific requirements for this trade are not established here. A buyer may also name, as the test or product standard for a line, ISPM 15 for wooden pallets in export; ISO 8611 (pallet test methods); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for pallets, wood and plastic. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط المنصات الخشبية والبلاستيكية في الإمارات: وزارة التغير المناخي والبيئة هي الوزارة الاتحادية المختصة بالبيئة؛ وتعذّرت قراءة صفحتها في 28 سبتمبر 2026، لذا لم تُثبت هنا متطلباتها المحددة لهذا النشاط. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل ISPM 15 للمنصات الخشبية في التصدير؛ ISO 8611 (طرق اختبار المنصات)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط المنصات الخشبية والبلاستيكية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for pallets, wood and plastic. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.moccae.gov.ae/en/home.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on pallets, wood and plastic?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالمنصات الخشبية والبلاستيكية؟",
+      "expected_entry_ids": [
+        "pallets_wood_plastic:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a pallets, wood and plastic supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد المنصات الخشبية والبلاستيكية؟",
+      "expected_entry_ids": [
+        "pallets_wood_plastic:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "pallets_wood_plastic:spec-checklist",
+      "pallets_wood_plastic:uae-standards-and-approvals"
+    ],
+    "added": [
+      "pallets_wood_plastic:spec-checklist",
+      "pallets_wood_plastic:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}
