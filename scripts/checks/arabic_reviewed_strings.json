@@ -809,6 +809,12 @@
   "fa4b51d2ade2",
   "fffb93cafbf1"
  ],
+ "scripts/sql/every_customer_is_asked_for_a_public_review_whatever_their_rating.sql": [
+  "1ddbe22a20cf",
+  "25831966a970",
+  "71425d07f632",
+  "735f3f9ff862"
+ ],
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
  ],
