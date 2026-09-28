@@ -5,7 +5,7 @@
 --     read AED 582.96 (the Mashreq statement closing balance of 31 Aug). Two cash figures.
 --   * revenue_run_rate_30d = AED -250 and VAT turnover = AED -250: journal 690 (AED 250 credit to 4400)
 --     is VOID and its reversal 821 is POSTED, so "posted lines only" counted the reversal alone.
---   * no Corporate Tax watch; 0 budgets; no 13-week view; no unit-economics routine.
+--   * 0 budgets; no 13-week view; no unit-economics routine.
 --   * August 2026 closed on 15 Sep (not by day 5); nothing refuses a posting dated in a closed month.
 --   * the daily Stripe/bank reconciliation, reveal-invoice filing, refund correctness and the Stripe
 --     customer-email setting had no seat_duty row of their own; fn_accountant_duties still said ad spend
@@ -17,9 +17,8 @@
 --   2. Revenue is measured through ONE view, gl_revenue_lines_measured: posted revenue lines, minus any
 --      posted reversal whose original is not posted (the 690/821 shape). Reversals are reported on their
 --      own line and never carried forward as run-rate revenue.
---   3. Corporate Tax by legal form: the licence is a sole establishment of a natural person, so the
---      registration trigger is AED 1,000,000 business turnover in a calendar year (Cabinet Decision
---      49/2023). The watch reports to the CEO at 50%, 80% and 100%, once per fraction per year.
+--   3. No tax watch other than VAT is scheduled: founder_instruction 344 rules that the books raise only
+--      VAT (scripts/sql/corporate_tax_is_ignored_and_the_books_raise_only_vat.sql).
 --   4. A monthly closing journal to retained earnings is NOT posted: under IFRS for SMEs the income
 --      statement closes at the year end (year-end pack). The month's close is the CEO-signed close row
 --      plus the period lock below, which refuses a posting dated in a closed month.
@@ -105,44 +104,6 @@ begin
                             'gl_minus_bank_aed', v_gap, 'reported_to_ceo', v_rep is not null);
 end $fn$;
 revoke execute on function public.fn_accountant_cash_truth_check() from public, anon, authenticated;
-
--- ── 3. Corporate Tax by legal form ──────────────────────────────────────────────────────────────
-insert into public.gl_settings (key, num_value) values ('ct_natural_person_registration_threshold_aed', 1000000)
-on conflict (key) do nothing;
-
-create or replace function public.fn_accountant_ct_threshold_check(p_notify boolean default true)
-returns jsonb language plpgsql security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-declare
-  v_today date := (now() at time zone 'Asia/Dubai')::date;
-  v_from date := date_trunc('year', v_today)::date;
-  v_thr numeric; v_turn numeric; v_frac numeric; v_hit numeric; v_rep jsonb;
-begin
-  select num_value into v_thr from public.gl_settings where key = 'ct_natural_person_registration_threshold_aed';
-  if v_thr is null then raise exception 'gl_settings.ct_natural_person_registration_threshold_aed is missing'; end if;
-  select coalesce(sum(revenue_aed), 0) into v_turn from public.gl_revenue_lines_measured where entry_date between v_from and v_today;
-  v_frac := round(v_turn / v_thr, 4);
-  select max(f) into v_hit from unnest(array[0.5, 0.8, 1.0]) f where v_frac >= f;
-  if v_hit is not null and p_notify then
-    v_rep := public.fn_support_report_to_ceo(
-      p_idempotency_key => 'ct_threshold:' || extract(year from v_today) || ':' || v_hit,
-      p_severity => case when v_hit >= 1 then 'serious' when v_hit >= 0.8 then 'elevated' else 'routine' end,
-      p_subject => 'Corporate Tax: business turnover ' || extract(year from v_today) || ' is AED ' || round(v_turn, 2)
-                   || ', ' || round(v_frac * 100, 1) || '% of the AED ' || v_thr || ' natural-person registration trigger',
-      p_evidence => jsonb_build_object('turnover_aed', round(v_turn, 2), 'threshold_aed', v_thr, 'fraction', v_frac,
-                                       'window_from', v_from, 'window_to', v_today,
-                                       'basis', 'gl_revenue_lines_measured over the calendar year (Asia/Dubai). The licence (DET 1633275) is a sole establishment owned by a natural person: registration is due once business turnover exceeds AED 1,000,000 in a calendar year (Cabinet Decision 49/2023). A juridical person would register regardless.'),
-      p_attempted => '[]'::jsonb,
-      p_requested => case when v_hit >= 1
-        then 'Registration for Corporate Tax is now required. Instruct the accountant to prepare the EmaraTax application; late registration costs AED 10,000.'
-        else 'No registration is due yet. Plan it so the filing is scheduled before the threshold, not discovered after it.' end,
-      p_review_in => interval '30 days', p_source_agent => 'accountant');
-  end if;
-  return jsonb_build_object('year', extract(year from v_today), 'turnover_aed', round(v_turn, 2), 'threshold_aed', v_thr,
-                            'fraction', v_frac, 'fraction_reported', v_hit, 'reported_to_ceo', v_rep is not null);
-end $fn$;
-revoke execute on function public.fn_accountant_ct_threshold_check(boolean) from public, anon, authenticated;
 
 -- ── 4. unit economics ───────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_accountant_unit_economics(p_month date)
@@ -428,7 +389,6 @@ revoke execute on function public.fn_accountant_stripe_email_setting_watch() fro
 
 insert into public.seat_duty (duty, what, every, enabled, routine, owner_file, owner_seat) values
  ('accountant.cash_truth', 'the forecast and the cash position read the same bank balance (within AED 1); the books'' bank account against the statement goes to the CEO', '1 day', true, 'fn_accountant_cash_truth_check', 'scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql', 'accountant'),
- ('accountant.ct_threshold', 'calendar-year business turnover against the AED 1M natural-person Corporate Tax trigger; the CEO hears at 50%, 80% and 100%', '1 day', true, 'fn_accountant_ct_threshold_check', 'scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql', 'accountant'),
  ('accountant.stripe_reconcile', 'Stripe payouts matched to the bank daily, with a last_ok_at of its own', '1 day', true, 'fn_accountant_stripe_reconcile_duty', 'scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql', 'accountant'),
  ('accountant.close_by_day_five', 'the previous month closed and locked by day 5; the close runs here and a miss goes to the CEO', '1 day', true, 'fn_accountant_close_by_day_5', 'scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql', 'accountant'),
  ('accountant.reveal_invoice_filing', 'every paid reveal has its Stripe invoice filed, the portal PDF and a Dropbox copy', '1 day', true, 'fn_accountant_reveal_invoice_filing_check', 'scripts/sql/the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql', 'accountant'),
@@ -439,7 +399,7 @@ on conflict (duty) do nothing;
 -- ── edited copies of existing routines (CREATE OR REPLACE keeps their ACL) ──
 
 create or replace function public.fn_accountant_vat_threshold_check(p_notify boolean default true)
-returns jsonb language plpgsql security definer set search_path to 'public' as $fn$
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_turn numeric; v_pos jsonb; v_band text; v_key text; v_rpt jsonb;
   v_m3 numeric; v_runrate numeric; v_since date; v_frac numeric; v_dec numeric;
@@ -516,6 +476,7 @@ begin
     'reported_to_ceo', coalesce((v_rpt->>'ok')::boolean, false),
     'ceo_report', v_rpt);
 end $fn$;
+revoke execute on function public.fn_accountant_vat_threshold_check(boolean) from public, anon, authenticated;
 
 create or replace function public.fn_accountant_runway_figures(p_month date)
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -554,6 +515,7 @@ begin
     'basis', 'Runway at actual spend is fn_accountant_cash_position''s (available cash / average booked monthly expenses). '
           || 'Runway at budget = the same available cash / the month''s lines of the active budgets. Nothing is estimated.');
 end $fn$;
+revoke execute on function public.fn_accountant_runway_figures(date) from public, anon, authenticated;
 
 create or replace function public.fn_accountant_month_close(p_month date)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -583,6 +545,7 @@ begin
   values (v_m, f, (v_rep->>'report_id')::bigint);
   return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'ceo_report', v_rep);
 end $fn$;
+revoke execute on function public.fn_accountant_month_close(date) from public, anon, authenticated;
 
 create or replace function public.fn_ceo_pricing_monitor()
 returns jsonb
@@ -634,6 +597,7 @@ begin
   end if;
   return jsonb_build_object('week', v_week, 'quoted_requests_90d', v_quoted, 'reasoning_filed', v_held is not null);
 end $fn$;
+revoke execute on function public.fn_ceo_pricing_monitor() from public, anon, authenticated;
 
 create or replace function public.fn_accountant_duties(p_r jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -721,3 +685,4 @@ begin
           jsonb_build_object('job', 'duties', 'result', o, 'errors', v_err), null);
   return o || jsonb_build_object('ok', jsonb_array_length(v_err) = 0, 'errors', v_err);
 end $fn$;
+revoke execute on function public.fn_accountant_duties(jsonb) from public, anon, authenticated;

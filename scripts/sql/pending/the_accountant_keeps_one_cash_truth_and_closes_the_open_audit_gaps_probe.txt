@@ -1,3 +1,2 @@
-A PROBE, so it is never applied: it always raises 'PROBE ...', rolling back every row it writes (a July close, a ZZ DEMO
-AED 850,000 revenue journal, the CEO reports). Run it in one transaction after the file it proves (before apply) or on its
+A PROBE, so it is never applied: it always raises 'PROBE ...', rolling back every row it writes (a July close, the CEO reports). Run it in one transaction after the file it proves (before apply) or on its
 own after apply. This note stays for the life of the file. Seat: accountant.
