@@ -90,7 +90,7 @@ Deno.test('several copies: the worst decides; none: not_found; a From is compare
   assertEquals(worstFolder(['inbox', 'inbox']), 'inbox');
   assertEquals(worstFolder([]), 'not_found');
   assertEquals(addressOf('QuotesDone <Info@QuotesDone.com>'), 'info@quotesdone.com');
-  assertEquals(addressOf(' invite@hello.quotesdone.com '), 'invite@hello.quotesdone.com');
+  assertEquals(addressOf(' sender@example.com '), 'sender@example.com');
 });
 
 Deno.test('the allowlist is two exact addresses, each tied to its provider', () => {
