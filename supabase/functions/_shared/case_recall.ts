@@ -93,7 +93,10 @@ async function recallOnly(admin: Rpc, o: Parameters<typeof recallCases>[1]): Pro
     const { data, error } = await admin.rpc(ml ? 'fn_case_recall_ml' : 'fn_case_recall', {
       p_seat: o.seat, p_embedding: typeof vec === 'string' ? vec : '[' + vec.join(',') + ']',
       p_trade: o.trade ?? null, p_k: o.k ?? 5, p_case_kind: o.caseKind ?? null,
-      p_other_seats: o.otherSeats ?? true,
+      // A SEAT RECALLS ITS OWN CASES unless it asks for more (28 Sep 2026, learning-loop audit C14). The
+      // default was every seat's cases, so a customer-facing think() could put an accountant's or the CEO's
+      // internal case into a customer reply's prompt. The CEO oversees every seat and keeps the wide view.
+      p_other_seats: o.otherSeats ?? o.seat === 'ceo',
       p_exclude_source_table: o.exclude?.table ?? null, p_exclude_source_id: o.exclude?.id ?? null,
     });
     if (error) return { ...base, available: false, reason: 'recall_failed: ' + error.message };

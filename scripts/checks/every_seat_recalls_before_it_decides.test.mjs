@@ -75,6 +75,13 @@ test('every seat decision path recalls its past cases before it decides', () => 
   assert.deepEqual(SEATS.filter((s) => !DECISION_PATHS.some((p) => p[1] === s)), []);
 });
 
+// 28 Sep 2026: the shared recall defaulted to every seat's cases, so think() for customer_support could read the
+// accountant's and the CEO's internal cases. A seat reads its own unless it asks; the CEO keeps the wide view.
+test('a seat recalls its own cases by default; only the CEO reads across seats without asking', () => {
+  const src = read('supabase/functions/_shared/case_recall.ts');
+  assert.match(src, /p_other_seats: o\.otherSeats \?\? o\.seat === 'ceo'/, 'the recall no longer defaults to the seat\'s own cases');
+});
+
 test('every seat writes its cases back, and recall is by meaning (a vector), never by words', () => {
   const sql = read(SQL_FILE);
   for (const seat of SEATS) {

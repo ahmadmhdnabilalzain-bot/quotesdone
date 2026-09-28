@@ -10,9 +10,8 @@
 //   a 2.1 MB DWG (LibreDWG's 2018/Dynblocks.dwg) -> queued (cad_queued), read by the CAD worker, fetched
 //     with cad_read_status. The worker is started by customer_api's dispatch; --run-worker also runs it
 //     here (needed before the workflow is on main, and harmless after: SKIP LOCKED);
-//   a Revit model (an OLE2 compound file built here with a BasicFileInfo and a preview PNG) -> version,
-//     preview and the IFC ask, with Arabic for every sentence;
-//   a DGN V7 header and a DGN V8 (OLE2 with Bentley's storages) -> recognised, with the export ask.
+//   a Revit model, an IFC and a DGN V7 -> REFUSED: founder ruling 1000 (28 Sep 2026), drawings are PDF,
+//     DWG and DXF only; none of them is read or stored.
 // The DWG samples are LibreDWG test data, fetched at run time at a pinned commit and checked by hash;
 // nothing is committed. Everything the run made is torn down and the teardown is proved.
 //
@@ -36,11 +35,6 @@ async function sample(name, sha16) {
 }
 const u16 = (s) => Buffer.from(s, 'utf16le');
 function ole(streams) { const c = CFB.utils.cfb_new(); for (const [p, b] of Object.entries(streams)) CFB.utils.cfb_add(c, '/' + p, b); return Buffer.from(CFB.write(c, { type: 'array' })); }
-function png(w, h) {
-  const chunk = (t, d) => { const c = Buffer.alloc(12 + d.length); c.writeUInt32BE(d.length, 0); c.write(t, 4, 'latin1'); d.copy(c, 8); return c; };
-  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
-  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), chunk('IHDR', ihdr), chunk('IDAT', Buffer.alloc(0)), chunk('IEND', Buffer.alloc(0))]);
-}
 const allArabic = (notes) => (notes || []).every((n) => /[؀-ۿ]/.test(boqNoteAr(n) || ''));
 const lines = (r) => r.json?.boq?.boq || [];
 
@@ -92,24 +86,14 @@ try {
     check('nobody else can read the job', other.status === 401 || other.status === 403 || other.status === 404 || other.json?.ok !== true, `HTTP ${other.status}`);
   }
 
-  // Revit: what is certain, and the IFC ask.
-  const rvt = ole({ BasicFileInfo: Buffer.concat([Buffer.from([7]), u16('Worksharing: Not enabled\r\nUsername: zz.demo\r\nFormat: 2024\r\nBuild: 20240111_1515(x64)\r\nLast Save Path: C:\\ZZ DEMO\\Villa.rvt\r\n')]),
-    'RevitPreview4.0': Buffer.concat([Buffer.alloc(300, 0x19), png(128, 96)]), ProjectInformation: Buffer.alloc(8) });
-  const r = await doc(rvt, 'ZZ DEMO villa.rvt');
-  const rn = r.json?.boq?.missing_info || [];
-  check('a Revit model is read for its version and preview, and asked for IFC', r.json?.ok && r.json?.needs === 'bim_conversion' && rn.some((n) => n === 'This Revit file was saved in Revit 2024.') && rn.some((n) => /128 x 96 pixel preview/.test(n)) && rn.some((n) => /File > Export > IFC/.test(n)), `HTTP ${r.status} ${r.json?.error || ''} ${rn.join(' | ').slice(0, 200)}`);
-  check('no path or user name from the Revit file reaches the customer or a supplier', !/zz\.demo|Villa\.rvt|Save Path/i.test(JSON.stringify(r.json?.boq || {})));
-  check('every Revit sentence has its Arabic', rn.length > 0 && allArabic(rn));
-  check('the Revit original is stored (held, like every CAD original)', !!r.json?.drawing_file_path, String(r.json?.drawing_file_path || 'not stored'));
-
-  // DGN V7 and V8: recognised, asked for an export.
+  // Founder ruling 1000 (28 Sep 2026): Revit, IFC and DGN are never accepted.
+  const rvt = ole({ BasicFileInfo: Buffer.concat([Buffer.from([7]), u16('Worksharing: Not enabled\r\nFormat: 2024\r\n')]), ProjectInformation: Buffer.alloc(8) });
+  const ifc = Buffer.from("ISO-10303-21;\nHEADER;\nFILE_NAME('zz-demo.ifc','2026-09-28',('ZZ DEMO'),('ZZ DEMO'),'','','');\nENDSEC;\nDATA;\nENDSEC;\nEND-ISO-10303-21;\n");
   const v7 = Buffer.alloc(2048); v7.set([0x08, 0x09, 0xfe, 0x02]);
-  const g7 = await doc(v7, 'ZZ DEMO site.dgn');
-  const v8 = ole({ 'Dgn~H': Buffer.alloc(64), 'Dgn~S': Buffer.alloc(64) });
-  const g8 = await doc(v8, 'ZZ DEMO site v8.dgn');
-  const gn = (x) => x.json?.boq?.missing_info || [];
-  check('a DGN V7 is recognised and asked for DWG / DXF / PDF', g7.json?.needs === 'cad_conversion' && gn(g7)[0] === 'This is a MicroStation DGN V7 (2D) file.' && allArabic(gn(g7)), `HTTP ${g7.status} ${gn(g7).join(' | ').slice(0, 160)}`);
-  check('a DGN V8 is recognised (not read as a spreadsheet) and asked the same', g8.json?.needs === 'cad_conversion' && gn(g8)[0] === 'This is a MicroStation DGN V8 file.' && allArabic(gn(g8)), `HTTP ${g8.status} ${g8.json?.error || ''} ${gn(g8).join(' | ').slice(0, 160)}`);
+  for (const [buf, name] of [[rvt, 'ZZ DEMO villa.rvt'], [ifc, 'ZZ DEMO villa.ifc'], [v7, 'ZZ DEMO site.dgn']]) {
+    const x = await doc(buf, name);
+    check(`${name.split('.').pop().toUpperCase()} is refused, not read or stored`, x.json?.ok !== true && !x.json?.drawing_file_path, `HTTP ${x.status} ${x.json?.error || ''}`);
+  }
 
   exitCode = results.every((x) => x.ok) ? 0 : 1;
 } catch (e) {
