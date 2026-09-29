@@ -3,7 +3,7 @@
 // platform token was missing or could not be refreshed was re-reasoned (a model call) on every sweep. Here every
 // dependency is a stub: nothing reaches a platform, the model or the database.
 import { assertEquals } from 'jsr:@std/assert@1';
-import type { HeldCommentRow, ReviveIO } from './duties.ts';
+import type { HeldCommentRow, ReviseDueRow, ReviseIO, ReviveIO } from './duties.ts';
 
 // duties.ts pulls in _shared/llm.ts, which builds a client at import: a placeholder loopback URL, never called.
 if (!Deno.env.get('SUPABASE_URL')) Deno.env.set('SUPABASE_URL', 'http://127.0.0.1:9');
@@ -74,4 +74,64 @@ Deno.test('class questions unreadable: skipped this sweep, never reasoned blind'
   io.classQuestions = () => Promise.reject(new Error('db down'));
   assertEquals(await reviveHeldComments([held('instagram')], NOW, io), { 'skipped:class questions unreadable': 1 });
   assertEquals(calls.classify, 0);
+});
+
+// ── THE ARTICLE REDRAW (release review of #1114): a refused redraw is paid for once per content, not once a beat ─────
+const { reviseOne } = await import('./duties.ts');
+const FIRST = JSON.parse(await Deno.readTextFile(new URL('../../../scripts/marketing/articles/how-quotesdone-works-for-procurement-teams.json', import.meta.url)));
+const dueRow = (change = 'Say that replies come within 3 working days.', slug: string = FIRST.slug): ReviseDueRow =>
+  ({ slug, kind: 'guide', change, earlier_changes: [], sources: [], article: { en: FIRST.en, ar: FIRST.ar } });
+function reviseRig(o: { ingest?: { ok: boolean; reason?: string }; error?: string } = {}) {
+  const runs: { subject: string; outcome: string; reason: string; run_day: string }[] = [];
+  const calls = { model: 0, ingest: 0 };
+  const redraw = structuredClone({ en: FIRST.en, ar: FIRST.ar });
+  redraw.en.excerpt += ' Replies come within 3 working days.';
+  let day = '2026-09-29';
+  const io: ReviseIO = {
+    lastRun: (s) => Promise.resolve(runs.filter((r) => r.subject === s).at(-1) ?? null),
+    held: () => Promise.resolve(false),
+    callModel: () => { calls.model++; return Promise.resolve(o.error ? { content: null, error: o.error } : { content: JSON.stringify(redraw), model: 'stub' }); },
+    recordFailed: (subject, reason) => { runs.push({ subject, outcome: 'failed', reason, run_day: day }); return Promise.resolve(); },
+    ingest: () => { calls.ingest++; return Promise.resolve(o.ingest ?? { ok: true }); },
+  };
+  return { io, calls, runs, setDay: (d: string) => { day = d; } };
+}
+const raised = async (p: Promise<unknown>) => { try { await p; return null; } catch (e) { return String((e as Error).message); } };
+
+Deno.test('a refused ingest writes one failed row with its reason, and the next beats make ZERO model calls', async () => {
+  const { io, calls, runs } = reviseRig({ ingest: { ok: false, reason: 'text_lost_its_script' } });
+  const err = await raised(reviseOne([dueRow()], '2026-09-29', io));
+  assertEquals(err?.includes('text_lost_its_script'), true);
+  assertEquals([calls.model, calls.ingest, runs.length, runs[0].outcome, runs[0].reason.includes('text_lost_its_script')], [1, 1, 1, 'failed', true]);
+  const second = await reviseOne([dueRow()], '2026-09-29', io);
+  const nextDay = await reviseOne([dueRow()], '2026-09-30', io);
+  assertEquals([calls.model, calls.ingest, runs.length], [1, 1, 1]);
+  assertEquals([second.waiting, nextDay.waiting], [[FIRST.slug], [FIRST.slug]]);
+});
+
+Deno.test('a new change is new content: the redraw is tried again', async () => {
+  const { io, calls } = reviseRig({ ingest: { ok: false, reason: 'text_lost_its_script' } });
+  await raised(reviseOne([dueRow()], '2026-09-29', io));
+  await raised(reviseOne([dueRow('Shorten the second section.')], '2026-09-29', io));
+  assertEquals(calls.model, 2);
+});
+
+Deno.test('no answer from the model: recorded, not retried the same Dubai day, retried once the next', async () => {
+  const { io, calls, runs, setDay } = reviseRig({ error: 'HTTP 503' });
+  await raised(reviseOne([dueRow()], '2026-09-29', io));
+  await reviseOne([dueRow()], '2026-09-29', io);
+  assertEquals([calls.model, runs.length], [1, 1]);
+  setDay('2026-09-30');
+  await raised(reviseOne([dueRow()], '2026-09-30', io));
+  await reviseOne([dueRow()], '2026-09-30', io);
+  assertEquals([calls.model, runs.length], [2, 2]);
+});
+
+Deno.test('a failed draft does not block the one behind it, and a beat makes at most one model call', async () => {
+  const first = reviseRig({ ingest: { ok: false, reason: 'x' } });
+  await raised(reviseOne([dueRow()], '2026-09-29', first.io));
+  const { io, calls } = reviseRig();
+  io.lastRun = first.io.lastRun;   // the first draft's failed run is on record
+  const out = await reviseOne([dueRow(), dueRow(undefined, 'another-article'), dueRow('third', 'a-third-article')], '2026-09-29', io);
+  assertEquals([out.redrawn, calls.model], ['another-article', 1]);
 });

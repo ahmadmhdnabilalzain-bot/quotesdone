@@ -475,32 +475,86 @@ export const geoAudit: Duty = {
 // HIS CHANGE TO AN ARTICLE (29 Sep 2026, review of #1039): the draft he asked to change is redrawn with his words
 // (marketing_article_revise), passed through the article gate by code (acceptRevision), and written back through
 // fn_marketing_article_ingest. fn_marketing_article_release_duty then sees its content fingerprint changed and sends
-// it back to him once. At most one redraw a beat; a refused redraw is recorded once a Dubai day and raised once.
+// it back to him once. At most one model call a beat.
+// ONE CALL PER CONTENT (release review of #1114): every refusal - the gate, the ingest (e.g. text_lost_its_script), or
+// no answer at all - is written to marketing_model_run BEFORE the duty raises it, under a subject that is the slug plus
+// a hash of everything the model is given (his change, his earlier changes, the draft, its sources). The next beat
+// finds that failed run and does not call the model again for the same content; only a new change from him or a
+// changed draft makes a new subject (the subject carries its content, as the watch step's subject is the file's
+// sha256). The one exception is no answer (the call itself failed): retried once, the next Dubai day. Before this a
+// refused ingest threw before any row was written, and every 30-minute beat paid for the same ~8k-token redraw.
+// Prevented by: supabase/functions/marketing/duties.test.ts (a refused ingest: one failed row, zero calls next beat).
+export interface ReviseDueRow { slug: string; kind: string; change: string; earlier_changes: string[]; sources: unknown; article: ArticleBody }
+export interface ReviseIO {
+  lastRun(subject: string): Promise<{ outcome: string; reason: string | null; run_day: string } | null>;
+  held(): Promise<boolean>;
+  callModel(prompt: string): Promise<{ content: string | null; error?: string | null; truncated?: boolean; model?: string | null }>;
+  recordFailed(subject: string, reason: string, model: string | null): Promise<void>;
+  ingest(p: Record<string, unknown>): Promise<{ ok: boolean; reason?: string }>;
+}
+const NO_ANSWER = 'no answer: ';
+export async function reviseSubject(d: ReviseDueRow): Promise<string> {
+  return d.slug + '#' + (await sha256(JSON.stringify([d.kind, d.change, d.earlier_changes, d.sources, d.article]))).slice(0, 16);
+}
+export async function reviseOne(rows: ReviseDueRow[], today: string, io: ReviseIO): Promise<Record<string, unknown>> {
+  if (!rows.length) return { due: false };
+  const waiting: string[] = [];
+  for (const d of rows) {
+    const subject = await reviseSubject(d);
+    const last = await io.lastRun(subject);
+    if (last?.outcome === 'failed' && (!(last.reason || '').startsWith(NO_ANSWER) || last.run_day === today)) {
+      waiting.push(d.slug);   // a failed draft never blocks the next one behind it
+      continue;
+    }
+    if (await io.held()) return { due: true, held: true, slug: d.slug, reason: 'the founder\'s model hold: the redraw waits' };
+    const due = { slug: d.slug, change: d.change, earlier_changes: (d.earlier_changes || []).map(String), article: d.article };
+    let a: Awaited<ReturnType<ReviseIO['callModel']>>;
+    try { a = await io.callModel(revisePrompt(due)); } catch (e) { a = { content: null, error: String((e as Error)?.message || e) }; }
+    const model = a.model ?? null;
+    let reason: string | null = a.error ? NO_ANSWER + a.error : null;
+    if (!reason) {
+      const r = acceptRevision(due, a.content, !!a.truncated);
+      if (!r.ok) reason = r.reason;
+      else {
+        const w = await io.ingest({ slug: d.slug, kind: d.kind, ingested_by: 'claude', is_demo: false,
+          en: r.article.en, ar: r.article.ar, sources: d.sources, checks: { lint: [], ungrounded: [] }, post: r.post });
+        if (!w.ok) reason = 'fn_marketing_article_ingest refused it: ' + (w.reason || 'no reason given');
+      }
+    }
+    if (!reason) return { due: true, redrawn: d.slug, model };
+    await io.recordFailed(subject, reason, model);   // before the raise: the next beat reads it and does not call
+    throw new Error('article ' + d.slug + ' was not redrawn: ' + reason);
+  }
+  return { due: true, waiting, reason: 'each redraw failed for this exact content; it waits for a new change from him or a changed draft' };
+}
+
 export const articleRevise: Duty = {
   name: 'article_revise',
   owner_seat: 'marketing',
   async run(ctx) {
     const { data, error } = await ctx.admin.rpc('fn_marketing_article_revise_due');
     if (error) throw new Error('fn_marketing_article_revise_due: ' + error.message);
-    const d = ((data || []) as Array<{ slug: string; kind: string; change: string; earlier_changes: string[]; sources: unknown; article: ArticleBody }>)[0];
-    if (!d) return { due: false };
-    if (await modelHeld(ctx.admin)) return { due: true, held: true, slug: d.slug, reason: 'the founder\'s model hold: the redraw waits' };
     const today = new Date(ctx.now.getTime() + 4 * 3600_000).toISOString().slice(0, 10);   // Dubai day
-    const { data: failedToday } = await ctx.admin.from('marketing_model_run').select('id').eq('step', 'article_revise')
-      .eq('subject', d.slug).eq('outcome', 'failed').eq('run_day', today).limit(1);
-    if (failedToday && failedToday.length) return { due: true, slug: d.slug, reason: 'the redraw was refused today; next try tomorrow' };
-    const due = { slug: d.slug, change: d.change, earlier_changes: (d.earlier_changes || []).map(String), article: d.article };
-    const a = await marketingDeps(ctx).callModel('marketing_article_revise', 8000, [{ role: 'user', content: revisePrompt(due) }], []);
-    const r = acceptRevision(due, a.error ? null : a.content, a.truncated);
-    if (!r.ok) {
-      await ctx.admin.from('marketing_model_run').insert({ step: 'article_revise', subject: d.slug, seat: 'marketing',
-        task_class: 'marketing_article_revise', outcome: 'failed', reason: (a.error || r.reason).slice(0, 1000), run_day: today });
-      throw new Error('article ' + d.slug + ' was not redrawn: ' + (a.error || r.reason));
-    }
-    const w = await ctx.admin.rpc('fn_marketing_article_ingest', { p: { slug: d.slug, kind: d.kind, ingested_by: 'claude', is_demo: false,
-      en: r.article.en, ar: r.article.ar, sources: d.sources, checks: { lint: [], ungrounded: [] }, post: r.post } });
-    if (w.error || !(w.data as { ok?: boolean })?.ok) throw new Error('fn_marketing_article_ingest: ' + (w.error?.message || JSON.stringify(w.data)));
-    return { due: true, redrawn: d.slug, model: a.model ?? null };
+    return await reviseOne((data || []) as ReviseDueRow[], today, {
+      lastRun: async (subject) => {
+        const { data: r, error: e } = await ctx.admin.from('marketing_model_run').select('outcome, reason, run_day')
+          .eq('step', 'article_revise').eq('subject', subject).order('id', { ascending: false }).limit(1);
+        if (e) throw new Error('marketing_model_run: ' + e.message);   // unreadable: never call the model blind
+        return r?.[0] ?? null;
+      },
+      held: () => modelHeld(ctx.admin),
+      callModel: (prompt) => marketingDeps(ctx).callModel('marketing_article_revise', 8000, [{ role: 'user', content: prompt }], []),
+      recordFailed: async (subject, reason, model) => {
+        const { error: e } = await ctx.admin.from('marketing_model_run').insert({ step: 'article_revise', subject, seat: 'marketing',
+          task_class: 'marketing_article_revise', outcome: 'failed', reason: reason.slice(0, 1000), model, run_day: today });
+        if (e) throw new Error('the refused redraw could not be recorded (' + e.message + '): ' + reason);
+      },
+      ingest: async (p) => {
+        const w = await ctx.admin.rpc('fn_marketing_article_ingest', { p });
+        const out = w.data as { ok?: boolean; error?: string } | null;
+        return w.error || !out?.ok ? { ok: false, reason: w.error?.message || out?.error || JSON.stringify(out) } : { ok: true };
+      },
+    });
   },
 };
 

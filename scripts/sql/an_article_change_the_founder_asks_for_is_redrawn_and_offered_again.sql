@@ -37,7 +37,8 @@ revoke execute on function public.fn_marketing_article_fingerprint(bigint) from 
 update public.marketing_article set approval_hash = public.fn_marketing_article_fingerprint(id)
  where approval_sent_at is not null and approval_hash is null;
 
--- The one draft waiting for its redraw (oldest change first). The edge duty reads it and writes the redraw back.
+-- The drafts waiting for their redraw (oldest change first). The edge duty redraws the first whose last redraw for
+-- this exact content did not fail (at most one model call a beat), so one refused draft never blocks the ones after it.
 create or replace function public.fn_marketing_article_revise_due()
 returns table (id bigint, slug text, kind text, change text, earlier_changes jsonb, sources jsonb, article jsonb)
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -48,7 +49,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
     from public.marketing_article a
    where a.status = 'draft' and not a.is_demo and a.founder_change_request is not null
      and public.fn_marketing_article_fingerprint(a.id) is not distinct from a.approval_hash
-   order by a.updated_at, a.id limit 1
+   order by a.updated_at, a.id
 $fn$;
 revoke execute on function public.fn_marketing_article_revise_due() from public, anon, authenticated;
 
