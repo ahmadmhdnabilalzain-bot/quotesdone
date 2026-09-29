@@ -5788,6 +5788,12 @@ begin
       n_mail := n_mail + 1;
       continue;
     end if;
+    -- A KEY THE COMPANY ROTATED ITSELF: a permission refusal inside the rotation's overlap is the IT engineer's
+    -- (probe endpoint or key scope), never a reconnect for the founder (29 Sep 2026, notification 78020).
+    continue when (f.title ~* '(HTTP 40[13]|"code":\s*(20003|70004))' or coalesce(f.evidence->>'what_broke', '') ~* '(HTTP 40[13]|"code":\s*(20003|70004))')
+      and exists (select 1 from public.it_credential_rotation r
+                   where r.provider = regexp_replace(f.issue_key, '^duty:[a-z_]+:', '')
+                     and r.status = 'overlap' and r.overlap_until > now());
     -- ONCE PER OPEN FINDING: the key is the finding and the moment it (re)opened. The finding's evidence is
     -- rewritten on every beat, so the record of having told him is founder_alerts, which fn_notify_founder writes.
     v_dedupe := 'integration:' || f.issue_key || ':' || to_char(f.started_at, 'YYYYMMDDHH24MI');

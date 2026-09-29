@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T12:57:21.867Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T14:13:19.929Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -8159,7 +8159,17 @@ CREATE TABLE IF NOT EXISTS public.stalled_inquiry_rescue (
   flagged_at timestamp with time zone DEFAULT now() NOT NULL,
   flagged_by text NOT NULL,
   cleared_at timestamp with time zone,
-  cleared_why text
+  cleared_why text,
+  trades text[],
+  emirate text,
+  matched_at timestamp with time zone,
+  stalled_hours numeric,
+  uninvited_pool integer,
+  plan_rank integer,
+  finding_key text,
+  customer_notice jsonb,
+  enqueue_result jsonb,
+  acted_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.strategy_risks (
@@ -11039,7 +11049,8 @@ ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_reason_check CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['no_exact_spec_declined'::text, 'no_exact_spec_no_reply'::text]))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_seats_check CHECK (((owner_seat = 'sales_engineer'::text) AND (messenger_seat = 'customer_support'::text)));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_state_check CHECK ((state = ANY (ARRAY['open'::text, 'accepted'::text, 'declined'::text, 'no_reply'::text, 'superseded'::text])));
-ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_reason_check CHECK ((reason = 'no_reachable_supplier'::text));
+ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_pool_check CHECK (((uninvited_pool IS NULL) OR (uninvited_pool >= 0)));
+ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_reason_check CHECK ((reason = ANY (ARRAY['no_reachable_supplier'::text, 'no_quote_48h'::text])));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));

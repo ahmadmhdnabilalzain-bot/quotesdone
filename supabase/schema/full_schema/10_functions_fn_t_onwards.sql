@@ -239,6 +239,7 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),

@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back (ZZ DEMO finding and rotation row, founder mail stubbed). Run after a_permission_error_on_a_key_the_company_just_rotated_never_pages_the_founder.sql is applied; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.
