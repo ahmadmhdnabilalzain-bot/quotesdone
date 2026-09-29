@@ -112,3 +112,15 @@ test('the one stale PR: oldest reviewed PR whose only blocker is finished, faili
   assert.equal(staleCandidate(prs.slice(0, 3), { isBehind }), null);
   assert.equal(staleCandidate([pr({ number: 6, statusCheckRollup: red, body: 'Depends-on: #9' })], { isBehind, depState: () => 'OPEN' }), null);
 });
+
+test('a check that ran twice counts once, by its latest run (#1095: CANCELLED then SUCCESS)', () => {
+  const db = 'the database is running what this repository says';
+  const rollup = [...green.filter((c) => c.name !== db),
+    { name: db, conclusion: 'CANCELLED', startedAt: '2026-09-29T04:15:43Z', completedAt: '2026-09-29T04:15:44Z' },
+    { name: db, conclusion: 'SUCCESS', startedAt: '2026-09-29T04:15:47Z', completedAt: '2026-09-29T04:16:49Z' }];
+  assert.equal(checksGreen(rollup), true);
+  const rerunRed = [...rollup, { name: db, conclusion: 'FAILURE', startedAt: '2026-09-29T05:00:00Z', completedAt: '2026-09-29T05:01:00Z' }];
+  assert.equal(checksGreen(rerunRed), false);
+  const running = [...rollup, { name: db, conclusion: '', status: 'IN_PROGRESS', startedAt: '2026-09-29T05:00:00Z', completedAt: '0001-01-01T00:00:00Z' }];
+  assert.equal(checksGreen(running), false);
+});
