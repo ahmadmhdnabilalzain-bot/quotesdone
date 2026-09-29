@@ -117,6 +117,10 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'ceo.directive', from: 'ceo', to: 'customer_support' },
   { type: 'ceo.directive', from: 'ceo', to: 'accountant' },
   { type: 'ceo.directive', from: 'ceo', to: 'it_engineer' },
+  // the accountant's screen before money moves held, or released, a customer's reveal or refund; customer_support
+  // tells that customer (ledger 1018; scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql)
+  { type: 'fraud.money_held', from: 'accountant', to: 'customer_support' },
+  { type: 'fraud.money_released', from: 'accountant', to: 'customer_support' },
   // the demand stage is the marketing seat's (instruction 721): the CEO steers it like every other seat, never approves
   { type: 'ceo.directive', from: 'ceo', to: 'marketing' },
   // the root cause of a target miss (the ambition build, #913) and the year-one plan's month directive and improvement (#923)

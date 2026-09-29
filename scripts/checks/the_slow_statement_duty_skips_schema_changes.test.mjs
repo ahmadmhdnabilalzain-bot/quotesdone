@@ -10,7 +10,8 @@
 // Reads the live mirror. Until that file is applied it is excused only by its pending note.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const root = new URL('../../', import.meta.url);
 const FILE = 'a_schema_change_is_never_a_slow_product_statement';
@@ -26,7 +27,7 @@ test('the pattern tells a schema change from product traffic', () => {
 });
 
 test('duty 14 leaves schema changes out of the slow-statement reading', () => {
-  const schema = readFileSync(new URL('supabase/schema/full_schema.sql', root), 'utf8');
+  const schema = readSchemaMirror();
   const start = schema.indexOf('FUNCTION public.fn_it_duties_scheduled(');
   assert.ok(start > 0, 'fn_it_duties_scheduled is in the mirror');
   const body = schema.slice(start, schema.indexOf('$function$;', start));

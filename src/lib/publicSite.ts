@@ -1,8 +1,8 @@
 // Client for the public_site edge function (deterministic, no sign-in). See
 // supabase/functions/public_site/index.ts for what each action returns and what it never returns.
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
-const FN = `${SUPA_FN}/public_site`;
+const FN = fnUrl('public_site');
 
 export async function publicSite<T = any>(action: string, body: Record<string, unknown> = {}): Promise<T & { ok?: boolean; rate_limited?: boolean }> {
   const r = await fetch(FN, {

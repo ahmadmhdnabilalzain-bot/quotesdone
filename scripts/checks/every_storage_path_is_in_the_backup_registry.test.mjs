@@ -16,13 +16,14 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
-const SCHEMA = readFileSync(join(ROOT, 'supabase', 'schema', 'full_schema.sql'), 'utf8');
+const SCHEMA = readSchemaMirror();
 
 function fnBody(name) {
   const i = SCHEMA.indexOf(`FUNCTION public.${name}(`);
-  assert.ok(i >= 0, `public.${name} is not in supabase/schema/full_schema.sql`);
+  assert.ok(i >= 0, `public.${name} is not in the schema mirror (supabase/schema/full_schema/)`);
   const m = /\n\s*AS (\$[A-Za-z_]*\$)/.exec(SCHEMA.slice(i));
   assert.ok(m, `public.${name}: no body found in the schema mirror`);
   const start = i + m.index + m[0].length;

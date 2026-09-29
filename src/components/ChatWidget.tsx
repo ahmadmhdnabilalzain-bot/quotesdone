@@ -6,8 +6,8 @@ import { useLocale } from 'next-intl';
 // Was an inline `process.env.NEXT_PUBLIC_SUPABASE_URL || '<production ref>'`, which meant a
 // preview deployment missing the variable pointed the public chat widget at the LIVE database
 // with no warning anywhere. supaEnv resolves it once and warns when it falls back.
-import { SUPA_ANON as ANON, SUPA_FN } from '@/lib/supaEnv';
-const FN = `${SUPA_FN}/site_assistant`;
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
+const FN = fnUrl('site_assistant');
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 

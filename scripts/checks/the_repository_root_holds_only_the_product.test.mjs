@@ -12,7 +12,7 @@
 //   1. a tracked top-level name is not on the root allowlist in .gitignore (the `/*` block);
 //   2. a name of the kind measured on 22 Sep would NOT be ignored at the root (`git add -A` would
 //      take it), or an allowlisted name WOULD be ignored;
-//   3. a tracked file is larger than 5 MB, other than the live graphify graph.
+//   3. a tracked file is larger than 5 MB (no exemption).
 // To add a top-level file or folder on purpose, add its `!/<name>` line to .gitignore in the same
 // commit.
 import { test } from 'node:test';
@@ -84,6 +84,8 @@ test('no tracked file is a multi-megabyte artefact', () => {
   const LIMIT = 5 * 1024 * 1024;
   // No exemption any more: the only one was graphify-out/graph.json, and since 22 Sep 2026 the
   // generated graph is not tracked at all (see the ignore rule and its comment in .gitignore).
+  // 29 Sep 2026: the schema mirror crossed this at 5,261,945 bytes (#1073). It was split into parts
+  // (scripts/lib/schema_mirror.mjs), not exempted, so this limit still binds every file equally.
   const EXEMPT = new Set();
   const big = tracked().filter((f) => !EXEMPT.has(f) && existsSync(join(ROOT, f)) && statSync(join(ROOT, f)).size > LIMIT);
   assert.deepEqual(big, [], 'tracked files over 5 MB (generate them, do not commit them): ' + big.join(', '));
