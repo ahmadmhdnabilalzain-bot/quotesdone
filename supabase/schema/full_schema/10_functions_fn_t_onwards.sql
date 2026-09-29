@@ -239,6 +239,8 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('customer_followup','customer'),
+    ('seat_playbook','knowledge'),
     ('ceo_decision_round','decision'),
     ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
     ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
@@ -1391,6 +1393,18 @@ CREATE OR REPLACE FUNCTION public.fn_trade_code(p_name text)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select nullif(btrim(regexp_replace(lower(btrim(coalesce(p_name, ''))), '[^[:alnum:]]+', '_', 'g'), '_'), '');
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_trade_label(p_code text, p_lang text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((select case when p_lang = 'ar' then coalesce(t.label_ar, t.label) else t.label end
+                     from public.taxonomy_trade t where t.code = lower(btrim(p_code))),
+                  nullif(initcap(replace(btrim(coalesce(p_code, '')), '_', ' ')), ''))
 $function$
 
 

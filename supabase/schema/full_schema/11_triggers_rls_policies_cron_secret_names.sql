@@ -483,6 +483,7 @@ ALTER TABLE public.crm_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cron_job_seen ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cron_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_calls ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customer_followup ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_kpi_snapshots ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_layout ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_phone_otps ENABLE ROW LEVEL SECURITY;
@@ -1054,6 +1055,7 @@ CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask 
 CREATE POLICY competitor_scan_service_role_only ON public.competitor_scan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY complaint_tickets_service_role_only ON public.complaint_tickets AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY conversation_archive_service_role_only ON public.conversation_archive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY customer_followup_service_role_only ON public.customer_followup AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_spec_guide_public_reads_published ON public.customer_spec_guide AS PERMISSIVE FOR SELECT TO authenticated USING ((status = 'published'::text));
 CREATE POLICY customer_support_case_review_service_role_only ON public.customer_support_case_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY customer_support_duty_message_service_role_only ON public.customer_support_duty_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
