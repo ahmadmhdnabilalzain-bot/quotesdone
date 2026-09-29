@@ -64,3 +64,75 @@ Deno.test('what the word rules already found is not proposed again; a pgvector s
   assertEquals(parseVec(null), null);
   assert(parseVec('not a vector') === null);
 });
+
+// ── 29 Sep 2026, decision point 93 (b): clauses, the Arabic space, the recipe, the embedder ──────────────
+import { headWordsAr, meaningClauses, meaningSpace, ML_FLOOR, serviceEmbedText, serviceMlText, textSha } from './service_meaning.ts';
+import { embedLines } from './meaning_embed.ts';
+import { exactService } from './service_rewrite.ts';
+
+Deno.test('a sentence is read clause by clause; what follows "for" says where, not what', () => {
+  assertEquals(meaningClauses('We need to supply and install ducting for the new majlis'), ['We need to supply', 'install ducting']);
+  assertEquals(meaningClauses('Chiller maintenance and AMC contracts for towers and villas'), ['Chiller maintenance', 'AMC contracts']);
+  assertEquals(meaningClauses('Supply of cable trays'), ['Supply of cable trays'], '"of" is not cut: the service follows it');
+  assertEquals(meaningClauses('Point OF SALE'), ['Point OF SALE']);
+  assertEquals(meaningClauses('نقوم بأعمال الجبس والأسقف المستعارة والدهانات'), ['نقوم بأعمال الجبس', 'الأسقف المستعارة', 'الدهانات']);
+  assertEquals(meaningClauses('Dubai and Sharjah'), [], 'glue is never read');
+});
+
+Deno.test('an Arabic line is read in the multilingual space, an English one in gte-small', () => {
+  assertEquals(meaningSpace('الأسقف المستعارة'), 'ml');
+  assertEquals(meaningSpace('False ceilings'), 'gte');
+  assertEquals(headWordsAr('الأسقف المعلقة'), ['اسقف']);
+  assertEquals(headWordsAr('مجاري الهواء والتهوية'), ['مجاري', 'تهويه']);
+});
+
+Deno.test('ARABIC: the multilingual vector only shortlists; the first service a name word agrees with is taken', () => {
+  const CEIL = { trade_code: 'gypsum', code: 'false_ceiling', label_en: 'False ceilings', label_ar: 'الأسقف المعلقة', aliases: [], vec: null, vec_ml: v(0.99, 0.14, 0, 0) } as MeaningService;
+  const FORGE = { trade_code: 'castings_forgings', code: 'forgings', label_en: 'Forgings', label_ar: 'المطروقات', aliases: [], vec: null, vec_ml: [1, 0, 0, 0] } as MeaningService;
+  // FORGE is nearer, as measured for الدهانات on the live space; nothing in the line agrees with it, so CEIL is taken.
+  const p = proposeByMeaning([{ text: 'الأسقف المستعارة', vec: [1, 0, 0, 0], space: 'ml' }], [FORGE, CEIL]);
+  assertEquals(p.map((x) => [x.key, x.because, x.word]), [['gypsum.false_ceiling', 'head_word', 'اسقف']]);
+  // Noise: nothing agrees, nothing is proposed, however near.
+  assertEquals(proposeByMeaning([{ text: 'نحن شركة رائدة', vec: [1, 0, 0, 0], space: 'ml' }], [FORGE, CEIL]), []);
+  // Below the floor, nothing is shortlisted.
+  assertEquals(proposeByMeaning([{ text: 'الأسقف المستعارة', vec: v(ML_FLOOR - 0.05, 0, Math.sqrt(1 - (ML_FLOOR - 0.05) ** 2), 0), space: 'ml' }], [{ ...CEIL, vec_ml: [1, 0, 0, 0] }]), []);
+  // An English line never reads the multilingual vector, nor an Arabic line the gte one.
+  assertEquals(proposeByMeaning([{ text: 'false ceilings', vec: [1, 0, 0, 0], space: 'gte' }], [CEIL]), []);
+});
+
+Deno.test('ENGLISH: the one nearest service, as calibrated; the shortlist is the Arabic space only', () => {
+  const near = svc('x', 'near', 'Forgings', [1, 0, 0, 0]);
+  // COPIERS at 0.9 is second: an English line takes only the first, which no word agrees with.
+  assertEquals(proposeByMeaning([{ text: 'copiers', vec: [1, 0, 0, 0] }], [near, { ...COPIERS, vec: at(0.9) }]), []);
+});
+
+Deno.test('the vector recipe: aliases feed the vector (English ones for gte), both names, the trade; the sha follows the text', async () => {
+  const s = { label_en: 'Hardware supply', label_ar: 'توريد الأجهزة', aliases: ['laptop', 'desktop', 'توريد حواسيب'] };
+  const t = { label: 'IT services', label_ar: 'خدمات تقنية المعلومات' };
+  assertEquals(serviceEmbedText(s, t), 'Hardware supply: laptop, desktop (IT services). توريد الأجهزة (خدمات تقنية المعلومات)');
+  assert(serviceMlText(s, t).includes('توريد حواسيب') && serviceMlText(s, t).includes('laptop'));
+  assertEquals(await textSha('a'), 'ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb');
+  assert((await textSha(serviceEmbedText(s, t))) !== (await textSha(serviceEmbedText({ ...s, aliases: ['laptop'] }, t))), 'a new alias must make the vector stale');
+});
+
+Deno.test('the exact path is a name lookup: a curated alias, whole; a name two services share names neither', () => {
+  const A = { trade_code: 'doors', code: 'wooden', label_en: 'Wooden doors', label_ar: 'أبواب خشبية', aliases: ['timber doors', 'wood door'] };
+  const B = { trade_code: 'joinery', code: 'doors', label_en: 'Joinery doors', label_ar: 'أبواب النجارة', aliases: ['wood door'] };
+  assertEquals(exactService('Timber Doors', [A, B])?.code, 'wooden');
+  assertEquals(exactService('wood door', [A, B]), null, 'shared by two services: exact or none');
+  assertEquals(exactService('timber doors for the villa', [A, B]), null, 'a sentence is not a name');
+  assertEquals(exactService('أبواب خشبيّة', [A, B])?.code, 'wooden', 'a diacritic does not change the name');
+});
+
+Deno.test('embedLines: each line in its own space, never more than 8 at once, in order, a failure kept as null', async () => {
+  let live = 0, peak = 0; const asked: string[] = [];
+  const out = await embedLines(Array.from({ length: 20 }, (_, k) => (k === 3 ? 'فشل' : k % 2 ? 'الأسقف ' + k : 'ceiling ' + k)), async (t, space) => {
+    live++; peak = Math.max(peak, live); asked.push(space);
+    await new Promise((r) => setTimeout(r, 2)); live--;
+    return t === 'فشل' ? null : [1, 0];
+  });
+  assert(peak <= 8, `${peak} in flight`);
+  assertEquals(out.map((l) => l.space).slice(0, 4), ['gte', 'ml', 'gte', 'ml']);
+  assertEquals(out[3].vec, null);
+  assertEquals(out.filter((l) => l.vec).length, 19);
+});

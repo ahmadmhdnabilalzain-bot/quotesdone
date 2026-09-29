@@ -5049,6 +5049,88 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_handoff_summary(p_detail jsonb, p_agent text, p_target_table text, p_target_id text, p_title text DEFAULT NULL::text, p_recommendation text DEFAULT NULL::text, p_self_id bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  d        jsonb := coalesce(p_detail, '{}'::jsonb);
+  v_table  text  := nullif(btrim(coalesce(d->>'subject_table', p_target_table, '')), '');
+  v_id     text  := nullif(btrim(coalesce(d->>'subject_id', p_target_id, '')), '');
+  v_type   text  := coalesce(d->>'type', d->>'subject', 'handoff');
+  v_from   text  := d->>'from';
+  k        public.seat_handoff_kind;
+  v_facts  jsonb;
+  v_tried  jsonb;
+  v_cases  jsonb;
+  v_needed jsonb;
+  v_links  jsonb;
+begin
+  if v_id is null then
+    raise exception 'a handoff must name its case (subject_id or target_id) - refused, no note can be built';
+  end if;
+  v_table := coalesce(v_table, 'unknown');
+
+  select * into k from public.seat_handoff_kind
+   where type = v_type and from_seat = v_from and to_seat = p_agent;
+
+  -- The sender's scalar facts, minus the keys that are the envelope itself.
+  select coalesce(jsonb_object_agg(e.key, e.value), '{}'::jsonb) into v_facts
+    from jsonb_each(d) e
+   where e.key not in ('type','from','from_name','to','subject_table','subject_id','summary','error',
+                       'awaiting','replied_at','subject')
+     and jsonb_typeof(e.value) in ('string','number','boolean');
+
+  -- What was already done on this case: earlier actions (any seat, any kind), newest first.
+  select coalesce(jsonb_agg(x order by x->>'at' desc), '[]'::jsonb) into v_tried
+    from (select jsonb_build_object('action_id', a.id, 'seat', a.agent, 'kind', a.kind, 'status', a.status,
+                                    'what', left(coalesce(a.title, a.kind), 200), 'at', a.created_at) x
+            from public.agent_actions a
+           where a.id is distinct from p_self_id
+             and ((a.target_table = v_table and a.target_id = v_id)
+               or (a.kind = 'handoff' and a.detail->>'subject_id' = v_id
+                   and coalesce(a.detail->>'subject_table', a.target_table) = v_table))
+           order by a.created_at desc limit 10) t;
+
+  -- What the seats remember deciding on this case.
+  select coalesce(jsonb_agg(jsonb_build_object('case_id', m.id, 'seat', m.seat, 'decision', left(m.decision, 300),
+                                               'outcome', left(m.outcome, 300), 'finalised', m.finalised,
+                                               'lessons', to_jsonb(m.lessons)) order by m.id desc), '[]'::jsonb)
+    into v_cases
+    from public.seat_case_memory m
+   where m.source_table = v_table and m.source_id = v_id;
+
+  v_needed := case
+    when k.type is not null then jsonb_build_object(
+      'ask', k.meaning, 'handler', k.handler,
+      'reply_within', coalesce(k.reply_within::text, 'no deadline set'),
+      'closes', case when k.originator_closes then v_from || ' re-verifies and closes' else p_agent || ' closes' end)
+    else jsonb_build_object('ask', nullif(btrim(coalesce(p_recommendation, p_title, '')), ''),
+                            'handler', null, 'reply_within', 'no registered conversation',
+                            'closes', p_agent || ' closes')
+  end;
+  if nullif(btrim(coalesce(v_needed->>'ask', '')), '') is null then
+    raise exception 'handoff % on %#% states nothing needed - refused', v_type, v_table, v_id;
+  end if;
+
+  select jsonb_agg(l) into v_links from (
+    select 'public.' || v_table || '?id=eq.' || v_id as l
+    union all select 'public.agent_actions?id=eq.' || (t->>'action_id') from jsonb_array_elements(v_tried) t
+    union all select 'public.seat_case_memory?id=eq.' || (c->>'case_id') from jsonb_array_elements(v_cases) c
+  ) z;
+
+  return jsonb_build_object(
+    'known', jsonb_build_object('case', v_table || '#' || v_id, 'conversation', v_type,
+                                'from', v_from, 'to', p_agent, 'means', k.meaning, 'facts', v_facts),
+    'tried', jsonb_build_object('actions', v_tried, 'case_memory', v_cases),
+    'needed', v_needed,
+    'evidence', coalesce(v_links, '[]'::jsonb),
+    'built_by', 'fn_handoff_summary');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_health_index()
  RETURNS jsonb
  LANGUAGE plpgsql

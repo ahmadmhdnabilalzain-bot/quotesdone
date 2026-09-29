@@ -19,53 +19,28 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 const ROOT = new URL('../../', import.meta.url);
 const SHARED = new URL('supabase/functions/_shared/', ROOT);
-const NEW_SQL = new URL('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_trades_join_the_taxonomy.sql', ROOT);
 
 async function setup() {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
-  const { withRetry } = await import('../lib/retry.mjs');
-  const { serviceEmbedText, proposeByMeaning, parseVec } = await import(new URL('service_meaning.ts', SHARED).href);
+  const { liveServices } = await import('../lib/service_vectors.mjs');
+  const { proposeByMeaning, meaningCandidates, meaningClauses, meaningSpace } = await import(new URL('service_meaning.ts', SHARED).href);
   const { readCatalogue } = await import(new URL('catalogue_read.ts', SHARED).href);
   const { PAGES } = await import(new URL('catalogue_fixtures/make_zz_demo_catalogue.mjs', SHARED).href);
-  const ALIASES = JSON.parse(readFileSync(new URL('service_aliases.json', SHARED), 'utf8'));
-  const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
-  assert.ok(secret, 'no cred_fn_ai in app_secrets');
-  // 22 Sep 2026 (instruction 645): this failed once in a full run with "refused (HTTP 200)" -- the gateway
-  // then answered ok:true over a null vector. It now answers 503 embed_failed, and ONLY a 503 is retried,
-  // three attempts in all; any other status, and a 503 that outlasts the retries, fails as before.
-  const embed = async (text) => {
-    const { r, j } = await withRetry(async () => {
-      const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: secret, fn: 'embed_taxonomy_services', action: 'embed', text }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (r.status === 503 && j.error === 'embed_failed') throw new Error('embed_failed (HTTP 503)');
-      return { r, j };
-    }, 3, 1000);
-    assert.ok(r.status === 200 && j.ok === true && j.embedding, `the free embed path refused (HTTP ${r.status} ${j.error ?? ''})`);
-    return JSON.parse(j.embedding);
+  // The services as production reads them once the release backfill has run (29 Sep 2026, decision point 93 (b)):
+  // a stored vector whose text sha is current is used as stored; any other is embedded in memory through embed_ml,
+  // exactly as scripts/kb/embed_taxonomy_services.mjs stores it (scripts/lib/service_vectors.mjs says how many).
+  const { services, embed, stats } = await liveServices({ sql, PROJECT_REF, caller: 'a_catalogue_line_is_understood_by_meaning' });
+  console.log('   service vectors:', JSON.stringify(stats));
+  assert.equal(stats.failed, 0, 'a service vector could not be computed');
+  // The lines read the way production reads them (supplier_services.meaningFor): clause by clause, each in its own
+  // space, meaningCandidates' order and MEANING_MAX_LINES; a proposal's evidence is the supplier's whole line.
+  const meaning = async (lines, svc, opts) => {
+    const origin = new Map();
+    for (const l of [...new Set(lines)]) for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+    const read = await Promise.all(meaningCandidates([...origin.keys()], svc).map(async (text) => ({ text, space: meaningSpace(text), vec: await embed(text, meaningSpace(text)) })));
+    assert.ok(read.every((l) => l.vec), 'embed_ml refused a line');
+    return proposeByMeaning(read, svc, opts).map((p) => ({ ...p, lines: [...new Set(p.lines.map((c) => origin.get(c) ?? c))] }));
   };
-  // The live services, plus this change's ten if the SQL file is not applied yet (read from the file).
-  // The services carry the vector production reads (taxonomy_trade_service.embedding_gte, stored by
-  // embed_taxonomy_services.mjs; supplier_services.ts parses it with parseVec). Re-embedding all 1,047 through the
-  // gateway one by one took 6-7 minutes and timed the file out (29 Sep 2026) while measuring a path production never
-  // takes. Only a service with no stored vector is embedded here - and that is itself the production gap to fix.
-  const rows = await sql(`select s.trade_code, s.code, s.label_en, s.label_ar, t.label, t.label_ar as trade_label_ar, s.embedding_gte::text as stored
-    from public.taxonomy_trade_service s join public.taxonomy_trade t on t.code = s.trade_code where s.active`);
-  const have = new Set(rows.map((r) => `${r.trade_code}.${r.code}`));
-  const src = readFileSync(NEW_SQL, 'utf8');
-  const tradeLabel = Object.fromEntries([...src.matchAll(/\('(office_equipment|pos_retail)', '([^']+)', '([^']+)',/g)].map((m) => [m[1], [m[2], m[3]]]));
-  for (const m of src.matchAll(/\('(office_equipment|pos_retail)','([a-z_]+)','([^']+)','([^']+)',\d+\)/g)) {
-    if (!have.has(`${m[1]}.${m[2]}`)) rows.push({ trade_code: m[1], code: m[2], label_en: m[3], label_ar: m[4], label: tradeLabel[m[1]][0], trade_label_ar: tradeLabel[m[1]][1] });
-  }
-  const services = [];
-  for (const r of rows) {
-    const a = ALIASES[`${r.trade_code}.${r.code}`];
-    const { stored, ...row } = r;
-    services.push({ ...row, aliases: a ? [...a.en, ...a.ar] : [], vec: parseVec(stored) ?? await embed(serviceEmbedText(r, { label: r.label, label_ar: r.trade_label_ar })) });
-  }
-  const meaning = async (lines, svc, opts) => proposeByMeaning(await Promise.all(lines.map(async (text) => ({ text, vec: await embed(text) }))), svc, opts);
   return { services, meaning, readCatalogue, PAGES };
 }
 let ctx;

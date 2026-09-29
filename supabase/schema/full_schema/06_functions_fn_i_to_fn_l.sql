@@ -143,6 +143,72 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_inquiry_add_missing_specs(p_inquiry uuid, p_customer uuid, p_answers jsonb, p_source text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.inquiries; v_missing jsonb; v_add jsonb := '{}'::jsonb; v_lines text := ''; e record; v_val text; v_ask text;
+  v_note bigint; v_after public.inquiries; v_told int := 0; l record; v_res jsonb;
+begin
+  if p_source not in ('customer_portal', 'email_reply') then raise exception 'missing specs come from customer_portal or email_reply, not %', p_source; end if;
+  if p_source = 'customer_portal' and p_customer is null then raise exception 'a portal answer names its customer'; end if;
+  select * into i from public.inquiries where id = p_inquiry for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'inquiry_not_found'); end if;
+  if p_customer is not null and i.customer_id is distinct from p_customer then return jsonb_build_object('ok', false, 'error', 'not_your_inquiry'); end if;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then return jsonb_build_object('ok', false, 'error', 'inquiry_closed'); end if;
+  if jsonb_typeof(p_answers) is distinct from 'object' then return jsonb_build_object('ok', false, 'error', 'answers_required'); end if;
+
+  -- Only what is missing NOW, keyed as the check reads it; anything else is not this door's to write.
+  v_missing := public.fn_inquiry_missing_specs(i.id, 'en')->'missing';
+  for e in select a.key, a.value from jsonb_each_text(p_answers) a loop
+    v_val := left(btrim(coalesce(e.value, '')), 300);
+    select m->>'ask' into v_ask from jsonb_array_elements(v_missing) m where m->>'key' = lower(btrim(e.key));
+    if v_ask is null or not public._rfq_answered(v_val) then continue; end if;
+    v_add := v_add || jsonb_build_object(lower(btrim(e.key)), v_val);
+    v_lines := v_lines || case when v_lines = '' then '' else chr(10) end || v_ask || ' ' || v_val;
+  end loop;
+  if v_add = '{}'::jsonb then return jsonb_build_object('ok', false, 'error', 'nothing_to_add', 'missing', v_missing); end if;
+
+  -- The row's own trigger (trg_rfq_complete) re-runs the hold check on this write. Budget and emirate are the
+  -- request's own columns; every other answer is a spec under its key.
+  update public.inquiries
+     set spec = case when jsonb_typeof(spec) = 'object' then spec else '{}'::jsonb end || (v_add - 'budget' - 'emirate'),
+         budget = coalesce(v_add->>'budget', budget),
+         emirate = coalesce(v_add->>'emirate', emirate)
+   where id = i.id returning * into v_after;
+
+  insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
+  values (i.id, null, 'note',
+          case when p_source = 'email_reply' then 'The customer replied with the details this trade needs:' else 'The customer added the details this trade needs:' end
+          || chr(10) || v_lines, now(), 'missing_specs')
+  returning id into v_note;
+
+  -- Every supplier already invited is told, through customer_support's door (suppliers are written in English).
+  for l in select le.id, coalesce(nullif(btrim(le.claimed_by), ''), le.email) as to_email
+             from public.inquiry_matches x join public.leads le on le.id = x.supplier_id
+            where x.inquiry_id = i.id and not coalesce(le.banned, false)
+              and coalesce(nullif(btrim(le.claimed_by), ''), le.email, '') like '%@%' loop
+    v_res := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'rfq_addendum', 'requested_by', 'customer_support', 'channel', 'email', 'to_email', l.to_email,
+      'to_role', 'supplier', 'lead_id', l.id, 'inquiry_id', i.id, 'lang', 'en',
+      'subject', 'The customer added detail to a request you were invited to quote',
+      'body', 'The customer added this to the ' || coalesce(i.category, '') || coalesce(' job in ' || nullif(i.emirate, ''), ' job')
+              || ' you were invited to quote:' || chr(10) || chr(10) || v_lines || chr(10) || chr(10)
+              || 'It is now part of the request. Log in to your QuotesDone supplier portal to see the full request and quote.',
+      'dedupe_key', 'missing_specs:' || v_note || ':' || l.id)));
+    v_told := v_told + 1;
+  end loop;
+
+  v_missing := public.fn_inquiry_missing_specs(i.id, null);
+  return jsonb_build_object('ok', true, 'added', (select jsonb_agg(k) from jsonb_object_keys(v_add) k),
+    'ready', coalesce(v_after.rfq_ready, false), 'still_missing', v_missing->'missing',
+    'reached_suppliers', (v_missing->>'reached_suppliers')::boolean, 'suppliers_told', v_told, 'note_id', v_note);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_inquiry_is_demo(p_inquiry uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -169,6 +235,54 @@ AS $function$
   select case when i.lang = 'ar' then 'ar' when i.lang = 'en' then 'en' end
     from public.inquiries i where i.id = p_inquiry
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_inquiry_missing_specs(p_inquiry uuid, p_lang text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; v_ar boolean; v_chk jsonb; v_fields jsonb; v_missing jsonb := '[]'::jsonb; m jsonb; f jsonb;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('held', false, 'reason', 'no such request'); end if;
+  v_ar := coalesce(case when p_lang in ('en', 'ar') then p_lang end, public.fn_inquiry_locale(i.id),
+                   (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
+  -- A combined (split) request's specs belong to its per-trade parts, each checked and completed on its own; the
+  -- parent carries none (the concierge re-review of #1112 judges a parent by its children the same way).
+  if exists (select 1 from public.inquiries c where c.parent_inquiry_id = i.id) then
+    return jsonb_build_object('held', false, 'lang', case when v_ar then 'ar' else 'en' end, 'missing', '[]'::jsonb,
+                              'reason', 'a combined request: each trade is completed on its own part');
+  end if;
+  v_chk := public.fn_rfq_required_check(i);
+  select cs.fields into v_fields from public.category_specs cs where lower(cs.category) = lower(coalesce(i.category, '')) limit 1;
+  for m in select value from jsonb_array_elements(coalesce(v_chk->'missing', '[]'::jsonb)) loop
+    f := null;
+    select value into f from jsonb_array_elements(coalesce(v_fields, '[]'::jsonb)) where lower(value->>'key') = m->>'key' limit 1;
+    v_missing := v_missing || jsonb_build_array(jsonb_build_object(
+      'key', m->>'key',
+      'ask', coalesce(nullif(f->>case when v_ar then 'question_plain_ar' else 'question_plain_en' end, ''), nullif(m->>'question', ''), m->>'key'),
+      'type', coalesce(f->>'type', m->>'type', 'text'),
+      'options', coalesce(f->'options', '[]'::jsonb)));
+  end loop;
+  -- The general score also holds a request below its bar (fn_rfq_score: generic_ready). Of its parts, the two a
+  -- customer can state in a field are asked too, so completing the page can release the request.
+  if not coalesce((public.fn_rfq_score(i)->>'generic_ready')::boolean, true) then
+    if i.budget is null then
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', 'budget', 'type', 'text', 'options', '[]'::jsonb,
+        'ask', case when v_ar then 'الميزانية المرصودة للعمل (يكفي نطاق تقريبي).' else 'Your budget for the work (a range is fine).' end));
+    end if;
+    if coalesce(i.emirate, '') = '' then
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', 'emirate', 'type', 'text', 'options', '[]'::jsonb,
+        'ask', case when v_ar then 'في أي إمارة ومنطقة سيُنفَّذ العمل؟' else 'Which emirate and area is the work in?' end));
+    end if;
+  end if;
+  return jsonb_build_object(
+    'held', coalesce(i.status, '') not in ('cancelled', 'closed', 'completed') and jsonb_array_length(v_missing) > 0,
+    'lang', case when v_ar then 'ar' else 'en' end, 'ready', coalesce(i.rfq_ready, false), 'missing', v_missing,
+    'reached_suppliers', exists (select 1 from public.inquiry_matches x where x.inquiry_id = i.id));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_intake_slug_for_catalog(p_catalog_slug text)
@@ -2549,7 +2663,11 @@ for r in select * from public.it_watch_queue where enabled order by queue_key lo
       v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key || '_drain',
         jsonb_build_object('basis','measured','pending', v_cnt, 'drained_last_hour', v_drain,
           'hours_to_clear', round(v_hours,1), 'threshold_hours', 24, 'drain_column', r.drain_column));
-      if v_hours is null or v_hours > 24 then
+      -- 29 Sep 2026 (incidents 495, 554): a drain of ZERO says nothing about rows younger than the hour it
+      -- was counted over. doc_backups is filled in a daily batch (~23:12 UTC) and drained within ~20 minutes;
+      -- the arm fired 4 minutes after the batch landed. Zero now counts only once the oldest pending row has
+      -- waited the full hour: a dead consumer is still raised, one tick later.
+      if (v_hours is null or v_hours > 24) and not (v_drain = 0 and v_age < 60) then
         v_state := case when v_drain = 0 then 'stopped' else 'degraded' end;
         v_sev   := public.fn_it_severity(v_state, r.surface = 'customer');
         v_key   := 'queue_not_draining:' || r.queue_key;
@@ -3358,7 +3476,16 @@ begin
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
               -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
               and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
-                       and now() < public.fn_it_digest_hold_ends(a.created_at)) loop
+                       -- 29 Sep 2026 (incident 484): the digest ages a new bug by its FINDING's started_at
+                       -- ("still young: judged again tomorrow"), and a finding that re-opened restarts that
+                       -- clock. Handoff 80605 was created 23 Sep 12:31Z for duty:handoff_sla:it.finding:ceo:unclosed;
+                       -- the finding re-opened 24 Sep 07:00Z, so the 24 Sep digest held it as young and took it
+                       -- on 25 Sep, while this duty, timing from the handoff, called it late at 29 hours. The
+                       -- hold now runs from the later of the two clocks, the one the digest actually obeys.
+                       and now() < public.fn_it_digest_hold_ends(greatest(a.created_at, coalesce(
+                         (select f.started_at from public.it_engineer_finding f
+                           where f.issue_key = regexp_replace(a.detail->>'dedupe_key', '^it_new_bug:', '')
+                             and f.closed_at is null), a.created_at)))) loop
     v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
       'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
                || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',
