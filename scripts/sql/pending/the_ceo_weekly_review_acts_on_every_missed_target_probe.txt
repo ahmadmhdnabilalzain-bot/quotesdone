@@ -1,0 +1,2 @@
+A PROBE, so it is never applied at all: it always rolls back every row it writes and returns one verdict row. It is run
+after the_ceo_weekly_review_acts_on_every_missed_target.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.

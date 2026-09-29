@@ -40,6 +40,8 @@ const C: Record<string, any> = {
   SupplierAdvisor: lazy(() => import('./SupplierAdvisor')),
 };
 const Summary: any = lazy(() => import('./SupplierInsightsSummary'));
+// 29 Sep 2026 (founder_instruction 1013 item 2): last month's scorecard against the trade opens the tab, in English.
+const Scorecard: any = lazy(() => import('./SupplierScorecard'));
 const PANELS: Record<string, { en: string; ar: string; parts: string[] }> = {
   recommended:    { en: 'Recommended for you', ar: 'مقترح لكم',         parts: ['SupplierOpportunities', 'SupplierQuoteBuilder'] },
   twin:           { en: 'Company health',      ar: 'صحة الشركة',        parts: ['SupplierTwin', 'SupplierInsightBoard'] },
@@ -76,7 +78,7 @@ export default function Insights({ token, lang, goTo, initial }: { token: string
   // 15 Sep 2026: the tab opens on the supplier's own performance (totals, price position, funnel, trend,
   // hints — ./SupplierInsightsSummary.tsx), which always renders, zeros included. The intelligence panels
   // follow, and only those with real data behind them.
-  const summary = <Summary token={token} lang={lang} goTo={goTo} />;
+  const summary = <><Scorecard token={token} /><Summary token={token} lang={lang} goTo={goTo} /></>;
   if (st.loading) return <>{summary}<div className="qd-panel h-32 animate-pulse motion-reduce:animate-none" aria-busy="true" /></>;
   // The read failed. This tab is not given an `onExpired` route by its parent (SupplierPortal.tsx
   // renders `<Insights token lang goTo initial />`), so an expired session is said in words here

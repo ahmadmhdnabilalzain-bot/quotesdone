@@ -1,0 +1,4 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it after
+the_it_engineer_watches_each_providers_weekly_cost_and_names_the_cause.sql is live; it must print PROBE OK.
+Measured PROBE OK on htdblwldjkcgjvmqkbeh, 29 Sep 2026 (run together with the unapplied file in one rolled-back
+transaction). This note stays for the life of the file. Seat: it_engineer.

@@ -125,3 +125,14 @@ Deno.test('the model name counts only when confident and a real name', () => {
   assertEquals(licenceNameFromModel({ legal_name: '', confidence: 'high' }), null);
   assertEquals(licenceNameFromModel(null), null);
 });
+
+Deno.test('readLicenceName: a PDF that places each line with its own Tm reads the name (28 Sep 2026)', async () => {
+  // The shape scripts/lib/demo_pdf.mjs writes: one BT, and `1 0 0 1 x y Tm` before every line. Before
+  // the fix the whole page read as one line and the name was never found (licence_name_unread).
+  const lines = ['TRADE LICENCE', 'Licence No.: ZZDEMO-1', 'Company Name: ZZ DEMO Walk en desktop', 'Legal Type: Limited Liability Company'];
+  const body = ['BT', ...lines.map((l, i) => `/F1 12 Tf\n1 0 0 1 60 ${780 - 20 * i} Tm\n(${esc(l)}) Tj`), 'ET'].join('\n');
+  const s = enc.encode(body);
+  const head = enc.encode(`%PDF-1.4\n5 0 obj\n<< /Length ${s.length} >>\nstream\n`), tail = enc.encode('\nendstream\nendobj\n%%EOF\n');
+  const out = new Uint8Array(head.length + s.length + tail.length); out.set(head); out.set(s, head.length); out.set(tail, head.length + s.length);
+  assertEquals(await readLicenceName(out, 'application/pdf'), 'ZZ DEMO Walk en desktop');
+});

@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 
 import { lit } from './db.mjs';
 
-export function replaySql(name, def, entry, at, stage = '') {
+export function replaySql(name, def, entry, at, stage = '', prelude = '') {
   let body = def
     .replace(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'), `create function pg_temp.qd_replay_${name}(`)
     .replace(/\bnow\(\)|\bclock_timestamp\(\)|\bcurrent_timestamp\b|\btransaction_timestamp\(\)|\bstatement_timestamp\(\)/gi, 'pg_temp.qd_asof()')
@@ -25,6 +25,7 @@ export function replaySql(name, def, entry, at, stage = '') {
     ? `(select coalesce(jsonb_agg(f->>'detector_key' || ' -- ' || left(f->>'title', 90)), '[]') from jsonb_array_elements(v->'${entry.findings}') f)`
     : `'[]'::jsonb`;
   return `begin;
+${prelude}
 create function pg_temp.qd_asof() returns timestamptz language sql stable as $a$ select ${lit(at)}::timestamptz $a$;
 create temp table qd_quiet_fired (issue_key text, title text);
 create function pg_temp.qd_quiet_capture(p_issue_key text, p_title text, p_where text, p_blast text, p_affected integer default 0,
@@ -43,25 +44,21 @@ end $q$;`;
 }
 
 // -> { at, fired: ['<key> -- <title>', ...] }
-// `pendingSrc` (29 Sep 2026, sales_engineer, #1106): the text of the scripts/sql/pending file that defines a routine not
-// yet in production. The replay then runs that whole file FIRST, inside the same transaction the raise rolls back, and
-// replays the definition it creates - so a new alarm is proved quiet on its own PR instead of failing "not in
-// production" until the apply. A routine that IS in production is always replayed from production's definition.
-export async function replay(sql, name, entry, at, stage = '', pendingSrc = null) {
-  let def = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                         where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
-  let prefix = '';
-  if (!def && pendingSrc) {
-    const i = pendingSrc.search(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'));
-    const tag = i < 0 ? null : pendingSrc.slice(i).match(/\sas\s+(\$[A-Za-z_]*\$)/i)?.[1];
-    const end = tag ? pendingSrc.indexOf(tag, pendingSrc.indexOf(tag, i) + tag.length) : -1;
-    if (end > 0) { def = pendingSrc.slice(i, end + tag.length); prefix = pendingSrc + '\n'; }
-  }
+// A ROUTINE STILL WAITING IN scripts/sql/pending/ (29 Sep 2026) is not in production, so the PR that adds it could
+// not replay it. `pending` = { file, def }: its pending file's SQL, run first inside the same rolled-back transaction
+// (what it calls then exists), and the routine's own definition from that file. The new alarm is replayed before
+// it is applied, not discovered loud after.
+export async function replay(sql, name, entry, at, stage = '', pending = null) {
+  const live = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                           where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
+  const def = pending?.def ?? live;
   assert.ok(def, `${name} is not in production`);
   let message = '';
-  // Retried on 429/5xx like any read: a replay is seconds long, writes only temp objects and rows the
-  // raise rolls back, so a second copy cannot deadlock the first (the hazard db.mjs names is DDL replays).
-  try { await sql(prefix ? 'begin;\n' + prefix + replaySql(name, def, entry, at, stage).replace(/^begin;/, '') : replaySql(name, def, entry, at, stage)); message = 'the replay returned without raising, so it did not roll back'; }
+  // A LIVE routine's replay is retried on 429/5xx like any read: it is seconds long, writes only temp objects and
+  // rows the raise rolls back, so a second copy cannot deadlock the first. A PENDING routine's replay is NOT retried:
+  // its prelude is the whole pending file - ALTER TABLE, DROP/CREATE TRIGGER, routine replacements and any at-apply
+  // step - all rolled back by the same raise, but DDL taking table locks, which is the replay hazard db.mjs names.
+  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? ''), { retry: !pending }); message = 'the replay returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, `${name} at ${at}: ${message.slice(0, 1500)}`);
