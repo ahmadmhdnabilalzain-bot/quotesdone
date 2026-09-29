@@ -1,0 +1,107 @@
+{
+  "trade": "pharma_wholesale",
+  "layer": "uae-market",
+  "label_en": "Pharmaceuticals wholesale",
+  "label_ar": "تجارة أدوية بالجملة",
+  "entries": [
+    {
+      "id": "pharma_wholesale:uae-market-products",
+      "topic": "Pharmaceuticals wholesale: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Pharmaceutical wholesale in the UAE covers prescription medicines (branded and generic), OTC medicines, controlled and semi-controlled drugs (narcotics and psychotropics under strict permits), vaccines and biologics (cold chain 2-8 °C), insulin and specialty drugs, nutritional supplements and health products, herbal and complementary medicines, medicated cosmetics, baby milk formula, and medical devices sold through pharmacies. Buyers ask about registration status and registered price, batch and expiry, cold chain handling (GDP), pack size, and whether a product is registered in the UAE or requires a named-patient/import permit. Only licensed pharmaceutical agents and warehouses may import and distribute; product registration and pricing are regulated federally by the Emirates Drug Establishment (formerly the MOHAP drug department), with retail prices fixed and printed on packs. Warehouses follow Good Distribution Practice (GDP) and DHA/DOH/MOHAP licensing, and pharmacies may only buy from licensed warehouses.",
+      "body_ar": "تشمل تجارة الأدوية بالجملة في الإمارات الأدوية الموصوفة (العلامات التجارية والجنيسة)، والأدوية المتاحة دون وصفة، والأدوية المراقبة وشبه المراقبة (المخدرة والمؤثرة عقلياً بتصاريح صارمة)، واللقاحات والمنتجات البيولوجية (سلسلة تبريد 2-8 °م)، والأنسولين والأدوية المتخصصة، والمكملات الغذائية والمنتجات الصحية، والأدوية العشبية والتكميلية، ومستحضرات التجميل الطبية، وحليب الأطفال الصناعي، والأجهزة الطبية المباعة عبر الصيدليات. يسأل المشترون عن حالة التسجيل والسعر المسجل، والتشغيلة وتاريخ الانتهاء، ومناولة سلسلة التبريد (ممارسات التوزيع الجيدة)، وحجم العبوة، وما إذا كان المنتج مسجلاً في الإمارات أو يتطلب تصريح استيراد لمريض محدد. ولا يجوز الاستيراد والتوزيع إلا للوكلاء والمستودعات الدوائية المرخصة؛ وتُنظم عملية تسجيل المنتجات وتسعيرها اتحادياً من قبل مؤسسة الإمارات للدواء (إدارة الدواء بوزارة الصحة ووقاية المجتمع سابقاً)، مع تثبيت أسعار التجزئة وطباعتها على العبوات. وتتبع المستودعات ممارسات التوزيع الجيدة وترخيص هيئة الصحة بدبي أو دائرة الصحة أو وزارة الصحة، ولا يجوز للصيدليات الشراء إلا من المستودعات المرخصة.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.citypharmacy.com/",
+        "https://en.wikipedia.org/wiki/Julphar",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.julphar.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for pharmaceutical products -> confirmed | City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors -> confirmed | Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers -> confirmed | Rafed centralises healthcare procurement in Abu Dhabi -> confirmed. Not checked: Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified."
+    },
+    {
+      "id": "pharma_wholesale:uae-market-brands",
+      "topic": "Pharmaceuticals wholesale: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE distributors, manufacturers and purchasing body, plus multinationals: City Pharmacy Co., Modern Pharmaceutical Company (MPC), Julphar, Neopharma, Globalpharma, Rafed (PureHealth), Pfizer, Novartis, Sanofi, GSK, AstraZeneca, Roche, Novo Nordisk. The multinationals' UAE agents were not checked; check each product's registered agent with the Emirates Drug Establishment.",
+      "body_ar": "الموزعون والمصنعون وجهة الشراء المؤكدون في الإمارات، إضافة إلى الشركات متعددة الجنسيات: City Pharmacy Co.، Modern Pharmaceutical Company (MPC)، Julphar، Neopharma، Globalpharma، Rafed (PureHealth)، Pfizer، Novartis، Sanofi، GSK، AstraZeneca، Roche، Novo Nordisk. ولم يُتحقق من وكلاء الشركات متعددة الجنسيات في الإمارات؛ ويجب التحقق من الوكيل المسجل لكل منتج لدى مؤسسة الإمارات للدواء.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.citypharmacy.com/",
+        "https://en.wikipedia.org/wiki/Julphar",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.julphar.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for pharmaceutical products -> confirmed | City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors -> confirmed | Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers -> confirmed | Rafed centralises healthcare procurement in Abu Dhabi -> confirmed. Not checked: Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified."
+    },
+    {
+      "id": "pharma_wholesale:uae-market-sizes",
+      "topic": "Pharmaceuticals wholesale: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Medicines are priced per pack at the registered public price; wholesale to pharmacies is at a regulated margin/discount off the retail price, with bonus schemes (free goods) common. Hospital tenders are priced per unit (tablet, vial) with annual contracts. Orders are placed per pack/carton with no large MOQ for pharmacies; cold chain items are delivered in validated containers. Payment terms to pharmacies are commonly 60-120 days.",
+      "body_ar": "تُسعّر الأدوية لكل عبوة بالسعر العام المسجل؛ ويكون البيع بالجملة للصيدليات بهامش/خصم منظم من سعر التجزئة، مع شيوع برامج البونص (بضائع مجانية). وتُسعّر مناقصات المستشفيات لكل وحدة (قرص، قارورة) بعقود سنوية. وتُقدم الطلبات لكل عبوة/كرتونة دون حد أدنى كبير للصيدليات؛ وتُسلم منتجات سلسلة التبريد في حاويات مُتحقق منها. وشروط الدفع للصيدليات عادةً 60-120 يوماً.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.citypharmacy.com/",
+        "https://en.wikipedia.org/wiki/Julphar",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.julphar.net"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for pharmaceutical products -> confirmed | City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors -> confirmed | Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers -> confirmed | Rafed centralises healthcare procurement in Abu Dhabi -> confirmed. Not checked: Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can a pharmacy buy medicines directly from an overseas supplier?",
+      "q_ar": "هل يمكن للصيدلية شراء الأدوية مباشرة من مورد خارجي؟",
+      "expected_entry_ids": [
+        "pharma_wholesale:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EDE is the federal regulator for pharmaceutical products",
+        "url": "https://www.ede.gov.ae/en/home",
+        "result": "confirmed"
+      },
+      {
+        "claim": "City Pharmacy Co. (since 1967, KEZAD warehouse) and Modern Pharmaceutical Company (1969, Dubai) are UAE pharmaceutical distributors",
+        "url": "https://www.citypharmacy.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Julphar (RAK), Neopharma and Globalpharma (Dubai, WHO prequalified) are UAE manufacturers",
+        "url": "https://en.wikipedia.org/wiki/Julphar",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Rafed centralises healthcare procurement in Abu Dhabi",
+        "url": "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Distributor names beyond the widely known ones are generalised; exact wholesale margin rules, current payment term norms and each multinational's appointed agent were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

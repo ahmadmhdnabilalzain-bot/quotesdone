@@ -1,0 +1,99 @@
+{
+  "trade": "upholstery",
+  "layer": "uae-market",
+  "label_en": "Upholstery & soft furnishing",
+  "label_ar": "التنجيد والمفروشات",
+  "entries": [
+    {
+      "id": "upholstery:uae-market-products",
+      "topic": "Upholstery & soft furnishing: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Upholstery supplies and services in the UAE include upholstery fabrics (velvet, chenille, jacquard, linen blends, performance fabrics, outdoor acrylics), genuine and faux leather (PU, PVC, microfibre), foam (PU foam in densities 18-45 kg/m3, high-resilience HR foam, memory foam, fire-retardant CMHR foam), fibre wadding and dacron, webbing and springs (zig-zag/serpentine and pocket springs), fixings (staples, tacks, buttons), and custom upholstery of sofas, majlis seating, headboards, dining chairs, cushions, boat and car interiors, wall panels and acoustic upholstered panels. Buyers specify abrasion resistance (Martindale cycles, typically 20,000+ domestic, 40,000+ contract), colour fastness, fire performance (BS 5852 for contract seating; Civil Defence may request certificates for hotels and public buildings), foam density and hardness, and cleanability.",
+      "body_ar": "تشمل مستلزمات وخدمات التنجيد في الإمارات أقمشة التنجيد (مخمل، وشنيل، وجاكار، ومزيج الكتان، وأقمشة عالية الأداء، وأكريليك خارجي)، والجلد الطبيعي والصناعي (بولي يوريثان، وبولي فينيل كلوريد، وألياف دقيقة)، والإسفنج (إسفنج بولي يوريثان بكثافات 18-45 كغ/م3، وإسفنج عالي المرونة HR، وإسفنج الذاكرة، وإسفنج CMHR المقاوم للحريق)، وحشوات الألياف والداكرون، والأحزمة والنوابض (نوابض متعرجة ونوابض الجيب)، ومواد التثبيت (دبابيس، ومسامير، وأزرار)، والتنجيد حسب الطلب للأرائك وجلسات المجالس وألواح الأسرّة وكراسي الطعام والوسائد وداخليات القوارب والسيارات والألواح الجدارية والألواح الصوتية المنجدة. يحدد المشترون مقاومة الاحتكاك (دورات مارتنديل، عادةً 20,000 فأكثر للمنازل و40,000 فأكثر للمشاريع)، وثبات اللون، والأداء الناري (BS 5852 لمقاعد المشاريع؛ وقد يطلب الدفاع المدني شهادات للفنادق والمباني العامة)، وكثافة الإسفنج وصلابته، وسهولة التنظيف.",
+      "sources": [
+        "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
+        "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
+        "https://www.yellowpages-uae.com/uae/sharjah/foam-manufacturers",
+        "https://www.bsigroup.com",
+        "https://www.james-heal.co.uk",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified."
+    },
+    {
+      "id": "upholstery:uae-market-brands",
+      "topic": "Upholstery & soft furnishing: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed local foam makers and international fabric houses: King Foam Factory (Ajman), ESW, Romo, Designers Guild, Kravet, Pierre Frey, Sunbrella. The fabric houses' UAE showrooms were not checked. Upholstery workshops cluster in Al Quoz, Ras Al Khor, Al Qusais, the Sharjah Industrial Areas, Ajman and Musaffah.",
+      "body_ar": "مصنعو الإسفنج المحليون المؤكدون ودور الأقمشة الدولية: King Foam Factory (Ajman)، ESW، Romo، Designers Guild، Kravet، Pierre Frey، Sunbrella. ولم يُتحقق من صالات عرض دور الأقمشة في الإمارات. وتتجمع ورش التنجيد في القوز ورأس الخور والقصيص والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "sources": [
+        "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
+        "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
+        "https://www.yellowpages-uae.com/uae/sharjah/foam-manufacturers",
+        "https://www.bsigroup.com",
+        "https://www.james-heal.co.uk",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified."
+    },
+    {
+      "id": "upholstery:uae-market-sizes",
+      "topic": "Upholstery & soft furnishing: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Fabric is priced per metre (widths 137-145 cm or 280-300 cm); leather per sq ft or per hide; foam per sheet (e.g. 2 x 1 m or 1.9 x 1.2 m at stated thickness) or per cubic metre/kg. Upholstery labour is quoted per piece (per seat, per chair, per linear metre of majlis seating) with fabric separate or included. Minimum job charges and pick-up/delivery fees are common.",
+      "body_ar": "يُسعّر القماش لكل متر (العرض 137-145 سم أو 280-300 سم)؛ والجلد لكل قدم مربع أو لكل جلد كامل؛ والإسفنج لكل لوح (مثل 2 × 1 م أو 1.9 × 1.2 م بالسماكة المحددة) أو لكل متر مكعب/كيلوغرام. وتُسعّر عمالة التنجيد لكل قطعة (لكل مقعد، لكل كرسي، لكل متر طولي من جلسات المجلس) مع احتساب القماش بشكل منفصل أو ضمناً. ورسوم الحد الأدنى للعمل ورسوم الاستلام والتوصيل شائعة.",
+      "sources": [
+        "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
+        "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
+        "https://www.yellowpages-uae.com/uae/sharjah/foam-manufacturers",
+        "https://www.bsigroup.com",
+        "https://www.james-heal.co.uk",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating -> confirmed | Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW) -> confirmed | Romo, Designers Guild, Kravet UAE showrooms -> removed: not checked. Not checked: UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What foam density should we use for majlis seat cushions?",
+      "q_ar": "ما كثافة الإسفنج التي يجب استخدامها لوسائد جلسات المجلس؟",
+      "expected_entry_ids": [
+        "upholstery:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Contract upholstery is usually 40,000+ Martindale rubs; BS 5852 applies to contract seating",
+        "url": "https://www.kothea.com/2026/04/05/martindale-rub-test-guide/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Foam makers operate in Sharjah and Ajman (King Foam Factory, Ajman; ESW)",
+        "url": "https://www.bizuum.com/suppliers-businesses-companies/king-foam-factory/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Romo, Designers Guild, Kravet UAE showrooms",
+        "url": "https://www.yellowpages-uae.com/uae/sharjah/foam-manufacturers",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "UAE showroom representation of the named fabric houses and local foam manufacturer names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

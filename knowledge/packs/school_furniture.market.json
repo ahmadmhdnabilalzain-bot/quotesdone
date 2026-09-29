@@ -1,0 +1,99 @@
+{
+  "trade": "school_furniture",
+  "layer": "uae-market",
+  "label_en": "School & education furniture",
+  "label_ar": "أثاث مدارس",
+  "entries": [
+    {
+      "id": "school_furniture:uae-market-products",
+      "topic": "School & education furniture: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "School furniture sold in the UAE includes student desks and chairs (single and double, fixed or height-adjustable), polypropylene shell chairs on steel frames, early-years tables and chairs in child sizes, teacher desks, science laboratory benches with chemical-resistant tops (epoxy resin, phenolic compact laminate, HPL), fume cupboards, library shelving and reading furniture, lockers, auditorium seating, cafeteria tables, art and design tables, computer lab furniture, and collaborative/flexible learning furniture (mobile tables, soft seating). Specifications follow EN 1729-1/-2 for size marks (sizes 0-7 by user stature) and strength, rounded edges, stable anti-tip design, formaldehyde emissions E1/E0, and lab furniture to EN 13150 / EN 14175 for fume cupboards. Government and private schools often require compliance with KHDA/ADEK/MOE facility standards and Civil Defence rules for auditorium seating (fire-retardant upholstery).",
+      "body_ar": "يشمل الأثاث المدرسي المباع في الإمارات مكاتب وكراسي الطلاب (فردية ومزدوجة، ثابتة أو قابلة لتعديل الارتفاع)، والكراسي ذات الهيكل البلاستيكي من البولي بروبيلين على إطارات فولاذية، وطاولات وكراسي المراحل المبكرة بمقاسات الأطفال، ومكاتب المعلمين، وطاولات مختبرات العلوم بأسطح مقاومة للكيماويات (راتنج الإيبوكسي، واللامينيت الفينولي المضغوط، وHPL)، وخزائن الأبخرة، ورفوف وأثاث المكتبات، والخزائن الشخصية، ومقاعد القاعات، وطاولات الكافتيريا، وطاولات الفنون والتصميم، وأثاث مختبرات الحاسوب، وأثاث التعلم التعاوني والمرن (طاولات متحركة، وجلسات مريحة). وتتبع المواصفات EN 1729-1/-2 لعلامات المقاسات (المقاسات 0-7 حسب طول المستخدم) والمتانة، والحواف المستديرة، والتصميم المستقر المانع للانقلاب، وانبعاثات الفورمالديهايد E1/E0، وأثاث المختبرات وفق EN 13150 وEN 14175 لخزائن الأبخرة. وغالباً ما تشترط المدارس الحكومية والخاصة الامتثال لمعايير مرافق هيئة المعرفة أو دائرة التعليم والمعرفة أو وزارة التربية، وقواعد الدفاع المدني لمقاعد القاعات (تنجيد مقاوم للحريق).",
+      "sources": [
+        "https://www.spaceforme.com/post/what-is-bs-en-1729-and-why-is-it-important",
+        "https://nasco-uae.com/educational/",
+        "https://ncf-uae.com/2026/05/13/top-10-school-furniture-suppliers-in-uae-2026-guide/",
+        "https://www.cencenelec.eu",
+        "https://www.khda.gov.ae",
+        "https://www.moe.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety -> confirmed | School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal -> confirmed | VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability -> removed: not checked. Not checked: Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified."
+    },
+    {
+      "id": "school_furniture:uae-market-brands",
+      "topic": "School & education furniture: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE school furniture suppliers: NASCO, Al Wafa Furniture (Sharjah), National Chair Factory (Umm Al Quwain), Intermetal. Imports come from Turkey, China, India, Spain and the UK; lab and auditorium brands and their UAE representation were not checked.",
+      "body_ar": "موردو الأثاث المدرسي المؤكدون في الإمارات: NASCO، Al Wafa Furniture (Sharjah)، National Chair Factory (Umm Al Quwain)، Intermetal. وتأتي الواردات من تركيا والصين والهند وإسبانيا والمملكة المتحدة؛ ولم يُتحقق من علامات أثاث المختبرات والقاعات ولا من تمثيلها في الإمارات.",
+      "sources": [
+        "https://www.spaceforme.com/post/what-is-bs-en-1729-and-why-is-it-important",
+        "https://nasco-uae.com/educational/",
+        "https://ncf-uae.com/2026/05/13/top-10-school-furniture-suppliers-in-uae-2026-guide/",
+        "https://www.cencenelec.eu",
+        "https://www.khda.gov.ae",
+        "https://www.moe.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety -> confirmed | School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal -> confirmed | VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability -> removed: not checked. Not checked: Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified."
+    },
+    {
+      "id": "school_furniture:uae-market-sizes",
+      "topic": "School & education furniture: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per set (desk + chair) or per piece by size mark; lab benches per linear metre; fume cupboards per unit by width (1.2, 1.5, 1.8 m); auditorium seats per seat. School tenders bundle supply and installation with warranty (typically 2-5 years). Delivery is timed for summer holidays (July-August), so orders are commonly placed in Q2.",
+      "body_ar": "تُسعّر لكل طقم (مكتب + كرسي) أو لكل قطعة حسب علامة المقاس؛ وطاولات المختبرات لكل متر طولي؛ وخزائن الأبخرة لكل وحدة حسب العرض (1.2 أو 1.5 أو 1.8 م)؛ ومقاعد القاعات لكل مقعد. وتجمع مناقصات المدارس التوريد والتركيب مع الضمان (عادةً 2-5 سنوات). ويُحدد موعد التسليم خلال العطلة الصيفية (يوليو-أغسطس)، لذا تُقدّم الطلبات عادةً في الربع الثاني.",
+      "sources": [
+        "https://www.spaceforme.com/post/what-is-bs-en-1729-and-why-is-it-important",
+        "https://nasco-uae.com/educational/",
+        "https://ncf-uae.com/2026/05/13/top-10-school-furniture-suppliers-in-uae-2026-guide/",
+        "https://www.cencenelec.eu",
+        "https://www.khda.gov.ae",
+        "https://www.moe.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety -> confirmed | School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal -> confirmed | VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability -> removed: not checked. Not checked: Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What furniture size mark suits Grade 5 students?",
+      "q_ar": "ما علامة مقاس الأثاث المناسبة لطلاب الصف الخامس؟",
+      "expected_entry_ids": [
+        "school_furniture:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EN 1729-1 has eight size marks, 0 to 7, set by pupil stature; EN 1729-2 covers safety",
+        "url": "https://www.spaceforme.com/post/what-is-bs-en-1729-and-why-is-it-important",
+        "result": "confirmed"
+      },
+      {
+        "claim": "School furniture suppliers in the UAE include NASCO, Al Wafa (Sharjah), National Chair Factory (UAQ) and Intermetal",
+        "url": "https://nasco-uae.com/educational/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "VS, Hille, Sebel, Virco, Waldner, Köttermann UAE availability",
+        "url": "https://ncf-uae.com/2026/05/13/top-10-school-furniture-suppliers-in-uae-2026-guide/",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Which named brands currently have UAE distributors and whether regulators mandate EN 1729 specifically were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

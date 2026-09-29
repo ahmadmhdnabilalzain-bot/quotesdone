@@ -1,0 +1,91 @@
+{
+  "trade": "solar",
+  "layer": "uae-market",
+  "label_en": "Solar & Renewable Energy",
+  "label_ar": "الطاقة الشمسية والمتجددة",
+  "entries": [
+    {
+      "id": "solar:uae-market-products",
+      "topic": "Solar & Renewable Energy: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Solar and renewable energy in the UAE: rooftop and car-park grid-connected PV (net metering under DEWA's Shams Dubai; Abu Dhabi's distributed generation rules with ADDC/AADC; SEWA and EtihadWE rules elsewhere), ground-mounted and utility-scale PV (IPP projects procured by DEWA and EWEC), off-grid and hybrid PV with batteries, solar water heaters, solar street lights and pumps. Modules: mono PERC and n-type TOPCon/HJT, bifacial glass-glass, 540-720 Wp, with IEC 61215/61730 certification; inverters: string, hybrid, central, with anti-islanding per utility grid code; mounting: aluminium and galvanised steel, ballast or anchored; soiling management (robotic or manual cleaning) matters in dust. Only DEWA-enrolled consultants and contractors and equipment on DEWA's eligible equipment list may be used for Shams Dubai, and since May 2020 net metering covers rooftop, façade and building-integrated PV only (not ground-mounted).",
+      "body_ar": "الطاقة الشمسية والمتجددة في الإمارات: أنظمة الخلايا الكهروضوئية المتصلة بالشبكة على الأسطح ومظلات المواقف (صافي القياس ضمن برنامج شمس دبي لهيئة كهرباء ومياه دبي؛ وقواعد التوليد الموزع في أبوظبي؛ وقواعد هيئة الشارقة والاتحاد للماء والكهرباء في غيرها)، والأنظمة الأرضية ومحطات المرافق (مشاريع المنتجين المستقلين التي تطرحها هيئة كهرباء ومياه دبي وEWEC)، والأنظمة خارج الشبكة والهجينة مع البطاريات، وسخانات المياه الشمسية، وإنارة الشوارع والمضخات الشمسية. الألواح: أحادية PERC ونوع n بتقنية TOPCon/HJT، وثنائية الوجه زجاج-زجاج، بقدرة 540-720 واط، بشهادات IEC 61215/61730؛ والعواكس: سلسلية وهجينة ومركزية مع حماية منع العزل وفق كود الشبكة؛ والتثبيت: ألمنيوم وفولاذ مجلفن، بالأثقال أو المثبت؛ وإدارة الأتربة (تنظيف آلي أو يدوي) مهمة. ولا يجوز استخدام شمس دبي إلا لاستشاريين ومقاولين مسجلين لدى الهيئة وبمعدات مدرجة في قائمة المعدات المؤهلة، ومنذ مايو 2020 يقتصر صافي القياس على الأسطح والواجهات والأنظمة المدمجة في المباني (دون الأنظمة الأرضية).",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
+        "https://masdar.ae/en/news/newsroom/emerge-and-emirates-development-bank-to-collaborate",
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://masdar.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai rules -> confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020 | UAE solar EPCs -> confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked). Not checked: The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified."
+    },
+    {
+      "id": "solar:uae-market-brands",
+      "topic": "Solar & Renewable Energy: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Developers, EPCs and brands: Emerge (Masdar and EDF), Yellow Door Energy, Enerwhere, Masdar, ACWA Power, LONGi, Jinko, Trina, JA Solar, Canadian Solar, Huawei, Sungrow, SMA, Fronius, SolarEdge, Growatt, GoodWe, Schletter, K2, Clenergy. Emerge, Yellow Door Energy and Enerwhere are confirmed rooftop and C&I players, and Masdar and ACWA Power develop utility-scale plants. Module and inverter brands must be on DEWA's eligible list for Shams Dubai; their local distributors were not checked. Origins: China dominates modules and inverters, and Europe supplies premium inverters and mounting.",
+      "body_ar": "المطورون والمقاولون والعلامات: Emerge (Masdar and EDF)، Yellow Door Energy، Enerwhere، Masdar، ACWA Power، LONGi، Jinko، Trina، JA Solar، Canadian Solar، Huawei، Sungrow، SMA، Fronius، SolarEdge، Growatt، GoodWe، Schletter، K2، Clenergy. وEmerge وYellow Door Energy وEnerwhere لاعبون مؤكدون في الأسطح والقطاع التجاري والصناعي، وتطور Masdar وACWA Power محطات المرافق. ويجب أن تكون علامات الألواح والعواكس ضمن قائمة الهيئة المؤهلة لشمس دبي، ولم يُتحقق من موزعيها المحليين. المنشأ: الصين تهيمن على الألواح والعواكس؛ وأوروبا للعواكس والتثبيت الفاخرة.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
+        "https://masdar.ae/en/news/newsroom/emerge-and-emirates-development-bank-to-collaborate",
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://masdar.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai rules -> confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020 | UAE solar EPCs -> confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked). Not checked: The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified."
+    },
+    {
+      "id": "solar:uae-market-sizes",
+      "topic": "Solar & Renewable Energy: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Systems are sized in kWp (villas 5-30 kWp; commercial 100 kWp-5 MWp; utility hundreds of MW). EPC pricing is per Wp installed (AED/Wp) including modules, inverters, mounting, cabling, DEWA/utility approvals and commissioning; O&M per kWp per year with cleaning frequency. Modules are traded per Wp or per pallet (about 31-36 panels). Warranties: module product 12-25 years and linear performance 25-30 years (about 0.4-0.55% degradation per year); inverters 5-10 years; workmanship per installer. Commercial buyers also compare PPA/lease models with a per-kWh tariff.",
+      "body_ar": "تُقاس الأنظمة بالكيلوواط الذروي (الفلل 5-30 كيلوواط؛ والتجارية 100 كيلوواط إلى 5 ميغاواط؛ والمرافق مئات الميغاواط). ويكون تسعير المقاول بالواط الذروي المركّب (درهم/واط) شاملاً الألواح والعواكس والتثبيت والكابلات واعتمادات الهيئة والتشغيل؛ والتشغيل والصيانة بالكيلوواط سنوياً مع تكرار التنظيف. وتُتداول الألواح بالواط أو بالمنصة (نحو 31-36 لوحاً). الضمانات: منتج الألواح 12-25 سنة والأداء الخطي 25-30 سنة (نحو 0.4-0.55% تدهور سنوياً)؛ والعواكس 5-10 سنوات؛ والصنعة حسب المركّب. ويقارن المشترون التجاريون أيضاً نماذج اتفاقيات شراء الطاقة والتأجير بتعرفة للكيلوواط ساعة.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
+        "https://masdar.ae/en/news/newsroom/emerge-and-emirates-development-bank-to-collaborate",
+        "https://www.dewa.gov.ae",
+        "https://www.iec.ch",
+        "https://masdar.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai rules -> confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020 | UAE solar EPCs -> confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked). Not checked: The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Who can install a rooftop solar system on my villa in Dubai?",
+      "q_ar": "من يحق له تركيب نظام شمسي على سطح فيلتي في دبي؟",
+      "expected_entry_ids": [
+        "solar:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Shams Dubai rules",
+        "url": "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment",
+        "result": "confirmed and made specific: only DEWA-enrolled contractors and eligible equipment; ground-mounted systems excluded from net metering since May 2020"
+      },
+      {
+        "claim": "UAE solar EPCs",
+        "url": "https://masdar.ae/en/news/newsroom/emerge-and-emirates-development-bank-to-collaborate",
+        "result": "confirmed Emerge (Masdar-EDF JV), Yellow Door Energy, Enerwhere; Enviromena and Alsa Solar removed (not checked)"
+      }
+    ],
+    "unverified": "The current DEWA eligible equipment list, current net-metering rules in Abu Dhabi and northern emirates, and named EPCs' current status were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
