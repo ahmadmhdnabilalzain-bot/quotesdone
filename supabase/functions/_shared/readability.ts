@@ -6,6 +6,13 @@
 //      past ~25 words a sentence needs a second read (plain-language guidance used by UAE government
 //      service writing and the plainlanguage.gov "average 15-20 words" rule). 28 leaves room for one
 //      list-like sentence without letting a paragraph-sentence through.
+//      THE AVERAGE IS A TEXT'S MEASURE, NOT A SENTENCE'S (review of #1071, 29 Sep 2026): it is judged only from
+//      MIN_SENTENCES_FOR_AVERAGE sentences up. Over one or two sentences the average is the longest sentence
+//      again, held to a tighter limit than the longest-sentence rule itself: a correct one-sentence answer of 21
+//      words ("You describe the job once, we send it anonymously ...") failed at 21 > 20 while the cap is 28.
+//      A WORD HAS A LETTER IN IT. A bare figure (500, 12%, 1,000, 3.5) is read at a glance and is not counted;
+//      a unit or currency beside it (AED, a year) is. The supplier's non-response terms list four amounts in one
+//      sentence and were 30 "words" only because 500 and 12% were counted.
 //   2. JARGON. Legal filler ("pursuant", "herein"), trade and system abbreviations a buyer does not use
 //      (RFQ, SLA, KYC, API), and anything shaped like an internal identifier (snake_case, fn_ names).
 //   3. LANGUAGE. An Arabic conversation gets an Arabic reply: at least 60% of the letters are Arabic.
@@ -16,6 +23,7 @@ import type { GuardLang } from './support_reply_guard.ts';
 
 export const MAX_SENTENCE_WORDS = 28;
 export const MAX_AVG_SENTENCE_WORDS = 20;
+export const MIN_SENTENCES_FOR_AVERAGE = 3;
 
 const JARGON_EN = [
   'pursuant', 'herein', 'hereby', 'aforementioned', 'heretofore', 'notwithstanding', 'utilise', 'utilize',
@@ -46,7 +54,7 @@ export function checkReadability(text: string, lang: GuardLang): Readability {
   const body = strip(String(text || '')).trim();
   // a sentence ends at . ! ? ؟ or a line break; a decimal point inside a number is not an end
   const sentences = body.split(/(?<!\d)[.!?؟]+(?!\d)|\n+/).map((s) => s.trim()).filter((s) => /[\p{L}\p{N}]/u.test(s));
-  const counts = sentences.map((s) => s.split(/\s+/).filter(Boolean).length);
+  const counts = sentences.map((s) => s.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length);
   const maxW = counts.length ? Math.max(...counts) : 0;
   const avgW = counts.length ? Math.round((counts.reduce((a, b) => a + b, 0) / counts.length) * 10) / 10 : 0;
 
@@ -63,14 +71,15 @@ export function checkReadability(text: string, lang: GuardLang): Readability {
 
   const issues: string[] = [];
   if (maxW > MAX_SENTENCE_WORDS) issues.push(`long_sentence:${maxW}`);
-  if (avgW > MAX_AVG_SENTENCE_WORDS) issues.push(`long_average:${avgW}`);
+  const averaged = counts.length >= MIN_SENTENCES_FOR_AVERAGE;
+  if (averaged && avgW > MAX_AVG_SENTENCE_WORDS) issues.push(`long_average:${avgW}`);
   if (jargon.length) issues.push('jargon:' + [...new Set(jargon)].slice(0, 5).join(','));
   if (ar + la > 0 && lang === 'ar' && arabicShare < 0.6) issues.push('wrong_language:expected_ar');
   if (ar + la > 0 && lang === 'en' && arabicShare > 0.1) issues.push('wrong_language:expected_en');
 
   let score = 100;
   score -= Math.max(0, maxW - MAX_SENTENCE_WORDS) * 2;
-  score -= Math.max(0, avgW - MAX_AVG_SENTENCE_WORDS) * 3;
+  if (averaged) score -= Math.max(0, avgW - MAX_AVG_SENTENCE_WORDS) * 3;
   score -= new Set(jargon).size * 10;
   if (issues.some((i) => i.startsWith('wrong_language'))) score -= 50;
 

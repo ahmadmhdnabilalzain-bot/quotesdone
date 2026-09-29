@@ -30,3 +30,18 @@ Deno.test('tone: shouting and blame cost points but do not fail alone', () => {
   assert(r.ok); assert(r.tone <= 60, String(r.tone));
   assertEquals(checkReadability('We need the drawing. UAE and AED are fine.', 'en').tone, 100);
 });
+// Review of #1071: the gate rejected correct suite answers. These pin what now passes and what still fails.
+Deno.test('one or two sentences are judged by the longest-sentence rule, not the average', () => {
+  const one = 'You describe the job once, we send it anonymously to verified UAE suppliers, and you compare their quotes side by side.';
+  assert(checkReadability(one, 'en').ok, checkReadability(one, 'en').issues.join());
+  const w = (n: number) => Array(n).fill('word').join(' ') + '.';
+  assert(checkReadability(w(24) + ' ' + w(24), 'en').ok);
+  const three = checkReadability(w(24) + ' ' + w(24) + ' ' + w(24), 'en');
+  assert(!three.ok && three.issues.some((i) => i.startsWith('long_average')), 'three long sentences still fail on the average');
+});
+Deno.test('a figure is not a word; a sentence long in words still fails', () => {
+  const terms = 'If you stay silent the customer is refunded and you owe the amount refunded, the unrecovered processor fee, an AED 500 administrative fee and simple interest at 12% a year.';
+  assertEquals(checkReadability(terms, 'en').maxSentenceWords, 28);
+  assert(checkReadability(terms, 'en').ok);
+  assert(!checkReadability(Array(29).fill('word').join(' ') + ' 500 12% 1,000.', 'en').ok);
+});
