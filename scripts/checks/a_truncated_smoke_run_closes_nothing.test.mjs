@@ -3,9 +3,8 @@
 // which never ran (ledger 760). Both ingests must branch on `complete` before they settle.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const MIRROR = new URL('../../supabase/schema/full_schema.sql', import.meta.url);
 const body = (sql, name) => {
   const i = sql.search(new RegExp(`FUNCTION public\\.${name}\\(`));
   if (i < 0) return null;
@@ -13,8 +12,8 @@ const body = (sql, name) => {
   return sql.slice(a, sql.indexOf('$function$', a));
 };
 
-test('a partial run closes nothing, in both ingests', { skip: !existsSync(MIRROR) }, () => {
-  const sql = readFileSync(MIRROR, 'utf8');
+test('a partial run closes nothing, in both ingests', () => {
+  const sql = readSchemaMirror();
   for (const f of ['fn_it_journey_ingest', 'fn_it_smoke_ingest']) {
     const b = body(sql, f);
     assert.ok(b, `${f} is not in the mirror`);

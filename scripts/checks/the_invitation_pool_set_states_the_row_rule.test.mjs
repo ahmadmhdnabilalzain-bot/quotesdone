@@ -6,9 +6,9 @@
 // It also reads the repository (below) so an Arabic or doubly-defined invitation fails before it is applied.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const MIRROR = new URL('../../supabase/schema/full_schema.sql', import.meta.url);
 const body = (sql, name) => {
   const i = sql.search(new RegExp(`FUNCTION public\\.${name}\\(`));
   if (i < 0) return null;
@@ -18,8 +18,8 @@ const body = (sql, name) => {
   return sql.slice(a, sql.indexOf(tag, a));
 };
 
-test('the set rule consults every table the row rule does', { skip: !existsSync(MIRROR) }, () => {
-  const sql = readFileSync(MIRROR, 'utf8');
+test('the set rule consults every table the row rule does', () => {
+  const sql = readSchemaMirror();
   const row = body(sql, 'fn_supplier_invite_eligible');
   const set = body(sql, 'fn_supplier_invite_eligible_ids');
   if (!set) return;   // not applied yet: the pending note covers it
@@ -30,8 +30,8 @@ test('the set rule consults every table the row rule does', { skip: !existsSync(
   for (const t of want) assert.ok(have.has(t), `the row rule reads ${t}; the set rule does not`);
 });
 
-test('the list and the candidates read the set, not the per-row call', { skip: !existsSync(MIRROR) }, () => {
-  const sql = readFileSync(MIRROR, 'utf8');
+test('the list and the candidates read the set, not the per-row call', () => {
+  const sql = readSchemaMirror();
   if (!body(sql, 'fn_supplier_invite_eligible_ids')) return;
   for (const f of ['fn_supplier_campaign_next_list', 'fn_supplier_invite_candidates']) {
     assert.doesNotMatch(body(sql, f), /fn_supplier_invite_eligible\(l\)/, f);
