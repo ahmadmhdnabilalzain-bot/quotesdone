@@ -523,6 +523,7 @@ ALTER TABLE public.documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dr_restore ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.drawing_redaction_runs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.dropbox_files ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.duty_pause ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ea_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ea_meetings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ea_reminders ENABLE ROW LEVEL SECURITY;
@@ -976,6 +977,7 @@ ALTER TABLE public.support_root_cause_fix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_signal_category ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_change_tracked ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.table_export_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_daily_verdict ENABLE ROW LEVEL SECURITY;
@@ -1076,6 +1078,7 @@ CREATE POLICY os_owner_admin_read ON public.customers AS PERMISSIVE FOR SELECT T
 CREATE POLICY documents_customer_select ON public.documents AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM fn_customer_document_refs() r(ref_table, ref_id, source, supplier_id, supplier_name, revealed)
   WHERE ((r.ref_table = documents.ref_table) AND (r.ref_id = documents.ref_id)))));
+CREATE POLICY duty_pause_service_role_only ON public.duty_pause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY os_owner_admin_read ON public.edge_health_probe AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY email_platform_domain_service_role_only ON public.email_platform_domain AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY enterprise_account_service_role_only ON public.enterprise_account AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -1263,6 +1266,7 @@ CREATE POLICY support_root_cause_fix_service_role_only ON public.support_root_ca
 CREATE POLICY support_signal_category_service_role_only ON public.support_signal_category AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_service_role_only ON public.table_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_tracked_service_role_only ON public.table_export_change_tracked AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY table_export_registry_service_role_only ON public.table_export_registry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_run_service_role_only ON public.table_export_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY target_daily_verdict_service_role_only ON public.target_daily_verdict AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY target_path_service_role_only ON public.target_path AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

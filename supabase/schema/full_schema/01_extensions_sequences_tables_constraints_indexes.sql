@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T20:19:53.142Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T21:04:09.406Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -212,7 +212,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (692) =====
+-- ===== TABLES (694) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -2894,6 +2894,13 @@ CREATE TABLE IF NOT EXISTS public.dropbox_files (
   content_hash text,
   server_modified timestamp with time zone,
   synced_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.duty_pause (
+  duty text NOT NULL,
+  reason text NOT NULL,
+  paused_by text NOT NULL,
+  paused_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.ea_events (
@@ -9098,6 +9105,15 @@ CREATE TABLE IF NOT EXISTS public.table_export_change_tracked (
   bytes_at_registration bigint
 );
 
+CREATE TABLE IF NOT EXISTS public.table_export_registry (
+  table_name text NOT NULL,
+  exported boolean NOT NULL,
+  category text NOT NULL,
+  reason text NOT NULL,
+  added_by text NOT NULL,
+  added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.table_export_run (
   stamp date NOT NULL,
   kind text DEFAULT 'full'::text NOT NULL,
@@ -9804,6 +9820,7 @@ ALTER TABLE public.documents ADD CONSTRAINT documents_pkey PRIMARY KEY (id);
 ALTER TABLE public.dr_restore ADD CONSTRAINT dr_restore_pkey PRIMARY KEY (id);
 ALTER TABLE public.drawing_redaction_runs ADD CONSTRAINT drawing_redaction_runs_pkey PRIMARY KEY (id);
 ALTER TABLE public.dropbox_files ADD CONSTRAINT dropbox_files_pkey PRIMARY KEY (id);
+ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_pkey PRIMARY KEY (duty);
 ALTER TABLE public.ea_events ADD CONSTRAINT ea_events_pkey PRIMARY KEY (id);
 ALTER TABLE public.ea_meetings ADD CONSTRAINT ea_meetings_pkey PRIMARY KEY (id);
 ALTER TABLE public.ea_reminders ADD CONSTRAINT ea_reminders_pkey PRIMARY KEY (id);
@@ -10257,6 +10274,7 @@ ALTER TABLE public.support_root_cause_fix ADD CONSTRAINT support_root_cause_fix_
 ALTER TABLE public.support_signal_category ADD CONSTRAINT support_signal_category_pkey PRIMARY KEY (source, value);
 ALTER TABLE public.table_export_change ADD CONSTRAINT table_export_change_pkey PRIMARY KEY (id);
 ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_pkey PRIMARY KEY (table_name);
+ALTER TABLE public.table_export_registry ADD CONSTRAINT table_export_registry_pkey PRIMARY KEY (table_name);
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_pkey PRIMARY KEY (stamp);
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_pkey PRIMARY KEY (id);
 ALTER TABLE public.target_daily_verdict ADD CONSTRAINT target_daily_verdict_pkey PRIMARY KEY (day, contract_id, metric_key);
@@ -10637,6 +10655,8 @@ ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_opt_known CHECK (
 ALTER TABLE public.customers ADD CONSTRAINT customers_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
 ALTER TABLE public.department_objective ADD CONSTRAINT department_objective_status_check CHECK ((status = ANY (ARRAY['active'::text, 'superseded'::text, 'achieved'::text, 'dropped'::text])));
 ALTER TABLE public.dept_knowledge_alias ADD CONSTRAINT dept_knowledge_alias_alias_kind_check CHECK ((alias_kind = ANY (ARRAY['dept'::text, 'module'::text])));
+ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_paused_by_check CHECK ((length(btrim(paused_by)) > 0));
+ALTER TABLE public.duty_pause ADD CONSTRAINT duty_pause_reason_check CHECK ((length(btrim(reason)) > 0));
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_domain_check CHECK (((domain = lower(btrim(domain))) AND (domain ~~ '%.%'::text)));
 ALTER TABLE public.email_platform_domain ADD CONSTRAINT email_platform_domain_kind_check CHECK ((kind = ANY (ARRAY['directory'::text, 'marketplace'::text, 'job_board'::text, 'publisher'::text, 'hosting'::text, 'site_builder'::text, 'template_vendor'::text, 'web_agency'::text, 'placeholder'::text, 'disposable'::text, 'typo'::text])));
 ALTER TABLE public.employee_kpi ADD CONSTRAINT employee_kpi_class_check CHECK (((kpi_class IS NULL) OR (kpi_class = ANY (ARRAY['activity'::text, 'leading_indicator'::text, 'quality_metric'::text, 'conversion'::text, 'revenue'::text, 'cost'::text, 'risk'::text]))));
@@ -11330,6 +11350,10 @@ ALTER TABLE public.support_root_cause_fix ADD CONSTRAINT support_root_cause_fix_
 ALTER TABLE public.support_signal_category ADD CONSTRAINT support_signal_category_source_check CHECK ((source = ANY (ARRAY['wa_choice'::text, 'email_category'::text, 'case_kind'::text, 'faq_section'::text])));
 ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_pk_column_check CHECK ((pk_column ~ '^[a-z_][a-z0-9_]*$'::text));
 ALTER TABLE public.table_export_change_tracked ADD CONSTRAINT table_export_change_tracked_table_name_check CHECK ((table_name ~ '^[a-z_][a-z0-9_]*$'::text));
+ALTER TABLE public.table_export_registry ADD CONSTRAINT table_export_registry_category_check CHECK ((btrim(category) <> ''::text));
+ALTER TABLE public.table_export_registry ADD CONSTRAINT table_export_registry_exclusion_has_a_known_reason CHECK ((exported OR (category = ANY (ARRAY['secret'::text, 'cache'::text, 'log'::text, 'measurement'::text, 'fixture'::text, 'no_writer'::text]))));
+ALTER TABLE public.table_export_registry ADD CONSTRAINT table_export_registry_reason_check CHECK ((length(btrim(reason)) >= 10));
+ALTER TABLE public.table_export_registry ADD CONSTRAINT table_export_registry_table_name_check CHECK ((table_name ~ '^[a-z0-9_]+$'::text));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_check CHECK (((kind = 'full'::text) = (since IS NULL)));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_kind_check CHECK ((kind = ANY (ARRAY['full'::text, 'incremental'::text])));
 ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_status_check CHECK ((status = ANY (ARRAY['running'::text, 'done'::text, 'failed'::text])));

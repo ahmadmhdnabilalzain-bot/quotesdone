@@ -3678,8 +3678,10 @@ declare d public.seat_duty; v_res jsonb; v_out jsonb := '[]'::jsonb; v_health js
         v_t0 timestamptz := clock_timestamp(); v_n int := 0;
 begin
   for d in
-    select * from public.seat_duty
+    select sd.* from public.seat_duty sd
      where enabled
+       -- ONE PAUSE SWITCH (29 Sep 2026): a duty public.duty_pause names is not started.
+       and not exists (select 1 from public.duty_pause dp where dp.duty = sd.duty)
        -- two minutes of tolerance, the same reasoning as fn_resilience_tick_plan: a tick is never exactly on the beat
        and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
      order by last_started_at + every nulls first, duty   -- the most overdue first
@@ -3707,6 +3709,8 @@ begin
   -- The check, every tick: each problem is a finding; a duty that recovered closes its own.
   v_health := public.fn_seat_duty_health();
   for p in select * from jsonb_array_elements(v_health) loop
+    -- a paused duty is overdue on purpose; it is not a finding while the pause stands
+    continue when exists (select 1 from public.duty_pause dp where dp.duty = p->>'duty');
     perform public.fn_it_engineer_finding_upsert(
       'seat_duty:' || (p->>'duty'),
       'Seat duty ' || (p->>'duty') || ' is not being done: ' || (p->>'problem'),
@@ -3714,9 +3718,10 @@ begin
       '{}'::text[], array['why the routine fails or is not reached'], 'it_engineer');
   end loop;
   update public.it_engineer_finding f
-     set closed_at = now(), close_note = 'the duty is no longer overdue or failing: it ran on its clock again, or it was disabled (fn_seat_duties_tick)'
+     set closed_at = now(), close_note = 'the duty is no longer overdue or failing: it ran on its clock again, or it was disabled or paused (fn_seat_duties_tick)'
    where f.issue_key like 'seat_duty:%' and f.closed_at is null
-     and not exists (select 1 from jsonb_array_elements(v_health) h where 'seat_duty:' || (h->>'duty') = f.issue_key);
+     and (not exists (select 1 from jsonb_array_elements(v_health) h where 'seat_duty:' || (h->>'duty') = f.issue_key)
+          or exists (select 1 from public.duty_pause dp where 'seat_duty:' || dp.duty = f.issue_key));
   return jsonb_build_object('ran', v_out, 'problems', jsonb_array_length(v_health));
 end $function$
 

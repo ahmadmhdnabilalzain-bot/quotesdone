@@ -5299,7 +5299,10 @@ begin
        where r.agent like 'fn:%' and r.started_at > now() - interval '30 days'
          and r.counts ? 'budget_ms'
          and coalesce(r.counts->>'http', '') <> '204' and coalesce(r.counts->>'method', '') <> 'OPTIONS'
-         and coalesce(r.counts->>'region', '') not like 'us-%')
+         and coalesce(r.counts->>'region', '') not like 'us-%'
+         -- OUR OWN HARNESS IS NOT A USER (29 Sep 2026): a run the SERVER marked fixture (a reserved test identity,
+         -- _shared/demo_identity.ts; our launch-path probe) spends no error budget - the key refusal_rate already skips.
+         and not (r.counts ? 'fixture'))
     select fn, max(budget) budget,
            count(*) filter (where d1 and status = 'ok') n,
            percentile_cont(0.95) within group (order by ms) filter (where d1 and status = 'ok') p95,
