@@ -847,7 +847,24 @@ const handle = async (req: Request): Promise<Response> => {
         .select('id,company_name,locale,email_shared,claimed_by,phone,approval_status,registration_status,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,license_expiry')
         .eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      return J({ ok: true, settings: sup });
+      // Availability as matching reads it (a busy date that has come reads as available): one definition, in SQL.
+      const { data: availability } = await admin.rpc('fn_supplier_availability_of', { p_supplier_id: sup.id });
+      return J({ ok: true, settings: sup, availability: availability ?? null });
+    }
+
+    // AVAILABILITY (29 Sep 2026, sales_engineer, ledger 1033). Available, busy until a date, or paused: matching
+    // (fn_match_capability) skips a busy or paused supplier, and a busy date expires on its day. The only writer is
+    // fn_supplier_set_availability, which refuses anything but those three states and a busy date after today.
+    if (action === 'set_availability') {
+      const { data: sup } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
+      const until = body.busy_until == null || body.busy_until === '' ? null : String(body.busy_until);
+      if (until !== null && !/^\d{4}-\d{2}-\d{2}$/.test(until)) return J({ ok: false, code: 'busy_date_not_future', error: 'Choose the date you are available again.' }, 400);
+      const { data, error } = await admin.rpc('fn_supplier_set_availability', {
+        p_supplier_id: sup.id, p_state: String(body.state ?? ''), p_busy_until: until, p_by: 'supplier (portal)',
+      });
+      if (error) return J({ error: error.message }, 500);
+      return J(data, data?.ok ? 200 : 400);
     }
 
     if (action === 'save_profile') {
