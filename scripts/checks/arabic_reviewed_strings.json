@@ -3389,6 +3389,7 @@
   "ba3c8af2747c",
   "be7e9511d0c5",
   "bf30e6681178",
+  "c53573dbd067",
   "ca6e4a374008",
   "dca3f034d6c8",
   "dea375ede3bd",
@@ -4532,6 +4533,9 @@
   "5e07271551c3",
   "80525653a9e7",
   "ce534deaa8f7"
+ ],
+ "supabase/functions/_shared/cad_file_redact.ts": [
+  "214e2a66c5bf"
  ],
  "supabase/functions/_shared/chat_answers.ts": [
   "0a3a4456e635",
