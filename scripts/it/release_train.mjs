@@ -97,7 +97,14 @@ export function checksRunning(rollup = []) {
 export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () => false } = {}) {
   // every other gate must already pass: judged as if its checks were green
   return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
-    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null && isBehind(pr)) || null;
+    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null
+    && (isBehind(pr) || missingChecks(pr.statusCheckRollup).length > 0)) || null;
+}
+
+// The required checks that never started on this head (a GITHUB_TOKEN push starts no workflow).
+export function missingChecks(rollup = [], required = REQUIRED_CHECKS) {
+  const names = new Set(latestChecks(rollup).map((c) => c.name || c.context));
+  return required.filter((n) => !names.has(n));
 }
 
 // ponytail: one fixed Dubai window (UTC+4, no DST), weekdays and weekends alike; move it to a
@@ -220,7 +227,7 @@ export async function main(argv = process.argv.slice(2)) {
 
   if (drift(DRY).length) { log('drift on main: releasing nothing this tick'); return 1; }
 
-  const fields = 'number,title,author,labels,createdAt,body,mergeable,statusCheckRollup,files,isDraft,baseRefName,headRefOid';
+  const fields = 'number,title,author,labels,createdAt,body,mergeable,statusCheckRollup,files,isDraft,baseRefName,headRefOid,headRefName';
   let prs = JSON.parse(gh(['pr', 'list', '--state', 'open', '--base', 'main', '--limit', '200', '--json', fields]));
   if (only) prs = prs.filter((p) => p.number === only);
   prs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -249,8 +256,19 @@ export async function main(argv = process.argv.slice(2)) {
     };
     const stale = staleCandidate(prs, { depState, isBehind });
     if (!stale) { log('nothing to release'); return 0; }
-    log(`nothing to release; #${stale.number} is behind main with finished, failing checks: ${DRY ? 'DRY RUN would update' : 'updating'} its branch`);
-    if (!DRY) { const r = run('gh', ['pr', 'update-branch', String(stale.number)]); log(r.out.trim()); }
+    const behind = isBehind(stale);
+    log(`nothing to release; #${stale.number} ${behind ? 'is behind main' : 'has required checks that never ran'}: ${DRY ? 'DRY RUN would ' : ''}${behind ? 'update its branch and ' : ''}start its CI`);
+    if (!DRY) {
+      const r = behind ? run('gh', ['pr', 'update-branch', String(stale.number)]) : { code: 0, out: 'up to date with main' };
+      log(r.out.trim());
+      // A push made with GITHUB_TOKEN starts no pull_request workflow (29 Sep 2026: twelve PRs the train
+      // updated sat with no CI at all, only Vercel's statuses). Dispatch the two CI workflows on the PR's
+      // branch; their check runs attach to the new head, so the required checks appear and are judged.
+      if (!r.code) for (const wf of ['checks.yml', 'project-parity.yml']) {
+        const d = run('gh', ['workflow', 'run', wf, '--ref', stale.headRefName]);
+        log(`dispatched ${wf} on ${stale.headRefName} -> exit ${d.code}`);
+      }
+    }
     return 0;
   }
 
