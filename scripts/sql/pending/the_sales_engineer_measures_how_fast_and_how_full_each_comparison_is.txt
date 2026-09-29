@@ -1,3 +1,0 @@
-Not applied (28 Sep 2026, sales_engineer): committed for review; production was read-only for this change.
-Moves when the PR is reviewed: apply with node scripts/apply_sql.mjs <file> --apply --ddl --seat sales_engineer,
-confirm the verdict row reads PROBE OK, delete this note and append the file to the end of MANIFEST.txt.
