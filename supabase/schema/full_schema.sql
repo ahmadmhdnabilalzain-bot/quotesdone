@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T05:48:30.276Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T06:40:50.151Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -49046,6 +49046,8 @@ CREATE OR REPLACE FUNCTION public.fn_it_smoke_ingest(p_report jsonb)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare v_owner text; v_owners jsonb; x jsonb; v_items jsonb := '[]'::jsonb; v_res jsonb;
+  -- Absent means complete, exactly as fn_it_journey_ingest reads it.
+  v_complete boolean := coalesce((p_report->>'complete')::boolean, true);
 begin
   if jsonb_typeof(p_report->'steps') is distinct from 'array' or coalesce(btrim(p_report->>'sha'), '') = '' then
     raise exception 'fn_it_smoke_ingest takes {sha, changed_files, steps} from scripts/e2e/report_to_it_engineer.mjs --smoke';
@@ -49069,7 +49071,22 @@ begin
       'evidence', jsonb_build_object('sha', p_report->>'sha', 'owners', v_owners, 'changed_files', p_report->'changed_files',
                                      'tag', p_report->>'tag', 'detail', left(x->>'detail', 600)));
   end loop;
-  v_res := public.fn_it_duty_settle('smoke', v_items);
+  if v_complete then
+    v_res := public.fn_it_duty_settle('smoke', v_items);
+  else
+    -- Looked at part of it: raise what fails, close NOTHING (the rule fn_it_journey_ingest already keeps).
+    for x in select e from jsonb_array_elements(v_items) e loop
+      perform public.fn_it_engineer_finding_upsert(
+        'duty:smoke:' || (x->>'item'), x->>'title', 'IT engineer duty: smoke',
+        coalesce(x->>'blast', 'customer_facing'), coalesce((x->>'affected')::int, 0),
+        coalesce(x->'evidence', '{}'::jsonb) || jsonb_build_object(
+          'duty', 'smoke', 'owner_seat', x->>'owner_seat', 'subject', x->>'subject',
+          'demo', coalesce((x->>'demo')::boolean, false), 'run_complete', false),
+        '{}'::text[], '{}'::text[], 'it_engineer.smoke');
+    end loop;
+    v_res := jsonb_build_object('duty', 'smoke', 'failing', jsonb_array_length(v_items), 'closed', 0, 'complete', false,
+                                'note', 'the run stopped before it saw every journey, so nothing was closed on its silence');
+  end if;
   perform public.fn_it_duty_ran('smoke', v_res || jsonb_build_object('sha', p_report->>'sha'));
   return v_res;
 end $function$
