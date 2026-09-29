@@ -1,0 +1,5 @@
+Committed, not applied: the founder's instruction 1013 says do not apply before the pull request merges. Apply it after
+the merge with node scripts/apply_sql.mjs <file> --apply --ddl, then delete this note and append the file to the END of
+MANIFEST.txt in the same commit. Until it is live, supportReply()'s readability log call fails quietly (the reply still goes
+out). Measured 29 Sep 2026: the file plus its probe, run together in one rolled-back transaction on htdblwldjkcgjvmqkbeh,
+printed PROBE OK. Seat: customer_support.

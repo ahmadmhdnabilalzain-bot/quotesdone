@@ -1,0 +1,99 @@
+{
+  "trade": "perfumes_wholesale",
+  "layer": "uae-market",
+  "label_en": "Perfumes & oud wholesale",
+  "label_ar": "جملة عطور وعود",
+  "entries": [
+    {
+      "id": "perfumes_wholesale:uae-market-products",
+      "topic": "Perfumes & oud wholesale: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Perfume wholesale in the UAE covers Western designer and niche fragrances (EDP, EDT, parfum, colognes), Arabic perfumes and attars (oil-based, alcohol-free), oud oil (dehn al oud) graded by origin (Cambodian, Indian, Assam, Malaysian, Hindi), bakhoor and oud wood chips (agarwood) graded by resin content, mukhallat blends, musk, body mists, gift sets, testers, and private label/white label fragrance manufacturing with fragrance oils from major fragrance houses. Buyers specify concentration (EDP 15-20%, EDT 5-15%), bottle size, packaging, authenticity (original versus inspired/impression), batch codes, and whether oud is natural or synthetic. Perfumes must be registered as cosmetics (Dubai Municipality Montaji for Dubai; MoIAT conformity), meet IFRA standards for fragrance safety, follow GSO labelling with Arabic, and alcohol-containing perfumes are subject to dangerous goods rules for shipping. Counterfeit products are seized under UAE trademark law.",
+      "body_ar": "تشمل تجارة العطور بالجملة في الإمارات العطور الغربية للمصممين والعطور المتخصصة (أو دو بارفان، أو دو تواليت، بارفان، كولونيا)، والعطور العربية ودهن العطر (أساس زيتي، خالية من الكحول)، ودهن العود المصنف حسب المنشأ (كمبودي، هندي، آسامي، ماليزي، هندي)، والبخور ورقائق خشب العود المصنفة حسب نسبة الراتنج، وخلطات المخلط، والمسك، ورذاذ الجسم، وأطقم الهدايا، والعينات التجريبية، وتصنيع العطور بالعلامات الخاصة بزيوت عطرية من كبرى دور العطور. يحدد المشترون التركيز (أو دو بارفان 15-20%، أو دو تواليت 5-15%)، وحجم الزجاجة، والتغليف، والأصالة (أصلي أو مستوحى)، ورموز التشغيلة، وما إذا كان العود طبيعياً أو صناعياً. ويجب تسجيل العطور كمستحضرات تجميل (منتجي لدى بلدية دبي لدبي؛ ومطابقة وزارة الصناعة والتكنولوجيا المتقدمة)، واستيفاء معايير IFRA لسلامة العطور، واتباع التوسيم الخليجي باللغة العربية، وتخضع العطور المحتوية على الكحول لقواعد البضائع الخطرة عند الشحن. وتُصادر المنتجات المقلدة بموجب قانون العلامات التجارية الإماراتي.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU117-FP2_Technical-Guidelines-for-Fragrance-Products_V2.0.pdf",
+        "https://www.6wresearch.com/market-takeaways-view/top-perfume-companies-in-dubai",
+        "https://fragranceandthings.com/what-is-a-tola/",
+        "https://ifrafragrance.org",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified."
+    },
+    {
+      "id": "perfumes_wholesale:uae-market-brands",
+      "topic": "Perfumes & oud wholesale: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE perfume houses, the regional designer-fragrance distributor, and fragrance oil houses: Ajmal, Rasasi, Swiss Arabian, Lattafa (Sharjah), Chalhoub Group, Givaudan, dsm-firmenich, IFF, Symrise. Other regional houses and the oil houses' UAE agents were not checked. Wholesale trade clusters in Deira (Al Ras, Naif), Sharjah and Ajman.",
+      "body_ar": "دور العطور المؤكدة في الإمارات، والموزع الإقليمي لعطور المصممين، ودور الزيوت العطرية: Ajmal، Rasasi، Swiss Arabian، Lattafa (Sharjah)، Chalhoub Group، Givaudan، dsm-firmenich، IFF، Symrise. ولم يُتحقق من الدور الإقليمية الأخرى ولا من وكلاء دور الزيوت في الإمارات. وتتجمع تجارة الجملة في ديرة (الراس، ونايف) والشارقة وعجمان.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU117-FP2_Technical-Guidelines-for-Fragrance-Products_V2.0.pdf",
+        "https://www.6wresearch.com/market-takeaways-view/top-perfume-companies-in-dubai",
+        "https://fragranceandthings.com/what-is-a-tola/",
+        "https://ifrafragrance.org",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified."
+    },
+    {
+      "id": "perfumes_wholesale:uae-market-sizes",
+      "topic": "Perfumes & oud wholesale: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Perfumes are priced per piece (30, 50, 75, 100 ml bottles) with cartons of 12-48; attar/oil per tola (about 11.66-12 ml) or per ml/gram; oud chips per tola or per kg; bakhoor per box. Private label MOQs are commonly 500-3,000 bottles per fragrance. Fragrance oil is sold per kg. Wholesale pricing depends on grey versus authorised channels.",
+      "body_ar": "تُسعّر العطور لكل قطعة (زجاجات 30 و50 و75 و100 مل) بكراتين من 12 إلى 48؛ ودهن العطر لكل تولة (نحو 11.66-12 مل) أو لكل مل/غرام؛ ورقائق العود لكل تولة أو لكل كيلوغرام؛ والبخور لكل علبة. ويبلغ الحد الأدنى للعلامات الخاصة عادةً 500-3000 زجاجة لكل عطر. ويُباع الزيت العطري لكل كيلوغرام. ويعتمد سعر الجملة على ما إذا كانت القناة معتمدة أو موازية.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU117-FP2_Technical-Guidelines-for-Fragrance-Products_V2.0.pdf",
+        "https://www.6wresearch.com/market-takeaways-view/top-perfume-companies-in-dubai",
+        "https://fragranceandthings.com/what-is-a-tola/",
+        "https://ifrafragrance.org",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity -> confirmed | Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah -> confirmed: Lattafa corrected to Sharjah | A tola is 11.66 g and is sold as about 12 ml -> confirmed. Not checked: Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is oud oil priced and what does a tola equal?",
+      "q_ar": "كيف يُسعّر دهن العود وكم تعادل التولة؟",
+      "expected_entry_ids": [
+        "perfumes_wholesale:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Perfumes must be registered with Dubai Municipality via Montaji and carry an IFRA certificate; MoIAT handles ECAS conformity",
+        "url": "https://www.dm.gov.ae/wp-content/uploads/2024/07/DM-HSD-GU117-FP2_Technical-Guidelines-for-Fragrance-Products_V2.0.pdf",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Ajmal, Rasasi and Swiss Arabian are Dubai-based perfume houses; Lattafa is in Sharjah",
+        "url": "https://www.6wresearch.com/market-takeaways-view/top-perfume-companies-in-dubai",
+        "result": "confirmed: Lattafa corrected to Sharjah"
+      },
+      {
+        "claim": "A tola is 11.66 g and is sold as about 12 ml",
+        "url": "https://fragranceandthings.com/what-is-a-tola/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Tola conversion varies slightly by trader; official distributor status for designer brands and current registration fees were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
