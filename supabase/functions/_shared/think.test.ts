@@ -236,10 +236,11 @@ Deno.test('a judgement whose model fails after the recall is closed as held, nev
   assertEquals(m.rpcs.find(([f]) => f === 'fn_judgement_decided')?.[1].p_status, 'held');
 });
 
-Deno.test('internal think() runs on the GLM class; customer, supplier and Arabic replies keep theirs (23 Sep ruling)', () => {
+Deno.test('think() planning is routine, a seat\'s own answer is internal_judgement, replies keep their audience class (founder_instruction 1056)', () => {
   for (const ph of ['decompose', 'research'] as const) for (const aud of ['internal', 'customer', 'supplier']) assertEquals(taskClassFor(ph, aud, false), 'routine_employee_reasoning');
-  assertEquals(taskClassFor('synthesise', 'internal', false), 'routine_employee_reasoning');
-  assertEquals(taskClassFor('synthesise', 'internal', true), 'routine_employee_reasoning');
+  // split out of routine_employee_reasoning so the CEO's judgement can run on Opus while its planning runs on Gemini
+  assertEquals(taskClassFor('synthesise', 'internal', false), 'internal_judgement');
+  assertEquals(taskClassFor('synthesise', 'internal', true), 'internal_judgement');
   assertEquals(taskClassFor('synthesise', 'customer', true), 'customer_communication');
   assertEquals(taskClassFor('synthesise', 'visitor', false), 'customer_communication');
   assertEquals(taskClassFor('synthesise', 'supplier', false), 'supplier_communication');
