@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T02:53:33.039Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T03:34:04.653Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (670) =====
+-- ===== TABLES (671) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4200,6 +4200,25 @@ CREATE TABLE IF NOT EXISTS public.it_playbook (
   added_by text NOT NULL,
   added_at timestamp with time zone DEFAULT now() NOT NULL,
   typical_cause text
+);
+
+CREATE TABLE IF NOT EXISTS public.it_postmaster_reading (
+  domain text NOT NULL,
+  read_on date NOT NULL,
+  basis text NOT NULL,
+  stats_day date,
+  spam_ratio numeric,
+  spam_lower numeric,
+  spam_upper numeric,
+  reputation text,
+  spf_ratio numeric,
+  dkim_ratio numeric,
+  dmarc_ratio numeric,
+  reason text,
+  verdict jsonb DEFAULT '{}'::jsonb NOT NULL,
+  line text NOT NULL,
+  paused_at timestamp with time zone,
+  read_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_query_stat_snapshot (
@@ -9568,6 +9587,7 @@ ALTER TABLE public.it_incident ADD CONSTRAINT it_incident_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_integration_external_cause ADD CONSTRAINT it_integration_external_cause_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_model_consumer ADD CONSTRAINT it_model_consumer_pkey PRIMARY KEY (consumer);
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_pkey PRIMARY KEY (failure_class);
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_pkey PRIMARY KEY (domain, read_on);
 ALTER TABLE public.it_query_stat_snapshot ADD CONSTRAINT it_query_stat_snapshot_pkey PRIMARY KEY (queryid);
 ALTER TABLE public.it_refusal_policy ADD CONSTRAINT it_refusal_policy_pkey PRIMARY KEY (subject, reason_key);
 ALTER TABLE public.it_restore_drill_result ADD CONSTRAINT it_restore_drill_result_pkey PRIMARY KEY (id);
@@ -10351,6 +10371,15 @@ ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_failure_class_check CH
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_issue_prefix_check CHECK ((btrim(issue_prefix) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_regression_check_check CHECK ((btrim(regression_check) <> ''::text));
 ALTER TABLE public.it_playbook ADD CONSTRAINT it_playbook_remedy_routine_check CHECK ((remedy_routine ~ '^fn_[a-z0-9_]+$'::text));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_basis_check CHECK ((basis = ANY (ARRAY['measured'::text, 'no_data'::text, 'unavailable'::text])));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_dkim_ratio_check CHECK (((dkim_ratio >= (0)::numeric) AND (dkim_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_dmarc_ratio_check CHECK (((dmarc_ratio >= (0)::numeric) AND (dmarc_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_no_numbers_without_data CHECK (((basis = 'measured'::text) OR ((spam_ratio IS NULL) AND (reputation IS NULL) AND (spf_ratio IS NULL) AND (dkim_ratio IS NULL) AND (dmarc_ratio IS NULL))));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_reputation_check CHECK ((reputation = ANY (ARRAY['HIGH'::text, 'MEDIUM'::text, 'LOW'::text, 'BAD'::text])));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_lower_check CHECK (((spam_lower >= (0)::numeric) AND (spam_lower <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_ratio_check CHECK (((spam_ratio >= (0)::numeric) AND (spam_ratio <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spam_upper_check CHECK (((spam_upper >= (0)::numeric) AND (spam_upper <= (1)::numeric)));
+ALTER TABLE public.it_postmaster_reading ADD CONSTRAINT it_postmaster_reading_spf_ratio_check CHECK (((spf_ratio >= (0)::numeric) AND (spf_ratio <= (1)::numeric)));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_key_column_check CHECK ((key_column ~ '^[a-z_][a-z0-9_]*$'::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_note_check CHECK ((btrim(note) <> ''::text));
 ALTER TABLE public.it_restore_drill_table ADD CONSTRAINT it_restore_drill_table_table_name_check CHECK ((table_name ~ '^[a-z_][a-z0-9_]*$'::text));
@@ -43709,7 +43738,14 @@ begin
     'integrations_waiting_on_external', coalesce((select jsonb_agg(jsonb_build_object('integration', integration, 'party', external_party,
                            'ticket', ticket_ref, 'opened_on', opened_on, 'last_reply_at', last_reply_at,
                            'reply_needs_founder', reply_needs_founder, 'last_checked_at', last_checked_at) order by integration)
-                           from public.it_integration_external_cause where closed_at is null), '[]'::jsonb))
+                           from public.it_integration_external_cause where closed_at is null), '[]'::jsonb),
+    -- The newest Gmail Postmaster reading (duty 'postmaster'); null until the first read. Its numbers are Postmaster's
+    -- day (stats_day), 1-2 days behind read_on; a number Postmaster did not publish is null, never 0.
+    'gmail_postmaster', (select jsonb_build_object('domain', p.domain, 'read_on', p.read_on, 'basis', p.basis, 'stats_day', p.stats_day,
+                           'spam_ratio', p.spam_ratio, 'spam_lower', p.spam_lower, 'spam_upper', p.spam_upper, 'reputation', p.reputation,
+                           'spf_ratio', p.spf_ratio, 'dkim_ratio', p.dkim_ratio, 'dmarc_ratio', p.dmarc_ratio, 'reason', p.reason,
+                           'paused_at', p.paused_at, 'line', p.line)
+                           from public.it_postmaster_reading p order by p.read_on desc, p.read_at desc limit 1))
   into v_ev;
 
   v_rep := public.fn_support_report_to_ceo('it_daily:' || v_day, 'routine',
@@ -43718,7 +43754,8 @@ begin
       || (v_ev->>'repeats_folded_today') || ' repeat(s) folded, '
       || jsonb_array_length(v_ev->'integrations_fixed_today') || ' integration(s) fixed without anyone, '
       || jsonb_array_length(v_ev->'integrations_failing') || ' integration(s) down ('
-      || jsonb_array_length(v_ev->'integrations_waiting_on_external') || ' waiting on a provider''s ticket)',
+      || jsonb_array_length(v_ev->'integrations_waiting_on_external') || ' waiting on a provider''s ticket). '
+      || coalesce(v_ev->'gmail_postmaster'->>'line', 'Gmail Postmaster: not read yet (duty postmaster has not run)'),
     v_ev, '[]'::jsonb,
     'Acknowledge the day''s IT position. Nothing else is requested; anything that needs a decision reaches you as its own report.',
     p_review_in => interval '3 hours', p_source_agent => 'it_engineer');
@@ -47764,6 +47801,84 @@ AS $function$
      order by length(b.issue_prefix) desc, b.failure_class limit 1) p
    where coalesce(btrim(p.typical_cause), '') <> '';
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_postmaster_record(p_r jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_dom   text := coalesce(nullif(btrim(p_r->>'domain'), ''), 'quotesdone.com');
+  v_basis text := p_r->>'basis';
+  v_on    date := (now() at time zone 'Asia/Dubai')::date;
+  v_stats date := nullif(p_r->>'stats_day', '')::date;
+  v_items jsonb := '[]'::jsonb;
+  v_pause jsonb := null;
+  v_res   jsonb;
+  f record;
+begin
+  if v_basis is null or v_basis not in ('measured', 'no_data', 'unavailable') or coalesce(btrim(p_r->>'line'), '') = '' then
+    raise exception 'fn_it_postmaster_record: a reading needs basis measured|no_data|unavailable and a line (%)', left(p_r::text, 200);
+  end if;
+
+  insert into public.it_postmaster_reading as t (domain, read_on, basis, stats_day, spam_ratio, spam_lower, spam_upper, reputation,
+                                                spf_ratio, dkim_ratio, dmarc_ratio, reason, verdict, line)
+  values (v_dom, v_on, v_basis, v_stats, (p_r->>'spam_ratio')::numeric, (p_r->>'spam_lower')::numeric, (p_r->>'spam_upper')::numeric,
+          p_r->>'reputation', (p_r->>'spf')::numeric, (p_r->>'dkim')::numeric, (p_r->>'dmarc')::numeric,
+          p_r->>'reason', coalesce(p_r->'verdict', '{}'::jsonb), p_r->>'line')
+  on conflict (domain, read_on) do update
+     set basis = excluded.basis, stats_day = excluded.stats_day, spam_ratio = excluded.spam_ratio, spam_lower = excluded.spam_lower,
+         spam_upper = excluded.spam_upper, reputation = excluded.reputation, spf_ratio = excluded.spf_ratio,
+         dkim_ratio = excluded.dkim_ratio, dmarc_ratio = excluded.dmarc_ratio, reason = excluded.reason,
+         verdict = excluded.verdict, line = excluded.line, read_at = now(),
+         -- paused_at belongs to the stats day that paused; a rerun that returns a different day does not inherit it.
+         paused_at = case when t.stats_day is not distinct from excluded.stats_day then t.paused_at end;
+
+  if v_basis = 'measured' and coalesce((p_r->'verdict'->>'finding')::boolean, false) then
+    v_items := v_items || jsonb_build_object('item', 'deliverability:' || v_dom, 'owner_seat', 'it_engineer', 'subject', v_dom,
+      'blast', 'customer_facing',
+      'title', 'Gmail Postmaster ' || v_dom || ' ' || v_stats || ': '
+               || coalesce((select string_agg(x, '; ') from jsonb_array_elements_text(p_r->'verdict'->'reasons') x), 'over threshold'),
+      'evidence', p_r - 'line');
+  elsif v_basis <> 'measured' then
+    -- Postmaster silent or unreadable: an open deliverability finding is held as it stands, not closed.
+    for f in select issue_key, title from public.it_engineer_finding
+              where closed_at is null and issue_key = 'duty:postmaster:deliverability:' || v_dom loop
+      v_items := v_items || jsonb_build_object('item', 'deliverability:' || v_dom, 'title', f.title, 'carried', true,
+                                               'owner_seat', 'it_engineer', 'subject', v_dom);
+    end loop;
+  end if;
+  if v_basis = 'unavailable' then
+    v_items := v_items || jsonb_build_object('item', 'unreadable:' || v_dom, 'config', true, 'owner_seat', 'it_engineer',
+      'blast', 'monitor', 'subject', v_dom,
+      'title', 'Gmail Postmaster could not be read for ' || v_dom || ': ' || coalesce(p_r->>'reason', '?'), 'evidence', p_r - 'line');
+  end if;
+
+  -- The pause: only a RUNNING campaign (invite_enabled = 'true'; stopping a stopped one would only write an error
+  -- run and rewrite the #943 finding), and once per Postmaster day -- a stats day that already paused the
+  -- invitations never pauses them again, so a hand resume is not overridden by the same stale day. A NEW
+  -- Postmaster day still over the line pauses again, deliberately: a trailing LOW/BAD reputation repeats on every
+  -- day it lasts, and each day must keep the campaign stopped even over a manual resume. The finding above is
+  -- filed either way; paused_at is set only when a pause actually happened.
+  if v_basis = 'measured' and coalesce((p_r->'verdict'->>'pause')::boolean, false) and v_stats is not null
+     and coalesce((select value from public.app_secrets where key = 'invite_enabled'), 'false') = 'true'
+     and not exists (select 1 from public.it_postmaster_reading
+                      where domain = v_dom and stats_day = v_stats and paused_at is not null) then
+    v_pause := public.fn_invite_campaign_pause('it_engineer_postmaster',
+      coalesce((select string_agg(x, '; ') from jsonb_array_elements_text(p_r->'verdict'->'reasons') x), 'Gmail Postmaster over threshold')
+        || ' (Postmaster day ' || v_stats || ')',
+      jsonb_build_object('source', 'gmail_postmaster', 'domain', v_dom, 'stats_day', v_stats, 'spam_ratio', p_r->'spam_ratio',
+                         'spam_lower', p_r->'spam_lower', 'spam_upper', p_r->'spam_upper', 'reputation', p_r->'reputation'),
+      jsonb_build_object('stats_day', v_stats, 'spam_ratio', p_r->'spam_ratio', 'reputation', p_r->'reputation'));
+    update public.it_postmaster_reading set paused_at = now() where domain = v_dom and read_on = v_on;
+  end if;
+
+  v_res := public.fn_it_duty_settle('postmaster', v_items) || jsonb_build_object('basis', v_basis, 'paused', v_pause is not null);
+  perform public.fn_it_duty_ran('postmaster', v_res);
+  return v_res;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_provider_watch(p_r jsonb)
@@ -85313,6 +85428,7 @@ ALTER TABLE public.it_incident ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_integration_external_cause ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_model_consumer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_playbook ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_postmaster_reading ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_query_stat_snapshot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_refusal_policy ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_restore_drill_result ENABLE ROW LEVEL SECURITY;
@@ -85762,6 +85878,7 @@ CREATE POLICY it_incident_service_role_only ON public.it_incident AS PERMISSIVE 
 CREATE POLICY it_integration_external_cause_service_role_only ON public.it_integration_external_cause AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_model_consumer_service_role_only ON public.it_model_consumer AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_playbook_service_role_only ON public.it_playbook AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_postmaster_reading_service_role_only ON public.it_postmaster_reading AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_query_stat_snapshot_service_role_only ON public.it_query_stat_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_refusal_policy_service_role_only ON public.it_refusal_policy AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_restore_drill_result_service_role_only ON public.it_restore_drill_result AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

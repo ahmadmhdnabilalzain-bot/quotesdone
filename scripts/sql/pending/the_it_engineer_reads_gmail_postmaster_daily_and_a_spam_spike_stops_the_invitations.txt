@@ -1,8 +1,0 @@
-Committed, NOT applied (it_engineer, 24 Sep 2026): the Gmail Postmaster reading table, fn_it_postmaster_record, the
-'postmaster' duty (1 day), the #943 pause moved into fn_invite_campaign_pause (fn_invite_same_day_brake now calls it),
-and fn_it_daily_line carrying the newest reading. Reads 'unavailable' until the founder grants the postmaster.readonly
-consent and app_secrets.google_postmaster_refresh_token is stored (see the PR's "Founder actions"); applying before
-that is safe and files one configuration finding. To move it: apply with
-node scripts/apply_sql.mjs scripts/sql/the_it_engineer_reads_gmail_postmaster_daily_and_a_spam_spike_stops_the_invitations.sql --apply --ddl
-(it must print PROBE OK), then deploy resilience_ping, then delete this note and append the file to the END of
-scripts/sql/MANIFEST.txt.
