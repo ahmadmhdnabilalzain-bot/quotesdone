@@ -44,3 +44,18 @@ export function manifestWithPending(repo = REPO) {
     .map(([f]) => f);
   return [...listed, ...pending];
 }
+
+// IS THIS FILE A MANIFEST LINE? (29 Sep 2026). MANIFEST lines are 'scripts/sql/<name>.sql'; checks pass a
+// bare name, a prefixed path, or a Windows path, and one of them compared a bare name with prefixed lines,
+// found nothing once the file was applied, and turned main red (#994, #1100). Normalised here, once.
+const manifestKey = (f) => `scripts/sql/${String(f).trim().split(String.fromCharCode(92)).join('/').replace(/^\.\//, '').replace(/^scripts\/sql\//, '')}`;
+export function manifestLines(repo = REPO) {
+  return readFileSync(join(repo, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim())
+    .filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
+}
+export function manifestHas(file, lines = manifestLines()) {
+  return lines.includes(manifestKey(file));
+}
+export function manifestIndex(file, lines = manifestLines()) {
+  return lines.lastIndexOf(manifestKey(file));
+}
