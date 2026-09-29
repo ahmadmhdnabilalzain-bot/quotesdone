@@ -1,0 +1,1 @@
+Committed, not applied: fn_it_duties redefinition (incident 484). Applied at merge with --apply --ddl, then this note is deleted and the file appended to MANIFEST.txt.

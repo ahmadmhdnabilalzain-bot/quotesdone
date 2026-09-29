@@ -1,0 +1,1 @@
+Committed, not applied: writes the root cause and regression check of incidents 437, 484, 495, 503, 518 and 554 (data only, by exact id). Applied at merge, after a_queue_filled_this_hour_is_not_a_stopped_queue.sql and a_held_digest_item_is_late_by_the_digests_clock.sql, then this note is deleted and the file appended to MANIFEST.txt.

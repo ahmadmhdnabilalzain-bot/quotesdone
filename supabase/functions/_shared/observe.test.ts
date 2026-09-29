@@ -8,7 +8,7 @@
 //
 // Run: deno test supabase/functions/_shared/observe.test.ts   (or npm test, which discovers it)
 import { assert, assertEquals, assertStrictEquals } from 'jsr:@std/assert@1';
-import { baseCounts, classify, edgeRegion, LATENCY_BUDGET_MS, observe, record } from './observe.ts';
+import { baseCounts, classify, edgeRegion, LATENCY_BUDGET_MS, observe, record, statusOf } from './observe.ts';
 
 const req = (url = 'http://x.test/fn', init?: RequestInit) => new Request(url, init);
 
@@ -102,4 +102,13 @@ Deno.test('the portal data functions carry the 2.5 s budget the founder set', ()
   for (const fn of ['customer_api', 'customer_portal', 'project_api', 'messages_api', 'kyc', 'supplier_portal', 'supplier_api']) {
     assertEquals(LATENCY_BUDGET_MS[fn], 2500, fn + ' has no 2.5 s budget');
   }
+});
+
+// Incident 437 (24 Sep 2026): ai_gateway's deliberate 503 fixture_no_spend was logged 'error' and paged as a run failure.
+Deno.test('a 5xx the handler annotated held is held; an unannotated 5xx is still an error', () => {
+  assertEquals(statusOf(503, { held: true }), 'held');
+  assertEquals(statusOf(503, {}), 'error');
+  assertEquals(statusOf(503, { held: 'true' }), 'error');
+  assertEquals(statusOf(503), 'error');
+  assertEquals(statusOf(401, { held: true }), 'warn');
 });
