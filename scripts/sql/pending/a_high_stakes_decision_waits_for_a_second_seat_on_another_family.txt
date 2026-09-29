@@ -1,0 +1,15 @@
+apply-order: 2
+Pending, not applied before merge (founder_instruction 1009 upgrade 10). Removes the per-pair review cap as a condition
+(fn_seat_deliberation_budget always ok, instruction 987); lets a decision taken by code be reviewed (author model
+'deterministic' in fn_seat_deliberation_open and both deliberation guards); adds fn_high_stakes_gate / _may_proceed /
+_clearance / _challenge / _reviewer, trg_high_stakes_review (z93, a later disagreement opens a finding for the deciding
+seat) and trg_high_stakes_campaign_approved (through fn_high_stakes_campaign_review, which also grandfathers a campaign approved
+before the apply by recording its review as owed); and wires the gate into fn_refund_decide, fn_ceo_review_applies and
+fn_marketing_post_publish_refusal (quote_compare's supplier choice is in the same PR's edge function).
+APPLY AFTER every_real_outcome_lands_on_the_seat_that_decided_it_with_its_reason.sql (fn_outcome_record), and deploy
+quote_compare with it. Applied by the release operator (C:/Users/Opera/qd-release.lock) after merge.
+Measured 23/23 PASS, 29 Sep 2026, 0 rows left (after the review of #1064: a CEO-approved refund left at
+awaiting_second_seat is decided again when the second seat agrees; campaign 7, approved before the gate, keeps all 70
+posts publishing with its review owed), by scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs (aborted
+transaction on production, stubbed reviewer), and 4/4 by supabase/functions/_shared/high_stakes_challenge.test.ts.
+When applied: delete this note and append the .sql to the END of MANIFEST.txt. Seat: it_engineer.
