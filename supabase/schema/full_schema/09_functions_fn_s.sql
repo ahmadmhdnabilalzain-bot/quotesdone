@@ -4003,6 +4003,27 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_handoff_notes(p_seat text, p_subject_table text DEFAULT NULL::text, p_subject_id text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('handoff_id', a.id, 'from', a.detail->>'from',
+                                               'conversation', coalesce(a.detail->>'type', a.detail->>'subject'),
+                                               'opened_at', a.created_at, 'status', a.status,
+                                               'summary', a.detail->'summary') order by a.created_at desc), '[]'::jsonb)
+    from (select * from public.agent_actions a
+           where a.kind = 'handoff' and a.agent = p_seat
+             and (a.status in ('pending','needs_review') or (a.detail ? 'awaiting' and a.status <> 'failed' and a.decided_at is null))
+             and a.detail ? 'summary'
+             and (p_subject_id is null
+                  or (coalesce(a.detail->>'subject_id', a.target_id) = p_subject_id
+                      and (p_subject_table is null or coalesce(a.detail->>'subject_table', a.target_table) = p_subject_table)))
+           order by a.created_at desc limit 3) a;
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_handoff_types()
  RETURNS TABLE(type text, from_seat text, to_seat text, meaning text)
  LANGUAGE sql
@@ -4149,6 +4170,125 @@ AS $function$
               else 'idle' end,
          x.last_act, x.acts_24h, x.last_run, x.runs_24h, x.overdue, x.oldest_overdue
     from x order by x.seat
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_playbook_build(p_seat text, p_reason text DEFAULT 'rebuilt on request'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_table   text := case p_seat when 'sales_engineer' then 'sales_knowledge' when 'customer_support' then 'support_knowledge'
+                            when 'accountant' then 'accountant_knowledge' when 'it_engineer' then 'it_engineer_knowledge'
+                            when 'ceo' then 'ceo_knowledge' when 'marketing' then 'marketing_knowledge' end;
+  v_duties  jsonb; v_kinds jsonb; v_routes jsonb; v_rules jsonb := '[]'::jsonb; v_lessons jsonb;
+  v_pb      jsonb; v_md text; v_md5 text; v_old public.seat_playbook; v_version int;
+begin
+  if v_table is null then raise exception 'no seat %', p_seat; end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object('duty', duty, 'every', every::text, 'what', what, 'routine', routine)
+                            order by duty), '[]'::jsonb)
+    into v_duties from public.seat_duty where owner_seat = p_seat and enabled;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'kind', type, 'from', from_seat, 'means', meaning,
+           'steps', jsonb_build_array(
+              'Read the handoff note first (known / tried / needed / evidence) - it leads my recall.',
+              'Act through ' || handler || '.',
+              'Reply ' || coalesce('within ' || reply_within::text, 'without a set deadline') || '.',
+              case when originator_closes then from_seat || ' re-verifies my answer and closes the handoff.'
+                   else 'I close the handoff with evidence when done.' end),
+           'escalation', jsonb_build_array(
+              'If ' || handler || ' fails, the handoff is marked failed and an it_engineer finding is opened (fn_seat_handoff).',
+              case when reply_within is not null then 'Past ' || reply_within::text || ' the it_engineer SLA monitor (fn_it_handoff_sla_items) picks it up.'
+                   else 'No reply window: the originator re-verifies (fn_originators_reverify_handoffs).' end))
+         order by type, from_seat), '[]'::jsonb)
+    into v_kinds from public.seat_handoff_kind where to_seat = p_seat;
+
+  select coalesce(jsonb_agg(jsonb_build_object('to', to_seat, 'kind', type, 'means', meaning) order by to_seat, type), '[]'::jsonb)
+    into v_routes from public.seat_handoff_kind where from_seat = p_seat;
+
+  -- The decision rules the seat's verified knowledge states, one per entry that states one.
+  if to_regclass('public.' || v_table) is not null then
+    execute format($q$
+      select coalesce(jsonb_agg(jsonb_build_object('entry', record_id, 'topic', title, 'rule', rule) order by record_id), '[]'::jsonb)
+        from (select k.record_id, k.title,
+                     btrim((regexp_match(coalesce(to_jsonb(k)->>'content', to_jsonb(k)->>'body', ''),
+                                         -- [^\n], not '.': in a Postgres regex '.' matches a newline, and
+                                         -- the first dry run swallowed each entry to its end.
+                                         'Decision rules?:\s*([^\n]+)'))[1]) as rule
+                from public.%I k
+               where k.record_id like $1 || ':%%' and k.record_id not like '%%@ar') r
+       where rule is not null$q$, v_table)
+      into v_rules using p_seat;
+  end if;
+
+  select coalesce(jsonb_agg(x order by x->>'at' desc), '[]'::jsonb) into v_lessons from (
+    select x from (
+      select jsonb_build_object('lesson', l, 'case_id', m.id, 'case_kind', m.case_kind, 'at', m.updated_at) x
+        from public.seat_case_memory m, unnest(m.lessons) l
+       where m.seat = p_seat and btrim(l) <> ''
+      union all
+      select jsonb_build_object('lesson', c.finding, 'candidate_id', c.id, 'case_kind', 'approved finding', 'at', coalesce(c.reviewed_at, c.created_at))
+        from public.reasoning_knowledge_candidate c
+       where c.seat = p_seat and c.status = 'approved'
+    ) u order by x->>'at' desc limit 25) z;
+
+  v_pb := jsonb_build_object('seat', p_seat, 'duties', v_duties, 'case_kinds', v_kinds, 'hands_on_to', v_routes,
+                             'decision_rules', coalesce(v_rules, '[]'::jsonb), 'lessons', v_lessons);
+  v_md5 := md5(v_pb::text);
+
+  select * into v_old from public.seat_playbook where seat = p_seat;
+  if found and v_old.content_md5 = v_md5 then
+    return jsonb_build_object('seat', p_seat, 'version', v_old.version, 'changed', false);
+  end if;
+  v_version := coalesce(v_old.version, 0) + 1;
+
+  -- The Markdown an auditor reads. No clock in it: the file changes only when the playbook does.
+  v_md := '# ' || initcap(replace(p_seat, '_', ' ')) || ' playbook' || E'\n\n'
+    || '> Generated by `public.fn_seat_playbook_build` from the database (seat_duty, seat_handoff_kind, the seat''s verified knowledge, and its lessons). '
+    || 'Do not edit by hand - it is rebuilt every time a lesson is recorded. Version ' || v_version || '.' || E'\n\n'
+    || '## Standing duties (what I do without being asked)' || E'\n\n'
+    || coalesce((select string_agg('- **' || (d->>'duty') || '** (every ' || (d->>'every') || '): ' || (d->>'what') || ' - `' || (d->>'routine') || '`', E'\n' order by ord)
+                   from jsonb_array_elements(v_duties) with ordinality t(d, ord)), '- none') || E'\n\n'
+    || '## Case kinds I handle' || E'\n\n'
+    || coalesce((select string_agg('### ' || (c->>'kind') || ' (from ' || (c->>'from') || ')' || E'\n\n'
+                                   || (c->>'means') || E'\n\n' || 'Steps:' || E'\n'
+                                   || (select string_agg((n) || '. ' || s, E'\n' order by n) from jsonb_array_elements_text(c->'steps') with ordinality s2(s, n))
+                                   || E'\n\n' || 'Escalation:' || E'\n'
+                                   || (select string_agg('- ' || s, E'\n') from jsonb_array_elements_text(c->'escalation') s),
+                                   E'\n\n' order by ord)
+                   from jsonb_array_elements(v_kinds) with ordinality t(c, ord)), 'No case kind is handed to this seat.') || E'\n\n'
+    || '## Where I hand work on' || E'\n\n'
+    || coalesce((select string_agg('- to **' || (r->>'to') || '** as `' || (r->>'kind') || '`: ' || (r->>'means'), E'\n' order by ord)
+                   from jsonb_array_elements(v_routes) with ordinality t(r, ord)), '- nowhere') || E'\n\n'
+    || '## Decision rules from my verified knowledge' || E'\n\n'
+    || coalesce((select string_agg('- **' || (r->>'topic') || '** (`' || (r->>'entry') || '`): ' || (r->>'rule'), E'\n' order by ord)
+                   from jsonb_array_elements(coalesce(v_rules, '[]'::jsonb)) with ordinality t(r, ord)), '- none stated yet') || E'\n\n'
+    || '## Lessons learned (newest 25, from the learning loop)' || E'\n\n'
+    || coalesce((select string_agg('- ' || replace(l->>'lesson', E'\n', ' ')
+                                   || coalesce(' (case #' || (l->>'case_id') || ')', ' (finding #' || (l->>'candidate_id') || ')'), E'\n' order by ord)
+                   from jsonb_array_elements(v_lessons) with ordinality t(l, ord)), '- none recorded yet') || E'\n';
+
+  insert into public.seat_playbook (seat, version, playbook, markdown, content_md5, rebuilt_reason, rebuilt_at)
+  values (p_seat, v_version, v_pb, v_md, v_md5, left(coalesce(p_reason, 'rebuilt'), 300), now())
+  on conflict (seat) do update set version = excluded.version, playbook = excluded.playbook, markdown = excluded.markdown,
+                                   content_md5 = excluded.content_md5, rebuilt_reason = excluded.rebuilt_reason,
+                                   rebuilt_at = excluded.rebuilt_at;
+  return jsonb_build_object('seat', p_seat, 'version', v_version, 'changed', true);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_playbook_build_all(p_reason text DEFAULT 'rebuilt on request'::text)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_agg(public.fn_seat_playbook_build(s, p_reason) order by s)
+    from unnest(array['accountant','ceo','customer_support','it_engineer','marketing','sales_engineer']) s;
 $function$
 
 

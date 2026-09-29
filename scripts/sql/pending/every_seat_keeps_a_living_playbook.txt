@@ -1,9 +1,0 @@
-Committed, not applied: the founder's instruction for this PR (1013, items 6 and 9) is to apply only
-after merge. Proved before merge in ONE aborted transaction on production (verdict PROBE OK); the
-docs/seats/<seat>_playbook.md files were generated the same way (node scripts/seats/export_playbooks.mjs --dry).
-
-To move it: after merge, and AFTER every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql,
-  node scripts/apply_sql.mjs scripts/sql/every_seat_keeps_a_living_playbook.sql --apply --ddl
-  node scripts/seats/export_playbooks.mjs            # re-export: lessons recorded since the dry run move the version
-Then delete this note, append the file to the END of scripts/sql/MANIFEST.txt, commit the re-exported
-docs/seats files, and regenerate the schema mirror. Seat: it_engineer.
