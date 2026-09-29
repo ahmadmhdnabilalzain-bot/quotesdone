@@ -1,0 +1,96 @@
+{
+  "trade": "home_appliances",
+  "layer": "uae-market",
+  "label_en": "Home appliances wholesale",
+  "label_ar": "جملة أجهزة منزلية",
+  "entries": [
+    {
+      "id": "home_appliances:uae-market-products",
+      "topic": "Home appliances wholesale: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Home appliances sold in the UAE include refrigerators (top-mount, side-by-side, French-door, built-in), washing machines (front-load and top-load, 7-12 kg), dryers and washer-dryers, dishwashers, cookers and built-in ovens and hobs (gas, ceramic, induction), cooker hoods, microwaves, split and window air conditioners, water heaters (electric storage geysers 50-100 L), water dispensers, vacuum cleaners, irons, small kitchen appliances (blenders, kettles, air fryers, coffee machines), and TVs. Buyers ask about capacity, energy efficiency star rating under the UAE Energy Efficiency Labelling scheme (ESMA/MoIAT star ratings mandatory for ACs, refrigerators, washing machines, dryers, dishwashers and water heaters), voltage (220-240 V, 50 Hz), UK-type 3-pin plugs (BS 1363), tropical-rated compressors (T-class for high ambient temperatures), ECAS/EQM conformity marks, warranty and local service availability. Gas cookers must meet GSO and civil defence requirements.",
+      "body_ar": "تشمل الأجهزة المنزلية المباعة في الإمارات الثلاجات (بفريزر علوي، وجنباً إلى جنب، وبأبواب فرنسية، ومدمجة)، والغسالات (تحميل أمامي وعلوي، 7-12 كغ)، والمجففات والغسالات المجففة، وغسالات الأطباق، والطباخات والأفران والمواقد المدمجة (غاز، سيراميك، حثي)، وشفاطات المطبخ، وأفران الميكروويف، ومكيفات الهواء المنفصلة ومكيفات الشباك، وسخانات المياه (سخانات كهربائية بخزان 50-100 لتر)، وموزعات المياه، والمكانس الكهربائية، والمكاوي، والأجهزة المطبخية الصغيرة (خلاطات، غلايات، قلايات هوائية، آلات قهوة)، والتلفزيونات. يسأل المشترون عن السعة، وتصنيف نجوم كفاءة الطاقة ضمن نظام بطاقة كفاءة الطاقة الإماراتي (تصنيفات النجوم إلزامية للمكيفات والثلاجات والغسالات والمجففات وغسالات الأطباق وسخانات المياه)، والجهد (220-240 فولت، 50 هرتز)، والقوابس البريطانية ثلاثية الأطراف (BS 1363)، والضواغط المصنفة للمناخ الاستوائي (الفئة T لدرجات الحرارة المحيطة المرتفعة)، وعلامات المطابقة ECAS/EQM، والضمان وتوفر الخدمة المحلية. ويجب أن تستوفي طباخات الغاز متطلبات المواصفات الخليجية والدفاع المدني.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-performance-efficiency-cards",
+        "https://focus.hidubai.com/best-places-buy-electronics-dubai/",
+        "https://uae.sharafdg.com/",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified."
+    },
+    {
+      "id": "home_appliances:uae-market-brands",
+      "topic": "Home appliances wholesale: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands and confirmed retailers: Samsung, LG, Bosch, Siemens, Whirlpool, Beko, Hisense, Midea, Haier, Daikin, Super General, Nikai, Sharaf DG, Jumbo Electronics, Emax. The brands' UAE distributors were not checked. Online channels include Noon and Amazon.ae, and wholesale traders cluster in Deira (Naif, Al Murar) and Dragon Mart.",
+      "body_ar": "العلامات وتجار التجزئة المؤكدون: Samsung، LG، Bosch، Siemens، Whirlpool، Beko، Hisense، Midea، Haier، Daikin، Super General، Nikai، Sharaf DG، Jumbo Electronics، Emax. ولم يُتحقق من موزعي العلامات في الإمارات. وتشمل القنوات الإلكترونية نون وأمازون الإمارات، ويتجمع تجار الجملة في ديرة (نايف، والمرر) ودراغون مارت.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-performance-efficiency-cards",
+        "https://focus.hidubai.com/best-places-buy-electronics-dubai/",
+        "https://uae.sharafdg.com/",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified."
+    },
+    {
+      "id": "home_appliances:uae-market-sizes",
+      "topic": "Home appliances wholesale: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Appliances are priced per unit; ACs by capacity in tons or BTU/h (1-2.5 ton split units), refrigerators by litres (200-700 L), washers by kg load, water heaters by litres. B2B orders (developers, hotels, staff accommodation) are quoted per unit with volume pricing, delivery and installation per unit, and extended warranty options. Wholesale MOQs are typically per pallet or container.",
+      "body_ar": "تُسعّر الأجهزة لكل وحدة؛ والمكيفات حسب السعة بالطن أو وحدة حرارية بريطانية/ساعة (وحدات منفصلة 1-2.5 طن)، والثلاجات باللتر (200-700 لتر)، والغسالات بوزن الحمولة بالكيلوغرام، وسخانات المياه باللتر. وتُسعّر طلبات الشركات (المطورون، الفنادق، سكن الموظفين) لكل وحدة مع أسعار للكميات، والتوصيل والتركيب لكل وحدة، وخيارات ضمان ممتد. والحد الأدنى للطلب بالجملة عادةً لكل منصة أو حاوية.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-performance-efficiency-cards",
+        "https://focus.hidubai.com/best-places-buy-electronics-dubai/",
+        "https://uae.sharafdg.com/",
+        "https://moiat.gov.ae",
+        "https://www.bsigroup.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others -> confirmed | Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG -> confirmed | O General via Al Futtaim, Ansar as retailer -> removed: not checked. Not checked: The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does a washing machine need an energy star label to be sold in the UAE?",
+      "q_ar": "هل تحتاج الغسالة إلى بطاقة نجوم كفاءة الطاقة لبيعها في الإمارات؟",
+      "expected_entry_ids": [
+        "home_appliances:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "MoIAT's mandatory UAE energy efficiency label (5-star scale) covers ACs, washing machines, refrigerators and water heaters among others",
+        "url": "https://moiat.gov.ae/en/services/issue-performance-efficiency-cards",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Sharaf DG, Jumbo and Emax are UAE appliance retailers; Super General and Nikai sold at Sharaf DG",
+        "url": "https://focus.hidubai.com/best-places-buy-electronics-dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "O General via Al Futtaim, Ansar as retailer",
+        "url": "https://uae.sharafdg.com/",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "The current list of products subject to mandatory energy labelling and distributor appointments for each brand were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

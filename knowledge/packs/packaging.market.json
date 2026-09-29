@@ -1,0 +1,83 @@
+{
+  "trade": "packaging",
+  "layer": "uae-market",
+  "label_en": "Packaging & Printing Supplies",
+  "label_ar": "مستلزمات التغليف والطباعة",
+  "entries": [
+    {
+      "id": "packaging:uae-market-products",
+      "topic": "Packaging & Printing Supplies: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Packaging and printing supplies in the UAE (general): corrugated cartons, stretch and shrink films, tapes and strapping, labels, paper bags, pallets, void fill and bubble wrap, e-commerce packaging, retail packaging (folding cartons in SBS/FBB board, printed offset), industrial sacks, drums and IBCs (1,000 L HDPE with steel cage, UN-rated), and printing consumables (inks, plates, printing papers). Buyers usually source a mixed basket from a packaging distributor or converter; key specs are dimensions, material and grade, print, quantity and delivery schedule. Sustainability expectations are rising: recyclable mono-material films, recycled content, and the federal single-use plastic policy.",
+      "body_ar": "مستلزمات التغليف والطباعة في الإمارات (عامة): الكراتين المضلعة، وأفلام التغليف المطاطية والانكماشية، والأشرطة والأربطة، والملصقات، والأكياس الورقية، والمنصات، ومواد الحشو والفقاعات، وتغليف التجارة الإلكترونية، وتغليف التجزئة (العلب المطوية من كرتون SBS/FBB بطباعة أوفست)، والأكياس الصناعية، والبراميل والحاويات الوسيطة (1,000 لتر HDPE بقفص فولاذي، معتمدة من الأمم المتحدة)، ومستهلكات الطباعة (الأحبار والألواح وورق الطباعة). وعادة يشتري المشترون سلة مختلطة من موزع أو محول تغليف؛ والمواصفات الأساسية الأبعاد والمادة والدرجة والطباعة والكمية وجدول التسليم. وتتزايد توقعات الاستدامة: الأفلام أحادية المادة القابلة للتدوير، والمحتوى المعاد تدويره، والسياسة الاتحادية للبلاستيك أحادي الاستخدام.",
+      "sources": [
+        "https://harwal.net/our-companies/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.ti-films.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef films; Falcon Pack; Cosmoplast (Harwal) -> confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed). Not checked: Named converters' current product lines were not verified."
+    },
+    {
+      "id": "packaging:uae-market-brands",
+      "topic": "Packaging & Printing Supplies: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Converters, distributors and board sources: Taghleef Industries, Falcon Pack, Cosmoplast, Interplast, Schütz, Mauser, Stora Enso, Iggesund, Metsä. The first four are UAE-based, and the others are IBC and board brands whose local channels were not checked. Many trading companies in Sharjah, Ajman, Al Quoz, DIP and JAFZA supply mixed packaging baskets.",
+      "body_ar": "المحولون والموزعون ومصادر الكرتون: Taghleef Industries، Falcon Pack، Cosmoplast، Interplast، Schütz، Mauser، Stora Enso، Iggesund، Metsä. والأربعة الأوائل مقرها الإمارات، والبقية علامات حاويات وسيطة وكرتون لم يُتحقق من قنواتها المحلية. وتورد شركات تجارة كثيرة في الشارقة وعجمان والقوز ومجمع دبي للاستثمار والمنطقة الحرة لجبل علي سلال تغليف مختلطة.",
+      "sources": [
+        "https://harwal.net/our-companies/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.ti-films.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef films; Falcon Pack; Cosmoplast (Harwal) -> confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed). Not checked: Named converters' current product lines were not verified."
+    },
+    {
+      "id": "packaging:uae-market-sizes",
+      "topic": "Packaging & Printing Supplies: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per unit, per 1,000 units, per roll or per kg by item; distributors offer monthly consumption contracts with stock held for the buyer. IBCs per unit (new or rebottled). Print jobs have one-off plate/die costs. Lead time from stock days; custom print 1-4 weeks.",
+      "body_ar": "التسعير بالوحدة أو لكل 1,000 وحدة أو باللفة أو بالكيلوغرام حسب البند؛ ويقدم الموزعون عقود استهلاك شهرية مع مخزون محجوز للمشتري. والحاويات الوسيطة بالوحدة (جديدة أو مجددة العبوة). ولأعمال الطباعة تكاليف أكليشيهات/قوالب لمرة واحدة. ومدة التوريد من المخزون أيام؛ والطباعة الخاصة 1-4 أسابيع.",
+      "sources": [
+        "https://harwal.net/our-companies/",
+        "https://www.moccae.gov.ae",
+        "https://unece.org",
+        "https://www.ti-films.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Taghleef films; Falcon Pack; Cosmoplast (Harwal) -> confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed). Not checked: Named converters' current product lines were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can one supplier cover cartons, tape and stretch film for my warehouse?",
+      "q_ar": "هل يمكن لمورد واحد توفير الكراتين والأشرطة وفيلم التغليف لمستودعي؟",
+      "expected_entry_ids": [
+        "packaging:uae-market-brands"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Taghleef films; Falcon Pack; Cosmoplast (Harwal)",
+        "url": "https://harwal.net/our-companies/",
+        "result": "confirmed; Napco, Hotpack, Emirates Printing Press and Rotopak removed (not confirmed)"
+      }
+    ],
+    "unverified": "Named converters' current product lines were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

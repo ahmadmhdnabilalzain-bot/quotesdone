@@ -1,0 +1,76 @@
+{
+  "trade": "market_research",
+  "entries": [
+    {
+      "id": "market_research:spec-checklist",
+      "topic": "Market research - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For market research (trade code market_research only), every quoted line must state: Research objective; Method; Sample size and profile; Geography and languages; Deliverables; Data protection and consent; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط أبحاث السوق (رمز النشاط market_research فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: هدف البحث؛ المنهجية؛ حجم العينة وخصائصها؛ النطاق الجغرافي واللغات؛ المخرجات؛ حماية البيانات والموافقة؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Research objective",
+        "Method",
+        "Sample size and profile",
+        "Geography and languages",
+        "Deliverables",
+        "Data protection and consent",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://uaelegislation.gov.ae/en"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "market_research:uae-standards-and-approvals",
+      "topic": "Market research - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to market research in the UAE: Federal laws, including the Personal Data Protection Law (Federal Decree-Law No. 45 of 2021), are published on the UAE legislation portal; the portal refused automated reading on 2026-09-28, so the exact articles that apply must be checked there. A buyer may also name, as the test or product standard for a line, ISO 20252 (market, opinion and social research); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for market research. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط أبحاث السوق في الإمارات: تُنشر القوانين الاتحادية، ومنها قانون حماية البيانات الشخصية (المرسوم بقانون اتحادي رقم 45 لسنة 2021)، على بوابة التشريعات الإماراتية؛ وقد رفضت البوابة القراءة الآلية في 28 سبتمبر 2026، لذا يجب التحقق من المواد المنطبقة مباشرة منها. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل ISO 20252 (أبحاث السوق والرأي والبحوث الاجتماعية)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط أبحاث السوق. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for market research. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://uaelegislation.gov.ae/en"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on market research?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـأبحاث السوق؟",
+      "expected_entry_ids": [
+        "market_research:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a market research supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد أبحاث السوق؟",
+      "expected_entry_ids": [
+        "market_research:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "market_research:spec-checklist",
+      "market_research:uae-standards-and-approvals"
+    ],
+    "added": [
+      "market_research:spec-checklist",
+      "market_research:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

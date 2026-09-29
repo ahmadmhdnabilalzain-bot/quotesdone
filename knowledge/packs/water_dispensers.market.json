@@ -1,0 +1,99 @@
+{
+  "trade": "water_dispensers",
+  "layer": "uae-market",
+  "label_en": "Water dispensers & coolers",
+  "label_ar": "برادات وموزعات مياه",
+  "entries": [
+    {
+      "id": "water_dispensers:uae-market-products",
+      "topic": "Water dispensers & coolers: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Water dispensers and drinking water supply in the UAE include bottled water in 5-gallon (18.9 L) returnable polycarbonate or PET bottles, small bottles (200 ml-1.5 L) for offices and events, top-loading and bottom-loading hot and cold dispensers, point-of-use (POU) bottleless dispensers connected to mains with filtration (sediment, carbon, RO, UV), under-sink RO systems, water coolers and drinking fountains for public areas (stainless steel, accessible for people of determination), bottle-filling stations, and sanitisation services for dispensers. Buyers specify hot water temperature (around 85-95 °C with child-safety lock), cold temperature (4-10 °C), tank material (stainless 304), energy use, and service frequency. Bottled water must be produced in plants approved by the municipality (Dubai Municipality, ADAFSA) and meet UAE.S/GSO 1025 bottled drinking water standards with ECAS conformity; dispensers are electrical appliances covered by MoIAT conformity.",
+      "body_ar": "تشمل موزعات المياه وتوريد مياه الشرب في الإمارات المياه المعبأة في عبوات 5 غالونات (18.9 لتراً) قابلة للإرجاع من البولي كربونات أو البولي إيثيلين تيرفثالات، والعبوات الصغيرة (200 مل-1.5 لتر) للمكاتب والفعاليات، وموزعات الماء الساخن والبارد ذات التحميل العلوي والسفلي، وموزعات نقطة الاستخدام بدون عبوات المتصلة بالشبكة مع الفلترة (الرواسب، والكربون، والتناضح العكسي، والأشعة فوق البنفسجية)، وأنظمة التناضح العكسي تحت الحوض، ومبردات المياه ونوافير الشرب للمناطق العامة (فولاذ مقاوم للصدأ، وملائمة لذوي الإعاقة)، ومحطات تعبئة القوارير، وخدمات تعقيم الموزعات. يحدد المشترون درجة حرارة الماء الساخن (نحو 85-95 °م مع قفل أمان للأطفال)، ودرجة حرارة الماء البارد (4-10 °م)، ومادة الخزان (فولاذ مقاوم للصدأ 304)، واستهلاك الطاقة، وتكرار الخدمة. ويجب إنتاج المياه المعبأة في مصانع معتمدة من البلدية (بلدية دبي، وهيئة أبوظبي للزراعة والسلامة الغذائية) واستيفاء معايير مياه الشرب المعبأة الإماراتية/الخليجية 1025 مع مطابقة نظام المطابقة الإماراتي؛ والموزعات أجهزة كهربائية تخضع لمطابقة وزارة الصناعة والتكنولوجيا المتقدمة.",
+      "sources": [
+        "https://jcatrademarkuae.com/conditions-and-requirements-to-obtain-emirates-quality-mark-for-drinking-water/",
+        "https://www.bayut.com/mybayut/bottled-drinking-water-companies-dubai/",
+        "https://www.masafi.com/",
+        "https://moiat.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark -> confirmed | Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery -> confirmed | Arwa, Aquafina, Gulfa and dispenser brand dealers -> removed: not checked. Not checked: The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified."
+    },
+    {
+      "id": "water_dispensers:uae-market-brands",
+      "topic": "Water dispensers & coolers: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE water brands and common dispenser brands: Masafi, Al Ain Water (Agthia), Mai Dubai, Oasis, Culligan, Elkay, Super General, Nikai. The dispenser brands' UAE dealers were not checked. Delivery companies operate in every emirate on subscription.",
+      "body_ar": "علامات المياه المؤكدة في الإمارات وعلامات الموزعات الشائعة: Masafi، Al Ain Water (Agthia)، Mai Dubai، Oasis، Culligan، Elkay، Super General، Nikai. ولم يُتحقق من وكلاء علامات الموزعات في الإمارات. وتعمل شركات التوصيل في كل إمارة بنظام الاشتراك.",
+      "sources": [
+        "https://jcatrademarkuae.com/conditions-and-requirements-to-obtain-emirates-quality-mark-for-drinking-water/",
+        "https://www.bayut.com/mybayut/bottled-drinking-water-companies-dubai/",
+        "https://www.masafi.com/",
+        "https://moiat.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark -> confirmed | Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery -> confirmed | Arwa, Aquafina, Gulfa and dispenser brand dealers -> removed: not checked. Not checked: The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified."
+    },
+    {
+      "id": "water_dispensers:uae-market-sizes",
+      "topic": "Water dispensers & coolers: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "5-gallon water is priced per bottle (refill) with a one-time refundable bottle deposit, often in coupon books or monthly subscriptions; small bottles per carton (e.g. 24 x 500 ml, 12 x 1.5 L). Dispensers are sold per unit or rented per month; POU units rented per month including filter changes and sanitisation (often every 3-6 months). Corporate contracts have minimum monthly bottle volumes.",
+      "body_ar": "تُسعّر مياه عبوات 5 غالونات لكل عبوة (إعادة تعبئة) مع تأمين لمرة واحدة قابل للاسترداد على العبوة، وغالباً بدفاتر قسائم أو اشتراكات شهرية؛ والعبوات الصغيرة لكل كرتونة (مثل 24 × 500 مل، و12 × 1.5 لتر). وتُباع الموزعات لكل وحدة أو تُؤجر شهرياً؛ وتُؤجر وحدات نقطة الاستخدام شهرياً شاملة تغيير الفلاتر والتعقيم (غالباً كل 3-6 أشهر). ولعقود الشركات حد أدنى شهري لعدد العبوات.",
+      "sources": [
+        "https://jcatrademarkuae.com/conditions-and-requirements-to-obtain-emirates-quality-mark-for-drinking-water/",
+        "https://www.bayut.com/mybayut/bottled-drinking-water-companies-dubai/",
+        "https://www.masafi.com/",
+        "https://moiat.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark -> confirmed | Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery -> confirmed | Arwa, Aquafina, Gulfa and dispenser brand dealers -> removed: not checked. Not checked: The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is it cheaper to rent a bottleless point-of-use dispenser or buy 5-gallon bottles?",
+      "q_ar": "هل استئجار موزع نقطة استخدام بدون عبوات أرخص أم شراء عبوات 5 غالونات؟",
+      "expected_entry_ids": [
+        "water_dispensers:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "UAE.S/GSO 1025 covers bottled drinking water; bottled water carries the Emirates Quality Mark",
+        "url": "https://jcatrademarkuae.com/conditions-and-requirements-to-obtain-emirates-quality-mark-for-drinking-water/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Masafi, Al Ain (Agthia), Mai Dubai and Oasis sell water in the UAE, with 5-gallon home and office delivery",
+        "url": "https://www.bayut.com/mybayut/bottled-drinking-water-companies-dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Arwa, Aquafina, Gulfa and dispenser brand dealers",
+        "url": "https://www.masafi.com/",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "The current ownership of some water brands and the exact standard number for bottled water (UAE.S GSO 1025 edition) were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

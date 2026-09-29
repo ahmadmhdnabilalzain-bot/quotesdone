@@ -1,0 +1,99 @@
+{
+  "trade": "fitness_equipment",
+  "layer": "uae-market",
+  "label_en": "Fitness & gym equipment",
+  "label_ar": "أجهزة اللياقة البدنية والصالات الرياضية",
+  "entries": [
+    {
+      "id": "fitness_equipment:uae-market-products",
+      "topic": "Fitness & gym equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Fitness equipment sold in the UAE includes cardio machines (commercial treadmills with 3-5 HP AC motors, ellipticals, upright and recumbent bikes, spin bikes, rowers, stair climbers, air bikes), selectorised strength machines, plate-loaded machines, multi-gyms, cable crossovers, power racks and Smith machines, free weights (hex and round dumbbells, Olympic bars 20 kg/28 mm, bumper plates, kettlebells), benches, functional training rigs, rubber gym flooring (15-50 mm tiles or rolls), and accessories. Buyers distinguish commercial-grade (EN ISO 20957 class S/A) from home-use (class H) equipment, user weight capacity, warranty (frame, parts, labour), power supply (230 V), and after-sales service. Hotels, residential towers and corporate gyms often buy full gym packages with layout design, installation and preventive maintenance.",
+      "body_ar": "تشمل معدات اللياقة البدنية المباعة في الإمارات أجهزة الكارديو (أجهزة المشي التجارية بمحركات تيار متردد 3-5 أحصنة، وأجهزة الإليبتيكال، والدراجات العمودية والمائلة، ودراجات السبين، وأجهزة التجديف، وأجهزة صعود الدرج، ودراجات الهواء)، وأجهزة القوة ذات الأوزان المختارة، والأجهزة ذات الأقراص، والأجهزة متعددة التمارين، وأجهزة الكابلات المتقاطعة، وأقفاص القوة وأجهزة سميث، والأوزان الحرة (دمبلز سداسية ومستديرة، وأعمدة أولمبية 20 كغ/28 مم، وأقراص مطاطية، وكيتل بل)، والمقاعد، وهياكل التدريب الوظيفي، وأرضيات الصالات المطاطية (بلاطات أو لفائف 15-50 مم)، والإكسسوارات. يميز المشترون بين المعدات التجارية (EN ISO 20957 الفئة S/A) والمنزلية (الفئة H)، والحمولة القصوى للمستخدم، والضمان (الهيكل، القطع، العمالة)، ومصدر الطاقة (230 فولت)، وخدمة ما بعد البيع. وغالباً ما تشتري الفنادق والأبراج السكنية وصالات الشركات باقات صالات كاملة تشمل تصميم المخطط والتركيب والصيانة الوقائية.",
+      "sources": [
+        "https://www.iso.org/standard/81908.html",
+        "https://www.technogym.com/en-AE/technogym-dubai/",
+        "https://www.yellowpages-uae.com/uae/dubai/techno-gym",
+        "https://www.iso.org",
+        "https://www.technogym.com",
+        "https://www.lifefitness.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified."
+    },
+    {
+      "id": "fitness_equipment:uae-market-brands",
+      "topic": "Fitness & gym equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands and confirmed retailers: Technogym, Life Fitness, Hammer Strength, Precor, Matrix (Johnson Health Tech), Cybex, Concept2, Eleiko, Sun & Sand Sports, Decathlon. Technogym runs its own Dubai showroom; the other brands' UAE distributors were not checked.",
+      "body_ar": "العلامات وتجار التجزئة المؤكدون: Technogym، Life Fitness، Hammer Strength، Precor، Matrix (Johnson Health Tech)، Cybex، Concept2، Eleiko، Sun & Sand Sports، Decathlon. وتدير تكنوجيم صالة عرض خاصة بها في دبي؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات.",
+      "sources": [
+        "https://www.iso.org/standard/81908.html",
+        "https://www.technogym.com/en-AE/technogym-dubai/",
+        "https://www.yellowpages-uae.com/uae/dubai/techno-gym",
+        "https://www.iso.org",
+        "https://www.technogym.com",
+        "https://www.lifefitness.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified."
+    },
+    {
+      "id": "fitness_equipment:uae-market-sizes",
+      "topic": "Fitness & gym equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Machines are priced per unit; free weights per kg or per set (e.g. dumbbell sets 2.5-50 kg in 2.5 kg steps); flooring per m2 (tiles commonly 1 x 1 m or 0.5 x 0.5 m). Full gym packages are quoted as a lump sum including delivery, installation and first-year warranty. AMCs are priced per year per site or per machine. Lead times for commercial lines are often 6-12 weeks from Europe/USA.",
+      "body_ar": "تُسعّر الأجهزة لكل وحدة؛ والأوزان الحرة لكل كيلوغرام أو لكل طقم (مثل أطقم الدمبلز من 2.5 إلى 50 كغ بزيادات 2.5 كغ)؛ والأرضيات لكل متر مربع (البلاطات عادةً 1 × 1 م أو 0.5 × 0.5 م). وتُسعّر باقات الصالات الكاملة كمبلغ مقطوع يشمل التوصيل والتركيب وضمان السنة الأولى. وتُسعّر عقود الصيانة السنوية لكل موقع أو لكل جهاز سنوياً. وغالباً ما تتراوح مدة التوريد للخطوط التجارية بين 6 و12 أسبوعاً من أوروبا أو الولايات المتحدة.",
+      "sources": [
+        "https://www.iso.org/standard/81908.html",
+        "https://www.technogym.com/en-AE/technogym-dubai/",
+        "https://www.yellowpages-uae.com/uae/dubai/techno-gym",
+        "https://www.iso.org",
+        "https://www.technogym.com",
+        "https://www.lifefitness.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes -> confirmed | Technogym has a Dubai showroom and experience centre on Jumeirah Street -> confirmed | Techno Sport distributor, Leejam as buyer -> removed: not confirmed. Not checked: Current exclusive UAE distributors for each brand and typical lead times were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between a commercial and home treadmill for a residential tower gym?",
+      "q_ar": "ما الفرق بين جهاز المشي التجاري والمنزلي لصالة رياضية في برج سكني؟",
+      "expected_entry_ids": [
+        "fitness_equipment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EN ISO 20957 classes: S for commercial/studio, H for home; A/B/C are accuracy classes",
+        "url": "https://www.iso.org/standard/81908.html",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Technogym has a Dubai showroom and experience centre on Jumeirah Street",
+        "url": "https://www.technogym.com/en-AE/technogym-dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Techno Sport distributor, Leejam as buyer",
+        "url": "https://www.yellowpages-uae.com/uae/dubai/techno-gym",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Current exclusive UAE distributors for each brand and typical lead times were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -695,6 +695,126 @@
       "expected_facts": [
         "AED 199"
       ]
+    },
+    {
+      "id": "accountant-exam-58",
+      "checklist": "ACC-PRO",
+      "q_en": "When may QuotesDone recognise a deferred tax asset for its pre-revenue tax losses?",
+      "q_ar": "متى يجوز لكوتس دن إثبات أصل ضريبي مؤجل عن خسائرها الضريبية قبل الإيراد؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s29-income-tax-deferred-tax"
+      ],
+      "expected_facts": [
+        "future taxable profit is probable"
+      ]
+    },
+    {
+      "id": "accountant-exam-59",
+      "checklist": "ACC-PRO",
+      "q_en": "Can the cost of building the QuotesDone platform in-house be capitalised under IFRS for SMEs?",
+      "q_ar": "هل يمكن رسملة تكلفة بناء منصة كوتس دن داخلياً وفق معيار المنشآت الصغيرة والمتوسطة؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s18-intangibles-software-costs"
+      ],
+      "expected_facts": [
+        "expense when incurred"
+      ]
+    },
+    {
+      "id": "accountant-exam-60",
+      "checklist": "ACC-PRO",
+      "q_en": "Where does the founder's capital injection go in the statement of cash flows?",
+      "q_ar": "أين تُصنّف مساهمة المؤسس الرأسمالية في قائمة التدفقات النقدية؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s7-statement-of-cash-flows"
+      ],
+      "expected_facts": [
+        "financing, never operating"
+      ]
+    },
+    {
+      "id": "accountant-exam-61",
+      "checklist": "ACC-PRO",
+      "q_en": "A disputed charge open at year end settled in January at a different amount. Adjust or disclose?",
+      "q_ar": "رسم متنازع عليه في نهاية السنة سُوّي في يناير بمبلغ مختلف. هل نعدّل أم نفصح؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s32-events-after-reporting-period"
+      ],
+      "expected_facts": [
+        "Adjusting events"
+      ]
+    },
+    {
+      "id": "accountant-exam-62",
+      "checklist": "ACC-PRO",
+      "q_en": "Are subscriptions the founder pays on his personal card related party transactions?",
+      "q_ar": "هل الاشتراكات التي يدفعها المؤسس على بطاقته الشخصية معاملات أطراف ذات علاقة؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s33-related-party-disclosures"
+      ],
+      "expected_facts": [
+        "related party transactions by definition"
+      ]
+    },
+    {
+      "id": "accountant-exam-63",
+      "checklist": "ACC-PRO",
+      "q_en": "How far ahead must the going concern assessment look?",
+      "q_ar": "إلى أي مدى يجب أن يمتد تقييم الاستمرارية؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s3-going-concern-pre-revenue"
+      ],
+      "expected_facts": [
+        "at least twelve months"
+      ]
+    },
+    {
+      "id": "accountant-exam-64",
+      "checklist": "ACC-PRO",
+      "q_en": "A refund provision rate is revised. Do we restate the prior period?",
+      "q_ar": "عُدّلت نسبة مخصص الاستردادات. هل نعيد عرض الفترة السابقة؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s10-policies-estimates-errors"
+      ],
+      "expected_facts": [
+        "applied prospectively"
+      ]
+    },
+    {
+      "id": "accountant-exam-65",
+      "checklist": "ACC-PRO",
+      "q_en": "Can the non-response charge we are pursuing through legal recovery be booked as income?",
+      "q_ar": "هل يمكن قيد رسم عدم الاستجابة الذي نلاحقه قانونياً كإيراد؟",
+      "expected_entry_ids": [
+        "accountant:ifrs-smes-s21-provisions-contingencies"
+      ],
+      "expected_facts": [
+        "contingent asset, not income"
+      ]
+    },
+    {
+      "id": "accountant-exam-66",
+      "checklist": "ACC-PRO",
+      "q_en": "What is the de minimis threshold under the Corporate Tax interest limitation rule?",
+      "q_ar": "ما حد الإعفاء الأدنى في قاعدة تقييد خصم الفائدة في ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "accountant:ct-general-interest-deduction-limitation"
+      ],
+      "expected_facts": [
+        "AED 12 million"
+      ]
+    },
+    {
+      "id": "accountant-exam-67",
+      "checklist": "ACC-PRO",
+      "q_en": "How long after the supply before VAT bad debt relief can be claimed?",
+      "q_ar": "كم يجب أن يمضي من تاريخ التوريد قبل المطالبة بإعفاء الديون المعدومة؟",
+      "expected_entry_ids": [
+        "accountant:vat-bad-debt-relief-article-64"
+      ],
+      "expected_facts": [
+        "more than six months"
+      ]
     }
   ]
 }

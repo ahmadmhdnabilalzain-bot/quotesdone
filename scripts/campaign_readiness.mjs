@@ -14,6 +14,7 @@ import { homedir } from 'node:os';
 import { createHmac } from 'node:crypto';
 import { Resolver } from 'node:dns/promises';
 import { spawnSync } from 'node:child_process';
+import { withRetry } from './lib/retry.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
 const tok = process.env.SUPABASE_ACCESS_TOKEN?.trim() || readFileSync(join(homedir(), '.supabase', 'access-token'), 'utf8').trim();
@@ -60,7 +61,9 @@ await guard('1 deliverability', 'mail-tester', async () => {
   for (const lang of ['en']) {
     const s = seeds.find((x) => x.lang === lang);
     if (!s) { row('1 deliverability', `mail-tester ${lang.toUpperCase()} seed sent through the outbox`, false, 'no sent seed row'); continue; }
-    const page = await (await fetch(`https://www.mail-tester.com/${s.to_email.split('@')[0]}`)).text();
+    // One network blip failed the whole gate on 28 Sep 2026 ("fetch failed"; the same page read 10/10 a minute
+    // later). Retry the blip; a page that stays unreadable after three tries still fails the row.
+    const page = await withRetry(async () => (await fetch(`https://www.mail-tester.com/${s.to_email.split('@')[0]}`, { signal: AbortSignal.timeout(20000) })).text());
     const score = parseFloat((page.match(/score">\s*([0-9.]+)\s*\/\s*10/) || [])[1]);
     const auth = ['dkim', 'dmarc'].map((k) => (page.match(new RegExp(`${k}=([a-z]+)`)) || [])[1] || '?').join('/');
     row('1 deliverability', `mail-tester ${lang.toUpperCase()} score (notification #${s.id}, sent ${String(s.sent_at).slice(0, 16)})`,
@@ -73,7 +76,7 @@ await guard('2 template', 'inbox rules', async () => {
   const r = spawnSync(process.execPath, ['--no-warnings', 'scripts/invitation_inbox_check.mjs'], { encoding: 'utf8', timeout: 180000 });
   const out = r.stdout || '';
   const pass = (out.match(/^PASS/gm) || []).length, fail = (out.match(/^FAIL/gm) || []).length;
-  row('2 template', 'EN invitation render (live copy, send_outbox own renderer), every inbox rule', r.status === 0 && fail === 0 && /EN invitation/.test(out),
+  row('2 template', 'EN invitation render (live copy, send_outbox own renderer), every inbox rule', r.status === 0 && fail === 0 && /=== the invitation, English/.test(out),
     `${pass} rules PASS, ${fail} FAIL; one-click List-Unsubscribe`);
 });
 await guard('2 template', 'batch', async () => {
