@@ -71,7 +71,7 @@ begin
       from (select r.*, r.started_at > now() - interval '24 hours' d1 from r) z
      group by fn
   loop
-    j := public.fn_it_slo_judge(x.runs_24h::int, x.p95, x.budget, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
+    j := public.fn_it_slo_judge(x.runs_24h::int, x.p95::numeric, x.budget::int, x.bad_24h::int, x.runs_30d::int, x.bad_30d::int);
     v_owner := coalesce((select o.owner from public.function_owner o where o.function_slug = x.fn), 'it_engineer');
     v_out := v_out || jsonb_build_object('fn', x.fn, 'runs', x.n, 'p95_ms', round(x.p95), 'budget_ms', x.budget,
       'runs_30d', x.runs_30d, 'availability_30d', j->'availability',

@@ -13,6 +13,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -28,8 +29,19 @@ function fnBody(name) {
   return SCHEMA.slice(start, SCHEMA.indexOf(m[1], start));
 }
 
-const REG = [...fnBody('fn_backup_source_registry').matchAll(
-  /\('([^']+)',\s*'(column|bucket)',\s*(?:NULL|null|'([^']*)'),\s*(true|false),\s*(?:NULL|null|'((?:[^']|'')*)'),\s*(?:NULL|null|'((?:[^']|'')*)')\)/g)]
+// PENDING DDL (29 Sep 2026). The mirror shows a table only once its file is applied, so a PR adding a
+// *_path column in a pending file passed here and turned main red at apply (#1063's close pack). The
+// pending, non-probe files are read too: their new path columns must be registered, and a pending
+// redefinition of the registry supplies the rows that will be live once it is applied.
+const PENDING_SQL = manifestWithPending(ROOT).filter((f) => existsSync(join(ROOT, f.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt'))))
+  .map((f) => readFileSync(join(ROOT, f), 'utf8'));
+const pendingRegistry = PENDING_SQL.map((s) => {
+  const i = s.search(/function\s+public\.fn_backup_source_registry\s*\(/i);
+  return i < 0 ? '' : s.slice(i);
+}).filter(Boolean).at(-1);
+
+const ROW = /\('([^']+)',\s*'(column|bucket)',\s*(?:NULL|null|'([^']*)'),\s*(true|false),\s*(?:NULL|null|'((?:[^']|'')*)'),\s*(?:NULL|null|'((?:[^']|'')*)')\)/g;
+const REG = [...(pendingRegistry ?? fnBody('fn_backup_source_registry')).matchAll(ROW)]
   .map((m) => ({ source: m[1], kind: m[2], bucket: m[3] ?? null, backed_up: m[4] === 'true', rule: m[5] ?? null, reason: m[6] ?? null }));
 const has = (kind, source) => REG.some((r) => r.kind === kind && r.source === source);
 
@@ -41,7 +53,19 @@ function pathColumns() {
       if (c && /(_path|_paths)$/.test(c[1])) out.push(`${m[2]}.${c[1]}`);
     }
   }
-  return out;
+  for (const s of PENDING_SQL) {
+    const code = s.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+    for (const m of code.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\.("?)([a-z0-9_]+)\1\s*\(([\s\S]*?)\n\s*\)\s*;/gi)) {
+      for (const line of m[3].split('\n')) {
+        const c = line.trim().match(/^"?([a-z0-9_]+)"?\s/);
+        if (c && /(_path|_paths)$/.test(c[1])) out.push(`${m[2]}.${c[1]}`);
+      }
+    }
+    for (const m of code.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?public\.("?)([a-z0-9_]+)\1\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z0-9_]+_paths?)"?\s/gi)) {
+      out.push(`${m[2]}.${m[3]}`);
+    }
+  }
+  return [...new Set(out)];
 }
 
 function codeBuckets() {
