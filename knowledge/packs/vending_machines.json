@@ -1,0 +1,79 @@
+{
+  "trade": "vending_machines",
+  "entries": [
+    {
+      "id": "vending_machines:spec-checklist",
+      "topic": "Vending machines - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For vending machines quotes to be compared like-for-like, every quoted line (goods) must state: (1) machine type (snack, drinks, coffee, fresh food); (2) capacity (selections and items); (3) dimensions and power rating (230 V); (4) payment systems (cash, card, NFC); (5) refrigeration temperature; (6) supply model (purchase, placement, operated); (7) restocking and service frequency; (8) food permit for the location; (9) conformity certificate; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the vending_machines trade.",
+      "body_ar": "لكي تُقارن عروض آلات البيع الذاتي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الآلة (وجبات خفيفة، أو مشروبات، أو قهوة، أو أغذية طازجة)؛ (2) السعة (عدد الخيارات والأصناف)؛ (3) الأبعاد والقدرة الكهربائية (230 فولت)؛ (4) أنظمة الدفع (نقدي، أو بطاقة، أو لاتلامسي)؛ (5) درجة حرارة التبريد؛ (6) نموذج التوريد (شراء، أو وضع، أو تشغيل كامل)؛ (7) تكرار التعبئة والخدمة؛ (8) تصريح الغذاء للموقع؛ (9) شهادة المطابقة؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة vending_machines فقط.",
+      "required_specs": [
+        "machine type (snack, drinks, coffee, fresh food)",
+        "capacity (selections and items)",
+        "dimensions and power rating (230 V)",
+        "payment systems (cash, card, NFC)",
+        "refrigeration temperature",
+        "supply model (purchase, placement, operated)",
+        "restocking and service frequency",
+        "food permit for the location",
+        "conformity certificate",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "vending_machines:uae-standards-and-approvals",
+      "topic": "Vending machines - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. Food vending in Dubai falls under Dubai Municipality food-safety requirements. What the cited sources do not establish: The sources read do not describe a vending permit; the buyer must confirm the food permit route for the site.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. ويخضع بيع الأغذية بالآلات في دبي لمتطلبات بلدية دبي لسلامة الغذاء. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تصف تصريحاً لآلات البيع؛ على المشتري أن يتأكد من مسار تصريح الغذاء للموقع.",
+      "source_note": "The sources read do not describe a vending permit; the buyer must confirm the food permit route for the site.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for vending machines?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـآلات البيع الذاتي؟",
+      "expected_entry_ids": [
+        "vending_machines:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to vending machines?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على آلات البيع الذاتي؟",
+      "expected_entry_ids": [
+        "vending_machines:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "vending_machines:spec-checklist",
+      "vending_machines:uae-standards-and-approvals"
+    ],
+    "added": [
+      "vending_machines:spec-checklist",
+      "vending_machines:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

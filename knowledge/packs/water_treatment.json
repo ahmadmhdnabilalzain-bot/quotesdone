@@ -1,0 +1,79 @@
+{
+  "trade": "water_treatment",
+  "entries": [
+    {
+      "id": "water_treatment:spec-checklist",
+      "topic": "Water treatment equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For water treatment equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) system type (RO, softener, UV, filtration, dosing); (2) capacity in m3 per day; (3) raw water analysis; (4) treated water quality targets; (5) membrane and pump makes; (6) materials of construction; (7) control panel and automation; (8) installation and commissioning; (9) spares and consumables; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_treatment trade.",
+      "body_ar": "لكي تُقارن عروض معدات معالجة المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع النظام (تناضح عكسي، أو منقي عسر، أو أشعة فوق بنفسجية، أو ترشيح، أو حقن كيماوي)؛ (2) السعة بالمتر المكعب يومياً؛ (3) تحليل المياه الخام؛ (4) أهداف جودة المياه المعالجة؛ (5) ماركة الأغشية والمضخات؛ (6) مواد التصنيع؛ (7) لوحة التحكم والأتمتة؛ (8) التركيب والتشغيل التجريبي؛ (9) قطع الغيار والمستهلكات؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_treatment فقط.",
+      "required_specs": [
+        "system type (RO, softener, UV, filtration, dosing)",
+        "capacity in m3 per day",
+        "raw water analysis",
+        "treated water quality targets",
+        "membrane and pump makes",
+        "materials of construction",
+        "control panel and automation",
+        "installation and commissioning",
+        "spares and consumables",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "water_treatment:uae-standards-and-approvals",
+      "topic": "Water treatment equipment - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Drinking-water quality is set by UAE/GSO drinking water standards available through MoIAT and by the emirate regulator (Dubai Municipality covers water treatment in Dubai); connection to utility networks needs utility approval. What the cited sources do not establish: The sources read do not state treated water limits; the targets must come from the buyer's application.",
+      "body_ar": "تحدد مواصفات مياه الشرب الإماراتية والخليجية المتاحة عبر وزارة الصناعة والتكنولوجيا المتقدمة وجهة الإمارة التنظيمية جودة مياه الشرب (تشمل مهام بلدية دبي معالجة المياه في دبي)؛ ويحتاج الربط بشبكات المرافق إلى اعتماد جهة المرافق. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد حدود المياه المعالجة؛ يجب أن تأتي الأهداف من استخدام المشتري.",
+      "source_note": "The sources read do not state treated water limits; the targets must come from the buyer's application.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for water treatment equipment?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـمعدات معالجة المياه؟",
+      "expected_entry_ids": [
+        "water_treatment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to water treatment equipment?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على معدات معالجة المياه؟",
+      "expected_entry_ids": [
+        "water_treatment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "water_treatment:spec-checklist",
+      "water_treatment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "water_treatment:spec-checklist",
+      "water_treatment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

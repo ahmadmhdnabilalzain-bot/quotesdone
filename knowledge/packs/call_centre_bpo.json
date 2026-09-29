@@ -1,0 +1,80 @@
+{
+  "trade": "call_centre_bpo",
+  "entries": [
+    {
+      "id": "call_centre_bpo:spec-checklist",
+      "topic": "Call centre and BPO - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted service line for call centre and bpo must state: process scope; channels; languages; volume forecast; operating hours; service level targets; quality monitoring; data protection obligations; reporting; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مراكز الاتصال والاستعانة بمصادر خارجية: نطاق العمليات؛ القنوات؛ اللغات؛ توقعات الحجم؛ ساعات العمل؛ أهداف مستوى الخدمة؛ مراقبة الجودة؛ التزامات حماية البيانات؛ التقارير؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "process scope",
+        "channels",
+        "languages",
+        "volume forecast",
+        "operating hours",
+        "service level targets",
+        "quality monitoring",
+        "data protection obligations",
+        "reporting",
+        "licences held",
+        "service levels",
+        "contract duration",
+        "pricing basis",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/licences-and-permits",
+        "https://tdra.gov.ae/en/Services"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "call_centre_bpo:uae-standards-and-approvals",
+      "topic": "Call centre and BPO - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "The provider must hold a valid UAE trade licence whose licensed activity covers this service, issued by the economic department of the emirate or by a free zone authority. The Telecommunications and Digital Government Regulatory Authority (TDRA) licenses telecommunication services and regulates telecom equipment; radio or telecom equipment needs TDRA type approval where applicable. The cited sources do not set a UAE-specific service standard, qualification level or rate for call centre and bpo; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
+      "body_ar": "يجب أن يحمل المزوّد رخصة تجارية إماراتية سارية يشمل نشاطها المرخّص هذه الخدمة، صادرة عن الدائرة الاقتصادية في الإمارة أو عن سلطة منطقة حرة. تتولى هيئة تنظيم الاتصالات والحكومة الرقمية ترخيص خدمات الاتصالات وتنظيم معداتها؛ وتحتاج معدات الاتصالات أو الراديو إلى اعتماد طراز من الهيئة حيثما ينطبق. لا تحدد المصادر المذكورة معياراً أو مستوى تأهيل أو سعراً إماراتياً خاصاً بخدمة مراكز الاتصال والاستعانة بمصادر خارجية؛ يجب على المشتري ذكر المخرجات ومستويات الخدمة والمؤهلات صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific service standard, qualification level or rate for call centre and bpo; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/licences-and-permits",
+        "https://tdra.gov.ae/en/Services"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for call centre and bpo. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة مراكز الاتصال والاستعانة بمصادر خارجية. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "call_centre_bpo:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to call centre and bpo?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة مراكز الاتصال والاستعانة بمصادر خارجية؟",
+      "expected_entry_ids": [
+        "call_centre_bpo:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "call_centre_bpo:spec-checklist",
+      "call_centre_bpo:uae-standards-and-approvals"
+    ],
+    "added": [
+      "call_centre_bpo:spec-checklist",
+      "call_centre_bpo:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}

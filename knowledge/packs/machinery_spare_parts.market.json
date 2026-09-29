@@ -1,0 +1,88 @@
+{
+  "trade": "machinery_spare_parts",
+  "layer": "uae-market",
+  "label_en": "Machinery spare parts",
+  "label_ar": "قطع غيار الآلات",
+  "entries": [
+    {
+      "id": "machinery_spare_parts:uae-market-products",
+      "topic": "Machinery spare parts: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Machinery spare parts in the UAE: genuine OEM and aftermarket parts for heavy equipment (undercarriage, hydraulic pumps, filters, engine parts for Caterpillar, Komatsu, Volvo, JCB), generator and engine parts (Cummins, Perkins, Caterpillar, MTU), compressor parts (air ends, valves, kits), pump spares (mechanical seals, impellers, wear rings), industrial electrical spares (contactors, relays, drives), crusher wear parts (manganese liners, jaw plates), and obsolete-part sourcing. The UAE is a regional hub for re-export of spare parts to Africa, Iraq, Iran-adjacent markets and Central Asia (subject to sanctions compliance). Buyers specify part number, OEM or equivalent, machine serial number/model, and quantity; counterfeit risk means authorised-channel certificates matter.",
+      "body_ar": "قطع غيار الآلات في الإمارات: قطع المصنّع الأصلية والبديلة للمعدات الثقيلة (السلاسل والجنازير، والمضخات الهيدروليكية، والفلاتر، وقطع المحركات لـCaterpillar وKomatsu وVolvo وJCB)، وقطع المولدات والمحركات (Cummins وPerkins وCaterpillar وMTU)، وقطع الضواغط (وحدات الضغط، والصمامات، والأطقم)، وقطع المضخات (السدادات الميكانيكية، والدفاعات، وحلقات التآكل)، وقطع الغيار الكهربائية الصناعية (الكونتاكتورات، والمرحلات، والمحولات)، وقطع تآكل الكسارات (بطانات المنغنيز وألواح الفك)، وتوفير القطع المتوقفة. والإمارات مركز إقليمي لإعادة تصدير القطع إلى أفريقيا والعراق وآسيا الوسطى (مع الامتثال للعقوبات). يحدد المشتري رقم القطعة، والأصلي أو المكافئ، والرقم التسلسلي/الطراز، والكمية؛ ويجعل خطر التقليد شهادات القناة المعتمدة مهمة.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.uaeiec.gov.ae",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified."
+    },
+    {
+      "id": "machinery_spare_parts:uae-market-brands",
+      "topic": "Machinery spare parts: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Genuine parts come through dealers, and aftermarket brands are sold by traders: Al-Bahar (Caterpillar), Galadari (Komatsu, JCB), FAMCO (Volvo CE), Atlas Copco, ITR, Berco, Fleetguard, Donaldson, Baldwin, Hengst. There is a large trader base in Deira (Al Ras, Naif), Sharjah (Industrial Area, Al Sajaa) and Ajman. Re-exports must be checked for sanctions and export-control compliance.",
+      "body_ar": "تأتي القطع الأصلية عبر الوكلاء، والعلامات البديلة عبر التجار: Al-Bahar (Caterpillar)، Galadari (Komatsu, JCB)، FAMCO (Volvo CE)، Atlas Copco، ITR، Berco، Fleetguard، Donaldson، Baldwin، Hengst. وتوجد قاعدة تجار كبيرة في ديرة (الراس ونايف) والشارقة (المنطقة الصناعية والصجعة) وعجمان. ويجب التحقق من الامتثال للعقوبات وضوابط التصدير عند إعادة التصدير.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.uaeiec.gov.ae",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified."
+    },
+    {
+      "id": "machinery_spare_parts:uae-market-sizes",
+      "topic": "Machinery spare parts: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per piece or per kit by part number; genuine versus OEM-equivalent versus copy prices differ widely. Quotes state availability (ex-stock Dubai versus order lead time from origin), origin, warranty (genuine often 6-12 months) and validity. Export sales quote FOB Jebel Ali or delivered.",
+      "body_ar": "التسعير بالقطعة أو بالطقم حسب رقم القطعة؛ وتختلف الأسعار كثيراً بين الأصلي والمكافئ والمقلد. وتذكر العروض التوفر (من مخزون دبي مقابل مدة الطلب من المنشأ) والمنشأ والضمان (الأصلي غالباً 6-12 شهراً) ومدة الصلاحية. ومبيعات التصدير تُسعّر FOB جبل علي أو مسلمة.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.uaeiec.gov.ae",
+        "https://www.cat.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar parts via Al-Bahar -> confirmed | Komatsu and JCB dealers -> confirmed Galadari; Cummins Arabia removed. Not checked: The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How do I know a spare part is genuine?",
+      "q_ar": "كيف أعرف أن قطعة الغيار أصلية؟",
+      "expected_entry_ids": [
+        "machinery_spare_parts:uae-market-brands"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Caterpillar parts via Al-Bahar",
+        "url": "https://www.albahar.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Komatsu and JCB dealers",
+        "url": "https://galadaribrothers.com/heavy-equipment/",
+        "result": "confirmed Galadari; Cummins Arabia removed"
+      }
+    ],
+    "unverified": "The Executive Office website address and current sanctions lists must be checked at the time of trade; named dealer appointments were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
