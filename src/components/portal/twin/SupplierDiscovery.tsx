@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { emirateName } from '@/components/me/portalText';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
@@ -58,7 +58,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
   const [known, setKnown] = useState<{ code: string; label: string }[]>([]);
   useEffect(() => {
     let live = true;
-    fetch(`${SUPA_FN}/customer_api`, {
+    fetch(fnUrl('customer_api'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify({ action: 'trades' }),
@@ -71,7 +71,7 @@ export function SupplierDiscovery({ token, lang = 'en' }: { token: string; lang?
     if (!list.length) { setErr(L(lang, 'Name at least one trade.', 'اذكر تخصصًا واحدًا على الأقل.')); return; }
     setBusy(true); setErr(''); setRes(null);
     try {
-      const r = await fetch(`${SUPA_FN}/customer_api`, {
+      const r = await fetch(fnUrl('customer_api'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
         body: JSON.stringify({ action: 'discover', trades: list, emirate: emirate || null }),

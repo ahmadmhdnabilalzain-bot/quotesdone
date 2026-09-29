@@ -100,7 +100,7 @@ const FNS = [
 
 for (const [slug, body] of FNS) {
   try {
-    const r = await fetch(`${BASE}/functions/v1/${slug}`, {
+    const r = await fetch(`${BASE}/functions/v1/${slug}?forceFunctionRegion=ap-southeast-1`, {
       method: 'POST',
       headers: {
         apikey: ANON,

@@ -13,7 +13,7 @@
 //
 // Three actions exist: 'list', 'search' (aliased 'ask' server-side) and 'get' (aliased 'download').
 // Anything else is answered with HTTP 400 unknown_action.
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 export type Lang = 'en' | 'ar';
 
@@ -106,7 +106,7 @@ export type VaultResult<T> =
  */
 export async function documentsApi<T>(token: string, body: Record<string, unknown>): Promise<VaultResult<T>> {
   try {
-    const r = await fetch(`${SUPA_FN}/customer_documents`, {
+    const r = await fetch(fnUrl('customer_documents'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),

@@ -5,13 +5,13 @@
 // went out by itself (the 14:02 UTC beat sent nothing and logged nothing). The quiet period now reads
 // marketing_post.content_edited_at, which only the trigger moves, and only for a column the calendar hash reads.
 //
-// Reads supabase/schema/full_schema.sql (the live mirror). Fails if the decision reads the post's generic
+// Reads supabase/schema/full_schema/ (the live mirror). Fails if the decision reads the post's generic
 // write clock again, if the trigger is gone, or if the decision stops logging.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA = readFileSync(new URL('../../supabase/schema/full_schema.sql', import.meta.url), 'utf8');
+const SCHEMA = readSchemaMirror();
 
 function body(name) {
   const re = new RegExp(`CREATE OR REPLACE FUNCTION public\\.${name}\\([^)]*\\)[\\s\\S]*?\\$(\\w*)\\$([\\s\\S]*?)\\$\\1\\$`, 'i');

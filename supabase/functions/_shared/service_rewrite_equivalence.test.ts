@@ -12,7 +12,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import aliases from './service_aliases.json' with { type: 'json' };
 import { servicePattern, servicesFromText, splitPhrases, MAX_TEXT, type ServiceTerm } from './service_rewrite.ts';
-import { foldForMatch } from './trade_words.ts';
+import { foldForMatch } from './alias_pattern.ts';
 
 const VOCAB: ServiceTerm[] = Object.entries(aliases as Record<string, { en: string[]; ar: string[] }>).map(([key, a]) => {
   const [trade_code, code] = key.split('.');
@@ -55,7 +55,7 @@ const SHAPES: ((a: string, t: ServiceTerm) => string)[] = [
   (a) => `ل${a}`,
   (a) => a.replace(/ /g, '-'),
   (_a, t) => `${t.code.replace(/_/g, ' ')} works`,
-  // The Arabic rule 4 of trade_words.ts: each later word may carry ال (after its و), so the alias is NOT
+  // The Arabic rule 4 of alias_pattern.ts (once trade_words.ts): each later word may carry ال (after its و), so the alias is NOT
   // in the phrase verbatim ("مكافحة حريق" → "لمكافحة الحريق"). A pre-check keyed on more than the first
   // word would skip these.
   (a) => 'ل' + a.split(' ').map((w, i) => (i === 0 ? w : w.startsWith('و') ? 'وال' + w.slice(1) : 'ال' + w)).join(' '),

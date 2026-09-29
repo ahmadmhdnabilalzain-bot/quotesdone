@@ -21,7 +21,7 @@ import { sanitizeUpload, SAFE_DOCS } from '../../supabase/functions/_shared/atta
 
 const PORT = Number(Deno.env.get('PORT') || 8787);
 const ANON = Deno.env.get('QD_ANON_KEY') || '';
-const FN_URL = Deno.env.get('QD_FN_URL') || 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api';
+const FN_URL = Deno.env.get('QD_FN_URL') || 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/supplier_api?forceFunctionRegion=ap-southeast-1';
 if (!ANON) { console.error('review_server: QD_ANON_KEY is required'); Deno.exit(2); }
 
 /** One conversation store per supplier, for the life of this process. */
