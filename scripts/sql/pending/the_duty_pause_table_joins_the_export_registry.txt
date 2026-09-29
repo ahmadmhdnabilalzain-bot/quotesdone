@@ -1,0 +1,1 @@
+Apply at merge: node scripts/apply_sql.mjs scripts/sql/the_duty_pause_table_joins_the_export_registry.sql --apply. Registry row for #1139's duty_pause, which #1137's seed missed. Prints PROBE OK. Seat: it_engineer.
