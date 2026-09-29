@@ -12,8 +12,10 @@
 //                         confirm; several or none leave the proposal pending with the question to ask.
 //   unknown_sender_mail   mail from a sender who is no lead, customer or staff -> its category and a summary.
 //
-// EVERY JUDGEMENT RUNS ON think() WITH THE GLM CLASS FORCED (glmOnly): the decompose and synthesis calls go to
-// model_policy routine_employee_reasoning (z-ai/glm-5.3-flash). There is no per-day limit (founder_instruction 987,
+// EVERY JUDGEMENT RUNS ON think() WITH THE ROUTINE CLASS FORCED (glmOnly): the decompose and synthesis calls go to
+// model_policy routine_employee_reasoning. The names say GLM because that was its model on 24 Sep; since
+// founder_instruction 1056 (29 Sep 2026) it runs google/gemini-3.8-flash, and the seat picks the fallback - the
+// sales engineer's gpt-6-luna, customer_support's deepseek-v4.1-flash. There is no per-day limit (founder_instruction 987,
 // 24 Sep 2026: no caps on LLM spend). HELD — the model hold, a failed reading, an answer
 // outside the format — leaves the row queued. Nothing here reads meaning from words: the only string handling is
 // parsing the format the model was told to answer in, and exact set membership of taxonomy codes.
