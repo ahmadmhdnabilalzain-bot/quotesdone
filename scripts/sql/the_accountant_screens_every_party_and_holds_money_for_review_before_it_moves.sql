@@ -542,11 +542,10 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
   what = excluded.what, owner_file = excluded.owner_file;
 
 -- ── 6. the daily table export ─────────────────────────────────────────────────────────────────────────
--- Redefined from its canonical body (the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql,
--- the last definer in MANIFEST.txt on main at 204ddef, which also names marketing_plan_doc) PLUS ('inquiry_rescue','inquiry')
--- from #1106 (a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql), with only
--- fraud_flags, money_move_hold and free_email_domain added here. Depends-on: #1106 - apply it first, so inquiry_rescue
--- exists when this list names it.
+-- Redefined from #1108's body (a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql at
+-- cc78eaa: #1106's list, itself main's plus #1105's stalled_inquiry_rescue, plus quote_quality_hold), with only
+-- fraud_flags, money_move_hold and free_email_domain added here. Depends-on: #1108 (and through it #1106 and #1105):
+-- apply it first, so every table this list names exists when it is applied.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -559,14 +558,14 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_capability_confirmation','supplier'), ('supplier_collaboration','supplier'), ('supplier_collaboration_event','supplier'),
     ('supplier_negotiation_policy','supplier'), ('supplier_screening_hit','supplier'), ('supplier_lead_intake','supplier'),
     ('doc_reviews','supplier'), ('licence_renewal_ask','supplier'), ('outreach','supplier'), ('company_registration','company'),
-    ('inquiries','inquiry'), ('inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
+    ('inquiries','inquiry'), ('stalled_inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
     ('inquiry_cancellations','inquiry'), ('inquiry_supplier_brief','inquiry'), ('inquiry_state_audit','inquiry'),
     ('inquiry_gate','inquiry'), ('inquiry_answer','inquiry'), ('inquiry_answer_document','inquiry'), ('inquiry_answer_scope','inquiry'),
     ('inquiry_workstream','inquiry'), ('inquiry_workstream_group','inquiry'), ('inquiry_workstream_requirement','inquiry'),
     ('inquiry_trade_candidate','inquiry'), ('inquiry_trade_clarification','inquiry'), ('inquiry_scope_disposition','inquiry'),
     ('rfq_archives','inquiry'), ('rfq_clarification','inquiry'),
     ('quotes','quote'), ('quote_items','quote'), ('quote_reviews','quote'), ('quote_review_messages','quote'),
-    ('quote_requirements','quote'), ('quote_committed_items','quote'), ('quote_comparisons','quote'), ('quote_spec_hold','quote'),
+    ('quote_requirements','quote'), ('quote_committed_items','quote'), ('quote_comparisons','quote'), ('quote_spec_hold','quote'), ('quote_quality_hold','quote'),
     ('spec_alternative_offer','quote'), ('po_orders','quote'), ('po_vendors','quote'), ('questions','quote'), ('reviews','quote'),
     ('category_specs','quote rules'), ('category_quote_specs','quote rules'),
     ('transactions','payment'), ('reveal_invoices','payment'), ('supplier_dues','payment'), ('refunds','payment'),
