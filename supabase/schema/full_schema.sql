@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T01:02:13.165Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T01:42:39.389Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -191,6 +191,7 @@ CREATE SEQUENCE IF NOT EXISTS public.spec_backlog_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_response_watch_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supplier_screening_hit_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.supply_health_snapshots_id_seq;
+CREATE SEQUENCE IF NOT EXISTS public.supply_recruitment_brief_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_artifact_artifact_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_case_case_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.support_ceo_report_id_seq;
@@ -209,7 +210,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (660) =====
+-- ===== TABLES (661) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -8429,7 +8430,8 @@ CREATE TABLE IF NOT EXISTS public.supply_gap (
   review jsonb,
   measured_at timestamp with time zone DEFAULT now() NOT NULL,
   opened_at timestamp with time zone DEFAULT now() NOT NULL,
-  closed_at timestamp with time zone
+  closed_at timestamp with time zone,
+  brief_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.supply_health_snapshots (
@@ -8437,6 +8439,28 @@ CREATE TABLE IF NOT EXISTS public.supply_health_snapshots (
   period_end date,
   metrics jsonb,
   created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.supply_recruitment_brief (
+  id bigint DEFAULT nextval('supply_recruitment_brief_id_seq'::regclass) NOT NULL,
+  trade text NOT NULL,
+  emirate text NOT NULL,
+  matchable integer NOT NULL,
+  target integer NOT NULL,
+  shortfall integer NOT NULL,
+  invited integer DEFAULT 0 NOT NULL,
+  registered integer DEFAULT 0 NOT NULL,
+  demand_90d integer DEFAULT 0 NOT NULL,
+  short_open integer DEFAULT 0 NOT NULL,
+  uninvited_pool integer DEFAULT 0 NOT NULL,
+  priority text NOT NULL,
+  suggested_sourcing text NOT NULL,
+  status text DEFAULT 'open'::text NOT NULL,
+  owner_seat text DEFAULT 'marketing'::text NOT NULL,
+  listed_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  read_by_marketing_at timestamp with time zone,
+  closed_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.support_artifact (
@@ -9757,6 +9781,7 @@ ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_pkey PRIMARY KEY (trade, emirate);
 ALTER TABLE public.supply_health_snapshots ADD CONSTRAINT supply_health_snapshots_pkey PRIMARY KEY (id);
+ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_pkey PRIMARY KEY (id);
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_pkey PRIMARY KEY (artifact_id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_pkey PRIMARY KEY (case_id);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_pkey PRIMARY KEY (id);
@@ -9919,6 +9944,7 @@ ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_sku_key UNIQUE (product_id, sku);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_one_per_tx UNIQUE (transaction_id);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_entry_source_entry_reference_key UNIQUE (lead_id, entry_source, entry_reference, field);
+ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_trade_emirate_key UNIQUE (trade, emirate);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_case_ref_key UNIQUE (case_ref);
 ALTER TABLE public.support_ceo_report ADD CONSTRAINT support_ceo_report_idempotency_key_key UNIQUE (idempotency_key);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_key UNIQUE (customer_id);
@@ -10711,6 +10737,8 @@ ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_durati
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_lang_check CHECK (((lang IS NULL) OR (lang = ANY (ARRAY['en'::text, 'ar'::text]))));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_outcome_check CHECK ((outcome = ANY (ARRAY['pending'::text, 'flag_off'::text, 'rate_limited'::text, 'refused'::text, 'transcribed'::text, 'empty'::text, 'failed'::text])));
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'deciding'::text, 'recruit'::text, 'deferred'::text, 'closed'::text])));
+ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_priority_check CHECK ((priority = ANY (ARRAY['P1'::text, 'P2'::text, 'P3'::text])));
+ALTER TABLE public.supply_recruitment_brief ADD CONSTRAINT supply_recruitment_brief_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_approved_ck CHECK (((privacy_state <> 'approved'::text) OR ((approved_at IS NOT NULL) AND (privacy_result IS NOT NULL) AND (checksum IS NOT NULL))));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_kind_ck CHECK ((artifact_kind = ANY (ARRAY['comparison_report'::text, 'reveal_invoice'::text])));
 ALTER TABLE public.support_artifact ADD CONSTRAINT support_artifact_privacy_ck CHECK ((privacy_state = ANY (ARRAY['unchecked'::text, 'approved'::text, 'refused'::text])));
@@ -11085,6 +11113,7 @@ ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
+ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_customer_profile_id_fkey FOREIGN KEY (customer_profile_id) REFERENCES support_customer_profile(id);
 ALTER TABLE public.support_case ADD CONSTRAINT support_case_recovery_of_case_id_fkey FOREIGN KEY (recovery_of_case_id) REFERENCES support_case(case_id);
 ALTER TABLE public.support_customer_profile ADD CONSTRAINT support_customer_profile_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
@@ -52382,11 +52411,13 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_recruitment_funnel()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_day date := (now() at time zone 'Asia/Dubai')::date; v_rows int; gp record; v_empty int := 0;
+declare v_day date := (now() at time zone 'Asia/Dubai')::date; v_rows int; gp record; v_empty int := 0; v_keys text[] := '{}';
 begin
   insert into public.supplier_recruitment_funnel as f (trade, emirate, day, pool, invited, clicked, registered, approved, quoting)
   select g.trade, g.emirate, v_day,
-         count(*) filter (where l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)),
+         -- l.id is not null: a gap with NO matching lead is a null-extended row whose invite_status is
+         -- null, which counted as a pool of 1 and so never fired pool_empty (found by this PR's probe).
+         count(*) filter (where l.id is not null and l.invite_status is null and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)),
          count(*) filter (where l.invited_at is not null),
          count(*) filter (where l.invite_clicked_at is not null),
          count(*) filter (where l.registration_submitted_at is not null or coalesce(l.claimed, false)),
@@ -52401,27 +52432,30 @@ begin
     registered = excluded.registered, approved = excluded.approved, quoting = excluded.quoting;
   get diagnostics v_rows = row_count;
 
-  -- An empty pool is the lead source, not the invitation: marketing's finding, one per gap, closed when it refills.
-  for gp in select f.trade, f.emirate, f.pool from public.supplier_recruitment_funnel f
-            join public.supply_gap s on s.trade = f.trade and s.emirate = f.emirate and s.status = 'recruit'
-           where f.day = v_day loop
-    if gp.pool = 0 then
-      v_empty := v_empty + 1;
-      perform public.fn_it_engineer_finding_upsert('recruitment:pool_empty:' || gp.trade || ':' || gp.emirate,
-        'No uninvited lead is left to recruit for ' || gp.trade || ' (' || gp.emirate || ')',
-        'public.supplier_recruitment_funnel', 'monitor', 1,
-        jsonb_build_object('trade', gp.trade, 'emirate', gp.emirate, 'owner_seat', 'marketing'), '{}'::text[],
-        array['which source can supply leads for this trade while lead scraping is paused'], 'marketing');
-    else
-      update public.it_engineer_finding set closed_at = now(), close_note = 'the pool has leads again'
-       where issue_key = 'recruitment:pool_empty:' || gp.trade || ':' || gp.emirate and closed_at is null;
-    end if;
+  -- An empty pool is the lead source, not the invitation: marketing's finding, one per trade group.
+  for gp in select coalesce(tt.group_code, 'ungrouped') as grp, count(*)::int as n,
+                   jsonb_agg(jsonb_build_object('trade', f.trade, 'emirate', f.emirate) order by f.trade, f.emirate) as gaps
+              from public.supplier_recruitment_funnel f
+              join public.supply_gap s on s.trade = f.trade and s.emirate = f.emirate and s.status = 'recruit'
+              left join public.taxonomy_trade tt on tt.code = f.trade
+             where f.day = v_day and f.pool = 0
+             group by 1 loop
+    v_empty := v_empty + gp.n;
+    v_keys := v_keys || ('recruitment:pool_empty:' || gp.grp);
+    perform public.fn_it_engineer_finding_upsert('recruitment:pool_empty:' || gp.grp,
+      'No uninvited lead is left for ' || gp.n || ' recruiting gap(s) in trade group ' || gp.grp,
+      'public.supplier_recruitment_funnel', 'agent_facing', gp.n,
+      jsonb_build_object('trade_group', gp.grp, 'gap_count', gp.n, 'gaps', gp.gaps, 'owner_seat', 'marketing'), '{}'::text[],
+      array['which source can supply leads for these trades while lead scraping is paused'], 'marketing');
   end loop;
-  update public.it_engineer_finding fi set closed_at = now(), close_note = 'the gap is no longer being recruited for'
-   where fi.issue_key like 'recruitment:pool_empty:%' and fi.closed_at is null
-     and not exists (select 1 from public.supply_gap s where s.status = 'recruit' and 'recruitment:pool_empty:' || s.trade || ':' || s.emirate = fi.issue_key);
+  update public.it_engineer_finding fi
+     set closed_at = now(),
+         close_note = case when fi.issue_key ~ '^recruitment:pool_empty:[^:]+:'
+                           then 'superseded: empty pools are now one finding per trade group'
+                           else 'no recruiting gap in this trade group has an empty pool' end
+   where fi.issue_key like 'recruitment:pool_empty:%' and fi.closed_at is null and not (fi.issue_key = any(v_keys));
 
-  return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty,
+  return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty, 'empty_pool_findings', cardinality(v_keys),
     'totals', (select jsonb_build_object('pool', sum(pool), 'invited', sum(invited), 'registered', sum(registered), 'approved', sum(approved), 'quoting', sum(quoting))
                  from public.supplier_recruitment_funnel where day = v_day));
 end $function$
@@ -66316,6 +66350,7 @@ AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
   g record; v_filed int := 0; v_rule int; v_closed int; v_reopened int; v_month text := to_char(now(), 'YYYY-MM');
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
+  v_brief jsonb;
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
     select sc.supplier_id, sc.trades,
@@ -66384,9 +66419,82 @@ begin
     v_filed := v_filed + 1;
   end loop;
 
+  -- THE HANDOFF: every gap still open or recruiting becomes a row in marketing's recruitment brief.
+  v_brief := public.fn_sales_engineer_supply_gap_to_recruitment_brief();
+
   return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule,
-    'filed_for_reasoning', v_filed,
+    'filed_for_reasoning', v_filed, 'recruitment_brief', v_brief,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap_to_recruitment_brief(p_daily_new integer DEFAULT 10)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_listed int; v_moved int; v_closed int; v_budget int;
+  v_day_start timestamptz := date_trunc('day', now() at time zone 'Asia/Dubai') at time zone 'Asia/Dubai';
+begin
+  -- Close first: a gap at target is not recruited for.
+  update public.supply_gap set status = 'closed', closed_at = now() where status <> 'closed' and matchable >= target;
+  update public.supply_recruitment_brief b set status = 'closed', closed_at = now(), updated_at = now()
+    from public.supply_gap g
+   where b.status = 'open' and g.trade = b.trade and g.emirate = b.emirate and g.status = 'closed';
+  get diagnostics v_closed = row_count;
+
+  -- Today's promotions so far: a second run on the same day spends what is left, never a fresh 10.
+  v_budget := greatest(0, coalesce(p_daily_new, 10) - (select count(*) from public.supply_gap
+                where decided_by = 'sales_engineer:recruitment_brief' and decided_at >= v_day_start)::int);
+
+  with pick as (
+    select g.trade, g.emirate from public.supply_gap g where g.status = 'recruit' and g.matchable < g.target
+    union all
+    (select g.trade, g.emirate from public.supply_gap g where g.status = 'open' and g.matchable < g.target
+      order by (g.short_open > 0) desc, (g.demand_90d > 0) desc, g.uninvited_pool desc, g.target - g.matchable desc, g.trade, g.emirate
+      limit v_budget)
+  ), gl as (
+    select g.*,
+           (select count(*) from public.leads l
+             where g.trade = any(l.invite_trades) and l.invited_at is not null
+               and coalesce(l.is_demo, false) = (g.trade like 'zz_demo%')
+               and (g.emirate = 'UAE' or l.emirate = g.emirate))::int as invited,
+           (select count(*) from public.leads l
+             where g.trade = any(l.invite_trades) and (l.registration_submitted_at is not null or coalesce(l.claimed, false))
+               and coalesce(l.is_demo, false) = (g.trade like 'zz_demo%')
+               and (g.emirate = 'UAE' or l.emirate = g.emirate))::int as registered
+      from public.supply_gap g join pick using (trade, emirate)
+  )
+  insert into public.supply_recruitment_brief as b (trade, emirate, matchable, target, shortfall, invited, registered,
+         demand_90d, short_open, uninvited_pool, priority, suggested_sourcing)
+  select trade, emirate, matchable, target, target - matchable, invited, registered, demand_90d, short_open, uninvited_pool,
+         case when short_open > 0 then 'P1' when demand_90d > 0 then 'P2' else 'P3' end,
+         -- ponytail: 20 invitations per registration is a planning ratio; swap in the measured funnel rate once it has volume.
+         case when uninvited_pool >= (target - matchable) * 20 then 'invite from the existing lead pool'
+              when uninvited_pool > 0 then 'invite the lead pool, then source new leads (trade directories, chambers of commerce, LinkedIn)'
+              else 'source new leads: trade directories, chambers of commerce, LinkedIn, trade exhibitions' end
+    from gl
+  on conflict (trade, emirate) do update set matchable = excluded.matchable, target = excluded.target, shortfall = excluded.shortfall,
+    invited = excluded.invited, registered = excluded.registered, demand_90d = excluded.demand_90d, short_open = excluded.short_open,
+    uninvited_pool = excluded.uninvited_pool, priority = excluded.priority, suggested_sourcing = excluded.suggested_sourcing,
+    status = 'open', closed_at = null, updated_at = now();
+  get diagnostics v_listed = row_count;
+
+  -- Only brief rows this call wrote (updated_at = now(), the transaction start) move a gap, so an
+  -- 'open' gap outside today's pick keeps waiting. A promotion is stamped with this routine's name
+  -- and time, which is exactly what the budget above counts.
+  update public.supply_gap g set status = 'recruit', brief_id = b.id,
+         decided_by = case when g.status = 'open' then 'sales_engineer:recruitment_brief'
+                           else coalesce(g.decided_by, 'sales_engineer:recruitment_brief') end,
+         decided_at = case when g.status = 'open' then now() else coalesce(g.decided_at, now()) end
+    from public.supply_recruitment_brief b
+   where b.trade = g.trade and b.emirate = g.emirate and b.status = 'open' and b.updated_at = now()
+     and g.status in ('open', 'recruit')
+     and (g.status <> 'recruit' or g.brief_id is distinct from b.id);
+  get diagnostics v_moved = row_count;
+
+  return jsonb_build_object('listed', v_listed, 'moved_to_recruit', v_moved, 'closed', v_closed, 'promotion_budget', v_budget);
 end $function$
 
 
@@ -84814,6 +84922,7 @@ ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_gap ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_health_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supply_recruitment_brief ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_artifact ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_case ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_ceo_report ENABLE ROW LEVEL SECURITY;
@@ -85077,6 +85186,7 @@ CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_r
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_gap_service_role_only ON public.supply_gap AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supply_recruitment_brief_service_role_only ON public.supply_recruitment_brief AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY support_customer_profile_service_role_only ON public.support_customer_profile AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_service_role_only ON public.table_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_tracked_service_role_only ON public.table_export_change_tracked AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
