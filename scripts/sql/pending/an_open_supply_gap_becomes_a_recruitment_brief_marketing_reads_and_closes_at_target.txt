@@ -1,3 +1,0 @@
-Committed, not applied (agent PR; production is read-only for this seat run). Seat: sales_engineer.
-What moves it: review + merge, then node scripts/apply_sql.mjs scripts/sql/an_open_supply_gap_becomes_a_recruitment_brief_marketing_reads_and_closes_at_target.sql --apply --ddl, delete this note and append the file to the END of MANIFEST.txt.
-On first run it lists the recruit gaps and promotes at most 10 open gaps a day; the marketing funnel files one pool_empty finding per trade group (aborted probe, 29 Sep 2026: 150 open -> 142, 10 promoted, 6 group findings, 0 per gap).
