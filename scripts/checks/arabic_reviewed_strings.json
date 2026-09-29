@@ -4762,6 +4762,12 @@
  "supabase/functions/_shared/quote_labels.ts": [
   "d59ecf7fd6e7"
  ],
+ "supabase/functions/_shared/readability.ts": [
+  "48b96598d693",
+  "4c49aead7a88",
+  "eb7585ff3602",
+  "f0f474d651f8"
+ ],
  "supabase/functions/_shared/reasoned_delivery.ts": [
   "579dd4d95c6e",
   "c2fe022839a2",
