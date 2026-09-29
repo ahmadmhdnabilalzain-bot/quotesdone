@@ -85,7 +85,7 @@ jobs:
     name: deploy changed functions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # deploy_functions.mjs --changed diffs against a base commit, so the runner needs more
           # than the shallow single commit actions/checkout fetches by default.

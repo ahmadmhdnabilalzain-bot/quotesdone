@@ -1,0 +1,77 @@
+{
+  "trade": "software_development",
+  "entries": [
+    {
+      "id": "software_development:spec-checklist",
+      "topic": "Software development - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For software development quotes to be compared like-for-like, every quoted line (services) must state: (1) functional scope and user stories; (2) platforms (web, iOS, Android); (3) technology stack; (4) integrations; (5) hosting and data location; (6) pricing model (fixed price, time and materials); (7) milestones and acceptance criteria; (8) source code and IP ownership; (9) security and data protection; (10) support and maintenance period; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the software_development trade.",
+      "body_ar": "لكي تُقارن عروض تطوير البرمجيات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) النطاق الوظيفي وقصص المستخدمين؛ (2) المنصات (ويب، أو iOS، أو أندرويد)؛ (3) التقنيات المستخدمة؛ (4) التكاملات؛ (5) الاستضافة وموقع البيانات؛ (6) نموذج التسعير (سعر ثابت، أو وقت ومواد)؛ (7) المراحل ومعايير القبول؛ (8) ملكية الشيفرة المصدرية والملكية الفكرية؛ (9) الأمن وحماية البيانات؛ (10) مدة الدعم والصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة software_development فقط.",
+      "required_specs": [
+        "functional scope and user stories",
+        "platforms (web, iOS, Android)",
+        "technology stack",
+        "integrations",
+        "hosting and data location",
+        "pricing model (fixed price, time and materials)",
+        "milestones and acceptance criteria",
+        "source code and IP ownership",
+        "security and data protection",
+        "support and maintenance period",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "software_development:uae-standards-and-approvals",
+      "topic": "Software development - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Personal data processed by the software falls under Federal Decree-Law No. 45 of 2021 on the protection of personal data; government projects follow UAE information assurance requirements. Quality and security are commonly specified to ISO/IEC 25010 and ISO/IEC 27001. What the cited sources do not establish: No source was fetched for this pack; data residency requirements depend on the buyer's sector and must be stated.",
+      "body_ar": "تخضع البيانات الشخصية التي يعالجها البرنامج للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية؛ وتتبع المشاريع الحكومية متطلبات ضمان المعلومات في الإمارات. وتُحدَّد الجودة والأمن عادةً وفق ISO/IEC 25010 و ISO/IEC 27001. ما لا تثبته المصادر المذكورة: لم يُقرأ أي مصدر لهذه الحزمة؛ تعتمد متطلبات إقامة البيانات على قطاع المشتري ويجب ذكرها.",
+      "source_note": "No source was fetched for this pack; data residency requirements depend on the buyer's sector and must be stated.",
+      "sources": [
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for software development?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـتطوير البرمجيات؟",
+      "expected_entry_ids": [
+        "software_development:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to software development?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على تطوير البرمجيات؟",
+      "expected_entry_ids": [
+        "software_development:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "software_development:spec-checklist",
+      "software_development:uae-standards-and-approvals"
+    ],
+    "added": [
+      "software_development:spec-checklist",
+      "software_development:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
