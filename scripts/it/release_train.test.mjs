@@ -2,6 +2,7 @@
 // be merged that must not be: unreviewed, held, red, blocked by an unmerged dependency, a major bump.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { REQUIRED_CHECKS, dependsOn, isDependabotMinorPatch, checksGreen, inCampaignHours, refusal, applyOrder, driftFiles, isProbeNote }
   from './release_train.mjs';
 
@@ -95,7 +96,7 @@ test('a probe note is recognised', () => {
 
 test('the one stale PR: oldest reviewed PR whose only blocker is finished, failing checks on a branch behind main', async () => {
   const { staleCandidate, checksRunning } = await import('./release_train.mjs');
-  const red = [{ name: 'a', conclusion: 'FAILURE' }];
+  const red = [...green.filter((c) => c.name !== 'the database is running what this repository says'), { name: 'the database is running what this repository says', conclusion: 'FAILURE' }];
   const running = [{ name: 'a', conclusion: '', status: 'IN_PROGRESS' }];
   assert.equal(checksRunning(running), true);
   assert.equal(checksRunning(red), false);
@@ -110,5 +111,38 @@ test('the one stale PR: oldest reviewed PR whose only blocker is finished, faili
   const isBehind = (p) => p.number !== 3;
   assert.equal(staleCandidate(prs, { isBehind })?.number, 4);
   assert.equal(staleCandidate(prs.slice(0, 3), { isBehind }), null);
+  // up to date with main, but its CI never started (a GITHUB_TOKEN push): chosen, to start CI
+  const vercelOnly = [{ context: 'Vercel', state: 'SUCCESS' }];
+  assert.equal(staleCandidate([pr({ number: 7, statusCheckRollup: vercelOnly })], { isBehind: () => false })?.number, 7);
   assert.equal(staleCandidate([pr({ number: 6, statusCheckRollup: red, body: 'Depends-on: #9' })], { isBehind, depState: () => 'OPEN' }), null);
+});
+
+test('a check that ran twice counts once, by its latest run (#1095: CANCELLED then SUCCESS)', () => {
+  const db = 'the database is running what this repository says';
+  const rollup = [...green.filter((c) => c.name !== db),
+    { name: db, conclusion: 'CANCELLED', startedAt: '2026-09-29T04:15:43Z', completedAt: '2026-09-29T04:15:44Z' },
+    { name: db, conclusion: 'SUCCESS', startedAt: '2026-09-29T04:15:47Z', completedAt: '2026-09-29T04:16:49Z' }];
+  assert.equal(checksGreen(rollup), true);
+  const rerunRed = [...rollup, { name: db, conclusion: 'FAILURE', startedAt: '2026-09-29T05:00:00Z', completedAt: '2026-09-29T05:01:00Z' }];
+  assert.equal(checksGreen(rerunRed), false);
+  const running = [...rollup, { name: db, conclusion: '', status: 'IN_PROGRESS', startedAt: '2026-09-29T05:00:00Z', completedAt: '0001-01-01T00:00:00Z' }];
+  assert.equal(checksGreen(running), false);
+});
+
+test('only a PR failing the live-database checks is refreshed; one failing its own code is left alone', async () => {
+  const { staleCandidate, onlyStaleFailures } = await import('./release_train.mjs');
+  const withFail = (name) => [...green.filter((c) => c.name !== name), { name, conclusion: 'FAILURE' }];
+  const dbRed = withFail('the database is running what this repository says');
+  const unitRed = withFail('classification, pricing and refund checks');
+  assert.equal(onlyStaleFailures(dbRed), true);
+  assert.equal(onlyStaleFailures(unitRed), false);
+  const prs = [pr({ number: 1, statusCheckRollup: unitRed }), pr({ number: 2, statusCheckRollup: dbRed })];
+  assert.equal(staleCandidate(prs, { isBehind: () => true })?.number, 2);
+});
+
+test('a failed apply is never followed by a deploy (#1050, 29 Sep)', () => {
+  const src = readFileSync(new URL('./release_train.mjs', import.meta.url), 'utf8');
+  const i = src.indexOf("scripts/deploy_functions.mjs");
+  assert.ok(i > 0);
+  assert.match(src.slice(Math.max(0, i - 400), i), /if \(failed\)[\s\S]*else \{/, 'the deploy must sit in the else of if (failed)');
 });
