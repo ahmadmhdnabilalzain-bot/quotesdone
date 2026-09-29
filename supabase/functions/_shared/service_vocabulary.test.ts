@@ -16,7 +16,7 @@ const SERVICES = [
   { trade_code: 'security_systems', code: 'cctv', label_en: 'CCTV', label_ar: 'كاميرات المراقبة', aliases: ['cctv'], vec: [0, 0, 1] },
 ];
 const VEC: Record<string, number[]> = {
-  'Supply and install ducting for the villa': [0.97, 0.1, 0.05],
+  'install ducting': [0.97, 0.1, 0.05],        // the clause meaning reads (meaningClauses cuts at 'and' and 'for')
   'Gold partner of leading brands': [0.95, 0.2, 0.1],     // near ducting, no head word: never accepted
 };
 const deps = (o: Partial<ServiceKeysDeps> = {}): ServiceKeysDeps => ({ services: SERVICES, embed: async (t) => VEC[t] ?? [0.3, 0.3, 0.3], ...o });
@@ -39,7 +39,7 @@ Deno.test('a nearest neighbour alone is not a service', async () => {
 });
 
 Deno.test('ALL OR NOTHING: a text too long to read whole gives no keys, even the exact ones', async () => {
-  const lines = ['CCTV', ...Array.from({ length: MEANING_MAX_LINES + 1 }, (_, k) => `zz demo item number ${k} for the site`)];
+  const lines = ['CCTV', ...Array.from({ length: Math.ceil(MEANING_MAX_LINES / 2) + 1 }, (_, k) => `zz demo item ${k} and zz demo part ${k}`)];   // two clauses a line: splitPhrases reads 40 phrases
   const r = await serviceKeysOf(lines.join('\n'), null, deps());
   assertEquals([r.keys, r.complete, r.state], [[], false, 'too_long']);
 });

@@ -55,6 +55,10 @@ const EXACT: { name: string; text: string; expect: string[] }[] = [
   { name: 'names joined by "and"', text: 'CCTV and False ceilings', expect: ['gypsum.false_ceiling', 'security_systems.cctv'] },
   { name: 'bullets and numbers', text: '• Ducting\n2) CCTV', expect: ['hvac.ducting', 'security_systems.cctv'] },
   { name: 'duplicates collapse', text: 'CCTV, cctv, security_systems.cctv', expect: ['security_systems.cctv'] },
+  // A curated alias, as the WHOLE phrase or list item, is a name (a lookup like fn_norm_trades' slugs).
+  { name: 'an English alias, whole', text: 'Cable tray', expect: ['electrical.cable_tray'] },
+  { name: 'an Arabic alias, whole', text: 'تمديدات كهربائية', expect: ['electrical.wiring_install'] },
+  { name: 'an Arabic alias, whole, diacritics and tatweel folded', text: 'تَمديدات كهربائيـة', expect: ['electrical.wiring_install'] },
 ];
 for (const c of EXACT) {
   Deno.test(`exact: ${c.name}`, () => assertEquals([...keys(c.text)].sort(), [...c.expect].sort(), c.text));
@@ -82,8 +86,8 @@ const WORDS_ARE_NOT_A_NAME: { name: string; text: string; kept: string[] }[] = [
   // prose-shaped as a whole: not an own-words item; the Services tab and serviceKeysOf give it to meaning
   { name: 'EN, an alias inside prose', text: 'Supply and install ducting for the villa', kept: [] },
   { name: 'EN, a plural is not the name', text: 'Cable trays', kept: ['Cable trays'] },
-  { name: 'AR, an Arabic alias', text: 'تمديدات كهربائية', kept: ['تمديدات كهربائية'] },
   { name: 'AR, an alias with a proclitic', text: 'نقوم بتمديدات كهربائية', kept: ['نقوم بتمديدات كهربائية'] },
+  { name: 'AR, an alias inside a sentence', text: 'مطلوب تمديدات كهربائية للفيلا', kept: ['مطلوب تمديدات كهربائية للفيلا'] },
 ];
 for (const c of WORDS_ARE_NOT_A_NAME) {
   Deno.test(`no word matching: ${c.name}`, () => {

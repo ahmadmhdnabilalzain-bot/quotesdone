@@ -134,20 +134,26 @@ its browser recognised in a photo or scan) WHOLE, through `_shared/catalogue_rea
 ```
 
 A meaning proposal the supplier keeps is sent back in `services` like any stated key. The rules
-(`_shared/service_meaning.ts`): gte-small similarity above 0.82 AND a head word of the service's name or
-one of its aliases in the line, or two lines agreeing above 0.86; never a nearest neighbour alone.
+(`_shared/service_meaning.ts`, 29 Sep 2026): each line is read clause by clause (`meaningClauses`: split at
+punctuation and list connectives, a purpose/place tail after for/in/at/from dropped), each clause embedded by the
+`embed_ml` function in its own space — gte-small for English against `embedding_gte`, the multilingual e5 for
+Arabic against `embedding_ml` (service vectors made from names AND aliases, `serviceEmbedText` / `serviceMlText`).
+English: the nearest service above 0.82 with a head word of its English name or one of its aliases in the clause.
+Arabic: the nearest 5 above 0.83, the first a head word of its Arabic or English name or an alias agrees with.
+Never a nearest neighbour alone.
 
-`meaning.lines` (`{ candidates, read }`) says how many lines meaning had and how many it read (at most 16 per
+`meaning.lines` (`{ candidates, read }`) says how many clauses meaning had and how many it read (at most 40 per
 request); an unread line stays in `own_words`, and a line meaning proposed a service for leaves `own_words`.
 
-**How the rewrite works — exact, then meaning; no alias word decides anything** (29 Sep 2026, ruling 890,
-decision point 93). `supabase/functions/_shared/service_rewrite.ts`, proved in `service_rewrite.test.ts`.
+**How the rewrite works — exact names, then meaning; no word inside a text decides anything** (29 Sep 2026,
+ruling 890, decision point 93). `supabase/functions/_shared/service_rewrite.ts`, proved in `service_rewrite.test.ts`.
 
 1. The text is split into phrases at line breaks, bullets, numbered items, commas (`,` `،`),
    semicolons (`;` `؛`), `|` and full stops.
-2. A phrase that IS a service — its key (`hvac.ducting`), its code (`ducting`, `false ceiling`) or its
-   English or Arabic name, compared whole after `fn_ar_norm`'s folding, case and spacing — is that service.
-   A supply-only company is never named an installation service.
+2. A phrase that IS a service — its key (`hvac.ducting`), its code (`ducting`, `false ceiling`), its English
+   or Arabic name, or one of its curated aliases (`cable tray`, `تمديدات كهربائية`), compared WHOLE after
+   `fn_ar_norm`'s folding, diacritics, case and spacing — is that service: a name lookup, never a word inside
+   the text. A name two services share names neither. A supply-only company is never named an installation service.
 3. Otherwise the phrase is split at `and` / `or` / `&` / `+` / a spaced `و`, and each part is tried the same
    way. A phrase that is prose as a whole has no parts.
 4. Every part not named exactly goes to the meaning layer above, which may offer a service (off until the

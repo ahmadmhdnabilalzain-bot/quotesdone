@@ -5,10 +5,11 @@
 // them (service_rewrite.ts compileServices / hitsIn / servicesFromText). What fails if that returns:
 //   * static: the alias index or servicesFromText is back; a caller names services from words; the inquiry side
 //     stores a reading it could not finish as "names no service";
-//   * live (token): production's stored service vectors and the real gte-small model (the free in-region
-//     ai_gateway embed path, not OpenRouter) read ZZ DEMO inquiry text: a sentence is read by meaning, an exact
-//     name exactly, a nearest neighbour alone is nothing, and a text too long to read whole gives no keys.
-//     Read-only: nothing is written, nobody is contacted.
+//   * live (token): the service vectors as production reads them after the release backfill (stored when current,
+//     otherwise computed in memory by scripts/lib/service_vectors.mjs) and embed_ml (gte-small for English, the
+//     multilingual e5 for Arabic; free, in-region, not OpenRouter) read ZZ DEMO inquiry text: a sentence clause by
+//     clause, an exact name, key or curated alias exactly, Arabic in its own space, a nearest neighbour alone is
+//     nothing, and a text too long to read whole gives no keys. Read-only: nothing is written, nobody is contacted.
 //
 //   node --test scripts/checks/services_are_named_by_exact_name_or_meaning_never_by_alias_words.test.mjs
 import { test } from 'node:test';
@@ -44,43 +45,38 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
-test('production vectors + gte-small, ZZ DEMO inquiry text: meaning, exact, no neighbour, all or nothing', { skip: SKIP, timeout: 600_000 }, async () => {
+test('production vectors + embed_ml, ZZ DEMO inquiry text: exact names, meaning by clause in both languages, no neighbour, all or nothing', { skip: SKIP, timeout: 900_000 }, async () => {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
-  const { withRetry } = await import('../lib/retry.mjs');
+  const { liveServices } = await import('../lib/service_vectors.mjs');
   const { serviceKeysOf } = await import(pathToFileURL(join(SHARED, 'service_vocabulary.ts')).href);
-  const { parseVec, MEANING_MAX_LINES } = await import(pathToFileURL(join(SHARED, 'service_meaning.ts')).href);
-  const rows = await sql(`select trade_code, code, label_en, label_ar, aliases, embedding_gte::text as v from public.taxonomy_trade_service where active`);
-  const services = rows.map(({ v, ...s }) => ({ ...s, vec: parseVec(v) }));
-  const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
-  assert.ok(secret, 'no cred_fn_ai in app_secrets');
-  const embed = async (text) => {
-    const { r, j } = await withRetry(async () => {
-      const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: secret, fn: 'service_vocabulary', action: 'embed', text }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (r.status === 503 && j.error === 'embed_failed') throw new Error('embed_failed (HTTP 503)');
-      return { r, j };
-    }, 3, 1000);
-    assert.ok(r.status === 200 && j.ok === true && j.embedding, `the free embed path refused (HTTP ${r.status} ${j.error ?? ''})`);
-    return JSON.parse(j.embedding);
-  };
+  const { MEANING_MAX_LINES } = await import(pathToFileURL(join(SHARED, 'service_meaning.ts')).href);
+  // The services as production reads them once the release backfill has run (scripts/lib/service_vectors.mjs).
+  const { services, embed, stats } = await liveServices({ sql, PROJECT_REF, caller: 'services_are_named_by_exact_name_or_meaning' });
+  console.log('  service vectors:', JSON.stringify(stats));
+  assert.equal(stats.failed, 0, 'a service vector could not be computed');
   const deps = { services, embed };
   const read = async (t) => { const r = await serviceKeysOf(t, null, deps); console.log(`  ${JSON.stringify(t).slice(0, 70)} -> ${JSON.stringify(r)}`); return r; };
 
-  // A customer's sentence: an alias word inside it names nothing by itself; meaning reads it.
+  // A customer's sentence: an alias word inside it names nothing by itself; meaning reads it clause by clause.
   const s1 = await read('ZZ DEMO villa: we need to supply and install ducting for the new majlis');
   assert.equal(s1.complete, true); assert.equal(s1.state, 'on');
   assert.ok(s1.keys.includes('hvac.ducting'), 'meaning did not read ducting from the sentence');
-  // An exact name, and an exact key, need no model.
-  const s2 = await read('False ceilings\ngypsum.partitions');
-  assert.deepEqual([s2.keys, s2.state], [['gypsum.false_ceiling', 'gypsum.partitions'], 'exact']);
-  // A nearest neighbour alone is nothing.
+  // An exact name, an exact key and an exact curated alias need no model.
+  const s2 = await read('False ceilings\ngypsum.partitions\nCable tray');
+  assert.deepEqual([s2.keys, s2.state], [['electrical.cable_tray', 'gypsum.false_ceiling', 'gypsum.partitions'], 'exact']);
+  // A nearest neighbour alone is nothing, in English and in Arabic.
   const s3 = await read('ZZ DEMO: Gold partner of the leading brands since 1990');
   assert.deepEqual([s3.keys, s3.complete], [[], true]);
+  const s3ar = await read('نحن شركة رائدة لدينا خبرة طويلة، اتصل بنا اليوم');
+  assert.deepEqual([s3ar.keys, s3ar.complete], [[], true]);
+  // Arabic, in the multilingual space: the 21 Sep audit's sentence (finding 8) names its false ceilings by meaning.
+  const s5 = await read('نقوم بأعمال الجبس والأسقف المستعارة والدهانات');
+  assert.equal(s5.complete, true);
+  assert.ok(s5.keys.includes('gypsum.false_ceiling'), 'the Arabic false ceilings were not read by meaning');
+  assert.ok(s5.keys.every((k) => k.startsWith('gypsum.') || k.startsWith('painting.')), 'an Arabic clause was read as another trade: ' + s5.keys);
   // All or nothing: longer than the budget, no keys, not complete (never stored as "names nothing").
-  const long = ['False ceilings', ...Array.from({ length: MEANING_MAX_LINES + 1 }, (_, k) => `ZZ DEMO line ${k} of the scope for the site`)].join('\n');
+  // (MEANING_MAX_LINES + 2 clauses, two per line: splitPhrases reads at most 40 phrases.)
+  const long = ['False ceilings', ...Array.from({ length: Math.ceil(MEANING_MAX_LINES / 2) + 1 }, (_, k) => `ZZ DEMO works ${k} and ZZ DEMO scope ${k}`)].join('\n');
   const s4 = await serviceKeysOf(long, null, { services, embed: async () => { throw new Error('must not be asked'); } });
   assert.deepEqual([s4.keys, s4.complete, s4.state], [[], false, 'too_long']);
 });

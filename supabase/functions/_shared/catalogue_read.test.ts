@@ -101,7 +101,8 @@ Deno.test('context, not a blocklist: a spec row, an address and a sentence name 
 Deno.test('a name is the whole text, never a word inside it: "UPS" is UPS, "upset" and "ups units" are not', () => {
   const keys = (t: string) => rewriteServices(t, SERVICES).service_keys;
   assertEquals(keys('UPS'), ['power_generators.ups']);
-  for (const t of ['ups units and batteries', 'upset customers', 'upstairs rooms', 'POS', 'position of the gate', 'post office']) {
+  assertEquals(keys('POS'), ['pos_retail.pos_terminals']);   // the whole text IS a curated alias (a name lookup)
+  for (const t of ['ups units and batteries', 'upset customers', 'upstairs rooms', 'POS machines for the shop', 'position of the gate', 'post office']) {
     assertEquals(keys(t), [], `"${t}" named a service by a word`);
   }
 });

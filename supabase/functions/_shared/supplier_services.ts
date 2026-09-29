@@ -31,8 +31,8 @@ import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } f
 import { finishRewrite, impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { serviceVocab } from './service_vocabulary.ts';
 import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
-import { meaningCandidates, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
-import { embedLine } from './gte_embed.ts';
+import { meaningCandidates, meaningClauses, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
+import { embedLines, remoteEmbedder } from './meaning_embed.ts';
 import { readWithModel } from './catalogue_model.ts';
 import { allText, type DocEvidence } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
@@ -335,15 +335,25 @@ async function latestCatalogueText(admin: Admin, supplierId: number): Promise<{ 
 // Since 29 Sep 2026 (decision point 93) this is the ONLY way a supplier's words name a service that is not
 // written exactly: the alias rules are gone. `lines` says how many candidate lines there were and how many were
 // read (MEANING_MAX_LINES per request, the edge CPU cap); a line not read stays the supplier's own words.
-async function meaningFor(services: MeaningService[], lines: string[], stated: string[], supplyOnly: boolean) {
-  const cand = [...new Set(lines.map((l) => l.trim()).filter((l) => l.length >= 3))];
+// Each line is read CLAUSE BY CLAUSE (meaningClauses: "supply and install ducting for the new majlis" is read as
+// "install ducting" and "the new majlis"), each clause in its own space (English gte-small, Arabic e5), embedded by
+// embed_ml (meaning_embed.ts), at most MEANING_MAX_LINES clauses. A proposal carries the supplier's whole LINE as
+// its evidence, and a line any clause of which was understood leaves his own words.
+async function meaningFor(admin: Admin, services: MeaningService[], lines: string[], stated: string[], supplyOnly: boolean) {
+  const origin = new Map<string, string>();
+  for (const l of [...new Set(lines.map((x) => x.trim()).filter((x) => x.length >= 3))]) {
+    for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+  }
+  const cand = [...origin.keys()];
   const out = (state: string, proposals: MeaningProposal[] = [], read = 0) => ({ state, proposals, lines: { candidates: cand.length, read } });
   if (!cand.length) return out('nothing_to_read');
-  if (!services.some((s) => s.vec)) return out('service_vectors_missing');
+  if (!services.some((s) => s.vec || s.vec_ml)) return out('service_vectors_missing');
   const todo = meaningCandidates(cand, services);
-  const vecs = await Promise.all(todo.map((t) => embedLine(t)));
-  if (!vecs.some(Boolean)) return out('embedding_unavailable');
-  return out('on', proposeByMeaning(todo.map((text, i) => ({ text, vec: vecs[i] })), services, { stated, supplyOnly }), todo.length);
+  const read = await embedLines(todo, remoteEmbedder(admin, 'supplier_services'));
+  if (!read.some((l) => l.vec)) return out('embedding_unavailable');
+  const proposals = proposeByMeaning(read, services, { stated, supplyOnly })
+    .map((p) => ({ ...p, lines: [...new Set(p.lines.map((c) => origin.get(c) ?? c))] }));
+  return out('on', proposals, todo.length);
 }
 
 export async function servicesRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
@@ -373,7 +383,7 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
   const unnamed = rw1.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
   const namedFrom = new Set(rw1.items.filter((i) => i.kind !== 'unmatched').map((i) => i.from));
   const prose = read ? read.lines.statements : splitPhrases(raw).filter((p) => !namedFrom.has(p));
-  const meaning = await meaningFor(services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);
+  const meaning = await meaningFor(admin, services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);
   const understood = new Set(meaning.proposals.flatMap((p) => p.lines));
   const rw = finishRewrite(rw1.items.filter((i) => !(i.kind === 'unmatched' && understood.has(i.text))));
 

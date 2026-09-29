@@ -15,10 +15,11 @@
 // service_vocabulary.serviceKeysOf for an inquiry). The rules:
 //   1. The text is split into phrases at line breaks, bullets, numbered items, commas (, ،), semicolons
 //      (; ؛), '|' and full stops.
-//   2. A phrase that IS a service — its key ("hvac.ducting"), its code ("ducting", "false ceiling") or its
-//      English or Arabic name exactly ("False ceilings", "الأسقف المعلقة"), after the Arabic folding
-//      public.fn_ar_norm applies, case and spacing — is that service. Equality with the whole phrase, never a
-//      word inside it. A supply-only company is never named an installation service (isInstallWork).
+//   2. A phrase that IS a service — its key ("hvac.ducting"), its code ("ducting", "false ceiling"), its
+//      English or Arabic name ("False ceilings", "الأسقف المعلقة") or one of its curated aliases ("cable tray",
+//      "تمديدات كهربائية"), after the Arabic folding public.fn_ar_norm applies, diacritics, case and spacing — is
+//      that service. Equality with the WHOLE phrase or list item, a name lookup, never a word inside it
+//      (coordinator's ruling, 29 Sep 2026). A supply-only company is never named an installation service.
 //   3. Otherwise the phrase is split at 'and' / 'or' / '&' / '+' / a spaced 'و' and each part is tried the
 //      same way. Prose (sentence glue, where the company works) is not a part worth keeping.
 //   4. A part that is no service exactly is kept in the supplier's words, tidied, and FLAGGED — never
@@ -165,14 +166,18 @@ export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolea
   return INSTALL_WORK.test(s) && !SUPPLY_WORD.test(s);
 };
 
-/** A name as the exact path compares it: fn_ar_norm's folding, lower case, one space, underscores and
- *  hyphens as spaces, no stray punctuation at either end. Nothing is stemmed and nothing is dropped. */
+/** A name as the exact path compares it: fn_ar_norm's folding, every other diacritic removed (NFKD), lower case,
+ *  one space, underscores and hyphens as spaces, no stray punctuation at either end. Nothing is stemmed, no
+ *  article or plural is removed, and nothing is dropped. */
 export const exactName = (s: string): string =>
-  arNorm(String(s ?? '')).toLowerCase().replace(/[_\-–—]+/g, ' ').replace(/\s+/g, ' ')
+  arNorm(String(s ?? '')).normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[_\-–—]+/g, ' ').replace(/\s+/g, ' ')
     .replace(/^[\s,،;؛.:•·*&+/()]+|[\s,،;؛.:•·*&+/()]+$/g, '').trim();
 
-/** Rule 2's index: every exact name of every service -> the service (key, code, English and Arabic name).
- *  Built once per vocabulary array. A name two services share names neither (exact or none). */
+/** Rule 2's index: every exact name of every service -> the service. A name is its key, its code, its English or
+ *  Arabic name, or one of its curated aliases (taxonomy_trade_service.aliases) — a NAME LOOKUP of the whole
+ *  phrase, as fn_norm_trades looks up an intake slug (coordinator's ruling on decision point 93, 29 Sep 2026: "no
+ *  substrings, no partial tokens, no word lists over free text"). Built once per vocabulary array. A name two
+ *  services share names neither (exact or none). */
 const EXACT = new WeakMap<ServiceTerm[], Map<string, ServiceTerm | null>>();
 export function exactIndex(vocab: ServiceTerm[]): Map<string, ServiceTerm | null> {
   const hit = EXACT.get(vocab);
@@ -184,7 +189,7 @@ export function exactIndex(vocab: ServiceTerm[]): Map<string, ServiceTerm | null
     const cur = m.get(k);
     m.set(k, cur === undefined || cur === s || (cur && cur.trade_code === s.trade_code && cur.code === s.code) ? s : null);
   };
-  for (const s of vocab) for (const n of [`${s.trade_code}.${s.code}`, s.code, s.label_en, s.label_ar]) if (n) put(n, s);
+  for (const s of vocab) for (const n of [`${s.trade_code}.${s.code}`, s.code, s.label_en, s.label_ar, ...(s.aliases || [])]) if (n) put(n, s);
   EXACT.set(vocab, m);
   return m;
 }

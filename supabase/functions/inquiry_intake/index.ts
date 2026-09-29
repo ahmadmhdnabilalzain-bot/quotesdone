@@ -13,7 +13,7 @@ import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
-import { embedLine } from '../_shared/gte_embed.ts';
+import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -679,7 +679,7 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       // 29 Sep 2026, ruling 890); a brief that names no known service, or one too long to read whole,
       // sends '{}' and the count stays trade-level, as before.
       try {
-        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocab(admin), embed: embedLine })).keys;
+        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocab(admin), embed: remoteEmbedder(admin, 'inquiry_intake') })).keys;
         const { data: cand } = await admin.rpc('fn_match_capability', {
           p_trades: (trades.length ? trades : [category]).filter(Boolean),
           p_need: 'executes', p_products: [], p_brands: [],

@@ -30,6 +30,7 @@ import { registeredLocale } from '../_shared/registered_locale.ts';
 import { portalLink } from '../_shared/site_origins.ts';
 import { relevanceFloorApplies } from '../_shared/supplier_capability.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
+import { remoteEmbedder } from '../_shared/meaning_embed.ts';
 import { noExactSpec, offerMessage, apologyMessage, offerTexts, type OfferForText } from '../_shared/line_specs/no_exact_spec.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { arabicTextsFor } from '../_shared/reasoned_governance.ts';
@@ -239,8 +240,6 @@ async function embed(text: string): Promise<string | null> {
     return '[' + v.join(',') + ']';
   } catch (_e) { return null; }
 }
-/** The same session, as the vector the meaning layer compares (service_vocabulary.serviceKeysOf). */
-const embedVec = async (text: string): Promise<number[] | null> => { const s = await embed(text); return s ? JSON.parse(s) as number[] : null; };
 
 // THE CUSTOMER'S OWN QUOTES, as chat_answers.quoteAnswer wants them. Scoped through inquiries to
 // the resolved customer; drafts are never a quote the customer can see. The supplier label is the
@@ -828,7 +827,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       let serviceKeys = arr(src.service_keys);
       let servicesRead: string | null = null;
       if (inq && !Array.isArray(inq.service_keys)) {
-        const sk = await serviceKeysOf(brief, inq.boq, { services: await serviceVocab(admin), embed: embedVec });
+        const sk = await serviceKeysOf(brief, inq.boq, { services: await serviceVocab(admin), embed: remoteEmbedder(admin, 'sales_engineer') });
         serviceKeys = sk.keys; servicesRead = sk.state;
         // Stored only when the whole text was read; a failed write must not stop the match (the keys
         // are still used for this run). An unread text stays null and is read again on the next match.

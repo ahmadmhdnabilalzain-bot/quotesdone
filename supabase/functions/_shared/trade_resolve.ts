@@ -14,20 +14,22 @@
 //      resolves it ("HVAC", "Electrical", "Carpentry"). The database routine decides, through
 //      fn_norm_trades_many (one call per text), so there is one definition of "exact". A sentence resolves to
 //      nothing, as it does in SQL.
-//   2. MEANING. The lines are embedded with gte-small (free, in-region, not OpenRouter: gte_embed.ts) and compared
-//      with the stored vector of every active service (taxonomy_trade_service.embedding_gte) by
+//   2. MEANING. The lines are read clause by clause (meaningClauses), each embedded by embed_ml in its own space
+//      (gte-small for English, the multilingual e5 for Arabic; free, in-region, not OpenRouter: meaning_embed.ts)
+//      and compared with the stored vectors of every active service (embedding_gte / embedding_ml) by
 //      service_meaning.proposeByMeaning - the rule the Services tab reads a catalogue with: similarity above
 //      MEANING_FLOOR AND the line holds the head word of that service's name (a nearest neighbour alone is never
 //      accepted). An accepted service names its trade; the evidence is the line, the service and the similarity.
 // Nothing else proposes a trade. A line that neither IS a code nor MEANS a service proposes nothing, and a text
 // whose meaning could not be read says so (meaning: embedding_unavailable / budget_spent), never "no trades".
 //
-// CEILING (stated, not hidden): meaning reads at most MEANING_MAX_LINES lines per call, and a caller reading
-// several documents shares one budget of that size (an edge function has a CPU cap no deadline bounds; each line
-// is one gte-small inference). The lines holding a service head word go first (meaningCandidates). gte-small is
-// an English model, so an Arabic-only document is served by the exact path alone (service_meaning.ts, ARABIC).
-import { MEANING_MAX_LINES, meaningCandidates, parseVec, proposeByMeaning, type MeaningService } from './service_meaning.ts';
+// CEILING (stated, not hidden): meaning reads at most MEANING_MAX_LINES clauses per call, and a caller reading
+// several documents shares one budget of that size (each clause is one embed_ml call; service_meaning.ts has the
+// measurement). The clauses holding a service head word go first (meaningCandidates).
+import { MEANING_MAX_LINES, meaningCandidates, meaningClauses, proposeByMeaning, type MeaningService } from './service_meaning.ts';
 import { splitPhrases } from './service_rewrite.ts';
+import { embedLines, remoteEmbedder, type Embedder } from './meaning_embed.ts';
+import { serviceVocab } from './service_vocabulary.ts';
 
 export type TradeHit = {
   code: string;
@@ -49,8 +51,8 @@ export type TradeResolveDeps = {
   normTrades: (phrases: string[]) => Promise<Record<string, string[]> | null>;
   /** The active services with their stored vectors; read once per request. */
   services: MeaningService[];
-  /** gte-small (gte_embed.embedLine); null outside the edge runtime or when it failed. */
-  embed: (text: string) => Promise<number[] | null>;
+  /** A clause -> its vector in the given space (meaning_embed.remoteEmbedder); null when it failed. */
+  embed: Embedder;
   /** Lines meaning may still read in this request, shared by every text read with these deps. */
   budget: { left: number };
 };
@@ -105,18 +107,22 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   // 2. meaning, over the stored service vectors
   let meaning: MeaningState = 'nothing_to_read';
   if (lines.some((l) => l.length >= 3)) {
-    if (!deps.services.some((s) => s.vec)) meaning = 'service_vectors_missing';
+    // Each line clause by clause; the evidence is the supplier's whole line.
+    const origin = new Map<string, string>();
+    for (const l of lines) for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+    if (!deps.services.some((s) => s.vec || s.vec_ml)) meaning = 'service_vectors_missing';
     else if (deps.budget.left <= 0) meaning = 'budget_spent';
-    else {
-      const todo = meaningCandidates(lines, deps.services, Math.min(MEANING_MAX_LINES, deps.budget.left));
+    else if (origin.size) {
+      const todo = meaningCandidates([...origin.keys()], deps.services, Math.min(MEANING_MAX_LINES, deps.budget.left));
       deps.budget.left -= todo.length;
-      const vecs = await Promise.all(todo.map((t) => deps.embed(t).catch(() => null)));
-      if (!vecs.some(Boolean)) meaning = 'embedding_unavailable';
+      const read = await embedLines(todo, deps.embed);
+      if (!read.some((l) => l.vec)) meaning = 'embedding_unavailable';
       else {
         meaning = 'on';
-        const props = proposeByMeaning(todo.map((t, i) => ({ text: t, vec: vecs[i] })), deps.services, { supplyOnly: opts.supplyOnly });
+        const props = proposeByMeaning(read, deps.services, { supplyOnly: opts.supplyOnly });
         for (const p of props) {
-          add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: (p.lines[0] ?? '').slice(0, 180), similarity: p.similarity });
+          const line = origin.get(p.lines[0] ?? '') ?? p.lines[0] ?? '';
+          add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: line.slice(0, 180), similarity: p.similarity });
         }
       }
     }
@@ -124,14 +130,11 @@ export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: {
   return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning };
 }
 
-/** The deps as an edge function builds them: the database routine, the stored vectors, the in-region model. */
+/** The deps as an edge function builds them: the database routine, the stored vectors, embed_ml. */
 // deno-lint-ignore no-explicit-any
-export async function liveTradeDeps(admin: any, embed: (t: string) => Promise<number[] | null>): Promise<TradeResolveDeps> {
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true);
-  const services = error ? [] : (data || []).map((s: Record<string, unknown>) => ({ ...s, vec: parseVec(s.embedding_gte) })) as MeaningService[];
+export async function liveTradeDeps(admin: any, caller = 'supplier_doc_trades'): Promise<TradeResolveDeps> {
   return {
-    services, embed, budget: { left: MEANING_MAX_LINES },
+    services: await serviceVocab(admin), embed: remoteEmbedder(admin, caller), budget: { left: MEANING_MAX_LINES },
     normTrades: async (phrases) => {
       const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
       return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;
