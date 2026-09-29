@@ -289,11 +289,15 @@ You are reading pages from UAE authorities to answer one research question. Extr
 {"findings":[{"statement":"<one fact, as the page states it>","url":"<the page it came from>"}]}
 Return {"findings":[]} if the pages do not answer it.`;
 
-// THE 23 SEP MODEL RULING (founder_instruction 841/844): internal work runs on GLM (routine_employee_reasoning,
-// z-ai/glm-5.3-flash, about 15x cheaper than gpt-5.6-sol); only customer-facing, supplier-facing and Arabic
-// replies keep the qwen/sol classes. Planning (decompose), reading pages (research) and an internal decision
-// are internal steps whoever the final reader is. Verify stays knowledge_validation: it is routed through
-// counterpart_model to a reviewer of ANOTHER family than the author, which GLM authorship does not change.
+// THE CLASS NAMES WHAT THE STEP IS; THE SEAT PICKS THE MODEL (29 Sep 2026, founder_instruction 1056, which
+// superseded the 23 Sep ruling 841/844). Planning (decompose) and reading pages (research) are
+// routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a
+// visitor or a supplier reads, and any Arabic reply, keeps its audience class. The model is chosen in the
+// database from the seat (sent as `agent`): fn_ai_route takes a seat's own '<seat>__<class>' row where one
+// exists (the CEO's judgement on Opus, while its planning runs on Gemini) and otherwise gives the seat its own
+// plan B (gpt-6-luna for the sales engineer and the CEO, DeepSeek for every other seat); the class logged stays
+// the one named here (scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql). Verify stays
+// knowledge_validation: routed through counterpart_model to a reviewer of ANOTHER family than the author.
 // A FIXTURE QUESTION IS NEVER QUEUED (it_engineer, 24 Sep 2026). The gateway stubs a fixture call, but a question
 // HELD for a fixture was filed in the seat queue and replayed later without its caller, so the replay paid for it:
 // measured 24 Sep, 26 inquiry_intake.trade rows in two days from the e2e journey (scripts/e2e/journeys.mjs, a customer
@@ -310,8 +314,8 @@ export function taskClassFor(phase: Phase, audience: string, _deciding: boolean,
   if (phase === 'decompose' || phase === 'research') return 'routine_employee_reasoning';
   if (audience === 'customer' || audience === 'visitor') return 'customer_communication';
   if (audience === 'supplier') return 'supplier_communication';
-  if (language === 'ar') return 'customer_communication';   // Arabic wording stays on the qwen/sol class
-  return 'routine_employee_reasoning';                      // internal answer or internal decision
+  if (language === 'ar') return 'customer_communication';   // Arabic wording stays on the audience class
+  return 'internal_judgement';                              // the seat's own answer or decision
 }
 
 const vec = (v: number[]) => '[' + v.join(',') + ']';
