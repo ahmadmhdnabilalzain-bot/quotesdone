@@ -8,5 +8,9 @@ an approve reply from the authenticated founder approves the article, a 'claude'
 answer-engine checks are owed for the month (12 trade x city questions x 2 engines), fn_marketing_geo_record stores the
 competitors named, and both new routes (perplexity/sonar, google/gemini-3.8-flash:online) are refused by
 fn_llm_preflight as held, like every other route.
+Re-probed 29 Sep 2026 after fn_table_export_list was rebuilt from main's canonical body (#1070's) and the
+fn_marketing_article_approve(text,text) revoke was added: CHK<<PROBE OK>>, everything rolled back (no marketing_plan_doc
+table, export list unchanged, 7-argument fn_marketing_geo_record still live). With #1070's two recruitment tables removed
+from the body, the same probe returns PROBE FAILED: #1070's recruitment tables fell out of the daily export.
 On apply: marketing.geo_check reports held_by_founder = true and does not fail; the answer engines run the moment the
 founder's OpenRouter hold is released. Nothing in this file releases it.
