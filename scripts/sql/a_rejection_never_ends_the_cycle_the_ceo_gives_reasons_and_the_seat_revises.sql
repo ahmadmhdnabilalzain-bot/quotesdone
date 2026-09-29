@@ -1112,6 +1112,11 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('ceo_decision_round','decision'),
+    ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
+    ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
+    ('quote_quality_hold','quote'),
+    ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),
@@ -1141,7 +1146,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('wa_messages','conversation'), ('wa_conversation','conversation'), ('wa_turn','conversation'),
     ('wa_document_intake','conversation'), ('notifications','conversation'), ('agent_chats','conversation'),
     ('legal_reviews','legal'), ('pdpl_requests','legal'), ('pdpl_erase_files','legal'), ('email_suppressions','legal'),
-    ('founder_instruction','decision'), ('company_policy_decision','decision'), ('ceo_decision_round','decision'), ('seat_handoff_kind','decision'),
+    ('founder_instruction','decision'), ('company_policy_decision','decision'),
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
