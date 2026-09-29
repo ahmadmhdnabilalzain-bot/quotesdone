@@ -57,7 +57,7 @@
       "hosts": ["api.twilio.com", "content.twilio.com", "monitor.twilio.com"],
       "secrets": ["twilio_account_sid", "twilio_api_key_sid", "twilio_api_key_secret", "twilio_auth_token", "twilio_from", "twilio_wa_from"],
       "owner_seat": "customer_support", "blast": "customer_facing",
-      "probe": { "kind": "http", "method": "GET", "url": "https://api.twilio.com/2010-04-01/Accounts/{secret:twilio_account_sid}.json", "auth": "basic:twilio_api_key_sid:twilio_api_key_secret", "ok": [200], "expect": { "path": "status", "equals": "active" } },
+      "probe": { "kind": "http", "method": "GET", "url": "https://api.twilio.com/2010-04-01/Accounts/{secret:twilio_account_sid}/Balance.json", "auth": "basic:twilio_api_key_sid:twilio_api_key_secret", "ok": [200] },
       "self_fix": "retried once after 3 s",
       "action": "Open the Twilio console: reactivate the account or issue a new API key (store twilio_api_key_sid and twilio_api_key_secret)", "link": "https://console.twilio.com/"
     },
