@@ -1,0 +1,99 @@
+{
+  "trade": "retail_shelving",
+  "layer": "uae-market",
+  "label_en": "Retail shelving & display fixtures",
+  "label_ar": "رفوف ووحدات العرض لمتاجر التجزئة",
+  "entries": [
+    {
+      "id": "retail_shelving:uae-market-products",
+      "topic": "Retail shelving & display fixtures: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Retail shelving sold in the UAE includes gondola shelving (single and double-sided, back panels perforated or plain, base decks and adjustable shelves), wall shelving, supermarket fruit and vegetable racks, pharmacy shelving, mobile phone and electronics display units, slatwall and gridwall panels, garment racks and fixtures, checkout counters, wire shelving, promotional end caps, pallet racking for back stores and hypermarkets, and shopfitting joinery. Buyers specify height (1.35-2.4 m typical), bay width (usually 1,000, 1,250 or 1,330 mm), shelf depth (300-600 mm), load per shelf (typically 60-150 kg), steel thickness, powder coat colour (RAL), accessories (price strips, dividers, hooks), and compatibility with existing systems. Racking for warehouses and stores should follow EN 15512/EN 15635 design and inspection guidance, and Civil Defence rules apply for storage heights and sprinkler clearance.",
+      "body_ar": "تشمل رفوف البيع بالتجزئة المباعة في الإمارات رفوف الجندولا (أحادية ومزدوجة الجانب، بألواح خلفية مثقبة أو سادة، وقواعد ورفوف قابلة للتعديل)، والرفوف الجدارية، ورفوف الفواكه والخضار في السوبرماركت، ورفوف الصيدليات، ووحدات عرض الهواتف والإلكترونيات، والألواح المشقوقة والشبكية، وعلاقات وتجهيزات الملابس، وكاونترات الدفع، والرفوف السلكية، ونهايات الممرات الترويجية، ورفوف المنصات للمخازن الخلفية والهايبر ماركت، وأعمال النجارة لتجهيز المتاجر. يحدد المشترون الارتفاع (1.35-2.4 م عادةً)، وعرض الوحدة (عادةً 1000 أو 1250 أو 1330 مم)، وعمق الرف (300-600 مم)، والحمولة لكل رف (عادةً 60-150 كغ)، وسماكة الفولاذ، ولون الطلاء بالمسحوق (RAL)، والإكسسوارات (شرائط الأسعار، والفواصل، والخطافات)، والتوافق مع الأنظمة القائمة. وينبغي أن تتبع رفوف المستودعات والمتاجر إرشادات التصميم والفحص EN 15512/EN 15635، وتنطبق قواعد الدفاع المدني على ارتفاعات التخزين والمسافة عن رشاشات الحريق.",
+      "sources": [
+        "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
+        "https://www.creative-display.com/supermarket-shelving",
+        "https://www.abazarshelving.com/supermarket-shelving/",
+        "https://www.cencenelec.eu",
+        "https://www.mecalux.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified."
+    },
+    {
+      "id": "retail_shelving:uae-market-brands",
+      "topic": "Retail shelving & display fixtures: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE shelving suppliers and a racking maker with a UAE inspection service: Creative Display, Al Khaleej (Sharjah), Abazar Shelving, BITO. Other international racking brands and European gondola systems are imported; their UAE representation was not checked. Shopfitters cluster in the Sharjah Industrial Areas, Deira and Al Quoz.",
+      "body_ar": "موردو الرفوف المؤكدون في الإمارات ومصنع رفوف يقدم خدمة فحص فيها: Creative Display، Al Khaleej (Sharjah)، Abazar Shelving، BITO. وتُستورد علامات الرفوف الدولية الأخرى وأنظمة الجندولا الأوروبية ولم يُتحقق من تمثيلها في الإمارات. ويتجمع مجهزو المتاجر في المناطق الصناعية بالشارقة وديرة والقوز.",
+      "sources": [
+        "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
+        "https://www.creative-display.com/supermarket-shelving",
+        "https://www.abazarshelving.com/supermarket-shelving/",
+        "https://www.cencenelec.eu",
+        "https://www.mecalux.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified."
+    },
+    {
+      "id": "retail_shelving:uae-market-sizes",
+      "topic": "Retail shelving & display fixtures: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Gondola shelving is priced per bay (by height, width, number of shelves and single/double side) or per running metre; accessories per piece; pallet racking per bay or per pallet position. Store fit-outs are quoted as a lump sum with layout drawing, delivery and installation. Local manufacturers can often supply standard bays within 1-3 weeks; imports 4-8 weeks.",
+      "body_ar": "تُسعّر رفوف الجندولا لكل وحدة (حسب الارتفاع والعرض وعدد الرفوف وكونها أحادية أو مزدوجة الجانب) أو لكل متر طولي؛ والإكسسوارات لكل قطعة؛ ورفوف المنصات لكل وحدة أو لكل موقع منصة. وتُسعّر تجهيزات المتاجر كمبلغ مقطوع مع رسم المخطط والتوصيل والتركيب. ويمكن للمصنعين المحليين غالباً توريد الوحدات القياسية خلال 1-3 أسابيع، والواردات خلال 4-8 أسابيع.",
+      "sources": [
+        "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
+        "https://www.creative-display.com/supermarket-shelving",
+        "https://www.abazarshelving.com/supermarket-shelving/",
+        "https://www.cencenelec.eu",
+        "https://www.mecalux.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking -> confirmed | Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving -> confirmed | Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence -> removed: not confirmed. Not checked: Named European gondola brands' UAE availability and local manufacturer names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What bay width and shelf load are standard for supermarket gondolas?",
+      "q_ar": "ما عرض الوحدة وحمولة الرف القياسيان لرفوف الجندولا في السوبرماركت؟",
+      "expected_entry_ids": [
+        "retail_shelving:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EN 15635 is the accepted UAE basis for racking inspection; sprinkler clearance about 450 mm; in-rack sprinklers and Civil Defence drawing updates for high racking",
+        "url": "https://daralnaseeb.com/blog/warehouse-racking-approval-dubai-guide-2026",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Supermarket shelving suppliers include Creative Display (Dubai), Al Khaleej (Sharjah) and Abazar Shelving",
+        "url": "https://www.creative-display.com/supermarket-shelving",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Mecalux, Dexion, Stow, SSI Schaefer, Tegometall UAE presence",
+        "url": "https://www.abazarshelving.com/supermarket-shelving/",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Named European gondola brands' UAE availability and local manufacturer names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
