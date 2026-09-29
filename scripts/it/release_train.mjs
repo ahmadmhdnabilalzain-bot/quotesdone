@@ -332,9 +332,15 @@ export async function main(argv = process.argv.slice(2)) {
     run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']);
   }
   if (applies.length) log(`schema mirror -> exit ${node(['scripts/checks/export_from_either_source_is_identical.mjs', '--write']).code}`);
-  const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
-  log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
-  if (dep.code && !failed) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  // NO DEPLOY AFTER A FAILED APPLY (29 Sep 2026). #1050's SQL failed (42501) and the train deployed its new
+  // think.ts anyway, so every importer called a routine signature the database did not have. Code that
+  // depends on SQL ships only when that SQL is live; a failed release leaves the functions as they were.
+  if (failed) log('an apply or probe failed: changed functions are NOT deployed');
+  else {
+    const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
+    log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
+    if (dep.code) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  }
 
   run('git', ['add', '--', manifest, 'scripts/sql/pending', 'supabase/schema']);
   if (run('git', ['diff', '--cached', '--quiet']).code) {

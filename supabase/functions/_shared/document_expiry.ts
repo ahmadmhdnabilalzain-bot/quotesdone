@@ -102,7 +102,12 @@ function unescapePdf(s: string): string {
 export function textFromContent(content: string): string {
   const out: string[] = [];
   // (...) Tj  |  [ (...) -250 (...) ] TJ  |  <hex> Tj  |  T* / Td / TD / ET → newline
-  const re = /\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:[^\]\\]|\\.)*)\]\s*TJ|<([0-9A-Fa-f\s]+)>\s*Tj|\b(T\*|Td\b|TD\b|ET\b)/g;
+  const re = /\(((?:\\.|[^\\)])*)\)\s*Tj|\[((?:[^\]\\]|\\.)*)\]\s*TJ|<([0-9A-Fa-f\s]+)>\s*Tj|\b(T\*|Td\b|TD\b|Tm\b|ET\b)/g;
+  // 28 Sep 2026 (sales_engineer): a PDF that places every line with its own `Tm` (the registration walk's
+  // licence fixture, and many generators) also read as ONE line, so the line-anchored name label never
+  // matched and every such licence was held as licence_name_unread. `Tm` now breaks the line too. A
+  // producer that places single words by Tm splits a label from its value: that reads as "not read", never
+  // as a wrong name.
   // 24 Sep 2026: `T*` then a trailing \b never matched (no word boundary after '*'), so a licence laid out
   // with T* read as ONE line and "Legal Name : X" swallowed the rest of the page. Measured by the
   // readLicenceName test below the fix.

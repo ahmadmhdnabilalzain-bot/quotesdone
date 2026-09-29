@@ -2,6 +2,7 @@
 // be merged that must not be: unreviewed, held, red, blocked by an unmerged dependency, a major bump.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { REQUIRED_CHECKS, dependsOn, isDependabotMinorPatch, checksGreen, inCampaignHours, refusal, applyOrder, driftFiles, isProbeNote }
   from './release_train.mjs';
 
@@ -137,4 +138,11 @@ test('only a PR failing the live-database checks is refreshed; one failing its o
   assert.equal(onlyStaleFailures(unitRed), false);
   const prs = [pr({ number: 1, statusCheckRollup: unitRed }), pr({ number: 2, statusCheckRollup: dbRed })];
   assert.equal(staleCandidate(prs, { isBehind: () => true })?.number, 2);
+});
+
+test('a failed apply is never followed by a deploy (#1050, 29 Sep)', () => {
+  const src = readFileSync(new URL('./release_train.mjs', import.meta.url), 'utf8');
+  const i = src.indexOf("scripts/deploy_functions.mjs");
+  assert.ok(i > 0);
+  assert.match(src.slice(Math.max(0, i - 400), i), /if \(failed\)[\s\S]*else \{/, 'the deploy must sit in the else of if (failed)');
 });
