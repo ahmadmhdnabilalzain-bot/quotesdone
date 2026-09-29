@@ -240,7 +240,10 @@ function liveRoutineDigest(names) {
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = any (array[${names.map(sqlLit).join(',')}]::text[]);`);
   const r = node(['scripts/qsql.mjs', f, `--ref=${REF}`]);
-  return r.code ? `unreadable:${Date.now()}` : (r.out.match(/"d":"([0-9a-f]{32}|none)"/) || [null, `unparsed:${Date.now()}`])[1];
+  // qsql prints a one-column, one-row result bare (its `--` lines are retry notes); anything else is unparsed
+  // and never equal to the snapshot, so it never licenses a retry.
+  const line = r.out.split(/\r?\n/).map((l) => l.trim()).find((l) => /^([0-9a-f]{32}|none)$/.test(l));
+  return r.code ? `unreadable:${Date.now()}` : (line ?? `unparsed:${Date.now()}`);
 }
 
 function openFinding(pr, file, output) {
