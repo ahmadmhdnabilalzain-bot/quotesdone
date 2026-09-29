@@ -1,0 +1,1 @@
+Committed with PR #1047 (founder ledger 704), not applied: the session was told not to apply before merge. Apply at merge with node scripts/apply_sql.mjs scripts/sql/a_supply_gap_with_no_leads_left_is_deferred_by_rule.sql --apply --ddl, then delete this note and append the file to the END of MANIFEST.txt in the same commit.
