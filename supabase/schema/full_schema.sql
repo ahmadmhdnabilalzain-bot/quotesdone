@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T09:35:57.921Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T09:42:32.480Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (679) =====
+-- ===== TABLES (680) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -5062,7 +5062,10 @@ CREATE TABLE IF NOT EXISTS public.marketing_article (
   linkedin_post_key text NOT NULL,
   is_demo boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  updated_at timestamp with time zone DEFAULT now() NOT NULL
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  approval_token text,
+  approval_sent_at timestamp with time zone,
+  founder_change_request text
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_asset_feature (
@@ -5216,14 +5219,17 @@ CREATE TABLE IF NOT EXISTS public.marketing_geo_check (
   rank integer,
   evidence text,
   model text,
-  checked_at timestamp with time zone DEFAULT now() NOT NULL
+  checked_at timestamp with time zone DEFAULT now() NOT NULL,
+  competitors_cited text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_geo_question (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   question text NOT NULL,
   audience text NOT NULL,
-  active boolean DEFAULT true NOT NULL
+  active boolean DEFAULT true NOT NULL,
+  trade text,
+  city text
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_goal (
@@ -5347,6 +5353,23 @@ CREATE TABLE IF NOT EXISTS public.marketing_outreach_message (
   is_demo boolean DEFAULT false NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
   updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_plan_doc (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  kind text NOT NULL,
+  period date NOT NULL,
+  body jsonb NOT NULL,
+  status text DEFAULT 'draft'::text NOT NULL,
+  approval_token text,
+  sent_at timestamp with time zone,
+  notification_id bigint,
+  decided_at timestamp with time zone,
+  founder_note text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL,
+  sent_hash text,
+  founder_changes jsonb DEFAULT '[]'::jsonb NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_plan_review_turn (
@@ -9785,6 +9808,7 @@ ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_pkey P
 ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_pkey PRIMARY KEY (month);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_plan_doc ADD CONSTRAINT marketing_plan_doc_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_platform_spec ADD CONSTRAINT marketing_platform_spec_pkey PRIMARY KEY (platform, surface, attribute);
 ALTER TABLE public.marketing_platform_spec_source ADD CONSTRAINT marketing_platform_spec_source_pkey PRIMARY KEY (source_url);
@@ -10131,6 +10155,7 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_place_id_key UNIQUE (place_id);
 ALTER TABLE public.legal_checklist ADD CONSTRAINT legal_checklist_requirement_key UNIQUE (requirement);
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_expiry_date_band_channel_key UNIQUE (lead_id, expiry_date, band, channel);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approval_token_key UNIQUE (approval_token);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_slug_key UNIQUE (slug);
 ALTER TABLE public.marketing_asset_perception ADD CONSTRAINT marketing_asset_perception_file_sha256_model_prompt_version_key UNIQUE (file_sha256, model, prompt_version);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar_token_key UNIQUE (calendar_token);
@@ -10141,6 +10166,8 @@ ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_
 ALTER TABLE public.marketing_meta_page ADD CONSTRAINT marketing_meta_page_ig_id_key UNIQUE (ig_id);
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_key UNIQUE (plan_token);
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_mark_token_key UNIQUE (mark_token);
+ALTER TABLE public.marketing_plan_doc ADD CONSTRAINT marketing_plan_doc_approval_token_key UNIQUE (approval_token);
+ALTER TABLE public.marketing_plan_doc ADD CONSTRAINT marketing_plan_doc_kind_period_key UNIQUE (kind, period);
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_month_round_seat_key UNIQUE (month, round, seat);
 ALTER TABLE public.marketing_post ADD CONSTRAINT marketing_post_ingest_key_key UNIQUE (ingest_key);
 ALTER TABLE public.marketing_post_metric ADD CONSTRAINT marketing_post_metric_post_id_platform_checkpoint_metric_key UNIQUE (post_id, platform, checkpoint, metric);
@@ -10608,7 +10635,7 @@ ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_re
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_names_its_subject CHECK (((campaign_id IS NOT NULL) OR (month IS NOT NULL)));
 ALTER TABLE public.marketing_founder_request ADD CONSTRAINT marketing_founder_request_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'superseded'::text])));
 ALTER TABLE public.marketing_gap_recruitment_plan ADD CONSTRAINT marketing_gap_recruitment_plan_check CHECK (((invite_body ~~ '%{{link}}%'::text) AND (invite_body !~ '[؀-ۿ]'::text) AND (invite_subject !~ '[؀-ۿ]'::text)));
-ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text])));
+ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_engine_check CHECK ((engine = ANY (ARRAY['web'::text, 'model'::text, 'answer_search'::text, 'answer_online'::text])));
 ALTER TABLE public.marketing_geo_check ADD CONSTRAINT marketing_geo_check_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.marketing_geo_question ADD CONSTRAINT marketing_geo_question_audience_check CHECK ((audience = ANY (ARRAY['customer'::text, 'supplier'::text])));
 ALTER TABLE public.marketing_goal ADD CONSTRAINT marketing_goal_benchmark_source_check CHECK ((length(btrim(benchmark_source)) >= 20));
@@ -10639,6 +10666,8 @@ ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_is_kept CHECK (((status <> 'replied'::text) OR (reply_text IS NOT NULL)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_reply_text_check CHECK (((reply_text IS NULL) OR (length(reply_text) <= 4000)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'listed'::text, 'sent'::text, 'replied'::text, 'converted'::text, 'declined'::text])));
+ALTER TABLE public.marketing_plan_doc ADD CONSTRAINT marketing_plan_doc_kind_check CHECK ((kind = ANY (ARRAY['launch_plan'::text, 'competitor_intel'::text])));
+ALTER TABLE public.marketing_plan_doc ADD CONSTRAINT marketing_plan_doc_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'sent_to_founder'::text, 'approved'::text, 'change_requested'::text])));
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_check CHECK (((seat = 'marketing'::text) = (move = ANY (ARRAY['propose'::text, 'adjust'::text, 'defend'::text]))));
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_check1 CHECK (((move <> ALL (ARRAY['request_changes'::text, 'reject'::text])) OR ((changes IS NOT NULL) AND (jsonb_array_length(changes) > 0))));
 ALTER TABLE public.marketing_plan_review_turn ADD CONSTRAINT marketing_plan_review_turn_check2 CHECK (((seat <> 'ceo'::text) OR (criteria IS NOT NULL)));
@@ -12958,10 +12987,11 @@ CREATE OR REPLACE VIEW public.marketing_kpis AS  WITH f AS (
             ELSE NULL::numeric
         END AS quote_to_reveal_pct,
     ( SELECT count(*) AS count
-           FROM blog_posts
-          WHERE blog_posts.published) AS blog_published,
+           FROM marketing_article
+          WHERE ((marketing_article.status = 'live'::text) AND (NOT marketing_article.is_demo))) AS blog_published,
     ( SELECT count(*) AS count
-           FROM blog_posts) AS blog_total,
+           FROM marketing_article
+          WHERE ((marketing_article.status <> 'withdrawn'::text) AND (NOT marketing_article.is_demo))) AS blog_total,
     ( SELECT count(*) AS count
            FROM content_drafts
           WHERE (COALESCE(content_drafts.status, ''::text) <> ALL (ARRAY['published'::text, 'discarded'::text]))) AS drafts_pending,
@@ -13016,7 +13046,13 @@ CREATE OR REPLACE VIEW public.marketing_kpis AS  WITH f AS (
         CASE
             WHEN (mi.meta_spend > (0)::numeric) THEN round((((f.fm ->> 'reveal_fees'::text))::numeric / mi.meta_spend), 2)
             ELSE NULL::numeric
-        END AS meta_roi
+        END AS meta_roi,
+    ( SELECT count(*) AS count
+           FROM marketing_article
+          WHERE ((marketing_article.status = 'draft'::text) AND (NOT marketing_article.is_demo))) AS blog_drafts,
+    ( SELECT count(*) AS count
+           FROM blog_posts
+          WHERE blog_posts.published) AS site_blog_pages
    FROM f,
     mi,
     nc;
@@ -22697,6 +22733,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -22722,16 +22768,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -52160,6 +52196,56 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_approval_reply(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_token text := lower(coalesce(p->>'token', '')); v_from text := lower(btrim(coalesce(p->>'from_email', '')));
+  a public.marketing_article; d public.marketing_plan_doc; v_out text; v_what text; v_msg text;
+begin
+  if v_from is distinct from public.fn_marketing_founder_email() then return jsonb_build_object('outcome', 'not_the_founder'); end if;
+  select * into a from public.marketing_article where approval_token = v_token and v_token <> '' for update;
+  if a.id is null then select * into d from public.marketing_plan_doc where approval_token = v_token and v_token <> '' for update; end if;
+  v_what := coalesce('article "' || a.title_en || '"', case when d.id is not null then 'launch plan for ' || to_char(d.period, 'FMMonth YYYY') end);
+  if v_what is null then
+    v_out := 'unknown'; v_msg := 'Your reply did not match an approval email, so nothing was changed. Please reply to the latest one.';
+  elsif not coalesce((p->>'authenticated')::boolean, false) then
+    v_out := 'not_authenticated';
+    v_msg := 'A reply about the ' || v_what || ' arrived with your address but could not be verified as coming from your mailbox, so nothing was changed.';
+  elsif (a.id is not null and a.status <> 'draft') or (d.id is not null and d.status <> 'sent_to_founder') then
+    v_out := 'already_decided'; v_msg := 'The ' || v_what || ' was already decided; nothing was changed.';
+  elsif p->>'intent' = 'approve' then
+    if a.id is not null then perform public.fn_marketing_article_approve(a.slug, 'founder');
+    else update public.marketing_plan_doc set status = 'approved', decided_at = now(), updated_at = now() where id = d.id; end if;
+    v_out := 'approved';
+    v_msg := 'Approved: the ' || v_what || '. ' || case when a.id is not null
+      then 'It is released on the next UAE working day on the weekly cadence.' else 'The marketing seat runs it from 1 January 2027.' end;
+  elsif btrim(coalesce(p->>'text', '')) = '' then
+    -- an empty reply is not a change: nothing is filed, the token stays valid, and the item is still his to approve
+    v_out := 'empty_reply';
+    v_msg := 'Your reply about the ' || v_what || ' was empty, so nothing was changed and it is still waiting for you. '
+          || 'Reply "approve" to the same email, or write the change you want.';
+  else
+    if a.id is not null then
+      update public.marketing_article set founder_change_request = left(btrim(p->>'text'), 4000), approval_token = null, updated_at = now() where id = a.id;
+    else
+      -- his change joins the plan (founder_changes) and the next daily redraw is re-sent to him with it
+      update public.marketing_plan_doc set status = 'change_requested', founder_note = left(btrim(p->>'text'), 4000),
+             founder_changes = founder_changes || to_jsonb(left(btrim(p->>'text'), 4000)),
+             approval_token = null, decided_at = now(), updated_at = now() where id = d.id;
+    end if;
+    v_out := 'change_requested';
+    v_msg := 'Your change to the ' || v_what || ' was passed to the marketing seat; nothing is published until you approve the new version.';
+  end if;
+  perform public.fn_marketing_mail_founder('marketing_approval_reply',
+    case when v_out = 'approved' then 'Approved: ' when v_out = 'change_requested' then 'Change noted: ' else 'Not changed: ' end || coalesce(v_what, 'approval'), v_msg);
+  return jsonb_build_object('outcome', v_out, 'article', a.slug, 'plan_doc', d.id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_article_approve(p_slug text, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -52168,11 +52254,10 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_article_approve(p_slug text, p_by
 AS $function$
 declare v_id bigint;
 begin
-  if p_by not in ('founder', 'claude') then return jsonb_build_object('ok', false, 'error', 'approver_must_be_founder_or_claude'); end if;
-  update public.marketing_article set status = 'approved', approved_by = p_by, approved_at = now(), updated_at = now()
+  if p_by is distinct from 'founder' then return jsonb_build_object('ok', false, 'error', 'only_the_founder_approves_an_article'); end if;
+  update public.marketing_article set status = 'approved', approved_by = 'founder', approved_at = now(), updated_at = now()
    where slug = p_slug and status = 'draft' returning id into v_id;
-  return jsonb_build_object('ok', v_id is not null, 'slug', p_slug,
-    'error', case when v_id is null then 'not_a_draft' end);
+  return jsonb_build_object('ok', v_id is not null, 'slug', p_slug, 'error', case when v_id is null then 'not_a_draft' end);
 end $function$
 
 
@@ -52251,19 +52336,65 @@ declare
   v_now timestamp := now() at time zone 'Asia/Dubai';
   v_week int; v_today int; v_next public.marketing_article;
 begin
+  if not public.fn_is_working_day(v_now::date) then
+    return jsonb_build_object('released', null, 'reason', 'not a UAE working day');
+  end if;
   select count(*) filter (where released_at at time zone 'Asia/Dubai' >= date_trunc('week', v_now)),
          count(*) filter (where (released_at at time zone 'Asia/Dubai')::date = v_now::date)
     into v_week, v_today from public.marketing_article where released_at is not null and not is_demo;
   if v_week >= greatest(0, public.fn_marketing_policy_int('marketing_articles_per_week', 2)) or v_today > 0 then
     return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'cadence');
   end if;
-  select * into v_next from public.marketing_article where status = 'approved' and not is_demo order by approved_at, id limit 1 for update skip locked;
-  if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved'); end if;
+  select * into v_next from public.marketing_article
+   where status = 'approved' and approved_by = 'founder' and not is_demo order by approved_at, id limit 1 for update skip locked;
+  if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved_by_the_founder'); end if;
   if not public.fn_marketing_publishing_live() then
     return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'marketing_golive is not true');
   end if;
   update public.marketing_article set status = 'released', released_at = now(), updated_at = now() where id = v_next.id;
   return jsonb_build_object('released', v_next.slug, 'this_week', v_week + 1);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_release_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_now timestamp := now() at time zone 'Asia/Dubai';
+  a public.marketing_article; v_token text; v_nid bigint; v_stuck text; v_sent text;
+begin
+  select slug into v_stuck from public.marketing_article
+   where status = 'approved' and approved_by = 'founder' and not is_demo and approved_at < now() - interval '8 days' limit 1;
+  if v_stuck is not null and public.fn_marketing_publishing_live() then
+    raise exception 'article % was approved by the founder more than 8 days ago and is not released', v_stuck;
+  end if;
+  if public.fn_is_working_day(v_now::date)
+     and not exists (select 1 from public.marketing_article where status = 'draft' and approval_sent_at is not null and not is_demo
+                       and approval_sent_at at time zone 'Asia/Dubai' >= date_trunc('week', v_now)) then
+    select * into a from public.marketing_article
+     where status = 'draft' and not is_demo and approval_sent_at is null and founder_change_request is null
+     order by created_at, id limit 1 for update skip locked;
+    if found then
+      v_token := encode(extensions.gen_random_bytes(16), 'hex');
+      v_nid := public.fn_marketing_mail_founder('marketing_article_approval',
+        'Article for this week: ' || left(a.title_en, 120) || ' [approve ' || v_token || ']',
+        'This week''s article, ready to publish on quotesdone.ae/blog/' || a.slug || E' in English and Arabic:\n\n'
+        || a.title_en || E'\n' || a.excerpt_en || E'\n\n' || a.title_ar || E'\n' || a.excerpt_ar || E'\n\n'
+        || 'Reply "approve" and it is released on the next UAE working day (never a weekend or a public holiday) with its LinkedIn post. '
+        || 'Any other reply is passed to the marketing seat as a change and nothing is published.',
+        null, 'approve+' || v_token || '@mail.quotesdone.com');
+      update public.marketing_article set approval_token = v_token, approval_sent_at = now(), updated_at = now() where id = a.id;
+      v_sent := a.slug;
+    end if;
+  end if;
+  return jsonb_build_object('requested', v_sent,
+    'drafts', (select count(*) from public.marketing_article where status = 'draft' and not is_demo),
+    'awaiting_founder', (select count(*) from public.marketing_article where status = 'draft' and approval_sent_at is not null and not is_demo),
+    'approved', (select count(*) from public.marketing_article where status = 'approved' and not is_demo),
+    'live', (select count(*) from public.marketing_article where status = 'live' and not is_demo));
 end $function$
 
 
@@ -52889,6 +53020,35 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_competitor_refresh_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_week date := date_trunc('week', now() at time zone 'Asia/Dubai')::date;
+  v_body jsonb; v_stale int;
+begin
+  select count(*) into v_stale from public.competitor
+   where watched and kind <> 'incumbent_behaviour' and (verified_at is null or verified_at < current_date - 90);
+  v_body := jsonb_build_object(
+    'week', v_week,
+    'watched', (select count(*) from public.competitor where watched),
+    'stale_profiles', v_stale,
+    'changes', (select coalesce(jsonb_agg(jsonb_build_object('competitor', c.name, 'page', s.page_kind, 'decision', s.decision,
+                  'what_changed', s.fields->>'what_changed', 'ceo_task', s.task_id) order by s.decided_at), '[]'::jsonb)
+                  from public.competitor_scan s join public.competitor c on c.id = s.competitor_id
+                 where s.decided_at >= now() - interval '7 days'),
+    'fetch_failures', (select count(*) from public.competitor_scan where status = 'failed' and requested_at >= now() - interval '7 days'),
+    'social_posts_seen', (select count(*) from public.market_intel where platform = 'instagram' and fetched_at >= now() - interval '7 days'),
+    'scan', public.fn_marketing_competitor_scan());
+  insert into public.marketing_plan_doc (kind, period, body) values ('competitor_intel', v_week, v_body)
+  on conflict (kind, period) do update set body = excluded.body, updated_at = now();
+  return v_body - 'changes';
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_competitor_scan()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -53282,6 +53442,29 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_check_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_month date := date_trunc('month', v_today)::date;
+  v_owed int; v_last timestamptz; v_held boolean;
+begin
+  v_held := not coalesce((public.fn_kernel_paid_provider_gate('perplexity/sonar')->>'allowed')::boolean, false);
+  select count(*) into v_owed from public.fn_marketing_geo_due(1000, true);
+  select max(checked_at) into v_last from public.marketing_geo_check where engine like 'answer_%';
+  if not v_held and v_owed > 0 and extract(day from v_today) >= 10 and (v_last is null or v_last < now() - interval '2 days') then
+    raise exception 'GEO: % answer-engine check(s) owed for % and none recorded since %', v_owed, to_char(v_month, 'YYYY-MM'),
+      coalesce(to_char(v_last, 'YYYY-MM-DD HH24:MI'), 'ever');
+  end if;
+  return jsonb_build_object('month', v_month, 'owed', v_owed, 'held_by_founder', v_held, 'last_check', v_last,
+    'summary', public.fn_marketing_geo_summary(v_month) - 'rows');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_geo_due(p_limit integer DEFAULT 2, p_include_model boolean DEFAULT true)
  RETURNS TABLE(question_id bigint, question text, engine text, month date)
  LANGUAGE sql
@@ -53290,26 +53473,25 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_geo_due(p_limit integer DEFAULT 2
 AS $function$
   with m as (select date_trunc('month', now() at time zone 'Asia/Dubai')::date as month)
   select q.id, q.question, e.engine, m.month
-    from public.marketing_geo_question q cross join (values ('web'), ('model')) e(engine) cross join m
-   where q.active and (p_include_model or e.engine = 'web') and not exists (select 1 from public.marketing_geo_check c
+    from public.marketing_geo_question q cross join (values ('answer_search'), ('answer_online')) e(engine) cross join m
+   where q.active and p_include_model and not exists (select 1 from public.marketing_geo_check c
                                    where c.month = m.month and c.question_id = q.id and c.engine = e.engine)
    order by q.id, e.engine limit greatest(p_limit, 0)
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean, p_rank integer, p_evidence text, p_model text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean, p_rank integer, p_evidence text, p_model text, p_competitors text[] DEFAULT '{}'::text[])
  RETURNS bigint
- LANGUAGE plpgsql
+ LANGUAGE sql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_id bigint;
-begin
-  insert into public.marketing_geo_check (month, question_id, engine, cited, rank, evidence, model)
-  values (p_month, p_question_id, p_engine, p_cited, p_rank, left(p_evidence, 1000), p_model)
-  on conflict (month, question_id, engine) do nothing returning id into v_id;
-  return v_id;
-end $function$
+  insert into public.marketing_geo_check (month, question_id, engine, cited, rank, evidence, model, competitors_cited)
+  values (p_month, p_question_id, p_engine, p_cited, p_rank, left(p_evidence, 2000), p_model, coalesce(p_competitors, '{}'))
+  on conflict (month, question_id, engine) do update set cited = excluded.cited, rank = excluded.rank, evidence = excluded.evidence,
+    model = excluded.model, competitors_cited = excluded.competitors_cited, checked_at = now()
+  returning id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_geo_summary(p_month date)
@@ -53320,13 +53502,16 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_geo_summary(p_month date)
 AS $function$
   select jsonb_build_object('month', p_month,
     'questions', (select count(distinct question_id) from public.marketing_geo_check where month = p_month),
-    'web_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'web' and cited),
-    'web_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'web'),
-    'model_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'model' and cited),
-    'model_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine = 'model'),
+    'answer_checked', (select count(*) from public.marketing_geo_check where month = p_month and engine like 'answer_%'),
+    'answer_cited', (select count(*) from public.marketing_geo_check where month = p_month and engine like 'answer_%' and cited),
+    'by_engine', (select coalesce(jsonb_object_agg(engine, jsonb_build_object('checked', n, 'cited', k)), '{}'::jsonb)
+                    from (select engine, count(*) n, count(*) filter (where cited) k from public.marketing_geo_check where month = p_month group by engine) e),
+    'competitors_cited', (select coalesce(jsonb_object_agg(name, n), '{}'::jsonb)
+                            from (select x name, count(*) n from public.marketing_geo_check, unnest(competitors_cited) x
+                                   where month = p_month group by x) z),
     'blog_posts_published', (select count(*) from public.blog_posts where published),
-    'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', q.question, 'engine', c.engine, 'cited', c.cited, 'rank', c.rank,
-                                                         'evidence', left(c.evidence, 200)) order by q.id, c.engine), '[]'::jsonb)
+    'rows', (select coalesce(jsonb_agg(jsonb_build_object('question', q.question, 'trade', q.trade, 'city', q.city, 'engine', c.engine,
+               'cited', c.cited, 'competitors', c.competitors_cited, 'evidence', left(c.evidence, 300)) order by q.id, c.engine), '[]'::jsonb)
                from public.marketing_geo_check c join public.marketing_geo_question q on q.id = c.question_id where c.month = p_month))
 $function$
 
@@ -53387,6 +53572,80 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_jnum(v jsonb)
 AS $function$
   select case when jsonb_typeof(v) = 'number' then (v #>> '{}')::numeric end
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_launch_plan_duty()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_marketing_launch_plan_run((now() at time zone 'Asia/Dubai')::date)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_launch_plan_run(p_today date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := p_today;
+  v_launch date := date '2027-01-01';
+  v_body jsonb; d public.marketing_plan_doc; v_token text; v_nid bigint; v_paid boolean := public.fn_marketing_paid_allowed();
+  v_open int; v_total int; v_short jsonb; v_hash text; v_changes jsonb;
+begin
+  select count(*) filter (where is_open), count(*) into v_open, v_total from public.v_category_open;
+  select coalesce(jsonb_agg(jsonb_build_object('category', name, 'verified', verified_registered_suppliers, 'needed', min_required)
+           order by min_required - verified_registered_suppliers desc, num), '[]'::jsonb)
+    into v_short from public.v_category_open where not is_open;
+  v_changes := coalesce((select founder_changes from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch), '[]'::jsonb);
+  v_body := jsonb_build_object(
+    'founder_changes', v_changes,
+    'launch_month', v_launch, 'drawn_on', v_today,
+    'categories', jsonb_build_object('open', v_open, 'total', v_total, 'short', v_short),
+    'paid_allowed', v_paid,
+    'channels', case when v_paid then jsonb_build_array('organic social', 'blog and GEO', 'LinkedIn outreach', 'paid Meta within the ad cap')
+                     else jsonb_build_array('organic social', 'blog and GEO', 'LinkedIn outreach') end,
+    'rule', 'Organic only until every category has its verified suppliers; no post on a UAE weekend or public holiday.',
+    'posting_days', (select coalesce(jsonb_agg(g::date order by g), '[]'::jsonb)
+                       from generate_series(v_launch, date '2027-01-31', interval '1 day') g where public.fn_is_working_day(g::date)),
+    'articles_ready', (select count(*) from public.marketing_article where status in ('approved', 'released', 'live') and not is_demo),
+    'supplier_recruitment', (select last_result from public.seat_duty where duty = 'marketing.recruitment_funnel'));
+  insert into public.marketing_plan_doc (kind, period, body) values ('launch_plan', v_launch, v_body)
+  on conflict (kind, period) do update set body = excluded.body, updated_at = now()
+    where marketing_plan_doc.status in ('draft', 'change_requested')
+  returning * into d;
+  if d.id is null then select * into d from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch; end if;
+  -- the plan he approves: channels, the rule, the posting days, the open count and his changes (not the draw date,
+  -- the per-category supplier counts or the recruitment counters, which move daily without changing the plan)
+  v_hash := md5((v_body - 'drawn_on' - 'supplier_recruitment' - 'articles_ready'
+                 || jsonb_build_object('categories', jsonb_build_object('open', v_open, 'total', v_total)))::text);
+
+  if v_today >= date '2026-12-01' and v_today < v_launch
+     and (d.status = 'draft' or (d.status = 'change_requested' and v_hash is distinct from d.sent_hash)) then
+    v_token := encode(extensions.gen_random_bytes(16), 'hex');
+    v_nid := public.fn_marketing_mail_founder('marketing_launch_plan', 'Launch plan for January 2027 [approve ' || v_token || ']',
+      'The launch plan for January 2027.' || E'\n\n'
+      || case when jsonb_array_length(v_changes) > 0 then 'Your changes, in this version:' || E'\n'
+           || (select string_agg('- ' || x, E'\n' order by n) from jsonb_array_elements_text(v_changes) with ordinality t(x, n)) || E'\n\n'
+         else '' end
+      || 'Categories open: ' || v_open || ' of ' || v_total || ' (a category opens at its verified supplier minimum).' || E'\n'
+      || 'Channels: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_body->'channels') x)
+      || case when v_paid then '' else ' - organic only, because not every category is open yet.' end || E'\n'
+      || 'Posting days: ' || jsonb_array_length(v_body->'posting_days') || ' UAE working days (no weekends or public holidays).' || E'\n'
+      || 'Articles approved and ready: ' || (v_body->>'articles_ready') || E'\n\n'
+      || 'Reply "approve" and the marketing seat runs it. Any other reply is passed to the seat as a change.',
+      null, 'approve+' || v_token || '@mail.quotesdone.com');
+    update public.marketing_plan_doc set status = 'sent_to_founder', approval_token = v_token, sent_at = now(), notification_id = v_nid,
+           sent_hash = v_hash, updated_at = now()
+     where id = d.id;
+    d.status := 'sent_to_founder';
+  end if;
+  return jsonb_build_object('status', d.status, 'open', v_open, 'total', v_total, 'paid_allowed', v_paid, 'mailed', v_nid is not null,
+    'founder_changes', jsonb_array_length(v_changes), 'posting_days', jsonb_array_length(v_body->'posting_days'));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_learning(p_month date, p_include_demo boolean DEFAULT false)
@@ -53523,6 +53782,28 @@ AS $function$
        and (p.scheduled_at at time zone 'Asia/Dubai')::date >= date_trunc('month', p_month)::date
        and (p.scheduled_at at time zone 'Asia/Dubai')::date <  (date_trunc('month', p_month) + interval '1 month')::date)
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_duty()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_month date := (date_trunc('month', v_today) + interval '1 month')::date;
+  v_tick jsonb; m public.marketing_month_plan;
+begin
+  v_tick := public.fn_marketing_month_plan_tick(v_today);
+  select * into m from public.marketing_month_plan where month = v_month;
+  if v_month >= date '2026-11-01' and extract(day from v_today) >= 20 and m.plan_sent_at is null
+     and not public.fn_marketing_month_covered_by_approved_calendar(v_month) then
+    raise exception 'the plan for % is not with the founder on %: %', to_char(v_month, 'YYYY-MM'), v_today, v_tick::text;
+  end if;
+  return jsonb_build_object('month', v_month, 'tick', v_tick, 'status', m.status, 'sent_at', m.plan_sent_at,
+    'founder_decided_at', m.founder_decided_at, 'paid_allowed', public.fn_marketing_paid_allowed());
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_founder_decides(p_month date, p_accepted boolean, p_note text DEFAULT NULL::text)
@@ -53856,6 +54137,16 @@ begin
   end if;
   return jsonb_build_object('ok', true, 'class', p_class, 'follow_up_token', v_follow);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_paid_allowed()
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select exists (select 1 from public.v_category_open) and not exists (select 1 from public.v_category_open where not is_open)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_plan_calendar(p_at timestamp with time zone DEFAULT now())
@@ -55464,10 +55755,15 @@ AS $function$
         'permalinks', p.permalinks, 'permalink_missing', p.permalink_missing,
         'media_missing', p.media_missing, 'preview_url', p.preview_url
       ) order by p.created_at desc) from social_posts p where coalesce(p.source, '') <> 'selftest'),'[]'::jsonb),
+    -- the blog is the seat's article table: the same rows the count above reads
     'blog', coalesce((select jsonb_agg(jsonb_build_object(
-        'id', b.id, 'title', b.title, 'slug', b.slug, 'category', b.category, 'excerpt', b.excerpt,
-        'published', b.published, 'published_at', b.published_at, 'body_html', left(b.body_html, 24000),
-        'url', case when b.published and b.slug is not null then 'https://quotesdone.com/blog/' || b.slug end
+        'id', a.id, 'title', a.title_en, 'slug', a.slug, 'category', a.category_en, 'excerpt', a.excerpt_en,
+        'status', a.status, 'published', a.status = 'live', 'published_at', a.live_at, 'body_html', left(a.body_html_en, 24000),
+        'url', case when a.status = 'live' then 'https://quotesdone.ae/blog/' || a.slug end
+      ) order by a.updated_at desc) from marketing_article a where not a.is_demo),'[]'::jsonb),
+    'site_blog', coalesce((select jsonb_agg(jsonb_build_object(
+        'id', b.id, 'title', b.title, 'slug', b.slug, 'published', b.published,
+        'url', case when b.published and b.slug is not null then 'https://quotesdone.ae/blog/' || b.slug end
       ) order by b.updated_at desc) from blog_posts b),'[]'::jsonb),
     'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
   );
@@ -77998,7 +78294,7 @@ AS $function$
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
-    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
@@ -87734,6 +88030,7 @@ ALTER TABLE public.marketing_meta_page ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_model_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_month_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_outreach_message ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_plan_doc ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_plan_review_turn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_platform_spec ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.marketing_platform_spec_source ENABLE ROW LEVEL SECURITY;
@@ -88157,6 +88454,7 @@ CREATE POLICY marketing_meta_page_service_role_only ON public.marketing_meta_pag
 CREATE POLICY marketing_model_run_service_role_only ON public.marketing_model_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_month_plan_service_role_only ON public.marketing_month_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_outreach_message_service_role_only ON public.marketing_outreach_message AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY marketing_plan_doc_service_role_only ON public.marketing_plan_doc AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_plan_review_turn_service_role_only ON public.marketing_plan_review_turn AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_platform_spec_service_role_only ON public.marketing_platform_spec AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY marketing_platform_spec_source_service_role_only ON public.marketing_platform_spec_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
