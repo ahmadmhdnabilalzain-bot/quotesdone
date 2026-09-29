@@ -187,8 +187,10 @@ begin
   insert into public.ceo_strategy_memo (month, facts, bet, grading, wording_source, body, include_demo)
   values (v_m, f, v_bet, v_grade, 'rule_based (model hold on)', v_body, p_include_demo);
 
-  v_n := public.fn_notify_founder('CEO strategy memo - ' || to_char(v_m, 'FMMonth YYYY'), v_body, 'info', 'ceo_strategy_memo',
-                                  'ceo_strategy_memo:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end, 'ceo');
+  v_n := public.fn_notify_founder(p_event => 'CEO strategy memo - ' || to_char(v_m, 'FMMonth YYYY'), p_detail => v_body,
+                                  p_level => 'info', p_kind => 'ceo_strategy_memo',
+                                  p_dedupe_key => 'ceo_strategy_memo:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end,
+                                  p_owner_agent => 'ceo');
   update public.ceo_strategy_memo set notify = v_n where month = v_m;
   return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'bet', v_bet, 'grading', v_grade, 'notify', v_n);
 end $fn$;
