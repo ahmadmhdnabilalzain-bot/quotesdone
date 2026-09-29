@@ -110,7 +110,9 @@ type RpcResult = { data: any; error: { message: string } | null };
 export type EmbedSpace = 'gte' | 'ml';
 export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number }): Promise<LlmReply>;
+  // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
+  // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -355,6 +357,15 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'options', kind: 'hold', goal: 'a decision needs options', status: 'failed', detail: 'no options were given' });
     return await hold('no_options', {});
   }
+  // OUR OWN TEST TRAFFIC NEVER REACHES A MODEL (704, 28 Sep 2026, it_engineer). A caller that knows its subject is a
+  // fixture already kept it out of the queue; the model was still called, and would be paid the day the hold lifts
+  // (measured: 26 line_specs.assess and 1 postmortem fixture rows in 4 days, each a full think() run). Every other
+  // call carries its subject, so the gateway's own fixture check can stub what this flag does not know about.
+  if (isFixtureRequest(req)) {
+    steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
+    return await hold('fixture_no_spend', {});
+  }
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null }) }; }
   // 0. The hold. The gate is asked, not a row count (llm_hold.ts).
   let gate: GateAnswer = null;
   try { gate = await deps.gate(); } catch (_e) { gate = null; }
@@ -519,7 +530,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
       const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
-      const r = await call(system, input, o.max ?? 900, '', o.counterpartModel ? { counterpartModel: o.counterpartModel } : {});
+      const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {

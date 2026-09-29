@@ -11,7 +11,8 @@
 //   answer one          -> messages_api clarify_answer (visible to every matched supplier)
 // Contact details are stripped server-side; the panel only reports that it happened.
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import * as M from 'motion/react-m';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { MessageCircleQuestion, CornerDownRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -71,7 +72,7 @@ export function Clarifications({ inq, token, lang, call }) {
         ) : (
           <AnimatePresence initial={false}>
             {items.map((it) => (
-              <motion.div key={it.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              <M.div key={it.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 className={cn('rounded-card border bg-secondary/20 p-3', it.kind === 'question' && !it.answered_at ? 'border-warn/40' : 'border-border')}>
                 {it.kind === 'question' ? (
                   <>
@@ -98,7 +99,7 @@ export function Clarifications({ inq, token, lang, call }) {
                     <p className="mt-0.5 text-[13px] text-foreground">{it.answer}</p>
                   </>
                 )}
-              </motion.div>
+              </M.div>
             ))}
           </AnimatePresence>
         )}
