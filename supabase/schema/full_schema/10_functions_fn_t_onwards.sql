@@ -1777,6 +1777,7 @@ CREATE OR REPLACE FUNCTION public.fn_usd_to_aed()
  RETURNS numeric
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$ select 3.672450::numeric $function$
 
 
@@ -2647,6 +2648,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_model_brief()
  RETURNS text
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select
      'You are the QuotesDone WhatsApp agent, talking to UAE suppliers and buyers. '
@@ -2690,6 +2692,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_off_topic_reply()
  RETURNS text
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select 'I am here to assist you with QuotesDone inquiries only. Please let me know how I can help you.'
 $function$
@@ -3056,6 +3059,7 @@ CREATE OR REPLACE FUNCTION public.fn_wa_unmatched_reply()
  RETURNS text
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select 'I can help with your registration, your documents, your quotes, and any job by its number. '
       || 'I am not sure about that one, so let me check and someone will come back to you.'
@@ -4767,6 +4771,28 @@ begin
 
   return v_id;
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_writers_without_a_seat(p_days integer DEFAULT 7)
+ RETURNS TABLE(kind text, name text, runs bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'agent_runs_label', l.agent, count(*)
+    from public.agent_runs l
+   where l.started_at > now() - make_interval(days => greatest(coalesce(p_days, 7), 1))
+     and not exists (select 1 from public.function_owner f where f.function_slug = regexp_replace(l.agent, '^fn:', ''))
+     and not exists (select 1 from public.seat_duty d where l.agent in (d.duty, d.routine))
+     and not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
+                      where o.kind = 'agent_runs_label' and o.name = l.agent)
+   group by l.agent
+  union all
+  select 'cron_job', j.jobname, null::bigint
+    from cron.job j
+   where not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
+                      where o.kind = 'cron_job' and o.name = j.jobname)
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ws_agent_ops(p_agent text)
@@ -7204,6 +7230,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_agent_knowledge_metadata()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare v_days int; begin
   v_days := public.fn_knowledge_review_days(NEW.agent_key, NEW.layer, NEW.topic);
@@ -8175,6 +8202,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_inquiry_answer_value_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if tg_op = 'DELETE' then
@@ -8589,6 +8617,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_org_role_no_cycle()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare v_cur text; v_depth int := 0;
 begin
@@ -8611,6 +8640,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_org_role_touch()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$ begin new.updated_at := now(); return new; end $function$
 
 
@@ -8718,6 +8748,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_p2c1_append_only()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if tg_op = 'DELETE'
@@ -8760,6 +8791,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_quote_committed_hash()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare v_text text;
 begin
@@ -8917,6 +8949,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_refunds_touch()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin NEW.updated_at := now(); return NEW; end $function$
 
@@ -9068,6 +9101,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_scenario_expected_needs_ledger()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.expected is distinct from old.expected
@@ -9242,6 +9276,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.trg_step_run_actor_is_a_real_employee()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare v_actor text;
 begin

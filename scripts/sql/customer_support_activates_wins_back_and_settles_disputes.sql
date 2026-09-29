@@ -536,9 +536,7 @@ insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
 
-insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, owner_file)
-values ('deliberation.review', 'customer_support', 'ceo',
-        'the CEO reviews customer support''s reasoned finding on a post-reveal dispute on a model of another family',
-        'fn_seat_deliberation_acts_on_handoff', interval '2 days',
-        'scripts/sql/customer_support_activates_wins_back_and_settles_disputes.sql')
-on conflict do nothing;
+-- 30 Sep 2026: the ('deliberation.review', customer_support -> ceo) registration with the DISPUTE wording that
+-- stood here was removed. The dispute finding moved to sales_engineer on 24 Sep and its review now originates
+-- there; the customer_support -> ceo pair itself is registered by the target file for the root-cause review
+-- (scripts/sql/the_dispute_review_originates_with_the_sales_engineer.sql).

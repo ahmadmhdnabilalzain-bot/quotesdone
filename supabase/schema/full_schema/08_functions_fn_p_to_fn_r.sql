@@ -81,6 +81,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_phase1_rollback_log_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   raise exception 'phase1_rollback_log is append-only; % is not permitted', TG_OP
@@ -389,16 +390,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -569,6 +560,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -3974,6 +3975,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_refund_ceo_approval_only()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.status <> 'approved' then return new; end if;
@@ -4921,6 +4923,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_refunds_settled_at()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.status = 'succeeded' and new.settled_at is null then new.settled_at := now(); end if;

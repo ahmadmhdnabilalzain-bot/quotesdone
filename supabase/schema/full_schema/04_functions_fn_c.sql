@@ -958,6 +958,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_ceo_approval_append_only()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.subject_kind is distinct from old.subject_kind
@@ -1155,6 +1156,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_binding_constraint(p_figures jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare
   s jsonb := p_figures->'supply'; d jsonb := p_figures->'demand'; m jsonb := p_figures->'money';
@@ -1311,6 +1313,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_ceo_command_state_guard()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.state is distinct from old.state
@@ -10429,14 +10432,12 @@ declare
   v_week date := (now() at time zone 'Asia/Dubai')::date;
   v_founder text[]; v_email jsonb; v_wa jsonb; v_chat jsonb; v_repeat jsonb; v_complaints jsonb; v_knowledge jsonb;
   v_metrics jsonb; g record; v_gap jsonb; v_filed int := 0;
-  -- a machine is not a person: bounces and auto-senders are neither a support contact nor a repeat one
-  v_robot text := '^(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)([+.-][^@]*)?@';
 begin
   select coalesce(array_agg(right(regexp_replace(value, '[^0-9]', '', 'g'), 9)), '{}') into v_founder
     from public.app_secrets where key in ('founder_mobile', 'founder_public_phone', 'admin_mfa_phone')
      and length(regexp_replace(coalesce(value, ''), '[^0-9]', '', 'g')) >= 9;
 
-  -- email: the same mailbox scope as fn_support_reply_watch_tick (not the expenses mailbox, not the accountant's)
+  -- email: a customer contact only (fn_support_email_is_a_customer_contact names every exclusion)
   select jsonb_build_object(
            'received', count(*), 'replied', count(*) filter (where m.replied_at is not null),
            'unanswered', count(*) filter (where m.replied_at is null),
@@ -10444,26 +10445,21 @@ begin
            'p90_first_reply_minutes', round((percentile_cont(0.9) within group (order by extract(epoch from m.replied_at - m.created_at) / 60))::numeric))
     into v_email
     from public.inbound_messages m
-   where m.created_at >= v_from and coalesce(m.from_email, '') !~* v_robot
-     and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
-     and public.fn_is_demo_email(m.from_email) = v_fx;
+   where m.created_at >= v_from
+     and public.fn_support_email_is_a_customer_contact(m.from_email, m.to_email, m.owner_role, m.subject, v_fx);
 
+  -- whatsapp: timed from replied_at (wa_inbound waRow, from 30 Sep 2026); an untimed row is not guessed
   select jsonb_build_object(
            'received', count(*), 'replied', count(*) filter (where w.reply is not null and coalesce(w.sent, false)),
            'unanswered', count(*) filter (where w.reply is null or not coalesce(w.sent, false)),
-           'first_reply_minutes', null,
-           'first_reply_minutes_note', 'not recorded: wa_messages writes the reply on the inbound''s row with no reply time')
+           'timed', count(w.replied_at),
+           'median_first_reply_minutes', round((percentile_cont(0.5) within group (order by extract(epoch from w.replied_at - w.created_at) / 60))::numeric, 1),
+           'p90_first_reply_minutes', round((percentile_cont(0.9) within group (order by extract(epoch from w.replied_at - w.created_at) / 60))::numeric, 1))
     into v_wa
     from public.wa_messages w
    where w.created_at >= v_from and coalesce(btrim(w.inbound), '') <> ''
      and not (right(regexp_replace(coalesce(w.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (v_founder))
      and (coalesce(w.profile_name, '') like 'ZZ DEMO%') = v_fx;
-
-  select jsonb_build_object('questions', count(*), 'answered', count(*) filter (where g2.answered),
-                            'not_answered', count(*) filter (where not g2.answered))
-    into v_chat
-    from public.assistant_logs g2
-   where g2.created_at >= v_from and (coalesce(g2.message, '') like 'ZZ DEMO%') = v_fx;
 
   -- repeat contact: the same person on two or more distinct Dubai days of the week
   select jsonb_build_object('people', count(*), 'contacts', coalesce(sum(r.days), 0))
@@ -10471,9 +10467,8 @@ begin
     from (select who, count(distinct d) days from (
             select 'email:' || lower(btrim(m.from_email)) who, (m.created_at at time zone 'Asia/Dubai')::date d
               from public.inbound_messages m
-             where m.created_at >= v_from and coalesce(btrim(m.from_email), '') <> '' and m.from_email !~* v_robot
-               and coalesce(m.to_email, '') !~* '^expenses@' and coalesce(m.owner_role, '') <> 'accountant'
-               and public.fn_is_demo_email(m.from_email) = v_fx
+             where m.created_at >= v_from and coalesce(btrim(m.from_email), '') <> ''
+               and public.fn_support_email_is_a_customer_contact(m.from_email, m.to_email, m.owner_role, m.subject, v_fx)
             union all
             select 'whatsapp:' || right(regexp_replace(w.wa_from, '[^0-9]', '', 'g'), 9), (w.created_at at time zone 'Asia/Dubai')::date
               from public.wa_messages w
@@ -10501,6 +10496,15 @@ begin
       v_filed := v_filed + 1;
     end if;
   end loop;
+
+  -- counted AFTER the filing loop, so "filed" covers what site_assistant filed at refusal and what this review filed
+  select jsonb_build_object('questions', count(*), 'answered', count(*) filter (where g2.answered),
+                            'not_answered', count(*) filter (where not g2.answered),
+                            'not_answered_filed', count(*) filter (where not g2.answered and g2.gap_task_id is not null),
+                            'not_answered_unfiled', count(*) filter (where not g2.answered and g2.gap_task_id is null))
+    into v_chat
+    from public.assistant_logs g2
+   where g2.created_at >= v_from and (coalesce(g2.message, '') like 'ZZ DEMO%') = v_fx;
 
   select jsonb_build_object('opened_this_week', count(*) filter (where k.first_asked_at >= v_from),
                             'asked_again_this_week', count(*) filter (where k.first_asked_at < v_from and k.last_asked_at >= v_from),

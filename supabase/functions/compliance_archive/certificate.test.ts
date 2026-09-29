@@ -1,6 +1,13 @@
 // Run: deno test -A supabase/functions/compliance_archive/certificate.test.ts
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert';
-import { certFields, certLang, certificate, identityRows, supplierEvidence } from './certificate.ts';
+import { certFields, certLang, certificate, identityRows, noAcceptanceRunStatus, supplierEvidence } from './certificate.ts';
+
+Deno.test('a demo fixture without an acceptance is skipped; a real party without one is still an error', () => {
+  assertEquals(noAcceptanceRunStatus('qd-abb53328-cust0@example.invalid'), 'skipped');
+  assertEquals(noAcceptanceRunStatus('buyer@realco.ae'), 'error');
+  assertEquals(noAcceptanceRunStatus('someone@example.invalid.ae'), 'error');
+  assertEquals(noAcceptanceRunStatus(null), 'error');
+});
 
 // 24 Sep 2026: lead 126512 stored accepted_terms_sha256 0d99185f... while the certificate printed the
 // SHA-256 of the live supplier_terms_html secret (fd487a4f...). The certificate certifies the ROW.

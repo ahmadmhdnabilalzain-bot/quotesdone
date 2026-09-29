@@ -6179,6 +6179,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_changeable()
  RETURNS TABLE(field text, kind text, description text)
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select 'quote_price', 'number',
          'The amount on your open quotation. It can be changed while the customer has not paid to reveal you, the quotation is not committed, and the request is still open.';
@@ -6535,6 +6536,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_exception_days()
  RETURNS integer
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select greatest(1, coalesce((select nullif(btrim(value),'')::int from app_secrets where key='supplier_exception_days'), 14));
 $function$
@@ -9995,6 +9997,22 @@ begin
                  then 'A copy is attached and the message says so because it is true.'
                  else 'NOT a file-copy delivery. A link was sent instead, the reason was stated to the customer, and this must not be counted as an attachment.' end);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_support_email_is_a_customer_contact(p_from text, p_to text, p_owner_role text, p_subject text, p_fixtures boolean)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_from, '') !~* '^[^@]*(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)[^@]*@'
+     and coalesce(p_to, '') !~* '^(expenses@|calendar\+|approve\+)'
+     and coalesce(p_owner_role, '') <> 'accountant'
+     and lower(btrim(coalesce(p_from, ''))) <> all (
+           select lower(btrim(e)) from public.app_secrets s, unnest(string_to_array(s.value, ',')) e
+            where s.key in ('admin_emails', 'founder_email') and btrim(e) <> '')
+     and (public.fn_is_demo_email(p_from) or coalesce(p_subject, '') like 'ZZ DEMO%') = p_fixtures
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_support_faq_records_its_root_cause()

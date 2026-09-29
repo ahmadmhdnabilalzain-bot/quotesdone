@@ -52,7 +52,7 @@ Deno.serve(observe('quote_extract', async (req) => {
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'quote_extract');
-    if (!__auth.ok) { await logRun('error', { forbidden: 1, quote_extracted: 0 }, 'quote_extract rejected a caller with a missing/wrong inbound secret (403). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
+    if (!__auth.ok) { await logRun('error', { forbidden: 1, quote_extracted: 0, credential_presented: body?.__secret ? 1 : 0, auth_status: __auth.status }, 'quote_extract rejected a caller with a missing/wrong inbound secret (' + __auth.status + ', credential ' + (body?.__secret ? 'presented but not accepted' : 'absent') + '; the reason is in internal_credential_audit). A supplier quotation was not parsed — that supplier\'s price will be missing from the comparison the customer sees, which looks like the supplier simply never quoted.'); return J({ error: 'forbidden' }, 403); }
     // 14 Sep 2026. THE DETERMINISTIC PATH. Under the model hold every quotation failed here. When the
     // supplier's ORIGINAL file is supplied (file_b64), _shared/doc_read reads it with no model and
     // quote_from_document turns it into the same proposal shape; prices kept, supplier identity masked.
