@@ -177,6 +177,47 @@ export function refusal(pr, { depState = () => 'MERGED', campaign = false, offHo
 }
 
 // Files named in the REPOSITORY -> PRODUCTION section of canonical_routine_manifest.mjs.
+// A RETRY FOR A LOCK, AND ONLY FOR A LOCK (29 Sep 2026: #1105's apply died on a transient 40P01 and the
+// release stopped). Retried only when the error is a deadlock (40P01) or a lock not available (55P03), the
+// file is ONE transaction (apply_sql sends the whole file in one request, so without an explicit
+// BEGIN/COMMIT a failure rolls back everything), a read-back shows every routine the file defines still
+// has its pre-apply body, and the file's apply window is still open. At most 3 attempts, 5/15/45 s with
+// jitter. Any other error stops the release as before; the deploy still waits for a successful apply.
+export const RETRYABLE = /\b(40P01|55P03)\b/;
+export function isOneTransaction(sqlText = '') {
+  const code = sqlText.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+  if (/^\s*(begin|commit|start\s+transaction|rollback)\s*;/im.test(code)) return false;
+  // Statements that cannot run inside a transaction block, or commit on their own: a failure around them
+  // is not a clean rollback, so no retry (coordinator, 29 Sep 2026).
+  return !/\bconcurrently\b|\bvacuum\b|\balter\s+system\b|\balter\s+type\b[\s\S]*?\badd\s+value\b|\bcreate\s+database\b|\bdrop\s+database\b|\breindex\b[\s\S]*?\bconcurrently\b/i.test(code);
+}
+export function routinesIn(sqlText = '') {
+  // public. is optional, as apply_sql.mjs treats it
+  return [...new Set([...sqlText.matchAll(/create\s+or\s+replace\s+function\s+(?:public\.)?(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase()))];
+}
+export const BACKOFF_MS = [5000, 15000, 45000];
+export async function applyWithRetry({ apply, sqlText, snapshot, windowOpen = () => true, sleep, log = () => {}, jitter = () => 0.8 + Math.random() * 0.4 }) {
+  let attempts = 0, last = null;
+  const before = snapshot();
+  while (attempts < 3) {
+    attempts++;
+    last = apply();
+    if (!last.code) return { ok: true, attempts, last };
+    if (!RETRYABLE.test(last.out)) { log(`apply failed with a non-lock error: no retry`); break; }
+    // apply_sql prints 'applied <file> to <ref>' only once the database accepted the file: a failure after
+    // that (a read-back DIFFERS, a PROBE FAILED) is not a rolled-back apply, whatever else the output says.
+    if (/^applied \S+ to \S+/m.test(last.out)) { log('the database accepted the file before the error: no retry'); break; }
+    if (!isOneTransaction(sqlText)) { log('lock error, but the file is not one transaction: no retry'); break; }
+    if (snapshot() !== before) { log('lock error, but the routines no longer match their pre-apply bodies: no retry'); break; }
+    if (attempts >= 3) { log('lock error on the third attempt: giving up'); break; }
+    if (!windowOpen()) { log('lock error, and the apply window has closed: the next tick retries'); break; }
+    const wait = Math.round(BACKOFF_MS[attempts - 1] * jitter());
+    log(`lock error (${(last.out.match(RETRYABLE) || [])[1]}): rolled back, retry ${attempts + 1} of 3 in ${wait} ms`);
+    await sleep(wait);
+  }
+  return { ok: false, attempts, last };
+}
+
 export function driftFiles(report = '') {
   const at = report.indexOf('REPOSITORY -> PRODUCTION drift');
   if (at < 0) return [];
@@ -196,6 +237,21 @@ const node = (args) => run(process.execPath, args);
 const log = (s) => console.log(s);
 
 function sqlLit(s) { return `$qd$${String(s).replace(/\$qd\$/g, '')}$qd$`; }
+
+// The live bodies of the named routines, as one digest; the read-back that proves a failed apply rolled back.
+function liveRoutineDigest(names) {
+  if (!names.length) return 'no routines';
+  const dir = mkdtempSync(join(tmpdir(), 'release-train-'));
+  const f = join(dir, 'digest.sql');
+  writeFileSync(f, `select coalesce(md5(string_agg(pg_get_functiondef(p.oid), '|' order by p.proname, p.oid::regprocedure::text)), 'none') as d
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.proname = any (array[${names.map(sqlLit).join(',')}]::text[]);`);
+  const r = node(['scripts/qsql.mjs', f, `--ref=${REF}`]);
+  // qsql prints a one-column, one-row result bare (its `--` lines are retry notes); anything else is unparsed
+  // and never equal to the snapshot, so it never licenses a retry.
+  const line = r.out.split(/\r?\n/).map((l) => l.trim()).find((l) => /^([0-9a-f]{32}|none)$/.test(l));
+  return r.code ? `unreadable:${Date.now()}` : (line ?? `unparsed:${Date.now()}`);
+}
 
 function openFinding(pr, file, output) {
   const dir = mkdtempSync(join(tmpdir(), 'release-train-'));
@@ -314,9 +370,18 @@ export async function main(argv = process.argv.slice(2)) {
   let failed = null;
   const manifest = 'scripts/sql/MANIFEST.txt';
   for (const x of applies) {
-    const r = node(['scripts/apply_sql.mjs', x.sql, '--apply', '--ddl']);
-    log(`apply ${x.sql} -> exit ${r.code}`);
-    if (r.code) { log(r.out.slice(-3000)); failed = { file: x.sql, out: r.out }; break; }
+    const names = routinesIn(x.text);
+    const res = await applyWithRetry({
+      apply: () => node(['scripts/apply_sql.mjs', x.sql, '--apply', '--ddl']),
+      sqlText: x.text,
+      snapshot: () => liveRoutineDigest(names),
+      windowOpen: () => !(inCampaignHours() && offHoursOnly(x.text)),
+      sleep: (ms) => new Promise((ok) => setTimeout(ok, ms)),
+      log,
+    });
+    const r = res.last;
+    log(`apply ${x.sql} -> exit ${r.code}${res.attempts > 1 ? ` after ${res.attempts} attempts` : ''}`);
+    if (!res.ok) { log(r.out.slice(-3000)); failed = { file: x.sql, out: r.out }; break; }
     if (existsSync(x.noteFile)) unlinkSync(x.noteFile);
     const m = readFileSync(manifest, 'utf8');
     writeFileSync(manifest, m + (m.endsWith('\n') ? '' : '\n') + x.sql + '\n');

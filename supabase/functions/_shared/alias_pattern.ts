@@ -1,14 +1,18 @@
-// TRADE WORDS — the TypeScript twin of public.fn_norm_trades, in English AND Arabic. Seat: sales_engineer.
+// THE ALIAS PATTERN — how one alias is found in a folded text, English and Arabic. Seat: sales_engineer.
 //
-// One matcher, no dependencies, so the Deno supplier-document reader (supplier_doc_trades.ts) and the
-// Node parity check (scripts/checks/arabic_trade_words_resolve_the_same_in_sql_and_ts.test.mjs) run
-// the same code. The SQL it mirrors is scripts/sql/an_arabic_document_names_its_trades_in_arabic.sql.
+// WHAT THIS FILE IS NOW (29 Sep 2026, founder ledger 1054, against ruling 890). It was trade_words.ts, the
+// TypeScript twin of public.fn_norm_trades' old word matcher, and its tradesFromText proposed a supplier's
+// TRADES from the aliases its documents contained. #893 made the SQL side exact on 23 Sep 2026; the TS side is
+// now gone too: a supplier's text names a trade only by an exact code or by meaning over stored vectors
+// (trade_resolve.ts). What stays here is the folding and the pattern, which are not a trade decision:
+//   * arNorm / foldForMatch - the Arabic folding public.fn_ar_norm applies (service_meaning.contentWords and the
+//     service rewrite compare folded words with it);
+//   * termPattern - the word-start pattern the SERVICE alias index (service_rewrite.ts; decision point 93,
+//     services.from_text, still pending) and the catalogue's supply-only / installation cue words
+//     (catalogue_read.ts) are matched with. Replacing those with meaning is decision point 93's work, not this
+//     file's; until it is done they keep this one rule rather than a second copy of it.
 //
-// MEASURED 15 Sep 2026, before this file: all 40 active taxonomy_trade codes had English aliases
-// only (0 aliases containing an Arabic letter), so fn_norm_trades('نجارة وألمنيوم') returned {} and an
-// Arabic-only company profile proposed no trades.
-//
-// THE RULES, identical on both sides:
+// THE RULES (unchanged; they were written with the SQL matcher #893 retired):
 //   1. The input is folded the way public.fn_ar_norm folds it: tashkeel and tatweel removed; أ إ آ ٱ → ا,
 //      ى → ي, ة → ه, ؤ → و, ئ → ي; Arabic-Indic digits → 0-9. Then runs of '-', '_', '/', '.' become one
 //      space. The alias is folded the same way, so an alias may be stored as it is spelt (نجارة).
@@ -24,18 +28,12 @@
 //      proclitics are deliberate: بنجارة is "with carpentry". The shared fixture holds a sentence of
 //      common words that begin with those letters and must resolve to nothing.
 //   An English term is matched exactly as before this file: rule 4 never applies to it.
-//
-// EXACT OR NONE. Every alias names exactly one code. There is no similarity, no stemmer, no model:
-// a word that is not an alias (or does not start with one) proposes nothing.
-export type TradeTerm = { code: string; aliases?: string[] | null };
-export type TradeHit = { code: string; phrases: string[]; snippet: string };
-
 const MARK = /[ً-ٰٕـۖ-ۭ]/;
 const FOLD: Record<string, string> = { 'أ': 'ا', 'إ': 'ا', 'آ': 'ا', 'ٱ': 'ا', 'ى': 'ي', 'ة': 'ه', 'ؤ': 'و', 'ئ': 'ي' };
 for (let d = 0; d < 10; d++) FOLD[String.fromCharCode(0x0660 + d)] = String(d);
 const SEP = /[-_/.]/;
 const ARABIC_START = /^[ء-ي]/;
-// Kept character-for-character equal to the SQL pattern; the parity check compares their results.
+// Character-for-character the pattern of the retired SQL word matcher (#893 removed it from fn_norm_trades).
 const PROCLITIC = '(?:[وفبلك]?ال|[وف]?لل|[وفبلك])?';
 // A later word takes ال, after its conjunction و if it has one. The SQL builds the same string with
 // replace(replace(x, ' ', ' (?:ال)?'), ' (?:ال)?و', ' و(?:ال)?').
@@ -78,33 +76,4 @@ export function termPattern(term: string): RegExp | null {
     ? PROCLITIC + esc(a).split(' ').map((w, i) => (i ? laterWord(w) : w)).join(' ')
     : esc(a);
   return new RegExp('(?<![\\p{L}\\p{N}_])' + body, 'iu');
-}
-
-/** Every trade whose alias (or code) the text names, with the phrases and the line they were found on. */
-export function tradesFromText(text: string, vocab: TradeTerm[]): TradeHit[] {
-  const src = String(text ?? '');
-  const { norm, at } = foldForMatch(src);
-  const hits: TradeHit[] = [];
-  for (const t of vocab) {
-    const terms = [...(t.aliases || []), t.code].filter((a): a is string => typeof a === 'string');
-    const phrases: string[] = [];
-    let snippet = '';
-    for (const a of terms) {
-      const re = termPattern(a);
-      const m = re ? re.exec(norm) : null;
-      if (!m) continue;
-      if (!phrases.includes(a.toLowerCase())) phrases.push(a.toLowerCase());
-      if (!snippet) {
-        const s = at[m.index];
-        const e = at[m.index + m[0].length - 1] + 1;
-        const start = src.lastIndexOf('\n', s) + 1;
-        const endNl = src.indexOf('\n', e);
-        const line = src.slice(start, endNl < 0 ? src.length : endNl);
-        const rel = s - start;
-        snippet = line.slice(Math.max(0, rel - 70), rel + (e - s) + 70).replace(/\s+/g, ' ').trim();
-      }
-    }
-    if (phrases.length) hits.push({ code: t.code, phrases: phrases.slice(0, 5), snippet: snippet.slice(0, 180) });
-  }
-  return hits;
 }

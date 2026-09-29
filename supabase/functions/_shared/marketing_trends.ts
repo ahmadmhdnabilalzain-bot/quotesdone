@@ -16,8 +16,17 @@ const tag = (block: string, name: string) => { const m = block.match(new RegExp(
 export function parseRss(xml: string, max = 15): TrendItem[] {
   const out: TrendItem[] = [];
   for (const m of xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)) {
-    const url = tag(m[1], 'link'), title = tag(m[1], 'title');
+    const title = tag(m[1], 'title');
+    let url = tag(m[1], 'link');
     if (!/^https?:\/\//.test(url) || !title) continue;
+    // Google Trends' daily searches all link the feed itself; each search is cited by its own explore page instead
+    // (marketing_trend.url is unique, so otherwise only the first search of a feed would ever be stored).
+    try {
+      const u = new URL(url);
+      if (u.hostname === 'trends.google.com' && u.pathname.startsWith('/trending/rss')) {
+        url = 'https://trends.google.com/trends/explore?geo=' + encodeURIComponent(u.searchParams.get('geo') || 'AE') + '&q=' + encodeURIComponent(title);
+      }
+    } catch { continue; }
     const d = Date.parse(tag(m[1], 'pubDate'));
     out.push({ url, title: title.slice(0, 500), published_at: Number.isFinite(d) ? new Date(d).toISOString() : null });
     if (out.length >= max) break;

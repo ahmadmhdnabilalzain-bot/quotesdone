@@ -21,7 +21,7 @@ Deno.serve(observe('rfq_flag', async (req) => {
     const inquiryId = String(body.inquiry_id || '');
     if (!inquiryId) return J({ error: 'inquiry_id required' }, 400);
     const note = String(body.note || '').trim().slice(0, 500);
-    const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/messages_api`, {
+    const r = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/messages_api?forceFunctionRegion=ap-southeast-1`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: auth, apikey: Deno.env.get('SUPABASE_ANON_KEY') || '' },
       body: JSON.stringify({ action: 'clarify_ask', inquiry_id: inquiryId, text: note || DEFAULT_Q, source: 'rfq_flag' }),
