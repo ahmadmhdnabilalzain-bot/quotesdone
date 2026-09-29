@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T07:54:24.511Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T09:15:09.613Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (673) =====
+-- ===== TABLES (678) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1541,7 +1541,11 @@ CREATE TABLE IF NOT EXISTS public.ceo_improvement (
   handoff_id bigint,
   done_evidence text,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
-  closed_at timestamp with time zone
+  closed_at timestamp with time zone,
+  due_on date,
+  close_check text,
+  escalations integer DEFAULT 0 NOT NULL,
+  last_escalated_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_knowledge (
@@ -1697,6 +1701,18 @@ CREATE TABLE IF NOT EXISTS public.ceo_standing_grant (
   active boolean DEFAULT true NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.ceo_strategy_memo (
+  month date NOT NULL,
+  facts jsonb NOT NULL,
+  bet jsonb NOT NULL,
+  grading jsonb NOT NULL,
+  wording_source text NOT NULL,
+  body text NOT NULL,
+  notify jsonb,
+  include_demo boolean DEFAULT false NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.ceo_task (
   task_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   command_id bigint,
@@ -1744,6 +1760,28 @@ CREATE TABLE IF NOT EXISTS public.ceo_weekly_report (
   pdf_bytes integer,
   pdf_error text,
   pdf_generated_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_weekly_review (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  week date NOT NULL,
+  targets jsonb NOT NULL,
+  opened bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  escalated bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  closed bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  pdf_blocks jsonb,
+  pdf_bucket text,
+  pdf_path text,
+  pdf_url text,
+  pdf_bytes integer,
+  pdf_error text,
+  notification_id bigint,
+  notify jsonb,
+  delivered_at timestamp with time zone,
+  attempts integer DEFAULT 0 NOT NULL,
+  last_error text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.ceo_year_plan (
@@ -7683,6 +7721,18 @@ CREATE TABLE IF NOT EXISTS public.seat_duty (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.seat_exam_item (
+  seat text NOT NULL,
+  item_id text NOT NULL,
+  checklist text NOT NULL,
+  q_en text NOT NULL,
+  expected_entry_ids text[] NOT NULL,
+  expected_facts text[] NOT NULL,
+  q_vec vector,
+  source_file text NOT NULL,
+  loaded_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.seat_handoff_kind (
   type text NOT NULL,
   from_seat text NOT NULL,
@@ -7791,6 +7841,27 @@ CREATE TABLE IF NOT EXISTS public.seat_lesson_cluster (
   filed_at timestamp with time zone DEFAULT now() NOT NULL,
   candidate_id bigint,
   verdict text
+);
+
+CREATE TABLE IF NOT EXISTS public.seat_self_review (
+  month date NOT NULL,
+  seat text NOT NULL,
+  items integer NOT NULL,
+  passed integer NOT NULL,
+  rate numeric,
+  checklist_lines integer NOT NULL,
+  checklist_passed integer NOT NULL,
+  checklist_rate numeric,
+  prev_rate numeric,
+  prev_checklist_rate numeric,
+  trend text NOT NULL,
+  passed_items text[] DEFAULT '{}'::text[] NOT NULL,
+  passed_lines text[] DEFAULT '{}'::text[] NOT NULL,
+  failing jsonb DEFAULT '[]'::jsonb NOT NULL,
+  slipped text[] DEFAULT '{}'::text[] NOT NULL,
+  improvement_id bigint,
+  closed_improvements bigint[] DEFAULT '{}'::bigint[] NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.security_advisor_baseline (
@@ -8444,6 +8515,16 @@ CREATE TABLE IF NOT EXISTS public.supplier_score (
   reliability numeric,
   last_active timestamp with time zone,
   computed_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.supplier_scorecard (
+  lead_id bigint NOT NULL,
+  month date NOT NULL,
+  card jsonb NOT NULL,
+  to_email text,
+  outcome text NOT NULL,
+  handoff_id bigint,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_screening_hit (
@@ -9416,9 +9497,11 @@ ALTER TABLE public.ceo_review ADD CONSTRAINT ceo_review_pkey PRIMARY KEY (kind, 
 ALTER TABLE public.ceo_seat_audit ADD CONSTRAINT ceo_seat_audit_pkey PRIMARY KEY (quarter, seat);
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_pkey PRIMARY KEY (month, seat);
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_pkey PRIMARY KEY (grant_key);
+ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_pkey PRIMARY KEY (month);
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_pkey PRIMARY KEY (task_id);
 ALTER TABLE public.ceo_task_state ADD CONSTRAINT ceo_task_state_pkey PRIMARY KEY (state);
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_pkey PRIMARY KEY (id);
+ALTER TABLE public.ceo_weekly_review ADD CONSTRAINT ceo_weekly_review_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_pkey PRIMARY KEY (month);
 ALTER TABLE public.ceo_year_plan_milestone ADD CONSTRAINT ceo_year_plan_milestone_pkey PRIMARY KEY (due);
 ALTER TABLE public.challenge_heuristic ADD CONSTRAINT challenge_heuristic_pkey PRIMARY KEY (id);
@@ -9860,6 +9943,7 @@ ALTER TABLE public.seat_deliberation ADD CONSTRAINT seat_deliberation_pkey PRIMA
 ALTER TABLE public.seat_deliberation_ceiling ADD CONSTRAINT seat_deliberation_ceiling_pkey PRIMARY KEY (author_seat, reviewer_seat);
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_pkey PRIMARY KEY (duty);
+ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_pkey PRIMARY KEY (seat, item_id);
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_pkey PRIMARY KEY (type, from_seat, to_seat);
 ALTER TABLE public.seat_judgement ADD CONSTRAINT seat_judgement_pkey PRIMARY KEY (id);
 ALTER TABLE public.seat_knowledge_eval_question ADD CONSTRAINT seat_knowledge_eval_question_pkey PRIMARY KEY (id);
@@ -9869,6 +9953,7 @@ ALTER TABLE public.seat_knowledge_recall_answer ADD CONSTRAINT seat_knowledge_re
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_pkey PRIMARY KEY (seat, quarter);
 ALTER TABLE public.seat_learning_daily ADD CONSTRAINT seat_learning_daily_pkey PRIMARY KEY (seat, day);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_pkey PRIMARY KEY (cluster_key);
+ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_pkey PRIMARY KEY (month, seat);
 ALTER TABLE public.security_advisor_baseline ADD CONSTRAINT security_advisor_baseline_pkey PRIMARY KEY (cache_key);
 ALTER TABLE public.security_audit_log ADD CONSTRAINT security_audit_log_pkey PRIMARY KEY (id);
 ALTER TABLE public.security_events ADD CONSTRAINT security_events_pkey PRIMARY KEY (id);
@@ -9915,6 +10000,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_recruitment_funnel ADD CONSTRAINT supplier_recruitment_funnel_pkey PRIMARY KEY (trade, emirate, day);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_pkey PRIMARY KEY (trade, emirate);
@@ -9990,6 +10076,7 @@ ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_so
 ALTER TABLE public.ceo_plan ADD CONSTRAINT ceo_plan_plan_date_key UNIQUE (plan_date);
 ALTER TABLE public.ceo_plan_action ADD CONSTRAINT ceo_plan_action_seat_from_month_action_key UNIQUE (seat, from_month, action);
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_key_rev UNIQUE (report_key, revision);
+ALTER TABLE public.ceo_weekly_review ADD CONSTRAINT ceo_weekly_review_week_key UNIQUE (week);
 ALTER TABLE public.collaboration_rule ADD CONSTRAINT collaboration_rule_situation_key UNIQUE (situation);
 ALTER TABLE public.company_index ADD CONSTRAINT company_index_measured_on_index_name_key UNIQUE (measured_on, index_name);
 ALTER TABLE public.company_reflection ADD CONSTRAINT company_reflection_reflected_on_key UNIQUE (reflected_on);
@@ -10215,7 +10302,7 @@ ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_key_check CHECK 
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'running'::text, 'rejected'::text, 'kept'::text, 'killed'::text])));
 ALTER TABLE public.ceo_experiment_verdict ADD CONSTRAINT ceo_experiment_verdict_decision_check CHECK ((decision = ANY (ARRAY['kept'::text, 'killed'::text, 'iterated'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_proposal_check CHECK ((btrim(proposal) <> ''::text));
-ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text])));
+ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text, 'weekly_review'::text, 'self_review'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_status_check CHECK ((status = ANY (ARRAY['open'::text, 'assigned'::text, 'done'::text, 'dropped'::text])));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_exec_ck CHECK ((external_execution_enabled = false));
@@ -10241,6 +10328,7 @@ ALTER TABLE public.ceo_review ADD CONSTRAINT ceo_review_kind_check CHECK ((kind 
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.ceo_seat_directive ADD CONSTRAINT ceo_seat_directive_status_check CHECK ((status = ANY (ARRAY['issued'::text, 'met'::text, 'missed'::text, 'not_measurable'::text])));
 ALTER TABLE public.ceo_standing_grant ADD CONSTRAINT ceo_standing_grant_issuer CHECK ((issued_by = 'ceo'::text));
+ALTER TABLE public.ceo_strategy_memo ADD CONSTRAINT ceo_strategy_memo_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_blocked_says_why CHECK (((state <> 'blocked'::text) OR (COALESCE(btrim(blocked_reason), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_done_shows_evidence CHECK (((state <> 'done'::text) OR (COALESCE(btrim(evidence), ''::text) <> ''::text)));
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_status_check CHECK ((status = ANY (ARRAY['generated'::text, 'partial'::text, 'delivered'::text, 'delivery_failed'::text])));
@@ -10822,6 +10910,8 @@ ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_every_check CHECK ((every 
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_routine_check CHECK ((routine ~ '^fn_[a-z0-9_]+$'::text));
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_what_check CHECK ((btrim(what) <> ''::text));
+ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_expected_entry_ids_check CHECK ((cardinality(expected_entry_ids) > 0));
+ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_expected_facts_check CHECK ((cardinality(expected_facts) > 0));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_handler_check CHECK ((handler ~ '^fn_[a-z0-9_]+$'::text));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_meaning_check CHECK ((btrim(meaning) <> ''::text));
 ALTER TABLE public.seat_handoff_kind ADD CONSTRAINT seat_handoff_kind_owner_file_check CHECK ((owner_file ~ '^scripts/sql/[a-z0-9_]+\.sql$'::text));
@@ -10837,6 +10927,7 @@ ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_questi
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_verdict_check CHECK ((verdict = ANY (ARRAY['correct'::text, 'partial'::text, 'wrong'::text, 'not_covered'::text])));
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_quarter_check CHECK ((quarter = (date_trunc('quarter'::text, (quarter)::timestamp with time zone))::date));
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_case_ids_check CHECK ((cardinality(case_ids) >= 3));
+ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_trend_check CHECK ((trend = ANY (ARRAY['first'::text, 'up'::text, 'flat'::text, 'down'::text, 'no_exam'::text])));
 ALTER TABLE public.security_gap ADD CONSTRAINT security_gap_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'partial'::text])));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_from_code_check CHECK ((from_code ~ '^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)?$'::text));
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_not_itself CHECK ((from_code <> ((implies_trade || '.'::text) || implies_code)));
@@ -10887,6 +10978,7 @@ ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_re
 ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_reading_status_check CHECK ((status = ANY (ARRAY['reasoned'::text, 'needs_reasoning'::text])));
 ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_reading_word_check CHECK (((btrim(word) <> ''::text) AND (length(word) <= 200)));
 ALTER TABLE public.supplier_performance ADD CONSTRAINT supplier_performance_score_check CHECK (((score IS NULL) OR ((score >= (0)::numeric) AND (score <= (1)::numeric))));
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_bytes_check CHECK ((bytes >= 0));
@@ -11255,9 +11347,11 @@ ALTER TABLE public.screening_entry ADD CONSTRAINT screening_entry_run_id_fkey FO
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_deliberation_id_fkey FOREIGN KEY (deliberation_id) REFERENCES seat_deliberation(id) ON DELETE CASCADE;
 ALTER TABLE public.seat_deliberation_turn ADD CONSTRAINT seat_deliberation_turn_reviews_turn_id_fkey FOREIGN KEY (reviews_turn_id) REFERENCES seat_deliberation_turn(id);
 ALTER TABLE public.seat_duty ADD CONSTRAINT seat_duty_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
+ALTER TABLE public.seat_exam_item ADD CONSTRAINT seat_exam_item_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_knowledge_exam ADD CONSTRAINT seat_knowledge_exam_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_knowledge_refresh ADD CONSTRAINT seat_knowledge_refresh_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.seat_lesson_cluster ADD CONSTRAINT seat_lesson_cluster_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES reasoning_knowledge_candidate(id);
+ALTER TABLE public.seat_self_review ADD CONSTRAINT seat_self_review_seat_fkey FOREIGN KEY (seat) REFERENCES org_role(role_id);
 ALTER TABLE public.service_implication ADD CONSTRAINT service_implication_implies_trade_implies_code_fkey FOREIGN KEY (implies_trade, implies_code) REFERENCES taxonomy_trade_service(trade_code, code) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_fkey FOREIGN KEY (conversation_id) REFERENCES social_conversation(id);
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
@@ -11283,6 +11377,7 @@ ALTER TABLE public.supplier_performance ADD CONSTRAINT supplier_performance_lead
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES supplier_catalog(id);
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
@@ -19730,6 +19825,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'accountant') $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_spend_report(p_as_of date DEFAULT NULL::date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -22444,6 +22547,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -22469,16 +22582,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -26342,6 +26445,7 @@ AS $function$
     ('marketing_post_variant.cover_path',    'column', 'marketing-media', true, 'fn_enqueue_doc_backups: STORAGE SWEEP (marketing-media, a platform''s own cover image)', null),
     ('marketing_campaign.calendar_pdf_path', 'column', 'agent-docs',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (agent-docs/marketing/calendar/<campaign_key>/, the monthly calendar PDF the founder approves)', null),
     ('marketing_campaign.calendar_xlsx_path', 'column', 'agent-docs',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (agent-docs/marketing/calendar/<campaign_key>/, the same calendar as a spreadsheet)', null),
+    ('ceo_weekly_review.pdf_path',           'column', 'agent-docs',     true, 'fn_enqueue_doc_backups: STORAGE SWEEP (agent-docs/ceo/weekly_review/, the CEO''s one-page weekly review PDF)', null),
 
     -- ── (b) EXEMPT (not a file or not ours) ──
     ('doc_backups.dropbox_path',             'column', null, false, null, 'EXEMPT (not a file or not ours): the Dropbox destination of a backup, not a source'),
@@ -31776,6 +31880,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'ceo') $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_standing()
  RETURNS TABLE(domain text, decision_key text, authority text, reading text, reading_kind text)
  LANGUAGE plpgsql
@@ -31808,6 +31920,158 @@ begin
     end if;
     return next;
   end loop;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_strategy_measure(p_metric text, p_category text, p_from date, p_to date, p_include_demo boolean DEFAULT false)
+ RETURNS integer
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case p_metric
+    when 'inquiries' then (select count(*)::int from public.inquiries i left join public.customers c on c.id = i.customer_id
+                            where i.category = p_category and (i.created_at at time zone 'Asia/Dubai')::date between p_from and p_to
+                              and (p_include_demo or not coalesce(c.is_demo, false)))
+    when 'suppliers_added' then (select count(*)::int from public.leads l join public.lead_category lc on lc.lead_id = l.id and lc.is_primary
+                                  where lc.slug = p_category and (l.created_at at time zone 'Asia/Dubai')::date between p_from and p_to
+                                    and (p_include_demo or not coalesce(l.is_demo, false)))
+  end;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_strategy_memo(p_month date DEFAULT NULL::date, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_m date := date_trunc('month', coalesce(p_month, (v_today - interval '1 month')::date))::date; v_e date;
+  f jsonb; c jsonb; v_bet jsonb; v_grade jsonb; prev public.ceo_strategy_memo; v_meas int; v_body text; v_n jsonb; v_base int;
+begin
+  if v_m >= date_trunc('month', v_today)::date then
+    raise exception 'month % has not ended; the memo is written for a month that is over', to_char(v_m, 'YYYY-MM');
+  end if;
+  if exists (select 1 from public.ceo_strategy_memo where month = v_m) then
+    return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'already', true);
+  end if;
+  v_e := (v_m + interval '1 month')::date - 1;
+  f := public.fn_ceo_strategy_memo_facts(v_m, p_include_demo);
+
+  -- the bet (rule-based; see the header)
+  select x into c from jsonb_array_elements(f->'categories') x where (x->>'requests')::int > 0
+   order by (x->>'requests')::int desc, x->>'category' limit 1;
+  if c is not null then
+    v_base := (c->>'requests')::int;
+    v_bet := jsonb_build_object('metric', 'inquiries', 'category', c->>'category', 'baseline', v_base);
+  else
+    select x into c from jsonb_array_elements(f->'categories') x where (x->>'suppliers_added')::int > 0
+     order by (x->>'suppliers_added')::int - (x->>'suppliers_added_prior')::int desc, (x->>'suppliers_added')::int desc, x->>'category' limit 1;
+    if c is null then
+      select x into c from jsonb_array_elements(f->'categories') x order by (x->>'suppliers_on_file')::int desc, x->>'category' limit 1;
+    end if;
+    v_base := coalesce((c->>'suppliers_added')::int, 0);
+    v_bet := jsonb_build_object('metric', 'suppliers_added', 'category', c->>'category', 'baseline', v_base);
+  end if;
+  v_bet := v_bet || jsonb_build_object('target', greatest(v_base + 1, ceil(v_base * 1.2)::int),
+    'month', to_char((v_m + interval '1 month')::date, 'YYYY-MM'));
+  v_bet := v_bet || jsonb_build_object('wording', format('In %s we focus on %s: %s from %s to at least %s.',
+    to_char((v_m + interval '1 month')::date, 'Mon YYYY'), coalesce(v_bet->>'category', 'no category on file'),
+    case v_bet->>'metric' when 'inquiries' then 'customer requests' else 'suppliers added' end, v_bet->>'baseline', v_bet->>'target'));
+
+  -- the grading of last month's bet, measured by the same code over the month it was made for
+  select * into prev from public.ceo_strategy_memo where month = (v_m - interval '1 month')::date;
+  if prev.month is null then
+    v_grade := jsonb_build_object('grade', 'none', 'note', 'no memo, so no bet, for ' || to_char((v_m - interval '1 month')::date, 'Mon YYYY'));
+  else
+    v_meas := public.fn_ceo_strategy_measure(prev.bet->>'metric', prev.bet->>'category', v_m, v_e, prev.include_demo);
+    v_grade := prev.bet || jsonb_build_object('measured', v_meas,
+      'grade', case when v_meas >= (prev.bet->>'target')::int then 'hit'
+                    when v_meas > (prev.bet->>'baseline')::int then 'partial' else 'missed' end);
+  end if;
+
+  v_body := 'CEO STRATEGY MEMO - ' || to_char(v_m, 'FMMonth YYYY') || E'\n\n'
+    || '1. MARKET CHANGES' || E'\n'
+    || format('  Competitors watched %s. Pages that changed this month: %s. Competitors re-verified: %s. Relevant trends: %s.',
+              f#>>'{market,competitors_watched}', jsonb_array_length(f#>'{market,competitor_pages_changed}'),
+              jsonb_array_length(f#>'{market,competitors_verified}'), jsonb_array_length(f#>'{market,relevant_trends}')) || E'\n'
+    || coalesce((select string_agg('  - ' || (x->>'competitor') || ' changed its ' || (x->>'page') || ' page (' || (x->>'on') || ')', E'\n')
+                   from (select x from jsonb_array_elements(f#>'{market,competitor_pages_changed}') x limit 5) z) || E'\n', '')
+    || coalesce((select string_agg('  - Trend: ' || (x->>'title') || coalesce(' - ' || (x->>'why'), ''), E'\n')
+                   from jsonb_array_elements(f#>'{market,relevant_trends}') x) || E'\n', '')
+    || E'\n' || '2. CATEGORY GROWTH (this month / month before)' || E'\n'
+    || coalesce((select string_agg(format('  %-40s requests %s / %s, suppliers added %s / %s', x->>'category', x->>'requests', x->>'requests_prior',
+                                          x->>'suppliers_added', x->>'suppliers_added_prior'), E'\n')
+                   from (select x from jsonb_array_elements(f->'categories') x limit 5) z), '  no category on file') || E'\n\n'
+    || '3. THE BET FOR ' || upper(to_char((v_m + interval '1 month')::date, 'FMMonth YYYY')) || E'\n'
+    || '  ' || (v_bet->>'wording') || E'\n'
+    || '  Measured by: ' || (v_bet->>'metric') || ' in ' || coalesce(v_bet->>'category', '-') || ', expected result ' || (v_bet->>'target') || '.' || E'\n\n'
+    || '4. LAST MONTH''S BET' || E'\n'
+    || case when v_grade->>'grade' = 'none' then '  ' || (v_grade->>'note')
+            else format('  %s  Result %s against a target of %s (baseline %s): %s.', v_grade->>'wording', v_grade->>'measured',
+                        v_grade->>'target', v_grade->>'baseline', upper(v_grade->>'grade')) end || E'\n\n'
+    || 'Every figure is measured from the live tables at the moment of writing. The bet''s wording is rule-based while the model hold is on.';
+
+  insert into public.ceo_strategy_memo (month, facts, bet, grading, wording_source, body, include_demo)
+  values (v_m, f, v_bet, v_grade, 'rule_based (model hold on)', v_body, p_include_demo);
+
+  v_n := public.fn_notify_founder(p_event => 'CEO strategy memo - ' || to_char(v_m, 'FMMonth YYYY'), p_detail => v_body,
+                                  p_level => 'info', p_kind => 'ceo_strategy_memo',
+                                  p_dedupe_key => 'ceo_strategy_memo:' || to_char(v_m, 'YYYY-MM') || case when p_include_demo then ':zz-demo' else '' end,
+                                  p_owner_agent => 'ceo');
+  update public.ceo_strategy_memo set notify = v_n where month = v_m;
+  return jsonb_build_object('ok', true, 'month', to_char(v_m, 'YYYY-MM'), 'bet', v_bet, 'grading', v_grade, 'notify', v_n);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_strategy_memo_facts(p_month date, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_m date := date_trunc('month', p_month)::date; v_e date; v_pm date; v_pe date;
+  v_changed jsonb; v_verified jsonb; v_trends jsonb; v_cats jsonb;
+begin
+  v_e := (v_m + interval '1 month')::date - 1; v_pm := (v_m - interval '1 month')::date; v_pe := v_m - 1;
+
+  select coalesce(jsonb_agg(jsonb_build_object('competitor', c.name, 'page', z.page_kind, 'url', z.url, 'on', z.on_day) order by z.on_day), '[]'::jsonb)
+    into v_changed
+    from (select competitor_id, page_kind, url, (requested_at at time zone 'Asia/Dubai')::date on_day, content_hash,
+                 lag(content_hash) over (partition by competitor_id, page_kind order by requested_at) prev_hash
+            from public.competitor_scan where content_hash is not null) z
+    join public.competitor c on c.id = z.competitor_id
+   where z.on_day between v_m and v_e and z.prev_hash is not null and z.prev_hash <> z.content_hash;
+
+  select coalesce(jsonb_agg(jsonb_build_object('competitor', name, 'kind', kind, 'threat', threat_level) order by name), '[]'::jsonb)
+    into v_verified from public.competitor where verified_at between v_m and v_e;
+
+  select coalesce(jsonb_agg(jsonb_build_object('title', title, 'why', why_it_matters, 'url', url) order by seen_at desc), '[]'::jsonb)
+    into v_trends
+    from (select * from public.marketing_trend where relevant and (seen_at at time zone 'Asia/Dubai')::date between v_m and v_e
+           order by seen_at desc limit 5) t;
+
+  select coalesce(jsonb_agg(x order by (x->>'requests')::int desc, (x->>'suppliers_added')::int desc, x->>'category'), '[]'::jsonb)
+    into v_cats
+    from (select jsonb_build_object('category', slug,
+                   'suppliers_added', public.fn_ceo_strategy_measure('suppliers_added', slug, v_m, v_e, p_include_demo),
+                   'suppliers_added_prior', public.fn_ceo_strategy_measure('suppliers_added', slug, v_pm, v_pe, p_include_demo),
+                   'requests', public.fn_ceo_strategy_measure('inquiries', slug, v_m, v_e, p_include_demo),
+                   'requests_prior', public.fn_ceo_strategy_measure('inquiries', slug, v_pm, v_pe, p_include_demo),
+                   'suppliers_on_file', n) x
+            from (select lc.slug, count(*) n from public.lead_category lc join public.leads l on l.id = lc.lead_id
+                   where lc.is_primary and (p_include_demo or not coalesce(l.is_demo, false))
+                   group by lc.slug) s) y;
+
+  return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'from', v_m, 'to', v_e,
+    'market', jsonb_build_object('competitors_watched', (select count(*) from public.competitor where watched),
+                                 'competitor_pages_changed', v_changed, 'competitors_verified', v_verified,
+                                 'relevant_trends', v_trends),
+    'categories', v_cats,
+    'measured_at', now());
 end $function$
 
 
@@ -32468,6 +32732,340 @@ begin
   end if;
 
   return public.fn_ceo_weekly_report_deliver(r.id) || jsonb_build_object('fired', true);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review(p_week date, p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_targets jsonb; t jsonb; i record; v_id bigint; v_task bigint;
+  v_open bigint[] := '{}'; v_esc bigint[] := '{}'; v_closed bigint[] := '{}'; v_row public.ceo_weekly_review;
+  v_today date := (p_at at time zone 'Asia/Dubai')::date;
+begin
+  select * into v_row from public.ceo_weekly_review where week = p_week;
+  if found then return jsonb_build_object('week', p_week, 'already', true, 'id', v_row.id); end if;
+
+  v_targets := public.fn_ceo_weekly_review_measure(p_at);
+
+  -- 1. CLOSE: the check of each open action, re-read on the same measure
+  for i in select * from public.ceo_improvement where source_kind = 'weekly_review' and status in ('open', 'assigned') loop
+    select x into t from jsonb_array_elements(v_targets) x
+     where x->>'key' = i.evidence->>'target' and x->>'seat' = i.seat limit 1;
+    if t is not null and ((t->>'met')::boolean
+        or (t->>'key' = 'supply' and (t->>'value')::numeric < (i.evidence->>'value')::numeric)) then
+      perform public.fn_ceo_improvement_close(i.id, format('Weekly review of %s: %s. %s', p_week, t->>'actual', i.close_check));
+      v_closed := v_closed || i.id;
+    end if;
+  end loop;
+
+  -- 2. ESCALATE: still open past its due date
+  for i in select * from public.ceo_improvement where source_kind = 'weekly_review' and status in ('open', 'assigned')
+                                                     and due_on is not null and due_on <= v_today loop
+    v_task := public.fn_ceo_task_open(
+      format('ESCALATED x%s: %s missed the due date of improvement #%s', i.escalations + 1, i.seat, i.id),
+      format(E'%s\nWas due %s. Now due %s. %s\nMeasured this week: %s',
+             coalesce(i.evidence->>'action', i.proposal), i.due_on, v_today + 7, i.close_check,
+             coalesce((select x->>'actual' from jsonb_array_elements(v_targets) x where x->>'key' = i.evidence->>'target' and x->>'seat' = i.seat limit 1), 'not measured')));
+    update public.ceo_improvement set escalations = escalations + 1, last_escalated_at = p_at, due_on = v_today + 7,
+           evidence = evidence || jsonb_build_object('escalation_tasks', coalesce(evidence->'escalation_tasks', '[]'::jsonb) || to_jsonb(v_task))
+     where id = i.id;
+    v_esc := v_esc || i.id;
+  end loop;
+
+  -- 3. OPEN: one action per missed target that has none open
+  for t in select x from jsonb_array_elements(v_targets) x where not (x->>'met')::boolean loop
+    if exists (select 1 from public.ceo_improvement where source_kind = 'weekly_review' and status in ('open', 'assigned')
+                  and seat = t->>'seat' and evidence->>'target' = t->>'key') then continue; end if;
+    v_id := public.fn_ceo_improvement_open('weekly_review', (t->>'key') || ':' || (t->>'seat') || ':' || p_week, t->>'seat',
+      format('Weekly review %s, %s missed (%s; target %s). Action: %s Due %s. %s',
+             to_char(p_week, 'DD Mon YYYY'), t->>'label', t->>'actual', t->>'target', t->>'action', to_char(p_week + 7, 'DD Mon YYYY'), t->>'close_check'),
+      jsonb_build_object('target', t->>'key', 'value', t->'value', 'week', p_week, 'actual', t->>'actual', 'action', t->>'action', 'detail', t->'detail'));
+    if v_id is not null then
+      update public.ceo_improvement set due_on = p_week + 7, close_check = t->>'close_check' where id = v_id;
+      v_open := v_open || v_id;
+    end if;
+  end loop;
+
+  insert into public.ceo_weekly_review (week, targets, opened, escalated, closed)
+  values (p_week, v_targets, v_open, v_esc, v_closed) returning * into v_row;
+  update public.ceo_weekly_review set pdf_blocks = public.fn_ceo_weekly_review_pdf_blocks(v_row.id) where id = v_row.id;
+  return jsonb_build_object('ok', true, 'week', p_week, 'id', v_row.id, 'opened', cardinality(v_open),
+    'escalated', cardinality(v_esc), 'closed', cardinality(v_closed),
+    'missed', (select count(*) from jsonb_array_elements(v_targets) x where not (x->>'met')::boolean));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_attach_pdf(p_id bigint, p_bucket text DEFAULT NULL::text, p_path text DEFAULT NULL::text, p_url text DEFAULT NULL::text, p_bytes integer DEFAULT NULL::integer, p_error text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  if not exists (select 1 from public.ceo_weekly_review where id = p_id) then
+    return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_review ' || p_id);
+  end if;
+  if p_path is null or coalesce(p_error, '') <> '' then
+    update public.ceo_weekly_review set pdf_error = coalesce(nullif(p_error, ''), 'pdf_native returned no path'),
+           attempts = attempts + 1, last_error = 'the PDF could not be rendered: ' || coalesce(nullif(p_error, ''), 'no path returned'), updated_at = now()
+     where id = p_id;
+    return jsonb_build_object('ok', false, 'retained', true, 'error', 'the PDF could not be rendered: ' || coalesce(nullif(p_error, ''), 'no path returned'));
+  end if;
+  update public.ceo_weekly_review set pdf_bucket = coalesce(p_bucket, 'agent-docs'), pdf_path = p_path, pdf_url = p_url,
+         pdf_bytes = p_bytes, pdf_error = null, updated_at = now()
+   where id = p_id;
+  return public.fn_ceo_weekly_review_deliver(p_id);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_deliver(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare w public.ceo_weekly_review; v_res jsonb; v_notif bigint; v_err text; v_file text; v_event text; v_missed int;
+begin
+  select * into w from public.ceo_weekly_review where id = p_id for update;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no such ceo_weekly_review ' || p_id); end if;
+  if w.delivered_at is not null then return jsonb_build_object('ok', true, 'week', w.week, 'already', true); end if;
+
+  if w.pdf_path is null then
+    v_err := 'not delivered: the PDF has not been rendered yet; retained, the next beat retries';
+  else
+    v_missed := (select count(*) from jsonb_array_elements(w.targets) x where not (x->>'met')::boolean);
+    v_event := 'CEO weekly review, week of ' || to_char(w.week, 'DD Mon YYYY');
+    v_file := 'QuotesDone_CEO_Weekly_Review_' || to_char(w.week, 'IYYY-"W"IW') || '.pdf';
+    begin
+      v_res := public.fn_notify_founder(p_event => v_event,
+        p_detail => format(E'%s of %s targets missed this week. Actions: %s opened, %s escalated, %s closed.\nThe one-page review is attached as %s.',
+               v_missed, (select count(*) from jsonb_array_elements(w.targets) x where not coalesce((x->>'info_only')::boolean, false)), cardinality(w.opened), cardinality(w.escalated), cardinality(w.closed), v_file),
+        p_level => 'info', p_kind => 'ceo_weekly_review', p_dedupe_key => 'ceo_weekly_review:' || w.week, p_owner_agent => 'ceo');
+      if coalesce((v_res->>'emailed')::boolean, false) then
+        -- fn_notify_founder answers jsonb, not the row id: the email it queued is the one of this kind in THIS transaction.
+        update public.notifications n
+           set attachments = jsonb_build_array(jsonb_build_object('bucket', coalesce(w.pdf_bucket, 'agent-docs'), 'path', w.pdf_path, 'filename', v_file))
+         where n.id = (select max(x.id) from public.notifications x
+                        where x.kind = 'ceo_weekly_review' and x.channel = 'email' and x.to_role = 'founder' and x.created_at = now())
+        returning n.id into v_notif;
+        if v_notif is null then v_err := 'fn_notify_founder said emailed, but no queued email of kind ceo_weekly_review was found to attach the PDF to'; end if;
+      else
+        v_err := 'fn_notify_founder did not email: ' || coalesce(v_res::text, 'null');
+      end if;
+    exception when others then
+      v_err := 'delivery raised: ' || sqlerrm;
+      v_notif := null;
+    end;
+  end if;
+
+  update public.ceo_weekly_review
+     set notification_id = coalesce(v_notif, notification_id), notify = coalesce(v_res, notify),
+         delivered_at = case when v_notif is not null then now() end,
+         attempts = attempts + 1, last_error = v_err, updated_at = now()
+   where id = p_id;
+  return jsonb_build_object('ok', v_notif is not null, 'week', w.week, 'notification_id', v_notif, 'pdf_filename', v_file)
+    || case when v_err is null then '{}'::jsonb else jsonb_build_object('error', v_err) end;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_measure(p_at timestamp with time zone DEFAULT now())
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_today date := (p_at at time zone 'Asia/Dubai')::date;
+  v_min int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
+  v_out jsonb := '[]'::jsonb;
+  v_trades int; v_short int; v_top jsonb;
+  v_rf jsonb; v_months numeric; v_cash numeric; v_spend numeric;
+  v_bud numeric; v_act numeric; v_nbud int; v_over jsonb;
+  s record; v_n int; v_ids jsonb;
+begin
+  -- SUPPLY (sales_engineer)
+  select count(*), count(*) filter (where matchable < v_min) into v_trades, v_short
+    from public.supply_gap where emirate = 'UAE';
+  select coalesce(jsonb_agg(jsonb_build_object('trade', x.trade, 'label', x.label, 'matchable', x.matchable,
+           'requests_90d', x.demand_90d, 'uninvited_pool', x.uninvited_pool) order by x.demand_90d desc, x.uninvited_pool desc, x.matchable desc), '[]'::jsonb)
+    into v_top
+    from (select g.*, coalesce(t.label, g.trade) as label from public.supply_gap g left join public.taxonomy_trade t on t.code = g.trade
+           where g.emirate = 'UAE' and g.matchable < v_min
+           order by g.demand_90d desc, g.uninvited_pool desc, g.matchable desc limit 5) x;
+  v_out := v_out || jsonb_build_object('key', 'supply', 'seat', 'sales_engineer', 'label', 'Suppliers per category',
+    'met', v_trades > 0 and v_short = 0, 'value', v_short,
+    'target', format('%s matchable suppliers in every category', v_min),
+    'actual', case when v_trades = 0 then 'not measured: supply_gap holds no UAE rows (the supply duty has not run)'
+                   else format('%s of %s categories at target; %s short', v_trades - v_short, v_trades, v_short) end,
+    'action', case when v_trades = 0 then 'Run the supply-gap duty so every category is measured against the target.'
+                   else format('Recruit to %s matchable suppliers per category, starting with %s.', v_min,
+                     coalesce((select string_agg(e->>'label' || ' (' || (e->>'matchable') || ')', ', ') from (select e from jsonb_array_elements(v_top) e limit 3) z), 'the short categories')) end,
+    'close_check', 'Closes when fewer categories are short than when it was opened (or none are).',
+    'detail', v_top);
+
+  -- RUNWAY (accountant)
+  v_rf := public.fn_accountant_runway_figures(date_trunc('month', v_today)::date);
+  v_months := (v_rf->>'runway_months_at_actual_spend')::numeric;
+  v_cash := (v_rf->>'available_aed')::numeric; v_spend := (v_rf->>'monthly_spend_aed')::numeric;
+  -- INFORMATION ONLY. Founder ruling, 29 Sep 2026 (ledger): there is NO runway target -- he funds the company himself,
+  -- with no deadline, until it is profitable. Runway is shown (months at current spend) and is never a missed target,
+  -- never opens an improvement and never escalates. Revisit ONLY if investor funding arrives.
+  v_out := v_out || jsonb_build_object('key', 'runway', 'seat', 'accountant', 'label', 'Cash and runway',
+    'info_only', true, 'met', true, 'value', v_months,
+    'target', 'none: information only (founder funds the company until profitable; revisited only if investor funding arrives)',
+    'actual', case when v_months is null then 'not measured: ' || coalesce(v_rf->>'missing', 'the books give no runway')
+                   else format('AED %s available, AED %s a month, %s months at current spend', to_char(v_cash, 'FM999,999,990.00'), to_char(v_spend, 'FM999,999,990.00'), v_months) end,
+    'detail', v_rf);
+
+  -- SPEND AGAINST BUDGET (accountant): expense lines of active budgets for the year, to this month
+  select count(distinct b.budget_id), sum(b.budget_amount), sum(b.actual_amount)
+    into v_nbud, v_bud, v_act
+    from public.budget_vs_actual b join public.budgets bu on bu.id = b.budget_id and bu.status = 'active'
+   where b.fiscal_year = extract(year from v_today)::int and b.type = 'expense' and b.period_month <= v_today;
+  select coalesce(jsonb_agg(jsonb_build_object('account', x.account_name, 'budget', x.bud, 'actual', x.act) order by x.act - x.bud desc), '[]'::jsonb)
+    into v_over
+    from (select b.account_name, sum(b.budget_amount) bud, sum(b.actual_amount) act
+            from public.budget_vs_actual b join public.budgets bu on bu.id = b.budget_id and bu.status = 'active'
+           where b.fiscal_year = extract(year from v_today)::int and b.type = 'expense' and b.period_month <= v_today
+           group by b.account_name having sum(b.actual_amount) > sum(b.budget_amount) order by sum(b.actual_amount) - sum(b.budget_amount) desc limit 3) x;
+  v_out := v_out || jsonb_build_object('key', 'budget', 'seat', 'accountant', 'label', 'Spend against budget',
+    'met', v_nbud > 0 and v_act <= v_bud, 'value', case when v_nbud > 0 then v_act - v_bud end,
+    'target', 'expense actuals year to date within an active budget',
+    'actual', case when coalesce(v_nbud, 0) = 0 then format('no active budget for %s', extract(year from v_today))
+                   else format('AED %s spent against AED %s budgeted year to date', to_char(v_act, 'FM999,999,990'), to_char(v_bud, 'FM999,999,990')) end,
+    'action', case when coalesce(v_nbud, 0) = 0 then format('Set the %s expense budget by month and account, activate it, and report spend against it.', extract(year from v_today))
+                   else format('Bring spend back inside budget: AED %s over, largest overrun %s.', to_char(v_act - v_bud, 'FM999,999,990'),
+                          coalesce(v_over->0->>'account', '(none)')) end,
+    'close_check', 'Closes when an active budget exists for the year and expense actuals year to date are within it.',
+    'detail', v_over);
+
+  -- RISKS and FINDINGS, per active seat (a row for every seat, met or not, so a closing check always finds its row)
+  for s in select role_id from public.org_role where status = 'active' order by role_id loop
+    select count(*), coalesce(jsonb_agg(jsonb_build_object('id', r.id, 'risk', left(r.risk, 90), 'review_due', r.review_due) order by r.id), '[]'::jsonb)
+      into v_n, v_ids
+      from public.risk_register r
+     where r.status = 'open'
+       and (case when exists (select 1 from public.org_role o where o.role_id = r.owner_agent and o.status = 'active') then r.owner_agent else 'ceo' end) = s.role_id
+       and (r.review_due is null or r.review_due < v_today or nullif(btrim(coalesce(r.mitigation, '')), '') is null);
+    v_out := v_out || jsonb_build_object('key', 'risks', 'seat', s.role_id, 'label', 'Open risks', 'met', v_n = 0, 'value', v_n,
+      'target', 'every open risk owned has a mitigation and a review date not passed',
+      'actual', format('%s open risk(s) without a mitigation or past review', v_n),
+      'action', format('Review risk(s) %s: write the mitigation and set the next review date.',
+                       coalesce((select string_agg('#' || (e->>'id'), ', ') from jsonb_array_elements(v_ids) e), '-')),
+      'close_check', 'Closes when every open risk this seat owns has a mitigation and a review date not passed.',
+      'detail', v_ids);
+
+    select count(*) filter (where f.started_at < p_at - interval '7 days'), count(*),
+           coalesce(jsonb_agg(jsonb_build_object('key', f.issue_key, 'title', left(f.title, 90), 'since', f.started_at::date)
+                              order by f.started_at) filter (where f.started_at < p_at - interval '7 days'), '[]'::jsonb)
+      into v_n, v_short, v_ids
+      from public.it_engineer_finding f
+     where f.closed_at is null
+       and (case when exists (select 1 from public.org_role o where o.role_id = coalesce(f.evidence->>'owner_seat', f.raised_by) and o.status = 'active')
+                 then coalesce(f.evidence->>'owner_seat', f.raised_by) else 'it_engineer' end) = s.role_id;
+    v_out := v_out || jsonb_build_object('key', 'findings', 'seat', s.role_id, 'label', 'Open findings', 'met', v_n = 0, 'value', v_n,
+      'open_total', v_short,
+      'target', 'no finding open more than 7 days',
+      'actual', format('%s open, %s of them more than 7 days', v_short, v_n),
+      'action', format('Close the %s finding(s) open more than 7 days, oldest first: %s.', v_n,
+                       coalesce((select string_agg(e->>'title', '; ') from (select e from jsonb_array_elements(v_ids) e limit 3) z), '-')),
+      'close_check', 'Closes when no finding attributed to this seat is open more than 7 days.',
+      'detail', (select coalesce(jsonb_agg(e), '[]'::jsonb) from (select e from jsonb_array_elements(v_ids) e limit 5) z));
+  end loop;
+  return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_pdf_blocks(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare w public.ceo_weekly_review; v jsonb; t jsonb; li jsonb := '[]'::jsonb;
+  f jsonb := '{}'::jsonb; v_find text;
+begin
+  select * into w from public.ceo_weekly_review where id = p_id;
+  if not found then return null; end if;
+  v := jsonb_build_array(
+    jsonb_build_object('t', 'h2', 'text', 'CEO weekly review'),
+    jsonb_build_object('t', 'p', 'text', 'Week of ' || to_char(w.week, 'Dy DD Mon YYYY') || ' (Asia/Dubai). '
+      || (select count(*) from jsonb_array_elements(w.targets) x where (x->>'met')::boolean and not coalesce((x->>'info_only')::boolean, false)) || ' of '
+      || (select count(*) from jsonb_array_elements(w.targets) x where not coalesce((x->>'info_only')::boolean, false)) || ' targets met. Actions: ' || cardinality(w.opened) || ' opened, '
+      || cardinality(w.escalated) || ' escalated, ' || cardinality(w.closed) || ' closed.'),
+    jsonb_build_object('t', 'h3', 'text', 'Actions assigned'));
+
+  -- escalated first, then the rest still open; each with owner, due date and the check that closes it
+  for t in select jsonb_build_object('line',
+             case when i.escalations > 0 then 'ESCALATED x' || i.escalations || ' ' else '' end
+             || i.seat || ': ' || (select case when length(a) > 200 then left(a, 197) || '...' else a end
+                                     from (select coalesce(i.evidence->>'action', i.proposal) as a) z)
+             || ' Due ' || to_char(i.due_on, 'DD Mon') || '. ' || coalesce(i.close_check, ''))
+             from public.ceo_improvement i
+            where i.source_kind = 'weekly_review' and i.status in ('open', 'assigned')
+            order by i.escalations desc, i.seat, i.id limit 12 loop
+    li := li || jsonb_build_object('t', 'li', 'text', t->>'line');
+  end loop;
+  if jsonb_array_length(li) = 0 then li := jsonb_build_array(jsonb_build_object('t', 'li', 'text', 'Every target is met; no action is open.')); end if;
+  v := v || li;
+
+  for t in select x from jsonb_array_elements(w.targets) x where x->>'key' in ('supply', 'runway', 'budget') loop
+    v := v || jsonb_build_array(
+      jsonb_build_object('t', 'h3', 'text', t->>'label'),
+      jsonb_build_object('t', 'li', 'text', case when coalesce((t->>'info_only')::boolean, false) then 'INFORMATION ONLY. '
+                                                        when (t->>'met')::boolean then 'MET. ' else 'MISSED. ' end
+        || (t->>'actual') || '. Target: ' || (t->>'target') || '.'));
+    if t->>'key' = 'supply' and jsonb_array_length(coalesce(t->'detail', '[]'::jsonb)) > 0 then
+      v := v || jsonb_build_array(jsonb_build_object('t', 'li', 'text', 'Shortest where demand is: ' ||
+        (select string_agg((e->>'label') || ' ' || (e->>'matchable') || '/' || (select coalesce(category_open_min_suppliers, 10) from public.pricing_config order by id limit 1), ', ')
+           from jsonb_array_elements(t->'detail') e)));
+    end if;
+  end loop;
+
+  v := v || jsonb_build_array(jsonb_build_object('t', 'h3', 'text', 'Open risks'));
+  li := coalesce((select jsonb_agg(jsonb_build_object('t', 'li', 'text', '#' || r.id || ' ' || left(r.risk, 110)
+          || ' (owner ' || coalesce(r.owner_agent, 'none') || ', ' || r.probability || '/' || r.impact
+          || coalesce(', review ' || to_char(r.review_due, 'DD Mon'), ', no review date') || ')') order by r.id)
+          from (select * from public.risk_register where status = 'open' order by id limit 5) r), '[]'::jsonb);
+  v := v || case when jsonb_array_length(li) = 0 then jsonb_build_array(jsonb_build_object('t', 'li', 'text', 'None open.')) else li end;
+
+  select string_agg((x->>'seat') || ' ' || coalesce(x->>'open_total', '0') || ' (' || (x->>'value') || ' over 7 days)', ', ' order by x->>'seat')
+    into v_find from jsonb_array_elements(w.targets) x where x->>'key' = 'findings';
+  v := v || jsonb_build_array(jsonb_build_object('t', 'h3', 'text', 'Open findings by seat'),
+                              jsonb_build_object('t', 'li', 'text', coalesce(v_find, 'none')),
+                              jsonb_build_object('t', 'note', 'text', 'Measured by code, no model. Each action is a tracked improvement; the next review closes it when its check passes, or escalates it.'));
+  return v;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_weekly_review_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_local timestamp := now() at time zone 'Asia/Dubai'; v_week date := date_trunc('week', v_local)::date;
+  w public.ceo_weekly_review; v_run jsonb;
+begin
+  select * into w from public.ceo_weekly_review where week = v_week;
+  if not found then
+    if extract(isodow from v_local) = 1 and v_local::time < time '09:00' then
+      return jsonb_build_object('fired', false, 'reason', 'before Monday 09:00 Asia/Dubai', 'week', v_week);
+    end if;
+    v_run := public.fn_ceo_weekly_review(v_week);
+    select * into w from public.ceo_weekly_review where week = v_week;
+  end if;
+  if w.delivered_at is not null then
+    return jsonb_build_object('fired', false, 'reason', 'already delivered', 'week', v_week, 'id', w.id);
+  end if;
+  if w.pdf_path is null then
+    return jsonb_build_object('fired', true, 'pdf_pending', true, 'id', w.id, 'report_key', 'ceo_weekly_review_' || to_char(v_week, 'IYYY-"W"IW'),
+      'subject', 'CEO weekly review, week of ' || to_char(v_week, 'DD Mon YYYY'), 'pdf_blocks', w.pdf_blocks, 'run', v_run);
+  end if;
+  return public.fn_ceo_weekly_review_deliver(w.id) || jsonb_build_object('fired', true);
 end $function$
 
 
@@ -36560,6 +37158,14 @@ begin
     'root_causes_opened', n_open, 'handed_off', n_hand, 'measured', n_meas, 'fell', n_fell,
     'support_to_fix', (select count(*) from public.support_root_cause where fixture = v_fx and status in ('open', 'not_fallen')));
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'customer_support') $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_customer_support_sends_the_it_digest(p_now timestamp with time zone DEFAULT now())
@@ -47249,6 +47855,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'it_engineer') $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_severity(p_blast text, p_affected integer, p_started_at timestamp with time zone)
  RETURNS text
  LANGUAGE sql
@@ -52430,6 +53044,109 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_learning(p_month date, p_include_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with pp as (          -- every (post, platform) published in the month
+    select p.id as post_id, c.platform,
+           coalesce(i.idea_key, nullif(lower(btrim(p.title)), ''), 'untitled') as topic,
+           coalesce(v.post_type, case when p.video_path is not null then 'video' else 'image' end) as format,
+           public.fn_marketing_time_slot(coalesce(p.published_at, p.scheduled_at)) as slot
+      from public.marketing_post p
+      cross join unnest(p.channels) c(platform)
+      left join public.marketing_video_idea i on lower(i.title) = lower(btrim(p.title))
+      left join lateral (select v.post_type from public.marketing_post_variant v
+                          where v.post_id = p.id and v.platform = c.platform order by v.seq limit 1) v on true
+     -- a ZZ DEMO post is never published (fn_marketing_post_guard_publish), so a demo run counts it once scheduled
+     where (p_include_demo or not p.is_demo)
+       and (p.status = 'published' or (p_include_demo and p.is_demo and p.status = 'scheduled'))
+       and date_trunc('month', coalesce(p.published_at, p.scheduled_at) at time zone 'Asia/Dubai')::date = date_trunc('month', p_month)::date
+  ), regs as (          -- every supplier registration of the month with a first touch
+    select t.lead_id, t.utm_source as platform, t.post_id,
+           coalesce((select lc.slug from public.lead_category lc where lc.lead_id = t.lead_id
+                      order by lc.is_primary desc, lc.score desc limit 1), 'unclassified') as category
+      from public.marketing_first_touch t join public.leads l on l.id = t.lead_id
+     where date_trunc('month', t.recorded_at at time zone 'Asia/Dubai')::date = date_trunc('month', p_month)::date
+       and (p_include_demo or not coalesce(l.is_demo, false))
+  ), rp as (select r.*, pp.topic, pp.format, pp.slot from regs r
+              left join pp on pp.post_id = r.post_id and pp.platform = r.platform
+  ), hits as (
+    select 'channel' as dim, platform as val, category, lead_id from rp
+    union all select 'topic', topic, category, lead_id from rp where topic is not null
+    union all select 'format', format, category, lead_id from rp where format is not null
+    union all select 'time', slot, category, lead_id from rp where slot is not null
+  ), posts as (
+    select 'channel' as dim, platform as val, count(*) as n from pp group by platform
+    union all select 'topic', topic, count(distinct post_id) from pp group by topic
+    union all select 'format', format, count(*) from pp group by format
+    union all select 'time', slot, count(distinct post_id) from pp group by slot
+  ), hc as (select dim, val, category, count(distinct lead_id) as n from hits group by 1, 2, 3
+  ), hv as (select dim, val, sum(n)::int as regs, jsonb_object_agg(category, n) as by_category from hc group by 1, 2
+  ), rows as (
+    select coalesce(hv.dim, po.dim) as dim, coalesce(hv.val, po.val) as val, coalesce(po.n, 0)::int as posts,
+           coalesce(hv.regs, 0) as regs, coalesce(hv.by_category, '{}'::jsonb) as by_category,
+           case when coalesce(po.n, 0) > 0 then round(coalesce(hv.regs, 0)::numeric / po.n, 3) end as per_post
+      from hv full join posts po on po.dim = hv.dim and po.val = hv.val
+  ), under as (
+    select coalesce(jsonb_agg(jsonb_build_object('category', g.trade, 'suppliers', g.matchable, 'target', g.target)
+                              order by g.matchable, g.trade), '[]'::jsonb) as list, count(*)::int as n
+      from public.supply_gap g where g.emirate = 'UAE' and g.matchable < g.target
+  )
+  select jsonb_build_object(
+    'month', date_trunc('month', p_month)::date,
+    'posts', (select count(distinct post_id) from pp),
+    'registrations', (select count(*) from regs),
+    'traced_to_a_post', (select count(*) from regs where post_id is not null),
+    'has_data', (select count(*) from regs) > 0,
+    'by_category', (select coalesce(jsonb_object_agg(category, n), '{}'::jsonb) from (select category, count(*) n from regs group by 1) z),
+    'dimensions', (select coalesce(jsonb_object_agg(dim, v), '{}'::jsonb) from (
+                     select dim, jsonb_agg(jsonb_build_object('value', val, 'posts', posts, 'registrations', regs,
+                                                              'per_post', per_post, 'by_category', by_category)
+                                           order by regs desc, per_post desc nulls last, val) as v
+                       from rows group by dim) d),
+    -- founder: organic only until every category has 10 suppliers. No supply_gap row yet = not measured = organic.
+    'organic_only', (select n > 0 from under) or not exists (select 1 from public.supply_gap where emirate = 'UAE'),
+    'categories_under_target', (select list from under),
+    'method', 'code: first-touch attribution (marketing_first_touch), counted per month in Asia/Dubai; no model')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_learning_text(p_learned jsonb, p_shifted jsonb DEFAULT '[]'::jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'WHAT WORKED IN ' || upper(to_char((p_learned->>'month')::date, 'FMMonth YYYY')) || E' (supplier registrations by first touch, counted by code)\n'
+    || case when not coalesce((p_learned->>'has_data')::boolean, false) then
+         '- No supplier registration has been traced to a post or channel yet (' || coalesce(p_learned->>'posts', '0')
+         || ' post(s) published). The mix is kept as it is: the ideas below follow the normal rotation.'
+       else
+         '- ' || (p_learned->>'registrations') || ' registration(s) with a first touch, ' || (p_learned->>'traced_to_a_post')
+         || ' traced to a specific post, across ' || (p_learned->>'posts') || E' post(s).\n'
+         || coalesce((select string_agg(format('- %s: %s', initcap(d.key),
+               (select string_agg(format('%s %s reg / %s post(s)%s', r->>'value', r->>'registrations', r->>'posts',
+                                         case when (r->'by_category') <> '{}'::jsonb then ' [' ||
+                                           (select string_agg(c.key || ' ' || c.value, ', ') from jsonb_each_text(r->'by_category') c) || ']' else '' end), '; ')
+                  from (select r from jsonb_array_elements(d.value) r where (r->>'registrations')::int > 0 limit 3) z)), E'\n'
+               order by array_position(array['topic','channel','format','time'], d.key))
+             from jsonb_each(p_learned->'dimensions') d
+            where exists (select 1 from jsonb_array_elements(d.value) r where (r->>'registrations')::int > 0)), '')
+         || E'\n' || case when jsonb_array_length(coalesce(p_shifted, '[]'::jsonb)) > 0
+              then '- The shift: ' || (select string_agg(x #>> '{}', ', ') from jsonb_array_elements(p_shifted) x)
+                   || ' brought registrations, so they come first below; the rest keep the rotation so new ideas are still tested.'
+              else '- None of the topics that brought registrations is an enabled idea, so the ideas keep the rotation; use the channel and time lines above when setting the calendar.' end
+       end
+    || E'\n' || case when coalesce((p_learned->>'organic_only')::boolean, true)
+         then '- Organic only: ' || jsonb_array_length(coalesce(p_learned->'categories_under_target', '[]'::jsonb))
+              || ' categor(ies) still have fewer than 10 suppliers, so no paid promotion is planned.'
+         else '- Every category has at least 10 suppliers. This plan is still organic; paid promotion would need its own proposal.' end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_mail_founder(p_kind text, p_subject text, p_body text, p_attachments jsonb DEFAULT NULL::jsonb, p_reply_to text DEFAULT NULL::text)
  RETURNS bigint
  LANGUAGE plpgsql
@@ -52519,7 +53236,7 @@ begin
 end $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_tick(p_today date DEFAULT NULL::date)
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_tick(p_today date DEFAULT NULL::date, p_include_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -52529,28 +53246,42 @@ declare
   v_today date := coalesce(p_today, (now() at time zone 'Asia/Dubai')::date);
   v_month date := (date_trunc('month', v_today) + interval '1 month')::date;
   v_token text := encode(extensions.gen_random_bytes(16), 'hex'); v_ideas jsonb; v_body text; v_nid bigint; v_mname text;
+  v_learned jsonb; v_shifted jsonb;
 begin
   if v_month < date '2026-11-01' then return jsonb_build_object('sent', false, 'reason', 'the monthly loop starts with November 2026'); end if;
-  -- once per month: a plan already emailed, or one the model path already carried past the CEO, is not replaced
   if exists (select 1 from public.marketing_month_plan where month = v_month
               and (plan_sent_at is not null or status not in ('draft', 'with_ceo'))) then
     return jsonb_build_object('sent', false, 'reason', 'already planned', 'month', v_month);
   end if;
   v_mname := to_char(v_month, 'FMMonth YYYY');
+  v_learned := public.fn_marketing_learning(date_trunc('month', v_today)::date, p_include_demo);
+
+  -- topics that brought registrations, best per post first; only enabled ideas can be planned; at most 6 of 12
+  with won as (select r->>'value' as topic, (r->>'per_post')::numeric as pp, (r->>'registrations')::int as n
+                 from jsonb_array_elements(coalesce(v_learned->'dimensions'->'topic', '[]'::jsonb)) r
+                where (r->>'registrations')::int > 0),
+       ranked as (select i.id, i.idea_key, row_number() over (order by w.pp desc nulls last, w.n desc, i.id) as won_rank
+                    from public.marketing_video_idea i join won w on w.topic in (i.idea_key, lower(i.title)) where i.enabled)
+  select coalesce(jsonb_agg(idea_key order by won_rank), '[]'::jsonb) into v_shifted from ranked where won_rank <= 6;
+
   with days as (select d, row_number() over (order by d) n from public.fn_marketing_video_days(v_month, 12) d),
-       picks as (select i.*, row_number() over (order by i.last_planned_month nulls first, i.id) n
-                   from public.marketing_video_idea i where i.enabled
-                  order by i.last_planned_month nulls first, i.id limit 12)
+       picks as (select i.*, row_number() over (order by coalesce(array_position(array(select jsonb_array_elements_text(v_shifted)), i.idea_key), 1000),
+                                                         i.last_planned_month nulls first, i.id) n
+                   from public.marketing_video_idea i where i.enabled)
   select jsonb_agg(jsonb_build_object('n', d.n, 'date', d.d, 'idea_key', p.idea_key, 'title', p.title, 'hook', p.hook,
-                                      'film_plan', p.film_plan, 'cta', p.cta, 'audience', p.audience) order by d.n)
+                                      'film_plan', p.film_plan, 'cta', p.cta, 'audience', p.audience,
+                                      'why', case when v_shifted ? p.idea_key then 'brought registrations' else 'rotation' end) order by d.n)
     into v_ideas
     from days d join picks p on p.n = d.n;
   if v_ideas is null then raise exception 'marketing_month_plan: no enabled ideas or no working days in %', v_month; end if;
 
   v_body := 'Here is the video plan for ' || v_mname || ': ' || jsonb_array_length(v_ideas)
          || ' short videos on UAE working days (Monday, Wednesday, Thursday first; no weekends or public holidays).' || E'\n\n'
-         || (select string_agg(format(E'%s. %s — %s\n   Hook: %s\n   Film: %s\n   Call to action: %s',
-                                      e->>'n', to_char((e->>'date')::date, 'Dy DD Mon'), e->>'title', e->>'hook', e->>'film_plan', e->>'cta'),
+         || public.fn_marketing_learning_text(v_learned, v_shifted) || E'\n\n'
+         || (select string_agg(format(E'%s. %s — %s%s\n   Hook: %s\n   Film: %s\n   Call to action: %s',
+                                      e->>'n', to_char((e->>'date')::date, 'Dy DD Mon'), e->>'title',
+                                      case when e->>'why' = 'brought registrations' then ' (brought registrations)' else '' end,
+                                      e->>'hook', e->>'film_plan', e->>'cta'),
                                E'\n\n' order by (e->>'n')::int)
                from jsonb_array_elements(v_ideas) e)
          || E'\n\nWhen the videos are ready, reply to this email with them (attachments or links). Change any idea by saying so in the same reply. '
@@ -52559,15 +53290,17 @@ begin
   v_nid := public.fn_marketing_mail_founder('marketing_month_plan', 'Video plan for ' || v_mname || ' [plan ' || v_token || ']',
                                             v_body, null, 'plan+' || v_token || '@mail.quotesdone.com');
   insert into public.marketing_month_plan as t (month, status, verdict, plan, content_brief, plan_token, plan_notification_id, plan_sent_at)
-  values (v_month, 'sent_to_founder', jsonb_build_object('by', 'code', 'rule', 'founder 24 Sep 2026: the monthly idea plan is routine work, coded'),
-          jsonb_build_object('by', 'code', 'ideas', v_ideas), jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas),
+  values (v_month, 'sent_to_founder', jsonb_build_object('by', 'code', 'rule', 'founder 24 Sep 2026: the monthly idea plan is routine work, coded; 28 Sep (1009): it leans on what brought registrations'),
+          jsonb_build_object('by', 'code', 'ideas', v_ideas, 'learned', v_learned, 'shifted_to', v_shifted),
+          jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_ideas)), 'ideas', v_ideas),
           v_token, v_nid, now())
   on conflict (month) do update set status = excluded.status, verdict = coalesce(t.verdict, excluded.verdict), plan = excluded.plan,
          content_brief = excluded.content_brief, plan_token = excluded.plan_token, plan_notification_id = excluded.plan_notification_id,
          plan_sent_at = excluded.plan_sent_at, updated_at = now();
   update public.marketing_video_idea set last_planned_month = v_month
    where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_ideas) e);
-  return jsonb_build_object('sent', true, 'month', v_month, 'ideas', jsonb_array_length(v_ideas), 'notification_id', v_nid);
+  return jsonb_build_object('sent', true, 'month', v_month, 'ideas', jsonb_array_length(v_ideas), 'notification_id', v_nid,
+                            'has_data', v_learned->'has_data', 'shifted_to', v_shifted);
 end $function$
 
 
@@ -53861,6 +54594,14 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'marketing') $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_social_connect_link(p_platform text)
  RETURNS text
  LANGUAGE plpgsql
@@ -54493,6 +55234,21 @@ begin
   return jsonb_build_object('ok', coalesce((v_rep->>'ok')::boolean, false) and coalesce((v_ads->>'ok')::boolean, false),
                             'report', v_rep, 'ad_spend_loops', v_ads);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_time_slot(p_at timestamp with time zone)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when p_at is null then 'unscheduled' else
+    to_char(p_at at time zone 'Asia/Dubai', 'Dy') || ' ' ||
+    case when extract(hour from p_at at time zone 'Asia/Dubai') < 11 then 'morning'
+         when extract(hour from p_at at time zone 'Asia/Dubai') < 14 then 'midday'
+         when extract(hour from p_at at time zone 'Asia/Dubai') < 17 then 'afternoon'
+         else 'evening' end end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_trend_judged(p_id bigint, p_relevant boolean, p_why text, p_by text)
@@ -60417,16 +61173,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60597,6 +61343,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -64905,11 +65661,14 @@ AS $function$
     -- today. 'received' is Twilio's word for submitted-and-undecided; anything that is neither
     -- approved nor rejected is undecided, so the condition is written as the absence of a verdict
     -- rather than as a list of the words Twilio currently uses for waiting.
+    -- THE RE-CHECK ARM, added 29 Sep 2026: the same 20 hours now applies to APPROVED rows too, so the
+    -- predicate is "not rejected" rather than "neither approved nor rejected". Meta can pause or
+    -- reject a template after approving it, and only asking again notices.
     'wa_templates', coalesce((select value from public.app_secrets where key = 'wa_templates_ready'), '') is distinct from 'true'
       or exists (
         select 1 from public.messaging_template
          where channel = 'whatsapp'
-           and status not in ('approved', 'rejected')
+           and status <> 'rejected'
            and (last_checked_at is null or last_checked_at < now() - interval '20 hours')),
 
     -- The queue is the gate. No flag, because nothing here costs a model call and a queued SMS has a
@@ -64929,21 +65688,22 @@ AS $function$
         select 1 from public.inbound_messages
          where needs_review and triaged_at is null and replied_at is null),
 
-    -- 28 Sep 2026 (the_books_catch_up_under_the_model_hold_from_known_senders.sql): the accountant's sweep.
-    -- Work AND a quiet clock: an expense-mailbox row the accountant holds, and no sweep run in 20 hours. The
-    -- sweep writes agent_runs (agent 'accountant', counts.action 'expense_sweep') whatever happens, so a
-    -- failing sweep is retried the next day, not every 15 minutes.
-    'expense_sweep', exists (
-        select 1 from public.inbound_messages
-         where owner_role = 'accountant' and needs_review and replied_at is null
-           and to_email ilike 'expenses@%')
-      and not exists (
-        select 1 from public.agent_runs
-         where agent = 'accountant' and counts->>'action' = 'expense_sweep'
-           and started_at > now() - interval '20 hours'),
-
-    -- WEEKLY, MEASURED OFF THE WORK ITSELF rather than a schedule string, AND PER SOURCE. See
-    -- four_live_functions_had_no_clock_and_the_sanctions_screen_had_no_producer.sql for why per source.
+    -- WEEKLY, MEASURED OFF THE WORK ITSELF rather than a schedule string, AND PER SOURCE. Due while
+    -- EITHER list lacks a recent enough attempt: an `ok` run holds that source for 6 days (the founder
+    -- asked for a weekly check, and 6 not 7 so a slow week never skips one), a failed or unparseable one
+    -- for 6 hours — a transient UN or UAE outage is retried a few times a day, never every 15 minutes.
+    --
+    -- PER SOURCE IS NOT A DETAIL (found in independent review before this was applied). Written as one
+    -- ungrouped NOT EXISTS over the whole table, a healthy UN fetch would hold the gate shut for six days
+    -- and the UAE list — failing every time — would be retried once a week instead of every six hours,
+    -- with the documented back-off silently never applying to the source that actually needed it. That is
+    -- the estate's "guarded by a condition that cannot occur" shape: the failure branch exists and can
+    -- never be reached. The cost of the correct version is that a broken source re-opens the gate every
+    -- 6 hours and the healthy list is downloaded again with it, ~4 times a day instead of once a week.
+    -- That is the right way round: bandwidth is cheap and an unscreened sanctions source is not.
+    --
+    -- Every attempt writes a screening_run row whatever happened, which is what makes this a measurement
+    -- and not a hope; a zero-run history reads as due, which is correct, because it has never run.
     'sanctions', coalesce((select value from public.app_secrets where key = 'sanctions_screen_enabled'), '') = 'true'
       and exists (
         select 1 from (values ('un_consolidated'), ('uae_local_terrorist_list')) as s(source)
@@ -67296,6 +68056,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_self_review()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_seat_self_review((now() at time zone 'Asia/Dubai')::date, 'sales_engineer') $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_sends_registration_reminder(p_lead_id bigint, p_stage text, p_step integer, p_last_activity timestamp with time zone)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -67641,6 +68409,44 @@ begin
   delete from public.supplier_performance p where p.computed_at < now() - interval '1 minute';
   get diagnostics v_null = row_count;
   return jsonb_build_object('score_rows_refreshed', v_refreshed, 'scored', v_scored, 'dropped_unmeasured', v_null);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_scorecard_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_month date := (date_trunc('month', (now() at time zone 'Asia/Dubai')) - interval '1 month')::date;
+  r record; v_card jsonb; m jsonb; v_ok jsonb; v jsonb; v_sent int := 0; v_held int := 0;
+begin
+  for r in select l.id, l.company_name, lower(btrim(l.claimed_by)) as mail from public.leads l
+            where l.approval_status = 'approved' and nullif(btrim(l.claimed_by), '') is not null
+              and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+              and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by)) = v_fx
+              and not exists (select 1 from public.supplier_scorecard s where s.lead_id = l.id and s.month = v_month)
+            order by l.id limit 500 loop
+    v_card := public.fn_supplier_scorecard(r.id, v_month);
+    m := public.fn_supplier_scorecard_text(v_card, r.company_name);
+    v_ok := public.fn_email_sendable(r.mail);
+    if not coalesce((v_ok->>'ok')::boolean, false) then
+      insert into public.supplier_scorecard (lead_id, month, card, to_email, outcome)
+      values (r.id, v_month, v_card, r.mail, 'not_sendable: ' || (v_ok->>'reason'));
+      v_held := v_held + 1;
+      continue;
+    end if;
+    v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'supplier_scorecard', 'requested_by', 'sales_engineer', 'channel', 'email',
+      'to_email', r.mail, 'to_role', 'supplier', 'lead_id', r.id, 'lang', 'en',
+      'dedupe_key', 'supplier_scorecard:' || r.id || ':' || to_char(v_month, 'YYYY-MM'),
+      'subject', m->>'subject', 'body', m->>'body')));
+    insert into public.supplier_scorecard (lead_id, month, card, to_email, outcome, handoff_id)
+    values (r.id, v_month, v_card, r.mail, 'queued', (v->0->>'handoff_id')::bigint);
+    v_sent := v_sent + 1;
+  end loop;
+  return jsonb_build_object('month', to_char(v_month, 'YYYY-MM'), 'sent', v_sent, 'not_sendable', v_held);
 end $function$
 
 
@@ -69428,6 +70234,40 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_exam_grade(p_seat text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare e public.seat_exam_item; v_top jsonb; v_hit jsonb; v_pass boolean; v_found boolean; v_missing text[];
+  v_out jsonb := '[]'::jsonb;
+begin
+  for e in select * from public.seat_exam_item where seat = p_seat order by item_id loop
+    v_pass := false; v_found := false; v_missing := '{}';
+    if e.q_vec is not null then
+      select coalesce(jsonb_agg(x order by n), '[]'::jsonb) into v_top
+        from jsonb_array_elements(public.fn_reason_retrieve(e.seat, e.q_vec, 6)) with ordinality t(x, n) where n <= 5;
+      for v_hit in select x from jsonb_array_elements(v_top) x where x->>'id' = any(e.expected_entry_ids) loop
+        if not v_found then   -- the facts reported missing are the first hit's, as in grade()
+          v_missing := array(select f from unnest(e.expected_facts) f where strpos(lower(coalesce(v_hit->>'excerpt', '')), lower(f)) = 0);
+        end if;
+        v_found := true;
+        if not exists (select 1 from unnest(e.expected_facts) f where strpos(lower(coalesce(v_hit->>'excerpt', '')), lower(f)) = 0) then
+          v_pass := true;
+        end if;
+      end loop;
+    end if;
+    v_out := v_out || jsonb_build_object('id', e.item_id, 'checklist', e.checklist, 'pass', v_pass, 'found', v_found,
+      'reason', case when v_pass then null
+                     when e.q_vec is null then 'not embedded: run seat_qualification_exam.mjs --load'
+                     when not v_found then 'expected entry not in the top 5'
+                     else 'facts missing: ' || array_to_string(v_missing, ' | ') end);
+  end loop;
+  return v_out;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_for_surface(p_signed_in boolean, p_surface text)
  RETURNS text
  LANGUAGE plpgsql
@@ -69743,6 +70583,92 @@ AS $function$
          x.last_act, x.acts_24h, x.last_run, x.runs_24h, x.overdue, x.oldest_overdue
     from x order by x.seat
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_self_review(p_month date, p_seat text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_m date := date_trunc('month', p_month)::date; g jsonb; prev public.seat_self_review;
+  v_items int; v_pass int; v_rate numeric; v_lines int; v_lpass int; v_lrate numeric;
+  v_pitems text[]; v_plines text[]; v_slip text[] := '{}'; v_trend text; v_imp bigint; v_closed bigint[] := '{}'; r record;
+begin
+  if exists (select 1 from public.seat_self_review where month = v_m and seat = p_seat) then
+    return jsonb_build_object('ok', true, 'seat', p_seat, 'month', v_m, 'already', true);
+  end if;
+  if not exists (select 1 from public.org_role where role_id = p_seat and status = 'active') then
+    return jsonb_build_object('ok', false, 'error', p_seat || ' is not an active seat');
+  end if;
+
+  g := public.fn_seat_exam_grade(p_seat);
+  v_items := jsonb_array_length(g);
+  v_pass := (select count(*) from jsonb_array_elements(g) x where (x->>'pass')::boolean);
+  v_pitems := array(select x->>'id' from jsonb_array_elements(g) x where (x->>'pass')::boolean order by 1);
+  -- a senior-hire checklist line passes when every exam item under it passes
+  select count(*), count(*) filter (where ok), coalesce(array_agg(line order by line) filter (where ok), '{}')
+    into v_lines, v_lpass, v_plines
+    from (select x->>'checklist' as line, bool_and((x->>'pass')::boolean) as ok from jsonb_array_elements(g) x group by 1) c;
+  v_rate := case when v_items > 0 then round(v_pass::numeric / v_items, 3) end;
+  v_lrate := case when v_lines > 0 then round(v_lpass::numeric / v_lines, 3) end;
+
+  select * into prev from public.seat_self_review where seat = p_seat and month < v_m order by month desc limit 1;
+
+  if v_items = 0 then
+    v_trend := 'no_exam';
+    v_slip := v_slip || format('no qualification exam on file: write knowledge/exams/%s.json against the job description''s senior-hire checklist and load it (seat_qualification_exam.mjs --load)', p_seat);
+  else
+    v_trend := case when prev.month is null or prev.rate is null then 'first'
+                    when v_rate > prev.rate then 'up' when v_rate < prev.rate then 'down' else 'flat' end;
+    if prev.month is not null then
+      v_slip := v_slip || array(select format('exam item %s passed in %s and fails now (%s)', x->>'id', to_char(prev.month, 'Mon YYYY'), x->>'reason')
+                                  from jsonb_array_elements(g) x where not (x->>'pass')::boolean and x->>'id' = any(prev.passed_items) order by 1);
+      v_slip := v_slip || array(select format('checklist line %s passed in %s and fails now', l, to_char(prev.month, 'Mon YYYY'))
+                                  from unnest(prev.passed_lines) l where not (l = any(v_plines)) order by 1);
+      if prev.rate is not null and v_rate < prev.rate then
+        v_slip := v_slip || format('exam score fell from %s%% to %s%%', round(prev.rate * 100), round(v_rate * 100));
+      end if;
+      if prev.checklist_rate is not null and v_lrate < prev.checklist_rate then
+        v_slip := v_slip || format('checklist score fell from %s%% to %s%%', round(prev.checklist_rate * 100), round(v_lrate * 100));
+      end if;
+    end if;
+    if v_rate < 0.80 then v_slip := v_slip || format('exam score %s%% (%s of %s) is under the 80%% senior bar', round(v_rate * 100), v_pass, v_items); end if;
+    if v_lrate < 0.80 then v_slip := v_slip || format('checklist score %s%% (%s of %s lines) is under the 80%% senior bar', round(v_lrate * 100), v_lpass, v_lines); end if;
+    if exists (select 1 from jsonb_array_elements(g) x where x->>'reason' like 'not embedded%') then
+      v_slip := v_slip || 'exam items not embedded: run seat_qualification_exam.mjs --load'::text;
+    end if;
+  end if;
+
+  -- earlier self-review improvements of the seat close when nothing slipped this month
+  if cardinality(v_slip) = 0 then
+    for r in select id from public.ceo_improvement where source_kind = 'self_review' and seat = p_seat and status in ('open', 'assigned') loop
+      perform public.fn_ceo_improvement_close(r.id, format('%s self-review of %s: nothing slipped (exam %s%%, checklist %s%%).',
+        p_seat, to_char(v_m, 'Mon YYYY'), round(v_rate * 100), round(v_lrate * 100)));
+      v_closed := v_closed || r.id;
+    end loop;
+  else
+    v_imp := public.fn_ceo_improvement_open('self_review', p_seat || ':' || v_m, p_seat,
+      format('%s self-review of %s, opened by the seat itself: %s. Due %s.', p_seat, to_char(v_m, 'Mon YYYY'),
+             array_to_string(v_slip, '; '), to_char((v_m + interval '1 month')::date + 4, 'DD Mon YYYY')),
+      jsonb_build_object('month', v_m, 'slipped', to_jsonb(v_slip), 'rate', v_rate, 'checklist_rate', v_lrate,
+                         'failing', (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(g) x where not (x->>'pass')::boolean)));
+    if v_imp is not null then
+      update public.ceo_improvement set due_on = (v_m + interval '1 month')::date + 4,
+             close_check = 'Closes when next month''s self-review finds nothing slipped.'
+       where id = v_imp;
+    end if;
+  end if;
+
+  insert into public.seat_self_review (month, seat, items, passed, rate, checklist_lines, checklist_passed, checklist_rate,
+    prev_rate, prev_checklist_rate, trend, passed_items, passed_lines, failing, slipped, improvement_id, closed_improvements)
+  values (v_m, p_seat, v_items, v_pass, v_rate, coalesce(v_lines, 0), coalesce(v_lpass, 0), v_lrate,
+    prev.rate, prev.checklist_rate, v_trend, v_pitems, v_plines,
+    (select coalesce(jsonb_agg(x), '[]'::jsonb) from jsonb_array_elements(g) x where not (x->>'pass')::boolean),
+    v_slip, v_imp, v_closed);
+  return jsonb_build_object('ok', true, 'seat', p_seat, 'month', v_m, 'items', v_items, 'passed', v_pass, 'rate', v_rate,
+    'checklist_rate', v_lrate, 'trend', v_trend, 'slipped', cardinality(v_slip), 'improvement_id', v_imp, 'closed', cardinality(v_closed));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_seat_takes_ceo_directive(p_id bigint)
@@ -73711,6 +74637,149 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard(p_lead bigint, p_month date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_month date := coalesce(date_trunc('month', p_month)::date,
+                                 (date_trunc('month', (now() at time zone 'Asia/Dubai')) - interval '1 month')::date);
+  v_trade text := public.fn_supplier_trade(p_lead); me record; a record; v_any boolean;
+begin
+  select * into me from public.fn_supplier_scorecard_month(v_month) s where s.lead_id = p_lead;
+  -- the trade's average of each metric, only over suppliers who HAVE it, and only when there are at least three
+  select case when count(s.response_hours) >= 3 then round(avg(s.response_hours), 1) end as resp,
+         count(s.response_hours)::int as resp_n,
+         case when count(s.win_rate) >= 3 then round(avg(s.win_rate), 3) end as win,
+         count(s.win_rate)::int as win_n,
+         case when count(s.rating) >= 3 then round(avg(s.rating), 2) end as rating,
+         count(s.rating)::int as rating_n
+    into a from public.fn_supplier_scorecard_month(v_month) s where v_trade is not null and s.trade = v_trade;
+  v_any := me.response_hours is not null or me.win_rate is not null or me.rating is not null;
+  return jsonb_build_object(
+    'lead_id', p_lead, 'month', to_char(v_month, 'YYYY-MM'), 'month_label', to_char(v_month, 'FMMonth YYYY'),
+    'trade', v_trade, 'trade_label', (select t.label from public.taxonomy_trade t where t.code = v_trade),
+    'enough_data', v_any,
+    'message', case when v_any then null else 'not enough data yet' end,
+    'activity', jsonb_build_object('requests_sent', coalesce(me.invited, 0), 'quoted', coalesce(me.quoted, 0), 'won', coalesce(me.won, 0),
+                                   'ratings', coalesce(me.ratings, 0)),
+    'metrics', jsonb_build_object(
+      'response_hours', jsonb_build_object('you', me.response_hours, 'trade_average', a.resp, 'trade_suppliers', coalesce(a.resp_n, 0), 'better', 'lower'),
+      'win_rate',       jsonb_build_object('you', me.win_rate, 'trade_average', a.win, 'trade_suppliers', coalesce(a.win_n, 0), 'better', 'higher'),
+      'rating',         jsonb_build_object('you', me.rating, 'trade_average', a.rating, 'trade_suppliers', coalesce(a.rating_n, 0), 'better', 'higher')),
+    'min_suppliers_for_average', 3,
+    'tip', public.fn_supplier_scorecard_tip(me.invited, me.quoted, me.response_hours, a.resp, me.win_rate, a.win, me.rating, a.rating));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_month(p_month date)
+ RETURNS TABLE(lead_id bigint, trade text, invited integer, quoted integer, won integer, response_hours numeric, win_rate numeric, rating numeric, ratings integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with b as (   -- the month in Dubai, as timestamps
+    select (date_trunc('month', p_month)::timestamp at time zone 'Asia/Dubai') as t0,
+           ((date_trunc('month', p_month) + interval '1 month')::timestamp at time zone 'Asia/Dubai') as t1
+  ), inv as (   -- sent a request in the month, and how long his first quote on it took
+    select m.supplier_id, m.inquiry_id, min(m.sent_at) as sent_at,
+           (select min(q.created_at) from public.quotes q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id) as quoted_at
+      from public.inquiry_matches m, b
+     where m.sent_at >= b.t0 and m.sent_at < b.t1 and m.supplier_id is not null
+     group by m.supplier_id, m.inquiry_id
+  ), quo as (   -- quoted in the month, and whether the customer chose him
+    select q.supplier_id, q.inquiry_id,
+           bool_or(exists (select 1 from public.transactions t where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id and t.revealed_at is not null)
+                   or exists (select 1 from public.inquiries i where i.id = q.inquiry_id and i.hired_supplier_id = q.supplier_id)) as won
+      from public.quotes q, b
+     where q.created_at >= b.t0 and q.created_at < b.t1 and q.supplier_id is not null
+     group by q.supplier_id, q.inquiry_id
+  ), rat as (
+    select r.supplier_id, avg(r.rating)::numeric as rating, count(*)::int as n
+      from public.reviews r, b where r.created_at >= b.t0 and r.created_at < b.t1 and r.supplier_id is not null
+     group by r.supplier_id
+  ), ids as (select supplier_id from inv union select supplier_id from quo union select supplier_id from rat)
+  select s.supplier_id, public.fn_supplier_trade(s.supplier_id),
+         (select count(*)::int from inv where inv.supplier_id = s.supplier_id),
+         (select count(*)::int from quo where quo.supplier_id = s.supplier_id),
+         (select count(*)::int from quo where quo.supplier_id = s.supplier_id and quo.won),
+         (select round((percentile_cont(0.5) within group (order by extract(epoch from (inv.quoted_at - inv.sent_at)) / 3600.0))::numeric, 1)
+            from inv where inv.supplier_id = s.supplier_id and inv.quoted_at >= inv.sent_at),
+         (select round(avg(case when quo.won then 1.0 else 0.0 end), 3) from quo where quo.supplier_id = s.supplier_id),
+         (select round(rat.rating, 2) from rat where rat.supplier_id = s.supplier_id),
+         coalesce((select rat.n from rat where rat.supplier_id = s.supplier_id), 0)
+    from ids s
+    join public.leads l on l.id = s.supplier_id
+   where not coalesce(l.banned, false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_text(p_card jsonb, p_company text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m jsonb := p_card->'metrics'; v_lines text := ''; k text; v jsonb; v_name text;
+begin
+  if coalesce((p_card->>'enough_data')::boolean, false) then
+    foreach k in array array['response_hours', 'win_rate', 'rating'] loop
+      v := m->k;
+      v_name := case k when 'response_hours' then 'Response speed (median hours to your first quote)'
+                       when 'win_rate' then 'Win rate (quotes the customer chose you on)' else 'Customer rating (out of 5)' end;
+      v_lines := v_lines || '- ' || v_name || ': '
+        || case when v->>'you' is null then 'not enough data yet'
+                when k = 'win_rate' then round((v->>'you')::numeric * 100) || '%' else v->>'you' end
+        || case when v->>'trade_average' is null then ' (trade average shown once 3 suppliers of your trade have this measure)'
+                when k = 'win_rate' then ' (your trade: ' || round((v->>'trade_average')::numeric * 100) || '%)'
+                else ' (your trade: ' || (v->>'trade_average') || ')' end || chr(10);
+    end loop;
+  else
+    v_lines := 'There is not enough data yet for a scorecard: no request, quote or rating of yours in ' || (p_card->>'month_label') || '.' || chr(10);
+  end if;
+  return jsonb_build_object('lang', 'en',
+    'subject', 'Your QuotesDone scorecard for ' || (p_card->>'month_label'),
+    'body', 'Dear ' || coalesce(nullif(btrim(p_company), ''), 'partner') || ',' || chr(10) || chr(10)
+      || 'Here is how you did in ' || (p_card->>'month_label')
+      || coalesce(' against other ' || coalesce(p_card->>'trade_label', p_card->>'trade') || ' suppliers', '') || ':' || chr(10) || chr(10)
+      || v_lines || chr(10)
+      || 'One thing to improve: ' || (p_card->'tip'->>'text') || chr(10) || chr(10)
+      || 'Your scorecard is always in your portal under Insights: https://quotesdone.com/supplier' || chr(10) || chr(10)
+      || 'QuotesDone Sales Engineering');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_tip(p_invited integer, p_quoted integer, p_resp numeric, p_resp_avg numeric, p_win numeric, p_win_avg numeric, p_rating numeric, p_rating_avg numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce(p_invited, 0) = 0 and coalesce(p_quoted, 0) = 0 and p_rating is null then jsonb_build_object('code', 'complete_profile',
+      'text', 'Keep your services, the emirates you cover and your documents complete, so you are matched to more requests.')
+    when coalesce(p_invited, 0) > 0 and coalesce(p_quoted, 0) = 0 then jsonb_build_object('code', 'answer_invitations',
+      'text', 'You were sent ' || p_invited || ' request' || case when p_invited = 1 then '' else 's' end
+        || ' and quoted none. Quoting even a few of them is the fastest way to win work.')
+    when p_resp is not null and ((p_resp_avg is not null and p_resp > p_resp_avg) or (p_resp_avg is null and p_resp > 48)) then
+      jsonb_build_object('code', 'respond_faster',
+      'text', 'Your first quote took ' || p_resp || ' hours' || coalesce(' against your trade''s ' || p_resp_avg, '')
+        || '. Customers compare the quotes that arrive first; aim to quote within 24 hours of a request.')
+    when p_win is not null and ((p_win_avg is not null and p_win < p_win_avg) or (p_win_avg is null and p_win = 0 and p_quoted >= 3)) then
+      jsonb_build_object('code', 'sharpen_quotes',
+      'text', 'Customers chose ' || round(p_win * 100) || '% of your quotes' || coalesce(' against your trade''s ' || round(p_win_avg * 100) || '%', '')
+        || '. Price every line, and state lead time, validity and warranty: the comparison reads them line by line.')
+    when p_rating is not null and ((p_rating_avg is not null and p_rating < p_rating_avg) or (p_rating_avg is null and p_rating < 4)) then
+      jsonb_build_object('code', 'lift_rating',
+      'text', 'Your customers rated you ' || p_rating || '/5' || coalesce(' against your trade''s ' || p_rating_avg || '/5', '')
+        || '. Call the customer within a day of a reveal and confirm the scope and dates in writing.')
+    else jsonb_build_object('code', 'keep_going',
+      'text', 'You are at or above your trade on every measure we have. Keep your services and documents current so you keep being matched.')
+  end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_screening_decide(p_hit_id bigint, p_decision text, p_actor text DEFAULT 'ceo'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -73986,6 +75055,19 @@ AS $function$
       || 'ولا في إبرازكم مورّدًا مفضّلًا؛ فكل مورّد يُطابَق وفق مدى الملاءمة وحدها. '
       || 'إنه سجلّ لأدائكم، لا ترتيب في طابور.'
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_trade(p_lead bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (select nullif(lower(btrim(c.trade_code)), '') from public.lead_trade_class c where c.lead_id = p_lead),
+    (select nullif(lower(btrim(sc.trades[1])), '') from public.supplier_capabilities sc where sc.supplier_id = p_lead and sc.confirmed_at is not null),
+    (select nullif(lower(btrim(l.sector)), '') from public.leads l where l.id = p_lead))
 $function$
 
 
@@ -85826,9 +86908,11 @@ ALTER TABLE public.ceo_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_seat_audit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_seat_directive ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_standing_grant ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_strategy_memo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_weekly_report ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_weekly_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_year_plan ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_year_plan_milestone ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_heuristic ENABLE ROW LEVEL SECURITY;
@@ -86270,6 +87354,7 @@ ALTER TABLE public.seat_deliberation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_deliberation_ceiling ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_deliberation_turn ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_duty ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_exam_item ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_handoff_kind ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_judgement ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_eval_question ENABLE ROW LEVEL SECURITY;
@@ -86279,6 +87364,7 @@ ALTER TABLE public.seat_knowledge_recall_answer ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_knowledge_refresh ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_learning_daily ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.seat_lesson_cluster ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.seat_self_review ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_advisor_baseline ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.security_events ENABLE ROW LEVEL SECURITY;
@@ -86325,6 +87411,7 @@ ALTER TABLE public.supplier_product_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_recruitment_funnel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_scorecard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_gap ENABLE ROW LEVEL SECURITY;
@@ -86425,7 +87512,9 @@ CREATE POLICY ceo_plan_month_service_role_only ON public.ceo_plan_month AS PERMI
 CREATE POLICY ceo_review_service_role_only ON public.ceo_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_seat_audit_service_role_only ON public.ceo_seat_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_seat_directive_service_role_only ON public.ceo_seat_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_strategy_memo_service_role_only ON public.ceo_strategy_memo AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_weekly_review_service_role_only ON public.ceo_weekly_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_service_role_only ON public.ceo_year_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_milestone_service ON public.ceo_year_plan_milestone AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY charge_audit_service_role_only ON public.charge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -86573,6 +87662,7 @@ CREATE POLICY seat_deliberation_service_role_only ON public.seat_deliberation AS
 CREATE POLICY seat_deliberation_ceiling_service_role_only ON public.seat_deliberation_ceiling AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_deliberation_turn_service_role_only ON public.seat_deliberation_turn AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_duty_service_role_only ON public.seat_duty AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_exam_item_service_role_only ON public.seat_exam_item AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_handoff_kind_service_role_only ON public.seat_handoff_kind AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_judgement_service_role_only ON public.seat_judgement AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_knowledge_eval_question_service_role_only ON public.seat_knowledge_eval_question AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -86582,6 +87672,7 @@ CREATE POLICY seat_knowledge_recall_answer_service_role_only ON public.seat_know
 CREATE POLICY seat_knowledge_refresh_service_role_only ON public.seat_knowledge_refresh AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_learning_daily_service_role_only ON public.seat_learning_daily AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY seat_lesson_cluster_service_role_only ON public.seat_lesson_cluster AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY seat_self_review_service_role_only ON public.seat_self_review AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY service_implication_service_role_only ON public.service_implication AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY sms_messages_service_role_only ON public.sms_messages AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY social_connect_link_service_role_only ON public.social_connect_link AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -86603,6 +87694,7 @@ CREATE POLICY supplier_own_word_reading_service_role_only ON public.supplier_own
 CREATE POLICY supplier_performance_service_role_only ON public.supplier_performance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_recruitment_funnel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_scorecard_service_role_only ON public.supplier_scorecard AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_gap_service_role_only ON public.supply_gap AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_recruitment_brief_service_role_only ON public.supply_recruitment_brief AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
@@ -86635,6 +87727,7 @@ select cron.schedule('wa_flush','*/2 * * * *',$CRON$
     body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
   );
 $CRON$);
+select cron.schedule('ceo-strategy-memo-monthly','0 2 2 * *',$CRON$select public.fn_ceo_strategy_memo()$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
 --   accountant_weekly_report_local_dow

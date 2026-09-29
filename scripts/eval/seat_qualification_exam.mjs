@@ -23,6 +23,7 @@
 //          left(body_en, 1200) of the repository entry, i.e. exactly what the loader would write.
 //
 //   node scripts/eval/seat_qualification_exam.mjs [--mode live|staged] [--seat ceo] [--out results.json]
+//   node scripts/eval/seat_qualification_exam.mjs --load [--seat ceo]   (writes public.seat_exam_item; see below)
 //
 // Exit 1 when an exam file is malformed (an expected id missing, or a fact that is not in the first 1,200 characters
 // of an expected entry: such an item could never pass, which would make the pass rate measure the author, not the
@@ -94,6 +95,27 @@ async function main() {
   if (bad.length) { console.error(bad.join('\n')); process.exit(1); }
 
   const embedder = await makeEmbedder(sql, PROJECT_REF);
+
+  // --load (29 Sep 2026, ceo, instruction 1009): store each item WITH its question's vector in public.seat_exam_item,
+  // so the seats' monthly self-review (fn_seat_self_review) re-grades it in SQL against live retrieval, no embedder
+  // needed at run time. The seat's rows are replaced by the file's: an item removed from the file leaves the exam.
+  if (process.argv.includes('--load')) {
+    const lit = (s) => `'${String(s).replace(/'/g, "''")}'`;
+    const arr = (a) => `array[${a.map(lit).join(',')}]::text[]`;
+    for (const x of exams) {
+      const vecs = await embedder.many(x.items.map((i) => i.q_en));
+      const rows = x.items.map((it, i) => `(${lit(x.seat)}, ${lit(it.id)}, ${lit(it.checklist ?? 'unlisted')}, ${lit(it.q_en)}, ${arr(it.expected_entry_ids)}, ${arr(it.expected_facts)}, ${vecLit(vecs[i])}, ${lit(x.file)})`);
+      await sql(`begin;
+        delete from public.seat_exam_item where seat = ${lit(x.seat)} and item_id <> all(${arr(x.items.map((i) => i.id))});
+        insert into public.seat_exam_item (seat, item_id, checklist, q_en, expected_entry_ids, expected_facts, q_vec, source_file)
+        values ${rows.join(',\n')}
+        on conflict (seat, item_id) do update set checklist = excluded.checklist, q_en = excluded.q_en, expected_entry_ids = excluded.expected_entry_ids,
+          expected_facts = excluded.expected_facts, q_vec = excluded.q_vec, source_file = excluded.source_file, loaded_at = now();
+        commit;`, { retry: false });
+      console.log(`  loaded ${x.seat}: ${x.items.length} items`);
+    }
+    return;
+  }
   const topExpr = (seat, vec) => `(select coalesce(jsonb_agg(x->>'id' order by n), '[]'::jsonb) from jsonb_array_elements(public.fn_reason_retrieve('${seat}', ${vecLit(vec)}, ${K_RETRIEVE})) with ordinality t(x, n) where n <= ${TOP})`;
   console.log(`mode: ${mode}`);
   const report = { mode, at: new Date().toISOString(), top: TOP, seats: [] };
