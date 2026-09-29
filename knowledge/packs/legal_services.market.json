@@ -1,0 +1,107 @@
+{
+  "trade": "legal_services",
+  "layer": "uae-market",
+  "label_en": "Legal services",
+  "label_ar": "الخدمات القانونية",
+  "entries": [
+    {
+      "id": "legal_services:uae-market-products",
+      "topic": "Legal services: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Legal services in the UAE include corporate and commercial law (company formation, shareholder agreements, M&A, joint ventures, commercial agency under Federal Law 3 of 2022), contracts drafting and review, employment law (UAE Labour Law Federal Decree-Law 33 of 2021, DIFC and ADGM employment laws), real estate and construction law (FIDIC disputes, off-plan, RERA), litigation in onshore UAE courts (Arabic-language proceedings), arbitration (DIAC, ADCCAC/Abu Dhabi International Arbitration Centre arbad, ICC, DIFC-LCIA successor arrangements), DIFC and ADGM common-law courts, banking and finance, intellectual property (trademark registration with the Ministry of Economy), family and personal status law, criminal defence, debt recovery, regulatory and compliance (AML, data protection), wills (DIFC Wills Service, ADJD non-Muslim wills), and notarisation and legal translation. Only UAE-licensed advocates (mostly UAE nationals for rights of audience onshore) may appear before onshore courts; foreign law firms are licensed as legal consultants by the emirate's legal affairs department (Dubai Legal Affairs Department, ADJD).",
+      "body_ar": "تشمل الخدمات القانونية في الإمارات قانون الشركات والقانون التجاري (تأسيس الشركات، واتفاقيات المساهمين، والاندماج والاستحواذ، والمشاريع المشتركة، والوكالة التجارية بموجب القانون الاتحادي رقم 3 لسنة 2022)، وصياغة العقود ومراجعتها، وقانون العمل (قانون العمل الإماراتي المرسوم بقانون اتحادي رقم 33 لسنة 2021، وقوانين العمل في مركز دبي المالي العالمي وسوق أبوظبي العالمي)، والقانون العقاري وقانون الإنشاءات (نزاعات فيديك، والمشاريع على الخارطة، ومؤسسة التنظيم العقاري)، والتقاضي أمام المحاكم الاتحادية والمحلية (إجراءات باللغة العربية)، والتحكيم (مركز دبي للتحكيم الدولي، ومركز أبوظبي الدولي للتحكيم «أرباد»، وغرفة التجارة الدولية، والترتيبات التي خلفت مركز DIFC-LCIA)، ومحاكم القانون العام في مركز دبي المالي العالمي وسوق أبوظبي العالمي، والمصارف والتمويل، والملكية الفكرية (تسجيل العلامات التجارية لدى وزارة الاقتصاد)، وقانون الأسرة والأحوال الشخصية، والدفاع الجنائي، وتحصيل الديون، والتنظيم والامتثال (مكافحة غسل الأموال، وحماية البيانات)، والوصايا (خدمة وصايا مركز دبي المالي العالمي، ووصايا غير المسلمين لدى دائرة القضاء في أبوظبي)، والتوثيق والترجمة القانونية. ولا يجوز المثول أمام المحاكم الاتحادية والمحلية إلا للمحامين المرخصين في الدولة (ومعظمهم مواطنون إماراتيون لحق الترافع)؛ وتُرخص مكاتب المحاماة الأجنبية كمستشارين قانونيين من دائرة الشؤون القانونية في الإمارة (دائرة الشؤون القانونية في دبي، ودائرة القضاء في أبوظبي).",
+      "sources": [
+        "https://galadarilaw.com/news/galadari-alerts-prominent-changes-in-the-law-of-regulating-the-legal-profession/",
+        "https://www.clydeco.com/en/locations",
+        "https://www.moj.gov.ae/en/home.aspx",
+        "https://www.tamimi.com/",
+        "https://www.adjd.gov.ae",
+        "https://www.diac.com",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal Decree-Law 34 of 2022 lets advocates agree a percentage of the awarded value as fees, subject to conditions (Articles 49 and 55) -> corrected: 'restricted' replaced; the 25% cap reported by searches was not confirmed on an opened page | Clyde & Co has Abu Dhabi and Dubai offices -> confirmed | MOJ registers legal translators and handles lawyer services -> confirmed | Al Tamimi and other named firms -> removed: page redirected, not confirmed. Not checked: Current names after law firm mergers, rules on contingency/success fees under the current advocacy law, and the status of arbitration centre successor arrangements were not verified."
+    },
+    {
+      "id": "legal_services:uae-market-brands",
+      "topic": "Legal services: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed firms and arbitration centre: Clyde & Co, Galadari Advocates, Dubai International Arbitration Centre. Other international and local firms were not checked; only UAE-licensed advocates may appear before onshore courts.",
+      "body_ar": "المكاتب ومركز التحكيم المؤكدون: Clyde & Co، Galadari Advocates، Dubai International Arbitration Centre. ولم يُتحقق من المكاتب الدولية والمحلية الأخرى؛ ولا يجوز المثول أمام المحاكم المحلية إلا للمحامين المرخصين في الدولة.",
+      "sources": [
+        "https://galadarilaw.com/news/galadari-alerts-prominent-changes-in-the-law-of-regulating-the-legal-profession/",
+        "https://www.clydeco.com/en/locations",
+        "https://www.moj.gov.ae/en/home.aspx",
+        "https://www.tamimi.com/",
+        "https://www.adjd.gov.ae",
+        "https://www.diac.com",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal Decree-Law 34 of 2022 lets advocates agree a percentage of the awarded value as fees, subject to conditions (Articles 49 and 55) -> corrected: 'restricted' replaced; the 25% cap reported by searches was not confirmed on an opened page | Clyde & Co has Abu Dhabi and Dubai offices -> confirmed | MOJ registers legal translators and handles lawyer services -> confirmed | Al Tamimi and other named firms -> removed: page redirected, not confirmed. Not checked: Current names after law firm mergers, rules on contingency/success fees under the current advocacy law, and the status of arbitration centre successor arrangements were not verified."
+    },
+    {
+      "id": "legal_services:uae-market-sizes",
+      "topic": "Legal services: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Legal fees are hourly by seniority (partner, senior associate, associate, paralegal), fixed fees for defined work (company set-up documents, trademark filing, contract drafting, will), retainers for ongoing advice, or stage-based fees for litigation (first instance, appeal, cassation, execution) sometimes combined with a success fee (under Federal Decree-Law 34 of 2022 an advocate may agree a percentage of the amount awarded, subject to the law's conditions). Court fees and arbitration centre fees are charged separately according to published scales.",
+      "body_ar": "تكون الأتعاب القانونية بالساعة حسب الأقدمية (شريك، ومشارك أول، ومشارك، ومساعد قانوني)، أو أتعاباً ثابتة لأعمال محددة (مستندات تأسيس الشركة، وتسجيل العلامة التجارية، وصياغة العقد، والوصية)، أو أتعاباً شهرية ثابتة للاستشارات المستمرة، أو أتعاباً حسب المرحلة للتقاضي (أول درجة، والاستئناف، والتمييز، والتنفيذ) تُجمع أحياناً مع أتعاب نجاح (بموجب المرسوم بقانون اتحادي رقم 34 لسنة 2022 يجوز للمحامي الاتفاق على نسبة من المبلغ المحكوم به، وفق الشروط التي يحددها القانون). وتُحتسب رسوم المحاكم ورسوم مراكز التحكيم بشكل منفصل وفق الجداول المنشورة.",
+      "sources": [
+        "https://galadarilaw.com/news/galadari-alerts-prominent-changes-in-the-law-of-regulating-the-legal-profession/",
+        "https://www.clydeco.com/en/locations",
+        "https://www.moj.gov.ae/en/home.aspx",
+        "https://www.tamimi.com/",
+        "https://www.adjd.gov.ae",
+        "https://www.diac.com",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal Decree-Law 34 of 2022 lets advocates agree a percentage of the awarded value as fees, subject to conditions (Articles 49 and 55) -> corrected: 'restricted' replaced; the 25% cap reported by searches was not confirmed on an opened page | Clyde & Co has Abu Dhabi and Dubai offices -> confirmed | MOJ registers legal translators and handles lawyer services -> confirmed | Al Tamimi and other named firms -> removed: page redirected, not confirmed. Not checked: Current names after law firm mergers, rules on contingency/success fees under the current advocacy law, and the status of arbitration centre successor arrangements were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can a foreign law firm represent us in a Dubai onshore court?",
+      "q_ar": "هل يمكن لمكتب محاماة أجنبي تمثيلنا أمام محكمة دبي المحلية؟",
+      "expected_entry_ids": [
+        "legal_services:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Federal Decree-Law 34 of 2022 lets advocates agree a percentage of the awarded value as fees, subject to conditions (Articles 49 and 55)",
+        "url": "https://galadarilaw.com/news/galadari-alerts-prominent-changes-in-the-law-of-regulating-the-legal-profession/",
+        "result": "corrected: 'restricted' replaced; the 25% cap reported by searches was not confirmed on an opened page"
+      },
+      {
+        "claim": "Clyde & Co has Abu Dhabi and Dubai offices",
+        "url": "https://www.clydeco.com/en/locations",
+        "result": "confirmed"
+      },
+      {
+        "claim": "MOJ registers legal translators and handles lawyer services",
+        "url": "https://www.moj.gov.ae/en/home.aspx",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al Tamimi and other named firms",
+        "url": "https://www.tamimi.com/",
+        "result": "removed: page redirected, not confirmed"
+      }
+    ],
+    "unverified": "Current names after law firm mergers, rules on contingency/success fees under the current advocacy law, and the status of arbitration centre successor arrangements were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

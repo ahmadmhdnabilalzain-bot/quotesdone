@@ -1,0 +1,99 @@
+{
+  "trade": "toys_wholesale",
+  "layer": "uae-market",
+  "label_en": "Toys wholesale",
+  "label_ar": "جملة ألعاب أطفال",
+  "entries": [
+    {
+      "id": "toys_wholesale:uae-market-products",
+      "topic": "Toys wholesale: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Toys wholesale in the UAE covers infant and pre-school toys, dolls and action figures, construction and building sets, educational and STEM toys, puzzles and board games, remote-control cars, drones and ride-ons (battery-powered cars, scooters, bikes), plush toys, outdoor and water toys, party and seasonal items, and licensed character merchandise. The UAE Toy Safety technical regulation (MoIAT, formerly ESMA) requires toys for children under 14 to comply with GSO/ISO 8124 or EN 71 safety requirements, carry the Emirates Conformity mark via ECAS with a certificate of conformity, and have Arabic/English warnings and age grading; battery and electrical toys must also meet IEC 62115 / EN 62115, and RC toys and drones require TDRA type approval and GCAA rules for drones. Restricted chemicals (phthalates, lead, heavy metals) are controlled.",
+      "body_ar": "تشمل تجارة الألعاب بالجملة في الإمارات ألعاب الرضع وما قبل المدرسة، والدمى وشخصيات الحركة، وأطقم البناء والتركيب، والألعاب التعليمية وألعاب العلوم والتقنية، والألغاز وألعاب الطاولة، والسيارات المتحكم بها عن بعد، والطائرات بدون طيار وألعاب الركوب (السيارات العاملة بالبطارية، والسكوترات، والدراجات)، والألعاب المحشوة، وألعاب الهواء الطلق والماء، ومستلزمات الحفلات والمواسم، ومنتجات الشخصيات المرخصة. وتشترط اللائحة الفنية الإماراتية لسلامة الألعاب (وزارة الصناعة والتكنولوجيا المتقدمة، هيئة المواصفات والمقاييس سابقاً) أن تمتثل الألعاب المخصصة للأطفال دون 14 عاماً لمتطلبات السلامة GSO/ISO 8124 أو EN 71، وأن تحمل علامة المطابقة الإماراتية عبر نظام المطابقة الإماراتي مع شهادة مطابقة، وتحذيرات وتصنيف عمري بالعربية والإنجليزية؛ ويجب أن تستوفي الألعاب العاملة بالبطارية والكهرباء أيضاً IEC 62115 / EN 62115، وتتطلب الألعاب المتحكم بها لاسلكياً والطائرات بدون طيار اعتماد النوع من هيئة تنظيم الاتصالات وقواعد الهيئة العامة للطيران المدني للطائرات بدون طيار. وتُراقب المواد الكيميائية المقيدة (الفثالات، والرصاص، والمعادن الثقيلة).",
+      "sources": [
+        "https://graflo.toys/toy-safety-certifications-uae/",
+        "https://www.alfuttaim.com/our-brands/toys-r-us/",
+        "https://thedubaimall.com/en/shop/hamleys-the-finest-toy-shop-in-the-world",
+        "https://moiat.gov.ae",
+        "https://www.iso.org",
+        "https://tdra.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified."
+    },
+    {
+      "id": "toys_wholesale:uae-market-brands",
+      "topic": "Toys wholesale: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed retailers and major toy brands: Al-Futtaim (Toys\"R\"Us), Hamleys, Babyshop (Landmark Group), LEGO, Mattel, Hasbro, Spin Master, VTech, Playmobil. The brands' UAE distributors were not checked. Wholesale is concentrated in Deira (Al Ras, Murshid Bazaar), Dragon Mart and Sharjah, with heavy re-export.",
+      "body_ar": "تجار التجزئة المؤكدون وكبرى علامات الألعاب: Al-Futtaim (Toys\"R\"Us)، Hamleys، Babyshop (Landmark Group)، LEGO، Mattel، Hasbro، Spin Master، VTech، Playmobil. ولم يُتحقق من موزعي العلامات في الإمارات. وتتركز تجارة الجملة في ديرة (الراس، وسوق المرشد) ودراغون مارت والشارقة، مع إعادة تصدير كبيرة.",
+      "sources": [
+        "https://graflo.toys/toy-safety-certifications-uae/",
+        "https://www.alfuttaim.com/our-brands/toys-r-us/",
+        "https://thedubaimall.com/en/shop/hamleys-the-finest-toy-shop-in-the-world",
+        "https://moiat.gov.ae",
+        "https://www.iso.org",
+        "https://tdra.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified."
+    },
+    {
+      "id": "toys_wholesale:uae-market-sizes",
+      "topic": "Toys wholesale: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Wholesale is priced per piece with carton quantities (commonly 12, 24, 36, 48 or 72 pcs per carton) or per carton; ride-ons per unit. Importers buy per container (20 ft/40 ft/40 HQ) with factory MOQs often 500-3,000 pcs per item. ECAS certification cost is per product/family and adds lead time. Seasonal peaks: back-to-school, Eid, National Day and Christmas.",
+      "body_ar": "تُسعّر تجارة الجملة لكل قطعة بكميات كرتونية (عادةً 12 أو 24 أو 36 أو 48 أو 72 قطعة لكل كرتونة) أو لكل كرتونة؛ وألعاب الركوب لكل وحدة. ويشتري المستوردون بالحاوية (20 قدماً/40 قدماً/40 عالية) مع حد أدنى لدى المصانع غالباً 500-3000 قطعة لكل صنف. وتكون تكلفة شهادة المطابقة الإماراتية لكل منتج أو عائلة منتجات وتضيف وقتاً للتوريد. وتشمل مواسم الذروة العودة إلى المدارس والعيد واليوم الوطني والكريسماس.",
+      "sources": [
+        "https://graflo.toys/toy-safety-certifications-uae/",
+        "https://www.alfuttaim.com/our-brands/toys-r-us/",
+        "https://thedubaimall.com/en/shop/hamleys-the-finest-toy-shop-in-the-world",
+        "https://moiat.gov.ae",
+        "https://www.iso.org",
+        "https://tdra.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71) -> confirmed | Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand -> confirmed | Hamleys franchise partner -> removed: operator not confirmed. Not checked: Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Do imported toys need ECAS certification before sale in the UAE?",
+      "q_ar": "هل تحتاج الألعاب المستوردة إلى شهادة نظام المطابقة الإماراتي قبل بيعها في الإمارات؟",
+      "expected_entry_ids": [
+        "toys_wholesale:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Toys must carry ECAS conformity from an MoIAT notified body; tests cover mechanical, chemical, flammability and electrical safety (ISO 8124, EN 71)",
+        "url": "https://graflo.toys/toy-safety-certifications-uae/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al-Futtaim operates Toys\"R\"Us in the UAE (since 1995); Hamleys is at Dubai Mall; Babyshop is a Landmark Group brand",
+        "url": "https://www.alfuttaim.com/our-brands/toys-r-us/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Hamleys franchise partner",
+        "url": "https://thedubaimall.com/en/shop/hamleys-the-finest-toy-shop-in-the-world",
+        "result": "removed: operator not confirmed"
+      }
+    ],
+    "unverified": "Current franchise holders for Toys R Us and Hamleys in the UAE and the latest edition of the toy regulation were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

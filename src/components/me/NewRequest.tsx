@@ -29,6 +29,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { mergeAttachment } from '@/lib/requestAttachments';
+import { supaClient } from '@/lib/supaClient';
+import { specGuideText } from '@/lib/specGuide';
 import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
@@ -101,6 +103,18 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [posted, setPosted] = useState(null); // set when create_inquiry answered ok and reached no supplier
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // The trade's published "how to specify" guide (scripts/sql/customer_spec_guide.sql); none -> nothing shown.
+  const guideTrade = (brief && brief.category) || meta.category || '';
+  const [guide, setGuide] = useState(null);
+  useEffect(() => {
+    let live = true;
+    setGuide(null);
+    if (!guideTrade) return;
+    supaClient('qd-cust-auth').rpc('fn_customer_spec_guide', { p_trade: guideTrade }).maybeSingle()
+      .then(({ data }) => { if (live) setGuide(data ? { ...data, status: 'published' } : null); }, () => {});
+    return () => { live = false; };
+  }, [guideTrade]);
+  const guideText = specGuideText(guide, lang);
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
   const fileRef = useRef(null); const boqRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
   const modelHeld = llmAvailable === false;
@@ -409,7 +423,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits }, token).catch(() => null);
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? combineMode : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, requirement_edits: edits, lang }, token).catch(() => null);
     setBusy(false);
     // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
@@ -461,6 +475,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
       </div>
       {meta.readiness != null && <ReadinessBar pct={meta.readiness} lang={lang} reduce={reduce} />}
+      {guideText ? (
+        <details className="mx-4 mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[12.5px]" data-testid="spec-guide">
+          <summary className="cursor-pointer font-semibold text-foreground">{t(lang, 'nr_spec_guide')}</summary>
+          <div className="mt-1.5 whitespace-pre-line text-muted-foreground">{guideText}</div>
+        </details>
+      ) : null}
 
       <div className="flex-1 space-y-2.5 overflow-y-auto px-4 py-3" aria-live="polite">
         {messages.map((m, i) => (

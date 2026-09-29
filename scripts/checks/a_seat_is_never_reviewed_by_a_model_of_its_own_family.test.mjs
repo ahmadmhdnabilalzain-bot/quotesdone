@@ -57,7 +57,8 @@ declare
   v_steel2 constant text := 'Against the revealed plan: a nine hundred dirham search budget is untested against any supplier gap.';
 begin
   select count(*) into n_before from public.seat_deliberation where not demo;
-  -- the file registers no pair; both exist only inside this rolled-back transaction (marketing -> ceo is #876's)
+  -- the file registers no pair; both exist only inside this rolled-back transaction unless production already has
+  -- them (marketing -> ceo is #876's; sales_engineer -> ceo since the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql)
   insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
   values ('deliberation.review', 'marketing', 'ceo', 'ZZ DEMO probe pair', 'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
           'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql')
@@ -65,7 +66,8 @@ begin
   insert into public.seat_deliberation_ceiling values ('marketing', 'ceo', 'marketing', 50, 'ZZ DEMO probe pair') on conflict do nothing;
   insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
   values ('deliberation.review', 'sales_engineer', 'ceo', 'ZZ DEMO probe pair', 'fn_seat_deliberation_acts_on_handoff', interval '2 days', true,
-          'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql');
+          'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql')
+  on conflict (type, from_seat, to_seat) do nothing;
   insert into public.seat_deliberation_ceiling values ('sales_engineer', 'ceo', 'marketplace', 50, 'ZZ DEMO probe pair');
 
   -- ROUTING, both directions
