@@ -22,6 +22,15 @@ Deno.test('an RSS feed parses to items with a link and a title; one without a li
   assertEquals(parseRss(RSS, 1).length, 1);
 });
 
+Deno.test('Google Trends searches, which all link the feed, each get their own explore URL', () => {
+  const xml = `<rss><channel><item><title>dubai rain</title><link>https://trends.google.com/trending/rss?geo=AE</link></item>
+<item><title>villa waterproofing</title><link>https://trends.google.com/trending/rss?geo=AE</link></item></channel></rss>`;
+  assertEquals(parseRss(xml).map((i) => i.url), [
+    'https://trends.google.com/trends/explore?geo=AE&q=dubai%20rain',
+    'https://trends.google.com/trends/explore?geo=AE&q=villa%20waterproofing',
+  ]);
+});
+
 Deno.test('the web engine cites us only when our own domain is a result, with its rank', () => {
   assertEquals(webCitation([{ url: 'https://other.example.invalid' }, { url: 'https://www.quotesdone.ae/blog/x' }]),
     { cited: true, rank: 2, evidence: 'https://www.quotesdone.ae/blog/x' });
