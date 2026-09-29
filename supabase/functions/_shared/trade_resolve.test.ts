@@ -32,9 +32,9 @@ const SERVICES: MeaningService[] = [
   { trade_code: 'hvac', code: 'chiller_maintenance', label_en: 'Chiller maintenance', label_ar: 'صيانة المبردات', aliases: [], vec: [0, 0, 1] },
 ];
 const VEC: Record<string, number[]> = {
-  'We distribute office printers and copiers': [0.99, 0.1, 0],
+  'We distribute office printers': [0.99, 0.1, 0],   // clauses: meaningClauses splits at 'and'
   'Gold partner of the leading brands': [0.95, 0.2, 0.1],            // near printers, and no head word: never accepted
-  'Activities: Plumbing works and drainage maintenance': [0.05, 0.97, 0.1],
+  'drainage maintenance': [0.05, 0.97, 0.1],
 };
 const deps = (o: Partial<TradeResolveDeps> = {}): TradeResolveDeps => ({
   normTrades: EXACT, services: SERVICES, embed: async (t) => VEC[t] ?? [0.3, 0.3, 0.3], budget: { left: 16 }, ...o,

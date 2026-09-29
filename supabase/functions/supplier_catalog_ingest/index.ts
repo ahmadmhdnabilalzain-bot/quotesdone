@@ -48,6 +48,7 @@ import { observe } from '../_shared/observe.ts';
 import { readDocument, type DocumentRead } from '../_shared/doc_read/index.ts';
 import { PHOTO_TEXT_MAX, proposeTradesFromDocs } from '../_shared/supplier_doc_trades.ts';
 import { readWithModel } from '../_shared/catalogue_model.ts';
+import { activeServiceRows } from '../_shared/service_vocabulary.ts';
 import { productsFromText } from './rows_from_text.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 
@@ -220,7 +221,7 @@ Deno.serve(observe('supplier_catalog_ingest', async (req) => {
     // supplier_photo_vision_enabled, OFF by default: then the answer is the honest EN/AR line, never a guess.
     const vision = async () => {
       if (!san.mime.startsWith('image/')) return undefined;
-      const { data: keys } = await admin.from('taxonomy_trade_service').select('trade_code,code').eq('active', true);
+      const { data: keys } = await activeServiceRows(admin, 'trade_code,code'); // paged: 1,047 rows > max-rows 1,000
       return readWithModel(admin, 'photo', { image_b64: dataB64.replace(/^data:[^,]*,/, ''), mime: san.mime },
         new Set(((keys || []) as { trade_code: string; code: string }[]).map((k) => `${k.trade_code}.${k.code}`)));
     };

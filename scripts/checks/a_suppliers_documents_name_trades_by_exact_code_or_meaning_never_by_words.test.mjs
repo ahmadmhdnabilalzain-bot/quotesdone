@@ -8,8 +8,8 @@
 //   * static: trade_words.ts or a caller of tradesFromText comes back; the document reader or the Services
 //     rewrite reads a trade-alias vocabulary again; fn_norm_trades_many loses its revoke or its search_path;
 //   * live (token): on ZZ DEMO documents, with production's own fn_norm_trades (this change's file run first in a
-//     rolled-back transaction while it is pending), production's stored service vectors and the real gte-small
-//     model (the free in-region ai_gateway embed path, not OpenRouter), a heading that IS a code resolves, the
+//     rolled-back transaction while it is pending), the service vectors as production reads them after the release
+//     backfill and embed_ml (free, in-region, not OpenRouter), a heading that IS a code resolves, the
 //     catalogue is read as what it sells, and none of the false hits the alias words produced on 21 Sep comes back.
 //     Nothing is written; nobody is contacted.
 //
@@ -69,12 +69,10 @@ const PROFILE = [
   'Activities: Plumbing works and drainage maintenance',
 ].join('\n');
 
-test('production, ZZ DEMO documents: an exact code resolves, the catalogue is read as what it sells, no false hit', { skip: SKIP, timeout: 600_000 }, async () => {
+test('production, ZZ DEMO documents: an exact code resolves, the catalogue is read as what it sells, no false hit', { skip: SKIP, timeout: 900_000 }, async () => {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
-  const { withRetry } = await import('../lib/retry.mjs');
   const T = (f) => pathToFileURL(join(SHARED, f)).href;
   const { tradesOfText, exactCandidates, textLines } = await import(T('trade_resolve.ts'));
-  const { parseVec } = await import(T('service_meaning.ts'));
   const { catalogueLines, supplyOnlyOf } = await import(T('catalogue_read.ts'));
   const { PAGES } = await import(T('catalogue_fixtures/make_zz_demo_catalogue.mjs'));
 
@@ -95,24 +93,14 @@ test('production, ZZ DEMO documents: an exact code resolves, the catalogue is re
   }
   assert.ok(exact, 'the probe committed instead of rolling back');
 
-  const rows = await sql(`select trade_code, code, label_en, label_ar, aliases, embedding_gte::text as v from public.taxonomy_trade_service where active`);
-  const services = rows.map(({ v, ...s }) => ({ ...s, vec: parseVec(v) }));
-  const secret = (await sql(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value;
-  assert.ok(secret, 'no cred_fn_ai in app_secrets');
-  const embed = async (text) => {
-    const { r, j } = await withRetry(async () => {
-      const r = await fetch(`https://${PROJECT_REF}.supabase.co/functions/v1/ai_gateway`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: secret, fn: 'supplier_doc_trades', action: 'embed', text }),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (r.status === 503 && j.error === 'embed_failed') throw new Error('embed_failed (HTTP 503)');
-      return { r, j };
-    }, 3, 1000);
-    assert.ok(r.status === 200 && j.ok === true && j.embedding, `the free embed path refused (HTTP ${r.status} ${j.error ?? ''})`);
-    return JSON.parse(j.embedding);
-  };
-  const deps = () => ({ normTrades: async (ph) => Object.fromEntries(ph.filter((p) => exact[p]).map((p) => [p, exact[p]])), services, embed, budget: { left: 16 } });
+  // The service vectors as production reads them once the release backfill has run (scripts/lib/service_vectors.mjs:
+  // stored when current, otherwise computed in memory through embed_ml), and the same embed_ml path per clause.
+  const { liveServices } = await import('../lib/service_vectors.mjs');
+  const { MEANING_MAX_LINES } = await import(T('service_meaning.ts'));
+  const { services, embed, stats } = await liveServices({ sql, PROJECT_REF, caller: 'supplier_doc_trades' });
+  console.log('  service vectors:', JSON.stringify(stats));
+  assert.equal(stats.failed, 0, 'a service vector could not be computed');
+  const deps = () => ({ normTrades: async (ph) => Object.fromEntries(ph.filter((p) => exact[p]).map((p) => [p, exact[p]])), services, embed, budget: { left: MEANING_MAX_LINES } });
 
   const profile = await tradesOfText(PROFILE, deps());
   const cat = await tradesOfText(catalogue.text, deps(), { supplyOnly: catalogue.supplyOnly });

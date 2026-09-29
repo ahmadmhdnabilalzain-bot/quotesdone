@@ -38,8 +38,8 @@
 import { foldForMatch, termPattern } from './alias_pattern.ts';
 import { finishRewrite, rewriteServices, tidy, type Rewrite, type ServiceTerm } from './service_rewrite.ts';
 
-// Bounded, not merely large: a catalogue line is short once spec rows are gone, so the alias scan is
-// CATALOGUE_MAX_LINES x ~1,600 patterns over at most MAX_HEADING_WORDS words each.
+// Bounded, not merely large: at most CATALOGUE_MAX_LINES lines, each short once spec rows are gone. Since
+// 29 Sep 2026 (decision point 93) the rewrite names a service only by an exact name; the rest is meaning's.
 export const CATALOGUE_MAX_TEXT = 80_000;
 export const CATALOGUE_MAX_LINES = 400;
 export const MAX_HEADING_WORDS = 8;
