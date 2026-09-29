@@ -52,6 +52,20 @@ test('think() recalls through the shared recall, which opens the judgement WITH 
   assert.match(recall, /rpc\('fn_judgement_record',[\s\S]{0,300}p_recall: recallTrace\(m\)/, 'recallCases no longer records its recall');
 });
 
+// 28 Sep 2026: 9 of 9 production judgements sat at 'recalled' forever, and none said which recalled case it
+// used. The trace must name the case a decision followed (scripts/sql/a_decision_names_the_recalled_case_it_followed.sql).
+test('a decision closes its judgement and names the recalled case it followed', () => {
+  const think = read('supabase/functions/_shared/think.ts');
+  assert.match(think, /p_followed: o\.followed \?\? null/, 'think() no longer passes the cases it followed');
+  assert.match(think, /followed: \(draft\.cited \?\? \[\]\)\.filter/, 'think() no longer derives followed cases from what it cited');
+  const recall = read('supabase/functions/_shared/case_recall.ts');
+  assert.match(recall, /export async function decideJudgement[\s\S]{0,400}p_followed: followed/, 'decideJudgement no longer records followed cases');
+  for (const f of ['supabase/functions/accountant/index.ts', 'supabase/functions/marketing_channels/index.ts']) {
+    assert.match(read(f), /await decideJudgement\(admin, memory,/, `${f} decides without closing its judgement`);
+  }
+  assert.match(read('scripts/sql/a_decision_names_the_recalled_case_it_followed.sql'), /errcode = '22023'/, 'a decision may claim a case it never recalled');
+});
+
 test('no think() caller runs another engine, and every reasoning seat routes through think()', () => {
   const offenders = [];
   for (const f of walk(join(REPO, 'supabase', 'functions'))) {
