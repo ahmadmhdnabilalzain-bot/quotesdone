@@ -1,0 +1,99 @@
+{
+  "trade": "veterinary_supplies",
+  "layer": "uae-market",
+  "label_en": "Animal & veterinary supplies",
+  "label_ar": "مستلزمات بيطرية وحيوانات",
+  "entries": [
+    {
+      "id": "veterinary_supplies:uae-market-products",
+      "topic": "Animal & veterinary supplies: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Veterinary supplies sold in the UAE include veterinary medicines (antibiotics, antiparasitics, anti-inflammatories), vaccines for livestock, poultry, camels, horses and pets (cold chain 2-8 °C), feed additives and premixes, vitamins and minerals, disinfectants for farms, pet food and treats, pet accessories, veterinary clinic equipment (examination tables, anaesthesia machines, X-ray and ultrasound, surgical instruments, cages and kennels), equine products, camel-specific products, poultry equipment (drinkers, feeders), and diagnostic kits. In the UAE, veterinary medications fall under the Emirates Drug Establishment, the federal regulator for medical and pharmaceutical products, while MOCCAE provides veterinary product services such as licensing veterinary companies and warehouses and import permits, and in Abu Dhabi ADAFSA regulates veterinary practice and animal health; Dubai Municipality licenses veterinary clinics in Dubai. Buyers specify species, dosage form, withdrawal period for food animals, pack size and cold chain.",
+      "body_ar": "تشمل المستلزمات البيطرية المباعة في الإمارات الأدوية البيطرية (المضادات الحيوية، ومضادات الطفيليات، ومضادات الالتهاب)، ولقاحات الماشية والدواجن والإبل والخيول والحيوانات الأليفة (سلسلة تبريد 2-8 °م)، وإضافات الأعلاف والخلطات المسبقة، والفيتامينات والمعادن، ومطهرات المزارع، وأغذية الحيوانات الأليفة ومكافآتها، وإكسسوارات الحيوانات الأليفة، ومعدات العيادات البيطرية (طاولات الفحص، وأجهزة التخدير، والأشعة والموجات فوق الصوتية، والأدوات الجراحية، والأقفاص وبيوت الكلاب)، ومنتجات الخيول، ومنتجات خاصة بالإبل، ومعدات الدواجن (المشارب، والمعالف)، وأطقم التشخيص. في الإمارات، تخضع الأدوية البيطرية لمؤسسة الإمارات للدواء، الجهة الاتحادية المنظمة للمنتجات الطبية والدوائية، بينما تقدم وزارة التغير المناخي والبيئة خدمات المنتجات البيطرية مثل ترخيص الشركات والمستودعات البيطرية وتصاريح الاستيراد، وفي أبوظبي تنظم هيئة أبوظبي للزراعة والسلامة الغذائية الممارسة البيطرية وصحة الحيوان؛ وترخص بلدية دبي العيادات البيطرية في دبي. يحدد المشترون نوع الحيوان، وشكل الجرعة، وفترة السحب لحيوانات الغذاء، وحجم العبوة، وسلسلة التبريد.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
+        "https://www.zoetis.com/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.woah.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse -> corrected: regulator updated in products text | MOCCAE offers 23 veterinary product services -> confirmed | Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food -> removed: UAE distributors not found. Not checked: Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified."
+    },
+    {
+      "id": "veterinary_supplies:uae-market-brands",
+      "topic": "Animal & veterinary supplies: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Major animal health and pet food brands: Zoetis, Boehringer Ingelheim Animal Health, MSD Animal Health, Elanco, Ceva, Virbac, Royal Canin, Hill's, Purina. Their UAE distributors were not checked; imports go through MOCCAE-licensed veterinary warehouses in Dubai, Sharjah, Al Ain and Abu Dhabi.",
+      "body_ar": "كبرى علامات صحة الحيوان وأغذية الحيوانات الأليفة: Zoetis، Boehringer Ingelheim Animal Health، MSD Animal Health، Elanco، Ceva، Virbac، Royal Canin، Hill's، Purina. ولم يُتحقق من موزعيها في الإمارات؛ وتمر الواردات عبر مستودعات بيطرية مرخصة من وزارة التغير المناخي والبيئة في دبي والشارقة والعين وأبوظبي.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
+        "https://www.zoetis.com/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.woah.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse -> corrected: regulator updated in products text | MOCCAE offers 23 veterinary product services -> confirmed | Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food -> removed: UAE distributors not found. Not checked: Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified."
+    },
+    {
+      "id": "veterinary_supplies:uae-market-sizes",
+      "topic": "Animal & veterinary supplies: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Medicines are priced per vial/bottle (e.g. 50, 100, 250 ml injectables), per tablet strip or box; vaccines per dose-pack (e.g. 1,000 or 2,500 doses for poultry, 10-50 doses for livestock); feed additives per kg or 25 kg bag; pet food per bag (1-15 kg) or carton. Farm contracts are priced per order with cold-chain delivery. Clinic equipment per unit.",
+      "body_ar": "تُسعّر الأدوية لكل قارورة/عبوة (مثل الحقن 50 و100 و250 مل)، أو لكل شريط أقراص أو علبة؛ واللقاحات لكل عبوة جرعات (مثل 1000 أو 2500 جرعة للدواجن، و10-50 جرعة للماشية)؛ وإضافات الأعلاف لكل كيلوغرام أو كيس 25 كغ؛ وأغذية الحيوانات الأليفة لكل كيس (1-15 كغ) أو كرتونة. وتُسعّر عقود المزارع لكل طلب مع توصيل بسلسلة التبريد. ومعدات العيادات لكل وحدة.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
+        "https://www.zoetis.com/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.woah.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse -> corrected: regulator updated in products text | MOCCAE offers 23 veterinary product services -> confirmed | Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food -> removed: UAE distributors not found. Not checked: Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which authority regulates veterinary medicines in the UAE?",
+      "q_ar": "ما الجهة التي تنظم الأدوية البيطرية في الإمارات؟",
+      "expected_entry_ids": [
+        "veterinary_supplies:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EDE regulates veterinary medications; MOCCAE licenses veterinary companies and warehouses and registers foreign makers through a licensed warehouse",
+        "url": "https://www.ede.gov.ae/en/home",
+        "result": "corrected: regulator updated in products text"
+      },
+      {
+        "claim": "MOCCAE offers 23 veterinary product services",
+        "url": "https://www.wam.ae/en/article/hszr6ixu-moccae-provides-services-for-veterinary-products",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Zoetis and Boehringer Ingelheim UAE distributors; Pet's Delight and Dubai Pet Food",
+        "url": "https://www.zoetis.com/",
+        "result": "removed: UAE distributors not found"
+      }
+    ],
+    "unverified": "Whether veterinary product registration has moved to the Emirates Drug Establishment, and current distributors per brand, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

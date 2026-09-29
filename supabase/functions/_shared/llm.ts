@@ -23,11 +23,18 @@
 //     the entire point; a function should not get to pick Opus for a classification task.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const _admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// The client is made on first use, not at import (29 Sep 2026). Made at import, it threw "supabaseUrl is
+// required" out of every module that merely IMPORTS this one wherever SUPABASE_URL is unset (the CI Deno
+// suite), before the never-throws contract below could apply: marketing/duties.ts imports it statically,
+// and think.ts's defaultDeps imports it lazily for the same reason. Made here, a missing env var fails
+// inside the call's own try and the caller gets its documented null.
+const mk = (u: string, k: string) => createClient(u, k);
+let _client: ReturnType<typeof mk> | null = null;
+const _admin = () => (_client ??= mk(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!));
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 
 export async function sec(k: string) {
-  const { data } = await _admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
+  const { data } = await _admin().from('app_secrets').select('value').eq('key', k).maybeSingle();
   return (data?.value as string) || '';
 }
 
@@ -99,6 +106,10 @@ export interface LlmCallOpts {
   // THE MODEL THAT WROTE WHAT THIS CALL REVIEWS (founder_instruction 873). When set, ai_gateway routes
   // through fn_ai_route_review and the answer comes from a model of ANOTHER family, or not at all.
   counterpartModel?: string;
+  // WHAT THE CALL IS ABOUT (704, 28 Sep 2026). ai_gateway asks public.fn_ai_subject_is_fixture about it and answers our
+  // own E2E traffic with the no-cost stub. Until now only the direct-fetch callers (quote_compare, inquiry_intake) sent
+  // one, so every think() call and every caller of this module paid for a test once the hold lifted.
+  subject?: Record<string, unknown> | null;
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -147,10 +158,10 @@ const AUTH_SIGNAL_MIN = 30;   // one agent_runs row per signal per caller per 30
 async function logAuth(signal: string, fnName: string, status: string, note: string) {
   try {
     const since = new Date(Date.now() - AUTH_SIGNAL_MIN * 60000).toISOString();
-    const { data } = await _admin.from('agent_runs').select('id').eq('agent', 'llm_gateway_auth')
+    const { data } = await _admin().from('agent_runs').select('id').eq('agent', 'llm_gateway_auth')
       .gte('started_at', since).eq('counts->>signal', signal).eq('counts->>fn', fnName).limit(1);
     if (data && data.length) return;
-    await _admin.from('agent_runs').insert({
+    await _admin().from('agent_runs').insert({
       agent: 'llm_gateway_auth', status, counts: { signal, fn: fnName },
       note: note.slice(0, 500), started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
     });
@@ -260,6 +271,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
           ...(def.json ? { response_format: { type: 'json_object' } } : {}),
+          ...(opts.subject ? { subject: opts.subject } : {}),
           // TOOLS. The gateway has always accepted these three; nothing that reached it through
           // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model
           // (inferCaps), and want_message asks for the assistant message back intact so a loop can

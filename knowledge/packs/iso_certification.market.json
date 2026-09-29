@@ -1,0 +1,104 @@
+{
+  "trade": "iso_certification",
+  "layer": "uae-market",
+  "label_en": "Certification bodies (ISO & product)",
+  "label_ar": "جهات منح الشهادات (الأيزو والمنتجات)",
+  "entries": [
+    {
+      "id": "iso_certification:uae-market-products",
+      "topic": "Certification bodies (ISO & product): products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "ISO certification services in the UAE include third-party certification audits (Stage 1 and Stage 2, surveillance and recertification) for ISO 9001 (quality), ISO 14001 (environment), ISO 45001 (occupational health and safety), ISO/IEC 27001 (information security), ISO 22000/FSSC 22000 and HACCP (food safety), ISO 50001 (energy), ISO 22301 (business continuity), ISO 41001 (facility management), ISO 37001 (anti-bribery), ISO 13485 (medical devices), ISO/IEC 20000 (IT service management), ISO 21001 (education), plus halal certification and product certification schemes. Consultancy (implementation, documentation, internal audits, training) is a separate service; certification bodies must be impartial and cannot consult for the same client. Buyers should check that the certification body is accredited for the relevant scope by EIAC (Emirates International Accreditation Centre) or an IAF MLA signatory (UKAS, ANAB, DAkkS, JAS-ANZ), and that certificates can be verified on IAF CertSearch. Many UAE tenders require accredited certificates.",
+      "body_ar": "تشمل خدمات شهادات الأيزو في الإمارات عمليات تدقيق الاعتماد من طرف ثالث (المرحلة الأولى والثانية، والمراقبة، وإعادة الاعتماد) لـ ISO 9001 (الجودة)، وISO 14001 (البيئة)، وISO 45001 (الصحة والسلامة المهنية)، وISO/IEC 27001 (أمن المعلومات)، وISO 22000/FSSC 22000 وHACCP (سلامة الغذاء)، وISO 50001 (الطاقة)، وISO 22301 (استمرارية الأعمال)، وISO 41001 (إدارة المرافق)، وISO 37001 (مكافحة الرشوة)، وISO 13485 (الأجهزة الطبية)، وISO/IEC 20000 (إدارة خدمات تقنية المعلومات)، وISO 21001 (التعليم)، إضافة إلى شهادة الحلال ومخططات اعتماد المنتجات. أما الاستشارات (التطبيق، والتوثيق، والتدقيق الداخلي، والتدريب) فهي خدمة منفصلة؛ ويجب أن تكون جهات منح الشهادات محايدة ولا يجوز لها تقديم الاستشارات للعميل نفسه. وينبغي للمشترين التحقق من أن جهة منح الشهادة معتمدة للنطاق المعني من مركز الإمارات الدولي للاعتماد أو من جهة موقعة على اتفاقية الاعتراف المتعدد للمنتدى الدولي للاعتماد (UKAS، ANAB، DAkkS، JAS-ANZ)، وأن الشهادات قابلة للتحقق عبر IAF CertSearch. وتشترط كثير من المناقصات في الإمارات شهادات معتمدة.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.iafcertsearch.org",
+        "https://www.sgs.com/en-ae",
+        "https://www.bsigroup.com/en-AE/",
+        "https://iaf.nu",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits certification bodies in the UAE -> confirmed | IAF CertSearch verifies accredited certificates -> confirmed | SGS operates certification in the UAE -> confirmed | BSI UAE page -> removed: UAE not named on opened page. Not checked: Which named certification bodies hold EIAC accreditation for which scopes was not verified."
+    },
+    {
+      "id": "iso_certification:uae-market-brands",
+      "topic": "Certification bodies (ISO & product): makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Certification bodies commonly used: SGS, Bureau Veritas, TÜV SÜD, TÜV Rheinland, DNV, LRQA, Intertek. Only SGS was confirmed on a UAE page; check each body's EIAC or IAF-member accreditation for your scope.",
+      "body_ar": "جهات منح الشهادات الشائعة: SGS، Bureau Veritas، TÜV SÜD، TÜV Rheinland، DNV، LRQA، Intertek. ولم يُؤكد إلا SGS عبر صفحة إماراتية؛ ويجب التحقق من اعتماد كل جهة لدى مركز الإمارات الدولي للاعتماد أو عضو المنتدى الدولي للاعتماد للنطاق المطلوب.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.iafcertsearch.org",
+        "https://www.sgs.com/en-ae",
+        "https://www.bsigroup.com/en-AE/",
+        "https://iaf.nu",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits certification bodies in the UAE -> confirmed | IAF CertSearch verifies accredited certificates -> confirmed | SGS operates certification in the UAE -> confirmed | BSI UAE page -> removed: UAE not named on opened page. Not checked: Which named certification bodies hold EIAC accreditation for which scopes was not verified."
+    },
+    {
+      "id": "iso_certification:uae-market-sizes",
+      "topic": "Certification bodies (ISO & product): typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Certification is priced per audit day, with the number of audit days set by IAF MD 5 based on headcount and complexity; quotes cover a 3-year cycle (initial certification, two annual surveillance audits, then recertification). Integrated audits of multiple standards reduce days. Consultancy is priced per project (e.g. by employee count) or per day. Travel for multi-site audits is extra.",
+      "body_ar": "تُسعّر الشهادة لكل يوم تدقيق، ويُحدد عدد أيام التدقيق وفق وثيقة IAF MD 5 بناءً على عدد الموظفين والتعقيد؛ وتغطي العروض دورة 3 سنوات (الاعتماد الأولي، وتدقيقا مراقبة سنويان، ثم إعادة الاعتماد). وتقلل عمليات التدقيق المتكاملة لعدة معايير عدد الأيام. وتُسعّر الاستشارات لكل مشروع (مثل حسب عدد الموظفين) أو يومياً. وتكاليف السفر لعمليات التدقيق متعددة المواقع إضافية.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.iafcertsearch.org",
+        "https://www.sgs.com/en-ae",
+        "https://www.bsigroup.com/en-AE/",
+        "https://iaf.nu",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits certification bodies in the UAE -> confirmed | IAF CertSearch verifies accredited certificates -> confirmed | SGS operates certification in the UAE -> confirmed | BSI UAE page -> removed: UAE not named on opened page. Not checked: Which named certification bodies hold EIAC accreditation for which scopes was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How do we verify that an ISO certificate from a supplier is genuine and accredited?",
+      "q_ar": "كيف نتحقق من أن شهادة الأيزو لدى المورد أصلية ومعتمدة؟",
+      "expected_entry_ids": [
+        "iso_certification:uae-market-brands"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EIAC accredits certification bodies in the UAE",
+        "url": "https://eiac.gov.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "IAF CertSearch verifies accredited certificates",
+        "url": "https://www.iafcertsearch.org",
+        "result": "confirmed"
+      },
+      {
+        "claim": "SGS operates certification in the UAE",
+        "url": "https://www.sgs.com/en-ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "BSI UAE page",
+        "url": "https://www.bsigroup.com/en-AE/",
+        "result": "removed: UAE not named on opened page"
+      }
+    ],
+    "unverified": "Which named certification bodies hold EIAC accreditation for which scopes was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

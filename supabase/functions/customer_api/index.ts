@@ -461,7 +461,27 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
   const ok = !!(rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths) && rj.paths.length);
   const redacted: string[] = ok ? rj.paths.map((x: unknown) => String(x)) : [];
   const meta = { redaction_job_id: ok ? String(rj.job_id) : null, redaction_job_ids: ok ? [String(rj.job_id)] : [], redaction_pages_in: 1, redaction_pages_out: redacted.length, redaction_pages_lost: rj ? 0 : 1, redaction_complete: ok && redacted.length === 1, needs_manual_boxes: false };
+  // The anonymised CAD FILE rides with the preview it was drawn beside (never instead of it): its own run, its own
+  // verifier; a file that is not proved is simply not attached, and the preview decides the hold as before.
+  if (meta.redaction_complete) {
+    const f = await redactFile(o);
+    if (f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
+  }
   return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
+}
+
+// THE DRAWING FILE ITSELF (28 Sep 2026, sales_engineer; founder ledger 30, 31, 32, 580, 703): drawing_redact mode
+// 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
+// only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
+// attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
+async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | null> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
+      signal: AbortSignal.timeout(60_000) });
+    const j = await r.json().catch(() => null);
+    return j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1 ? { path: String(j.paths[0]), job: String(j.job_id) } : null;
+  } catch (_e) { return null; }
 }
 // THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
 // throwing, so the old try/catch swallowed every failure and a held drawing could have no ledger row at all.
@@ -826,7 +846,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -1039,6 +1059,11 @@ Deno.serve(observe('customer_api', async (req) => {
         // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
+        // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        if (redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
+          const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
+          if (f) { redacted.push(f.path); redJobs.push(f.job); }
+        }
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path) {
           const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
@@ -1109,6 +1134,10 @@ Deno.serve(observe('customer_api', async (req) => {
     }
 
     if (action === 'create_inquiry') {
+      // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request
+      // uses the language they chose when they created it - the page language the composer sends.
+      // Stored on inquiries.lang; public.fn_inquiry_locale reads it. Suppliers are always written in English.
+      const inquiryLang = documentLocale(body.lang, cust.locale);
       // THE FOUNDER'S ACCOUNT RULE (14 Sep 2026): a request is made only by a signed-up customer with
       // a name, an 18+ date of birth, an OTP-verified mobile OR email, and the Terms checkbox. The
       // definition lives in _shared/account_rule.ts so kyc and this gate cannot drift. A reachable
@@ -1315,11 +1344,11 @@ Deno.serve(observe('customer_api', async (req) => {
         const parentIdRef = { id: '' };
         const res = await splitInquiry(distinctTrades, {
           insertParent: async () => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'combined', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'split', budget, scope_type: 'multi', trades: distinctTrades, brief_source: briefSource, ...drawCols, ...briefCols }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           insertChild: async (tr) => {
-            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
+            const { data, error } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, parent_inquiry_id: parentIdRef.id, category: tr, emirate, role_needed: 'supplier', raw_input: raw, spec, summary: childSummary(tr), keywords: childKw(tr), status: 'sent', budget, scope_type: 'single', trades: [tr], brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(tr) }).select('id').maybeSingle();
             return error || !data ? null : String(data.id);
           },
           deleteInquiries: async (ids) => {
@@ -1356,7 +1385,7 @@ Deno.serve(observe('customer_api', async (req) => {
 
       if (wantTurnkey) {
         const tkKeywords = Array.from(new Set([...keywords, 'fitout', 'fit out', 'fit-out', 'turnkey', 'interior', 'renovation', 'decoration', ...distinctTrades])).slice(0, 40);
-        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
+        const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) return J(...inquiryNotSaved(e1));
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         const tradeList = distinctTrades.map(labelize).join(', ');
@@ -1365,7 +1394,7 @@ Deno.serve(observe('customer_api', async (req) => {
         return J(postedSingle(String(inq!.id), 'turnkey', matches));
       }
 
-      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
+      const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) return J(...inquiryNotSaved(e1));
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';

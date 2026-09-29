@@ -51,10 +51,21 @@ async function probe(block) {
 test('production, aborted: onboarding, performance, supply gaps, the funnel and reputation all act', { skip: SKIP }, async () => {
   const o = await probe(String.raw`
 do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint; c uuid; tr text; em text; begin
-  -- ONBOARDING: the ZZ DEMO approved supplier is matched to an open request 4 days ago and has not quoted.
-  -- a ZZ DEMO supplier on a reserved example domain who has never quoted
-  select id into lid from public.leads l where l.company_name like 'ZZ DEMO%' and split_part(l.email, '@', 2) in ('example.invalid', 'example.com')
-     and l.approval_status = 'approved' and not exists (select 1 from public.quotes q where q.supplier_id = l.id) order by id limit 1;
+  -- ONBOARDING: a ZZ DEMO approved supplier is matched to an open request 4 days ago and has not quoted.
+  -- The probe builds that supplier itself, inside this rolled-back transaction. It used to pick one from production,
+  -- and production stopped holding one: on 23 Sep 09:00 UTC the daily recheck (fn_sales_engineer_supplier_documents_tick)
+  -- moved the two fixture suppliers 129923 and 130110 to action_required (licence and profile files absent from storage),
+  -- leaving 126512 as the only approved lead, and it has quoted since 18 Sep. The pick returned NULL and the stage read
+  -- NULL. It borrows 126512's stored documents so the mandatory-six gate passes as it would for a real registration.
+  insert into public.leads (company_name, email, phone, owner_phone_verified, owner_email_verified, license_doc_path, license_doc_name,
+                            company_profile_doc_path, signed_terms_path, signed_terms_at, accepted_terms_at, license_expiry, emirate, city,
+                            tags, source, approval_status, approved_at, approval_decided_by, claimed, subscription_exempt, verified, verification_status)
+  select 'ZZ DEMO duties probe', 'qd-duties-probe-sup0@example.invalid', '+971500000099', true, true, l.license_doc_path, l.license_doc_name,
+         l.company_profile_doc_path, l.signed_terms_path, now(), now(), l.license_expiry, l.emirate, l.city,
+         array['qd_demo'], 'demo_factory', 'approved', now(), 'sales_engineer', false, true, true, l.verification_status
+    from public.leads l where l.id = 126512
+  returning id into lid;
+  o := o || jsonb_build_object('fixture_approved', (select approval_status = 'approved' from public.leads where id = lid));
   select i.id into inq from public.inquiries i where i.status not in ('revealed', 'closed', 'cancelled', 'completed', 'expired', 'lost')
      and not exists (select 1 from public.quotes q where q.inquiry_id = i.id and q.supplier_id = lid) limit 1;
   delete from public.inquiry_matches where supplier_id = lid;
@@ -112,6 +123,7 @@ do $$ declare o jsonb := '{}'; v jsonb; lid bigint; inq uuid; h bigint; n bigint
     'sender', (select jsonb_agg(distinct detail->>'from') from public.agent_actions where id > n and kind = 'handoff' and detail->>'msg_type' = 'public_review_ask'));
   raise exception 'CHK<<%>>', o::text;
 end $$;`);
+  assert.equal(o.fixture_approved, true, 'the probe could not build an approved ZZ DEMO supplier (the mandatory-six gate refused it)');
   assert.equal(o.stage, 'matched', 'the matched ZZ DEMO supplier is not at stage matched');
   assert.equal(o.nudges1, 1, 'a matched supplier who has not quoted in 3 days was not told');
   assert.equal(o.nudges2, 1, 'the supplier was nudged twice in one week');
