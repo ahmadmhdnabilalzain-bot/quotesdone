@@ -1,0 +1,15 @@
+NOT APPLIED — held for the release operator, who applies it at merge (seat: accountant).
+
+Depends on #1013 (the_accountant_keeps_one_cash_truth_and_closes_the_open_audit_gaps.sql, applied on main): the
+budget, the period lock, fn_accountant_runway_figures and gl_revenue_lines_measured. Also depends on
+the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql (this PR): gl_prior_period_adjustment and
+fn_accountant_month_close_status. Apply that file FIRST.
+
+Apply with: node scripts/apply_sql.mjs scripts/sql/the_accountant_sends_the_founder_one_close_pack_by_the_fifth.sql --apply --ddl
+then delete this note and append the file to the END of scripts/sql/MANIFEST.txt in the same commit,
+then run the probe (the_accountant_sends_the_founder_one_close_pack_by_the_fifth_probe.sql) through
+node scripts/qsql.mjs; it must print PROBE OK, as it did on 29 Sep 2026 when the late-item file, this file and the
+probe ran together in one rolled-back transaction on htdblwldjkcgjvmqkbeh.
+
+Deploy with it, after the apply (the runtime renders the pack PDF and calls fn_accountant_founder_close_pack_attach):
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production accountant
