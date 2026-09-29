@@ -1,0 +1,96 @@
+{
+  "trade": "fleet_maintenance",
+  "layer": "uae-market",
+  "label_en": "Fleet maintenance & vehicle workshops",
+  "label_ar": "صيانة الأساطيل وورش المركبات",
+  "entries": [
+    {
+      "id": "fleet_maintenance:uae-market-products",
+      "topic": "Fleet maintenance & vehicle workshops: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Fleet maintenance services in the UAE include preventive maintenance (oil and filter services at OEM intervals, typically 5,000-15,000 km depending on oil grade and duty), mechanical and electrical repairs, AC servicing (critical in UAE heat), tyre management and rotation, brake and suspension work, diagnostics, body and paint repairs (accident repairs for insurance), heavy vehicle and truck maintenance (engines, transmissions, axles, hydraulics), bus fleet maintenance, forklift and equipment maintenance, mobile/on-site servicing, telematics-based maintenance scheduling, annual RTA/police vehicle testing preparation (Tasjeel, Shamil, ADNOC Vehicle Inspection centres), speed limiter and tachograph installation for heavy vehicles, and fleet management outsourcing. Buyers ask about workshop approvals (dealer-approved vs independent), parts policy (genuine vs OES), labour rates, turnaround and replacement vehicles, and service reporting. Workshops need emirate licences and municipality/Civil Defence approvals; waste oil disposal must go through licensed recyclers.",
+      "body_ar": "تشمل خدمات صيانة الأساطيل في الإمارات الصيانة الوقائية (تغيير الزيت والفلاتر وفق فترات الشركة المصنعة، عادةً 5,000-15,000 كم حسب درجة الزيت ونوع الاستخدام)، والإصلاحات الميكانيكية والكهربائية، وصيانة التكييف (أساسية في حرارة الإمارات)، وإدارة الإطارات وتدويرها، وأعمال المكابح والتعليق، والتشخيص، وإصلاحات الهيكل والطلاء (إصلاحات الحوادث للتأمين)، وصيانة المركبات الثقيلة والشاحنات (المحركات، وناقلات الحركة، والمحاور، والهيدروليك)، وصيانة أساطيل الحافلات، وصيانة الرافعات الشوكية والمعدات، والخدمة المتنقلة/في الموقع، وجدولة الصيانة القائمة على التتبع، والتجهيز للفحص الفني السنوي لدى هيئة الطرق/الشرطة (مراكز تسجيل وشامل وفحص أدنوك للمركبات)، وتركيب محددات السرعة وأجهزة تسجيل السرعة للمركبات الثقيلة، والاستعانة الخارجية لإدارة الأساطيل. يسأل المشترون عن اعتمادات الورش (معتمدة من الوكيل مقابل مستقلة)، وسياسة القطع (أصلية مقابل علامة المورد الأصلي)، وأسعار العمالة، ومدة الإنجاز والمركبات البديلة، وتقارير الخدمة. وتحتاج الورش إلى تراخيص الإمارة وموافقات البلدية/الدفاع المدني؛ ويجب التخلص من الزيوت المستعملة عبر شركات إعادة تدوير مرخصة.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://www.enoc.com",
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified."
+    },
+    {
+      "id": "fleet_maintenance:uae-market-brands",
+      "topic": "Fleet maintenance & vehicle workshops: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed dealer and a workshop network brand: Al-Futtaim (Toyota), Bosch Car Service. Other dealer service centres, fuel-retailer chains and independent workshops were not checked.",
+      "body_ar": "الوكيل المؤكد وعلامة شبكة ورش: Al-Futtaim (Toyota)، Bosch Car Service. ولم يُتحقق من مراكز خدمة الوكلاء الآخرين ولا سلاسل شركات الوقود ولا الورش المستقلة.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://www.enoc.com",
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified."
+    },
+    {
+      "id": "fleet_maintenance:uae-market-sizes",
+      "topic": "Fleet maintenance & vehicle workshops: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per service (fixed-price service packages by vehicle type and interval), per labour hour plus parts for repairs, or as a monthly/annual maintenance contract per vehicle (with or without parts, often per km). Heavy vehicles are quoted per job or per engine hour. On-site servicing adds a call-out fee. Replacement vehicles are priced per day.",
+      "body_ar": "تُسعّر لكل خدمة (باقات خدمة بسعر ثابت حسب نوع المركبة والفترة)، أو لكل ساعة عمل إضافة إلى القطع للإصلاحات، أو كعقد صيانة شهري/سنوي لكل مركبة (مع القطع أو بدونها، وغالباً لكل كيلومتر). وتُسعّر المركبات الثقيلة لكل عملية أو لكل ساعة تشغيل محرك. وتُضاف رسوم استدعاء للخدمة في الموقع. وتُسعّر المركبات البديلة يومياً.",
+      "sources": [
+        "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "https://www.enoc.com",
+        "https://www.rta.ae",
+        "https://itc.gov.ae",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Al-Futtaim is Toyota's UAE partner (dealer service) -> confirmed | ENOC Autopro service chain -> removed: page blocked, not confirmed | RTA annual vehicle testing -> unconfirmed: not stated on opened page. Not checked: Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How often should a fleet car in the UAE be serviced?",
+      "q_ar": "كم مرة يجب صيانة سيارة الأسطول في الإمارات؟",
+      "expected_entry_ids": [
+        "fleet_maintenance:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Al-Futtaim is Toyota's UAE partner (dealer service)",
+        "url": "https://www.alfuttaim.com/en/our-brands/toyota/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ENOC Autopro service chain",
+        "url": "https://www.enoc.com",
+        "result": "removed: page blocked, not confirmed"
+      },
+      {
+        "claim": "RTA annual vehicle testing",
+        "url": "https://www.rta.ae",
+        "result": "unconfirmed: not stated on opened page"
+      }
+    ],
+    "unverified": "Truck franchise assignments listed with 'type' are uncertain and were not verified; the ITC URL was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

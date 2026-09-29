@@ -1,0 +1,83 @@
+{
+  "trade": "interior_fitout",
+  "layer": "uae-market",
+  "label_en": "Interior fit-out",
+  "label_ar": "التشطيبات والتجهيزات الداخلية",
+  "entries": [
+    {
+      "id": "interior_fitout:uae-market-products",
+      "topic": "Interior fit-out: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Interior fit-out in the UAE covers offices (Cat A and Cat B), retail units in malls, restaurants and cafés (fit-out only, not food), clinics, hotels and residential apartments and villas. Scope: partitions and ceilings, flooring, joinery and loose furniture, wall finishes (paint, wallpaper, cladding), glass partitions, doors, MEP modifications (HVAC diffusers, lighting, power, data, sprinkler and fire alarm relocation), signage and specialist items. Approvals: the landlord or master developer NOC (e.g. Emaar, Nakheel, DMCC, DIFC, Dubai South have their own fit-out guides), Dubai Municipality or free-zone building permit, Civil Defence approval for fire systems, DEWA for load changes, and DHA/DOH for clinics. Cat A = base finishes delivered by landlord; Cat B = tenant-specific.",
+      "body_ar": "تشمل أعمال التجهيز الداخلي في الإمارات المكاتب (الفئة A والفئة B)، ووحدات التجزئة في المراكز التجارية، والمطاعم والمقاهي (التجهيز فقط وليس الطعام)، والعيادات، والفنادق، والشقق والفلل السكنية. النطاق: القواطع والأسقف، والأرضيات، والنجارة والأثاث المتحرك، وتشطيبات الجدران (الدهان وورق الجدران والتكسيات)، والقواطع الزجاجية، والأبواب، وتعديلات الأعمال الكهروميكانيكية (فتحات التكييف والإنارة والكهرباء والبيانات ونقل الرشاشات وإنذار الحريق)، واللافتات والبنود الخاصة. الاعتمادات: عدم ممانعة المالك أو المطور الرئيسي (لدى إعمار ونخيل ومركز دبي للسلع المتعددة ومركز دبي المالي العالمي ودبي الجنوب أدلة تجهيز خاصة)، وتصريح بناء من بلدية دبي أو المنطقة الحرة، واعتماد الدفاع المدني لأنظمة الحريق، وهيئة الكهرباء لتغيير الأحمال، وهيئة الصحة للعيادات. الفئة A = تشطيبات أساسية يسلمها المالك؛ والفئة B = خاصة بالمستأجر.",
+      "sources": [
+        "https://www.mordorintelligence.com/industry-reports/united-arab-emirates-interior-design-market/companies",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dha.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks -> confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed). Not checked: Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified."
+    },
+    {
+      "id": "interior_fitout:uae-market-brands",
+      "topic": "Interior fit-out: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Fit-out contractors run from large firms, such as Depa Interiors, ALEC Fitout, Al Tayer Stocks, Bond Interiors, Summertown Interiors, ISG, Havelock One, to many SME contractors, often with their own joinery workshops in Al Quoz, Ras Al Khor, Jebel Ali and Sharjah. Havelock One is headquartered in Bahrain. Material brands are those of the separate trades (boards, ceilings, carpets, paints, furniture). Design-and-build firms are common for Cat B offices.",
+      "body_ar": "يتراوح مقاولو التجهيز من شركات كبيرة مثل Depa Interiors، ALEC Fitout، Al Tayer Stocks، Bond Interiors، Summertown Interiors، ISG، Havelock One إلى مقاولين صغار ومتوسطين كثيرين، غالباً مع ورش نجارة خاصة في القوز ورأس الخور وجبل علي والشارقة. ومقر Havelock One في البحرين. وعلامات المواد هي علامات المهن المنفصلة (الألواح والأسقف والموكيت والدهانات والأثاث). وشركات التصميم والتنفيذ شائعة لمكاتب الفئة B.",
+      "sources": [
+        "https://www.mordorintelligence.com/industry-reports/united-arab-emirates-interior-design-market/companies",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dha.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks -> confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed). Not checked: Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified."
+    },
+    {
+      "id": "interior_fitout:uae-market-sizes",
+      "topic": "Interior fit-out: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Fit-out is benchmarked per square foot or per m2 of net lettable area (the UAE office market quotes rents per sq ft, so fit-out budgets are often per sq ft), with separate lines for MEP, furniture (FF&E), IT/AV and approvals. Quotes should include a BOQ by trade, programme in weeks, landlord fees, authority fees, preliminaries, contingency, and a 12-month defects liability. Payment is commonly advance 20-30% plus monthly progress and retention 5-10%.",
+      "body_ar": "تُقاس تكلفة التجهيز بالقدم المربعة أو بالمتر المربع من المساحة الصافية القابلة للتأجير (يسعّر سوق المكاتب الإماراتي الإيجارات بالقدم المربعة، لذا تكون ميزانيات التجهيز غالباً بالقدم المربعة)، مع بنود مستقلة للأعمال الكهروميكانيكية والأثاث والتجهيزات وتقنية المعلومات والصوتيات والاعتمادات. ويجب أن يتضمن العرض جدول كميات حسب المهنة، وبرنامجاً زمنياً بالأسابيع، ورسوم المالك، ورسوم الجهات، والتمهيديات، والاحتياطي، ومسؤولية عيوب لمدة 12 شهراً. والدفع عادة مقدم 20-30% مع دفعات شهرية حسب الإنجاز ومحتجزات 5-10%.",
+      "sources": [
+        "https://www.mordorintelligence.com/industry-reports/united-arab-emirates-interior-design-market/companies",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.dha.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks -> confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed). Not checked: Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What approvals do I need to fit out an office in a Dubai free zone?",
+      "q_ar": "ما الاعتمادات المطلوبة لتجهيز مكتب في منطقة حرة بدبي؟",
+      "expected_entry_ids": [
+        "interior_fitout:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks",
+        "url": "https://www.mordorintelligence.com/industry-reports/united-arab-emirates-interior-design-market/companies",
+        "result": "confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed)"
+      }
+    ],
+    "unverified": "Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

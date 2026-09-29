@@ -1,0 +1,10 @@
+A PROBE, so it is never applied at all — it is READ through node scripts/qsql.mjs after
+the_accountant_books_a_late_item_as_a_prior_period_adjustment.sql and the_accountant_sends_the_founder_one_close_pack_by_the_fifth.sql
+have been applied, and it must print PROBE OK.
+
+It closes ZZ DEMO July 2020, feeds a late July bank fee, poisons one charge and one credit with a trigger that exists only
+inside its transaction, and builds the ZZ DEMO August 2020 close pack, all inside a block that always raises, so nothing
+survives and nobody is sent anything; plain apply_sql.mjs would print "nothing to do" and exit 0, which is a silent
+pass, not a result.
+
+This note therefore stays for the life of the file. Seat: accountant.
