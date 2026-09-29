@@ -119,7 +119,60 @@ export function dnsblVerdict(list: string, answers: string[]): 'listed' | 'refus
   return answers.some(one) ? 'listed' : 'refused';
 }
 
-async function sender(sec: Sec) {
+// DMARC aggregate (rua) reports: mailbox providers send one XML per day per domain. A row passes DMARC
+// when policy_evaluated shows an aligned DKIM or SPF pass. Pure, so it is tested on a breach input
+// (it_sender_health.test.ts); fn_it_duties_scheduled judges the ratio against sender_dmarc_fail_rate_max.
+export function dmarcAggregate(xml: string): { messages: number; failed: number; org: string | null } {
+  let messages = 0, failed = 0;
+  for (const rec of xml.match(/<record>[\s\S]*?<\/record>/g) ?? []) {
+    const n = Number(rec.match(/<count>\s*(\d+)\s*<\/count>/)?.[1] ?? 0);
+    const pe = rec.match(/<policy_evaluated>[\s\S]*?<\/policy_evaluated>/)?.[0] ?? '';
+    const pass = /<dkim>\s*pass\s*<\/dkim>/.test(pe) || /<spf>\s*pass\s*<\/spf>/.test(pe);
+    messages += n;
+    if (!pass) failed += n;
+  }
+  return { messages, failed, org: xml.match(/<org_name>\s*([^<]*?)\s*<\/org_name>/)?.[1] ?? null };
+}
+
+// Reports arrive through resend_inbound into inbound_messages (subject "Report Domain: ..."). The XML is
+// an attachment, .xml or .xml.gz; gzip is opened with the runtime's DecompressionStream.
+// ponytail: a .zip report is counted as unread, not parsed; add a zip reader if providers send only zip.
+// Measured 28 Sep 2026: 0 inbound_messages rows mention dmarc, so until rua= points at an inbound
+// address this reading is 'unavailable' and raises nothing - it never reads an absence as clean.
+async function dmarcReports(admin: Admin, sec: Sec) {
+  const since = new Date(Date.now() - 2 * 86400e3).toISOString();
+  const { data, error } = await admin.from('inbound_messages').select('id, provider_email_id, subject, body')
+    .gte('created_at', since).ilike('subject', '%report domain%').limit(50);
+  if (error) return unavailable('inbound_messages unreadable: ' + error.message);
+  const rows = (data ?? []) as any[];
+  if (!rows.length) return unavailable('no DMARC aggregate report arrived in 48 h (rua= may not point at our inbound address)');
+  const rk = await sec('resend_api_key');
+  const auth = { headers: { Authorization: `Bearer ${rk}` } };
+  let messages = 0, failed = 0, unread = 0;
+  const orgs: string[] = [];
+  for (const m of rows) {
+    let xml = String(m.body ?? '').includes('<feedback') ? String(m.body) : '';
+    if (!xml && rk && m.provider_email_id) {
+      const e = await get(`https://api.resend.com/emails/inbound/${m.provider_email_id}`, auth);
+      const att = ((e.json?.data ?? e.json)?.attachments ?? []).find((a: any) => /\.xml(\.gz)?$/i.test(String(a.filename ?? '')));
+      if (att) {
+        const g = await get(`https://api.resend.com/emails/inbound/${m.provider_email_id}/attachments/${att.id}`, auth);
+        const url = (g.json?.data ?? g.json)?.download_url;
+        try {
+          const r = url ? await fetch(url, { signal: AbortSignal.timeout(20000) }) : null;
+          if (r?.ok && r.body) xml = /\.gz$/i.test(att.filename) ? await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).text() : await r.text();
+        } catch { /* counted as unread below */ }
+      }
+    }
+    if (!xml) { unread++; continue; }
+    const v = dmarcAggregate(xml);
+    messages += v.messages; failed += v.failed;
+    if (v.org) orgs.push(v.org);
+  }
+  return { basis: 'measured', reports: rows.length, unread, messages, failed, orgs };
+}
+
+async function sender(admin: Admin, sec: Sec) {
   const dns: Record<string, unknown> = {};
   for (const d of SENDING_DOMAINS) {
     const [root, dmarc, dkim] = await Promise.all([txt(d), txt('_dmarc.' + d), txt('resend._domainkey.' + d)]);
@@ -156,7 +209,8 @@ async function sender(sec: Sec) {
                             meta_name: w.name ?? null, rejection_reason: w.rejection_reason || null }
                         : { name, sid, ...unavailable('Twilio Content answered ' + (g.status || g.error)) });
   }
-  return { dns, blocklists, resend, whatsapp, templates };
+  const dmarc_reports = await dmarcReports(admin, sec);
+  return { dns, blocklists, resend, whatsapp, templates, dmarc_reports };
 }
 
 // app_secrets.wa_template_sids is {key: {lang: sid}} — the shape send_whatsapp reads. Until 22 Sep
@@ -234,7 +288,7 @@ async function access(sec: Sec) {
 export async function takeScheduledReadings(admin: Admin, sec: Sec, due: string[], restoreSample: number) {
   const r: Record<string, unknown> = { taken_at: new Date().toISOString() };
   if (due.includes('restore')) r.restore = await restore(admin, sec, restoreSample);
-  if (due.includes('sender')) r.sender = await sender(sec);
+  if (due.includes('sender')) r.sender = await sender(admin, sec);
   if (due.includes('spend')) r.spend = await spend(sec);
   if (due.includes('access')) r.access = await access(sec);
   return r;
