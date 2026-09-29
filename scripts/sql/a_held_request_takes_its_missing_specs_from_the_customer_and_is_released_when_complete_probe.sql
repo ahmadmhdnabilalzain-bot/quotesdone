@@ -106,6 +106,16 @@ begin
     v_bad := v_bad || 'a closed request took specs; ';
   end if;
 
+  -- 6. a combined request is completed on its per-trade parts: the parent asks nothing and takes nothing
+  insert into public.inquiries (customer_id, category, emirate, summary, status, lang, spec, scope_type) values
+    (c1, 'fitout', 'Dubai', 'ZZ DEMO combined', 'split', 'en', '{}'::jsonb, 'multi') returning id into i2;
+  insert into public.inquiries (customer_id, category, emirate, summary, status, lang, spec, parent_inquiry_id) values
+    (c1, 'gypsum', 'Dubai', 'ZZ DEMO combined gypsum', 'sent', 'en', '{}'::jsonb, i2);
+  if coalesce((public.fn_inquiry_missing_specs(i2, 'en')->>'held')::boolean, true)
+     or public.fn_inquiry_add_missing_specs(i2, c1, '{"work":"False ceiling"}', 'customer_portal')->>'error' is distinct from 'nothing_to_add' then
+    v_bad := v_bad || 'a combined parent is asked for, or takes, its parts'' specs; ';
+  end if;
+
   select count(*) into v_n from public.notifications where lower(to_email) = any(v_emails)
      and status not in ('failed', 'skipped', 'suppressed', 'cancelled', 'held');
   if v_n > 0 then v_bad := v_bad || v_n || ' live notification rows to a fixture address; '; end if;

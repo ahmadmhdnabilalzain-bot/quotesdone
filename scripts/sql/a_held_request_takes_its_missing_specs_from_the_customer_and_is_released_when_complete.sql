@@ -63,6 +63,12 @@ begin
   if not found then return jsonb_build_object('held', false, 'reason', 'no such request'); end if;
   v_ar := coalesce(case when p_lang in ('en', 'ar') then p_lang end, public.fn_inquiry_locale(i.id),
                    (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
+  -- A combined (split) request's specs belong to its per-trade parts, each checked and completed on its own; the
+  -- parent carries none (the concierge re-review of #1112 judges a parent by its children the same way).
+  if exists (select 1 from public.inquiries c where c.parent_inquiry_id = i.id) then
+    return jsonb_build_object('held', false, 'lang', case when v_ar then 'ar' else 'en' end, 'missing', '[]'::jsonb,
+                              'reason', 'a combined request: each trade is completed on its own part');
+  end if;
   v_chk := public.fn_rfq_required_check(i);
   select cs.fields into v_fields from public.category_specs cs where lower(cs.category) = lower(coalesce(i.category, '')) limit 1;
   for m in select value from jsonb_array_elements(coalesce(v_chk->'missing', '[]'::jsonb)) loop
