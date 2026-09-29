@@ -1144,7 +1144,26 @@ Deno.serve(observe('customer_api', async (req) => {
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 
+    // THE FIRST-INQUIRY CONCIERGE (customer_support, 29 Sep 2026; founder ledger 1018). The composer asks for the
+    // step-by-step guidance (describe the job, PDF or CAD drawings only per ruling 1000, the trade's specs from its
+    // verified pack, what happens next) and shows it on a customer's first request. Read-only, in the page language.
+    // scripts/sql/customer_support_guides_a_first_request_step_by_step_and_asks_a_held_one_for_its_specs.sql
+    if (action === 'concierge') {
+      const { data, error } = await admin.rpc('fn_customer_concierge', { p_customer: cust.id,
+        p_category: body.category ? String(body.category).slice(0, 80) : null, p_lang: documentLocale(body.lang, cust.locale), p_inquiry: null });
+      if (error) return J({ ok: false, error: 'concierge_unavailable' }, 503);
+      return J({ ok: true, concierge: data });
+    }
+
     if (action === 'create_inquiry') {
+      // THE FIRST CONFIRMATION MESSAGE (same build). The moment a request is posted, customer_support e-mails a
+      // first request its number and the steps, or a later request held for its specs exactly what is missing
+      // (once per request; the customer_support.concierge duty covers the other doors). Its guidance comes back
+      // on the answer so the portal can show it. Never fails the post: a request that went out stays posted.
+      const confirmRequest = async (id: string): Promise<unknown> => {
+        try { const { data } = await admin.rpc('fn_customer_support_concierge_confirm', { p_inquiry: id }); return (data as { concierge?: unknown } | null)?.concierge ?? null; }
+        catch (_e) { return null; }
+      };
       // THE INQUIRY'S LANGUAGE (founder, 28 Sep 2026): every message to the customer about this request
       // uses the language they chose when they created it - the page language the composer sends.
       // Stored on inquiries.lang; public.fn_inquiry_locale reads it. Suppliers are always written in English.
@@ -1391,7 +1410,7 @@ Deno.serve(observe('customer_api', async (req) => {
         if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
         // ONE ANSWER SHAPE (_shared/inquiry_posted.ts): inquiry_id is the parent, the stable id of
         // what the customer asked for; child_ids / quotable_ids are what suppliers quote on.
-        return J(postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade) })), distinctTrades));
+        return J({ ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
       }
 
       if (wantTurnkey) {
@@ -1402,7 +1421,7 @@ Deno.serve(observe('customer_api', async (req) => {
         const tradeList = distinctTrades.map(labelize).join(', ');
         const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
         const { matches } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
-        return J(postedSingle(String(inq!.id), 'turnkey', matches));
+        return J({ ...postedSingle(String(inq!.id), 'turnkey', matches), concierge: await confirmRequest(String(inq!.id)) });
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length ? tradesIn : null, brief_source: briefSource, ...drawCols, ...briefCols, compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
@@ -1410,7 +1429,7 @@ Deno.serve(observe('customer_api', async (req) => {
       if (intake) { try { await admin.from('inquiry_intake').update({ status: 'consumed' }).eq('id', intake.id); } catch (_e) { /* */ } }
       const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
-      return J(postedSingle(String(inq!.id), 'single', matches, routing));
+      return J({ ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
     }
 
     // THE CUSTOMER'S FOLLOW-UP REACHES THE RFQ (website audit 14 Sep 2026, BROKEN). "Ask the
