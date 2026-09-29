@@ -335,6 +335,12 @@ Deno.serve(observe('ceo_agent', async (req) => {
         // Surfaced, never swallowed: if the refund guards refuse the link, the decision still stands
         // as a record and the caller is told exactly what refused it.
         refundLinked = rfErr ? { refused: rfErr.message } : rf;
+        // THE ONE DECISION (29 Sep 2026): the refund becomes approved only through fn_refund_decide, which runs
+        // the second-seat check. Before the window opens it answers window_not_open and the accountant asks again.
+        if (!rfErr) {
+          const { data: fin, error: finErr } = await admin.rpc('fn_refund_decide', { p_refund_id: Number(body.refund_id), p_approve: true, p_decided_by: who });
+          refundLinked = { ...(rf ?? {}), decide: finErr ? { refused: finErr.message } : fin };
+        }
       }
       return J({ ok: true, decision_id: dec?.decision_id, refund: refundLinked, precedent: recallTrace(memory) });
     }

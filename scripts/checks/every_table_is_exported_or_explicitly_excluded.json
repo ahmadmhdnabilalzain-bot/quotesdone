@@ -218,7 +218,7 @@
  "founder_directive": "backlog",
  "founder_habit": "no_writer",
  "founder_mail_policy_history": "backlog",
- "function_owner": "no_writer",
+ "function_owner": "backlog",
  "gl_account_funnel_stage": "no_writer",
  "gl_accounts": "no_writer",
  "gl_prior_period_adjustment": "backlog",
