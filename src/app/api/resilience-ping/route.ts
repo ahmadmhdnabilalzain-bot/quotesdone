@@ -11,8 +11,8 @@
 // keeps a once-daily run as a third-party cross-check, so a simultaneous Vercel AND Supabase
 // failure is still seen by something outside both.
 //
-// The edge function does all the work — detect, then page the founder over HTTP. This route only
-// has to hit it, so it holds no secrets.
+// The edge function does all the work — detect, then page the founder over HTTP. The route's only
+// secret is the optional service-role key for the uptime rows below.
 //
 // THE CALLER MUST OUTWAIT THE FUNCTION IT CALLS (17 Sep 2026, it_engineer). This route waited 30 s
 // for a function that declares DEADLINE_MS = 110_000 and runs its ticks in sequence, several with
@@ -26,7 +26,48 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 180;
 
+import { SITE_ORIGINS } from '@/lib/domains';
+import { SUPA_URL } from '@/lib/supaEnv';
+import { isUp } from '@/lib/uptime';
+
 const PING = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/resilience_ping';
+
+// THE EXTERNAL UPTIME SLI (28 Sep 2026, it_engineer). Each run checks every public origin from
+// OUTSIDE Supabase and writes one edge_health_probe row per origin, fn_key 'uptime:<url>'. The
+// hourly seat_duty it_engineer.uptime_slo turns 30 days of these into uptime against 99.9%.
+// Writing needs SUPABASE_SERVICE_ROLE_KEY in the Vercel server env (never NEXT_PUBLIC_); without it
+// the checks still run and the response says uptime_recorded:false, so a missing key is visible.
+// Named, not a literal: resilience_ping_reports_every_tick.test.mjs reads the ONE numeric AbortSignal.timeout
+// in this file as the watchdog caller's wait.
+const CHECK_MS = 15_000;
+async function checkOrigins() {
+  return Promise.all(SITE_ORIGINS.map(async (url) => {
+    const t0 = Date.now();
+    let status = 0; let err = '';
+    try {
+      const r = await fetch(url + '/', { redirect: 'manual', cache: 'no-store', signal: AbortSignal.timeout(CHECK_MS) });
+      status = r.status; await r.body?.cancel();
+    } catch (e) { err = String((e as Error)?.message || e); }
+    return { url, status, ms: Date.now() - t0, up: isUp(status), err };
+  }));
+}
+
+type Check = Awaited<ReturnType<typeof checkOrigins>>[number];
+
+async function recordUptime(checks: Check[]) {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key || !SUPA_URL || !checks.length) return false;
+  const rows = checks.map((c) => ({
+    fn_key: 'uptime:' + c.url, verdict: c.up ? 'up' : 'down',
+    note: `http ${c.status} in ${c.ms} ms${c.err ? ': ' + c.err.slice(0, 200) : ''}`,
+  }));
+  const r = await fetch(`${SUPA_URL}/rest/v1/edge_health_probe`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify(rows), signal: AbortSignal.timeout(CHECK_MS),
+  }).catch(() => null);
+  return !!r?.ok;
+}
 
 export async function GET(req: Request) {
   // Vercel signs cron invocations with CRON_SECRET when it is set. If it is not set the route
@@ -36,6 +77,10 @@ export async function GET(req: Request) {
   if (secret && req.headers.get('authorization') !== `Bearer ${secret}`) {
     return Response.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
+  // The origin checks run alongside the ping, so a slow watchdog never delays the 15-minute sample.
+  const uptime = checkOrigins()
+    .then(async (checks) => ({ checks, recorded: await recordUptime(checks) }))
+    .catch(() => ({ checks: [] as Check[], recorded: false }));
   try {
     const r = await fetch(PING, {
       method: 'POST',
@@ -47,8 +92,12 @@ export async function GET(req: Request) {
     // A non-ok verdict is reported as a 502 so the platform's own failure log shows it, rather
     // than the route returning 200 over a dead watchdog.
     const ok = r.ok && (body as { ok?: boolean })?.ok === true;
-    return Response.json({ ok, upstream_status: r.status, upstream: body }, { status: ok ? 200 : 502 });
+    const u = await uptime;
+    return Response.json({ ok, upstream_status: r.status, upstream: body, uptime: u.checks, uptime_recorded: u.recorded },
+      { status: ok ? 200 : 502 });
   } catch (e) {
-    return Response.json({ ok: false, error: String((e as Error)?.message || e) }, { status: 502 });
+    const u = await uptime;
+    return Response.json({ ok: false, error: String((e as Error)?.message || e), uptime: u.checks, uptime_recorded: u.recorded },
+      { status: 502 });
   }
 }
