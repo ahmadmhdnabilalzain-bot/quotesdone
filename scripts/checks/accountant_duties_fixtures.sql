@@ -152,7 +152,17 @@ begin
   v := public.fn_accountant_book_stripe_fees(false, jsonb_build_array(jsonb_build_object('id', 'txn_zz_probe_fee', 'type', 'stripe_fee',
     'amount', -525, 'currency', 'aed', 'created', extract(epoch from now())::bigint, 'description', 'ZZ DEMO Billing - Invoicing')));
   perform pg_temp.zz_assert((v->>'drafted')::int = 1 and (v->>'posted')::int = 0, 'costs: the test-mode Stripe fee was not drafted: ' || v::text);
+  -- Since 23 Sep 2026 (the_books_and_the_knowledge_are_read_by_meaning_not_by_words.sql) a line is booked on its
+  -- REASONED kind, never on its words: the runtime's reasoning writes bank_statement_line.kind. The fixture records that
+  -- answer for its own charge line, and a line nobody reasoned must still book nothing.
+  perform pg_temp.zz_assert(not exists (select 1 from public.bank_statement_line where account = 'zz_demo' and kind is not null),
+    'costs: a ZZ DEMO bank line was given a kind before anything reasoned it');
+  perform public.fn_accountant_bank_line_reasoned(b.id, 'bank_charge', 'zz demo fixture')
+     from public.bank_statement_line b where b.account = 'zz_demo' and b.description = 'ZZ DEMO ACCOUNT MAINTENANCE CHARGE';
   v := public.fn_accountant_book_bank_charges();
+  perform pg_temp.zz_assert(not exists (select 1 from public.gl_journal g join public.bank_statement_line b on g.source = 'bank_charge' and g.source_ref = b.id::text
+                                          where b.description = 'ZZ DEMO DUPLICATE CHARGE'),
+    'costs: an unreasoned bank line was booked on its words');
   perform pg_temp.zz_assert(exists (select 1 from public.gl_journal where source = 'bank_charge' and status = 'draft' and memo like 'ZZ DEMO%'),
     'costs: the ZZ DEMO bank charge was not prepared as a draft');
   -- A REAL bank entry posted is correct once the founder lifts the hold (gl_settings.bank_booking_on_hold = 0;
@@ -434,8 +444,13 @@ begin
   -- ── F2. AD SPEND: Meta invoiced AED 150 against AED 100 reported, then the invoice corrected ─────────
   insert into public.accountant_ad_spend_month (month, reported_spend_aed, reported_at) values ('2020-01-01', 100, now())
   on conflict (month) do update set reported_spend_aed = 100;
+  -- read_as is what the reasoning writes when a receipt is booked (23 Sep 2026: an invoice is Meta's by meaning, never
+  -- by its vendor text); the fixture records that answer, and the vendor name alone must count for nothing.
   insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, note)
   values ('Meta Platforms (ZZ DEMO)', 'Advertising', 150, 'AED', '2020-01-15', 'receipt', 'ZZ DEMO probe') returning id into v_n;
+  perform pg_temp.zz_assert((public.fn_accountant_ad_spend_figures('2020-01-01')->>'meta_invoices')::int = 0,
+    'ad spend: an expense was counted as a Meta invoice on its vendor text');
+  update public.expense_entries set read_as = 'meta_ads_invoice' where id = v_n;
   v := public.fn_accountant_ad_spend_tick('2020-02-20');
   perform pg_temp.zz_assert(pg_temp.zz_open('acct:ad_spend:mismatch:2020-01'), 'ad spend: an invoice AED 50 over the reported spend raised no finding: ' || v::text);
   h := pg_temp.zz_loop_opens('acct:ad_spend:mismatch:2020-01', 'accountant');

@@ -1,0 +1,99 @@
+{
+  "trade": "photo_video_production",
+  "layer": "uae-market",
+  "label_en": "Photography & video production",
+  "label_ar": "التصوير وإنتاج الفيديو",
+  "entries": [
+    {
+      "id": "photo_video_production:uae-market-products",
+      "topic": "Photography & video production: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Photo and video production in the UAE covers corporate videos, TV commercials (TVCs), social media content (reels, short-form vertical video), product and e-commerce photography (white background, lifestyle, 360°), architectural and interior photography, real estate videos and drone aerials, event coverage and live streaming, documentaries, animation and motion graphics (2D/3D), corporate headshots, food photography, fashion shoots, podcasts, post-production (editing, colour grading, sound design, subtitling in Arabic/English), and voice-over. Buyers specify deliverable formats (4K, 16:9/9:16/1:1), number of edits and revisions, usage rights and licence duration, talent and model releases, locations and permits. UAE rules: filming in public locations needs permits (Dubai Film and TV Commission, Abu Dhabi Film Commission/Creative Media Authority), drone filming needs GCAA and local police/DCAA approvals, and photographing people without consent breaches UAE privacy law.",
+      "body_ar": "يشمل إنتاج الصور والفيديو في الإمارات فيديوهات الشركات، والإعلانات التلفزيونية، ومحتوى وسائل التواصل الاجتماعي (الريلز، والفيديو العمودي القصير)، وتصوير المنتجات والتجارة الإلكترونية (خلفية بيضاء، ونمط الحياة، و360 درجة)، والتصوير المعماري والداخلي، وفيديوهات العقارات والتصوير الجوي بالطائرات بدون طيار، وتغطية الفعاليات والبث المباشر، والأفلام الوثائقية، والرسوم المتحركة والجرافيك المتحرك (ثنائي وثلاثي الأبعاد)، والصور الشخصية للشركات، وتصوير الأطعمة، وجلسات الأزياء، والبودكاست، وما بعد الإنتاج (المونتاج، وتصحيح الألوان، والتصميم الصوتي، والترجمة النصية بالعربية/الإنجليزية)، والتعليق الصوتي. يحدد المشترون صيغ المخرجات (4K، و16:9/9:16/1:1)، وعدد النسخ المعدلة والمراجعات، وحقوق الاستخدام ومدة الترخيص، وموافقات المواهب والعارضين، والمواقع والتصاريح. القواعد الإماراتية: يحتاج التصوير في الأماكن العامة إلى تصاريح (لجنة دبي للإنتاج التلفزيوني والسينمائي، ولجنة أبوظبي للأفلام/هيئة الإعلام الإبداعي)، ويحتاج التصوير بالطائرات بدون طيار إلى موافقات الهيئة العامة للطيران المدني والشرطة المحلية/هيئة دبي للطيران المدني، ويُعد تصوير الأشخاص دون موافقتهم مخالفة لقانون الخصوصية الإماراتي.",
+      "sources": [
+        "https://www.uaefilmpermit.com/blog/drone-filming-permits-in-dubai",
+        "https://www.filmworksgroup.com/",
+        "https://dubaistudiocity.ae/",
+        "https://www.filmdubai.gov.ae",
+        "https://www.gcaa.gov.ae",
+        "https://www.cma.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals -> confirmed | Filmworks (1998) is a Dubai production company in Dubai Studio City -> confirmed | The Talent Factory and Good People as TVC houses -> removed: not checked. Not checked: The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified."
+    },
+    {
+      "id": "photo_video_production:uae-market-brands",
+      "topic": "Photography & video production: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed production company and production hub, plus common camera brands: Filmworks Group, Dubai Studio City, ARRI, RED, Sony, Canon, Blackmagic Design. Camera rental houses in Al Quoz and Studio City were not checked.",
+      "body_ar": "شركة الإنتاج ومركز الإنتاج المؤكدان، إضافة إلى علامات الكاميرات الشائعة: Filmworks Group، Dubai Studio City، ARRI، RED، Sony، Canon، Blackmagic Design. ولم يُتحقق من دور تأجير الكاميرات في القوز واستوديو سيتي.",
+      "sources": [
+        "https://www.uaefilmpermit.com/blog/drone-filming-permits-in-dubai",
+        "https://www.filmworksgroup.com/",
+        "https://dubaistudiocity.ae/",
+        "https://www.filmdubai.gov.ae",
+        "https://www.gcaa.gov.ae",
+        "https://www.cma.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals -> confirmed | Filmworks (1998) is a Dubai production company in Dubai Studio City -> confirmed | The Talent Factory and Good People as TVC houses -> removed: not checked. Not checked: The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified."
+    },
+    {
+      "id": "photo_video_production:uae-market-sizes",
+      "topic": "Photography & video production: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per shoot day or half-day (crew and equipment), per deliverable (per edited video by length, per retouched image), per product for e-commerce (e.g. per SKU with 3-5 angles), or per project for TVCs (pre-production, shoot days, post-production, talent fees). Usage rights and talent buyouts are priced per duration/territory. Permit and location fees are typically extra. Revisions beyond the included rounds are charged per hour.",
+      "body_ar": "تُسعّر لكل يوم تصوير أو نصف يوم (الطاقم والمعدات)، أو لكل مخرج (لكل فيديو معدل حسب الطول، لكل صورة معالجة)، أو لكل منتج في التجارة الإلكترونية (مثل لكل صنف بـ3-5 زوايا)، أو لكل مشروع للإعلانات التلفزيونية (ما قبل الإنتاج، وأيام التصوير، وما بعد الإنتاج، وأجور المواهب). وتُسعّر حقوق الاستخدام وشراء حقوق المواهب حسب المدة/المنطقة الجغرافية. وتكون رسوم التصاريح والمواقع عادةً إضافية. وتُحتسب المراجعات الإضافية عن الجولات المشمولة بالساعة.",
+      "sources": [
+        "https://www.uaefilmpermit.com/blog/drone-filming-permits-in-dubai",
+        "https://www.filmworksgroup.com/",
+        "https://dubaistudiocity.ae/",
+        "https://www.filmdubai.gov.ae",
+        "https://www.gcaa.gov.ae",
+        "https://www.cma.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals -> confirmed | Filmworks (1998) is a Dubai production company in Dubai Studio City -> confirmed | The Talent Factory and Good People as TVC houses -> removed: not checked. Not checked: The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Do we need a permit to film a corporate video on a public beach in Dubai?",
+      "q_ar": "هل نحتاج إلى تصريح لتصوير فيديو لشركة على شاطئ عام في دبي؟",
+      "expected_entry_ids": [
+        "photo_video_production:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Filming in Dubai public locations needs a Dubai Film and TV Commission permit; drone filming also needs GCAA and DCAA approvals",
+        "url": "https://www.uaefilmpermit.com/blog/drone-filming-permits-in-dubai",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Filmworks (1998) is a Dubai production company in Dubai Studio City",
+        "url": "https://www.filmworksgroup.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "The Talent Factory and Good People as TVC houses",
+        "url": "https://dubaistudiocity.ae/",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "The Dubai Film and TV Commission and Creative Media Authority URLs, named production houses, and drone permit steps per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
