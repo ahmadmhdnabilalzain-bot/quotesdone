@@ -1,0 +1,20 @@
+{
+  "about": "Labelled matching-accuracy set, seat sales_engineer, 28 Sep 2026. ZZ DEMO suppliers (@example.invalid, reserved +9715000000xx block) and inquiry -> expected-supplier pairs, scored against public.fn_match_capability by scripts/eval/matching_accuracy_eval.mjs. Only fixture suppliers are scored; real suppliers in a result are ignored.",
+  "suppliers": [
+    { "key": "paint_dxb",   "trades": ["painting"],   "roles": ["contractor"], "emirates": ["Dubai"],   "phone": "+971500000081" },
+    { "key": "paint_uae",   "trades": ["painting"],   "roles": ["contractor"], "emirates": [],          "phone": "+971500000082" },
+    { "key": "plumb_shj",   "trades": ["plumbing"],   "roles": ["contractor"], "emirates": ["Sharjah"], "phone": "+971500000083" },
+    { "key": "plumb_auh",   "trades": ["plumbing"],   "roles": ["contractor"], "emirates": ["Abu Dhabi"], "phone": "+971500000084" },
+    { "key": "elec_dxb",    "trades": ["electrical"], "roles": ["contractor"], "emirates": ["Dubai"],   "phone": "+971500000085" },
+    { "key": "paint_plumb", "trades": ["painting", "plumbing"], "roles": ["contractor"], "emirates": ["Dubai", "Sharjah"], "phone": "+971500000086" }
+  ],
+  "inquiries": [
+    { "key": "paint_in_dubai",      "trades": ["painting"],   "emirate": "Dubai",     "expected": ["paint_dxb", "paint_uae", "paint_plumb"] },
+    { "key": "paint_in_sharjah",    "trades": ["painting"],   "emirate": "Sharjah",   "expected": ["paint_uae", "paint_plumb"] },
+    { "key": "paint_in_ajman",      "trades": ["painting"],   "emirate": "Ajman",     "expected": ["paint_uae"] },
+    { "key": "plumb_in_sharjah",    "trades": ["plumbing"],   "emirate": "Sharjah",   "expected": ["plumb_shj", "paint_plumb"] },
+    { "key": "plumb_in_abu_dhabi",  "trades": ["plumbing"],   "emirate": "Abu Dhabi", "expected": ["plumb_auh"] },
+    { "key": "elec_in_dubai",       "trades": ["electrical"], "emirate": "Dubai",     "expected": ["elec_dxb"] },
+    { "key": "elec_in_sharjah",     "trades": ["electrical"], "emirate": "Sharjah",   "expected": [] }
+  ]
+}
