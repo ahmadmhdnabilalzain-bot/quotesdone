@@ -476,6 +476,10 @@
   "ca7ac89e6aaf",
   "cd98c20ad4d3"
  ],
+ "scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql": [
+  "dd7717d7c21d",
+  "f8a24d42bef5"
+ ],
  "scripts/sql/a_licence_may_arrive_by_email_or_portal_and_a_stranger_must_prove_the_account_is_theirs.sql": [
   "7478879f664f",
   "8b5f02c04a5e",
@@ -2690,6 +2694,7 @@
   "322a12781811",
   "329abf7ff2ca",
   "35cc22f1e03c",
+  "35f171f7e8a2",
   "36c55d485f47",
   "39b50046faba",
   "3b6f809a9de0",
@@ -2836,6 +2841,7 @@
   "deaa69547153",
   "deb0f258d506",
   "df9df166cb03",
+  "dfaf6a749956",
   "e02d2e24eebd",
   "e5132467ebf2",
   "e56aaa053bdf",

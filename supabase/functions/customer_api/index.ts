@@ -824,7 +824,7 @@ Deno.serve(observe('customer_api', async (req) => {
     // suppliers, request refunds and rate them from the main buyer surface. Every mutating
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
-    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note'];
+    const MUTATING = ['create_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
     if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
 
     if (action === 'me') return J({ customer: cust });
@@ -1409,6 +1409,41 @@ Deno.serve(observe('customer_api', async (req) => {
     // pre-reveal Q&A uses, so a supplier reads one list), scrubbed of contact details and the
     // customer's own name, and emailed to every matched supplier through the same queue the
     // original invitation used.
+    // A REQUEST HELD FOR ITS SPECS IS COMPLETED BY ITS CUSTOMER (customer_support, 29 Sep 2026; founder ledger 1018).
+    // missing_specs: one field per required spec the hold check (fn_rfq_required_check) finds missing, asked in the
+    // intake's plain words in the customer's language. add_missing_specs: the answers go through the one door
+    // (fn_inquiry_add_missing_specs), which writes them under the key the check reads, lets the row's trigger re-run
+    // the check, notes them on the request and tells every matched supplier. A request that is now complete and had
+    // reached no supplier is offered to the matcher here, exactly as at posting. The e-mail reply path uses the same
+    // door (source email_reply). scripts/sql/a_held_request_takes_its_missing_specs_from_the_customer_and_is_released_when_complete.sql
+    if (action === 'missing_specs' || action === 'add_missing_specs') {
+      const iid = String(body.inquiry_id || '');
+      const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,summary,budget,status').eq('id', iid).maybeSingle();
+      if (!inq || inq.customer_id !== cust.id) return J({ ok: false, error: 'not_your_inquiry' }, 403);
+      if (action === 'missing_specs') {
+        const { data, error } = await admin.rpc('fn_inquiry_missing_specs', { p_inquiry: iid, p_lang: documentLocale(body.lang, cust.locale) });
+        if (error) return J({ ok: false, error: 'missing_specs_unavailable' }, 503);
+        return J({ ok: true, ...(data as Record<string, unknown>) });
+      }
+      // The same scrub every supplier-facing text passes: the answers reach the matched suppliers.
+      const answers: Record<string, string> = {}; const hits: string[] = [];
+      const raw = (body.answers && typeof body.answers === 'object') ? body.answers as Record<string, unknown> : {};
+      for (const [k, v] of Object.entries(raw).slice(0, 40)) {
+        const clean = String(scrubIdentity(String(v ?? '').slice(0, 300), cust.full_name, hits) || '').trim();
+        if (clean.replace(/\[removed\]/g, '').trim()) answers[String(k).slice(0, 80)] = clean;
+      }
+      const { data: res, error } = await admin.rpc('fn_inquiry_add_missing_specs', { p_inquiry: iid, p_customer: cust.id, p_answers: answers, p_source: 'customer_portal' });
+      if (error) return J({ ok: false, error: 'save_failed' }, 500);
+      const r = (res || {}) as Record<string, any>;
+      if (!r.ok) return J({ ok: false, error: r.error || 'save_failed', missing: r.missing ?? null }, r.error === 'not_your_inquiry' ? 403 : r.error === 'inquiry_closed' ? 409 : 400);
+      let matches: number | null = null;
+      if (r.ready === true && r.reached_suppliers === false) {
+        ({ matches } = await matchAndNotify(iid, { category: String(inq.category || ''), emirate: inq.emirate ?? null, summary: String(inq.summary || ''),
+          budget: inq.budget ?? null, extra: ' The customer completed the details this trade needs.' }));
+      }
+      return J({ ...r, released: r.ready === true, matches, removed: hits.length });
+    }
+
     if (action === 'rfq_note') {
       const iid = String(body.inquiry_id || '');
       const raw = String(body.text || '').trim().slice(0, 1500);
@@ -1448,7 +1483,7 @@ Deno.serve(observe('customer_api', async (req) => {
       //   routing — the filters the matcher actually applied (job_type, primary_trade, reasoning).
       //     Spec §9 shows them back to the customer; they never left the database.
       //   floor / required_by / delivery_window — added 7 Aug for §6 and §7.
-      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id';
+      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id,rfq_ready';
       // ONE READ AT A TIME WAS THE OVERVIEW'S CRITICAL PATH (15 Sep 2026). Measured with the e2e
       // harness's per-call timing on production (smoke run 34888342875 and a probe of 8 page loads):
       // the six dashboard calls already start together, and my_inquiries answers last (1.40-1.61 s
