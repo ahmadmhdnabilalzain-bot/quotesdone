@@ -2,7 +2,7 @@
 // geometry unchanged, no identifier string left anywhere in the file, and the file still opens.
 //   deno test --no-lock --node-modules-dir=auto --allow-read=. supabase/functions/_shared/pdf_vector_redact.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { cutOperators, redactPdfVector, verifyPdfRedaction } from './pdf_vector_redact.ts';
+import { cutOperators, cutPlan, redactPdfVector, verifyPdfRedaction } from './pdf_vector_redact.ts';
 import { linesFromRuns, pdfPages, pdfRedactionView } from './pdf_text_positions.ts';
 import { seedTerms } from './anonymise.ts';
 import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, PDF_COUNTS, zzPdfScan, zzPdfSet, zzPdfSheet, zzPdfSheetWithLogo } from './doc_read/zz_demo_drawings.fixtures.ts';
@@ -62,6 +62,21 @@ Deno.test('a VECTOR logo in the title strip is cut; every path outside the strip
   assert(/0\.1 0\.3 0\.6 rg [\d.]+ [\d.]+ 259\.2 86\.4 re f/.test(new TextDecoder('latin1').decode(before)), 'the fixture carries no logo badge');
   assert(!/0\.1 0\.3 0\.6 rg [\d.]+ [\d.]+ 259\.2 86\.4 re f/.test(content), 'the logo badge is still drawn');
   assert(content.includes('129.6 1555.2 m 907.2 1555.2 l S'), 'a wall outside the strip was changed');
+});
+
+Deno.test('an identity run the reader cannot locate HOLDS the file; it never skips the rest of the page', () => {
+  const page = { width: 100, height: 100, rotate: 0, runs: [{ text: 'zz.orbit@example.invalid', x: 0.1, y: 0.1, w: 0.2, h: 0.02 }],
+    paths: [{ at: 'p', ops: [1, 2, 3], text: '0 0 m 1 1 l S', x: 0.9, y: 0.1, w: 0.05, h: 0.05, clip: false }] };
+  const strip = [[{ x: 0.85, y: 0, w: 0.15, h: 1 }]];
+  const held = cutPlan([{ num: 4, page }], [[]], strip, [page], seeds);
+  assertEquals(held.ok ? 'planned' : held.held, 'identity_run_not_located');
+  // Located, the same page plans the run's cut AND the logo path's cut.
+  const located = { ...page, runs: [{ ...page.runs[0], at: 'p:7' }] };
+  const ok = cutPlan([{ num: 4, page: located }], [[]], strip, [located], seeds);
+  assert(ok.ok);
+  if (!ok.ok) return;
+  assertEquals([...(ok.drop.get('p4') ?? [])].sort((a, b) => a - b), [1, 2, 3, 7]);
+  assertEquals([ok.counts.removedRuns, ok.counts.removedPaths], [1, 1]);
 });
 
 Deno.test('a scanned sheet is held here (scan_redact paints it), never passed through', async () => {

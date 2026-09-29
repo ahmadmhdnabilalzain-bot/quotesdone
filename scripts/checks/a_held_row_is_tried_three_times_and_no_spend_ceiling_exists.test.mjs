@@ -67,6 +67,11 @@ test('no department budget halt and no pair ceiling: fn_ai_route never refuses o
   const route = code(f.slice(f.indexOf('CREATE OR REPLACE FUNCTION public.fn_ai_route('), f.indexOf('CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(')));
   assert.ok(route.length > 1000, 'fn_ai_route is redefined');
   assert.doesNotMatch(route, /halt_at_pct|degrade_at_pct|'halted'/);
+  // The later canonical body (founder_instruction 1056, the seat's own route) must not bring a halt back either.
+  const m = readFileSync('scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql', 'utf8');
+  const route2 = code(m.slice(m.indexOf('CREATE OR REPLACE FUNCTION public.fn_ai_route('), m.indexOf('create or replace function public.fn_ai_route_review_for(')));
+  assert.ok(route2.length > 1000, 'fn_ai_route is redefined in the matrix file');
+  assert.doesNotMatch(route2, /halt_at_pct|degrade_at_pct|'halted'/);
   const pair = code(f.slice(f.indexOf('CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_budget(')));
   assert.doesNotMatch(pair, /cap_aed_month/);
   assert.match(pair, /'ok', true/);

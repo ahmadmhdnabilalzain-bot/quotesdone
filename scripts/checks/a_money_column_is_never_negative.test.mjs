@@ -9,12 +9,13 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FIX = 'scripts/sql/a_money_column_is_never_negative_and_never_past_its_cents.sql';
 const PENDING = 'scripts/sql/pending/a_money_column_is_never_negative_and_never_past_its_cents.txt';
-const SRC = existsSync(join(REPO, PENDING)) ? read(FIX) : read('supabase/schema/full_schema.sql');
+const SRC = existsSync(join(REPO, PENDING)) ? read(FIX) : readSchemaMirror();
 
 const SIGNED = [
   'quotes_customer_price_money_ck', 'quotes_app_fee_money_ck', 'quotes_vat_amount_money_ck', 'quotes_amount_as_stated_money_ck',

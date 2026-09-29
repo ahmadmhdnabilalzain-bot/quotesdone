@@ -4,7 +4,7 @@ import { useLocale } from 'next-intl';
 import mk from '@/content/marketing.json';
 // See supaEnv: the contact form posted to whatever this inline fallback resolved to, which on an
 // unconfigured preview deployment was production.
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { arDoc } from '@/lib/arabicDoc';
 import { CompanyIdentity } from '@/components/CompanyIdentity';
 import { PageHero, splitHero } from '@/components/DocFrame';
@@ -36,7 +36,7 @@ export function ContactInner() {
       if (Mg) { Mg.style.color = 'var(--mut,#9DB2B2)'; Mg.textContent = locale === 'ar' ? 'جارٍ الإرسال…' : 'Sending…'; }
       const data: any = {}; new FormData(F).forEach((v, k) => { data[k] = v; });
       try {
-        const r = await fetch(FN + '/contact_submit', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: 'Bearer ' + ANON }, body: JSON.stringify(data) });
+        const r = await fetch(fnUrl('contact_submit'), { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: 'Bearer ' + ANON }, body: JSON.stringify(data) });
         const j = await r.json().catch(() => ({} as any));
         const ar = locale === 'ar';
         if (r.ok && j && j.ok !== false) {

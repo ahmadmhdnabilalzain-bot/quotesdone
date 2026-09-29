@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 const L = (lang: string, en: string, ar: string) => (lang === 'ar' ? ar : en);
 const S = {
@@ -37,7 +37,7 @@ const FIELDS = [
 ] as const;
 
 const post = async (token: string, body: Record<string, unknown>) => {
-  const r = await fetch(`${SUPA_FN}/customer_api`, {
+  const r = await fetch(fnUrl('customer_api'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
     body: JSON.stringify(body),

@@ -932,7 +932,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         best_score: rows.length ? Number(rows[0].score) : null,
         relevance_floor: floor,
         note: rows.length === 0
-          ? 'No supplier cleared fn_match_capability\'s hard gates for this trade, role, authority, value band and emirate. This is a supply-coverage gap: the demand is real and the marketplace cannot serve it.'
+          ? 'No supplier cleared fn_match_capability\'s hard gates for this trade, role, authority, value band, emirate and availability (a busy or paused supplier is skipped). This is a supply-coverage gap, or every capable supplier is busy: the demand is real and nobody can answer it now. customer_api flags it to the stalled-inquiry rescue (fn_stalled_inquiry_flag).'
           : 'Suppliers cleared the hard gates but none reached the configured relevance floor. Lowering the floor to produce a list is expressly forbidden by the sales.matching grant.',
         recovery: 'Recorded and pursued by customer_api.flagCoverageGap() on the create_inquiry path (agent_actions coverage_gap + founder_alerts + owner notification). The customer\'s scope is not widened, the project is not split, and no supplier choice is put to the founder.',
       };
@@ -949,7 +949,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
         candidates: rows.length, above_floor: aboveFloor.length,
         matched, persisted, gap,
         grant: { grant: may.grant, limit: may.limit },
-        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band and emirate coverage applied as SQL gates before ranking; then decision_policy\'s relevance floor, per-trade cap and fanout ceiling. No model was called and no supplier was added to reach a count.',
+        basis: 'public.fn_match_capability — supplier-confirmed scope, trade intersection, declared exclusions, contracted role, mandatory authorities, project-value band, emirate coverage and each supplier\'s own availability (busy or paused is skipped) applied as SQL gates before ranking; then decision_policy\'s relevance floor, per-trade cap and fanout ceiling. No model was called and no supplier was added to reach a count.',
       });
     }
 

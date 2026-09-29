@@ -8,15 +8,15 @@
 // 15-18 Sep. It compiles, it applies, and it dies only when it runs, so only a reading of the body
 // catches it before a caller does.
 //
-// Reads supabase/schema/full_schema.sql (the live mirror, kept equal to production on every PR).
+// Reads supabase/schema/full_schema/ (the live mirror, kept equal to production on every PR).
 // A record-typed variable is `record`, `%rowtype` or a `schema.table` row type; an alias is the word
 // after a table in FROM / JOIN / UPDATE / INTO / DELETE FROM. A match is a routine that WILL raise
 // 42702 the moment that statement touches `alias.column`.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA = readFileSync(new URL('../../supabase/schema/full_schema.sql', import.meta.url), 'utf8');
+const SCHEMA = readSchemaMirror();
 const SQL_WORDS = new Set(['where', 'set', 'on', 'join', 'left', 'right', 'inner', 'cross', 'using', 'order', 'group',
   'limit', 'returning', 'values', 'select', 'for', 'and', 'or', 'as', 'with', 'union', 'having', 'lateral', 'natural',
   'full', 'outer', 'into', 'then', 'loop', 'end', 'offset', 'window', 'except', 'intersect', 'default', 'from', 'do']);
