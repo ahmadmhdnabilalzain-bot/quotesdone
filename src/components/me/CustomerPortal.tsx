@@ -101,6 +101,7 @@ import { MotionRoot } from './lazyMotion';
 // request" (showNew starts false), so it is not part of the /me first load (28 Sep 2026).
 const NewRequest = dynamic(() => import('./NewRequest').then((mod) => mod.NewRequest), { ssr: false, loading: ModuleLoading });
 import { Clarifications } from './Clarifications';
+import { MissingSpecs } from './MissingSpecs';
 import { ConciergeSteps } from './ConciergeSteps';
 import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
@@ -1226,6 +1227,9 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
         alternative or says no. OUTSIDE the collapsible details on purpose — a question the customer
         has to open the card to find is a question that goes unanswered, and the reply window runs. */}
     {inq.spec_offers && inq.spec_offers.length ? <div className="mt-3"><SpecOffer inq={inq} token={token} lang={lang} call={call} onDone={onChange} /></div> : null}
+    {/* Held for its specs (rfq_ready false on an open request): the missing fields, outside the collapsible for the
+        same reason as the offer above. Asked only of a request the hold check has not passed. */}
+    {inq.rfq_ready === false && !['cancelled', 'closed', 'completed'].includes(String(inq.status)) ? <div className="mt-3"><MissingSpecs inq={inq} token={token} lang={lang} call={call} onChange={onChange} /></div> : null}
     {open && <div className="mt-3 border-t border-border pt-3 flex flex-col gap-3">
       <Timeline inq={inq} quotes={quotes} anyRevealed={anyRevealed} lang={lang} />
       <QuoteSpread quotes={quotes} lang={lang} />
