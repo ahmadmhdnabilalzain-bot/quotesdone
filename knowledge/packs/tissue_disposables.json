@@ -1,0 +1,76 @@
+{
+  "trade": "tissue_disposables",
+  "entries": [
+    {
+      "id": "tissue_disposables:spec-checklist",
+      "topic": "Tissue and disposables - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For tissue and disposables quotes to be compared like-for-like, every quoted line (goods) must state: (1) product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery); (2) ply and sheet count; (3) sheet size and roll length; (4) material (virgin pulp, recycled, paper, PP); (5) pack configuration; (6) dispenser compatibility; (7) food-contact compliance for food items; (8) quantity in cartons; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tissue_disposables trade.",
+      "body_ar": "لكي تُقارن عروض المناديل والمستهلكات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) المنتج (مناديل وجه، أو ورق حمام، أو مناشف مطبخ، أو محارم، أو أكواب، أو أدوات مائدة)؛ (2) عدد الطبقات والأوراق؛ (3) مقاس الورقة وطول اللفة؛ (4) المادة (لب بكر، أو معاد التدوير، أو ورق، أو PP)؛ (5) ترتيب العبوة؛ (6) التوافق مع الموزعات؛ (7) المطابقة لملامسة الغذاء لأصناف الطعام؛ (8) الكمية بالكراتين؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tissue_disposables فقط.",
+      "required_specs": [
+        "product (facial tissue, toilet roll, kitchen towel, napkins, cups, cutlery)",
+        "ply and sheet count",
+        "sheet size and roll length",
+        "material (virgin pulp, recycled, paper, PP)",
+        "pack configuration",
+        "dispenser compatibility",
+        "food-contact compliance for food items",
+        "quantity in cartons",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "tissue_disposables:uae-standards-and-approvals",
+      "topic": "Tissue and disposables - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Single-use plastic items are restricted under federal and emirate policies; food-contact disposables must meet the UAE/GSO food-contact standards available through MoIAT. What the cited sources do not establish: The sources read do not list which disposables are banned; the buyer must state the material and confirm it is permitted.",
+      "body_ar": "تخضع الأصناف البلاستيكية أحادية الاستخدام لقيود السياسات الاتحادية والمحلية؛ ويجب أن تطابق المستهلكات الملامسة للغذاء المواصفات الإماراتية والخليجية المتاحة عبر وزارة الصناعة والتكنولوجيا المتقدمة. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر المستهلكات المحظورة؛ على المشتري أن يحدد المادة وأن يتأكد من السماح بها.",
+      "source_note": "The sources read do not list which disposables are banned; the buyer must state the material and confirm it is permitted.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for tissue and disposables?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالمناديل والمستهلكات؟",
+      "expected_entry_ids": [
+        "tissue_disposables:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to tissue and disposables?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على المناديل والمستهلكات؟",
+      "expected_entry_ids": [
+        "tissue_disposables:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "tissue_disposables:spec-checklist",
+      "tissue_disposables:uae-standards-and-approvals"
+    ],
+    "added": [
+      "tissue_disposables:spec-checklist",
+      "tissue_disposables:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

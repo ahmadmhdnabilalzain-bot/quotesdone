@@ -1,0 +1,74 @@
+{
+  "trade": "telecom_services",
+  "entries": [
+    {
+      "id": "telecom_services:spec-checklist",
+      "topic": "Telecom services - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For telecom services quotes to be compared like-for-like, every quoted line (services) must state: (1) service type (fixed line, mobile, internet, leased line, SIP); (2) bandwidth and number of lines or SIMs; (3) sites and addresses; (4) licensed operator; (5) contract term; (6) SLA uptime and repair time; (7) installation and equipment; (8) equipment registered with the regulator; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the telecom_services trade.",
+      "body_ar": "لكي تُقارن عروض خدمات الاتصالات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الخدمة (خط ثابت، أو متنقل، أو إنترنت، أو خط مؤجر، أو SIP)؛ (2) السعة وعدد الخطوط أو الشرائح؛ (3) المواقع والعناوين؛ (4) المشغل المرخص؛ (5) مدة العقد؛ (6) نسبة التوفر في اتفاقية الخدمة وزمن الإصلاح؛ (7) التركيب والمعدات؛ (8) المعدات المسجلة لدى الجهة التنظيمية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة telecom_services فقط.",
+      "required_specs": [
+        "service type (fixed line, mobile, internet, leased line, SIP)",
+        "bandwidth and number of lines or SIMs",
+        "sites and addresses",
+        "licensed operator",
+        "contract term",
+        "SLA uptime and repair time",
+        "installation and equipment",
+        "equipment registered with the regulator",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://tdra.gov.ae/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "telecom_services:uae-standards-and-approvals",
+      "topic": "Telecom services - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Telecommunications in the UAE are regulated by the Telecommunications and Digital Government Regulatory Authority (TDRA), which handles disputes with service providers and runs the registration and approval of telecommunication equipment and telecom supplier registration. What the cited sources do not establish: The TDRA page read does not set SLA levels or prices; these must be stated in the quote.",
+      "body_ar": "ينظم قطاع الاتصالات في الإمارات هيئة تنظيم الاتصالات والحكومة الرقمية، التي تتولى النزاعات مع مزودي الخدمة وتسجيل معدات الاتصالات واعتمادها وتسجيل موردي الاتصالات. ما لا تثبته المصادر المذكورة: صفحة الهيئة المقروءة لا تحدد مستويات الخدمة ولا الأسعار؛ يجب ذكرها في العرض.",
+      "source_note": "The TDRA page read does not set SLA levels or prices; these must be stated in the quote.",
+      "sources": [
+        "https://tdra.gov.ae/en/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for telecom services?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـخدمات الاتصالات؟",
+      "expected_entry_ids": [
+        "telecom_services:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to telecom services?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على خدمات الاتصالات؟",
+      "expected_entry_ids": [
+        "telecom_services:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "telecom_services:spec-checklist"
+    ],
+    "added": [
+      "telecom_services:spec-checklist",
+      "telecom_services:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
