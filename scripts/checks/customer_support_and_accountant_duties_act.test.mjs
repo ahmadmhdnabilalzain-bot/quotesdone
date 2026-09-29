@@ -70,7 +70,16 @@ test('static: revokes, search_path, RLS + policy, duties defined, choices valida
       assert.equal(duty.split('.')[0], seat, `${f}: ${duty} is not owned by its own seat`);
       assert.ok(made.includes(fn), `${f}: ${duty} runs ${fn}, which the file does not define`);
     }
-    assert.match(src, /insert into public\.seat_handoff_kind[\s\S]{0,200}'deliberation\.review', '\w+', 'ceo'/, `${f}: its seat-to-seat judgement has no registered cross-family review pair`);
+    // 30 Sep 2026: the dispute finding moved to the sales_engineer on 24 Sep, so the customer_support file must NOT
+    // register the dispute review; the customer_support -> ceo pair is the target file's root-cause review
+    // (scripts/sql/the_dispute_review_originates_with_the_sales_engineer.sql). The accountant's file still must.
+    if (f.includes('customer_support_')) {
+      assert.doesNotMatch(src, /'deliberation\.review', 'customer_support', 'ceo'/, `${f}: registers the dispute review the sales engineer now originates`);
+      assert.match(code(read('scripts/sql/the_ceo_sets_the_target_runs_experiments_and_watches_competitors.sql')),
+        /'deliberation\.review'[\s\S]{0,400}'customer_support'/, 'the customer_support -> ceo root-cause review pair is no longer registered');
+    } else {
+      assert.match(src, /insert into public\.seat_handoff_kind[\s\S]{0,200}'deliberation\.review', '\w+', 'ceo'/, `${f}: its seat-to-seat judgement has no registered cross-family review pair`);
+    }
     assert.ok(pending(f) !== MANIFEST.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
   }
 });
@@ -145,8 +154,11 @@ begin
   o := o || jsonb_build_object('wb2', fn_customer_support_winback_tick());
   o := o || jsonb_build_object('fr1', fn_accountant_fraud_watch_tick());
   o := o || jsonb_build_object('fr2', fn_accountant_fraud_watch_tick());
-  o := o || jsonb_build_object('flags', (select jsonb_agg(kind || '/' || status order by kind) from fraud_flags where detail->>'raised_by' = 'accountant'));
-  o := o || jsonb_build_object('sx', fn_accountant_sanctions_rescreen() - 'sources' - 'oldest_list' - 'runs');
+  -- 30 Sep 2026: the flags THIS PROBE RAISED (created in its own transaction: created_at = now()). Reading every
+  -- accountant flag also read production's committed ones: accountant.risk_screen (#1110) legitimately holds
+  -- free_email_company/open on a real lead that signs in with gmail.com, a flag this probe did not raise.
+  o := o || jsonb_build_object('flags', (select jsonb_agg(kind || '/' || status order by kind) from fraud_flags
+    where detail->>'raised_by' = 'accountant' and created_at >= now()));  o := o || jsonb_build_object('sx', fn_accountant_sanctions_rescreen() - 'sources' - 'oldest_list' - 'runs');
   o := o || jsonb_build_object('hit', (select jsonb_agg(field) from supplier_screening_hit where lead_id in (l1, l2)));
 
   select id into h from reasoning_held_question where dedupe_key = 'stalled_request:' || i1;
