@@ -31,14 +31,33 @@ import { embedLines, type Embedder } from './meaning_embed.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
+/** EVERY active taxonomy_trade_service row, paged. PostgREST caps one read at max-rows, measured 1,000 on
+ *  29 Sep 2026 (an unpaged select answered `0-999/1047`): an unpaged read silently lost 47 services to exact
+ *  and meaning matching. The order (trade_code, sort, code) is total, so pages neither skip nor repeat a row;
+ *  the loop advances by what each page returned and stops on an empty page, so it holds whatever the cap is.
+ *  Any failed page is an error for the whole read — a partial vocabulary is never answered as the vocabulary. */
+export async function activeServiceRows<T = Record<string, unknown>>(admin: Admin, columns: string): Promise<{ data: T[]; error: unknown }> {
+  const PAGE = 1000, MAX_PAGES = 50; // 50 pages is 50x today's 1,047 rows even at a 1,000-row cap
+  const out: T[] = [];
+  for (let from = 0, pages = 0; pages < MAX_PAGES; pages++) {
+    const { data, error } = await admin.from('taxonomy_trade_service').select(columns).eq('active', true)
+      .order('trade_code').order('sort').order('code').range(from, from + PAGE - 1);
+    if (error) return { data: [], error };
+    if (!data?.length) return { data: out, error: null };
+    out.push(...data);
+    from += data.length;
+  }
+  // A server that ignored .range() would answer the same page for ever; that is a failed read, not a loop.
+  return { data: [], error: { message: `taxonomy_trade_service did not end within ${MAX_PAGES} pages` } };
+}
+
 /** The service vocabulary: every active service, its names, its aliases and its stored vectors (parseVec).
  *  The multilingual vector (embedding_ml) is read separately so that a database without that column yet (its SQL
  *  is applied at release) still answers everything else. */
 export async function serviceVocab(admin: Admin): Promise<MeaningService[]> {
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true).order('trade_code').order('sort');
+  const { data, error } = await activeServiceRows(admin, 'trade_code,code,label_en,label_ar,aliases,embedding_gte');
   if (error) return [];
-  const ml = await admin.from('taxonomy_trade_service').select('trade_code,code,embedding_ml').eq('active', true);
+  const ml = await activeServiceRows(admin, 'trade_code,code,embedding_ml');
   const mlOf = new Map<string, number[] | null>((ml.error ? [] : ml.data || [])
     .map((r: Record<string, unknown>) => [`${r.trade_code}.${r.code}`, parseVec(r.embedding_ml)] as [string, number[] | null]));
   return (data || []).map(({ embedding_gte, ...s }: Record<string, unknown>) =>

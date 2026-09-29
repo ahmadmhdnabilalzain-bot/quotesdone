@@ -28,15 +28,17 @@ function fakeDb(normTrades: Record<string, string[]>, confirmedAt: string | null
   };
   const q = (table: string) => {
     let write: Row | null = null;
+    let lo = 0, hi = Infinity; // .range() pages, as PostgREST does: past the last row a page is empty
     const b: Record<string, unknown> = {};
     const chain = () => b;
     Object.assign(b, {
       select: chain, eq: chain, in: chain, order: chain, limit: chain,
+      range: (a: number, z: number) => { lo = a; hi = z; return b; },
       maybeSingle: async () => ({ data: table === 'supplier_capabilities' ? cap : (tables[table] || [])[0] ?? null, error: null }),
       upsert: (r: Row | Row[]) => { if (table === 'supplier_capabilities') Object.assign(cap, r as Row); write = r as Row; return b; },
       insert: (r: Row) => { write = r; return b; },
       update: (r: Row) => { write = r; return b; },
-      then: (res: (v: unknown) => void) => res(write ? { error: null } : { data: tables[table] || [], error: null }),
+      then: (res: (v: unknown) => void) => res(write ? { error: null } : { data: (tables[table] || []).slice(lo, hi + 1), error: null }),
     });
     return b;
   };

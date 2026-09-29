@@ -29,7 +29,7 @@
 
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
 import { finishRewrite, impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
-import { serviceVocab } from './service_vocabulary.ts';
+import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
 import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
 import { meaningCandidates, meaningClauses, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
 import { embedLines, remoteEmbedder } from './meaning_embed.ts';
@@ -115,9 +115,8 @@ export function preparedTrades(cap: Record<string, unknown> | null, confirmed: b
 }
 
 async function serviceRows(admin: Admin): Promise<ServiceRow[]> {
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,sort').eq('active', true).order('trade_code').order('sort');
-  return error ? [] : (data || []);
+  const { data, error } = await activeServiceRows<ServiceRow>(admin, 'trade_code,code,label_en,label_ar,sort');
+  return error ? [] : data;
 }
 
 export async function voiceEnabled(admin: Admin): Promise<boolean> {
