@@ -71,6 +71,13 @@ test('one rescue table, extended not duplicated; #1105\'s intake clears only its
   const clears = [...flag.matchAll(/update public\.stalled_inquiry_rescue set cleared_at = now\(\)[\s\S]*?;/g)].map((m) => m[0]);
   assert.equal(clears.length, 2, 'fn_stalled_inquiry_flag no longer has its two clears');
   for (const u of clears) assert.match(u, /reason = 'no_reachable_supplier'/, 'fn_stalled_inquiry_flag clears a rescue it did not flag');
+  // review of #1106 at 3d1bbb8: the WRITE is filtered too, a reopen starts the rescue's record over, and only a row
+  // actually inserted or reopened is counted new
+  assert.match(flag, /where stalled_inquiry_rescue\.reason = 'no_reachable_supplier' or stalled_inquiry_rescue\.cleared_at is not null;/,
+    'fn_stalled_inquiry_flag can overwrite an open no-quote rescue');
+  for (const col of ['reason = excluded.reason', 'acted_at', 'customer_notice', 'trades', 'uninvited_pool', 'finding_key'])
+    assert.ok(flag.includes(col), `a reopened rescue does not reset ${col}`);
+  assert.match(flag, /get diagnostics v_written = row_count;\s*if v_written = 0 then/, 'a row the flag did not write is still counted');
   const r = body('fn_sales_engineer_stalled_inquiry_rescue');
   assert.match(r, /where x\.cleared_at is null and x\.acted_at is null/, 'the rescue does not act on every open row, whichever way it came in');
   const manifest = readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim());

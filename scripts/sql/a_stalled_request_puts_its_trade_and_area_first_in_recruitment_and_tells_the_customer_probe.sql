@@ -5,7 +5,8 @@
 -- the only message this probe causes goes to an @example.invalid address, which the outbox records 'suppressed'.
 do $$
 declare
-  c_ar uuid; c_en uuid; sup bigint; a uuid; b uuid; cq uuid; d uuid; e uuid; fl jsonb; sup2 bigint; f text := ''; o jsonb := '{}';
+  k int; c_ar uuid; c_en uuid; sup bigint; a uuid; b uuid; cq uuid; d uuid; e uuid; g uuid; fl jsonb; sup2 bigint;
+  v_detail jsonb; v_acted timestamptz; v_flag_at timestamptz; f text := ''; o jsonb := '{}';
   r1 jsonb; r2 jsonb; r3 jsonb; n jsonb; base bigint[]; fix bigint[]; top bigint[]; v int; v_inv_before int; v_inv_after int;
   v_ranks int[]; v_key text;
 begin
@@ -59,7 +60,7 @@ begin
   -- the customer: once, in the request's language, honest about the pool
   select to_jsonb(x) into n from (select lang, subject, body, status, to_email from public.notifications
                                     where type = 'inquiry_rescue_update' and inquiry_id = a) x;
-  o := o || jsonb_build_object('notice_a', n);
+  o := o || jsonb_build_object('notice_a', n - 'body');
   if n is null or n->>'lang' <> 'ar' or n->>'body' !~ 'تحية طيبة وبعد' or n->>'body' !~ 'قدّمنا مجال طلبكم'
      or n->>'to_email' <> 'zz-demo-rescue-ar@example.invalid' then f := f || 'A''s customer was not told in Arabic that the trade is first; '; end if;
   select to_jsonb(x) into n from (select lang, body from public.notifications where type = 'inquiry_rescue_update' and inquiry_id = d) x;
@@ -69,6 +70,16 @@ begin
   select to_jsonb(x) into n from (select lang, body from public.notifications where type = 'inquiry_rescue_update' and inquiry_id = e) x;
   if n is null or n->>'lang' <> 'en' or n->>'body' !~ 'has not yet reached a supplier who can quote it' then
     f := f || 'E''s customer was not told that nobody can take the request on now; '; end if;
+
+  -- REVIEW OF #1106 AT 3d1bbb8, case 1: #1105's flag run on a request open in the rescue for NO QUOTE (A, still
+  -- unreachable here: its only match is not matchable) writes nothing and counts nothing - the row is the rescue's.
+  select detail, acted_at, flagged_at into v_detail, v_acted, v_flag_at from public.stalled_inquiry_rescue where inquiry_id = a;
+  fl := public.fn_stalled_inquiry_flag(a, 'zz demo probe');
+  o := o || jsonb_build_object('flag_on_open_no_quote_row', fl);
+  if coalesce((fl->>'flagged')::boolean, true) or coalesce((fl->>'new')::boolean, true)
+     or not exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = a and reason = 'no_quote_48h' and cleared_at is null
+                      and detail = v_detail and acted_at is not distinct from v_acted and flagged_at = v_flag_at) then
+    f := f || '#1105''s flag wrote onto (or counted) an open no-quote rescue; '; end if;
 
   -- ONE SUBJECT, ONE HOME: #1105''s intake clears only its own reason. A''s supplier becomes reachable; A stays rescued.
   -- (a ZZ DEMO supplier that IS matchable - verified, approved, demo - is matched to A too; nothing is written to it)
@@ -110,7 +121,7 @@ begin
   -- a REAL rescue puts its trade and area first, in marketing's order (made real inside this aborted transaction only)
   update public.stalled_inquiry_rescue set fixture = false where inquiry_id = a;
   top := array(select c.lead_id from public.fn_supplier_invite_candidates(10) c);
-  o := o || jsonb_build_object('top10', to_jsonb(top), 'before', to_jsonb(base));
+  o := o || jsonb_build_object('top10_moved', top is distinct from base);
   if cardinality(top) < 10 or exists (select 1 from unnest(top) t(id) join public.leads l on l.id = t.id
                                        where not ('electrical' = any(coalesce(l.invite_trades, '{}'::text[])) and l.emirate = 'Ajman')) then
     f := f || 'the rescued trade and area are not first in the queue; '; end if;
@@ -136,13 +147,50 @@ begin
   if not exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = d and cleared_why = 'request closed') then f := f || 'D''s rescue did not end with the request; '; end if;
   if exists (select 1 from public.it_engineer_finding where issue_key = v_key and closed_at is null) then f := f || 'the empty-pool finding stayed open; '; end if;
 
+  -- REVIEW OF #1106 AT 3d1bbb8, cases 2 and 3: G is rescued for no quote, a supplier's draft arrives (the rescue closes it
+  -- 'quoted'), yet no live quote exists and nobody matched can reach it: #1105's flag reopens it as no_reachable_supplier
+  -- with the rescue's record reset, the rescue acts afresh and the customer hears the new reason ONCE; then two more
+  -- rounds of flag + rescue change nothing (no flip-flop).
+  insert into public.inquiries (customer_id, category, trades, emirate, lang, status, summary, created_at)
+    values (c_en, 'painting', array['painting'], 'Dubai', 'en', 'sent', 'ZZ DEMO rescue G', now() - interval '3 days') returning id into g;
+  insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, match_reason, sent_at) values (g, sup, 0.9, 'ZZ DEMO', now() - interval '50 hours');
+  perform public.fn_sales_engineer_stalled_inquiry_rescue(true);
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status) values (g, sup, 1500, 'draft');
+  perform public.fn_sales_engineer_stalled_inquiry_rescue(true);
+  if not exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = g and reason = 'no_quote_48h' and cleared_why = 'quoted') then
+    f := f || 'G was not rescued and then closed on its draft; '; end if;
+  fl := public.fn_stalled_inquiry_flag(g, 'zz demo probe');
+  o := o || jsonb_build_object('flag_reopens_g', fl - 'detail');
+  if not coalesce((fl->>'new')::boolean, false) or not exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = g
+       and reason = 'no_reachable_supplier' and cleared_at is null and acted_at is null and customer_notice is null
+       and trades is null and uninvited_pool is null and finding_key is null) then
+    f := f || 'the reopened G did not start over as no_reachable_supplier (or was not counted new); '; end if;
+  perform public.fn_sales_engineer_stalled_inquiry_rescue(true);
+  select acted_at into v_acted from public.stalled_inquiry_rescue where inquiry_id = g;
+  if v_acted is null or (select count(*) from public.notifications where type = 'inquiry_rescue_update' and inquiry_id = g
+                           and body ~ 'has not yet reached a supplier who can quote it') <> 1 then
+    f := f || 'the reopened G was not acted on with one nobody-reachable notice; '; end if;
+  for k in 1..2 loop
+    fl := public.fn_stalled_inquiry_flag(g, 'zz demo probe');
+    if coalesce((fl->>'new')::boolean, true) then f := f || 'a repeat flag run counted G as new; '; end if;
+    perform public.fn_sales_engineer_stalled_inquiry_rescue(true);
+  end loop;
+  if not exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = g and reason = 'no_reachable_supplier'
+                   and cleared_at is null and acted_at = v_acted)
+     or (select count(*) from public.notifications where type = 'inquiry_rescue_update' and inquiry_id = g) <> 2 then
+    f := f || 'G flip-flopped (cleared, reopened or re-told) over two more rounds; '; end if;
+  o := o || jsonb_build_object('g_after_two_rounds', (select jsonb_build_object('reason', x.reason, 'cleared_at', x.cleared_at,
+          'acted_unchanged', x.acted_at = v_acted,
+          'notices', (select count(*) from public.notifications nn where nn.type = 'inquiry_rescue_update' and nn.inquiry_id = g))
+          from public.stalled_inquiry_rescue x where x.inquiry_id = g));
+
   -- clean up and assert it is gone (the rollback below is the second guarantee)
-  delete from public.notifications where inquiry_id in (a, b, cq, d, e);
-  delete from public.quotes where inquiry_id in (a, b, cq, d, e);
-  delete from public.inquiries where id in (a, b, cq, d, e);
+  delete from public.notifications where inquiry_id in (a, b, cq, d, e, g);
+  delete from public.quotes where inquiry_id in (a, b, cq, d, e, g);
+  delete from public.inquiries where id in (a, b, cq, d, e, g);
   delete from public.leads where id = sup;
   delete from public.customers where id in (c_ar, c_en);
-  if exists (select 1 from public.stalled_inquiry_rescue where inquiry_id in (a, b, cq, d, e)) then f := f || 'cleanup left a rescue row; '; end if;
+  if exists (select 1 from public.stalled_inquiry_rescue where inquiry_id in (a, b, cq, d, e, g)) then f := f || 'cleanup left a rescue row; '; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when f = '' then 'PROBE OK' else 'PROBE FAILED: ' || f end, 'steps', o)::text;
 end $$;

@@ -94,9 +94,12 @@ comment on table public.stalled_inquiry_rescue is
   'sales_engineer: the stalled-inquiry rescue (ledgers 1018 and 1023), one row per inquiry. Flagged by fn_stalled_inquiry_flag (no_reachable_supplier, #1105) or by fn_sales_engineer_stalled_inquiry_rescue (no_quote_48h); every open row is acted on by fn_sales_engineer_stalled_inquiry_rescue: its trade and area first in the invitation queue, the customer told once, marketing''s finding when nobody is left to invite.';
 
 -- ── 3. #1105's intake clears only its own reason ───────────────────────────────────────────────────────────────
--- fn_stalled_inquiry_flag is #1105's body with ONE change, dated 29 Sep 2026 (review of #1106): the open flag it reads
--- and the flags it clears are its own reason's. A request rescued for having no quote after 48 h is not "cleared"
--- because a matched supplier is still reachable - reachable and silent is exactly why it was rescued.
+-- fn_stalled_inquiry_flag is #1105's body changed only where a comment carries 29 Sep 2026 (review of #1106): the open
+-- flag it reads, the flags it clears AND the row it writes are its own reason's. A request rescued for having no quote
+-- after 48 h is not "cleared" because a matched supplier is still reachable - reachable and silent is exactly why it was
+-- rescued - and an open no-quote row is never overwritten or counted. A CLEARED row of either reason is reopened as
+-- no_reachable_supplier with the rescue's record reset (acted_at, notice, trades, pool, finding), so the rescue acts on it
+-- afresh and the customer is told the new reason once; 'new' counts only a row inserted or reopened.
 create or replace function public.fn_stalled_inquiry_flag(p_inquiry_id uuid, p_by text default 'sales_engineer')
 returns jsonb
 language plpgsql
@@ -107,6 +110,7 @@ declare
   i public.inquiries; v_fixture boolean; v_quotes int; v_matched int; v_reach int; v_busy int; v_paused int;
   v_blocked int; v_back date; v_trades text[]; v_trade_busy int; v_trade_paused int; v_trade_back date;
   v_open boolean; v_detail jsonb; v_by text := coalesce(nullif(btrim(p_by), ''), 'sales_engineer');
+  v_prev_reason text; v_prev_cleared timestamptz; v_had boolean; v_written int;   -- 29 Sep 2026 (review of #1106)
 begin
   select * into i from public.inquiries where id = p_inquiry_id;
   if not found then return jsonb_build_object('ok', false, 'error', 'no such inquiry'); end if;
@@ -172,15 +176,37 @@ begin
     'in_trade_busy', coalesce(v_trade_busy, 0), 'in_trade_paused', coalesce(v_trade_paused, 0), 'in_trade_earliest_back', v_trade_back,
     'matcher_unavailable', coalesce((i.routing->>'matcher_unavailable')::boolean, false), 'at', now());
 
+  -- 29 Sep 2026 (review of #1106 at 3d1bbb8): the WRITE is filtered too. An open row of the other reason (no_quote_48h)
+  -- is the rescue's, already acted on: it is not touched and not counted. A cleared row, of either reason, is reopened as
+  -- this reason with the rescue's own record reset, so the rescue acts on it afresh and the customer hears this reason.
+  select x.reason, x.cleared_at into v_prev_reason, v_prev_cleared from public.stalled_inquiry_rescue x where x.inquiry_id = i.id;
+  v_had := found;
   insert into public.stalled_inquiry_rescue (inquiry_id, reason, detail, fixture, flagged_at, flagged_by)
   values (i.id, 'no_reachable_supplier', v_detail, coalesce(v_fixture, false), now(), v_by)
   on conflict (inquiry_id) do update
-     set detail = excluded.detail, fixture = excluded.fixture,
+     set reason = excluded.reason, detail = excluded.detail, fixture = excluded.fixture,
          -- an open flag keeps the time it was first raised; a cleared one is raised again from now
          flagged_at = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_at else excluded.flagged_at end,
          flagged_by = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_by else excluded.flagged_by end,
-         cleared_at = null, cleared_why = null;
-  return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', true, 'new', not v_open, 'detail', v_detail);
+         -- reopened: the rescue's record starts over (an open own-reason row keeps what the rescue already did)
+         acted_at        = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.acted_at end,
+         customer_notice = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.customer_notice end,
+         enqueue_result  = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.enqueue_result end,
+         trades          = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.trades end,
+         uninvited_pool  = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.uninvited_pool end,
+         plan_rank       = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.plan_rank end,
+         finding_key     = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.finding_key end,
+         matched_at      = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.matched_at end,
+         stalled_hours   = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.stalled_hours end,
+         cleared_at = null, cleared_why = null
+   where stalled_inquiry_rescue.reason = 'no_reachable_supplier' or stalled_inquiry_rescue.cleared_at is not null;
+  get diagnostics v_written = row_count;
+  if v_written = 0 then
+    -- open under the other reason: already in the rescue; nothing written, nothing counted
+    return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'new', false, 'in_rescue_as', v_prev_reason);
+  end if;
+  return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', true,
+                            'new', not v_had or v_prev_cleared is not null, 'detail', v_detail);
 end
 $fn$;
 revoke execute on function public.fn_stalled_inquiry_flag(uuid, text) from public, anon, authenticated;
