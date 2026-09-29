@@ -51,7 +51,8 @@ export function scan(repo = REPO) {
     const rel = relative(repo, p).replace(/\\/g, '/');
     const s = strip(readFileSync(p, 'utf8'));
     for (const m of s.matchAll(/https?:\/\/([a-z0-9.-]+\.[a-z]{2,})/gi)) add(hosts, m[1].toLowerCase(), rel);
-    for (const m of s.matchAll(/\bsec\(\s*'([a-z0-9_]+)'/gi)) add(secrets, m[1], rel);
+    // setting('x') is send_outbox's per-request reader over the canonical sec(); it reads app_secrets too.
+    for (const m of s.matchAll(/\b(?:sec|setting)\(\s*'([a-z0-9_]+)'/gi)) add(secrets, m[1], rel);
     for (const m of s.matchAll(/secrets\(\s*\[([^\]]+)\]/g)) for (const k of m[1].matchAll(/'([a-z0-9_]+)'/g)) add(secrets, k[1], rel);
     for (const m of s.matchAll(/app_secrets'\)[^;]*?\.eq\('key',\s*'([a-z0-9_]+)'/g)) add(secrets, m[1], rel);
     for (const m of s.matchAll(/Deno\.env\.get\(\s*'([A-Z0-9_]+)'/g)) add(env, m[1], rel);
