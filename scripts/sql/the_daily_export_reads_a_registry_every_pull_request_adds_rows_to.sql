@@ -302,6 +302,7 @@ insert into public.table_export_registry (table_name, exported, category, reason
   ('seat_deliberation', true, 'decision', 'backlog decided 29 Sep 2026, exported: deliberations between seats and their outcome (2 rows)', 'it_engineer'),
   ('seat_deliberation_turn', true, 'decision', 'backlog decided 29 Sep 2026, exported: each turn of a deliberation with its verdict (4 rows)', 'it_engineer'),
   ('seat_duty', true, 'company', 'backlog decided 29 Sep 2026, exported: the duties each seat runs and their schedule (83 rows)', 'it_engineer'),
+  ('duty_pause', true, 'company', 'added 30 Sep 2026 after #1139 (every_duty_runner_honours_one_pause_switch.sql redefined the list with it): which duties are paused, by whom and why', 'it_engineer'),
   ('seat_handoff_kind', true, 'decision', 'exported before the registry (the 174-row list of 29 Sep 2026): a decision record', 'it_engineer'),
   ('seat_judgement', true, 'decision', 'backlog decided 29 Sep 2026, exported: seat judgements and their outcome (15 rows)', 'it_engineer'),
   ('seat_knowledge_exam', true, 'knowledge', 'backlog decided 29 Sep 2026, exported: knowledge exams set to seats and their grades (12 rows)', 'it_engineer'),
