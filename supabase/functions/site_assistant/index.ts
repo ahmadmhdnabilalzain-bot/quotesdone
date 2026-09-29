@@ -407,7 +407,7 @@ Deno.serve(observe('site_assistant', async (req) => {
           refusal: 'reasoned_without_company_knowledge', ip, path, askedForAPerson });
         // deno-lint-ignore no-explicit-any
         (globalThis as any).EdgeRuntime?.waitUntil?.(fx.person);
-        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: audience + ':reasoned', path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });
       }
     }
