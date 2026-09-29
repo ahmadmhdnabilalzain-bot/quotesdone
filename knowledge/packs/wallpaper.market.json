@@ -1,0 +1,91 @@
+{
+  "trade": "wallpaper",
+  "layer": "uae-market",
+  "label_en": "Wallpaper & wall finishes",
+  "label_ar": "ورق الجدران والتشطيبات الجدارية",
+  "entries": [
+    {
+      "id": "wallpaper:uae-market-products",
+      "topic": "Wallpaper & wall finishes: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Wallpaper and wall finishes in the UAE: vinyl wallcoverings (Type I, II, III by weight for residential, commercial and heavy-traffic hotel corridors; fabric-backed), non-woven wallpapers, paper-backed and textile wallcoverings (grasscloth, silk, linen), bespoke digitally printed murals, 3D wall panels (PVC, gypsum, MDF), fabric wall panels (acoustic upholstered), decorative plasters (Venetian plaster, microcement, lime washes), and wall cladding (WPC, PVC marble sheets, veneer panels). Hotel specifications commonly call for fire-rated wallcoverings (for example Euroclass B-s1,d0) with test certificates for the Civil Defence submission; the exact class the UAE Fire Code sets for each location was not checked; mould resistance matters in humid, air-conditioned buildings. Specs: type/weight (g/m2), width, pattern repeat, fire rating, washability and lightfastness.",
+      "body_ar": "ورق الجدران وتشطيبات الجدران في الإمارات: أغطية الجدران الفينيلية (النوع I وII وIII حسب الوزن للسكني والتجاري وممرات الفنادق كثيفة الحركة؛ بظهر قماشي)، وورق الجدران غير المنسوج، والأغطية ذات الظهر الورقي والنسيجية (ألياف العشب والحرير والكتان)، والجداريات المطبوعة رقمياً حسب الطلب، وألواح الجدران ثلاثية الأبعاد (PVC وجبس وMDF)، وألواح الجدران القماشية (المنجدة العازلة للصوت)، واللياسات الزخرفية (الفينيسية والميكروسمنت ودهانات الجير)، وتكسيات الجدران (WPC وألواح PVC بنقش الرخام وألواح القشرة). وكثيراً ما تشترط مواصفات الفنادق أغطية مقاومة للحريق (مثل Euroclass B-s1,d0) مع شهادات اختبار لتقديمها إلى الدفاع المدني، ولم يُتحقق من الفئة المحددة في كود الحريق لكل موقع؛ ومقاومة العفن مهمة في المباني الرطبة المكيفة. المواصفات: النوع/الوزن (غ/م2)، والعرض، وتكرار النقش، وتصنيف الحريق، وقابلية الغسل، وثبات اللون.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/eng/UAEFIRECODE_ENG.pdf",
+        "https://vescom.com/en/wallcovering",
+        "https://www.cencenelec.eu",
+        "https://www.vescom.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: hotels require Class 0 wallcoverings accepted by Civil Defence -> not confirmed for a specific class; text changed to say specifications call for fire-rated wallcoverings and that the exact class was not checked | Vescom contract wallcoverings for hotels -> confirmed as a hospitality contract brand; UAE distributor not checked. Not checked: Current UAE distributors of each named brand were not verified."
+    },
+    {
+      "id": "wallpaper:uae-market-brands",
+      "topic": "Wallpaper & wall finishes: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands sold: Vescom, Omexco, Arte, Elitis, Casamance, Sangetsu, Muraspec, Tektura, Cole & Son, Osborne & Little, Zambaiti Parati, Rasch, Marburg, AS Création, York, LG Hausys, Shinhan, plus Chinese and Turkish ranges. Their UAE distributors were not checked. Showrooms are in Dubai (Sheikh Zayed Road, Al Quoz, Umm Suqeim, and Dragon Mart for value ranges), Sharjah and Abu Dhabi. Installers are SME fit-out and wallpaper contractors. Origins: Belgium, the Netherlands, France, the UK, Italy, Germany, Korea, China, Turkey.",
+      "body_ar": "العلامات المباعة: Vescom، Omexco، Arte، Elitis، Casamance، Sangetsu، Muraspec، Tektura، Cole & Son، Osborne & Little، Zambaiti Parati، Rasch، Marburg، AS Création، York، LG Hausys، Shinhan، إضافة إلى فئات صينية وتركية، ولم يُتحقق من موزعيها في الإمارات. والمعارض في دبي (شارع الشيخ زايد والقوز وأم سقيم، ودراجون مارت للفئات الاقتصادية) والشارقة وأبوظبي. والمركّبون مقاولو تجهيز وورق جدران صغار ومتوسطون. المنشأ: بلجيكا، هولندا، فرنسا، المملكة المتحدة، إيطاليا، ألمانيا، كوريا، الصين، تركيا.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/eng/UAEFIRECODE_ENG.pdf",
+        "https://vescom.com/en/wallcovering",
+        "https://www.cencenelec.eu",
+        "https://www.vescom.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: hotels require Class 0 wallcoverings accepted by Civil Defence -> not confirmed for a specific class; text changed to say specifications call for fire-rated wallcoverings and that the exact class was not checked | Vescom contract wallcoverings for hotels -> confirmed as a hospitality contract brand; UAE distributor not checked. Not checked: Current UAE distributors of each named brand were not verified."
+    },
+    {
+      "id": "wallpaper:uae-market-sizes",
+      "topic": "Wallpaper & wall finishes: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "European rolls are 0.53 m x 10.05 m (about 5.3 m2); contract vinyls are 1.30-1.37 m wide rolls of 30 m sold per linear metre; Korean and Chinese wide rolls 1.06 m x 15.6 m. Murals per m2. Supply is priced per roll or per linear metre; installation per roll or per m2, with wall preparation (skim, primer, lining paper) separate. Wastage depends on pattern repeat. Decorative plasters and 3D panels per m2.",
+      "body_ar": "اللفائف الأوروبية بمقاس 0.53 م × 10.05 م (نحو 5.3 م2)؛ والفينيل التعاقدي بلفائف عرض 1.30-1.37 م وطول 30 م يُباع بالمتر الطولي؛ واللفائف العريضة الكورية والصينية 1.06 م × 15.6 م. والجداريات بالمتر المربع. ويُسعّر التوريد باللفة أو بالمتر الطولي؛ والتركيب باللفة أو بالمتر المربع، مع تحضير الجدار (المعجون والبرايمر والورق المبطن) منفصلاً. ويعتمد الهالك على تكرار النقش. واللياسات الزخرفية والألواح ثلاثية الأبعاد بالمتر المربع.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/eng/UAEFIRECODE_ENG.pdf",
+        "https://vescom.com/en/wallcovering",
+        "https://www.cencenelec.eu",
+        "https://www.vescom.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: hotels require Class 0 wallcoverings accepted by Civil Defence -> not confirmed for a specific class; text changed to say specifications call for fire-rated wallcoverings and that the exact class was not checked | Vescom contract wallcoverings for hotels -> confirmed as a hospitality contract brand; UAE distributor not checked. Not checked: Current UAE distributors of each named brand were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What wallpaper type is required for a hotel corridor?",
+      "q_ar": "ما نوع ورق الجدران المطلوب لممر فندق؟",
+      "expected_entry_ids": [
+        "wallpaper:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "hotels require Class 0 wallcoverings accepted by Civil Defence",
+        "url": "https://www.dcd.gov.ae/portal/eng/UAEFIRECODE_ENG.pdf",
+        "result": "not confirmed for a specific class; text changed to say specifications call for fire-rated wallcoverings and that the exact class was not checked"
+      },
+      {
+        "claim": "Vescom contract wallcoverings for hotels",
+        "url": "https://vescom.com/en/wallcovering",
+        "result": "confirmed as a hospitality contract brand; UAE distributor not checked"
+      }
+    ],
+    "unverified": "Current UAE distributors of each named brand were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -24,7 +24,7 @@ const NEW_SQL = new URL('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_
 async function setup() {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   const { withRetry } = await import('../lib/retry.mjs');
-  const { serviceEmbedText, proposeByMeaning } = await import(new URL('service_meaning.ts', SHARED).href);
+  const { serviceEmbedText, proposeByMeaning, parseVec } = await import(new URL('service_meaning.ts', SHARED).href);
   const { readCatalogue } = await import(new URL('catalogue_read.ts', SHARED).href);
   const { PAGES } = await import(new URL('catalogue_fixtures/make_zz_demo_catalogue.mjs', SHARED).href);
   const ALIASES = JSON.parse(readFileSync(new URL('service_aliases.json', SHARED), 'utf8'));
@@ -47,7 +47,11 @@ async function setup() {
     return JSON.parse(j.embedding);
   };
   // The live services, plus this change's ten if the SQL file is not applied yet (read from the file).
-  const rows = await sql(`select s.trade_code, s.code, s.label_en, s.label_ar, t.label, t.label_ar as trade_label_ar
+  // The services carry the vector production reads (taxonomy_trade_service.embedding_gte, stored by
+  // embed_taxonomy_services.mjs; supplier_services.ts parses it with parseVec). Re-embedding all 1,047 through the
+  // gateway one by one took 6-7 minutes and timed the file out (29 Sep 2026) while measuring a path production never
+  // takes. Only a service with no stored vector is embedded here - and that is itself the production gap to fix.
+  const rows = await sql(`select s.trade_code, s.code, s.label_en, s.label_ar, t.label, t.label_ar as trade_label_ar, s.embedding_gte::text as stored
     from public.taxonomy_trade_service s join public.taxonomy_trade t on t.code = s.trade_code where s.active`);
   const have = new Set(rows.map((r) => `${r.trade_code}.${r.code}`));
   const src = readFileSync(NEW_SQL, 'utf8');
@@ -58,7 +62,8 @@ async function setup() {
   const services = [];
   for (const r of rows) {
     const a = ALIASES[`${r.trade_code}.${r.code}`];
-    services.push({ ...r, aliases: a ? [...a.en, ...a.ar] : [], vec: await embed(serviceEmbedText(r, { label: r.label, label_ar: r.trade_label_ar })) });
+    const { stored, ...row } = r;
+    services.push({ ...row, aliases: a ? [...a.en, ...a.ar] : [], vec: parseVec(stored) ?? await embed(serviceEmbedText(r, { label: r.label, label_ar: r.trade_label_ar })) });
   }
   const meaning = async (lines, svc, opts) => proposeByMeaning(await Promise.all(lines.map(async (text) => ({ text, vec: await embed(text) }))), svc, opts);
   return { services, meaning, readCatalogue, PAGES };

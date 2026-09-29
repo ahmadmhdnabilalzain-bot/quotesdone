@@ -1,0 +1,99 @@
+{
+  "trade": "event_entertainment",
+  "layer": "uae-market",
+  "label_en": "Event Performers & Entertainment",
+  "label_ar": "فنانو الفعاليات والترفيه",
+  "entries": [
+    {
+      "id": "event_entertainment:uae-market-products",
+      "topic": "Event Performers & Entertainment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Event entertainment in the UAE includes live bands, DJs, solo musicians (oud, violin, saxophone, piano), traditional Emirati performers (Al Ayyala, Al Razfa groups, Yola), tanoura and belly dance-free cultural shows, acrobats, aerialists, fire and LED performers, magicians and mentalists, stand-up comedians, MCs and hosts (bilingual Arabic/English), caricaturists and live painters, roaming/stilt performers, kids' entertainment (clowns, face painting, character mascots), celebrity and artist booking, drone light shows, fireworks and pyrotechnics, and themed shows for corporate galas, weddings, Ramadan and National Day events. Buyers specify performance duration and sets, language, technical rider (sound, lighting, stage size), costume and content suitability. Performers must hold appropriate permits: in Dubai, event and performer permits via the Department of Economy and Tourism (DET) event permit system, and in Abu Dhabi via the Department of Culture and Tourism (DCT); pyrotechnics and drone shows need police/Civil Defence and GCAA approvals.",
+      "body_ar": "يشمل الترفيه في الفعاليات في الإمارات الفرق الموسيقية الحية، ومنسقي الأغاني، والعازفين المنفردين (عود، كمان، ساكسفون، بيانو)، والفرق الإماراتية التراثية (العيالة، والرزفة، واليولة)، وعروض التنورة والعروض الثقافية، والبهلوانيين، ولاعبي الأكروبات الهوائية، وعروض النار والإضاءة LED، والسحرة وفناني قراءة الأفكار، والكوميديين، ومقدمي الحفلات والمضيفين (ثنائيي اللغة عربي/إنجليزي)، ورسامي الكاريكاتير والرسامين المباشرين، والفنانين المتجولين وعلى العصي الطويلة، وترفيه الأطفال (المهرجون، ورسم الوجوه، وشخصيات الدمى)، وحجز المشاهير والفنانين، وعروض الإضاءة بالطائرات بدون طيار، والألعاب النارية، والعروض ذات الطابع الخاص لحفلات الشركات والأعراس وفعاليات رمضان واليوم الوطني. يحدد المشترون مدة الأداء وعدد الفقرات، واللغة، والمتطلبات الفنية (الصوت، والإضاءة، وحجم المسرح)، وملاءمة الأزياء والمحتوى. ويجب أن يحمل الفنانون التصاريح المناسبة: في دبي، تصاريح الفعاليات والفنانين عبر نظام تصاريح الفعاليات لدى دائرة الاقتصاد والسياحة، وفي أبوظبي عبر دائرة الثقافة والسياحة؛ وتحتاج الألعاب النارية وعروض الطائرات بدون طيار إلى موافقات الشرطة والدفاع المدني والهيئة العامة للطيران المدني.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://www.bella-entertainment.com/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.gcaa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DET ePermit covers event permits in Dubai and entertainment permits are mandatory for performers at corporate and public events; private weddings exempt -> confirmed | Abu Dhabi events need DCT licensing through the Events Licensing System -> confirmed | Entertainment agencies in Dubai include Bella Entertainment, WACE Agency, Inspire Music and Artist Related Group -> confirmed. Not checked: The exact event and performer permit platform names and fees per emirate were not verified."
+    },
+    {
+      "id": "event_entertainment:uae-market-brands",
+      "topic": "Event Performers & Entertainment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed Dubai entertainment agencies: Bella Entertainment, WACE Agency, Inspire Music, Artist Related Group. Traditional folk troupes are engaged through heritage associations, and drone shows and fireworks need police, Civil Defence and GCAA approvals; those providers were not checked.",
+      "body_ar": "وكالات الترفيه المؤكدة في دبي: Bella Entertainment، WACE Agency، Inspire Music، Artist Related Group. ويتم التعاقد مع الفرق الشعبية التراثية عبر جمعيات التراث، وتحتاج عروض الطائرات بدون طيار والألعاب النارية إلى موافقات الشرطة والدفاع المدني والهيئة العامة للطيران المدني؛ ولم يُتحقق من مقدمي هذه العروض.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://www.bella-entertainment.com/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.gcaa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DET ePermit covers event permits in Dubai and entertainment permits are mandatory for performers at corporate and public events; private weddings exempt -> confirmed | Abu Dhabi events need DCT licensing through the Events Licensing System -> confirmed | Entertainment agencies in Dubai include Bella Entertainment, WACE Agency, Inspire Music and Artist Related Group -> confirmed. Not checked: The exact event and performer permit platform names and fees per emirate were not verified."
+    },
+    {
+      "id": "event_entertainment:uae-market-sizes",
+      "topic": "Event Performers & Entertainment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per performance/set (e.g. 3 x 45-minute sets for a band, 2-4 hours for a DJ), per performer per hour for roaming acts, or per show for headline acts, plus travel, visas, accommodation and technical rider for international artists. Drone shows are priced by number of drones and show duration; fireworks per show. Permit fees are typically extra. Deposits of 50% on booking are common.",
+      "body_ar": "تُسعّر لكل أداء/فقرة (مثل 3 فقرات مدة كل منها 45 دقيقة للفرقة، و2-4 ساعات لمنسق الأغاني)، أو لكل فنان بالساعة للعروض المتجولة، أو لكل عرض للفنانين الرئيسيين، مع إضافة السفر والتأشيرات والإقامة والمتطلبات الفنية للفنانين الدوليين. وتُسعّر عروض الطائرات بدون طيار حسب عدد الطائرات ومدة العرض؛ والألعاب النارية لكل عرض. وتكون رسوم التصاريح عادةً إضافية. والدفعة المقدمة بنسبة 50% عند الحجز شائعة.",
+      "sources": [
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations",
+        "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "https://www.bella-entertainment.com/",
+        "https://www.dubaidet.gov.ae",
+        "https://dct.gov.ae",
+        "https://www.gcaa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DET ePermit covers event permits in Dubai and entertainment permits are mandatory for performers at corporate and public events; private weddings exempt -> confirmed | Abu Dhabi events need DCT licensing through the Events Licensing System -> confirmed | Entertainment agencies in Dubai include Bella Entertainment, WACE Agency, Inspire Music and Artist Related Group -> confirmed. Not checked: The exact event and performer permit platform names and fees per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What permits are needed for a drone light show at a corporate event in Dubai?",
+      "q_ar": "ما التصاريح المطلوبة لعرض إضاءة بالطائرات بدون طيار في فعالية شركة في دبي؟",
+      "expected_entry_ids": [
+        "event_entertainment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "DET ePermit covers event permits in Dubai and entertainment permits are mandatory for performers at corporate and public events; private weddings exempt",
+        "url": "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Abu Dhabi events need DCT licensing through the Events Licensing System",
+        "url": "https://dct.gov.ae/en/e.services/events.licensing.system.aspx",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Entertainment agencies in Dubai include Bella Entertainment, WACE Agency, Inspire Music and Artist Related Group",
+        "url": "https://www.bella-entertainment.com/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The exact event and performer permit platform names and fees per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

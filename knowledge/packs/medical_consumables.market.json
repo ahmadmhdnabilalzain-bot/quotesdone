@@ -1,0 +1,110 @@
+{
+  "trade": "medical_consumables",
+  "layer": "uae-market",
+  "label_en": "Medical consumables",
+  "label_ar": "مستهلكات طبية",
+  "entries": [
+    {
+      "id": "medical_consumables:uae-market-products",
+      "topic": "Medical consumables: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Medical consumables sold in the UAE include examination and surgical gloves (nitrile, latex, powder-free, sterile), face masks (surgical Type IIR to EN 14683, FFP2/N95-type respirators), syringes and needles (Luer lock/slip, safety syringes), IV cannulas and infusion sets, catheters (Foley, suction), wound care (gauze, dressings, bandages, advanced foam and hydrocolloid dressings), sutures (absorbable and non-absorbable), drapes and gowns (SMS), sterilisation pouches and indicators, specimen containers and blood collection tubes (vacutainer-type), urine bags, oxygen masks and nasal cannulas, disinfectants, and incontinence products. Buyers specify sterility (EO, gamma), CE/ISO 13485, expiry, latex-free, sizes/gauges (e.g. 18G-24G cannulas), and packaging. Medical devices must be registered with the Emirates Drug Establishment (and Abu Dhabi DOH procurement rules apply there), with Arabic/English labelling; tender buyers include Emirates Health Services, SEHA/PureHealth and DHA hospitals.",
+      "body_ar": "تشمل المستهلكات الطبية المباعة في الإمارات قفازات الفحص والجراحة (نيتريل، ولاتكس، وخالية من البودرة، ومعقمة)، والكمامات (جراحية النوع IIR وفق EN 14683، وأقنعة تنفس من نوع FFP2/N95)، والمحاقن والإبر (قفل لوير/انزلاقي، ومحاقن الأمان)، والكانيولات الوريدية وأطقم التسريب، والقسطرات (فولي، والشفط)، والعناية بالجروح (الشاش، والضمادات، والأربطة، وضمادات الإسفنج والهيدروكولويد المتقدمة)، والخيوط الجراحية (قابلة وغير قابلة للامتصاص)، والأغطية والأثواب الجراحية (SMS)، وأكياس التعقيم ومؤشراته، وحاويات العينات وأنابيب جمع الدم (من نوع الأنابيب المفرغة)، وأكياس البول، وأقنعة الأكسجين والقنيات الأنفية، والمطهرات، ومنتجات سلس البول. يحدد المشترون التعقيم (أكسيد الإيثيلين، أشعة غاما)، وCE/ISO 13485، وتاريخ الانتهاء، والخلو من اللاتكس، والمقاسات/الأقطار (مثل كانيولات 18G-24G)، والتعبئة. ويجب تسجيل الأجهزة الطبية لدى مؤسسة الإمارات للدواء (وتنطبق قواعد مشتريات دائرة الصحة في أبوظبي)، مع توسيم بالعربية والإنجليزية؛ ويشمل مشترو المناقصات مؤسسة الإمارات للخدمات الصحية، وصحة/بيور هيلث، ومستشفيات هيئة الصحة بدبي.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.rafeduae.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Medical devices and consumables are registered with the Emirates Drug Establishment -> confirmed | Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi -> confirmed | B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam -> confirmed | EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149 -> confirmed. Not checked: The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified."
+    },
+    {
+      "id": "medical_consumables:uae-market-brands",
+      "topic": "Medical consumables: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE purchasing body and distributors, plus manufacturers: Rafed (PureHealth), Gulf Drug, Al Zahrawi Medical, AMICO, Al Maqam, BD, B. Braun, Medtronic, 3M, Smith & Nephew, Mölnlycke, Terumo, Ansell. BD and B. Braun are carried by the named distributors; the other manufacturers' UAE agents were not checked.",
+      "body_ar": "جهة الشراء والموزعون المؤكدون في الإمارات، إضافة إلى الشركات المصنعة: Rafed (PureHealth)، Gulf Drug، Al Zahrawi Medical، AMICO، Al Maqam، BD، B. Braun، Medtronic، 3M، Smith & Nephew، Mölnlycke، Terumo، Ansell. ويحمل الموزعون المذكورون BD وبي براون؛ ولم يُتحقق من وكلاء الشركات المصنعة الأخرى في الإمارات.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.rafeduae.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Medical devices and consumables are registered with the Emirates Drug Establishment -> confirmed | Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi -> confirmed | B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam -> confirmed | EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149 -> confirmed. Not checked: The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified."
+    },
+    {
+      "id": "medical_consumables:uae-market-sizes",
+      "topic": "Medical consumables: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per box (e.g. gloves 100 pcs, syringes 100 pcs, cannulas 50 pcs, sutures 12 or 36 pcs) or per carton (10 boxes), with tender pricing per unit. Hospital contracts are annual or multi-year with call-off orders; distributors often require minimum order values. Shelf life at delivery is commonly required to be at least 75-80% of total or 18+ months.",
+      "body_ar": "تُسعّر لكل علبة (مثل القفازات 100 قطعة، والمحاقن 100 قطعة، والكانيولات 50 قطعة، والخيوط الجراحية 12 أو 36 قطعة) أو لكل كرتونة (10 علب)، مع تسعير المناقصات لكل وحدة. وتكون عقود المستشفيات سنوية أو متعددة السنوات بطلبات سحب؛ وغالباً ما يشترط الموزعون حداً أدنى لقيمة الطلب. وعادةً ما يُشترط أن تكون مدة الصلاحية عند التسليم 75-80% على الأقل من المدة الكلية أو 18 شهراً فأكثر.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "https://www.ede.gov.ae",
+        "https://mohap.gov.ae",
+        "https://www.rafeduae.ae",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Medical devices and consumables are registered with the Emirates Drug Establishment -> confirmed | Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi -> confirmed | B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam -> confirmed | EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149 -> confirmed. Not checked: The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What shelf life must medical consumables have at delivery for hospital tenders?",
+      "q_ar": "ما مدة الصلاحية المطلوبة للمستهلكات الطبية عند التسليم في مناقصات المستشفيات؟",
+      "expected_entry_ids": [
+        "medical_consumables:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Medical devices and consumables are registered with the Emirates Drug Establishment",
+        "url": "https://www.ede.gov.ae/en/home",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Rafed (a PureHealth asset) is the UAE's first and largest healthcare group purchasing organisation, based in Abu Dhabi",
+        "url": "https://www.mediaoffice.abudhabi/en/topic/rafed/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "B. Braun and BD are distributed in the UAE by Gulf Drug, Al Zahrawi Medical, AMICO and Al Maqam",
+        "url": "https://www.bionixus.com/medical-device-companies-uae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "EN 14683 Type IIR masks have BFE >= 98% and splash resistance; FFP2 under EN 149",
+        "url": "https://en.wikipedia.org/wiki/European_respirator_standards",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The Rafed URL, current UAE-based manufacturers of syringes/gloves, and exact shelf-life thresholds used by each public buyer were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
