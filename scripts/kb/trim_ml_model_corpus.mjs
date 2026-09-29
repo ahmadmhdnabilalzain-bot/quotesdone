@@ -21,9 +21,11 @@ const small = `select left(coalesce(title,'')||' '||coalesce(body,''),1500) t fr
 let n = 0;
 for (const r of await sql(small, { readOnly: true })) { out.write(r.t.replace(/\s+/g, ' ') + '\n'); n++; }
 console.log('small', n);
-let last = '00000000-0000-0000-0000-000000000000';
+// kb_chunks.id is a bigint. Keyset on the column itself so each page is a primary-key range scan;
+// casting it to text defeated the index and cost ~26 s a page on the 8 GB table (audit M5, 30 Sep).
+let last = 0;
 for (;;) {
-  const rows = await sql(`select id::text id, left(coalesce(title,'')||' '||coalesce(content,''),1300) t from public.kb_chunks where id::text > '${last}' order by id::text limit 8000`, { readOnly: true });
+  const rows = await sql(`select id, left(coalesce(title,'')||' '||coalesce(content,''),1300) t from public.kb_chunks where id > ${Number(last)} order by id limit 8000`, { readOnly: true });
   if (!rows.length) break;
   for (const r of rows) out.write(r.t.replace(/\s+/g, ' ') + '\n');
   n += rows.length; last = rows.at(-1).id; process.stdout.write(n + ' ');

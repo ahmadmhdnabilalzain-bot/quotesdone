@@ -41,6 +41,7 @@ jobs:
   checks:
     name: classification, pricing and refund checks
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -127,6 +128,7 @@ jobs:
   migration-lint:
     name: lint migrations for locking operations
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -153,6 +155,7 @@ jobs:
   typecheck:
     name: typecheck the app
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -170,6 +173,7 @@ jobs:
   deno-check:
     name: typecheck the edge functions
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: denoland/setup-deno@v2

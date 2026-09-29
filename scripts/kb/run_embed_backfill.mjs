@@ -28,15 +28,21 @@ const MINUTES = Number(arg('minutes', 30));
 const token = (process.env.SUPABASE_ACCESS_TOKEN
   || readFileSync('C:/Users/Opera/.supabase/access-token', 'utf8')).trim();
 
-const q = async (sql) => {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${PROD}/database/query`, {
-    method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-  });
-  if (!r.ok) throw new Error(`${r.status}: ${(await r.text()).slice(0, 300)}`);
-  return r.json();
-};
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+// A 429 from the Management API throttler means the statement never ran, so it is the one answer that
+// is safe to retry for a write like fn_kb_embed_dispatch. Run 36544186787 (29 Sep) died on the first
+// query with "ThrottlerException: Too Many Requests". Any other status still fails at once.
+const q = async (sql) => {
+  for (let i = 0; ; i++) {
+    const r = await fetch(`https://api.supabase.com/v1/projects/${PROD}/database/query`, {
+      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query: sql }),
+    });
+    if (r.status === 429 && i < 5) { console.error(`429 throttled (attempt ${i + 1}/6), waiting`); await sleep(5000 * 2 ** i); continue; }
+    if (!r.ok) throw new Error(`${r.status}: ${(await r.text()).slice(0, 300)}`);
+    return r.json();
+  }
+};
 const embedded = async () => Number((await q('select count(*) n from public.kb_chunks where embedding_gte is not null'))[0].n);
 
 const t0 = Date.now();
