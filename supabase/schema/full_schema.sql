@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T06:58:35.139Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T07:01:45.864Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -67537,7 +67537,6 @@ AS $function$
 declare v_target int := coalesce((select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
   g record; v_filed int := 0; v_rule int; v_closed int; v_reopened int; v_month text := to_char(now(), 'YYYY-MM');
   v_emirates text[] := array['Abu Dhabi', 'Dubai', 'Sharjah', 'Ajman', 'Umm Al Quwain', 'Ras Al Khaimah', 'Fujairah'];
-  v_brief jsonb;
 begin
   with sup as materialized (   -- every matchable supplier with his trades and the emirates he states (none stated = UAE-wide)
     select sc.supplier_id, sc.trades,
@@ -67590,6 +67589,10 @@ begin
    where status in ('open', 'deciding', 'deferred') and (short_open > 0 or demand_90d > 0);
   get diagnostics v_rule = row_count;
 
+  -- NO UNINVITED LEAD LEFT: nobody for marketing to recruit, so "defer" is the only answer - by rule, at no cost.
+  update public.supply_gap set status = 'deferred', decided_by = 'rule:no_uninvited_leads', decided_at = now()
+   where status = 'open' and uninvited_pool = 0;
+
   -- NOBODY IS WAITING: recruit now or defer is a judgement, reasoned by the sales engineer (stakes high).
   for g in
     select s.*, tt.label from public.supply_gap s join public.taxonomy_trade tt on tt.code = s.trade
@@ -67606,11 +67609,8 @@ begin
     v_filed := v_filed + 1;
   end loop;
 
-  -- THE HANDOFF: every gap still open or recruiting becomes a row in marketing's recruitment brief.
-  v_brief := public.fn_sales_engineer_supply_gap_to_recruitment_brief();
-
   return jsonb_build_object('target', v_target, 'closed', v_closed, 'reopened', v_reopened, 'recruit_by_rule', v_rule,
-    'filed_for_reasoning', v_filed, 'recruitment_brief', v_brief,
+    'filed_for_reasoning', v_filed,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.supply_gap group by status) x));
 end $function$
 

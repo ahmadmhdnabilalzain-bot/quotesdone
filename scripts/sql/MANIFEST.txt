@@ -1862,3 +1862,4 @@ scripts/sql/a_smoke_run_that_stopped_early_closes_nothing.sql
 scripts/sql/a_kpi_view_never_counts_a_demo_party.sql
 scripts/sql/nine_routines_nothing_calls_are_dropped.sql
 scripts/sql/the_drawing_bucket_refuses_revit_and_dgn.sql
+scripts/sql/a_supply_gap_with_no_leads_left_is_deferred_by_rule.sql
