@@ -6,7 +6,7 @@
 -- depend on the caller's session.
 --
 -- NOTHING'S BEHAVIOUR CHANGES. The database default is "$user", public, extensions (measured with
--- `show search_path`). Each routine is pinned to its own schema, then public, extensions, pg_temp,
+-- `show search_path`). Each routine is pinned to public, extensions, pg_temp (the only role-named schema is pgbouncer, which no caller of these runs as),
 -- which is what it resolves against today. ALTER FUNCTION ... SET adds the clause without retyping a
 -- body, so prosrc is untouched and canonical_routine_manifest sees no drift. It also keeps the ACL.
 --
@@ -19,12 +19,12 @@
 -- the pin again (that is how fn_ceo_binding_constraint lost the pin it was given on 9 Sep). The
 -- security advisor baseline check is what catches it.
 
-alter function cert.no_mutation() set search_path to 'cert', 'public', 'extensions', 'pg_temp';
-alter function holdout_v2.fn_eff(jsonb,jsonb,text,text) set search_path to 'holdout_v2', 'public', 'extensions', 'pg_temp';
-alter function holdout_v2.trg_immutable() set search_path to 'holdout_v2', 'public', 'extensions', 'pg_temp';
-alter function holdout_v2.trg_seal_guard() set search_path to 'holdout_v2', 'public', 'extensions', 'pg_temp';
-alter function kb_stage.trg_archive_record_version() set search_path to 'kb_stage', 'public', 'extensions', 'pg_temp';
-alter function ops_kb_stage.trg_archive_record_version() set search_path to 'ops_kb_stage', 'public', 'extensions', 'pg_temp';
+alter function cert.no_mutation() set search_path to 'public', 'extensions', 'pg_temp';
+alter function holdout_v2.fn_eff(jsonb,jsonb,text,text) set search_path to 'public', 'extensions', 'pg_temp';
+alter function holdout_v2.trg_immutable() set search_path to 'public', 'extensions', 'pg_temp';
+alter function holdout_v2.trg_seal_guard() set search_path to 'public', 'extensions', 'pg_temp';
+alter function kb_stage.trg_archive_record_version() set search_path to 'public', 'extensions', 'pg_temp';
+alter function ops_kb_stage.trg_archive_record_version() set search_path to 'public', 'extensions', 'pg_temp';
 alter function public.fn_action_authority_rank(text) set search_path to 'public', 'extensions', 'pg_temp';
 alter function public.fn_alert_severe(text) set search_path to 'public', 'extensions', 'pg_temp';
 alter function public.fn_artifact_review_valid() set search_path to 'public', 'extensions', 'pg_temp';
@@ -67,6 +67,7 @@ select case when count(*) = 0 then 'PROBE OK'
   from pg_proc p
   join pg_namespace n on n.oid = p.pronamespace
   left join pg_depend d on d.objid = p.oid and d.deptype = 'e'
- where n.nspname in ('public', 'cert', 'holdout_v2', 'kb_stage', 'ops_kb_stage')
+ where p.prokind = 'f'
+   and n.nspname in ('public', 'cert', 'holdout_v2', 'kb_stage', 'ops_kb_stage')
    and d.objid is null
    and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search_path=%');

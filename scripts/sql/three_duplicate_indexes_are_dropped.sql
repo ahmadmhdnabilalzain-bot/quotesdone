@@ -18,7 +18,7 @@
 --
 -- DROP INDEX takes an ACCESS EXCLUSIVE lock for a moment. agent_runs is written every few seconds, so
 -- the lock is bounded: if it cannot be had in 5 s the apply fails cleanly and is simply retried.
-set local lock_timeout = '5s';
+set lock_timeout = '5s';   -- plain SET: it holds whether or not the applier wraps the file in a transaction
 
 drop index if exists public.idx_agent_runs_agent_started;
 drop index if exists public.kb_chunks_unembedded_cat_created_idx2;
