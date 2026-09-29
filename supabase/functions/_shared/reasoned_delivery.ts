@@ -312,7 +312,7 @@ export function liveDeliveryIO(admin: Admin, seams: { master?: string; fetch?: F
       for (const quoteId of (Array.isArray(ids) ? ids : []) as string[]) {
       const { timedFetch } = await import('./timed_fetch.ts');
       // supplier_api has verify_jwt = true: the service key passes the gateway; __secret decides the caller.
-      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api', {
+      const r = await timedFetch(Deno.env.get('SUPABASE_URL') + '/functions/v1/supplier_api?forceFunctionRegion=ap-southeast-1', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '') },
         body: JSON.stringify({ __secret: await sec('cred_fn_resilience_ping'), action: 'spec_arabic_finish', quote_id: String(quoteId) }),
       }, 60_000);

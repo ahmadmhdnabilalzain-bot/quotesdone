@@ -147,6 +147,48 @@ function dropXObject(doc: PDFDocument, res: unknown, name: string) {
   if (x instanceof PDFDict) x.delete(PDFName.of(name));
 }
 
+export type CutPlan =
+  | { ok: true; drop: Map<string, Set<number>>; dropImg: Map<string, Set<string>>; counts: { removedRuns: number; keptRuns: number; removedImages: number; removedPaths: number } }
+  | { ok: false; held: string; detail?: string };
+
+/**
+ * Which operators to cut, per content stream: every identity run, every painted path and image wholly inside the
+ * title area. FAIL CLOSED (review of #1056): an identity run whose operator the reader could not locate (no `at`)
+ * HOLDS the whole file. It used to `return` out of that page's loop, which left the run in AND skipped the page's
+ * logo and image cuts; the verifier would have caught the text, but not a skipped vector logo.
+ */
+export function cutPlan(vpages: { num: number; page: PdfPage }[], boxes: Box[][], areas: Box[][], pages: PdfPage[], terms: string[]): CutPlan {
+  const drop = new Map<string, Set<number>>();       // stream key -> operator indexes to cut
+  const dropImg = new Map<string, Set<string>>();    // stream key -> image names cut there
+  const mark = (key: string, op: number) => { (drop.get(key) ?? drop.set(key, new Set()).get(key)!).add(op); };
+  let removedRuns = 0, keptRuns = 0, removedImages = 0, removedPaths = 0;
+  for (const [i, vp] of vpages.entries()) {
+    const all = [...boxes[i], ...textLayerBoxes(pages, i).boxes];
+    const keyOf = (at: string) => { const [s, op] = at.split(':'); return { key: s === 'p' ? 'p' + vp.num : s, op: Number(op) }; };
+    for (const r of vp.page.runs as TextRun[]) {
+      const identity = all.some((b) => inside(b, r)) || residualScan(r.text, terms).length > 0;
+      if (!identity) { keptRuns++; continue; }
+      if (!r.at) return { ok: false, held: 'identity_run_not_located', detail: `page ${i + 1}` };
+      const k = keyOf(r.at); mark(k.key, k.op); removedRuns++;
+    }
+    // A VECTOR logo or stamp (28 Sep 2026): a painted path wholly inside the title strip is cut, operators and
+    // operands; a clipping path never is. Everything outside the strip stays byte-identical (verifyPdfRedaction).
+    for (const p of vp.page.paths ?? []) {
+      if (p.clip || !areas[i].some((b) => inside(b, p))) continue;
+      const k = keyOf(p.at + ':0');
+      for (const op of p.ops) mark(k.key, op);
+      removedPaths++;
+    }
+    for (const im of vp.page.images ?? []) {
+      if (!areas[i].some((b) => inside(b, im))) continue;
+      if (!im.at || !im.name) return { ok: false, held: 'title_image_not_located', detail: `page ${i + 1}` };
+      const k = keyOf(im.at); mark(k.key, k.op); removedImages++;
+      (dropImg.get(k.key) ?? dropImg.set(k.key, new Set()).get(k.key)!).add(im.name);
+    }
+  }
+  return { ok: true, drop, dropImg, counts: { removedRuns, keptRuns, removedImages, removedPaths } };
+}
+
 /**
  * A vector PDF drawing with every identifying run cut out and the file's own metadata removed. Fails closed:
  * `ok:false` whenever the sheet cannot be judged (no text layer, title block not confident, a content stream
@@ -164,34 +206,11 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
   const boxes = supplierBoxes(tb, null, pages.length);
   if (!boxes) return { ok: false, held: 'title_block_not_confident', detail: `confidence ${tb.confidence}; residual ${tb.residual.join('; ')}`.slice(0, 200) };
 
-  const drop = new Map<string, Set<number>>();       // stream key -> operator indexes to cut
-  const dropImg = new Map<string, Set<string>>();    // stream key -> image names cut there
-  const mark = (key: string, op: number) => { (drop.get(key) ?? drop.set(key, new Set()).get(key)!).add(op); };
-  let removedRuns = 0, keptRuns = 0, removedImages = 0, removedPaths = 0;
   const areas = titleAreas(tb, boxes);
-  view.pages.forEach((vp, i) => {
-    const all = [...boxes[i], ...textLayerBoxes(pages, i).boxes];
-    const keyOf = (at: string) => { const [s, op] = at.split(':'); return { key: s === 'p' ? 'p' + vp.num : s, op: Number(op) }; };
-    for (const r of vp.page.runs as TextRun[]) {
-      const identity = all.some((b) => inside(b, r)) || residualScan(r.text, terms).length > 0;
-      if (!identity) { keptRuns++; continue; }
-      if (!r.at) return;
-      const k = keyOf(r.at); mark(k.key, k.op); removedRuns++;
-    }
-    // A VECTOR logo or stamp (28 Sep 2026): a painted path wholly inside the title strip is cut, operators and
-    // operands; a clipping path never is. Everything outside the strip stays byte-identical (verifyPdfRedaction).
-    for (const p of vp.page.paths ?? []) {
-      if (p.clip || !areas[i].some((b) => inside(b, p))) continue;
-      const k = keyOf(p.at + ':0');
-      for (const op of p.ops) mark(k.key, op);
-      removedPaths++;
-    }
-    for (const im of vp.page.images ?? []) {
-      if (!im.at || !im.name || !areas[i].some((b) => inside(b, im))) continue;
-      const k = keyOf(im.at); mark(k.key, k.op); removedImages++;
-      (dropImg.get(k.key) ?? dropImg.set(k.key, new Set()).get(k.key)!).add(im.name);
-    }
-  });
+  const plan = cutPlan(view.pages, boxes, areas, pages, terms);
+  if (!plan.ok) return plan;
+  const { drop, dropImg } = plan;
+  const { removedRuns, keptRuns, removedImages, removedPaths } = plan.counts;
 
   const doc = await PDFDocument.load(bytes, { updateMetadata: false });
   const pl = doc.getPages();

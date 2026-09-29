@@ -35,6 +35,10 @@ const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/every_review_class_is_judged_by_another_family_than_its_author.sql';
 const BASE = 'scripts/sql/a_seat_is_never_reviewed_by_a_model_of_its_own_family.sql';
 const FOLLOW = 'scripts/sql/a_review_is_held_rather_than_skipped_and_its_authors_are_the_rows_it_judges.sql';
+// The founder's model matrix (founder_instruction 1056): every review class's pair, the pool, and the router trying a
+// class's own fallback before the pool. Replayed after FOLLOW when it is not applied yet.
+const MATRIX = 'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql';
+const MATRIX_APPLIED = `exists (select 1 from public.model_policy where task_class = 'internal_judgement') matrix_applied`;
 
 // Every review-shaped class the audit of 23 Sep 2026 found. Adding one is allowed; dropping one fails.
 const REQUIRED = ['ceo_judgement', 'ceo_approval_decision', 'identity_redaction_verify', 'quote_comparison',
@@ -66,8 +70,12 @@ test('every review class is declared with the author classes it judges', () => {
   for (const c of REQUIRED) assert.ok(Array.isArray(d[c]) && d[c].length > 0, `${c} must declare reviews_class`);
   assert.deepEqual(d.identity_redaction_verify, ['document_extraction']);
   assert.deepEqual(d.quote_comparison, ['document_extraction']);
-  assert.match(read(FILE), /set model_fallback = 'google\/gemini-3\.8-flash'[\s\S]*where task_class = 'identity_redaction_verify'/,
-    'the redaction verify keeps a third-family fallback');
+  // The route the redaction verify takes today is the matrix's (founder_instruction 1056): the find is read on Gemini,
+  // so the verify runs on the sales engineer's plan-B family, gpt-6-luna, with Opus as the third family behind it.
+  const mx = read(MATRIX);
+  assert.match(mx, /\('identity_redaction_verify',\s+'sales_engineer', 'se_review',/, 'the redaction verify is a sales engineer review');
+  assert.match(mx, /\('se_review',\s+'small',\s+'openai\/gpt-6-luna',\s+'anthropic\/claude-opus-5\.5'\)/,
+    'a sales engineer review runs on luna with a third-family fallback (Opus)');
 });
 
 test('the gateway refuses a review class without its author, and writes the author where the backstop reads it', () => {
@@ -125,11 +133,23 @@ declare
   fam text; mf text; ff text; n int := 0; ex jsonb := '{}'::jsonb; viol bigint := null;
 begin
   for r in select p.task_class, array(select jsonb_array_elements_text(case when jsonb_typeof(to_jsonb(p)->'reviews_class') = 'array' then to_jsonb(p)->'reviews_class' else '[]'::jsonb end)) reviews_class from public.model_policy p
-            where p.task_class in (select jsonb_object_keys(req)) order by 1 loop
+            -- the required classes, AND every live review class (a seat's own review row, founder_instruction 1056)
+            where p.task_class in (select jsonb_object_keys(req))
+               or (p.active and jsonb_typeof(to_jsonb(p)->'reviews_class') = 'array' and jsonb_array_length(to_jsonb(p)->'reviews_class') > 0)
+            order by 1 loop
     routed := cardinality(coalesce(r.reviews_class, '{}')) > 0;
     authors := case when routed then r.reviews_class else array(select jsonb_array_elements_text(req->r.task_class)) end;
-    for a in select p.task_class, p.model_primary, p.model_fallback from public.model_policy p where p.task_class = any (authors) loop
-      foreach m in array array_remove(array[a.model_primary, a.model_fallback], null) loop
+    -- every route an author class runs on: its own row, every seat's own row for it ('<seat>__<class>'), and - where
+    -- the row has a fallback - every seat's plan B, which replaces the class's fallback for that seat's calls
+    for a in select p.task_class, p.model_primary,
+                    array_remove(array[p.model_fallback], null)
+                    || case when p.model_fallback is null or to_regclass('public.model_policy_by_identity') is null then '{}'::text[]
+                            else array(select distinct i.fallback_model from public.model_policy_by_identity i
+                                        where i.scope = 'current_agent' and i.fallback_model is not null) end fallbacks
+               from public.model_policy p
+              where p.task_class = any (authors)
+                 or exists (select 1 from unnest(authors) x where right(p.task_class, length(x) + 2) = '__' || x) loop
+      foreach m in array array(select distinct y from unnest(array[a.model_primary] || a.fallbacks) y where y is not null) loop
         continue when m = 'none';
         -- two statements, not one CASE: before the file is applied fn_ai_route_review may not exist, and plpgsql
         -- plans only the branch it runs
@@ -164,10 +184,12 @@ test('production, one aborted transaction: no review class can route to any of i
   const { sql } = await import('../lib/db.mjs');
   const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review(text,text,text,text,text)') is not null base_applied,
     exists (select 1 from information_schema.columns where table_schema='public' and table_name='model_policy' and column_name='reviews_class') applied,
-    to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied`, { readOnly: true });
+    to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied,
+    ${MATRIX_APPLIED}`, { readOnly: true });
   const noReplay = process.env.XFAM_NO_REPLAY === '1';
   const required = Object.fromEntries(Object.entries(declared()));
-  const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n') + (s.follow_applied ? '' : read(FOLLOW) + '\n')) + probe(required);
+  const body = (noReplay ? '' : (s.base_applied ? '' : read(BASE) + '\n') + (s.applied ? '' : read(FILE) + '\n') + (s.follow_applied ? '' : read(FOLLOW) + '\n')
+    + (s.matrix_applied ? '' : read(MATRIX) + '\n')) + probe(required);
   let out;
   try { await sql(body, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
@@ -210,9 +232,10 @@ begin
   values ('zz_probe_cmp', 'quote_comparison', 'none', (v->>'why') || ' | counterpart_model=openai/gpt-5.6-sol,unknown', true);
   o := o || jsonb_build_object('unknown_item', (select x->>'owner_seat' from jsonb_array_elements(public.fn_it_review_independence_items()) x
                                                   where x->>'item' = 'review_author_unknown:zz_probe_cmp'));
-  -- 5 fourth last-resort family, and 7 capabilities
+  -- 5 fourth last-resort family, and 7 capabilities. DeepSeek (in the pool since founder_instruction 1056) is tripped
+  -- with the two last resorts, so what is exercised is still the fourth last-resort family.
   update public.llm_route_health set opened_class = 'provider_error', open_until = now() + interval '1 hour'
-   where model_id in ('google/gemini-3.8-flash', 'z-ai/glm-5.3-flash');
+   where model_id in ('google/gemini-3.8-flash', 'z-ai/glm-5.3-flash', 'deepseek/deepseek-v4.1-flash');
   o := o || jsonb_build_object(
     'text_review_qwen', public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model',
     'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',
@@ -223,9 +246,10 @@ end $p$;`;
 
 test('production, one aborted transaction: #880 review follow-ups hold', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied`, { readOnly: true });
+  const [s] = await sql(`select to_regprocedure('public.fn_ai_route_review_for(text,text,text,text,text,text[])') is not null follow_applied,
+    ${MATRIX_APPLIED}`, { readOnly: true });
   let out;
-  try { await sql((s.follow_applied ? '' : read(FOLLOW) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
+  try { await sql((s.follow_applied ? '' : read(FOLLOW) + '\n') + (s.matrix_applied ? '' : read(MATRIX) + '\n') + FOLLOW_PROBE, { retry: false }); } catch (e) {
     const mm = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!mm) throw e;
     out = JSON.parse(mm[1].replace(/\\"/g, '"'));

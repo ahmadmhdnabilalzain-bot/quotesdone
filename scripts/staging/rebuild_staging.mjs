@@ -15,11 +15,11 @@
 //   node rebuild_staging.mjs <staging_ref> [--apply]
 //
 // Without --apply it is a dry run: it reports what it would do and changes nothing.
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { splitStatements } from './sql_split.mjs';
 import { PROD_REF, resolveStagingRef, mgmtWrite, assertNoProductionLiteral } from '../lib/qd_guard.mjs';
+import { SCHEMA_MIRROR, readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
 const REF = resolveStagingRef(process.argv[2]);
 const APPLY = process.argv.includes('--apply');
 const log = [];
@@ -27,8 +27,8 @@ const say = (s) => { console.log(s); log.push(s); };
 
 say(`rebuild_staging  target=${REF}  apply=${APPLY}  (production ${PROD_REF} is refused by qd_guard)`);
 
-const raw = readFileSync(SCHEMA_FILE, 'utf8');
-say(`baseline: ${SCHEMA_FILE}  ${raw.length} bytes`);
+const raw = readSchemaMirror();
+say(`baseline: ${SCHEMA_MIRROR}  ${raw.length} bytes`);
 const captured = /Captured (\S+) from project (\w+)/.exec(raw);
 say(`baseline captured ${captured?.[1]} from ${captured?.[2]}`);
 

@@ -5,12 +5,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const FILE = 'scripts/sql/spend_against_the_constraint_is_measured_from_the_books.sql';
-const MIRROR = 'supabase/schema/full_schema.sql';
 
 function evaluatorBody() {
-  const mirror = readFileSync(MIRROR, 'utf8');
+  const mirror = readSchemaMirror();
   const m = mirror.match(/FUNCTION public\.fn_ceo_decisions_evaluate\([\s\S]*?\n\$function\$;?/i);
   if (m && m[0].includes('gl_account_funnel_stage')) return m[0];
   return readFileSync(FILE, 'utf8');   // before the apply: the pending file is the definition

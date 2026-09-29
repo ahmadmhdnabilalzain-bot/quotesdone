@@ -34,7 +34,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { render } from '@/components/ChatWidget';
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { BrandMark } from '@/components/BrandMark';
 
 // THE INFORMATION ARCHITECTURE, WRITTEN DOWN.
@@ -101,7 +101,7 @@ const MOBILE_PRIMARY = ['home', 'requests', 'messages', 'documents'];
 // refusal arrives as a normal reply that says so and hands off to Support; the widget needs no
 // special case for it.
 async function askAssistant(message, history, token, lang, path) {
-  const r = await fetch(FN + '/sales_engineer', {
+  const r = await fetch(fnUrl('sales_engineer'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (token || ANON) },
     body: JSON.stringify({ action: 'assist', message, history, path: path || '/me', lang }),
