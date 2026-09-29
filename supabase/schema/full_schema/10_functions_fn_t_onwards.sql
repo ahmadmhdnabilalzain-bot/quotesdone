@@ -239,6 +239,7 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
     ('quote_quality_hold','quote'),
     ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),

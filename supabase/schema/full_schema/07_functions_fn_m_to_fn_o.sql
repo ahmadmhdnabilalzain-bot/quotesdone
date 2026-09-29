@@ -4360,6 +4360,27 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_money_move_hold_release(p_hold_id bigint, p_by text, p_note text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h public.money_move_hold;
+begin
+  if coalesce(btrim(p_by), '') in ('', 'screen') then raise exception 'a release names the person or seat who reviewed it'; end if;
+  if coalesce(btrim(p_note), '') = '' then raise exception 'a release says why the money may move'; end if;
+  select * into h from public.money_move_hold where id = p_hold_id for update;
+  if not found then raise exception 'no money hold %', p_hold_id; end if;
+  if h.status <> 'held' then return jsonb_build_object('released', false, 'reason', 'the move is ' || h.status || ', not held'); end if;
+  update public.money_move_hold set status = 'released', released_at = now(), released_by = btrim(p_by), release_reason = btrim(p_note)
+   where id = h.id;
+  perform public.fn_seat_handoff('accountant', 'customer_support', 'fraud.money_released', 'money_move_hold', h.id::text,
+    jsonb_build_object('hold_id', h.id, 'move', h.move, 'ref', h.ref));
+  return jsonb_build_object('released', true, 'hold_id', h.id);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_norm_trades(p_text text)
  RETURNS text[]
  LANGUAGE sql

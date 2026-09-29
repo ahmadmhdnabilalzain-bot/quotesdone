@@ -2394,6 +2394,30 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_flags_touching(p_customer uuid, p_supplier bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(jsonb_build_object('key', f.kind || ':' || f.subject_type || ':' || f.subject_id,
+           'kind', f.kind, 'subject_type', f.subject_type, 'subject_id', f.subject_id, 'severity', f.severity,
+           'status', f.status, 'party', case when (f.subject_type = 'customer' and f.subject_id = p_customer::text)
+                                                or f.detail->'customer_ids' ? coalesce(p_customer::text, '')
+                                                or f.detail->>'customer_id' = p_customer::text then 'customer' else 'supplier' end)
+           order by f.kind, f.subject_type, f.subject_id), '[]'::jsonb)
+    from public.fraud_flags f
+   where f.status in ('open', 'escalated')
+     and ((p_customer is not null and ((f.subject_type = 'customer' and f.subject_id = p_customer::text)
+                                        or f.detail->'customer_ids' ? p_customer::text
+                                        or f.detail->>'customer_id' = p_customer::text))
+       or (p_supplier is not null and ((f.subject_type in ('lead', 'supplier') and f.subject_id = p_supplier::text)
+                                        or f.detail->'lead_ids' @> to_jsonb(p_supplier)
+                                        or f.detail->>'supplier_id' = p_supplier::text
+                                        or f.detail->>'hired_supplier_id' = p_supplier::text)))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_founder_close_pack_attach(p_month date, p_bucket text, p_pdf_path text, p_error text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3039,6 +3063,76 @@ begin
       when 'held_waiting' then 'every message was taken in, and ' || v_held_n || ' receipt(s) are still held'
       when 'mailbox_quiet' then 'the mailbox is quiet: nothing has arrived since ' || coalesce(to_char(v_last at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai', 'it was opened')
       else 'every receipt that arrived is recorded' end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_money_screen(p_move text, p_ref text, p_customer uuid, p_supplier bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_flags jsonb; v_high jsonb; v_keys text[]; h public.money_move_hold; v_id bigint;
+begin
+  if p_move is null or p_move not in ('reveal', 'refund') then raise exception 'a money screen names its move (reveal or refund), not %', p_move; end if;
+  if coalesce(btrim(p_ref), '') = '' then raise exception 'a money screen names what is moving (the quote or the refund)'; end if;
+
+  -- NOW, not at the next tick: a disposable address or a third refund request is seen before this money moves.
+  perform public.fn_accountant_party_flags(p_customer, null) where p_customer is not null;
+  perform public.fn_accountant_party_flags(null, p_supplier) where p_supplier is not null;
+  v_flags := public.fn_accountant_flags_touching(p_customer, p_supplier);
+  select coalesce(jsonb_agg(e.f), '[]'::jsonb), coalesce(array_agg(e.f->>'key' order by e.f->>'key'), '{}')
+    into v_high, v_keys from jsonb_array_elements(v_flags) as e(f) where e.f->>'severity' = 'high';
+
+  select * into h from public.money_move_hold where move = p_move and ref = p_ref and status <> 'released' for update;
+
+  if jsonb_array_length(v_high) = 0 then
+    if h.status = 'held' then
+      update public.money_move_hold set status = 'released', released_at = now(), released_by = 'screen', screened_at = now(),
+             release_reason = 'no open high-severity flag touches either party any more', flags = v_flags
+       where id = h.id;
+      perform public.fn_seat_handoff('accountant', 'customer_support', 'fraud.money_released', 'money_move_hold', h.id::text,
+        jsonb_build_object('hold_id', h.id, 'move', p_move, 'ref', p_ref));
+      return jsonb_build_object('hold', false, 'released', h.id, 'flags', v_flags);
+    end if;
+    if jsonb_array_length(v_flags) > 0 then
+      insert into public.money_move_hold (move, ref, customer_id, supplier_id, status, flag_keys, flags)
+      values (p_move, p_ref, p_customer, p_supplier, 'noted',
+              (select array_agg(e.f->>'key' order by e.f->>'key') from jsonb_array_elements(v_flags) as e(f)), v_flags)
+      on conflict (move, ref) where status <> 'released'
+      do update set flags = excluded.flags, flag_keys = excluded.flag_keys, screened_at = now()
+      returning id into v_id;
+    end if;
+    return jsonb_build_object('hold', false, 'noted', v_id, 'flags', v_flags);
+  end if;
+
+  -- A reviewer already let THIS move go with these very flags open: the same flags do not hold it twice.
+  if exists (select 1 from public.money_move_hold r where r.move = p_move and r.ref = p_ref and r.status = 'released'
+                and r.released_by <> 'screen' and r.flag_keys @> v_keys) then
+    return jsonb_build_object('hold', false, 'reviewed', true, 'flags', v_flags);
+  end if;
+
+  if h.id is null then
+    insert into public.money_move_hold (move, ref, customer_id, supplier_id, status, flag_keys, flags)
+    values (p_move, p_ref, p_customer, p_supplier, 'held', v_keys, v_flags)
+    on conflict (move, ref) where status <> 'released' do nothing
+    returning id into v_id;
+    if v_id is null then  -- a concurrent screen of the same move wrote the row first; answer as it did
+      select * into h from public.money_move_hold where move = p_move and ref = p_ref and status <> 'released';
+      return jsonb_build_object('hold', h.status = 'held', 'hold_id', h.id, 'flags', h.flags);
+    end if;
+  else
+    v_id := h.id;
+    update public.money_move_hold set status = 'held', flag_keys = v_keys, flags = v_flags, screened_at = now(),
+           opened_at = case when h.status = 'held' then h.opened_at else now() end
+     where id = h.id;
+  end if;
+  if h.id is null or h.status <> 'held' then
+    perform public.fn_seat_handoff('accountant', 'customer_support', 'fraud.money_held', 'money_move_hold', v_id::text,
+      jsonb_build_object('hold_id', v_id, 'move', p_move, 'ref', p_ref));
+  end if;
+  return jsonb_build_object('hold', true, 'hold_id', v_id, 'flags', v_flags);
 end $function$
 
 
@@ -3827,6 +3921,109 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_accountant_party_flags(p_customer uuid DEFAULT NULL::uuid, p_supplier bigint DEFAULT NULL::bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_all boolean := p_customer is null and p_supplier is null;
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_new int := 0; v_raised int := 0;
+begin
+  create temp table if not exists tmp_party_flag (kind text, subject_type text, subject_id text, severity text, detail jsonb) on commit drop;
+  truncate tmp_party_flag;
+
+  -- ── suppliers ──
+  with s as (
+    select l.id, l.company_name, l.licence_legal_name, l as lrow,
+           lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email, ''))) as acct,
+           lower(regexp_replace(btrim(coalesce(l.domain, '')), '^(https?://)?(www[.])?', '')) as site
+      from public.leads l
+     where (v_all and (coalesce(l.claimed, false) or l.lifecycle_stage = 'registered' or l.approval_status is not null)
+                  and not coalesce(l.banned, false)
+                  and (coalesce(l.is_demo, false) or coalesce(l.company_name, '') like 'ZZ DEMO%' or public.fn_is_demo_email(l.email)) = v_fx)
+        or l.id = p_supplier
+  ), c as (
+    select s.*, public.fn_email_domain_class(s.acct) as cls, split_part(s.acct, '@', 2) as edom from s
+  )
+  insert into tmp_party_flag
+  select 'company_name_mismatch', 'lead', c.id::text, 'high',
+         jsonb_build_object('company_name', c.company_name, 'licence_legal_name', c.licence_legal_name)
+    from c where public.fn_supplier_licence_name_mismatch(c.lrow)
+  union all
+  select 'disposable_email', 'lead', c.id::text, 'high', jsonb_build_object('account_email_domain', c.edom)
+    from c where c.cls = 'disposable'
+  union all
+  select 'free_email_company', 'lead', c.id::text, 'low', jsonb_build_object('account_email_domain', c.edom, 'company_name', c.company_name)
+    from c where c.cls = 'free'
+  union all
+  -- The website must be the company's OWN domain: a directory, host or marketplace page (email_platform_domain)
+  -- says nothing about which domain the company mails from. A subdomain either way is the same company.
+  select 'email_domain_mismatch', 'lead', c.id::text, 'medium',
+         jsonb_build_object('account_email_domain', c.edom, 'website_domain', c.site, 'company_name', c.company_name)
+    from c where c.cls = 'company' and c.site ~ '[.]' and c.edom <> c.site
+     and c.edom not like '%.' || c.site and c.site not like '%.' || c.edom
+     and not exists (select 1 from public.email_platform_domain e where e.domain in (c.site, c.edom))
+  union all
+  select 'dispute_pattern', 'lead', x.id::text, case when x.n >= 3 then 'high' else 'medium' end,
+         jsonb_build_object('disputes_90d', x.d, 'refunds_paid_90d', x.r, 'window_days', 90)
+    from (select c.id,
+                 (select count(*) from public.post_reveal_dispute p where p.supplier_id = c.id and p.opened_at > now() - interval '90 days') as d,
+                 (select count(*) from public.transactions t where t.supplier_id = c.id and t.refund_confirmed_at > now() - interval '90 days') as r,
+                 (select count(*) from public.post_reveal_dispute p where p.supplier_id = c.id and p.opened_at > now() - interval '90 days')
+                 + (select count(*) from public.transactions t where t.supplier_id = c.id and t.refund_confirmed_at > now() - interval '90 days') as n
+            from c) x
+   where x.n >= 2;
+
+  -- ── customers ──
+  with k as (
+    select cu.* from public.customers cu
+     where (v_all and not coalesce(cu.banned, false) and (coalesce(cu.is_demo, false) or public.fn_is_demo_email(cu.email)) = v_fx)
+        or cu.id = p_customer
+  )
+  insert into tmp_party_flag
+  select 'disposable_email', 'customer', k.id::text, 'high', jsonb_build_object('email_domain', split_part(lower(k.email), '@', 2))
+    from k where public.fn_email_domain_class(k.email) = 'disposable'
+  union all
+  select 'refund_pattern', 'customer', x.id::text, case when x.n >= 3 then 'high' else 'medium' end,
+         jsonb_build_object('refund_requests_90d', x.n, 'window_days', 90)
+    from (select k.id, (select count(*) from public.transactions t
+                         where t.customer_id = k.id and t.refund_requested_at > now() - interval '90 days') as n from k) x
+   where x.n >= 2
+  union all
+  select 'dispute_pattern', 'customer', x.id::text, case when x.cb > 0 or x.d >= 3 then 'high' else 'medium' end,
+         jsonb_build_object('chargebacks_180d', x.cb, 'disputes_raised_90d', x.d)
+    from (select k.id,
+                 (select count(*) from public.stripe_dispute sd join public.transactions t on t.id = sd.transaction_id
+                   where t.customer_id = k.id and sd.first_seen_at > now() - interval '180 days') as cb,
+                 (select count(*) from public.post_reveal_dispute p
+                   where p.customer_id = k.id and p.raised_by = 'customer' and p.opened_at > now() - interval '90 days') as d
+            from k) x
+   where x.cb > 0 or x.d >= 2;
+
+  -- ── write: once per (kind, subject); a closed flag stays closed; an OPEN flag whose severity rose is raised ──
+  with ins as (
+    insert into public.fraud_flags (kind, subject_type, subject_id, severity, detail, status, created_at, updated_at)
+    select kind, subject_type, subject_id, severity,
+           detail || jsonb_build_object('raised_by', 'accountant', 'owner_seat', 'accountant'), 'open', now(), now()
+      from tmp_party_flag
+    on conflict (kind, subject_type, subject_id) do nothing
+    returning 1)
+  select count(*) into v_new from ins;
+  with up as (
+    update public.fraud_flags f
+       set severity = t.severity, detail = f.detail || t.detail || jsonb_build_object('severity_raised_at', now()), updated_at = now()
+      from tmp_party_flag t
+     where f.kind = t.kind and f.subject_type = t.subject_type and f.subject_id = t.subject_id and f.status = 'open'
+       and array_position(array['low', 'medium', 'high'], t.severity) > coalesce(array_position(array['low', 'medium', 'high'], f.severity), 0)
+    returning 1)
+  select count(*) into v_raised from up;
+  return jsonb_build_object('flagged', (select count(*) from tmp_party_flag), 'new', v_new, 'severity_raised', v_raised);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_accountant_payouts_record(p_livemode boolean, p_payouts jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4522,6 +4719,46 @@ begin
       p_review_in => interval '1 day', p_source_agent => 'accountant');
   end if;
   return jsonb_build_object('paid_reveals', v_n, 'incomplete', jsonb_array_length(v_gaps), 'gaps', v_gaps);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_accountant_risk_screen_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_flags jsonb; h record; v_rescreened int := 0; v_released int := 0; v_overdue int := 0; v jsonb;
+begin
+  v_flags := public.fn_accountant_party_flags(null, null);
+
+  for h in select m.id, m.move, m.ref, m.customer_id, m.supplier_id, m.opened_at, m.flag_keys
+             from public.money_move_hold m left join public.customers c on c.id = m.customer_id
+            where m.status = 'held'
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+            order by m.id loop
+    v := public.fn_accountant_money_screen(h.move, h.ref, h.customer_id, h.supplier_id);
+    v_rescreened := v_rescreened + 1;
+    if not coalesce((v->>'hold')::boolean, false) then v_released := v_released + 1; continue; end if;
+    if h.opened_at < now() - interval '48 hours' then
+      v_overdue := v_overdue + 1;
+      perform public.fn_it_engineer_finding_upsert('money_hold_unreviewed:' || h.id,
+        left('A held ' || h.move || ' has waited ' || extract(day from now() - h.opened_at)::int || ' days for a fraud review', 300),
+        'public.money_move_hold / fn_accountant_money_screen', 'agent_facing', 1,
+        jsonb_build_object('hold_id', h.id, 'move', h.move, 'ref', h.ref, 'opened_at', h.opened_at, 'flags', to_jsonb(h.flag_keys),
+                           'owner_seat', 'accountant',
+                           'fix', 'review the flags in the fraud workspace: fn_fraud_resolve dismisses or bans; fn_money_move_hold_release lets this one move go'),
+        '{}'::text[], array['whether the flags that hold this money are real'], 'accountant');
+    end if;
+  end loop;
+
+  update public.it_engineer_finding f set closed_at = now(), close_note = 'the held money was released'
+   where f.issue_key like 'money_hold_unreviewed:%' and f.closed_at is null
+     and exists (select 1 from public.money_move_hold m where m.id::text = split_part(f.issue_key, ':', 2) and m.status <> 'held');
+
+  return v_flags || jsonb_build_object('holds_rescreened', v_rescreened, 'holds_released', v_released, 'holds_overdue', v_overdue);
 end $function$
 
 

@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T15:03:45.925Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T15:05:53.058Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (684) =====
+-- ===== TABLES (686) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -3407,6 +3407,12 @@ CREATE TABLE IF NOT EXISTS public.fraud_flags (
   updated_at timestamp with time zone DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS public.free_email_domain (
+  domain text NOT NULL,
+  provider text NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.function_owner (
   function_slug text NOT NULL,
   owner text NOT NULL,
@@ -5843,6 +5849,22 @@ CREATE TABLE IF NOT EXISTS public.model_registry (
   supports_vision boolean DEFAULT false NOT NULL,
   supports_audio boolean DEFAULT false NOT NULL,
   supports_tools boolean DEFAULT false NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.money_move_hold (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  move text NOT NULL,
+  ref text NOT NULL,
+  customer_id uuid,
+  supplier_id bigint,
+  status text NOT NULL,
+  flag_keys text[] DEFAULT '{}'::text[] NOT NULL,
+  flags jsonb DEFAULT '[]'::jsonb NOT NULL,
+  opened_at timestamp with time zone DEFAULT now() NOT NULL,
+  screened_at timestamp with time zone DEFAULT now() NOT NULL,
+  released_at timestamp with time zone,
+  released_by text,
+  release_reason text
 );
 
 CREATE TABLE IF NOT EXISTS public.notification_copy (
@@ -9730,6 +9752,7 @@ ALTER TABLE public.founder_instruction ADD CONSTRAINT founder_instruction_pkey P
 ALTER TABLE public.founder_mail_policy ADD CONSTRAINT founder_mail_policy_pkey PRIMARY KEY (kind);
 ALTER TABLE public.founder_mail_policy_history ADD CONSTRAINT founder_mail_policy_history_pkey PRIMARY KEY (id);
 ALTER TABLE public.fraud_flags ADD CONSTRAINT fraud_flags_pkey PRIMARY KEY (kind, subject_type, subject_id);
+ALTER TABLE public.free_email_domain ADD CONSTRAINT free_email_domain_pkey PRIMARY KEY (domain);
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_pkey PRIMARY KEY (function_slug);
 ALTER TABLE public.gl_account_funnel_stage ADD CONSTRAINT gl_account_funnel_stage_pkey PRIMARY KEY (account_code);
 ALTER TABLE public.gl_accounts ADD CONSTRAINT gl_accounts_pkey PRIMARY KEY (code);
@@ -9911,6 +9934,7 @@ ALTER TABLE public.model_policy ADD CONSTRAINT model_policy_pkey PRIMARY KEY (ta
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_pkey PRIMARY KEY (identity_key, scope);
 ALTER TABLE public.model_rate ADD CONSTRAINT model_rate_pkey PRIMARY KEY (model);
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_pkey PRIMARY KEY (model_id);
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_pkey PRIMARY KEY (id);
 ALTER TABLE public.notification_copy ADD CONSTRAINT notification_copy_pkey PRIMARY KEY (type);
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_pkey PRIMARY KEY (type);
 ALTER TABLE public.notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
@@ -10515,6 +10539,7 @@ ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_review_statu
 ALTER TABLE public.field_definition ADD CONSTRAINT field_definition_scope_check CHECK ((scope = ANY (ARRAY['shared'::text, 'trade_specific'::text, 'trade_subset'::text])));
 ALTER TABLE public.file_scan ADD CONSTRAINT file_scan_verdict_check CHECK ((verdict = ANY (ARRAY['clean'::text, 'malicious'::text, 'suspicious'::text, 'unknown'::text, 'unavailable'::text])));
 ALTER TABLE public.founder_instruction ADD CONSTRAINT founder_instruction_status_check CHECK ((status = ANY (ARRAY['open'::text, 'done'::text, 'deferred_by_founder'::text, 'superseded'::text, 'refused'::text, 'standing'::text])));
+ALTER TABLE public.free_email_domain ADD CONSTRAINT free_email_domain_domain_check CHECK (((domain = lower(btrim(domain))) AND (domain ~ '^[a-z0-9.-]+[.][a-z]{2,}$'::text)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_elsewhere_ck CHECK (((moves_to IS NULL) OR (moves_to <> owner)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_moves_to_ck CHECK (((moves_to IS NULL) = (moves_to_note IS NULL)));
 ALTER TABLE public.function_owner ADD CONSTRAINT function_owner_note_ck CHECK ((btrim(note) <> ''::text));
@@ -10834,6 +10859,11 @@ ALTER TABLE public.metric_definition ADD CONSTRAINT metric_definition_domain_che
 ALTER TABLE public.model_fallback_chain ADD CONSTRAINT model_fallback_chain_kind_check CHECK ((kind = ANY (ARRAY['model'::text, 'deterministic'::text])));
 ALTER TABLE public.model_policy_by_identity ADD CONSTRAINT model_policy_by_identity_scope_check CHECK ((scope = ANY (ARRAY['target_employee'::text, 'current_agent'::text])));
 ALTER TABLE public.model_registry ADD CONSTRAINT model_registry_tier_check CHECK ((tier = ANY (ARRAY['small'::text, 'medium'::text, 'large'::text, 'xlarge'::text])));
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_check CHECK (((status = 'released'::text) = (released_at IS NOT NULL)));
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_check1 CHECK (((status <> 'released'::text) OR (btrim(COALESCE(released_by, ''::text)) <> ''::text)));
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_move_check CHECK ((move = ANY (ARRAY['reveal'::text, 'refund'::text])));
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_ref_check CHECK ((btrim(ref) <> ''::text));
+ALTER TABLE public.money_move_hold ADD CONSTRAINT money_move_hold_status_check CHECK ((status = ANY (ARRAY['noted'::text, 'held'::text, 'released'::text])));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_reason_check CHECK ((btrim(reason) <> ''::text));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'high'::text, 'critical'::text])));
 ALTER TABLE public.notification_type_severity ADD CONSTRAINT notification_type_severity_type_check CHECK ((btrim(type) <> ''::text));
@@ -11903,6 +11933,8 @@ CREATE INDEX materials_cat ON public.materials USING btree (category);
 CREATE INDEX messages_thread_idx ON public.messages USING btree (inquiry_id, supplier_id, created_at);
 CREATE INDEX messaging_template_key_idx ON public.messaging_template USING btree (channel, template_key, lang);
 CREATE INDEX metric_snapshot_key_time_idx ON public.metric_snapshot USING btree (metric_key, taken_at DESC);
+CREATE INDEX money_move_hold_held ON public.money_move_hold USING btree (opened_at) WHERE (status = 'held'::text);
+CREATE UNIQUE INDEX money_move_hold_one_open_per_move ON public.money_move_hold USING btree (move, ref) WHERE (status <> 'released'::text);
 CREATE UNIQUE INDEX notifications_one_sms_twin ON public.notifications USING btree (failover_of) WHERE (failover_of IS NOT NULL);
 CREATE INDEX notifications_provider_message_id_idx ON public.notifications USING btree (provider_message_id) WHERE (provider_message_id IS NOT NULL);
 CREATE UNIQUE INDEX notifications_rating_request_uidx ON public.notifications USING btree (quote_id) WHERE ((type = 'rating_request'::text) AND (COALESCE(channel, 'email'::text) = 'email'::text));

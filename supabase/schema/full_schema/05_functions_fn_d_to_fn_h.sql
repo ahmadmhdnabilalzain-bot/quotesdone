@@ -1428,6 +1428,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_email_domain_class(p_email text)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with d as (select lower(btrim(split_part(coalesce(p_email, ''), '@', 2))) as dom)
+  select case
+    when position('@' in coalesce(p_email, '')) = 0 or (select dom from d) = '' then null
+    when exists (select 1 from public.app_blocked_domains b, d where b.domain = d.dom)
+      or exists (select 1 from public.email_platform_domain e, d where e.kind = 'disposable' and e.domain = d.dom) then 'disposable'
+    when exists (select 1 from public.free_email_domain f, d where f.domain = d.dom) then 'free'
+    else 'company' end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_email_sendable(p_email text)
  RETURNS jsonb
  LANGUAGE plpgsql

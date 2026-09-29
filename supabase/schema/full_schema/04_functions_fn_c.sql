@@ -10373,6 +10373,95 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_support_held_money_message(p_hold_id bigint, p_type text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  h public.money_move_hold; c public.customers; v_type text := p_type; v_ar boolean; v_name text;
+  v_rfq text; v_inq uuid; v_subj text; v_body text;
+begin
+  if p_type not in ('fraud.money_held', 'fraud.money_released') then raise exception 'no money-hold message of type %', p_type; end if;
+  select * into h from public.money_move_hold where id = p_hold_id;
+  if not found then return jsonb_build_object('not_sent', 'the hold no longer exists'); end if;
+  select * into c from public.customers where id = h.customer_id;
+  if not found then return jsonb_build_object('not_sent', 'no customer waits on this move'); end if;
+  -- The request the customer knows: the quote's request for a reveal, the refund's request for a refund.
+  -- A refund row may carry no inquiry_id: its transaction's request is the one the customer knows, so the
+  -- reference is never blank (re-review of #1110).
+  if h.move = 'reveal' then
+    select q.inquiry_id into v_inq from public.quotes q where q.id::text = h.ref;
+  else
+    select coalesce(r.inquiry_id, t.inquiry_id) into v_inq
+      from public.refunds r left join public.transactions t on t.id = r.transaction_id where r.id::text = h.ref;
+  end if;
+  if v_inq is not null then v_rfq := 'QD-' || public.fn_job_no(v_inq); end if;
+  -- The request's own language first (founder, 28 Sep 2026: every message about a request is in the language it
+  -- was made in), the registered one otherwise.
+  v_ar := coalesce(public.fn_inquiry_locale(v_inq), c.locale) = 'ar';
+  v_name := coalesce(nullif(btrim(c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+
+  if v_type = 'fraud.money_held' and h.move = 'reveal' then
+    v_subj := case when v_ar then 'طلب الكشف قيد المراجعة' else 'Your reveal is being checked' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'قبل كشف أي مورّد نُجري تحققًا اعتياديًا على الحسابات المعنية، ويحتاج أحد هذه التحققات إلى مراجعة من أحد موظفينا، لذا أوقفنا مؤقتًا كشف المورّد على الطلب '
+        || coalesce(v_rfq, '') || '، ولم يُخصم منكم أي مبلغ.' || chr(10) || chr(10)
+        || 'لا يلزمكم أي إجراء. سنراسلكم فور اكتمال المراجعة، وعادةً خلال يومي عمل، وبعدها يمكنكم كشف المورّد كالمعتاد.' || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'Before a supplier is revealed we run a routine check on the accounts involved, and one of those checks needs a person to look at it. The reveal on request '
+        || coalesce(v_rfq, '') || ' is paused until then, and you have not been charged.' || chr(10) || chr(10)
+        || 'Nothing is needed from you. We will write as soon as the check is complete, normally within two working days, and you can then reveal the supplier as usual.' || chr(10) || chr(10)
+        || 'If you have a question, reply to this e-mail.' end;
+  elsif v_type = 'fraud.money_held' then
+    v_subj := case when v_ar then 'طلب الاسترداد قيد المراجعة' else 'Your refund is being checked' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'قبل صرف أي مبلغ مسترد نُجري تحققًا اعتياديًا على الحسابات المعنية، ويحتاج أحد هذه التحققات إلى مراجعة من أحد موظفينا، لذا أوقفنا مؤقتًا صرف المبلغ المسترد على الطلب '
+        || coalesce(v_rfq, '') || ' حتى تكتمل المراجعة.' || chr(10) || chr(10)
+        || 'لا يلزمكم أي إجراء. سنراسلكم فور اكتمال المراجعة، وعادةً خلال يومي عمل.' || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'Before a refund is paid we run a routine check on the accounts involved, and one of those checks needs a person to look at it. The refund on request '
+        || coalesce(v_rfq, '') || ' is paused until the check is complete.' || chr(10) || chr(10)
+        || 'Nothing is needed from you. We will write as soon as the check is complete, normally within two working days.' || chr(10) || chr(10)
+        || 'If you have a question, reply to this e-mail.' end;
+  elsif h.move = 'reveal' then
+    v_subj := case when v_ar then 'يمكنكم الآن كشف المورّد' else 'You can now reveal the supplier' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'اكتملت المراجعة، ويمكنكم الآن كشف المورّد على الطلب ' || coalesce(v_rfq, '') || ' من حسابكم: https://quotesdone.com/ar/me' || chr(10) || chr(10)
+        || 'شكرًا لصبركم.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'The check is complete. You can now reveal the supplier on request ' || coalesce(v_rfq, '') || ' from your account: https://quotesdone.com/me' || chr(10) || chr(10)
+        || 'Thank you for your patience.' end;
+  else
+    v_subj := case when v_ar then 'اكتملت مراجعة طلب الاسترداد' else 'The check on your refund is complete' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'اكتملت المراجعة، ويواصل طلب الاسترداد على الطلب ' || coalesce(v_rfq, '') || ' مساره المعتاد، وسنؤكد لكم فور صرف المبلغ.' || chr(10) || chr(10)
+        || 'شكرًا لصبركم.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'The check is complete, and the refund on request ' || coalesce(v_rfq, '') || ' continues through the usual process. We will confirm as soon as it is paid.' || chr(10) || chr(10)
+        || 'Thank you for your patience.' end;
+  end if;
+
+  return jsonb_build_object('lang', case when v_ar then 'ar' else 'en' end, 'subject', v_subj, 'body', v_body, 'ref', v_rfq,
+                            'inquiry_id', v_inq, 'customer_id', c.id, 'email', c.email, 'hold_id', h.id, 'move', h.move);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_support_monthly_self_review()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -10765,6 +10854,26 @@ begin
       'notification_id', h.evidence->'notification_id', 'error', h.detail->>'error'));
   end loop;
   return v_out;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_tells_the_customer_about_held_money(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; m jsonb; v_res jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff'
+     and detail->>'type' in ('fraud.money_held', 'fraud.money_released');
+  if not found then raise exception 'fn_customer_support_tells_the_customer_about_held_money: % is not a money-hold handoff', p_id; end if;
+  m := public.fn_customer_support_held_money_message((a.detail->>'hold_id')::bigint, a.detail->>'type');
+  if m ? 'not_sent' then return m; end if;
+  -- The stage is the handoff type ('fraud.money_held' / 'fraud.money_released'): once per hold, per stage.
+  v_res := public.fn_customer_support_duty_send(a.detail->>'type', m->>'hold_id', 'customer', m->>'email',
+    m->>'lang', m->>'subject', m->>'body', (m->>'customer_id')::uuid, null, (m->>'inquiry_id')::uuid);
+  return v_res || jsonb_build_object('hold_id', (m->>'hold_id')::bigint, 'move', m->>'move', 'lang', m->>'lang', 'ref', m->>'ref');
 end $function$
 
 
