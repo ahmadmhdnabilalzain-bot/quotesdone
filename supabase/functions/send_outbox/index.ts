@@ -11,8 +11,10 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
+import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
+import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -161,6 +163,22 @@ Deno.serve(observe('send_outbox', async (req) => {
     // WHAT A ROW STOPS (22 Sep 2026): a bounce or complaint stops everything; an 'unsubscribe' stops only the
     // invitation and its reminders (_shared/suppression_policy.ts). Before, an unsubscribe also stopped quote,
     // reveal and account notices to a registered supplier.
+    // THE INVITATION LANE (24 Sep 2026, marketing + it_engineer; invite_lane.ts). Flag off = LANE_OFF and no call.
+    // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
+    const lane = await resolveLane({ enabled: await sec('invite_lane_enabled'), from: await sec('invite_lane_from'), apiKey: key,
+      needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type)),
+      fetchFn: (u, i) => timedFetch(u, i || {}, 10_000),
+      fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; } });
+    // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations and nudges actually sent today.
+    const laneCapRaw = parseInt((await sec('invite_daily_cap')) || '', 10);
+    const laneCap = Number.isFinite(laneCapRaw) && laneCapRaw >= 0 ? laneCapRaw : 30;
+    let laneSentToday = 0;
+    if (lane.active) {
+      const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
+        .in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
+      laneSentToday = count || 0;
+    }
+    let laneHeld = 0;
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
     let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0;
@@ -196,8 +214,18 @@ Deno.serve(observe('send_outbox', async (req) => {
       const internal = n.to_role === 'admin' || n.to_role === 'founder';
       const docReq = supplierSide && isDocRequest(n.type);
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held' }).eq('id', n.id); held++; continue; }
+      // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
+      // not_before moved on, so it does not come back into the next claim and crowd out other mail.
+      const laneHold = holdFor({ lane, type: n.type, supplierSide, laneSentToday, laneCap });
+      if (laneHold) {
+        await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: heldUntil(laneHold, new Date()).toISOString(),
+          last_error: laneHold === 'unverified' ? 'held: the invitation lane is on but ' + lane.why + '; never sent from the main sender'
+                                                : 'held: the invitation lane reached invite_daily_cap (' + laneCap + ') today' }).eq('id', n.id);
+        laneHeld++; continue;
+      }
       if (sent >= remaining) break;
-      const from = supplierSide ? fromSup : fromInfo;
+      // Lane inactive = the same From as before the lane existed; active = invitations only (invite_lane.ts senderFor).
+      const from = senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane });
       // A row may name its own Reply-To (notifications.reply_to, constrained to our inbound subdomain): the monthly
       // social calendar carries calendar+<token>@mail.quotesdone.com so the founder's reply reaches resend_inbound.
       const reply = n.reply_to || (supplierSide ? (docReq ? replyDocs : replySup) : replyInfo);
@@ -206,6 +234,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
       // neither. A licence/document request is transactional and still goes; everything else waits.
       if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
+      // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
+      if (holdArabicInvitation(n.type, n.lang)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: the supplier invitation is English only (ledger 993); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
@@ -213,12 +243,18 @@ Deno.serve(observe('send_outbox', async (req) => {
       // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
-      const arMail = !internal && n.lang === 'ar';
+      // A SUPPLIER'S FRAME IS ENGLISH (founder, 28 Sep 2026): whatever a row's lang says, a supplier-bound
+      // mail never carries the Arabic signature, footer or right-to-left frame.
+      const arMail = !internal && !supplierSide && n.lang === 'ar';
       // 22 Sep 2026 (documents-language audit, DL-07): the signature block prints NAME then TITLE, and
       // the sales-engineer seat printed "مهندس المبيعات" in both lines — the Arabic reader saw the same
       // words twice where the English reader saw a person and a desk. The name is the seat, the title
       // is the desk it sits at, in both languages.
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: String(n.type || '').startsWith('supplier_invite') && !arMail ? invitePreheader : '' });
+      // THE INVITATION ENDS WITH ONE QUESTION (24 Sep 2026, marketing): an English supplier invitation whose
+      // stored body does not end with a question gets invitation_copy.ts's, after the link and before the footer.
+      const inviteEn = String(n.type || '').startsWith('supplier_invite') && !arMail;
+      const mailBody = inviteEn ? withReplyQuestion(n.body || '') : (n.body || '');
+      const htmlBody0 = tmpl({ body: mailBody, logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: inviteEn ? invitePreheader : '' });
       const htmlBody = ownDomain(arMail ? arabicFrame(htmlBody0) : htmlBody0, Deno.env.get('SUPABASE_URL') || '', assetBase);
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
@@ -238,7 +274,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
+          text: plainTextPart({ body: mailBody, unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         // IDEMPOTENCY-KEY AND A DEADLINE (22 Sep 2026, it_engineer, CONN-03). Resend deduplicates on
         // this header for 24 hours, so the one case a claim cannot prevent — the POST left, the answer
@@ -255,6 +291,7 @@ Deno.serve(observe('send_outbox', async (req) => {
           try { providerId = ((await r.json()) as { id?: string })?.id ?? null; } catch (_e) { /* a 2xx with no body is still an acceptance */ }
           await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: providerId }).eq('id', n.id);
           sent++;
+          if (lane.active && LANE_CAPPED_TYPES.includes(n.type) && from === lane.from) laneSentToday++;
         }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
       } catch (e) {
@@ -274,11 +311,11 @@ Deno.serve(observe('send_outbox', async (req) => {
     }
     // Only log runs that did something. Idle polls (nothing queued) stay out of agent_runs
     // so a real event is never buried under 720 empty rows a day.
-    const didWork = sent || failed || suppressed || held || skipped;
+    const didWork = sent || failed || suppressed || held || skipped || laneHeld;
     if (deadlettered) await logRun('error', { sent, failed, retried, deadlettered, suppressed, held, skipped, pending: rows.length }, deadlettered + ' email(s) permanently dead-lettered after ' + MAX_ATTEMPTS + ' attempts and will never be delivered. Last error: ' + lastErr);
     else if (failed) await logRun('error', { sent, failed, retried, suppressed, held, skipped, pending: rows.length }, 'Resend rejected ' + failed + ' email(s), will retry. Last error: ' + lastErr);
     else if (didWork) await logRun('ok', { sent, suppressed, held, skipped, pending: rows.length, remaining_today: Math.max(0, remaining - sent) }, held ? (held + ' held (supplier sending gate or stale)') : '');
-    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent) });
+    return J({ ok: true, sent, failed, retried, deadlettered, skipped, suppressed, held, attached, unconfirmed, pending: rows.length, cap, remaining_today: Math.max(0, remaining - sent), invite_lane: lane.active ? lane.domain : lane.why, invite_lane_held: laneHeld });
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m); return J({ error: m }, 500); }
   finally {
     // Rows this run resolved are no longer 'sending', so the status filter makes this exact: only a

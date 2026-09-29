@@ -1,0 +1,11 @@
+Not loaded. The UAE market layer for facilities_property, furniture_hospitality_consumer, health_lab_safety,
+marketing_media_events, professional_business, technology_telecom and transport_mobility (founder ledger 899, 900, 903).
+
+- 108 trades are verified: knowledge/packs/<trade>.market.json, 324 entries, English and Arabic. They reach production
+  only when `node scripts/kb/load_verified_packs.mjs --apply` runs after merge. verified.checks holds 342 checks made
+  on 28 Sep 2026 (page or search result, and whether each claim was confirmed, corrected or removed).
+- 2 trades are drafts and are never loaded, because no check confirmed a claim: software_development, staff_transport.
+- Some URLs named as sources did not answer on 28 Sep 2026 (expired certificates, timeouts). The PR lists them.
+
+After the load, run `node scripts/eval/knowledge_pack_eval.mjs` and confirm every .market pack is at or above FLOOR.
+Delete this note in the commit that records the load.

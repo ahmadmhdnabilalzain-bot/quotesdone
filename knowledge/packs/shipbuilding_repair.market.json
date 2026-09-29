@@ -1,0 +1,99 @@
+{
+  "trade": "shipbuilding_repair",
+  "layer": "uae-market",
+  "label_en": "Shipbuilding & Ship Repair",
+  "label_ar": "بناء السفن وإصلاحها",
+  "entries": [
+    {
+      "id": "shipbuilding_repair:uae-market-products",
+      "topic": "Shipbuilding & Ship Repair: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Shipbuilding and ship repair in the UAE covers new construction of workboats, patrol and naval vessels, yachts and superyachts (GRP, aluminium, steel), offshore support vessels, tugs, barges, landing craft and dhows; ship repair and drydocking (hull blasting and painting, steel renewal, propeller and shaft work, rudder, sea chests, valves), conversions (FSO/FPSO conversions, jack-up rig repairs), afloat repairs, machinery overhaul (main engines, gensets, pumps), electrical and automation retrofits, ballast water treatment and scrubber installations for IMO compliance, and class/statutory surveys support (dry-dock, special surveys). Buyers specify vessel particulars (LOA, beam, draught, DWT), dock requirements (dry dock, floating dock, syncrolift), class society (LR, DNV, ABS, BV, IRS), steel grades (AH36/DH36), coating systems (Jotun, Hempel, International), and schedule. Yards operate in free zones and port areas under Maritime authority and Civil Defence hot-work rules.",
+      "body_ar": "تشمل صناعة السفن وإصلاحها في الإمارات البناء الجديد لقوارب العمل، وسفن الدوريات والسفن البحرية العسكرية، واليخوت واليخوت الفاخرة (الألياف الزجاجية، والألمنيوم، والفولاذ)، وسفن الدعم البحري، والقاطرات، والصنادل، وسفن الإنزال، والمراكب الخشبية؛ وإصلاح السفن والإرساء في الأحواض الجافة (السفع الرملي للبدن وطلاؤه، وتجديد الفولاذ، وأعمال المراوح والأعمدة، والدفة، وصناديق البحر، والصمامات)، والتحويلات (تحويلات وحدات التخزين والتفريغ العائمة، وإصلاح منصات الحفر ذاتية الرفع)، والإصلاحات أثناء الطفو، وعَمرة الآلات (المحركات الرئيسية، والمولدات، والمضخات)، وتحديثات الكهرباء والأتمتة، وتركيب أنظمة معالجة مياه الصابورة وأجهزة غسل العادم للامتثال للمنظمة البحرية الدولية، ودعم مسوح التصنيف والمسوح القانونية (الحوض الجاف، والمسوح الخاصة). يحدد المشترون مواصفات السفينة (الطول الكلي، والعرض، والغاطس، والحمولة الساكنة)، ومتطلبات الحوض (حوض جاف، وحوض عائم، ورافعة سفن متزامنة)، وهيئة التصنيف (LR، وDNV، وABS، وBV، وIRS)، ودرجات الفولاذ (AH36/DH36)، وأنظمة الطلاء (جوتن، وهيمبل، وإنترناشيونال)، والجدول الزمني. وتعمل الأحواض في المناطق الحرة ومناطق الموانئ بموجب قواعد السلطات البحرية وقواعد الدفاع المدني للأعمال الساخنة.",
+      "sources": [
+        "https://www.drydocks.gov.ae/",
+        "https://www.adsb.ae",
+        "https://gulfcraftgroup.com/news",
+        "https://www.drydocks.gov.ae",
+        "https://www.imo.org",
+        "https://iacs.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DP World Drydocks operates a Dubai yard with three graving docks and a floating dock -> confirmed | ADSB site -> removed: page blocked | Gulf Craft builds yachts in the UAE -> confirmed. Not checked: The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified."
+    },
+    {
+      "id": "shipbuilding_repair:uae-market-brands",
+      "topic": "Shipbuilding & Ship Repair: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE yards and common marine equipment makers: DP World Drydocks, Gulf Craft, Wärtsilä, MAN Energy Solutions, Alfa Laval. Other yards and the makers' UAE service offices were not checked.",
+      "body_ar": "الأحواض المؤكدة في الإمارات ومصنعو المعدات البحرية الشائعون: DP World Drydocks، Gulf Craft، Wärtsilä، MAN Energy Solutions، Alfa Laval. ولم يُتحقق من الأحواض الأخرى ولا من مكاتب خدمة المصنعين في الإمارات.",
+      "sources": [
+        "https://www.drydocks.gov.ae/",
+        "https://www.adsb.ae",
+        "https://gulfcraftgroup.com/news",
+        "https://www.drydocks.gov.ae",
+        "https://www.imo.org",
+        "https://iacs.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DP World Drydocks operates a Dubai yard with three graving docks and a floating dock -> confirmed | ADSB site -> removed: page blocked | Gulf Craft builds yachts in the UAE -> confirmed. Not checked: The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified."
+    },
+    {
+      "id": "shipbuilding_repair:uae-market-sizes",
+      "topic": "Shipbuilding & Ship Repair: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Newbuilds are priced per vessel under shipbuilding contracts with milestone payments (e.g. contract signing, keel laying, launch, delivery). Repairs are priced by a yard tariff: docking/undocking per vessel, dock days per day by vessel size, blasting and painting per m2, steel renewal per kg/tonne, labour per man-hour, plus materials. Afloat repairs per job; surveys and class fees separate. Quotes typically in USD.",
+      "body_ar": "تُسعّر السفن الجديدة لكل سفينة بموجب عقود بناء السفن مع دفعات حسب المراحل (مثل توقيع العقد، ووضع العارضة، والتدشين، والتسليم). وتُسعّر الإصلاحات وفق تعرفة الحوض: الإدخال/الإخراج من الحوض لكل سفينة، وأيام الحوض يومياً حسب حجم السفينة، والسفع والطلاء لكل متر مربع، وتجديد الفولاذ لكل كيلوغرام/طن، والعمالة لكل ساعة عمل، إضافة إلى المواد. والإصلاحات أثناء الطفو لكل عملية؛ ورسوم المسوح والتصنيف منفصلة. وعادةً ما تكون العروض بالدولار الأمريكي.",
+      "sources": [
+        "https://www.drydocks.gov.ae/",
+        "https://www.adsb.ae",
+        "https://gulfcraftgroup.com/news",
+        "https://www.drydocks.gov.ae",
+        "https://www.imo.org",
+        "https://iacs.org.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: DP World Drydocks operates a Dubai yard with three graving docks and a floating dock -> confirmed | ADSB site -> removed: page blocked | Gulf Craft builds yachts in the UAE -> confirmed. Not checked: The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is drydocking priced for a 60 m offshore supply vessel?",
+      "q_ar": "كيف يُسعّر الإرساء في الحوض الجاف لسفينة إمداد بحرية بطول 60 م؟",
+      "expected_entry_ids": [
+        "shipbuilding_repair:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "DP World Drydocks operates a Dubai yard with three graving docks and a floating dock",
+        "url": "https://www.drydocks.gov.ae/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ADSB site",
+        "url": "https://www.adsb.ae",
+        "result": "removed: page blocked"
+      },
+      {
+        "claim": "Gulf Craft builds yachts in the UAE",
+        "url": "https://gulfcraftgroup.com/news",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The Drydocks World URL, Lamprell's current UAE operations after restructuring, and each yard's current capabilities were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

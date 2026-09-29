@@ -1,0 +1,78 @@
+{
+  "trade": "pest_control",
+  "entries": [
+    {
+      "id": "pest_control:spec-checklist",
+      "topic": "Pest control - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For pest control quotes to be compared like-for-like, every quoted line (services) must state: (1) target pests; (2) premises type and area in m2; (3) treatment method (spray, gel, fumigation, baiting); (4) pesticide products and active ingredients; (5) number of visits and frequency; (6) company licence from the municipality; (7) technician qualifications; (8) re-entry time and safety precautions; (9) service report and certificate; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pest_control trade.",
+      "body_ar": "لكي تُقارن عروض مكافحة الآفات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الآفات المستهدفة؛ (2) نوع المنشأة ومساحتها بالمتر المربع؛ (3) طريقة المعالجة (رش، أو جل، أو تبخير، أو طُعوم)؛ (4) المبيدات المستخدمة ومكوناتها الفعالة؛ (5) عدد الزيارات وتكرارها؛ (6) ترخيص الشركة من البلدية؛ (7) مؤهلات الفنيين؛ (8) مدة العودة إلى المكان واحتياطات السلامة؛ (9) تقرير الخدمة والشهادة؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pest_control فقط.",
+      "required_specs": [
+        "target pests",
+        "premises type and area in m2",
+        "treatment method (spray, gel, fumigation, baiting)",
+        "pesticide products and active ingredients",
+        "number of visits and frequency",
+        "company licence from the municipality",
+        "technician qualifications",
+        "re-entry time and safety precautions",
+        "service report and certificate",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "pest_control:uae-standards-and-approvals",
+      "topic": "Pest control - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Pest control in Dubai sits under Dubai Municipality, whose public-health remit covers pest control; pesticide products are registered at federal level (Ministry of Climate Change and Environment). Each other emirate has its own municipality or public-health centre. What the cited sources do not establish: The sources read do not set a treatment frequency or list approved active ingredients; the buyer must state the pests, area and visit schedule.",
+      "body_ar": "تخضع مكافحة الآفات في دبي لبلدية دبي التي تشمل مهامها في الصحة العامة مكافحة الآفات؛ وتُسجَّل المبيدات على المستوى الاتحادي (وزارة التغير المناخي والبيئة). ولكل إمارة أخرى بلديتها أو مركز الصحة العامة الخاص بها. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد تكرار المعالجة ولا تذكر المكونات الفعالة المعتمدة؛ على المشتري أن يحدد الآفات والمساحة وجدول الزيارات.",
+      "source_note": "The sources read do not set a treatment frequency or list approved active ingredients; the buyer must state the pests, area and visit schedule.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for pest control?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـمكافحة الآفات؟",
+      "expected_entry_ids": [
+        "pest_control:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to pest control?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على مكافحة الآفات؟",
+      "expected_entry_ids": [
+        "pest_control:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "pest_control:spec-checklist",
+      "pest_control:uae-standards-and-approvals"
+    ],
+    "added": [
+      "pest_control:spec-checklist",
+      "pest_control:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
