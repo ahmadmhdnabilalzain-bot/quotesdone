@@ -1,5 +1,12 @@
 import { assertEquals } from 'jsr:@std/assert@1';
-import { duckSearch, modelCitation, parseDuckResults, parseRss, webCitation } from './marketing_trends.ts';
+import { competitorsNamed, duckSearch, modelCitation, parseDuckResults, parseRss, webCitation } from './marketing_trends.ts';
+
+Deno.test('competitorsNamed reads brand names as whole phrases, the part before a bracket, never a fragment', () => {
+  const names = ['Tradeling (Tradeling Group)', 'Biznex.ae', 'dubizzle Business Hub', 'Q Quotation', 'Made-in-China.com'];
+  assertEquals(competitorsNamed('Try Tradeling or Biznex.ae; also dubizzle business hub.', names), ['Tradeling (Tradeling Group)', 'Biznex.ae', 'dubizzle Business Hub']);
+  assertEquals(competitorsNamed('Tradelings are not a brand, and a quotation is a word.', names), []);
+  assertEquals(competitorsNamed('Sourcing on Made-in-China.com works.', names), ['Made-in-China.com']);
+});
 
 const RSS = `<?xml version="1.0"?><rss><channel><title>feed</title>
 <item><title><![CDATA[ZZ DEMO Dubai fit-out demand rises &amp; more]]></title><link>https://example.invalid/a</link><pubDate>Wed, 23 Sep 2026 08:00:00 GMT</pubDate></item>

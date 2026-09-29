@@ -42,6 +42,23 @@ export function modelCitation(answer: string): { cited: boolean; evidence: strin
 }
 
 /**
+ * Which competitors an answer engine named: each name as a whole phrase, case-insensitive, in the order given.
+ * A brand name in the text is a fact, not a meaning, so this is code (founder: no model for routine work).
+ * A name shorter than 4 characters is skipped: it would match ordinary words.
+ */
+export function competitorsNamed(answer: string, names: string[]): string[] {
+  // a dot stays only inside a name (biznex.ae); a sentence-ending dot is a space
+  const text = ' ' + String(answer || '').toLowerCase().replace(/\.(?![\p{L}\p{N}])/gu, ' ').replace(/[^\p{L}\p{N}.]+/gu, ' ') + ' ';
+  const out: string[] = [];
+  for (const n of names) {
+    // "Tradeling (Tradeling Group)" is named in an answer as "Tradeling": the part before a bracket is the brand
+    const key = String(n || '').replace(/\s*\(.*$/, '').toLowerCase().replace(/[^\p{L}\p{N}.]+/gu, ' ').trim();
+    if (key.length >= 4 && text.includes(' ' + key + ' ') && !out.includes(n)) out.push(n);
+  }
+  return out;
+}
+
+/**
  * One web search for the GEO audit. DuckDuckGo answers a bot-checked GET from a datacenter address with a 2xx page
  * that carries no results (HTTP 202 anomaly page), so r.ok alone never proves a result list came back. On an empty
  * GET the same query is re-sent as the POST its own search form makes; if that is empty too, the error names both

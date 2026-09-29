@@ -64,3 +64,14 @@ export function planTokenOf(m: { to?: string | null; subject?: string | null }):
   const s = String(m.subject || '').toLowerCase().match(/\[plan ([0-9a-f]{32})\]/);
   return s ? s[1] : null;
 }
+
+/**
+ * The token of a reply to an ARTICLE or LAUNCH-PLAN approval email (approve+<token>@mail.quotesdone.com or
+ * "[approve <token>]" in the subject). fn_marketing_approval_reply finds which one the token belongs to.
+ */
+export function approvalTokenOf(m: { to?: string | null; subject?: string | null }): string | null {
+  const t = String(m.to || '').toLowerCase().match(/^approve\+([0-9a-f]{32})@mail\.quotesdone\.com$/);
+  if (t) return t[1];
+  const s = String(m.subject || '').toLowerCase().match(/\[approve ([0-9a-f]{32})\]/);
+  return s ? s[1] : null;
+}
