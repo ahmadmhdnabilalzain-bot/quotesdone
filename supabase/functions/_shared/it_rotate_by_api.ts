@@ -85,6 +85,13 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   }
   if (!claim?.due) return { ...out, rotated: false, reason: claim?.reason ?? 'not due' };
   const oldSid = await d.sec('twilio_api_key_sid');
+  // FAIL CLOSED ON AN UNREAD KEY IN USE (review of #1038, 29 Sep 2026). sec() answers '' on an error; minting a
+  // new key then would record it with old_ref null, so the real old key would never be retired and would stay
+  // valid for good. Same rule as the retire step: no real value read, no action.
+  if (!oldSid) {
+    return { ...out, ok: false, rotated: false,
+      error: 'UNVERIFIED: the key in use (twilio_api_key_sid) read as empty, so no new key was minted' };
+  }
   const cr = await d.fetch(`${API}${ac}/Keys.json`, {
     method: 'POST',
     headers: { Authorization: basic(ac, token), 'Content-Type': 'application/x-www-form-urlencoded' },
