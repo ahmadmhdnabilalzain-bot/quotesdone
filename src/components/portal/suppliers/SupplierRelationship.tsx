@@ -28,7 +28,7 @@
 import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateName } from '@/components/me/portalText';
 import { arCount, countPhrase, AR_NOUN } from '@/lib/countedNoun';
@@ -124,7 +124,7 @@ const S = {
 const ar = (lang: Lang, arabic: string, english: string) => (lang === 'ar' ? arabic : english);
 
 async function call(path: string, body: unknown, token: string): Promise<HistoryResponse> {
-  const r = await fetch(`${SUPA_FN}/${path}`, {
+  const r = await fetch(fnUrl(path), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
     body: JSON.stringify(body),

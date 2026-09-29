@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { Link } from '@/i18n/routing';
-import { SUPA_ANON as ANON, SUPA_FN as FN } from '@/lib/supaEnv';
+import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { Button } from '@/components/ui/button';
 
 type Status = 'acknowledged' | 'in_review' | 'final_response';
@@ -77,7 +77,7 @@ export function ComplaintStatus() {
     e.preventDefault();
     setErr(''); setRes(null); setBusy(true);
     try {
-      const r = await fetch(FN + '/complaint_status', { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: 'Bearer ' + ANON }, body: JSON.stringify({ ticket: ticket.trim(), email: email.trim() }) });
+      const r = await fetch(fnUrl('complaint_status'), { method: 'POST', headers: { 'Content-Type': 'application/json', apikey: ANON, Authorization: 'Bearer ' + ANON }, body: JSON.stringify({ ticket: ticket.trim(), email: email.trim() }) });
       const j = await r.json().catch(() => ({} as any));
       if (r.ok && j.ok) setRes(j as Ticket);
       else setErr(j.error === 'not_found' ? t.notFound : j.error === 'invalid_input' ? t.invalid : j.error === 'rate_limited' ? t.limited : t.failed);
