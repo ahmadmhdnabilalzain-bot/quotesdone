@@ -30,7 +30,7 @@ import { applyReading, readQuote } from '../_shared/reasoned_matching.ts';
 import { assessQuote, requirementsOf } from '../_shared/line_specs/assess.ts';
 import type { Attr } from '../_shared/line_specs/model.ts';
 import { checklistAttrs, chooseChecklist, needsChecklist, reasonLineSpecs, unionOf, type Checklist, type ChecklistRow } from '../_shared/line_specs/reasoned_specs.ts';
-import type { Line } from '../_shared/line_specs/assess.ts';
+import type { Line, MissingItem } from '../_shared/line_specs/assess.ts';
 import type { Ctx } from '../_shared/line_specs/workflow.ts';
 import { optionAmount, splitOptions } from '../_shared/line_specs/options.ts';
 import { readVat } from '../_shared/line_specs/vat.ts';
@@ -247,6 +247,32 @@ async function kickDelivery() {
 /** The supplier as the hold desk addresses them: every channel on file, in their language. */
 // deno-lint-ignore no-explicit-any
 const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: SUPPLIER_LOCALE });
+/**
+ * The quality hold on this quote, if the gate just opened (or kept) one: the fixes as MissingItem rows (the shape every
+ * hold surface renders) and the message. Null when the quote went out. Suppliers are written in English only, so
+ * label_ar carries the English sentence too. Before the SQL is applied the table is absent and this answers null.
+ */
+async function qualityHold(qid: string): Promise<{ missing: MissingItem[]; message: string } | null> {
+  const { data: q } = await admin.from('quotes').select('status').eq('id', qid).maybeSingle();
+  if (!q || String(q.status) !== 'draft') return null;
+  const { data: h, error } = await admin.from('quote_quality_hold').select('fixes_en,release_due,released_at,superseded_at').eq('quote_id', qid).maybeSingle();
+  if (error || !h || h.released_at || h.superseded_at) return null;
+  const missing: MissingItem[] = String(h.fixes_en || '').split('\n').map((l) => l.replace(/^\d+\.\s*/, '').trim()).filter(Boolean)
+    .map((l, i) => ({ scope: 'quote', line_no: null, description: null, attr: 'quality_fix_' + (i + 1), label_en: l, label_ar: l, type: 'text' }));
+  const due = h.release_due ? new Date(h.release_due).toLocaleString('en-GB', { timeZone: 'Asia/Dubai', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null;
+  return { missing, message: 'Your quotation is on hold: our quality check found the points listed. Correct them and send it again.'
+    + (due ? ' If they are not corrected by ' + due + ' (Dubai time), it is shown to the customer as it stands, with the points beside it.' : '')
+    + ' We are also e-mailing you this list.' };
+}
+/**
+ * A SUBMISSION THE DOOR DID NOT ACCEPT ENDS THE QUALITY HOLD (review of #1108, 29 Sep 2026). The hold remembers the
+ * version acceptLive accepted; the duty only ever releases that exact content. A later submission that the exact-specs
+ * gate, the review's rules 1-7 or the accept rule refuses leaves a draft the wait must never publish, so its hold is
+ * superseded here and closed without a release. A later accepted submission opens a fresh hold through the gate.
+ */
+async function supersedeQualityHold(qid: string) {
+  try { await admin.from('quote_quality_hold').update({ superseded_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('quote_id', qid).is('released_at', null).is('superseded_at', null); } catch (_e) { /* absent before the SQL is applied */ }
+}
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
@@ -256,12 +282,19 @@ async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolea
   let coaching: any = null;
   if (r.accept) {
     try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', qid); } catch (_e) { /* */ }
+    // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
+    // before_the_customer_sees_it.sql). z40_quote_quality_gate keeps a quote with missing checklist specs, a price outside
+    // the UAE range or no validity / delivery time / VAT basis a draft for up to 24 h. The status is read back: a held
+    // quote is answered as held, with the exact fixes, and the customer is not told of a quote they cannot see.
+    const qh = await qualityHold(qid);
+    if (qh) return { accepted: false, submittable: r.submittable, score: r.score, coaching, held: true, code: 'quality_hold', missing: qh.missing, message: qh.message };
     await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
     if (notifyCustomer) await notifyNewQuote(inquiryId);
     if (!r.submittable) { try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ } }
     return { accepted: true, submittable: r.submittable, score: r.score, coaching };
   }
   try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* */ }
+  await supersedeQualityHold(qid);
   try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ }
   return { accepted: false, submittable: false, score: r.score, coaching };
 }
@@ -1755,13 +1788,15 @@ const handle = async (req: Request): Promise<Response> => {
         const g = await gate(repo, qid, supplier, { category, requirements, ref, multiOption, ...(await specChecklist(category, qid)),
           // His quotation is READ by reasoning before the check (decision points 29-30); held: nothing is read and he is asked.
           read: (qr, ls) => readQuote(defaultDeps(admin, 'supplier_api'), { quoteId: qid, category, lines: ls, terms: qr, requirements }) });
-        if (g.held) { results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
+        // a submission the door did not accept never inherits the wait of an earlier accepted one (review of #1108)
+        if (g.held) { await supersedeQualityHold(qid); results.push({ quote_id: qid, option_no: p.option_no, accepted: false, held: true, missing: g.missing, code: 'spec_hold' }); continue; }
         // THE REVIEW'S OWN RULES, held the same way (finding SP-F-02). The gate above is the exact-specs
         // assessment; these are rules 1-7 — the BOQ priced line by line, quantities and units, prices in
         // AED, the VAT basis, the lines adding up, a concrete validity — which no door but the chat ran.
         // The quote stays a draft the supplier can complete or replace; it does not reach the customer.
         if (reviewIssues) {
           try { await admin.from('quotes').update({ status: 'draft' }).eq('id', qid); } catch (_e) { /* the result below already says it was not accepted */ }
+          await supersedeQualityHold(qid);
           // THE CARD ALREADY KNOWS HOW TO SHOW THIS (re-review of #854). The portal renders a held
           // quote from `missing` / `spec_missing` — assess.ts MissingItem — and a review hold carried
           // neither, so QuoteCheck printed "Nothing missing — this is a complete quote." over a quote
