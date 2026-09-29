@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-28T23:39:10.453Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-28T23:57:35.335Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -72486,8 +72486,8 @@ begin
   if exists (select 1 from public.feedback f where f.case_id = new.case_id and f.kind = 'csat') then return null; end if;
   select * into v_p from public.support_customer_profile where id = new.customer_profile_id;
   v_body := case when v_lang = 'ar'
-    then 'كيف كانت خدمتنا في البلاغ ' || new.case_ref || E'؟\nأرسلوا رقماً من ١ (غير راضٍ) إلى ٥ (راضٍ جداً)، '
-         || 'ويمكنكم إضافة رقم ثانٍ من ١ (صعب جداً) إلى ٧ (سهل جداً) لمدى سهولة حل المشكلة. مثال: ٥ ٧'
+    then 'كيف كانت خدمتنا في البلاغ ' || new.case_ref || E'؟\nأرسلوا رقمًا من ١ (غير راضٍ) إلى ٥ (راضٍ جدًا)، '
+         || 'ويمكنكم إضافة رقم ثانٍ من ١ (صعب جدًا) إلى ٧ (سهل جدًا) لمدى سهولة حل المشكلة. مثال: ٥ ٧'
     else 'How did we do on case ' || new.case_ref || E'?\nReply with a number from 1 (unhappy) to 5 (very happy). '
          || 'You can add a second number from 1 (very hard) to 7 (very easy) for how easy it was to get it solved, e.g. "5 7".' end;
   if new.last_channel = 'whatsapp' then
