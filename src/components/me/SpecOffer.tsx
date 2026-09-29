@@ -6,7 +6,8 @@
 // customer_api spec_offer_reply ({ offer_id, choice: option_id | 'no' }). Only the fields below are
 // rendered — never a quote label or a supplier name — so the question cannot leak who offered what.
 import { useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import * as M from 'motion/react-m';
+import { AnimatePresence, useReducedMotion } from 'motion/react';
 import { ListChecks } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -41,7 +42,7 @@ export function SpecOffer({ inq, token, lang, call, onDone }) {
           {offers.map((o) => {
             const locked = busy === o.id || !!done[o.id];
             return (
-              <motion.div key={o.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+              <M.div key={o.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 className={cn('rounded-card border bg-secondary/20 p-3', done[o.id] ? 'border-border' : 'border-warn/40')}>
                 <div className="font-mono text-label uppercase tracking-caps text-primary">{tf(lang, 'so_line', { n: o.line_no })} · {lang === 'ar' ? (o.label_ar || o.label_en) : o.label_en}</div>
                 <p className="mt-0.5 text-[13px] font-medium text-foreground">{o.item}</p>
@@ -60,7 +61,7 @@ export function SpecOffer({ inq, token, lang, call, onDone }) {
                   : done[o.id] ? <p className="mt-2 text-[12.5px] text-primary" role="status">{done[o.id]}</p>
                   : o.reply_by ? <p className="mt-2 text-[12px] text-muted-foreground">{tf(lang, 'so_by', { d: fmtDate(o.reply_by, lang) })}</p> : null}
                 {err[o.id] ? <div className="mt-2 text-[12.5px] text-danger" role="alert">{err[o.id]}</div> : null}
-              </motion.div>
+              </M.div>
             );
           })}
         </AnimatePresence>
