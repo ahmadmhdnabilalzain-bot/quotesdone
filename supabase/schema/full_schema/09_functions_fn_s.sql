@@ -6179,6 +6179,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_changeable()
  RETURNS TABLE(field text, kind text, description text)
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select 'quote_price', 'number',
          'The amount on your open quotation. It can be changed while the customer has not paid to reveal you, the quotation is not committed, and the request is still open.';
@@ -6535,6 +6536,7 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_exception_days()
  RETURNS integer
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select greatest(1, coalesce((select nullif(btrim(value),'')::int from app_secrets where key='supplier_exception_days'), 14));
 $function$

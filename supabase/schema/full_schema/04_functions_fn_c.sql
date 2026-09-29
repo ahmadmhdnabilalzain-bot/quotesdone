@@ -958,6 +958,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_ceo_approval_append_only()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.subject_kind is distinct from old.subject_kind
@@ -1155,6 +1156,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_binding_constraint(p_figures jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare
   s jsonb := p_figures->'supply'; d jsonb := p_figures->'demand'; m jsonb := p_figures->'money';
@@ -1311,6 +1313,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_ceo_command_state_guard()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.state is distinct from old.state

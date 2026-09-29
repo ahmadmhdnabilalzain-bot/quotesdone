@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T22:20:20.090Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T22:23:05.928Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11875,7 +11875,6 @@ CREATE INDEX handoff_contract_owner_idx ON public.handoff_contract USING btree (
 CREATE INDEX handoff_contract_to_idx ON public.handoff_contract USING btree (to_dept, status, deadline);
 CREATE INDEX idx_agent_knowledge_key ON public.agent_knowledge USING btree (agent_key);
 CREATE INDEX idx_agent_memory_key ON public.agent_memory USING btree (agent_key, created_at DESC);
-CREATE INDEX idx_agent_runs_agent_started ON public.agent_runs USING btree (agent, started_at DESC);
 CREATE INDEX idx_ap_bills_status ON public.ap_bills USING btree (status);
 CREATE INDEX idx_ap_bills_vendor ON public.ap_bills USING btree (vendor_id);
 CREATE INDEX idx_budget_lines_budget ON public.budget_lines USING btree (budget_id);
@@ -11925,7 +11924,6 @@ CREATE INDEX idx_notif_type ON public.notifications USING btree (type);
 CREATE INDEX idx_org_agents_department ON public.org_agents USING btree (department);
 CREATE INDEX idx_os_audit_action ON public.os_audit_log USING btree (action);
 CREATE INDEX idx_os_audit_actor ON public.os_audit_log USING btree (actor);
-CREATE INDEX idx_os_audit_at ON public.os_audit_log USING btree (at DESC);
 CREATE INDEX idx_pdpl_erase_files_req ON public.pdpl_erase_files USING btree (request_id, status);
 CREATE INDEX idx_phone_verif_phone ON public.phone_verifications USING btree (phone);
 CREATE INDEX idx_po_lines_po ON public.po_lines USING btree (po_id);
@@ -12032,7 +12030,6 @@ CREATE UNIQUE INDEX kb_chunks_qdkb_source_uidx ON public.kb_chunks USING btree (
 CREATE INDEX kb_chunks_source_id_idx ON public.kb_chunks USING btree (source_id);
 CREATE INDEX kb_chunks_source_kind_idx ON public.kb_chunks USING btree (source_kind);
 CREATE INDEX kb_chunks_unembedded_cat_created_idx ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
-CREATE INDEX kb_chunks_unembedded_cat_created_idx2 ON public.kb_chunks USING btree (category, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_created_idx ON public.kb_chunks USING btree (created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_chunks_unembedded_kind_created_idx ON public.kb_chunks USING btree (source_kind, created_at) WHERE (embedding_gte IS NULL);
 CREATE INDEX kb_embed_inflight_chunk_idx ON public.kb_embed_inflight USING btree (chunk_id);
