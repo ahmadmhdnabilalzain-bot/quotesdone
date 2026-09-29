@@ -62,16 +62,31 @@ export const REQUIRED_CHECKS = [
   'lint migrations for locking operations',
   'the kernel and handler gate, against production',
 ];
+// ONE ENTRY PER CHECK: THE LATEST (29 Sep 2026). A head that ran a workflow twice (a push, then the
+// `labeled` event) carries both runs in statusCheckRollup: #1095 showed the database check CANCELLED
+// (superseded) and SUCCESS side by side, and the train refused it for ever. GitHub's own view (`gh pr
+// checks`) keeps the latest; so does this. A check still running has no completedAt and counts as latest.
+export function latestChecks(rollup = []) {
+  const at = (c) => (c.completedAt && !c.completedAt.startsWith('0001') ? c.completedAt : '9999') + (c.startedAt || '');
+  const byName = new Map();
+  for (const c of rollup) {
+    const k = c.name || c.context;
+    if (!byName.has(k) || at(c) > at(byName.get(k))) byName.set(k, c);
+  }
+  return [...byName.values()];
+}
+
 export function checksGreen(rollup = [], required = REQUIRED_CHECKS) {
-  const names = new Set(rollup.map((c) => c.name || c.context));
-  return rollup.length > 0
+  const latest = latestChecks(rollup);
+  const names = new Set(latest.map((c) => c.name || c.context));
+  return latest.length > 0
     && required.every((n) => names.has(n))
-    && rollup.every((c) => GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
+    && latest.every((c) => GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
 }
 
 // A check still running: no conclusion yet (a check run), or a status still PENDING (Vercel and friends).
 export function checksRunning(rollup = []) {
-  return rollup.some((c) => /^(PENDING|EXPECTED|QUEUED|IN_PROGRESS|WAITING)$/i.test(String(c.conclusion || c.state || 'PENDING')));
+  return latestChecks(rollup).some((c) => /^(PENDING|EXPECTED|QUEUED|IN_PROGRESS|WAITING)$/i.test(String(c.conclusion || c.state || 'PENDING')));
 }
 
 // THE ONE STALE PR TO REFRESH (29 Sep 2026). A reviewed PR's production checks compare its branch with the
