@@ -49,8 +49,23 @@ export function isDependabotMinorPatch(pr) {
   return !!m && m[1] === m[3] && (m[1] !== '0' || m[2] === m[4]);
 }
 
-export function checksGreen(rollup = []) {
+// THE CHECKS A MERGE NEEDS, BY NAME (29 Sep 2026). "Every check present is green" merged #998 and #992
+// minutes after the train updated their branches: the new head carried only Vercel's statuses, because
+// GitHub Actions had not yet created its check runs, so nothing present was red. A check that has not
+// started is not a pass. Each of these must be present and green (a skipped kernel gate on a PR without
+// the label counts, as it is SKIPPED, not absent).
+export const REQUIRED_CHECKS = [
+  'classification, pricing and refund checks',
+  'the database is running what this repository says',
+  'typecheck the app',
+  'typecheck the edge functions',
+  'lint migrations for locking operations',
+  'the kernel and handler gate, against production',
+];
+export function checksGreen(rollup = [], required = REQUIRED_CHECKS) {
+  const names = new Set(rollup.map((c) => c.name || c.context));
   return rollup.length > 0
+    && required.every((n) => names.has(n))
     && rollup.every((c) => GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
 }
 
@@ -67,7 +82,7 @@ export function checksRunning(rollup = []) {
 export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () => false } = {}) {
   // every other gate must already pass: judged as if its checks were green
   return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
-    && refusal({ ...pr, statusCheckRollup: [{ conclusion: 'SUCCESS' }] }, { depState }) === null && isBehind(pr)) || null;
+    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null && isBehind(pr)) || null;
 }
 
 // ponytail: one fixed Dubai window (UTC+4, no DST), weekdays and weekends alike; move it to a
