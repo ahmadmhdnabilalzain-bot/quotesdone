@@ -1,0 +1,3 @@
+NOT APPLIED. Seat: it_engineer. Committed for review (dry run passed 29 Sep 2026, guards green, 1 routine:
+fn_seat_duties_tick). Applied at merge; then this note is deleted and the file is appended to the END of MANIFEST.txt.
+No edge function changes: resilience_ping keeps passing p_limit 8, which is now the floor.
