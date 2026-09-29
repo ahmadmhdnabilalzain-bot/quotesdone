@@ -86,8 +86,8 @@ test('the wait releases only the version the door accepted; a refused submission
 test('the duty has a clock, the table is exported daily, and the file is pending XOR in MANIFEST', () => {
   assert.match(src, /\('sales_engineer\.quote_quality_hold',[\s\S]*?'15 minutes', true, 'fn_sales_engineer_quote_quality_tick'/);
   assert.match(body('fn_table_export_list'), /\('quote_quality_hold','quote'\)/, 'quote_quality_hold is not in the daily export');
-  // Depends-on #1106: its export list is the base, so its inquiry_rescue row must survive this redefinition
-  assert.match(body('fn_table_export_list'), /\('inquiry_rescue','inquiry'\)/, 'this redefinition drops #1106\'s inquiry_rescue from the daily export');
+  // Depends-on #1106: its export list is the base, so its stalled_inquiry_rescue row must survive this redefinition
+  assert.match(body('fn_table_export_list'), /\('stalled_inquiry_rescue','inquiry'\)/, 'this redefinition drops #1106\'s stalled_inquiry_rescue from the daily export');
   const manifest = read('scripts/sql/MANIFEST.txt').split(/\r?\n/).map((l) => l.trim());
   assert.ok(pending !== manifest.includes(FILE), 'exactly one of a pending note and a MANIFEST line');
 });

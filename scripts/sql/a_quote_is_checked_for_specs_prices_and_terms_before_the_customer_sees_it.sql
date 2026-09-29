@@ -54,7 +54,7 @@
 --      A later submission the door refuses supersedes the hold in supplier_api (superseded_at): never released, and the
 --      next accepted version opens a fresh hold with a fresh 24 h.
 --   6. quote_quality_hold joins the daily table export: fn_table_export_list is #1106's body (MANIFEST 1879's plus
---      inquiry_rescue) with only this row added. DEPENDS-ON #1106. No *_path column: no backup registry row.
+--      stalled_inquiry_rescue) with only this row added. DEPENDS-ON #1106 (and so #1105). No *_path column: no backup registry row.
 --
 -- WITH THIS FILE, IN THE SAME PR: supplier_api (acceptLive reads the status back: a quote the gate held is answered as
 -- held, with the fixes, and the customer is NOT told of a quote they cannot see); quote_compare (the open holds are
@@ -493,9 +493,9 @@ on conflict (duty) do nothing;
 
 -- ── 8. the daily export ────────────────────────────────────────────────────────────────────────────────────────
 -- DEPENDS-ON #1106 (review of #1108, 29 Sep 2026): rebased onto #1106's fn_table_export_list (its canonical base is
--- the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql, MANIFEST 1879, plus ('inquiry_rescue','inquiry')), with
+-- the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql, MANIFEST 1879, plus ('stalled_inquiry_rescue','inquiry')), with
 -- only ('quote_quality_hold','quote') added here. So #1106's a_stalled_request_puts_its_trade_and_area_first_in_recruitment_
--- and_tells_the_customer.sql must be applied FIRST: it creates inquiry_rescue, which this list then names. If another
+-- and_tells_the_customer.sql must be applied FIRST (after #1105, which creates stalled_inquiry_rescue): this list names it. If another
 -- definition is applied between them, rebase onto it and keep both rows.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
@@ -509,7 +509,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_capability_confirmation','supplier'), ('supplier_collaboration','supplier'), ('supplier_collaboration_event','supplier'),
     ('supplier_negotiation_policy','supplier'), ('supplier_screening_hit','supplier'), ('supplier_lead_intake','supplier'),
     ('doc_reviews','supplier'), ('licence_renewal_ask','supplier'), ('outreach','supplier'), ('company_registration','company'),
-    ('inquiries','inquiry'), ('inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
+    ('inquiries','inquiry'), ('stalled_inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
     ('inquiry_cancellations','inquiry'), ('inquiry_supplier_brief','inquiry'), ('inquiry_state_audit','inquiry'),
     ('inquiry_gate','inquiry'), ('inquiry_answer','inquiry'), ('inquiry_answer_document','inquiry'), ('inquiry_answer_scope','inquiry'),
     ('inquiry_workstream','inquiry'), ('inquiry_workstream_group','inquiry'), ('inquiry_workstream_requirement','inquiry'),
