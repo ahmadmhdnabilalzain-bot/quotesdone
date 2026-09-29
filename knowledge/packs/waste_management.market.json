@@ -1,0 +1,91 @@
+{
+  "trade": "waste_management",
+  "layer": "uae-market",
+  "label_en": "Waste management & skip hire",
+  "label_ar": "إدارة النفايات وتأجير الحاويات",
+  "entries": [
+    {
+      "id": "waste_management:uae-market-products",
+      "topic": "Waste management & skip hire: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Waste management and skip hire in the UAE: general commercial waste collection (offices, retail, buildings), residential building waste (chutes, compactors, bin rooms), construction and demolition waste skip hire, segregated recyclables collection (paper, plastics, metals, glass), green waste, bulky waste, food waste (collection only as a service), waste audits, and equipment (wheelie bins 120-1,100 L, front-end loader bins, roll-on/roll-off containers, compactors, balers, chutes). Collection must be by companies licensed by the emirate authority (Dubai Municipality waste permits, Tadweer in Abu Dhabi, Bee'ah in Sharjah, municipalities elsewhere); landfill and gate fees are levied per tonne (Dubai raised the general-waste landfill fee from AED 10 to AED 100 per tonne to drive recycling; hazardous waste is charged more). Buyers specify waste stream, volume, frequency and segregation requirements.",
+      "body_ar": "إدارة النفايات وتأجير الحاويات في الإمارات: جمع النفايات التجارية العامة (المكاتب والمحلات والمباني)، ونفايات المباني السكنية (المزالق والمكابس وغرف الحاويات)، وتأجير حاويات مخلفات البناء والهدم، وجمع المواد القابلة للتدوير المفرزة (الورق والبلاستيك والمعادن والزجاج)، والنفايات الخضراء، والنفايات الضخمة، ونفايات الطعام (الجمع فقط كخدمة)، وتدقيق النفايات، والمعدات (حاويات بعجلات 120-1,100 لتر، وحاويات التحميل الأمامي، وحاويات الرفع، والمكابس، والكابسات، والمزالق). ويجب أن يتولى الجمع شركات مرخصة من جهة الإمارة (تصاريح نفايات بلدية دبي، وتدوير في أبوظبي، وبيئة في الشارقة، والبلديات في غيرها)؛ وتُفرض رسوم المكب والبوابة بالطن (رفعت دبي رسوم مكب النفايات العامة من 10 إلى 100 درهم للطن لتشجيع إعادة التدوير، والنفايات الخطرة برسوم أعلى). يحدد المشتري نوع النفايات والحجم والتكرار ومتطلبات الفرز.",
+      "sources": [
+        "https://www.averda.com/where-we-operate/united-arab-emirates",
+        "https://www.weforum.org/stories/2022/02/dubai-waste-recycling/",
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: licensed waste haulers in Dubai -> confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia | Dubai landfill fee -> made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides). Not checked: Current landfill tipping fees per emirate and named operators' current contracts were not verified."
+    },
+    {
+      "id": "waste_management:uae-market-brands",
+      "topic": "Waste management & skip hire: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Operators and equipment brands: Averda, Dulsco, Imdaad, Bee'ah, Veolia, Enviroserve, Tadweer, SSI Schäfer, Otto, Faun, Geesinknorba, Heil, Bramidan, Orwak. Many SME skip-hire firms also operate in Al Quoz, Al Qusais, Jebel Ali and Sharjah. Residual waste goes to waste-to-energy plants in Dubai (Warsan) and Sharjah (Bee'ah and Masdar), and each operator must hold the emirate's permit for the waste stream it handles.",
+      "body_ar": "المشغلون وعلامات المعدات: Averda، Dulsco، Imdaad، Bee'ah، Veolia، Enviroserve، Tadweer، SSI Schäfer، Otto، Faun، Geesinknorba، Heil، Bramidan، Orwak. وتعمل أيضاً شركات تأجير حاويات صغيرة كثيرة في القوز والقصيص وجبل علي والشارقة. وتستقبل محطات تحويل النفايات إلى طاقة في دبي (ورسان) والشارقة (بيئة ومصدر) النفايات المتبقية، ويجب أن يحمل كل مشغل تصريح الإمارة لنوع النفايات الذي يتعامل معه.",
+      "sources": [
+        "https://www.averda.com/where-we-operate/united-arab-emirates",
+        "https://www.weforum.org/stories/2022/02/dubai-waste-recycling/",
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: licensed waste haulers in Dubai -> confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia | Dubai landfill fee -> made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides). Not checked: Current landfill tipping fees per emirate and named operators' current contracts were not verified."
+    },
+    {
+      "id": "waste_management:uae-market-sizes",
+      "topic": "Waste management & skip hire: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Skips (open containers) are 4, 6, 10, 15, 20 and 30 m3 (often called 6-yard to 40-yard in trade), priced per lift/exchange including transport, with landfill fee included up to a weight or charged per tonne. Bins are rented per month; collection is priced per lift or monthly by frequency (daily, alternate days, weekly). Recycling collections may be credited per tonne for high-value streams (cardboard, metals). Contracts state permit numbers, certificates of disposal/recycling, and reporting of tonnages (needed for green building and ESG reporting).",
+      "body_ar": "الحاويات المفتوحة بأحجام 4 و6 و10 و15 و20 و30 م3 (تُسمى غالباً 6 إلى 40 ياردة في السوق)، وتُسعّر بالرفع/التبديل شاملاً النقل، مع رسوم المكب مشمولة حتى وزن محدد أو محتسبة بالطن. وتُؤجر الحاويات بعجلات شهرياً؛ ويُسعّر الجمع بالرفع أو شهرياً حسب التكرار (يومي، يوم بعد يوم، أسبوعي). وقد تُحتسب قيمة لصالح العميل بالطن لتدفقات إعادة التدوير عالية القيمة (الكرتون والمعادن). وتذكر العقود أرقام التصاريح وشهادات التخلص/إعادة التدوير وتقارير الأطنان (المطلوبة للمباني الخضراء وتقارير الاستدامة).",
+      "sources": [
+        "https://www.averda.com/where-we-operate/united-arab-emirates",
+        "https://www.weforum.org/stories/2022/02/dubai-waste-recycling/",
+        "https://www.dm.gov.ae",
+        "https://www.tadweer.ae",
+        "https://www.beeah.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: licensed waste haulers in Dubai -> confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia | Dubai landfill fee -> made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides). Not checked: Current landfill tipping fees per emirate and named operators' current contracts were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What skip sizes are available for renovation waste?",
+      "q_ar": "ما أحجام الحاويات المتاحة لمخلفات التجديد؟",
+      "expected_entry_ids": [
+        "waste_management:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "licensed waste haulers in Dubai",
+        "url": "https://www.averda.com/where-we-operate/united-arab-emirates",
+        "result": "confirmed Averda, Dulsco, Imdaad, Bee'ah, Enviroserve, Veolia"
+      },
+      {
+        "claim": "Dubai landfill fee",
+        "url": "https://www.weforum.org/stories/2022/02/dubai-waste-recycling/",
+        "result": "made specific: general waste raised from AED 10 to AED 100 per tonne (hazardous charged higher, per published guides)"
+      }
+    ],
+    "unverified": "Current landfill tipping fees per emirate and named operators' current contracts were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

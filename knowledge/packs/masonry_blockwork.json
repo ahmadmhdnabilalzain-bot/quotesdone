@@ -1,0 +1,83 @@
+{
+  "trade": "masonry_blockwork",
+  "entries": [
+    {
+      "id": "masonry_blockwork:spec-checklist",
+      "topic": "Masonry and blockwork - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For masonry and blockwork (trade code masonry_blockwork only), every quoted line must state: Block type and density; Block size; Compressive strength; Mortar mix; Wall thickness and area; Fire rating of walls; Lintels and reinforcement; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط أعمال البناء بالطابوق (رمز النشاط masonry_blockwork فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الطابوق وكثافته؛ مقاس الطابوق؛ مقاومة الانضغاط؛ خلطة المونة؛ سماكة الجدار ومساحته؛ تصنيف مقاومة الجدران للحريق؛ الأعتاب والتسليح؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Block type and density",
+        "Block size",
+        "Compressive strength",
+        "Mortar mix",
+        "Wall thickness and area",
+        "Fire rating of walls",
+        "Lintels and reinforcement",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Installation or commissioning scope",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dcd.gov.ae/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "masonry_blockwork:uae-standards-and-approvals",
+      "topic": "Masonry and blockwork - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to masonry and blockwork in the UAE: Dubai Municipality oversees building and construction, food and consumer goods, and waste management in Dubai; each other emirate has its own municipality. Dubai Civil Defence applies the UAE Fire and Life Safety Code of Practice and issues approvals for engineering drawings, companies and hazardous material handling; outside Dubai the civil defence authority of the emirate applies. EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for masonry and blockwork. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط أعمال البناء بالطابوق في الإمارات: تشرف بلدية دبي على البناء والتشييد والأغذية والسلع الاستهلاكية وإدارة النفايات في دبي؛ ولكل إمارة أخرى بلديتها الخاصة. يطبّق الدفاع المدني في دبي قانون الإمارات للحماية من الحريق وسلامة الأرواح، ويصدر موافقات المخططات الهندسية واعتماد الشركات ومناولة المواد الخطرة؛ وخارج دبي تختص سلطة الدفاع المدني في الإمارة المعنية. يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط أعمال البناء بالطابوق. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for masonry and blockwork. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dcd.gov.ae/",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on masonry and blockwork?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـأعمال البناء بالطابوق؟",
+      "expected_entry_ids": [
+        "masonry_blockwork:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a masonry and blockwork supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد أعمال البناء بالطابوق؟",
+      "expected_entry_ids": [
+        "masonry_blockwork:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 3,
+    "claims_checked": 3,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "masonry_blockwork:spec-checklist"
+    ],
+    "added": [
+      "masonry_blockwork:spec-checklist",
+      "masonry_blockwork:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}
