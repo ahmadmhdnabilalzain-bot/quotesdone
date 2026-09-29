@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T05:21:08.540Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T05:27:47.732Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -45574,16 +45574,18 @@ begin
       select count(*) filter (where reason like 'hard_bounce%'), count(*) filter (where reason = 'spam_complaint')
         into v_n, v_rate from public.email_suppressions
        where source = 'resend_webhook' and created_at > now() - interval '7 days';
-      if v_n / v_d > public.fn_it_threshold('sender_bounce_rate_max') then
-        v_items := v_items || jsonb_build_object('item', 'bounce_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
-          'title', round(100 * v_n / v_d, 2) || '% of last week''s emails hard-bounced', 'blast', 'customer_facing', 'affected', 1,
-          'evidence', jsonb_build_object('hard_bounces', v_n, 'sent', v_d, 'max', public.fn_it_threshold('sender_bounce_rate_max')));
-      end if;
-      if v_rate / v_d > public.fn_it_threshold('sender_complaint_rate_max') then
-        v_items := v_items || jsonb_build_object('item', 'complaint_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
-          'title', round(100 * v_rate / v_d, 3) || '% of last week''s emails were reported as spam', 'blast', 'customer_facing', 'affected', 1,
-          'evidence', jsonb_build_object('complaints', v_rate, 'sent', v_d, 'max', public.fn_it_threshold('sender_complaint_rate_max')));
-      end if;
+      v_items := v_items || public.fn_it_sender_rate_items(v_d, v_n, v_rate);
+    end if;
+    -- DMARC aggregate reports (rua) read by _shared/it_scheduled_readings.ts dmarcReports(). An
+    -- 'unavailable' reading (no report arrived) raises nothing: an absence is not a clean bill.
+    if coalesce(p_r->'sender'->'dmarc_reports'->>'basis', '') = 'measured'
+       and coalesce((p_r->'sender'->'dmarc_reports'->>'messages')::numeric, 0) > 0
+       and (p_r->'sender'->'dmarc_reports'->>'failed')::numeric / (p_r->'sender'->'dmarc_reports'->>'messages')::numeric
+           > public.fn_it_threshold('sender_dmarc_fail_rate_max') then
+      v_items := v_items || jsonb_build_object('item', 'dmarc_fail_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+        'title', round(100 * (p_r->'sender'->'dmarc_reports'->>'failed')::numeric / (p_r->'sender'->'dmarc_reports'->>'messages')::numeric, 2)
+                 || '% of the mail receivers saw from our domain failed DMARC',
+        'blast', 'customer_facing', 'affected', 1, 'evidence', p_r->'sender'->'dmarc_reports');
     end if;
     v_out := v_out || jsonb_build_object('sender', public.fn_it_duty_settle('sender', v_items));
     perform public.fn_it_duty_ran('sender', v_out->'sender');
@@ -48904,6 +48906,25 @@ AS $function$
          then 'whatsapp_quality' end,
     case when coalesce(p_blocklisted, 0) > 0 then 'blocklisted' end
   ], null)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_sender_rate_items(p_sent numeric, p_hard_bounces numeric, p_complaints numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(i), '[]'::jsonb) from (
+    select jsonb_build_object('item', 'bounce_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+             'title', round(100 * p_hard_bounces / p_sent, 2) || '% of last week''s emails hard-bounced', 'blast', 'customer_facing', 'affected', 1,
+             'evidence', jsonb_build_object('hard_bounces', p_hard_bounces, 'sent', p_sent, 'max', public.fn_it_threshold('sender_bounce_rate_max'))) i
+     where p_sent > 0 and p_hard_bounces / p_sent > public.fn_it_threshold('sender_bounce_rate_max')
+    union all
+    select jsonb_build_object('item', 'complaint_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+             'title', round(100 * p_complaints / p_sent, 3) || '% of last week''s emails were reported as spam', 'blast', 'customer_facing', 'affected', 1,
+             'evidence', jsonb_build_object('complaints', p_complaints, 'sent', p_sent, 'max', public.fn_it_threshold('sender_complaint_rate_max')))
+     where p_sent > 0 and p_complaints / p_sent > public.fn_it_threshold('sender_complaint_rate_max')) z
 $function$
 
 
