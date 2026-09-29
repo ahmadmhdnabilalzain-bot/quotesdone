@@ -1,0 +1,91 @@
+{
+  "trade": "mannequins_visual_merchandising",
+  "layer": "uae-market",
+  "label_en": "Mannequins & visual merchandising",
+  "label_ar": "عارضات الأزياء وتجهيزات العرض المرئي",
+  "entries": [
+    {
+      "id": "mannequins_visual_merchandising:uae-market-products",
+      "topic": "Mannequins & visual merchandising: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Mannequins and visual merchandising products sold in the UAE include full-body mannequins (realistic, abstract, headless, egghead) in fibreglass, polyethylene or polypropylene, torsos and bust forms, child and plus-size mannequins, modest-fashion and abaya display forms, tailor's dress forms, hand, foot and head forms, display stands, garment rails, gondola accessories, window props, seasonal decorations (Ramadan, Eid, National Day, Christmas), POP displays, lightboxes, acrylic displays, jewellery busts and trays, price tag systems, and window display design and installation services. Buyers specify material, finish (matte, gloss, fabric-covered, chrome), pose, size (dress size, height), base type (glass, metal, calf rod), and whether arms are detachable. Fire-retardant materials may be required for mall displays under mall and Civil Defence rules.",
+      "body_ar": "تشمل منتجات عارضات الأزياء والعرض المرئي المباعة في الإمارات العارضات الكاملة (واقعية، تجريدية، بلا رأس، برأس بيضاوي) من الألياف الزجاجية أو البولي إيثيلين أو البولي بروبيلين، والجذوع وقوالب النصف العلوي، وعارضات الأطفال والمقاسات الكبيرة، وقوالب عرض الأزياء المحتشمة والعبايات، وقوالب الخياطين، وقوالب اليد والقدم والرأس، وحوامل العرض، وعلاقات الملابس، وإكسسوارات الرفوف الوسطية، ودعائم الواجهات، والزينة الموسمية (رمضان، العيد، اليوم الوطني، الكريسماس)، وشاشات العرض في نقاط البيع، والصناديق المضيئة، وشاشات العرض الأكريليكية، وقوالب وصواني عرض المجوهرات، وأنظمة بطاقات الأسعار، وخدمات تصميم وتركيب واجهات العرض. يحدد المشترون المادة، والتشطيب (مطفي، لامع، مكسو بالقماش، كروم)، والوضعية، والمقاس (مقاس الملابس، الطول)، ونوع القاعدة (زجاج، معدن، قضيب الساق)، وما إذا كانت الذراعان قابلتين للفك. وقد تُشترط مواد مقاومة للحريق لعروض المراكز التجارية وفق قواعد المراكز والدفاع المدني.",
+      "sources": [
+        "https://www.yellowpages-uae.com/uae/dubai/mannequins",
+        "https://bonaveri.com/contact/distributors/",
+        "https://www.bonaveri.com",
+        "https://www.hansboodt.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display) -> confirmed | Bonaveri, Hans Boodt, Almax have UAE distributors -> removed: no UAE distributor found. Not checked: Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified."
+    },
+    {
+      "id": "mannequins_visual_merchandising:uae-market-brands",
+      "topic": "Mannequins & visual merchandising: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed Dubai suppliers and leading European mannequin makers: Show Racks Trading (Deira), XITE Display Studio, Creative Display (The Design Store), Bonaveri, Hans Boodt, Almax. No UAE distributor was found for the European makers. Most volume comes from Chinese, Indian and Turkish manufacturers via traders in Deira, Dragon Mart, Sharjah and Al Quoz.",
+      "body_ar": "الموردون المؤكدون في دبي وكبار المصنعين الأوروبيين لعارضات الأزياء: Show Racks Trading (Deira)، XITE Display Studio، Creative Display (The Design Store)، Bonaveri، Hans Boodt، Almax. ولم يُعثر على موزع في الإمارات للمصنعين الأوروبيين. ويأتي معظم الحجم من مصنعين صينيين وهنود وأتراك عبر تجار في ديرة ودراغون مارت والشارقة والقوز.",
+      "sources": [
+        "https://www.yellowpages-uae.com/uae/dubai/mannequins",
+        "https://bonaveri.com/contact/distributors/",
+        "https://www.bonaveri.com",
+        "https://www.hansboodt.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display) -> confirmed | Bonaveri, Hans Boodt, Almax have UAE distributors -> removed: no UAE distributor found. Not checked: Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified."
+    },
+    {
+      "id": "mannequins_visual_merchandising:uae-market-sizes",
+      "topic": "Mannequins & visual merchandising: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Mannequins and forms are priced per piece, with volume discounts for 10+ units; common adult female sizes are UK 8-10 (EU 36-38), male chest 96-100 cm, heights 175-190 cm. Custom colours or poses typically carry MOQs of 20-50 pieces. Window design and installation is priced per window per season or per project. Props and POP displays are priced per piece or per set.",
+      "body_ar": "تُسعّر العارضات والقوالب لكل قطعة، مع خصومات للكميات من 10 وحدات فأكثر؛ ومقاسات النساء البالغات الشائعة هي UK 8-10 (EU 36-38)، وصدر الرجال 96-100 سم، والأطوال 175-190 سم. وعادةً ما تتطلب الألوان أو الوضعيات الخاصة حداً أدنى 20-50 قطعة. ويُسعّر تصميم الواجهات وتركيبها لكل واجهة في كل موسم أو لكل مشروع. وتُسعّر الدعائم وشاشات نقاط البيع لكل قطعة أو لكل طقم.",
+      "sources": [
+        "https://www.yellowpages-uae.com/uae/dubai/mannequins",
+        "https://bonaveri.com/contact/distributors/",
+        "https://www.bonaveri.com",
+        "https://www.hansboodt.com",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display) -> confirmed | Bonaveri, Hans Boodt, Almax have UAE distributors -> removed: no UAE distributor found. Not checked: Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What sizes do standard female mannequins come in?",
+      "q_ar": "ما المقاسات التي تتوفر بها عارضات الأزياء النسائية القياسية؟",
+      "expected_entry_ids": [
+        "mannequins_visual_merchandising:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Mannequin suppliers operate in Dubai incl. Deira (Show Racks Trading), XITE Display Studio and The Design Store (Creative Display)",
+        "url": "https://www.yellowpages-uae.com/uae/dubai/mannequins",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Bonaveri, Hans Boodt, Almax have UAE distributors",
+        "url": "https://bonaveri.com/contact/distributors/",
+        "result": "removed: no UAE distributor found"
+      }
+    ],
+    "unverified": "Whether any of the named international mannequin brands has an appointed UAE distributor, and specific mall fire-retardant rules, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

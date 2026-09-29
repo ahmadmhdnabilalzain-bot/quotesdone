@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T02:03:41.419Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T02:28:22.692Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -10130,7 +10130,7 @@ ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_key_check CHECK 
 ALTER TABLE public.ceo_experiment ADD CONSTRAINT ceo_experiment_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'approved'::text, 'running'::text, 'rejected'::text, 'kept'::text, 'killed'::text])));
 ALTER TABLE public.ceo_experiment_verdict ADD CONSTRAINT ceo_experiment_verdict_decision_check CHECK ((decision = ANY (ARRAY['kept'::text, 'killed'::text, 'iterated'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_proposal_check CHECK ((btrim(proposal) <> ''::text));
-ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text])));
+ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_source_kind_check CHECK ((source_kind = ANY (ARRAY['recurring_miss'::text, 'month_miss'::text, 'lesson'::text, 'recurring_finding'::text, 'binding_constraint'::text, 'marketing_plan_late'::text, 'seat_audit'::text, 'funnel_stage_drop'::text])));
 ALTER TABLE public.ceo_improvement ADD CONSTRAINT ceo_improvement_status_check CHECK ((status = ANY (ARRAY['open'::text, 'assigned'::text, 'done'::text, 'dropped'::text])));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_authority_ck CHECK ((authority_effect = 'none'::text));
 ALTER TABLE public.ceo_knowledge ADD CONSTRAINT ceo_knowledge_exec_ck CHECK ((external_execution_enabled = false));
@@ -22307,16 +22307,6 @@ end;
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -22342,6 +22332,16 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -51282,16 +51282,26 @@ declare
   v_ok constant text := '^[A-Za-z0-9._-]{1,100}$';
   v_src text; v_med text; v_cmp text; v_cnt text; v_path text; v_at timestamptz; v_post bigint; v_id bigint;
 begin
-  if p_lead_id is null or p_touch is null or jsonb_typeof(p_touch) <> 'object' then
-    return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no first touch');
+  if p_lead_id is null then
+    return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no lead');
   end if;
+  if p_touch is null or jsonb_typeof(p_touch) <> 'object' then p_touch := '{}'::jsonb; end if;
   v_src := nullif(btrim(p_touch->>'utm_source'), '');     if v_src !~ v_ok then v_src := null; end if;
   v_med := nullif(btrim(p_touch->>'utm_medium'), '');     if v_med !~ v_ok then v_med := null; end if;
   v_cmp := nullif(btrim(p_touch->>'utm_campaign'), '');   if v_cmp !~ v_ok then v_cmp := null; end if;
   v_cnt := nullif(btrim(p_touch->>'utm_content'), '');    if v_cnt !~ v_ok then v_cnt := null; end if;
   v_path := nullif(btrim(p_touch->>'landing_path'), '');  if v_path !~ '^/\S{0,200}$' then v_path := null; end if;
+  -- THE INVITATION IS A TOUCH EVEN WHEN THE BROWSER KEPT NONE (28 Sep 2026, this file): private mode or a link
+  -- opened before the ref existed leaves no tagged visit, but claim_lookup stamps invite_clicked_at when the
+  -- lead's own claim link is opened. That is evidence of the invitation, not a status column.
   if v_src is null then
-    return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no valid utm_source');
+    select 'invite', 'email', 'supplier_invite', 'lead-' || l.id, '/portal', l.invite_clicked_at
+      into v_src, v_med, v_cmp, v_cnt, v_path, v_at
+      from public.leads l where l.id = p_lead_id and l.invite_clicked_at is not null;
+    if v_src is null then
+      return jsonb_build_object('ok', true, 'recorded', false, 'reason', 'no valid utm_source and no opened invitation');
+    end if;
+    p_touch := jsonb_build_object('first_seen_at', v_at);
   end if;
   begin
     v_at := (p_touch->>'first_seen_at')::timestamptz;
@@ -51318,6 +51328,90 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_founder_email()
 AS $function$
   select lower(btrim(coalesce(nullif(split_part((select value from public.app_secrets where key = 'admin_emails'), ',', 1), ''),
                               'management@quotesdone.com')))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_funnel_diagnosis(p_include_demo boolean DEFAULT false, p_file boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_min int := coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'recruitment_diagnosis_min_invites'), 20);
+  v_month text := to_char((now() at time zone 'Asia/Dubai')::date, 'YYYY-MM');
+  v_channels jsonb; v_trades jsonb; c record; v_filed jsonb := '[]'::jsonb; v_imp bigint;
+begin
+  with f as (
+    select l.id, coalesce(n.channel, 'email') as channel,
+           coalesce(nullif(l.invite_trades, '{}'::text[]), array['unknown']) as trades,
+           coalesce(n.sent, false)::int as sent, coalesce(n.delivered, false)::int as delivered,
+           (l.invite_clicked_at is not null)::int as clicked, coalesce(l.claimed, false)::int as started,
+           (l.registration_submitted_at is not null)::int as registered
+      from public.leads l
+      left join lateral (
+        select max(x.channel) as channel, bool_or(x.status = 'sent') as sent,
+               bool_or(x.status = 'sent' and x.provider_status = 'delivered') as delivered
+          from public.notifications x where x.lead_id = l.id and x.type = 'supplier_invite') n on true
+     where l.invited_at is not null and (p_include_demo or not coalesce(l.is_demo, false))
+  ), per_channel as (
+    select channel, jsonb_build_object('invited', count(*), 'sent', sum(sent), 'delivered', sum(delivered),
+           'clicked', sum(clicked), 'started', sum(started), 'registered', sum(registered)) st
+      from f group by channel
+  ), per_trade as (
+    select f.channel, t.trade, jsonb_build_object('invited', count(*), 'sent', sum(f.sent), 'delivered', sum(f.delivered),
+           'clicked', sum(f.clicked), 'started', sum(f.started), 'registered', sum(f.registered)) st
+      from f cross join lateral unnest(f.trades) t(trade) group by f.channel, t.trade
+  )
+  select (select coalesce(jsonb_agg(jsonb_build_object('channel', channel, 'stages', st,
+                   'drop', public.fn_marketing_funnel_largest_drop(st)) order by channel), '[]'::jsonb) from per_channel),
+         (select coalesce(jsonb_agg(jsonb_build_object('channel', channel, 'trade', trade, 'stages', st,
+                   'drop', public.fn_marketing_funnel_largest_drop(st)) order by channel, trade), '[]'::jsonb) from per_trade)
+    into v_channels, v_trades;
+
+  if p_file then
+    for c in select e from jsonb_array_elements(v_channels) e
+              where (e->'stages'->>'invited')::int >= v_min and (e->'stages'->>'registered')::int = 0 loop
+      v_imp := public.fn_ceo_improvement_open('funnel_stage_drop',
+        (c.e->>'channel') || ':' || (c.e->'drop'->>'cause') || ':' || v_month, 'marketing',
+        format('Recruitment by %s: %s invited, 0 registered. The largest drop is %s -> %s (%s lost): %s. %s',
+               c.e->>'channel', c.e->'stages'->>'invited', c.e->'drop'->>'from', c.e->'drop'->>'to', c.e->'drop'->>'lost',
+               c.e->'drop'->>'cause', c.e->'drop'->>'proposed_fix'),
+        jsonb_build_object('stages', c.e->'stages', 'drop', c.e->'drop', 'min_invites', v_min,
+                           'source', 'fn_marketing_funnel_diagnosis'));
+      v_filed := v_filed || jsonb_build_object('channel', c.e->>'channel', 'improvement_id', v_imp);
+    end loop;
+  end if;
+
+  return jsonb_build_object('min_invites', v_min, 'channels', v_channels, 'by_trade', v_trades, 'filed', v_filed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_funnel_largest_drop(p_stages jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce((
+    select jsonb_build_object('from', s.a, 'to', s.b, 'lost', s.lost, 'cause', s.cause, 'proposed_fix', s.fix)
+      from (select a, b, coalesce((p_stages->>a)::int, 0) - coalesce((p_stages->>b)::int, 0) as lost, cause, fix, ord
+              from (values
+                (1, 'invited', 'sent', 'not_actually_sent',
+                 'Leads are marked invited but the outbox holds no sent invitation for them. Count only outbox sends; the batch is released by enqueue_supplier_invites once supplier_outreach_golive and invite_enabled are true.'),
+                (2, 'sent', 'delivered', 'bounced_or_undelivered',
+                 'Invitations left the outbox but were not delivered. Clean the list (role and dead domains) and check the sending domain before the next batch.'),
+                (3, 'delivered', 'clicked', 'no_clicks',
+                 'Invitations were delivered but nobody opened the link. Test the subject line, the first sentence and the sender name per trade.'),
+                (4, 'clicked', 'started', 'clicks_but_no_start',
+                 'Suppliers opened the link but did not claim their company. Walk the portal claim step from the invitation link and shorten it.'),
+                (5, 'started', 'registered', 'started_not_finished',
+                 'Suppliers claimed but did not submit the registration. Find the form step they stop at and follow up through customer_support.')
+              ) v(ord, a, b, cause, fix)) s
+     where s.lost > 0
+     order by s.lost desc, s.ord
+     limit 1),
+    jsonb_build_object('from', null, 'to', null, 'lost', 0, 'cause', 'no_drop', 'proposed_fix', null))
 $function$
 
 
@@ -52633,7 +52727,9 @@ begin
 
   return jsonb_build_object('gaps_recruiting', v_rows, 'empty_pools', v_empty, 'empty_pool_findings', cardinality(v_keys),
     'totals', (select jsonb_build_object('pool', sum(pool), 'invited', sum(invited), 'registered', sum(registered), 'approved', sum(approved), 'quoting', sum(quoting))
-                 from public.supplier_recruitment_funnel where day = v_day));
+                 from public.supplier_recruitment_funnel where day = v_day),
+    -- which stage lost them, filed to the CEO when a channel has N invited and 0 registered (#1012)
+    'diagnosis', public.fn_marketing_funnel_diagnosis(false, true));
 end $function$
 
 
@@ -70125,7 +70221,7 @@ begin
   if coalesce((select max(l.invited_at) from public.leads l where l.invited_at >= public.fn_invite_lane_since() and (public.fn_invite_lane_since() = '-infinity'::timestamptz or public.fn_invite_lane_sent(l.id)) and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)), '-infinity'::timestamptz) < (v_day::timestamp at time zone 'Asia/Dubai') - interval '3 days' then
     v_cap := coalesce((select (nullif(value, '')::jsonb->>'base_cap')::int from public.app_secrets where key = 'invite_warmup'), 30);
   end if;
-  select count(*) into v_pool from public.leads l where public.fn_supplier_invite_eligible(l);
+  select count(*) into v_pool from public.fn_supplier_invite_eligible_ids();   -- the set, read once (see header)
   v_n := greatest(least(v_cap, v_pool), 0);
   select coalesce(jsonb_agg(jsonb_build_object('n', c.rn, 'lead_id', c.lead_id,
             'company', coalesce(nullif(btrim(c.company_name), ''), '(no company name)'),
@@ -70689,7 +70785,7 @@ begin
            -- ALWAYS ENGLISH (24 Sep 2026, ledger 993 item 4; #1065): suppliers are always written in English.
            'en'::text as lang
     from leads l join keyed k on k.id = l.id
-    where public.fn_supplier_invite_eligible(l)
+    where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))   -- the set, read once (see header)
       -- a company already invited (bounced, unsubscribed or registered included) is not invited again at another address
       and not exists (select 1 from touched_d t where t.dkey = k.dkey)
       and (k.nkey is null or not exists (select 1 from touched_n t where t.nkey = k.nkey))
@@ -70735,7 +70831,7 @@ begin
          -- an Arabic-script company name is not written into an English letter (the 29 Sep probe found 11 of 200)
          replace(replace(coalesce(e.plan_body, v_body), '{{company}}',
                          coalesce(nullif(btrim(case when e.company_name ~ '[؀-ۿ]' then '' else e.company_name end), ''), 'there')),
-                 '{{link}}', v_site || '/en/portal?t=' || e.claim_token::text)
+                 '{{link}}', public.fn_supplier_invite_link(v_site, e.claim_token, e.id))   -- English, with its ref (see header)
   from elig e;
 end
 $function$
@@ -70780,6 +70876,63 @@ AS $function$
                       where d.domain = split_part(lower(btrim(p.email)), '@', 2)
                         and d.domain is distinct from lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(p.website), ''), p.maps_website, '')),
                                                           '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_eligible_ids()
+ RETURNS SETOF bigint
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- The small reference tables (sanctions 46 rows, screening hits, 37 suppressions, block patterns,
+  -- 47 platform domains) are read ONCE into arrays: with the leads estimate at 1 row the planner
+  -- chose nested loops and re-read each of them 19,444 times (EXPLAIN ANALYZE, 4.8 s). NULLs are
+  -- filtered out of each array, because `x <> all(array[..., null])` is null and would drop every lead.
+  select p.id
+    from public.leads p
+   where coalesce(btrim(p.email), '') <> ''
+     and p.invite_status is null
+     and coalesce(p.source, '') <> 'self_registered'
+     and coalesce(p.claimed, false) = false
+     and coalesce(p.banned, false) = false
+     and coalesce(p.permanently_closed, false) = false
+     and coalesce(p.is_demo, false) = false
+     and coalesce(p.company_name, '') !~* '^\s*zz\s*demo'
+     and not public.fn_is_demo_email(p.email)
+     and p.id <> all (array(select b.lead_id from public.sanctions_ban b where b.lead_id is not null))
+     and p.id <> all (array(select h.lead_id from public.supplier_screening_hit h
+                             where h.lead_id is not null and h.status in ('open', 'confirmed')))
+     and not exists (select 1 from public.notifications n
+                      where n.type = 'supplier_invite' and lower(btrim(n.to_email)) = lower(btrim(p.email)))
+     -- fn_email_sendable(p.email)->>'ok', clause for clause
+     and lower(btrim(p.email)) ~ '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$'
+     and lower(btrim(p.email)) <> all (array(select lower(s.email) from public.email_suppressions s where s.email is not null))
+     and not exists (select 1 from public.email_domain_mx m0
+                      where m0.domain = split_part(lower(btrim(p.email)), '@', 2) and m0.has_mx = false
+                        and m0.kind in ('nxdomain', 'no_records'))
+     and not coalesce(lower(btrim(p.email)) ~ any (array(select bp.pattern from public.email_block_pattern bp
+                                                         where bp.active and bp.pattern is not null)), false)
+     -- a measured MX
+     and exists (select 1 from public.email_domain_mx m
+                  where m.domain = split_part(lower(btrim(p.email)), '@', 2) and m.kind = 'mx')
+     and split_part(lower(btrim(p.email)), '@', 1) !~
+         '^(careers?|jobs?|hr|recruit(ment|ing)?|cv|webmaster|hostmaster|mailer-daemon|privacy|legal|newsletters?|unsubscribe|donotreply)$'
+     and not (split_part(lower(btrim(p.email)), '@', 2) = any (array(select d.domain from public.email_platform_domain d where d.domain is not null))
+              and split_part(lower(btrim(p.email)), '@', 2) is distinct from
+                  lower(regexp_replace(regexp_replace(btrim(coalesce(nullif(btrim(p.website), ''), p.maps_website, '')),
+                                       '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_invite_link(p_site text, p_token uuid, p_lead_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(nullif(btrim(p_site), ''), 'https://quotesdone.com') || '/en/portal?t=' || p_token::text
+         || '&utm_source=invite&utm_medium=email&utm_campaign=supplier_invite&utm_content=lead-' || p_lead_id::text
 $function$
 
 

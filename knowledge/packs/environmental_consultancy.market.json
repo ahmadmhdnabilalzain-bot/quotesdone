@@ -1,0 +1,102 @@
+{
+  "trade": "environmental_consultancy",
+  "layer": "uae-market",
+  "label_en": "Environmental consultancy",
+  "label_ar": "الاستشارات البيئية",
+  "entries": [
+    {
+      "id": "environmental_consultancy:uae-market-products",
+      "topic": "Environmental consultancy: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Environmental consultancy in the UAE covers environmental impact assessments (EIA) and environmental permits for projects, environmental baseline surveys (air, noise, water, soil, marine, ecology), environmental monitoring (ambient air quality, noise, stack emissions, groundwater), contaminated land assessment and remediation, waste management plans and audits, environmental management systems (ISO 14001), carbon footprinting and GHG inventories (GHG Protocol, ISO 14064), ESG and sustainability reporting (GRI, ISSB/IFRS S1-S2, CDP), climate risk assessments, marine and coastal studies, water and wastewater studies, and environmental compliance audits. UAE regulators: federal Ministry of Climate Change and Environment (MOCCAE), Environment Agency – Abu Dhabi (EAD) for EIAs and permits in Abu Dhabi, Dubai Municipality Environment Department, Sharjah Environment and Protected Areas Authority, and free-zone authorities (Trakhees/JAFZA). Consultants must be registered with EAD (Resolution 4 of 2025, where Class A may carry out EIAs) or approved by DM or Trakhees to submit EIAs. UAE federal climate law requires GHG reporting for certain entities.",
+      "body_ar": "تشمل الاستشارات البيئية في الإمارات تقييمات الأثر البيئي والتصاريح البيئية للمشاريع، والمسوح البيئية الأساسية (الهواء، والضوضاء، والمياه، والتربة، والبيئة البحرية، والأحياء)، والرصد البيئي (جودة الهواء المحيط، والضوضاء، وانبعاثات المداخن، والمياه الجوفية)، وتقييم الأراضي الملوثة ومعالجتها، وخطط إدارة النفايات وتدقيقها، وأنظمة الإدارة البيئية (ISO 14001)، وحساب البصمة الكربونية وجرد غازات الدفيئة (بروتوكول غازات الدفيئة، ISO 14064)، وتقارير الحوكمة البيئية والاجتماعية والاستدامة (GRI، ومعايير ISSB/IFRS S1-S2، وCDP)، وتقييمات مخاطر المناخ، والدراسات البحرية والساحلية، ودراسات المياه ومياه الصرف، وتدقيقات الامتثال البيئي. الجهات التنظيمية في الإمارات: وزارة التغير المناخي والبيئة الاتحادية، وهيئة البيئة - أبوظبي لتقييمات الأثر البيئي والتصاريح في أبوظبي، وإدارة البيئة في بلدية دبي، وهيئة البيئة والمحميات الطبيعية في الشارقة، وسلطات المناطق الحرة (تراخيص/جافزا). ويجب أن يكون الاستشاريون مسجلين لدى هيئة البيئة - أبوظبي (القرار رقم 4 لسنة 2025، حيث يجوز للفئة A إعداد تقييمات الأثر البيئي) أو معتمدين من بلدية دبي أو تراخيص لتقديم تقييمات الأثر البيئي. ويشترط القانون الاتحادي للمناخ الإبلاغ عن غازات الدفيئة لبعض الجهات.",
+      "sources": [
+        "https://www.mediaoffice.abudhabi/en/government-affairs/environment-agency-abu-dhabi-issues-resolution-on-approval-and-registration-of-environmental-consultancy-offices-in-emirate/",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Environment,%20Health%20&%20Safety/Project%20Safety%20&%20Environment/Third%20Party%20Agencies/List%20of%20Third%20Party%20Environmental%20Consultants.pdf",
+        "https://www.erm.com/contact-us/",
+        "https://www.ead.gov.ae",
+        "https://www.moccae.gov.ae",
+        "https://ghgprotocol.org",
+        "https://www.globalreporting.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EAD Resolution 4 of 2025 regulates approval and registration of environmental consultancy offices in Abu Dhabi; Class A may do EIAs -> corrected: resolution added | Trakhees publishes a list of approved third-party environmental consultants -> confirmed | ERM, WSP, Ramboll, Dulsco Environment, Bee'ah, Tadweer as providers -> removed: UAE presence not confirmed on opened page. Not checked: The scope and effective dates of UAE federal climate law GHG reporting obligations and the current EAD consultant registration process were not verified."
+    },
+    {
+      "id": "environmental_consultancy:uae-market-brands",
+      "topic": "Environmental consultancy: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Regulators that register consultants and the main reporting frameworks: Environment Agency – Abu Dhabi, Trakhees, GHG Protocol, GRI. Individual consultancies were not checked; ask for the consultant's EAD registration class or Trakhees/DM approval.",
+      "body_ar": "الجهات التنظيمية التي تسجل الاستشاريين وأطر التقارير الرئيسية: Environment Agency – Abu Dhabi، Trakhees، GHG Protocol، GRI. ولم يُتحقق من الاستشاريين أفراداً؛ ويجب طلب فئة تسجيل الاستشاري لدى هيئة البيئة - أبوظبي أو موافقة تراخيص/بلدية دبي.",
+      "sources": [
+        "https://www.mediaoffice.abudhabi/en/government-affairs/environment-agency-abu-dhabi-issues-resolution-on-approval-and-registration-of-environmental-consultancy-offices-in-emirate/",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Environment,%20Health%20&%20Safety/Project%20Safety%20&%20Environment/Third%20Party%20Agencies/List%20of%20Third%20Party%20Environmental%20Consultants.pdf",
+        "https://www.erm.com/contact-us/",
+        "https://www.ead.gov.ae",
+        "https://www.moccae.gov.ae",
+        "https://ghgprotocol.org",
+        "https://www.globalreporting.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EAD Resolution 4 of 2025 regulates approval and registration of environmental consultancy offices in Abu Dhabi; Class A may do EIAs -> corrected: resolution added | Trakhees publishes a list of approved third-party environmental consultants -> confirmed | ERM, WSP, Ramboll, Dulsco Environment, Bee'ah, Tadweer as providers -> removed: UAE presence not confirmed on opened page. Not checked: The scope and effective dates of UAE federal climate law GHG reporting obligations and the current EAD consultant registration process were not verified."
+    },
+    {
+      "id": "environmental_consultancy:uae-market-sizes",
+      "topic": "Environmental consultancy: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "EIAs and baseline studies are priced per project as a lump sum (driven by project scale and sampling scope); monitoring per sample/parameter or per monitoring campaign (monthly/quarterly); carbon footprinting and ESG reports per reporting year; ISO 14001 implementation per project; consultant day rates for advisory. Laboratory analysis is priced per sample per parameter.",
+      "body_ar": "تُسعّر تقييمات الأثر البيئي والدراسات الأساسية لكل مشروع كمبلغ مقطوع (حسب حجم المشروع ونطاق أخذ العينات)؛ والرصد لكل عينة/مؤشر أو لكل حملة رصد (شهرية/ربع سنوية)؛ وحساب البصمة الكربونية وتقارير الحوكمة البيئية والاجتماعية لكل سنة تقرير؛ وتطبيق ISO 14001 لكل مشروع؛ والأسعار اليومية للاستشاريين في الاستشارات. ويُسعّر التحليل المختبري لكل عينة لكل مؤشر.",
+      "sources": [
+        "https://www.mediaoffice.abudhabi/en/government-affairs/environment-agency-abu-dhabi-issues-resolution-on-approval-and-registration-of-environmental-consultancy-offices-in-emirate/",
+        "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Environment,%20Health%20&%20Safety/Project%20Safety%20&%20Environment/Third%20Party%20Agencies/List%20of%20Third%20Party%20Environmental%20Consultants.pdf",
+        "https://www.erm.com/contact-us/",
+        "https://www.ead.gov.ae",
+        "https://www.moccae.gov.ae",
+        "https://ghgprotocol.org",
+        "https://www.globalreporting.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EAD Resolution 4 of 2025 regulates approval and registration of environmental consultancy offices in Abu Dhabi; Class A may do EIAs -> corrected: resolution added | Trakhees publishes a list of approved third-party environmental consultants -> confirmed | ERM, WSP, Ramboll, Dulsco Environment, Bee'ah, Tadweer as providers -> removed: UAE presence not confirmed on opened page. Not checked: The scope and effective dates of UAE federal climate law GHG reporting obligations and the current EAD consultant registration process were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Who approves an EIA for a project in Abu Dhabi?",
+      "q_ar": "من يعتمد تقييم الأثر البيئي لمشروع في أبوظبي؟",
+      "expected_entry_ids": [
+        "environmental_consultancy:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EAD Resolution 4 of 2025 regulates approval and registration of environmental consultancy offices in Abu Dhabi; Class A may do EIAs",
+        "url": "https://www.mediaoffice.abudhabi/en/government-affairs/environment-agency-abu-dhabi-issues-resolution-on-approval-and-registration-of-environmental-consultancy-offices-in-emirate/",
+        "result": "corrected: resolution added"
+      },
+      {
+        "claim": "Trakhees publishes a list of approved third-party environmental consultants",
+        "url": "https://pcfc.ae/en/Rules%20and%20Regulations/Trakhees/Environment,%20Health%20&%20Safety/Project%20Safety%20&%20Environment/Third%20Party%20Agencies/List%20of%20Third%20Party%20Environmental%20Consultants.pdf",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ERM, WSP, Ramboll, Dulsco Environment, Bee'ah, Tadweer as providers",
+        "url": "https://www.erm.com/contact-us/",
+        "result": "removed: UAE presence not confirmed on opened page"
+      }
+    ],
+    "unverified": "The scope and effective dates of UAE federal climate law GHG reporting obligations and the current EAD consultant registration process were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
