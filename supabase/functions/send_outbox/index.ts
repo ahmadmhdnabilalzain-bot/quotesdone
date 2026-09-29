@@ -243,7 +243,9 @@ Deno.serve(observe('send_outbox', async (req) => {
       // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
-      const arMail = !internal && n.lang === 'ar';
+      // A SUPPLIER'S FRAME IS ENGLISH (founder, 28 Sep 2026): whatever a row's lang says, a supplier-bound
+      // mail never carries the Arabic signature, footer or right-to-left frame.
+      const arMail = !internal && !supplierSide && n.lang === 'ar';
       // 22 Sep 2026 (documents-language audit, DL-07): the signature block prints NAME then TITLE, and
       // the sales-engineer seat printed "مهندس المبيعات" in both lines — the Arabic reader saw the same
       // words twice where the English reader saw a person and a desk. The name is the seat, the title
