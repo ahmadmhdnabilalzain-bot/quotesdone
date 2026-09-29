@@ -1,0 +1,4 @@
+Committed, applied at merge (rule of 28 Sep: apply at merge, never before). ALTER FUNCTION ... SET search_path
+on the 40 SECURITY INVOKER routines the security advisor lists as function_search_path_mutable; no body changes.
+At merge: node scripts/apply_sql.mjs scripts/sql/the_forty_invoker_routines_get_a_pinned_search_path.sql --apply --ddl,
+expect the verdict row PROBE OK, then delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.

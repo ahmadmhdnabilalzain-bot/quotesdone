@@ -1,0 +1,4 @@
+Committed, applied at merge (rule of 28 Sep: apply at merge, never before). Drops one index of each of the three
+identical pairs the performance advisor lists as duplicate_index. Not during a campaign hour (the drop takes a brief
+lock on agent_runs; lock_timeout 5 s). At merge: node scripts/apply_sql.mjs scripts/sql/three_duplicate_indexes_are_dropped.sql --apply --ddl,
+expect PROBE OK, then delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.
