@@ -1,0 +1,91 @@
+{
+  "trade": "non_ferrous_metals",
+  "layer": "uae-market",
+  "label_en": "Aluminium, copper & non-ferrous metals",
+  "label_ar": "الألمنيوم والنحاس والمعادن غير الحديدية",
+  "entries": [
+    {
+      "id": "non_ferrous_metals:uae-market-products",
+      "topic": "Aluminium, copper & non-ferrous metals: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Aluminium, copper and non-ferrous metals in the UAE: primary aluminium (ingot P1020, billet 6063/6061, slab, T-bar) from EGA; aluminium sheet and coil (1050, 1100, 3003, 5052, 5083 marine, 6061-T6), chequer plate, extrusions, foil; copper cathode (LME Grade A), copper rod (8 mm ETP), sheet, strip, busbar (C11000), tubes (ACR for air conditioning, ASTM B280; medical gas tubes), copper-nickel 90/10 and 70/30 for marine piping; brass (CZ121, C36000) rod and sheet; bronze; zinc ingot (SHG) for galvanising; lead ingot and sheet (radiation shielding); nickel, tin, and titanium. Buyers specify alloy and temper, standard (EN 573/485, ASTM B209/B221/B280), dimensions, tolerances, surface finish, and mill certificates.",
+      "body_ar": "الألمنيوم والنحاس والمعادن غير الحديدية في الإمارات: الألمنيوم الأولي (سبائك P1020، وقضبان 6063/6061، وألواح، وسبائك T) من الإمارات العالمية للألمنيوم؛ وألواح ولفائف الألمنيوم (1050 و1100 و3003 و5052 و5083 البحري و6061-T6)، والألواح المضلعة، والقطاعات، والرقائق؛ وكاثود النحاس (الدرجة A في بورصة لندن)، وقضبان النحاس (8 مم ETP)، والألواح، والأشرطة، والقضبان الموصلة (C11000)، والأنابيب (ACR للتكييف وفق ASTM B280؛ وأنابيب الغازات الطبية)، والنحاس-نيكل 90/10 و70/30 للأنابيب البحرية؛ والنحاس الأصفر (CZ121 وC36000) قضباناً وألواحاً؛ والبرونز؛ وسبائك الزنك (SHG) للجلفنة؛ وسبائك وألواح الرصاص (الوقاية من الإشعاع)؛ والنيكل والقصدير والتيتانيوم. يحدد المشتري السبيكة والمعالجة والمعيار (EN 573/485 وASTM B209/B221/B280) والأبعاد والتفاوتات والتشطيب وشهادات المصنع.",
+      "sources": [
+        "https://www.ega.ae/en",
+        "https://gulfex.com/",
+        "https://www.ega.ae",
+        "https://www.lme.com",
+        "https://www.astm.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EGA produces primary aluminium -> confirmed | Gulf Extrusions and Ducab -> confirmed. Not checked: Local copper tube makers' names and current premiums were not verified."
+    },
+    {
+      "id": "non_ferrous_metals:uae-market-brands",
+      "topic": "Aluminium, copper & non-ferrous metals: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Producers: Emirates Global Aluminium, Gulf Extrusions, Ducab, Hindalco, Novelis, Alba, Ma'aden, Aurubis, KME, Mitsubishi Materials. EGA (primary aluminium), Gulf Extrusions and Ducab (copper rod and cable) are UAE producers. Traders cluster in Deira, Sharjah Industrial Area, Jebel Ali and Musaffah, and Dubai (DMCC) is a large non-ferrous trading hub. The UAE channels of the imported brands were not checked.",
+      "body_ar": "المنتجون: Emirates Global Aluminium، Gulf Extrusions، Ducab، Hindalco، Novelis، Alba، Ma'aden، Aurubis، KME، Mitsubishi Materials. وEGA (الألمنيوم الأولي) وGulf Extrusions وDucab (قضبان النحاس والكابلات) منتجون إماراتيون. ويتجمع التجار في ديرة والمنطقة الصناعية بالشارقة وجبل علي ومصفح، ودبي (مركز دبي للسلع المتعددة) مركز كبير لتجارة المعادن غير الحديدية، ولم يُتحقق من قنوات العلامات المستوردة.",
+      "sources": [
+        "https://www.ega.ae/en",
+        "https://gulfex.com/",
+        "https://www.ega.ae",
+        "https://www.lme.com",
+        "https://www.astm.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EGA produces primary aluminium -> confirmed | Gulf Extrusions and Ducab -> confirmed. Not checked: Local copper tube makers' names and current premiums were not verified."
+    },
+    {
+      "id": "non_ferrous_metals:uae-market-sizes",
+      "topic": "Aluminium, copper & non-ferrous metals: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per kg or per tonne, commonly LME price plus a premium (Middle East premium for aluminium, fabrication premium for semis); sheets 1000 x 2000, 1220 x 2440, 1500 x 3000 mm in 0.5-100 mm; copper tubes per coil (15 m) or length (5.8 m) by OD and wall; busbar per kg by section. Quotes state price basis date, validity, mill cert EN 10204 3.1 and delivery.",
+      "body_ar": "التسعير بالكيلوغرام أو بالطن، عادة سعر بورصة لندن للمعادن مع علاوة (علاوة الشرق الأوسط للألمنيوم، وعلاوة التصنيع للمنتجات نصف المصنعة)؛ والألواح 1000 × 2000 و1220 × 2440 و1500 × 3000 مم بسماكة 0.5-100 مم؛ وأنابيب النحاس باللفة (15 م) أو بالطول (5.8 م) حسب القطر والجدار؛ والقضبان الموصلة بالكيلوغرام حسب المقطع. وتذكر العروض تاريخ أساس السعر والصلاحية وشهادة المصنع EN 10204 3.1 والتسليم.",
+      "sources": [
+        "https://www.ega.ae/en",
+        "https://gulfex.com/",
+        "https://www.ega.ae",
+        "https://www.lme.com",
+        "https://www.astm.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EGA produces primary aluminium -> confirmed | Gulf Extrusions and Ducab -> confirmed. Not checked: Local copper tube makers' names and current premiums were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is aluminium sheet priced by UAE traders?",
+      "q_ar": "كيف يسعّر التجار في الإمارات ألواح الألمنيوم؟",
+      "expected_entry_ids": [
+        "non_ferrous_metals:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EGA produces primary aluminium",
+        "url": "https://www.ega.ae/en",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Gulf Extrusions and Ducab",
+        "url": "https://gulfex.com/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Local copper tube makers' names and current premiums were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

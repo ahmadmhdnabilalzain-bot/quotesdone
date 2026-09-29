@@ -1,0 +1,77 @@
+// supportReply() with a STUBBED model (founder instruction 781; the model hold stays on). No network, no paid call.
+import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
+import type { LlmReply, Phase, ThinkDeps } from './think.ts';
+import { supportReply } from './support_reply.ts';
+
+function stub(o: { gate?: unknown; synth?: (string | LlmReply)[]; corpus?: unknown[] }) {
+  const calls: { phase: Phase; system: string; input: string }[] = []; const rpcs: string[] = [];
+  const synth = [...(o.synth ?? [])];
+  const deps: ThinkDeps = {
+    gate: () => Promise.resolve((o.gate ?? { allowed: false, rule: 'route_not_registered' }) as never),
+    llm: (phase, system, input) => {
+      calls.push({ phase, system, input });
+      if (phase === 'decompose') return Promise.resolve({ content: JSON.stringify({ steps: [{ id: 's1', goal: 'the rule', query: 'non-response refund rule' }], facts: [], high_stakes: false }), model: 'stub' });
+      const n = synth.shift();
+      return Promise.resolve(typeof n === 'string' ? { content: n, model: 'stub/qwen' } : (n ?? { content: null, error: 'circuit_open' }));
+    },
+    embed: () => Promise.resolve([0.1, 0.2]),
+    rpc: (fn) => {
+      rpcs.push(fn);
+      if (fn === 'fn_support_corpus_search') return Promise.resolve({ data: o.corpus ?? [], error: null });
+      if (fn === 'fn_case_recall') return Promise.resolve({ data: { cases: [] }, error: null });
+      if (fn === 'fn_reason_retrieve') return Promise.resolve({ data: [], error: null });
+      return Promise.resolve({ data: 1, error: null });
+    },
+  };
+  return { deps, calls, rpcs };
+}
+const REFUND = { content: 'Non-response: if the revealed supplier does not reply within 5 working days, the customer is refunded everything paid.', citation: 'FAQ 41' };
+const ANSWER = JSON.stringify({ answer: 'If the supplier you revealed does not reply within 5 working days, everything you paid is refunded. I have passed it to our management to confirm.', reasoning: ['s1: FAQ 41 sets the 5-working-day rule'], cited: [], confidence: 0.8, asked_back: null, route: 'ceo' });
+
+Deno.test('the gateway answers: the reply is COMPOSED, the canned road never runs, the narrowed topic is in the prompt', async () => {
+  const s = stub({ synth: [ANSWER], corpus: [REFUND] });
+  let canned = 0;
+  // The tricky wording that leaked through the cost FAQ: it must reach the model, not a stored answer.
+  const r = await supportReply(s.deps, { channel: 'widget', message: 'what does it cost me if the supplier never replies?', lang: 'en', audience: 'customer' },
+    () => { canned++; return Promise.resolve('Posting is free; the reveal fee is 3%.'); });
+  assertEquals(r.path, 'reasoned');
+  assertEquals(canned, 0);
+  assertMatch(r.reply, /5 working days/);
+  assertEquals(r.seat, 'ceo');
+  assertEquals(r.grounded, true, 'the corpus answered this topic');
+  assert(s.rpcs.includes('fn_support_corpus_search'), 'the knowledge was narrowed before reasoning');
+  assertMatch(s.calls.find((c) => c.phase === 'synthesise')!.input, /FAQ 41/);
+  assertMatch(s.calls.find((c) => c.phase === 'synthesise')!.system, /"route"/);
+});
+
+Deno.test('the caller\'s own retrieval is the narrowed topic: no second corpus search', async () => {
+  const s = stub({ synth: [ANSWER] });
+  await supportReply(s.deps, { channel: 'whatsapp', message: 'x', lang: 'en', audience: 'customer', passages: [REFUND] }, () => Promise.resolve(null));
+  assert(!s.rpcs.includes('fn_support_corpus_search'));
+});
+
+Deno.test('the founder\'s hold: no model call at all, the deterministic road answers, nothing is queued', async () => {
+  const s = stub({ gate: { allowed: false, rule: 'founder_hold' } });
+  const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'hi', lang: 'en', audience: 'visitor' }, () => Promise.resolve('Thanks for your message.'));
+  assertEquals(r.path, 'fallback');
+  assertEquals(r.reply, 'Thanks for your message.');
+  assertEquals(s.calls.length, 0);
+  assert(!s.rpcs.includes('fn_reason_hold'), 'a reply already went out; a replay would send a second one');
+});
+
+Deno.test('the gateway down mid-reply: the fallback answers', async () => {
+  const s = stub({ synth: [{ content: null, error: 'circuit_open' }] });
+  const r = await supportReply(s.deps, { channel: 'portal', message: 'q', lang: 'ar', audience: 'customer', seat: 'sales_engineer' }, () => Promise.resolve('شكرًا لرسالتك.'));
+  assertEquals(r.path, 'fallback');
+  assertEquals(r.reply, 'شكرًا لرسالتك.');
+});
+
+Deno.test('the composed reply passes the outgoing guard; an unknown route is not trusted', async () => {
+  const bad = JSON.stringify({ answer: 'Our AI matches you with suppliers anonymously.', reasoning: ['s1: how it works'], cited: [], confidence: 0.7, route: 'hr' });
+  const s = stub({ synth: [bad] });
+  const r = await supportReply(s.deps, { channel: 'email', message: 'how does it work', lang: 'en', audience: 'customer' }, () => Promise.resolve(null));
+  assertEquals(r.path, 'reasoned');
+  assert(!/\bAI\b/.test(r.reply), r.reply);
+  assertEquals(r.seat, null);
+  assertEquals(r.grounded, false, 'no topic knowledge and nothing cited: the widget files this as a knowledge gap');
+});
