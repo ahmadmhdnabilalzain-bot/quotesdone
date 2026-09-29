@@ -437,7 +437,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
       // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
       // supplier key - so an Arabic-registered customer got the English template.
-      const wlang = n.lang === 'ar' ? 'ar' : 'en';
+      // A supplier is always sent the English template (founder, 28 Sep 2026), whatever the row's lang says.
+      const wlang = n.lang === 'ar' && n.to_role !== 'supplier' ? 'ar' : 'en';
       const sid = (ready && key && tmpl[key]) ? (tmpl[key][wlang] || null) : null;
       let res;
       if (sid) {

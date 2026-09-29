@@ -10,6 +10,14 @@
 // language the person chose is exactly what is being registered.
 // deno-lint-ignore-file no-explicit-any
 export type Locale = 'en' | 'ar';
+// A SUPPLIER IS ALWAYS WRITTEN IN ENGLISH (founder, 28 Sep 2026, after an Arabic supplier email sample):
+// every message to a supplier - email, WhatsApp, SMS and PDF, invitations, nudges, inquiries and notices -
+// is English, whatever leads.locale, the browser, the portal button or the company name says. The
+// supplier portal's own screens may still be read in Arabic; nothing SENT to a supplier is.
+// public.fn_registered_locale answers 'en' for every supplier; scripts/checks/suppliers_are_always_written_in_english.test.mjs
+// fails if any sender path can pick Arabic for a supplier again.
+export const SUPPLIER_LOCALE: Locale = 'en';   // typed as Locale so a caller's 'ar' branch still compiles; it never runs
+
 export const asLocale = (v: unknown): Locale => (/^ar/i.test(String(v || '')) ? 'ar' : 'en');
 
 // A DOCUMENT the person asks for by language (customer audit, 21 Sep 2026, finding 4). "Both always

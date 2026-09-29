@@ -1,0 +1,81 @@
+{
+  "trade": "infrastructure_utilities",
+  "entries": [
+    {
+      "id": "infrastructure_utilities:spec-checklist",
+      "topic": "Infrastructure and utilities works - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For infrastructure and utilities works (trade code infrastructure_utilities only), every quoted line must state: Utility type and network; Bill of quantities and drawings; Materials specification; Utility authority approvals and NOCs; Contractor registration category; Testing and commissioning; Reinstatement scope; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط أعمال البنية التحتية والمرافق (رمز النشاط infrastructure_utilities فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المرفق والشبكة؛ جدول الكميات والمخططات؛ مواصفة المواد؛ موافقات جهات المرافق وشهادات عدم الممانعة؛ فئة تسجيل المقاول؛ الاختبار والتشغيل؛ نطاق إعادة الحال؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Utility type and network",
+        "Bill of quantities and drawings",
+        "Materials specification",
+        "Utility authority approvals and NOCs",
+        "Contractor registration category",
+        "Testing and commissioning",
+        "Reinstatement scope",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dewa.gov.ae/en/business/services",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "infrastructure_utilities:uae-standards-and-approvals",
+      "topic": "Infrastructure and utilities works - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to infrastructure and utilities works in the UAE: Dubai Municipality oversees building and construction, food and consumer goods, and waste management in Dubai; each other emirate has its own municipality. In Dubai, DEWA approves connections and works on its electricity and water networks; other emirates have their own utility (for example ADDC/AADC in Abu Dhabi). The DEWA page could not be read on 2026-09-28. EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for infrastructure and utilities works. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط أعمال البنية التحتية والمرافق في الإمارات: تشرف بلدية دبي على البناء والتشييد والأغذية والسلع الاستهلاكية وإدارة النفايات في دبي؛ ولكل إمارة أخرى بلديتها الخاصة. في دبي تعتمد هيئة كهرباء ومياه دبي التوصيلات والأعمال على شبكاتها؛ ولكل إمارة أخرى جهة مرافقها (مثل شركتي أبوظبي والعين للتوزيع في أبوظبي). وتعذّرت قراءة صفحة الهيئة في 28 سبتمبر 2026. يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط أعمال البنية التحتية والمرافق. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for infrastructure and utilities works. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dewa.gov.ae/en/business/services",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on infrastructure and utilities works?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـأعمال البنية التحتية والمرافق؟",
+      "expected_entry_ids": [
+        "infrastructure_utilities:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a infrastructure and utilities works supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد أعمال البنية التحتية والمرافق؟",
+      "expected_entry_ids": [
+        "infrastructure_utilities:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "infrastructure_utilities:spec-checklist",
+      "infrastructure_utilities:uae-standards-and-approvals"
+    ],
+    "added": [
+      "infrastructure_utilities:spec-checklist",
+      "infrastructure_utilities:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

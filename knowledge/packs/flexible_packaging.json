@@ -1,0 +1,81 @@
+{
+  "trade": "flexible_packaging",
+  "entries": [
+    {
+      "id": "flexible_packaging:spec-checklist",
+      "topic": "Flexible packaging - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted product line for flexible packaging must state: pack format; dimensions; laminate structure and thickness; barrier properties; printing colours; food-contact compliance; quantity; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة العبوات المرنة: شكل العبوة؛ الأبعاد؛ تركيب الطبقات وسماكتها؛ خواص الحاجز؛ ألوان الطباعة؛ الامتثال لملامسة الغذاء؛ الكمية؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "pack format",
+        "dimensions",
+        "laminate structure and thickness",
+        "barrier properties",
+        "printing colours",
+        "food-contact compliance",
+        "quantity",
+        "UAE approvals and certificates",
+        "delivery and installation scope",
+        "lead time",
+        "warranty",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://www.dm.gov.ae/municipality-business/health-and-safety/food-contact-materials-2/",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/10/Food-Code-2013-English.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "flexible_packaging:uae-standards-and-approvals",
+      "topic": "Flexible packaging - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "MoIAT (Ministry of Industry and Advanced Technology) issues UAE certificates of conformity: a product subject to a UAE technical regulation is certified under ECAS on the basis of a test report from an accredited laboratory and a valid trade licence, and a product outside technical regulations can obtain a voluntary conformity certificate (EQM) the same way. UAE.S and GSO standard specifications are obtained through MoIAT. In Dubai, food establishments must use safe and suitable equipment under the Dubai Municipality Food Code, food contact materials must meet the applicable UAE/GSO standards and Cabinet Resolution No. 20 of 2015 (the UAE scheme to control food contact materials), and layouts are assessed through the Dubai Municipality permits process. The cited sources do not set a UAE-specific grade, class or test method for flexible packaging; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "body_ar": "تصدر وزارة الصناعة والتكنولوجيا المتقدمة شهادات المطابقة الإماراتية: يُعتمد المنتج الخاضع للوائح فنية إماراتية ضمن نظام الإمارات لتقييم المطابقة (ECAS) بناءً على تقرير اختبار من مختبر معتمد ورخصة تجارية سارية، ويمكن للمنتج غير الخاضع للوائح فنية الحصول على شهادة مطابقة طوعية (EQM) بالطريقة نفسها. وتُطلب المواصفات القياسية الإماراتية والخليجية من الوزارة. في دبي، يجب أن تستخدم المنشآت الغذائية معدات آمنة ومناسبة وفق قانون الغذاء لبلدية دبي، وأن تستوفي المواد الملامسة للغذاء المواصفات الإماراتية والخليجية المعمول بها وقرار مجلس الوزراء رقم 20 لسنة 2015 (النظام الإماراتي للرقابة على المواد الملامسة للغذاء)، ويُقيَّم مخطط التوزيع عبر نظام التصاريح في بلدية دبي. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة العبوات المرنة؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific grade, class or test method for flexible packaging; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products",
+        "https://www.dm.gov.ae/municipality-business/health-and-safety/food-contact-materials-2/",
+        "https://www.dm.gov.ae/wp-content/uploads/2024/10/Food-Code-2013-English.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for flexible packaging. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة العبوات المرنة. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "flexible_packaging:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to flexible packaging?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة العبوات المرنة؟",
+      "expected_entry_ids": [
+        "flexible_packaging:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 4,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "flexible_packaging:spec-checklist"
+    ],
+    "added": [
+      "flexible_packaging:spec-checklist",
+      "flexible_packaging:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "trade": "medical_equipment",
+  "entries": [
+    {
+      "id": "medical_equipment:spec-checklist",
+      "topic": "Medical equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For medical equipment (trade code medical_equipment only), every quoted line must state: Device type, make and model; Technical specification; Registration with the health authority; Installation and site requirements; User and biomedical training; Preventive maintenance contract; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط المعدات الطبية (رمز النشاط medical_equipment فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع الجهاز والصانع والطراز؛ المواصفة الفنية؛ التسجيل لدى الجهة الصحية؛ التركيب ومتطلبات الموقع؛ تدريب المستخدمين وفنيي الأجهزة الطبية؛ عقد الصيانة الوقائية؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Device type, make and model",
+        "Technical specification",
+        "Registration with the health authority",
+        "Installation and site requirements",
+        "User and biomedical training",
+        "Preventive maintenance contract",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.ede.gov.ae/en",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "medical_equipment:uae-standards-and-approvals",
+      "topic": "Medical equipment - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to medical equipment in the UAE: The Emirates Drug Establishment describes itself as the only federal authority regulating all medical and pharmaceutical products, including medical devices. EIAC (Emirates International Accreditation Centre) accredits testing and calibration laboratories, inspection bodies and certification bodies; a test report or certificate carries more weight when issued by a body accredited for that exact scope. A buyer may also name, as the test or product standard for a line, IEC 60601-1 (medical electrical equipment safety); ISO 13485; it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for medical equipment. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط المعدات الطبية في الإمارات: تصف مؤسسة الإمارات للدواء نفسها بأنها الجهة الاتحادية الوحيدة المختصة بتنظيم جميع المنتجات الطبية والدوائية، بما فيها الأجهزة الطبية. يعتمد مركز الإمارات الدولي للاعتماد مختبرات الاختبار والمعايرة وجهات التفتيش وجهات منح الشهادات؛ ويكون لتقرير الاختبار أو الشهادة وزن أكبر عندما تصدر من جهة معتمدة لذلك النطاق تحديداً. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل IEC 60601-1 (سلامة المعدات الطبية الكهربائية)؛ ISO 13485؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط المعدات الطبية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for medical equipment. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.ede.gov.ae/en",
+        "https://www.eiac.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on medical equipment?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالمعدات الطبية؟",
+      "expected_entry_ids": [
+        "medical_equipment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a medical equipment supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد المعدات الطبية؟",
+      "expected_entry_ids": [
+        "medical_equipment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "medical_equipment:spec-checklist",
+      "medical_equipment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "medical_equipment:spec-checklist",
+      "medical_equipment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

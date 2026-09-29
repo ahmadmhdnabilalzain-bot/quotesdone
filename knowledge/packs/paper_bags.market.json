@@ -1,0 +1,88 @@
+{
+  "trade": "paper_bags",
+  "layer": "uae-market",
+  "label_en": "Paper bags & carrier bags",
+  "label_ar": "الأكياس الورقية وأكياس التسوق",
+  "entries": [
+    {
+      "id": "paper_bags:uae-market-products",
+      "topic": "Paper bags & carrier bags: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Paper bags and carrier bags in the UAE: kraft paper shopping bags (brown and white, twisted or flat paper handles, 80-150 GSM), luxury carrier bags (art board, laminated, rope/ribbon handles, foil and embossing), SOS/block-bottom bags for retail and pharmacies, multiwall industrial paper sacks (cement, gypsum, chemicals, 2-4 plies, valve or open mouth, with PE film ply), courier and e-commerce paper mailers, and reusable non-woven and jute/cotton bags as alternatives. Demand rose after single-use plastic bag bans (a federal ban on single-use plastic bags since 1 January 2024; the earlier emirate-level dates were not checked). Buyers specify dimensions (W x gusset x H), paper type and GSM, handle type, print colours and finish, and load capacity.",
+      "body_ar": "الأكياس الورقية وأكياس الحمل في الإمارات: أكياس التسوق من ورق الكرافت (بني وأبيض، بمقابض ورقية مفتولة أو مسطحة، 80-150 غ/م2)، وأكياس الحمل الفاخرة (كرتون فني مصفح بمقابض حبال/أشرطة وختم رقائق ونقش)، والأكياس ذات القاع المربع للتجزئة والصيدليات، والأكياس الورقية الصناعية متعددة الطبقات (الإسمنت والجبس والكيماويات، 2-4 طبقات، بصمام أو فم مفتوح، مع طبقة فيلم بولي إيثيلين)، وأكياس الشحن الورقية للتجارة الإلكترونية، والأكياس القابلة لإعادة الاستخدام من غير المنسوج والجوت والقطن كبدائل. وارتفع الطلب بعد حظر الأكياس البلاستيكية أحادية الاستخدام (حظر اتحادي على الأكياس البلاستيكية أحادية الاستخدام منذ 1 يناير 2024؛ ولم يُتحقق من التواريخ السابقة على مستوى الإمارات). يحدد المشتري الأبعاد (العرض × الجانب × الارتفاع) ونوع الورق ووزنه ونوع المقبض وألوان الطباعة والتشطيب وقدرة التحمل.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.mondigroup.com",
+        "https://www.moccae.gov.ae",
+        "https://www.ead.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked | Mondi sack and kraft papers -> confirmed. Not checked: Exact effective dates of each emirate's bag rules and local converter names were not verified."
+    },
+    {
+      "id": "paper_bags:uae-market-brands",
+      "topic": "Paper bags & carrier bags: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Local converters in Sharjah, Ajman, UAQ, RAK, Dubai (Al Quoz, DIP) and Abu Dhabi make paper bags, and multiwall sack plants serve cement producers; none was checked by name. Paper sources: Mondi, Billerud, Smurfit Westrock, Segezha, plus Asian mills. Finished bags are also imported from China, India and Turkey.",
+      "body_ar": "يصنع محولون محليون في الشارقة وعجمان وأم القيوين ورأس الخيمة ودبي (القوز ومجمع دبي للاستثمار) وأبوظبي الأكياس الورقية، وتخدم مصانع الأكياس متعددة الطبقات منتجي الإسمنت، ولم يُتحقق من أي منهم بالاسم. مصادر الورق: Mondi، Billerud، Smurfit Westrock، Segezha، إضافة إلى مصانع آسيوية. وتُستورد أكياس جاهزة من الصين والهند وتركيا.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.mondigroup.com",
+        "https://www.moccae.gov.ae",
+        "https://www.ead.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked | Mondi sack and kraft papers -> confirmed. Not checked: Exact effective dates of each emirate's bag rules and local converter names were not verified."
+    },
+    {
+      "id": "paper_bags:uae-market-sizes",
+      "topic": "Paper bags & carrier bags: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per 1,000 bags by size, GSM, handle and print colours; MOQ often 5,000-10,000 printed bags (plain stock bags smaller); luxury bags priced per piece with MOQ 500-1,000. Industrial sacks per 1,000 by size (25/50 kg) and plies. Lead time 2-4 weeks locally.",
+      "body_ar": "التسعير لكل 1,000 كيس حسب المقاس والوزن والمقبض وألوان الطباعة؛ والحد الأدنى غالباً 5,000-10,000 كيس مطبوع (والسادة المتوفرة أقل)؛ والأكياس الفاخرة بالقطعة بحد أدنى 500-1,000. والأكياس الصناعية لكل 1,000 حسب المقاس (25/50 كغ) وعدد الطبقات. ومدة التنفيذ محلياً 2-4 أسابيع.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "https://www.mondigroup.com",
+        "https://www.moccae.gov.ae",
+        "https://www.ead.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ban on single-use plastic bags since 1 January 2024 -> confirmed (secondary source); emirate-level dates and later phases not checked | Mondi sack and kraft papers -> confirmed. Not checked: Exact effective dates of each emirate's bag rules and local converter names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What GSM kraft paper is used for retail shopping bags?",
+      "q_ar": "ما وزن ورق الكرافت المستخدم لأكياس التسوق؟",
+      "expected_entry_ids": [
+        "paper_bags:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "UAE ban on single-use plastic bags since 1 January 2024",
+        "url": "https://en.wikipedia.org/wiki/Phase-out_of_lightweight_plastic_bags",
+        "result": "confirmed (secondary source); emirate-level dates and later phases not checked"
+      },
+      {
+        "claim": "Mondi sack and kraft papers",
+        "url": "https://www.mondigroup.com",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Exact effective dates of each emirate's bag rules and local converter names were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
