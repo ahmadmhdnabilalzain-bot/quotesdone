@@ -21,7 +21,7 @@ import { requirementsOf, type Line, type Terms } from './line_specs/assess.ts';
 import { sanctionedLead } from './sanctioned.ts';
 
 // deno-lint-ignore no-explicit-any
-type Admin = { from: (t: string) => any };
+type Admin = { from: (t: string) => any; rpc: (fn: string, args: Record<string, unknown>) => any };
 // deno-lint-ignore no-explicit-any
 export type QuoteRow = Record<string, any>;
 // deno-lint-ignore no-explicit-any
@@ -99,6 +99,14 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
     en: 'This quote is on hold: the supplier has not stated every detail your request needs, so we are asking them for it. It is not ready to reveal yet.',
     ar: 'هذا العرض معلّق: لم يذكر المورّد كل التفاصيل التي يحتاجها طلبك، ونحن نطلبها منه. لا يمكن كشفه بعد.',
   },
+  // THE ACCOUNTANT'S SCREEN BEFORE MONEY MOVES (29 Sep 2026, founder ledger 1018): a high-severity fraud flag on
+  // the customer or the supplier holds the reveal for review. Nobody is banned and nothing is charged; the
+  // customer is also e-mailed by customer_support, and again when the hold is released.
+  under_review: {
+    status: 409,
+    en: 'Before a supplier is revealed we run a routine check on the accounts involved, and this reveal is waiting for a person to look at it. You have not been charged. We will e-mail you as soon as you can reveal.',
+    ar: 'قبل كشف أي مورّد نُجري تحققًا اعتياديًا على الحسابات المعنية، وهذا الكشف بانتظار مراجعة أحد موظفينا. لم يُخصم منكم أي مبلغ، وسنراسلكم بالبريد الإلكتروني فور إتاحة الكشف.',
+  },
   account_sanctioned: {
     status: 403,
     en: 'This supplier account is permanently closed and cannot be revealed.',
@@ -141,6 +149,13 @@ export async function canReveal(
   if (!already) {
     const held = heldQuoteIds([{ quote: q, items: (await itemsByQuote(admin, [qid]))[qid] || [] }], inq.category ?? null, inq.spec);
     if (held.has(qid)) return refuse('quote_on_hold');
+    // Last, because it writes: the accountant re-screens both parties now and records a hold or a note
+    // (scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql).
+    // FAIL CLOSED, like the sanctions read: an unreadable screen is a 500 from the caller, never a charge.
+    const screen = await admin.rpc('fn_accountant_money_screen', {
+      p_move: 'reveal', p_ref: qid, p_customer: String(opts.customerId), p_supplier: q.supplier_id ?? null });
+    if (screen?.error) throw new Error('fn_accountant_money_screen failed: ' + JSON.stringify(screen.error));
+    if (screen?.data?.hold === true) return refuse('under_review');
   }
   return { ok: true, quote: q, inquiry: inq, already_revealed: already };
 }
