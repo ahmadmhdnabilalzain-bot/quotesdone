@@ -1,0 +1,102 @@
+{
+  "trade": "commercial_kitchen",
+  "layer": "uae-market",
+  "label_en": "Commercial kitchen equipment",
+  "label_ar": "معدات مطابخ تجارية",
+  "entries": [
+    {
+      "id": "commercial_kitchen:uae-market-products",
+      "topic": "Commercial kitchen equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Commercial kitchen equipment sold in the UAE includes cooking ranges (gas and electric), combi ovens, convection and deck/pizza ovens, fryers, griddles and chargrills, tandoors, shawarma broilers, induction units, bratt pans and tilting kettles, dishwashers (undercounter, hood-type, conveyor), refrigeration (reach-in, undercounter, blast chillers), ice machines, food prep (mixers, slicers, vegetable cutters, meat mincers), stainless steel fabrication (worktables, sinks, shelving, grease traps), and kitchen exhaust hoods with fire suppression. Buyers specify gas type (LPG or natural gas), power (230 V single-phase or 400 V three-phase, 50 Hz), capacity (GN 1/1 trays, litres, kg/hour), stainless grade (AISI 304 or 201), certifications (CE, NSF, UL, ETL, GS), and energy efficiency. Kitchen designs in Dubai require Dubai Municipality food establishment approval, hood fire suppression to Civil Defence requirements (UL 300 wet chemical systems), approved gas installation by Civil Defence-approved LPG contractors, and grease traps sized to DM rules.",
+      "body_ar": "تشمل معدات المطابخ التجارية المباعة في الإمارات مواقد الطهي (غاز وكهرباء)، والأفران المركبة، وأفران الحمل الحراري وأفران الأرضية والبيتزا، والقلايات، والصفائح والشوايات، والتنانير، وأجهزة الشاورما، ووحدات الحث، ومقالي البرات والقدور القابلة للإمالة، وغسالات الأطباق (تحت الطاولة، ذات الغطاء، الناقلة)، والتبريد (خزائن قائمة، وتحت الطاولة، ومبردات صدمة)، وآلات الثلج، وتحضير الطعام (خلاطات، وقطاعات، وقطاعات خضار، ومفارم لحم)، وتصنيع الفولاذ المقاوم للصدأ (طاولات عمل، وأحواض، ورفوف، ومصائد الشحوم)، وشفاطات المطابخ مع أنظمة إطفاء الحريق. يحدد المشترون نوع الغاز (غاز البترول المسال أو الغاز الطبيعي)، والقدرة الكهربائية (230 فولت أحادي الطور أو 400 فولت ثلاثي الطور، 50 هرتز)، والسعة (صواني GN 1/1، باللتر، كغ/ساعة)، ودرجة الفولاذ (AISI 304 أو 201)، والشهادات (CE، NSF، UL، ETL، GS)، وكفاءة الطاقة. وتتطلب تصاميم المطابخ في دبي موافقة بلدية دبي على المنشأة الغذائية، وأنظمة إطفاء في الشفاطات وفق متطلبات الدفاع المدني (أنظمة الكيماويات الرطبة UL 300)، وتمديدات غاز معتمدة من مقاولي غاز معتمدين من الدفاع المدني، ومصائد شحوم بمقاسات وفق قواعد البلدية.",
+      "sources": [
+        "https://makemyrestaurant.com/restaurant-fire-suppression-requirements-uae/",
+        "https://www.atninfo.com/brand/uae/all/rational-26397",
+        "https://www.yellowpages-uae.com/uae/winterhalter",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.rational-online.com",
+        "https://www.nsf.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code -> confirmed | Rational and Winterhalter are sold through several UAE kitchen equipment suppliers -> confirmed: multiple dealers, none singled out | Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers -> removed: not confirmed. Not checked: Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified."
+    },
+    {
+      "id": "commercial_kitchen:uae-market-brands",
+      "topic": "Commercial kitchen equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands commonly specified in UAE kitchens: Rational, Unox, Convotherm (Welbilt), Electrolux Professional, Hobart, Winterhalter, Meiko, Robot Coupe, Hoshizaki, Scotsman, Ansul (Johnson Controls). They are sold through several kitchen equipment dealers and fabricators in Al Quoz, Deira (Al Ras) and the Sharjah Industrial Areas; the current authorised dealer of each brand was not checked.",
+      "body_ar": "العلامات الشائعة في مطابخ الإمارات: Rational، Unox، Convotherm (Welbilt)، Electrolux Professional، Hobart، Winterhalter، Meiko، Robot Coupe، Hoshizaki، Scotsman، Ansul (Johnson Controls). وتُباع عبر عدة وكلاء لمعدات المطابخ ومصنعين في القوز وديرة (الراس) والمناطق الصناعية بالشارقة؛ ولم يُتحقق من الوكيل المعتمد الحالي لكل علامة.",
+      "sources": [
+        "https://makemyrestaurant.com/restaurant-fire-suppression-requirements-uae/",
+        "https://www.atninfo.com/brand/uae/all/rational-26397",
+        "https://www.yellowpages-uae.com/uae/winterhalter",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.rational-online.com",
+        "https://www.nsf.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code -> confirmed | Rational and Winterhalter are sold through several UAE kitchen equipment suppliers -> confirmed: multiple dealers, none singled out | Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers -> removed: not confirmed. Not checked: Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified."
+    },
+    {
+      "id": "commercial_kitchen:uae-market-sizes",
+      "topic": "Commercial kitchen equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Equipment is priced per piece (per unit or per burner count), with combi ovens sized by GN capacity (6, 10, 20 x GN 1/1). Fabrication is priced per piece to drawing or per linear metre of worktable/hood. Complete kitchen projects are quoted as a lump sum with BOQ, including installation, testing and commissioning. Exhaust hoods are priced per linear metre; fire suppression per system or per hood length. Annual maintenance contracts are priced per year per site.",
+      "body_ar": "تُسعّر المعدات لكل قطعة (لكل وحدة أو حسب عدد الشعلات)، وتُحدد أحجام الأفران المركبة بسعة صواني GN (6، 10، 20 × GN 1/1). ويُسعّر التصنيع لكل قطعة حسب الرسم أو لكل متر طولي من طاولة العمل أو الشفاط. وتُسعّر مشاريع المطابخ المتكاملة كمبلغ مقطوع مع جدول كميات، يشمل التركيب والاختبار والتشغيل. وتُسعّر الشفاطات لكل متر طولي، وأنظمة الإطفاء لكل نظام أو حسب طول الشفاط. وتُسعّر عقود الصيانة السنوية لكل موقع سنوياً.",
+      "sources": [
+        "https://makemyrestaurant.com/restaurant-fire-suppression-requirements-uae/",
+        "https://www.atninfo.com/brand/uae/all/rational-26397",
+        "https://www.yellowpages-uae.com/uae/winterhalter",
+        "https://www.dm.gov.ae",
+        "https://www.dcd.gov.ae",
+        "https://www.rational-online.com",
+        "https://www.nsf.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code -> confirmed | Rational and Winterhalter are sold through several UAE kitchen equipment suppliers -> confirmed: multiple dealers, none singled out | Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers -> removed: not confirmed. Not checked: Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What fire suppression standard does Civil Defence require for a kitchen hood in Dubai?",
+      "q_ar": "ما معيار نظام إطفاء الحريق الذي يشترطه الدفاع المدني لشفاط المطبخ في دبي؟",
+      "expected_entry_ids": [
+        "commercial_kitchen:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "UAE Civil Defence requires automatic wet-chemical suppression certified to UL 300 in commercial kitchen hoods, with NFPA 96 and the UAE Fire and Life Safety Code",
+        "url": "https://makemyrestaurant.com/restaurant-fire-suppression-requirements-uae/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Rational and Winterhalter are sold through several UAE kitchen equipment suppliers",
+        "url": "https://www.atninfo.com/brand/uae/all/rational-26397",
+        "result": "confirmed: multiple dealers, none singled out"
+      },
+      {
+        "claim": "Horeca Trade, Winterhalter Middle East and Atlas Kitchen named as suppliers",
+        "url": "https://www.yellowpages-uae.com/uae/winterhalter",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Current authorised distributor for each brand, and specific supplier company names listed as examples, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

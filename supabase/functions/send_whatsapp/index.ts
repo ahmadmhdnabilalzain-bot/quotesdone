@@ -233,8 +233,8 @@ function waSendTemplate(acct:string, ks:string, kk:string, from:string, to:strin
 // 6 SEP 2026: the ledger decides. public.messaging_template holds Twilio's word for every registered
 // SID; 'approved' is trusted as read, anything else is re-asked of Twilio at most every ten minutes
 // and written back, so approval is noticed within ten minutes of Meta's answer with no cron of its own.
-// ponytail: an approved row is never re-checked; if Meta later pauses a template the send fails loudly
-// and lands in agent_runs — re-ask on a Twilio rejection if that ever happens.
+// An approved row is re-checked with Twilio once a day by wa_templates_watch (29 Sep 2026); if Meta
+// paused or rejected it, that run rewrites the row and this function stops using the template.
 async function templateStatus(auth:string, sid:string, key:string, lang:string):Promise<{status:string; reason:string|null}>{
   const { data: row } = await admin.from('messaging_template').select('status,last_checked_at,approved_at,rejection_reason').eq('sid', sid).maybeSingle();
   const fresh = !!row && (row.status === 'approved' || (!!row.last_checked_at && Date.now() - Date.parse(row.last_checked_at) < 600000));
@@ -437,7 +437,8 @@ Deno.serve(observe('send_whatsapp', async (req) => {
       // THE RECIPIENT'S REGISTERED LANGUAGE (notifications.lang, stamped from fn_registered_locale).
       // This always took .en, although wa_template_sids holds an Arabic SID for every customer and
       // supplier key - so an Arabic-registered customer got the English template.
-      const wlang = n.lang === 'ar' ? 'ar' : 'en';
+      // A supplier is always sent the English template (founder, 28 Sep 2026), whatever the row's lang says.
+      const wlang = n.lang === 'ar' && n.to_role !== 'supplier' ? 'ar' : 'en';
       const sid = (ready && key && tmpl[key]) ? (tmpl[key][wlang] || null) : null;
       let res;
       if (sid) {

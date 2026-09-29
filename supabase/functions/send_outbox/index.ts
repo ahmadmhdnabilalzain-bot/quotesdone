@@ -11,9 +11,10 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { tmpl } from './render.ts';
 import { arabicFrame } from './arabic_frame.ts';
 import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.ts';
+import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { claimQueue, ownsChannel } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
-import { heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { suppressionStops } from '../_shared/suppression_policy.ts';
 import { observe } from '../_shared/observe.ts';
@@ -21,7 +22,31 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN_BASE = (Deno.env.get('SUPABASE_URL') || '') + '/functions/v1';
 const MAX_ATTEMPTS = 3;
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json' } });
+// ONE READ FOR THE SETTINGS, NOT TWENTY (it_engineer, 28 Sep 2026, ledger 760). Every call read ~20
+// app_secrets keys one round trip at a time before looking at the queue: an IDLE poll averaged 8.4 s
+// (agent_runs fn:send_outbox, 64 runs in 6 h, max 26 s), past resilience_ping's 20 s outbox timeout
+// often enough that heartbeat step `outbox` failed with "Signal timed out". The keys are read together
+// once per request (never cached across requests, so a rotated secret is seen on the next call);
+// a key outside the list still reads on its own, exactly as before.
+// prevented by: supabase/functions/send_outbox/settings_read_once.test.ts
+export const OUTBOX_KEYS = ['unsubscribe_signing_key', 'email_enabled', 'supplier_emails_enabled', 'email_stale_hours',
+  'resend_api_key', 'email_from_supplier', 'email_from_info', 'email_reply_supplier', 'email_reply_supplier_docs',
+  'email_reply_info', 'email_logo_url', 'unsubscribe_public_base', 'email_asset_public_base', 'email_signature_name',
+  'email_signature_name_ar', 'email_signature_title', 'invite_preheader', 'daily_send_cap', 'invite_lane_enabled',
+  'invite_lane_from', 'invite_daily_cap'];
+let secCache: Map<string, string | undefined> | null = null;
+async function warmSecrets() {
+  secCache = null;
+  const { data, error } = await admin.from('app_secrets').select('key,value').in('key', OUTBOX_KEYS);
+  if (error) return;   // fall back to one read per key
+  secCache = new Map(OUTBOX_KEYS.map((k) => [k, undefined]));
+  for (const r of (data || []) as { key: string; value: string }[]) secCache.set(r.key, r.value);
+}
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
+// The handler reads settings through setting(): a key in the bulk read comes from it, anything else (or
+// every key, when the bulk read failed) is the canonical sec() above. sec() itself stays the estate's one
+// shape (scripts/checks/shared_helpers_agree.test.mjs); the per-request read lives beside it, not inside it.
+const setting = (k: string): Promise<string | undefined> => (secCache?.has(k) ? Promise.resolve(secCache.get(k)) : sec(k));
 // FAIL-CLOSED 28 Jul 2026 (missed by the 27 Jul sweep): sec() returns undefined/'' when the
 // app_secrets read fails or the row is missing, and the guard below compared strictly, so a caller
 // posting {} matched and gained full service-role authority on a function that requires no JWT. The
@@ -104,45 +129,46 @@ Deno.serve(observe('send_outbox', async (req) => {
   const claimedIds: number[] = [];
   try {
     const body = await req.json().catch(() => ({}));
+    await warmSecrets();
     // AUDIT 9.5 (3 Aug 2026): the unsubscribe footer and the RFC 8058 List-Unsubscribe headers
     // are signed with a dedicated long-lived key. They used to be signed with inbound_secret, so
     // withdrawing it would have both invalidated every delivered link AND - because the link is
     // only built when the key reads back - sent supplier mail with no unsubscribe mechanism at all.
-    const unsubKey = await sec('unsubscribe_signing_key');
+    const unsubKey = await setting('unsubscribe_signing_key');
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'send_outbox');
     if (!__auth.ok) { await logThrottled('forbidden', 60, 'error', {}, 'send_outbox called without the inbound secret'); return J({ error: 'forbidden' }, 403); }
     // Preview mode: render the internal/branded template for a sample body without sending.
     if (body.preview) {
-      const logo = (await sec('email_logo_url')) || '';
-      const sigName = (await sec('email_signature_name')) || 'Ahmad Alzain';
-      const sigTitle = (await sec('email_signature_title')) || 'Founder';
+      const logo = (await setting('email_logo_url')) || '';
+      const sigName = (await setting('email_signature_name')) || 'Ahmad Alzain';
+      const sigTitle = (await setting('email_signature_title')) || 'Founder';
       const html = tmpl({ body: String(body.sample || 'SUMMARY\nAll systems healthy.\n\nFINDINGS\n- Uptime 99.9%\n- 2 alerts auto-resolved\n\nNext review at https://quotesdone.com/os'), logo, name: sigName, title: sigTitle, channelEmail: 'info@quotesdone.com', unsub: '', internal: body.internal !== false, subject: String(body.subject || 'Daily operations report') });
       return J({ ok: true, html });
     }
-    const enabled = (await sec('email_enabled')) === 'true';
-    const supEnabled = (await sec('supplier_emails_enabled')) === 'true';
-    const staleH = parseInt((await sec('email_stale_hours')) || '72', 10);
-    const key = await sec('resend_api_key');
-    const fromSup = (await sec('email_from_supplier')) || 'QuotesDone <supplier@quotesdone.com>';
-    const fromInfo = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>';
-    const replySup = (await sec('email_reply_supplier')) || 'suppliers@mail.quotesdone.com';
-    const replyDocs = (await sec('email_reply_supplier_docs')) || 'docs@mail.quotesdone.com';
-    const replyInfo = (await sec('email_reply_info')) || 'info@quotesdone.com';
-    const logo = (await sec('email_logo_url')) || '';
+    const enabled = (await setting('email_enabled')) === 'true';
+    const supEnabled = (await setting('supplier_emails_enabled')) === 'true';
+    const staleH = parseInt((await setting('email_stale_hours')) || '72', 10);
+    const key = await setting('resend_api_key');
+    const fromSup = (await setting('email_from_supplier')) || 'QuotesDone <supplier@quotesdone.com>';
+    const fromInfo = (await setting('email_from_info')) || 'QuotesDone <info@quotesdone.com>';
+    const replySup = (await setting('email_reply_supplier')) || 'suppliers@mail.quotesdone.com';
+    const replyDocs = (await setting('email_reply_supplier_docs')) || 'docs@mail.quotesdone.com';
+    const replyInfo = (await setting('email_reply_info')) || 'info@quotesdone.com';
+    const logo = (await setting('email_logo_url')) || '';
     // OUR OWN DOMAIN IN THE MAIL (22 Sep 2026, payload.ts ownDomain): set once quotesdone.com serves the
     // /u/unsubscribe and /m/brand proxies (next.config.mjs). Unset = the project host, as before.
-    const unsubBase = (await sec('unsubscribe_public_base')) || `${FN_BASE}/unsubscribe`;
-    const assetBase = (await sec('email_asset_public_base')) || '';
-    const sigName = (await sec('email_signature_name')) || 'Ahmad Alzain';
+    const unsubBase = (await setting('unsubscribe_public_base')) || `${FN_BASE}/unsubscribe`;
+    const assetBase = (await setting('email_asset_public_base')) || '';
+    const sigName = (await setting('email_signature_name')) || 'Ahmad Alzain';
     // The founder's name in Arabic script for Arabic mail (instruction 586): a Latin name under an Arabic letter reads as a translation.
-    const sigNameAr = (await sec('email_signature_name_ar')) || 'أحمد الزين';
-    const sigTitle = (await sec('email_signature_title')) || 'Founder';
+    const sigNameAr = (await setting('email_signature_name_ar')) || 'أحمد الزين';
+    const sigTitle = (await setting('email_signature_title')) || 'Founder';
     // The invitation's preheader (24 Sep 2026, marketing, ledger 993): the inbox line beside the subject.
-    const invitePreheader = (await sec('invite_preheader')) || '';
+    const invitePreheader = (await setting('invite_preheader')) || '';
     const tplSup = await tmplRow('email_supplier'); const tplCust = await tmplRow('email_customer');
-    const cap = parseInt((await sec('daily_send_cap')) || '80', 10);
+    const cap = parseInt((await setting('daily_send_cap')) || '80', 10);
     const since = new Date(); since.setUTCHours(0, 0, 0, 0);
     const { count: sentToday } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('sent_at', since.toISOString());
     const remaining = Math.max(0, cap - (sentToday || 0));
@@ -164,17 +190,17 @@ Deno.serve(observe('send_outbox', async (req) => {
     // reveal and account notices to a registered supplier.
     // THE INVITATION LANE (24 Sep 2026, marketing + it_engineer; invite_lane.ts). Flag off = LANE_OFF and no call.
     // On, it asks Resend whether the lane's subdomain is verified before a single invitation uses it.
-    const lane = await resolveLane({ enabled: await sec('invite_lane_enabled'), from: await sec('invite_lane_from'), apiKey: key,
+    const lane = await resolveLane({ enabled: await setting('invite_lane_enabled'), from: await setting('invite_lane_from'), apiKey: key,
       needed: rows.some((r: any) => r.to_role === 'supplier' && isLaneType(r.type)),
       fetchFn: (u, i) => timedFetch(u, i || {}, 10_000),
       fileFinding: async (args) => { const { error } = await admin.rpc('fn_it_engineer_finding_upsert', args); if (error) throw error; } });
-    // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations actually sent today.
-    const laneCapRaw = parseInt((await sec('invite_daily_cap')) || '', 10);
+    // The lane's own daily ceiling is the ramp's number (invite_daily_cap), counted over invitations and nudges actually sent today.
+    const laneCapRaw = parseInt((await setting('invite_daily_cap')) || '', 10);
     const laneCap = Number.isFinite(laneCapRaw) && laneCapRaw >= 0 ? laneCapRaw : 30;
     let laneSentToday = 0;
     if (lane.active) {
       const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-        .eq('type', 'supplier_invite').eq('status', 'sent').gte('sent_at', since.toISOString());
+        .in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
       laneSentToday = count || 0;
     }
     let laneHeld = 0;
@@ -233,6 +259,8 @@ Deno.serve(observe('send_outbox', async (req) => {
       // built when unsubscribe_signing_key reads back; when it did not, supplier mail used to go out with
       // neither. A licence/document request is transactional and still goes; everything else waits.
       if (holdForNoUnsubscribe(supplierSide, docReq, unsub)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: no unsubscribe link could be built (unsubscribe_signing_key unreadable); supplier mail never goes without one' }).eq('id', n.id); held++; continue; }
+      // NEVER AN ARABIC INVITATION (24 Sep 2026, marketing, ledger 993): held with its reason, not sent.
+      if (holdArabicInvitation(n.type, n.lang)) { await admin.from('notifications').update({ status: 'held', last_error: 'held: the supplier invitation is English only (ledger 993); this row was queued in Arabic' }).eq('id', n.id); held++; continue; }
       const wrapper = supplierSide ? tplSup : (internal ? '' : tplCust);
       // The supplier-portal desk is the sales engineer's (founder, 14 Sep 2026: "its always the sales
       // agent"), so its mail is signed by that seat, not with the founder's name.
@@ -240,12 +268,18 @@ Deno.serve(observe('send_outbox', async (req) => {
       // THE FRAME SPEAKS THE RECIPIENT'S LANGUAGE TOO (founder, 14 Sep 2026). notifications.lang is
       // the registered language; an Arabic body inside an English signature and footer is exactly the
       // mixed message the rule forbids.
-      const arMail = !internal && n.lang === 'ar';
+      // A SUPPLIER'S FRAME IS ENGLISH (founder, 28 Sep 2026): whatever a row's lang says, a supplier-bound
+      // mail never carries the Arabic signature, footer or right-to-left frame.
+      const arMail = !internal && !supplierSide && n.lang === 'ar';
       // 22 Sep 2026 (documents-language audit, DL-07): the signature block prints NAME then TITLE, and
       // the sales-engineer seat printed "مهندس المبيعات" in both lines — the Arabic reader saw the same
       // words twice where the English reader saw a person and a desk. The name is the seat, the title
       // is the desk it sits at, in both languages.
-      const htmlBody0 = tmpl({ body: n.body || '', logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: String(n.type || '').startsWith('supplier_invite') && !arMail ? invitePreheader : '' });
+      // THE INVITATION ENDS WITH ONE QUESTION (24 Sep 2026, marketing): an English supplier invitation whose
+      // stored body does not end with a question gets invitation_copy.ts's, after the link and before the footer.
+      const inviteEn = String(n.type || '').startsWith('supplier_invite') && !arMail;
+      const mailBody = inviteEn ? withReplyQuestion(n.body || '') : (n.body || '');
+      const htmlBody0 = tmpl({ body: mailBody, logo, name: seatMail ? (arMail ? 'مهندس المبيعات' : 'Sales Engineer') : (arMail ? sigNameAr : sigName), title: seatMail ? (arMail ? 'فريق المبيعات' : 'Sales team') : (arMail ? 'المؤسس' : sigTitle), channelEmail: reply, unsub, wrapper, internal, subject: n.subject || '', preheader: inviteEn ? invitePreheader : '' });
       const htmlBody = ownDomain(arMail ? arabicFrame(htmlBody0) : htmlBody0, Deno.env.get('SUPABASE_URL') || '', assetBase);
       // FAIL CLOSED ON A DOCUMENT WE CANNOT READ. A weekly financial report whose PDF has been
       // moved or deleted must NOT go out as a cheerful covering note with nothing attached: the
@@ -265,7 +299,7 @@ Deno.serve(observe('send_outbox', async (req) => {
         const mail: Record<string, unknown> = resendPayload({ from, to: n.to_email, reply, subject: n.subject || 'QuotesDone', html: htmlBody,
           // The mailto half goes to the mailbox resend_inbound reads (_shared/unsubscribe_mailbox.ts), not to
           // the reply-to address.
-          text: plainTextPart({ body: n.body || '', unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
+          text: plainTextPart({ body: mailBody, unsub, ar: arMail, internal }), unsub, unsubMailto: UNSUBSCRIBE_MAILBOX, inReplyTo: n.in_reply_to });
         if (att.list.length) { mail.attachments = att.list; attached += att.list.length; }
         // IDEMPOTENCY-KEY AND A DEADLINE (22 Sep 2026, it_engineer, CONN-03). Resend deduplicates on
         // this header for 24 hours, so the one case a claim cannot prevent — the POST left, the answer
@@ -282,7 +316,7 @@ Deno.serve(observe('send_outbox', async (req) => {
           try { providerId = ((await r.json()) as { id?: string })?.id ?? null; } catch (_e) { /* a 2xx with no body is still an acceptance */ }
           await admin.from('notifications').update({ status: 'sent', sent_at: new Date().toISOString(), provider_message_id: providerId }).eq('id', n.id);
           sent++;
-          if (lane.active && n.type === 'supplier_invite' && from === lane.from) laneSentToday++;
+          if (lane.active && LANE_CAPPED_TYPES.includes(n.type) && from === lane.from) laneSentToday++;
         }
         else { const t = await r.text(); lastErr = String(t).slice(0, 200); await failNote(n, t); console.error('resend fail', n.id, t); }
       } catch (e) {

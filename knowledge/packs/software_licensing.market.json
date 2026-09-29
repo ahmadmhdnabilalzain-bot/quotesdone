@@ -1,0 +1,96 @@
+{
+  "trade": "software_licensing",
+  "layer": "uae-market",
+  "label_en": "Software licensing",
+  "label_ar": "تراخيص برمجيات",
+  "entries": [
+    {
+      "id": "software_licensing:uae-market-products",
+      "topic": "Software licensing: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Software licensing in the UAE covers Microsoft licensing (Microsoft 365 Business/Enterprise E3/E5, Windows, Windows Server, SQL Server, Azure subscriptions via CSP, Enterprise Agreements and MCA-E), Adobe (Creative Cloud, Acrobat, VIP/ETLA), Autodesk (AutoCAD, Revit, BIM Collaborate, AEC Collection named-user subscriptions), Oracle and SAP licences and support, cybersecurity software (Fortinet, Palo Alto, CrowdStrike, Microsoft Defender, Sophos, Trend Micro, Kaspersky, ESET), backup (Veeam, Commvault), virtualisation (VMware by Broadcom, Microsoft Hyper-V, Nutanix), ERP/accounting (Tally, Zoho, QuickBooks, Sage), engineering software (Bentley, Primavera P6, ETABS/CSI, ANSYS), and SaaS subscriptions. Buyers ask about licence model (perpetual vs subscription, per user vs per core/device), term (monthly vs annual commitment), government/education/non-profit pricing, true-up and compliance audits, licence transfer, and local reseller authorisation. Using unlicensed software is an offence under UAE copyright law, and vendors conduct audits via BSA/local partners.",
+      "body_ar": "تشمل تراخيص البرمجيات في الإمارات تراخيص مايكروسوفت (مايكروسوفت 365 للأعمال/المؤسسات E3/E5، وويندوز، وويندوز سيرفر، وSQL سيرفر، واشتراكات أزور عبر برنامج مزودي الحلول السحابية، واتفاقيات المؤسسات وMCA-E)، وأدوبي (كرييتف كلاود، وأكروبات، وبرامج VIP/ETLA)، وأوتوديسك (أوتوكاد، وريفيت، وBIM كولابوريت، ومجموعة AEC باشتراكات المستخدم المسمى)، وتراخيص أوراكل وساب ودعمها، وبرمجيات الأمن السيبراني (فورتينت، وبالو ألتو، وكراود سترايك، ومايكروسوفت ديفندر، وسوفوس، وتريند مايكرو، وكاسبرسكي، وإيسيت)، والنسخ الاحتياطي (فيم، وكومفولت)، والمحاكاة الافتراضية (VMware من برودكوم، ومايكروسوفت Hyper-V، ونوتانكس)، وأنظمة تخطيط الموارد والمحاسبة (تالي، وزوهو، وكويك بوكس، وسيج)، والبرمجيات الهندسية (بنتلي، وبريمافيرا P6، وETABS/CSI، وANSYS)، واشتراكات البرمجيات كخدمة. يسأل المشترون عن نموذج الترخيص (دائم مقابل اشتراك، ولكل مستخدم مقابل لكل نواة/جهاز)، والمدة (التزام شهري مقابل سنوي)، وأسعار الحكومة/التعليم/المؤسسات غير الربحية، والتسويات وتدقيقات الامتثال، ونقل التراخيص، وتفويض الموزع المحلي. ويُعد استخدام البرمجيات غير المرخصة مخالفة بموجب قانون حقوق المؤلف الإماراتي، ويجري الموردون عمليات تدقيق عبر BSA/الشركاء المحليين.",
+      "sources": [
+        "https://mindware.net/",
+        "https://www.crayon.com/ae/",
+        "https://www.microsoft.com/licensing",
+        "https://www.autodesk.com",
+        "https://www.moec.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mindware distributes software and security vendors in the UAE -> confirmed | Crayon and SoftwareOne UAE pages -> removed: pages not found or blocked | Microsoft licensing programmes -> confirmed_domain_only. Not checked: Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified."
+    },
+    {
+      "id": "software_licensing:uae-market-brands",
+      "topic": "Software licensing: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed distributors and major software vendors: Mindware, Redington, Microsoft, Adobe, Autodesk, Oracle, SAP, Fortinet, Veeam. Which distributor holds each vendor and reseller partner levels were not checked.",
+      "body_ar": "الموزعون المؤكدون وكبار موردي البرمجيات: Mindware، Redington، Microsoft، Adobe، Autodesk، Oracle، SAP، Fortinet، Veeam. ولم يُتحقق من الموزع الذي يحمل كل مورد ولا من مستويات شراكة الموزعين.",
+      "sources": [
+        "https://mindware.net/",
+        "https://www.crayon.com/ae/",
+        "https://www.microsoft.com/licensing",
+        "https://www.autodesk.com",
+        "https://www.moec.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mindware distributes software and security vendors in the UAE -> confirmed | Crayon and SoftwareOne UAE pages -> removed: pages not found or blocked | Microsoft licensing programmes -> confirmed_domain_only. Not checked: Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified."
+    },
+    {
+      "id": "software_licensing:uae-market-sizes",
+      "topic": "Software licensing: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Subscriptions are priced per user per month or per year (annual commitment usually cheaper than monthly), per device/core for server products, per named user for engineering software, and as annual support/maintenance (commonly a percentage of licence value, e.g. around 20-22% for Oracle/SAP). Enterprise agreements run 3 years. Resellers quote in USD or AED; FX and VAT (5%) apply.",
+      "body_ar": "تُسعّر الاشتراكات لكل مستخدم شهرياً أو سنوياً (الالتزام السنوي عادةً أرخص من الشهري)، ولكل جهاز/نواة لمنتجات الخوادم، ولكل مستخدم مسمى للبرمجيات الهندسية، وكدعم/صيانة سنوية (عادةً نسبة من قيمة الترخيص، مثل نحو 20-22% لأوراكل/ساب). وتمتد اتفاقيات المؤسسات 3 سنوات. ويقدم الموزعون الأسعار بالدولار أو الدرهم؛ وتُطبق أسعار الصرف وضريبة القيمة المضافة (5%).",
+      "sources": [
+        "https://mindware.net/",
+        "https://www.crayon.com/ae/",
+        "https://www.microsoft.com/licensing",
+        "https://www.autodesk.com",
+        "https://www.moec.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mindware distributes software and security vendors in the UAE -> confirmed | Crayon and SoftwareOne UAE pages -> removed: pages not found or blocked | Microsoft licensing programmes -> confirmed_domain_only. Not checked: Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is Microsoft 365 cheaper on a monthly or annual commitment?",
+      "q_ar": "هل مايكروسوفت 365 أرخص بالتزام شهري أم سنوي؟",
+      "expected_entry_ids": [
+        "software_licensing:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Mindware distributes software and security vendors in the UAE",
+        "url": "https://mindware.net/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Crayon and SoftwareOne UAE pages",
+        "url": "https://www.crayon.com/ae/",
+        "result": "removed: pages not found or blocked"
+      },
+      {
+        "claim": "Microsoft licensing programmes",
+        "url": "https://www.microsoft.com/licensing",
+        "result": "confirmed_domain_only"
+      }
+    ],
+    "unverified": "Support percentages are indicative market norms, not verified vendor figures; distributor names after mergers were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

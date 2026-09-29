@@ -31,7 +31,11 @@ export async function withRetry(fn, attempts = 3, baseMs = 2000,
 // A deploy failure is TRANSIENT only when its text names the network: a timeout, a reset, a gateway
 // 502/503/504, or a module registry (jsr.io / esm.sh / deno.land) that failed to load. Anything else
 // — a TS error, a missing import in our code, a 400 about our bundle — is real and fails at once.
-const NETWORK = /timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|\b50[234]\b|Bad Gateway|Service Unavailable|Gateway Time-?out/i;
+// 28 Sep 2026, main run 36463025632: email_triage, role_guard, site_assistant and stripe_confirm each
+// got `unexpected deploy status 500: {"message":"Function deploy failed due to an internal error"}` and
+// were not retried. The next push diffs against ITS own parent, so those four stayed undeployed.
+// Supabase's own "internal error" 500 names no bundle problem of ours, so it is a blip.
+const NETWORK = /failed due to an internal error|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|EAI_AGAIN|socket hang up|\b50[234]\b|Bad Gateway|Service Unavailable|Gateway Time-?out/i;
 const REGISTRY_LOAD = /(failed to load|error sending request|could not fetch|failed to fetch)[^\n]*(jsr\.io|esm\.sh|deno\.land)|(jsr\.io|esm\.sh|deno\.land)[^\n]*(failed to load|timed out)/i;
 // A real error in our own source can mention a registry URL too (a bad import specifier), so these
 // win over the network patterns: "Module not found" or a type error is never retried.

@@ -1,0 +1,91 @@
+{
+  "trade": "paper_board",
+  "layer": "uae-market",
+  "label_en": "Paper & paperboard",
+  "label_ar": "الورق والكرتون الخام",
+  "entries": [
+    {
+      "id": "paper_board:uae-market-products",
+      "topic": "Paper & paperboard: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Paper and paperboard in the UAE: printing and writing papers (A4/A3 copier paper 70-80 GSM, woodfree offset 60-120 GSM, coated art paper gloss/matt 90-350 GSM), newsprint, folding boxboard (FBB) and solid bleached board (SBS/GC1-GC2) for cartons, white-lined chipboard/duplex (GD2/GT), kraft liner and test liner, recycled fluting/medium, sack kraft, tissue parent rolls (for converters), label papers, thermal paper rolls (POS), and specialty papers (textured, greaseproof for non-food uses, release liners). Buyers specify grade, GSM, caliper, brightness/whiteness, sheet or reel, sheet size and grain direction or reel width and core, and FSC/PEFC certification where required.",
+      "body_ar": "الورق والكرتون في الإمارات: ورق الطباعة والكتابة (ورق تصوير A4/A3 بوزن 70-80 غ/م2، وورق أوفست خالٍ من الخشب 60-120 غ/م2، وورق فني مطلي لامع/مطفي 90-350 غ/م2)، وورق الجرائد، وكرتون العلب المطوية FBB والكرتون المبيض الصلب SBS/GC1-GC2، والكرتون الدوبلكس المبطن بالأبيض (GD2/GT)، وكرافت لاينر وتست لاينر، وورق التضليع المعاد تدويره، وكرافت الأكياس، ولفائف المناديل الأم (للمحولين)، وورق الملصقات، ولفائف الورق الحراري (نقاط البيع)، والأوراق الخاصة (المحببة، والمقاومة للدهون للاستخدامات غير الغذائية، وبطانات التحرير). يحدد المشتري الدرجة والوزن والسماكة والبياض، وورق أو لفائف، ومقاس الورق واتجاه الألياف أو عرض اللفة والقلب، وشهادة FSC/PEFC عند الطلب.",
+      "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://www.unionpapermills.com",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.storaenso.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO is a Saudi paper maker -> confirmed | Union Paper Mills -> removed: site did not answer. Not checked: Union Paper Mills' current product range and regional mill capacities were not verified."
+    },
+    {
+      "id": "paper_board:uae-market-brands",
+      "topic": "Paper & paperboard: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Mills and brands: MEPCO, Stora Enso, UPM, Sappi, Mondi, APP, Double A, PaperOne, Navigator, Chenming, Sun Paper, Nine Dragons. MEPCO is a Saudi mill, and the rest are imported; their UAE merchants were not checked. Paper merchants are concentrated in Deira, Al Quoz, Sharjah and Jebel Ali. Origins: Indonesia, Thailand, China, Finland, Sweden, Portugal, Saudi Arabia.",
+      "body_ar": "المصانع والعلامات: MEPCO، Stora Enso، UPM، Sappi، Mondi، APP، Double A، PaperOne، Navigator، Chenming، Sun Paper، Nine Dragons. وMEPCO مصنع سعودي، والبقية مستوردة ولم يُتحقق من تجارها في الإمارات. ويتركز تجار الورق في ديرة والقوز والشارقة وجبل علي. المنشأ: إندونيسيا، تايلاند، الصين، فنلندا، السويد، البرتغال، السعودية.",
+      "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://www.unionpapermills.com",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.storaenso.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO is a Saudi paper maker -> confirmed | Union Paper Mills -> removed: site did not answer. Not checked: Union Paper Mills' current product range and regional mill capacities were not verified."
+    },
+    {
+      "id": "paper_board:uae-market-sizes",
+      "topic": "Paper & paperboard: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Copier paper per ream (500 sheets) or per box of 5 reams; printing papers per tonne or per ream in sheets (e.g. 70 x 100 cm, 65 x 90 cm); board per tonne in sheets or reels; kraft and fluting per tonne in reels by width. Pricing follows regional pulp/paper cycles; quotes state GSM, size, origin and validity. Container loads for mills (about 20-25 t per 40 ft).",
+      "body_ar": "ورق التصوير بالرزمة (500 ورقة) أو بصندوق 5 رزم؛ وورق الطباعة بالطن أو بالرزمة في أوراق (مثل 70 × 100 سم و65 × 90 سم)؛ والكرتون بالطن في أوراق أو لفائف؛ والكرافت والتضليع بالطن في لفائف حسب العرض. ويتبع التسعير دورات أسعار اللب والورق الإقليمية؛ وتذكر العروض الوزن والمقاس والمنشأ والصلاحية. وحمولات الحاويات للمصانع نحو 20-25 طناً لحاوية 40 قدماً.",
+      "sources": [
+        "https://www.mep.co/Website/En/",
+        "https://www.unionpapermills.com",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.storaenso.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEPCO is a Saudi paper maker -> confirmed | Union Paper Mills -> removed: site did not answer. Not checked: Union Paper Mills' current product range and regional mill capacities were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What board grade is used for printed retail cartons?",
+      "q_ar": "ما درجة الكرتون المستخدمة لعلب التجزئة المطبوعة؟",
+      "expected_entry_ids": [
+        "paper_board:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "MEPCO is a Saudi paper maker",
+        "url": "https://www.mep.co/Website/En/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Union Paper Mills",
+        "url": "https://www.unionpapermills.com",
+        "result": "removed: site did not answer"
+      }
+    ],
+    "unverified": "Union Paper Mills' current product range and regional mill capacities were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

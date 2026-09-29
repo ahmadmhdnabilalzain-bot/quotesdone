@@ -1,0 +1,75 @@
+{
+  "trade": "staff_transport",
+  "entries": [
+    {
+      "id": "staff_transport:spec-checklist",
+      "topic": "Staff transport - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For staff transport quotes to be compared like-for-like, every quoted line (services) must state: (1) number of passengers and routes; (2) vehicle type and seating capacity; (3) vehicle age and air-conditioning; (4) trips per day and schedule; (5) driver licence and passenger transport permit; (6) fuel, Salik and parking included or excluded; (7) replacement vehicle; (8) passenger insurance; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the staff_transport trade.",
+      "body_ar": "لكي تُقارن عروض نقل الموظفين على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) عدد الركاب والمسارات؛ (2) نوع المركبة وعدد المقاعد؛ (3) عمر المركبة والتكييف؛ (4) عدد الرحلات يومياً والجدول؛ (5) رخصة السائق وتصريح نقل الركاب؛ (6) الوقود وسالك والمواقف مشمولة أو مستثناة؛ (7) المركبة البديلة؛ (8) تأمين الركاب؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة staff_transport فقط.",
+      "required_specs": [
+        "number of passengers and routes",
+        "vehicle type and seating capacity",
+        "vehicle age and air-conditioning",
+        "trips per day and schedule",
+        "driver licence and passenger transport permit",
+        "fuel, Salik and parking included or excluded",
+        "replacement vehicle",
+        "passenger insurance",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "staff_transport:uae-standards-and-approvals",
+      "topic": "Staff transport - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "In Dubai passenger transport services are regulated by the Roads and Transport Authority (RTA), which lists services for passenger transport and bus rental; other emirates have their own transport authorities. What the cited sources do not establish: The RTA page read does not show the permit conditions for staff buses; ask the provider for its RTA passenger-transport permit.",
+      "body_ar": "في دبي تنظم هيئة الطرق والمواصلات خدمات نقل الركاب، وتعرض خدمات لنقل الركاب وتأجير الحافلات؛ ولكل إمارة أخرى جهة النقل الخاصة بها. ما لا تثبته المصادر المذكورة: صفحة هيئة الطرق المقروءة لا تعرض شروط التصريح لحافلات الموظفين؛ اطلب من المزود تصريح نقل الركاب الصادر من الهيئة.",
+      "source_note": "The RTA page read does not show the permit conditions for staff buses; ask the provider for its RTA passenger-transport permit.",
+      "sources": [
+        "https://www.rta.ae/wps/portal/rta/ae/home"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for staff transport?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـنقل الموظفين؟",
+      "expected_entry_ids": [
+        "staff_transport:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to staff transport?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على نقل الموظفين؟",
+      "expected_entry_ids": [
+        "staff_transport:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "staff_transport:spec-checklist",
+      "staff_transport:uae-standards-and-approvals"
+    ],
+    "added": [
+      "staff_transport:spec-checklist",
+      "staff_transport:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

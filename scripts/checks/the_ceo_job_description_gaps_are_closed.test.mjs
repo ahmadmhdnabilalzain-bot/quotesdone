@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { manifestHas } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -63,7 +64,7 @@ test('static: pinned, revoked, policed, owned, and pending XOR MANIFEST', () => 
       assert.match(src, new RegExp(`revoke all on public\\.${t} from anon, authenticated`), `${t} is not revoked`);
     }
     for (const [, prefix, owner] of src.matchAll(/\('(\w+)\.\w+', '(\w+)', interval/g)) assert.equal(prefix, owner, `duty ${prefix} registered to ${owner}`);
-    assert.ok(pending(f) !== manifest.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
+    assert.ok(pending(f) !== manifestHas(f), `${f}: exactly one of a pending note and a MANIFEST line`);
   }
   // the report door never returns with a report still 'sent'
   const door = bodyOf(code(FILES[0]), 'fn_ceo_decide_report');
@@ -115,6 +116,11 @@ do $$ declare o jsonb := '{}'; v jsonb; hb bigint; unk bigint; dl bigint; hid bi
     'daily', (select status from public.support_ceo_report where id = dl));
 
   -- GAP 2: the binding constraint becomes one improvement, once
+  -- A live improvement for today's constraint makes the first call answer "proposed already" (29 Sep 2026:
+  -- #4411, invitations:2026-09-22:L1), which proves only the second half. Its key is moved aside inside this
+  -- rolled-back transaction so the first call must open one again and the second must refuse it.
+  update public.ceo_improvement set source_ref = source_ref || ':zz-demo-aside'
+   where source_kind = 'binding_constraint' and status in ('open', 'assigned');
   v := public.fn_ceo_constraint_lever();
   o := o || jsonb_build_object('lever', jsonb_build_object('proposed', v->'proposed', 'stage', v->'stage'), 'lever_again', public.fn_ceo_constraint_lever()->'proposed',
     'lever_row', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id), 'has_due', proposal like '%Due:%')

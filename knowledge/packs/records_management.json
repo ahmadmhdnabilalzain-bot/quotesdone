@@ -1,0 +1,77 @@
+{
+  "trade": "records_management",
+  "entries": [
+    {
+      "id": "records_management:spec-checklist",
+      "topic": "Records management - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For records management quotes to be compared like-for-like, every quoted line (services) must state: (1) volume (boxes or files) and media type; (2) services (storage, indexing, scanning, retrieval, destruction); (3) storage conditions (temperature, humidity, fire protection); (4) retrieval time; (5) scanning resolution and output format; (6) secure destruction method and certificate; (7) data protection and confidentiality; (8) information security certification (ISO/IEC 27001); (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the records_management trade.",
+      "body_ar": "لكي تُقارن عروض إدارة السجلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الحجم (صناديق أو ملفات) ونوع الوسيط؛ (2) الخدمات (تخزين، أو فهرسة، أو مسح ضوئي، أو استرجاع، أو إتلاف)؛ (3) ظروف التخزين (الحرارة، والرطوبة، والحماية من الحريق)؛ (4) مدة الاسترجاع؛ (5) دقة المسح الضوئي وصيغة المخرجات؛ (6) طريقة الإتلاف الآمن وشهادته؛ (7) حماية البيانات والسرية؛ (8) شهادة أمن المعلومات (ISO/IEC 27001)؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة records_management فقط.",
+      "required_specs": [
+        "volume (boxes or files) and media type",
+        "services (storage, indexing, scanning, retrieval, destruction)",
+        "storage conditions (temperature, humidity, fire protection)",
+        "retrieval time",
+        "scanning resolution and output format",
+        "secure destruction method and certificate",
+        "data protection and confidentiality",
+        "information security certification (ISO/IEC 27001)",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "records_management:uae-standards-and-approvals",
+      "topic": "Records management - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Personal data handling falls under Federal Decree-Law No. 45 of 2021 on the protection of personal data; records management practice is commonly specified to ISO 15489 and information security to ISO/IEC 27001. Storage facilities must meet the UAE Fire and Life Safety Code. What the cited sources do not establish: The sources read do not set retention periods; retention must follow the buyer's own legal requirements and be stated.",
+      "body_ar": "يخضع التعامل مع البيانات الشخصية للمرسوم بقانون اتحادي رقم 45 لسنة 2021 بشأن حماية البيانات الشخصية؛ وتُحدَّد ممارسات إدارة السجلات عادةً وفق ISO 15489 وأمن المعلومات وفق ISO/IEC 27001. ويجب أن تطابق منشآت التخزين كود الإمارات للحماية من الحريق. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد مدد الحفظ؛ يجب أن تتبع مدد الحفظ المتطلبات القانونية الخاصة بالمشتري وأن تُذكر صراحةً.",
+      "source_note": "The sources read do not set retention periods; retention must follow the buyer's own legal requirements and be stated.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for records management?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـإدارة السجلات؟",
+      "expected_entry_ids": [
+        "records_management:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to records management?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على إدارة السجلات؟",
+      "expected_entry_ids": [
+        "records_management:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "records_management:spec-checklist",
+      "records_management:uae-standards-and-approvals"
+    ],
+    "added": [
+      "records_management:spec-checklist",
+      "records_management:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

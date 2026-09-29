@@ -42,7 +42,7 @@ jobs:
     name: classification, pricing and refund checks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -106,6 +106,11 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
           --allow-net=deno.land
           supabase/functions/_shared/scan_redact.check.ts
+      - name: A scanned PDF set is counted by OCR to the hand count (scan_takeoff.check.ts)
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=. --allow-env
+          --allow-net=deno.land,esm.sh
+          supabase/functions/_shared/scan_takeoff.check.ts
 
   # 8 Aug 2026. Squawk lints migration SQL for operations that take locks on a table with live
   # traffic — an index built without CONCURRENTLY, a NOT NULL column that rewrites the table, a
@@ -123,7 +128,7 @@ jobs:
     name: lint migrations for locking operations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -149,7 +154,7 @@ jobs:
     name: typecheck the app
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
@@ -166,7 +171,7 @@ jobs:
     name: typecheck the edge functions
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

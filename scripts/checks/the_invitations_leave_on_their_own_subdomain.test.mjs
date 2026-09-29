@@ -98,18 +98,20 @@ test('the winning ramp counts only the lane\'s own sends while the lane is on', 
   assert.match(list, /l\.invited_at >= public\.fn_invite_lane_since\(\)/, 'the 18:00 list would not predict the lane\'s day 1');
 });
 
-test('send_outbox takes its From from senderFor, and the lane carries the invitation and its seed only', () => {
+test('send_outbox takes its From from senderFor, and the lane carries the invitation, its seed and its nudge only', () => {
   const idx = read('supabase/functions/send_outbox/index.ts');
   const froms = [...idx.matchAll(/const from = ([^;]+);/g)].map((m) => m[1]);
   assert.deepEqual(froms, ['senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane })']);
-  assert.match(idx, /resolveLane\(\{ enabled: await sec\('invite_lane_enabled'\), from: await sec\('invite_lane_from'\)/);
+  assert.match(idx, /resolveLane\(\{ enabled: await setting\('invite_lane_enabled'\), from: await setting\('invite_lane_from'\)/);
   assert.match(idx, /fn_it_engineer_finding_upsert/);
   const hold = idx.indexOf('const laneHold = holdFor(');
   assert.ok(hold > 0 && hold < idx.indexOf('const from = senderFor('), 'the lane hold must be decided before the From');
   assert.match(idx.slice(hold, hold + 700), /status: 'queued', claimed_at: null, not_before: heldUntil\(laneHold, new Date\(\)\)/);
   assert.match(idx.slice(hold, hold + 900), /laneHeld\+\+; continue;/);
   const lane = read('supabase/functions/send_outbox/invite_lane.ts');
-  assert.match(lane, /export const INVITE_LANE_TYPES: readonly string\[\] = \['supplier_invite', 'supplier_invite_seed'\];/);
+  // 29 Sep 2026 (review of #1007): the day-3/7/14 nudge of an unopened invitation leaves from the lane too, inside its cap.
+  assert.match(lane, /export const INVITE_LANE_TYPES: readonly string\[\] = \['supplier_invite', 'supplier_invite_seed', 'supplier_invite_nudge'\];/);
+  assert.match(lane, /export const LANE_CAPPED_TYPES: readonly string\[\] = \['supplier_invite', 'supplier_invite_nudge'\];/, 'the nudge must share the invitation\'s daily cap');
   assert.match(lane, /INVITE_LANE_TYPES\.includes\(type\)/, 'the lane must match types exactly, never by prefix');
   assert.match(lane, /if \(o\.lane\.refused\) return 'unverified';/, 'a refused lane must hold its invitations, not divert them');
   assert.match(lane, /return \{ active: false, refused: true, from: '', domain, why: 'refused: ' \+ status \};/);

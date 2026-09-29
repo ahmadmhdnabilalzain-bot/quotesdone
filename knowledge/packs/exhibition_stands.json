@@ -1,0 +1,80 @@
+{
+  "trade": "exhibition_stands",
+  "entries": [
+    {
+      "id": "exhibition_stands:spec-checklist",
+      "topic": "Exhibition stands - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted product line for exhibition stands must state: stand size and type; design drawings and renders; materials and finishes; fire-rated materials; electrical and lighting; graphics; organiser approval; build and dismantle dates; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة أجنحة المعارض: مساحة الجناح ونوعه؛ المخططات والتصاميم؛ المواد والتشطيبات؛ المواد المقاومة للحريق؛ الكهرباء والإنارة؛ الرسومات؛ موافقة المنظم؛ مواعيد التركيب والفك؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "stand size and type",
+        "design drawings and renders",
+        "materials and finishes",
+        "fire-rated materials",
+        "electrical and lighting",
+        "graphics",
+        "organiser approval",
+        "build and dismantle dates",
+        "UAE approvals and certificates",
+        "delivery and installation scope",
+        "lead time",
+        "warranty",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/home.jsp",
+        "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "exhibition_stands:uae-standards-and-approvals",
+      "topic": "Exhibition stands - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Dubai Civil Defence publishes and enforces the UAE Fire and Life Safety Code of Practice; where the item affects fire safety of a building, the fire classification and any civil defence approval must be stated per line. In Dubai, the Department of Economy and Tourism (DET) requires a permit for any entertainment, sport, charity, religious or business event, issued through its ePermits system, and event tickets must be sold through systems integrated with DET ticketing. The cited sources do not set a UAE-specific grade, class or test method for exhibition stands; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "body_ar": "تنشر القيادة العامة للدفاع المدني في دبي وتطبق قانون الإمارات للحماية من الحريق وسلامة الأرواح؛ وحيثما يؤثر البند في سلامة المبنى من الحريق يجب ذكر تصنيف الحريق وأي موافقة من الدفاع المدني في كل بند. في دبي، تشترط دائرة الاقتصاد والسياحة الحصول على تصريح لأي فعالية ترفيهية أو رياضية أو خيرية أو دينية أو تجارية عبر نظام التصاريح الإلكترونية، ويجب بيع تذاكر الفعاليات عبر أنظمة مرتبطة بنظام التذاكر لدى الدائرة. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة أجنحة المعارض؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific grade, class or test method for exhibition stands; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/en/home.jsp",
+        "https://www.dubaidet.gov.ae/en/our-services/for-consumers-and-students/apply-for-an-event-permit",
+        "https://www.dubaidet.gov.ae/en/licences-and-permits/events-and-activations"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for exhibition stands. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة أجنحة المعارض. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "exhibition_stands:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to exhibition stands?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة أجنحة المعارض؟",
+      "expected_entry_ids": [
+        "exhibition_stands:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "exhibition_stands:spec-checklist"
+    ],
+    "added": [
+      "exhibition_stands:spec-checklist",
+      "exhibition_stands:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}
