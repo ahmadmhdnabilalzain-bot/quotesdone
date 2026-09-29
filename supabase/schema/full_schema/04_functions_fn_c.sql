@@ -8394,6 +8394,235 @@ exception when others then
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_customer_concierge(p_customer uuid, p_category text DEFAULT NULL::text, p_lang text DEFAULT NULL::text, p_inquiry uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_lang text; v_cat text := nullif(btrim(coalesce(p_category, '')), ''); v_first boolean; v_lists jsonb; v_specs text;
+  v_label text;
+begin
+  if p_inquiry is not null and v_cat is null then select category into v_cat from public.inquiries where id = p_inquiry; end if;
+  v_lang := case when p_lang in ('en', 'ar') then p_lang
+                 else coalesce(public.fn_inquiry_locale(p_inquiry), (select c.locale from public.customers c where c.id = p_customer), 'en') end;
+  if v_lang <> 'ar' then v_lang := 'en'; end if;
+  -- First = no OTHER request of this customer's own (a split's per-trade children are the same request).
+  v_first := not exists (select 1 from public.inquiries i where i.customer_id = p_customer and i.parent_inquiry_id is null
+                                                        and i.id is distinct from p_inquiry);
+  v_lists := case when v_cat is null then '[]'::jsonb else public.fn_customer_concierge_checklists(v_cat, v_lang) end;
+  v_label := coalesce((select cs.label from public.category_specs cs where cs.category = v_cat), replace(v_cat, '_', ' '));
+
+  if jsonb_array_length(v_lists) = 0 then
+    v_specs := case when v_lang = 'ar'
+      then 'اذكروا المقاسات والكميات والمواد أو العلامات التجارية المطلوبة، وأي مواصفة قياسية أو اعتماد لازم.'
+      else 'State the sizes, the quantities, the materials or brands you need, and any standard or approval the work must meet.' end;
+  elsif v_lang = 'ar' then
+    v_specs := 'اذكروا هذه المواصفات، فبها يسعّر الموردون بدقة:' || chr(10)
+      || (select string_agg('- ' || (e->>'body'), chr(10)) from jsonb_array_elements(v_lists) e);
+  else
+    v_specs := 'For ' || coalesce(v_label, 'this trade') || ', suppliers price exactly when you state:' || chr(10)
+      || (select string_agg('- ' || (e->>'topic') || ': '
+                            || (select string_agg(s, '; ') from jsonb_array_elements_text(e->'specs') s), chr(10))
+            from jsonb_array_elements(v_lists) e);
+  end if;
+
+  return jsonb_build_object('lang', v_lang, 'first_inquiry', v_first, 'category', v_cat, 'checklists', v_lists,
+    'held', case when p_inquiry is null then null else public.fn_customer_concierge_held(p_inquiry) end,
+    'steps', case when v_lang = 'ar' then jsonb_build_array(
+        jsonb_build_object('key', 'describe', 'title', 'صِفوا العمل',
+          'body', 'ما المطلوب تنفيذه، وأين (الإمارة والمنطقة)، ومتى. طلب واحد لكل عمل، وإن شمل أكثر من تخصص فاذكروها ليصل كل جزء إلى الموردين المتخصصين فيه.'),
+        jsonb_build_object('key', 'attach', 'title', 'أرفقوا المخططات',
+          'body', 'بصيغة PDF أو CAD (DWG أو DXF) فقط، ولا تُقبل ملفات Revit وIFC وDGN وغيرها من ملفات النماذج، فصدّروا اللوحات إلى PDF أو DWG أولًا. ويمكن إرفاق جدول الكميات جدولَ بيانات أو ملف PDF، وتفيد صور الموقع أيضًا.'),
+        jsonb_build_object('key', 'specs', 'title', 'اذكروا المواصفات', 'body', v_specs),
+        jsonb_build_object('key', 'next', 'title', 'الخطوات التالية',
+          'body', 'يقدّم الموردون الموثّقون في الإمارات العاملون في هذا التخصص عروضهم دون أن يعرفوا هويتكم، ونقارنها لكم ونوصي بأفضل ثلاثة منها من حيث القيمة. ولا تكشفون إلا بيانات المورّد الذي تختارونه، ولا تدفعون 3% من قيمة عرضه إلا حينها.'))
+      else jsonb_build_array(
+        jsonb_build_object('key', 'describe', 'title', 'Describe the job',
+          'body', 'Say what you need done, where (the emirate and area) and by when. One request per job; if it covers several trades, name them so each part reaches the suppliers who specialise in it.'),
+        jsonb_build_object('key', 'attach', 'title', 'Attach the drawings',
+          'body', 'As PDF or CAD (DWG or DXF) only. Revit, IFC, DGN and other model files are not accepted: export the sheets to PDF or DWG first. A bill of quantities can be a spreadsheet or a PDF, and photos of the site help too.'),
+        jsonb_build_object('key', 'specs', 'title', 'Give the specifications', 'body', v_specs),
+        jsonb_build_object('key', 'next', 'title', 'What happens next',
+          'body', 'Verified UAE suppliers in this trade quote without knowing who you are. We compare the quotes and recommend the top three by value. You reveal only the supplier you choose, and pay 3% of that quote only then.'))
+      end);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_concierge_checklists(p_category text, p_lang text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- ponytail: at most 6 checklists (a trade has 1-5 today); a longer list would bury the steps, so the cap stands
+  -- until a trade needs more.
+  select coalesce(jsonb_agg(x.item order by x.entry_id), '[]'::jsonb)
+    from (select k.structured_data->>'entry_id' as entry_id,
+                 jsonb_build_object('topic_id', k.structured_data->>'entry_id',
+                   'topic', regexp_replace(coalesce(k.title, ''), '^Spec checklist:\s*', ''),
+                   'specs', coalesce(k.structured_data->'required_specs', '[]'::jsonb),
+                   'body', k.content) as item
+            from public.sales_knowledge k
+           where 'kind:spec_checklist' = any(k.tags)
+             and k.structured_data->>'lang' = case when p_lang = 'ar' then 'ar' else 'en' end
+             and exists (select 1 from unnest(public.fn_taxonomy_trades_for(array[p_category])) c
+                          where ('trade:' || c) = any(k.tags))
+           order by k.structured_data->>'entry_id'
+           limit 6) x
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_concierge_held(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.inquiries; u public.inquiries; v_ar boolean; v_units uuid[]; v_split boolean; v_fields jsonb;
+  v_missing jsonb := '[]'::jsonb; m jsonb; f jsonb; k text; v_pre text; v_lang text;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('held', false, 'finding_suppliers', false, 'reason', 'no such request'); end if;
+  v_ar := coalesce(public.fn_inquiry_locale(i.id), (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
+  v_lang := case when v_ar then 'ar' else 'en' end;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then
+    return jsonb_build_object('held', false, 'finding_suppliers', false, 'lang', v_lang);
+  end if;
+  v_units := array(select c.id from public.inquiries c where c.parent_inquiry_id = i.id order by c.created_at);
+  v_split := cardinality(v_units) > 0;
+  if not v_split then v_units := array[i.id]; end if;
+  if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id) then
+    return jsonb_build_object('held', false, 'finding_suppliers', true, 'lang', v_lang, 'missing', '[]'::jsonb);
+  end if;
+
+  for u in select * from public.inquiries x where x.id = any(v_units) and not coalesce(x.rfq_ready, false)
+            order by x.created_at loop
+    v_pre := case when v_split then coalesce((select cs.label from public.category_specs cs where cs.category = u.category),
+                                             replace(coalesce(u.category, ''), '_', ' ')) || ': ' else '' end;
+    -- The category's required fields that are still open, in the plain words the intake asks them with.
+    select cs.fields into v_fields from public.category_specs cs where cs.category = u.category;
+    for m in select value from jsonb_array_elements(coalesce(u.completeness->'category_missing', '[]'::jsonb)) loop
+      f := null;
+      select value into f from jsonb_array_elements(coalesce(v_fields, '[]'::jsonb)) where value->>'key' = m->>'key' limit 1;
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', m->>'key', 'inquiry_id', u.id,
+        'ask', v_pre || coalesce(nullif(f->>case when v_ar then 'question_plain_ar' else 'question_plain_en' end, ''),
+                                 nullif(m->>'question', ''), m->>'key')));
+    end loop;
+    -- The general score only holds a request when it is below the bar; then each missing part is named.
+    if not coalesce((u.completeness->>'generic_ready')::boolean, true) then
+      for k in select value from jsonb_array_elements_text(coalesce(u.completeness->'missing', '[]'::jsonb)) loop
+        v_missing := v_missing || coalesce((select jsonb_build_array(jsonb_build_object('key', k, 'inquiry_id', u.id, 'ask', v_pre || case when v_ar then g.ar else g.en end))
+          from (values
+            ('category', 'What kind of work is it (the trade)?', 'ما نوع العمل المطلوب (التخصص)؟'),
+            ('emirate', 'Which emirate and area is the work in?', 'في أي إمارة ومنطقة سيُنفَّذ العمل؟'),
+            ('scope_detail', 'A fuller description of the work: what, how much and to what standard.', 'وصف أوفى للعمل: ما المطلوب، وبأي كمية، ووفق أي مواصفة.'),
+            ('scope_type', 'Is it one trade, or several trades together?', 'هل يشمل تخصصًا واحدًا أم عدة تخصصات معًا؟'),
+            ('budget', 'Your budget for the work (a range is fine).', 'الميزانية المرصودة للعمل (يكفي نطاق تقريبي).'),
+            ('supporting_detail', 'A drawing (PDF, DWG or DXF), a bill of quantities, or the trades involved.', 'مخطط (PDF أو DWG أو DXF)، أو جدول كميات، أو التخصصات المعنية.')
+          ) g(key, en, ar) where g.key = k), '[]'::jsonb);
+      end loop;
+    end if;
+  end loop;
+  return jsonb_build_object('held', jsonb_array_length(v_missing) > 0, 'finding_suppliers', false, 'lang', v_lang,
+                            'missing', v_missing);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_concierge_message(p_inquiry uuid, p_kind text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.inquiries; c public.customers; g jsonb; h jsonb; v_ar boolean; v_name text; v_ref text; v_held text := ''; v_find text := '';
+  v_steps text; v_subj text; v_body text; v_link text;
+begin
+  if p_kind not in ('first_request', 'held_for_specs', 'finding_suppliers') then
+    raise exception 'a concierge message is first_request, held_for_specs or finding_suppliers, not %', p_kind;
+  end if;
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then raise exception 'no request %', p_inquiry; end if;
+  select * into c from public.customers where id = i.customer_id;
+  g := public.fn_customer_concierge(i.customer_id, i.category, null, i.id);
+  h := g->'held';
+  v_ar := g->>'lang' = 'ar';
+  v_name := coalesce(nullif(btrim(c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+  v_ref := 'QD-' || public.fn_job_no(i.id);
+  v_link := case when v_ar then 'https://quotesdone.com/ar/me' else 'https://quotesdone.com/me' end;
+
+  if coalesce((h->>'held')::boolean, false) then
+    v_held := (select string_agg('- ' || (e->>'ask'), chr(10)) from jsonb_array_elements(h->'missing') e) || chr(10) || chr(10)
+      || case when v_ar
+           then 'يمكنكم تعديل الميزانية والإمارة من حسابكم: ' || v_link || chr(10) || 'ولأي تفاصيل أخرى، يسعدنا أن تردّوا على هذه الرسالة بها.'
+           else 'You can change the budget and the emirate from your account: ' || v_link || chr(10) || 'For anything else, reply to this e-mail with the details.' end;
+  end if;
+  -- NO SUPPLIER HAS IT YET: said as it is, never blamed on the specs (re-review of #1112).
+  if coalesce((h->>'finding_suppliers')::boolean, false) then
+    v_find := case when v_ar
+      then 'نبحث عن موردين في تخصصكم: لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا حاليًا، ونعمل على دعوة موردين متخصصين فيه. وسنراسلكم فور وصول طلبكم إلى أحدهم، ولا يلزمكم أي إجراء.'
+      else 'We are finding suppliers for your trade. None of the suppliers registered with us today covers this request yet, and we are inviting suppliers who do. We will write as soon as one of them has your request; nothing is needed from you.' end;
+  end if;
+  -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
+  v_steps := (select string_agg(n || '. ' || (e->>'title') || ': ' || (e->>'body'), chr(10) || chr(10) order by n)
+                from jsonb_array_elements(g->'steps') with ordinality s(e, n)
+               where p_kind = 'first_request' or e->>'key' = 'specs');
+
+  if p_kind = 'first_request' then
+    v_subj := case when v_ar then 'استلمنا طلبكم ' || v_ref || ': الخطوات التالية' else 'We have your request ' || v_ref || ': what happens next' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'شكرًا لطلبكم الأول على QuotesDone، ورقمه ' || v_ref || '.' || chr(10) || chr(10)
+        || case when v_held <> '' then 'وقبل أن يتمكّن الموردون من تسعيره، نحتاج منكم إلى التفاصيل التالية:' || chr(10) || v_held || chr(10) || chr(10) else '' end
+        || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || 'وللحصول على عروض دقيقة قابلة للمقارنة، إليكم الخطوات:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
+        || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'Thank you for your first request on QuotesDone. Its number is ' || v_ref || '.' || chr(10) || chr(10)
+        || case when v_held <> '' then 'Before suppliers can price it, we need a few details from you:' || chr(10) || v_held || chr(10) || chr(10) else '' end
+        || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
+        || 'Here is how to get exact, comparable quotes, step by step:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
+        || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
+        || 'If anything is unclear, reply to this e-mail.' end;
+  elsif p_kind = 'finding_suppliers' then
+    if v_find = '' then return jsonb_build_object('lang', g->>'lang', 'not_finding', true); end if;
+    v_subj := case when v_ar then 'نبحث عن موردين لطلبكم ' || v_ref else 'We are finding suppliers for your request ' || v_ref end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'شكرًا لطلبكم ' || v_ref || '.' || chr(10) || chr(10) || v_find || chr(10) || chr(10)
+        || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'Thank you for your request ' || v_ref || '.' || chr(10) || chr(10) || v_find || chr(10) || chr(10)
+        || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
+        || 'If anything is unclear, reply to this e-mail.' end;
+  else
+    if v_held = '' then return jsonb_build_object('lang', g->>'lang', 'not_held', true); end if;
+    v_subj := case when v_ar then 'طلبكم ' || v_ref || ' يحتاج إلى بعض التفاصيل' else 'Your request ' || v_ref || ' needs a few details' end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'يحتاج الموردون الذين وصلهم طلبكم ' || v_ref || ' إلى التفاصيل التالية ليسعّروه بدقة:' || chr(10) || v_held || chr(10) || chr(10)
+        || v_steps || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'The suppliers who have your request ' || v_ref || ' need the following to price it exactly:' || chr(10) || v_held || chr(10) || chr(10)
+        || v_steps || chr(10) || chr(10)
+        || 'If anything is unclear, reply to this e-mail.' end;
+  end if;
+  return jsonb_build_object('lang', g->>'lang', 'subject', v_subj, 'body', v_body, 'held', h, 'first_inquiry', g->'first_inquiry');
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_customer_counts()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -9755,6 +9984,64 @@ begin
           fixture = excluded.fixture, reviewed_at = now();
   end if;
   return jsonb_build_object('week_ending', v_week, 'knowledge_filed', v_filed, 'fixture', v_fx) || v_metrics;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_concierge_confirm(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare i public.inquiries; c public.customers; g jsonb; m jsonb; v_kind text; v_sent jsonb;
+begin
+  select * into i from public.inquiries where id = p_inquiry;
+  if not found then return jsonb_build_object('sent', false, 'reason', 'no such request'); end if;
+  -- A split's per-trade child is part of its parent's request: the customer hears about the request once.
+  if i.parent_inquiry_id is not null then return jsonb_build_object('sent', false, 'reason', 'a per-trade part of a combined request'); end if;
+  select * into c from public.customers where id = i.customer_id;
+  if not found or coalesce(c.banned, false) then return jsonb_build_object('sent', false, 'reason', 'no customer to write to'); end if;
+  g := public.fn_customer_concierge(i.customer_id, i.category, null, i.id);
+  v_kind := case when coalesce((g->>'first_inquiry')::boolean, false) then 'first_request'
+                 when coalesce((g#>>'{held,finding_suppliers}')::boolean, false) then 'finding_suppliers'
+                 when coalesce((g#>>'{held,held}')::boolean, false) then 'held_for_specs' end;
+  -- The first confirmation already carried the held details or the search for suppliers: one message per request.
+  if v_kind in ('held_for_specs', 'finding_suppliers') and exists (select 1 from public.customer_support_duty_message d
+       where d.stage = 'concierge.first_request' and d.subject_key = i.id::text) then v_kind := null; end if;
+  if v_kind is null then return jsonb_build_object('sent', false, 'reason', 'not a first request, held or waiting for suppliers', 'concierge', g); end if;
+  m := public.fn_customer_concierge_message(i.id, v_kind);
+  v_sent := public.fn_customer_support_duty_send('concierge.' || v_kind, i.id::text, 'customer', c.email,
+    m->>'lang', m->>'subject', m->>'body', c.id, null, i.id);
+  return v_sent || jsonb_build_object('stage', 'concierge.' || v_kind, 'concierge', g);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_customer_support_concierge_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  r record; v jsonb; v_first int := 0; v_held int := 0; v_find int := 0;
+begin
+  -- ponytail: a 3-day window; a request older than that has had the activation duty's no-quote message (day 5)
+  -- and a guide arriving later would read as noise. Widen it if the tick is ever down for longer.
+  for r in select i.id from public.inquiries i join public.customers c on c.id = i.customer_id
+            where i.parent_inquiry_id is null and i.created_at > now() - interval '3 days'
+              and not coalesce(c.banned, false)
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+              and not exists (select 1 from public.customer_support_duty_message d
+                               where d.stage in ('concierge.first_request', 'concierge.held_for_specs', 'concierge.finding_suppliers')
+                                 and d.subject_key = i.id::text)
+            order by i.created_at limit 200 loop
+    v := public.fn_customer_support_concierge_confirm(r.id);
+    if v->>'stage' = 'concierge.first_request' then v_first := v_first + 1;
+    elsif v->>'stage' = 'concierge.held_for_specs' then v_held := v_held + 1;
+    elsif v->>'stage' = 'concierge.finding_suppliers' then v_find := v_find + 1; end if;
+  end loop;
+  return jsonb_build_object('first_request', v_first, 'held_for_specs', v_held, 'finding_suppliers', v_find);
 end $function$
 
 

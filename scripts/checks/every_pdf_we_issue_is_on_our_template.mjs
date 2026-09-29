@@ -64,6 +64,16 @@ const FILED_STRIPE_PDF = /invoices\/stripe\//;
 // our template. It may IMPORT the library to load and save that drawing. It may still never CREATE a PDF or answer
 // with one: those two rules apply to it like to every other file (the .test.mjs proves both still fire there).
 const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts']);
+// Review of #1056: in that file the library is in reach, so "creates a PDF" is read wider than PDF_MAKE: the bracket
+// form (PDFDocument['create']), any alias of PDFDocument (import ... as, const X = PDFDocument, a destructured
+// create), and the calls that author content rather than edit it (addPage, drawText, embedFont and their kin).
+const EDITOR_AUTHORS = [
+  /\bPDFDocument\s*\[\s*['"`]create['"`]\s*\]/,
+  /\bPDFDocument\s+as\s+\w+/,
+  /(?:const|let|var)\s+\w+\s*=\s*PDFDocument\b\s*[;\n)]/,
+  /\{[^}]*\bcreate\b[^}]*\}\s*=\s*PDFDocument\b/,
+  /\.\s*(?:addPage|insertPage|drawText|drawImage|drawRectangle|drawLine|drawSvgPath|embedFont|embedStandardFont|embedJpg|embedPng|embedPdf|embedPage)\s*\(/,
+];
 
 /** Findings for one file. `rel` uses forward slashes. */
 export function findingsFor(rel, src) {
@@ -72,6 +82,7 @@ export function findingsFor(rel, src) {
   if (rel.startsWith('supabase/functions/')) {
     if (!inRenderer && !EDITS_CUSTOMER_PDF.has(rel) && PDF_LIB.test(c)) out.push(`${rel}: imports a PDF-writing library outside pdf_native (A)`);
     if (!inRenderer && PDF_MAKE.test(c)) out.push(`${rel}: creates a PDF document outside pdf_native (A)`);
+    else if (EDITS_CUSTOMER_PDF.has(rel) && EDITOR_AUTHORS.some((re) => re.test(c))) out.push(`${rel}: authors PDF content in the customer-drawing editor (A)`);
     if (!inRenderer && PDF_RESPONSE.test(c)) out.push(`${rel}: answers with a PDF body outside pdf_native (B)`);
     if (!rel.startsWith('supabase/functions/stripe_webhook/') && STRIPE_DOC.test(c)) out.push(`${rel}: reads a Stripe-rendered document link (C)`);
     if (!rel.startsWith('supabase/functions/stripe_checkout/') && INVOICE_CREATION.test(c)) out.push(`${rel}: asks Stripe to create an invoice for a checkout (E)`);
