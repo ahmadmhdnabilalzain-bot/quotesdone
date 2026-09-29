@@ -299,7 +299,7 @@ async function answer(ev: InboundEvent): Promise<Decision> {
   // is sent; anything else leaves the honest 'unknown'. The recalled cases go with the question.
   const r = await socialReply(deps, { surface: 'marketing_social.dm_reply', platform: ev.platform,
     message: ev.text.slice(0, 4000), language: d.lang, dedupeKey: 'social_dm_reply:' + ev.platform + ':' + ev.messageId,
-    precedent: memory.cases.length ? precedentBlock(memory) : undefined,
+    precedent: (memory.cases.length || memory.handoffs?.length) ? precedentBlock(memory) : undefined,
     subject: { platform: ev.platform, message_id: ev.messageId, user_id: ev.userId } });
   if (r.value) return { kind: 'knowledge', key: 'model', lang: d.lang, text: r.value };
   return unknown(library, d.lang);
