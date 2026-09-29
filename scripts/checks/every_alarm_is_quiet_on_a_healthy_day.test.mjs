@@ -243,6 +243,9 @@ export const REGISTER = {
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },
+  // 29 Sep 2026 (it_engineer, #1048). A truncated smoke run now upserts its FAIL steps itself instead of settling,
+  // so it closes nothing on silence. The FAIL is the journey's verdict (scripts/e2e/journeys.mjs), not a rule here.
+  fn_it_smoke_ingest: { relay: 'writes the failed steps a post-deploy smoke run reports; each FAIL is the journey\'s verdict, and a run with no failed step raises nothing' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

@@ -2,7 +2,9 @@
 //
 // The combined supplier overview (15 Sep 2026). A fake client answers every read after a fixed delay
 // and records what was asked, so the tests measure the two things the change is for: how many reads
-// the dashboard makes, and how many of them wait on another (the wall time over the delay). No
+// the dashboard makes, and how many of them wait on another. That is counted as WAVES - reads that
+// start after the same number of earlier reads finished form one - not as wall time: 29 Sep 2026 a loaded CI runner
+// took 121 ms for two 40 ms waves and failed a test that had nothing wrong with it. No
 // network, no environment, no real row — nothing here can reach a person.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { buildAlerts, buildDashboard, buildEligibility, buildNotifications, NOTICE_TAB, type Supplier } from './overview.ts';
@@ -13,18 +15,23 @@ type Answer = { data?: unknown; count?: number | null; error?: unknown };
 // `rejects`: table names whose single-row read throws, the way a dropped connection does.
 function fakeAdmin(answers: Record<string, Answer> = {}, rejects: string[] = []) {
   const reads: string[] = [];
+  // Every read takes exactly DELAY, so reads start and finish in lockstep batches: the number of reads
+  // already finished when a read starts names its wave. Serial reads each see a new count; a batch shares one.
+  let done = 0;
+  const starts = new Set<number>();
+  const track = <T>(p: Promise<T>): Promise<T> => { starts.add(done); return p.finally(() => { done++; }); };
   // An answer keyed by the exact read wins; one keyed by the table or routine name is the fallback.
-  const settle = (key: string): Promise<Answer> => new Promise((res) => setTimeout(() => res(answers[key] ?? answers[key.split('?')[0]] ?? { data: null, count: 0 }), DELAY));
+  const settle = (key: string): Promise<Answer> => track(new Promise((res) => setTimeout(() => res(answers[key] ?? answers[key.split('?')[0]] ?? { data: null, count: 0 }), DELAY)));
   const table = (name: string) => {
     const filters: string[] = [];
     const q: Record<string, unknown> = {};
     for (const m of ['select', 'eq', 'in', 'neq', 'not', 'is', 'order', 'limit', 'gte']) q[m] = (...a: unknown[]) => { if (m === 'eq' || m === 'in') filters.push(String(a[0]) + '=' + JSON.stringify(a[1])); return q; };
     const key = () => name + (filters.length ? '?' + filters.join('&') : '');
-    q.maybeSingle = () => { reads.push(key()); return rejects.includes(name) ? new Promise((_, rej) => setTimeout(() => rej(new Error('read failed')), DELAY)) : settle(name); };
+    q.maybeSingle = () => { reads.push(key()); return rejects.includes(name) ? track(new Promise((_, rej) => setTimeout(() => rej(new Error('read failed')), DELAY))) : settle(name); };
     q.then = (ok: (v: Answer) => unknown, bad?: (e: unknown) => unknown) => { reads.push(key()); return settle(key()).then(ok, bad); };
     return q;
   };
-  return { reads, from: table, rpc: (fn: string) => { reads.push('rpc:' + fn); return settle('rpc:' + fn); } };
+  return { reads, waves: () => starts.size, from: table, rpc: (fn: string) => { reads.push('rpc:' + fn); return settle('rpc:' + fn); } };
 }
 
 const SUP: Supplier = { id: 7, company_name: 'ZZ DEMO — fixture', approval_status: 'pending', registration_status: null, license_expiry: null, name_corrected_from: null };
@@ -35,21 +42,17 @@ Deno.test('alerts: two waves, not five in a row', async () => {
     'quotes?supplier_id=7': { data: [{ inquiry_id: 'b' }] },
     'inquiries?id=["a","b"]&status=["sent","open","active","collecting","live","quoted"]': { data: [{ id: 'a' }, { id: 'b' }] },
   });
-  const t0 = performance.now();
   const alerts = await buildAlerts(admin, 7);
-  const ms = performance.now() - t0;
-  // Serial, the five reads cost 5 x DELAY. Two waves cost 2 x DELAY.
-  assert(ms < DELAY * 3, `alerts took ${ms.toFixed(0)} ms — reads are waiting on each other`);
+  // Serial, the five reads are five waves. Batched, two.
+  assert(admin.waves() <= 2, `alerts took ${admin.waves()} waves — reads are waiting on each other`);
   assertEquals(alerts.map((a) => a.kind), ['new_rfq']);
   assertEquals(alerts[0].count, 1, 'the quoted inquiry is not an RFQ waiting');
 });
 
 Deno.test('eligibility: every read in one wave, and an unconfirmed scope blocks', async () => {
   const admin = fakeAdmin({ leads: { data: { id: 7, sector: 'hvac', registration_submitted_at: '2026-09-01', phone: '+971500000000' } } });
-  const t0 = performance.now();
   const e = await buildEligibility(admin, 7);
-  const ms = performance.now() - t0;
-  assert(ms < DELAY * 3, `eligibility took ${ms.toFixed(0)} ms`);
+  assert(admin.waves() <= 2, `eligibility took ${admin.waves()} waves`);
   assertEquals(e.eligible, false);
   assert(e.blocking.some((b: { code: string }) => b.code === 'scope_unconfirmed'));
   assertEquals(e.reach.shortlist_size, 8);
@@ -69,9 +72,7 @@ Deno.test('dashboard: one payload carries stats, alerts, eligibility, impact and
     'messages?supplier_id=7&sender="customer"&read_by_supplier=false&blocked=false': { count: 2 },
     'quote_spec_hold?supplier_id=7&state=["open","awaiting_approval"]': { count: 1 },
   });
-  const t0 = performance.now();
   const { status, body } = await buildDashboard(admin, SUP);
-  const ms = performance.now() - t0;
   assertEquals(status, 200);
   assertEquals(body.stats, { quotes_total: 3 });
   assertEquals(body.notifications, { unread_messages: 2, spec_holds: 1, notices: [] });
@@ -80,8 +81,8 @@ Deno.test('dashboard: one payload carries stats, alerts, eligibility, impact and
   assertEquals(body.supplier.company_name, 'ZZ DEMO — fixture');
   // The deepest chain is alerts (matches, then open inquiries) and the mandatory-six check; nothing
   // waits on fn_supplier_stats any more. Before: 8 serial reads in overview alone.
-  assert(ms < DELAY * 4, `dashboard took ${ms.toFixed(0)} ms — expected at most three waves`);
-  console.log(`dashboard: ${admin.reads.length} reads, ${ms.toFixed(0)} ms at ${DELAY} ms per read (${(ms / DELAY).toFixed(1)} waves)`);
+  assert(admin.waves() <= 3, `dashboard took ${admin.waves()} waves — expected at most three`);
+  console.log(`dashboard: ${admin.reads.length} reads in ${admin.waves()} waves`);
 });
 
 Deno.test('dashboard: a stats failure is a 500, not an empty dashboard', async () => {
@@ -142,4 +143,16 @@ Deno.test('eligibility: every ranking hint points at a field the supplier can re
   const codes = (e.improving as { code: string; fix: string }[]).map((i) => i.code);
   for (const gone of ['no_sector', 'empty_categories', 'empty_capability_summary']) assert(!codes.includes(gone), gone + ' names a field the portal does not have');
   assert(codes.includes('empty_products') && codes.includes('empty_services'));
+});
+
+Deno.test('the wave counter itself: three reads in a row are three waves, three together are one', async () => {
+  const serial = fakeAdmin();
+  await serial.rpc('a'); await serial.rpc('b'); await serial.rpc('c');
+  assertEquals(serial.waves(), 3);
+  const batched = fakeAdmin();
+  await Promise.all([batched.rpc('a'), batched.rpc('b'), batched.rpc('c')]);
+  assertEquals(batched.waves(), 1);
+  const chained = fakeAdmin();
+  await Promise.all([chained.rpc('a').then(() => chained.rpc('b')), chained.rpc('c')]);
+  assertEquals(chained.waves(), 2);
 });

@@ -202,6 +202,11 @@ export const zzPdfSet = () => pdfOf([
   plan('GROUND FLOOR MECHANICAL PLAN', [], WC5, ['FCU-2', 'FCU-3'], ROOMS) + titleStrip('M-1.01', 'GROUND FLOOR MECHANICAL PLAN'),
   t(0.05, 0.10, 28, 'GENERAL NOTES') + t(0.05, 0.14, 10, '1. ALL WORK TO LOCAL AUTHORITY REQUIREMENTS.') + titleStrip('G-0.01', 'GENERAL NOTES'),
 ], INFO);
+/** The consultant's logo drawn as VECTOR paths in the title strip (a filled badge and a stroked ring), the way CAD
+ *  exports a logo block: no image, no text. It must be cut; every path outside the strip must stay byte-identical. */
+const LOGO = `q 0.1 0.3 0.6 rg ${(0.87 * PW).toFixed(1)} ${((1 - 0.47) * PH).toFixed(1)} ${(0.1 * PW).toFixed(1)} ${(0.05 * PH).toFixed(1)} re f Q\n`
+  + `${(0.88 * PW).toFixed(1)} ${((1 - 0.44) * PH).toFixed(1)} m ${(0.96 * PW).toFixed(1)} ${((1 - 0.44) * PH).toFixed(1)} l ${(0.92 * PW).toFixed(1)} ${((1 - 0.41) * PH).toFixed(1)} l h S\n`;
+export const zzPdfSheetWithLogo = () => pdfOf([plan('GROUND FLOOR PLUMBING AND HVAC PLAN', FD7, WC5, ['FCU-1', 'FCU-2', 'FCU-3'], ROOMS) + titleStrip('P-1.01', 'GROUND FLOOR PLUMBING AND HVAC PLAN') + LOGO], INFO);
 /** A scanned sheet: the same /Info metadata, one image, no text layer. */
 export const zzPdfScan = () => pdfOf(['scan'], INFO, true);
 
