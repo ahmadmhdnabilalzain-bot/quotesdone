@@ -42,7 +42,7 @@ import { defaultDeps, type ThinkDeps } from '../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../_shared/reasoned_books.ts';
 import { isUnsubscribeRequest } from '../_shared/unsubscribe_mailbox.ts';
 import { fromDomainAuthenticated, neverSuppressible, OPT_OUT_TYPES } from '../_shared/suppression_policy.ts';
-import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
+import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from '../_shared/marketing_calendar_mail.ts';
 import { registerRowsFor } from '../_shared/expense_mailbox.ts';
 import { licenceNameFromModel } from '../_shared/document_expiry.ts';
 import { type LeadWriter, updateLeadSettingAsideClashingLicence } from '../_shared/duplicate_company.ts';
@@ -236,6 +236,26 @@ export const handler = observe('resend_inbound', async (req) => {
       await logRun(cErr ? 'error' : 'ok', { calendar_reply: 1, outcome: (out as any)?.outcome ?? null, authenticated: verdict.authenticated, intent: verdict.intent },
         'monthly calendar reply from ' + from + ': ' + (cErr ? 'fn_marketing_calendar_reply failed: ' + cErr.message : String((out as any)?.outcome)));
       return J({ ok: !cErr, calendar_reply: true, outcome: (out as any)?.outcome ?? null });
+    }
+
+    // ---- HIS REPLY TO AN ARTICLE OR LAUNCH-PLAN APPROVAL EMAIL (28 Sep 2026, marketing) ----
+    // Reply-To approve+<token>@mail.quotesdone.com. Same gate as the calendar: fn_marketing_approval_reply
+    // approves only for the founder, SPF/DKIM/DMARC-authenticated, saying exactly "approve"; anything else he
+    // writes is filed as a change for the marketing seat and nothing is published.
+    const approveToken = approvalTokenOf({ to, subject });
+    if (approveToken) {
+      const aHdrs = d.headers?.['authentication-results'] ? d.headers
+        : ((emailId && rkey) ? await (async () => { const f: any = await fetchInboundEmail(emailId, rkey); return (f?.data || f)?.headers; })() : null);
+      const av = { token: approveToken, from_email: from, authenticated: fromDomainAuthenticated(aHdrs?.['authentication-results'], from),
+        message_id: providerEmailId || '', intent: replyIntent(fullText), text: ownWords(fullText).slice(0, 4000) };
+      const { data: out, error: aErr } = await admin.rpc('fn_marketing_approval_reply', { p: av });
+      await admin.from('inbound_messages').insert({ from_email: from, to_email: to, subject,
+        body: '[MARKETING APPROVAL REPLY: ' + (aErr ? 'error ' + aErr.message : String((out as any)?.outcome)) + '; authenticated ' + av.authenticated + ', read as ' + av.intent + ']\n\n' + fullText,
+        html: fullHtml, provider_email_id: providerEmailId, attachments_count: 0, matched_existing: !!((out as any)?.article || (out as any)?.plan_doc),
+        needs_review: !!aErr || (out as any)?.outcome === 'not_the_founder' });
+      await logRun(aErr ? 'error' : 'ok', { approval_reply: 1, outcome: (out as any)?.outcome ?? null, authenticated: av.authenticated, intent: av.intent },
+        'marketing approval reply from ' + from + ': ' + (aErr ? 'fn_marketing_approval_reply failed: ' + aErr.message : String((out as any)?.outcome)));
+      return J({ ok: !aErr, approval_reply: true, outcome: (out as any)?.outcome ?? null });
     }
 
     // ---- HIS REPLY TO THE MONTHLY VIDEO IDEA PLAN (24 Sep 2026, marketing) ----
