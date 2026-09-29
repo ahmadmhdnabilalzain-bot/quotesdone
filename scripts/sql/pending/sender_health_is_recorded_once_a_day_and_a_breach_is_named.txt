@@ -1,3 +1,0 @@
-Committed, not applied: the it_engineer PR that adds the daily sender-health row was written read-only against production.
-Apply it, confirm the probe row says PROBE OK, then deploy resilience_ping (it calls fn_it_sender_health_record after
-fn_it_duties_scheduled). On apply, delete this note and append the file to the END of MANIFEST.txt. Seat: it_engineer.
