@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all. It is READ through node scripts/qsql.mjs and must print CHK<<PROBE OK ...>>. Before uae_price_benchmarks_come_only_from_real_quotes.sql is applied, run it concatenated after that file as one request. That makes one implicit transaction, so the closing raise rolls the routines back too. After the apply, run it alone.
+
+It writes ZZ DEMO quotes (leads 129923 / 130029 / 130110 / 134369 on ZZ DEMO gypsum enquiries 8b287960 and d958e1ea) inside a block that always raises, so nothing survives it. Measured 29 Sep 2026 against production, DDL + probe together: PROBE OK median=45.00 p25=42.00 p75=48.00 n=5 suppliers=3 accepted=1 real_ranges=0. The lines read well_above, within and well_below, and the item nobody else priced reads no_benchmark_yet. Afterwards 0 fn_price_benchmark* routines exist.
+
+This note therefore stays for the life of the file. Seat: sales_engineer.

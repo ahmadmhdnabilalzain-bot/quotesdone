@@ -54,6 +54,22 @@ export function checksGreen(rollup = []) {
     && rollup.every((c) => GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
 }
 
+// A check still running: no conclusion yet (a check run), or a status still PENDING (Vercel and friends).
+export function checksRunning(rollup = []) {
+  return rollup.some((c) => /^(PENDING|EXPECTED|QUEUED|IN_PROGRESS|WAITING)$/i.test(String(c.conclusion || c.state || 'PENDING')));
+}
+
+// THE ONE STALE PR TO REFRESH (29 Sep 2026). A reviewed PR's production checks compare its branch with the
+// live database, so every merge to main turns the others red until they are updated. When nothing can be
+// released, the oldest reviewed PR whose only blocker is its checks - finished, not green, and its branch
+// behind main - is updated, and the tick ends; a later tick releases it once green. One PR at a time, never
+// a sweep: sixty updates at once jammed Actions for hours on 28 Sep.
+export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () => false } = {}) {
+  // every other gate must already pass: judged as if its checks were green
+  return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
+    && refusal({ ...pr, statusCheckRollup: [{ conclusion: 'SUCCESS' }] }, { depState }) === null && isBehind(pr)) || null;
+}
+
 // ponytail: one fixed Dubai window (UTC+4, no DST), weekdays and weekends alike; move it to a
 // table if campaigns ever get their own calendar. RELEASE_CAMPAIGN_HOURS="08-20" overrides.
 export function inCampaignHours(now = new Date(), window = process.env.RELEASE_CAMPAIGN_HOURS || '08-20') {
@@ -196,7 +212,17 @@ export async function main(argv = process.argv.slice(2)) {
     log(`#${pr.number} ${why ? 'skip: ' + why : 'ELIGIBLE'}  - ${pr.title.slice(0, 90)}`);
     if (!why && !chosen) { chosen = pr; entries = e; }
   }
-  if (!chosen) { log('nothing to release'); return 0; }
+  if (!chosen) {
+    const isBehind = (pr) => {
+      run('git', ['fetch', '-q', 'origin', 'main', `pull/${pr.number}/head`]);
+      return run('git', ['merge-base', '--is-ancestor', 'origin/main', pr.headRefOid]).code !== 0;
+    };
+    const stale = staleCandidate(prs, { depState, isBehind });
+    if (!stale) { log('nothing to release'); return 0; }
+    log(`nothing to release; #${stale.number} is behind main with finished, failing checks: ${DRY ? 'DRY RUN would update' : 'updating'} its branch`);
+    if (!DRY) { const r = run('gh', ['pr', 'update-branch', String(stale.number)]); log(r.out.trim()); }
+    return 0;
+  }
 
   const applies = applyOrder(entries.filter((x) => !isProbeNote(x.note) && x.text));
   const probes = entries.filter((x) => isProbeNote(x.note) && x.text);
