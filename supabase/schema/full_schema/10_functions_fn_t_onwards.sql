@@ -239,6 +239,7 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('duty_pause','company'),   -- every_duty_runner_honours_one_pause_switch.sql: who paused which duty and why
     ('seat_playbook','knowledge'),
     ('customer_followup','customer'),
     ('it_game_day_run','company'), ('it_duty_schedule','company'),

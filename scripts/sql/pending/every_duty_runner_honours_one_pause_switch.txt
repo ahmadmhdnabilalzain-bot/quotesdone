@@ -1,5 +1,0 @@
-Committed, applied at merge (apply-at-merge rule, 28 Sep 2026). It creates public.duty_pause, redefines
-fn_seat_duties_tick to skip a paused duty, and scopes fn.resilience_ping's credential to supplier_portal so the
-hourly launch-path probe's 401 is marked as our own traffic (incident 508). The edge functions that read the
-table (resilience_ping, marketing) treat a missing table as "nothing paused", so deploying them first is safe.
-On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: it_engineer.
