@@ -1,0 +1,102 @@
+{
+  "trade": "energy_services",
+  "layer": "uae-market",
+  "label_en": "Energy audit & efficiency (ESCO)",
+  "label_ar": "تدقيق الطاقة وكفاءتها (ESCO)",
+  "entries": [
+    {
+      "id": "energy_services:uae-market-products",
+      "topic": "Energy audit & efficiency (ESCO): products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Energy services in the UAE include energy audits (Level 1-3 audits to ISO 50002), energy performance contracting (EPC) through ESCOs (guaranteed or shared savings), retrofits (LED lighting, chiller plant optimisation, VFDs, BMS upgrades, building envelope improvements), solar PV (rooftop, carport, ground-mounted) under DEWA Shams Dubai net metering and equivalent schemes in other emirates, solar water heating, energy management systems and ISO 50001 implementation, measurement and verification (IPMVP), district cooling connection advisory, demand response, EV charging infrastructure (DEWA EV Green Charger and other operators), power quality studies, and green building energy modelling. Buyers ask about accreditation: ESCOs need Dubai Regulatory and Supervisory Bureau accreditation to bid in tenders of Etihad ESCO, DEWA's Super ESCO for building retrofits; DEWA enrols solar contractors and consultants for Shams Dubai; RSB Dubai regulates; solar installations need DEWA/ADDC/SEWA/EtihadWE approval and IEC-certified modules and inverters.",
+      "body_ar": "تشمل خدمات الطاقة في الإمارات عمليات تدقيق الطاقة (المستويات 1-3، وISO 50002)، وعقود أداء الطاقة عبر شركات خدمات الطاقة (بضمان الوفورات أو تقاسمها)، وأعمال التحديث (إضاءة LED، وتحسين محطات المبردات، ومحركات السرعة المتغيرة، وتحديث أنظمة إدارة المباني، وتحسين غلاف المبنى)، والطاقة الشمسية الكهروضوئية (على الأسطح، ومظلات المواقف، والأرضية) ضمن برنامج شمس دبي لصافي القياس لدى هيئة كهرباء ومياه دبي والبرامج المماثلة في الإمارات الأخرى، والسخانات الشمسية للمياه، وأنظمة إدارة الطاقة وتطبيق ISO 50001، والقياس والتحقق (IPMVP)، واستشارات الربط بالتبريد المناطقي، والاستجابة للطلب، والبنية التحتية لشحن المركبات الكهربائية (الشاحن الأخضر لهيئة كهرباء ومياه دبي ومشغلون آخرون)، ودراسات جودة الطاقة، ونمذجة الطاقة للمباني الخضراء. يسأل المشترون عن الاعتماد: تحتاج شركات خدمات الطاقة إلى اعتماد مكتب التنظيم والرقابة في دبي للمشاركة في مناقصات اتحاد إسكو، الشركة الكبرى لخدمات الطاقة التابعة لهيئة كهرباء ومياه دبي لتحديث المباني؛ وتسجل هيئة كهرباء ومياه دبي مقاولي واستشاريي الطاقة الشمسية لبرنامج شمس دبي؛ ويتولى مكتب التنظيم والرقابة في دبي التنظيم؛ وتحتاج التركيبات الشمسية إلى موافقة ديوا أو أدك أو سيوا أو الاتحاد للماء والكهرباء، وألواح وعواكس معتمدة وفق IEC.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/shams-dubai-faq",
+        "https://etihadesco.ae/about-us/who-we-are/",
+        "https://www.emicool.com/media-center/press-releases/emicool-and-yellow-door-energy-launch-four-solar-plants-to-decarbonize-dubai-s-district-cooling",
+        "https://www.dewa.gov.ae",
+        "https://www.etihadesco.ae",
+        "https://www.iso.org",
+        "https://evo-world.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai net metering: only DEWA-enrolled solar contractors/consultants may design, install and connect; surplus credited to the DEWA account -> confirmed | Etihad ESCO is DEWA's Super ESCO; ESCOs need Dubai Regulatory and Supervisory Bureau accreditation to bid in its tenders -> corrected: RSB, not Etihad ESCO, accredits ESCOs | Yellow Door Energy builds solar plants in Dubai; Empower, Tabreed and Emicool provide district cooling -> confirmed. Not checked: The Etihad ESCO URL, current status of each named ESCO and installer, and the net-metering rules in northern emirates were not verified."
+    },
+    {
+      "id": "energy_services:uae-market-brands",
+      "topic": "Energy audit & efficiency (ESCO): makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE energy service players and common equipment brands: Etihad ESCO, Yellow Door Energy, Empower, Tabreed, Emicool, Siemens, Schneider Electric, Johnson Controls, Honeywell, Jinko Solar, LONGi, Huawei, SMA. The equipment brands' UAE distributors were not checked; check a solar contractor's current DEWA enrolment before signing.",
+      "body_ar": "جهات خدمات الطاقة المؤكدة في الإمارات وعلامات المعدات الشائعة: Etihad ESCO، Yellow Door Energy، Empower، Tabreed، Emicool، Siemens، Schneider Electric، Johnson Controls، Honeywell، Jinko Solar، LONGi، Huawei، SMA. ولم يُتحقق من موزعي علامات المعدات في الإمارات؛ ويجب التحقق من تسجيل مقاول الطاقة الشمسية الحالي لدى هيئة كهرباء ومياه دبي قبل التعاقد.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/shams-dubai-faq",
+        "https://etihadesco.ae/about-us/who-we-are/",
+        "https://www.emicool.com/media-center/press-releases/emicool-and-yellow-door-energy-launch-four-solar-plants-to-decarbonize-dubai-s-district-cooling",
+        "https://www.dewa.gov.ae",
+        "https://www.etihadesco.ae",
+        "https://www.iso.org",
+        "https://evo-world.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai net metering: only DEWA-enrolled solar contractors/consultants may design, install and connect; surplus credited to the DEWA account -> confirmed | Etihad ESCO is DEWA's Super ESCO; ESCOs need Dubai Regulatory and Supervisory Bureau accreditation to bid in its tenders -> corrected: RSB, not Etihad ESCO, accredits ESCOs | Yellow Door Energy builds solar plants in Dubai; Empower, Tabreed and Emicool provide district cooling -> confirmed. Not checked: The Etihad ESCO URL, current status of each named ESCO and installer, and the net-metering rules in northern emirates were not verified."
+    },
+    {
+      "id": "energy_services:uae-market-sizes",
+      "topic": "Energy audit & efficiency (ESCO): typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Energy audits are priced per building/site by floor area; solar PV per kWp installed (turnkey EPC) or under PPA/lease models priced per kWh with zero capex; ESCO retrofits under EPC contracts where fees come from guaranteed savings over 5-15 years; M&V per year; EV chargers per unit plus installation. Feasibility studies are fixed-fee.",
+      "body_ar": "تُسعّر عمليات تدقيق الطاقة لكل مبنى/موقع حسب المساحة؛ والطاقة الشمسية الكهروضوئية لكل كيلوواط ذروة مركب (تنفيذ متكامل) أو بنماذج اتفاقيات شراء الطاقة/الإيجار مسعرة لكل كيلوواط ساعة دون نفقات رأسمالية؛ وأعمال التحديث عبر شركات خدمات الطاقة بعقود أداء تُدفع أتعابها من الوفورات المضمونة على مدى 5-15 سنة؛ والقياس والتحقق سنوياً؛ وشواحن المركبات الكهربائية لكل وحدة مع التركيب. وتكون دراسات الجدوى بأتعاب ثابتة.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/shams-dubai-faq",
+        "https://etihadesco.ae/about-us/who-we-are/",
+        "https://www.emicool.com/media-center/press-releases/emicool-and-yellow-door-energy-launch-four-solar-plants-to-decarbonize-dubai-s-district-cooling",
+        "https://www.dewa.gov.ae",
+        "https://www.etihadesco.ae",
+        "https://www.iso.org",
+        "https://evo-world.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Shams Dubai net metering: only DEWA-enrolled solar contractors/consultants may design, install and connect; surplus credited to the DEWA account -> confirmed | Etihad ESCO is DEWA's Super ESCO; ESCOs need Dubai Regulatory and Supervisory Bureau accreditation to bid in its tenders -> corrected: RSB, not Etihad ESCO, accredits ESCOs | Yellow Door Energy builds solar plants in Dubai; Empower, Tabreed and Emicool provide district cooling -> confirmed. Not checked: The Etihad ESCO URL, current status of each named ESCO and installer, and the net-metering rules in northern emirates were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is rooftop solar priced per kWp, and is there a zero-capex option?",
+      "q_ar": "هل تُسعّر الطاقة الشمسية على الأسطح لكل كيلوواط ذروة، وهل يوجد خيار دون نفقات رأسمالية؟",
+      "expected_entry_ids": [
+        "energy_services:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Shams Dubai net metering: only DEWA-enrolled solar contractors/consultants may design, install and connect; surplus credited to the DEWA account",
+        "url": "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/shams-dubai-faq",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Etihad ESCO is DEWA's Super ESCO; ESCOs need Dubai Regulatory and Supervisory Bureau accreditation to bid in its tenders",
+        "url": "https://etihadesco.ae/about-us/who-we-are/",
+        "result": "corrected: RSB, not Etihad ESCO, accredits ESCOs"
+      },
+      {
+        "claim": "Yellow Door Energy builds solar plants in Dubai; Empower, Tabreed and Emicool provide district cooling",
+        "url": "https://www.emicool.com/media-center/press-releases/emicool-and-yellow-door-energy-launch-four-solar-plants-to-decarbonize-dubai-s-district-cooling",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The Etihad ESCO URL, current status of each named ESCO and installer, and the net-metering rules in northern emirates were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

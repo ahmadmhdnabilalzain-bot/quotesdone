@@ -1,0 +1,3 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run
+after the_ceo_issues_directives_and_closes_them_on_their_own_condition.sql is applied, and must print PROBE OK.
+This note therefore stays for the life of the file. Seat: ceo.

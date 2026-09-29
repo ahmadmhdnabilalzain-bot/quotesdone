@@ -1,0 +1,102 @@
+{
+  "trade": "tissue_disposables",
+  "layer": "uae-market",
+  "label_en": "Tissue & disposables",
+  "label_ar": "المناديل الورقية والمستلزمات أحادية الاستخدام",
+  "entries": [
+    {
+      "id": "tissue_disposables:uae-market-products",
+      "topic": "Tissue & disposables: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Tissue and disposables sold in the UAE include facial tissues (2-ply, 150-200 sheets), toilet rolls (2-3 ply, standard and jumbo/maxi rolls), kitchen towels, hand towels (interfold/M-fold/Z-fold, centre-pull and autocut rolls), napkins (cocktail, lunch, dinner, airlaid), table covers, wet wipes, disposable food packaging (aluminium containers, PP/PET containers, paper cups, lids, straws, cutlery), cling film and foil rolls, garbage bags, gloves (nitrile, vinyl, latex, PE), aprons, hairnets and shoe covers. Buyers specify ply, GSM, sheet count and size, virgin pulp versus recycled, embossing, dispenser compatibility, food-contact compliance, and biodegradability. Single-use plastics are restricted under Ministerial Resolution 380 of 2022: styrofoam cups and food containers, plastic straws, stirrers and table covers have been banned since 1 January 2025, and plastic cups and lids, cutlery and plates since 1 January 2026; plant-based PLA products are excluded. Food-contact packaging must meet GSO and municipality food-contact requirements.",
+      "body_ar": "تشمل المناديل والمستهلكات المباعة في الإمارات مناديل الوجه (طبقتان، 150-200 منديل)، ولفائف ورق الحمام (طبقتان أو 3 طبقات، قياسية وجامبو/ماكسي)، ومناشف المطبخ، ومناشف اليدين (مطوية متداخلة M أو Z، ولفائف السحب من المركز والقص التلقائي)، ومناديل المائدة (كوكتيل، غداء، عشاء، إيرليد)، وأغطية الطاولات، والمناديل المبللة، وعبوات الطعام أحادية الاستخدام (حاويات الألمنيوم، وحاويات البولي بروبيلين والبولي إيثيلين تيرفثالات، والأكواب الورقية، والأغطية، والمصاصات، وأدوات المائدة)، ولفائف التغليف البلاستيكي والألمنيوم، وأكياس القمامة، والقفازات (نيتريل، فينيل، لاتكس، بولي إيثيلين)، والمرايل، وشبكات الشعر، وأغطية الأحذية. يحدد المشترون عدد الطبقات والوزن بالغرام للمتر المربع وعدد الأوراق وحجمها، ولب الخشب البكر مقابل المعاد تدويره، والنقش، والتوافق مع الموزعات، والامتثال لملامسة الغذاء، وقابلية التحلل. والبلاستيك أحادي الاستخدام مقيد بموجب القرار الوزاري رقم 380 لسنة 2022: حُظرت أكواب وحاويات الطعام من الفوم والمصاصات وأدوات التقليب وأغطية الطاولات البلاستيكية منذ 1 يناير 2025، والأكواب والأغطية وأدوات المائدة والأطباق البلاستيكية منذ 1 يناير 2026؛ وتُستثنى منتجات حمض البولي لاكتيك النباتية. ويجب أن تستوفي عبوات ملامسة الغذاء متطلبات هيئة التقييس الخليجية والبلديات.",
+      "sources": [
+        "https://www.thenationalnews.com/news/uae/2025/12/16/plastic-ban-uae-2026-list-of-products-banned/",
+        "https://www.dm.gov.ae/2025/12/24/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/",
+        "https://www.hotpackglobal.com/product-category/tissue-products/",
+        "https://www.moccae.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.essity.com",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded -> corrected: dates and item lists made specific | Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023) -> confirmed | Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based -> confirmed. Not checked: Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified."
+    },
+    {
+      "id": "tissue_disposables:uae-market-brands",
+      "topic": "Tissue & disposables: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE-based makers and widely sold brands: Hotpack, Falcon Pack, Fine Hygienic Holding, Kimberly-Clark (Kleenex, Scott), Essity (Tork), Sanita, Napco. The imported brands' UAE distributors were not checked. Gloves and disposables are largely imported from Malaysia, Thailand, China and India via traders in Deira, Al Ras, Sharjah and Dragon Mart.",
+      "body_ar": "المصنعون المؤكدون في الإمارات والعلامات المباعة على نطاق واسع: Hotpack، Falcon Pack، Fine Hygienic Holding، Kimberly-Clark (Kleenex, Scott)، Essity (Tork)، Sanita، Napco. ولم يُتحقق من موزعي العلامات المستوردة في الإمارات. وتُستورد القفازات والمستهلكات بشكل كبير من ماليزيا وتايلاند والصين والهند عبر تجار في ديرة والراس والشارقة ودراغون مارت.",
+      "sources": [
+        "https://www.thenationalnews.com/news/uae/2025/12/16/plastic-ban-uae-2026-list-of-products-banned/",
+        "https://www.dm.gov.ae/2025/12/24/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/",
+        "https://www.hotpackglobal.com/product-category/tissue-products/",
+        "https://www.moccae.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.essity.com",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded -> corrected: dates and item lists made specific | Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023) -> confirmed | Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based -> confirmed. Not checked: Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified."
+    },
+    {
+      "id": "tissue_disposables:uae-market-sizes",
+      "topic": "Tissue & disposables: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Tissue is sold per carton (e.g. 30 or 36 boxes of facial tissue, 48 toilet rolls, 6 or 12 jumbo rolls, 20-24 packs of interfold towels) and priced per carton or per pallet. Napkins come in packs of 50-100, cartons of 2,000-4,000. Food packaging is sold per carton of 250-1,000 pieces, gloves per box of 100 and carton of 10 boxes. Private-label MOQs are typically one or more 20 ft or 40 ft container loads, or a few hundred cartons from local converters.",
+      "body_ar": "تُباع المناديل بالكرتونة (مثل 30 أو 36 علبة مناديل وجه، 48 لفافة ورق حمام، 6 أو 12 لفافة جامبو، 20-24 عبوة مناشف متداخلة) وتُسعّر لكل كرتونة أو لكل منصة. وتأتي مناديل المائدة في عبوات من 50 إلى 100، وكراتين من 2000 إلى 4000. وتُباع عبوات الطعام بالكرتونة من 250 إلى 1000 قطعة، والقفازات بعلبة من 100 وكرتونة من 10 علب. وعادةً ما يكون الحد الأدنى للطلب للعلامات الخاصة حمولة حاوية 20 أو 40 قدماً أو أكثر، أو بضع مئات من الكراتين لدى المحولين المحليين.",
+      "sources": [
+        "https://www.thenationalnews.com/news/uae/2025/12/16/plastic-ban-uae-2026-list-of-products-banned/",
+        "https://www.dm.gov.ae/2025/12/24/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/",
+        "https://www.hotpackglobal.com/product-category/tissue-products/",
+        "https://www.moccae.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.essity.com",
+        "https://www.gso.org.sa"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded -> corrected: dates and item lists made specific | Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023) -> confirmed | Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based -> confirmed. Not checked: Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can we still buy styrofoam food containers for a restaurant in Dubai?",
+      "q_ar": "هل لا يزال بإمكاننا شراء حاويات طعام من الفوم لمطعم في دبي؟",
+      "expected_entry_ids": [
+        "tissue_disposables:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Federal single-use plastics ban (Ministerial Resolution 380 of 2022): styrofoam cups and food containers, straws, stirrers and table covers from 1 Jan 2025; cups and lids, cutlery and plates from 1 Jan 2026; PLA products excluded",
+        "url": "https://www.thenationalnews.com/news/uae/2025/12/16/plastic-ban-uae-2026-list-of-products-banned/",
+        "result": "corrected: dates and item lists made specific"
+      },
+      {
+        "claim": "Dubai final phase of single-use plastic ban on 1 Jan 2026 (Executive Council Resolution 124 of 2023)",
+        "url": "https://www.dm.gov.ae/2025/12/24/dubai-to-enforce-final-phase-of-single-use-plastic-ban-from-2026/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Hotpack (Soft n Cool tissue, Dubai and Sharjah plants), Falcon Pack (food packaging) and Fine Hygienic Holding are UAE-based",
+        "url": "https://www.hotpackglobal.com/product-category/tissue-products/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Exact phase-in dates and item lists of the federal and emirate single-use plastic bans should be checked at time of quoting; brand distributors were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -9,7 +9,7 @@
 // The source of truth is the repository copy: knowledge/packs/<trade>.json (and <trade>.market.json, the
 // UAE market file for that trade) and knowledge/seats/<seat>.json. Shape:
 //   { trade|seat, entries: [{id, topic, kind, body_en, body_ar, sources[], confidence, as_of,
-//     required_specs?, gap_kind?, source_note?}], eval: [{q_en, q_ar, expected_entry_ids[]}], verified: {...} }
+//     area?, required_specs?, gap_kind?, source_note?}], eval: [{q_en, q_ar, expected_entry_ids[]}], verified: {...} }
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -64,6 +64,7 @@ export function validate(pack, kind, code) {
     if (typeof e.body_ar === 'string' && !AR.test(e.body_ar)) err.push(`${at}: body_ar is not Arabic`);
     if (!Array.isArray(e.sources)) err.push(`${at}: sources must be an array`);
     if (!['high', 'medium', 'low'].includes(e.confidence)) err.push(`${at}: confidence ${e.confidence}`);
+    if (e.area !== undefined && !/^[a-z_]+$/.test(e.area)) err.push(`${at}: area must be a lowercase_word, got ${JSON.stringify(e.area)}`);
   }
   for (const q of pack.eval ?? []) {
     if (!q.q_en || !q.q_ar || !Array.isArray(q.expected_entry_ids) || !q.expected_entry_ids.length) err.push(`eval: malformed ${JSON.stringify(q).slice(0, 80)}`);
@@ -122,8 +123,11 @@ export function rowsOf(p) {
     const record_id = lang === 'en' ? e.id : e.id + '@ar';
     const body = lang === 'en' ? e.body_en : e.body_ar;
     const sources = (e.sources ?? []).map(url);
-    const tags = [...(p.kind === 'trade' ? ['trade:' + p.code] : []), 'verified_pack', 'lang:' + lang, 'kind:' + e.kind, 'confidence:' + e.confidence];
-    const sd = { entry_id: e.id, lang, kind: e.kind, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
+    // area: the seat's own subject area (founder instructions 889/893/894, 28 Sep 2026), so a lookup can narrow to
+    // the right area before ranking by meaning. Optional: a pack without it loads exactly as before.
+    const tags = [...(p.kind === 'trade' ? ['trade:' + p.code] : []), 'verified_pack', 'lang:' + lang, 'kind:' + e.kind,
+      ...(e.area ? ['area:' + e.area] : []), 'confidence:' + e.confidence];
+    const sd = { entry_id: e.id, lang, kind: e.kind, area: e.area ?? null, confidence: e.confidence, as_of: e.as_of, gap_kind: e.gap_kind ?? null,
       required_specs: e.required_specs ?? null, source_note: e.source_note ?? null, sources: e.sources ?? [], pack_file: p.rel };
     const b = sha(body);
     let cols;

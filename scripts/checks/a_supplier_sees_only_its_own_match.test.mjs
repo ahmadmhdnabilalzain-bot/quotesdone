@@ -15,7 +15,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pendingNotes } from '../lib/pending_sql.mjs';
+import { pendingNotes, manifestHas } from '../lib/pending_sql.mjs';
 
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
 const read = (...p) => readFileSync(join(ROOT, ...p), 'utf8');
@@ -276,7 +276,7 @@ test('the SQL files are accounted for — a pending note, not a MANIFEST line', 
   const notes = pendingNotes();
   for (const f of ['scripts/sql/a_supplier_sees_only_the_jobs_it_was_matched_to.sql',
                    'scripts/sql/a_supplier_sees_only_the_jobs_it_was_matched_to_probe.sql']) {
-    assert.ok(notes.has(f) !== manifest.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
+    assert.ok(notes.has(f) !== manifestHas(f), `${f}: exactly one of a pending note and a MANIFEST line`);
     assert.equal(manifest.filter((l) => l === f).length <= 1, true, `${f} is listed twice in the MANIFEST`);
   }
 });
