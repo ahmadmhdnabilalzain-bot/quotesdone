@@ -1,5 +1,0 @@
-Committed, not applied: the founder's instruction 1013 says do not apply before the pull request merges. Apply it after
-the merge with node scripts/apply_sql.mjs <file> --apply --ddl, then delete this note and append the file to the END of
-MANIFEST.txt in the same commit. The seat_duty row it inserts starts the weekly watch on the next duty tick.
-Measured 29 Sep 2026: the file plus its probe, run together in one rolled-back transaction on htdblwldjkcgjvmqkbeh,
-printed PROBE OK, reading the real journals (Vercel AED 183.26 and Resend AED 73.45 in the last 30 days). Seat: it_engineer.

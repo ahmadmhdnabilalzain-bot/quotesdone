@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T09:42:32.480Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T09:50:03.823Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (680) =====
+-- ===== TABLES (681) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -4093,6 +4093,20 @@ CREATE TABLE IF NOT EXISTS public.it_change_source (
   match_on text NOT NULL,
   pattern text NOT NULL,
   meaning text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.it_cost_watch_week (
+  week_ending date NOT NULL,
+  provider text NOT NULL,
+  basis text NOT NULL,
+  period_days integer NOT NULL,
+  this_aed numeric,
+  prior_aed numeric,
+  jumped boolean DEFAULT false NOT NULL,
+  owner_seat text,
+  cause text,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  measured_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.it_credential_rotation (
@@ -9716,6 +9730,7 @@ ALTER TABLE public.it_access_known ADD CONSTRAINT it_access_known_pkey PRIMARY K
 ALTER TABLE public.it_change_acceptance ADD CONSTRAINT it_change_acceptance_pkey PRIMARY KEY (txid);
 ALTER TABLE public.it_change_revision ADD CONSTRAINT it_change_revision_pkey PRIMARY KEY (rev);
 ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_pkey PRIMARY KEY (match_on, pattern);
+ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_pkey PRIMARY KEY (week_ending, provider);
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_pkey PRIMARY KEY (id);
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_pkey PRIMARY KEY (duty);
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_pkey PRIMARY KEY (issue_key);
@@ -10506,6 +10521,9 @@ ALTER TABLE public.it_change_revision ADD CONSTRAINT it_change_revision_verdict_
 ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_match_on_check CHECK ((match_on = ANY (ARRAY['application_name'::text, 'session_user'::text])));
 ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_meaning_check CHECK ((btrim(meaning) <> ''::text));
 ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_pattern_check CHECK ((btrim(pattern) <> ''::text));
+ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_basis_check CHECK ((basis = ANY (ARRAY['usage_api'::text, 'ai_cost_log'::text, 'journals'::text, 'unavailable'::text])));
+ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_period_days_check CHECK ((period_days > 0));
+ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_provider_check CHECK ((provider = ANY (ARRAY['supabase'::text, 'vercel'::text, 'resend'::text, 'twilio'::text, 'openrouter'::text])));
 ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_status_check CHECK ((status = ANY (ARRAY['overlap'::text, 'retired'::text, 'held'::text])));
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_every_check CHECK ((every > '00:00:00'::interval));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_affected_ck CHECK ((affected >= 0));
@@ -23482,6 +23500,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -23997,135 +24144,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -44695,6 +44713,126 @@ begin
     end if;
   end loop;
   return jsonb_build_object('unsigned_revision', v_rev, 'unsigned_changes_closed', n_closed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_cost_jumped(p_this numeric, p_prior numeric)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_this, 0) - coalesce(p_prior, 0) >= public.fn_it_threshold('cost_watch_floor_aed')
+     and coalesce(p_this, 0) > coalesce(p_prior, 0) * public.fn_it_threshold('cost_watch_jump_multiple')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_cost_watch_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_now timestamptz := now();
+  v_week date := (now() at time zone 'Asia/Dubai')::date;
+  v_fx numeric := public.fn_it_threshold('usd_aed_rate');
+  v_items jsonb := '[]'::jsonb; v_rows jsonb := '[]'::jsonb;
+  p text; v_this numeric; v_prior numeric; v_days int; v_basis text; v_owner text; v_cause text; v_detail jsonb;
+  v_top record; v_n int;
+begin
+  foreach p in array array['openrouter', 'twilio', 'supabase', 'vercel', 'resend'] loop
+    v_detail := '{}'::jsonb; v_cause := null; v_top := null;
+    if p = 'openrouter' then
+      v_days := 7; v_basis := 'ai_cost_log';
+      select coalesce(sum(cost_aed) filter (where occurred_at >= v_now - interval '7 days'), 0),
+             coalesce(sum(cost_aed) filter (where occurred_at < v_now - interval '7 days'), 0), count(*)
+        into v_this, v_prior, v_n
+        from public.ai_cost_log where occurred_at >= v_now - interval '14 days' and occurred_at < v_now;
+      if v_n = 0 then v_basis := 'unavailable'; end if;
+      select coalesce(seat, agent_key, 'unnamed') seat, coalesce(task_class, '?') task_class, coalesce(model_used, '?') model,
+             round(coalesce(sum(cost_aed) filter (where occurred_at >= v_now - interval '7 days'), 0), 2) now_aed,
+             round(coalesce(sum(cost_aed) filter (where occurred_at < v_now - interval '7 days'), 0), 2) before_aed
+        into v_top
+        from public.ai_cost_log where occurred_at >= v_now - interval '14 days' and occurred_at < v_now
+       group by 1, 2, 3
+       order by coalesce(sum(cost_aed) filter (where occurred_at >= v_now - interval '7 days'), 0)
+              - coalesce(sum(cost_aed) filter (where occurred_at < v_now - interval '7 days'), 0) desc
+       limit 1;
+      v_owner := case when v_top.seat in ('ceo', 'customer_support', 'sales_engineer', 'accountant', 'it_engineer', 'marketing')
+                      then v_top.seat else 'ceo' end;
+      if v_top.seat is not null then
+        v_cause := format('%s / %s on %s rose from AED %s to AED %s', v_top.seat, v_top.task_class, v_top.model, v_top.before_aed, v_top.now_aed);
+        v_detail := jsonb_build_object('top_rise', to_jsonb(v_top));
+      end if;
+    elsif p = 'twilio' then
+      v_days := 7; v_basis := 'usage_api'; v_owner := 'customer_support';
+      select coalesce(sum(d.amount_minor / 100.0 * case when upper(d.currency) = 'AED' then 1 else v_fx end)
+                        filter (where d.day > v_week - 7), 0),
+             coalesce(sum(d.amount_minor / 100.0 * case when upper(d.currency) = 'AED' then 1 else v_fx end)
+                        filter (where d.day <= v_week - 7), 0), count(*)
+        into v_this, v_prior, v_n
+        from public.it_spend_daily d where d.source = 'twilio' and d.day > v_week - 14 and d.day <= v_week;
+      if v_n = 0 then v_basis := 'unavailable'; end if;
+      select d.day, round(d.amount_minor / 100.0, 2) amount, upper(d.currency) currency into v_top
+        from public.it_spend_daily d where d.source = 'twilio' and d.day > v_week - 7 and d.day <= v_week
+       order by d.amount_minor desc limit 1;
+      v_detail := jsonb_build_object('costliest_day', to_jsonb(v_top),
+        'whatsapp_replies_sent_this_week', (select count(*) from public.wa_messages w where w.created_at >= v_now - interval '7 days' and w.reply is not null and coalesce(w.sent, false)),
+        'whatsapp_replies_sent_week_before', (select count(*) from public.wa_messages w where w.created_at >= v_now - interval '14 days' and w.created_at < v_now - interval '7 days' and w.reply is not null and coalesce(w.sent, false)));
+      if v_top.day is not null then
+        v_cause := format('the costliest day was %s (%s %s); WhatsApp replies sent %s this week against %s the week before',
+                          v_top.day, v_top.amount, v_top.currency, v_detail->>'whatsapp_replies_sent_this_week', v_detail->>'whatsapp_replies_sent_week_before');
+      end if;
+    else
+      v_days := 30; v_basis := 'journals';
+      v_owner := case when p = 'resend' then 'customer_support' else 'it_engineer' end;
+      select coalesce(sum(l.debit - l.credit) filter (where j.entry_date > v_week - 30), 0),
+             coalesce(sum(l.debit - l.credit) filter (where j.entry_date <= v_week - 30), 0), count(*)
+        into v_this, v_prior, v_n
+        from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id
+       where j.status = 'posted' and l.account_code like '6%'
+         and j.entry_date > v_week - 60 and j.entry_date <= v_week
+         and (coalesce(l.memo, '') ~* ('\m' || p || '\M') or coalesce(j.memo, '') ~* ('\m' || p || '\M'));
+      if v_n = 0 then v_basis := 'unavailable'; v_this := null; v_prior := null; end if;
+      v_detail := jsonb_build_object('entries_this_period', (
+        select coalesce(jsonb_agg(jsonb_build_object('entry_no', j.entry_no, 'date', j.entry_date, 'memo', left(coalesce(l.memo, j.memo), 120),
+                                                     'aed', l.debit - l.credit) order by l.debit - l.credit desc), '[]'::jsonb)
+          from public.gl_journal_lines l join public.gl_journal j on j.id = l.journal_id
+         where j.status = 'posted' and l.account_code like '6%' and j.entry_date > v_week - 30 and j.entry_date <= v_week
+           and (coalesce(l.memo, '') ~* ('\m' || p || '\M') or coalesce(j.memo, '') ~* ('\m' || p || '\M'))));
+      if jsonb_array_length(v_detail->'entries_this_period') > 0 then
+        v_cause := 'the journal entries of the period: ' || (select string_agg(format('%s %s AED %s', e->>'date', e->>'memo', e->>'aed'), '; ')
+                                                               from (select e from jsonb_array_elements(v_detail->'entries_this_period') e limit 3) s);
+      end if;
+    end if;
+
+    v_rows := v_rows || jsonb_build_object('provider', p, 'basis', v_basis, 'period_days', v_days,
+      'this_aed', round(v_this, 2), 'prior_aed', round(v_prior, 2),
+      'jumped', v_basis <> 'unavailable' and public.fn_it_cost_jumped(v_this, v_prior),
+      'owner_seat', v_owner, 'cause', v_cause, 'detail', v_detail);
+
+    insert into public.it_cost_watch_week (week_ending, provider, basis, period_days, this_aed, prior_aed, jumped, owner_seat, cause, detail, measured_at)
+    values (v_week, p, v_basis, v_days, round(v_this, 2), round(v_prior, 2),
+            v_basis <> 'unavailable' and public.fn_it_cost_jumped(v_this, v_prior), v_owner, v_cause, v_detail, v_now)
+    on conflict (week_ending, provider) do update
+      set basis = excluded.basis, period_days = excluded.period_days, this_aed = excluded.this_aed, prior_aed = excluded.prior_aed,
+          jumped = excluded.jumped, owner_seat = excluded.owner_seat, cause = excluded.cause, detail = excluded.detail,
+          measured_at = excluded.measured_at;
+
+    if v_basis <> 'unavailable' and public.fn_it_cost_jumped(v_this, v_prior) then
+      v_items := v_items || jsonb_build_object(
+        'item', p, 'subject', p, 'owner_seat', v_owner, 'blast', 'agent_facing', 'affected', 1,
+        'title', left(format('%s cost AED %s over the last %s days against AED %s the %s before: %s',
+                             p, round(v_this, 2), v_days, round(v_prior, 2), v_days, coalesce(v_cause, 'no cause recorded')), 300),
+        'evidence', jsonb_build_object('this_aed', round(v_this, 2), 'prior_aed', round(v_prior, 2), 'period_days', v_days,
+                                       'basis', v_basis, 'cause', v_cause, 'detail', v_detail,
+                                       'no_cap', 'founder rule: this watches and explains, it never blocks'));
+    end if;
+  end loop;
+
+  return jsonb_build_object('week_ending', v_week, 'providers', v_rows,
+                            'settled', public.fn_it_duty_settle('cost_watch', v_items));
 end $function$
 
 
@@ -87938,6 +88076,7 @@ ALTER TABLE public.it_access_known ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_acceptance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_revision ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_change_source ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.it_cost_watch_week ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_credential_rotation ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_duty_schedule ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.it_engineer_finding ENABLE ROW LEVEL SECURITY;
@@ -88400,6 +88539,7 @@ CREATE POLICY it_access_known_service_role_only ON public.it_access_known AS PER
 CREATE POLICY it_change_acceptance_service_role_only ON public.it_change_acceptance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_revision_service_role_only ON public.it_change_revision AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_change_source_service_role_only ON public.it_change_source AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY it_cost_watch_week_service_role_only ON public.it_cost_watch_week AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_credential_rotation_service_role_only ON public.it_credential_rotation AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_duty_schedule_service_role_only ON public.it_duty_schedule AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY it_expiry_service_role_only ON public.it_expiry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
