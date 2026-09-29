@@ -74,6 +74,8 @@ const post = (anon: string, body: unknown): RequestInit => ({
   headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + anon, apikey: anon },
   body: JSON.stringify(body),
 });
+const withProbe = (init: RequestInit, secret?: string): RequestInit =>
+  secret ? { ...init, headers: { ...(init.headers as Record<string, string>), 'x-qd-probe': secret } } : init;
 const json = (body: string): Record<string, unknown> => { try { return JSON.parse(body); } catch { return {}; } };
 
 // An answer from a function the gateway ran somewhere other than the database region is a regression of
@@ -83,7 +85,7 @@ const inRegion = (h: Headers): string | null => {
   return r && r !== FN_REGION ? `ran in ${r}, not ${FN_REGION}` : null;
 };
 
-export function launchPathProbes(anon: string): Probe[] {
+export function launchPathProbes(anon: string, probeSecret?: string): Probe[] {
   const probes: Probe[] = [];
   // Not a real claim token, and it does not need to be: the page is server-rendered the same for any t,
   // and a GET runs none of the client code that would look it up.
@@ -97,7 +99,10 @@ export function launchPathProbes(anon: string): Probe[] {
     probes.push({ id: `customer:${lang}`, url: `${HOSTS[0]}/${lang}/me`, judge: page(lang, 'me') });
   }
   probes.push({
-    id: 'api:supplier_portal', url: fnUrl('supplier_portal'), init: post(anon, { action: 'dashboard' }),
+    // probeSecret (resilience_ping's scoped credential) marks this deliberate 401 as our own traffic, so
+    // refusal_rate does not count it (_shared/probe_caller.ts, incident 508). It proves nothing else: the
+    // call is still unauthenticated and must still be refused.
+    id: 'api:supplier_portal', url: fnUrl('supplier_portal'), init: withProbe(post(anon, { action: 'dashboard' }), probeSecret),
     judge: (s, b, _u, h) => (s === 401 && json(b).error === 'unauthorized' ? inRegion(h) : `HTTP ${s} ${b.slice(0, 120)}`),
   });
   probes.push({
@@ -135,9 +140,9 @@ async function once(p: Probe, f: typeof fetch): Promise<{ status: number; why: s
   }
 }
 
-export async function probeLaunchPath(anon: string, f: typeof fetch = fetch, retryMs = RETRY_MS): Promise<LaunchPathResult> {
+export async function probeLaunchPath(anon: string, f: typeof fetch = fetch, retryMs = RETRY_MS, probeSecret?: string): Promise<LaunchPathResult> {
   const t0 = Date.now();
-  const probes = launchPathProbes(anon);
+  const probes = launchPathProbes(anon, probeSecret);
   const first = await Promise.all(probes.map((p) => once(p, f)));
   if (first.some((r) => r.why)) await new Promise((s) => setTimeout(s, retryMs));
   const results: ProbeResult[] = await Promise.all(probes.map(async (p, i) => {

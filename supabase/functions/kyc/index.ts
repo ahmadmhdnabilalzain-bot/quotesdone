@@ -495,12 +495,22 @@ async function handle(req: Request, meta: { action?: string }): Promise<Response
         }
       }
       else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
-      let signed_url = null; let signErr = '';
-      try { const secret = await sec('cred_fn_kyc'); const r = await timedFetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }, 45_000); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
-      // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing
-      if (!signed_url) await logRun('error', { action, kind, terms_recorded: true, signed_pdf: false }, 'terms accepted but signed PDF not produced: ' + signErr);
-      else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
-      return J({ ok: true, signed_url });
+      // THE CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
+      // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an
+      // accept_terms waiting 2.9-12 s on compliance_archive rendering the signed PDF; server errors 0. No
+      // caller reads signed_url (the portal ignores it; the certificate is filed on the row and in Dropbox),
+      // so the acceptance is answered once it is RECORDED and the render finishes in the background, the
+      // same EdgeRuntime.waitUntil the audit row uses. A failed render is still logged 'error' exactly as before.
+      const certify = (async () => {
+        let signed_url = null; let signErr = '';
+        try { const secret = await sec('cred_fn_kyc'); const r = await timedFetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }, 45_000); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
+        // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing
+        if (!signed_url) await logRun('error', { action, kind, terms_recorded: true, signed_pdf: false }, 'terms accepted but signed PDF not produced: ' + signErr);
+        else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
+      })();
+      const rt = (globalThis as any).EdgeRuntime;
+      if (typeof rt?.waitUntil === 'function') rt.waitUntil(certify); else await certify;
+      return J({ ok: true, signed_url: null, certificate: 'issuing' });
     }
 
     await logRun('error', { action }, 'unknown_action');
