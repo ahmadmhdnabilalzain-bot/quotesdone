@@ -12,9 +12,12 @@ import { t } from './portalText';
 export function ConciergeSteps({ guide, lang, title, held = null, className = '' }) {
   if (!guide || !Array.isArray(guide.steps) || !guide.steps.length) return null;
   const missing = held && held.held && Array.isArray(held.missing) ? held.missing : [];
+  // No supplier has the request yet: said as it is, never as missing specs (the server never lists any then).
+  const finding = !!(held && held.finding_suppliers);
   return (
     <details open className={'rounded-xl border border-primary/30 bg-primary/5 px-3 py-2 text-[12.5px] ' + className} data-testid="concierge">
       <summary className="cursor-pointer font-semibold text-foreground">{title}</summary>
+      {finding ? <p className="mt-1.5 text-foreground">{t(lang, 'cg_finding')}</p> : null}
       {missing.length ? (
         <div className="mt-1.5">
           <p className="font-semibold text-foreground">{t(lang, 'cg_missing')}</p>

@@ -828,7 +828,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
 
     {note && <div className={S.note}>{note}</div>}
     {postedGuide && <div className="mb-3.5">
-      <ConciergeSteps guide={postedGuide} held={postedGuide.held} lang={lang} title={t(lang, postedGuide.first_inquiry ? 'cg_posted' : 'cg_held')} />
+      <ConciergeSteps guide={postedGuide} held={postedGuide.held} lang={lang} title={t(lang, postedGuide.first_inquiry ? 'cg_posted' : postedGuide.held && postedGuide.held.finding_suppliers ? 'cg_finding_title' : 'cg_held')} />
       <Button variant="link" className="h-auto px-0" onClick={() => setPostedGuide(null)}>{t(lang, 'close')}</Button>
     </div>}
     {/* CP-07: the one place a failed overview or request list is reported, with the way out. */}
@@ -858,7 +858,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;
-        setPostedGuide(g && (g.first_inquiry || (g.held && g.held.held)) ? g : null);
+        setPostedGuide(g && (g.first_inquiry || (g.held && (g.held.held || g.held.finding_suppliers))) ? g : null);
         if (r && r.inquiry_id) openRfq(r.inquiry_id);
       }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
 

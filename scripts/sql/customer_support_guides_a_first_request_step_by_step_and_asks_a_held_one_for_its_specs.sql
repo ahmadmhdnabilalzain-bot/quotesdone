@@ -17,24 +17,27 @@
 --     is held by the founder; this file does not write it.
 --   * Held for specs: public.inquiries.rfq_ready is computed by trg_rfq_complete (fn_rfq_score, BEFORE INSERT OR
 --     UPDATE) and completeness names what is missing (category_missing: the category's required fields, with a
---     plain question in each language on category_specs.fields). A request that is not rfq_ready is skipped by
---     dispatch ({skip:'not_rfq_ready'}), so one that also reached no supplier (no inquiry_matches row) is waiting
---     on its specs and its customer was never told which. All 3 inquiries on production today read rfq_ready
---     false, each with one supplier matched, so none of them is held by this definition.
+--     plain question in each language on category_specs.fields), and no customer was ever told which. All 3
+--     inquiries on production today read rfq_ready false, each with one supplier matched.
+--   * A request that reached NO supplier (no inquiry_matches row on it, or on any of a split request's per-trade
+--     children) is a supply gap, not a spec hold: matching reads the trade, the emirate and the value, not the
+--     specs, so telling that customer to add specs would blame them for something specs cannot fix (re-review).
 --
 -- WHAT THIS ADDS
 --   1. fn_customer_concierge_checklists(category, lang): the trade's spec checklists from the verified packs,
 --      through the taxonomy's own mapping (fn_taxonomy_trades_for). English: the topic and its required specs;
 --      Arabic: the pack's Arabic paragraph for the same checklist.
---   2. fn_customer_concierge_held(inquiry): held or not, and exactly what is missing, in the request's language.
+--   2. fn_customer_concierge_held(inquiry): finding_suppliers (no supplier reached, judged through a split
+--      request's children), or held (reached, specs missing: exactly what, per trade), in the request's language.
 --   3. fn_customer_concierge(customer, category, lang, inquiry): the step-by-step guidance the portal shows -
 --      describe the job, attach PDF or CAD (DWG/DXF) only, give these specs, what happens next - and whether this
 --      is the customer's first request.
 --   4. fn_customer_concierge_message(inquiry, kind): the e-mail, 'first_request' (the first confirmation message:
---      the request number, the held details if any, and the steps) or 'held_for_specs' (a later request waiting on
---      its specs), in the request's language (fn_inquiry_locale, else the registered one).
+--      the request number, the held details or the search for suppliers, and the steps), 'held_for_specs' (a later
+--      request suppliers have, still missing specs) or 'finding_suppliers' (a later request no supplier has yet, which
+--      never mentions specs), in the request's language (fn_inquiry_locale, else the registered one).
 --   5. fn_customer_support_concierge_confirm(inquiry): customer_support sends the right one, once per request
---      (fn_customer_support_duty_send, stages concierge.first_request / concierge.held_for_specs), and returns the
+--      (fn_customer_support_duty_send, stages concierge.first_request / .held_for_specs / .finding_suppliers), and returns the
 --      guidance. customer_api create_inquiry calls it the moment a request is posted.
 --   6. customer_support.concierge (every 30 minutes, fn_customer_support_concierge_tick): the same for a request
 --      posted by any other door (e-mail, WhatsApp) in the last 3 days. A fixture run (qd.duty_fixtures = 'on')
@@ -73,46 +76,63 @@ $fn$;
 revoke execute on function public.fn_customer_concierge_checklists(text, text) from public, anon, authenticated;
 grant execute on function public.fn_customer_concierge_checklists(text, text) to service_role;
 
--- ── 2. held for specs, and what is missing ───────────────────────────────────────────────────────────
+-- ── 2. held for specs, finding suppliers, and what is missing ────────────────────────────────────────
+-- Re-review of #1112 (29 Sep 2026): a request that reached NO supplier is not held for its specs, and its customer is
+-- never told it is: it is 'finding_suppliers' and gets its own honest message. A combined (split) request is judged
+-- by its per-trade parts: reached if any part has an inquiry_matches row, held on each part's own missing specs,
+-- each named with its trade. Only a request that reached suppliers and still lacks required specs is held.
 create or replace function public.fn_customer_concierge_held(p_inquiry uuid)
 returns jsonb
 language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  i public.inquiries; v_ar boolean; v_fields jsonb; v_missing jsonb := '[]'::jsonb; m jsonb; f jsonb; k text;
+  i public.inquiries; u public.inquiries; v_ar boolean; v_units uuid[]; v_split boolean; v_fields jsonb;
+  v_missing jsonb := '[]'::jsonb; m jsonb; f jsonb; k text; v_pre text; v_lang text;
 begin
   select * into i from public.inquiries where id = p_inquiry;
-  if not found then return jsonb_build_object('held', false, 'reason', 'no such request'); end if;
+  if not found then return jsonb_build_object('held', false, 'finding_suppliers', false, 'reason', 'no such request'); end if;
   v_ar := coalesce(public.fn_inquiry_locale(i.id), (select c.locale from public.customers c where c.id = i.customer_id)) = 'ar';
-  if coalesce(i.rfq_ready, false) or coalesce(i.status, '') in ('cancelled', 'closed', 'completed')
-     or exists (select 1 from public.inquiry_matches x where x.inquiry_id = i.id) then
-    return jsonb_build_object('held', false, 'lang', case when v_ar then 'ar' else 'en' end);
+  v_lang := case when v_ar then 'ar' else 'en' end;
+  if coalesce(i.status, '') in ('cancelled', 'closed', 'completed') then
+    return jsonb_build_object('held', false, 'finding_suppliers', false, 'lang', v_lang);
+  end if;
+  v_units := array(select c.id from public.inquiries c where c.parent_inquiry_id = i.id order by c.created_at);
+  v_split := cardinality(v_units) > 0;
+  if not v_split then v_units := array[i.id]; end if;
+  if not exists (select 1 from public.inquiry_matches x where x.inquiry_id = any(v_units) or x.inquiry_id = i.id) then
+    return jsonb_build_object('held', false, 'finding_suppliers', true, 'lang', v_lang, 'missing', '[]'::jsonb);
   end if;
 
-  -- The category's required fields that are still open, in the plain words the intake asks them with.
-  select cs.fields into v_fields from public.category_specs cs where cs.category = i.category;
-  for m in select value from jsonb_array_elements(coalesce(i.completeness->'category_missing', '[]'::jsonb)) loop
-    select value into f from jsonb_array_elements(coalesce(v_fields, '[]'::jsonb)) where value->>'key' = m->>'key' limit 1;
-    v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', m->>'key',
-      'ask', coalesce(nullif(f->>case when v_ar then 'question_plain_ar' else 'question_plain_en' end, ''),
-                      nullif(m->>'question', ''), m->>'key')));
-  end loop;
-  -- The general score only holds a request when it is below the bar; then each missing part is named.
-  if not coalesce((i.completeness->>'generic_ready')::boolean, true) then
-    for k in select value from jsonb_array_elements_text(coalesce(i.completeness->'missing', '[]'::jsonb)) loop
-      v_missing := v_missing || coalesce((select jsonb_build_array(jsonb_build_object('key', k, 'ask', case when v_ar then g.ar else g.en end))
-        from (values
-          ('category', 'What kind of work is it (the trade)?', 'ما نوع العمل المطلوب (التخصص)؟'),
-          ('emirate', 'Which emirate and area is the work in?', 'في أي إمارة ومنطقة سيُنفَّذ العمل؟'),
-          ('scope_detail', 'A fuller description of the work: what, how much and to what standard.', 'وصف أوفى للعمل: ما المطلوب، وبأي كمية، ووفق أي مواصفة.'),
-          ('scope_type', 'Is it one trade, or several trades together?', 'هل يشمل تخصصًا واحدًا أم عدة تخصصات معًا؟'),
-          ('budget', 'Your budget for the work (a range is fine).', 'الميزانية المرصودة للعمل (يكفي نطاق تقريبي).'),
-          ('supporting_detail', 'A drawing (PDF, DWG or DXF), a bill of quantities, or the trades involved.', 'مخطط (PDF أو DWG أو DXF)، أو جدول كميات، أو التخصصات المعنية.')
-        ) g(key, en, ar) where g.key = k), '[]'::jsonb);
+  for u in select * from public.inquiries x where x.id = any(v_units) and not coalesce(x.rfq_ready, false)
+            order by x.created_at loop
+    v_pre := case when v_split then coalesce((select cs.label from public.category_specs cs where cs.category = u.category),
+                                             replace(coalesce(u.category, ''), '_', ' ')) || ': ' else '' end;
+    -- The category's required fields that are still open, in the plain words the intake asks them with.
+    select cs.fields into v_fields from public.category_specs cs where cs.category = u.category;
+    for m in select value from jsonb_array_elements(coalesce(u.completeness->'category_missing', '[]'::jsonb)) loop
+      f := null;
+      select value into f from jsonb_array_elements(coalesce(v_fields, '[]'::jsonb)) where value->>'key' = m->>'key' limit 1;
+      v_missing := v_missing || jsonb_build_array(jsonb_build_object('key', m->>'key', 'inquiry_id', u.id,
+        'ask', v_pre || coalesce(nullif(f->>case when v_ar then 'question_plain_ar' else 'question_plain_en' end, ''),
+                                 nullif(m->>'question', ''), m->>'key')));
     end loop;
-  end if;
-  return jsonb_build_object('held', jsonb_array_length(v_missing) > 0, 'lang', case when v_ar then 'ar' else 'en' end,
+    -- The general score only holds a request when it is below the bar; then each missing part is named.
+    if not coalesce((u.completeness->>'generic_ready')::boolean, true) then
+      for k in select value from jsonb_array_elements_text(coalesce(u.completeness->'missing', '[]'::jsonb)) loop
+        v_missing := v_missing || coalesce((select jsonb_build_array(jsonb_build_object('key', k, 'inquiry_id', u.id, 'ask', v_pre || case when v_ar then g.ar else g.en end))
+          from (values
+            ('category', 'What kind of work is it (the trade)?', 'ما نوع العمل المطلوب (التخصص)؟'),
+            ('emirate', 'Which emirate and area is the work in?', 'في أي إمارة ومنطقة سيُنفَّذ العمل؟'),
+            ('scope_detail', 'A fuller description of the work: what, how much and to what standard.', 'وصف أوفى للعمل: ما المطلوب، وبأي كمية، ووفق أي مواصفة.'),
+            ('scope_type', 'Is it one trade, or several trades together?', 'هل يشمل تخصصًا واحدًا أم عدة تخصصات معًا؟'),
+            ('budget', 'Your budget for the work (a range is fine).', 'الميزانية المرصودة للعمل (يكفي نطاق تقريبي).'),
+            ('supporting_detail', 'A drawing (PDF, DWG or DXF), a bill of quantities, or the trades involved.', 'مخطط (PDF أو DWG أو DXF)، أو جدول كميات، أو التخصصات المعنية.')
+          ) g(key, en, ar) where g.key = k), '[]'::jsonb);
+      end loop;
+    end if;
+  end loop;
+  return jsonb_build_object('held', jsonb_array_length(v_missing) > 0, 'finding_suppliers', false, 'lang', v_lang,
                             'missing', v_missing);
 end $fn$;
 revoke execute on function public.fn_customer_concierge_held(uuid) from public, anon, authenticated;
@@ -183,10 +203,12 @@ language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  i public.inquiries; c public.customers; g jsonb; h jsonb; v_ar boolean; v_name text; v_ref text; v_held text := '';
+  i public.inquiries; c public.customers; g jsonb; h jsonb; v_ar boolean; v_name text; v_ref text; v_held text := ''; v_find text := '';
   v_steps text; v_subj text; v_body text; v_link text;
 begin
-  if p_kind not in ('first_request', 'held_for_specs') then raise exception 'a concierge message is first_request or held_for_specs, not %', p_kind; end if;
+  if p_kind not in ('first_request', 'held_for_specs', 'finding_suppliers') then
+    raise exception 'a concierge message is first_request, held_for_specs or finding_suppliers, not %', p_kind;
+  end if;
   select * into i from public.inquiries where id = p_inquiry;
   if not found then raise exception 'no request %', p_inquiry; end if;
   select * into c from public.customers where id = i.customer_id;
@@ -203,6 +225,12 @@ begin
            then 'يمكنكم تعديل الميزانية والإمارة من حسابكم: ' || v_link || chr(10) || 'ولأي تفاصيل أخرى، يسعدنا أن تردّوا على هذه الرسالة بها.'
            else 'You can change the budget and the emirate from your account: ' || v_link || chr(10) || 'For anything else, reply to this e-mail with the details.' end;
   end if;
+  -- NO SUPPLIER HAS IT YET: said as it is, never blamed on the specs (re-review of #1112).
+  if coalesce((h->>'finding_suppliers')::boolean, false) then
+    v_find := case when v_ar
+      then 'نبحث عن موردين في تخصصكم: لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا حاليًا، ونعمل على دعوة موردين متخصصين فيه. وسنراسلكم فور وصول طلبكم إلى أحدهم، ولا يلزمكم أي إجراء.'
+      else 'We are finding suppliers for your trade. None of the suppliers registered with us today covers this request yet, and we are inviting suppliers who do. We will write as soon as one of them has your request; nothing is needed from you.' end;
+  end if;
   -- The steps, numbered; only the specs step for a later request (the customer has seen the rest before).
   v_steps := (select string_agg(n || '. ' || (e->>'title') || ': ' || (e->>'body'), chr(10) || chr(10) order by n)
                 from jsonb_array_elements(g->'steps') with ordinality s(e, n)
@@ -214,6 +242,7 @@ begin
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
         || 'شكرًا لطلبكم الأول على QuotesDone، ورقمه ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'وقبل أن يتمكّن الموردون من تسعيره، نحتاج منكم إلى التفاصيل التالية:' || chr(10) || v_held || chr(10) || chr(10) else '' end
+        || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
         || 'وللحصول على عروض دقيقة قابلة للمقارنة، إليكم الخطوات:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
         || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
         || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
@@ -222,7 +251,22 @@ begin
         'Dear ' || v_name || ',' || chr(10) || chr(10)
         || 'Thank you for your first request on QuotesDone. Its number is ' || v_ref || '.' || chr(10) || chr(10)
         || case when v_held <> '' then 'Before suppliers can price it, we need a few details from you:' || chr(10) || v_held || chr(10) || chr(10) else '' end
+        || case when v_find <> '' then v_find || chr(10) || chr(10) else '' end
         || 'Here is how to get exact, comparable quotes, step by step:' || chr(10) || chr(10) || v_steps || chr(10) || chr(10)
+        || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
+        || 'If anything is unclear, reply to this e-mail.' end;
+  elsif p_kind = 'finding_suppliers' then
+    if v_find = '' then return jsonb_build_object('lang', g->>'lang', 'not_finding', true); end if;
+    v_subj := case when v_ar then 'نبحث عن موردين لطلبكم ' || v_ref else 'We are finding suppliers for your request ' || v_ref end;
+    v_body := case when v_ar then
+        'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+        || 'شكرًا لطلبكم ' || v_ref || '.' || chr(10) || chr(10) || v_find || chr(10) || chr(10)
+        || 'ويمكنكم متابعة طلبكم من حسابكم: ' || v_link || chr(10) || chr(10)
+        || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
+        || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
+      else
+        'Dear ' || v_name || ',' || chr(10) || chr(10)
+        || 'Thank you for your request ' || v_ref || '.' || chr(10) || chr(10) || v_find || chr(10) || chr(10)
         || 'You can follow your request from your account: ' || v_link || chr(10) || chr(10)
         || 'If anything is unclear, reply to this e-mail.' end;
   else
@@ -230,13 +274,13 @@ begin
     v_subj := case when v_ar then 'طلبكم ' || v_ref || ' يحتاج إلى بعض التفاصيل' else 'Your request ' || v_ref || ' needs a few details' end;
     v_body := case when v_ar then
         'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
-        || 'لم يُرسَل طلبكم ' || v_ref || ' إلى الموردين بعد، لأنهم يحتاجون إلى التفاصيل التالية ليسعّروه بدقة:' || chr(10) || v_held || chr(10) || chr(10)
+        || 'يحتاج الموردون الذين وصلهم طلبكم ' || v_ref || ' إلى التفاصيل التالية ليسعّروه بدقة:' || chr(10) || v_held || chr(10) || chr(10)
         || v_steps || chr(10) || chr(10)
         || 'ولأي استفسار، يسعدنا أن تردّوا على هذه الرسالة.' || chr(10) || chr(10)
         || 'وتفضلوا بقبول فائق الاحترام والتقدير،'
       else
         'Dear ' || v_name || ',' || chr(10) || chr(10)
-        || 'Your request ' || v_ref || ' has not gone to suppliers yet, because they need the following to price it exactly:' || chr(10) || v_held || chr(10) || chr(10)
+        || 'The suppliers who have your request ' || v_ref || ' need the following to price it exactly:' || chr(10) || v_held || chr(10) || chr(10)
         || v_steps || chr(10) || chr(10)
         || 'If anything is unclear, reply to this e-mail.' end;
   end if;
@@ -261,11 +305,12 @@ begin
   if not found or coalesce(c.banned, false) then return jsonb_build_object('sent', false, 'reason', 'no customer to write to'); end if;
   g := public.fn_customer_concierge(i.customer_id, i.category, null, i.id);
   v_kind := case when coalesce((g->>'first_inquiry')::boolean, false) then 'first_request'
+                 when coalesce((g#>>'{held,finding_suppliers}')::boolean, false) then 'finding_suppliers'
                  when coalesce((g#>>'{held,held}')::boolean, false) then 'held_for_specs' end;
-  -- The first confirmation already carried the held details: one message per request, never two.
-  if v_kind = 'held_for_specs' and exists (select 1 from public.customer_support_duty_message d
+  -- The first confirmation already carried the held details or the search for suppliers: one message per request.
+  if v_kind in ('held_for_specs', 'finding_suppliers') and exists (select 1 from public.customer_support_duty_message d
        where d.stage = 'concierge.first_request' and d.subject_key = i.id::text) then v_kind := null; end if;
-  if v_kind is null then return jsonb_build_object('sent', false, 'reason', 'not a first request and not held', 'concierge', g); end if;
+  if v_kind is null then return jsonb_build_object('sent', false, 'reason', 'not a first request, held or waiting for suppliers', 'concierge', g); end if;
   m := public.fn_customer_concierge_message(i.id, v_kind);
   v_sent := public.fn_customer_support_duty_send('concierge.' || v_kind, i.id::text, 'customer', c.email,
     m->>'lang', m->>'subject', m->>'body', c.id, null, i.id);
@@ -282,7 +327,7 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
-  r record; v jsonb; v_first int := 0; v_held int := 0;
+  r record; v jsonb; v_first int := 0; v_held int := 0; v_find int := 0;
 begin
   -- ponytail: a 3-day window; a request older than that has had the activation duty's no-quote message (day 5)
   -- and a guide arriving later would read as noise. Widen it if the tick is ever down for longer.
@@ -291,13 +336,15 @@ begin
               and not coalesce(c.banned, false)
               and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
               and not exists (select 1 from public.customer_support_duty_message d
-                               where d.stage in ('concierge.first_request', 'concierge.held_for_specs') and d.subject_key = i.id::text)
+                               where d.stage in ('concierge.first_request', 'concierge.held_for_specs', 'concierge.finding_suppliers')
+                                 and d.subject_key = i.id::text)
             order by i.created_at limit 200 loop
     v := public.fn_customer_support_concierge_confirm(r.id);
     if v->>'stage' = 'concierge.first_request' then v_first := v_first + 1;
-    elsif v->>'stage' = 'concierge.held_for_specs' then v_held := v_held + 1; end if;
+    elsif v->>'stage' = 'concierge.held_for_specs' then v_held := v_held + 1;
+    elsif v->>'stage' = 'concierge.finding_suppliers' then v_find := v_find + 1; end if;
   end loop;
-  return jsonb_build_object('first_request', v_first, 'held_for_specs', v_held);
+  return jsonb_build_object('first_request', v_first, 'held_for_specs', v_held, 'finding_suppliers', v_find);
 end $fn$;
 revoke execute on function public.fn_customer_support_concierge_tick() from public, anon, authenticated;
 grant execute on function public.fn_customer_support_concierge_tick() to service_role;
