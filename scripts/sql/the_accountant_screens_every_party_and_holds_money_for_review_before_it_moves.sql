@@ -554,20 +554,23 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
+    ('quote_quality_hold','quote'),
+    ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),
     ('supplier_capability_confirmation','supplier'), ('supplier_collaboration','supplier'), ('supplier_collaboration_event','supplier'),
     ('supplier_negotiation_policy','supplier'), ('supplier_screening_hit','supplier'), ('supplier_lead_intake','supplier'),
     ('doc_reviews','supplier'), ('licence_renewal_ask','supplier'), ('outreach','supplier'), ('company_registration','company'),
-    ('inquiries','inquiry'), ('stalled_inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
+    ('inquiries','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
     ('inquiry_cancellations','inquiry'), ('inquiry_supplier_brief','inquiry'), ('inquiry_state_audit','inquiry'),
     ('inquiry_gate','inquiry'), ('inquiry_answer','inquiry'), ('inquiry_answer_document','inquiry'), ('inquiry_answer_scope','inquiry'),
     ('inquiry_workstream','inquiry'), ('inquiry_workstream_group','inquiry'), ('inquiry_workstream_requirement','inquiry'),
     ('inquiry_trade_candidate','inquiry'), ('inquiry_trade_clarification','inquiry'), ('inquiry_scope_disposition','inquiry'),
     ('rfq_archives','inquiry'), ('rfq_clarification','inquiry'),
     ('quotes','quote'), ('quote_items','quote'), ('quote_reviews','quote'), ('quote_review_messages','quote'),
-    ('quote_requirements','quote'), ('quote_committed_items','quote'), ('quote_comparisons','quote'), ('quote_spec_hold','quote'), ('quote_quality_hold','quote'),
+    ('quote_requirements','quote'), ('quote_committed_items','quote'), ('quote_comparisons','quote'), ('quote_spec_hold','quote'),
     ('spec_alternative_offer','quote'), ('po_orders','quote'), ('po_vendors','quote'), ('questions','quote'), ('reviews','quote'),
     ('category_specs','quote rules'), ('category_quote_specs','quote rules'),
     ('transactions','payment'), ('reveal_invoices','payment'), ('supplier_dues','payment'), ('refunds','payment'),
@@ -583,7 +586,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('wa_messages','conversation'), ('wa_conversation','conversation'), ('wa_turn','conversation'),
     ('wa_document_intake','conversation'), ('notifications','conversation'), ('agent_chats','conversation'),
     ('legal_reviews','legal'), ('pdpl_requests','legal'), ('pdpl_erase_files','legal'), ('email_suppressions','legal'),
-    ('founder_instruction','decision'), ('company_policy_decision','decision'), ('seat_handoff_kind','decision'),
+    ('founder_instruction','decision'), ('company_policy_decision','decision'),
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
@@ -599,9 +602,11 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
-    ('fraud_flags','risk'), ('money_move_hold','risk'), ('free_email_domain','risk'),
-    ('supplier_availability','supplier'),
-    ('table_export_change','backup')
+    ('table_export_change','backup'),
+    -- 1056: the model routing the founder rules on, and what every seat runs on
+    ('model_policy','model_routing'), ('model_policy_by_identity','model_routing'), ('model_registry','model_routing'),
+    ('fn_task_class','model_routing'), ('review_pool','model_routing'), ('paid_route_exception','model_routing'),
+    ('it_model_consumer','model_routing')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
   -- missing table, so ONLY those nine are skipped until their own file creates them. Every other table in the
