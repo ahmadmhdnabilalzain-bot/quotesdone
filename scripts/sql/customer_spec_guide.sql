@@ -19,9 +19,9 @@ create table if not exists public.customer_spec_guide (
 alter table public.customer_spec_guide enable row level security;
 drop policy if exists customer_spec_guide_public_reads_published on public.customer_spec_guide;
 create policy customer_spec_guide_public_reads_published on public.customer_spec_guide
-  as permissive for select to anon, authenticated using (status = 'published');
+  as permissive for select to authenticated using (status = 'published');
 revoke all on public.customer_spec_guide from public, anon, authenticated;
-grant select on public.customer_spec_guide to anon, authenticated;
+grant select on public.customer_spec_guide to authenticated;   -- anon: never (the_spec_guide_is_read_by_signed_in_customers_only.sql)
 
 create or replace function public.fn_customer_spec_guide(p_trade text)
 returns table (trade text, body_en text, body_ar text)
@@ -34,7 +34,7 @@ as $fn$
 $fn$;
 
 revoke execute on function public.fn_customer_spec_guide(text) from public;
-grant execute on function public.fn_customer_spec_guide(text) to anon, authenticated;
+grant execute on function public.fn_customer_spec_guide(text) to authenticated;
 
 -- Verdict-row probe (the file has DDL, so it cleans up and returns rows rather than raising):
 -- a published ZZ DEMO row is returned, a draft ZZ DEMO row is not; both are removed afterwards.
