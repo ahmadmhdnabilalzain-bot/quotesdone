@@ -41,7 +41,7 @@
 // WHAT IT NEVER DOES. It never reads spec-table rows (catalogue_read.ts drops them first — "DVR Storage
 // Upto 6TB" is a product property), never overrides a service the word rules found, and everything it
 // adds is a proposal the supplier confirms, shown with the line that supports it.
-import { arNorm } from './trade_words.ts';
+import { arNorm } from './alias_pattern.ts';
 import { isInstallWork, isStop, servicePattern, type ServiceTerm } from './service_rewrite.ts';
 import { saysInstallWork } from './catalogue_read.ts';
 

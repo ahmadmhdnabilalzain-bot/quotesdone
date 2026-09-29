@@ -347,7 +347,18 @@ async function matchAndNotify(inqId: string, opts: { category: string; emirate: 
   try { await admin.from('inquiries').update({ routing }).eq('id', inqId); } catch (_e) { /* */ }
   // A matcher that did not answer is not a coverage gap: it is already a finding (above), and flagging
   // it here would record "no supplier covers this" for a trade we never actually searched.
-  if (!landedIds.length) { if (!routing.matcher_unavailable) routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary); return { matches: 0, routing }; }
+  // A REQUEST THAT REACHED NOBODY GOES TO THE STALLED-INQUIRY RESCUE AT ONCE (29 Sep 2026, sales_engineer, ledger
+  // 1033): matching now skips busy and paused suppliers, so "nobody" can mean "everybody is busy until Thursday".
+  // fn_stalled_inquiry_flag records it, with why, in stalled_inquiry_rescue; the sales_engineer.supplier_availability
+  // duty sweeps every open inquiry every 15 minutes as well, so a failure here is caught on the next beat.
+  if (!landedIds.length) {
+    try {
+      const { data: fl } = await admin.rpc('fn_stalled_inquiry_flag', { p_inquiry_id: inqId, p_by: 'customer_api.matchAndNotify' });
+      routing.rescue_flagged = !!fl?.flagged;
+    } catch (_e) { routing.rescue_flagged = false; }
+    if (!routing.matcher_unavailable) routing.coverage_gap_flagged = await flagCoverageGap(inqId, category, emirate, summary);
+    return { matches: 0, routing };
+  }
   // AUDIT 1.5. This is the first supplier-facing surface an inquiry ever reaches and it is entirely
   // pre-reveal. summary, budget and extra are customer free text; category and emirate are platform
   // values from a fixed list. If the owner could not be read, the free-text fields are dropped and

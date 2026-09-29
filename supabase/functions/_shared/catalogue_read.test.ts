@@ -4,11 +4,10 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { createWorker } from 'npm:tesseract.js@7.0.0';
 import { readDocument } from './doc_read/index.ts';
-import { allText, readDocForTrades } from './supplier_doc_trades.ts';
+import { allText, readDocForTrades, type TradeResolveDeps } from './supplier_doc_trades.ts';
 import { catalogueLines, readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
 import { flattenImplications, impliedServices, isInstallWork, rewriteServices, type ServiceTerm } from './service_rewrite.ts';
 import { OFF_MESSAGE, PHOTO_VISION_FLAG, CATALOGUE_MODEL_FLAG, parseModelRead, readWithModel } from './catalogue_model.ts';
-import type { TradeTerm } from './trade_words.ts';
 import ALIASES from './service_aliases.json' with { type: 'json' };
 import IMPLICATIONS from './service_implications.json' with { type: 'json' };
 
@@ -18,17 +17,16 @@ const SERVICES: ServiceTerm[] = Object.entries(ALIASES as Record<string, { en: s
   trade_code: key.slice(0, key.indexOf('.')), code: key.slice(key.indexOf('.') + 1),
   label_en: key.slice(key.indexOf('.') + 1).replace(/_/g, ' '), label_ar: 'خدمة', aliases: [...v.en, ...v.ar],
 }));
-// The live trade aliases that produced the false hits on 21 Sep 2026, plus the two new trades.
-const TRADES: TradeTerm[] = [
-  { code: 'electrical', aliases: ['electrical', 'electric', 'wiring', 'lighting'] },
-  { code: 'logistics_moving', aliases: ['moving and storage', 'warehousing service'] },
-  { code: 'av_it', aliases: ['audio visual', 'networking', 'low current', 'structured cabling'] },
-  { code: 'it_services', aliases: ['it services', 'structured cabling'] },
-  { code: 'security_systems', aliases: ['cctv', 'surveillance', 'intruder alarm'] },
-  { code: 'power_generators', aliases: ['generator', 'ups system'] },
-  { code: 'office_equipment', aliases: ['office equipment', 'photocopier', 'printer', 'toner'] },
-  { code: 'pos_retail', aliases: ['point of sale', 'pos system', 'barcode scanner', 'receipt printer'] },
-];
+// The catalogue upload's TRADES come from an exact code or from meaning (trade_resolve.ts, ruling 890), never from
+// these service aliases. Offline there is no model, so `embed` records what meaning WOULD read and answers null;
+// what the real gte-small makes of the same catalogue is proved by
+// scripts/checks/a_suppliers_documents_name_trades_by_exact_code_or_meaning_never_by_words.test.mjs.
+const offline = (seen: string[] = []): TradeResolveDeps => ({
+  normTrades: async () => ({}),
+  services: SERVICES.map((s) => ({ ...s, vec: [1, 0] })),
+  embed: async (t) => { seen.push(t); return null; },
+  budget: { left: 16 },
+});
 const FIXTURE = new URL('catalogue_fixtures/zz_demo_it_wholesaler_catalogue.pdf', here);
 const fixtureText = async () => {
   const r = await readDocument(Deno.readFileSync(FIXTURE), 'zz_demo_it_wholesaler_catalogue.pdf', 'application/pdf', 0, { textOnly: true });
@@ -43,7 +41,7 @@ const NEVER = ['electrical.wiring_install', 'logistics_moving.storage', 'electri
   'it_services.network_install', 'it_services.structured_cabling', 'security_systems.intruder_alarm', 'av_it.data_cabling'];
 
 Deno.test('the ZZ DEMO catalogue reads as a supply-only IT, office-equipment, POS, CCTV, UPS and projector supplier', async () => {
-  const c = readCatalogue(await fixtureText(), SERVICES, TRADES);
+  const c = readCatalogue(await fixtureText(), SERVICES);
   assertEquals(c.supply_only, true);
   assert(c.supply.supply_words.includes('wholesaler') && c.supply.supply_words.includes('stockist'), JSON.stringify(c.supply));
   for (const k of MUST) assert(c.rewrite.service_keys.includes(k), `missing ${k}: ${c.rewrite.service_keys}`);
@@ -58,14 +56,17 @@ Deno.test('the ZZ DEMO catalogue reads as a supply-only IT, office-equipment, PO
     'an installer still gets the implication');
 });
 
-Deno.test('the catalogue upload proposes the trades the catalogue names, and not the false ones', async () => {
+Deno.test('the catalogue upload reads what meaning should read, never a spec row or an address, and no alias word proposes a trade', async () => {
   const bytes = Deno.readFileSync(FIXTURE);
-  const ev = await readDocForTrades({ path: 'catalog/1/zz.pdf', name: 'zz.pdf', kind: 'catalogue', bytes, mime: 'application/pdf' }, TRADES, SERVICES);
-  const codes = ev.trades.map((t) => t.code);
-  for (const c of ['it_services', 'office_equipment', 'pos_retail', 'security_systems', 'power_generators', 'av_it']) assert(codes.includes(c), `${c} not proposed: ${codes}`);
-  for (const c of ['electrical', 'logistics_moving']) assert(!codes.includes(c), `${c} proposed from a spec row or a sentence`);
+  const seen: string[] = [];
+  const ev = await readDocForTrades({ path: 'catalog/1/zz.pdf', name: 'zz.pdf', kind: 'catalogue', bytes, mime: 'application/pdf' }, offline(seen));
+  // The service aliases name ten services in this catalogue (the test above); none of them proposes a trade here.
+  assertEquals(ev.trades, [], 'a trade was proposed without an exact code or a meaning: ' + JSON.stringify(ev.trades));
+  assertEquals([ev.exact, ev.meaning], ['on', 'embedding_unavailable'], 'an empty proposal must say meaning could not run');
   assertEquals(ev.supply_only, true);
   assertEquals(ev.source, 'document_text');
+  assert(seen.length > 0 && seen.length <= 16, `meaning read ${seen.length} lines`);
+  assert(!seen.some((l) => /\b\d+(?:\.\d+)?\s?(?:VA|TB|GB|W)\b|LLC|Tel|@/i.test(l)), 'a spec row or a contact line reached meaning: ' + JSON.stringify(seen));
 });
 
 Deno.test('context, not a blocklist: a spec row, an address and a sentence name no service', () => {
@@ -78,12 +79,12 @@ Deno.test('context, not a blocklist: a spec row, an address and a sentence name 
   assertEquals(L.types, ['UPS with Built-in AVR', 'UPS with Built-in AVR']);
   assertEquals(L.statements.length, 1);
   // The same words stated as a heading still name the service: the rule is the line's role, not the word.
-  const rw = rewriteServices(L.headings.join('\n'), SERVICES, TRADES);
+  const rw = rewriteServices(L.headings.join('\n'), SERVICES);
   assert(rw.service_keys.includes('electrical.lighting'), 'LED lighting as a product line is still lighting');
 });
 
 Deno.test('UPS and POS are whole words: "upset" and "position" name nothing', () => {
-  const keys = (t: string) => rewriteServices(t, SERVICES, TRADES).service_keys;
+  const keys = (t: string) => rewriteServices(t, SERVICES).service_keys;
   assert(keys('UPS').includes('power_generators.ups'));
   assert(keys('ups units and batteries').includes('power_generators.ups'));
   assert(!keys('upset customers').includes('power_generators.ups'));
@@ -101,7 +102,7 @@ Deno.test('supply only needs a trading word and no installation word, in English
   assertEquals(supplyOnlyOf('We are a fit-out contractor').supply_only, false);
   assertEquals(supplyOnlyOf('Laptops and printers').supply_only, false, 'no trading word: not proposed');
   // A battery spec ("Sealed Maintenance Free") is a spec row and is not read for this.
-  assertEquals(readCatalogue('IMPORTER AND WHOLESALER\nType Sealed Maintenance Free Type Sealed Maintenance Free', SERVICES, TRADES).supply_only, true);
+  assertEquals(readCatalogue('IMPORTER AND WHOLESALER\nType Sealed Maintenance Free Type Sealed Maintenance Free', SERVICES).supply_only, true);
 });
 
 Deno.test('a supply-only company is not proposed installation work, from its own label', () => {
@@ -111,7 +112,7 @@ Deno.test('a supply-only company is not proposed installation work, from its own
   assert(!isInstallWork({ label_en: 'Lighting supply & installation', code: 'lighting' }), 'supply & install keeps its supply half');
   assert(!isInstallWork({ label_en: 'Hardware supply', code: 'hardware_supply' }));
   assert(!isInstallWork({ label_en: 'CCTV', code: 'cctv' }));
-  const rw = rewriteServices('Networking\nCat 6 Cable\nCCTV', SERVICES, TRADES, { supplyOnly: true });
+  const rw = rewriteServices('Networking\nCat 6 Cable\nCCTV', SERVICES, { supplyOnly: true });
   assert(!rw.service_keys.includes('it_services.network_install') && !rw.service_keys.includes('it_services.structured_cabling'));
   assert(rw.service_keys.includes('security_systems.cctv'));
 });
@@ -121,10 +122,13 @@ Deno.test('TEXT IN A PHOTO: the ZZ DEMO UPS label, read by tesseract.js, names U
   let text = '';
   try { text = (await worker.recognize(Deno.readFileSync(new URL('catalogue_fixtures/zz_demo_ups_label.png', here)))).data.text; } finally { await worker.terminate(); }
   assert(/UPS/.test(text), `OCR did not read the label: ${text}`);
-  const ev = await readDocForTrades({ path: 'catalog/1/label.png', name: 'label.png', kind: 'catalogue', photo_text: text }, TRADES, SERVICES);
+  const seen: string[] = [];
+  const ev = await readDocForTrades({ path: 'catalog/1/label.png', name: 'label.png', kind: 'catalogue', photo_text: text }, offline(seen));
   assertEquals(ev.source, 'photo_text');
-  assert(ev.trades.some((t) => t.code === 'power_generators'), JSON.stringify(ev.trades));
-  assert(readCatalogue(text, SERVICES, TRADES).rewrite.service_keys.includes('power_generators.ups'));
+  assertEquals(ev.status, 'read');
+  assert(seen.some((l) => /UPS/.test(l)), 'the label text did not reach meaning: ' + JSON.stringify(seen));
+  // The Services tab (service alias index, decision point 93) still names UPS from the same text.
+  assert(readCatalogue(text, SERVICES).rewrite.service_keys.includes('power_generators.ups'));
 });
 
 // A stub admin for the decision_policy read: `flags` is what the table holds.

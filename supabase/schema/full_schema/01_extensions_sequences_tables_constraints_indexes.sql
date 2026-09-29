@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T09:50:03.823Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T11:28:46.650Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (681) =====
+-- ===== TABLES (683) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -8148,6 +8148,17 @@ CREATE TABLE IF NOT EXISTS public.spec_backlog (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.stalled_inquiry_rescue (
+  inquiry_id uuid NOT NULL,
+  reason text NOT NULL,
+  detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+  fixture boolean DEFAULT false NOT NULL,
+  flagged_at timestamp with time zone DEFAULT now() NOT NULL,
+  flagged_by text NOT NULL,
+  cleared_at timestamp with time zone,
+  cleared_why text
+);
+
 CREATE TABLE IF NOT EXISTS public.strategy_risks (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   category text NOT NULL,
@@ -8235,6 +8246,14 @@ CREATE TABLE IF NOT EXISTS public.subcategory_agent_map (
   confidence text DEFAULT 'medium'::text NOT NULL,
   note text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.supplier_availability (
+  supplier_id bigint NOT NULL,
+  state text DEFAULT 'available'::text NOT NULL,
+  busy_until date,
+  set_at timestamp with time zone DEFAULT now() NOT NULL,
+  set_by text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.supplier_beneficial_owner (
@@ -10023,12 +10042,14 @@ ALTER TABLE public.social_posts ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id
 ALTER TABLE public.social_reply_library ADD CONSTRAINT social_reply_library_pkey PRIMARY KEY (key);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_pkey PRIMARY KEY (id);
 ALTER TABLE public.spec_backlog ADD CONSTRAINT spec_backlog_pkey PRIMARY KEY (id);
+ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_pkey PRIMARY KEY (inquiry_id);
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_pkey PRIMARY KEY (id);
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_pkey PRIMARY KEY (id);
 ALTER TABLE public.stripe_events ADD CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id);
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_pkey PRIMARY KEY (id);
 ALTER TABLE public.stripe_setting_reading ADD CONSTRAINT stripe_setting_reading_pkey PRIMARY KEY (id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_pkey PRIMARY KEY (sub_slug);
+ALTER TABLE public.supplier_availability ADD CONSTRAINT supplier_availability_pkey PRIMARY KEY (supplier_id);
 ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_campaign_daily_list ADD CONSTRAINT supplier_campaign_daily_list_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_pkey PRIMARY KEY (supplier_id);
@@ -11014,11 +11035,14 @@ ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_reason_check CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['no_exact_spec_declined'::text, 'no_exact_spec_no_reply'::text]))));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_seats_check CHECK (((owner_seat = 'sales_engineer'::text) AND (messenger_seat = 'customer_support'::text)));
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_state_check CHECK ((state = ANY (ARRAY['open'::text, 'accepted'::text, 'declined'::text, 'no_reply'::text, 'superseded'::text])));
+ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_reason_check CHECK ((reason = 'no_reachable_supplier'::text));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_impact_check CHECK (((impact >= 1) AND (impact <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_likelihood_check CHECK (((likelihood >= 1) AND (likelihood <= 5)));
 ALTER TABLE public.strategy_risks ADD CONSTRAINT strategy_risks_status_check CHECK ((status = ANY (ARRAY['open'::text, 'mitigating'::text, 'accepted'::text, 'closed'::text])));
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_amount_fils_money_ck CHECK ((amount_fils >= 0));
 ALTER TABLE public.stripe_setting_reading ADD CONSTRAINT stripe_setting_reading_value_check CHECK ((value = ANY (ARRAY['on'::text, 'off'::text])));
+ALTER TABLE public.supplier_availability ADD CONSTRAINT supplier_availability_busy_names_its_date CHECK (((state = 'busy'::text) = (busy_until IS NOT NULL)));
+ALTER TABLE public.supplier_availability ADD CONSTRAINT supplier_availability_state_check CHECK ((state = ANY (ARRAY['available'::text, 'busy'::text, 'paused'::text])));
 ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_full_name_check CHECK ((btrim(full_name) <> ''::text));
 ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_share_pct_check CHECK (((share_pct IS NULL) OR ((share_pct > (0)::numeric) AND (share_pct <= (100)::numeric))));
 ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_source_check CHECK ((source = ANY (ARRAY['trade_licence'::text, 'supplier_declared'::text, 'registry'::text])));
@@ -11418,9 +11442,11 @@ ALTER TABLE public.social_message ADD CONSTRAINT social_message_conversation_id_
 ALTER TABLE public.social_message ADD CONSTRAINT social_message_in_reply_to_fkey FOREIGN KEY (in_reply_to) REFERENCES social_message(id);
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL;
 ALTER TABLE public.spec_alternative_offer ADD CONSTRAINT spec_alternative_offer_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
+ALTER TABLE public.stalled_inquiry_rescue ADD CONSTRAINT stalled_inquiry_rescue_inquiry_id_fkey FOREIGN KEY (inquiry_id) REFERENCES inquiries(id) ON DELETE CASCADE;
 ALTER TABLE public.stripe_dispute ADD CONSTRAINT stripe_dispute_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES transactions(id);
 ALTER TABLE public.stripe_payout ADD CONSTRAINT stripe_payout_bank_line_fk FOREIGN KEY (bank_line_id) REFERENCES bank_statement_line(id);
 ALTER TABLE public.subcategory_agent_map ADD CONSTRAINT subcategory_agent_map_sub_slug_fkey FOREIGN KEY (sub_slug) REFERENCES catalog_subcategories(slug) ON DELETE CASCADE;
+ALTER TABLE public.supplier_availability ADD CONSTRAINT supplier_availability_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_beneficial_owner ADD CONSTRAINT supplier_beneficial_owner_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.supplier_capabilities ADD CONSTRAINT supplier_capabilities_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_capability_reading ADD CONSTRAINT supplier_capability_reading_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
@@ -11949,6 +11975,7 @@ CREATE UNIQUE INDEX spec_alternative_offer_one_live_per_attr ON public.spec_alte
 CREATE INDEX spec_alternative_offer_open_idx ON public.spec_alternative_offer USING btree (state, reply_by) WHERE (state = 'open'::text);
 CREATE UNIQUE INDEX spec_backlog_spec_ref_uidx ON public.spec_backlog USING btree (spec_ref) WHERE (spec_ref IS NOT NULL);
 CREATE INDEX spec_backlog_status_idx ON public.spec_backlog USING btree (status, priority);
+CREATE INDEX stalled_inquiry_rescue_open_idx ON public.stalled_inquiry_rescue USING btree (flagged_at) WHERE (cleared_at IS NULL);
 CREATE INDEX subcategory_agent_map_agent_idx ON public.subcategory_agent_map USING btree (agent_slug);
 CREATE UNIQUE INDEX supplier_beneficial_owner_once ON public.supplier_beneficial_owner USING btree (lead_id, lower(btrim(full_name)));
 CREATE INDEX supplier_collaboration_event_by_lead ON public.supplier_collaboration_event USING btree (lead_id, created_at);

@@ -4071,11 +4071,15 @@ cand as (
   join loc on loc.supplier_id = sc.supplier_id
   left join public.supplier_perf sp on sp.supplier_id = sc.supplier_id
   left join public.supplier_performance pf on pf.lead_id = sc.supplier_id
+  left join public.supplier_availability av on av.supplier_id = sc.supplier_id
   where sc.confirmed_at is not null
     and sc.trades && p_trades
     and not (sc.excluded_trades && p_trades)
     and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
                                l.approval_status, l.permanently_closed, l.chat_strikes)
+    -- 29 Sep 2026 (ledger 1033): a supplier who said he is busy or paused is not sent a request. No row = available;
+    -- a busy date that has come reads as available here, whether or not the duty has rewritten the row yet.
+    and public.fn_supplier_available(av.state, av.busy_until)
     and exists (
       select 1 from public.taxonomy_role r
       where r.code = any(sc.roles)
@@ -4368,6 +4372,22 @@ AS $function$
     from (select array(select c from unnest(public.fn_taxonomy_trades_for(array[btrim(coalesce(p_text, ''))])) c
                         where exists (select 1 from public.taxonomy_trade t where t.code = c and t.active)
                         order by c) as codes) r;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_norm_trades_many(p_texts text[])
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  -- phrase -> the codes fn_norm_trades resolves it to; a phrase that resolves to nothing is left out.
+  -- ponytail: 400 phrases per call is the caller's cap (trade_resolve.ts EXACT_MAX_PHRASES).
+  select coalesce(jsonb_object_agg(x.t, to_jsonb(x.codes)), '{}'::jsonb)
+    from (select distinct u.t, public.fn_norm_trades(u.t) as codes
+            from unnest(coalesce(p_texts, '{}'::text[])) u(t)
+           where nullif(btrim(u.t), '') is not null) x
+   where x.codes is not null;
 $function$
 
 
