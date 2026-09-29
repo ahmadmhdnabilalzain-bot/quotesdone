@@ -323,45 +323,91 @@ on conflict (duty) do update set every = excluded.every, routine = excluded.rout
   owner_file = excluded.owner_file, enabled = true;
 
 -- ── 9. the studio counts the seat's articles; blog links point at quotesdone.ae ────────────────────
+-- Built on a_kpi_view_never_counts_a_demo_party.sql (demo parties excluded); only the blog columns change.
 create or replace view public.marketing_kpis as
- WITH f AS (SELECT funnel_metrics(30) AS fm),
- mi AS (
-   SELECT COALESCE(sum(meta_insights.spend), 0::numeric) AS meta_spend, COALESCE(sum(meta_insights.impressions), 0::numeric) AS meta_impr,
-          COALESCE(sum(meta_insights.clicks), 0::numeric) AS meta_clicks, COALESCE(sum(meta_insights.results), 0::numeric) AS meta_results,
-          count(*) FILTER (WHERE meta_insights.effective_status = 'ACTIVE'::text) AS meta_active
-     FROM meta_insights WHERE meta_insights.time_window = 'last_30d'::text AND meta_insights.campaign_name ~~* '%quotesdone%'::text)
- SELECT (f.fm ->> 'inquiries')::integer AS inquiries_30d, (f.fm ->> 'matched')::integer AS matched_30d,
-    (f.fm ->> 'quoted')::integer AS quoted_30d, (f.fm ->> 'revealed')::integer AS revealed_30d,
-    (f.fm ->> 'reveal_fees')::numeric AS revenue_30d,
-    CASE WHEN (f.fm ->> 'inquiries')::integer > 0 THEN round(100.0 * ((f.fm ->> 'quoted')::integer)::numeric / ((f.fm ->> 'inquiries')::integer)::numeric, 1) ELSE NULL::numeric END AS inq_to_quote_pct,
-    CASE WHEN (f.fm ->> 'quoted')::integer > 0 THEN round(100.0 * ((f.fm ->> 'revealed')::integer)::numeric / ((f.fm ->> 'quoted')::integer)::numeric, 1) ELSE NULL::numeric END AS quote_to_reveal_pct,
+ with f as (
+         select funnel_metrics(30) as fm
+        ), mi as (
+         select coalesce(sum(meta_insights.spend), 0::numeric) as meta_spend,
+            coalesce(sum(meta_insights.impressions), 0::numeric) as meta_impr,
+            coalesce(sum(meta_insights.clicks), 0::numeric) as meta_clicks,
+            coalesce(sum(meta_insights.results), 0::numeric) as meta_results,
+            count(*) filter (where meta_insights.effective_status = 'ACTIVE'::text) as meta_active
+           from meta_insights
+          where meta_insights.time_window = 'last_30d'::text and meta_insights.campaign_name ~~* '%quotesdone%'::text
+        ), nc as (
+         select count(*) as n
+           from customers
+          where customers.created_at >= (now() - '30 days'::interval) and not coalesce(customers.is_demo, false)
+        )
+ select (f.fm ->> 'inquiries'::text)::integer as inquiries_30d,
+    (f.fm ->> 'matched'::text)::integer as matched_30d,
+    (f.fm ->> 'quoted'::text)::integer as quoted_30d,
+    (f.fm ->> 'revealed'::text)::integer as revealed_30d,
+    (f.fm ->> 'reveal_fees'::text)::numeric as revenue_30d,
+        case
+            when ((f.fm ->> 'inquiries'::text)::integer) > 0 then round(100.0 * ((f.fm ->> 'quoted'::text)::integer)::numeric / ((f.fm ->> 'inquiries'::text)::integer)::numeric, 1)
+            else null::numeric
+        end as inq_to_quote_pct,
+        case
+            when ((f.fm ->> 'quoted'::text)::integer) > 0 then round(100.0 * ((f.fm ->> 'revealed'::text)::integer)::numeric / ((f.fm ->> 'quoted'::text)::integer)::numeric, 1)
+            else null::numeric
+        end as quote_to_reveal_pct,
     -- the seat's articles (marketing_article), not the site's legacy pages (site_blog_pages below)
-    (SELECT count(*) FROM marketing_article WHERE status = 'live' AND NOT is_demo) AS blog_published,
-    (SELECT count(*) FROM marketing_article WHERE status <> 'withdrawn' AND NOT is_demo) AS blog_total,
-    (SELECT count(*) FROM content_drafts WHERE COALESCE(content_drafts.status, ''::text) <> ALL (ARRAY['published'::text, 'discarded'::text])) AS drafts_pending,
-    (SELECT count(*) FROM social_posts WHERE COALESCE(social_posts.status, ''::text) = ANY (ARRAY['staged'::text, 'scheduled'::text, 'draft'::text, 'pending'::text])
-        OR social_posts.mode = 'draft'::text AND COALESCE(social_posts.status, ''::text) = ANY (ARRAY['published'::text, 'sent'::text])) AS social_staged,
-    (SELECT count(*) FROM social_posts WHERE social_posts.mode = 'now'::text AND COALESCE(social_posts.status, ''::text) = ANY (ARRAY['published'::text, 'sent'::text])) AS social_published,
-    (SELECT count(*) FROM seo_categories) AS seo_pages,
-    (SELECT count(*) FROM seo_categories WHERE seo_categories.generated) AS seo_generated,
-    (SELECT count(*) FROM leads) AS leads_total,
-    (SELECT count(*) FROM outreach) AS outreach_sent,
-    (SELECT COALESCE(gl_account_balances.balance, 0::numeric) FROM gl_account_balances WHERE gl_account_balances.code = '6200'::text) AS mkt_spend,
-    (SELECT count(*) FROM customers WHERE customers.created_at >= (now() - '30 days'::interval)) AS new_customers_30d,
-    CASE WHEN mi.meta_spend > 0::numeric THEN round(mi.meta_spend / NULLIF((SELECT count(*) FROM customers WHERE customers.created_at >= (now() - '30 days'::interval)), 0)::numeric, 2) ELSE NULL::numeric END AS cac,
-    CASE WHEN mi.meta_spend > 0::numeric THEN round((f.fm ->> 'reveal_fees')::numeric / mi.meta_spend, 2)
-         WHEN (SELECT COALESCE(gl_account_balances.balance, 0::numeric) FROM gl_account_balances WHERE gl_account_balances.code = '6200'::text) > 0::numeric
-           THEN round((f.fm ->> 'reveal_fees')::numeric / (SELECT COALESCE(gl_account_balances.balance, 0::numeric) FROM gl_account_balances WHERE gl_account_balances.code = '6200'::text), 2)
-         ELSE NULL::numeric END AS roi,
-    (SELECT count(*) FROM marketing_category_demand WHERE marketing_category_demand.inquiries_90d > 0 AND marketing_category_demand.suppliers = 0) AS supply_gaps,
-    (SELECT count(*) FROM marketing_category_demand WHERE NOT marketing_category_demand.has_seo_page) AS seo_gaps,
-    mi.meta_spend AS meta_spend_30d, mi.meta_impr AS meta_impressions_30d, mi.meta_clicks AS meta_clicks_30d,
-    mi.meta_results AS meta_results_30d, mi.meta_active AS meta_active_campaigns,
-    CASE WHEN mi.meta_results > 0::numeric THEN round(mi.meta_spend / mi.meta_results, 2) ELSE NULL::numeric END AS meta_cpl,
-    CASE WHEN mi.meta_spend > 0::numeric THEN round((f.fm ->> 'reveal_fees')::numeric / mi.meta_spend, 2) ELSE NULL::numeric END AS meta_roi,
-    (SELECT count(*) FROM marketing_article WHERE status = 'draft' AND NOT is_demo) AS blog_drafts,
-    (SELECT count(*) FROM blog_posts WHERE blog_posts.published) AS site_blog_pages
-   FROM f, mi;
+    ( select count(*) as count from marketing_article where marketing_article.status = 'live' and not marketing_article.is_demo) as blog_published,
+    ( select count(*) as count from marketing_article where marketing_article.status <> 'withdrawn' and not marketing_article.is_demo) as blog_total,
+    ( select count(*) as count
+           from content_drafts
+          where coalesce(content_drafts.status, ''::text) <> all (array['published'::text, 'discarded'::text])) as drafts_pending,
+    ( select count(*) as count
+           from social_posts
+          where (coalesce(social_posts.status, ''::text) = any (array['staged'::text, 'scheduled'::text, 'draft'::text, 'pending'::text])) or social_posts.mode = 'draft'::text and (coalesce(social_posts.status, ''::text) = any (array['published'::text, 'sent'::text]))) as social_staged,
+    ( select count(*) as count
+           from social_posts
+          where social_posts.mode = 'now'::text and (coalesce(social_posts.status, ''::text) = any (array['published'::text, 'sent'::text]))) as social_published,
+    ( select count(*) as count from seo_categories) as seo_pages,
+    ( select count(*) as count from seo_categories where seo_categories.generated) as seo_generated,
+    ( select count(*) as count from leads where not coalesce(leads.is_demo, false)) as leads_total,
+    ( select count(*) as count from outreach) as outreach_sent,
+    ( select coalesce(gl_account_balances.balance, 0::numeric) as "coalesce"
+           from gl_account_balances
+          where gl_account_balances.code = '6200'::text) as mkt_spend,
+    nc.n as new_customers_30d,
+        case
+            when mi.meta_spend > 0::numeric then round(mi.meta_spend / nullif(nc.n, 0)::numeric, 2)
+            else null::numeric
+        end as cac,
+        case
+            when mi.meta_spend > 0::numeric then round(((f.fm ->> 'reveal_fees'::text)::numeric) / mi.meta_spend, 2)
+            when (( select coalesce(gl_account_balances.balance, 0::numeric) as "coalesce"
+               from gl_account_balances
+              where gl_account_balances.code = '6200'::text)) > 0::numeric then round(((f.fm ->> 'reveal_fees'::text)::numeric) / (( select coalesce(gl_account_balances.balance, 0::numeric) as "coalesce"
+               from gl_account_balances
+              where gl_account_balances.code = '6200'::text)), 2)
+            else null::numeric
+        end as roi,
+    ( select count(*) as count
+           from marketing_category_demand
+          where marketing_category_demand.inquiries_90d > 0 and marketing_category_demand.suppliers = 0) as supply_gaps,
+    ( select count(*) as count
+           from marketing_category_demand
+          where not marketing_category_demand.has_seo_page) as seo_gaps,
+    mi.meta_spend as meta_spend_30d,
+    mi.meta_impr as meta_impressions_30d,
+    mi.meta_clicks as meta_clicks_30d,
+    mi.meta_results as meta_results_30d,
+    mi.meta_active as meta_active_campaigns,
+        case
+            when mi.meta_results > 0::numeric then round(mi.meta_spend / mi.meta_results, 2)
+            else null::numeric
+        end as meta_cpl,
+        case
+            when mi.meta_spend > 0::numeric then round(((f.fm ->> 'reveal_fees'::text)::numeric) / mi.meta_spend, 2)
+            else null::numeric
+        end as meta_roi,
+    ( select count(*) as count from marketing_article where marketing_article.status = 'draft' and not marketing_article.is_demo) as blog_drafts,
+    ( select count(*) as count from blog_posts where blog_posts.published) as site_blog_pages
+   from f, mi, nc;
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_studio()
  RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER
@@ -406,7 +452,7 @@ update public.blog_posts set body_html = replace(replace(body_html, 'https://www
  where body_html like '%quotesdone.com%';
 
 -- ── 9b. the new table is in the daily export (every_marketing_table_is_in_the_daily_export) ─────────
--- The definition from the_calendar_resend_decisions_are_in_the_daily_export.sql with marketing_plan_doc added.
+-- The definition from marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql with marketing_plan_doc added.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -451,12 +497,13 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_article','marketing'), ('marketing_prospect','marketing'), ('marketing_outreach_message','marketing'),
     ('marketing_platform_spec','marketing'), ('marketing_platform_spec_source','marketing'),
     ('marketing_campaign','marketing'), ('marketing_founder_request','marketing'), ('marketing_video_idea','marketing'), ('supplier_campaign_daily_list','supplier'), ('marketing_post_variant','marketing'),
-    ('marketing_post_platform','marketing'), ('marketing_post_channel_result','marketing'), ('marketing_calendar_resend_decision','marketing'), ('marketing_plan_doc','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
+    ('marketing_post_platform','marketing'), ('marketing_post_channel_result','marketing'), ('marketing_calendar_resend_decision','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
     ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('marketing_asset_feature','marketing'), ('marketing_asset_perception','marketing'), ('marketing_asset_review','marketing'),
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
