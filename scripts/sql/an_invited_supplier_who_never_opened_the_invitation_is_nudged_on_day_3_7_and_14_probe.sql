@@ -1,16 +1,17 @@
 -- PROBE (pure, no DDL, aborted transaction) for an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14.sql.
 -- Run AFTER the definitions in the same transaction; it always ends in raise exception 'CHK<<json>>', so every row it
--- writes rolls back. Subjects: six ZZ DEMO leads at @example.invalid, created here. Fixture mode of the nudger can only
+-- writes rolls back. Subjects: seven ZZ DEMO leads at @example.invalid, created here. Fixture mode of the nudger can only
 -- see leads carrying BOTH marks, and every nudge row this probe produced is asserted to be at @example.invalid.
 do $$
 declare
-  p_now timestamptz := ((now() at time zone 'Asia/Dubai')::date + time '10:00') at time zone 'Asia/Dubai';
-  a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; ids bigint[];
-  r1 jsonb; r2 jsonb; r3 jsonb; r4 jsonb; wk jsonb; fail text := ''; o jsonb;
+  -- 06:00 UTC = 10:00 Dubai on the same date, so the UTC cap day and the Dubai day agree for the positive runs
+  p_now timestamptz := ((now() at time zone 'UTC')::date + time '06:00') at time zone 'UTC';
+  a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; g bigint; ids bigint[];
+  r1 jsonb; r2 jsonb; r3 jsonb; r4 jsonb; r5 jsonb; wk jsonb; early jsonb; night jsonb; fail text := ''; o jsonb;
   v_real_before int; v_real_after int;
 begin
   if extract(isodow from p_now at time zone 'Asia/Dubai') in (6, 7) then
-    p_now := p_now + interval '2 days';   -- the positive case needs a weekday; the used-today count follows p_now's date
+    p_now := p_now + interval '2 days';   -- the positive case needs a weekday; queued rows are re-dated to p_now below
   end if;
   select count(*) into v_real_before from public.notifications where type = 'supplier_invite_nudge' and not public.fn_is_demo_email(to_email);
 
@@ -28,25 +29,48 @@ begin
     ('ZZ DEMO — nudge clicked', 'zz-demo-nudge-e@example.invalid', p_now - interval '4 days', p_now - interval '3 days') returning id into e;
   insert into public.leads (company_name, email, invited_at) values
     ('ZZ DEMO — nudge day 25',  'zz-demo-nudge-f@example.invalid', p_now - interval '25 days') returning id into f;
-  ids := array[a, b, c, d, e, f];
+  -- lead g only carries a same-UTC-day invitation for the cap-day case (never due: its anchor is 30 days old)
+  insert into public.leads (company_name, email, invited_at) values
+    ('ZZ DEMO — nudge cap day', 'zz-demo-nudge-g@example.invalid', p_now - interval '30 days') returning id into g;
+  ids := array[a, b, c, d, e, f, g];
   insert into public.email_suppressions (email, reason, source) values ('zz-demo-nudge-d@example.invalid', 'ZZ DEMO probe', 'probe');
 
   -- the invitation as the outbox records it (the anchor), dated per lead
   -- lang 'en' as the invitation is always English (without it a04 reads lead a's 'ar' locale and swaps the copy)
   insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, created_at, sent_at, channel, lang)
   select 'supplier_invite', l.email, 'supplier', l.id, 'ZZ DEMO', 'ZZ DEMO https://quotesdone.com/en/portal?t=' || gen_random_uuid()::text, 'sent', l.invited_at, l.invited_at, 'email', 'en'
-    from public.leads l where l.id = any(ids);
+    from public.leads l where l.id = any(ids) and l.id <> g;
   update public.notifications set status = 'sent', sent_at = created_at where type = 'supplier_invite' and lead_id = any(ids);
 
   -- weekend: held, nothing queued
   wk := public.fn_sales_engineer_nudges_invited_suppliers(p_now + ((6 - extract(isodow from p_now at time zone 'Asia/Dubai'))::int * interval '1 day'), 10, true);
   if wk->>'held' is distinct from 'UAE weekend' then fail := fail || 'weekend not held: ' || wk::text || '; '; end if;
 
+  -- before the window (review of #1007): 07:00 and 02:00 Dubai on the positive day are held, nothing queued
+  early := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '3 hours', 10, true);
+  night := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '8 hours', 10, true);
+  if early->>'held' is distinct from 'before the Dubai sending window' or (early->>'queued')::int <> 0
+     or night->>'held' is distinct from 'before the Dubai sending window' or (night->>'queued')::int <> 0 then
+    fail := fail || 'queued before the sending window: ' || early::text || ' ' || night::text || '; '; end if;
+
   -- cap 2 with 3 due -> 2; again at cap 2 -> 0 (the cap is shared per day); cap 10 -> the 1 left; again -> 0 (idempotent)
+  -- (queued rows carry now(); they are re-dated to p_now so a weekend-shifted p_now still counts them the same day)
   r1 := public.fn_sales_engineer_nudges_invited_suppliers(p_now, 2, true);
+  update public.notifications set created_at = p_now where type = 'supplier_invite_nudge' and lead_id = any(ids);
   r2 := public.fn_sales_engineer_nudges_invited_suppliers(p_now, 2, true);
   r3 := public.fn_sales_engineer_nudges_invited_suppliers(p_now, 10, true);
+  update public.notifications set created_at = p_now where type = 'supplier_invite_nudge' and lead_id = any(ids);
   r4 := public.fn_sales_engineer_nudges_invited_suppliers(p_now, 10, true);
+
+  -- THE CAP DAY IS THE BATCH'S UTC DAY: an invitation queued at 21:00 UTC on p_now's UTC date is 01:00 Dubai the
+  -- NEXT day. enqueue_supplier_invites counts it on p_now's day, so the nudger must too (a Dubai-date count would not).
+  insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, created_at, channel, lang)
+  values ('supplier_invite', 'zz-demo-nudge-g@example.invalid', 'supplier', g, 'ZZ DEMO',
+          'ZZ DEMO https://quotesdone.com/en/portal?t=' || gen_random_uuid()::text, 'queued',
+          ((p_now at time zone 'UTC')::date + time '21:00') at time zone 'UTC', 'email', 'en');
+  r5 := public.fn_sales_engineer_nudges_invited_suppliers(p_now, 10, true);
+  if (r5->>'used_before')::int <> (r4->>'used_before')::int + 1 then
+    fail := fail || 'the cap day is not the batch''s UTC day: ' || r4::text || ' -> ' || r5::text || '; '; end if;
 
   select jsonb_object_agg(k, v) into o from (
     select 'a' k, (select string_agg(split_part(a2.target_id, ':', 4), ',') from public.agent_actions a2 where a2.target_id like 'delivery.request:supplier_invite_nudge:' || a || ':%') v
@@ -96,5 +120,5 @@ begin
     fail := fail || 'cleanup left rows; '; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when fail = '' then 'PROBE OK' else 'PROBE FAILED: ' || fail end,
-    'weekend', wk, 'run1', r1, 'run2', r2, 'run3', r3, 'run4', r4, 'steps', o)::text;
+    'weekend', wk, 'run1', r1, 'run2', r2, 'run3', r3, 'run4', r4, 'run5_cap_day', r5, 'before_window', jsonb_build_array(early, night), 'steps', o)::text;
 end $$;

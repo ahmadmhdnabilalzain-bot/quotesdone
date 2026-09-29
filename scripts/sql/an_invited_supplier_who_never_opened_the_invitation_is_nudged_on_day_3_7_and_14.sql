@@ -22,7 +22,9 @@
 --     Suppression: never email_suppressions, never invite_status bounced/complained/unsubscribed; real leads also pass
 --     fn_supplier_outreach_reachable (fixtures, bans, screening, closed, fn_email_sendable).
 --   fn_sales_engineer_nudges_invited_suppliers(p_now, p_cap, p_include_fixtures): holds on a company_calendar public
---     holiday and the UAE weekend, and after the Dubai window end (invite_warmup.window_end_hour); real mail also needs
+--     holiday and the UAE weekend, and outside the Dubai sending window (invite_warmup.window_start_hour, default 9,
+--     to window_end_hour, default 17; the start was added in review), counting the cap on the UTC day as the batch
+--     does; real mail also needs
 --     invite_enabled + supplier_outreach_golive (the founder's go). It SHARES the invitation's daily cap
 --     (app_secrets.invite_daily_cap, moved only by fn_invite_ramp's bounce/complaint throttle): invitations and nudges
 --     queued today count against one number. Queues through fn_customer_support_takes_delivery (notifications ->
@@ -96,6 +98,11 @@ begin
    where c.kind = 'public_holiday' and v_dxb::date between c.starts_on and coalesce(c.ends_on, c.starts_on) limit 1;
   if v_hol is not null then return jsonb_build_object('held', 'holiday: ' || v_hol, 'queued', 0); end if;
   if extract(isodow from v_dxb) in (6, 7) then return jsonb_build_object('held', 'UAE weekend', 'queued', 0); end if;
+  -- BOTH ENDS OF THE WINDOW (review of #1007, 29 Sep 2026): before window_start_hour (default 9, as the batch)
+  -- nothing is queued, so a nudge never lands at night and the 00:00-04:00 Dubai hours cannot spend a cap day
+  -- the batch counts differently (see the cap below).
+  if extract(hour from v_dxb) < coalesce((v_cfg->>'window_start_hour')::int, 9) then
+    return jsonb_build_object('held', 'before the Dubai sending window', 'queued', 0); end if;
   if extract(hour from v_dxb) >= coalesce((v_cfg->>'window_end_hour')::int, 17) then
     return jsonb_build_object('held', 'after the Dubai sending window', 'queued', 0); end if;
   if not p_include_fixtures and not (coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
@@ -104,12 +111,14 @@ begin
                               'due', (select count(*) from public.fn_supplier_invite_nudges_due(p_now, false)));
   end if;
 
-  -- ONE daily cap for the domain: invitations and nudges queued this Dubai day, same class (real or fixture).
+  -- ONE daily cap for the domain: invitations and nudges queued this day, same class (real or fixture). The day is
+  -- the UTC date, exactly as enqueue_supplier_invites counts it (review of #1007): on a Dubai-date basis the two
+  -- would disagree between 00:00 and 04:00 Dubai and could each spend a full cap.
   v_cap := coalesce((select nullif(value, '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
   v_cap := least(v_cap, coalesce(p_cap, v_cap));
   select count(*) into v_used from public.notifications n
    where n.type in ('supplier_invite', 'supplier_invite_nudge')
-     and (n.created_at at time zone 'Asia/Dubai')::date = v_dxb::date
+     and (n.created_at at time zone 'UTC')::date = (p_now at time zone 'UTC')::date
      and public.fn_is_demo_email(n.to_email) = p_include_fixtures;
   v_left := greatest(0, v_cap - v_used);
 
