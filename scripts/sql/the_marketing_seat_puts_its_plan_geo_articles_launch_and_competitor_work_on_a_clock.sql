@@ -111,6 +111,7 @@ begin
    where slug = p_slug and status = 'draft' returning id into v_id;
   return jsonb_build_object('ok', v_id is not null, 'slug', p_slug, 'error', case when v_id is null then 'not_a_draft' end);
 end $fn$;
+revoke execute on function public.fn_marketing_article_approve(text, text) from public, anon, authenticated;
 
 -- The cadence, now: his approval only, a UAE working day only, at most marketing_articles_per_week a Dubai week and one a day.
 create or replace function public.fn_marketing_article_release_due()
@@ -137,6 +138,7 @@ begin
   update public.marketing_article set status = 'released', released_at = now(), updated_at = now() where id = v_next.id;
   return jsonb_build_object('released', v_next.slug, 'this_week', v_week + 1);
 end $fn$;
+revoke execute on function public.fn_marketing_article_release_due() from public, anon, authenticated;
 
 -- The weekly request: on a working day, when no request is open, the oldest draft goes to him once a Dubai week.
 -- The release itself stays on marketingOutreach's beat (fn_marketing_article_release_due); this duty checks it moved:
@@ -396,6 +398,7 @@ AS $function$
     'review', (select coalesce(fn_review_pending(),'[]'::jsonb))
   );
 $function$;
+revoke execute on function public.fn_marketing_studio() from public, anon, authenticated;
 
 -- The site's legacy pages linked to quotesdone.com; the same text in src/content/blog.json is corrected in this PR.
 update public.blog_posts set body_html = replace(replace(body_html, 'https://www.quotesdone.com', 'https://quotesdone.ae'),
@@ -463,6 +466,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
                     'marketing_post_platform','marketing_post_metric','marketing_first_touch','marketing_goal','marketing_scorecard_report')
      or to_regclass('public.' || v.t) is not null
 $fn$;
+revoke execute on function public.fn_table_export_list() from public, anon, authenticated;
 
 -- ── 9c. GEO IS MEASURED IN THE ANSWER ENGINES THEMSELVES ─────────────────────────────────────────
 -- Measured 28 Sep 2026: 0 marketing_geo_check rows ever; the edge geo_audit's DuckDuckGo scrape is answered with a
@@ -500,6 +504,7 @@ language sql stable security definer set search_path to 'public', 'pg_temp' as $
                                    where c.month = m.month and c.question_id = q.id and c.engine = e.engine)
    order by q.id, e.engine limit greatest(p_limit, 0)
 $fn$;
+revoke execute on function public.fn_marketing_geo_due(integer, boolean) from public, anon, authenticated;
 
 drop function if exists public.fn_marketing_geo_record(date, bigint, text, boolean, integer, text, text);
 create function public.fn_marketing_geo_record(p_month date, p_question_id bigint, p_engine text, p_cited boolean,
@@ -530,6 +535,7 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                'cited', c.cited, 'competitors', c.competitors_cited, 'evidence', left(c.evidence, 300)) order by q.id, c.engine), '[]'::jsonb)
                from public.marketing_geo_check c join public.marketing_geo_question q on q.id = c.question_id where c.month = p_month))
 $fn$;
+revoke execute on function public.fn_marketing_geo_summary(date) from public, anon, authenticated;
 
 insert into public.model_registry (model_id, provider, tier, in_per_mtok_usd, out_per_mtok_usd, supports_cache, supports_streaming,
                                    context_len, approved, active, note, supports_vision, supports_audio, supports_tools)
