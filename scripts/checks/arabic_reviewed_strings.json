@@ -2472,6 +2472,9 @@
   "f68a7ffaa78f",
   "f9d904cdc2a1"
  ],
+ "scripts/sql/uae_price_benchmarks_come_only_from_real_quotes.sql": [
+  "ebfb393ab473"
+ ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
  ],
@@ -2642,7 +2645,6 @@
   "03e04e8a8dda",
   "051b56e3955b",
   "05540d2a35b6",
-  "06afdc13e23a",
   "0907ffad5d1e",
   "098fd8bfe804",
   "099ec14fa3c8",
