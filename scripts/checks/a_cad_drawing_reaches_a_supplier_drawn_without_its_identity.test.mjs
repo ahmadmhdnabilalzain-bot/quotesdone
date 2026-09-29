@@ -58,7 +58,10 @@ test('drawing_redact draws, uploads, records, and removes the upload when the re
 test('the CAD worker draws what the edge cannot, records it, and raises a job that fails for good', () => {
   assert.match(worker, /await cadPage\(bytes, seeds, \{ maxDwgBytes: Infinity/);
   assert.match(worker, /insert into public\.drawing_redaction_runs[\s\S]{0,600}'complete'/);
-  assert.match(worker, /return publishPages\(job, key, \[page\.jpg\], \{ method: 'cad_render'/);
+  // 28 Sep 2026 (#1056): the drawn page is published first and a failed publish is returned as it is; the
+  // anonymised drawing FILE is attached beside it only when its verifier passed, and a held file never loses the page.
+  assert.match(worker, /const out = await publishPages\(job, key, \[page\.jpg\], \{ method: 'cad_render'[\s\S]{0,120}if \(out\.redaction_complete !== true\) return out;/);
+  assert.match(worker, /const f = await anonymisedDrawingFile\([\s\S]{0,80}if \(!f\.ok\) \{[\s\S]{0,160}?return out; \}/, 'an unproved drawing file is no longer left out');
   assert.match(worker, /fn_it_engineer_finding_upsert\(\s*'cad_read_worker:job_failed'/);
   assert.match(worker, /if \(job\.attempts >= 3\) await raiseFailed\(job, msg\)/);
   const status = between(api, "action === 'cad_read_status'", "action === 'analyze_boq'");

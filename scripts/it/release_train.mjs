@@ -98,7 +98,18 @@ export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () =
   // every other gate must already pass: judged as if its checks were green
   return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
     && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null
-    && (isBehind(pr) || missingChecks(pr.statusCheckRollup).length > 0)) || null;
+    && (missingChecks(pr.statusCheckRollup).length > 0
+      || (onlyStaleFailures(pr.statusCheckRollup) && isBehind(pr)))) || null;
+}
+
+// The checks that read the LIVE database compare it with the branch, so a merge to main turns them red on
+// every other PR: only these are refreshed by an update. A PR failing anything else (a unit check, a
+// typecheck, the lint) is failing on its own code; updating it changes nothing, and picking it every tick
+// starved the rest of the queue (29 Sep 2026: #1056, red on its own tests, was updated tick after tick).
+export const STALE_PRONE = new Set(['the database is running what this repository says', 'the kernel and handler gate, against production']);
+export function onlyStaleFailures(rollup = []) {
+  const bad = latestChecks(rollup).filter((c) => !GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
+  return bad.length > 0 && bad.every((c) => STALE_PRONE.has(c.name || c.context));
 }
 
 // The required checks that never started on this head (a GITHUB_TOKEN push starts no workflow).
@@ -321,9 +332,15 @@ export async function main(argv = process.argv.slice(2)) {
     run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']);
   }
   if (applies.length) log(`schema mirror -> exit ${node(['scripts/checks/export_from_either_source_is_identical.mjs', '--write']).code}`);
-  const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
-  log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
-  if (dep.code && !failed) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  // NO DEPLOY AFTER A FAILED APPLY (29 Sep 2026). #1050's SQL failed (42501) and the train deployed its new
+  // think.ts anyway, so every importer called a routine signature the database did not have. Code that
+  // depends on SQL ships only when that SQL is live; a failed release leaves the functions as they were.
+  if (failed) log('an apply or probe failed: changed functions are NOT deployed');
+  else {
+    const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
+    log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
+    if (dep.code) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  }
 
   run('git', ['add', '--', manifest, 'scripts/sql/pending', 'supabase/schema']);
   if (run('git', ['diff', '--cached', '--quiet']).code) {
