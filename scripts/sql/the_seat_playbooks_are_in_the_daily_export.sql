@@ -15,6 +15,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
     ('seat_playbook','knowledge'),
+    ('customer_followup','customer'),
     ('ceo_decision_round','decision'),
     ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
     ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
