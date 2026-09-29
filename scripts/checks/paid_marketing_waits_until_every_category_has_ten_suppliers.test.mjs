@@ -18,7 +18,9 @@ function canonical(name) {
   const files = defining(name);
   const pending = files.filter(f => existsSync(`${SQL}/pending/${f.replace(/\.sql$/, '.txt')}`));
   if (pending.length) return pending.at(-1);
-  return files.filter(f => manifest.includes(f)).sort((a, b) => manifest.lastIndexOf(a) - manifest.lastIndexOf(b)).at(-1);
+  // MANIFEST lines carry the scripts/sql/ prefix; the basenames above do not (main red after #994 applied)
+  const line = (f) => `${SQL}/${f}`;
+  return files.filter(f => manifest.includes(line(f))).sort((a, b) => manifest.lastIndexOf(line(a)) - manifest.lastIndexOf(line(b))).at(-1);
 }
 
 function body(file, name) {
