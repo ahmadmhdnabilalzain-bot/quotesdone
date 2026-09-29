@@ -546,7 +546,8 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
 -- definer in MANIFEST.txt on main at 21954b1) PLUS ('inquiry_rescue','inquiry') from #1106
 -- (a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql), with only fraud_flags,
 -- money_move_hold and free_email_domain added here. Depends-on: #1106 - apply it first, so inquiry_rescue exists when
--- this list names it.
+-- this list names it. ('marketing_plan_doc','marketing') is carried too: measured 29 Sep 2026 09:47 UTC, the LIVE list
+-- already names it (applied from a marketing file not yet on main), and this apply must not drop it.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -594,7 +595,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_post_platform','marketing'), ('marketing_post_channel_result','marketing'), ('marketing_calendar_resend_decision','marketing'), ('marketing_post_metric','marketing'), ('marketing_first_touch','marketing'),
     ('marketing_goal','marketing'), ('marketing_scorecard_report','marketing'),
     ('marketing_asset_feature','marketing'), ('marketing_asset_perception','marketing'), ('marketing_asset_review','marketing'),
-    ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
+    ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_doc','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
