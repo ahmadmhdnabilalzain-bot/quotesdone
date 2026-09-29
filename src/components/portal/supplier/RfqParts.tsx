@@ -28,8 +28,13 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 // `failed` is supplier_api inbox's drawing_pages_failed: pages that EXIST on the inquiry and could not
 // be signed. Showing the supplier fewer drawings than exist, saying nothing, is the defect this counts
 // (18 Sep 2026, sales_engineer) — a supplier priced a villa from the BOQ alone and never knew.
-export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; lang: Lang; failed?: number }) {
+// The anonymised drawing FILE (28 Sep 2026: a vector PDF or a DXF, drawing_redact mode 'file') is signed beside the
+// page previews; it is a download, not a picture, so it is listed under the gallery rather than drawn in it.
+const DRAWING_FILE = /\.(pdf|dxf)(\?|$)/i;
+export function DrawingGallery({ pages: all, lang, failed = 0 }: { pages: string[]; lang: Lang; failed?: number }) {
   const ar = lang === 'ar';
+  const pages = all.filter((u) => !DRAWING_FILE.test(u));
+  const files = all.filter((u) => DRAWING_FILE.test(u));
   const [open, setOpen] = useState<number | null>(null);
   const reduce = useReducedMotion();
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -49,7 +54,7 @@ export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; l
     document.body.style.overflow = 'hidden';
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; opener.current?.focus(); };
   }, [open, go, ar]);
-  if (!n && !failed) return null;
+  if (!n && !failed && !files.length) return null;
   return (
     <div className="qd-frame mt-4">
       <div className="qd-frame-bar">
@@ -73,6 +78,21 @@ export function DrawingGallery({ pages, lang, failed = 0 }: { pages: string[]; l
           </li>
         ))}
       </ul>
+      {files.length ? (
+        <ul className="flex flex-wrap gap-2 px-3 pb-3">
+          {files.map((u, k) => {
+            const ext = (DRAWING_FILE.exec(u)?.[1] || '').toUpperCase();
+            return (
+              <li key={k}>
+                <a href={u} target="_blank" rel="noopener noreferrer" download
+                  className="inline-flex items-center gap-1.5 rounded-chip border border-[var(--line2)] px-2.5 py-1 font-mono text-label text-foreground hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {ar ? `ملف المخطط بعد إخفاء الهوية (${ext})` : `Drawing file, identity removed (${ext})`}
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
       <AnimatePresence>
         {open !== null && (
           <motion.div role="dialog" aria-modal="true" aria-label={(ar ? 'صفحة المخطط ' : 'Drawing page ') + (open + 1) + ' / ' + n}

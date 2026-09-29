@@ -97,7 +97,25 @@ export function checksRunning(rollup = []) {
 export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () => false } = {}) {
   // every other gate must already pass: judged as if its checks were green
   return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
-    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null && isBehind(pr)) || null;
+    && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null
+    && (missingChecks(pr.statusCheckRollup).length > 0
+      || (onlyStaleFailures(pr.statusCheckRollup) && isBehind(pr)))) || null;
+}
+
+// The checks that read the LIVE database compare it with the branch, so a merge to main turns them red on
+// every other PR: only these are refreshed by an update. A PR failing anything else (a unit check, a
+// typecheck, the lint) is failing on its own code; updating it changes nothing, and picking it every tick
+// starved the rest of the queue (29 Sep 2026: #1056, red on its own tests, was updated tick after tick).
+export const STALE_PRONE = new Set(['the database is running what this repository says', 'the kernel and handler gate, against production']);
+export function onlyStaleFailures(rollup = []) {
+  const bad = latestChecks(rollup).filter((c) => !GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
+  return bad.length > 0 && bad.every((c) => STALE_PRONE.has(c.name || c.context));
+}
+
+// The required checks that never started on this head (a GITHUB_TOKEN push starts no workflow).
+export function missingChecks(rollup = [], required = REQUIRED_CHECKS) {
+  const names = new Set(latestChecks(rollup).map((c) => c.name || c.context));
+  return required.filter((n) => !names.has(n));
 }
 
 // ponytail: one fixed Dubai window (UTC+4, no DST), weekdays and weekends alike; move it to a
@@ -220,7 +238,7 @@ export async function main(argv = process.argv.slice(2)) {
 
   if (drift(DRY).length) { log('drift on main: releasing nothing this tick'); return 1; }
 
-  const fields = 'number,title,author,labels,createdAt,body,mergeable,statusCheckRollup,files,isDraft,baseRefName,headRefOid';
+  const fields = 'number,title,author,labels,createdAt,body,mergeable,statusCheckRollup,files,isDraft,baseRefName,headRefOid,headRefName';
   let prs = JSON.parse(gh(['pr', 'list', '--state', 'open', '--base', 'main', '--limit', '200', '--json', fields]));
   if (only) prs = prs.filter((p) => p.number === only);
   prs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -249,8 +267,25 @@ export async function main(argv = process.argv.slice(2)) {
     };
     const stale = staleCandidate(prs, { depState, isBehind });
     if (!stale) { log('nothing to release'); return 0; }
-    log(`nothing to release; #${stale.number} is behind main with finished, failing checks: ${DRY ? 'DRY RUN would update' : 'updating'} its branch`);
-    if (!DRY) { const r = run('gh', ['pr', 'update-branch', String(stale.number)]); log(r.out.trim()); }
+    const behind = isBehind(stale);
+    log(`nothing to release; #${stale.number} ${behind ? 'is behind main' : 'has required checks that never ran'}: ${DRY ? 'DRY RUN would ' : ''}${behind ? 'update its branch and ' : ''}start its CI`);
+    if (!DRY) {
+      if (behind) {
+        const r = run('gh', ['pr', 'update-branch', String(stale.number)]);
+        log(r.out.trim());
+      } else {
+        // A push made with GITHUB_TOKEN (this train's update-branch) leaves the PR's workflow runs in
+        // 'action_required', waiting for approval (29 Sep 2026: twelve PRs sat with only Vercel's statuses).
+        // Approve the waiting runs on this head; they then run as pull_request runs and attach to the PR.
+        let runs = [];
+        try { runs = JSON.parse(run('gh', ['run', 'list', '--branch', stale.headRefName, '--limit', '20',
+          '--json', 'databaseId,conclusion,headSha']).out || '[]'); } catch { log('could not list runs'); }
+        for (const w of runs.filter((x) => x.conclusion === 'action_required' && x.headSha === stale.headRefOid)) {
+          const d = run('gh', ['api', '-X', 'POST', `repos/{owner}/{repo}/actions/runs/${w.databaseId}/approve`]);
+          log(`approved run ${w.databaseId} on #${stale.number} -> exit ${d.code}`);
+        }
+      }
+    }
     return 0;
   }
 
@@ -297,9 +332,15 @@ export async function main(argv = process.argv.slice(2)) {
     run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']);
   }
   if (applies.length) log(`schema mirror -> exit ${node(['scripts/checks/export_from_either_source_is_identical.mjs', '--write']).code}`);
-  const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
-  log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
-  if (dep.code && !failed) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  // NO DEPLOY AFTER A FAILED APPLY (29 Sep 2026). #1050's SQL failed (42501) and the train deployed its new
+  // think.ts anyway, so every importer called a routine signature the database did not have. Code that
+  // depends on SQL ships only when that SQL is live; a failed release leaves the functions as they were.
+  if (failed) log('an apply or probe failed: changed functions are NOT deployed');
+  else {
+    const dep = node(['scripts/deploy_functions.mjs', `--ref=${REF}`, '--production', '--changed', `--base=${base}`]);
+    log(`deploy changed functions -> exit ${dep.code}\n${dep.out.slice(-2000)}`);
+    if (dep.code) { failed = { file: 'supabase/functions', out: dep.out }; openFinding(chosen, 'deploy_functions', dep.out); run('gh', ['pr', 'edit', String(chosen.number), '--add-label', 'release-failed']); }
+  }
 
   run('git', ['add', '--', manifest, 'scripts/sql/pending', 'supabase/schema']);
   if (run('git', ['diff', '--cached', '--quiet']).code) {
