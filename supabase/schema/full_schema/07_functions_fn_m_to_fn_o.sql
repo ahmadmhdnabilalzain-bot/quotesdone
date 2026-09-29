@@ -4071,11 +4071,15 @@ cand as (
   join loc on loc.supplier_id = sc.supplier_id
   left join public.supplier_perf sp on sp.supplier_id = sc.supplier_id
   left join public.supplier_performance pf on pf.lead_id = sc.supplier_id
+  left join public.supplier_availability av on av.supplier_id = sc.supplier_id
   where sc.confirmed_at is not null
     and sc.trades && p_trades
     and not (sc.excluded_trades && p_trades)
     and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked,
                                l.approval_status, l.permanently_closed, l.chat_strikes)
+    -- 29 Sep 2026 (ledger 1033): a supplier who said he is busy or paused is not sent a request. No row = available;
+    -- a busy date that has come reads as available here, whether or not the duty has rewritten the row yet.
+    and public.fn_supplier_available(av.state, av.busy_until)
     and exists (
       select 1 from public.taxonomy_role r
       where r.code = any(sc.roles)

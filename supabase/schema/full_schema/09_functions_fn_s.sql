@@ -869,6 +869,46 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_availability_tick(p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_expired int; r record; v jsonb; v_swept int := 0; v_flagged int := 0; v_new int := 0; v_cleared int := 0;
+begin
+  -- A busy date that has come: the supplier is available again, with nothing for him to do.
+  with x as (
+    update public.supplier_availability
+       set state = 'available', busy_until = null, set_at = now(), set_by = 'sales_engineer (busy date reached)'
+     where state = 'busy' and busy_until <= (now() at time zone 'Asia/Dubai')::date
+    returning 1)
+  select count(*)::int into v_expired from x;
+
+  -- ponytail: one call per open inquiry (3 rows today); a set-based pass if open inquiries reach thousands.
+  for r in
+    select i.id from public.inquiries i
+      join public.customers c on c.id = i.customer_id
+     where i.status in ('sent', 'quoted')
+       and (p_include_fixtures or not public.fn_seat_clock_customer_is_fixture(c))
+    union
+    select f.inquiry_id from public.stalled_inquiry_rescue f
+     where f.cleared_at is null and (p_include_fixtures or not f.fixture)
+  loop
+    v := public.fn_stalled_inquiry_flag(r.id, 'sales_engineer.supplier_availability');
+    v_swept := v_swept + 1;
+    if coalesce((v->>'flagged')::boolean, false) then
+      v_flagged := v_flagged + 1;
+      if coalesce((v->>'new')::boolean, false) then v_new := v_new + 1; end if;
+    end if;
+    if coalesce((v->>'cleared')::boolean, false) then v_cleared := v_cleared + 1; end if;
+  end loop;
+  return jsonb_build_object('ok', true, 'busy_expired', v_expired, 'inquiries_swept', v_swept,
+                            'unreachable', v_flagged, 'newly_flagged', v_new, 'cleared', v_cleared);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_comparison_kpi(p_days integer DEFAULT 7)
  RETURNS jsonb
  LANGUAGE sql
@@ -4864,6 +4904,93 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_stalled_inquiry_flag(p_inquiry_id uuid, p_by text DEFAULT 'sales_engineer'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  i public.inquiries; v_fixture boolean; v_quotes int; v_matched int; v_reach int; v_busy int; v_paused int;
+  v_blocked int; v_back date; v_trades text[]; v_trade_busy int; v_trade_paused int; v_trade_back date;
+  v_open boolean; v_detail jsonb; v_by text := coalesce(nullif(btrim(p_by), ''), 'sales_engineer');
+begin
+  select * into i from public.inquiries where id = p_inquiry_id;
+  if not found then return jsonb_build_object('ok', false, 'error', 'no such inquiry'); end if;
+  v_open := exists (select 1 from public.stalled_inquiry_rescue where inquiry_id = i.id and cleared_at is null);
+
+  select count(*)::int into v_quotes from public.quotes q
+   where q.inquiry_id = i.id
+     and coalesce(q.status, '') not in ('draft', 'withdrawn', 'rejected', 'expired', 'held', 'cancelled')
+     and q.stale_at is null;
+
+  if coalesce(i.status, '') not in ('sent', 'quoted') or v_quotes > 0 then
+    if v_open then
+      update public.stalled_inquiry_rescue set cleared_at = now(),
+             cleared_why = case when v_quotes > 0 then v_quotes || ' live quote(s)' else 'inquiry is ' || coalesce(i.status, 'null') end
+       where inquiry_id = i.id and cleared_at is null;
+    end if;
+    return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'cleared', v_open,
+                              'why', case when v_quotes > 0 then 'quoted' else 'not open' end);
+  end if;
+
+  select count(*)::int,
+         count(*) filter (where public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
+                            and public.fn_supplier_available(av.state, av.busy_until))::int,
+         count(*) filter (where not public.fn_supplier_available(av.state, av.busy_until) and av.state = 'busy')::int,
+         count(*) filter (where not public.fn_supplier_available(av.state, av.busy_until) and av.state = 'paused')::int,
+         count(*) filter (where not public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes))::int,
+         min(av.busy_until) filter (where not public.fn_supplier_available(av.state, av.busy_until))
+    into v_matched, v_reach, v_busy, v_paused, v_blocked, v_back
+    from public.inquiry_matches m
+    join public.leads l on l.id = m.supplier_id
+    left join public.supplier_availability av on av.supplier_id = m.supplier_id
+   where m.inquiry_id = i.id;
+
+  if v_reach > 0 then
+    if v_open then
+      update public.stalled_inquiry_rescue set cleared_at = now(), cleared_why = v_reach || ' reachable supplier(s)'
+       where inquiry_id = i.id and cleared_at is null;
+    end if;
+    return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', false, 'cleared', v_open, 'reachable', v_reach);
+  end if;
+
+  -- Nobody can reach it. Say why, for the rescue: the matched suppliers' states, and the suppliers of its
+  -- trades who confirmed their scope and are matchable but said busy or paused (the trade gate only: role,
+  -- authority, value and emirate are the matcher's, not repeated here).
+  v_trades := public.fn_taxonomy_trades_for(case when coalesce(cardinality(i.trades), 0) > 0 then i.trades
+                                                 else array[coalesce(i.category, '')] end);
+  select count(*) filter (where av.state = 'busy')::int, count(*) filter (where av.state = 'paused')::int, min(av.busy_until)
+    into v_trade_busy, v_trade_paused, v_trade_back
+    from public.supplier_capabilities sc
+    join public.leads l on l.id = sc.supplier_id
+    join public.supplier_availability av on av.supplier_id = sc.supplier_id
+   where sc.confirmed_at is not null
+     and sc.trades && coalesce(v_trades, '{}'::text[])
+     and not (sc.excluded_trades && coalesce(v_trades, '{}'::text[]))
+     and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)
+     and not public.fn_supplier_available(av.state, av.busy_until);
+
+  select public.fn_seat_clock_customer_is_fixture(c) into v_fixture from public.customers c where c.id = i.customer_id;
+  v_detail := jsonb_build_object(
+    'matched', v_matched, 'reachable', 0, 'matched_busy', v_busy, 'matched_paused', v_paused, 'matched_not_matchable', v_blocked,
+    'earliest_back', v_back, 'trades', to_jsonb(v_trades), 'category', i.category, 'emirate', i.emirate,
+    'in_trade_busy', coalesce(v_trade_busy, 0), 'in_trade_paused', coalesce(v_trade_paused, 0), 'in_trade_earliest_back', v_trade_back,
+    'matcher_unavailable', coalesce((i.routing->>'matcher_unavailable')::boolean, false), 'at', now());
+
+  insert into public.stalled_inquiry_rescue (inquiry_id, reason, detail, fixture, flagged_at, flagged_by)
+  values (i.id, 'no_reachable_supplier', v_detail, coalesce(v_fixture, false), now(), v_by)
+  on conflict (inquiry_id) do update
+     set detail = excluded.detail, fixture = excluded.fixture,
+         -- an open flag keeps the time it was first raised; a cleared one is raised again from now
+         flagged_at = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_at else excluded.flagged_at end,
+         flagged_by = case when stalled_inquiry_rescue.cleared_at is null then stalled_inquiry_rescue.flagged_by else excluded.flagged_by end,
+         cleared_at = null, cleared_why = null;
+  return jsonb_build_object('ok', true, 'inquiry_id', i.id, 'flagged', true, 'new', not v_open, 'detail', v_detail);
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_strategy_metrics()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5268,6 +5395,33 @@ begin
   return jsonb_build_object('lang', 'en', 'subject', 'You are verified on QuotesDone: please confirm your categories',
                             'body', v_body, 'link', v_link, 'categories', coalesce(v_n, 0));
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_availability_of(p_supplier_id bigint)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when a.supplier_id is null or public.fn_supplier_available(a.state, a.busy_until)
+      then jsonb_build_object('state', 'available', 'busy_until', null, 'set_at', a.set_at, 'matched', true)
+    else jsonb_build_object('state', a.state, 'busy_until', a.busy_until, 'set_at', a.set_at, 'matched', false)
+  end
+  from (select 1) one
+  left join public.supplier_availability a on a.supplier_id = p_supplier_id;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_available(p_state text, p_busy_until date)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_state, 'available') = 'available'
+      or (p_state = 'busy' and p_busy_until <= (now() at time zone 'Asia/Dubai')::date);
 $function$
 
 
@@ -8035,6 +8189,35 @@ begin
                             'open_hits_left', v_open, 'tasks_closed', v_closed,
                             'sanctions_ban', p_decision = 'confirmed');
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_set_availability(p_supplier_id bigint, p_state text, p_busy_until date DEFAULT NULL::date, p_by text DEFAULT 'supplier_api'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_today date := (now() at time zone 'Asia/Dubai')::date;
+begin
+  if p_state is null or p_state not in ('available', 'busy', 'paused') then
+    return jsonb_build_object('ok', false, 'code', 'bad_state', 'error', 'Choose available, busy or paused.');
+  end if;
+  if p_state = 'busy' and (p_busy_until is null or p_busy_until <= v_today) then
+    return jsonb_build_object('ok', false, 'code', 'busy_date_not_future', 'error', 'Choose the date you are available again: a date after today.');
+  end if;
+  if p_state = 'busy' and p_busy_until > v_today + 365 then
+    return jsonb_build_object('ok', false, 'code', 'busy_date_too_far', 'error', 'A busy date must be within a year. To stop receiving requests for longer, pause instead.');
+  end if;
+  if not exists (select 1 from public.leads where id = p_supplier_id) then
+    return jsonb_build_object('ok', false, 'code', 'no_company', 'error', 'No such supplier.');
+  end if;
+  insert into public.supplier_availability (supplier_id, state, busy_until, set_at, set_by)
+  values (p_supplier_id, p_state, case when p_state = 'busy' then p_busy_until end, now(), coalesce(nullif(btrim(p_by), ''), 'supplier_api'))
+  on conflict (supplier_id) do update
+     set state = excluded.state, busy_until = excluded.busy_until, set_at = excluded.set_at, set_by = excluded.set_by;
+  return jsonb_build_object('ok', true, 'availability', public.fn_supplier_availability_of(p_supplier_id));
+end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_supplier_stats(p_supplier_id bigint)
