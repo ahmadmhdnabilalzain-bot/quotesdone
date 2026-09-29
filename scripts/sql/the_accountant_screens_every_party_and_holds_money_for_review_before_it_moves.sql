@@ -544,7 +544,9 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
 -- ── 6. the daily table export ─────────────────────────────────────────────────────────────────────────
 -- Redefined from #1108's body (a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql at
 -- cc78eaa: #1106's list, itself main's plus #1105's stalled_inquiry_rescue, plus quote_quality_hold), with only
--- fraud_flags, money_move_hold and free_email_domain added here. Depends-on: #1108 (and through it #1106 and #1105):
+-- fraud_flags, money_move_hold and free_email_domain added here, and supplier_availability: #1105 (applied) created it
+-- without listing it, the live list (152 rows on 29 Sep 2026) does not name it, and no file in the #1105-#1106-#1108
+-- chain adds it, so this last file in the chain does. It has no *_path column, so fn_backup_source_registry is unchanged. Depends-on: #1108 (and through it #1106 and #1105):
 -- apply it first, so every table this list names exists when it is applied.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
@@ -598,6 +600,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
     ('fraud_flags','risk'), ('money_move_hold','risk'), ('free_email_domain','risk'),
+    ('supplier_availability','supplier'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
