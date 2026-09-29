@@ -448,6 +448,9 @@ declare
   v_now timestamp := now() at time zone 'Asia/Dubai';
   v_week int; v_today int; v_next public.marketing_article;
 begin
+  -- ONE CALLER AT A TIME (release review, 29 Sep 2026): two overlapping ticks each counted 0 releases this week and
+  -- each skip-locked a DIFFERENT approved row, so the week got two blogs. The lock serialises the count and the release.
+  perform pg_advisory_xact_lock(hashtext('fn_marketing_article_release_due'));
   if not public.fn_is_working_day(v_now::date) then
     return jsonb_build_object('released', null, 'reason', 'not a UAE working day');
   end if;
@@ -594,6 +597,10 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
+    ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
+    ('quote_quality_hold','quote'),
+    ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),
@@ -639,8 +646,11 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
-    ('marketing_blog_topic','marketing'), ('marketing_article_round','marketing'),
-    ('table_export_change','backup')
+    ('table_export_change','backup'),
+    -- 1056: the model routing the founder rules on, and what every seat runs on
+    ('model_policy','model_routing'), ('model_policy_by_identity','model_routing'), ('model_registry','model_routing'),
+    ('fn_task_class','model_routing'), ('review_pool','model_routing'), ('paid_route_exception','model_routing'),
+    ('it_model_consumer','model_routing')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
   -- missing table, so ONLY those nine are skipped until their own file creates them. Every other table in the
@@ -670,6 +680,8 @@ on conflict (task_class) do update set tier = excluded.tier, model_primary = exc
 
 select case
   when to_regprocedure('public.fn_marketing_blog_submit(jsonb)') is null then 'PROBE FAILED: fn_marketing_blog_submit is missing'
+  when pg_get_functiondef('public.fn_marketing_article_release_due()'::regprocedure) not like '%pg_advisory_xact_lock%'
+    then 'PROBE FAILED: two overlapping release ticks can each release a blog in the same week'
   when public.fn_marketing_review_reasons_ok('approve', '{}'::jsonb) then 'PROBE FAILED: a reasonless approval passes the rubric'
   when exists (select 1 from public.marketing_article where status = 'draft' and not is_demo and kind <> 'market_topic')
     then 'PROBE FAILED: a draft about QuotesDone is still in the blog queue'
