@@ -1,0 +1,96 @@
+{
+  "trade": "logistics_moving",
+  "layer": "uae-market",
+  "label_en": "Logistics, Movers & Storage",
+  "label_ar": "النقل والتخزين والخدمات اللوجستية",
+  "entries": [
+    {
+      "id": "logistics_moving:uae-market-products",
+      "topic": "Logistics, Movers & Storage: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Logistics services in the UAE include freight forwarding (sea FCL/LCL, air, land to GCC), customs brokerage and clearance (Dubai Customs Mirsal, Abu Dhabi ATLP, Sharjah), warehousing (general, bonded in free zones, dangerous goods, temperature-controlled), 3PL contract logistics (inventory management, pick-pack, kitting, VAS), distribution and FTL/LTL trucking within the UAE and to KSA, Oman, Qatar, Bahrain, Kuwait (TIR/transit), project cargo and heavy lift, sea-air via Dubai, e-commerce fulfilment, re-export trade through Jebel Ali Free Zone and Dubai South, and equipment/machinery moving (rigging). Buyers specify Incoterms 2020, commodity and HS codes, weights and dimensions, pallets and CBM, delivery addresses, customs documents (commercial invoice, packing list, certificate of origin, attested where needed), DG classes, and insurance. Freight forwarders and clearing agents need customs broker licences; trucks need RTA/ITC permits; heavy/oversized moves need road permits and police escort; bonded storage rules follow free zone and customs regulations.",
+      "body_ar": "تشمل الخدمات اللوجستية في الإمارات الشحن (البحري بحاويات كاملة/جزئية، والجوي، والبري إلى دول الخليج)، والوساطة والتخليص الجمركي (نظام مرسال لجمارك دبي، ومنصة ATLP في أبوظبي، والشارقة)، والتخزين (العام، والمخازن الجمركية في المناطق الحرة، والبضائع الخطرة، والمتحكم بحرارته)، والخدمات اللوجستية التعاقدية للطرف الثالث (إدارة المخزون، والانتقاء والتعبئة، وتجميع الأطقم، والخدمات ذات القيمة المضافة)، والتوزيع والنقل بالشاحنات بحمولة كاملة/جزئية داخل الإمارات وإلى السعودية وعُمان وقطر والبحرين والكويت (TIR/العبور)، وشحن المشاريع والرفع الثقيل، والشحن البحري-الجوي عبر دبي، وتجهيز طلبات التجارة الإلكترونية، وتجارة إعادة التصدير عبر المنطقة الحرة لجبل علي ودبي الجنوب، ونقل المعدات والآلات (التحميل والرفع). يحدد المشترون شروط الإنكوترمز 2020، والسلعة ورموز النظام المنسق، والأوزان والأبعاد، والمنصات والأمتار المكعبة، وعناوين التسليم، والمستندات الجمركية (الفاتورة التجارية، وقائمة التعبئة، وشهادة المنشأ، مصدقة عند الحاجة)، وفئات البضائع الخطرة، والتأمين. ويحتاج وكلاء الشحن والتخليص إلى تراخيص وسطاء جمركيين؛ وتحتاج الشاحنات إلى تصاريح هيئة الطرق والمواصلات/مركز النقل المتكامل؛ وتحتاج عمليات النقل الثقيلة/كبيرة الحجم إلى تصاريح طرق ومرافقة شرطية؛ وتتبع قواعد التخزين الجمركي لوائح المناطق الحرة والجمارك.",
+      "sources": [
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.aramex.com/ae/en",
+        "https://www.dpworld.com",
+        "https://iccwbo.org",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Customs handles clearance (Mirsal) -> confirmed | Aramex offers freight, logistics and warehousing -> confirmed | DP World Jebel Ali logistics -> unconfirmed: page loaded without matching text. Not checked: Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified."
+    },
+    {
+      "id": "logistics_moving:uae-market-brands",
+      "topic": "Logistics, Movers & Storage: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed logistics provider and other major logistics names: Aramex, DP World, DHL, Kuehne+Nagel, DSV, AD Ports Group. Only Aramex was confirmed on an opened page.",
+      "body_ar": "مزود الخدمات اللوجستية المؤكد وأسماء لوجستية كبرى أخرى: Aramex، DP World، DHL، Kuehne+Nagel، DSV، AD Ports Group. ولم يُؤكد عبر صفحة مفتوحة إلا أرامكس.",
+      "sources": [
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.aramex.com/ae/en",
+        "https://www.dpworld.com",
+        "https://iccwbo.org",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Customs handles clearance (Mirsal) -> confirmed | Aramex offers freight, logistics and warehousing -> confirmed | DP World Jebel Ali logistics -> unconfirmed: page loaded without matching text. Not checked: Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified."
+    },
+    {
+      "id": "logistics_moving:uae-market-sizes",
+      "topic": "Logistics, Movers & Storage: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Sea freight priced per container (20 ft, 40 ft, 40 HC) or per CBM/revenue ton for LCL; air freight per chargeable kg (greater of actual and volumetric at 1:6000) with weight breaks; trucking per trip by truck type (1-ton pickup, 3-ton, 7-ton, 10-ton, flatbed trailer 12 m, lowbed) and route; warehousing per pallet or per m2/CBM per month plus handling; customs clearance per declaration plus duties (generally 5% of CIF for most goods) and VAT 5%. Surcharges (BAF, THC, DO fees) are itemised.",
+      "body_ar": "يُسعّر الشحن البحري لكل حاوية (20 قدماً، و40 قدماً، و40 عالية) أو لكل متر مكعب/طن إيرادي للشحن الجزئي؛ والشحن الجوي لكل كيلوغرام خاضع للرسوم (الأكبر بين الفعلي والحجمي بنسبة 1:6000) مع شرائح وزن؛ والنقل بالشاحنات لكل رحلة حسب نوع الشاحنة (بيك أب 1 طن، و3 أطنان، و7 أطنان، و10 أطنان، ومقطورة مسطحة 12 م، ومقطورة منخفضة) والمسار؛ والتخزين لكل منصة أو لكل متر مربع/مكعب شهرياً إضافة إلى المناولة؛ والتخليص الجمركي لكل بيان إضافة إلى الرسوم الجمركية (5% من قيمة CIF لمعظم البضائع عموماً) وضريبة القيمة المضافة 5%. وتُفصل الرسوم الإضافية (تعديل الوقود، ورسوم مناولة المحطة، ورسوم أمر التسليم).",
+      "sources": [
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.aramex.com/ae/en",
+        "https://www.dpworld.com",
+        "https://iccwbo.org",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Customs handles clearance (Mirsal) -> confirmed | Aramex offers freight, logistics and warehousing -> confirmed | DP World Jebel Ali logistics -> unconfirmed: page loaded without matching text. Not checked: Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is air freight chargeable weight calculated from Dubai?",
+      "q_ar": "كيف يُحسب الوزن الخاضع للرسوم في الشحن الجوي من دبي؟",
+      "expected_entry_ids": [
+        "logistics_moving:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai Customs handles clearance (Mirsal)",
+        "url": "https://www.dubaicustoms.gov.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Aramex offers freight, logistics and warehousing",
+        "url": "https://www.aramex.com/ae/en",
+        "result": "confirmed"
+      },
+      {
+        "claim": "DP World Jebel Ali logistics",
+        "url": "https://www.dpworld.com",
+        "result": "unconfirmed: page loaded without matching text"
+      }
+    ],
+    "unverified": "Duty exemptions per commodity, current Abu Dhabi clearance platform name, and the ownership status of named groups were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

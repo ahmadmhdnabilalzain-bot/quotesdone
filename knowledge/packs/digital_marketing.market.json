@@ -1,0 +1,110 @@
+{
+  "trade": "digital_marketing",
+  "layer": "uae-market",
+  "label_en": "Digital marketing, SEO & social media",
+  "label_ar": "التسويق الرقمي ومحركات البحث والتواصل الاجتماعي",
+  "entries": [
+    {
+      "id": "digital_marketing:uae-market-products",
+      "topic": "Digital marketing, SEO & social media: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Digital marketing services in the UAE include search engine optimisation (technical, on-page, local SEO, Arabic SEO), paid search (Google Ads), paid social (Meta, Instagram, TikTok, Snapchat, LinkedIn, X), programmatic display and video, social media management and content creation (bilingual English/Arabic), influencer marketing, email and WhatsApp marketing, website design and development, conversion rate optimisation, analytics and tag management (GA4), marketing automation and CRM integration, app store optimisation, online reputation management, and performance marketing on a cost-per-lead basis. Buyers ask for monthly deliverables (number of posts, ad sets, blogs), reporting KPIs (CTR, CPL, ROAS), ad spend management fee, platform certifications (Google Partner, Meta Business Partner), and UAE compliance: anyone in the UAE posting advertising content online, paid or unpaid, must hold a UAE Media Council Advertiser Permit (free for the first three years; applications via uaemc.gov.ae), advertising content must follow UAE media content standards, and personal data use must follow the UAE Personal Data Protection Law (Federal Decree-Law 45 of 2021) and TDRA rules on commercial SMS/WhatsApp messages.",
+      "body_ar": "تشمل خدمات التسويق الرقمي في الإمارات تحسين محركات البحث (الفني، وداخل الصفحة، والمحلي، وتحسين البحث باللغة العربية)، والبحث المدفوع (إعلانات جوجل)، والإعلانات المدفوعة على وسائل التواصل (ميتا، إنستغرام، تيك توك، سناب شات، لينكد إن، إكس)، والإعلانات البرمجية المرئية والفيديو، وإدارة وسائل التواصل الاجتماعي وإنتاج المحتوى (ثنائي اللغة إنجليزي/عربي)، والتسويق عبر المؤثرين، والتسويق عبر البريد الإلكتروني وواتساب، وتصميم المواقع وتطويرها، وتحسين معدل التحويل، والتحليلات وإدارة الوسوم (GA4)، وأتمتة التسويق والتكامل مع أنظمة إدارة علاقات العملاء، وتحسين متاجر التطبيقات، وإدارة السمعة الإلكترونية، والتسويق القائم على الأداء بنظام التكلفة لكل عميل محتمل. يطلب المشترون المخرجات الشهرية (عدد المنشورات، ومجموعات الإعلانات، والمقالات)، ومؤشرات الأداء في التقارير (نسبة النقر، وتكلفة العميل المحتمل، والعائد على الإنفاق الإعلاني)، ورسوم إدارة الإنفاق الإعلاني، وشهادات المنصات (شريك جوجل، وشريك أعمال ميتا)، والامتثال الإماراتي: يجب على كل من ينشر محتوى إعلانياً عبر الإنترنت من داخل الدولة، مدفوعاً أو غير مدفوع، الحصول على تصريح معلن من مجلس الإمارات للإعلام (مجاني لأول ثلاث سنوات؛ ويُقدم الطلب عبر uaemc.gov.ae)، ويجب أن يتبع المحتوى الإعلاني معايير المحتوى الإعلامي في الدولة، ويجب أن يتبع استخدام البيانات الشخصية قانون حماية البيانات الشخصية الإماراتي (المرسوم بقانون اتحادي رقم 45 لسنة 2021) وقواعد هيئة تنظيم الاتصالات بشأن الرسائل التجارية النصية وعبر واتساب.",
+      "sources": [
+        "https://www.khaleejtimes.com/uae/uae-launches-advertiser-permit-for-online-advertisements",
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://www.wppmedia.com/local/mena",
+        "https://dmc.ae/the-community/community-directory",
+        "https://uaemc.gov.ae",
+        "https://u.ae",
+        "https://tdra.gov.ae",
+        "https://www.google.com/partners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Media Council Advertiser Permit required for anyone posting paid or unpaid ads online; free for first three years -> corrected: extended from paid influencers to all online advertisers | PDPL (Federal Decree-Law 45 of 2021) in force from 2 Jan 2022 -> confirmed | Publicis (Publicis Commerce, Publicis Sapient) and WPP Media operate in Dubai Media City -> confirmed | Omnicom, Dentsu, Havas, IPG offices -> removed: not checked. Not checked: The current influencer permit fee structure, whether the PDPL executive regulations are in force, and which network agencies retain Dubai offices were not verified. Fee percentages are market norms, not verified figures."
+    },
+    {
+      "id": "digital_marketing:uae-market-brands",
+      "topic": "Digital marketing, SEO & social media: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed network groups with Dubai Media City offices, and the main ad platforms: Publicis Groupe, WPP Media, Google, Meta, TikTok, Snap, LinkedIn. The platforms' Dubai regional offices were not checked. Independent agencies operate in Dubai Media City, Dubai Internet City, Business Bay and Abu Dhabi, and freelancers work on free-zone permits.",
+      "body_ar": "مجموعات الوكالات المؤكد وجود مكاتبها في مدينة دبي للإعلام، ومنصات الإعلان الرئيسية: Publicis Groupe، WPP Media، Google، Meta، TikTok، Snap، LinkedIn. ولم يُتحقق من المكاتب الإقليمية للمنصات في دبي. وتعمل وكالات مستقلة في مدينة دبي للإعلام ومدينة دبي للإنترنت والخليج التجاري وأبوظبي، ويعمل المستقلون بتصاريح المناطق الحرة.",
+      "sources": [
+        "https://www.khaleejtimes.com/uae/uae-launches-advertiser-permit-for-online-advertisements",
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://www.wppmedia.com/local/mena",
+        "https://dmc.ae/the-community/community-directory",
+        "https://uaemc.gov.ae",
+        "https://u.ae",
+        "https://tdra.gov.ae",
+        "https://www.google.com/partners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Media Council Advertiser Permit required for anyone posting paid or unpaid ads online; free for first three years -> corrected: extended from paid influencers to all online advertisers | PDPL (Federal Decree-Law 45 of 2021) in force from 2 Jan 2022 -> confirmed | Publicis (Publicis Commerce, Publicis Sapient) and WPP Media operate in Dubai Media City -> confirmed | Omnicom, Dentsu, Havas, IPG offices -> removed: not checked. Not checked: The current influencer permit fee structure, whether the PDPL executive regulations are in force, and which network agencies retain Dubai offices were not verified. Fee percentages are market norms, not verified figures."
+    },
+    {
+      "id": "digital_marketing:uae-market-sizes",
+      "topic": "Digital marketing, SEO & social media: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Services are priced as a monthly retainer (per scope: e.g. 12-20 posts, 2-3 platforms), a percentage management fee on ad spend (commonly 10-20%, often with a minimum), per project (website build, campaign), per lead (performance), or per influencer post/story package. Contracts are usually 3-12 months. Ad spend is typically billed separately and paid directly to platforms or through the agency.",
+      "body_ar": "تُسعّر الخدمات كأتعاب شهرية ثابتة (حسب النطاق: مثل 12-20 منشوراً على 2-3 منصات)، أو كنسبة رسوم إدارة من الإنفاق الإعلاني (عادةً 10-20%، وغالباً مع حد أدنى)، أو لكل مشروع (بناء موقع، حملة)، أو لكل عميل محتمل (قائم على الأداء)، أو لكل باقة منشورات/قصص للمؤثر. وعادةً ما تكون العقود 3-12 شهراً. ويُفوتر الإنفاق الإعلاني عادةً بشكل منفصل ويُدفع مباشرة للمنصات أو عبر الوكالة.",
+      "sources": [
+        "https://www.khaleejtimes.com/uae/uae-launches-advertiser-permit-for-online-advertisements",
+        "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "https://www.wppmedia.com/local/mena",
+        "https://dmc.ae/the-community/community-directory",
+        "https://uaemc.gov.ae",
+        "https://u.ae",
+        "https://tdra.gov.ae",
+        "https://www.google.com/partners"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE Media Council Advertiser Permit required for anyone posting paid or unpaid ads online; free for first three years -> corrected: extended from paid influencers to all online advertisers | PDPL (Federal Decree-Law 45 of 2021) in force from 2 Jan 2022 -> confirmed | Publicis (Publicis Commerce, Publicis Sapient) and WPP Media operate in Dubai Media City -> confirmed | Omnicom, Dentsu, Havas, IPG offices -> removed: not checked. Not checked: The current influencer permit fee structure, whether the PDPL executive regulations are in force, and which network agencies retain Dubai offices were not verified. Fee percentages are market norms, not verified figures."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does an influencer need a licence to promote our product in the UAE?",
+      "q_ar": "هل يحتاج المؤثر إلى ترخيص للترويج لمنتجنا في الإمارات؟",
+      "expected_entry_ids": [
+        "digital_marketing:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "UAE Media Council Advertiser Permit required for anyone posting paid or unpaid ads online; free for first three years",
+        "url": "https://www.khaleejtimes.com/uae/uae-launches-advertiser-permit-for-online-advertisements",
+        "result": "corrected: extended from paid influencers to all online advertisers"
+      },
+      {
+        "claim": "PDPL (Federal Decree-Law 45 of 2021) in force from 2 Jan 2022",
+        "url": "https://u.ae/en/about-the-uae/digital-uae/data/data-protection-laws",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Publicis (Publicis Commerce, Publicis Sapient) and WPP Media operate in Dubai Media City",
+        "url": "https://www.wppmedia.com/local/mena",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Omnicom, Dentsu, Havas, IPG offices",
+        "url": "https://dmc.ae/the-community/community-directory",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "The current influencer permit fee structure, whether the PDPL executive regulations are in force, and which network agencies retain Dubai offices were not verified. Fee percentages are market norms, not verified figures.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

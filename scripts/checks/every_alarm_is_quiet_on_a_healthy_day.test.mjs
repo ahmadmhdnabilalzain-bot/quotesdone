@@ -47,6 +47,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replay } from '../lib/alarm_replay.mjs';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -198,6 +199,15 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
     asOf: { supply_gap: 'opened_at', leads: 'created_at' },
   },
+  // 29 Sep 2026 (marketing, #1070). recruitment:no_source:<trade> when a trade planned for recruitment has no checked
+  // source. It plans from the gaps that existed at the instant (the copy's own delete drops plans for gaps not yet
+  // opened, rolled back); a healthy day has no planned trade without a checked source. Sources are not filtered:
+  // checked_at is when a source was last checked, not when it was recorded, and a source seen at the instant can only
+  // make it quieter (the ceiling in the header).
+  fn_marketing_gap_recruitment_plans: {
+    replay: 'pg_temp.qd_replay_fn_marketing_gap_recruitment_plans()',
+    asOf: { supply_gap: 'opened_at' },
+  },
   // 24 Sep 2026 (marketing, #905). reputation:no_public_review_link when a satisfied customer waits for an ask and no
   // review link is configured. Reviews that existed at the instant; the asks it writes are rolled back.
   fn_marketing_reputation: {
@@ -219,6 +229,9 @@ export const REGISTER = {
   fn_ceo_accountant_notice_report_decide: { relay: 'the CEO\'s decision on an accountant report' },
   fn_ceo_sales_engineer_report_decide: { relay: 'the CEO\'s decision on a sales engineer report' },
   fn_it_journey_ingest: { relay: 'writes the failed steps a nightly journey or smoke run reports' },
+  // 29 Sep 2026 (it_engineer, #1048). A truncated smoke run now upserts its FAIL steps itself instead of settling,
+  // so it closes nothing on silence. The FAIL is the journey's verdict (scripts/e2e/journeys.mjs), not a rule here.
+  fn_it_smoke_ingest: { relay: 'writes the failed steps a post-deploy smoke run reports; each FAIL is the journey\'s verdict, and a run with no failed step raises nothing' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },
@@ -232,8 +245,9 @@ const BASELINE = new Set(['fn_it_engineer_alert_tick', 'fn_it_dropbox_health_rec
 // ── STATIC ────────────────────────────────────────────────────────────────────────────────────────
 // name -> canonical body (the LAST file in MANIFEST order that defines it).
 export function canonicalBodies(repo = REPO) {
-  const manifest = readFileSync(join(repo, 'scripts', 'sql', 'MANIFEST.txt'), 'utf8')
-    .split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql') && !l.startsWith('#'));
+  // MANIFEST plus pending/ (29 Sep 2026): a new alarm waiting in pending/ must be registered by its own
+  // PR, not discovered on main after the bookkeeping commit appends it (#1070's was).
+  const manifest = manifestWithPending(repo);
   const out = new Map();
   for (const f of manifest) {
     const p = join(repo, f);

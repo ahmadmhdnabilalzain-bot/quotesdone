@@ -1,0 +1,77 @@
+{
+  "trade": "school_furniture",
+  "entries": [
+    {
+      "id": "school_furniture:spec-checklist",
+      "topic": "School furniture - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For school furniture quotes to be compared like-for-like, every quoted line (goods) must state: (1) item (desk, chair, cabinet, lab bench); (2) age group and size mark (EN 1729); (3) frame and top materials; (4) dimensions; (5) colour and finish; (6) stability and strength test report; (7) fire performance of upholstery; (8) quantity per item; (9) delivery and assembly; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the school_furniture trade.",
+      "body_ar": "لكي تُقارن عروض الأثاث المدرسي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) الصنف (مكتب، أو كرسي، أو خزانة، أو طاولة مختبر)؛ (2) الفئة العمرية ومقاس الحجم (EN 1729)؛ (3) مواد الهيكل والسطح؛ (4) الأبعاد؛ (5) اللون والتشطيب؛ (6) تقرير اختبار الثبات والمتانة؛ (7) أداء التنجيد في الحريق؛ (8) الكمية لكل صنف؛ (9) التسليم والتجميع؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة school_furniture فقط.",
+      "required_specs": [
+        "item (desk, chair, cabinet, lab bench)",
+        "age group and size mark (EN 1729)",
+        "frame and top materials",
+        "dimensions",
+        "colour and finish",
+        "stability and strength test report",
+        "fire performance of upholstery",
+        "quantity per item",
+        "delivery and assembly",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "school_furniture:uae-standards-and-approvals",
+      "topic": "School furniture - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "School furniture is commonly specified to EN 1729 (chairs and tables for educational institutions); schools are licensed by the education authority of each emirate (for example KHDA in Dubai, ADEK in Abu Dhabi) and must comply with the UAE Fire and Life Safety Code for furnishings. What the cited sources do not establish: The sources read do not make EN 1729 mandatory; state the standard in the request.",
+      "body_ar": "يُحدَّد الأثاث المدرسي عادةً وفق EN 1729 (الكراسي والطاولات للمؤسسات التعليمية)؛ وترخص المدارس جهة التعليم في كل إمارة (مثل هيئة المعرفة والتنمية البشرية في دبي ودائرة التعليم والمعرفة في أبوظبي) ويجب أن تلتزم بكود الإمارات للحماية من الحريق في المفروشات. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تجعل EN 1729 إلزامياً؛ حدد المعيار في الطلب.",
+      "source_note": "The sources read do not make EN 1729 mandatory; state the standard in the request.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for school furniture?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالأثاث المدرسي؟",
+      "expected_entry_ids": [
+        "school_furniture:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to school furniture?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الأثاث المدرسي؟",
+      "expected_entry_ids": [
+        "school_furniture:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "school_furniture:spec-checklist",
+      "school_furniture:uae-standards-and-approvals"
+    ],
+    "added": [
+      "school_furniture:spec-checklist",
+      "school_furniture:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "trade": "public_relations",
+  "layer": "uae-market",
+  "label_en": "Public relations",
+  "label_ar": "العلاقات العامة",
+  "entries": [
+    {
+      "id": "public_relations:uae-market-products",
+      "topic": "Public relations: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Public relations services in the UAE include media relations (press releases in English and Arabic, media pitching, press conferences, media tours), corporate communications and reputation management, crisis communications, thought leadership and executive profiling, government relations and public affairs (within UAE law), financial PR and investor relations support (for ADX/DFM listings), internal communications, social media and community management, influencer relations, event PR and launches, media monitoring and reporting, media training for spokespeople, and award submissions. Buyers ask for target media lists (Gulf News, Khaleej Times, The National, Al Khaleej, Al Bayan, Emarat Al Youm, Arabian Business, Zawya, broadcast outlets), coverage reporting and share of voice, bilingual capabilities, and sector experience. Content must comply with UAE Media Council standards; financial communications by listed companies follow the disclosure rules of the federal securities regulator (SCA, now also styled Capital Market Authority).",
+      "body_ar": "تشمل خدمات العلاقات العامة في الإمارات العلاقات الإعلامية (البيانات الصحفية بالإنجليزية والعربية، والتواصل مع وسائل الإعلام، والمؤتمرات الصحفية، والجولات الإعلامية)، والاتصال المؤسسي وإدارة السمعة، واتصالات الأزمات، وقيادة الفكر وإبراز التنفيذيين، والعلاقات الحكومية والشؤون العامة (ضمن القانون الإماراتي)، والعلاقات العامة المالية ودعم علاقات المستثمرين (لإدراجات سوق أبوظبي للأوراق المالية وسوق دبي المالي)، والاتصال الداخلي، وإدارة وسائل التواصل الاجتماعي والمجتمعات، والعلاقات مع المؤثرين، والعلاقات العامة للفعاليات والإطلاقات، ورصد وسائل الإعلام وإعداد التقارير، والتدريب الإعلامي للمتحدثين الرسميين، وطلبات الترشح للجوائز. يطلب المشترون قوائم الوسائط المستهدفة (جلف نيوز، وخليج تايمز، وذا ناشيونال، والخليج، والبيان، والإمارات اليوم، وأرابيان بزنس، وزاوية، والقنوات الإذاعية والتلفزيونية)، وتقارير التغطية وحصة الصوت، والقدرات ثنائية اللغة، والخبرة القطاعية. ويجب أن يمتثل المحتوى لمعايير مجلس الإمارات للإعلام؛ وتتبع الاتصالات المالية للشركات المدرجة قواعد الإفصاح لدى الجهة الاتحادية المنظمة للأوراق المالية (هيئة الأوراق المالية والسلع، وتُسمى أيضاً هيئة سوق رأس المال).",
+      "sources": [
+        "https://www.uaecma.gov.ae/en/media-center/news/8/3/2020/sca-issues-a-circular.aspx",
+        "https://everything-pr.com/the-leading-digital-marketing-influencer-and-pr-agencies-in-dubai-and-the-uae-2026",
+        "https://www.webtonic.io/blog/top-public-relations-agencies-dubai",
+        "https://www.mepra.org",
+        "https://uaemc.gov.ae",
+        "https://www.sca.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Listed companies must disclose material information under SCA rules -> confirmed: the regulator now also appears as the Capital Market Authority (uaecma.gov.ae) | ASDA'A BCW is the Middle East's largest PR consultancy with Dubai and Abu Dhabi offices; Weber Shandwick and Edelman run Dubai practices; MEPRA is the industry body -> confirmed | Seven Media, Matrix PR, Instinctif, Finn Partners -> removed: not confirmed. Not checked: Current agency network names and office presence were not verified; some named independents may have merged or closed."
+    },
+    {
+      "id": "public_relations:uae-market-brands",
+      "topic": "Public relations: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed PR firms, the industry body and monitoring providers: ASDA'A BCW, Weber Shandwick, Edelman, MEPRA, Meltwater, Cision. The monitoring providers' UAE offices were not checked.",
+      "body_ar": "شركات العلاقات العامة المؤكدة والهيئة المهنية ومزودو الرصد: ASDA'A BCW، Weber Shandwick، Edelman، MEPRA، Meltwater، Cision. ولم يُتحقق من مكاتب مزودي الرصد في الإمارات.",
+      "sources": [
+        "https://www.uaecma.gov.ae/en/media-center/news/8/3/2020/sca-issues-a-circular.aspx",
+        "https://everything-pr.com/the-leading-digital-marketing-influencer-and-pr-agencies-in-dubai-and-the-uae-2026",
+        "https://www.webtonic.io/blog/top-public-relations-agencies-dubai",
+        "https://www.mepra.org",
+        "https://uaemc.gov.ae",
+        "https://www.sca.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Listed companies must disclose material information under SCA rules -> confirmed: the regulator now also appears as the Capital Market Authority (uaecma.gov.ae) | ASDA'A BCW is the Middle East's largest PR consultancy with Dubai and Abu Dhabi offices; Weber Shandwick and Edelman run Dubai practices; MEPRA is the industry body -> confirmed | Seven Media, Matrix PR, Instinctif, Finn Partners -> removed: not confirmed. Not checked: Current agency network names and office presence were not verified; some named independents may have merged or closed."
+    },
+    {
+      "id": "public_relations:uae-market-sizes",
+      "topic": "Public relations: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "PR is typically billed as a monthly retainer based on a scope of hours and deliverables (commonly 6-12 month contracts with 30-90 day notice), or per project (launch, crisis, event), plus pass-through costs (distribution wires such as Zawya/PR Newswire, translation, events). Media monitoring is priced per month by number of keywords and outlets. Media training is priced per session/day.",
+      "body_ar": "تُفوتر العلاقات العامة عادةً كأتعاب شهرية ثابتة وفق نطاق من الساعات والمخرجات (عادةً عقود 6-12 شهراً مع إشعار 30-90 يوماً)، أو لكل مشروع (إطلاق، أزمة، فعالية)، إضافة إلى التكاليف الممررة (خدمات توزيع الأخبار مثل زاوية/بي آر نيوزواير، والترجمة، والفعاليات). ويُسعّر رصد وسائل الإعلام شهرياً حسب عدد الكلمات المفتاحية والوسائل. ويُسعّر التدريب الإعلامي لكل جلسة/يوم.",
+      "sources": [
+        "https://www.uaecma.gov.ae/en/media-center/news/8/3/2020/sca-issues-a-circular.aspx",
+        "https://everything-pr.com/the-leading-digital-marketing-influencer-and-pr-agencies-in-dubai-and-the-uae-2026",
+        "https://www.webtonic.io/blog/top-public-relations-agencies-dubai",
+        "https://www.mepra.org",
+        "https://uaemc.gov.ae",
+        "https://www.sca.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Listed companies must disclose material information under SCA rules -> confirmed: the regulator now also appears as the Capital Market Authority (uaecma.gov.ae) | ASDA'A BCW is the Middle East's largest PR consultancy with Dubai and Abu Dhabi offices; Weber Shandwick and Edelman run Dubai practices; MEPRA is the industry body -> confirmed | Seven Media, Matrix PR, Instinctif, Finn Partners -> removed: not confirmed. Not checked: Current agency network names and office presence were not verified; some named independents may have merged or closed."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is a PR retainer typically structured in Dubai?",
+      "q_ar": "كيف تُنظم عادةً أتعاب العلاقات العامة الشهرية في دبي؟",
+      "expected_entry_ids": [
+        "public_relations:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Listed companies must disclose material information under SCA rules",
+        "url": "https://www.uaecma.gov.ae/en/media-center/news/8/3/2020/sca-issues-a-circular.aspx",
+        "result": "confirmed: the regulator now also appears as the Capital Market Authority (uaecma.gov.ae)"
+      },
+      {
+        "claim": "ASDA'A BCW is the Middle East's largest PR consultancy with Dubai and Abu Dhabi offices; Weber Shandwick and Edelman run Dubai practices; MEPRA is the industry body",
+        "url": "https://everything-pr.com/the-leading-digital-marketing-influencer-and-pr-agencies-in-dubai-and-the-uae-2026",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Seven Media, Matrix PR, Instinctif, Finn Partners",
+        "url": "https://www.webtonic.io/blog/top-public-relations-agencies-dubai",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Current agency network names and office presence were not verified; some named independents may have merged or closed.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
