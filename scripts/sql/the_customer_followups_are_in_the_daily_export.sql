@@ -12,6 +12,13 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('customer_followup','customer'),
+    ('seat_playbook','knowledge'),
+    ('ceo_decision_round','decision'),
+    ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
+    ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
+    ('quote_quality_hold','quote'),
+    ('stalled_inquiry_rescue','inquiry'),
     ('customers','customer'), ('customer_preference','customer'), ('customer_calls','customer'), ('projects','customer'),
     ('leads','supplier'), ('lead_category','supplier'), ('lead_subcategory','supplier'), ('supplier_capabilities','supplier'),
     ('supplier_catalog','supplier'), ('supplier_product','supplier'), ('supplier_product_variant','supplier'),
@@ -41,7 +48,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('wa_messages','conversation'), ('wa_conversation','conversation'), ('wa_turn','conversation'),
     ('wa_document_intake','conversation'), ('notifications','conversation'), ('agent_chats','conversation'),
     ('legal_reviews','legal'), ('pdpl_requests','legal'), ('pdpl_erase_files','legal'), ('email_suppressions','legal'),
-    ('founder_instruction','decision'), ('company_policy_decision','decision'), ('ceo_decision_round','decision'), ('seat_handoff_kind','decision'),
+    ('founder_instruction','decision'), ('company_policy_decision','decision'),
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
@@ -57,7 +64,6 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
     ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
-    ('customer_followup','customer'),   -- #1074 customer_support: the ONE row this file adds; a rebase keeps this line
     ('table_export_change','backup'),
     -- 1056: the model routing the founder rules on, and what every seat runs on
     ('model_policy','model_routing'), ('model_policy_by_identity','model_routing'), ('model_registry','model_routing'),
