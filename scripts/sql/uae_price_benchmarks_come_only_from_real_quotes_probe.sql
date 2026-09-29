@@ -1,19 +1,20 @@
 -- PROBE: UAE PRICE BENCHMARKS COME ONLY FROM REAL QUOTES. Founder instruction 1009, upgrade 4. Seat: sales_engineer.
 --
 -- Pure probe, nothing survives it. It ends in `raise exception 'CHK<<...>>'` ALWAYS, so the whole
--- request rolls back. Until uae_price_benchmarks_come_only_from_real_quotes.sql is applied, run it
--- with the DDL in front of it, as ONE request (one implicit transaction, so the raise takes the
--- routines with it and production is left untouched):
---   cat scripts/sql/uae_price_benchmarks_come_only_from_real_quotes.sql \
---       scripts/sql/uae_price_benchmarks_come_only_from_real_quotes_probe.sql > <scratch>/p.sql
---   node scripts/qsql.mjs <scratch>/p.sql        -> must print CHK<<PROBE OK ...>>
--- After the apply, run this file alone the same way.
+-- request rolls back. uae_price_benchmarks_come_only_from_real_quotes.sql is live (#1060), so run
+-- this file alone:  node scripts/qsql.mjs scripts/sql/uae_price_benchmarks_come_only_from_real_quotes_probe.sql
+-- -> must print CHK<<PROBE OK ...>>.
 --
--- Rows: ZZ DEMO leads 129923 / 130029 / 130110 / 134369 bid on the ZZ DEMO gypsum enquiries
--- 8b287960 (the "market") and d958e1ea (the one being compared). Demo leads on demo enquiries is
--- what fn_demo_and_real_never_pair requires. No real party is touched; nothing notifies anybody.
+-- EVERY PARTY IS ZZ DEMO, CHOSEN AT RUN TIME. The first version named lead 134369 by id; that lead
+-- has since left the ZZ DEMO pool (measured 29 Sep 2026: absent from leads), so a hard-coded id put
+-- a non-demo supplier on a demo enquiry and fn_demo_and_real_never_pair rightly refused it. The four
+-- bidders are now the four lowest-id leads that are is_demo, named 'ZZ DEMO%' and source
+-- 'demo_factory'; the two gypsum enquiries 8b287960 (the "market") and d958e1ea (the one compared)
+-- must answer fn_inquiry_is_demo = true. If either condition fails the probe says so and writes
+-- nothing: it can never reach a real party. Nothing here notifies anybody.
 --
 -- VERDICT: PROBE OK only if
+--   0. four ZZ DEMO bidders exist and both enquiries are demo;
 --   1. the public read (demo excluded) has exactly as many ranges after the demo quotes as before;
 --   2. 4 quotes from 2 suppliers, and 5 quotes from 2 suppliers, publish NO range;
 --   3. 5 quotes from 3 suppliers publish median 45, p25 42, p75 48, count 5, suppliers 3, accepted 1;
@@ -27,10 +28,20 @@ declare
   cmp uuid := 'd958e1ea-54f4-45a1-9214-d622ac52dce1';
   base_real int; after_real int; n4 int; n5two int; b record; f jsonb; f_real jsonb;
   q uuid; qs uuid[] := '{}'; cq text[] := '{}'; fails text := '';
-  sup bigint[] := array[129923, 129923, 130029, 130029, 129923];
+  d bigint[];      -- the four ZZ DEMO bidders, chosen below
+  sup bigint[];
   px numeric[] := array[40, 42, 45, 48, 50];
   st text;
 begin
+  select array_agg(id order by id) into d
+    from (select l.id from public.leads l
+           where l.is_demo and l.company_name ilike 'ZZ DEMO%' and l.source = 'demo_factory'
+           order by l.id limit 4) x;
+  if coalesce(array_length(d, 1), 0) < 4 or not public.fn_inquiry_is_demo(mkt) or not public.fn_inquiry_is_demo(cmp) then
+    raise exception 'CHK<<PROBE FAILED: 0:fixture (demo bidders=%, market demo=%, compared demo=%)>>',
+      coalesce(array_length(d, 1), 0), public.fn_inquiry_is_demo(mkt), public.fn_inquiry_is_demo(cmp);
+  end if;
+  sup := array[d[1], d[1], d[2], d[2], d[1]];
   select count(*) into base_real from public.fn_price_benchmarks(false, null);
 
   for k in 1..5 loop
@@ -49,14 +60,14 @@ begin
   delete from public.quotes where id = qs[5];
   q := gen_random_uuid();
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
-  values (q, mkt, 130110, 5000, 'form', 19, 'submitted');
+  values (q, mkt, d[3], 5000, 'form', 19, 'submitted');
   insert into public.quote_items (quote_id, line_no, description, specification, qty, unit, unit_price, amount)
   values (q::text, 1, 'Gypsum board partition', '12.5mm ZZPROBE', 100, 'm2', 50, 5000);
 
   select * into b from public.fn_price_benchmarks(true, cmp) where item_key like '%zzprobe%';
   select count(*) into after_real from public.fn_price_benchmarks(false, null);
 
-  foreach st in array array['134369:120', '130110:44', '129923:10'] loop
+  foreach st in array array[d[4] || ':120', d[3] || ':44', d[1] || ':10'] loop
     q := gen_random_uuid();
     insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status)
     values (q, cmp, split_part(st, ':', 1)::bigint, 9999, 'form', 19, 'submitted');
