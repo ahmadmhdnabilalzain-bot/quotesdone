@@ -239,6 +239,8 @@ async function embed(text: string): Promise<string | null> {
     return '[' + v.join(',') + ']';
   } catch (_e) { return null; }
 }
+/** The same session, as the vector the meaning layer compares (service_vocabulary.serviceKeysOf). */
+const embedVec = async (text: string): Promise<number[] | null> => { const s = await embed(text); return s ? JSON.parse(s) as number[] : null; };
 
 // THE CUSTOMER'S OWN QUOTES, as chat_answers.quoteAnswer wants them. Scoped through inquiries to
 // the resolved customer; drafts are never a quote the customer can see. The supplier label is the
@@ -779,7 +781,7 @@ Deno.serve(observe('sales_engineer', async (req) => {
       });
       // BOTH SIDES KEPT on the merge of 23 Sep 2026: `services` is this branch's p_services record,
       // `criteria_from` is #866's.
-      const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate, services: [] as string[] };
+      const askedFor = { trades, need, products, brands, project_type: projectType, value, emirate, services: [] as string[], services_read: null as string | null };
       // WHERE EVERY FIGURE ABOVE CAME FROM, printed rather than assumed. A reader of a match record
       // should not have to diff the body against the inquiry to know which decided.
       const criteriaFrom = inq ? 'stored_inquiry' : 'request_body_no_inquiry_named';
@@ -806,11 +808,11 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // matched at TRADE level and the services a supplier spent its Services tab confirming
       // decided nothing at all.
       //
-      // ONE READER, THE SUPPLIER'S OWN. servicesFromText is the same exact-alias matcher
-      // _shared/service_rewrite.ts uses to turn a supplier's sentence into `<trade>.<code>` keys —
-      // no similarity, no stemmer, no nearest service. So the inquiry side and the supplier side
-      // read the same vocabulary with the same rule, which is the only way "exact match or none"
-      // can mean anything.
+      // ONE READER, THE SUPPLIER'S OWN. _shared/service_vocabulary.ts serviceKeysOf reads the brief and
+      // BOQ with the rule the Services tab reads a supplier's words with: a phrase that IS a service, or
+      // one that MEANS it over the stored service vectors (never an alias word inside it: ruling 890,
+      // decision point 93, 29 Sep 2026). All or nothing: a text it could not read whole gives NO keys
+      // (trade level, nobody dropped), and that "not read" is never stored as "names nothing".
       //
       // STORED, NOT RE-DERIVED. inquiries.service_keys carries what the reader found; null means
       // never derived (an inquiry created before this column), '{}' means derived and the brief
@@ -824,12 +826,16 @@ Deno.serve(observe('sales_engineer', async (req) => {
       // by the length. '{}' means a reader already looked and the brief names no service this taxonomy
       // knows; re-deriving it on every match would re-read the vocabulary for nothing.
       let serviceKeys = arr(src.service_keys);
+      let servicesRead: string | null = null;
       if (inq && !Array.isArray(inq.service_keys)) {
-        serviceKeys = serviceKeysOf(brief, inq.boq, await serviceVocab(admin));
-        // A failed write must not stop the match; the keys are still used for this run.
-        await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
+        const sk = await serviceKeysOf(brief, inq.boq, { services: await serviceVocab(admin), embed: embedVec });
+        serviceKeys = sk.keys; servicesRead = sk.state;
+        // Stored only when the whole text was read; a failed write must not stop the match (the keys
+        // are still used for this run). An unread text stays null and is read again on the next match.
+        if (sk.complete) await admin.from('inquiries').update({ service_keys: serviceKeys }).eq('id', inquiryId);
       }
       askedFor.services = serviceKeys;
+      askedFor.services_read = servicesRead;
 
       // Headroom, then trim. Asking fn_match_capability for exactly 5 would let one over-represented
       // trade fill the list before the per-trade cap could spread it.

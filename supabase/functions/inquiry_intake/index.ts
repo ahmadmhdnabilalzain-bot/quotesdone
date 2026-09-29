@@ -13,6 +13,7 @@ import { detectEmirate, detectUrgency, utilityText } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { serviceKeysOf, serviceVocab } from '../_shared/service_vocabulary.ts';
+import { embedLine } from '../_shared/gte_embed.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -674,10 +675,11 @@ Only include \"questions\" when status is needs_info or rejected. Only include a
       // whose confirmed service list covers one of them is invited. A count taken WITHOUT the
       // services would be a larger number than the fan-out it promises to be — the count and the
       // dispatch have to ask the same question. The keys are read from the customer's own words
-      // and the drawing's BOQ with the exact-alias matcher (_shared/service_vocabulary.ts); a brief
-      // that names no known service sends '{}' and the count stays trade-level, as before.
+      // and the drawing's BOQ exactly or by meaning (_shared/service_vocabulary.ts; no alias word since
+      // 29 Sep 2026, ruling 890); a brief that names no known service, or one too long to read whole,
+      // sends '{}' and the count stays trade-level, as before.
       try {
-        const services = serviceKeysOf(allText, drawingBoq?.boq ?? null, await serviceVocab(admin));
+        const services = (await serviceKeysOf(allText, drawingBoq?.boq ?? null, { services: await serviceVocab(admin), embed: embedLine })).keys;
         const { data: cand } = await admin.rpc('fn_match_capability', {
           p_trades: (trades.length ? trades : [category]).filter(Boolean),
           p_need: 'executes', p_products: [], p_brands: [],

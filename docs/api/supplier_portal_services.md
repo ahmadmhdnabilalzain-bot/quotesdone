@@ -16,7 +16,7 @@ An unclaimed account gets `400 { "code": "no_company" }`.
 
 Code: `supabase/functions/_shared/supplier_services.ts` (the actions),
 `supabase/functions/_shared/service_rewrite.ts` (the rewrite itself, with `service_rewrite.test.ts`),
-`supabase/functions/_shared/alias_pattern.ts` (the alias pattern the service index uses),
+`supabase/functions/_shared/alias_pattern.ts` (Arabic folding; the alias pattern only the meaning layer's corroboration uses),
 `supabase/functions/_shared/trade_resolve.ts` (a trade from a document: exact code or meaning, never words),
 `supabase/functions/supplier_api/index.ts` (routing).
 
@@ -99,7 +99,7 @@ Response `200`:
 { ok: true,
   raw_text: string,             // the text exactly as received, for the confirm
   service_keys: string[],       // standard services the text NAMES, '<trade>.<code>'
-  own_words: string[],          // phrases no alias names — kept verbatim, flagged, never dropped
+  own_words: string[],          // parts no service was found for (exactly or by meaning) — kept verbatim, flagged, never dropped
   pending_taxonomy: string[],   // the own_words the sales engineer has to decide on
   implied: Implied[],           // what those services ALSO cover, with the reason, pre-included
   items: RewriteItem[],         // the per-phrase reading, for a client that wants to show it
@@ -137,19 +137,21 @@ A meaning proposal the supplier keeps is sent back in `services` like any stated
 (`_shared/service_meaning.ts`): gte-small similarity above 0.82 AND a head word of the service's name or
 one of its aliases in the line, or two lines agreeing above 0.86; never a nearest neighbour alone.
 
-**How the rewrite works — deterministic, no model.** `supabase/functions/_shared/service_rewrite.ts`,
-proved case by case in `service_rewrite.test.ts`. OpenRouter is on hold, and a rewrite that decides who
-receives an inquiry has to be reproducible.
+`meaning.lines` (`{ candidates, read }`) says how many lines meaning had and how many it read (at most 16 per
+request); an unread line stays in `own_words`, and a line meaning proposed a service for leaves `own_words`.
+
+**How the rewrite works — exact, then meaning; no alias word decides anything** (29 Sep 2026, ruling 890,
+decision point 93). `supabase/functions/_shared/service_rewrite.ts`, proved in `service_rewrite.test.ts`.
 
 1. The text is split into phrases at line breaks, bullets, numbered items, commas (`,` `،`),
    semicolons (`;` `؛`), `|` and full stops.
-2. Inside a phrase, every alias in `taxonomy_trade_service.aliases` is matched with one rule
-   (`_shared/alias_pattern.ts`, once `trade_words.ts`): Arabic folded the way
-   `fn_ar_norm` folds it, word-START anchored, Arabic proclitics and `ال` allowed. Where two hits
-   overlap the LONGER alias wins (`solar panel cleaning` is maintenance, not installation).
-3. What is left of a phrase is split at `and` / `&` / `+` / `و` and read again; words that describe
-   delivery rather than a service (`supply`, `installation`, `توريد`, `تركيب`, …) are dropped.
-4. A phrase naming no service that IS a trade code or intake slug (`public.fn_norm_trades`, asked through
+2. A phrase that IS a service — its key (`hvac.ducting`), its code (`ducting`, `false ceiling`) or its
+   English or Arabic name, compared whole after `fn_ar_norm`'s folding, case and spacing — is that service.
+   A supply-only company is never named an installation service.
+3. Otherwise the phrase is split at `and` / `or` / `&` / `+` / a spaced `و`, and each part is tried the same
+   way. A phrase that is prose as a whole has no parts.
+4. Every part not named exactly goes to the meaning layer above, which may offer a service (off until the
+   supplier adds it). A part that IS a trade code or intake slug (`public.fn_norm_trades`, asked through
    `fn_norm_trades_many`) is kept with that trade; since 29 Sep 2026 (ruling 890, ledger 1054) a trade is
    never read from a phrase's words. Any other phrase is **kept in the supplier's own words**, tidied (trim, collapse spaces, dedupe, sentence case in
    English; Arabic left as typed), and flagged as a pending taxonomy item for the sales engineer.

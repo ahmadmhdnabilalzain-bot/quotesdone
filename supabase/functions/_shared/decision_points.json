@@ -2639,11 +2639,48 @@
   {
    "id": "services.from_text",
    "order": 93,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/service_rewrite.ts",
-   "decides": "rewriteServices / servicesFromText: exact-alias termPattern matching decides which services a supplier's words name (beyond isInstallWork) — found by B9 sweep. Its trade half (tradesFromText) was removed 29 Sep 2026 under trades.from_text: a phrase is a trade only when fn_norm_trades resolves it exactly (withExactTrades)"
+   "decides": "rewriteServices / servicesFromText: exact-alias termPattern matching decided which services a supplier's (and an inquiry's) words name — found by B9 sweep. Since 29 Sep 2026: a phrase or list part that IS a service (key, code, English or Arabic name; exactService) is that service; anything else is read by meaning over the stored taxonomy_trade_service vectors (service_meaning.proposeByMeaning) — offered to the supplier off until he adds it, and on the inquiry side all or nothing (service_vocabulary.serviceKeysOf). The trade half (tradesFromText) went under trades.from_text.",
+   "held": "Nothing here waits on the model hold: the exact path is equality and meaning is gte-small in-region (not OpenRouter). When meaning cannot run or cannot read the whole text, the Services tab keeps every unread part in the supplier's own words (never dropped) and says so (meaning.state, meaning.lines), and the inquiry side returns no keys with complete=false, so the request is matched at trade level (nobody dropped) and the unread text is never stored as naming no service.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/service_rewrite.ts",
+     "must_contain": [
+      "export function exactService(",
+      "const whole = exactService(phrase, services, opts.supplyOnly);"
+     ],
+     "must_not_contain": [
+      "compileServices(",
+      "function hitsIn(",
+      "export function servicesFromText(",
+      "servicePattern(c.alias)"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/service_vocabulary.ts",
+     "must_contain": [
+      "proposeByMeaning(pending.map((p, i) => ({ text: p, vec: vecs[i] })), services",
+      "if (pending.length > MEANING_MAX_LINES) return done('too_long', false);"
+     ],
+     "must_not_contain": [
+      "servicesFromText(",
+      "servicePattern("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/supplier_services.ts",
+     "must_contain": [
+      "const meaning = await meaningFor(services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);"
+     ],
+     "must_not_contain": [
+      "servicesFromText(",
+      "servicePattern("
+     ]
+    }
+   ]
   },
   {
    "id": "trades.from_text",

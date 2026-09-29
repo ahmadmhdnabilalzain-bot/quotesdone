@@ -7,27 +7,27 @@
 // this module rewrites it. The supplier sees the result, confirms or edits it, and the CONFIRMED service
 // keys are what matching reads (fn_match_capability p_services).
 //
-// NO MODEL. The LLM route is on hold, and a rewrite that decides who receives an inquiry must be
-// reproducible. The rules:
+// NO WORD MATCHING (29 Sep 2026, ruling 890, decision point 93 services.from_text). Until today every service
+// alias (service_aliases.json, taxonomy_trade_service.aliases) was searched for inside the supplier's words, and
+// the inquiry's, word-start anchored: a phrase named a service because one of its words was on a list. That is
+// gone. This module now decides only what is EXACT; what a phrase MEANS is read over the stored service vectors
+// by the callers (supplier_services.servicesRewrite through service_meaning.proposeByMeaning, and
+// service_vocabulary.serviceKeysOf for an inquiry). The rules:
 //   1. The text is split into phrases at line breaks, bullets, numbered items, commas (, ،), semicolons
 //      (; ؛), '|' and full stops.
-//   2. Inside a phrase every service alias (service_aliases.json, stored in taxonomy_trade_service.aliases)
-//      is matched with one rule (alias_pattern.ts termPattern): Arabic folded the way
-//      fn_ar_norm folds it, word-START anchored, Arabic proclitics and ال allowed. Where two hits overlap
-//      the LONGER alias wins ("solar panel cleaning" is maintenance, not installation); two hits on the
-//      very same words are both kept (Wooden doors is a joinery and a doors service).
-//   3. What is left of a phrase once its hits are removed is split at 'and' / '&' / '+' / 'و' and read
-//      again. Words that only describe a service in general (supply, installation, works, توريد, تركيب,
-//      أعمال, ...) are not a service of their own and are dropped; anything else is kept.
-//   4. A phrase, or a leftover, that names no service is kept in the supplier's words, tidied, and FLAGGED
-//      for the sales engineer — never dropped, never guessed. It names a TRADE only when it IS one: the
-//      caller asks public.fn_norm_trades (exact code or intake slug) and withExactTrades() turns the item into
-//      a trade item. Since 29 Sep 2026 (ledger 1054, ruling 890) a trade is never read from a phrase's words:
-//      trade_words.ts, which did that, is gone (trade_resolve.ts says what replaced it).
-// EXACT OR NONE (founder, 14 Sep 2026: "either exact match or no match"): no similarity, no stemmer, no
-// nearest service. A phrase the aliases do not name stays the supplier's own words until the sales
-// engineer maps it.
-import { arNorm, foldForMatch, termPattern } from './alias_pattern.ts';
+//   2. A phrase that IS a service — its key ("hvac.ducting"), its code ("ducting", "false ceiling") or its
+//      English or Arabic name exactly ("False ceilings", "الأسقف المعلقة"), after the Arabic folding
+//      public.fn_ar_norm applies, case and spacing — is that service. Equality with the whole phrase, never a
+//      word inside it. A supply-only company is never named an installation service (isInstallWork).
+//   3. Otherwise the phrase is split at 'and' / 'or' / '&' / '+' / a spaced 'و' and each part is tried the
+//      same way. Prose (sentence glue, where the company works) is not a part worth keeping.
+//   4. A part that is no service exactly is kept in the supplier's words, tidied, and FLAGGED — never
+//      dropped, never guessed. The caller gives these parts to meaning, which may PROPOSE a service the
+//      supplier then adds (off until he does: ServicesTab, finding SP-F-06). A part names a TRADE only when it
+//      IS one: fn_norm_trades decides (withExactTrades); a trade is never read from words (ledger 1054).
+// EXACT OR NONE (founder, 14 Sep 2026: "either exact match or no match"): no alias list, no stemmer. A part
+// neither exact nor understood stays the supplier's own words until the sales engineer maps it.
+import { arNorm, termPattern } from './alias_pattern.ts';
 
 export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null };
 export type RewriteItem =
@@ -39,18 +39,10 @@ export type Rewrite = { items: RewriteItem[]; service_keys: string[]; own_words:
 export const MAX_TEXT = 2000;
 export const MAX_PHRASES = 40;
 export const PHRASE_LEN = 120;
-// THE SCAN IS BOUNDED, not merely finite (TypeScript review, 18 Sep 2026). ~1,500 alias patterns are
-// re-scanned against every phrase, so the worst case is the whole 2,000 characters arriving as one
-// phrase that matches nothing. Capping a phrase at MATCH_LEN bounds the work at
-// MAX_PHRASES x MATCH_LEN x |aliases| regardless of what the supplier sends — an edge function has a
-// CPU cap that no deadline bounds, and this estate has already lost a job to one.
+// A phrase is cut at MATCH_LEN: no phrase longer than this is a name, and the cut bounds the work whatever
+// the supplier sends (an edge function has a CPU cap no deadline bounds).
 export const MATCH_LEN = 300;
 
-/** One alias of the index; `re` is built on first need (compileServices). */
-type Compiled = { key: string; term: ServiceTerm; alias: string; anchor: string; re: RegExp | null };
-type Hit = { c: Compiled; start: number; end: number; len: number };
-
-const WORD = /[\p{L}\p{N}]/u;
 const HAS_AR = /[؀-ۿ]/;
 // Words that describe how a service is delivered, or glue a sentence together, rather than naming a
 // service. Compared after arNorm, with a leading و / ال / وال removed from Arabic words.
@@ -107,10 +99,10 @@ export const isStop = (w: string): boolean => {
  *  and below that it has to be short. Chasing every adjective into STOP would never end; this is the
  *  shape difference, and it does not need a word list to keep working.
  *
- *  This can only drop PROSE. Anything an alias names was already matched before a leftover exists,
- *  and anything short stays whatever it is — the founder's "never dropped" is about a service the
- *  supplier named, not about the sentence it was wrapped in. */
-const looksLikeAService = (text: string): boolean => {
+ *  This can only drop PROSE: anything short stays whatever it is — the founder's "never dropped" is about
+ *  a service the supplier named, not about the sentence it was wrapped in. It decides nothing about WHICH
+ *  service a part is; it only sets aside the parts no one would read as one. */
+export const looksLikeAService = (text: string): boolean => {
   const words = text.split(/\s+/).filter(Boolean);
   const content = words.filter((w) => !isStop(w)).length;
   return content >= 3 || (content >= 1 && words.length <= 6);
@@ -146,10 +138,11 @@ export function tidy(text: string): string {
   return s.slice(0, PHRASE_LEN).trim();
 }
 
-// A SHORT ENGLISH ALIAS IS A WHOLE WORD (21 Sep 2026). The matcher is word-START anchored, which is
-// right for "ducting" -> "ductwork" but wrong for an acronym: "ups" would name UPS systems in "upset"
-// and "pos" would name POS terminals in "position". An English alias of three letters or fewer
-// therefore has to end where the word ends, with an optional plural s ("UPS", "POS", "rugs").
+// THE ALIAS PATTERN, KEPT FOR ONE READER ONLY (29 Sep 2026). Nothing in this module matches aliases any more
+// (decision point 93). service_meaning.proposeByMeaning still uses an alias as the corroborating word for a
+// vector hit whose line holds no head word of the service's name — decision point 92
+// (services.meaning_candidates), pending on its own. A short English alias is a whole word: "ups" must not
+// corroborate UPS systems in "upset", nor "pos" POS terminals in "position".
 const SHORT_ALIAS = 3;
 export function servicePattern(alias: string): RegExp | null {
   const re = termPattern(alias);
@@ -172,106 +165,58 @@ export const isInstallWork = (t: Pick<ServiceTerm, 'label_en' | 'code'>): boolea
   return INSTALL_WORK.test(s) && !SUPPLY_WORD.test(s);
 };
 
-/** The alias index, compiled once per request. A term is an alias; labels are not terms (a label such
- *  as "Maintenance contracts" is too general to be exact). */
-//
-// NOT RE-COMPILED ON EVERY CALL, AND NOT COMPILED AT ALL UNTIL NEEDED (22 Sep 2026, sales_engineer).
-// MEASURED: servicesFromText compiled the whole index on every call, and boqWithArabic calls it twice
-// per BOQ line, for every inquiry in the supplier's inbox, on every quotation-review action (they all
-// read the job through `inbox`). With production's 211 services / 1,672 aliases a 3-line BOQ cost
-// 925 ms cold and a 120-line BOQ 1,447 ms, on a developer machine; supplier_api was killed three times
-// in one hour with 546 "CPU Time exceeded" during the portal walk of 21 Sep, and a ZZ DEMO probe with a
-// 120-line BOQ got 546 on review_start and review_upload. Of a cold call, ~460 ms was building the
-// 1,672 RegExps and ~430 ms was V8 compiling each one on its first exec.
-// NOW: (1) the index is kept per vocabulary ARRAY (a request that reads the vocabulary afresh gets a
-// fresh index; each regex is reset before use below, so sharing them is safe); (2) an alias's RegExp is
-// built only when the phrase contains the alias's first word — every pattern termPattern builds holds
-// that word literally (English: the whole alias; Arabic: the first word after an optional proclitic),
-// so the pre-check can only skip patterns that cannot match. HELD BY service_rewrite_equivalence.test.ts:
-// an eager reference (every alias compiled, no pre-check) and this matcher must return the same keys on
-// 2,850 phrases covering every alias of service_aliases.json (cased, pluralised, hyphenated, with Arabic
-// proclitics and ال on later words); keying the pre-check on the whole alias makes 618 of them differ.
-// The CPU budget and the build-once behaviour are held by supplier_api/review_cpu_budget.test.ts.
-// ponytail: the pre-check lower-cases with toLowerCase while the pattern folds case with /iu; the two
-// differ only on characters no alias uses (the long s, the Kelvin sign). Use a real case fold if one does.
-const COMPILED = new WeakMap<ServiceTerm[], Compiled[]>();
-export function compileServices(vocab: ServiceTerm[]): Compiled[] {
-  const hit = COMPILED.get(vocab);
+/** A name as the exact path compares it: fn_ar_norm's folding, lower case, one space, underscores and
+ *  hyphens as spaces, no stray punctuation at either end. Nothing is stemmed and nothing is dropped. */
+export const exactName = (s: string): string =>
+  arNorm(String(s ?? '')).toLowerCase().replace(/[_\-–—]+/g, ' ').replace(/\s+/g, ' ')
+    .replace(/^[\s,،;؛.:•·*&+/()]+|[\s,،;؛.:•·*&+/()]+$/g, '').trim();
+
+/** Rule 2's index: every exact name of every service -> the service (key, code, English and Arabic name).
+ *  Built once per vocabulary array. A name two services share names neither (exact or none). */
+const EXACT = new WeakMap<ServiceTerm[], Map<string, ServiceTerm | null>>();
+export function exactIndex(vocab: ServiceTerm[]): Map<string, ServiceTerm | null> {
+  const hit = EXACT.get(vocab);
   if (hit) return hit;
-  const out: Compiled[] = [];
-  for (const term of vocab) {
-    for (const alias of term.aliases || []) {
-      const folded = arNorm(alias);
-      if (folded.length < 3) continue;            // termPattern's own rule 2: too short to be a term
-      const anchor = folded.trim().toLowerCase().split(' ')[0];
-      out.push({ key: `${term.trade_code}.${term.code}`, term, alias, anchor, re: null });
-    }
-  }
-  COMPILED.set(vocab, out);
-  return out;
+  const m = new Map<string, ServiceTerm | null>();
+  const put = (name: string, s: ServiceTerm) => {
+    const k = exactName(name);
+    if (k.length < 2) return;
+    const cur = m.get(k);
+    m.set(k, cur === undefined || cur === s || (cur && cur.trade_code === s.trade_code && cur.code === s.code) ? s : null);
+  };
+  for (const s of vocab) for (const n of [`${s.trade_code}.${s.code}`, s.code, s.label_en, s.label_ar]) if (n) put(n, s);
+  EXACT.set(vocab, m);
+  return m;
 }
 
-/** Rule 2: the hits in one phrase, overlaps resolved longest-first. */
-function hitsIn(norm: string, index: Compiled[]): Hit[] {
-  const all: Hit[] = [];
-  const low = norm.toLowerCase();
-  for (const c of index) {
-    if (!low.includes(c.anchor)) continue;
-    const re = c.re ??= servicePattern(c.alias);
-    if (!re) continue;
-    re.lastIndex = 0;
-    for (let m = re.exec(norm); m; m = re.exec(norm)) {
-      let end = m.index + m[0].length;
-      while (end < norm.length && WORD.test(norm[end])) end++;   // the rest of the last word ("units")
-      all.push({ c, start: m.index, end, len: m[0].length });
-      if (m[0].length === 0) re.lastIndex++;
-    }
-  }
-  all.sort((a, b) => b.len - a.len || a.start - b.start);
-  const kept: Hit[] = [];
-  for (const h of all) {
-    const clash = kept.some((k) => h.start < k.end && k.start < h.end && !(k.start === h.start && k.end === h.end));
-    if (!clash) kept.push(h);
-  }
-  return kept.sort((a, b) => a.start - b.start);
+/** The service a text IS, or null. `supplyOnly`: an installation service is never a supply-only company's. */
+export function exactService(text: string, vocab: ServiceTerm[], supplyOnly = false): ServiceTerm | null {
+  const s = exactIndex(vocab).get(exactName(text)) ?? null;
+  return s && !(supplyOnly && isInstallWork(s)) ? s : null;
 }
 
-/** Rule 3: the leftovers of a phrase once its hits are cut out, as the supplier wrote them. */
-function leftovers(phrase: string, norm: string, at: number[], hits: Hit[]): string[] {
-  const orig = (a: number, b: number) => phrase.slice(at[a] ?? phrase.length, b < at.length ? at[b] : phrase.length);
-  const gaps: { text: string; afterHit: boolean }[] = [];
-  let pos = 0;
-  for (const h of hits) {
-    if (h.start > pos) gaps.push({ text: orig(pos, h.start), afterHit: pos > 0 });
-    pos = Math.max(pos, h.end);
-  }
-  if (pos < norm.length) gaps.push({ text: orig(pos, norm.length), afterHit: pos > 0 });
-  const pieces: string[] = [];
-  for (const g of gaps) {
-    // A leftover that follows a hit and starts with an attached و is the conjunction ("... وتنجيد سيارات").
-    const t = g.afterHit ? g.text.replace(/^\s*و(?=[ء-ي])/, '') : g.text;
-    for (const p of t.split(/\s+(?:and|or|with)\s+|\s*[&+]\s*|\s+و\s+/i)) {
-      if (looksLikeAService(p.trim())) pieces.push(p);
-    }
-  }
-  return pieces;
+/** Rule 3: a phrase's parts, split at the connectives a list uses. Prose is set aside: a phrase that is not
+ *  service-shaped as a whole ("We are a leading company with many years of experience") has no parts. */
+export function phraseParts(phrase: string): string[] {
+  if (!looksLikeAService(phrase)) return [];
+  return phrase.split(/\s+(?:and|or|with|plus)\s+|\s*[&+]\s*|\s+و\s+/i)
+    .map((p) => p.trim()).filter((p) => p.length >= 2 && looksLikeAService(p));
 }
 
-/** Rule 4: a phrase with no service in it — the supplier's own words for review, unless it is prose.
- *  A phrase that IS a trade code or slug becomes a trade item afterwards (withExactTrades), never here:
- *  what a phrase's words resemble decides nothing (ruling 890). */
+/** Rule 4: a part that is no service exactly — the supplier's own words for review.
+ *  A part that IS a trade code or slug becomes a trade item afterwards (withExactTrades), never here. */
 function wordsItem(text: string, from: string): RewriteItem | null {
   const t = tidy(text);
   if (t.length < 2) return null;
   return looksLikeAService(t) ? { kind: 'unmatched', text: t, from } : null;
 }
 
-/** The whole rewrite. `services` are the active taxonomy_trade_service rows with their aliases. */
+const serviceItem = (s: ServiceTerm, from: string): RewriteItem =>
+  ({ kind: 'service', key: `${s.trade_code}.${s.code}`, trade: s.trade_code, label_en: s.label_en, label_ar: s.label_ar, from });
+
+/** The whole rewrite, exactly. `services` are the active taxonomy_trade_service rows. */
 export type RewriteOptions = { supplyOnly?: boolean; maxText?: number; maxPhrases?: number };
 export function rewriteServices(text: string, services: ServiceTerm[], opts: RewriteOptions = {}): Rewrite {
-  // A supply-only company is not proposed installation work: those aliases are left out of its index,
-  // so the words stay the supplier's own and reach the sales engineer rather than naming a service.
-  const index = compileServices(opts.supplyOnly ? services.filter((s) => !isInstallWork(s)) : services);
   const items: RewriteItem[] = [];
   const seenKey = new Set<string>(); const seenWords = new Set<string>();
   const push = (it: RewriteItem | null) => {
@@ -282,13 +227,12 @@ export function rewriteServices(text: string, services: ServiceTerm[], opts: Rew
     seenWords.add(k); items.push(it);
   };
   for (const phrase of splitPhrases(text, opts.maxText, opts.maxPhrases)) {
-    const { norm, at } = foldForMatch(phrase);
-    const hits = hitsIn(norm, index);
-    if (!hits.length) { push(wordsItem(phrase, phrase)); continue; }
-    for (const h of hits) {
-      push({ kind: 'service', key: h.c.key, trade: h.c.term.trade_code, label_en: h.c.term.label_en, label_ar: h.c.term.label_ar, from: phrase });
-    }
-    for (const rest of leftovers(phrase, norm, at, hits)) push(wordsItem(rest, phrase));
+    // The whole phrase first: a name may itself hold a connective ("Water heaters & pumps").
+    const whole = exactService(phrase, services, opts.supplyOnly);
+    if (whole) { push(serviceItem(whole, phrase)); continue; }
+    const parts = phraseParts(phrase);
+    if (parts.length <= 1) { const p = parts[0] ?? phrase; const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); continue; }
+    for (const p of parts) { const s = exactService(p, services, opts.supplyOnly); push(s ? serviceItem(s, phrase) : wordsItem(p, phrase)); }
   }
   return finishRewrite(items);
 }
@@ -328,16 +272,6 @@ export function withExactTrades(rw: Rewrite, exact: Record<string, string[]> | n
     const codes = exact[i.text];
     return Array.isArray(codes) && codes.length ? { kind: 'trade', trades: [...codes], text: i.text, from: i.from } : i;
   }));
-}
-
-/** The service keys an inquiry asks for: the same hits, over its brief and BOQ text, nothing else. */
-export function servicesFromText(text: string, services: ServiceTerm[]): string[] {
-  const index = compileServices(services);
-  const keys = new Set<string>();
-  for (const phrase of splitPhrases(String(text ?? '').slice(0, MAX_TEXT))) {
-    for (const h of hitsIn(foldForMatch(phrase).norm, index)) keys.add(h.c.key);
-  }
-  return [...keys].sort();
 }
 
 // ── WHAT A STATED SERVICE ALSO COVERS ──────────────────────────────────────────────────────────────

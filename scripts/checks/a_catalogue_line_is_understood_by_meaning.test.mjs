@@ -24,7 +24,7 @@ const NEW_SQL = new URL('scripts/sql/a_catalogue_is_read_as_a_catalogue_and_two_
 async function setup() {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   const { withRetry } = await import('../lib/retry.mjs');
-  const { serviceEmbedText, proposeByMeaning, parseVec } = await import(new URL('service_meaning.ts', SHARED).href);
+  const { serviceEmbedText, proposeByMeaning, parseVec, meaningCandidates } = await import(new URL('service_meaning.ts', SHARED).href);
   const { readCatalogue } = await import(new URL('catalogue_read.ts', SHARED).href);
   const { PAGES } = await import(new URL('catalogue_fixtures/make_zz_demo_catalogue.mjs', SHARED).href);
   const ALIASES = JSON.parse(readFileSync(new URL('service_aliases.json', SHARED), 'utf8'));
@@ -65,7 +65,9 @@ async function setup() {
     const { stored, ...row } = r;
     services.push({ ...row, aliases: a ? [...a.en, ...a.ar] : [], vec: parseVec(stored) ?? await embed(serviceEmbedText(r, { label: r.label, label_ar: r.trade_label_ar })) });
   }
-  const meaning = async (lines, svc, opts) => proposeByMeaning(await Promise.all(lines.map(async (text) => ({ text, vec: await embed(text) }))), svc, opts);
+  // The lines chosen the way production chooses them (supplier_services.meaningFor): meaningCandidates' order and
+  // MEANING_MAX_LINES, since 29 Sep 2026 the only way a line not written as a service's name names one.
+  const meaning = async (lines, svc, opts) => proposeByMeaning(await Promise.all(meaningCandidates([...new Set(lines)], svc).map(async (text) => ({ text, vec: await embed(text) }))), svc, opts);
   return { services, meaning, readCatalogue, PAGES };
 }
 let ctx;

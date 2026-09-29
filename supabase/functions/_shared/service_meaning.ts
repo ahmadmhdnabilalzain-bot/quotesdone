@@ -1,14 +1,15 @@
 // THE MEANING LAYER — what a line MEANS, not only which words it holds. Seat: sales_engineer. 21 Sep 2026.
 //
 // Founder, 21 Sep 2026: "i dont wanna end up having agents doing word matching only. they need to have
-// the understanding/logic and reasoning". The word rules (service_rewrite.ts) name a service only when
-// one of its aliases is in the line. "We distribute office printers and copiers" is plainly office
-// equipment, and a list of aliases will always be one phrasing behind the next supplier.
+// the understanding/logic and reasoning". "We distribute office printers and copiers" is plainly office
+// equipment, and a list of aliases will always be one phrasing behind the next supplier. Since 29 Sep 2026
+// (ruling 890, decision point 93) this layer is the ONLY way a line that is not written exactly as a service
+// names one: the alias rules of service_rewrite.ts are gone, and what is exact is decided there by equality.
 //
 // HOW. Every active service carries a 384-dimension vector of its English and Arabic names and its
 // trade's (taxonomy_trade_service.embedding_gte, written by scripts/kb/embed_taxonomy_services.mjs
 // through the free in-region gte-small model — ai_gateway {action:'embed'}, which is NOT OpenRouter).
-// A line the word rules left unnamed is embedded the same way at request time (gte_embed.ts). The
+// A line no service is written exactly as is embedded the same way at request time (gte_embed.ts). The
 // line's nearest ELIGIBLE service is proposed only when:
 //   1. the cosine similarity clears MEANING_FLOOR, and
 //   2. A WORD agrees, not another vector: the line holds a HEAD word of that service's name (the
@@ -36,10 +37,12 @@
 //
 // ARABIC. gte-small is an English model: an Arabic line scores 0.85 against Cybersecurity as readily as
 // against printers (measured: "نوزع الطابعات وآلات النسخ للمكاتب" -> cybersecurity 0.858). The head-word
-// rule rejects that, so Arabic gains nothing here and loses nothing — Arabic is served by the word rules.
+// rule rejects that, so Arabic gains nothing here. Since 29 Sep 2026 Arabic is served only by the exact path
+// (a line that IS a service's Arabic name); anything else Arabic stays the supplier's own words, for the sales
+// engineer. CEILING, stated: a multilingual vector of every service would serve it; none is stored today.
 //
 // WHAT IT NEVER DOES. It never reads spec-table rows (catalogue_read.ts drops them first — "DVR Storage
-// Upto 6TB" is a product property), never overrides a service the word rules found, and everything it
+// Upto 6TB" is a product property), never overrides a service found exactly, and everything it
 // adds is a proposal the supplier confirms, shown with the line that supports it.
 import { arNorm } from './alias_pattern.ts';
 import { isInstallWork, isStop, servicePattern, type ServiceTerm } from './service_rewrite.ts';
@@ -107,7 +110,7 @@ export function meaningCandidates(lines: string[], services: ServiceTerm[], max 
   return [...worded, ...uniq.filter((l) => !worded.includes(l))].slice(0, max);
 }
 
-/** The proposals, strongest first. `stated` are the keys the word rules already found (never re-proposed). */
+/** The proposals, strongest first. `stated` are the keys already found exactly (never re-proposed). */
 export function proposeByMeaning(lines: MeaningLine[], services: MeaningService[],
   opts: { stated?: string[]; supplyOnly?: boolean; floor?: number } = {}): MeaningProposal[] {
   const floor = opts.floor ?? MEANING_FLOOR;

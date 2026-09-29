@@ -14,7 +14,7 @@
 // exceeds a budget far below the platform's 2 s CPU cap.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import aliases from '../_shared/service_aliases.json' with { type: 'json' };
-import { compileServices, servicesFromText, type ServiceTerm } from '../_shared/service_rewrite.ts';
+import { exactIndex, rewriteServices, type ServiceTerm } from '../_shared/service_rewrite.ts';
 import { boqWithArabic } from '../_shared/boq_arabic.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { inboxBoq } from './identity_scrub.ts';
@@ -43,15 +43,20 @@ const csv = 'No,Description,Qty,Unit,Rate AED,Amount AED,Specification\n'
  *  per-call rebuild it prevents cost several seconds at this size. The platform cap is 2 s of CPU. */
 const BUDGET_MS = 1200;
 
-Deno.test('the alias index is built once per vocabulary, and only the aliases a phrase can match get a RegExp', () => {
+// 29 Sep 2026 (ruling 890, decision point 93): the alias index this test used to hold to build-once is gone -
+// no alias is searched for in a supplier's or a customer's words. What replaced it is an exact-name index,
+// held here to the same two properties: built once per vocabulary, and cheap on the worst input.
+Deno.test('the exact-name index is built once per vocabulary, and the worst rewrite input stays cheap', () => {
   const v = vocab();
-  const idx = compileServices(v);
-  assert(idx.length > 1000, `the seed should carry the full vocabulary, got ${idx.length} aliases`);
-  assert(compileServices(v) === idx, 'a second call with the same vocabulary must reuse the index');
-  servicesFromText('Suspended false ceiling, 600x600 mineral fibre tiles', v);
-  const built = idx.filter((c) => c.re).length;
-  assert(built < idx.length / 10, `${built} of ${idx.length} RegExps were built for one phrase; they must be built only when the phrase holds the alias's first word`);
-  assert(servicesFromText('Suspended false ceiling', v).includes('gypsum.false_ceiling'), 'the lazy index still matches');
+  const idx = exactIndex(v);
+  assert(idx.size > 400, `the seed should carry the full vocabulary, got ${idx.size} names`);
+  assert(exactIndex(v) === idx, 'a second call with the same vocabulary must reuse the index');
+  const worst = Array.from({ length: 40 }, () => 'zzqq xxwv yyrr '.repeat(30)).join('\n').slice(0, 2000);
+  const t0 = performance.now();
+  for (let k = 0; k < 20; k++) rewriteServices(worst, v);
+  const ms = (performance.now() - t0) / 20;
+  assert(ms < 50, `an exact rewrite of 2,000 characters took ${ms.toFixed(1)} ms`);
+  assertEquals(rewriteServices('gypsum.false_ceiling', v).service_keys, ['gypsum.false_ceiling']);
 });
 
 Deno.test(`a ${LINES}-line quotation review runs well inside the edge CPU cap`, async () => {
