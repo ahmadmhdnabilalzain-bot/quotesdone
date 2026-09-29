@@ -288,8 +288,12 @@ Deno.serve(observe('ceo_agent', async (req) => {
       if (!subject) return J({ error: 'subject_id_required' }, 400);
       if (decision !== 'approved' && decision !== 'refused') return J({ error: 'decision_must_be_approved_or_refused' }, 400);
       // A decision with no reasoning is a rubber stamp, and a register full of rubber stamps cannot
-      // be reviewed later. The database does not enforce a MINIMUM, so the seat enforces one here.
+      // be reviewed later. The seat asks here first; since 29 Sep 2026 the database refuses one too
+      // (a04_ceo_approval_carries_its_reasons: six words at least, not the same few repeated).
       if (rationale.length < 12) return J({ error: 'rationale_required', detail: 'say why, in a sentence' }, 400);
+      // The database's own rule, asked BEFORE the checklist records evidence for an approval it would then refuse.
+      const { data: reasonless } = await admin.rpc('fn_ceo_reasons_problem', { p_reasons: rationale });
+      if (typeof reasonless === 'string' && reasonless) return J({ error: 'rationale_required', detail: reasonless }, 400);
 
       // THE CEO IS THE FOUNDER'S EYES (14 Sep 2026): "ceo approval on refund was made so that the CEO
       // make sure that the process was fully done correctly." Before a refund approval is written, the
@@ -339,7 +343,8 @@ Deno.serve(observe('ceo_agent', async (req) => {
     // The CEO's review loop on one refund (fn_ceo_refund_review): every check passes -> approved; a
     // check that cannot be fixed -> declined with the reason; otherwise rejected with one task per
     // owning seat (accountant: money; sales engineer: the ladder and the messages), re-checked when
-    // the last task closes, escalated to the founder's summary after three cycles.
+    // the last task closes. Every outcome is a round in public.ceo_decision_round; after four rejections the
+    // CEO owes a replace-or-withdraw with reasons (ceo.decision_owed), never the founder (founder_instruction 1059).
     if (action === 'review_refund') {
       if (who !== 'ceo') return J({ error: 'only the ceo decides' }, 403);
       const { data, error } = await admin.rpc('fn_ceo_refund_review', { p_refund_id: Number(body.refund_id), p_trigger: 'ceo_agent' });

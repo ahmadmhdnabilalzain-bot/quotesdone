@@ -199,7 +199,9 @@ begin
   perform pg_temp.zz_evidence(tx4, 'chase');
   rf := (public.fn_refund_open_from_customer(tx4, 'customer')->>'refund_id')::bigint;
   v := public.fn_ceo_refund_review(rf, 'zz');
-  for k in 1..3 loop
+  -- 29 Sep 2026 (founder_instruction 1059): four rejections, then the CEO -- never the founder -- replaces or
+  -- withdraws (a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql).
+  for k in 1..4 loop
     r := pg_temp.zz_req(tx4, 'final_call');
     perform pg_temp.zz_fail(r); perform public.fn_customer_support_delivery_watch(r);
     perform pg_temp.zz_assert((select (detail->>'retries')::int from public.agent_actions where id = r) = 1, 's4 support did not retry a failed delivery (cycle ' || k || ')');
@@ -207,15 +209,18 @@ begin
     perform pg_temp.zz_assert(exists (select 1 from public.refund_ladder_evidence where request_handoff_id = r and not delivered),
                               's4 support did not report the failed delivery (cycle ' || k || ')');
   end loop;
-  perform pg_temp.zz_assert((select array_agg(outcome order by cycle) from public.refund_ceo_review where refund_id = rf) = array['rejected', 'rejected', 'rejected', 'escalated'],
+  perform pg_temp.zz_assert((select array_agg(outcome order by cycle) from public.refund_ceo_review where refund_id = rf) = array['rejected', 'rejected', 'rejected', 'rejected', 'escalated'],
     's4 loop ' || coalesce((select array_agg(outcome order by cycle)::text from public.refund_ceo_review where refund_id = rf), 'none'));
-  perform pg_temp.zz_assert(exists (select 1 from public.agent_actions where target_id = 'delivery.request:refund_loop_stuck:' || rf
-                                     and status = 'done' and (evidence->>'stubbed')::boolean), 's4 the stuck loop did not reach the founder summary');
+  perform pg_temp.zz_assert(exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'ceo' and status = 'pending'
+                                     and detail->>'type' = 'ceo.decision_owed' and detail->>'item_key' = 'refunds:' || rf),
+                            's4 the stuck loop did not owe the CEO a replace-or-withdraw');
+  perform pg_temp.zz_assert(not exists (select 1 from public.agent_actions where target_id = 'delivery.request:refund_loop_stuck:' || rf),
+                            's4 the stuck loop paged the founder');
   perform pg_temp.zz_assert((select refund_decision_id from public.refunds where id = rf) is null, 's4 money was approved while the loop was open');
   -- the gates hold throughout
   begin
     insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, amount_aed, rationale)
-    values ('refund', rf::text, 'approved', 'ceo', 103, 'ZZ DEMO forced approval');
+    values ('refund', rf::text, 'approved', 'ceo', 103, 'ZZ DEMO forced approval that skips the process checklist entirely');
     v_err := 'NOT REFUSED';
   exception when others then v_err := sqlerrm; end;
   perform pg_temp.zz_assert(v_err like 'the CEO may not approve this refund%', 's4 a forced ceo_approval was not refused: ' || v_err);
@@ -226,7 +231,7 @@ begin
     v_err := 'NOT REFUSED';
   exception when others then v_err := sqlerrm; end;
   perform pg_temp.zz_assert(v_err <> 'NOT REFUSED', 's4 a forced refund_case authorisation was not refused');
-  res := res || jsonb_build_object('4_failed_delivery_and_escalation', 'retried once, reported delivered=false, rejected x3, escalated to the founder summary (stubbed); forced approvals refused');
+  res := res || jsonb_build_object('4_failed_delivery_and_escalation', 'retried once, reported delivered=false, rejected x4, then owed to the CEO (never the founder); forced approvals refused');
 
   -- ── 5. THE SUPPLIER REPLIES ON WHATSAPP: PROOF -> THE NON-RESPONSE PATH STOPS ─────────────────
   tx5 := pg_temp.zz_case('s5', 10, 103.00, 100.00, '+999000555');

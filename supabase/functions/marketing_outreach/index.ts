@@ -11,16 +11,16 @@
 //                     fn_marketing_outreach_record / _deliver, which email it ONLY while marketing_golive is
 //                     true; release an approved article on the weekly cadence; mark a released article live
 //                     when its page answers 200 (which schedules its LinkedIn post in #834's store)
-//   ingest_article    {article:{slug, kind, ingested_by, is_demo, en:{...}, ar:{...}, sources:[{ref, text}]}}
-//                     -> checkArticle (marketing_articles.ts: lint, grounding, EN/AR structure) -> fn_marketing_article_ingest
-//   approve_article   {slug, by: 'founder'|'claude'}
 //   ingest_prospects  {prospects:[{full_name, role_title, company, segment, language, source_urls[], ...}]}
+// ingest_article and approve_article were REMOVED on 29 Sep 2026 (founder 1058, 1059; #1114): a blog is a market
+// topic the marketing seat drafts and the CEO seat reviews (supabase/functions/marketing/duties.ts blog_article and
+// scripts/sql/a_blog_article_is_a_market_topic_the_ceo_reviews_until_it_is_useful.sql). A hand-written article, or
+// an approval by anyone else, could never be released, so neither door is kept.
 //
 // The one-tap page, no credential: GET ?m=<mark_token> shows the message and the buttons; only a POST
 // records (link scanners and prefetchers issue GETs; see supabase/functions/unsubscribe for why).
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
-import { checkArticle, type Article } from '../_shared/marketing_articles.ts';
 import { composeFirst, composeFollowUp, founderList, SITE, type ListItem, type Prospect } from '../_shared/marketing_outreach.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { replyClass } from '../_shared/reasoned_outreach.ts';
@@ -34,30 +34,6 @@ async function logRun(status: 'ok' | 'error', counts: Record<string, unknown>, n
   try {
     await admin.from('agent_runs').insert({ agent: 'marketing_outreach', status, counts, note: note.slice(0, 500), started_at: started, finished_at: new Date().toISOString() });
   } catch (_e) { /* the log never breaks the duty */ }
-}
-
-async function sha12(s: string) {
-  const d = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(s));
-  return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 12);
-}
-
-// ── articles ──────────────────────────────────────────────────────────────────────────────────────
-// deno-lint-ignore no-explicit-any
-async function ingestArticle(body: any) {
-  const a = body?.article || {};
-  if (!Array.isArray(a.sources) || !a.sources.length || a.sources.some((s: { text?: string }) => !String(s?.text || '').trim())) {
-    return { ok: false, error: 'sources_required', message: 'An article cites the company knowledge it is written from, with the text of each source.' };
-  }
-  const c = checkArticle(a as Article);
-  const checks = { lint: c.lint, ungrounded: c.ungrounded };
-  if (c.lint.length || c.ungrounded.length) return { ok: false, error: 'checks_not_clean', checks };
-  // The source text is not stored, only what it was and a fingerprint of the version the article was checked against.
-  const sources = await Promise.all(a.sources.map(async (s: { ref: string; text: string }) => ({ ref: String(s.ref), sha: await sha12(String(s.text)) })));
-  const { data, error } = await admin.rpc('fn_marketing_article_ingest', {
-    p: { slug: a.slug, kind: a.kind, ingested_by: a.ingested_by || 'claude', is_demo: !!a.is_demo, en: a.en, ar: a.ar,
-         sources, checks, post: { text_en: c.post.text_en, text_ar: c.post.text_ar } },
-  });
-  return error ? { ok: false, error: error.message } : data;
 }
 
 async function articleDuty() {
@@ -175,11 +151,6 @@ Deno.serve(async (req) => {
   if (!auth.ok) return J({ error: auth.error, message: auth.message }, auth.status);
   const action = String(body.action || 'duties');
   try {
-    if (action === 'ingest_article') return J(await ingestArticle(body));
-    if (action === 'approve_article') {
-      const { data, error } = await admin.rpc('fn_marketing_article_approve', { p_slug: String(body.slug || ''), p_by: String(body.by || '') });
-      return J(error ? { ok: false, error: error.message } : data);
-    }
     if (action === 'ingest_prospects') {
       const out = [];
       for (const p of Array.isArray(body.prospects) ? body.prospects : []) {

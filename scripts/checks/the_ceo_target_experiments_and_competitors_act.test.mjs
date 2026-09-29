@@ -86,7 +86,7 @@ do $$ declare o jsonb := '{}'; v jsonb; h bigint; e bigint; c bigint; s bigint; 
     perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"x","decision":{"choice":"yolo"}}');
     o := o || jsonb_build_object('bad_choice', 'applied');
   exception when others then o := o || jsonb_build_object('bad_choice', left(sqlerrm, 20)); end;
-  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: sound","model":"openai/gpt-5.6-sol","decision":{"choice":"approve","fields":{"owner_seat":{"value":"marketing"},"days":{"value":"14"}}}}');
+  perform public.fn_reason_held_resolve(h, '{"status":"answered","answer":"ZZ DEMO: sound, the metric is measured by code and fourteen days is enough","model":"openai/gpt-5.6-sol","decision":{"choice":"approve","fields":{"owner_seat":{"value":"marketing"},"days":{"value":"14"}}}}');
   o := o || jsonb_build_object('approved', (select jsonb_build_object('status', status, 'owner', owner_seat, 'days', ends_on - starts_on,
             'reviewer', (select reviewer_seat from public.seat_deliberation where id = (approval->'review'->>'deliberation_id')::bigint))
             from public.ceo_experiment where id = e));

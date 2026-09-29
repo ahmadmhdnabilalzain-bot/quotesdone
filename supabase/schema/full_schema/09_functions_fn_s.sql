@@ -1112,6 +1112,113 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_licence_expiry_watch()
 AS $function$ select public.fn_it_engineer_licence_expiry_watch() $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_quote_quality_tick(p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_hours numeric := public.fn_seat_clock_policy('quote_quality_hold_hours', 24);
+  h record; q public.quotes; v_flags jsonb; m jsonb; v jsonb; v_to text; v_why text; v_key text; v_md5 text; v_notice jsonb;
+  v_sent int := 0; v_corrected int := 0; v_waited int := 0; v_left_to_spec int := 0; v_told int := 0;
+  v_not_sent jsonb := '[]'::jsonb; v_not_the_accepted int := 0;
+begin
+  for h in
+    select x.*, i.category, i.emirate, i.lang as inq_lang, i.status as inq_status, public.fn_job_no(x.inquiry_id) as job_no,
+           c.email as cemail, c.full_name as cname, l.company_name, lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))) as semail
+      from public.quote_quality_hold x
+      join public.inquiries i on i.id = x.inquiry_id
+      left join public.customers c on c.id = i.customer_id
+      left join public.leads l on l.id = x.supplier_id
+     where x.released_at is null and x.superseded_at is null and (p_include_fixtures or not x.fixture)
+     order by x.held_at
+  loop
+    select * into q from public.quotes where id = h.quote_id;
+    -- ONLY THE VERSION THE DOOR ACCEPTED (review of #1108, 29 Sep 2026). The gate runs only when acceptLive sets
+    -- 'submitted', so accepted_md5 is content that passed the exact-specs gate, the review's rules 1-7 and the accept rule.
+    -- Content that has changed since was written by a submission the door has not (yet) accepted: nothing is sent and
+    -- nothing is released - a wait never publishes it. supplier_api supersedes the hold when it rejects a submission.
+    if public.fn_quote_quality_content_md5(q) is distinct from h.accepted_md5 then
+      v_not_the_accepted := v_not_the_accepted + 1;
+      continue;
+    end if;
+    v_flags := public.fn_quote_quality_flags(q);
+
+    -- (a) the fixes, once per distinct set, while the quote is still flagged
+    if jsonb_array_length(v_flags) > 0 then
+      if v_flags is distinct from h.flags then
+        update public.quote_quality_hold set flags = v_flags, fixes_en = public.fn_quote_quality_fixes_en(v_flags), updated_at = now()
+         where quote_id = h.quote_id;
+      end if;
+      v_md5 := md5(public.fn_quote_quality_fixes_en(v_flags));
+      if v_md5 is distinct from h.fixes_sent_md5 and now() < h.release_due then
+        m := public.fn_quote_quality_compose('supplier', 'en', jsonb_build_object('name', h.company_name, 'category', h.category,
+               'emirate', h.emirate, 'job_no', h.job_no, 'fixes', public.fn_quote_quality_fixes_en(v_flags),
+               'due', to_char(h.release_due at time zone 'Asia/Dubai', 'DD Mon YYYY, HH24:MI')));
+        v_key := 'quote_quality_fixes:' || h.quote_id || ':' || left(v_md5, 12);
+        v_why := public.fn_seat_clock_refusal(h.fixture, h.semail, 'quote_quality_fixes');
+        if v_why is null and public.fn_seat_clock_asked(v_key) then v_why := 'already sent'; end if;
+        if v_why is null then
+          v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+            'type', 'quote_quality_fixes', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', h.semail,
+            'to_role', 'supplier', 'lead_id', h.supplier_id, 'inquiry_id', h.inquiry_id, 'quote_id', h.quote_id,
+            'lang', 'en', 'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', v_key)));
+          update public.quote_quality_hold set fixes_sent_md5 = v_md5, fixes_sent_at = now(), fixes_delivery = v->0, updated_at = now()
+           where quote_id = h.quote_id;
+          v_sent := v_sent + 1;
+        else
+          update public.quote_quality_hold set fixes_delivery = jsonb_build_object('sent', false, 'reason', v_why), updated_at = now()
+           where quote_id = h.quote_id;
+          v_not_sent := v_not_sent || jsonb_build_array(jsonb_build_object('quote_id', h.quote_id, 'reason', v_why));
+        end if;
+      end if;
+    end if;
+
+    -- (b) corrected, or waited its hours: released (the hold is marked first, so the gate lets it through)
+    if jsonb_array_length(v_flags) = 0 or now() >= h.release_due then
+      update public.quote_quality_hold
+         set flags = v_flags, released_at = now(),
+             release_reason = case when jsonb_array_length(v_flags) = 0 then 'corrected' else 'waited_24h' end,
+             corrected_at = case when jsonb_array_length(v_flags) = 0 then now() end, updated_at = now()
+       where quote_id = h.quote_id;
+      if jsonb_array_length(v_flags) = 0 then v_corrected := v_corrected + 1; else v_waited := v_waited + 1; end if;
+      -- a quote the exact-specs desk holds (quote_spec_hold) is that desk's to release
+      if coalesce(q.status, '') = 'draft' and not exists (select 1 from public.quote_spec_hold s
+                                                          where s.quote_id = h.quote_id and s.state in ('open', 'awaiting_approval')) then
+        update public.quotes set status = 'submitted' where id = h.quote_id and status = 'draft';
+        update public.inquiries set status = 'quoted' where id = h.inquiry_id and status in ('sent', 'quoted');
+        m := public.fn_quote_quality_compose('customer', h.inq_lang, jsonb_build_object('name', h.cname, 'category', h.category,
+               'emirate', h.emirate, 'hours', v_hours, 'waited', jsonb_array_length(v_flags) > 0));
+        v_key := 'quote_quality_release:' || h.quote_id;
+        v_to := lower(btrim(coalesce(h.cemail, '')));
+        v_why := public.fn_seat_clock_refusal(h.fixture, v_to, 'new_quote');
+        if v_why is null and public.fn_seat_clock_asked(v_key) then v_why := 'already told'; end if;
+        if v_why is null then
+          v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+            'type', 'new_quote', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', v_to, 'to_role', 'customer',
+            'inquiry_id', h.inquiry_id, 'quote_id', h.quote_id, 'lang', m->>'lang', 'subject', m->>'subject', 'body', m->>'body',
+            'dedupe_key', v_key)));
+          v_notice := jsonb_build_object('sent', coalesce(v->0->>'status', '') <> 'failed', 'lang', m->>'lang', 'delivery', v->0);
+          if (v_notice->>'sent')::boolean then v_told := v_told + 1; end if;
+        else
+          v_notice := jsonb_build_object('sent', false, 'lang', m->>'lang', 'reason', v_why);
+        end if;
+        update public.quote_quality_hold set customer_notice = v_notice where quote_id = h.quote_id;
+      else
+        v_left_to_spec := v_left_to_spec + 1;
+      end if;
+    end if;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'hold_hours', v_hours, 'fixes_sent', v_sent, 'fixes_not_sent', v_not_sent,
+    'released_corrected', v_corrected, 'released_after_wait', v_waited, 'left_to_the_spec_desk', v_left_to_spec,
+    'customers_told', v_told, 'content_not_the_accepted_version', v_not_the_accepted,
+    'open', (select count(*) from public.quote_quality_hold where released_at is null and superseded_at is null and (p_include_fixtures or not fixture)));
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_raises_undecided_submissions(p_include_fixtures boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3233,7 +3340,12 @@ begin
     'instructions', 'The ' || d.author_seat || ' seat''s proposal is now revealed. Compare it with YOUR blind verdict above. '
       || 'State explicitly what you agree with and what you do not (write "none" if there is nothing). Give the strongest '
       || 'case AGAINST the proposal even if you approve; an approval without it is rejected as malformed. Do not agree '
-      || 'because the proposal is confident, and do not disagree for its own sake.',
+      || 'because the proposal is confident, and do not disagree for its own sake.'
+      || case when d.reviewer_seat = 'ceo' and d.kind <> 'marketing.monthly_plan'
+              then ' As the chief executive your verdict is a decision: when you approve, your agreements are its logic; when you '
+                || 'revise or reject, your disagreements are its reasons and go back to the ' || d.author_seat || ' seat to answer '
+                || 'in a revised version. Write that side as at least one full sentence, never "none"; a decision without reasons is refused.'
+              else '' end,
     'output_contract', jsonb_build_object('verdict', 'approve|reject|revise', 'agreements', 'text', 'disagreements', 'text',
       'steelman_against', 'text, at least one full sentence', 'reasoning', 'text',
       'changed_from_blind_because', 'text, or "unchanged"'));
@@ -3382,7 +3494,7 @@ CREATE OR REPLACE FUNCTION public.fn_seat_deliberation_record(p_id bigint, p_pha
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare d public.seat_deliberation; v_id bigint; o jsonb := coalesce(p_output, '{}'::jsonb);
+declare d public.seat_deliberation; v_id bigint; o jsonb := coalesce(p_output, '{}'::jsonb); v_verdict text; v_reasons text;
 begin
   select * into d from public.seat_deliberation where id = p_id for update;
   if not found then raise exception 'no seat_deliberation %', p_id; end if;
@@ -3411,6 +3523,23 @@ begin
            detail = detail || jsonb_build_object('awaiting', d.author_seat || ' closes the deliberation')
      where id = d.handoff_id and kind = 'handoff';
     perform public.fn_seat_handoff_event(d.handoff_id, 'reviewed');
+    -- THE CEO'S DECISION CARRIES ITS REASONS AND A REJECTION LOOPS BACK (founder_instruction 1059).
+    if d.reviewer_seat = 'ceo' and d.kind <> 'marketing.monthly_plan' then
+      v_verdict := lower(o->>'verdict');
+      -- the reasons are the side the verdict rests on, with the CEO's own reasoning when that side is too thin
+      v_reasons := btrim(coalesce(case when v_verdict = 'approve' then o->>'agreements' else o->>'disagreements' end, ''));
+      if public.fn_ceo_reasons_problem(v_reasons) is not null and coalesce(btrim(o->>'reasoning'), '') <> '' then
+        v_reasons := btrim(v_reasons || E'\n' || (o->>'reasoning'));
+      end if;
+      perform public.fn_ceo_decide('seat_deliberation', 'seat_deliberation:' || p_id, d.author_seat,
+        case when v_verdict = 'approve' then 'approved' else 'rejected' end,
+        v_reasons,
+        jsonb_build_object('deliberation_id', p_id, 'kind', d.kind, 'round', d.round, 'verdict', v_verdict, 'compare_turn_id', v_id,
+                           'subject_table', d.subject_table, 'subject_id', d.subject_id, 'question', left(d.question, 1000),
+                           'proposal', case when length(d.proposal::text) <= 20000 then d.proposal
+                                            else jsonb_build_object('cut_at_20000_chars', left(d.proposal::text, 20000)) end),
+        'seat_deliberation_turn', v_id::text);
+    end if;
   end if;
   return v_id;
 end $function$
@@ -3428,8 +3557,10 @@ begin
   if not found then raise exception 'no seat_deliberation %', p_id; end if;
   select t.verdict into v_last from public.seat_deliberation_turn t
    where t.deliberation_id = p_id and t.phase = 'compare' and t.status = 'recorded' and t.round = d.round;
-  if d.status <> 'reviewed' or v_last is distinct from 'revise' then
-    raise exception 'deliberation % can be revised only after the reviewer asked for a revision', p_id;
+  -- A CEO rejection is sent back to be revised (founder_instruction 1059); another seat's reject stays final (the
+  -- accountant's second-seat refusal of a CEO money decision is not something the CEO re-argues round after round).
+  if d.status <> 'reviewed' or not (v_last = 'revise' or (v_last = 'reject' and d.reviewer_seat = 'ceo')) or v_last is null then
+    raise exception 'deliberation % can be revised only after the reviewer asked for a revision (or the CEO rejected it)', p_id;
   end if;
   if d.round >= d.max_rounds then
     raise exception 'deliberation % is at its last round (%); the author closes it with the reviewer''s verdict', p_id, d.max_rounds;
@@ -4021,6 +4152,41 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_seat_revises_for_the_ceo(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v_held bigint; v_fields jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found then raise exception 'no handoff %', p_id; end if;
+  v_held := public.fn_seat_duty_reason(a.agent, a.agent || '.ceo_revision',
+    'The CEO sent your submission back (round ' || coalesce(a.detail->>'round', '?') || ', ' || coalesce(a.detail->>'rounds_left', '?')
+      || ' more before the CEO must replace or withdraw it). Read each of the CEO''s reasons. Produce a revised version that answers '
+      || 'every one of them, or where you are right keep it and answer each reason with evidence. The CEO reviews what you resubmit.',
+    '[{"id":"revised","meaning":"the submission is revised so that it answers every reason the CEO gave"},{"id":"defended","meaning":"the submission stands, and each reason is answered with evidence"}]'::jsonb,
+    jsonb_build_object('path', a.detail->>'path', 'item_key', a.detail->>'item_key', 'round', a.detail->'round',
+                       'ceo_reasons', a.detail->>'reasons', 'submission', a.detail->'version'),
+    jsonb_build_object('handoff_id', p_id, 'path', a.detail->>'path', 'item_key', a.detail->>'item_key'),
+    'ceo_revision:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':r' || coalesce(a.detail->>'round', '1'));
+  v_fields := jsonb_build_array(
+    jsonb_build_object('key', 'revision', 'question', 'the revised submission, complete, as the CEO should now review it'),
+    jsonb_build_object('key', 'answers', 'question', 'for each of the CEO''s reasons: what changed, or the evidence that answers it'));
+  if a.detail->>'path' = 'ceo_experiment' then
+    v_fields := v_fields || jsonb_build_array(
+      jsonb_build_object('key', 'hypothesis', 'question', 'the revised hypothesis (blank keeps it)'),
+      jsonb_build_object('key', 'approach', 'question', 'the revised approach (blank keeps it)'),
+      jsonb_build_object('key', 'target', 'question', 'the revised target, a number (blank keeps it)'),
+      jsonb_build_object('key', 'days', 'question', 'the revised run length in days, 7 to 365 (blank keeps it)'));
+  end if;
+  perform public.fn_ambition_ask_fields(v_held, v_fields);
+  return jsonb_build_object('waiting', a.agent || ' revises and resubmits ' || coalesce(a.detail->>'item_key', '?') || ' (held question ' || v_held || ')',
+                            'held_id', v_held);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_seat_self_review(p_month date, p_seat text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4188,6 +4354,38 @@ begin
   if not found then raise exception 'no handoff %', p_id; end if;
   return jsonb_build_object('accepted', true, 'seat', a.agent, 'root_cause_id', a.detail->'root_cause_id', 'cause', a.detail->>'cause_key',
     'waiting', 'customer_support measures the cause''s weekly volume after the change and closes this when it falls');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_seat_takes_the_ceo_decision(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; d public.seat_deliberation; v_closed jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found then raise exception 'no handoff %', p_id; end if;
+  if a.detail->>'path' = 'seat_deliberation' then
+    select * into d from public.seat_deliberation where id = (a.detail->'version'->>'deliberation_id')::bigint;
+    if d.id is not null and d.author_seat = a.agent and d.status in ('reviewed', 'no_independent_reviewer')
+       and d.kind not like 'high_stakes.%' then
+      v_closed := public.fn_seat_deliberation_close(d.id, a.agent,
+        left(a.detail->>'decision' || ' by the CEO in round ' || coalesce(a.detail->>'round', '?') || ': ' || coalesce(a.detail->>'reasons', ''), 2000));
+      perform set_config('qd.handoff_closer', '', true);
+    elsif d.id is not null and d.author_seat = a.agent and d.kind like 'high_stakes.%' and d.handoff_id is not null
+          and exists (select 1 from public.agent_actions h where h.id = d.handoff_id and h.status = 'pending') then
+      -- the conversation is answered and closed by its author; the deliberation row stays for the gate to read
+      perform set_config('qd.handoff_closer', a.agent, true);
+      perform public.fn_seat_handoff_complete(d.handoff_id, jsonb_build_object('kind', 'deliberation.review', 'deliberation_id', d.id,
+        'ceo_decision', a.detail->>'decision', 'reasons', left(a.detail->>'reasons', 2000), 'closed_by', a.agent));
+      perform set_config('qd.handoff_closer', '', true);
+      v_closed := jsonb_build_object('handoff_closed', d.handoff_id, 'deliberation_kept_for_the_gate', d.id);
+    end if;
+  end if;
+  return jsonb_build_object('read_by', a.agent, 'decision', a.detail->>'decision', 'item_key', a.detail->>'item_key',
+                            'reasons', left(a.detail->>'reasons', 600), 'deliberation_closed', v_closed);
 end $function$
 
 
