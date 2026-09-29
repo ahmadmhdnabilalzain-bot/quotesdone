@@ -38,3 +38,42 @@ export function checkArticle(a: Article) {
   const ungrounded = ungroundedNumbers(all, (a.sources || []).map((s) => String(s.text || '')));
   return { lint, ungrounded, post };
 }
+
+// ── HIS CHANGE TO A DRAFT (marketing, 29 Sep 2026; review of #1039) ─────────────────────────────────────────────
+// The model redraws the draft with his words; code decides whether the redraw may be written. The gate is the one
+// every article passes (checkArticle), with the draft itself and his change as the only sources: a redraw can move,
+// cut or reword, but it cannot bring a number that is in neither.
+export type ArticleBody = { en: Body; ar: Body };
+export interface ReviseDue { slug: string; change: string; earlier_changes: string[]; article: ArticleBody }
+
+export function revisePrompt(d: ReviseDue): string {
+  return [
+    'You are revising a QuotesDone blog article, in English and Arabic, exactly as the founder asked.',
+    'His change: ' + d.change,
+    d.earlier_changes.length ? 'Changes he asked for before (keep them): ' + d.earlier_changes.join(' | ') : '',
+    'Rules: keep the same HTML structure in both languages (the same number of h2, h3, p, li and table tags in English and Arabic);',
+    'add no fact, figure or claim that is not already in the article or in his words; plain professional English and Modern Standard Arabic.',
+    'Answer with ONLY a JSON object {"en":{"title","excerpt","meta_desc","category","body_html"},"ar":{same keys}} and nothing else.',
+    'The article: ' + JSON.stringify(d.article),
+  ].filter(Boolean).join('\n');
+}
+
+/** The redraw, or why it may not be written. Never throws. */
+export function acceptRevision(d: ReviseDue, answer: string | null, truncated: boolean):
+  { ok: true; article: ArticleBody; post: { text_en: string; text_ar: string } } | { ok: false; reason: string } {
+  if (!answer) return { ok: false, reason: 'no answer' };
+  if (truncated) return { ok: false, reason: 'the answer was cut off' };
+  let j: ArticleBody;
+  try {
+    j = JSON.parse(answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1));
+  } catch { return { ok: false, reason: 'the answer is not the article JSON' }; }
+  for (const lang of ['en', 'ar'] as const) for (const f of FIELDS) {
+    if (typeof j?.[lang]?.[f] !== 'string' || !j[lang][f].trim()) return { ok: false, reason: `${lang}.${f} is missing` };
+  }
+  if (FIELDS.every((f) => j.en[f] === d.article.en[f] && j.ar[f] === d.article.ar[f])) return { ok: false, reason: 'the redraw is identical to the draft' };
+  const draftText = FIELDS.flatMap((f) => [d.article.en[f], d.article.ar[f]]).join('\n');
+  const c = checkArticle({ slug: d.slug, en: j.en, ar: j.ar, sources: [{ ref: 'draft', text: draftText }, { ref: 'founder', text: d.change }] });
+  if (c.lint.length) return { ok: false, reason: 'lint: ' + c.lint.slice(0, 5).map((x) => `${x.field} ${x.rule} ${x.match}`).join('; ') };
+  if (c.ungrounded.length) return { ok: false, reason: 'numbers in neither the draft nor his words: ' + c.ungrounded.join(', ') };
+  return { ok: true, article: { en: j.en, ar: j.ar }, post: { text_en: c.post.text_en, text_ar: c.post.text_ar } };
+}

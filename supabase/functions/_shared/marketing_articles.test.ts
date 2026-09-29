@@ -2,7 +2,7 @@
 // its sources are imported as JSON.
 //   deno test supabase/functions/_shared/marketing_articles.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { articlePost, checkArticle, type Article } from './marketing_articles.ts';
+import { acceptRevision, articlePost, checkArticle, revisePrompt, type Article } from './marketing_articles.ts';
 import FIRST from '../../../scripts/marketing/articles/how-quotesdone-works-for-procurement-teams.json' with { type: 'json' };
 import SITE_CONTENT from '../../../src/content/marketing.json' with { type: 'json' };
 
@@ -15,6 +15,21 @@ Deno.test('the first article passes the gate it will be ingested through', () =>
   assertEquals(c.lint, []);
   assertEquals(c.ungrounded, []);
   assertEquals(c.post.lint, []);
+});
+
+Deno.test('a redraw with his change is written only when it passes the article gate', () => {
+  const a = FIRST as unknown as Article;
+  const due = { slug: a.slug, change: 'Say that replies come within 3 working days.', earlier_changes: [], article: { en: a.en, ar: a.ar } };
+  const edited = structuredClone({ en: a.en, ar: a.ar });
+  edited.en.excerpt = edited.en.excerpt + ' Replies come within 3 working days.';
+  const ok = acceptRevision(due, 'Here it is: ' + JSON.stringify(edited), false);
+  assert(ok.ok, JSON.stringify(ok));
+  const bad = structuredClone(edited); bad.en.excerpt += ' Buyers save 47% on average.';
+  const r = acceptRevision(due, JSON.stringify(bad), false);
+  assert(!r.ok && r.reason.includes('47'), JSON.stringify(r));
+  assertEquals(acceptRevision(due, JSON.stringify(edited), true), { ok: false, reason: 'the answer was cut off' });
+  assertEquals(acceptRevision(due, JSON.stringify({ en: a.en, ar: a.ar }), false), { ok: false, reason: 'the redraw is identical to the draft' });
+  assert(revisePrompt(due).includes(due.change));
 });
 
 Deno.test('an invented figure, a machine phrase or a missing Arabic paragraph is refused', () => {

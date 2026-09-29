@@ -51,6 +51,19 @@ test('the launch plan is re-sent only when it changed, carries his changes, and 
   assert.match(sql, /elsif btrim\(coalesce\(p->>'text', ''\)\) = '' then\s+-- an empty reply is not a change/);
 });
 
+test('an article change is read: redrawn by the seat, then re-offered once its content fingerprint changed', () => {
+  // review of #1039: founder_change_request was written and nothing read it
+  const sql = read('scripts/sql/an_article_change_the_founder_asks_for_is_redrawn_and_offered_again.sql');
+  assert.match(sql, /a\.founder_change_request is not null\s+and public\.fn_marketing_article_fingerprint\(a\.id\) is not distinct from a\.approval_hash/);
+  assert.match(sql, /and public\.fn_marketing_article_fingerprint\(m\.id\) is distinct from m\.approval_hash/);
+  assert.match(sql, /founder_changes = founder_changes \|\| to_jsonb\(v_change\), founder_change_request = null/);
+  const duty = read('supabase/functions/marketing/duties.ts');
+  assert.match(duty, /rpc\('fn_marketing_article_revise_due'\)/);
+  assert.match(duty, /acceptRevision\(due, /);
+  assert.match(duty, /rpc\('fn_marketing_article_ingest'/);
+  assert.match(duty, /reviews, articleRevise,/);
+});
+
 test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {
   const inbound = read('supabase/functions/resend_inbound/index.ts');
   assert.match(inbound, /approvalTokenOf\(\{ to, subject \}\)/);

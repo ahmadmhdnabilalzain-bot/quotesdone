@@ -26,6 +26,7 @@ import { postizIntegrations, type PostizIntegration } from '../_shared/marketing
 import { defaultDeps, think } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { competitorsNamed, modelCitation, parseRss } from '../_shared/marketing_trends.ts';
+import { acceptRevision, type ArticleBody, revisePrompt } from '../_shared/marketing_articles.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Admin = any;
@@ -471,6 +472,38 @@ export const geoAudit: Duty = {
   },
 };
 
+// HIS CHANGE TO AN ARTICLE (29 Sep 2026, review of #1039): the draft he asked to change is redrawn with his words
+// (marketing_article_revise), passed through the article gate by code (acceptRevision), and written back through
+// fn_marketing_article_ingest. fn_marketing_article_release_duty then sees its content fingerprint changed and sends
+// it back to him once. At most one redraw a beat; a refused redraw is recorded once a Dubai day and raised once.
+export const articleRevise: Duty = {
+  name: 'article_revise',
+  owner_seat: 'marketing',
+  async run(ctx) {
+    const { data, error } = await ctx.admin.rpc('fn_marketing_article_revise_due');
+    if (error) throw new Error('fn_marketing_article_revise_due: ' + error.message);
+    const d = ((data || []) as Array<{ slug: string; kind: string; change: string; earlier_changes: string[]; sources: unknown; article: ArticleBody }>)[0];
+    if (!d) return { due: false };
+    if (await modelHeld(ctx.admin)) return { due: true, held: true, slug: d.slug, reason: 'the founder\'s model hold: the redraw waits' };
+    const today = new Date(ctx.now.getTime() + 4 * 3600_000).toISOString().slice(0, 10);   // Dubai day
+    const { data: failedToday } = await ctx.admin.from('marketing_model_run').select('id').eq('step', 'article_revise')
+      .eq('subject', d.slug).eq('outcome', 'failed').eq('run_day', today).limit(1);
+    if (failedToday && failedToday.length) return { due: true, slug: d.slug, reason: 'the redraw was refused today; next try tomorrow' };
+    const due = { slug: d.slug, change: d.change, earlier_changes: (d.earlier_changes || []).map(String), article: d.article };
+    const a = await marketingDeps(ctx).callModel('marketing_article_revise', 8000, [{ role: 'user', content: revisePrompt(due) }], []);
+    const r = acceptRevision(due, a.error ? null : a.content, a.truncated);
+    if (!r.ok) {
+      await ctx.admin.from('marketing_model_run').insert({ step: 'article_revise', subject: d.slug, seat: 'marketing',
+        task_class: 'marketing_article_revise', outcome: 'failed', reason: (a.error || r.reason).slice(0, 1000), run_day: today });
+      throw new Error('article ' + d.slug + ' was not redrawn: ' + (a.error || r.reason));
+    }
+    const w = await ctx.admin.rpc('fn_marketing_article_ingest', { p: { slug: d.slug, kind: d.kind, ingested_by: 'claude', is_demo: false,
+      en: r.article.en, ar: r.article.ar, sources: d.sources, checks: { lint: [], ungrounded: [] }, post: r.post } });
+    if (w.error || !(w.data as { ok?: boolean })?.ok) throw new Error('fn_marketing_article_ingest: ' + (w.error?.message || JSON.stringify(w.data)));
+    return { due: true, redrawn: d.slug, model: a.model ?? null };
+  },
+};
+
 export const reviews: Duty = {
   name: 'reviews',
   owner_seat: 'marketing',
@@ -559,5 +592,5 @@ export const DUTIES: Duty[] = [
       return data as Record<string, unknown>;
     },
   },
-  profileText, trendWatch, geoAudit, reviews,
+  profileText, trendWatch, geoAudit, reviews, articleRevise,
 ];
