@@ -1,6 +1,6 @@
 // widgetReplyEffects() with stubbed RPCs, and site_assistant's composed-reply exit going through it (review of #1043).
 import { assert, assertEquals } from 'jsr:@std/assert';
-import { widgetReplyEffects, type WidgetReplyEffectsInput } from './widget_reply_effects.ts';
+import { logParty, widgetReplyEffects, type WidgetReplyEffectsInput } from './widget_reply_effects.ts';
 
 function stub() {
   const calls: { fn: string; args: Record<string, unknown> }[] = [];
@@ -57,4 +57,23 @@ Deno.test('site_assistant: the composed reply and the canned road both file the 
   const lastExit = src.lastIndexOf('return J({ reply');
   call.lastIndex = 0;
   assert(call.test(src.slice(reasonedExit, lastExit)), 'the canned road returns without filing the gap or the person report');
+});
+
+// Review of #1043: a signed-in widget reply is logged as its party so it attaches to the support case (#1036).
+Deno.test('logParty: a signed-in person is customer:<uuid> or supplier:<id> on every exit; a stranger is not a party', () => {
+  const uuid = '3f2b8c1e-6a4d-4e2f-9b7a-1c2d3e4f5a6b';
+  assertEquals(logParty({ audience: 'customer', id: uuid }, 'customer', 'session', true), 'customer:' + uuid);
+  assertEquals(logParty({ audience: 'customer', id: uuid }, 'customer', 'session'), 'customer:' + uuid);
+  assertEquals(logParty({ audience: 'supplier', id: '4812' }, 'supplier', 'path', true), 'supplier:4812');
+  assertEquals(logParty(null, 'supplier', 'path', true), 'supplier:path:reasoned');
+  assertEquals(logParty(null, 'unknown', 'none'), 'unknown');
+});
+
+Deno.test('site_assistant: every assistant_logs write names its audience through logParty(who, ...)', async () => {
+  const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
+  const writes = src.match(/from\('assistant_logs'\)\.insert\(\{[^\n]*/g) ?? [];
+  assert(writes.length >= 4, `expected the four widget exits, found ${writes.length}`);
+  for (const w of writes) assert(/audience: logParty\(who, /.test(w), 'an assistant_logs write does not log the party: ' + w.slice(0, 160));
+  const start = src.indexOf("sr.path === 'reasoned'");
+  assert(/audience: logParty\(who, audience, source, true\)/.test(src.slice(start, src.indexOf('return J(', start))), 'the composed reply is not logged as its party');
 });

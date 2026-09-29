@@ -1,0 +1,77 @@
+{
+  "trade": "corrugated_packaging",
+  "entries": [
+    {
+      "id": "corrugated_packaging:spec-checklist",
+      "topic": "Corrugated packaging - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted product line for corrugated packaging must state: box style; internal dimensions; board grade and flute; strength requirement; printing; quantity; food-contact suitability; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة عبوات الكرتون المضلع: نوع العلبة؛ الأبعاد الداخلية؛ درجة الكرتون ونوع التضليع؛ متطلب المتانة؛ الطباعة؛ الكمية؛ الملاءمة لملامسة الغذاء؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "box style",
+        "internal dimensions",
+        "board grade and flute",
+        "strength requirement",
+        "printing",
+        "quantity",
+        "food-contact suitability",
+        "UAE approvals and certificates",
+        "delivery and installation scope",
+        "lead time",
+        "warranty",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "corrugated_packaging:uae-standards-and-approvals",
+      "topic": "Corrugated packaging - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "MoIAT (Ministry of Industry and Advanced Technology) issues UAE certificates of conformity: a product subject to a UAE technical regulation is certified under ECAS on the basis of a test report from an accredited laboratory and a valid trade licence, and a product outside technical regulations can obtain a voluntary conformity certificate (EQM) the same way. UAE.S and GSO standard specifications are obtained through MoIAT. The cited sources do not set a UAE-specific grade, class or test method for corrugated packaging; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "body_ar": "تصدر وزارة الصناعة والتكنولوجيا المتقدمة شهادات المطابقة الإماراتية: يُعتمد المنتج الخاضع للوائح فنية إماراتية ضمن نظام الإمارات لتقييم المطابقة (ECAS) بناءً على تقرير اختبار من مختبر معتمد ورخصة تجارية سارية، ويمكن للمنتج غير الخاضع للوائح فنية الحصول على شهادة مطابقة طوعية (EQM) بالطريقة نفسها. وتُطلب المواصفات القياسية الإماراتية والخليجية من الوزارة. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة عبوات الكرتون المضلع؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific grade, class or test method for corrugated packaging; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/issue-conformity-certificates-for-regulated-products",
+        "https://moiat.gov.ae/en/services/issue-conformity-certificate-for-unregulated-products"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for corrugated packaging. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة عبوات الكرتون المضلع. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "corrugated_packaging:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to corrugated packaging?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة عبوات الكرتون المضلع؟",
+      "expected_entry_ids": [
+        "corrugated_packaging:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "corrugated_packaging:spec-checklist"
+    ],
+    "added": [
+      "corrugated_packaging:spec-checklist",
+      "corrugated_packaging:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}

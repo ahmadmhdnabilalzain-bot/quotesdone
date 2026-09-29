@@ -28,7 +28,9 @@ export async function pdfFactsFromBytes(input) {
   }
   const sha256 = createHash('sha256').update(bytes).digest('hex');
   const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
-  const doc = await pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, verbosity: 0 }).promise;
+  // The LOADING TASK is what is destroyed: pdfjs-dist 6 removed PDFDocumentProxy.destroy (4.x had both).
+  const task = pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false, verbosity: 0 });
+  const doc = await task.promise;
   const meta = await doc.getMetadata().catch(() => ({ info: {} }));
   let text = '';
   const runs = [];
@@ -39,7 +41,7 @@ export async function pdfFactsFromBytes(input) {
     // pdfjs's y grows upward; it is negated so lines sort top to bottom.
     for (const x of items) if (x.str && x.transform) runs.push({ text: x.str, page: i, x: x.transform[4], y: -x.transform[5], w: Number(x.width) || 0 });
   }
-  await doc.destroy().catch(() => {});
+  await task.destroy().catch(() => {});
   const letters = text.match(/\p{L}/gu) || [];
   const arabic = letters.filter(isArabic).length;
   return { ok: true, bytes, sha256, creator: String(meta.info?.Creator || ''), pages: doc.numPages, text, runs, arabicShare: letters.length ? arabic / letters.length : 0 };

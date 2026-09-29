@@ -110,6 +110,7 @@ import { motion, useReducedMotion } from 'motion/react';
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
 // LIVE database. supaEnv resolves it once and warns on fallback; see the note there.
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
+import SupportRatingPrompt from '@/components/portal/SupportRatingPrompt';
 import { signupEmailProblem } from '@/lib/signupEmail';
 const SB = () => supaClient('qd-cust-auth');
 // A TOKEN READ FROM localStorage IS NOT A TOKEN THAT STILL WORKS. It is restored synchronously on
@@ -342,6 +343,7 @@ export function CustomerPortal() {
           them is on screen at a time (login / profile gate / the shell), so the id is never doubled. */}
       {phase === 'login' && <>{strip}<main id="main"><Login onAuth={onAuth} lang={lang} /></main></>}
       {phase === 'app' && <Authed token={token} lang={lang} strip={strip} theme={theme} onSwapTheme={swapTheme} onSetLang={setLang} onSignOut={doSignOut} onServedLocale={onServedLocale} />}
+      {phase === 'app' && token ? <SupportRatingPrompt token={token} lang={lang} api="sales_engineer" /> : null}
     </>)}
   </div>);
 }
