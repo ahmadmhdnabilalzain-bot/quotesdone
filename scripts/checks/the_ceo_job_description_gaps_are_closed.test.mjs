@@ -165,7 +165,8 @@ do $$ declare o jsonb := '{}'; v jsonb; hb bigint; unk bigint; dl bigint; hid bi
   held := (select (evidence->>'held_question')::bigint from public.agent_actions where id = hid);
   o := o || jsonb_build_object('esc_status', (select status from public.agent_actions where id = hid), 'esc_held', held is not null,
     'esc_surface', (select surface from public.reasoning_held_question where id = held));
-  v := public.fn_reason_apply_ceo__sales_escalation(held, '{"decision":{"choice":"send_to_matched"},"answer":"ZZ DEMO reasoning","model":"zz-demo"}');
+  -- the answer says why: a reasonless CEO decision is refused since 29 Sep 2026 (founder_instruction 1059)
+  v := public.fn_reason_apply_ceo__sales_escalation(held, '{"decision":{"choice":"send_to_matched"},"answer":"ZZ DEMO reasoning: the one exact-trade supplier can serve it, so it goes now","model":"zz-demo"}');
   o := o || jsonb_build_object('esc_done', (select jsonb_build_object('status', status, 'choice', evidence->>'choice') from public.agent_actions where id = hid));
   bad := public.fn_seat_handoff('sales_engineer', 'ceo', 'sales.escalation', 'inquiries', 'zz-demo-bad', '{"escalation":"zz_demo_nonsense"}');
   o := o || jsonb_build_object('esc_bad', (select status from public.agent_actions where id = bad));

@@ -196,21 +196,27 @@ begin
     e := 'ACCEPTED';
   exception when others then e := left(sqlerrm, 16); end;
   o := o || jsonb_build_object('compare_without_agreements', e);
+  -- A CEO decision carries its reasons (founder_instruction 1059, a_rejection_never_ends_the_cycle_...sql): the
+  -- agreements are the approval's logic, so they are a sentence, and once that file is applied the author closes an
+  -- approved deliberation the moment the CEO's decision reaches it. Both states read the same here.
   perform public.fn_seat_deliberation_record(v_id, 'compare', c_opus, jsonb_build_object('verdict', 'approve',
-            'steelman_against', v_steel2, 'agreements', 'the split', 'disagreements', 'none'));
-  o := o || jsonb_build_object('reviewed', (select status from public.seat_deliberation where id = v_id),
-                               'compare_provider', (select provider from public.seat_deliberation_turn where deliberation_id = v_id and phase = 'compare' and status = 'recorded'),
-                               'close', public.fn_seat_deliberation_close(v_id, 'marketing', 'ZZ DEMO approved')->>'final_verdict');
+            'steelman_against', v_steel2, 'agreements', 'the split between search and social fits the lead volume we measured', 'disagreements', 'none'));
+  o := o || jsonb_build_object('reviewed', (select case status when 'closed' then 'reviewed' else status end from public.seat_deliberation where id = v_id),
+                               'compare_provider', (select provider from public.seat_deliberation_turn where deliberation_id = v_id and phase = 'compare' and status = 'recorded'));
+  o := o || jsonb_build_object('close', (select case when d.status = 'closed'
+                                                     then (select t.verdict from public.seat_deliberation_turn t where t.deliberation_id = d.id and t.phase = 'compare' and t.status = 'recorded' order by t.round desc limit 1)
+                                                     else public.fn_seat_deliberation_close(v_id, 'marketing', 'ZZ DEMO approved')->>'final_verdict' end
+                                           from public.seat_deliberation d where d.id = v_id));
   o := o || jsonb_build_object('handoff_done', (select status from public.agent_actions where id = (select handoff_id from public.seat_deliberation where id = v_id)));
 
   -- MONITOR: 12 of 12 approvals marketing -> ceo is a finding; 6 of 12 sales_engineer -> ceo is not
   for i in 1..12 loop
     v_id2 := public.fn_seat_deliberation_open('marketing.zz_demo_plan', 'marketing', 'ceo', 'ZZ DEMO q' || i, v_ev, v_pr, c_sol, null, null, null, true);
     perform public.fn_seat_deliberation_record(v_id2, 'blind', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel));
-    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2, 'agreements', 'all', 'disagreements', 'none'));
+    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_opus, jsonb_build_object('verdict', 'approve', 'steelman_against', v_steel2, 'agreements', 'all of it: the split fits the lead volume we measured', 'disagreements', 'none'));
     v_id2 := public.fn_seat_deliberation_open('sales_engineer.zz_demo_share', 'sales_engineer', 'ceo', 'ZZ DEMO s' || i, v_ev, v_pr, c_opus, null, null, null, true);
     perform public.fn_seat_deliberation_record(v_id2, 'blind', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel));
-    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel2, 'agreements', 'some', 'disagreements', 'some'));
+    perform public.fn_seat_deliberation_record(v_id2, 'compare', c_sol, jsonb_build_object('verdict', case when i % 2 = 0 then 'approve' else 'reject' end, 'steelman_against', v_steel2, 'agreements', 'some of the share estimate holds for this month', 'disagreements', 'the estimate leaves out two trades that have no suppliers yet'));
   end loop;
   v := public.fn_it_deliberation_independence_items(true);
   o := o || jsonb_build_object('monitor_items', (select jsonb_agg(x->>'item') from jsonb_array_elements(v) x),
