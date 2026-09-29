@@ -10,7 +10,7 @@
 //
 // It resolved 'pglpqrhvozwepymcuunn', deleted that morning. The DIFF half keeps all its value on
 // one project and the question just changes owner: it used to ask "what does staging lack that
-// production has", it now asks "what does the database lack that supabase/schema/full_schema.sql
+// production has", it now asks "what does the database lack that supabase/schema/full_schema/
 // describes" — which is the drift this repo has been bitten by twice.
 //
 // The --apply half is gone. It was a second, unverified write path into what is now the only
@@ -21,12 +21,11 @@
 // them properly, which is the mandated deploy path anyway.
 //
 //   node scripts/staging/apply_missing_objects.mjs
-import { readFileSync } from 'node:fs';
 import { splitStatements } from './sql_split.mjs';
 import { mgmtRead, mgmtWrite, PROD_REF } from '../lib/qd_guard.mjs';
 import { REF } from '../lib/demo_factory.mjs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA_FILE = 'C:/Users/Opera/quotesdone/supabase/schema/full_schema.sql';
 if (process.argv.includes('--apply')) {
   console.error('--apply was retired on 15 Aug 2026 with the staging project. This reports the gap;');
   console.error('apply it with `node scripts/apply_sql.mjs <file.sql> --apply`, which reads the');
@@ -86,7 +85,7 @@ for (const s of prodSeq) {
   } catch (err) { console.log(`FAILED sequence ${s}: ${String(err.message).slice(0, 140)}`); }
 }
 
-const raw = readFileSync(SCHEMA_FILE, 'utf8');
+const raw = readSchemaMirror();
 // The CRON JOBS section arms 151 schedules pointing at production. It is never applied to a branch.
 const SEC = /^-- ===== (.+?) =====/gm;
 const bounds = [];

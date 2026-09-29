@@ -12,7 +12,8 @@
 //     Structured cabling for cable it sells, and the implication map added intruder alarms from CCTV.
 //
 // WHAT THIS DOES. One reader used by both the catalogue upload (supplier_doc_trades.readDocForTrades,
-// called by supplier_catalog_ingest) and the Services tab's catalogue input (supplier_services.
+// called by supplier_catalog_ingest, which takes its line sort and supply-only test and proposes TRADES by exact
+// code or meaning only, trade_resolve.ts) and the Services tab's catalogue input (supplier_services.
 // servicesRewrite with from_catalogue). It reads the WHOLE text and sorts every line:
 //   spec row   a table row of values — a measurement (690VA, 6TB, 3.6 MM), a model number (PM-UPS690,
 //              CF400A), a bare Yes/No cell, a "Model No" label, or the same label repeated across
@@ -34,8 +35,8 @@
 // battery's "Sealed Maintenance Free" is a product property, not an offer to maintain. The flag is a
 // PROPOSAL shown to the supplier ("supply only — confirm"), never a verdict: the supplier can say it
 // also installs, and the rewrite runs again without it.
-import { foldForMatch, termPattern, type TradeTerm } from './trade_words.ts';
-import { rewriteServices, tidy, type Rewrite, type RewriteItem, type ServiceTerm } from './service_rewrite.ts';
+import { foldForMatch, termPattern } from './alias_pattern.ts';
+import { finishRewrite, rewriteServices, tidy, type Rewrite, type ServiceTerm } from './service_rewrite.ts';
 
 // Bounded, not merely large: a catalogue line is short once spec rows are gone, so the alias scan is
 // CATALOGUE_MAX_LINES x ~1,600 patterns over at most MAX_HEADING_WORDS words each.
@@ -95,8 +96,8 @@ export function catalogueLines(text: string): CatalogueLines {
   return r;
 }
 
-// Word lists, compared on folded text. English forms are whole words; Arabic ones go through the trade
-// matcher's rule (definite article and proclitics allowed, word-start anchored).
+// Word lists, compared on folded text. English forms are whole words; Arabic ones go through the alias
+// pattern (alias_pattern.ts: definite article and proclitics allowed, word-start anchored).
 const SUPPLY_EN = ['importer', 'importers', 'importing', 'import', 'imports', 'exporter', 'exporters', 'wholesaler', 'wholesalers', 'wholesale',
   'distributor', 'distributors', 'stockist', 'stockists', 'trading', 'trader', 'traders', 'reseller', 'resellers', 'dealer', 'dealers'];
 const SUPPLY_AR = ['مستورد', 'استيراد', 'مصدر', 'تصدير', 'تاجر جملة', 'تجار جملة', 'بالجملة', 'بيع بالجملة', 'موزع', 'موزعون', 'موزعين', 'وكيل', 'وكلاء', 'تجارة عامة', 'للتجارة', 'تجارة'];
@@ -129,26 +130,19 @@ export type CatalogueRead = { lines: CatalogueLines; supply: SupplyOnly; supply_
 
 /** The whole catalogue path: sort the lines, decide supply-only, rewrite the headings and product types.
  *  `supplyOnly` overrides the detection (the supplier said "we also install", or confirmed it). */
-export function readCatalogue(text: string, services: ServiceTerm[], trades: TradeTerm[], supplyOnly?: boolean): CatalogueRead {
+export function readCatalogue(text: string, services: ServiceTerm[], supplyOnly?: boolean): CatalogueRead {
   const lines = catalogueLines(text);
   const supply = supplyOnlyOf([...lines.headings, ...lines.statements].join('\n'));
   const supply_only = typeof supplyOnly === 'boolean' ? supplyOnly : supply.supply_only;
   const matched_text = [...lines.headings, ...lines.types].join('\n');
-  const rw = rewriteServices(matched_text, services, trades,
+  const rw = rewriteServices(matched_text, services,
     { supplyOnly: supply_only, maxText: CATALOGUE_MAX_TEXT, maxPhrases: CATALOGUE_MAX_LINES });
   // WHAT REACHES THE SALES ENGINEER FROM A CATALOGUE. A typed description's leftovers are the
   // supplier's words about its services and are all kept. A catalogue's are not: once "CCTV KITS" has
   // named CCTV, "KITS" is a fragment of a heading, not a product. So from a catalogue only a WHOLE line
   // that named nothing is kept ("Inverter", "Cables") — and never a trading word, which is already
   // the supply-only evidence.
-  const items = rw.items.filter((i) => i.kind !== 'unmatched'
-    || (tidy(i.from) === i.text && !SUPPLY_RE.some((re) => re.test(foldForMatch(i.text).norm))));
-  const label = (i: RewriteItem, ar: boolean) => (i.kind === 'service' ? (ar ? i.label_ar : i.label_en) : i.text);
-  const rewrite: Rewrite = {
-    items, service_keys: rw.service_keys,
-    own_words: items.flatMap((i) => (i.kind === 'service' ? [] : [i.text])),
-    summary_en: items.map((i) => label(i, false)).join(' · '),
-    summary_ar: items.map((i) => label(i, true)).join(' · '),
-  };
+  const rewrite = finishRewrite(rw.items.filter((i) => i.kind !== 'unmatched'
+    || (tidy(i.from) === i.text && !SUPPLY_RE.some((re) => re.test(foldForMatch(i.text).norm)))));
   return { lines, supply, supply_only, rewrite, matched_text };
 }

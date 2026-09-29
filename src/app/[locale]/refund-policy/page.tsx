@@ -1,7 +1,7 @@
 import { setRequestLocale } from 'next-intl/server';
 import { LegalDoc, metaFor } from '@/components/LegalDoc';
 import { RevealGuarantee } from '@/components/me/RevealGuarantee';
-import { SUPA_ANON, SUPA_FN, SUPA_URL } from '@/lib/supaEnv';
+import { SUPA_ANON, SUPA_URL, fnUrl } from '@/lib/supaEnv';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -17,7 +17,7 @@ async function guaranteeTerms() {
   // relative '/functions/v1' hung the prerender past 60s (15 Sep 2026). Same outcome as a failed read.
   if (!SUPA_URL) return null;
   try {
-    const r = await fetch(`${SUPA_FN}/public_site`, {
+    const r = await fetch(fnUrl('public_site'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: SUPA_ANON, Authorization: `Bearer ${SUPA_ANON}` },
       body: JSON.stringify({ action: 'guarantee_terms' }),

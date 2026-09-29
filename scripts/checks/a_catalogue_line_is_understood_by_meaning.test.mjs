@@ -74,7 +74,7 @@ const get = async () => (ctx ||= await setup());
 test('the ZZ DEMO catalogue, words and meaning together, names what it sells and none of the false hits', { skip: SKIP, timeout: 600_000 }, async () => {
   const { services, meaning, readCatalogue, PAGES } = await get();
   const text = PAGES.map((p) => p.map(([l]) => l).join('\n')).join('\n');
-  const c = readCatalogue(text, services, []);
+  const c = readCatalogue(text, services);
   assert.equal(c.supply_only, true);
   const unnamed = c.rewrite.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
   const props = await meaning([...unnamed, ...c.lines.statements], services, { stated: c.rewrite.service_keys, supplyOnly: true });
@@ -99,7 +99,7 @@ test('"we distribute office printers and copiers" is office equipment by meaning
 
 test('"DVR Storage Upto 6TB" is never warehousing: a spec row to the reader, and no proposal to meaning', { skip: SKIP, timeout: 600_000 }, async () => {
   const { services, meaning, readCatalogue } = await get();
-  const c = readCatalogue('CCTV KITS\nDVR Storage Upto 6TB', services, []);
+  const c = readCatalogue('CCTV KITS\nDVR Storage Upto 6TB', services);
   assert.equal(c.lines.spec_rows, 1);
   assert.ok(!c.rewrite.service_keys.includes('logistics_moving.storage'));
   // Even fed straight to the meaning layer, the line does not become storage.

@@ -6,7 +6,7 @@
 // string to every tool that greps this repository for what a customer's page can reach, and a
 // generic parameter is not worth being invisible to them. The wire is JSON either way, so each call
 // site casts once, at the boundary, to the transcription in ./model.
-import { SUPA_ANON, SUPA_FN } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 
 export type ApiResult = { ok: true; data: Record<string, unknown> } | { ok: false; error: string };
 
@@ -18,7 +18,7 @@ export type ApiResult = { ok: true; data: Record<string, unknown> } | { ok: fals
  */
 export async function call(fn: string, body: Record<string, unknown>, token: string): Promise<ApiResult> {
   try {
-    const r = await fetch(`${SUPA_FN}/${fn}`, {
+    const r = await fetch(fnUrl(fn), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token || SUPA_ANON}` },
       body: JSON.stringify(body),
