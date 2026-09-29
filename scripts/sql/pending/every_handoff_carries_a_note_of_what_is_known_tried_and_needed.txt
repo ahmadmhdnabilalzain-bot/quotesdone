@@ -1,9 +1,0 @@
-Committed, not applied: the founder's instruction for this PR (1013, items 6 and 9) is to apply only
-after merge. Proved before merge in ONE aborted transaction on production (this file, the playbook file
-and the ZZ DEMO probe concatenated; verdict PROBE OK, nothing left behind).
-
-To move it: after merge, outside a campaign hour,
-  node scripts/apply_sql.mjs scripts/sql/every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql --apply --ddl
-It sets lock_timeout 5s for the brief exclusive lock on public.agent_actions; on 55P03 re-run it.
-Then delete this note, append the file to the END of scripts/sql/MANIFEST.txt, deploy the functions that
-import _shared/case_recall.ts, and regenerate the schema mirror. Seat: it_engineer.

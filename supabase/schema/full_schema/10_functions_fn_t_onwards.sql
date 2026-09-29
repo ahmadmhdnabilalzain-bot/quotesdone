@@ -239,8 +239,9 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
-    ('customer_followup','customer'),
     ('seat_playbook','knowledge'),
+    ('customer_followup','customer'),
+    ('it_game_day_run','company'), ('it_duty_schedule','company'),
     ('ceo_decision_round','decision'),
     ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
     ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
@@ -7967,6 +7968,20 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_handoff_carries_its_note()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  new.detail := coalesce(new.detail, '{}'::jsonb) || jsonb_build_object('summary',
+    public.fn_handoff_summary(new.detail, new.agent, new.target_table, new.target_id,
+                              new.title, new.recommendation, new.id));
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_handoff_only_originator_closes()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -9185,6 +9200,37 @@ begin
     end if;
   end if;
   return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_seat_playbook_learns()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  begin
+    if tg_table_name = 'seat_case_memory' then
+      perform public.fn_seat_playbook_build(new.seat, 'lesson recorded on case #' || new.id);
+    elsif tg_table_name = 'reasoning_knowledge_candidate' then
+      perform public.fn_seat_playbook_build(new.seat, 'finding #' || new.id || ' ' || new.status);
+    else
+      perform public.fn_seat_playbook_build_all(tg_table_name || ' changed');
+    end if;
+  exception when others then
+    begin
+      perform public.fn_it_engineer_finding_upsert(
+        'monitor:seat_playbook_rebuild_failed:' || tg_table_name,
+        'A seat playbook could not be rebuilt after a change to ' || tg_table_name,
+        'public.trg_seat_playbook_learns', 'agent_facing', 1,
+        jsonb_build_object('error', left(sqlerrm, 500), 'owner_seat', 'it_engineer',
+                           'fix', 'run select public.fn_seat_playbook_build_all() and read the error'),
+        '{}'::text[], array['why fn_seat_playbook_build failed'], 'trg_seat_playbook_learns');
+    exception when others then null;  -- the lesson stands; the next rebuild retries
+    end;
+  end;
+  return null;
 end $function$
 
 
