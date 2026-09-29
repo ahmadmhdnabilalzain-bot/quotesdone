@@ -95,7 +95,7 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   let works = false;
   for (let i = 0; i < 3 && !works; i++) {
     if (i) await sleep(2000);
-    const v = await d.fetch(`${API}${ac}.json`, { method: 'GET', headers: { Authorization: basic(nk.sid, nk.secret) } });
+    const v = await d.fetch(`${API}${ac}/Balance.json`, { method: 'GET', headers: { Authorization: basic(nk.sid, nk.secret) } });
     works = v.ok;
     await v.body?.cancel().catch(() => {});
   }
