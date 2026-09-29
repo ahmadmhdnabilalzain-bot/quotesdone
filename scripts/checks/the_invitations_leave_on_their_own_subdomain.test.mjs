@@ -102,7 +102,7 @@ test('send_outbox takes its From from senderFor, and the lane carries the invita
   const idx = read('supabase/functions/send_outbox/index.ts');
   const froms = [...idx.matchAll(/const from = ([^;]+);/g)].map((m) => m[1]);
   assert.deepEqual(froms, ['senderFor({ type: n.type, supplierSide, fromSup, fromInfo, lane })']);
-  assert.match(idx, /resolveLane\(\{ enabled: await sec\('invite_lane_enabled'\), from: await sec\('invite_lane_from'\)/);
+  assert.match(idx, /resolveLane\(\{ enabled: await setting\('invite_lane_enabled'\), from: await setting\('invite_lane_from'\)/);
   assert.match(idx, /fn_it_engineer_finding_upsert/);
   const hold = idx.indexOf('const laneHold = holdFor(');
   assert.ok(hold > 0 && hold < idx.indexOf('const from = senderFor('), 'the lane hold must be decided before the From');

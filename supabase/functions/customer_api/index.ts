@@ -461,7 +461,27 @@ async function redactCad(o: { secret: string | undefined; b64: string; custId: s
   const ok = !!(rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths) && rj.paths.length);
   const redacted: string[] = ok ? rj.paths.map((x: unknown) => String(x)) : [];
   const meta = { redaction_job_id: ok ? String(rj.job_id) : null, redaction_job_ids: ok ? [String(rj.job_id)] : [], redaction_pages_in: 1, redaction_pages_out: redacted.length, redaction_pages_lost: rj ? 0 : 1, redaction_complete: ok && redacted.length === 1, needs_manual_boxes: false };
+  // The anonymised CAD FILE rides with the preview it was drawn beside (never instead of it): its own run, its own
+  // verifier; a file that is not proved is simply not attached, and the preview decides the hold as before.
+  if (meta.redaction_complete) {
+    const f = await redactFile(o);
+    if (f) { redacted.push(f.path); meta.redaction_job_ids.push(f.job); }
+  }
   return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
+}
+
+// THE DRAWING FILE ITSELF (28 Sep 2026, sales_engineer; founder ledger 30, 31, 32, 580, 703): drawing_redact mode
+// 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
+// only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
+// attached (held, refused or unreachable); the reason is on the run row drawing_redact recorded.
+async function redactFile(o: { secret: string | undefined; b64: string; custId: string; email: string; path: string | null; seeds: string[] }): Promise<{ path: string; job: string } | null> {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: o.secret, mode: 'file', original_b64: o.b64, seed_terms: o.seeds, prefix: 'redacted', owner_customer_id: o.custId, owner_email: o.email, source_path: o.path }),
+      signal: AbortSignal.timeout(60_000) });
+    const j = await r.json().catch(() => null);
+    return j?.ok && j?.recorded && j?.job_id && Array.isArray(j.paths) && j.paths.length === 1 ? { path: String(j.paths[0]), job: String(j.job_id) } : null;
+  } catch (_e) { return null; }
 }
 // THE HOLD IS WRITTEN OR IT IS SAID (24 Sep 2026, audit finding 5). The insert answers { error } rather than
 // throwing, so the old try/catch swallowed every failure and a held drawing could have no ledger row at all.
@@ -826,7 +846,7 @@ Deno.serve(observe('customer_api', async (req) => {
       // supplierDrawing); its recorded page comes back here so the customer's request can carry it.
       const res = job.status === 'done' ? (job.result as any) : null;
       const pages = res?.redaction_complete === true && Array.isArray(res.drawing_redacted_paths) ? res.drawing_redacted_paths.map((p: unknown) => String(p)) : [];
-      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, boq: res?.boq ?? null, ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
     }
 
     if (action === 'analyze_boq') {
@@ -1039,6 +1059,11 @@ Deno.serve(observe('customer_api', async (req) => {
         // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
+        // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        if (redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
+          const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
+          if (f) { redacted.push(f.path); redJobs.push(f.job); }
+        }
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path) {
           const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));

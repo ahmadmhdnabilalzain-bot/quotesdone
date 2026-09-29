@@ -342,6 +342,15 @@ Deno.serve(observe('supplier_portal', async (req) => {
       return J({ ok: true, ...tier });
     }
 
+    // THE MONTHLY SCORECARD (29 Sep 2026, sales_engineer, founder_instruction 1013 item 2): last month's response
+    // speed, win rate and rating against his trade (an average only over 3+ suppliers), one tip by rule, English
+    // only. fn_supplier_scorecard in scripts/sql/a_supplier_sees_its_monthly_scorecard_against_its_trade.sql.
+    if (action === 'scorecard') {
+      const { data: card, error } = await admin.rpc('fn_supplier_scorecard', { p_lead: supId });
+      if (error) return loadFailed(String(action), error);
+      return J({ ok: true, card });
+    }
+
     if (action === 'opportunities') {
       const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
       if (error) return loadFailed(String(action), error);
