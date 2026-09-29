@@ -72,12 +72,16 @@ test('every edge-function matcher with a brief passes p_services', () => {
   assert.deepEqual(missing, [], 'these matchers read an inquiry and still match at trade level only');
 });
 
-test('the dispatching matcher derives the keys with the one exact-alias reader', () => {
+test('the dispatching matcher derives the keys with the one shared reader, and stores only a whole reading', () => {
   const src = readFileSync(join(FUNCTIONS, 'sales_engineer', 'index.ts'), 'utf8');
   assert.match(src, /serviceKeysOf\(/, 'sales_engineer no longer derives the inquiry services');
   assert.match(src, /from '\.\.\/_shared\/service_vocabulary\.ts'/, 'the reader is no longer the shared one');
-  // ONE READER. service_vocabulary.ts owns both the vocabulary select and the exact-alias read, so
-  // the inquiry side and the Services tab cannot drift apart into two answers.
+  // Since 29 Sep 2026 (ruling 890, decision point 93) the reader is exact-or-meaning, all or nothing: a text it
+  // could not read whole must not be stored as '{}' ("names no service"), or the inquiry is never read again.
+  assert.match(src, /if \(sk\.complete\) await admin\.from\('inquiries'\)\.update\(\{ service_keys: serviceKeys \}\)/,
+    'an incomplete reading is stored as if the inquiry named no service');
+  // ONE READER. service_vocabulary.ts owns both the vocabulary select and the inquiry read, so the inquiry
+  // side and the Services tab cannot drift apart into two answers.
   const shared = readFileSync(join(FUNCTIONS, '_shared', 'supplier_services.ts'), 'utf8');
   assert.match(shared, /from '\.\/service_vocabulary\.ts'/, 'the Services tab kept its own copy of the vocabulary read');
 });
