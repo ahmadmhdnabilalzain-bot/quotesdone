@@ -1103,7 +1103,9 @@ end $function$;
 
 -- ── 11. THE LEDGER IS IN THE DAILY EXPORT ───────────────────────────────────────────────────────────────────
 -- From the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql (MANIFEST 1879,
--- the last definer on 29 Sep 2026) with ONLY ceo_decision_round added under 'decision'.
+-- the last definer on 29 Sep 2026) with ONLY two tables added under 'decision': ceo_decision_round, and
+-- seat_handoff_kind, the registry of conversations (who answers what, in what window) this file writes to --
+-- scripts/checks/every_table_is_exported_or_explicitly_excluded.json had it as writer-less, which it is not.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -1139,7 +1141,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('wa_messages','conversation'), ('wa_conversation','conversation'), ('wa_turn','conversation'),
     ('wa_document_intake','conversation'), ('notifications','conversation'), ('agent_chats','conversation'),
     ('legal_reviews','legal'), ('pdpl_requests','legal'), ('pdpl_erase_files','legal'), ('email_suppressions','legal'),
-    ('founder_instruction','decision'), ('company_policy_decision','decision'), ('ceo_decision_round','decision'),
+    ('founder_instruction','decision'), ('company_policy_decision','decision'), ('ceo_decision_round','decision'), ('seat_handoff_kind','decision'),
     ('kb_chunks','knowledge'), ('dept_library','knowledge'), ('ops_knowledge','knowledge'), ('agent_knowledge','knowledge'),
     ('sales_knowledge','knowledge'), ('ceo_knowledge','knowledge'), ('support_knowledge','knowledge'),
     ('accountant_knowledge','knowledge'), ('it_engineer_knowledge','knowledge'), ('employee_knowledge','knowledge'),
