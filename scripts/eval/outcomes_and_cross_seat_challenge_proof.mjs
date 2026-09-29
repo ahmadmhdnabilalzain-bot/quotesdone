@@ -15,6 +15,8 @@
 //                 unknown kind is refused; not reviewed = pending, held = held, never cleared.
 //              4. a same-family reviewer is refused; a disagreement is recorded WITH its reason and not cleared;
 //                 an agreement clears.
+//   REVIEW     6. a CEO-approved refund left at awaiting_second_seat is approved when the second seat agrees.
+//   OF #1064   7. a campaign approved before the gate existed keeps publishing, its review recorded as owed.
 //
 //   node scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs     exit 0 = proved, 1 = an assertion failed
 import { existsSync, readFileSync } from 'node:fs';
@@ -40,7 +42,7 @@ const probe = `
 do $p$
 declare
   t0 timestamptz := now();
-  rf bigint; dr bigint; vm text; rd jsonb; mp0 boolean; mp1 boolean;
+  rf bigint; dr bigint; rf2 bigint; dr2 bigint; vm text; rd jsonb; mp0 boolean; mp1 boolean;
   j bigint; jl bigint; lead_id bigint; o jsonb; o2 jsonb; c jsonb; d bigint; d2 bigint; dq bigint; st jsonb;
   r jsonb := '{}'; e text;
 begin
@@ -59,7 +61,7 @@ begin
   insert into public.reviews (supplier_id, rating, comment) values (lead_id, 1, 'ZZ DEMO never turned up on site');
   r := r || jsonb_build_object('rating', (select jsonb_build_object('kind', outcome_kind, 'reason', outcome_reason, 'correct', outcome_correct) from public.seat_judgement where id = jl));
   insert into public.email_suppressions (email, reason, source) values ('${EMAIL}', 'unsubscribe', '${TAG}');
-  r := r || jsonb_build_object('left', (select jsonb_build_object('kind', outcome_kind, 'reason', outcome_reason, 'correct', outcome_correct) from public.seat_judgement where id = jl));
+  r := r || jsonb_build_object('left', (select jsonb_build_object('kind', outcome_kind, 'correct', outcome_correct) from public.seat_judgement where id = jl));
 
   -- 3. one deliberation per decision, the right reviewer, never cleared while unreviewed or held
   r := r || jsonb_build_object('reviewer_of_sales', public.fn_high_stakes_reviewer('pricing_change', 'sales_engineer'),
@@ -71,7 +73,7 @@ begin
          '{"trade":"hvac"}'::jsonb, '{"new_fee_pct":"two and a half"}'::jsonb, '${AUTHOR}', null, true);
   d2 := public.fn_high_stakes_challenge('pricing_change', 'sales_engineer', '${TAG}', '${TAG}:p', 'ZZ DEMO should the success fee change for this trade?',
          '{"trade":"hvac"}'::jsonb, '{"new_fee_pct":"two and a half"}'::jsonb, '${AUTHOR}', null, true);
-  r := r || jsonb_build_object('one_per_decision', d = d2, 'pending', (public.fn_high_stakes_clearance('pricing_change', '${TAG}', '${TAG}:p') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat'));
+  r := r || jsonb_build_object('one_per_decision', d = d2, 'pending', (public.fn_high_stakes_clearance('pricing_change', '${TAG}', '${TAG}:p') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat' - 'reason'));
   st := public.fn_seat_deliberation_step(d);
   r := r || jsonb_build_object('held', (public.fn_high_stakes_clearance('pricing_change', '${TAG}', '${TAG}:p') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat'));
 
@@ -89,7 +91,7 @@ begin
   perform public.fn_seat_deliberation_record(dq, 'blind', '${REVIEWER}', ${turn('approve', 'ZZ DEMO a refund could invite copycat claims later')});
   perform public.fn_seat_deliberation_record(dq, 'compare', '${REVIEWER}', ${turn('approve', 'ZZ DEMO the customer may have used the service partly',
     { agreements: 'ZZ DEMO the payment and the failure are both on the ledger', disagreements: 'none' })});
-  r := r || jsonb_build_object('agreed', (public.fn_high_stakes_clearance('refund', '${TAG}', '${TAG}:q') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat'),
+  r := r || jsonb_build_object('agreed', (public.fn_high_stakes_clearance('refund', '${TAG}', '${TAG}:q') - 'author_seat' - 'author_model' - 'deliberation_id' - 'verdict' - 'reviewer_seat' - 'reason'),
     'refund_reviewer', (select reviewer_seat from public.seat_deliberation where id = dq));
 
   -- 5. NO CAP HOLDS A REVIEW; the real refund path under the model hold proceeds with its review owed; a later
@@ -109,7 +111,7 @@ begin
   rd := public.fn_refund_decide(rf, true, 'ceo');
   select id into dr from public.seat_deliberation where kind = 'high_stakes.refund' and subject_table = 'refunds' and subject_id = rf::text;
   if dr is null then raise exception 'CHK<<%>>', jsonb_build_object('error', 'the refund review was not opened: ' || coalesce((select evidence->>'error' from public.it_engineer_finding where issue_key = 'high_stakes_open:refund:refunds:' || rf), rd::text)); end if;
-  r := r || jsonb_build_object('refund_decide', rd - 'clearance', 'refund_status', (select status from public.refunds where id = rf),
+  r := r || jsonb_build_object('refund_decide', rd - 'clearance' - 'refund_id' - 'decided_by', 'refund_status', (select status from public.refunds where id = rf),
     'refund_review', (select jsonb_build_object('reviewer', reviewer_seat, 'author_model', author_model, 'owed', proceeded_at is not null)
                         from public.seat_deliberation where id = dr));
   select r2.model_id into vm from public.model_registry r2
@@ -121,6 +123,30 @@ begin
     { agreements: 'none', disagreements: 'ZZ DEMO the second charge was reversed by the card issuer, so this refund pays twice' })});
   r := r || jsonb_build_object('finding', (select jsonb_build_object('owner', evidence->>'owner_seat', 'raised_by', raised_by, 'open', closed_at is null)
                                             from public.it_engineer_finding where issue_key = 'high_stakes_disagreement:' || dr));
+  -- 6. A REFUND LEFT AT awaiting_second_seat IS DECIDED AGAIN WHEN THE SECOND SEAT AGREES (review of #1064): the
+  --    review is opened first and not owed (as fn_refund_decide leaves it with no hold), then the stubbed accountant agrees.
+  insert into public.refunds (reason_code, reason_note, requested_by, amount_fils, status)
+  values ('duplicate_charge', 'ZZ DEMO 1009 refund re-run proof', '${TAG}', 100, 'requested') returning id into rf2;
+  insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, rationale, amount_aed)
+  values ('refund', rf2::text, 'approved', 'ceo', 'ZZ DEMO 1009 the charge was taken twice, re-run', 1);
+  dr2 := public.fn_high_stakes_challenge('refund', 'ceo', 'refunds', rf2::text, 'ZZ DEMO should this refund be approved as the CEO decided?',
+           '{"ledger":"charged twice"}'::jsonb, '{"decision":"approve in full"}'::jsonb, 'deterministic');
+  r := r || jsonb_build_object('rerun_before', (select status from public.refunds where id = rf2));
+  perform public.fn_seat_deliberation_record(dr2, 'blind', '${REVIEWER}', ${turn('approve', 'ZZ DEMO a duplicate charge may already be reversed by the bank')});
+  perform public.fn_seat_deliberation_record(dr2, 'compare', '${REVIEWER}', ${turn('approve', 'ZZ DEMO the bank statement may show the reversal already',
+    { agreements: 'ZZ DEMO the second charge is on the ledger and was not reversed', disagreements: 'none' })});
+  r := r || jsonb_build_object('rerun_after', (select jsonb_build_object('status', status, 'decided_by', decided_by) from public.refunds where id = rf2),
+    'rerun_finding', (select count(*) from public.it_engineer_finding where issue_key = 'high_stakes_refund_rerun:' || dr2));
+
+  -- 7. GRANDFATHERED (review of #1064): a real campaign approved before the replayed file has its review OWED, so
+  --    none of its posts is refused as awaiting_second_seat.
+  r := r || jsonb_build_object('grandfathered', (select jsonb_agg(jsonb_build_object('id', m.id,
+      'may_proceed', public.fn_high_stakes_may_proceed('campaign_launch', 'marketing_campaign', m.id::text),
+      'posts', (select count(*) from public.marketing_post p where p.campaign_id = m.id),
+      'refused_awaiting', (select count(*) from public.marketing_post p where p.campaign_id = m.id
+                             and coalesce(public.fn_marketing_post_publish_refusal(p), '') like 'awaiting_second_seat%')))
+    from public.marketing_campaign m where m.approved_at is not null and not m.is_demo));
+
   -- an unreviewed decision that did not go ahead may not proceed; agreement then lets it
   d := public.fn_high_stakes_challenge('campaign_launch', 'marketing', '${TAG}', '${TAG}:c', 'ZZ DEMO launch this campaign?',
          '{"month":"2026-10"}'::jsonb, '{"posts":"twelve"}'::jsonb, '${AUTHOR}', null, true);
@@ -174,6 +200,8 @@ const checks = [
   ['5 the real refund path, model held: approved, review owed, the accountant reviews', r.model_held === true && r.refund_decide?.ok === true && r.refund_status === 'approved' && r.refund_review?.owed === true && r.refund_review?.reviewer === 'accountant'],
   ['5 a later disagreement opens a finding owned by the deciding seat', r.finding?.owner === 'ceo' && r.finding?.raised_by === 'accountant' && r.finding?.open === true],
   ['5 an unreviewed decision may not proceed; agreement lets it', r.may_proceed_before === false && r.may_proceed_after === true],
+  ['6 a refund left awaiting the second seat is approved when the second seat agrees', r.rerun_before === 'requested' && r.rerun_after?.status === 'approved' && r.rerun_after?.decided_by === 'ceo' && Number(r.rerun_finding) === 0],
+  ['7 every campaign approved before the gate keeps publishing, its review owed', Array.isArray(r.grandfathered) && r.grandfathered.length > 0 && r.grandfathered.every((g) => g.may_proceed === true && Number(g.refused_awaiting) === 0)],
   ['3 held for the model hold, never for a cap', !/pair_ceiling/.test(String(r.held?.reason))],
   ['no trigger failure recorded, nothing sent', Number(r.misses) === 0 && Number(r.notifications_queued) === 0],
   ['zero ZZ DEMO rows left', rowsLeft === 0],

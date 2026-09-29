@@ -28,7 +28,10 @@
 --   5. AFTER THE REVIEW (trg_high_stakes_review on seat_deliberation_turn): a disagreement with a decision that already
 --      went ahead opens an it_engineer_finding owned by the deciding seat and lays the disagreement on its judgement as
 --      a wrong outcome (fn_outcome_record, the sister file); an agreement with a pricing proposal that waited sends it
---      to the founder.
+--      to the founder; an agreement with a CEO-approved refund that fn_refund_decide left at awaiting_second_seat
+--      decides it again (review of #1064).
+--   GRANDFATHERED (review of #1064): a campaign approved before this file gets its review opened and recorded as owed
+--      at apply, so the founder's already-approved calendar keeps publishing.
 --   6. WIRED INTO THE FOUR REAL PATHS (bodies copied from their canonical files, only the gate added):
 --        refund           fn_refund_decide, the approve branch      (payments_are_the_accountant_..._together.sql)
 --        pricing_change   fn_ceo_review_applies, a propose_change   (routine_work_is_code_and_the_model_answers_only_real_judgement.sql)
@@ -354,6 +357,29 @@ begin
       'CEO pricing proposal (evidence-based) for the week of ' || split_part(d.subject_id, ':', 2),
       coalesce(d.proposal->>'founder_detail', '') || E'\n\nThe accountant agreed on a model of another family (seat_deliberation ' || d.id || ').',
       'founder_brief');
+  elsif new.verdict = 'approve' and d.proceeded_at is null and d.kind = 'high_stakes.refund' and d.subject_table = 'refunds' then
+    -- A CEO-approved refund that fn_refund_decide left at awaiting_second_seat is decided again now that the second
+    -- seat agreed (review of #1064). fn_refund_decide re-reads the CEO approval and the refund's status, so a refund
+    -- decided in the meantime answers not_decidable and nothing moves. A failure never undoes the review: it is recorded
+    -- for the CEO, who holds every refund approval.
+    declare v_by text; v_res jsonb;
+    begin
+      select a.decided_by into v_by from public.ceo_approval a
+       where a.subject_kind = 'refund' and a.subject_id = d.subject_id and a.decision = 'approved' and a.superseded_by is null
+       order by a.decision_id desc limit 1;
+      if v_by is not null then
+        v_res := public.fn_refund_decide(d.subject_id::bigint, true, v_by,
+                   'The ' || d.reviewer_seat || ' seat agreed on another family (seat_deliberation ' || d.id || ').');
+        if not coalesce((v_res->>'ok')::boolean, false) and v_res->>'error' is distinct from 'not_decidable' then
+          raise exception 'fn_refund_decide answered %', v_res;
+        end if;
+      end if;
+    exception when others then
+      perform public.fn_it_engineer_finding_upsert('high_stakes_refund_rerun:' || d.id,
+        'A refund the second seat agreed to could not be decided again', 'ceo refund on refunds ' || d.subject_id, 'agent_facing', 1,
+        jsonb_build_object('owner_seat', 'ceo', 'deliberation_id', d.id, 'refund_id', d.subject_id, 'error', left(sqlerrm, 500)),
+        '{}', '{}', 'it_engineer');
+    end;
   end if;
   return null;
 end $fn$;
@@ -362,17 +388,36 @@ drop trigger if exists z93_high_stakes_review on public.seat_deliberation_turn;
 create trigger z93_high_stakes_review after insert on public.seat_deliberation_turn for each row execute function public.trg_high_stakes_review();
 
 -- 6. CAMPAIGN LAUNCH: the founder's approval opens the CEO's review (the publish refusal below waits for it).
+-- p_owed: the campaign already went ahead before this gate existed; its review is opened and recorded as OWED
+-- (proceeded_at = its approval), so its posts keep publishing and a later disagreement opens a finding.
+create or replace function public.fn_high_stakes_campaign_review(p_campaign_id bigint, p_owed boolean default false)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare c public.marketing_campaign; v_q text; v_ev jsonb; v_prop jsonb; v_id bigint;
+begin
+  select * into c from public.marketing_campaign where id = p_campaign_id;
+  if c.id is null or c.is_demo or c.approved_at is null then
+    return jsonb_build_object('opened', false, 'reason', 'not an approved real campaign');
+  end if;
+  v_q := 'Should this month''s organic campaign be launched as approved?';
+  v_ev := jsonb_build_object('campaign', jsonb_build_object('month', c.month, 'spend_policy', c.spend_policy),
+            'posts', (select count(*) from public.marketing_post p where p.campaign_id = c.id));
+  v_prop := jsonb_build_object('campaign_key', c.campaign_key, 'theme', c.theme, 'title', c.title,
+              'posts', (select jsonb_agg(jsonb_build_object('channels', p.channels, 'scheduled_at', p.scheduled_at, 'text', left(p.text_en, 300)) order by p.scheduled_at)
+                          from (select * from public.marketing_post p where p.campaign_id = c.id order by p.scheduled_at limit 40) p));
+  if not p_owed then
+    return public.fn_high_stakes_gate('campaign_launch', 'marketing', 'marketing_campaign', c.id::text, v_q, v_ev, v_prop);
+  end if;
+  v_id := public.fn_high_stakes_challenge('campaign_launch', 'marketing', 'marketing_campaign', c.id::text, v_q, v_ev, v_prop, 'deterministic');
+  update public.seat_deliberation set proceeded_at = coalesce(proceeded_at, c.approved_at) where id = v_id;
+  return jsonb_build_object('opened', true, 'deliberation_id', v_id, 'owed', true);
+end $fn$;
+revoke execute on function public.fn_high_stakes_campaign_review(bigint, boolean) from public, anon, authenticated;
+
 create or replace function public.trg_high_stakes_campaign_approved()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 begin
   if new.approved_at is not null and old.approved_at is null and not new.is_demo then
-    perform public.fn_high_stakes_gate('campaign_launch', 'marketing', 'marketing_campaign', new.id::text,
-      'Should this month''s organic campaign be launched as approved?',
-      jsonb_build_object('campaign', jsonb_build_object('month', new.month, 'spend_policy', new.spend_policy),
-        'posts', (select count(*) from public.marketing_post p where p.campaign_id = new.id)),
-      jsonb_build_object('campaign_key', new.campaign_key, 'theme', new.theme, 'title', new.title,
-        'posts', (select jsonb_agg(jsonb_build_object('channels', p.channels, 'scheduled_at', p.scheduled_at, 'text', left(p.text_en, 300)) order by p.scheduled_at)
-                    from (select * from public.marketing_post p where p.campaign_id = new.id order by p.scheduled_at limit 40) p)));
+    perform public.fn_high_stakes_campaign_review(new.id);
   end if;
   return null;
 end $fn$;
@@ -380,6 +425,17 @@ revoke execute on function public.trg_high_stakes_campaign_approved() from publi
 drop trigger if exists z93_high_stakes_campaign_approved on public.marketing_campaign;
 create trigger z93_high_stakes_campaign_approved after update of approved_at on public.marketing_campaign
   for each row execute function public.trg_high_stakes_campaign_approved();
+
+-- GRANDFATHERED (review of #1064): a campaign the founder approved BEFORE this file has no review, so the publish
+-- refusal below would refuse every one of its posts (measured 29 Sep 2026: campaign 7, the founder's 70-post
+-- calendar, approved 28 Sep). Its review is recorded as owed rather than blocking. Idempotent: a campaign that
+-- already has a campaign_launch review is left alone. An open that fails raises and the apply fails loudly -
+-- never a silent refusal of the whole calendar.
+select public.fn_high_stakes_campaign_review(m.id, true)
+  from public.marketing_campaign m
+ where m.approved_at is not null and not m.is_demo
+   and not exists (select 1 from public.seat_deliberation d where d.kind = 'high_stakes.campaign_launch'
+                     and d.subject_table = 'marketing_campaign' and d.subject_id = m.id::text);
 
 -- 6. THE THREE SQL PATHS, gated (canonical bodies, the gate added).
 

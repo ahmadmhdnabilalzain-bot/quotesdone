@@ -1,3 +1,4 @@
+apply-order: 1
 Pending, not applied before merge (founder_instruction 1009). Adds seat_judgement.outcome_kind/outcome_reason,
 fn_outcome_record and trg_outcome_learning (z92) on reviews, complaint_tickets, email_suppressions,
 marketing_first_touch and marketing_post_metric. Depends on #1004's a_decision_names_the_recalled_case_it_followed.sql

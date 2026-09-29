@@ -74,9 +74,23 @@ test('the gate is wired into the four real paths', () => {
   assert.equal((QC.match(/analysis: withRoster\((?!\{\})/g) || []).length, 0, 'every recommendation quote_compare returns passes the gate');
 });
 
+test('a campaign approved before the gate keeps publishing: its review is recorded as owed, not blocking (review of #1064)', () => {
+  const b = body('fn_high_stakes_campaign_review');
+  assert.match(b, /if not p_owed then\s*return public\.fn_high_stakes_gate\('campaign_launch'/);
+  assert.match(b, /set proceeded_at = coalesce\(proceeded_at, c\.approved_at\)/);
+  assert.match(body('trg_high_stakes_campaign_approved'), /fn_high_stakes_campaign_review\(new\.id\)/);
+  assert.match(HS, /select public\.fn_high_stakes_campaign_review\(m\.id, true\)\s*from public\.marketing_campaign m\s*where m\.approved_at is not null and not m\.is_demo/);
+});
+
+test('a CEO-approved refund left awaiting the second seat is decided again when the second seat agrees (review of #1064)', () => {
+  const b = body('trg_high_stakes_review');
+  assert.match(b, /new\.verdict = 'approve' and d\.proceeded_at is null and d\.kind = 'high_stakes\.refund'[\s\S]*?fn_refund_decide\(d\.subject_id::bigint, true, v_by/);
+  assert.match(b, /exception when others then\s*perform public\.fn_it_engineer_finding_upsert\('high_stakes_refund_rerun:'/);
+});
+
 test('every new routine is revoked from the public roles', () => {
   for (const [src, sigs] of [[OUT, ['fn_outcome_record(text, text, text, boolean, text, text, text, text)', 'trg_outcome_learning()']],
-    [HS, ['fn_high_stakes_model_held()', 'fn_high_stakes_gate(text, text, text, text, text, jsonb, jsonb, text, text, boolean)', 'fn_high_stakes_may_proceed(text, text, text)', 'trg_high_stakes_review()', 'trg_high_stakes_campaign_approved()', 'fn_high_stakes_reviewer(text, text)', 'fn_high_stakes_challenge(text, text, text, text, text, jsonb, jsonb, text, text, boolean)', 'fn_high_stakes_clearance(text, text, text)']]]) {
+    [HS, ['fn_high_stakes_model_held()', 'fn_high_stakes_gate(text, text, text, text, text, jsonb, jsonb, text, text, boolean)', 'fn_high_stakes_may_proceed(text, text, text)', 'trg_high_stakes_review()', 'trg_high_stakes_campaign_approved()', 'fn_high_stakes_campaign_review(bigint, boolean)', 'fn_high_stakes_reviewer(text, text)', 'fn_high_stakes_challenge(text, text, text, text, text, jsonb, jsonb, text, text, boolean)', 'fn_high_stakes_clearance(text, text, text)']]]) {
     for (const s of sigs) assert.ok(src.includes(`revoke execute on function public.${s} from public, anon, authenticated;`), s);
   }
 });
