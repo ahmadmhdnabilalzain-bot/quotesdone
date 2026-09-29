@@ -1,3 +1,4 @@
+apply-order: 2
 Pending, not applied before merge (founder_instruction 1009 upgrade 10). Removes the per-pair review cap as a condition
 (fn_seat_deliberation_budget always ok, instruction 987); lets a decision taken by code be reviewed (author model
 'deterministic' in fn_seat_deliberation_open and both deliberation guards); adds fn_high_stakes_gate / _may_proceed /
