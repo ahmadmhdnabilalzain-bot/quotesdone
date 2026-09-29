@@ -2663,7 +2663,11 @@ for r in select * from public.it_watch_queue where enabled order by queue_key lo
       v_notes := v_notes || jsonb_build_object('queue_' || r.queue_key || '_drain',
         jsonb_build_object('basis','measured','pending', v_cnt, 'drained_last_hour', v_drain,
           'hours_to_clear', round(v_hours,1), 'threshold_hours', 24, 'drain_column', r.drain_column));
-      if v_hours is null or v_hours > 24 then
+      -- 29 Sep 2026 (incidents 495, 554): a drain of ZERO says nothing about rows younger than the hour it
+      -- was counted over. doc_backups is filled in a daily batch (~23:12 UTC) and drained within ~20 minutes;
+      -- the arm fired 4 minutes after the batch landed. Zero now counts only once the oldest pending row has
+      -- waited the full hour: a dead consumer is still raised, one tick later.
+      if (v_hours is null or v_hours > 24) and not (v_drain = 0 and v_age < 60) then
         v_state := case when v_drain = 0 then 'stopped' else 'degraded' end;
         v_sev   := public.fn_it_severity(v_state, r.surface = 'customer');
         v_key   := 'queue_not_draining:' || r.queue_key;
@@ -3472,7 +3476,16 @@ begin
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
               -- is waiting on a schedule, not lost. It is late only once the digest could have taken it.
               and not (a.status = 'pending' and a.evidence->>'digest' = 'pending'
-                       and now() < public.fn_it_digest_hold_ends(a.created_at)) loop
+                       -- 29 Sep 2026 (incident 484): the digest ages a new bug by its FINDING's started_at
+                       -- ("still young: judged again tomorrow"), and a finding that re-opened restarts that
+                       -- clock. Handoff 80605 was created 23 Sep 12:31Z for duty:handoff_sla:it.finding:ceo:unclosed;
+                       -- the finding re-opened 24 Sep 07:00Z, so the 24 Sep digest held it as young and took it
+                       -- on 25 Sep, while this duty, timing from the handoff, called it late at 29 hours. The
+                       -- hold now runs from the later of the two clocks, the one the digest actually obeys.
+                       and now() < public.fn_it_digest_hold_ends(greatest(a.created_at, coalesce(
+                         (select f.started_at from public.it_engineer_finding f
+                           where f.issue_key = regexp_replace(a.detail->>'dedupe_key', '^it_new_bug:', '')
+                             and f.closed_at is null), a.created_at)))) loop
     v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
       'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
                || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',

@@ -62,7 +62,7 @@ function background(p: Promise<unknown>): void {
   void safe;
 }
 
-export type ObserveStatus = 'ok' | 'warn' | 'error' | 'skipped';
+export type ObserveStatus = 'ok' | 'warn' | 'error' | 'skipped' | 'held';
 
 /**
  * HTTP status -> agent_runs.status. Exported because it is the one decision in this file that
@@ -76,6 +76,16 @@ export function classify(http: number): ObserveStatus {
   if (http >= 500) return 'error';
   if (http >= 400) return 'warn';
   return 'ok';
+}
+
+/**
+ * A 5xx the HANDLER declared deliberate is 'held', not 'error' (29 Sep 2026, it_engineer; incident 437).
+ * ai_gateway answers our own test traffic with a 503 fixture_no_spend by design; logged as 'error' it
+ * read to fn_it_detect's run_failure arm as "ai_gateway failed every attempt" (24 Sep, 12 of 12 in an
+ * hour). Only server code can annotate a Response, so a caller cannot buy itself a 'held'.
+ */
+export function statusOf(http: number, ann?: Record<string, unknown>): ObserveStatus {
+  return http >= 500 && ann?.held === true ? 'held' : classify(http);
 }
 
 /**
@@ -216,7 +226,7 @@ export function observe(
     const http = res.status;
     const base = { ...(ANNOTATIONS.get(res) ?? {}), ...baseCounts(req, http), ...(budgetMs ? { budget_ms: budgetMs } : {}) };
     if (http >= 400) {
-      const status = classify(http);
+      const status = statusOf(http, ANNOTATIONS.get(res));
       const cloned = bodyOf(res);    // clone NOW, read in the background
       background((async () => {
         await record(slug, status, base, 'HTTP ' + http + ' — ' + (await cloned), t0);
