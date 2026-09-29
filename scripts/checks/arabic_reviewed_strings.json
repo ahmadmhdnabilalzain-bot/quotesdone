@@ -486,6 +486,27 @@
   "5b783224f4d2",
   "fc3b6977c5b6"
  ],
+ "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql": [
+  "15bd385ae25c",
+  "42af9e9a3efb",
+  "51fafd239b66",
+  "65bc30b75d95",
+  "758afa3fc916",
+  "7affa4ca66a6",
+  "aa1597b6e501",
+  "acb14c24213d",
+  "b3988efa6f34",
+  "b9a73df3c9f5",
+  "d0fcea2d7d46",
+  "d345c9a3397d",
+  "d5e8cb4363a1",
+  "df5bbb5efec4",
+  "eb9024a4bba6",
+  "fa24f24c3dfe"
+ ],
+ "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [
+  "d4da55db16ad"
+ ],
  "scripts/sql/a_verified_supplier_is_told_what_his_portfolio_is_missing.sql": [
   "033fce7adb9c",
   "042af7f8749c",

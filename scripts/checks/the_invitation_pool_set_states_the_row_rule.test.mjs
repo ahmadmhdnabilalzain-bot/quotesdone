@@ -73,20 +73,26 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 });
 
 // RE-REVIEW (29 Sep 2026): #1070 moved the canonical body (MANIFEST 1835) while this PR was open, so a copy of 1824
-// was stale again. A pending redefinition must be the LATEST applied body with only this PR's two lines changed.
-test('a pending fn_supplier_invite_candidates is the latest applied body with only the set read and the ref\'d link changed', () => {
+// was stale again. A pending redefinition must be the LATEST applied body with only the pending PR's own lines changed.
+// #1051 (the set read and the ref'd link) is applied (MANIFEST 1844); the pending redefinition is now ledger 1018's
+// stalled-request tier (sales_engineer, 29 Sep 2026): exactly one line of the applied body is replaced, and what is added
+// is the rescue CTE and the -1 tier ahead of the unchanged 'recruit' tier. A copy of an older body fails here.
+test('a pending fn_supplier_invite_candidates is the latest applied body with only the stalled-request tier added', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
   for (const f of pendingSql.filter((p) => defines('fn_supplier_invite_candidates').test(code(read(p))))) {
     const mine = lines(f);
     const gone = canon.filter((l) => !mine.includes(l)).map((l) => l.trim());
-    const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim());
-    assert.deepEqual(gone, ["where public.fn_supplier_invite_eligible(l)",
-      "'{{link}}', v_site || '/en/portal?t=' || e.claim_token::text)"], `${f} is not ${canonFile} with two lines changed`);
-    assert.equal(added.length, 2, `${f} adds more than two lines to ${canonFile}: ${added.join(' | ')}`);
-    assert.match(added[0], /^where l\.id in \(select e\.id from public\.fn_supplier_invite_eligible_ids\(\) e\(id\)\)/);
-    assert.match(added[1], /^'\{\{link\}\}', public\.fn_supplier_invite_link\(v_site, e\.claim_token, e\.id\)\)/);
+    const added = mine.filter((l) => !canon.includes(l)).map((l) => l.trim()).filter((l) => !l.startsWith('--'));
+    assert.deepEqual(gone, ["case when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))"],
+      `${f} is not ${canonFile} with only the recruit tier's first line re-worded`);
+    assert.deepEqual(added, [
+      'rescue as materialized (select x.trades, x.emirate from public.stalled_inquiry_rescue x where x.cleared_at is null and not x.fixture and cardinality(x.trades) > 0),',
+      "case when exists (select 1 from rescue x where x.trades && coalesce(c.invite_trades, '{}'::text[])",
+      "and (x.emirate is null or x.emirate = 'UAE' or x.emirate = c.emirate)) then -1",
+      "when exists (select 1 from public.supply_gap g where g.status = 'recruit' and g.trade = any(coalesce(c.invite_trades, '{}'::text[]))",
+    ], `${f} adds more to ${canonFile} than the stalled-request tier`);
   }
 });
 
