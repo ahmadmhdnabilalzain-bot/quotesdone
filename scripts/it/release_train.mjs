@@ -192,7 +192,8 @@ export function isOneTransaction(sqlText = '') {
   return !/\bconcurrently\b|\bvacuum\b|\balter\s+system\b|\balter\s+type\b[\s\S]*?\badd\s+value\b|\bcreate\s+database\b|\bdrop\s+database\b|\breindex\b[\s\S]*?\bconcurrently\b/i.test(code);
 }
 export function routinesIn(sqlText = '') {
-  return [...new Set([...sqlText.matchAll(/create\s+or\s+replace\s+function\s+public\.(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase()))];
+  // public. is optional, as apply_sql.mjs treats it
+  return [...new Set([...sqlText.matchAll(/create\s+or\s+replace\s+function\s+(?:public\.)?(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase()))];
 }
 export const BACKOFF_MS = [5000, 15000, 45000];
 export async function applyWithRetry({ apply, sqlText, snapshot, windowOpen = () => true, sleep, log = () => {}, jitter = () => 0.8 + Math.random() * 0.4 }) {
@@ -203,6 +204,9 @@ export async function applyWithRetry({ apply, sqlText, snapshot, windowOpen = ()
     last = apply();
     if (!last.code) return { ok: true, attempts, last };
     if (!RETRYABLE.test(last.out)) { log(`apply failed with a non-lock error: no retry`); break; }
+    // apply_sql prints 'applied <file> to <ref>' only once the database accepted the file: a failure after
+    // that (a read-back DIFFERS, a PROBE FAILED) is not a rolled-back apply, whatever else the output says.
+    if (/^applied \S+ to \S+/m.test(last.out)) { log('the database accepted the file before the error: no retry'); break; }
     if (!isOneTransaction(sqlText)) { log('lock error, but the file is not one transaction: no retry'); break; }
     if (snapshot() !== before) { log('lock error, but the routines no longer match their pre-apply bodies: no retry'); break; }
     if (attempts >= 3) { log('lock error on the third attempt: giving up'); break; }

@@ -190,3 +190,12 @@ test('no retry for a file with a statement that cannot run inside a transaction'
   assert.equal(isOneTransaction('create or replace function public.f() returns int language sql as $$select 1$$;\ncreate index i on t(a);'), true);
   assert.equal(isOneTransaction('-- create index concurrently in a comment\ncreate table y();'), true);
 });
+
+test('no retry once the database accepted the file, and routinesIn reads unprefixed names', async () => {
+  const { applyWithRetry, routinesIn } = await import('./release_train.mjs');
+  const accepted = { code: 1, out: 'applied scripts/sql/x.sql to htdblwldjkcgjvmqkbeh\nDIFFERS ... 40P01 in a later read' };
+  const seq = [accepted, { code: 0, out: '' }];
+  const r = await applyWithRetry({ apply: () => seq.shift(), sqlText: 'create table t();', snapshot: () => 's', sleep: async () => {}, jitter: () => 1 });
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  assert.deepEqual(routinesIn('create or replace function fn_x() returns int language sql as $$select 1$$;\ncreate or replace function public.fn_y() returns int language sql as $$select 1$$;'), ['fn_x', 'fn_y']);
+});
