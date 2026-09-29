@@ -22,7 +22,8 @@ test('deploy: the 21 Sep email_cron registry timeout is transient', () => {
   // Verbatim from main run 35619142770.
   assert.equal(isTransientDeployFailure("unexpected deploy status 400: Failed to bundle the function (reason: JSR package manifest for '@supabase/supabase-js' failed to load. Fetch 'https://jsr.io/@supabase/supabase-js/meta.json' timed out after 10s"), true);
   for (const t of ['read ECONNRESET', 'connect ETIMEDOUT 1.2.3.4:443', 'unexpected deploy status 502: Bad Gateway',
-    'unexpected deploy status 504', 'error sending request for url (https://esm.sh/zod@3): connection closed']) {
+    'unexpected deploy status 504',
+    'unexpected deploy status 500: {"message":"Function deploy failed due to an internal error"}','error sending request for url (https://esm.sh/zod@3): connection closed']) {
     assert.equal(isTransientDeployFailure(t), true, t);
   }
 });
