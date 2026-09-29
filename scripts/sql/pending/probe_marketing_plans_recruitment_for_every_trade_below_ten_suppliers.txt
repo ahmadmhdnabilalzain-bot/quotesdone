@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql has been applied, and its CHK<<...>> must say PROBE OK.
+
+It runs the duty (plan rows) and the queue's dry run inside a block that always raises, so nothing survives it; plain
+apply_sql.mjs would print "nothing to do" and exit 0, which is a silent pass, not a result.
+
+This note therefore stays for the life of the file. Seat: marketing.

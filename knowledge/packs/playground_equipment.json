@@ -1,0 +1,79 @@
+{
+  "trade": "playground_equipment",
+  "entries": [
+    {
+      "id": "playground_equipment:spec-checklist",
+      "topic": "Playground equipment - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For playground equipment quotes to be compared like-for-like, every quoted line (goods) must state: (1) equipment type and model; (2) age group; (3) dimensions, free height of fall and safety zone; (4) materials and finish (steel, HDPE, timber, UV resistance); (5) compliance with EN 1176 and EN 1177; (6) impact-absorbing surfacing type and thickness; (7) installation and foundations; (8) third-party inspection certificate; (9) shade requirement; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the playground_equipment trade.",
+      "body_ar": "لكي تُقارن عروض معدات الملاعب على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع المعدات وطرازها؛ (2) الفئة العمرية؛ (3) الأبعاد وارتفاع السقوط الحر ومنطقة الأمان؛ (4) المواد والتشطيب (فولاذ، أو HDPE، أو خشب، ومقاومة الأشعة فوق البنفسجية)؛ (5) المطابقة للمعيارين EN 1176 و EN 1177؛ (6) نوع الأرضية الماصة للصدمات وسماكتها؛ (7) التركيب والأساسات؛ (8) شهادة فحص من طرف ثالث؛ (9) متطلب التظليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة playground_equipment فقط.",
+      "required_specs": [
+        "equipment type and model",
+        "age group",
+        "dimensions, free height of fall and safety zone",
+        "materials and finish (steel, HDPE, timber, UV resistance)",
+        "compliance with EN 1176 and EN 1177",
+        "impact-absorbing surfacing type and thickness",
+        "installation and foundations",
+        "third-party inspection certificate",
+        "shade requirement",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "playground_equipment:uae-standards-and-approvals",
+      "topic": "Playground equipment - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Playground equipment is commonly specified to EN 1176 (equipment) and EN 1177 (impact-attenuating surfacing); public and community playgrounds in Dubai fall under Dubai Municipality public-facility requirements, and imported regulated products under MoIAT conformity where a technical regulation applies. What the cited sources do not establish: The sources read do not state a UAE-specific playground standard or name EN 1176 as mandatory; state the standard explicitly in the request.",
+      "body_ar": "تُحدَّد معدات الملاعب عادةً وفق EN 1176 (المعدات) و EN 1177 (الأرضيات الماصة للصدمات)؛ وتخضع الملاعب العامة والمجتمعية في دبي لمتطلبات بلدية دبي للمرافق العامة، والمنتجات المستوردة الخاضعة للتنظيم لمطابقة وزارة الصناعة والتكنولوجيا المتقدمة حيث توجد لائحة فنية. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر معياراً إماراتياً خاصاً بالملاعب ولا تنص على إلزامية EN 1176؛ حدد المعيار صراحةً في الطلب.",
+      "source_note": "The sources read do not state a UAE-specific playground standard or name EN 1176 as mandatory; state the standard explicitly in the request.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for playground equipment?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـمعدات الملاعب؟",
+      "expected_entry_ids": [
+        "playground_equipment:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to playground equipment?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على معدات الملاعب؟",
+      "expected_entry_ids": [
+        "playground_equipment:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "playground_equipment:spec-checklist",
+      "playground_equipment:uae-standards-and-approvals"
+    ],
+    "added": [
+      "playground_equipment:spec-checklist",
+      "playground_equipment:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

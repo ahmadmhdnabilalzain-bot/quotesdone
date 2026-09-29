@@ -1,0 +1,91 @@
+{
+  "trade": "bitumen_petroleum_products",
+  "layer": "uae-market",
+  "label_en": "Bitumen & Refined Petroleum Products",
+  "label_ar": "البيتومين والمنتجات البترولية المكررة",
+  "entries": [
+    {
+      "id": "bitumen_petroleum_products:uae-market-products",
+      "topic": "Bitumen & Refined Petroleum Products: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Bitumen and refined petroleum products in the UAE: paving bitumen by penetration grade (60/70 and 80/100 pen are the standard Middle East grades; 40/50 for hot climates) and performance grade (PG 64-10, PG 70-10, PG 76-10 polymer-modified), cutback bitumen (MC-30, MC-70, RC-250 for primes and tack), bitumen emulsions (cationic rapid-setting CRS-1/2, slow-setting CSS-1), oxidised/blown bitumen (85/25, 90/15, 115/15) for roofing and waterproofing, polymer-modified bitumen (SBS), and refined products such as base oils (Group I/II), paraffin wax, kerosene, naphtha, fuel oil (IFO 180/380 cSt, VLSFO 0.5% S), and solvents. Specs follow ASTM/EN test methods (penetration, softening point, viscosity, ductility). Export trade from Fujairah, Jebel Ali and Hamriyah to Africa and Asia is a large part of the market.",
+      "body_ar": "البيتومين والمنتجات البترولية المكررة في الإمارات: بيتومين الرصف حسب درجة الاختراق (60/70 و80/100 هي درجات الشرق الأوسط القياسية؛ و40/50 للمناخ الحار) ودرجة الأداء (PG 64-10 وPG 70-10 وPG 76-10 المعدل بالبوليمر)، والبيتومين المخفف (MC-30 وMC-70 وRC-250 للطبقات التمهيدية واللاصقة)، ومستحلبات البيتومين (الكاتيونية سريعة التصلب CRS-1/2، وبطيئة التصلب CSS-1)، والبيتومين المؤكسد/المنفوخ (85/25 و90/15 و115/15) للأسطح والعزل، والبيتومين المعدل بالبوليمر (SBS)، والمنتجات المكررة مثل الزيوت الأساسية (المجموعة I/II)، وشمع البارافين، والكيروسين، والنافثا، وزيت الوقود (IFO 180/380 سنتي ستوك، وVLSFO بكبريت 0.5%)، والمذيبات. وتتبع المواصفات طرق اختبار ASTM/EN (الاختراق، ونقطة التليين، واللزوجة، والمطيلية). وتشكل تجارة التصدير من الفجيرة وجبل علي والحمرية إلى أفريقيا وآسيا جزءاً كبيراً من السوق.",
+      "sources": [
+        "https://atdmco.com/wiki-bitumen-suppliers-in-uae-dubai-abu-dhabi/",
+        "https://adnoc.ae/en/adnoc-global-trading/what-we-do/global-trading-of-refined-products",
+        "https://www.adnoc.ae",
+        "https://www.enoc.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags -> confirmed (supplier source) | ADNOC trades refined products -> confirmed; ENOC bitumen output not checked. Not checked: Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade."
+    },
+    {
+      "id": "bitumen_petroleum_products:uae-market-brands",
+      "topic": "Bitumen & Refined Petroleum Products: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Refiners and brands: ADNOC, ENOC, Bapco, Shell, ExxonMobil, SK. ADNOC trades refined products from Ruwais. Many traders and drum-fillers in Fujairah, Hamriyah and Jebel Ali pack bitumen in steel drums and bitumen bags for export, and emulsion plants serve road contractors. Buyers must check sanctions compliance (UAE and international) on the origin documents.",
+      "body_ar": "المصافي والعلامات: ADNOC، ENOC، Bapco، Shell، ExxonMobil، SK. وتتاجر ADNOC بالمنتجات المكررة من الرويس. ويعبئ تجار كثيرون في الفجيرة والحمرية وجبل علي البيتومين في براميل فولاذية وأكياس للتصدير، وتخدم مصانع المستحلبات مقاولي الطرق. ويجب على المشترين التحقق من الامتثال للعقوبات (الإماراتية والدولية) في وثائق المنشأ.",
+      "sources": [
+        "https://atdmco.com/wiki-bitumen-suppliers-in-uae-dubai-abu-dhabi/",
+        "https://adnoc.ae/en/adnoc-global-trading/what-we-do/global-trading-of-refined-products",
+        "https://www.adnoc.ae",
+        "https://www.enoc.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags -> confirmed (supplier source) | ADNOC trades refined products -> confirmed; ENOC bitumen output not checked. Not checked: Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade."
+    },
+    {
+      "id": "bitumen_petroleum_products:uae-market-sizes",
+      "topic": "Bitumen & Refined Petroleum Products: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Bitumen is sold in bulk by the tonne (heated tankers, flexi-tanks for export), in new steel drums (150-180 kg net), and in jumbo bags/bitubags (about 1 tonne). Emulsions in 200 L drums or bulk. Fuel oil and base oil by metric tonne or by barrel/cbm in bulk, and base oil in 208 L drums. Prices are commonly indexed to Platts or Argus benchmarks with a premium/discount, quoted FOB Fujairah/Jebel Ali or CFR destination, with payment by LC or TT. Quality certificate (CoQ) and SGS or Intertek inspection at loading are standard.",
+      "body_ar": "يُباع البيتومين سائباً بالطن (صهاريج مسخنة، وخزانات مرنة للتصدير)، وفي براميل فولاذية جديدة (150-180 كغ صافي)، وفي أكياس جامبو (نحو طن). والمستحلبات في براميل 200 لتر أو سائبة. وزيت الوقود والزيت الأساسي بالطن المتري أو بالبرميل/المتر المكعب سائباً، والزيت الأساسي في براميل 208 لترات. وكثيراً ما تُربط الأسعار بمؤشرات Platts أو Argus مع علاوة أو خصم، وتُسعّر FOB الفجيرة/جبل علي أو CFR الوجهة، والدفع باعتماد مستندي أو تحويل. وشهادة الجودة وفحص SGS أو Intertek عند التحميل من المعتاد.",
+      "sources": [
+        "https://atdmco.com/wiki-bitumen-suppliers-in-uae-dubai-abu-dhabi/",
+        "https://adnoc.ae/en/adnoc-global-trading/what-we-do/global-trading-of-refined-products",
+        "https://www.adnoc.ae",
+        "https://www.enoc.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags -> confirmed (supplier source) | ADNOC trades refined products -> confirmed; ENOC bitumen output not checked. Not checked: Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between 60/70 and PG 76-10 bitumen?",
+      "q_ar": "ما الفرق بين بيتومين 60/70 وPG 76-10؟",
+      "expected_entry_ids": [
+        "bitumen_petroleum_products:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "bitumen exported from Jebel Ali, Fujairah and Abu Dhabi ports in drums, bulk and bags",
+        "url": "https://atdmco.com/wiki-bitumen-suppliers-in-uae-dubai-abu-dhabi/",
+        "result": "confirmed (supplier source)"
+      },
+      {
+        "claim": "ADNOC trades refined products",
+        "url": "https://adnoc.ae/en/adnoc-global-trading/what-we-do/global-trading-of-refined-products",
+        "result": "confirmed; ENOC bitumen output not checked"
+      }
+    ],
+    "unverified": "Current ADNOC and ENOC bitumen grades on offer and export volumes from Fujairah were not verified. Sanctions status of any specific origin must be checked at the time of trade.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "trade": "scaffolding",
+  "layer": "uae-market",
+  "label_en": "Scaffolding & access",
+  "label_ar": "السقالات ومعدات الوصول",
+  "entries": [
+    {
+      "id": "scaffolding:uae-market-products",
+      "topic": "Scaffolding & access: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Scaffolding and access in the UAE: tube-and-fitting scaffolding (48.3 mm OD steel tube to EN 39, couplers to EN 74), system scaffolding (cuplock, ringlock/Allround, kwikstage), frame scaffolding, mobile aluminium towers (EN 1004), suspended cradles and gondolas, mast climbers, formwork shoring (props, H-frames, table forms), and access equipment (boom lifts, scissor lifts). Scaffold boards are timber or steel/aluminium planks. Scaffolds must be designed for load class (EN 12811-1), erected by trained scaffolders, tagged (green/red tag system), and inspected weekly and after changes; in Dubai the Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a Dubai Municipality-approved third party, and the certificate is valid for 6 months or until the scaffold is modified.",
+      "body_ar": "السقالات ووسائل الوصول في الإمارات: سقالات الأنابيب والوصلات (أنبوب فولاذي قطره الخارجي 48.3 مم وفق EN 39، ووصلات وفق EN 74)، والسقالات النظامية (كابلوك، رينغلوك/أولراوند، كويك ستيج)، والسقالات الإطارية، والأبراج المتنقلة من الألمنيوم (EN 1004)، والمنصات المعلقة والجندولات، والمنصات المتسلقة على الصواري، ودعامات القوالب (الدعائم وإطارات H وطاولات القوالب)، ومعدات الوصول (المنصات الذراعية والمقصية). وألواح السقالات خشبية أو فولاذية/ألمنيوم. ويجب تصميم السقالات حسب فئة الحمل (EN 12811-1)، وتركيبها بعمال مدربين، ووضع بطاقات (نظام البطاقة الخضراء/الحمراء)، وفحصها أسبوعياً وبعد أي تغيير؛ وفي دبي يشترط دليل ممارسات السلامة في البناء فحص السقالات المسنودة والمعلقة من طرف ثالث معتمد من بلدية دبي، وتسري الشهادة 6 أشهر أو حتى تعديل السقالة.",
+      "sources": [
+        "https://www.scaxa.ae/scaffolding/legal-requirements-uae/",
+        "https://www.cencenelec.eu",
+        "https://www.layher.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: third-party inspection of scaffolds in Dubai -> corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified. Not checked: Current third-party inspection requirements per emirate and local distributors of each system were not verified."
+    },
+    {
+      "id": "scaffolding:uae-market-brands",
+      "topic": "Scaffolding & access: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "System, tower and cradle brands in the market: Layher, PERI, Doka, SGB, Altrad, RMD Kwikform, Zarges, Youngman, Sky Climber, Tractel, Power Climber, plus Chinese and Indian cuplock, ringlock and ZLP cradle copies sold by local traders. Their UAE offices and distributors were not checked. Rental and erection contractors are concentrated in Sharjah, Dubai (Al Quoz, Jebel Ali) and Musaffah. Origins: Germany, Austria, the UK, China, India, and the UAE for locally made tube and plank.",
+      "body_ar": "علامات الأنظمة والأبراج والمنصات المعلقة في السوق: Layher، PERI، Doka، SGB، Altrad، RMD Kwikform، Zarges، Youngman، Sky Climber، Tractel، Power Climber، إضافة إلى نسخ صينية وهندية من الكابلوك والرينغلوك ومنصات ZLP يبيعها تجار محليون، ولم يُتحقق من مكاتبها أو موزعيها في الإمارات. ويتركز مقاولو التأجير والتركيب في الشارقة ودبي (القوز وجبل علي) ومصفح. المنشأ: ألمانيا، النمسا، المملكة المتحدة، الصين، الهند، والإمارات للأنابيب والألواح المصنوعة محلياً.",
+      "sources": [
+        "https://www.scaxa.ae/scaffolding/legal-requirements-uae/",
+        "https://www.cencenelec.eu",
+        "https://www.layher.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: third-party inspection of scaffolds in Dubai -> corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified. Not checked: Current third-party inspection requirements per emirate and local distributors of each system were not verified."
+    },
+    {
+      "id": "scaffolding:uae-market-sizes",
+      "topic": "Scaffolding & access: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Tubes are sold/hired in 6.0, 4.0, 3.0 and 2.0 m lengths; cuplock standards 1.0-3.0 m, ledgers 0.6-2.5 m; boards 3.9 m (13 ft) x 225 mm x 38 mm. Hire is priced per month (sometimes per week) either per component, per tonne of material, or per m2 or m3 of scaffold erected, with erection and dismantling priced separately per m2/m3 and transport per trip. Towers per unit per week. Gondolas per unit per month with operator training. Quotes must include design calculations for scaffolds above normal heights and third-party inspection certificates.",
+      "body_ar": "تُباع/تُؤجر الأنابيب بأطوال 6.0 و4.0 و3.0 و2.0 م؛ وقوائم الكابلوك 1.0-3.0 م، والعوارض 0.6-2.5 م؛ والألواح 3.9 م (13 قدماً) × 225 مم × 38 مم. ويُسعّر التأجير شهرياً (أحياناً أسبوعياً) إما بالقطعة أو بطن المادة أو بالمتر المربع أو المكعب من السقالة المركّبة، مع تسعير التركيب والفك منفصلاً بالمتر المربع/المكعب والنقل بالرحلة. والأبراج بالوحدة أسبوعياً. والجندولات بالوحدة شهرياً مع تدريب المشغل. ويجب أن يشمل العرض الحسابات التصميمية للسقالات المرتفعة وشهادات فحص الطرف الثالث.",
+      "sources": [
+        "https://www.scaxa.ae/scaffolding/legal-requirements-uae/",
+        "https://www.cencenelec.eu",
+        "https://www.layher.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: third-party inspection of scaffolds in Dubai -> corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified. Not checked: Current third-party inspection requirements per emirate and local distributors of each system were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is scaffolding hire usually priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير السقالات عادة في الإمارات؟",
+      "expected_entry_ids": [
+        "scaffolding:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "third-party inspection of scaffolds in Dubai",
+        "url": "https://www.scaxa.ae/scaffolding/legal-requirements-uae/",
+        "result": "corrected and made specific: the DM Code of Construction Safety Practice requires supported and suspended scaffolds to be inspected by a DM-approved third party; certificate valid 6 months or until modified"
+      }
+    ],
+    "unverified": "Current third-party inspection requirements per emirate and local distributors of each system were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

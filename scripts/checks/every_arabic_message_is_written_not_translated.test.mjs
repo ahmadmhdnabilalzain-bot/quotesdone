@@ -62,6 +62,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const LIST = 'scripts/checks/arabic_reviewed_strings.json';
@@ -122,9 +123,10 @@ function walk(dir, out) {
   return out;
 }
 
+// MANIFEST plus the files waiting in scripts/sql/pending/ (29 Sep 2026): a pending file is appended to
+// MANIFEST at apply, so reading only MANIFEST let a PR pass here and turn main red one commit later.
 function manifest() {
-  return fs.readFileSync(path.join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim())
-    .filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
+  return manifestWithPending(ROOT);
 }
 
 function sqlAfterAnchor() {
@@ -133,7 +135,9 @@ function sqlAfterAnchor() {
   // Until the coordinator applies it, the anchor is pending (scripts/sql/pending/) and not yet a
   // MANIFEST line; it is scanned on its own until then.
   if (at < 0) return [ANCHOR];
-  return lines.slice(at).filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
+  const after = lines.slice(at).filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
+  const listed = new Set(lines);
+  return [...after, ...manifestWithPending(ROOT).filter((f) => !listed.has(f))];
 }
 
 // THE FILE THAT DEFINES EACH LIVE ROUTINE, 22 Sep 2026 (documents-language audit, DL-04).

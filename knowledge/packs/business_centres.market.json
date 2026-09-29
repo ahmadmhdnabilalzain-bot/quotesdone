@@ -1,0 +1,102 @@
+{
+  "trade": "business_centres",
+  "layer": "uae-market",
+  "label_en": "Business centres, coworking & virtual offices",
+  "label_ar": "مراكز الأعمال والمكاتب المشتركة",
+  "entries": [
+    {
+      "id": "business_centres:uae-market-products",
+      "topic": "Business centres, coworking & virtual offices: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Business centre services in the UAE cover serviced private offices (1 to 20+ workstations), coworking hot desks and dedicated desks, virtual offices (registered address, mail handling, call answering), Ejari-registrable flexi-desk or office contracts used for trade licence and visa quotas, meeting and boardroom rental by the hour, day offices, event and training rooms, and add-ons such as PRO support, secretarial services, printing and IT. Buyers specify location (DIFC, Business Bay, JLT, Downtown, Abu Dhabi Global Market, free zones), whether the space counts for Ejari or free-zone lease requirements, number of visa allocations the lease supports, fit-out grade (Grade A tower), access hours (24/7 or business hours), parking bays, internet bandwidth and dedicated line options, and whether utilities, service charges, DEWA/ADDC, cleaning and refreshments are included. Free-zone business centres (DMCC, DIFC, DAFZA, RAKEZ, SPC, Meydan, IFZA) often bundle a desk with the licence package.",
+      "body_ar": "تشمل خدمات مراكز الأعمال في الإمارات المكاتب الخاصة المخدومة (من 1 إلى أكثر من 20 محطة عمل)، ومكاتب العمل المشترك المتنقلة والمخصصة، والمكاتب الافتراضية (عنوان مسجل، ومعالجة البريد، والرد على المكالمات)، وعقود المكاتب المرنة أو المكاتب القابلة للتسجيل في إيجاري والمستخدمة للرخص التجارية وحصص التأشيرات، وتأجير قاعات الاجتماعات ومجالس الإدارة بالساعة، والمكاتب اليومية، وقاعات الفعاليات والتدريب، وخدمات إضافية مثل دعم المعقب (PRO) وخدمات السكرتارية والطباعة وتقنية المعلومات. يحدد المشترون الموقع (مركز دبي المالي العالمي، الخليج التجاري، أبراج بحيرات جميرا، وسط المدينة، سوق أبوظبي العالمي، المناطق الحرة)، وما إذا كانت المساحة تُحتسب لمتطلبات إيجاري أو عقد إيجار المنطقة الحرة، وعدد التأشيرات التي يدعمها العقد، ودرجة التجهيز (برج من الفئة A)، وساعات الوصول (على مدار الساعة أو ساعات العمل)، ومواقف السيارات، وسرعة الإنترنت وخيارات الخط المخصص، وما إذا كانت المرافق ورسوم الخدمة وفواتير ديوا أو أدك والتنظيف والضيافة مشمولة. وغالباً ما تجمع مراكز الأعمال في المناطق الحرة (دي إم سي سي، مركز دبي المالي العالمي، دافزا، راكز، مجمع الشارقة للنشر، ميدان، آي إف زد إيه) مكتباً مع باقة الرخصة.",
+      "sources": [
+        "https://www.creativezone.ae/dubai-visa-quota/",
+        "https://www.servcorp.ae/en/serviced-offices/locations/dubai/",
+        "https://www.regus.com/en/ae/dubai/office-space",
+        "https://dubailand.gov.ae",
+        "https://www.dubaidet.gov.ae",
+        "https://www.dmcc.ae",
+        "https://www.regus.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mainland visa quota needs an Ejari-registered physical office; free-zone flexi-desk packages carry a small fixed visa allocation (about 1-6) -> confirmed | Regus and Servcorp operate serviced offices in Dubai (Servcorp: Emirates Towers, Boulevard Plaza, Al Habtoor Tower, Almas Tower) -> confirmed | Local operators Nook, Letswork, Astrolabs, in5, Hub71 named as business centre providers -> removed: not tied to the trade by a lookup. Not checked: Current operator locations, the visa quota each free zone grants per flexi-desk, and current rent levels were not verified; these change frequently and must be confirmed with the operator or free zone."
+    },
+    {
+      "id": "business_centres:uae-market-brands",
+      "topic": "Business centres, coworking & virtual offices: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Serviced office operators confirmed in Dubai: Regus (IWG), Servcorp, The Executive Centre. Free-zone authorities such as DMCC, DAFZA, RAKEZ and IFZA sell flexi-desks inside company set-up packages, and many independent business centres operate in Business Bay, Bur Dubai, Deira and Sharjah. Mainland business centres need an emirate economic department licence, and tenancy contracts are registered in Ejari (Dubai) or Tawtheeq (Abu Dhabi).",
+      "body_ar": "مشغلو المكاتب المخدومة المؤكد وجودهم في دبي: Regus (IWG)، Servcorp، The Executive Centre. وتبيع سلطات المناطق الحرة مثل مركز دبي للسلع المتعددة ودافزا وراكز وآي إف زد إيه المكاتب المرنة ضمن باقات تأسيس الشركات، وتعمل مراكز أعمال مستقلة كثيرة في الخليج التجاري وبر دبي وديرة والشارقة. وتحتاج مراكز الأعمال في البر الرئيسي إلى رخصة من دائرة الاقتصاد في الإمارة، وتُسجل عقود الإيجار في إيجاري (دبي) أو توثيق (أبوظبي).",
+      "sources": [
+        "https://www.creativezone.ae/dubai-visa-quota/",
+        "https://www.servcorp.ae/en/serviced-offices/locations/dubai/",
+        "https://www.regus.com/en/ae/dubai/office-space",
+        "https://dubailand.gov.ae",
+        "https://www.dubaidet.gov.ae",
+        "https://www.dmcc.ae",
+        "https://www.regus.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mainland visa quota needs an Ejari-registered physical office; free-zone flexi-desk packages carry a small fixed visa allocation (about 1-6) -> confirmed | Regus and Servcorp operate serviced offices in Dubai (Servcorp: Emirates Towers, Boulevard Plaza, Al Habtoor Tower, Almas Tower) -> confirmed | Local operators Nook, Letswork, Astrolabs, in5, Hub71 named as business centre providers -> removed: not tied to the trade by a lookup. Not checked: Current operator locations, the visa quota each free zone grants per flexi-desk, and current rent levels were not verified; these change frequently and must be confirmed with the operator or free zone."
+    },
+    {
+      "id": "business_centres:uae-market-sizes",
+      "topic": "Business centres, coworking & virtual offices: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Pricing is per workstation or per office per month, usually on 6 or 12-month contracts with annual prices quoted for licence purposes; virtual offices and flexi-desks are quoted per year. Meeting rooms are priced per hour or per half/full day, coworking per day pass or monthly membership. Office sizes typically range from 1-person cabins (about 6-10 m2) to 10-20 person suites; area may be quoted in sq ft. Security deposits of one to two months are common, plus a one-off set-up or Ejari registration fee. Add-ons (parking bay, extra visa quota, dedicated phone line) are priced per month or per item.",
+      "body_ar": "يكون التسعير لكل محطة عمل أو لكل مكتب شهرياً، وعادةً بعقود مدتها 6 أو 12 شهراً مع أسعار سنوية لأغراض الترخيص؛ وتُسعّر المكاتب الافتراضية والمكاتب المرنة سنوياً. تُسعّر قاعات الاجتماعات بالساعة أو لنصف يوم أو يوم كامل، ومساحات العمل المشترك بتذكرة يومية أو عضوية شهرية. تتراوح أحجام المكاتب عادةً من مكاتب لشخص واحد (نحو 6-10 م2) إلى أجنحة لـ 10-20 شخصاً، وقد تُذكر المساحة بالقدم المربع. التأمين المسترد لشهر أو شهرين شائع، إضافة إلى رسوم تأسيس أو رسوم تسجيل إيجاري لمرة واحدة. وتُسعّر الإضافات (موقف سيارة، حصة تأشيرات إضافية، خط هاتف مخصص) شهرياً أو لكل بند.",
+      "sources": [
+        "https://www.creativezone.ae/dubai-visa-quota/",
+        "https://www.servcorp.ae/en/serviced-offices/locations/dubai/",
+        "https://www.regus.com/en/ae/dubai/office-space",
+        "https://dubailand.gov.ae",
+        "https://www.dubaidet.gov.ae",
+        "https://www.dmcc.ae",
+        "https://www.regus.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Mainland visa quota needs an Ejari-registered physical office; free-zone flexi-desk packages carry a small fixed visa allocation (about 1-6) -> confirmed | Regus and Servcorp operate serviced offices in Dubai (Servcorp: Emirates Towers, Boulevard Plaza, Al Habtoor Tower, Almas Tower) -> confirmed | Local operators Nook, Letswork, Astrolabs, in5, Hub71 named as business centre providers -> removed: not tied to the trade by a lookup. Not checked: Current operator locations, the visa quota each free zone grants per flexi-desk, and current rent levels were not verified; these change frequently and must be confirmed with the operator or free zone."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can a flexi-desk in a business centre be used for Ejari and how many visas does it allow?",
+      "q_ar": "هل يمكن استخدام مكتب مرن في مركز أعمال لتسجيل إيجاري وكم عدد التأشيرات التي يسمح بها؟",
+      "expected_entry_ids": [
+        "business_centres:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Mainland visa quota needs an Ejari-registered physical office; free-zone flexi-desk packages carry a small fixed visa allocation (about 1-6)",
+        "url": "https://www.creativezone.ae/dubai-visa-quota/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Regus and Servcorp operate serviced offices in Dubai (Servcorp: Emirates Towers, Boulevard Plaza, Al Habtoor Tower, Almas Tower)",
+        "url": "https://www.servcorp.ae/en/serviced-offices/locations/dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Local operators Nook, Letswork, Astrolabs, in5, Hub71 named as business centre providers",
+        "url": "https://www.regus.com/en/ae/dubai/office-space",
+        "result": "removed: not tied to the trade by a lookup"
+      }
+    ],
+    "unverified": "Current operator locations, the visa quota each free zone grants per flexi-desk, and current rent levels were not verified; these change frequently and must be confirmed with the operator or free zone.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

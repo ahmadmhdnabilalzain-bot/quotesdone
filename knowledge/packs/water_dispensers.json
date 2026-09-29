@@ -1,0 +1,78 @@
+{
+  "trade": "water_dispensers",
+  "entries": [
+    {
+      "id": "water_dispensers:spec-checklist",
+      "topic": "Water dispensers - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For water dispensers quotes to be compared like-for-like, every quoted line (goods) must state: (1) dispenser type (bottle top, bottom load, point of use); (2) hot, cold and room temperature functions; (3) cooling and heating capacity; (4) power rating and energy label; (5) filtration stages for point of use; (6) child lock; (7) conformity certificate; (8) bottle supply and sanitising service; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the water_dispensers trade.",
+      "body_ar": "لكي تُقارن عروض موزعات المياه على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الموزع (قارورة علوية، أو تحميل سفلي، أو متصل بالشبكة)؛ (2) وظائف الماء الساخن والبارد وبدرجة الغرفة؛ (3) قدرة التبريد والتسخين؛ (4) القدرة الكهربائية وملصق كفاءة الطاقة؛ (5) مراحل الترشيح للموزع المتصل؛ (6) قفل الأطفال؛ (7) شهادة المطابقة؛ (8) توريد القوارير وخدمة التعقيم؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة water_dispensers فقط.",
+      "required_specs": [
+        "dispenser type (bottle top, bottom load, point of use)",
+        "hot, cold and room temperature functions",
+        "cooling and heating capacity",
+        "power rating and energy label",
+        "filtration stages for point of use",
+        "child lock",
+        "conformity certificate",
+        "bottle supply and sanitising service",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "water_dispensers:uae-standards-and-approvals",
+      "topic": "Water dispensers - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. MoIAT lists efficiency labels among its conformity services; bottled drinking water in Dubai is subject to Dubai Municipality food-safety requirements. What the cited sources do not establish: The sources read do not state that water dispensers need an energy label; confirm the requirement for the exact model.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. وتذكر الوزارة ملصقات الكفاءة ضمن خدمات المطابقة؛ وتخضع مياه الشرب المعبأة في دبي لمتطلبات بلدية دبي لسلامة الغذاء. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تنص على حاجة موزعات المياه إلى ملصق طاقة؛ تأكد من المتطلب للطراز المحدد.",
+      "source_note": "The sources read do not state that water dispensers need an energy label; confirm the requirement for the exact model.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for water dispensers?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـموزعات المياه؟",
+      "expected_entry_ids": [
+        "water_dispensers:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to water dispensers?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على موزعات المياه؟",
+      "expected_entry_ids": [
+        "water_dispensers:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "water_dispensers:spec-checklist",
+      "water_dispensers:uae-standards-and-approvals"
+    ],
+    "added": [
+      "water_dispensers:spec-checklist",
+      "water_dispensers:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

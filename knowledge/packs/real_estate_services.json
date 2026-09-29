@@ -1,0 +1,74 @@
+{
+  "trade": "real_estate_services",
+  "entries": [
+    {
+      "id": "real_estate_services:spec-checklist",
+      "topic": "Real estate services - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For real estate services quotes to be compared like-for-like, every quoted line (services) must state: (1) service (brokerage, leasing, property management, valuation); (2) property type, location and size; (3) commission or fee basis; (4) RERA/DLD broker licence number; (5) scope of marketing and viewings; (6) tenancy registration (Ejari) handling; (7) reporting frequency; (8) exclusivity and term; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the real_estate_services trade.",
+      "body_ar": "لكي تُقارن عروض خدمات العقارات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) الخدمة (وساطة، أو تأجير، أو إدارة عقارات، أو تقييم)؛ (2) نوع العقار وموقعه ومساحته؛ (3) أساس العمولة أو الأتعاب؛ (4) رقم ترخيص الوسيط لدى مؤسسة التنظيم العقاري أو دائرة الأراضي والأملاك؛ (5) نطاق التسويق والمعاينات؛ (6) التعامل مع تسجيل عقد الإيجار (إيجاري)؛ (7) تكرار التقارير؛ (8) الحصرية والمدة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة real_estate_services فقط.",
+      "required_specs": [
+        "service (brokerage, leasing, property management, valuation)",
+        "property type, location and size",
+        "commission or fee basis",
+        "RERA/DLD broker licence number",
+        "scope of marketing and viewings",
+        "tenancy registration (Ejari) handling",
+        "reporting frequency",
+        "exclusivity and term",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://dubailand.gov.ae/en/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "real_estate_services:uae-standards-and-approvals",
+      "topic": "Real estate services - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "In Dubai the Dubai Land Department (DLD) licenses real estate brokers through RERA and publishes a public list of licensed brokers; the buyer can check a broker against that list. Other emirates have their own land departments. What the cited sources do not establish: The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
+      "body_ar": "في دبي ترخص دائرة الأراضي والأملاك الوسطاء العقاريين عبر مؤسسة التنظيم العقاري وتنشر قائمة عامة بالوسطاء المرخصين يمكن للمشتري التحقق منها. ولكل إمارة أخرى دائرة أراضٍ خاصة بها. ما لا تثبته المصادر المذكورة: صفحة دائرة الأراضي المقروءة لا تذكر نسب العمولة ولا متطلبات بطاقة الوسيط؛ يجب الاتفاق عليها في العقد وعدم تخمينها.",
+      "source_note": "The DLD page read does not state commission rates or broker card requirements; those must be agreed in the contract and not guessed.",
+      "sources": [
+        "https://dubailand.gov.ae/en/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for real estate services?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـخدمات العقارات؟",
+      "expected_entry_ids": [
+        "real_estate_services:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to real estate services?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على خدمات العقارات؟",
+      "expected_entry_ids": [
+        "real_estate_services:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "real_estate_services:spec-checklist"
+    ],
+    "added": [
+      "real_estate_services:spec-checklist",
+      "real_estate_services:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
