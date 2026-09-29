@@ -10,7 +10,9 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
 const SQL = 'scripts/sql';
-const manifest = readFileSync(`${SQL}/MANIFEST.txt`, 'utf8').split(/\r?\n/).map(s => s.trim()).filter(s => s.endsWith('.sql'));
+// MANIFEST lines carry the scripts/sql/ prefix; `defining` returns bare file names, so the prefix is dropped here.
+// Without that, no applied file ever matched and the check went red the moment #994 left pending.
+const manifest = readFileSync(`${SQL}/MANIFEST.txt`, 'utf8').split(/\r?\n/).map(s => s.trim().replace(/^scripts\/sql\//, '')).filter(s => s.endsWith('.sql'));
 const defining = name => readdirSync(SQL).filter(f => f.endsWith('.sql') && !f.endsWith('_probe.sql'))
   .filter(f => new RegExp(`function\\s+public\\.${name}\\s*\\(`, 'i').test(readFileSync(`${SQL}/${f}`, 'utf8')));
 
