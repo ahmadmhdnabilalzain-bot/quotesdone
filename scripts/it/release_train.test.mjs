@@ -95,7 +95,7 @@ test('a probe note is recognised', () => {
 
 test('the one stale PR: oldest reviewed PR whose only blocker is finished, failing checks on a branch behind main', async () => {
   const { staleCandidate, checksRunning } = await import('./release_train.mjs');
-  const red = [{ name: 'a', conclusion: 'FAILURE' }];
+  const red = [...green.filter((c) => c.name !== 'typecheck the app'), { name: 'typecheck the app', conclusion: 'FAILURE' }];
   const running = [{ name: 'a', conclusion: '', status: 'IN_PROGRESS' }];
   assert.equal(checksRunning(running), true);
   assert.equal(checksRunning(red), false);
@@ -110,6 +110,9 @@ test('the one stale PR: oldest reviewed PR whose only blocker is finished, faili
   const isBehind = (p) => p.number !== 3;
   assert.equal(staleCandidate(prs, { isBehind })?.number, 4);
   assert.equal(staleCandidate(prs.slice(0, 3), { isBehind }), null);
+  // up to date with main, but its CI never started (a GITHUB_TOKEN push): chosen, to start CI
+  const vercelOnly = [{ context: 'Vercel', state: 'SUCCESS' }];
+  assert.equal(staleCandidate([pr({ number: 7, statusCheckRollup: vercelOnly })], { isBehind: () => false })?.number, 7);
   assert.equal(staleCandidate([pr({ number: 6, statusCheckRollup: red, body: 'Depends-on: #9' })], { isBehind, depState: () => 'OPEN' }), null);
 });
 
