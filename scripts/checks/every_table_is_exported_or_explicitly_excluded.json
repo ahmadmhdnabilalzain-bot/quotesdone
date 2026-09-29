@@ -252,7 +252,6 @@
  "it_change_source": "no_writer",
  "it_cost_watch_week": "measurement",
  "it_credential_rotation": "backlog",
- "it_duty_schedule": "no_writer",
  "it_engineer_finding": "backlog",
  "it_engineer_scanner": "backlog",
  "it_expiry": "backlog",

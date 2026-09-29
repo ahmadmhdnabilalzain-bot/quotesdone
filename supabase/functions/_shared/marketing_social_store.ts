@@ -115,7 +115,7 @@ export function adminStore(admin: Admin, f: Fetch, tokenFor: (ev: CommentEvent) 
       const memory = await recallCases(admin, { seat: 'marketing', path: 'comment_reply', caseKind: 'social_reply', otherSeats: false, situation: ev.text });
       return (await socialReply(defaultDeps(admin, 'marketing'), { surface: 'marketing_social.comment_reply', platform: ev.platform,
         message: String(ev.text || '').slice(0, 4000), language: lang, dedupeKey: 'social_comment_reply:' + ev.platform + ':' + ev.commentId,
-        precedent: memory.cases.length ? precedentBlock(memory) : undefined,
+        precedent: (memory.cases.length || memory.handoffs?.length) ? precedentBlock(memory) : undefined,
         subject: { platform: ev.platform, message_id: ev.commentId } })).value;
     },
     async reply(ev, text) {
