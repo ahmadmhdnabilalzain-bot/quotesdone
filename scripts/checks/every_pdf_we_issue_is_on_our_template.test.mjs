@@ -21,6 +21,12 @@ test('the check catches each shape, and a comment describing it does not trip it
   assert.equal(findingsFor('supabase/functions/stripe_webhook/index.ts', "const pdfUrl = String(inv.invoice_pdf || '');").length, 0);
   assert.equal(findingsFor('supabase/functions/pdf_native/render.ts', "const pdf = await PDFDocument.create();").length, 0);
   assert.equal(findingsFor(fn, "await fetch(URL + '/functions/v1/pdf_native', { body })").length, 0);
+  // The customer's-drawing editor may load and save that drawing, and nothing more.
+  const red = 'supabase/functions/_shared/pdf_vector_redact.ts';
+  assert.equal(findingsFor(red, "import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1'; await PDFDocument.load(b);").length, 0);
+  assert.equal(findingsFor(red, "await PDFDocument.create();").length, 1);
+  assert.equal(findingsFor(red, "return new Response(b, { headers: { 'Content-Type': 'application/pdf' } });").length, 1);
+  assert.equal(findingsFor('supabase/functions/_shared/scan_takeoff.ts', "import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';").length, 1);
 });
 
 // 22 Sep 2026 (audit finding 2): supplier_pay turned invoice_creation on for both supplier checkouts, so a
