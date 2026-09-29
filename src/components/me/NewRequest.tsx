@@ -32,6 +32,7 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { mergeAttachment } from '@/lib/requestAttachments';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
+import { ConciergeSteps } from './ConciergeSteps';
 import { boqNote, confidenceWord } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
@@ -116,6 +117,15 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     return () => { live = false; };
   }, [guideTrade]);
   const guideText = specGuideText(guide, lang);
+  // THE FIRST-REQUEST CONCIERGE (customer_support, founder ledger 1018): the steps, in the page language, with the
+  // trade's specs once the trade is known. Shown only on a customer's first request (first_inquiry).
+  const [concierge, setConcierge] = useState(null);
+  useEffect(() => {
+    let live = true;
+    call('customer_api', { action: 'concierge', category: guideTrade || null, lang }, token)
+      .then((r) => { if (live && r && r.ok) setConcierge(r.concierge || null); }, () => {});
+    return () => { live = false; };
+  }, [guideTrade, lang]);
   const [rec, setRec] = useState(false); const [voxBusy, setVoxBusy] = useState(false); const recRef = useRef(null);
   const fileRef = useRef(null); const boqRef = useRef(null); const endRef = useRef(null); const inputRef = useRef(null); const sentDraft = useRef(false);
   const modelHeld = llmAvailable === false;
@@ -476,6 +486,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         <Button variant="link" className="h-auto px-0" onClick={onCancel}>{t(lang, 'nr_cancel')}</Button>
       </div>
       {meta.readiness != null && <ReadinessBar pct={meta.readiness} lang={lang} reduce={reduce} />}
+      {concierge && concierge.first_inquiry ? <ConciergeSteps guide={concierge} lang={lang} title={t(lang, 'cg_title')} className="mx-4 mt-2" /> : null}
       {guideText ? (
         <details className="mx-4 mt-2 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[12.5px]" data-testid="spec-guide">
           <summary className="cursor-pointer font-semibold text-foreground">{t(lang, 'nr_spec_guide')}</summary>
