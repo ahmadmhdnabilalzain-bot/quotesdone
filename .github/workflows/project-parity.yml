@@ -64,6 +64,7 @@ jobs:
   parity:
     name: the database is running what this repository says
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -199,6 +200,7 @@ jobs:
       group: kernel-gate-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
