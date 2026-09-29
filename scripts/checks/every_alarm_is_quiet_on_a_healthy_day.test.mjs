@@ -266,6 +266,13 @@ export const REGISTER = {
   // 29 Sep 2026 (it_engineer, #1048). A truncated smoke run now upserts its FAIL steps itself instead of settling,
   // so it closes nothing on silence. The FAIL is the journey's verdict (scripts/e2e/journeys.mjs), not a rule here.
   fn_it_smoke_ingest: { relay: 'writes the failed steps a post-deploy smoke run reports; each FAIL is the journey\'s verdict, and a run with no failed step raises nothing' },
+  // 29 Sep 2026 (it_engineer, #1062, instruction 1009). The monthly game day. Each game_day:<scenario> finding is the
+  // verdict of a scenario routine (fn_it_game_day_<scenario>) that injected a fault in a rolled-back savepoint and saw
+  // the REAL detector miss it or fail to clear; the rule is those detectors', each replayed or relayed above. Not
+  // replayed: the scenarios drive the live detectors on today's clock inside savepoints, so a pg_temp copy at a past
+  // instant would not be a replay of anything. Measured quiet on a healthy day: run on production 29 Sep 2026 inside one
+  // rolled-back transaction, 5/5 scenarios passed and 0 game_day findings were open afterwards.
+  fn_it_engineer_game_day: { relay: 'records a game-day scenario that failed; the failure is the verdict of the injected fault against the real detector, and a healthy month passes all five and raises nothing (measured 29 Sep 2026: 5/5, 0 findings)' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },
