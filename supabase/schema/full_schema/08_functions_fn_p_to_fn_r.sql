@@ -389,6 +389,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -559,16 +569,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -1554,6 +1554,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__circumvention(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1684,6 +1692,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__decision_owed(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record;
+begin
+  v_choice := public.fn_ambition_choice(p_id, p_result);
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_hid := (r.subject->>'handoff_id')::bigint;
+  -- A REFUND IS RE-MEASURED FIRST: one whose checks now pass is approved, which settles what was owed, so a
+  -- payable refund is never declined on a stale reading.
+  if split_part(r.subject->>'item_key', ':', 1) = 'refunds' then
+    -- a remediation whose checks now pass is closed first (as fn_ceo_refund_loop_sweep would on its next run);
+    -- closing the last one re-runs the review through fn_ceo_refund_loop_advance
+    for x in select a.id, a.detail from public.agent_actions a
+              where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'refund.remediate'
+                and a.detail->>'refund_id' = split_part(r.subject->>'item_key', ':', 2) order by a.id loop
+      v := public.fn_ceo_refund_checklist((x.detail->>'transaction_id')::uuid, 'approve', false);
+      if not exists (select 1 from jsonb_array_elements(v->'items') i
+                      where (x.detail->'checks') ? (i->>'item') and not coalesce((i->>'passed')::boolean, false)) then
+        perform public.fn_seat_handoff_complete(x.id, jsonb_build_object('resolved_by', 're-measured before the CEO''s owed decision', 'checks', x.detail->'checks'));
+      end if;
+    end loop;
+    v_review := public.fn_ceo_refund_review(split_part(r.subject->>'item_key', ':', 2)::bigint, 'ceo_decision_owed');
+  end if;
+  -- a stale answer changes nothing: the item moved on (a new round, an approval) and settled what was owed
+  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending') then
+    return jsonb_build_object('applied', true, 'already', 'the owed decision was settled by the item''s next round', 'review', v_review);
+  end if;
+  v := public.fn_ceo_decision_close(r.subject->>'item_key', case v_choice when 'replace' then 'replaced' else 'withdrawn' end,
+    coalesce(p_result->>'answer', ''), jsonb_build_object('held_id', p_id, 'model', p_result->>'model', 'fields', public.fn_ambition_fields(p_result)));
+  -- nothing is left to decide (the item closed or the refund left 'requested' another way): the owed conversation
+  -- ends with that fact instead of waiting for ever. An item under review stays owed; its review turn settles it.
+  if not coalesce((v->>'ok')::boolean, false) and coalesce(v->>'reason', '') !~ 'under review' then
+    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('decided_by', 'ceo', 'nothing_to_close', v->>'reason', 'held_id', p_id));
+  end if;
+  return v || jsonb_build_object('review', v_review);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__escalation_meaning(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1706,7 +1756,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__experiment_approval(p_id 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.reasoning_held_question; e public.ceo_experiment; v_choice text; v_f jsonb; v_review jsonb; v_owner text; v_days int;
-  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_today date := (now() at time zone 'Asia/Dubai')::date; v_by_seat boolean; v_reasons text; v_cyc jsonb; v_problem text;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -1719,6 +1769,23 @@ begin
                   then v_f->>'owner_seat' else e.proposed_by end;
   v_days := case when coalesce(v_f->>'days', '') ~ '^\d{1,3}$' and (v_f->>'days')::int between 7 and 365 then (v_f->>'days')::int else e.days end;
 
+  -- THE DECISION SAYS WHY (founder_instruction 1059), and a seat's proposal goes round the cycle.
+  v_reasons := btrim(coalesce(p_result->>'answer', '') || case when coalesce(btrim(v_f->>'conditions'), '') <> ''
+                                                              then E'\nConditions: ' || (v_f->>'conditions') else '' end);
+  v_by_seat := e.proposed_by <> 'ceo';
+  if v_by_seat then
+    v_cyc := public.fn_ceo_decide('ceo_experiment', 'ceo_experiment:' || e.id, e.proposed_by,
+               case when v_choice = 'approve' then 'approved' else 'rejected' end, v_reasons,
+               jsonb_build_object('experiment_id', e.id, 'key', e.key, 'iteration', e.iteration, 'choice', v_choice,
+                                  'experiment', to_jsonb(e) - 'approval', 'fields', v_f),
+               'reasoning_held_question', p_id::text);
+  else
+    v_problem := public.fn_ceo_reasons_problem(v_reasons);
+    if v_problem is not null then
+      raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: the CEO''s call on experiment ' || e.key || ' says why: ' || v_problem;
+    end if;
+  end if;
+
   -- THE CHALLENGE: the accountant reviews every approval call on a model of another family.
   v_review := public.fn_seat_duty_cross_review('ceo.experiment_approval', 'ceo', 'accountant',
     'Challenge the chief executive''s call on this experiment before it runs.',
@@ -1728,17 +1795,17 @@ begin
 
   update public.ceo_experiment
      set approval = jsonb_build_object('decision', v_choice, 'fields', v_f, 'reasoning', left(coalesce(p_result->>'answer', ''), 6000),
-                                       'model', p_result->>'model', 'review', v_review, 'decided_at', now()),
+                                       'model', p_result->>'model', 'review', v_review, 'decided_at', now(), 'cycle', v_cyc),
          status = case v_choice when 'approve' then case when e.starts_on <= v_today then 'running' else 'approved' end
-                                when 'reject' then 'rejected' else 'proposed' end,
+                                when 'reject' then case when v_by_seat then 'proposed' else 'rejected' end else 'proposed' end,
          owner_seat = case when v_choice = 'approve' then v_owner else owner_seat end,
          days = v_days,
          starts_on = case when v_choice = 'approve' then greatest(e.starts_on, v_today) else starts_on end,
          ends_on = case when v_choice = 'approve' then greatest(e.starts_on, v_today) + v_days end,
-         closed_at = case when v_choice = 'reject' then now() end,
+         closed_at = case when v_choice = 'reject' and not v_by_seat then now() end,
          updated_at = now()
    where id = e.id;
-  return jsonb_build_object('applied', true, 'experiment', e.key, 'choice', v_choice, 'owner', v_owner, 'review', v_review);
+  return jsonb_build_object('applied', true, 'experiment', e.key, 'choice', v_choice, 'owner', v_owner, 'review', v_review, 'cycle', v_cyc);
 end $function$
 
 
@@ -1874,11 +1941,15 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__sales_escalation(p_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_hid bigint;
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_hid bigint; v_problem text;
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   if v_choice is null or not exists (select 1 from jsonb_array_elements(r.request->'decision'->'options') o where o->>'id' = v_choice) then
     raise exception 'CHOICE_NOT_AN_OPTION: % is not an option of % (held question %)', coalesce(v_choice, 'no choice'), r.surface, p_id;
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(p_result->>'answer');
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: the CEO''s answer to a sales escalation says why: ' || v_problem;
   end if;
   v_hid := (r.subject->>'handoff_id')::bigint;
   perform set_config('qd.handoff_closer', 'ceo', true);
@@ -1976,6 +2047,14 @@ begin
   v := public.fn_what_if(r.subject->>'question', coalesce(r.subject->'change', '{}'::jsonb), v_choice);
   return jsonb_build_object('simulation_id', v->'id', 'scenario', v_choice);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__dispute_intake(p_id bigint, p_result jsonb)
@@ -2122,6 +2201,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_exam(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql
@@ -2258,6 +2345,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__competitor_change(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2312,6 +2407,14 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__root_cause(p_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select public.fn_ceo_root_cause_applies(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__dispute_fault(p_id bigint, p_result jsonb)

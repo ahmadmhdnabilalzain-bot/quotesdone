@@ -239,6 +239,7 @@ AS $function$
   select v.t, v.s,
          (select 'table_export_change' from public.table_export_change_tracked x where x.table_name = v.t)
   from (values
+    ('ceo_decision_round','decision'),
     ('founder_mail_policy','decision'), ('marketing_article_round','marketing'), ('marketing_blog_topic','marketing'),
     ('fraud_flags','risk'), ('free_email_domain','risk'), ('money_move_hold','risk'), ('seat_handoff_kind','decision'), ('supplier_availability','supplier'),
     ('quote_quality_hold','quote'),
@@ -7601,6 +7602,103 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_ceo_approval_carries_its_reasons()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_problem text := public.fn_ceo_reasons_problem(new.rationale);
+begin
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation',
+      message = 'REASONLESS_DECISION: a CEO ' || new.decision || ' of ' || new.subject_kind || ' ' || new.subject_id || ' says why: ' || v_problem;
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_ceo_decision_round_append_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+begin
+  raise exception using errcode = 'check_violation',
+    message = 'ceo_decision_round ' || old.id || ' is history: a decision is followed by the next round, never edited or deleted';
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_ceo_decision_round_follows_through()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record;
+begin
+  for h in select a.id from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.revise'
+              and a.detail->>'item_key' = new.item_key
+              and not ((a.detail->>'generation')::int = new.generation and (a.detail->>'round')::int = new.round) loop
+    perform set_config('qd.handoff_closer', 'ceo', true);
+    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('verified_by', 'ceo', 'next_round_id', new.id,
+      'next_decision', new.decision, 'generation', new.generation, 'round', new.round));
+    perform set_config('qd.handoff_closer', '', true);
+  end loop;
+  for h in select a.id from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.decision_owed'
+              and a.detail->>'item_key' = new.item_key loop
+    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('decided_by', 'ceo', 'decision', new.decision,
+      'round_id', new.id, 'reasons', left(new.reasons, 2000)));
+  end loop;
+  if new.decision in ('approved', 'replaced', 'withdrawn') then
+    perform public.fn_seat_handoff('ceo', new.originator_seat, 'ceo.decision_closed', 'ceo_decision_round', new.id::text,
+      jsonb_build_object('round_id', new.id, 'path', new.path, 'item_key', new.item_key, 'decision', new.decision,
+                         'reasons', left(new.reasons, 3000), 'generation', new.generation, 'round', new.round,
+                         'version', new.version, 'source_table', new.source_table, 'source_id', new.source_id));
+  end if;
+  return null;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_ceo_decision_round_rules()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare n jsonb; v_problem text;
+begin
+  perform pg_advisory_xact_lock(hashtext('ceo_decision_round:' || new.item_key));
+  if new.originator_seat = 'ceo' or not exists (select 1 from public.org_role r where r.role_id = new.originator_seat and r.status = 'active') then
+    raise exception using errcode = 'check_violation',
+      message = 'CEO_DECISION: ' || coalesce(new.originator_seat, '?') || ' is not an active seat other than the CEO; the ledger holds the CEO''s decisions on a seat''s work';
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(new.reasons);
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation',
+      message = 'REASONLESS_DECISION: every CEO decision carries its reasons (' || new.decision || ' on ' || new.item_key || '): ' || v_problem;
+  end if;
+  n := public.fn_ceo_decision_next(new.item_key);
+  if n->>'path' is not null and n->>'path' <> new.path then
+    raise exception using errcode = 'check_violation', message = 'CEO_DECISION: ' || new.item_key || ' is a ' || (n->>'path') || ' item, not ' || new.path;
+  end if;
+  if not (n->>'open')::boolean then
+    raise exception using errcode = 'check_violation',
+      message = 'ITEM_CLOSED: ' || new.item_key || ' was ' || (n->>'last_decision') || ' in round ' || (n->>'last_round') || '; a new submission is a new item';
+  end if;
+  new.generation := (n->>'generation')::int;
+  new.round := (n->>'round')::int;
+  if new.decision = 'rejected' and (n->>'rejections')::int >= 4 then
+    raise exception using errcode = 'check_violation',
+      message = 'ROUND_LIMIT: ' || new.item_key || ' has been sent back 4 times; the CEO now approves it, or replaces or withdraws it with reasons';
+  end if;
+  new.decided_by := 'ceo'; new.decided_at := now();
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_ceo_weekly_report_learning()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -8979,6 +9077,8 @@ begin
        or not exists (select 1 from public.org_agents a where a.agent_key = new.reviewer_seat and a.active) then
       raise exception 'seat_deliberation: % and % must both be active seats', new.author_seat, new.reviewer_seat;
     end if;
+    -- A REJECTION NEVER ENDS THE CYCLE (founder_instruction 1059): the CEO's reviews run to the loop guard.
+    if new.reviewer_seat = 'ceo' and new.kind <> 'marketing.monthly_plan' then new.max_rounds := 5; end if;
   end if;
   return new;
 end $function$

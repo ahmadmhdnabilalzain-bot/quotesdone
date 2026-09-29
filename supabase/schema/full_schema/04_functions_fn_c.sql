@@ -1786,6 +1786,58 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_daily_run_now()
 AS $function$ select public.fn_ceo_daily_run(now()) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_decide(p_path text, p_item_key text, p_originator text, p_decision text, p_reasons text, p_version jsonb DEFAULT '{}'::jsonb, p_source_table text DEFAULT NULL::text, p_source_id text DEFAULT NULL::text, p_revise_handoffs bigint[] DEFAULT NULL::bigint[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x public.ceo_decision_round; n jsonb; v_gen int; v_round int; v_rej int; v_h bigint;
+  v_ids bigint[] := coalesce(p_revise_handoffs, '{}'); v_problem text; v_version jsonb := coalesce(p_version, '{}'::jsonb);
+begin
+  perform pg_advisory_xact_lock(hashtext('ceo_decision_round:' || p_item_key));
+  if p_source_id is not null then
+    select * into x from public.ceo_decision_round
+     where item_key = p_item_key and source_table is not distinct from p_source_table and source_id = p_source_id;
+    if found then
+      return jsonb_build_object('recorded', true, 'already', true, 'round_id', x.id, 'decision', x.decision,
+                                'generation', x.generation, 'round', x.round);
+    end if;
+  end if;
+  n := public.fn_ceo_decision_next(p_item_key);
+  if not (n->>'open')::boolean then
+    return jsonb_build_object('recorded', false, 'closed', true, 'item_key', p_item_key, 'decision', n->>'last_decision', 'round_id', n->'last_id');
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(p_reasons);
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation',
+      message = 'REASONLESS_DECISION: every CEO decision carries its reasons (' || p_decision || ' on ' || p_item_key || '): ' || v_problem;
+  end if;
+  -- what was decided on is kept, cut to the ledger's bound rather than refusing the decision
+  v_version := public.fn_ceo_decision_version_cut(v_version);
+  v_gen := (n->>'generation')::int; v_round := (n->>'round')::int; v_rej := (n->>'rejections')::int;
+  if p_decision = 'rejected' then
+    if v_rej >= 4 then
+      v_h := public.fn_ceo_decision_owe(p_path, p_item_key, p_originator, v_gen,
+               'sent back 4 times; a fifth rejection is refused, so the CEO approves it, or replaces or withdraws it', p_reasons, v_version);
+      return jsonb_build_object('recorded', false, 'round_limit', true, 'item_key', p_item_key, 'generation', v_gen,
+                                'rejections', v_rej, 'decision_owed_handoff', v_h);
+    end if;
+    if p_revise_handoffs is null then
+      v_h := public.fn_seat_handoff('ceo', p_originator, 'ceo.revise', 'ceo_decision_round', p_item_key || ':g' || v_gen || ':r' || v_round,
+        jsonb_build_object('path', p_path, 'item_key', p_item_key, 'generation', v_gen, 'round', v_round, 'rounds_left', 4 - v_rej - 1,
+                           'reasons', left(p_reasons, 3000), 'version', v_version));
+      v_ids := array[v_h];
+    end if;
+  end if;
+  insert into public.ceo_decision_round (path, item_key, originator_seat, decision, reasons, version, source_table, source_id, revise_handoff_ids)
+  values (p_path, p_item_key, p_originator, p_decision, p_reasons, v_version, p_source_table, p_source_id, v_ids)
+  returning * into x;
+  return jsonb_build_object('recorded', true, 'round_id', x.id, 'decision', x.decision, 'generation', x.generation,
+                            'round', x.round, 'revise_handoff_ids', to_jsonb(x.revise_handoff_ids));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_decide_refund(p_refund_id bigint, p_approve boolean, p_rationale text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1898,6 +1950,138 @@ begin
          ) p(role, email, locale);
   return jsonb_build_object('dispute_id', d.id, 'outcome', p_outcome);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decision_close(p_item_key text, p_decision text, p_reasons text, p_detail jsonb DEFAULT '{}'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare l public.ceo_decision_round; x public.ceo_decision_round; v_effect jsonb := '{}'::jsonb; v_id bigint;
+  r public.refunds; i public.ceo_improvement;
+begin
+  if p_decision not in ('replaced', 'withdrawn') then
+    raise exception 'the CEO closes an open item by replacing or withdrawing it, not %', p_decision using errcode = '22023';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('ceo_decision_round:' || p_item_key));
+  select * into l from public.ceo_decision_round where item_key = p_item_key order by generation desc, round desc limit 1;
+  if l.id is null or l.decision <> 'rejected' then
+    return jsonb_build_object('ok', false, 'reason', 'no open item ' || p_item_key || ' (its last decision is ' || coalesce(l.decision, 'none') || ')');
+  end if;
+  if l.path = 'seat_deliberation' and exists (select 1 from public.seat_deliberation d
+       where d.id = (l.version->>'deliberation_id')::bigint and d.status = 'open') then
+    return jsonb_build_object('ok', false, 'reason', 'the revision is under review now; the CEO decides it at its review turn');
+  end if;
+  if l.path = 'refund' then   -- locked, and still an open request, before the ledger says anything about it
+    select * into r from public.refunds where id = split_part(p_item_key, ':', 2)::bigint for update;
+    if r.id is null or r.status <> 'requested' then
+      return jsonb_build_object('ok', false, 'reason', 'refund ' || split_part(p_item_key, ':', 2) || ' is ' || coalesce(r.status, 'missing') || ', not an open request');
+    end if;
+  end if;
+  insert into public.ceo_decision_round (path, item_key, originator_seat, decision, reasons, version, source_table, source_id)
+  values (l.path, p_item_key, l.originator_seat, p_decision, p_reasons,
+          public.fn_ceo_decision_version_cut(l.version || jsonb_build_object('closes_round_id', l.id, 'closing', coalesce(p_detail, '{}'::jsonb))),
+          'ceo_decision_close', null)
+  returning * into x;
+
+  if l.path = 'refund' then
+    if p_decision = 'withdrawn' then
+      -- DECLINED, never paid (fn_ceo_refund_decline, the same decline the review makes). No money guard is involved.
+      v_effect := jsonb_build_object('decline', public.fn_ceo_refund_decline(r.id, p_reasons, 'ceo_withdrew', l.version->'failed'));
+    end if;
+    -- A stalled remediation is superseded by the CEO's decision. Closing its last handoff re-runs the review
+    -- (fn_ceo_refund_loop_advance), which for a replaced refund starts the fresh generation and for a declined
+    -- one answers that the refund is no longer open.
+    for v_id in select a.id from public.agent_actions a where a.kind = 'handoff' and a.status = 'pending'
+                  and a.detail->>'type' = 'refund.remediate' and a.detail->>'refund_id' = r.id::text order by a.id loop
+      perform public.fn_seat_handoff_complete(v_id, jsonb_build_object('superseded_by_ceo', p_decision, 'round_id', x.id,
+                                                                         'reasons', left(p_reasons, 2000)));
+      v_effect := v_effect || jsonb_build_object('superseded_remediation', coalesce(v_effect->'superseded_remediation', '[]'::jsonb) || to_jsonb(v_id));
+    end loop;
+    if p_decision = 'replaced' and not (v_effect ? 'superseded_remediation') then
+      v_effect := v_effect || jsonb_build_object('review', public.fn_ceo_refund_review(r.id, 'ceo_replaced'));
+    end if;
+  elsif l.path = 'ceo_experiment' then
+    update public.ceo_experiment
+       set status = 'rejected', closed_at = now(), updated_at = now(),
+           approval = coalesce(approval, '{}'::jsonb) || jsonb_build_object('closed_by_ceo', p_decision, 'reasons', left(p_reasons, 4000), 'round_id', x.id)
+     where id = split_part(p_item_key, ':', 2)::bigint and status = 'proposed';
+    v_effect := jsonb_build_object('experiment_closed', found);
+  elsif l.path = 'ceo_improvement' then
+    select * into i from public.ceo_improvement where id = split_part(p_item_key, ':', 2)::bigint for update;
+    if i.id is not null and i.status in ('open', 'assigned') then
+      update public.ceo_improvement set status = 'dropped', closed_at = now(), done_evidence = p_decision || ' by the CEO: ' || left(p_reasons, 3000)
+       where id = i.id;
+      update public.ceo_task set state = 'done', closed_at = now(), evidence = left(coalesce(evidence || E'\n', '') || p_decision || ' by the CEO: ' || p_reasons, 8000)
+       where task_id = i.task_id and state in ('open', 'working', 'blocked');
+      v_effect := jsonb_build_object('improvement_dropped', i.id);
+    end if;
+    -- the conversation closes whatever the improvement's state (it may have finished while the CEO's choice was
+    -- owed, and the review sweep no longer reads a handoff that is waiting on that choice)
+    if i.handoff_id is not null and exists (select 1 from public.agent_actions where id = i.handoff_id and status = 'pending') then
+      perform set_config('qd.handoff_closer', 'ceo', true);
+      perform public.fn_seat_handoff_complete(i.handoff_id, jsonb_build_object('verified_by', 'ceo', 'improvement_id', i.id,
+        'closed', p_decision, 'reasons', left(p_reasons, 2000), 'round_id', x.id));
+      perform set_config('qd.handoff_closer', '', true);
+      v_effect := v_effect || jsonb_build_object('handoff_closed', i.handoff_id);
+    end if;
+  end if;
+  return jsonb_build_object('ok', true, 'round_id', x.id, 'decision', x.decision, 'generation', x.generation, 'round', x.round, 'effect', v_effect);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decision_next(p_item_key text)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when l.id is null
+    then jsonb_build_object('open', true, 'generation', 1, 'round', 1, 'rejections', 0)
+    else jsonb_build_object('open', l.decision not in ('approved', 'withdrawn'), 'last_id', l.id, 'last_decision', l.decision,
+      'last_round', l.round, 'path', l.path, 'originator', l.originator_seat,
+      'generation', case when l.decision = 'replaced' then l.generation + 1 else l.generation end,
+      'round', case when l.decision = 'replaced' then 1 else l.round + 1 end,
+      'rejections', case when l.decision = 'replaced' then 0
+                         else (select count(*) from public.ceo_decision_round r
+                                where r.item_key = p_item_key and r.generation = l.generation and r.decision = 'rejected') end)
+  end
+  from (select 1) one
+  left join lateral (select * from public.ceo_decision_round r where r.item_key = p_item_key order by r.generation desc, r.round desc limit 1) l on true
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decision_owe(p_path text, p_item_key text, p_originator text, p_generation integer, p_why text, p_last_reasons text DEFAULT NULL::text, p_version jsonb DEFAULT '{}'::jsonb)
+ RETURNS bigint
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_after int := coalesce((select max(r.round) from public.ceo_decision_round r
+                                  where r.item_key = p_item_key and r.generation = p_generation), 0);
+begin
+  return public.fn_seat_handoff(p_originator, 'ceo', 'ceo.decision_owed', 'ceo_decision_round',
+    p_item_key || ':g' || p_generation || ':after_r' || v_after,
+    jsonb_build_object('path', p_path, 'item_key', p_item_key, 'generation', p_generation, 'after_round', v_after, 'why', p_why,
+      'last_reasons', left(p_last_reasons, 3000), 'version', coalesce(p_version, '{}'::jsonb),
+      'rounds', (select coalesce(jsonb_agg(jsonb_build_object('round', r.round, 'decision', r.decision, 'reasons', left(r.reasons, 600))
+                                           order by r.round), '[]'::jsonb)
+                   from public.ceo_decision_round r where r.item_key = p_item_key and r.generation = p_generation)));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_decision_version_cut(p jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case when length(coalesce(p, '{}'::jsonb)::text) <= 29000 then coalesce(p, '{}'::jsonb)
+    else coalesce((select jsonb_object_agg(e.key, e.value) from jsonb_each(p) e
+                    where jsonb_typeof(e.value) in ('number', 'string', 'boolean', 'null') and length(e.value::text) <= 200), '{}'::jsonb)
+         || jsonb_build_object('cut_at_12000_chars', left(p::text, 12000)) end
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_ceo_decisions_evaluate(p_dry_run boolean DEFAULT false)
@@ -2136,6 +2320,15 @@ begin
       -- ceo_company_stage_log with the exit readings. Unnamed here, the rule counted as no_evaluator and
       -- heartbeat step ceoDecisions has failed every hour since 24 Sep 02:46 UTC.
       v_state := 'decided_by_the_plan'; v_detail := 'fn_ceo_company_stage_advance (seat_duty ceo.company_stage)';
+
+    when 'directive_escalation' then
+      -- 29 Sep 2026 (ceo, founder_instruction 1059 audit): the rule is decided by its own duty. fn_ceo_directive_run
+      -- (seat_duty ceo.directive, hourly) re-issues a directive that passed its deadline unmet, once, writes this
+      -- rule's ceo_decision_log row with the directive, its done-condition and the re-issue id, and turns a second
+      -- miss into a CEO task. Unnamed here, the rule counted as no_evaluator (the_ceo_issues_directives_and_closes_
+      -- them_on_their_own_condition.sql added it without telling the evaluator), which fails heartbeat step ceoDecisions.
+      v_state := 'decided_by_its_duty';
+      v_detail := 'fn_ceo_directive_run (seat_duty ceo.directive); open directives past their deadline now: ' || coalesce(v_reading, '?');
 
     when 'seat_directive', 'constraint_stalled', 'plan_review' then
       -- 22 Sep 2026 (ceo): decided by the daily plan on its own heartbeat step (fn_ceo_plan_tick, step
@@ -3344,6 +3537,30 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_month_plan_now()
 AS $function$ select public.fn_ceo_month_plan(now()) $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_owes_a_decision(p_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare a public.agent_actions; v_held bigint;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff';
+  if not found then raise exception 'no handoff %', p_id; end if;
+  v_held := public.fn_seat_duty_reason('ceo', 'ceo.decision_owed',
+    'A seat''s submission has been ' || coalesce(a.detail->>'why', 'sent back 4 times') || '. As the chief executive, decide what is good for '
+      || 'the company: replace it (a different piece of work, owner or approach takes its place) or withdraw it (it does not go ahead). '
+      || 'Say why, answering the reasons given in every round.',
+    '[{"id":"replace","meaning":"replace the item: say in your reasons what takes its place (other work, owner or approach). A refund restarts its review with a fresh count; any other item closes and the seat is told what replaces it"},{"id":"withdraw","meaning":"withdraw the item: it does not go ahead (a refund is declined, never paid), and the seat is told why"}]'::jsonb,
+    jsonb_build_object('path', a.detail->>'path', 'item_key', a.detail->>'item_key', 'rounds', a.detail->'rounds',
+                       'last_reasons', a.detail->>'last_reasons', 'submission', a.detail->'version'),
+    jsonb_build_object('handoff_id', p_id, 'item_key', a.detail->>'item_key'),
+    'ceo_decision_owed:' || (a.detail->>'item_key') || ':g' || coalesce(a.detail->>'generation', '1') || ':after_r' || coalesce(a.detail->>'after_round', '0'));
+  return jsonb_build_object('waiting', 'the CEO replaces or withdraws ' || coalesce(a.detail->>'item_key', '?') || ', with reasons (held question ' || v_held || ')',
+                            'held_id', v_held);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_path_month_result(p_contract bigint, p_month date)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -3937,6 +4154,21 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_reasons_problem(p_reasons text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce(cardinality(w), 0) = 0 then 'no reasons were given'
+    when cardinality(w) < 6 then 'the reasons are ' || cardinality(w) || ' word(s); a decision says why in at least six'
+    when (select count(distinct x) from unnest(w) x) < 4 then 'the reasons repeat the same few words'
+  end
+  from (select regexp_split_to_array(nullif(public.fn_seat_deliberation_norm(p_reasons), ''), ' ') w) s
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_refund_approval_checks_the_process()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -4225,6 +4457,28 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_refund_decline(p_refund_id bigint, p_reasons text, p_trigger text, p_failed jsonb DEFAULT '[]'::jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.refunds; v_dec bigint; v_rev bigint; v_cycle int;
+begin
+  select * into r from public.refunds where id = p_refund_id for update;
+  if not found or r.status <> 'requested' then
+    return jsonb_build_object('ok', false, 'reason', 'refund ' || p_refund_id || ' is ' || coalesce(r.status, 'missing') || ', not an open request');
+  end if;
+  insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, amount_aed, rationale)
+  values ('refund', r.id::text, 'refused', 'ceo', round(r.amount_fils / 100.0, 2), left(p_reasons, 2000)) returning decision_id into v_dec;
+  select coalesce(max(cycle), 0) + 1 into v_cycle from public.refund_ceo_review where refund_id = r.id;
+  insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, decision_id, trigger, sealed)
+  values (r.id, r.transaction_id, v_cycle, 'declined', coalesce(p_failed, '[]'::jsonb), v_dec, p_trigger, true) returning id into v_rev;
+  return jsonb_build_object('ok', true, 'decision_id', v_dec, 'review_id', v_rev, 'cycle', v_cycle,
+                            'refund', public.fn_refund_decide(r.id, false, 'ceo', left(p_reasons, 900)));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_refund_loop_advance(p_refund_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4253,7 +4507,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_refund_loop_sweep()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare a record; v jsonb; n_closed int := 0; n_overdue int := 0; n_raised int := 0; x record;
+declare a record; v jsonb; n_closed int := 0; n_overdue int := 0; n_raised int := 0; x record; l public.ceo_decision_round;
 begin
   for a in select * from public.agent_actions
             where kind = 'handoff' and detail->>'type' = 'refund.remediate' and status = 'pending' order by id loop
@@ -4263,13 +4517,18 @@ begin
       perform public.fn_seat_handoff_complete(a.id, jsonb_build_object('resolved_by', 're-measured', 'checks', a.detail->'checks'));
       n_closed := n_closed + 1;
     elsif now() > (a.detail->>'deadline')::timestamptz and not (a.detail ? 'escalated_at') then
-      update public.agent_actions set detail = detail || jsonb_build_object('escalated_at', now()) where id = a.id;
-      perform public.fn_ceo_founder_summary('Refund task overdue: refund #' || (a.detail->>'refund_id'),
-        'The ' || a.agent || ' has not closed the CEO''s task on refund #' || (a.detail->>'refund_id') || ' (' || (a.detail->>'checks')
-          || ') by its deadline ' || to_char((a.detail->>'deadline')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY')
-          || '. The refund stays blocked. Refunds and supplier charges are ' || case when public.fn_refunds_paused() then 'PAUSED' else 'running' end || '.',
-        'refund_task_overdue:' || a.id);
-      n_overdue := n_overdue + 1;
+      select * into l from public.ceo_decision_round where item_key = 'refunds:' || (a.detail->>'refund_id')
+       order by generation desc, round desc limit 1;
+      -- marked escalated only once the CEO is actually owed the choice (a remediation opened before the ledger has
+      -- no round to decide on; it stays unmarked and the handoff SLA watch keeps it in view)
+      if l.decision = 'rejected' then
+        perform public.fn_ceo_decision_owe('refund', l.item_key, a.agent, l.generation,
+          'left with its remediation undone past the deadline ' || to_char((a.detail->>'deadline')::timestamptz at time zone 'Asia/Dubai', 'DD Mon YYYY')
+            || ' (the ' || a.agent || ' has not closed ' || coalesce(a.detail->>'checks', '?') || ')',
+          l.reasons, l.version);
+        update public.agent_actions set detail = detail || jsonb_build_object('escalated_at', now()) where id = a.id;
+        n_overdue := n_overdue + 1;
+      end if;
     end if;
   end loop;
 
@@ -4320,6 +4579,7 @@ declare
   r public.refunds; v jsonb; v_cycle int; v_nonrem jsonb; v_rev bigint; v_dec bigint; x record; v_task bigint;
   v_tasks jsonb := '[]'::jsonb; v_rat text; v_deadline timestamptz; v_chase int; v_adv jsonb;
   v_wait boolean := false;   -- a check still being reasoned (23 Sep 2026)
+  v_item text := 'refunds:' || p_refund_id; v_ids bigint[] := '{}'; v_cyc jsonb;
 begin
   select * into r from public.refunds where id = p_refund_id for update;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund'); end if;
@@ -4329,7 +4589,6 @@ begin
                and a.detail->>'refund_id' = r.id::text and a.status = 'pending') then
     return jsonb_build_object('ok', false, 'outcome', 'waiting_on_remediation');
   end if;
-
   select coalesce(max(cycle), 0) + 1 into v_cycle from public.refund_ceo_review where refund_id = r.id;
   v := public.fn_ceo_refund_checklist(r.transaction_id, 'approve', true);
 
@@ -4340,43 +4599,56 @@ begin
     values ('refund', r.id::text, 'approved', 'ceo', round(r.amount_fils / 100.0, 2), v_rat) returning decision_id into v_dec;
     update public.refunds set refund_decision_id = v_dec, decided_by = 'ceo', decided_at = now(), decision_note = v_rat where id = r.id;
     insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, decision_id, trigger, sealed)
-    values (r.id, r.transaction_id, v_cycle, 'approved', v_dec, p_trigger, true);
-    return jsonb_build_object('ok', true, 'outcome', 'approved', 'cycle', v_cycle, 'decision_id', v_dec);
+    values (r.id, r.transaction_id, v_cycle, 'approved', v_dec, p_trigger, true) returning id into v_rev;
+    v_cyc := public.fn_ceo_decide('refund', v_item, 'accountant', 'approved', v_rat,
+               jsonb_build_object('refund_id', r.id, 'cycle', v_cycle, 'decision_id', v_dec), 'refund_ceo_review', v_rev::text);
+    return jsonb_build_object('ok', true, 'outcome', 'approved', 'cycle', v_cycle, 'decision_id', v_dec, 'round', v_cyc);
   end if;
 
   select coalesce(jsonb_agg(i), '[]'::jsonb) into v_nonrem from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false);
   if jsonb_array_length(v_nonrem) > 0 then
-    v_rat := 'Declined: ' || (select string_agg((i->>'item') || ' — ' || coalesce(i->>'reason', ''), '; ') from jsonb_array_elements(v_nonrem) i);
-    insert into public.ceo_approval (subject_kind, subject_id, decision, decided_by, amount_aed, rationale)
-    values ('refund', r.id::text, 'refused', 'ceo', round(r.amount_fils / 100.0, 2), left(v_rat, 2000)) returning decision_id into v_dec;
-    insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, decision_id, trigger, sealed)
-    values (r.id, r.transaction_id, v_cycle, 'declined', v->'failed', v_dec, p_trigger, true);
-    perform public.fn_refund_decide(r.id, false, 'ceo', left(v_rat, 900));
-    return jsonb_build_object('ok', true, 'outcome', 'declined', 'cycle', v_cycle, 'reason', v_rat);
+    v_rat := 'Declined, because these checks cannot be fixed and the refund is not paid: '
+          || (select string_agg((i->>'item') || ' — ' || coalesce(i->>'reason', ''), '; ') from jsonb_array_elements(v_nonrem) i);
+    v_adv := public.fn_ceo_refund_decline(r.id, v_rat, p_trigger, v->'failed');
+    v_cyc := public.fn_ceo_decide('refund', v_item, 'accountant', 'withdrawn', left(v_rat, 3000),
+               jsonb_build_object('refund_id', r.id, 'cycle', v_adv->'cycle', 'decision_id', v_adv->'decision_id', 'failed', v->'failed'),
+               'refund_ceo_review', v_adv->>'review_id');
+    return jsonb_build_object('ok', true, 'outcome', 'declined', 'cycle', v_adv->'cycle', 'reason', v_rat, 'round', v_cyc);
   end if;
 
   -- A CHECK THAT IS STILL BEING REASONED IS NOT A FAILURE (23 Sep 2026, founder_instruction 886-903).
   -- Under the model hold the off-platform notes wait in the CEO seat's reasoning queue. Counting that as a
-  -- rejected cycle would hand work to nobody who can do it and, after three cycles, page the founder over a
-  -- question no person needs to answer. So the refund rests, visible, with no cycle spent; the reasoned
-  -- answer re-runs this review (fn_reason_apply_ceo__refund_off_platform).
-  -- Only the unread note fails: the refund rests. Other remediable failures still go to their owners below
-  -- (the day-3 chase, the final call, the amount), but no founder page is raised while reasoning is pending.
+  -- rejected cycle would hand work to nobody who can do it. So the refund rests, visible, with no cycle spent;
+  -- the reasoned answer re-runs this review (fn_reason_apply_ceo__refund_off_platform).
+  -- Only the unread note fails: the refund rests. Other remediable failures still go to their owners below.
   v_wait := exists (select 1 from jsonb_array_elements(v->'failed') i where i->>'kind' = 'needs_reasoning');
   if v_wait and not exists (select 1 from jsonb_array_elements(v->'failed') i where coalesce(i->>'kind', '') <> 'needs_reasoning') then
     return jsonb_build_object('ok', false, 'outcome', 'waiting_on_reasoning',
       'held', (select jsonb_agg(i->'evidence') from jsonb_array_elements(v->'failed') i where i->>'kind' = 'needs_reasoning'));
   end if;
 
-  if v_cycle > 3 and not v_wait then
+  v_rat := 'Cycle ' || v_cycle || ': these checks still fail and go back to the seats that own them: '
+        || (select string_agg((i->>'item') || ' (' || coalesce(i->>'reason', 'no reason recorded') || ')', '; ')
+              from jsonb_array_elements(v->'failed') i where coalesce(i->>'kind', '') <> 'needs_reasoning');
+
+  -- THE LOOP GUARD (founder_instruction 1059), in place of the founder page after three cycles: after 4
+  -- rejections the CEO approves, replaces or withdraws, with reasons. The escalated row records the stop, once:
+  -- while the CEO's choice is owed a re-run answers that and writes nothing. (An approval above is never held by
+  -- it: a refund whose checks now pass is approved, which settles what was owed.)
+  if (public.fn_ceo_decision_next(v_item)->>'rejections')::int >= 4 then
+    -- a check still being reasoned is not a rejection the CEO must act on: the refund rests, as above
+    if v_wait then
+      return jsonb_build_object('ok', false, 'outcome', 'waiting_on_reasoning', 'at_loop_guard', true);
+    end if;
+    if exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.status = 'pending'
+                 and a.detail->>'type' = 'ceo.decision_owed' and a.detail->>'item_key' = v_item) then
+      return jsonb_build_object('ok', false, 'outcome', 'awaiting_ceo_replace_or_withdraw', 'cycle', v_cycle - 1);
+    end if;
     insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, trigger, sealed)
-    values (r.id, r.transaction_id, v_cycle, 'escalated', v->'failed', p_trigger, true);
-    perform public.fn_ceo_founder_summary('Refund approval loop stuck: refund #' || r.id,
-      'The CEO rejected refund #' || r.id || ' three times and these checks still fail: '
-        || (select string_agg((i->>'item') || ' (' || coalesce(i->>'reason', '') || ')', '; ') from jsonb_array_elements(v->'failed') i)
-        || '. No money moves until they pass. Refunds and supplier charges are ' || case when public.fn_refunds_paused() then 'PAUSED' else 'running' end || '.',
-      'refund_loop_stuck:' || r.id);
-    return jsonb_build_object('ok', false, 'outcome', 'escalated', 'cycle', v_cycle);
+    values (r.id, r.transaction_id, v_cycle, 'escalated', v->'failed', p_trigger, true) returning id into v_rev;
+    v_cyc := public.fn_ceo_decide('refund', v_item, 'accountant', 'rejected', v_rat,
+               jsonb_build_object('refund_id', r.id, 'cycle', v_cycle, 'failed', v->'failed'), 'refund_ceo_review', v_rev::text);
+    return jsonb_build_object('ok', false, 'outcome', 'awaiting_ceo_replace_or_withdraw', 'cycle', v_cycle, 'round', v_cyc);
   end if;
 
   insert into public.refund_ceo_review (refund_id, transaction_id, cycle, outcome, failed, trigger)
@@ -4391,10 +4663,13 @@ begin
       jsonb_build_object('refund_id', r.id, 'transaction_id', r.transaction_id, 'cycle', v_cycle, 'review_id', v_rev,
                          'remedy_key', x.rk, 'checks', x.checks, 'items', x.items, 'deadline', v_deadline));
     v_tasks := v_tasks || jsonb_build_object('handoff_id', v_task, 'owner', x.owner, 'checks', x.checks);
+    v_ids := v_ids || v_task;
   end loop;
   update public.refund_ceo_review set sealed = true, tasks = v_tasks where id = v_rev;
+  v_cyc := public.fn_ceo_decide('refund', v_item, 'accountant', 'rejected', v_rat,
+             jsonb_build_object('refund_id', r.id, 'cycle', v_cycle, 'failed', v->'failed', 'tasks', v_tasks), 'refund_ceo_review', v_rev::text, v_ids);
   v_adv := public.fn_ceo_refund_loop_advance(r.id);
-  return jsonb_build_object('ok', false, 'outcome', 'rejected', 'cycle', v_cycle, 'tasks', v_tasks, 'advance', v_adv);
+  return jsonb_build_object('ok', false, 'outcome', 'rejected', 'cycle', v_cycle, 'tasks', v_tasks, 'advance', v_adv, 'round', v_cyc);
 end $function$
 
 
@@ -4573,6 +4848,71 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_review_one_answered_improvement(p_handoff_id bigint)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare h record; v_why text; v_cyc jsonb; v_receipt text;
+begin
+  select a.id, a.agent, a.evidence, a.detail, i.id imp_id, i.status imp_status, i.seat imp_seat, i.task_id, i.done_evidence
+    into h
+    from public.agent_actions a
+    left join public.ceo_improvement i on i.handoff_id = a.id
+   where a.id = p_handoff_id and a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.improvement'
+     and a.detail ? 'replied_at'
+   for update of a;
+  if not found then return jsonb_build_object('reviewed', false); end if;
+  v_why := case
+    when h.imp_status in ('done', 'dropped') then null
+    when coalesce(h.evidence->>'accepted', '') <> 'true' then 'the answer does not accept the improvement'
+    when h.evidence->>'seat' is distinct from h.agent or h.imp_seat is distinct from h.agent then 'answered by a seat other than the one asked'
+    end;
+  -- At the loop guard the CEO owes a replace-or-withdraw: a later answer that deserves it is still approved (which
+  -- settles what was owed), but one that does not is not returned a fifth time.
+  if h.detail ? 'decision_owed' and v_why is not null then
+    return jsonb_build_object('reviewed', false, 'waiting', 'the CEO replaces or withdraws improvement #' || h.imp_id);
+  end if;
+  if h.imp_id is null then
+    -- Nothing to review: no improvement carries it. Returning it (as before) asked the seat to answer nothing, and
+    -- the handler accepts again, for ever; the CEO closes it with that receipt instead.
+    perform set_config('qd.handoff_closer', 'ceo', true);
+    perform public.fn_seat_handoff_complete(h.id, coalesce(h.evidence, '{}'::jsonb) || jsonb_build_object('verified_by', 'ceo', 'reviewed_at', now(),
+      'receipt', 'Closed by the CEO: no ceo_improvement carries this handoff, so there is nothing for the seat to answer.'));
+    perform set_config('qd.handoff_closer', '', true);
+    return jsonb_build_object('reviewed', true, 'closed', true, 'orphan', true);
+  end if;
+  if v_why is null then
+    v_receipt := case when h.imp_status in ('done', 'dropped')
+                      then format('The CEO closes this answer because improvement #%s is already %s: %s', h.imp_id, h.imp_status, coalesce(h.done_evidence, 'no evidence recorded'))
+                      else format('Reviewed by the CEO: %s accepted improvement #%s. The work is tracked on ceo_task #%s and closed by the CEO sweep when its source recovers.',
+                                  h.agent, h.imp_id, coalesce(h.task_id::text, 'none')) end;
+    v_cyc := public.fn_ceo_decide('ceo_improvement', 'ceo_improvement:' || h.imp_id, h.agent, 'approved', v_receipt,
+               jsonb_build_object('improvement_id', h.imp_id, 'handoff_id', h.id, 'answer', left(h.evidence::text, 8000)), 'agent_actions',
+               h.id || ':replied:' || (h.detail->>'replied_at'));
+    perform set_config('qd.handoff_closer', 'ceo', true);
+    perform public.fn_seat_handoff_complete(h.id, h.evidence || jsonb_build_object(
+      'verified_by', 'ceo', 'reviewed_at', now(), 'improvement_id', h.imp_id, 'receipt', v_receipt, 'round', v_cyc));
+    perform set_config('qd.handoff_closer', '', true);
+    return jsonb_build_object('reviewed', true, 'closed', true, 'round', v_cyc);
+  end if;
+  v_cyc := public.fn_ceo_decide('ceo_improvement', 'ceo_improvement:' || h.imp_id, h.agent, 'rejected',
+             'The CEO returned the answer to improvement #' || h.imp_id || ' because ' || v_why,
+             jsonb_build_object('improvement_id', h.imp_id, 'handoff_id', h.id, 'answer', left(h.evidence::text, 8000)), 'agent_actions',
+             h.id || ':replied:' || (h.detail->>'replied_at'), array[h.id]);
+  if coalesce((v_cyc->>'round_limit')::boolean, false) then
+    update public.agent_actions set detail = detail || jsonb_build_object('decision_owed', v_cyc->'decision_owed_handoff') where id = h.id;
+    return jsonb_build_object('reviewed', true, 'decision_owed', v_cyc);
+  end if;
+  update public.agent_actions
+     set detail = (detail - 'replied_at') || jsonb_build_object('returned', jsonb_build_object('at', now(), 'by', 'ceo', 'reason', v_why, 'round', v_cyc))
+   where id = h.id;
+  perform public.fn_seat_handoff_event(h.id, 'returned');
+  return jsonb_build_object('reviewed', true, 'returned', true, 'reason', v_why, 'round', v_cyc);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_review_tells_founder(p_kind text, p_period date, p_event text, p_detail text, p_mail_kind text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -4606,39 +4946,87 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_reviews_answered_improvements()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare h record; n_closed int := 0; n_returned int := 0; v_why text;
+declare h record; v jsonb; n_closed int := 0; n_returned int := 0; n_owed int := 0; v_failed jsonb := '[]'::jsonb;
 begin
-  for h in select a.id, a.agent, a.evidence, i.id imp_id, i.status imp_status, i.seat imp_seat, i.task_id, i.done_evidence
-             from public.agent_actions a
-             left join public.ceo_improvement i on i.handoff_id = a.id
+  for h in select a.id from public.agent_actions a
             where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'ceo.improvement'
               and a.detail ? 'replied_at'
-            order by a.id for update of a loop
-    v_why := case
-      when h.imp_id is null then 'no ceo_improvement carries this handoff'
-      when h.imp_status in ('done', 'dropped') then null
-      when coalesce(h.evidence->>'accepted', '') <> 'true' then 'the answer does not accept the improvement'
-      when h.evidence->>'seat' is distinct from h.agent or h.imp_seat is distinct from h.agent then 'answered by a seat other than the one asked'
-      end;
-    if v_why is null then
-      perform set_config('qd.handoff_closer', 'ceo', true);
-      perform public.fn_seat_handoff_complete(h.id, h.evidence || jsonb_build_object(
-        'verified_by', 'ceo', 'reviewed_at', now(), 'improvement_id', h.imp_id,
-        'receipt', case when h.imp_status in ('done', 'dropped')
-                        then format('Improvement #%s is %s: %s', h.imp_id, h.imp_status, coalesce(h.done_evidence, 'no evidence recorded'))
-                        else format('Reviewed by the CEO: %s accepted improvement #%s. The work is tracked on ceo_task #%s and closed by the CEO sweep when its source recovers.',
-                                    h.agent, h.imp_id, coalesce(h.task_id::text, 'none')) end));
-      perform set_config('qd.handoff_closer', '', true);
-      n_closed := n_closed + 1;
-    else
-      update public.agent_actions
-         set detail = (detail - 'replied_at') || jsonb_build_object('returned', jsonb_build_object('at', now(), 'by', 'ceo', 'reason', v_why))
-       where id = h.id;
-      perform public.fn_seat_handoff_event(h.id, 'returned');
-      n_returned := n_returned + 1;
-    end if;
+            order by a.id loop
+    -- one answer that cannot be decided is reported and left for the next run; it never holds the others back
+    begin
+      v := public.fn_ceo_review_one_answered_improvement(h.id);
+    exception when others then
+      v_failed := v_failed || jsonb_build_object('handoff_id', h.id, 'error', left(sqlerrm, 300));
+      continue;
+    end;
+    n_closed := n_closed + coalesce((v->>'closed')::boolean, false)::int;
+    n_returned := n_returned + coalesce((v->>'returned')::boolean, false)::int;
+    n_owed := n_owed + (v ? 'decision_owed')::int;
   end loop;
-  return jsonb_build_object('closed', n_closed, 'returned', n_returned);
+  return jsonb_build_object('closed', n_closed, 'returned', n_returned, 'decision_owed', n_owed, 'failed', v_failed);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_revision_applies(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; a public.agent_actions; v_choice text; v_f jsonb; v_problem text; v jsonb;
+  d public.seat_deliberation; e public.ceo_experiment; v_model text; v_target numeric; v_days int; v_revised jsonb;
+begin
+  v_choice := public.fn_ambition_choice(p_id, p_result);
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_f := public.fn_ambition_fields(p_result);
+  -- a round the CEO has already left takes no revision (checked first, so a stale answer is never re-reasoned)
+  select * into a from public.agent_actions where id = (r.subject->>'handoff_id')::bigint and kind = 'handoff';
+  if a.id is null or a.status <> 'pending' then
+    return jsonb_build_object('applied', true, 'already', 'the CEO has moved on from this round');
+  end if;
+  -- A revision answers the CEO's reasons; an empty one is not a resubmission and is reasoned again.
+  v_problem := public.fn_ceo_reasons_problem(coalesce(v_f->>'answers', '') || ' ' || coalesce(p_result->>'answer', ''));
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation', message = 'UNANSWERED_REVISION: a revision answers the CEO''s reasons: ' || v_problem;
+  end if;
+  v_model := coalesce((select m.model_id from public.model_registry m where m.model_id = p_result->>'model'), 'deterministic');
+
+  if a.detail->>'path' = 'seat_deliberation' then
+    select * into d from public.seat_deliberation where id = (a.detail->'version'->>'deliberation_id')::bigint;
+    -- a deliberation that has no round left (opened before the five-round rule, or at its cap) cannot take the
+    -- revision: the CEO is owed the choice instead of the seat's answer failing on every retry
+    if d.round >= d.max_rounds then
+      v := jsonb_build_object('decision_owed', public.fn_ceo_decision_owe('seat_deliberation', a.detail->>'item_key', a.agent,
+             coalesce((a.detail->>'generation')::int, 1), 'revised with no round left in its deliberation (' || d.round || ' of ' || d.max_rounds || ')',
+             a.detail->>'reasons', a.detail->'version'));
+      update public.agent_actions set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('resubmitted_at', now(), 'held_id', p_id,
+               'answers', left(coalesce(v_f->>'answers', ''), 3000), 'no_round_left', v) where id = a.id;
+      return jsonb_build_object('applied', true, 'item_key', a.detail->>'item_key', 'resubmission', v);
+    end if;
+    v_revised := d.proposal || jsonb_build_object('revision', coalesce(v_f->>'revision', p_result->>'answer'), 'answers_to_the_ceo', v_f->>'answers',
+                                                  'revision_choice', v_choice, 'revises_round', a.detail->'round');
+    if length(v_revised::text) > 28000 then   -- seat_deliberation.proposal holds 30,000 characters
+      v_revised := jsonb_build_object('previous_proposal_cut', left(d.proposal::text, 6000),
+        'revision', left(coalesce(v_f->>'revision', p_result->>'answer'), 12000), 'answers_to_the_ceo', left(v_f->>'answers', 4000),
+        'revision_choice', v_choice, 'revises_round', a.detail->'round');
+    end if;
+    v := public.fn_seat_deliberation_revise(d.id, v_revised, v_model);
+  elsif a.detail->>'path' = 'ceo_experiment' then
+    select * into e from public.ceo_experiment where id = (a.detail->'version'->>'experiment_id')::bigint;
+    v_target := case when coalesce(v_f->>'target', '') ~ '^-?[0-9]+(\.[0-9]+)?$' then (v_f->>'target')::numeric else e.target end;
+    v_days := case when coalesce(v_f->>'days', '') ~ '^\d{1,3}$' and (v_f->>'days')::int between 7 and 365 then (v_f->>'days')::int else e.days end;
+    v := jsonb_build_object('experiment_id', public.fn_ceo_experiment_propose(e.proposed_by, e.key,
+           coalesce(nullif(btrim(v_f->>'hypothesis'), ''), e.hypothesis), e.metric_key, e.metric_definition, e.baseline, e.baseline_note,
+           v_target, e.direction, coalesce(nullif(btrim(v_f->>'approach'), ''), e.approach), e.starts_on, v_days));
+  else
+    raise exception 'no revision route for a % item (%)', coalesce(a.detail->>'path', '?'), a.detail->>'item_key';
+  end if;
+  update public.agent_actions
+     set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('resubmitted_at', now(), 'held_id', p_id, 'choice', v_choice,
+                      'answers', left(coalesce(v_f->>'answers', ''), 3000), 'model', v_model, 'resubmission', v),
+         detail = detail || jsonb_build_object('awaiting', 'the CEO decides the resubmitted round')
+   where id = a.id;
+  return jsonb_build_object('applied', true, 'item_key', a.detail->>'item_key', 'choice', v_choice, 'resubmission', v);
 end $function$
 
 
