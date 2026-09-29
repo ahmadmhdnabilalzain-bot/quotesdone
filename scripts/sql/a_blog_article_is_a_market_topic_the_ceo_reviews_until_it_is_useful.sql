@@ -357,7 +357,8 @@ begin
   if t.id is null or t.status <> 'picked' then return jsonb_build_object('ok', false, 'error', 'topic_not_open'); end if;
   v_head := lower(concat_ws(' ', p#>>'{en,title}', p#>>'{en,excerpt}', p#>>'{en,meta_desc}',
                                  p#>>'{ar,title}', p#>>'{ar,excerpt}', p#>>'{ar,meta_desc}'));
-  if v_head ~ 'quotes ?done' or v_head ~ 'كوتس ?دن' then
+  -- the brand is written QuotesDone in Latin letters in both languages (docs/marketing/writing_style.md)
+  if v_head ~ 'quotes ?done' then
     return jsonb_build_object('ok', false, 'error', 'about_quotesdone', 'detail', 'a blog is a market topic: its title, excerpt and description do not name QuotesDone');
   end if;
   v_all := lower(concat_ws(' ', p#>>'{en,title}', p#>>'{en,excerpt}', p#>>'{en,meta_desc}', p#>>'{en,body_html}',
