@@ -117,7 +117,7 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
       return { ...out, ok: false, rotated: false, new_ref: nk.sid,
         error: 'storing the new key reported an error and app_secrets could not be read back, so the new key ' + nk.sid + ' was kept, not deleted: ' + why };
     }
-    if (live === "MUTANT") {
+    if (live === nk.sid) {
       return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid, note: 'the store reported an error but committed: ' + why };
     }
     await deleteKey(d, ac, token, nk.sid);
