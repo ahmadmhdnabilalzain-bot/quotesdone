@@ -1,4 +1,5 @@
 -- THREE DUPLICATE INDEXES ARE DROPPED (platform audit 30 Sep 2026, finding L1).
+-- apply-window: off-hours (20:00-08:00 Dubai; release operator, 30 Sep 2026)
 --
 -- Supabase's performance advisor reported duplicate_index x3. Measured the same day from pg_index
 -- and pg_stat_user_indexes; each pair has an identical definition, and neither backs a constraint:
