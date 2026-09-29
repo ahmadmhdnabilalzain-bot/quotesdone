@@ -22,7 +22,7 @@ do $probe$
 declare
   v_tag text := substr(md5(clock_timestamp()::text), 1, 8);
   c1 uuid; c2 uuid; c3 uuid; c4 uuid; l1 bigint; l2 bigint; l3 bigint;
-  v jsonb; v2 jsonb; v_hold bigint; v_n int; v_bad text := '';
+  v jsonb; v2 jsonb; v_hold bigint; v_n int; v_bad text := ''; i_ar uuid; q_ar uuid; t_ref uuid; r_ref bigint;
   v_emails text[];
 begin
   -- a disposable domain that exists only in this transaction; a sign-up on it would be refused, so the customers
@@ -75,6 +75,29 @@ begin
       || coalesce((select jsonb_build_object('status', status, 'evidence', evidence, 'detail', detail)::text from public.agent_actions
                     where kind = 'handoff' and detail->>'type' = 'fraud.money_held' and detail->>'hold_id' = v_hold::text), 'no row') || '; ';
   end if;
+
+  -- 2b. the customer is written in the REQUEST's language (an English-registered customer's Arabic request), and a
+  --     refund row with no inquiry_id takes its transaction's request, so the reference is never blank
+  insert into public.inquiries (customer_id, category, emirate, summary, status, lang, spec, scope_type) values
+    (c1, 'gypsum', 'Dubai', 'ZZ DEMO سقف', 'sent', 'ar', '{}'::jsonb, 'single') returning id into i_ar;
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status) values (i_ar, l1, 1000, 'submitted') returning id into q_ar;
+  v := public.fn_accountant_money_screen('reveal', q_ar::text, c1, l1);
+  v2 := public.fn_customer_support_held_money_message((v->>'hold_id')::bigint, 'fraud.money_held');
+  if v2->>'lang' is distinct from 'ar' or position('QD-' || public.fn_job_no(i_ar) in v2->>'body') = 0 then
+    v_bad := v_bad || 'the held-reveal message is not in the request''s language with its number: ' || left(v2::text, 200) || '; ';
+  end if;
+  insert into public.transactions (customer_id, inquiry_id, reveal_fee, total_charged, fee_status, payment_ref)
+  values (c2, i_ar, 30, 30, 'paid', 'pi_zz_demo_' || v_tag) returning id into t_ref;
+  insert into public.refunds (transaction_id, customer_id, reason_code, requested_by, status, stripe_payment_intent, amount_fils, amount_source)
+  values (t_ref, c2, 'other', 'customer', 'requested', 'pi_zz_demo_' || v_tag, 3000, 'in_platform_request')
+    returning id into r_ref;
+  v := public.fn_accountant_money_screen('refund', r_ref::text, c2, null);
+  v2 := public.fn_customer_support_held_money_message((v->>'hold_id')::bigint, 'fraud.money_held');
+  if not coalesce((v->>'hold')::boolean, false) or v2->>'ref' is distinct from 'QD-' || public.fn_job_no(i_ar)
+     or position('QD-' || public.fn_job_no(i_ar) in v2->>'body') = 0 then
+    v_bad := v_bad || 'a refund with no inquiry_id has no reference: ' || left(v2::text, 200) || '; ';
+  end if;
+  perform public.fn_money_move_hold_release((v->>'hold_id')::bigint, 'ZZ DEMO reviewer', 'ZZ DEMO probe: reference checked');
 
   -- 3. reviewed and closed through the existing fraud workspace door, then released by the duty
   perform public.fn_fraud_resolve('customer', c1::text, 'dismiss', 'ZZ DEMO probe');

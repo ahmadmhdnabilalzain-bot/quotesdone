@@ -371,31 +371,34 @@ revoke execute on function public.fn_money_move_hold_release(bigint, text, text)
 grant execute on function public.fn_money_move_hold_release(bigint, text, text) to service_role;
 
 -- ── 4. customer_support tells the waiting customer ───────────────────────────────────────────────────────
-create or replace function public.fn_customer_support_tells_the_customer_about_held_money(p_id bigint)
+-- The words, apart from the sending, so a probe can read exactly what the customer would be told.
+create or replace function public.fn_customer_support_held_money_message(p_hold_id bigint, p_type text)
 returns jsonb
-language plpgsql security definer
+language plpgsql stable security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  a public.agent_actions; h public.money_move_hold; c public.customers; v_type text; v_ar boolean; v_name text;
-  v_rfq text; v_inq uuid; v_subj text; v_body text; v_res jsonb;
+  h public.money_move_hold; c public.customers; v_type text := p_type; v_ar boolean; v_name text;
+  v_rfq text; v_inq uuid; v_subj text; v_body text;
 begin
-  select * into a from public.agent_actions where id = p_id and kind = 'handoff'
-     and detail->>'type' in ('fraud.money_held', 'fraud.money_released');
-  if not found then raise exception 'fn_customer_support_tells_the_customer_about_held_money: % is not a money-hold handoff', p_id; end if;
-  v_type := a.detail->>'type';
-  select * into h from public.money_move_hold where id = (a.detail->>'hold_id')::bigint;
+  if p_type not in ('fraud.money_held', 'fraud.money_released') then raise exception 'no money-hold message of type %', p_type; end if;
+  select * into h from public.money_move_hold where id = p_hold_id;
   if not found then return jsonb_build_object('not_sent', 'the hold no longer exists'); end if;
   select * into c from public.customers where id = h.customer_id;
   if not found then return jsonb_build_object('not_sent', 'no customer waits on this move'); end if;
   -- The request the customer knows: the quote's request for a reveal, the refund's request for a refund.
+  -- A refund row may carry no inquiry_id: its transaction's request is the one the customer knows, so the
+  -- reference is never blank (re-review of #1110).
   if h.move = 'reveal' then
     select q.inquiry_id into v_inq from public.quotes q where q.id::text = h.ref;
   else
-    select r.inquiry_id into v_inq from public.refunds r where r.id::text = h.ref;
+    select coalesce(r.inquiry_id, t.inquiry_id) into v_inq
+      from public.refunds r left join public.transactions t on t.id = r.transaction_id where r.id::text = h.ref;
   end if;
   if v_inq is not null then v_rfq := 'QD-' || public.fn_job_no(v_inq); end if;
-  v_ar := c.locale = 'ar';
+  -- The request's own language first (founder, 28 Sep 2026: every message about a request is in the language it
+  -- was made in), the registered one otherwise.
+  v_ar := coalesce(public.fn_inquiry_locale(v_inq), c.locale) = 'ar';
   v_name := coalesce(nullif(btrim(c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
 
   if v_type = 'fraud.money_held' and h.move = 'reveal' then
@@ -452,10 +455,28 @@ begin
         || 'Thank you for your patience.' end;
   end if;
 
+  return jsonb_build_object('lang', case when v_ar then 'ar' else 'en' end, 'subject', v_subj, 'body', v_body, 'ref', v_rfq,
+                            'inquiry_id', v_inq, 'customer_id', c.id, 'email', c.email, 'hold_id', h.id, 'move', h.move);
+end $fn$;
+revoke execute on function public.fn_customer_support_held_money_message(bigint, text) from public, anon, authenticated;
+grant execute on function public.fn_customer_support_held_money_message(bigint, text) to service_role;
+
+create or replace function public.fn_customer_support_tells_the_customer_about_held_money(p_id bigint)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare a public.agent_actions; m jsonb; v_res jsonb;
+begin
+  select * into a from public.agent_actions where id = p_id and kind = 'handoff'
+     and detail->>'type' in ('fraud.money_held', 'fraud.money_released');
+  if not found then raise exception 'fn_customer_support_tells_the_customer_about_held_money: % is not a money-hold handoff', p_id; end if;
+  m := public.fn_customer_support_held_money_message((a.detail->>'hold_id')::bigint, a.detail->>'type');
+  if m ? 'not_sent' then return m; end if;
   -- The stage is the handoff type ('fraud.money_held' / 'fraud.money_released'): once per hold, per stage.
-  v_res := public.fn_customer_support_duty_send(v_type, h.id::text, 'customer', c.email,
-    case when v_ar then 'ar' else 'en' end, v_subj, v_body, c.id, null, v_inq);
-  return v_res || jsonb_build_object('hold_id', h.id, 'move', h.move);
+  v_res := public.fn_customer_support_duty_send(a.detail->>'type', m->>'hold_id', 'customer', m->>'email',
+    m->>'lang', m->>'subject', m->>'body', (m->>'customer_id')::uuid, null, (m->>'inquiry_id')::uuid);
+  return v_res || jsonb_build_object('hold_id', (m->>'hold_id')::bigint, 'move', m->>'move', 'lang', m->>'lang', 'ref', m->>'ref');
 end $fn$;
 revoke execute on function public.fn_customer_support_tells_the_customer_about_held_money(bigint) from public, anon, authenticated;
 
@@ -521,8 +542,11 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
   what = excluded.what, owner_file = excluded.owner_file;
 
 -- ── 6. the daily table export ─────────────────────────────────────────────────────────────────────────
--- Redefined from its canonical body (marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, the last
--- definer in MANIFEST.txt on 29 Sep 2026) with only fraud_flags, money_move_hold and free_email_domain added.
+-- Redefined from its canonical body (marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, still the last
+-- definer in MANIFEST.txt on main at 21954b1) PLUS ('inquiry_rescue','inquiry') from #1106
+-- (a_stalled_request_puts_its_trade_and_area_first_in_recruitment_and_tells_the_customer.sql), with only fraud_flags,
+-- money_move_hold and free_email_domain added here. Depends-on: #1106 - apply it first, so inquiry_rescue exists when
+-- this list names it.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
 language sql stable set search_path to 'public', 'pg_temp' as $fn$
@@ -535,7 +559,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('supplier_capability_confirmation','supplier'), ('supplier_collaboration','supplier'), ('supplier_collaboration_event','supplier'),
     ('supplier_negotiation_policy','supplier'), ('supplier_screening_hit','supplier'), ('supplier_lead_intake','supplier'),
     ('doc_reviews','supplier'), ('licence_renewal_ask','supplier'), ('outreach','supplier'), ('company_registration','company'),
-    ('inquiries','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
+    ('inquiries','inquiry'), ('inquiry_rescue','inquiry'), ('inquiry_intake','inquiry'), ('inquiry_matches','inquiry'), ('inquiry_requirement','inquiry'),
     ('inquiry_cancellations','inquiry'), ('inquiry_supplier_brief','inquiry'), ('inquiry_state_audit','inquiry'),
     ('inquiry_gate','inquiry'), ('inquiry_answer','inquiry'), ('inquiry_answer_document','inquiry'), ('inquiry_answer_scope','inquiry'),
     ('inquiry_workstream','inquiry'), ('inquiry_workstream_group','inquiry'), ('inquiry_workstream_requirement','inquiry'),
