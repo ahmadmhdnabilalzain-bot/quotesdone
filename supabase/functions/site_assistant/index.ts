@@ -30,6 +30,9 @@ import { precedentBlock, recallCases } from '../_shared/case_recall.ts';
 import { priceGuidanceFor } from '../_shared/reasoned_suppliers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
+import { logParty, widgetReplyEffects } from '../_shared/widget_reply_effects.ts';
+import { supportReply, type Channel } from '../_shared/support_reply.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
@@ -290,6 +293,39 @@ Deno.serve(observe('site_assistant', async (req) => {
     // the FAQ whose QUESTION is that question, in the asker's language, before any other retrieval
     // and before the gateway — the gateway's level0 shortcut is what matched "what does it cost" to
     // the company overview. A per-trade price question is not routed here; the price guide owns it.
+    //
+    // EVERY EXIT FILES THE SAME TWO SIDE EFFECTS (review of #1043): the knowledge gap when company knowledge could
+    // not source the answer, and the CEO's visibility report when the visitor asked for a person. They live in
+    // widget_reply_effects.ts and EVERY exit below files them through fileEffects: the capability answer and the FAQ
+    // answer (grounded), the missing-credential exit (not grounded), the composed reply and the canned road.
+    // widget_reply_effects.test.ts fails if any exit does not.
+    //
+    // ASKING FOR A PERSON IS READ FROM WHAT THEY ASKED, NOT FROM WHAT WE REPLIED. This is the same
+    // matter wa_inbound already reports (its "A customer asked to speak to a person" branch), and it
+    // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
+    // published number we gave them is real and answered — it is printed on /contact/. The
+    // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
+    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
+    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
+    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
+    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
+    const rpc = (fn: string, args: Record<string, unknown>) => admin.rpc(fn, args);
+    const askedForAPerson = async () => {
+      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
+      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
+      const hour = new Date().toISOString().slice(0, 13);
+      return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
+        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
+        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
+      })).value;
+    };
+    const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string }) => {
+      const fx = await widgetReplyEffects(rpc, { message, live: !!live, ip, path, askedForAPerson, ...o });
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(fx.person);
+      return fx;
+    };
     // How big are we (instruction 777, 22 Sep 2026): what we do, never a number. Measured before this:
     // "how many suppliers do you have" took the count route to FAQ 13 ("How many suppliers receive my
     // RFQ?") — no count, but not the question asked; "how big are you" reached the model.
@@ -298,12 +334,16 @@ Deno.serve(observe('site_assistant', async (req) => {
     // CUS_RE, the tok() FAQ scoring and the one-shared-word passage gate. Held (the model hold), nothing is guessed
     // and nothing is queued (an anonymous visitor cannot be answered later): the gateway, the price guide, or a
     // recorded knowledge gap (fn_support_knowledge_gap) answers.
-    const wm = await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
+    // 781 (28 Sep 2026): while a model can answer, NO stored answer is chosen here — the reply is composed below
+    // (supportReply). This canned road runs only under the hold or with the gateway down.
+    const reasoningOpen = !(await modelHeld(admin));
+    const wm = reasoningOpen ? { question: null as string | null, side: null } : await widgetMeaning(defaultDeps(admin, 'site_assistant'), { message, conversation: blob, passages: packRows, askSide });
     const asked = wm.question;
     if (wm.side) { audience = wm.side; source = 'text'; }
     if (asked === 'size') {
       const reply = capabilityStatement(langOf(message, uiLang));
-      try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+      await fileEffects({ grounded: true, answered: true, refusal: '' });
+      try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: null, audience: logParty(who, audience, source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
       return J({ reply, scope: live ? audience : 'public', routed: 'capability' });
     }
     {
@@ -311,7 +351,8 @@ Deno.serve(observe('site_assistant', async (req) => {
       const faq = pickFaq(qType, langOf(message, uiLang), (faqs || []) as FaqRow[], audience);
       if (faq) {
         const reply = guardSupportReply(String(faq.answer || '').trim(), langOf(message, uiLang)).text;
-        try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        await fileEffects({ grounded: true, answered: true, refusal: '' });
+        try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [faq.id], seat: seatForSurface, answered: true, gap_task_id: null, audience: logParty(who, audience, source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
         return J({ reply, scope: live ? audience : 'public', routed: qType, faq_id: faq.id });
       }
     }
@@ -319,7 +360,12 @@ Deno.serve(observe('site_assistant', async (req) => {
     // must never take away an answer that needs no model (measured 21 Sep 2026: the common questions
     // were refused with circuit_open because they reached ai_gateway at all).
     const key = await sec('cred_fn_ai');
-    if (!key) return J({ reply: 'For help, please call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.' });
+    if (!key) {
+      const reply = 'For help, please call or WhatsApp +971 50 931 9355 (Mon-Fri, 9am-6pm GST) or email management@quotesdone.com.';
+      const fx = await fileEffects({ grounded: false, answered: false, refusal: 'no_model_credential' });
+      try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: [], seat: seatForSurface, answered: false, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+      return J({ reply });
+    }
     // The model's context is the retrieved pack (FAQ + support pack + operations knowledge, by fn_support_corpus_search)
     // — no longer the FAQs that shared the most tokens with the question.
     const chosen = asked?.startsWith('kb:') ? packRows[Number(asked.slice(3))] ?? null : null;
@@ -358,6 +404,26 @@ Deno.serve(observe('site_assistant', async (req) => {
     }
 
     const ctx = [packCtx, priceCtx].filter(Boolean).join('\n\n');
+
+    // ── THE REPLY IS COMPOSED BY REASONING (founder instruction 781, 28 Sep 2026, customer_support) ──
+    // The retrieved pack is the narrowed topic; the company block, the published facts, the price bands and
+    // the caller's own record are the facts. Only when no model can answer does the road below run.
+
+    if (reasoningOpen) {
+      const ch = ['whatsapp', 'email', 'portal'].includes(String(b.channel)) ? b.channel as Channel : 'widget';
+      const sr = await supportReply(defaultDeps(admin, 'site_assistant'), {
+        channel: ch, message, lang: langOf(message, uiLang), audience: audience === 'unknown' ? 'visitor' : audience,
+        seat: seatForSurface === 'sales_engineer' ? 'sales_engineer' : 'customer_support', passages: packRows,
+        conversation: history.map((h: any) => ({ role: h.role === 'assistant' ? 'seat' : (audience === 'supplier' ? 'supplier' : 'customer'), text: h.content })),
+        profile: live ?? undefined,
+        facts: [companyBlock, FACTS_SHARED, audience !== 'supplier' ? FACTS_CUSTOMER : '', audience !== 'customer' ? FACTS_SUPPLIER : '', priceCtx, timelineBlock].filter(Boolean).join('\n\n'),
+      }, () => Promise.resolve(null));
+      if (sr.path === 'reasoned' && sr.reply) {
+        const fx = await fileEffects({ grounded: sr.grounded, answered: true, refusal: 'reasoned_without_company_knowledge' });
+        try { await admin.from('assistant_logs').insert({ message, reply: sr.reply, matched_ids: [], seat: seatForSurface, answered: true, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+        return J({ reply: sr.reply, scope: live ? audience : 'public', routed: 'reasoned', routed_seat: sr.seat });
+      }
+    }
 
     const audienceBlock = audience === 'supplier'
       ? `AUDIENCE: this visitor is on a SUPPLIER page${path ? ' (' + path + ')' : ''} or is writing as a supplier. Treat them as a SUPPLIER.`
@@ -581,20 +647,10 @@ Deno.serve(observe('site_assistant', async (req) => {
     // A refusal now records a KNOWLEDGE GAP, the same mechanism the founder already accepted on the
     // sales side: the question is kept word for word, counted, and owned by an org_tasks row. That
     // is a corpus that improves, which is the only thing that actually helps the next person to ask.
-    let gapTaskId: number | null = null;
-    if (!reply && !live) {
-      const ar = /[؀-ۿ]/.test(message) || uiLang === 'ar';
-      try {
-        const { data: g } = await admin.rpc('fn_support_knowledge_gap', {
-          p_question: message, p_refusal: errText || 'no_grounded_answer', p_surface: 'website_widget',
-        });
-        const gg = g as Record<string, unknown> | null;
-        if (gg && gg.ok === true) {
-          gapTaskId = (gg.task_id as number) ?? null;
-          reply = String((ar ? gg.reply_ar : gg.reply_en) || '');
-        }
-      } catch (_e) { /* the visitor still gets the fallback below; a log write must not eat the turn */ }
-    }
+    // The person report (widget_reply_effects.ts) is started here too, beside the reply, never in its way.
+    const fx = await fileEffects({ grounded: !!reply, answered, refusal: errText || 'no_grounded_answer' });
+    const gapTaskId = fx.gapTaskId;
+    if (!reply && fx.gapReply) reply = (/[؀-ۿ]/.test(message) || uiLang === 'ar') ? fx.gapReply.ar : fx.gapReply.en;
     // An Arabic visitor used to get this last fallback in English only (instruction 586 review).
     if (!reply && (/[؀-ۿ]/.test(message) || uiLang === 'ar')) reply = live
       ? 'تعذّر عليّ قراءة بيانات حسابك في هذه اللحظة بسبب خلل من جهتنا. يُرجى إعادة السؤال بعد قليل، وإن تكرر ذلك فتواصل معنا اتصالًا أو عبر واتساب على +971 50 931 9355 (من الاثنين إلى الجمعة، 9 صباحًا حتى 6 مساءً بتوقيت الخليج)، أو راسلنا على management@quotesdone.com.'
@@ -609,39 +665,7 @@ Deno.serve(observe('site_assistant', async (req) => {
     reply = guarded.text;
     reply = reply.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/(^|\s)\*([^*\n]+)\*/g, '$1$2').replace(/^\s*[-*•]\s+/gm, '').replace(/^#{1,6}\s+/gm, '');
 
-    // ASKING FOR A PERSON IS READ FROM WHAT THEY ASKED, NOT FROM WHAT WE REPLIED. This is the same
-    // matter wa_inbound already reports (its "A customer asked to speak to a person" branch), and it
-    // goes to the same place: the CEO, for visibility. Nobody is paged, nothing is promised, and the
-    // published number we gave them is real and answered — it is printed on /contact/. The
-    // idempotency key buckets by caller and hour so a visitor repeating themselves files ONE report.
-    // 23 Sep 2026 (founder_instruction 886-903): whether they asked is REASONED (think(), decision point
-    // site_assistant.person), no longer a 'speak to a person' regex. It runs beside the reply, never in its
-    // way (EdgeRuntime.waitUntil). Held: the reply they got already carries the public contact whenever a
-    // person is asked for; the report is filed by the replay (reasoned_delivery.ts) once it is reasoned.
-    const hour = new Date().toISOString().slice(0, 13);
-    const personWork = (async () => {
-      // One held question per MESSAGE (not per hour), so a later "can I speak to someone" is never swallowed as a duplicate.
-      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
-      const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
-      const person = await needsAPerson(defaultDeps(admin, 'site_assistant'), {
-        seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
-        dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
-      });
-      if (person.value !== true) return;
-      await admin.rpc('fn_support_report_to_ceo', {
-        p_idempotency_key: 'widget:person:' + ip + ':' + hour,
-        p_severity: 'routine',
-        p_subject: 'A website visitor asked to speak to a person and was given the public contact',
-        p_evidence: { surface: 'website_widget', path, message: message.slice(0, 300), answered, number_given: true },
-        p_attempted: ['answered from company knowledge', 'shared the approved public contact'],
-        p_requested: 'Visibility only. There is no escalation to a human and nothing is waiting on this.',
-        p_source_agent: 'customer_support',
-      });
-    })().catch(() => { /* the visitor already has their answer; visibility must not block it */ });
-    // deno-lint-ignore no-explicit-any
-    (globalThis as any).EdgeRuntime?.waitUntil?.(personWork);
-
-    try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: who ? who.audience + ':' + who.id : audience + (source==='none' ? '' : ':' + source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
+    try { await admin.from('assistant_logs').insert({ message, reply, matched_ids: matchedIds, seat: seatForSurface, answered, gap_task_id: gapTaskId, audience: logParty(who, audience, source), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) }); } catch(_e){}
     // scope lets the portal say "answering from your account" instead of leaving the customer to
     // wonder whether it can see them - which is the thing that made it feel like a stranger.
     return J({ reply, scope: live ? audience : 'public' });
