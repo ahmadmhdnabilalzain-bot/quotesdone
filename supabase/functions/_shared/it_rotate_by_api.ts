@@ -87,12 +87,17 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   const nk = (await cr.json().catch(() => ({}))) as { sid?: string; secret?: string };
   if (!cr.ok || !nk.sid || !nk.secret) return { ...out, ok: false, rotated: false, error: 'Twilio did not create a key (HTTP ' + cr.status + ')' };
 
-  // A new key can take a moment to propagate: three tries, two seconds apart.
+  // PROVE THE NEW KEY on a call a Standard API key is allowed to make. GET /Accounts/{AC}.json answers a Standard
+  // key with 401/20003 (only the auth token or a Main key may read the account resource), so proving the key there
+  // refused every good key and deleted it (review of #1038, 29 Sep 2026). /Accounts/{AC}/Balance.json is the call
+  // _shared/it_duty_readings.ts already makes with this very key in production. A new key can take a moment to
+  // propagate: three tries, two seconds apart.
   let works = false;
   for (let i = 0; i < 3 && !works; i++) {
     if (i) await sleep(2000);
     const v = await d.fetch(`${API}${ac}.json`, { method: 'GET', headers: { Authorization: basic(nk.sid, nk.secret) } });
     works = v.ok;
+    await v.body?.cancel().catch(() => {});
   }
   if (!works) {
     await deleteKey(d, ac, token, nk.sid);
@@ -105,4 +110,19 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
     return { ...out, ok: false, rotated: false, error: 'the new key could not be stored, so it was deleted and the old key kept: ' + String((e as Error)?.message || e).slice(0, 200) };
   }
   return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid };
+}
+
+// THE STEP, SETTLED (review of #1038). A failed rotation used to come back only in the heartbeat's step output, which
+// raises nothing: the duty would have retried daily with nobody told. Every run now settles duty 'rotate_by_api'
+// through fn_it_duty_settle - a failure (returned or thrown) is an open finding duty:rotate_by_api:twilio, and the
+// next run that does not fail closes it. The evidence carries key SIDs at most, never a secret.
+export async function rotateAndSettle(d: RotateDeps): Promise<Record<string, unknown>> {
+  let r: Record<string, unknown>;
+  try { r = await rotateTwilioKey(d); } catch (e) { r = { ok: false, rotated: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
+  const items = r.ok === false ? [{
+    item: 'twilio', owner_seat: 'it_engineer', subject: 'twilio_api_key', blast: 'security', affected: 1,
+    title: 'The Twilio API key rotation failed: ' + String(r.error ?? 'no reason given').slice(0, 200),
+    evidence: { error: r.error ?? null, rotated: r.rotated ?? false, retired: r.retired ?? [] },
+  }] : [];
+  return { ...r, settle: await d.rpc('fn_it_duty_settle', { p_duty: 'rotate_by_api', p_items: items }) };
 }

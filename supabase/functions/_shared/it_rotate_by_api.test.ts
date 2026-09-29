@@ -4,7 +4,7 @@
 // The rule under test: the old key is never left without a working replacement, the key in use is never deleted,
 // the first run never rotates (it records when the current key was created), and no secret leaves the module.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { rotateTwilioKey, type RotateDeps } from './it_rotate_by_api.ts';
+import { rotateAndSettle, rotateTwilioKey, type RotateDeps } from './it_rotate_by_api.ts';
 
 const SECRET = 'new-secret-value-never-returned';
 function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
@@ -27,7 +27,15 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; base
       if (url.endsWith('/Keys/SKold.json')) {
         return new Response(JSON.stringify(o.keyCreated === null ? {} : { sid: 'SKold', date_created: o.keyCreated ?? 'Thu, 25 Jun 2026 19:05:32 +0000' }), { status: 200 });
       }
-      return new Response('{}', { status: o.verifyOk === false ? 401 : 200 });
+      // TWILIO AS IT ANSWERS (review of #1038): a Standard API key (user SK...) may read the balance but NOT the
+      // account resource, which answers 401 / code 20003 - the mock used to say 200 to any GET and hid that.
+      const user = atob(String((init.headers as Record<string, string>)?.Authorization ?? '').replace(/^Basic /, '')).split(':')[0];
+      const denied = new Response(JSON.stringify({ code: 20003, message: 'Authenticate', status: 401 }), { status: 401 });
+      if (user.startsWith('SK') && /\/Accounts\/AC1\.json$/.test(url)) return denied;
+      if (/\/Accounts\/AC1\/Balance\.json$/.test(url)) {
+        return o.verifyOk === false ? denied : new Response(JSON.stringify({ balance: '12.34', currency: 'USD' }), { status: 200 });
+      }
+      return new Response('{}', { status: 404 });
     },
   };
   return { d, calls, rpcs };
@@ -90,4 +98,35 @@ Deno.test('a retire row that names the key in use never deletes it', async () =>
   assertEquals(r.ok, false); assertEquals(r.retired, []);
   assert(!calls.some((c) => c.startsWith('DELETE')));
   assert(!rpcs.some(([f]) => f === 'fn_it_provider_rotation_retired'));
+});
+
+Deno.test('the new key is proved on Balance.json, the call a Standard key may make', async () => {
+  const { d, calls } = deps();
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.rotated, true);
+  assert(calls.includes('GET https://api.twilio.com/2010-04-01/Accounts/AC1/Balance.json'));
+  assert(!calls.includes('GET https://api.twilio.com/2010-04-01/Accounts/AC1.json'), 'a Standard key is refused 20003 there');
+});
+
+Deno.test('a failed rotation is settled as an open finding, and a clean run settles it closed', async () => {
+  const bad = deps({ verifyOk: false });
+  const r = await rotateAndSettle(bad.d);
+  assertEquals(r.ok, false);
+  const s = bad.rpcs.find(([f]) => f === 'fn_it_duty_settle')!;
+  assertEquals(s[1]?.p_duty, 'rotate_by_api');
+  const items = s[1]?.p_items as { item: string; title: string }[];
+  assertEquals(items.length, 1); assertEquals(items[0].item, 'twilio');
+  assert(!JSON.stringify(s[1]).includes(SECRET), 'no secret reaches the finding');
+
+  const good = deps();
+  await rotateAndSettle(good.d);
+  assertEquals(good.rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items, []);
+});
+
+Deno.test('a thrown step is settled too, never lost', async () => {
+  const { d, rpcs } = deps();
+  const boom: RotateDeps = { ...d, sec: async () => { throw new Error('app_secrets unreachable'); } };
+  const r = await rotateAndSettle(boom);
+  assertEquals(r.ok, false);
+  assertEquals((rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items as unknown[]).length, 1);
 });
