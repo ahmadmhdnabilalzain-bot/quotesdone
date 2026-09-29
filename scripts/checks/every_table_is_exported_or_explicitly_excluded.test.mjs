@@ -116,7 +116,7 @@ test('self-test: a pending create table that nobody registered is caught, and a 
   assert.deepEqual(unaccounted(tables, REG), ['zz_probe_t']);
   const rows = registryRowsIn("-- insert into public.table_export_registry values ('zz_commented', true, 'x', 'a commented row', 'me') on conflict\n"
     + "insert into public.table_export_registry (table_name, exported, category, reason, added_by) values\n"
-    + "  ('zz_probe_t', true, 'supplier', 'the CEO''s probe (a test)', 'it_engineer')\non conflict (table_name) do nothing;");
-  assert.deepEqual(rows.map((r) => [r.table, r.reason]), [['zz_probe_t', "the CEO's probe (a test)"]]);
+    + "  ('zz_probe_t', true, 'supplier', 'the CEO''s probe -- a test', 'it_engineer') -- a real comment\non conflict (table_name) do nothing;");
+  assert.deepEqual(rows.map((r) => [r.table, r.reason]), [['zz_probe_t', "the CEO's probe -- a test"]]);
   assert.deepEqual(unaccounted(tables, new Map([...REG, ['zz_probe_t', rows[0]]])), []);
 });

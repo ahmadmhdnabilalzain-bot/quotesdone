@@ -14,7 +14,11 @@ import { manifestWithPending } from './pending_sql.mjs';
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 export const EXCLUSION_CATEGORIES = ['secret', 'cache', 'log', 'measurement', 'fixture', 'no_writer'];
 
-const stripComments = (sql) => sql.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+// A `--` inside a quoted reason is text, not a comment: cut only at a `--` with an even number of quotes before it.
+const stripComments = (sql) => sql.split('\n').map((l) => {
+  for (let i = l.indexOf('--'); i >= 0; i = l.indexOf('--', i + 2)) if ((l.slice(0, i).split("'").length - 1) % 2 === 0) return l.slice(0, i);
+  return l;
+}).join('\n');
 const ROW = /\(\s*'([a-z0-9_]+)'\s*,\s*(true|false)\s*,\s*'((?:[^']|'')*)'\s*,\s*'((?:[^']|'')*)'\s*,\s*'((?:[^']|'')*)'\s*\)/g;
 
 // Rows one SQL text registers, in order: [{table, exported, category, reason, added_by}].
