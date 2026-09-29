@@ -180,3 +180,13 @@ test('a lock error is retried only when safe; any other error stops at once', as
   assert.equal(r.ok, true);
   assert.equal(isOneTransaction('-- commit; in a comment\ncreate table y();'), true);
 });
+
+test('no retry for a file with a statement that cannot run inside a transaction', async () => {
+  const { isOneTransaction } = await import('./release_train.mjs');
+  assert.equal(isOneTransaction('create index concurrently i on t(a);'), false);
+  assert.equal(isOneTransaction('vacuum analyze t;'), false);
+  assert.equal(isOneTransaction("alter system set work_mem = '64MB';"), false);
+  assert.equal(isOneTransaction("alter type public.k add value 'x';"), false);
+  assert.equal(isOneTransaction('create or replace function public.f() returns int language sql as $$select 1$$;\ncreate index i on t(a);'), true);
+  assert.equal(isOneTransaction('-- create index concurrently in a comment\ncreate table y();'), true);
+});

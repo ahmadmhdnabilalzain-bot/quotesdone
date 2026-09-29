@@ -186,7 +186,10 @@ export function refusal(pr, { depState = () => 'MERGED', campaign = false, offHo
 export const RETRYABLE = /\b(40P01|55P03)\b/;
 export function isOneTransaction(sqlText = '') {
   const code = sqlText.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
-  return !/^\s*(begin|commit|start\s+transaction|rollback)\s*;/im.test(code);
+  if (/^\s*(begin|commit|start\s+transaction|rollback)\s*;/im.test(code)) return false;
+  // Statements that cannot run inside a transaction block, or commit on their own: a failure around them
+  // is not a clean rollback, so no retry (coordinator, 29 Sep 2026).
+  return !/\bconcurrently\b|\bvacuum\b|\balter\s+system\b|\balter\s+type\b[\s\S]*?\badd\s+value\b|\bcreate\s+database\b|\bdrop\s+database\b|\breindex\b[\s\S]*?\bconcurrently\b/i.test(code);
 }
 export function routinesIn(sqlText = '') {
   return [...new Set([...sqlText.matchAll(/create\s+or\s+replace\s+function\s+public\.(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase()))];
