@@ -1,4 +1,0 @@
-Not applied: built by an it_engineer agent restricted to read-only production access (28 Sep 2026). Guards pass on a dry run and
-scripts/checks/the_backups_are_held_to_a_stated_rpo_and_rto.test.mjs exercises both routines inside a rolled-back transaction.
-Moves when the release queue applies it with --apply --ddl; then delete this note and append the file to the END of MANIFEST.txt.
-Seat: it_engineer.

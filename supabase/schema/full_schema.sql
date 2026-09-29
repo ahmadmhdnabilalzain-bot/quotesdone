@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T03:44:52.732Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T03:46:44.639Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -46147,6 +46147,185 @@ end
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_backup_objectives()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_rpo numeric := coalesce(public.fn_it_threshold('backup_rpo_hours'), 26);
+  v_rto numeric := coalesce(public.fn_it_threshold('backup_rto_hours'), 4);
+  v_every int := coalesce(public.fn_it_threshold('restore_drill_every_days'), 7)::int;
+  v_newest timestamptz; v_age_h numeric; v_gap_h numeric;
+  v_pass public.it_restore_drill_result; v_last public.it_restore_drill_result; v_pick timestamptz; v_rto_s numeric;
+  v_items jsonb := '[]'::jsonb;
+begin
+  -- RPO: hours since the newest finished export, and the widest gap between finished exports in 7 days
+  select max(finished_at) into v_newest from public.table_export_run where status = 'done';
+  v_age_h := round((extract(epoch from now() - v_newest) / 3600)::numeric, 1);
+  select round(max(extract(epoch from g) / 3600)::numeric, 1) into v_gap_h from (
+    select finished_at - lag(finished_at) over (order by finished_at) g
+      from public.table_export_run where status = 'done' and finished_at > now() - interval '7 days') x;
+  if v_newest is null or v_age_h > v_rpo or coalesce(v_gap_h, 0) > v_rpo then
+    v_items := v_items || jsonb_build_object('item', 'rpo', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', case when v_newest is null then 'No finished table export exists, so the ' || v_rpo || ' h RPO cannot be met'
+               else 'Achieved RPO ' || greatest(v_age_h, coalesce(v_gap_h, 0)) || ' h is over the ' || v_rpo || ' h target' end,
+      'evidence', jsonb_build_object('newest_export_finished_at', v_newest, 'hours_since', v_age_h,
+                                     'widest_gap_7d_hours', v_gap_h, 'target_hours', v_rpo));
+  end if;
+
+  -- RTO: the last drill that restored rows and passed, timed from its pick to its record
+  select * into v_last from public.it_restore_drill_result order by id desc limit 1;
+  select * into v_pass from public.it_restore_drill_result
+   where ok and coalesce((detail->>'restored')::int, 0) > 0 order by id desc limit 1;
+  if v_pass.id is not null then
+    select max(started_at) into v_pick from public.agent_runs
+     where agent = 'it_engineer' and counts->>'job' = 'restore_table_pick' and started_at <= v_pass.ran_at;
+    v_rto_s := round(extract(epoch from v_pass.ran_at - v_pick)::numeric, 1);
+  end if;
+  if v_pass.id is null or v_pass.ran_at < now() - make_interval(days => v_every + 2) then
+    v_items := v_items || jsonb_build_object('item', 'rto_unproven', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'No restore drill has restored rows and passed in the last ' || (v_every + 2) || ' days'
+               || coalesce(' (last pass ' || to_char(v_pass.ran_at at time zone 'Asia/Dubai', 'DD Mon') || ')', ' (none ever)')
+               || ', so the ' || v_rto || ' h RTO is unproven',
+      'evidence', jsonb_build_object('last_pass_id', v_pass.id, 'last_pass_at', v_pass.ran_at,
+                                     'last_drill_id', v_last.id, 'last_drill_at', v_last.ran_at, 'last_drill_ok', v_last.ok));
+  elsif v_rto_s is not null and v_rto_s > v_rto * 3600 then
+    v_items := v_items || jsonb_build_object('item', 'rto', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'The restore drill took ' || v_rto_s || ' s, over the ' || v_rto || ' h RTO',
+      'evidence', jsonb_build_object('drill_id', v_pass.id, 'seconds', v_rto_s, 'target_hours', v_rto));
+  end if;
+  if v_last.id is null or v_last.ran_at < now() - make_interval(days => v_every + 2) then
+    v_items := v_items || jsonb_build_object('item', 'drill_stale', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'The weekly restore drill has not run for ' || coalesce(extract(day from now() - v_last.ran_at)::int || ' days', 'ever'),
+      'evidence', jsonb_build_object('last_drill_at', v_last.ran_at, 'every_days', v_every,
+                                     'look_at', 'resilience_ping restore_table step; fn_it_restore_table_due'));
+  end if;
+
+  return jsonb_build_object('rpo', jsonb_build_object('target_hours', v_rpo, 'hours_since_export', v_age_h, 'widest_gap_7d_hours', v_gap_h),
+                            'rto', jsonb_build_object('target_hours', v_rto, 'last_pass_id', v_pass.id, 'sample_restore_seconds', v_rto_s),
+                            'drill', jsonb_build_object('last_id', v_last.id, 'last_at', v_last.ran_at, 'every_days', v_every),
+                            'settled', public.fn_it_duty_settle('backup_objectives', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_capacity_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_warn numeric := coalesce(public.fn_it_threshold('cap_warn_ratio'), 0.8);
+  v_db bigint := pg_database_size(current_database());
+  v_db_cap numeric := public.fn_it_threshold('db_disk_limit_bytes');
+  v_st bigint; v_st_cap numeric := public.fn_it_threshold('cap_supabase_storage_bytes');
+  v_items jsonb := '[]'::jsonb;
+begin
+  select coalesce(sum((metadata->>'size')::bigint), 0) into v_st from storage.objects;
+  if v_db_cap is null or v_db > v_db_cap * v_warn then
+    v_items := v_items || jsonb_build_object('item', 'database', 'owner_seat', 'it_engineer', 'subject', 'capacity',
+      'config', v_db_cap is null,
+      'title', case when v_db_cap is null then 'No database size cap is recorded (it_threshold db_disk_limit_bytes)'
+               else 'The database is ' || round(v_db / 1e9, 2) || ' GB, ' || round(100.0 * v_db / v_db_cap) || '% of its cap' end,
+      'evidence', jsonb_build_object('bytes', v_db, 'cap_bytes', v_db_cap, 'warn_ratio', v_warn));
+  end if;
+  if v_st_cap is null or v_st > v_st_cap * v_warn then
+    v_items := v_items || jsonb_build_object('item', 'storage', 'owner_seat', 'it_engineer', 'subject', 'capacity',
+      'config', v_st_cap is null,
+      'title', case when v_st_cap is null then 'No storage cap is recorded (it_threshold cap_supabase_storage_bytes)'
+               else 'Storage holds ' || round(v_st / 1e9, 2) || ' GB, ' || round(100.0 * v_st / v_st_cap) || '% of its cap' end,
+      'evidence', jsonb_build_object('bytes', v_st, 'cap_bytes', v_st_cap, 'warn_ratio', v_warn));
+  end if;
+  return jsonb_build_object('db_bytes', v_db, 'db_cap', v_db_cap, 'storage_bytes', v_st, 'storage_cap', v_st_cap,
+                            'settled', public.fn_it_duty_settle('capacity_review', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_code_health()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_unpinned text[]; v_nopolicy text[]; v_failing text[]; v_items jsonb := '[]'::jsonb;
+begin
+  select coalesce(array_agg(p.oid::regprocedure::text order by 1), '{}') into v_unpinned
+    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+   where n.nspname = 'public' and p.prosecdef
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c like 'search\_path=%');
+  select coalesce(array_agg(c.relname::text order by 1), '{}') into v_nopolicy
+    from pg_class c join pg_namespace n on n.oid = c.relnamespace
+   where n.nspname = 'public' and c.relkind = 'r' and c.relrowsecurity
+     and not exists (select 1 from pg_policy pol where pol.polrelid = c.oid);
+  select coalesce(array_agg(duty order by duty), '{}') into v_failing
+    from public.seat_duty where enabled and failures >= 3;
+  if cardinality(v_unpinned) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'search_path', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_unpinned) || ' SECURITY DEFINER routine(s) in public have no pinned search_path',
+      'evidence', jsonb_build_object('routines', to_jsonb(v_unpinned)));
+  end if;
+  if cardinality(v_nopolicy) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'rls_no_policy', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_nopolicy) || ' public table(s) have RLS on and no policy',
+      'evidence', jsonb_build_object('tables', to_jsonb(v_nopolicy)));
+  end if;
+  if cardinality(v_failing) > 0 then
+    v_items := v_items || jsonb_build_object('item', 'failing_duties', 'owner_seat', 'it_engineer', 'subject', 'code_health',
+      'title', cardinality(v_failing) || ' seat duty(ies) have failed 3 or more times in a row',
+      'evidence', jsonb_build_object('duties', to_jsonb(v_failing)));
+  end if;
+  return jsonb_build_object('unpinned', cardinality(v_unpinned), 'rls_no_policy', cardinality(v_nopolicy),
+                            'failing_duties', cardinality(v_failing), 'settled', public.fn_it_duty_settle('code_health', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_credential_rotation_age()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_days int := coalesce(public.fn_it_threshold('credential_rotate_days'), 90)::int;
+  v_grace int := 7; c record; v_items jsonb := '[]'::jsonb; n_over int := 0; n_unrec int := 0;
+begin
+  for c in
+    select ic.id, ic.context, coalesce(ic.rotated_at, ic.created_at) since
+      from public.internal_credential ic
+     where ic.active and ic.retired_at is null
+       and coalesce(ic.rotated_at, ic.created_at) < now() - make_interval(days => v_days + v_grace)
+       and not exists (select 1 from public.it_credential_rotation r where r.context = ic.context and r.status in ('overlap', 'held'))
+  loop
+    n_over := n_over + 1;
+    v_items := v_items || jsonb_build_object('item', 'overdue:' || c.context, 'owner_seat', 'it_engineer', 'subject', 'credentials',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'Credential ' || c.context || ' is ' || extract(day from now() - c.since)::int || ' days since rotation; the limit is '
+               || v_days || ' (+' || v_grace || ' grace) and the rotation duty has not rotated it',
+      'evidence', jsonb_build_object('credential_id', c.id, 'since', c.since, 'rotate_days', v_days,
+                                     'look_at', 'it_duty_schedule rotation; fn_it_credential_rotate; app_secrets cred_ key for this context'));
+  end loop;
+  for c in
+    select ic.id, ic.context, ic.rotated_at from public.internal_credential ic
+     where ic.rotated_at is not null and ic.active and ic.retired_at is null
+       and not exists (select 1 from public.it_credential_rotation r where r.new_id = ic.id)
+  loop
+    n_unrec := n_unrec + 1;
+    v_items := v_items || jsonb_build_object('item', 'unrecorded:' || c.context, 'owner_seat', 'it_engineer', 'subject', 'credentials',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'Credential ' || c.context || ' shows a rotation on ' || to_char(c.rotated_at, 'YYYY-MM-DD') || ' with no it_credential_rotation record',
+      'evidence', jsonb_build_object('credential_id', c.id, 'rotated_at', c.rotated_at));
+  end loop;
+  return jsonb_build_object('rotate_days', v_days, 'grace_days', v_grace, 'overdue', n_over, 'unrecorded', n_unrec,
+                            'settled', public.fn_it_duty_settle('credential_rotation_age', v_items));
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_data_quality()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -46192,6 +46371,32 @@ begin
   end loop;
 
   return jsonb_build_object('counts', v_counts, 'settled', public.fn_it_duty_settle('data_quality', v_items));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_dr_review()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_last public.it_restore_drill_result; v_items jsonb := '[]'::jsonb;
+begin
+  select * into v_last from public.it_restore_drill_result
+   where subject like 'full\_database into %' and ok order by id desc limit 1;
+  if v_last.id is null or v_last.ran_at < now() - interval '92 days' then
+    v_items := v_items || jsonb_build_object('item', 'full_restore', 'owner_seat', 'it_engineer', 'subject', 'table_backup',
+      'blast', 'agent_facing', 'affected', 1,
+      'title', 'No full-database restore has compared equal in the last 92 days'
+               || coalesce(' (last ' || to_char(v_last.ran_at, 'YYYY-MM-DD') || ')', ' (never)'),
+      'evidence', jsonb_build_object('last_id', v_last.id, 'runbook', 'docs/it/BACKUP_RPO_RTO.md',
+                                     'compare', 'select public.fn_it_full_restore_compare(''<scratch schema>'') on the branch'));
+  end if;
+  if (select count(*) from public.it_threshold where key in ('backup_rpo_hours', 'backup_rto_hours', 'restore_drill_every_days')) <> 3 then
+    v_items := v_items || jsonb_build_object('item', 'targets', 'owner_seat', 'it_engineer', 'subject', 'table_backup', 'config', true,
+      'title', 'The RPO/RTO/drill targets are missing from it_threshold');
+  end if;
+  return jsonb_build_object('last_full_restore', v_last.ran_at, 'settled', public.fn_it_duty_settle('dr_review', v_items));
 end $function$
 
 
@@ -47043,6 +47248,47 @@ AS $function$
   select coalesce(p_text, '') ~* '(please|kindly|could you|can you|we need you to|you will need to|you need to)[^.?!]{0,80}\m(provide|share|send|confirm|verify|complete|reply|respond|approve|upload|screenshot|log ?in|sign ?in|re-?register|delete|update|resubmit)'
       or coalesce(p_text, '') ~* '(action required|awaiting your (reply|response|update|confirmation)|pending your (reply|response|update))'
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_full_restore_compare(p_schema text, p_only text[] DEFAULT NULL::text[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare t text; v_live bigint; v_rest bigint; c_live text; c_rest text; v_rows jsonb := '[]'::jsonb;
+        n_bad int := 0; n_missing int := 0; v_start timestamptz := clock_timestamp(); v_ok boolean; v_out jsonb;
+begin
+  if p_schema is null or p_schema in ('public', 'auth', 'storage', 'extensions', 'vault', 'cron', 'realtime')
+     or p_schema like 'pg\_%' or not exists (select 1 from pg_namespace where nspname = p_schema) then
+    raise exception 'fn_it_full_restore_compare: % is not a scratch schema holding a restore', coalesce(p_schema, 'null');
+  end if;
+  for t in select c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace
+            where n.nspname = 'public' and c.relkind = 'r' and (p_only is null or c.relname = any (p_only)) order by 1 loop
+    if not exists (select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                    where n.nspname = p_schema and c.relname = t and c.relkind = 'r') then
+      n_missing := n_missing + 1;
+      v_rows := v_rows || jsonb_build_object('table', t, 'missing', true);
+      continue;
+    end if;
+    execute format('select count(*), md5(coalesce(string_agg(h, '''' order by h), '''')) from (select md5(x::text) h from public.%I x) s', t)
+      into v_live, c_live;
+    execute format('select count(*), md5(coalesce(string_agg(h, '''' order by h), '''')) from (select md5(x::text) h from %I.%I x) s', p_schema, t)
+      into v_rest, c_rest;
+    if v_live <> v_rest or c_live <> c_rest then
+      n_bad := n_bad + 1;
+      v_rows := v_rows || jsonb_build_object('table', t, 'live_rows', v_live, 'restored_rows', v_rest, 'checksum_equal', c_live = c_rest);
+    end if;
+  end loop;
+  v_ok := n_bad = 0 and n_missing = 0;
+  v_out := jsonb_build_object('schema', p_schema, 'mismatched', n_bad, 'missing', n_missing, 'differences', v_rows,
+                              'compare_seconds', round(extract(epoch from clock_timestamp() - v_start)::numeric, 1));
+  -- A partial comparison (p_only, used by the probe) is not a full restore and is never recorded as one.
+  if p_only is null then
+    insert into public.it_restore_drill_result (subject, ok, detail) values ('full_database into ' || p_schema, v_ok, v_out);
+  end if;
+  return v_out;
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_handoff_sla_items(p_include_demo boolean DEFAULT false)
@@ -59972,6 +60218,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60142,16 +60398,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
