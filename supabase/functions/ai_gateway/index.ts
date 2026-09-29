@@ -35,7 +35,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { paidProviderGate } from '../_shared/paid_gate.ts';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
 import { attemptPlan, failureKind, fixtureVerdict, nextAttempt, ownWorkByName, subjectOf } from '../_shared/spend_guards.ts';
 import { embedAnswer } from '../_shared/embed_answer.ts';
 import { shapeRequest } from '../_shared/request_shape.ts';
@@ -501,9 +501,10 @@ Deno.serve(observe('ai_gateway', async (req) => {
           p_tier: route.tier ?? null, p_prompt_tokens: 0, p_output_tokens: 0, p_cached: false,
           p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
         });
-        return J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
+        // held: the run row reads 'held', not 'error' - refusing our own test traffic is the design (observe.statusOf).
+        return annotate(J({ ok: false, used_llm: false, outcome: 'fixture_no_spend',
           error: 'our own test traffic is never sent to a paid model', why: ownWork,
-          task_class: route.task_class, cost_usd: 0 }, 503);
+          task_class: route.task_class, cost_usd: 0 }, 503), { held: true, outcome: 'fixture_no_spend' });
       }
     }
 
