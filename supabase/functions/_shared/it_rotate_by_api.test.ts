@@ -7,8 +7,8 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { rotateAndSettle, rotateTwilioKey, type RotateDeps } from './it_rotate_by_api.ts';
 
 const SECRET = 'new-secret-value-never-returned';
-function deps(o: { verifyOk?: boolean; storeFails?: boolean; storeCommitsThenErrors?: boolean; readBackFails?: boolean;
-                   due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
+function deps(o: { verifyOk?: boolean; storeFails?: boolean; storeCommitsThenErrors?: boolean; readBack?: string;
+                   inUseUnreadable?: boolean; due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
                    retireDue?: { id: number; old_ref: string }[] } = {}) {
   const calls: string[] = []; const rpcs: [string, Record<string, unknown> | undefined][] = [];
   const balanceAuth: string[] = [];
@@ -17,8 +17,12 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; storeCommitsThenErr
   let recorded = false;
   const d: RotateDeps = {
     sleep: async () => {},
+    // AS resilience_ping's sec() ANSWERS (review of #1038): a failed or empty read is '' - it never throws. A mock
+    // that threw here tested a branch production cannot reach. readBack: what the key-SID read returns once the
+    // store has run; inUseUnreadable: the key-SID read returns '' from the start.
     sec: async (k) => {
-      if (o.readBackFails && recorded) throw new Error('app_secrets unreachable');
+      if (k === 'twilio_api_key_sid' && o.inUseUnreadable) return '';
+      if (k === 'twilio_api_key_sid' && recorded && o.readBack !== undefined) return o.readBack;
       return secrets[k] ?? '';
     },
     rpc: async (fn, args) => {
@@ -29,7 +33,7 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; storeCommitsThenErr
         if (o.storeFails) throw new Error('store failed');
         secrets.twilio_api_key_sid = String(args?.p_new_ref); secrets.twilio_api_key_secret = String(args?.p_new_secret);
         recorded = true;
-        if (o.storeCommitsThenErrors || o.readBackFails) throw new Error('upstream request timeout');
+        if (o.storeCommitsThenErrors || o.readBack !== undefined) throw new Error('upstream request timeout');
       }
       return null;
     },
@@ -149,16 +153,38 @@ Deno.test('a store that committed but reported an error never deletes the now-li
   assert(!JSON.stringify(r).includes(SECRET));
 });
 
-Deno.test('a store error whose outcome cannot be read back keeps the new key and fails the run', async () => {
-  const { d, calls } = deps({ readBackFails: true });
+Deno.test("a committed store whose read-back is '' keeps the new key, fails the run and raises an unverified finding", async () => {
+  const { d, calls, rpcs } = deps({ readBack: '' });
   const r = await rotateAndSettle(d);
-  assertEquals(r.ok, false);
-  assert(!calls.some((c) => c.startsWith('DELETE')), 'an unknown outcome never deletes a key that may be live');
+  assertEquals(r.ok, false); assertEquals(r.new_ref, 'SKnew');
+  assert(!calls.some((c) => c.startsWith('DELETE')), "'' proves nothing: SKnew may be the live key, so it is never deleted");
+  const items = rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items as { title: string }[];
+  assertEquals(items.length, 1); assert(/unverified/i.test(items[0].title), items[0].title);
+  assert(!JSON.stringify(r).includes(SECRET));
+});
+
+Deno.test('a store error whose read-back names neither key keeps the new key and fails the run', async () => {
+  const { d, calls } = deps({ readBack: 'SKsomeoneelse' });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.ok, false); assertEquals(r.rotated, false);
+  assert(!calls.some((c) => c.startsWith('DELETE')), 'only a read-back of the OLD key proves the new one is unused');
+});
+
+Deno.test("a retire step whose key in use reads '' deletes nothing", async () => {
+  const { d, calls, rpcs } = deps({ due: false, inUseUnreadable: true, retireDue: [{ id: 11, old_ref: 'SKold' }, { id: 12, old_ref: 'SKolder' }] });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.ok, false); assertEquals(r.retired, []);
+  assert(!calls.some((c) => c.startsWith('DELETE')), 'an unread key in use could be any of them; none is deleted');
+  assert(!rpcs.some(([f]) => f === 'fn_it_provider_rotation_retired'));
 });
 
 Deno.test('a thrown step is settled too, never lost', async () => {
   const { d, rpcs } = deps();
-  const boom: RotateDeps = { ...d, sec: async () => { throw new Error('app_secrets unreachable'); } };
+  // sec() never throws (it answers ''); an rpc can, so the throw comes from the first rpc.
+  const boom: RotateDeps = { ...d, rpc: async (fn, args) => {
+    if (fn === 'fn_it_provider_rotation_retire_due') throw new Error('database unreachable');
+    return d.rpc(fn, args);
+  } };
   const r = await rotateAndSettle(boom);
   assertEquals(r.ok, false);
   assertEquals((rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items as unknown[]).length, 1);

@@ -16,7 +16,7 @@
 // The order never leaves a caller without a working key: create the new key, PROVE it authenticates, store it and
 // record the rotation in one database call (fn_it_provider_rotation_record), and delete the old key at Twilio only
 // after the overlap (fn_it_provider_rotation_retire_due). A new key that does not authenticate, or a store that
-// fails, deletes the new key and leaves the old one in place. No secret is ever returned, logged or recorded:
+// provably failed (app_secrets still reads the old key), deletes the new key and leaves the old one in place. No secret is ever returned, logged or recorded:
 // the result carries key SIDs (identifiers) only.
 
 export type RotateDeps = {
@@ -41,11 +41,17 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   const out: Record<string, unknown> = { ok: true, provider: 'twilio' };
 
   // 1. Retire: an old key whose overlap is over is deleted at Twilio, then its row is closed. The key the estate
-  //    is using NOW is never deleted, whatever a row says.
+  //    is using NOW is never deleted, whatever a row says. FAIL CLOSED (review of #1038): sec() answers '' when the
+  //    read fails, and '' matches no row, so an unread key in use would have let every due row be deleted - the
+  //    live key among them. Nothing is retired unless the key in use was positively read.
   const due = ((await d.rpc('fn_it_provider_rotation_retire_due', { p_provider: 'twilio' })) ?? []) as { id: number; old_ref: string }[];
   const retired: string[] = [];
   const inUse = await d.sec('twilio_api_key_sid');
-  for (const r of due) {
+  if (due.length && !inUse) {
+    out.ok = false;
+    out.error = 'twilio_api_key_sid could not be read, so the key in use is unverified and none of ' + due.length + ' due old key(s) was deleted';
+  }
+  for (const r of inUse ? due : []) {
     if (r.old_ref === inUse) {
       out.ok = false;
       out.error = 'rotation row ' + r.id + ' offers the key in use (' + r.old_ref + ') for deletion; it was not deleted';
@@ -109,19 +115,21 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
     const why = String((e as Error)?.message || e).slice(0, 200);
     // THE ERROR MAY BE A LIE (review of #1038). The record can commit and the client still see an error (a timeout,
     // a dropped connection, a 5xx after the commit). Deleting the new key then would delete the LIVE key and stop
-    // every sign-in OTP. So read back what app_secrets holds before deleting anything: the new SID there means the
-    // rotation happened; an unreadable answer keeps the new key (an unused key at Twilio harms nothing, a deleted
-    // live one does) and fails the run, which raises the finding.
-    let live: string | null = null;
-    try { live = await d.sec('twilio_api_key_sid'); } catch (_e) {
-      return { ...out, ok: false, rotated: false, new_ref: nk.sid,
-        error: 'storing the new key reported an error and app_secrets could not be read back, so the new key ' + nk.sid + ' was kept, not deleted: ' + why };
-    }
+    // every sign-in OTP. So read back what app_secrets holds, and delete the new key ONLY on positive proof that the
+    // old key is still the live one. sec() answers '' on a failed read (it does not throw), so '' - or any SID that
+    // is neither key - proves nothing: the new key is kept (an unused key at Twilio harms nothing, a deleted live
+    // one does) and the run fails, which raises the finding.
+    const live = await d.sec('twilio_api_key_sid').catch(() => '');
     if (live === nk.sid) {
       return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid, note: 'the store reported an error but committed: ' + why };
     }
-    await deleteKey(d, ac, token, nk.sid);
-    return { ...out, ok: false, rotated: false, error: 'the new key could not be stored, so it was deleted and the old key kept: ' + why };
+    if (live && live === oldSid) {
+      await deleteKey(d, ac, token, nk.sid);
+      return { ...out, ok: false, rotated: false, error: 'the new key could not be stored, so it was deleted and the old key kept: ' + why };
+    }
+    return { ...out, ok: false, rotated: false, new_ref: nk.sid,
+      error: 'UNVERIFIED: storing the new key ' + nk.sid + ' reported an error and app_secrets read back ' + (live ? live : 'nothing') +
+        ' (neither the old nor the new key), so the new key was kept, not deleted: ' + why };
   }
   return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid };
 }
