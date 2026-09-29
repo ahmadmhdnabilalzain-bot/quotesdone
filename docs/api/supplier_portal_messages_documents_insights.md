@@ -161,6 +161,22 @@ The fields are measured as follows.
 `dashboard` (#702) stays as it was: the supplier card, the bell counts (`notifications`), `eligibility` and
 `document_impact`.
 
+### `scorecard` (29 Sep 2026, founder_instruction 1013 item 2)
+
+`{ action: 'scorecard' }` → `{ ok: true, card }`. `card` is `fn_supplier_scorecard(lead)` for the last complete
+calendar month in Dubai:
+
+- `metrics.response_hours | win_rate | rating`, each `{ you, trade_average, trade_suppliers, better }`.
+  `trade_average` is `null` unless at least `min_suppliers_for_average` (3) suppliers of the same trade have that
+  measure in the month.
+- `enough_data` and `message`: with no measure at all, `message` is `"not enough data yet"`.
+- `activity`: requests sent, quoted, won (revealed or hired), ratings.
+- `tip`: `{ code, text }`, one rule-chosen tip (`complete_profile`, `answer_invitations`, `respond_faster`,
+  `sharpen_quotes`, `lift_rating`, `keep_going`).
+
+It is English only, whatever the page language. `SupplierScorecard.tsx` renders it at the top of Insights. The same card
+goes out by e-mail once a month (`fn_sales_engineer_supplier_scorecard_tick`, recorded in `supplier_scorecard`).
+
 ## Tests
 
 - `supabase/functions/supplier_portal/insights_summary.test.ts`
