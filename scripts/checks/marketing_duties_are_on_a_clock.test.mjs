@@ -103,7 +103,7 @@ test('the three blog model steps are one duty (one call a beat) and record a ref
   const run = duty.slice(duty.indexOf('export async function runOneJob'), duty.indexOf('const dubaiDay'));
   assert.ok(run.indexOf('await io.recordFailed(job, subject, reason, model);') < run.indexOf('throw new Error(job.step'), 'a refusal is raised before it is recorded');
   assert.match(run, /if \(failed\.some\(\(f\) => f\.run_day === today\)\) \{ waiting\.push/);
-  assert.match(duty, /taskClass: 'ceo_article_review', max: 1500, counterpart: r\.drafted_by_model/);
+  assert.match(duty, /taskClass: 'ceo_article_review', max: 4000, counterpart: r\.drafted_by_model/);
 });
 
 test('the launch plan is re-sent only when it changed, carries his changes, and an empty reply changes nothing', () => {

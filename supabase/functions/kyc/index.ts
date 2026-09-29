@@ -2,7 +2,7 @@
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { annotate, observe } from '../_shared/observe.ts';
-import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
+import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
@@ -140,12 +140,14 @@ function mkLog(t0: number) {
 
 // The action goes onto the observe row, so the hourly p95 can be read per action and not only per function.
 Deno.serve(observe('kyc', async (req) => {
-  const meta: { action?: string } = {};
+  const meta: { action?: string; fixture?: boolean } = {};
   const res = await handle(req, meta);
-  return meta.action ? annotate(res, { action: meta.action }) : res;
+  // A reserved test identity (@example.invalid, _shared/demo_identity.ts) is our harness, never a person: the row
+  // says so, and fn_it_engineer_latency_slo leaves it out of the error budget (it_engineer, 29 Sep 2026).
+  return meta.action ? annotate(res, { action: meta.action, ...(meta.fixture ? { caller: 'fixture', fixture: 1 } : {}) }) : res;
 }));
 
-async function handle(req: Request, meta: { action?: string }): Promise<Response> {
+async function handle(req: Request, meta: { action?: string; fixture?: boolean }): Promise<Response> {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
@@ -466,6 +468,7 @@ async function handle(req: Request, meta: { action?: string }): Promise<Response
     }
 
     if (action === 'accept_terms') {
+      meta.fixture = isDemoEmail(email);
       // A customer cannot finish the account without an 18+ date of birth on file (account rule).
       if (kind === 'customer') { const dp = dobProblem((cust as any)?.date_of_birth); if (dp) return J({ error: dp, code: dp }, 400); }
       // THE WHATSAPP QUESTION IS PART OF SIGN-UP (founder, 15 Sep 2026: "It's in the sign up"). A
@@ -495,12 +498,27 @@ async function handle(req: Request, meta: { action?: string }): Promise<Response
         }
       }
       else await admin.from('customers').update({ tos_accepted_at: nowIso, tos_version: custV, tos_ip: ip }).eq('email', email);
-      let signed_url = null; let signErr = '';
-      try { const secret = await sec('cred_fn_kyc'); const r = await timedFetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }, 45_000); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
-      // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing
-      if (!signed_url) await logRun('error', { action, kind, terms_recorded: true, signed_pdf: false }, 'terms accepted but signed PDF not produced: ' + signErr);
-      else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
-      return J({ ok: true, signed_url });
+      // A CUSTOMER'S CERTIFICATE IS ISSUED AFTER THE ANSWER (it_engineer, 29 Sep 2026, finding
+      // duty:latency_slo:kyc:error_budget). Every one of the 12 over-budget kyc runs in 30 days was an
+      // accept_terms waiting 2.9-12 s on compliance_archive rendering the signed PDF (6 customer, 5 supplier,
+      // 1 unlabelled; server errors 0; all 12 on 28-29 Sep, when no real customer or supplier row recorded an acceptance). No
+      // customer-side caller reads signed_url, so a customer is answered once the acceptance is RECORDED and the
+      // render finishes in the background (EdgeRuntime.waitUntil, as the audit row). A failed render is still
+      // logged 'error' exactly as before.
+      const certify = (async () => {
+        let signed_url = null; let signErr = '';
+        try { const secret = await sec('cred_fn_kyc'); const r = await timedFetch(`${FN}/compliance_archive`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, action: 'sign', kind, email }) }, 45_000); const jd = await r.json(); signed_url = jd?.signed_url || null; if (!signed_url) signErr = String(jd?.error || jd?.detail || 'no signed_url returned').slice(0, 200); } catch (e) { signErr = String((e as Error)?.message || e).slice(0, 200); }
+        // terms acceptance is recorded either way; a missing signed PDF is a compliance-trail gap worth surfacing
+        if (!signed_url) await logRun('error', { action, kind, terms_recorded: true, signed_pdf: false }, 'terms accepted but signed PDF not produced: ' + signErr);
+        else await logRun('ok', { action, kind, terms_recorded: true, signed_pdf: true }, '');
+        return signed_url;
+      })();
+      // A SUPPLIER WAITS, A CUSTOMER DOES NOT (review of this change). SupplierPortal's registration re-saves right
+      // after this call and supplier_api refuses reg_terms until the signed PDF exists, so the supplier answer still
+      // waits for the render. Nothing on the customer side reads the certificate on the way.
+      const rt = (globalThis as any).EdgeRuntime;
+      if (kind === 'customer' && typeof rt?.waitUntil === 'function') { rt.waitUntil(certify); return J({ ok: true, signed_url: null, certificate: 'issuing' }); }
+      return J({ ok: true, signed_url: await certify });
     }
 
     await logRun('error', { action }, 'unknown_action');

@@ -599,7 +599,7 @@ export function draftJob(ctx: DutyContext, t: DraftTopic): ModelJob {
 }
 export function reviewJob(ctx: DutyContext, r: ReviewRound & { article_id: number }): ModelJob {
   return {
-    step: 'article_review', seat: 'ceo', taskClass: 'ceo_article_review', max: 1500, counterpart: r.drafted_by_model,
+    step: 'article_review', seat: 'ceo', taskClass: 'ceo_article_review', max: 4000, counterpart: r.drafted_by_model,
     key: 'round:' + r.round_id, label: r.slug + ' round ' + r.round, content: r,
     prompt: (x) => reviewPrompt(r, x),
     accept: (ans, tr) => { const x = acceptReview(ans, tr, r.revise_rounds < MAX_REVISE_ROUNDS); return x.ok ? { ok: true, value: x } : x; },

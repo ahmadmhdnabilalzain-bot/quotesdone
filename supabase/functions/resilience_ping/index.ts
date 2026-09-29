@@ -16,6 +16,7 @@ import { runPostmasterStep, takePostmasterReading } from '../_shared/it_postmast
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../_shared/it_rotate_by_api.ts';
+import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
 import { placementTick } from '../_shared/inbox_placement.ts';
@@ -1153,7 +1154,9 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     if (error) throw new Error(fn + ': ' + error.message);
     return data;
   };
+  const pause = await pausedDuties(admin);
   const step = async (name: string, run: () => Promise<unknown>) => {
+    if (pause.has('resilience_ping.' + name)) { out[name] = PAUSED; return; }
     try { out[name] = await run(); } catch (e) { out[name] = { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }
   };
   await step('renewal', async () => { await rpc('fn_it_renewal_watch'); return { ok: true }; });
@@ -1250,7 +1253,7 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
 // when it could not settle; a failing probe is the finding, not a failing step.
 async function launchPathTick(): Promise<unknown> {
   try {
-    const r = await probeLaunchPath(Deno.env.get('SUPABASE_ANON_KEY')!);
+    const r = await probeLaunchPath(Deno.env.get('SUPABASE_ANON_KEY')!, fetch, undefined, (await sec('cred_fn_resilience_ping')) || undefined);
     const { data: open } = await admin.from('it_engineer_finding').select('last_seen_at')
       .eq('issue_key', 'duty:launch_path:down').is('closed_at', null).maybeSingle();
     const act = launchPathAction(r.ok, (open?.last_seen_at as string) ?? null);
@@ -1610,11 +1613,17 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // the outbox or the WhatsApp queue twice in one tick. The Set is the whole guard.
     const steps: Step[] = [];
     const unknown: string[] = [];
+    // A step public.duty_pause names is skipped and reported, never run (_shared/duty_pause.ts).
+    const pause = await pausedDuties(admin);
+    const pausedSteps: string[] = [];
     for (const name of new Set(plan.run)) {
       const s = STEP_RUN[name];
-      if (s) steps.push({ name, ...s }); else unknown.push(name);
+      if (s && pause.has('resilience_ping.' + name)) pausedSteps.push(name);
+      else if (s) steps.push({ name, ...s }); else unknown.push(name);
     }
     const { results, failing, ms: stepMs } = await runSteps(steps, t0, DEADLINE_MS);
+    for (const name of pausedSteps) results[name] = PAUSED;
+    if (pause.error) failing.push({ name: 'duty_pause', error: pause.error });
     if (plan.error) failing.push({ name: 'plan', error: 'fn_resilience_tick_plan unusable, ran every step in declaration order: ' + plan.error });
     for (const name of unknown) failing.push({ name, error: 'the schedule names a step this function does not have' });
     // Deferring a step for one beat is the plan working. Being passed over four ticks running — an hour —
@@ -1625,7 +1634,7 @@ Deno.serve(observe('resilience_ping', async (req) => {
     // step's ewma and raise a finding against a step that passed, so it is checked rather than assumed
     // (independent review, ecc:typescript-reviewer, 18 Sep 2026).
     for (const name of plan.starved) {
-      if (name in stepMs) continue;
+      if (name in stepMs || pause.has('resilience_ping.' + name)) continue;
       failing.push({ name, error: 'starved: due and not run for 4 ticks running' });
     }
     // Written back in ONE call. A deferred step stamps nothing, which is what makes it stalest next tick.

@@ -37,6 +37,7 @@ test('supplier_portal and messages_api resolve the caller through signedInUser',
   for (const d of ['supplier_portal', 'messages_api']) {
     const s = code(`${root}${d}/index.ts`);
     assert.match(s, /await signedInUser\(admin, req\.headers\.get\('Authorization'\)\)/, d);
-    assert.match(s, /if \(!who\.ok\) return J\(refusalBody\(who\), who\.status\);/, d);
+    // supplier_portal wraps the same refusal in annotate() to mark its own launch-path probe (_shared/probe_caller.ts)
+    assert.match(s, /if \(!who\.ok\) return (?:annotate\()?J\(refusalBody\(who\), who\.status\)/, d);
   }
 });
