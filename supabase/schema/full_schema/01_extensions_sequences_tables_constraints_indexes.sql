@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T14:13:19.929Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T15:03:45.925Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (683) =====
+-- ===== TABLES (684) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -6917,6 +6917,27 @@ CREATE TABLE IF NOT EXISTS public.quote_pdf_cache (
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.quote_quality_hold (
+  quote_id uuid NOT NULL,
+  inquiry_id uuid,
+  supplier_id bigint,
+  fixture boolean DEFAULT false NOT NULL,
+  flags jsonb DEFAULT '[]'::jsonb NOT NULL,
+  fixes_en text,
+  fixes_sent_md5 text,
+  fixes_sent_at timestamp with time zone,
+  fixes_delivery jsonb,
+  held_at timestamp with time zone DEFAULT now() NOT NULL,
+  release_due timestamp with time zone NOT NULL,
+  released_at timestamp with time zone,
+  release_reason text,
+  corrected_at timestamp with time zone,
+  accepted_md5 text NOT NULL,
+  superseded_at timestamp with time zone,
+  customer_notice jsonb,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.quote_requirements (
   category text NOT NULL,
   required_sections jsonb DEFAULT '[]'::jsonb NOT NULL,
@@ -9971,6 +9992,7 @@ ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_pkey PRIMA
 ALTER TABLE public.quote_extraction_model ADD CONSTRAINT quote_extraction_model_pkey PRIMARY KEY (subject_key);
 ALTER TABLE public.quote_items ADD CONSTRAINT quote_items_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_pdf_cache ADD CONSTRAINT quote_pdf_cache_pkey PRIMARY KEY (quote_id, lang);
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_pkey PRIMARY KEY (quote_id);
 ALTER TABLE public.quote_requirements ADD CONSTRAINT quote_requirements_pkey PRIMARY KEY (category);
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_pkey PRIMARY KEY (id);
 ALTER TABLE public.quote_review_request ADD CONSTRAINT quote_review_request_pkey PRIMARY KEY (id);
@@ -10910,6 +10932,10 @@ ALTER TABLE public.quote_comparisons ADD CONSTRAINT quote_comparisons_published_
 ALTER TABLE public.quote_extraction_model ADD CONSTRAINT quote_extraction_model_model_check CHECK ((btrim(model) <> ''::text));
 ALTER TABLE public.quote_items ADD CONSTRAINT quote_items_amount_money_ck CHECK (((amount >= (0)::numeric) AND (amount = round(amount, 2))));
 ALTER TABLE public.quote_items ADD CONSTRAINT quote_items_unit_price_money_ck CHECK (((unit_price >= (0)::numeric) AND (unit_price = round(unit_price, 4))));
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_check CHECK (((released_at IS NULL) = (release_reason IS NULL)));
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_check1 CHECK (((released_at IS NULL) OR (superseded_at IS NULL)));
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_flags_check CHECK ((jsonb_typeof(flags) = 'array'::text));
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_release_reason_check CHECK (((release_reason IS NULL) OR (release_reason = ANY (ARRAY['corrected'::text, 'waited_24h'::text]))));
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_kind_known CHECK ((kind = ANY (ARRAY['text'::text, 'file'::text, 'review'::text, 'choice_prompt'::text, 'choice'::text, 'submitted'::text, 'notice'::text])));
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_role_known CHECK ((role = ANY (ARRAY['supplier'::text, 'sales_engineer'::text])));
 ALTER TABLE public.quote_review_request ADD CONSTRAINT quote_review_request_check CHECK (((state = 'open'::text) = (answered_at IS NULL)));
@@ -11415,6 +11441,7 @@ ALTER TABLE public.questions ADD CONSTRAINT questions_inquiry_id_fkey FOREIGN KE
 ALTER TABLE public.questions ADD CONSTRAINT questions_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_aspect_reading ADD CONSTRAINT quote_aspect_reading_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_committed_items ADD CONSTRAINT quote_committed_items_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
+ALTER TABLE public.quote_quality_hold ADD CONSTRAINT quote_quality_hold_quote_id_fkey FOREIGN KEY (quote_id) REFERENCES quotes(id) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE public.quote_review_messages ADD CONSTRAINT quote_review_messages_review_id_fkey FOREIGN KEY (review_id) REFERENCES quote_reviews(id) ON DELETE CASCADE;
 ALTER TABLE public.quote_review_request ADD CONSTRAINT quote_review_request_answered_message_id_fkey FOREIGN KEY (answered_message_id) REFERENCES quote_review_messages(id) ON DELETE SET NULL;
 ALTER TABLE public.quote_review_request ADD CONSTRAINT quote_review_request_asked_message_id_fkey FOREIGN KEY (asked_message_id) REFERENCES quote_review_messages(id) ON DELETE SET NULL;
@@ -11918,6 +11945,8 @@ CREATE INDEX projects_customer ON public.projects USING btree (customer_id);
 CREATE INDEX q_inq_sup_idx ON public.questions USING btree (inquiry_id, supplier_id);
 CREATE INDEX q_sup_idx ON public.questions USING btree (supplier_id, answered_at);
 CREATE INDEX quote_pdf_cache_bucket_path_idx ON public.quote_pdf_cache USING btree (bucket, path);
+CREATE INDEX quote_quality_hold_by_inquiry ON public.quote_quality_hold USING btree (inquiry_id);
+CREATE INDEX quote_quality_hold_open ON public.quote_quality_hold USING btree (release_due) WHERE ((released_at IS NULL) AND (superseded_at IS NULL));
 CREATE INDEX quote_review_messages_by_review_kind ON public.quote_review_messages USING btree (review_id, kind);
 CREATE INDEX quote_review_request_by_answered_message ON public.quote_review_request USING btree (answered_message_id);
 CREATE INDEX quote_review_request_by_asked_message ON public.quote_review_request USING btree (asked_message_id);

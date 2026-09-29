@@ -214,6 +214,14 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
+  // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
+  // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
+  // rolled back with the replay.
+  fn_accountant_risk_screen_tick: {
+    replay: 'pg_temp.qd_replay_fn_accountant_risk_screen_tick()',
+    asOf: { money_move_hold: 'opened_at' },
+  },
   // 29 Sep 2026 (it_engineer, #1064, founder_instruction 1009). high_stakes_open:<kind>:<subject> when the second-seat
   // review of a high-stakes decision cannot be opened. Replayed as a ZZ DEMO refund decision by the CEO. The gate
   // still resolves the author's model from the reasoning calls that existed at the instant (asOf ai_cost_log), but

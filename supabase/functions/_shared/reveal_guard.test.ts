@@ -31,7 +31,11 @@ function fakeAdmin(rows: Rows) {
     };
     return b;
   };
-  return { from: mk };
+  // The accountant's money screen: rows.money_screen is its answer ({hold}); calls are recorded so a test can
+  // see that a paid reveal is never re-screened.
+  const calls: unknown[] = [];
+  const rpc = (fn: string, args: unknown) => { calls.push({ fn, args }); return Promise.resolve(rows.money_screen_error ? { data: null, error: rows.money_screen_error } : { data: rows.money_screen ?? { hold: false }, error: null }); };
+  return { from: mk, rpc, calls };
 }
 
 Deno.test('a complete quote is not on hold; the same quote without its ex-VAT price is', () => {
@@ -69,13 +73,28 @@ Deno.test('canReveal refuses a draft, another customer\'s request, a closed requ
   assertEquals(await code({ ...base, sanctions_ban: [{ lead_id: 7 }] }), 'account_sanctioned:403');
   assertEquals(await code({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: null } }), 'quote_on_hold:409');
   assertEquals(await code({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: 6300 } }), 'quote_on_hold:409');
+  // The accountant's screen holds a reveal a high-severity fraud flag touches (no ban, no charge).
+  assertEquals(await code({ ...base, money_screen: { hold: true, hold_id: 1 } }), 'under_review:409');
   // A reveal already paid for is disclosed again, and is never re-held.
   const paid = await canReveal(fakeAdmin({ ...base, quotes: { ...COMPLETE, price_ex_vat: null, quote_amount: null }, transactions: { id: 'tx1' } }), { quoteId: 'q1', customerId: 'c1' });
   assertEquals([paid.ok, paid.ok && paid.already_revealed], [true, true]);
 });
 
+Deno.test('the money screen runs before a charge, never on a paid reveal, and fails closed', async () => {
+  const base = { quotes: COMPLETE, inquiries: { id: 'i1', customer_id: 'c1', status: 'sent', category: 'joinery', spec: null }, quote_items: [ITEM], transactions: null, sanctions_ban: [] };
+  const a = fakeAdmin(base);
+  assert((await canReveal(a, { quoteId: 'q1', customerId: 'c1' })).ok);
+  assertEquals(a.calls, [{ fn: 'fn_accountant_money_screen', args: { p_move: 'reveal', p_ref: 'q1', p_customer: 'c1', p_supplier: 7 } }]);
+  const paid = fakeAdmin({ ...base, transactions: { id: 'tx1' }, money_screen: { hold: true } });
+  assert((await canReveal(paid, { quoteId: 'q1', customerId: 'c1' })).ok, 'a paid reveal is disclosed again, whatever the screen says now');
+  assertEquals(paid.calls, []);
+  let threw = false;
+  try { await canReveal(fakeAdmin({ ...base, money_screen_error: { message: 'down' } }), { quoteId: 'q1', customerId: 'c1' }); } catch (_e) { threw = true; }
+  assert(threw, 'an unreadable screen must refuse (the caller answers 500), never charge');
+});
+
 Deno.test('every refusal carries a machine code and both languages', () => {
-  for (const c of ['quote_not_found', 'not_your_inquiry', 'inquiry_closed', 'quote_on_hold', 'account_sanctioned', 'something_new']) {
+  for (const c of ['quote_not_found', 'not_your_inquiry', 'inquiry_closed', 'quote_on_hold', 'under_review', 'account_sanctioned', 'something_new']) {
     const r = refuse(c);
     assertEquals(r.code, c);
     assert(r.status >= 400 && r.status < 500, c + ' refuses with a 4xx');
