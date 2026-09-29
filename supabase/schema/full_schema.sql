@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T05:27:47.732Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T05:35:43.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -60331,6 +60331,16 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60501,16 +60511,6 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -66788,6 +66788,50 @@ begin
   end if;
   return jsonb_build_object('attached', true, 'ladder_evidence_id', v_ev, 'result', d->>'result', 'delivered', v_delivered, 'ceo_review', v_rev);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_comparison_kpi(p_days integer DEFAULT 7)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with rep as (
+  select c.inquiry_id, min(c.created_at) as reported_at
+    from public.qd_compare_cache c
+   where not (c.analysis ? '__failed')
+     and c.created_at >= now() - make_interval(days => greatest(1, p_days))
+   group by c.inquiry_id
+),
+q as (
+  select r.inquiry_id,
+         count(*) filter (where coalesce(qt.price_ex_vat, qt.quote_amount) is not null
+                            and nullif(btrim(qt.lead_time), '') is not null
+                            and nullif(btrim(qt.validity), '') is not null
+                            and nullif(btrim(qt.warranty), '') is not null
+                            and nullif(btrim(qt.payment_terms), '') is not null) as complete_n,
+         count(*) filter (where nullif(btrim(qt.exclusions), '') is not null) as excl_n
+    from rep r
+    left join public.quotes qt on qt.inquiry_id::text = r.inquiry_id
+   group by r.inquiry_id
+),
+t as (
+  select r.inquiry_id, extract(epoch from (r.reported_at - i.created_at)) / 3600.0 as hours,
+         q.complete_n, q.excl_n
+    from rep r
+    join q on q.inquiry_id = r.inquiry_id
+    left join public.inquiries i on i.id::text = r.inquiry_id
+)
+select jsonb_build_object(
+  'window_days', greatest(1, p_days),
+  'reports', count(*),
+  'hours_median', round((percentile_cont(0.5) within group (order by hours))::numeric, 1),
+  'hours_p90', round((percentile_cont(0.9) within group (order by hours))::numeric, 1),
+  'share_3plus_complete', case when count(*) > 0 then round(count(*) filter (where complete_n >= 3)::numeric / count(*), 3) end,
+  'reports_with_exclusions', count(*) filter (where excl_n > 0),
+  'quotes_with_exclusions', coalesce(sum(excl_n), 0))
+from t;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_disputes_tick()
