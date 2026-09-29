@@ -65,6 +65,11 @@ begin
 
   -- 8. the monthly loop: nothing before the November plan; the November plan on 1 Oct, once, 12 working days
   if (public.fn_marketing_month_plan_tick('2026-09-24')->>'sent')::boolean then v_bad := v_bad || ' plan_too_early'; end if;
+  -- since 29 Sep 2026 the CEO reviews it first: the first tick files it (no mail), the CEO approves, the next tick mails
+  v_plan := public.fn_marketing_month_plan_tick('2026-10-01');
+  if coalesce((v_plan->>'sent')::boolean, false) then v_bad := v_bad || ' plan_before_ceo'; end if;
+  perform public.fn_reason_apply_ceo__marketing_month_plan((select ceo_held_id from public.marketing_month_plan where month = '2026-11-01'),
+    jsonb_build_object('decision', jsonb_build_object('choice', 'approve'), 'answer', 'Approved: the ideas follow what brought registrations and the filing load fits the founder''s month, so it goes to him as drafted.'));
   v_plan := public.fn_marketing_month_plan_tick('2026-10-01');
   if not coalesce((v_plan->>'sent')::boolean, false) or (v_plan->>'ideas')::int <> 12 then v_bad := v_bad || ' plan:' || v_plan; end if;
   select count(*) into v_n from public.marketing_month_plan m, jsonb_array_elements(m.plan->'ideas') e
