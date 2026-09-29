@@ -42,10 +42,10 @@ declare d public.seat_duty; v_res jsonb; v_out jsonb := '[]'::jsonb; v_health js
         v_t0 timestamptz := clock_timestamp(); v_n int := 0;
 begin
   for d in
-    select * from public.seat_duty
+    select sd.* from public.seat_duty sd
      where enabled
        -- ONE PAUSE SWITCH (29 Sep 2026): a duty public.duty_pause names is not started.
-       and not exists (select 1 from public.duty_pause dp where dp.duty = seat_duty.duty)
+       and not exists (select 1 from public.duty_pause dp where dp.duty = sd.duty)
        -- two minutes of tolerance, the same reasoning as fn_resilience_tick_plan: a tick is never exactly on the beat
        and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
      order by last_started_at + every nulls first, duty   -- the most overdue first

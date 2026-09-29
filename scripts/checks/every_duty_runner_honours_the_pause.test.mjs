@@ -29,7 +29,7 @@ test('marketing skips a paused duty before running it', () => {
 test('fn_seat_duties_tick does not start a paused seat duty', () => {
   const sql = read('scripts/sql/every_duty_runner_honours_one_pause_switch.sql');
   const fn = between(sql, 'create or replace function public.fn_seat_duties_tick', '$function$;');
-  assert.match(fn, /where enabled\s+-- [^\n]*\n\s+and not exists \(select 1 from public\.duty_pause dp where dp\.duty = seat_duty\.duty\)/);
+  assert.match(fn, /where enabled\s+-- [^\n]*\n\s+and not exists \(select 1 from public\.duty_pause dp where dp\.duty = sd\.duty\)/);
   // once applied, the live mirror must carry it too
   const mirror = new URL('../../supabase/schema/full_schema.sql', import.meta.url);
   const pending = new URL('../sql/pending/every_duty_runner_honours_one_pause_switch.txt', import.meta.url);
