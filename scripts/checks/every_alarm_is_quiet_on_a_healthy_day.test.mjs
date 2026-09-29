@@ -47,6 +47,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replay } from '../lib/alarm_replay.mjs';
+import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -232,8 +233,9 @@ const BASELINE = new Set(['fn_it_engineer_alert_tick', 'fn_it_dropbox_health_rec
 // ── STATIC ────────────────────────────────────────────────────────────────────────────────────────
 // name -> canonical body (the LAST file in MANIFEST order that defines it).
 export function canonicalBodies(repo = REPO) {
-  const manifest = readFileSync(join(repo, 'scripts', 'sql', 'MANIFEST.txt'), 'utf8')
-    .split(/\r?\n/).map((l) => l.trim()).filter((l) => l.endsWith('.sql') && !l.startsWith('#'));
+  // MANIFEST plus pending/ (29 Sep 2026): a new alarm waiting in pending/ must be registered by its own
+  // PR, not discovered on main after the bookkeeping commit appends it (#1070's was).
+  const manifest = manifestWithPending(repo);
   const out = new Map();
   for (const f of manifest) {
     const p = join(repo, f);
