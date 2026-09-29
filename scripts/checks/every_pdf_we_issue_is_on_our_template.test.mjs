@@ -27,6 +27,19 @@ test('the check catches each shape, and a comment describing it does not trip it
   assert.equal(findingsFor(red, "await PDFDocument.create();").length, 1);
   assert.equal(findingsFor(red, "return new Response(b, { headers: { 'Content-Type': 'application/pdf' } });").length, 1);
   assert.equal(findingsFor('supabase/functions/_shared/scan_takeoff.ts', "import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';").length, 1);
+  // Review of #1056: every other way to author a PDF there is caught too.
+  for (const shape of [
+    "await PDFDocument['create']();",
+    'await PDFDocument[`create`]();',
+    "import { PDFDocument as D } from 'https://esm.sh/pdf-lib@1.17.1'; await D.load(b);",
+    'const D = PDFDocument;\nawait D.load(b);',
+    'const { create } = PDFDocument; await create();',
+    'const p = doc.addPage([10, 10]);',
+    "page.drawText('x', { x: 1, y: 1 });",
+    'const f = await doc.embedFont(StandardFonts.Helvetica);',
+  ]) assert.equal(findingsFor(red, shape).length, 1, shape);
+  // What the editor really does is not flagged: load, read the pages, save.
+  assert.equal(findingsFor(red, "const doc = await PDFDocument.load(bytes, { updateMetadata: false }); const pl = doc.getPages(); const out = await doc.save({ useObjectStreams: false });").length, 0);
 });
 
 // 22 Sep 2026 (audit finding 2): supplier_pay turned invoice_creation on for both supplier checkouts, so a

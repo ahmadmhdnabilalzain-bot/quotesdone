@@ -7,15 +7,15 @@
 // (2.7 s, EXPLAIN ANALYZE) -- once PER FILE inside its FOR loop. Seven files, 19 s.
 // Fixed in scripts/sql/the_backup_refile_looks_up_its_own_file_instead_of_recomputing_every_expected_file.sql.
 //
-// Reads supabase/schema/full_schema.sql (the live mirror). Scanning the whole set ONCE, in a FOR
+// Reads supabase/schema/full_schema/ (the live mirror). Scanning the whole set ONCE, in a FOR
 // header (`for x in select ... from fn_it_backup_expected_status() ... loop`), is fine and is what the
 // check itself does; a call between `loop` and its `end loop` is the shape that multiplied.
 // The timing itself is proved by scripts/sql/the_backup_check_answers_inside_its_budget_probe.sql.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA = readFileSync(new URL('../../supabase/schema/full_schema.sql', import.meta.url), 'utf8');
+const SCHEMA = readSchemaMirror();
 
 export function expectedSetCallsInsideLoops(fnBody) {
   const code = fnBody.replace(/--[^\n]*/g, '').toLowerCase();

@@ -56,6 +56,7 @@ import { readdirSync, readFileSync, existsSync, writeFileSync, mkdirSync } from 
 import { createHash } from 'node:crypto';
 import { dirname } from 'node:path';
 import { pendingNotes } from '../lib/pending_sql.mjs';
+import { SCHEMA_MIRROR, readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const ROOT = process.cwd().replace(/\\/g, '/');
 const PROD = 'htdblwldjkcgjvmqkbeh';
@@ -72,7 +73,9 @@ const sha = s => createHash('sha256').update(String(s), 'utf8').digest('hex');
 // Compare on TOKENS: indentation is not a finding, a changed identifier or literal is.
 const tokens = s => (String(s).match(/[A-Za-z_$][\w$]*|\d+(?:\.\d+)?|'(?:[^']|'')*'|[^\sA-Za-z0-9_$]/g) || [])
   .join(' ').toLowerCase();
-const read = p => { try { return readFileSync(`${ROOT}/${p}`, 'utf8'); } catch { return null; } };
+// The schema mirror is a directory of parts read as one (scripts/lib/schema_mirror.mjs); a missing part THROWS
+// there rather than reading as null, so the mirror can never silently look empty to this check.
+const read = p => { if (p === SCHEMA_MIRROR) return readSchemaMirror(); try { return readFileSync(`${ROOT}/${p}`, 'utf8'); } catch { return null; } };
 const lsSql = d => { try { return readdirSync(`${ROOT}/${d}`).filter(f => f.endsWith('.sql')).map(f => `${d}/${f}`); } catch { return []; } };
 
 // ---------------------------------------------------------------- the sequence
@@ -343,7 +346,7 @@ if (!REPO_ONLY) {
   // The schema mirror is an ATTESTATION of the deployed shape, not a change in the apply order, so
   // it never becomes canonical. It answers one narrower question: is this routine committed to main
   // at all? A routine in neither a change file nor the mirror is genuinely absent from the repository.
-  const mirror = new Set(definitionsIn('supabase/schema/full_schema.sql').map(d => d.name));
+  const mirror = new Set(definitionsIn(SCHEMA_MIRROR).map(d => d.name));
   for (const r of live) {
     if (ownership(r) !== 'APPLICATION') continue;
     if (canonical.has(r.proname)) continue;
@@ -408,7 +411,7 @@ if (!REPO_ONLY) {
     for (const m of src.matchAll(/create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?([a-z0-9_]+)"?/gi)) repoIdx.add(m[1].toLowerCase());
     for (const m of src.matchAll(/add\s+constraint\s+"?([a-z0-9_]+)"?/gi)) repoCons.add(m[1].toLowerCase());
   };
-  for (const f of [...FILES, 'supabase/schema/full_schema.sql']) { const s = read(f); if (s) eatDdl(s); }
+  for (const f of [...FILES, SCHEMA_MIRROR]) { const s = read(f); if (s) eatDdl(s); }
 
   const liveDdl = await q(`
     select 'table' kind, c.relname obj, ''::text detail

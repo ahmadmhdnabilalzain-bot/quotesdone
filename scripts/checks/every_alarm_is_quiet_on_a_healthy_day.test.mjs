@@ -214,6 +214,14 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
+  // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
+  // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
+  // rolled back with the replay.
+  fn_accountant_risk_screen_tick: {
+    replay: 'pg_temp.qd_replay_fn_accountant_risk_screen_tick()',
+    asOf: { money_move_hold: 'opened_at' },
+  },
   // 29 Sep 2026 (it_engineer, #1064, founder_instruction 1009). high_stakes_open:<kind>:<subject> when the second-seat
   // review of a high-stakes decision cannot be opened. Replayed as a ZZ DEMO refund decision by the CEO. The gate
   // still resolves the author's model from the reasoning calls that existed at the instant (asOf ai_cost_log), but
@@ -226,6 +234,18 @@ export const REGISTER = {
       'ZZ DEMO should this refund be approved as the CEO decided?', '{"ledger":"ZZ DEMO paid by card"}'::jsonb,
       '{"decision":"ZZ DEMO approve in full"}'::jsonb, null, null, true)`,
     asOf: { ai_cost_log: 'occurred_at' },
+  },
+  // 29 Sep 2026 (sales_engineer, #1106, ledger 1018 item 1). Raises stalled_inquiry_rescue:no_uninvited_leads:<trades>:<emirate>
+  // when a real request is in the stalled-inquiry rescue (no quote 48 h after matching, or nobody reachable - #1105's
+  // intake) and no uninvited lead is left for its trade and area.
+  // It reads the requests, matches and quotes that existed at the instant; a healthy day has no stalled real request with
+  // an empty pool, so it is quiet. p_include_fixtures false: a ZZ DEMO request never raises it. The rescue rows, the
+  // customer's update and the enqueue_supplier_invites call it makes are inside the rolled-back replay; while pending,
+  // the replay runs its pending file first. Measured 29 Sep 2026: quiet at all five instants, and with a stalled request
+  // in a trade with no uninvited lead staged at 2026-09-14T06:00Z it fires the no_uninvited_leads finding for Ajman.
+  fn_sales_engineer_stalled_inquiry_rescue: {
+    replay: 'pg_temp.qd_replay_fn_sales_engineer_stalled_inquiry_rescue(false)',
+    asOf: { inquiries: 'created_at', inquiry_matches: 'sent_at', quotes: 'created_at' },
   },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   trg_high_stakes_review: { relay: 'records the disagreement a second seat recorded with a high-stakes decision that already went ahead; the verdict is the reviewer\'s (seat_deliberation_turn), and a healthy day has none' },
@@ -246,6 +266,13 @@ export const REGISTER = {
   // 29 Sep 2026 (it_engineer, #1048). A truncated smoke run now upserts its FAIL steps itself instead of settling,
   // so it closes nothing on silence. The FAIL is the journey's verdict (scripts/e2e/journeys.mjs), not a rule here.
   fn_it_smoke_ingest: { relay: 'writes the failed steps a post-deploy smoke run reports; each FAIL is the journey\'s verdict, and a run with no failed step raises nothing' },
+  // 29 Sep 2026 (it_engineer, #1062, instruction 1009). The monthly game day. Each game_day:<scenario> finding is the
+  // verdict of a scenario routine (fn_it_game_day_<scenario>) that injected a fault in a rolled-back savepoint and saw
+  // the REAL detector miss it or fail to clear; the rule is those detectors', each replayed or relayed above. Not
+  // replayed: the scenarios drive the live detectors on today's clock inside savepoints, so a pg_temp copy at a past
+  // instant would not be a replay of anything. Measured quiet on a healthy day: run on production 29 Sep 2026 inside one
+  // rolled-back transaction, 5/5 scenarios passed and 0 game_day findings were open afterwards.
+  fn_it_engineer_game_day: { relay: 'records a game-day scenario that failed; the failure is the verdict of the injected fault against the real detector, and a healthy month passes all five and raises nothing (measured 29 Sep 2026: 5/5, 0 findings)' },
   fn_it_restore_table_pick: { relay: 'records that the restore drill could not pick a table; the error is the finding' },
   // ── BASELINE: existed on 22 Sep 2026 and cannot be replayed yet ─────────────────────────────────
   fn_it_engineer_alert_tick: { baseline: 'monitor rules over it_watch_tick and it_engineer_scanner; replaying it runs the whole IT loop (handoffs, digest) and needs a side-effect-free split first' },

@@ -2643,16 +2643,54 @@
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/service_rewrite.ts",
-   "decides": "rewriteServices / servicesFromText / tradesFromText: exact-alias termPattern matching decides which services and trades a supplier's words name (beyond isInstallWork) — found by B9 sweep"
+   "decides": "rewriteServices / servicesFromText: exact-alias termPattern matching decides which services a supplier's words name (beyond isInstallWork) — found by B9 sweep. Its trade half (tradesFromText) was removed 29 Sep 2026 under trades.from_text: a phrase is a trade only when fn_norm_trades resolves it exactly (withExactTrades)"
   },
   {
    "id": "trades.from_text",
    "order": 94,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
-   "where": "supabase/functions/_shared/trade_words.ts",
-   "decides": "tradesFromText: alias substring hits decide the trades a supplier's documents name (supplier_doc_trades) — found by B9 sweep"
+   "where": "supabase/functions/_shared/supplier_doc_trades.ts",
+   "decides": "tradesFromText: alias substring hits decided the trades a supplier's documents name (supplier_doc_trades) — found by B9 sweep. Since 29 Sep 2026 (ledger 1054): an exact code or slug decided by fn_norm_trades (fn_norm_trades_many), or meaning over the stored service vectors (proposeByMeaning); trade_words.ts is deleted",
+   "held": "Nothing here waits on the model hold: the exact path is a database routine and meaning is gte-small in-region (not OpenRouter). When either cannot run the document records it (exact: unavailable; meaning: embedding_unavailable, service_vectors_missing or budget_spent) and proposes nothing from that path, so an empty proposal is never read as a document that names no trade; evidence an older reader took from alias words proposes nothing (WORD_READ) until the file is read again.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/supplier_doc_trades.ts",
+     "must_contain": [
+      "await tradesOfText(c ? c.text : text, deps, { supplyOnly: c?.supply_only })",
+      "liveTradeDeps(admin, embedLine)"
+     ],
+     "must_not_contain": [
+      "tradesFromText(",
+      "termPattern(",
+      "trade_words.ts'",
+      "select('code,aliases')"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/trade_resolve.ts",
+     "must_contain": [
+      "admin.rpc('fn_norm_trades_many'",
+      "proposeByMeaning(todo.map((t, i) => ({ text: t, vec: vecs[i] })), deps.services"
+     ],
+     "must_not_contain": [
+      "termPattern(",
+      "aliases.some(",
+      "taxonomy_trade').select"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/service_rewrite.ts",
+     "must_contain": [
+      "export function withExactTrades("
+     ],
+     "must_not_contain": [
+      "tradesFromText(",
+      "trades: TradeTerm[]"
+     ]
+    }
+   ]
   },
   {
    "id": "supplier_api.services_cross_check",

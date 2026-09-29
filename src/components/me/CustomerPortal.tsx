@@ -101,6 +101,7 @@ import { MotionRoot } from './lazyMotion';
 // request" (showNew starts false), so it is not part of the /me first load (28 Sep 2026).
 const NewRequest = dynamic(() => import('./NewRequest').then((mod) => mod.NewRequest), { ssr: false, loading: ModuleLoading });
 import { Clarifications } from './Clarifications';
+import { ConciergeSteps } from './ConciergeSteps';
 import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
 import { QuoteBadges } from '@/components/QuoteBadges';
@@ -160,7 +161,7 @@ const warmDashboard = (tk, lang) => {
 // so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
 // language decides (onServedLocale). src/lib/documentLocale.ts.
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
-import { t, tf, errText, emirateName, transportFailed } from './portalText';
+import { t, tf, errText, emirateName, transportFailed, qualityReason } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
@@ -541,7 +542,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // Only accounts that finished sign-up before the WhatsApp question was part of it are asked here,
   // once, without blocking anything; answering or "Ask me later" closes it for good.
   const [waAsk, setWaAsk] = useState(() => waNeedsPrompt(kyc));
-  const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false);
+  const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false); const [postedGuide, setPostedGuide] = useState(null);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
   // have — and it also stranded the intake chat, because a branch that returns before the
@@ -816,7 +817,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
               : ((ov && ov.headline) || t(lang, 'welcome_sub'))}
           </p>
         </div>
-        <Button size="sm" className="shrink-0 gap-1.5" onClick={() => setShowNew((v) => !v)}>
+        <Button size="sm" className="shrink-0 gap-1.5" onClick={() => { setShowNew((v) => !v); setPostedGuide(null); }}>
           {/* The label flips to "Close" but the icon did not, so the open intake carried a button
               reading "+ Close" - a plus sign on the control that dismisses the thing. */}
           {showNew ? <X className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
@@ -826,6 +827,10 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
+    {postedGuide && <div className="mb-3.5">
+      <ConciergeSteps guide={postedGuide} held={postedGuide.held} lang={lang} title={t(lang, postedGuide.first_inquiry ? 'cg_posted' : postedGuide.held && postedGuide.held.finding_suppliers ? 'cg_finding_title' : 'cg_held')} />
+      <Button variant="link" className="h-auto px-0" onClick={() => setPostedGuide(null)}>{t(lang, 'close')}</Button>
+    </div>}
     {/* CP-07: the one place a failed overview or request list is reported, with the way out. */}
     {err && <div className="mb-3.5 flex flex-wrap items-center gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3" role="alert">
       <span className="min-w-0 flex-1 text-[13px] text-danger-fg">{err}</span>
@@ -850,6 +855,10 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
         setNote(n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
+        // steps and what is missing on screen as well as by e-mail.
+        const g = r && r.concierge;
+        setPostedGuide(g && (g.first_inquiry || (g.held && (g.held.held || g.held.finding_suppliers))) ? g : null);
         if (r && r.inquiry_id) openRfq(r.inquiry_id);
       }} onCancel={() => { setShowNew(false); setPickFile(false); setDraft(''); }} /></div>}
 
@@ -1432,6 +1441,13 @@ function Comparison({ inqId, token, lang }) {
       {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
       {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_missing') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_dev') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-danger')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
     {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-danger mt-2')}>{t(lang, 'cmp_watch') + arr(a.watch_outs).join(' · ')}</div> : null}
+    {/* THE QUALITY CHECK (ledger 1018, 29 Sep 2026): quotes held while the supplier corrects them, and the points a
+        quote released after its wait did not correct, beside its label. Codes from quote_compare, words in portalText. */}
+    {a.quality_check && (Number(a.quality_check.held) > 0 || arr(a.quality_check.notes).length) ? (<div className="mt-2 border-t border-border/60 pt-2">
+      <div className={cn(S.sub, 'font-semibold text-foreground')}>{t(lang, 'qq_title')}</div>
+      {Number(a.quality_check.held) > 0 ? <div className={S.sub}>{tf(lang, 'qq_held', { n: Number(a.quality_check.held), h: Number(a.quality_check.hours) || 24 })}</div> : null}
+      {arr(a.quality_check.notes).map((n, i) => (<div key={i} className={cn(S.sub, 'text-warn-fg')}>{supLabel(n.label, lang)}: {arr(n.flags).map((f) => qualityReason(f, lang)).filter(Boolean).join('; ')} ({tf(lang, 'qq_uncorrected', { h: Number(a.quality_check.hours) || 24 })})</div>))}
+    </div>) : null}
     {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
     {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />

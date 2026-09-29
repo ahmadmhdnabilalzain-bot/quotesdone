@@ -223,6 +223,10 @@ Object.assign(T.en, {
   nr_scope: 'Scope', nr_quantity: 'Quantity', nr_timeline: 'Timeline', nr_budget: 'Budget', nr_qty_inferred: '(estimated from your description — correct it below if it is wrong)',
   nr_req_docs: 'Required documents and approvals',
   nr_spec_guide: 'How to specify this request',
+  cg_title: 'Your first request, step by step', cg_posted: 'Request sent: what happens next, step by step',
+  cg_held: 'Your request needs a few details', cg_missing: 'Before suppliers can price it, please give:',
+  cg_finding_title: 'We are finding suppliers for your request',
+  cg_finding: 'We are finding suppliers for your trade: none registered with us today covers this request yet, and we are inviting suppliers who do. We will write as soon as one of them has it.',
   nr_sup_one: 'We will send this to 1 matching supplier.', nr_sup_many: 'We will send this to {n} matching suppliers.',
   nr_sup_zero: 'No registered supplier matches this brief yet. You can still send it — it reaches suppliers in this trade as they register.',
   nr_multi_h: 'This project spans several trades: {list}.', nr_multi_q: 'How would you like to source it?',
@@ -367,6 +371,10 @@ Object.assign(T.ar, {
   nr_scope: 'النطاق', nr_quantity: 'الكمية', nr_timeline: 'المدة الزمنية', nr_budget: 'الميزانية', nr_qty_inferred: '(تقدير من وصفك — صحّحه أدناه إن كان خطأ)',
   nr_req_docs: 'المستندات والموافقات المطلوبة',
   nr_spec_guide: 'كيفية تحديد مواصفات هذا الطلب',
+  cg_title: 'طلبكم الأول خطوة بخطوة', cg_posted: 'أُرسل طلبكم: الخطوات التالية خطوة بخطوة',
+  cg_held: 'يحتاج طلبكم إلى بعض التفاصيل', cg_missing: 'ليتمكّن الموردون من تسعيره، نرجو تزويدنا بما يلي:',
+  cg_finding_title: 'نبحث عن موردين لطلبكم',
+  cg_finding: 'نبحث عن موردين في تخصصكم: لا يغطي هذا الطلب أيٌّ من الموردين المسجّلين لدينا حاليًا، ونعمل على دعوة موردين متخصصين فيه، وسنراسلكم فور وصول طلبكم إلى أحدهم.',
   nr_sup_one: 'سنرسل هذا الطلب إلى مورّد مطابق واحد.', nr_sup_many: 'سنرسل هذا الطلب إلى {n} من الموردين المطابقين.',
   nr_sup_zero: 'لا يوجد بعد مورّد مسجّل يطابق هذا الطلب. يمكنك إرساله مع ذلك — وسيصل إلى موردي هذا التخصص فور تسجيلهم.',
   nr_multi_h: 'يشمل هذا المشروع عدة تخصصات: {list}.', nr_multi_q: 'كيف تفضّل التوريد؟',
@@ -544,4 +552,39 @@ export function errText(j, lang, fallbackKey = 'err_generic') {
   const text = [j.error, j.message].filter(Boolean).join(' ');
   for (const [re, k] of MSG_KEY) if (re.test(text)) return t(lang, k);
   return t(lang, fallbackKey);
+}
+
+// ── ADDED 29 SEP 2026 (founder ledger 1018, item 2): the quote quality check in the comparison. quote_compare serves
+// analysis.quality_check = { held, hours, notes: [{ label, label_ar, flags }] }; the flags are codes and numbers
+// (scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_before_the_customer_sees_it.sql, fn_quote_quality_flags),
+// and the sentences are written here, in both languages.
+Object.assign(T.en, {
+  qq_title: 'Our quality check',
+  qq_held: '{n} more quote(s) are held while the supplier corrects what our quality check found. Each appears here once it is corrected, or after {h} hours with the points shown beside it.',
+  qq_uncorrected: 'not corrected by the supplier within {h} hours',
+  qq_missing_spec: 'does not state: {specs}',
+  qq_price_above: 'line {line} is {pct}% above the usual UAE price (AED {lo} to {hi} per {unit})',
+  qq_price_below: 'line {line} is {pct}% below the usual UAE price (AED {lo} to {hi} per {unit}); check what it leaves out',
+  qq_no_validity: 'no validity stated',
+  qq_no_delivery_time: 'no delivery time stated',
+  qq_no_vat_treatment: 'does not say whether VAT is included',
+});
+Object.assign(T.ar, {
+  qq_title: 'فحص الجودة لدينا',
+  qq_held: 'هناك {n} عرض/عروض أخرى معلّقة ريثما يصحّح المورّد ما وجده فحص الجودة لدينا. يظهر كل منها هنا فور تصحيحه، أو بعد {h} ساعة مع عرض الملاحظات بجانبه.',
+  qq_uncorrected: 'لم يصحّحها المورّد خلال {h} ساعة',
+  qq_missing_spec: 'لم يذكر: {specs}',
+  qq_price_above: 'سعر البند {line} أعلى بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})',
+  qq_price_below: 'سعر البند {line} أقل بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})، ويُستحسن التحقق مما لا يشمله',
+  qq_no_validity: 'لم يذكر مدة صلاحية العرض',
+  qq_no_delivery_time: 'لم يذكر مدة التسليم',
+  qq_no_vat_treatment: 'لم يوضّح إن كان السعر شاملًا ضريبة القيمة المضافة',
+});
+/** One quality-check flag (quote_compare's quality_check.notes[].flags[]) as a phrase in the customer's language. */
+export function qualityReason(f, lang) {
+  const code = String((f && f.code) || '');
+  const money = (x) => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  if (code === 'missing_spec') return tf(lang, 'qq_missing_spec', { specs: (Array.isArray(f.specs) ? f.specs : []).map((s) => s && s.label).filter(Boolean).join(', ') });
+  if (code === 'price_above' || code === 'price_below') return tf(lang, 'qq_' + code, { line: f.line_no, pct: Math.abs(Number(f.pct_vs_median) || 0), lo: money(f.p25), hi: money(f.p75), unit: f.unit });
+  return T.en['qq_' + code] ? t(lang, 'qq_' + code) : '';
 }

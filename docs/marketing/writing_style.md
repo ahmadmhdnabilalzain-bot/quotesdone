@@ -4,6 +4,13 @@ Founder, instruction 722 (22 Sep 2026): the marketing seat is also business deve
 about QuotesDone and prepares two or three LinkedIn messages a day, and "no one should feel he is an agent;
 replies extremely professional."
 
+**Blog articles changed on 29 Sep 2026 (founder 1058, 1059).** A blog article is a trending MARKET topic tied to
+the business (UAE construction, fit-out, MEP and the procurement trades: what people search for, seasonal and
+regulatory news, the trades buyers ask for), never about QuotesDone and never naming a supplier. It cites its market
+sources, and the grounding rule below applies to them. The CEO seat reviews every article against six criteria and
+approves, asks for a revision or replaces the topic; the founder never approves one and is told only when one goes
+live. At most one a week. The pipe: `scripts/sql/a_blog_article_is_a_market_topic_the_ceo_reviews_until_it_is_useful.sql`.
+
 The rules below are enforced by code, not by this page:
 `supabase/functions/_shared/marketing_style.ts` (the lint and the grounding check),
 `supabase/functions/_shared/marketing_style_tells.json` (the phrase lists) and their tests. This page explains

@@ -56,6 +56,18 @@ const CALLER_CLASS_PREEXISTING = {
   wa_inbound: 'customer_communication',
 };
 
+// 29 Sep 2026 (founder_instruction 1056): the sales engineer's functions moved onto its own classes. READ OUT OF the
+// file that moves them (its fn_task_class update), applied LAST, so a mapping deleted there fails here.
+const MATRIX_SQL = 'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql';
+const callerClassMovedByMatrix = () => {
+  const sql = read(MATRIX_SQL);
+  const block = sql.slice(sql.indexOf('update public.fn_task_class t'), sql.indexOf(') as v(fn, cls)'));
+  const out = {};
+  for (const m of block.matchAll(/\('([a-z0-9_]+)',\s*'([a-z0-9_]+)'\)/g)) out[m[1]] = m[2];
+  assert.ok(Object.keys(out).length >= 15, `only ${Object.keys(out).length} moves parsed out of ${MATRIX_SQL}`);
+  return out;
+};
+
 // THE ROWS THIS PR ADDS OR MOVES, and they are READ OUT OF THE SQL FILE rather than copied here.
 // This is the whole point of the check (corrected 23 Sep 2026 in review): the original defect was a
 // MISSING fn_task_class row — supplier_catalog_ingest had none, fell to general_drafting, and was
@@ -87,7 +99,7 @@ const callerClassFromOwningSql = () => {
   return out;
 };
 
-const callerClass = () => ({ ...CALLER_CLASS_PREEXISTING, ...callerClassFromOwningSql() });
+const callerClass = () => ({ ...CALLER_CLASS_PREEXISTING, ...callerClassFromOwningSql(), ...callerClassMovedByMatrix() });
 
 // Ceilings NOT written by the owning SQL file, measured from public.model_policy on 23 Sep 2026.
 const CEILINGS_MEASURED = {
@@ -97,10 +109,20 @@ const CEILINGS_MEASURED = {
   document_extraction: 8000,
   intent_detection: 800,
   marketing_copy: 1200,
-  procurement_reasoning: 1500,
+  procurement_reasoning: 4000,   // 1500 on 23 Sep; 4000 on production 29 Sep (opus_5_5_classes_leave_room_for_thinking.sql)
   quote_comparison: 10000,
   speech_transcription: 1024,
   visitor_chat: 900,
+  // founder_instruction 1056 (29 Sep 2026): the classes the sales engineer's functions moved to. The matrix file
+  // copies each seat route's ceiling from its base class at apply (b.max_tokens), so these are the base values read
+  // from public.model_policy on 29 Sep 2026; drawing_and_boq_analysis is raised to 8000 by the file itself, the 8000
+  // drawing_boq asks for. fn_ai_route also floors a seat's own row at the class's ceiling.
+  sales_engineer__document_extraction: 8000,
+  sales_engineer__json_extraction: 4000,
+  sales_engineer__procurement_reasoning: 4000,
+  inquiry_qualification_conversation: 4000,
+  customer_portal_assistant: 4000,
+  drawing_and_boq_analysis: 8000,
 };
 
 // The ceilings this PR sets, read out of the file that sets them so a later edit to one moves both.
