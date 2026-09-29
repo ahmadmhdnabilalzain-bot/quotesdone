@@ -1,5 +1,0 @@
-Not applied. The surface (table, RLS, fn_customer_spec_guide) is committed ahead of its content: the
-per-trade "how to specify your request" text is held by the founder, and the table ships empty.
-Moves when a sales_engineer apply is scheduled; the file carries its own verdict-row probe (PROBE OK
-twice). On apply: delete this note and append customer_spec_guide.sql to the END of MANIFEST.txt.
-Seat: sales_engineer.
