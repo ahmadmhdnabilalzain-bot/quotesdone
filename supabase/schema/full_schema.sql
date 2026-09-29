@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T03:34:04.653Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T03:39:24.027Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -47162,6 +47162,15 @@ begin
   if jsonb_typeof(p_items) is distinct from 'array' or jsonb_typeof(coalesce(p_fixed, '[]'::jsonb)) is distinct from 'array' then
     raise exception 'fn_it_integration_settle(duty, items[], fixed[]): items and fixed must be arrays';
   end if;
+  -- EVERY PROBE LEAVES A ROW (28 Sep 2026): one per integration measured this beat, passing or failing.
+  insert into public.edge_health_probe (fn_key, last_beat_at, silent_minutes, verdict, note)
+  select p_duty || ':' || (e->>'item'),
+         case when coalesce((e->>'recovered')::boolean, false) then now() end,
+         case when coalesce((e->>'recovered')::boolean, false) then 0 end,
+         case when coalesce((e->>'recovered')::boolean, false) then 'ALIVE' else 'FAILING' end,
+         case when coalesce((e->>'recovered')::boolean, false) then null else left(e->>'title', 500) end
+    from jsonb_array_elements(p_items) e
+   where not coalesce((e->>'carried')::boolean, false) and coalesce(e->>'item', '') <> '';
   -- A carried item holds an OPEN finding; one whose finding is closed is dropped, never reopened.
   -- A RECOVERED item is a successful re-probe, not a failure: it is kept out of the settle and remembered.
   for x in select e from jsonb_array_elements(p_items) e loop
