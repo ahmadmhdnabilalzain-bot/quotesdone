@@ -7,7 +7,8 @@ declare
   -- 06:00 UTC = 10:00 Dubai on the same date, so the UTC cap day and the Dubai day agree for the positive runs
   p_now timestamptz := ((now() at time zone 'UTC')::date + time '06:00') at time zone 'UTC';
   a bigint; b bigint; c bigint; d bigint; e bigint; f bigint; g bigint; ids bigint[];
-  r1 jsonb; r2 jsonb; r3 jsonb; r4 jsonb; r5 jsonb; wk jsonb; early jsonb; night jsonb; fail text := ''; o jsonb;
+  r1 jsonb; r2 jsonb; r3 jsonb; r4 jsonb; r5 jsonb; wk jsonb; early jsonb; dawn2 jsonb; night jsonb; fail text := ''; o jsonb;
+  v_warm text; v_start int;
   v_real_before int; v_real_after int;
 begin
   if extract(isodow from p_now at time zone 'Asia/Dubai') in (6, 7) then
@@ -46,12 +47,37 @@ begin
   wk := public.fn_sales_engineer_nudges_invited_suppliers(p_now + ((6 - extract(isodow from p_now at time zone 'Asia/Dubai'))::int * interval '1 day'), 10, true);
   if wk->>'held' is distinct from 'UAE weekend' then fail := fail || 'weekend not held: ' || wk::text || '; '; end if;
 
-  -- before the window (review of #1007): 07:00 and 02:00 Dubai on the positive day are held, nothing queued
-  early := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '3 hours', 10, true);
-  night := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '8 hours', 10, true);
-  if early->>'held' is distinct from 'before the Dubai sending window' or (early->>'queued')::int <> 0
-     or night->>'held' is distinct from 'before the Dubai sending window' or (night->>'queued')::int <> 0 then
-    fail := fail || 'queued before the sending window: ' || early::text || ' ' || night::text || '; '; end if;
+  -- THE DUTY'S OWN SLOT (review of #1007): supplier_onboarding runs at 00:01 UTC = 04:01 Dubai. A nudge due then is
+  -- QUEUED, not held, and waits for 09:00 Dubai that day (not_before). 18:00 Dubai is past the window: held.
+  -- The window start is read from invite_warmup.window_start_hour as the batch reads it (live: 10 on 29 Sep 2026).
+  -- First with it set to 9 inside this rolled-back transaction (the default): not_before must be 09:00 Dubai.
+  v_warm := (select value from public.app_secrets where key = 'invite_warmup');
+  update public.app_secrets set value = (coalesce(nullif(v_warm, '')::jsonb, '{}'::jsonb) || '{"window_start_hour": 9}')::text
+   where key = 'invite_warmup';
+  early := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '5 hours 59 minutes', 1, true);
+  update public.app_secrets set value = v_warm where key = 'invite_warmup';
+  if early->>'held' is not null or (early->>'queued')::int <> 1 then
+    fail := fail || '04:01 Dubai did not queue: ' || early::text || '; ';
+  elsif not exists (select 1 from public.notifications n where n.type = 'supplier_invite_nudge' and n.lead_id = any(ids)
+                     and n.not_before = ((p_now at time zone 'Asia/Dubai')::date + time '09:00') at time zone 'Asia/Dubai') then
+    fail := fail || '04:01 Dubai nudge does not wait for 09:00 Dubai: '
+            || coalesce((select string_agg(coalesce(n.not_before::text, 'null'), ',') from public.notifications n
+                          where n.type = 'supplier_invite_nudge' and n.lead_id = any(ids)), 'no row') || '; ';
+  end if;
+  -- Then with the live configuration: the next nudge waits for the configured hour, exactly as the batch would.
+  v_start := coalesce((nullif(v_warm, '')::jsonb->>'window_start_hour')::int, 9);
+  dawn2 := public.fn_sales_engineer_nudges_invited_suppliers(p_now - interval '5 hours 59 minutes', 2, true);
+  if (dawn2->>'queued')::int <> 1 or (select count(*) from public.notifications n where n.type = 'supplier_invite_nudge' and n.lead_id = any(ids)
+        and n.not_before = ((p_now at time zone 'Asia/Dubai')::date + make_interval(hours => v_start)) at time zone 'Asia/Dubai') <> 1 then
+    fail := fail || '04:01 Dubai with the live window_start_hour ' || v_start || ' did not wait for it: ' || dawn2::text || '; ';
+  end if;
+  night := public.fn_sales_engineer_nudges_invited_suppliers(p_now + interval '8 hours', 10, true);
+  if night->>'held' is distinct from 'after the Dubai sending window' or (night->>'queued')::int <> 0 then
+    fail := fail || '18:00 Dubai not held: ' || night::text || '; '; end if;
+  -- reset, so the cap and idempotency runs below start from nothing queued
+  delete from public.notifications where type = 'supplier_invite_nudge' and lead_id = any(ids);
+  delete from public.agent_actions where target_id like 'delivery.request:supplier_invite_nudge:%'
+     and split_part(target_id, ':', 3)::bigint = any(ids);
 
   -- cap 2 with 3 due -> 2; again at cap 2 -> 0 (the cap is shared per day); cap 10 -> the 1 left; again -> 0 (idempotent)
   -- (queued rows carry now(); they are re-dated to p_now so a weekend-shifted p_now still counts them the same day)
@@ -120,5 +146,5 @@ begin
     fail := fail || 'cleanup left rows; '; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when fail = '' then 'PROBE OK' else 'PROBE FAILED: ' || fail end,
-    'weekend', wk, 'run1', r1, 'run2', r2, 'run3', r3, 'run4', r4, 'run5_cap_day', r5, 'before_window', jsonb_build_array(early, night), 'steps', o)::text;
+    'weekend', wk, 'run1', r1, 'run2', r2, 'run3', r3, 'run4', r4, 'run5_cap_day', r5, 'dawn_0401_and_evening_1800', jsonb_build_array(early, dawn2, night), 'steps', o)::text;
 end $$;
