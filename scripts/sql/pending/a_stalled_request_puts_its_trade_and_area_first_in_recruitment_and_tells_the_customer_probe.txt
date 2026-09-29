@@ -1,0 +1,1 @@
+A PROBE (pure, aborted transaction, no DDL, ends in raise exception CHK<<...>>): run after its .sql in the same transaction. Never applied on its own; kept as the proof named by "Prevented by:" (scripts/checks/a_stalled_request_is_rescued_through_the_invitation_queue.test.mjs).
