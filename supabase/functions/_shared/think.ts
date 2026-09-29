@@ -59,6 +59,7 @@ export interface ThinkContext {
   profile?: Record<string, unknown>;   // the asker's own row(s): emirate, trade, company ... never another person's
   case?: Record<string, unknown>;      // the inquiry / quote / command this is about
   trade?: string | null;
+  area?: string | null;                // the seat's own area when the caller knows it (an 'area:<area>' tag); never guessed
 }
 export interface DecisionSpec {
   name: string;
@@ -109,7 +110,9 @@ type RpcResult = { data: any; error: { message: string } | null };
 export type EmbedSpace = 'gte' | 'ml';
 export interface ThinkDeps {
   gate(): Promise<GateAnswer>;
-  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number }): Promise<LlmReply>;
+  // subject: what the question is about, forwarded to ai_gateway so its fixture check (fn_ai_subject_is_fixture)
+  // can answer our own test traffic with the no-cost stub (704, 28 Sep 2026).
+  llm(phase: Phase, system: string, input: string, o: { taskClass: string; seat: Seat; counterpartModel?: string | null; max?: number; subject?: Record<string, unknown> | null }): Promise<LlmReply>;
   // space 'gte' (gte-small, English-only, the default) or 'ml' (multilingual-e5-small, _shared/ml_embed.ts).
   embed(text: string, space?: EmbedSpace): Promise<number[] | null>;
   /** Which space retrieval reads (fn_ml_read_space). Absent = 'gte', the path every test and caller had. */
@@ -239,6 +242,13 @@ const RULINGS = `Standing rulings of the founder of QuotesDone (a UAE procuremen
 - Never decide what a message means by spotting a word; read what the person is actually saying.
 - UAE and GCC law only; United States law is out of scope.`;
 
+// The kinds a knowledge entry is tagged with ('kind:<kind>', scripts/kb/verified_packs.mjs), measured on production
+// sales_knowledge 28 Sep 2026. The planner names the question's trade and kind; retrieval resolves both EXACTLY
+// (knowledge_lookup_goes_to_the_trade_first.sql), so a value that is not a live code or tag narrows nothing.
+export const ENTRY_KINDS = ['authority_approval', 'benchmark', 'buyer_mistake', 'checklist', 'comparison', 'concept', 'decision_rule',
+  'glossary', 'installation', 'law', 'lead_time', 'method', 'playbook', 'price_driver', 'product', 'quote_red_flag', 'spec_checklist',
+  'standard', 'warranty'] as const;
+
 export function decomposePrompt(seat: Seat, decision?: DecisionSpec): string {
   return `${RULINGS}
 
@@ -246,7 +256,9 @@ You are the ${seat} seat's planner. Do NOT answer yet. Plan how an expert in thi
 Return ONE JSON object:
 {"steps":[{"id":"s1","goal":"<what this step establishes>","query":"<what to look up in the knowledge base, as a full sentence>","needs_knowledge":true}],
  "facts":[{"name":"<e.g. emirate>","why":"<how it changes the answer>","changes_answer":true,"value":"<value if the conversation/profile/case already says it, else null>","from":"<conversation|profile|case|null>"}],
- "high_stakes":<true if the answer states a legal or regulatory limit, money, or safety>}
+ "high_stakes":<true if the answer states a legal or regulatory limit, money, or safety>,
+ "trade":"<the ONE trade the question is about, as a lowercase taxonomy code (e.g. hvac, plumbing, glazing), or null when it is about no single trade>",
+ "kind":"<what the question asks for, one of: ${ENTRY_KINDS.join(', ')}; or null>"}
 At most ${MAX_STEPS} steps. Fill a fact's value ONLY from what you were given; never guess it.`;
 }
 
@@ -345,6 +357,15 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     steps.push({ id: 'options', kind: 'hold', goal: 'a decision needs options', status: 'failed', detail: 'no options were given' });
     return await hold('no_options', {});
   }
+  // OUR OWN TEST TRAFFIC NEVER REACHES A MODEL (704, 28 Sep 2026, it_engineer). A caller that knows its subject is a
+  // fixture already kept it out of the queue; the model was still called, and would be paid the day the hold lifts
+  // (measured: 26 line_specs.assess and 1 postmortem fixture rows in 4 days, each a full think() run). Every other
+  // call carries its subject, so the gateway's own fixture check can stub what this flag does not know about.
+  if (isFixtureRequest(req)) {
+    steps.push({ id: 'fixture', kind: 'hold', goal: 'our own test traffic is never sent to a paid model', status: 'skipped', detail: 'subject.fixture' });
+    return await hold('fixture_no_spend', {});
+  }
+  { const base = deps; deps = { ...base, llm: (p, s, i, o) => base.llm(p, s, i, { ...o, subject: req.subject ?? null }) }; }
   // 0. The hold. The gate is asked, not a row count (llm_hold.ts).
   let gate: GateAnswer = null;
   try { gate = await deps.gate(); } catch (_e) { gate = null; }
@@ -357,13 +378,18 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   const d0 = await deps.llm('decompose', decomposePrompt(req.seat, req.decision),
     JSON.stringify({ question: req.question, context: ctx, decision: req.decision ?? null }),
     { taskClass: taskClassFor('decompose', audience, deciding), seat: req.seat, max: 900 });
-  const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean }>(d0.content);
+  const plan = parseJson<{ steps?: { id?: string; goal?: string; query?: string; needs_knowledge?: boolean }[]; facts?: Partial<Fact>[]; high_stakes?: boolean; trade?: string | null; kind?: string | null }>(d0.content);
   if (!plan || !Array.isArray(plan.steps)) {
     steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error ?? 'no plan' });
     return await hold(/circuit_open|open-circuit|founder_hold/.test(String(d0.error ?? '')) ? 'model_hold' : 'model_failed: decompose', {});
   }
   const planSteps = plan.steps.slice(0, MAX_STEPS).map((s, i) => ({ id: String(s.id || 's' + (i + 1)), goal: String(s.goal || ''), query: String(s.query || s.goal || req.question), needs: s.needs_knowledge !== false }));
-  steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'done', detail: { steps: planSteps.map((s) => s.goal) } });
+  // UNDERSTAND THE QUESTION FIRST: the caller's trade wins, else the planner's reading of the question. Either is only
+  // a proposal: retrieval resolves it exactly or ignores it. The words are read by the model, never matched.
+  const str = (x: unknown) => (typeof x === 'string' && x.trim() ? x.trim().toLowerCase() : null);
+  const trade = str(ctx.trade) ?? str(plan.trade);
+  const kind = trade ? str(plan.kind) : null;
+  steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'done', detail: { steps: planSteps.map((s) => s.goal), trade, kind } });
 
   // b. RESOLVE CONTEXT — what the planner filled from what it was given, and case memory by meaning.
   const facts: Fact[] = (plan.facts ?? []).map((f) => ({
@@ -400,9 +426,13 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
     // The multilingual search fuses both spaces (fn_reason_retrieve_ml), so it takes the gte-small vector too;
     // without one it ranks by the multilingual space alone.
     const vg = rt === ROUTINES.ml ? await deps.embed(s.query, 'gte') : null;
+    // The right area first (knowledge_lookup_goes_to_the_trade_first.sql): the routine resolves the trade and the
+    // area exactly and ranks only that trade's entries / that area's rows plus the seat's general ones. Each is sent
+    // only when known, so a call without them is the call it always was.
+    const area = { ...(trade ? { p_trade: trade } : {}), ...(kind ? { p_kind: kind } : {}), ...(ctx.area ? { p_area: ctx.area } : {}) };
     const { data, error } = await deps.rpc(rt.retrieve, rt === ROUTINES.ml
-      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6 }
-      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6 });
+      ? { p_seat: req.seat, p_embedding: vec(v), p_embedding_gte: vg ? vec(vg) : null, p_k: 6, ...area }
+      : { p_seat: req.seat, p_embedding: vec(v), p_k: 6, ...area });
     const rows = !error && Array.isArray(data) ? data : [];
     for (const r of rows) {
       const id = `${r.source}:${r.id}`;
@@ -500,7 +530,7 @@ export function defaultDeps(admin: Admin, fn: string): ThinkDeps {
     llm: async (phase, system, input, o) => {
       const { makeLlmRich } = await import('./llm.ts');
       const call = makeLlmRich([], { fn, taskClass: o.taskClass, agent: o.seat, max: o.max ?? 900, timeoutMs: 45_000, cacheTtlMin: 0, json: true, temperature: phase === 'verify' ? 0 : 0.2 });
-      const r = await call(system, input, o.max ?? 900, '', o.counterpartModel ? { counterpartModel: o.counterpartModel } : {});
+      const r = await call(system, input, o.max ?? 900, '', { ...(o.counterpartModel ? { counterpartModel: o.counterpartModel } : {}), ...(o.subject ? { subject: o.subject } : {}) });
       return { content: r.content, model: r.model ?? null, error: r.error, used_llm: r.used_llm };
     },
     embed: async (t, space) => {
