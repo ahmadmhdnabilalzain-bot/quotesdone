@@ -11,7 +11,7 @@
 // owner.mjs holds it to production). A callee is any slug named after /functions/v1/ in
 //   - edge-function source (supabase/functions/**/*.ts, tests excluded), as a literal URL, as
 //     `<BASE> + '/<slug>'` or as `${BASE}/<slug>` where BASE is a constant ending in /functions/v1;
-//   - the live schema mirror supabase/schema/full_schema.sql (routines and cron commands).
+//   - the live schema mirror supabase/schema/full_schema/ (routines and cron commands).
 // Comment lines are skipped: they may name the defect, code may not repeat it.
 //
 //   node --test scripts/checks/no_function_calls_an_undeployed_function.test.mjs
@@ -20,6 +20,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const FN_DIR = path.join(REPO, 'supabase/functions');
@@ -83,8 +84,7 @@ test('every edge function called from edge-function source is deployed', () => {
 
 test('every edge function called from the database is deployed', () => {
   const deployed = deployedSlugs(fs.readFileSync(path.join(REPO, 'supabase/config.toml'), 'utf8'));
-  const mirror = path.join(REPO, 'supabase/schema/full_schema.sql');
-  const missing = [...calleesInSql(fs.readFileSync(mirror, 'utf8'))].filter((s) => !deployed.has(s));
+  const missing = [...calleesInSql(readSchemaMirror())].filter((s) => !deployed.has(s));
   assert.deepEqual(missing, [], 'routines or cron commands in the schema mirror call functions that are not deployed');
 });
 

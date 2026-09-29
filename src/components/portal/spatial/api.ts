@@ -6,7 +6,7 @@
 //   project_api        detail  -> the project and its linked RFQs
 //   procurement_api    orders  -> this customer's po_orders, via fn_customer_orders
 //   customer_documents list    -> this customer's vault, RLS-scoped at PostgREST
-import { SUPA_ANON, SUPA_URL } from '@/lib/supaEnv';
+import { SUPA_ANON, fnUrl } from '@/lib/supaEnv';
 import type { CustomerOrder, SpatialProject, SpatialRfq, VaultDoc } from './model';
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -18,9 +18,9 @@ export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string };
  * three lines, and an audit can read them.
  */
 const ENDPOINT = {
-  project_api: `${SUPA_URL}/functions/v1/project_api`,
-  procurement_api: `${SUPA_URL}/functions/v1/procurement_api`,
-  customer_documents: `${SUPA_URL}/functions/v1/customer_documents`,
+  project_api: fnUrl('project_api'),
+  procurement_api: fnUrl('procurement_api'),
+  customer_documents: fnUrl('customer_documents'),
 } as const;
 
 async function post<T>(url: string, token: string, body: Record<string, unknown>): Promise<ApiResult<T>> {

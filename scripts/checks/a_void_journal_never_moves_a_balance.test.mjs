@@ -11,12 +11,13 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FIX = 'scripts/sql/a_void_journal_never_moves_a_balance.sql';
 const PENDING = 'scripts/sql/pending/a_void_journal_never_moves_a_balance.txt';
-const SRC = existsSync(join(REPO, PENDING)) ? read(FIX) : read('supabase/schema/full_schema.sql');
+const SRC = existsSync(join(REPO, PENDING)) ? read(FIX) : readSchemaMirror();
 
 test('gl_account_balances sums only lines of posted journals', () => {
   const m = /create or replace view public\.gl_account_balances\b[\s\S]*?;\s*\n/i.exec(SRC);

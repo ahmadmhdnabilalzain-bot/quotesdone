@@ -1,7 +1,7 @@
 // kyc — passwordless account completion: mobile (SMS) + email verification, REQUIRED DOB (18+) profile, terms->signed PDF.
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoPhone } from '../_shared/demo_identity.ts';
 import { dobProblem } from '../_shared/account_rule.ts';
 import { clientIp, currentSupplierTermsVersion, supplierTermsRecord } from '../_shared/supplier_terms.ts';
@@ -19,7 +19,23 @@ const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
+// LATENCY (28 Sep 2026, it_engineer): the hourly SLO measured kyc p95 9,767 ms against 2,500. The database is in
+// ap-southeast-1 and the platform runs a call in the region nearest the CALLER, so every SEQUENTIAL round trip
+// costs ~0.2-0.3 s from the US and ~0.1 s from India; 'state' made five in a row and send_sms up to nine. The
+// fix is fewer serial trips: provider keys are cached per isolate for a minute (secCached), the reads every action
+// needs go out together, and the audit rows are written after the response. A minute is well inside a rotation's
+// overlap (internal credentials; the Twilio API key is kept at least 24 h); should Twilio still answer 401
+// (a key rotated and retired under a warm isolate), twilioVerifyPost drops the cache and retries once on a fresh read.
+// sec() itself stays byte-identical to every other function's (scripts/checks/shared_helpers_agree.test.mjs).
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
+const SEC_TTL_MS = 60_000;
+const _sec = new Map<string, { v: string; at: number }>();
+async function secCached(k: string): Promise<string | null> {
+  const hit = _sec.get(k); if (hit && Date.now() - hit.at < SEC_TTL_MS) return hit.v;
+  const v = await sec(k);
+  if (v) _sec.set(k, { v, at: Date.now() }); else _sec.delete(k); // an absent or failed read is never cached
+  return v;
+}
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
 function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
@@ -41,7 +57,7 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of account completion
 }
-async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const secret = await sec('twilio_api_key_secret'); const va = await sec('twilio_verify_service_sid'); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
+async function twilioAuth() { const [sid, secret, va] = await Promise.all([secCached('twilio_api_key_sid'), secCached('twilio_api_key_secret'), secCached('twilio_verify_service_sid')]); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 type TwAuth = { hdr: string; va: string };
 // ONE Verify send, ONE check, ONE per-number limit for every channel (14 Sep 2026). send_sms owned
 // these inline; the WhatsApp question needs the identical machinery on Channel=whatsapp, and two
@@ -62,20 +78,35 @@ async function phoneRateLimited(phone: string, email: string): Promise<boolean> 
   const mine = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
   return (mine.count || 0) >= KYC_PHONE_SENDS_PER_ACCOUNT_HOUR;
 }
+// A 401 FROM TWILIO RE-READS THE KEY AND TRIES ONCE MORE (29 Sep 2026, review of #1038). The pair is cached for
+// up to SEC_TTL_MS, and it_engineer now rotates the Twilio API key by API. The old key is kept for at least 24 h
+// after a rotation, so a cached key should never be a deleted one; this is the second line: a rejected key drops
+// the cached pair, reads app_secrets again and retries once, only if the pair actually changed.
+const TW_KEYS = ['twilio_api_key_sid', 'twilio_api_key_secret', 'twilio_verify_service_sid'];
+async function twilioVerifyPost(tw: TwAuth, path: string, body: URLSearchParams): Promise<Response> {
+  const post = () => timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/${path}`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body });
+  let r = await post();
+  if (r.status === 401) {
+    for (const k of TW_KEYS) _sec.delete(k);
+    const fresh = await twilioAuth();
+    if (fresh && (fresh.hdr !== tw.hdr || fresh.va !== tw.va)) { tw.hdr = fresh.hdr; tw.va = fresh.va; r = await post(); }
+  }
+  return r;
+}
 async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
+  const r = await twilioVerifyPost(tw, 'Verifications', new URLSearchParams({ To: phone, Channel: channel, Locale: locale }));
   const jd: any = await r.json().catch(() => ({}));
   return { r, jd };
 }
 async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boolean> {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
+  const r = await twilioVerifyPost(tw, 'VerificationCheck', new URLSearchParams({ To: phone, Code: code }));
   const jd: any = await r.json().catch(() => ({}));
   return jd?.status === 'approved';
 }
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
 // The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
-async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; const reply_to = (await sec('email_reply_info')) || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
+async function sendEmail(to: string, subject: string, html: string) { const [key, fromS, replyS] = await Promise.all([secCached('resend_api_key'), secCached('email_from_info'), secCached('email_reply_info')]); if (!key) return false; const from = fromS || 'QuotesDone <info@quotesdone.com>'; const reply_to = replyS || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
 // SUPPRESSION BYPASS 28 Jul 2026 ----------------------------------------------------------------
 // login_otp and contact_submit both consult email_suppressions before handing anything to Resend,
 // and send_outbox queries the same table. kyc did not: sendEmail() above builds its own Resend call,
@@ -94,16 +125,27 @@ async function isSuppressed(email: string): Promise<boolean> {
 // Observability: identity state changes and delivery failures land in agent_runs.
 // The read-only 'state' action is not logged (high volume, no failure mode worth tracking).
 function mkLog(t0: number) {
+  // Written AFTER the response when the runtime allows it (EdgeRuntime.waitUntil keeps the isolate alive for
+  // it), so a user never waits on an audit row. Without the runtime (deno test) it is awaited as before.
   return async (status: string, counts: Record<string, unknown>, note: string) => {
-    try {
+    const w = (async () => { try {
       await admin.from('agent_runs').insert({ agent: 'kyc', status, counts,
         note: String(note || '').slice(0, 500),
         started_at: new Date(t0).toISOString(), finished_at: new Date().toISOString() });
-    } catch (_e) { /* never let logging break account completion */ }
+    } catch (_e) { /* never let logging break account completion */ } })();
+    const rt = (globalThis as any).EdgeRuntime;
+    if (typeof rt?.waitUntil === 'function') rt.waitUntil(w); else await w;
   };
 }
 
+// The action goes onto the observe row, so the hourly p95 can be read per action and not only per function.
 Deno.serve(observe('kyc', async (req) => {
+  const meta: { action?: string } = {};
+  const res = await handle(req, meta);
+  return meta.action ? annotate(res, { action: meta.action }) : res;
+}));
+
+async function handle(req: Request, meta: { action?: string }): Promise<Response> {
   const logRun = mkLog(Date.now());
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   // KEEP-WARM (resilience_ping, 14 Sep 2026). No auth, no DB, before anything else: the isolate is
@@ -114,20 +156,32 @@ Deno.serve(observe('kyc', async (req) => {
     const { data: { user } } = await admin.auth.getUser(jwt);
     if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
     const email = user.email.toLowerCase();
+    // ONE round trip for everything every action reads, instead of five in a row. The sanction check still
+    // decides before anything is written or answered; it simply no longer waits alone.
+    const LEAD_COLS = 'id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name';
+    const CUST_COLS = 'id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url';
+    const WA_COLS = 'whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at';
+    const [sanctioned, bodyIn, leadR, custR, leadWaR, custWaR] = await Promise.all([
+      sanctionedEmail(admin, email),
+      req.json().catch(() => ({} as any)),
+      admin.from('leads').select(LEAD_COLS).eq('claimed_by', email).maybeSingle(),
+      admin.from('customers').select(CUST_COLS).eq('email', email).maybeSingle(),
+      admin.from('leads').select(WA_COLS).eq('claimed_by', email).maybeSingle(),
+      admin.from('customers').select(WA_COLS).eq('email', email).maybeSingle(),
+    ]);
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026; security review the
     // same day found this function authenticated a supplier by leads.claimed_by and asked
     // nothing about the ban). Above everything this function does, so it covers what is written
     // here next year too.
-    if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);
-    const b = await req.json().catch(() => ({} as any)); const action = String(b.action || '');
+    if (sanctioned) return J(SANCTIONED_REFUSAL, 403);
+    const b = bodyIn; const action = String(b.action || ''); meta.action = action.slice(0, 40);
     // Every action that sends or checks a Twilio Verify code refuses a fixture number first.
     if (['send_sms', 'verify_sms', 'whatsapp_send_code', 'whatsapp_verify'].includes(action) && isDemoPhone(toE164(String(b.phone || '')))) {
       await logRun('skipped', { action, captured: 1 }, FIXTURE_CAPTURE_NOTE);
       return J(FIXTURE_REFUSAL);
     }
 
-    const { data: lead } = await admin.from('leads').select('id,contact_name,phone,owner_dob,owner_email_verified,owner_phone_verified,accepted_terms_at,accepted_terms_version,signed_terms_url,company_name').eq('claimed_by', email).maybeSingle();
-    const { data: cust } = await admin.from('customers').select('id,full_name,phone,date_of_birth,email_verified,phone_verified,tos_accepted_at,signed_terms_url').eq('email', email).maybeSingle();
+    const lead = leadR.data as any; const cust = custR.data as any;
     const kind = lead ? 'supplier' : 'customer';
 
     // The whatsapp_* columns are read in their OWN query, not added to the two selects above. A
@@ -136,8 +190,9 @@ Deno.serve(observe('kyc', async (req) => {
     // action for every supplier. Isolated here, the worst case is a logged read error.
     const waTable = kind === 'supplier' ? 'leads' : 'customers';
     const waKey = kind === 'supplier' ? 'claimed_by' : 'email';
+    // readWa runs before any write in every action that calls it, so the prefetched row is the current one.
     const readWa = async (): Promise<WhatsAppRow | null> => {
-      const { data, error } = await admin.from(waTable).select('whatsapp_phone,whatsapp_verified_at,whatsapp_opt,whatsapp_asked_at').eq(waKey, email).maybeSingle();
+      const { data, error } = kind === 'supplier' ? leadWaR : custWaR;
       if (error) { await logRun('error', { action, kind, stage: 'whatsapp_read' }, 'kyc could not read the whatsapp_* columns on ' + waTable + ': ' + error.message); return null; }
       return data as WhatsAppRow | null;
     };
@@ -453,4 +508,4 @@ Deno.serve(observe('kyc', async (req) => {
   } catch (e) { const m = String((e as Error)?.message || e); await logRun('error', {}, 'exception: ' + m);
     // The raw message belongs in the log, never in the browser (the SP-I-01 rule, applied here too).
     return J({ error: 'Something went wrong. Please try again.', code: 'unexpected_error' }, 500); }
-}));
+}

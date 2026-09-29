@@ -16,14 +16,10 @@
 // regenerated, it has to keep saying when it was captured and what the real rebuild path is.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 import { allMigrations } from './_migration_files.mjs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const dumpPath = join(root, 'supabase', 'schema', 'full_schema.sql');
-const dump = readFileSync(dumpPath, 'utf8');
+const dump = readSchemaMirror();
 
 // A line is dangerous when it RETRIEVES the shared secret's value, which is the only form that
 // re-wires a caller onto it. Two other shapes MENTION the key without using it and must not be
@@ -42,7 +38,7 @@ const dangerous = dump.split('\n').filter((l) => {
 test('a dump that still wires callers to the shared secret says so at the top', () => {
   if (dangerous.length === 0) return;   // regenerated: nothing to warn about, guard retires itself
   assert.match(dump.slice(0, 3000), /STALE\. DO NOT REPLAY THIS FILE\./,
-    'full_schema.sql contains ' + dangerous.length + ' line(s) that fetch inbound_secret from app_secrets, but ' +
+    'the schema mirror contains ' + dangerous.length + ' line(s) that fetch inbound_secret from app_secrets, but ' +
     'carries no banner saying so. Anyone rebuilding from it would silently undo the credential separation.');
   assert.match(dump.slice(0, 3000), /managed backups \/ PITR/,
     'the banner does not name the correct way to rebuild, so it warns without helping.');
@@ -67,7 +63,7 @@ test('the header does not point a rebuild at the migration set', () => {
   // The load-bearing claim is the opposite one: the header must NOT send a reader to
   // supabase/migrations/ for a rebuild, because that set cannot do it.
   assert.doesNotMatch(dump.slice(0, 3000), /replay supabase\/migrations\/ in order/,
-    'full_schema.sql directs rebuilds at supabase/migrations/, which holds 285 of 712 applied ' +
+    'the schema mirror directs rebuilds at supabase/migrations/, which holds 285 of 712 applied ' +
     'migrations and creates 131 of 403 tables. Measure with scripts/verify_repo_production_parity.mjs.');
   // And the history must not silently shrink either - that would be a different defect.
   //
@@ -94,7 +90,7 @@ test('every section header ends its own line', () => {
   // The shape: a "-- =====" header line with a backslash immediately followed by n anywhere on it.
   const bad = dump.split('\n').filter((l) => l.startsWith('-- =====') && l.includes('\\' + 'n'));
   assert.deepEqual(bad, [],
-    'a section header in full_schema.sql runs onto the next statement through a literal backslash-n, ' +
+    'a section header in the schema mirror runs onto the next statement through a literal backslash-n, ' +
     'so that statement is commented out. Fix the literal in fn_schema_export (it needs an E prefix).');
 });
 
@@ -105,12 +101,12 @@ test('the dump says when it was captured and where the real rebuild path is', ()
   // instead of quietly restoring the original trap.
   const head = dump.slice(0, 3000);
   assert.match(head, /Captured \d{4}-\d{2}-\d{2}T[\d:.]+Z/,
-    'full_schema.sql does not state its capture time, so nobody can tell whether it is current. ' +
+    'the schema mirror does not state its capture time, so nobody can tell whether it is current. ' +
     'Regenerate with: node C:/Users/Opera/qd-check/regen_schema.mjs --apply');
   // Was /replay supabase\/migrations\/ in order/ until 5 Aug 2026 — this ratchet REQUIRED the false
   // claim to be present, so correcting the header turned npm test red. A guard that pins a lie in
   // place is worse than no guard: it makes the honest fix look like the regression.
   assert.match(head, /managed backups \/ PITR/,
-    'full_schema.sql does not name a restore path that actually works, so a reader who needs to ' +
+    'the schema mirror does not name a restore path that actually works, so a reader who needs to ' +
     'restore a database is left pointing at a file or a directory that cannot do it.');
 });
