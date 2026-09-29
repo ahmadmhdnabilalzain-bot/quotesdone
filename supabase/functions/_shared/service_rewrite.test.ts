@@ -9,10 +9,9 @@
 //   deno test --no-lock --node-modules-dir=auto supabase/functions/_shared/service_rewrite.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import {
-  flattenImplications, impliedServices, rewriteServices, servicesFromText, splitPhrases, tidy,
+  flattenImplications, impliedServices, ownWordsOf, rewriteServices, servicesFromText, splitPhrases, tidy, withExactTrades,
   type Implication, type ServiceTerm,
 } from './service_rewrite.ts';
-import type { TradeTerm } from './trade_words.ts';
 import ALIASES from './service_aliases.json' with { type: 'json' };
 import IMPLICATIONS from './service_implications.json' with { type: 'json' };
 
@@ -24,15 +23,10 @@ const SERVICES: ServiceTerm[] = Object.entries(ALIASES as Record<string, { en: s
     const code = key.slice(key.indexOf('.') + 1);
     return { trade_code, code, label_en: code.replace(/_/g, ' '), label_ar: 'خدمة ' + code, aliases: [...v.en, ...v.ar] };
   });
-const TRADES: TradeTerm[] = [
-  { code: 'interior_fitout', aliases: ['fit out', 'fitout', 'interior fit out', 'تجهيز داخلي', 'ديكور'] },
-  { code: 'flooring', aliases: ['flooring', 'ارضيات'] },
-  { code: 'hvac', aliases: ['hvac', 'air conditioning', 'تكييف'] },
-];
 const MAP: Implication[] = flattenImplications(IMPLICATIONS as { from: string; to: string[]; en: string; ar: string }[]);
 
-const keys = (text: string) => rewriteServices(text, SERVICES, TRADES).service_keys;
-const words = (text: string) => rewriteServices(text, SERVICES, TRADES).own_words;
+const keys = (text: string) => rewriteServices(text, SERVICES).service_keys;
+const words = (text: string) => rewriteServices(text, SERVICES).own_words;
 
 // ── 1. what the rewriter must recognise ───────────────────────────────────────────────────────────
 const RECOGNISES: { name: string; text: string; expect: string[] }[] = [
@@ -68,7 +62,7 @@ const KEEPS_VERBATIM: { name: string; text: string; kept: string }[] = [
 ];
 for (const c of KEEPS_VERBATIM) {
   Deno.test(`rewrite keeps the supplier's words: ${c.name}`, () => {
-    const r = rewriteServices(c.text, SERVICES, TRADES);
+    const r = rewriteServices(c.text, SERVICES);
     assertEquals(r.service_keys, [], 'invented a service for text no alias names');
     assert(r.own_words.includes(c.kept), `expected ${c.kept} in ${JSON.stringify(r.own_words)}`);
     assert(r.items.some((i) => i.kind === 'unmatched' && i.text === c.kept), 'not flagged for the sales engineer');
@@ -76,15 +70,27 @@ for (const c of KEEPS_VERBATIM) {
 }
 
 Deno.test('a recognised phrase and an unknown one in the same line both survive', () => {
-  const r = rewriteServices('Ducting and helicopter window polishing', SERVICES, TRADES);
+  const r = rewriteServices('Ducting and helicopter window polishing', SERVICES);
   assertEquals(r.service_keys, ['hvac.ducting']);
   assertEquals(r.own_words, ['Helicopter window polishing']);
 });
 
-Deno.test('a phrase that names only a TRADE is kept with that trade, not guessed into a service', () => {
-  const r = rewriteServices('We are an interior fit out company', SERVICES, TRADES);
+// RULING 890 (29 Sep 2026, ledger 1054). Until today "We are an interior fit out company" became a TRADE item
+// because 'fit out' was a trade alias (trade_words.ts). A trade is no longer read from words: the phrase names
+// nothing here (the Services tab gives it to meaning, supplier_services.servicesRewrite), and only a phrase that
+// IS a code or an intake slug becomes a trade, decided by fn_norm_trades (withExactTrades).
+Deno.test('a phrase whose words resemble a trade names no trade; one that IS a code or a slug does, exactly', () => {
+  const r = rewriteServices('We are an interior fit out company', SERVICES);
   assertEquals(r.service_keys, []);
-  assert(r.items.some((i) => i.kind === 'trade' && i.trades.includes('interior_fitout')), JSON.stringify(r.items));
+  assert(!r.items.some((i) => i.kind === 'trade'), 'a trade was read from words: ' + JSON.stringify(r.items));
+  const typed = rewriteServices('Ducting, HVAC, Carpentry, helicopter window polishing', SERVICES);
+  assertEquals(ownWordsOf(typed), ['HVAC', 'Carpentry', 'Helicopter window polishing']);
+  // what fn_norm_trades_many answers for those phrases: the code and the slug resolve, the rest does not
+  const x = withExactTrades(typed, { HVAC: ['hvac'], Carpentry: ['joinery'] });
+  assertEquals(x.service_keys, ['hvac.ducting']);
+  assertEquals(x.items.filter((i) => i.kind === 'trade').map((i) => i.kind === 'trade' ? i.trades : []), [['joinery']]);  // hvac is carried by hvac.ducting
+  assertEquals(x.own_words, ['Carpentry', 'Helicopter window polishing']);
+  assertEquals(withExactTrades(typed, null), typed, 'no answer from the database changes nothing');
 });
 
 // ── 3. tidying ────────────────────────────────────────────────────────────────────────────────────
@@ -189,7 +195,7 @@ Deno.test('no Arabic alias is stored with the definite article (the matcher adds
 });
 
 Deno.test('unused export guard: own_words never contains a service key', () => {
-  const r = rewriteServices('Ducting, helicopter window polishing', SERVICES, TRADES);
+  const r = rewriteServices('Ducting, helicopter window polishing', SERVICES);
   assertEquals(words('Ducting, helicopter window polishing'), r.own_words);
   assert(!r.own_words.some((w) => r.service_keys.includes(w)));
 });
@@ -198,7 +204,7 @@ Deno.test('unused export guard: own_words never contains a service key', () => {
 Deno.test('the worst case — 2000 characters matching nothing — stays well inside the CPU budget', () => {
   const worst = Array.from({ length: 40 }, () => 'zzqq xxwv yyrr '.repeat(30)).join('\n').slice(0, 2000);
   const t0 = performance.now();
-  const r = rewriteServices(worst, SERVICES, TRADES);
+  const r = rewriteServices(worst, SERVICES);
   const ms = performance.now() - t0;
   assertEquals(r.service_keys, []);
   assert(ms < 4000, `the adversarial rewrite took ${Math.round(ms)}ms`);
@@ -217,7 +223,7 @@ const NOT_A_SERVICE: { name: string; text: string }[] = [
 ];
 for (const c of NOT_A_SERVICE) {
   Deno.test(`not a pending taxonomy item: ${c.name}`, () => {
-    const r = rewriteServices(c.text, SERVICES, TRADES);
+    const r = rewriteServices(c.text, SERVICES);
     assertEquals(r.own_words, [], `sentence glue reached the sales engineer: ${JSON.stringify(r.own_words)}`);
   });
 }
@@ -225,18 +231,21 @@ for (const c of NOT_A_SERVICE) {
 Deno.test('a realistic paragraph yields services and only real unknowns', () => {
   const r = rewriteServices(
     'We are an interior decoration and fit-out company in Dubai. We do gypsum partitions, false ceilings and painting, '
-    + 'plus chiller maintenance and helicopter window polishing.', SERVICES, TRADES);
+    + 'plus chiller maintenance and helicopter window polishing.', SERVICES);
   assert(r.service_keys.includes('interior_fitout.decoration'), JSON.stringify(r.service_keys));
   assert(r.service_keys.includes('gypsum.partitions') && r.service_keys.includes('gypsum.false_ceiling'));
   assert(r.service_keys.includes('hvac.maintenance_amc'));
-  // The only thing this platform genuinely cannot name, kept exactly as written.
-  assertEquals(r.own_words.filter((w) => !/^painting$/i.test(w)), ['Helicopter window polishing']);
+  // What no service alias names, kept exactly as written. Until 29 Sep 2026 "fit-out company in Dubai" was
+  // swallowed by the TRADE alias 'fit out' (trade_words.ts); a trade is no longer read from words (ruling 890), so
+  // it stays the supplier's own words - the save reads it exactly or by reasoning (supplier_services.resolveText).
+  assertEquals(r.own_words.filter((w) => !/^painting$/i.test(w)), ['Fit-out company in dubai', 'Helicopter window polishing']);
+  assert(!r.items.some((i) => i.kind === 'trade'), 'a trade was read from words');
 });
 
 Deno.test('the Arabic paragraph behaves the same way', () => {
   const r = rewriteServices(
     'شركة ديكور داخلي وتجهيز في دبي. ننفذ قواطع جبس وأسقف مستعارة ودهانات، وصيانة تشيلر، وتلميع نوافذ المروحيات.',
-    SERVICES, TRADES);
+    SERVICES);
   assert(r.service_keys.includes('gypsum.partitions'), JSON.stringify(r.service_keys));
   assert(r.service_keys.includes('gypsum.false_ceiling'));
   assert(r.service_keys.includes('hvac.maintenance_amc'));
@@ -253,7 +262,7 @@ Deno.test('a UAE decoration company is read as decoration, not as the design ser
 });
 
 Deno.test('a list item does not keep the Arabic conjunction stuck to its front', () => {
-  const r = rewriteServices('قواطع جبس، وتلميع نوافذ المروحيات', SERVICES, TRADES);
+  const r = rewriteServices('قواطع جبس، وتلميع نوافذ المروحيات', SERVICES);
   assertEquals(r.service_keys, ['gypsum.partitions']);
   assertEquals(r.own_words, ['تلميع نوافذ المروحيات']);
 });
@@ -266,10 +275,10 @@ Deno.test('a single Arabic word beginning with و keeps its first letter', () =>
 // AUDIT 21 Sep 2026, finding 8 (ZZ DEMO Interiors, gypsum). The exact sentence a supplier typed: only
 // the false ceilings were recognised; "الدهانات" fell to "kept in your own words" although Painting ›
 // Interior painting exists, and "الجبس" named nothing. The matcher already strips ال / و / وال (the
-// PROCLITIC in trade_words.ts) and reads a word to its end (دهان -> دهانات); what was missing was the
+// PROCLITIC in alias_pattern.ts, once trade_words.ts) and reads a word to its end (دهان -> دهانات); what was missing was the
 // bare word a supplier actually uses — the aliases carried only "دهان داخلي" and "قواطع جبس".
 Deno.test('audit 21 Sep: "نقوم بأعمال الجبس والأسقف المستعارة والدهانات" names gypsum, false ceilings and painting', () => {
-  const rw = rewriteServices('نقوم بأعمال الجبس والأسقف المستعارة والدهانات', SERVICES, TRADES);
+  const rw = rewriteServices('نقوم بأعمال الجبس والأسقف المستعارة والدهانات', SERVICES);
   const got = new Set(rw.service_keys);
   assert(got.has('painting.interior'), JSON.stringify(rw.items));
   assert(got.has('gypsum.false_ceiling'), JSON.stringify(rw.items));
