@@ -1,0 +1,1 @@
+Committed, not applied: the ledger-760 sweep may not apply before merge. Proved in a rolled-back transaction on production (28 Sep 2026): with a seeded open duty:smoke finding, a complete:false report closed 0 and a complete report then closed 1. Moves when the PR merges: apply --ddl, delete this note, append the file to the end of MANIFEST.txt.
