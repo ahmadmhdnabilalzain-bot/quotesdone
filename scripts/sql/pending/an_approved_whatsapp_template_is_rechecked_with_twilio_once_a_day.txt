@@ -1,3 +1,0 @@
-Committed, not applied (review fix to #1049; no applies in this session). Seat: customer_support.
-What moves it: merge, then node scripts/apply_sql.mjs scripts/sql/an_approved_whatsapp_template_is_rechecked_with_twilio_once_a_day.sql --apply --ddl (verdict row must say PROBE OK), delete this note and append the file to the END of MANIFEST.txt.
-Until it is applied the scheduler opens the wa_templates gate only for undecided templates, so the watcher's daily re-check of approved ones runs only on days something is also undecided.
