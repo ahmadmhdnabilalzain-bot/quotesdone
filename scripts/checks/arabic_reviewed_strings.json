@@ -1149,6 +1149,10 @@
   "3fbfc9c44cae",
   "50d6d400e862"
  ],
+ "scripts/sql/the_invitation_pool_is_read_once_as_a_set_so_the_daily_list_fits_its_timeout.sql": [
+  "c12bc8b93a2b",
+  "d4da55db16ad"
+ ],
  "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
   "d4da55db16ad"
  ],
