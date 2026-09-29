@@ -9,7 +9,8 @@
 // model_policy is replayed first (it is what the PR will apply at merge), then the probe, which always raises.
 // Nothing survives. A second run adds an unmapped class first and must FAIL - the guard is proved to bite.
 //
-// Needs SUPABASE_ACCESS_TOKEN (the parity job has it). Without a token it FAILS rather than passing over nothing.
+// Needs SUPABASE_ACCESS_TOKEN. The parity job has it and runs this with MATRIX_REQUIRE_LIVE=1, so there a missing
+// token FAILS rather than passing over nothing; the tokenless checks job reports the production tests as skipped.
 //
 //   node --test scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
 import { test } from 'node:test';
@@ -56,7 +57,8 @@ async function run(query) {
 const replay = () => pendingPolicyFiles().map((n) => readFileSync(join(SQL, n), 'utf8')).join('\n;\n');
 const probe = () => readFileSync(join(SQL, PROBE), 'utf8');
 
-test('a management token is present (this check never passes over nothing)', () => {
+test('a management token is present where the matrix must be verified',
+  { skip: process.env.MATRIX_REQUIRE_LIVE !== '1' && 'no MATRIX_REQUIRE_LIVE: the parity job verifies it' }, () => {
   assert.ok(token(), 'SUPABASE_ACCESS_TOKEN is missing: the matrix was NOT verified');
 });
 

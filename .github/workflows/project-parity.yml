@@ -90,6 +90,7 @@ jobs:
       - name: Every model class has a seat and a route in the founder's model matrix
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          MATRIX_REQUIRE_LIVE: '1'
         run: node --test scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
       - name: One canonical file per routine, and it is what is deployed
         env:
