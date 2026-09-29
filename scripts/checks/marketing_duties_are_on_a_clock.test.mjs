@@ -4,7 +4,10 @@
 // release, the competitor refresh and the January 2027 launch plan had no owner/clock/check row, the 4 article
 // drafts had no path to the founder's approval, and the studio's blog links pointed at quotesdone.com.
 // This fails when any of the five duties loses its seat_duty row or its routine, when his approval reply stops
-// being routed, when an article can be approved by anyone but him, or when a blog link points at quotesdone.com.
+// being routed, or when a blog link points at quotesdone.com.
+// Since 29 Sep 2026 (founder 1058, 1059; BLOG below) the founder never approves a blog: the assertion that only he
+// could approve one is REPLACED, not softened, by the assertions that only the CEO seat can, with six reasons the
+// database enforces, at most one a week, and that publishing mails nobody but his FYI.
 //
 //   node --test scripts/checks/marketing_duties_are_on_a_clock.test.mjs
 import { test } from 'node:test';
@@ -35,11 +38,61 @@ test('each marketing duty is registered in seat_duty with a routine its file def
   }
 });
 
-test('only the founder approves an article, and releases happen on a working day', () => {
-  const sql = read(OWNER);
-  assert.match(sql, /if p_by is distinct from 'founder' then return/);
-  assert.match(sql, /where status = 'approved' and approved_by = 'founder' and not is_demo order by approved_at/);
-  assert.match(sql, /if not public\.fn_is_working_day\(v_now::date\) then/);
+// ── BLOG (founder 1058, 1059) ──────────────────────────────────────────────────────────────────────────────────
+const BLOG = 'scripts/sql/a_blog_article_is_a_market_topic_the_ceo_reviews_until_it_is_useful.sql';
+const routine = (sql, fn) => {
+  const m = sql.match(new RegExp(`create or replace function public\\.${fn}\\([\\s\\S]*?\\$fn\\$;`));
+  assert.ok(m, `${fn} is not defined in ${BLOG}`);
+  return m[0];
+};
+
+test('only the CEO seat approves a blog, and it is released on a working day, at most one a Dubai week', () => {
+  const sql = read(BLOG);
+  assert.match(routine(sql, 'fn_marketing_article_approve'), /if p_by is distinct from 'ceo' then return/);
+  const rel = routine(sql, 'fn_marketing_article_release_due');
+  assert.match(rel, /if not public\.fn_is_working_day\(v_now::date\) then/);
+  assert.match(rel, /if v_week >= 1 or v_today > 0 then/);
+  assert.match(rel, /where status = 'approved' and approved_by = 'ceo' and kind = 'market_topic' and not is_demo/);
+  assert.match(rel, /if not public\.fn_marketing_publishing_live\(\) then/);
+});
+
+test('a CEO decision without its six reasons is refused by the database, a decided round is never rewritten, and a fifth revise is refused', () => {
+  const sql = read(BLOG);
+  assert.match(sql, /constraint marketing_article_round_decision_has_its_reasons\s+check \(decision is null or public\.fn_marketing_review_reasons_ok\(decision, reasons\)\)/);
+  const ok = routine(sql, 'fn_marketing_review_reasons_ok');
+  for (const k of ['useful', 'market_topic_not_quotesdone', 'accurate_grounded', 'no_supplier_named', 'language_quality', 'seo_geo']) assert.ok(ok.includes(`'${k}'`), k);
+  assert.match(ok, /when 'approve' then not exists \(select 1 from jsonb_each\(p_reasons\) r where r\.value->>'verdict' <> 'pass'\)/);
+  const guard = routine(sql, 'fn_marketing_article_round_guard');
+  assert.match(guard, /its history is never overwritten/);
+  assert.match(guard, />= 4 then\s+raise exception 'after 4 revise rounds/);
+  assert.match(guard, /the revision does not say what changed for the CEO''s reason\(s\)/);
+});
+
+test('publishing a blog mails nobody but the founder\'s FYI, and article approval by him is retired', () => {
+  const sql = read(BLOG);
+  for (const fn of ['fn_marketing_article_release_due', 'fn_marketing_article_mark_live', 'fn_marketing_article_release_duty',
+                    'fn_marketing_blog_submit', 'fn_marketing_blog_review', 'fn_marketing_blog_topic_pick', 'fn_marketing_blog_topic_replace']) {
+    const body = routine(sql, fn);
+    assert.doesNotMatch(body, /insert into public\.notifications|fn_notify_|send_outbox|fn_enqueue/, `${fn} writes a message`);
+    for (const m of body.matchAll(/fn_marketing_mail_founder\('([a-z_]+)'/g)) assert.equal(m[1], 'marketing_article_live', `${fn} mails ${m[1]}`);
+  }
+  assert.match(routine(sql, 'fn_marketing_article_mark_live'), /fn_marketing_mail_founder\('marketing_article_live',/);
+  assert.doesNotMatch(routine(sql, 'fn_marketing_article_mark_live'), /approve\+/);
+  assert.match(sql, /\('marketing_article_approval', false,/);
+  assert.match(routine(sql, 'fn_marketing_approval_reply'), /return jsonb_build_object\('outcome', 'article_approval_retired'\)/);
+  assert.match(sql, /set status = 'withdrawn', withdrawn_at = now\(\), updated_at = now\(\), approval_token = null,/);
+});
+
+test('the three blog model steps are one duty (one call a beat) and record a refusal before raising it', () => {
+  const duty = read('supabase/functions/marketing/duties.ts');
+  assert.match(duty, /reviews, blogArticle,/);
+  for (const fn of ['fn_marketing_blog_draft_due', 'fn_marketing_blog_review_due', 'fn_marketing_blog_revise_due', 'fn_marketing_blog_submit', 'fn_marketing_blog_review']) {
+    assert.ok(duty.includes(`'${fn}'`), fn);
+  }
+  const run = duty.slice(duty.indexOf('export async function runOneJob'), duty.indexOf('const dubaiDay'));
+  assert.ok(run.indexOf('await io.recordFailed(job, subject, reason, model);') < run.indexOf('throw new Error(job.step'), 'a refusal is raised before it is recorded');
+  assert.match(run, /if \(failed\.some\(\(f\) => f\.run_day === today\)\) \{ waiting\.push/);
+  assert.match(duty, /taskClass: 'ceo_article_review', max: 1500, counterpart: r\.drafted_by_model/);
 });
 
 test('the launch plan is re-sent only when it changed, carries his changes, and an empty reply changes nothing', () => {
@@ -49,19 +102,6 @@ test('the launch plan is re-sent only when it changed, carries his changes, and 
   assert.match(sql, /founder_changes = founder_changes \|\| to_jsonb\(/);
   assert.match(sql, /'founder_changes', v_changes,/);
   assert.match(sql, /elsif btrim\(coalesce\(p->>'text', ''\)\) = '' then\s+-- an empty reply is not a change/);
-});
-
-test('an article change is read: redrawn by the seat, then re-offered once its content fingerprint changed', () => {
-  // review of #1039: founder_change_request was written and nothing read it
-  const sql = read('scripts/sql/an_article_change_the_founder_asks_for_is_redrawn_and_offered_again.sql');
-  assert.match(sql, /a\.founder_change_request is not null\s+and public\.fn_marketing_article_fingerprint\(a\.id\) is not distinct from a\.approval_hash/);
-  assert.match(sql, /and public\.fn_marketing_article_fingerprint\(m\.id\) is distinct from m\.approval_hash/);
-  assert.match(sql, /founder_changes = founder_changes \|\| to_jsonb\(v_change\), founder_change_request = null/);
-  const duty = read('supabase/functions/marketing/duties.ts');
-  assert.match(duty, /rpc\('fn_marketing_article_revise_due'\)/);
-  assert.match(duty, /acceptRevision\(due, /);
-  assert.match(duty, /rpc\('fn_marketing_article_ingest'/);
-  assert.match(duty, /reviews, articleRevise,/);
 });
 
 test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {

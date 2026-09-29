@@ -1,0 +1,26 @@
+Committed, not applied: applied at merge only. #1039 (the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql)
+is merged, applied and already in MANIFEST.txt, so this file is the only one to apply. It replaces the earlier pending
+file of this PR (an_article_change_the_founder_asks_for_is_redrawn_and_offered_again.sql, never applied, deleted):
+founder rulings 1058 and 1059 retired the founder's article approval that file extended.
+After merge: node scripts/apply_sql.mjs scripts/sql/a_blog_article_is_a_market_topic_the_ceo_reviews_until_it_is_useful.sql --apply --ddl
+(verdict PROBE OK), delete this note, append the file to the END of MANIFEST.txt (after #1039's line, which it must
+follow: it redefines #1039's article routines and fn_marketing_article_mark_live from line 1593's file), deploy
+`marketing`, regenerate the schema mirror.
+Proven before commit, 29 Sep 2026, on production in ONE transaction ended by raise exception (the file, then a
+behavioural probe; read back afterwards: no marketing_blog_topic table, articles 3-6 still draft, no probe rows):
+  - the pick opened one topic from a relevant Google Trends search, with 3 runners-up; a second pick: "a topic is open";
+  - 4 revise rounds on one topic; the fifth revise refused by the trigger ("after 4 revise rounds on topic 1 the CEO
+    approves or replaces the topic"); replace_topic withdrew its article, replaced the topic and picked the next one,
+    carrying 6 lessons;
+  - a decision with no reasons refused by the CHECK (marketing_article_round_decision_has_its_reasons); an approval
+    with a failed criterion refused; a revision that did not answer the "useful" reason refused by the trigger; a
+    revision naming a lead's company refused (names_a_supplier); the revision answering both reasons became round 2;
+    approve -> approved by 'ceo'; a decided round could not be rewritten;
+  - release on a working day: released; released again the same week: "one blog a week"; a second article approved
+    that week: not released ("one blog a week"); a new topic submitting article 3's slug: slug_taken (never taken over);
+  - fn_table_export_list carries marketing_blog_topic and marketing_article_round beside #1039's and #1070's tables (5/5);
+  - live: the topic published and the next picked; new notifications in the whole flow: exactly ONE,
+    marketing_article_live to the founder with no reply-to; 0 to anyone else;
+  - articles 3-6 withdrawn; the CEO cannot approve withdrawn article 3; 'founder' as approver refused; a founder reply
+    to the old token 1071de91... -> 'article_approval_retired', article 3 still withdrawn, one "Not changed: article
+    approval is retired" answer to him.
