@@ -14,7 +14,16 @@
 --     secret); old_id/new_id stay required for internal rows only.
 --   * fn_it_provider_rotation_claim   is it due (no rotation of this provider open, none within
 --                                     credential_rotate_days) - and claims the run so two ticks cannot both rotate.
---     A provider never rotated is due at once, so the first rotation runs on the first tick after this applies.
+--   * fn_it_provider_rotation_baseline A provider with no row is NOT due: it answers baseline_needed, and the caller
+--                                     records the CURRENT key's creation date as read from the provider (a 'baseline'
+--                                     row), so the schedule counts from when that key was made, never from "never".
+--     (Review of #1038: the first draft treated a never-rotated provider as due at once, so the live Twilio key
+--     would have been replaced on the first tick after apply whatever its age. MEASURED 29 Sep 2026: the live
+--     Twilio API key was created at Twilio on 25 Jun 2026 - 96 days ago - so on the normal 90-day schedule it is
+--     already due, and the first rotation after the baseline is recorded is on schedule, not early.)
+--   * The overlap is never under 24 hours, whatever credential_overlap_hours says: kyc caches the pair for up to
+--     a minute and re-reads it on a Twilio 401, and every other caller reads it at call time, so a key is only
+--     deleted a day or more after the last moment any cache could still hold it.
 --   * fn_it_provider_rotation_record  stores the new key in app_secrets AND records the rotation in one
 --                                     transaction; returns the row id, never the secret.
 --   * fn_it_provider_rotation_retire_due / _retired  the old key is deleted at the provider only after the overlap
@@ -35,6 +44,11 @@ alter table public.it_credential_rotation drop constraint if exists it_credentia
 alter table public.it_credential_rotation add constraint it_credential_rotation_kind_ck check (
   (provider is null and old_id is not null and new_id is not null)
   or (provider is not null and new_ref is not null));
+-- 'baseline': the key that was already in use before the estate rotated anything. Never retired by this code
+-- (old_ref is null), and never counted as a rotation; it only anchors the schedule.
+alter table public.it_credential_rotation drop constraint if exists it_credential_rotation_status_check;
+alter table public.it_credential_rotation add constraint it_credential_rotation_status_check
+  check (status in ('overlap', 'retired', 'held', 'baseline'));
 
 -- The provider -> the app_secrets keys its rotation replaces. One place, so the record cannot write the wrong pair.
 create or replace function public.fn_it_provider_rotation_keys(p_provider text)
@@ -51,6 +65,10 @@ begin
     return jsonb_build_object('due', false, 'reason', 'no rotation is defined for provider ' || coalesce(p_provider, 'null'));
   end if;
   perform pg_advisory_xact_lock(hashtext('it_provider_rotation:' || p_provider));
+  if not exists (select 1 from public.it_credential_rotation where provider = p_provider) then
+    return jsonb_build_object('due', false, 'baseline_needed', true,
+      'reason', 'no baseline yet: the current key''s creation date is recorded first, and the schedule counts from it');
+  end if;
   if exists (select 1 from public.it_credential_rotation where provider = p_provider and status in ('overlap', 'held')) then
     return jsonb_build_object('due', false, 'reason', 'a rotation of ' || p_provider || ' is still in its overlap');
   end if;
@@ -70,13 +88,35 @@ begin
 end $fn$;
 revoke execute on function public.fn_it_provider_rotation_claim(text) from public, anon, authenticated;
 
+-- The key in use before the estate rotated anything, anchored at its creation date AT THE PROVIDER. Written once:
+-- a provider that already has any row keeps it (returns null). Never a secret, only the key's identifier.
+create or replace function public.fn_it_provider_rotation_baseline(p_provider text, p_ref text, p_created_at timestamptz)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare k text[] := public.fn_it_provider_rotation_keys(p_provider); v_id bigint;
+begin
+  if k is null then raise exception 'no rotation is defined for provider %', p_provider; end if;
+  if coalesce(p_ref, '') = '' or p_created_at is null or p_created_at > now() then
+    raise exception 'a baseline needs the current key id and a creation date that is not in the future';
+  end if;
+  perform pg_advisory_xact_lock(hashtext('it_provider_rotation:' || p_provider));
+  if exists (select 1 from public.it_credential_rotation where provider = p_provider) then return null; end if;
+  insert into public.it_credential_rotation (context, provider, old_ref, new_ref, secret_key, rotated_at, overlap_until, status, closed_at, note)
+  values (p_provider || '.api_key', p_provider, null, p_ref, array_to_string(k, ','), p_created_at, p_created_at, 'baseline', now(),
+          'baseline: the key in use before the estate rotated anything, created at the provider '
+            || to_char(p_created_at at time zone 'UTC', 'YYYY-MM-DD') || '; the rotation schedule counts from this date')
+  returning id into v_id;
+  return v_id;
+end $fn$;
+revoke execute on function public.fn_it_provider_rotation_baseline(text, text, timestamptz) from public, anon, authenticated;
+
 create or replace function public.fn_it_provider_rotation_record(p_provider text, p_old_ref text, p_new_ref text, p_new_secret text)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare k text[] := public.fn_it_provider_rotation_keys(p_provider); v_id bigint; v_overlap interval; v_cadence interval;
 begin
   if k is null then raise exception 'no rotation is defined for provider %', p_provider; end if;
   if coalesce(p_new_ref, '') = '' or coalesce(p_new_secret, '') = '' then raise exception 'a rotation needs the new key id and its secret'; end if;
-  v_overlap := make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int);
+  -- Never under 24 hours, whatever the threshold says: the old key must outlive every cache of it by a day.
+  v_overlap := greatest(make_interval(hours => coalesce(public.fn_it_threshold('credential_overlap_hours'), 24)::int), interval '24 hours');
   v_cadence := coalesce((select every from public.it_duty_schedule where duty = 'rotation'), interval '1 day');
   insert into public.app_secrets (key, value, updated_at) values (k[1], p_new_ref, now()), (k[2], p_new_secret, now())
   on conflict (key) do update set value = excluded.value, updated_at = excluded.updated_at;
@@ -151,6 +191,10 @@ select case
     then 'PROBE FAILED: the twilio key pair is not the one the Verify callers read'
   when (public.fn_it_provider_rotation_claim('nope')->>'due')::boolean
     then 'PROBE FAILED: an unknown provider was claimed as due'
+  -- Only asked while twilio has no row at all, where the claim answers without writing anything.
+  when coalesce((select (public.fn_it_provider_rotation_claim('twilio')->>'due')::boolean
+                  where not exists (select 1 from public.it_credential_rotation where provider = 'twilio')), false)
+    then 'PROBE FAILED: a provider with no baseline was claimed as due (the live key would rotate on the first tick)'
   when (select count(*) from public.app_secrets where key in ('twilio_account_sid', 'twilio_auth_token', 'twilio_api_key_sid')) <> 3
     then 'PROBE FAILED: app_secrets lacks the Twilio account SID, auth token or current key SID the rotation needs'
   when exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace

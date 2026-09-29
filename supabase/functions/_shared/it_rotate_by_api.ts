@@ -7,7 +7,8 @@
 // Which third-party keys the estate can rotate itself, measured against what app_secrets holds:
 //   * Twilio API key (twilio_api_key_sid / twilio_api_key_secret): YES. The account SID and auth token are held,
 //     and Twilio's REST API creates and deletes Standard API keys with them. Every Verify/SMS caller reads the
-//     pair from app_secrets at call time (kyc caches it for at most a minute), so a new pair reaches them all.
+//     pair from app_secrets at call time (kyc caches it for at most a minute and re-reads it on a Twilio 401), so a
+//     new pair reaches them all, and the old key outlives every cache by the overlap (at least 24 hours).
 //   * The Twilio auth token, Stripe, Meta, Dropbox app secret, Vercel, GitHub: NO - none of them can mint its
 //     own replacement through an API with what we hold. They stay on the key-age reminder (fn_it_key_age_refresh).
 //   ponytail: Resend can rotate by API only with a full-access key; add it here once the held key is proved to be one.
@@ -39,10 +40,17 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   if (!ac || !token) return { ok: false, error: 'twilio_account_sid or twilio_auth_token is not in app_secrets' };
   const out: Record<string, unknown> = { ok: true, provider: 'twilio' };
 
-  // 1. Retire: an old key whose overlap is over is deleted at Twilio, then its row is closed.
+  // 1. Retire: an old key whose overlap is over is deleted at Twilio, then its row is closed. The key the estate
+  //    is using NOW is never deleted, whatever a row says.
   const due = ((await d.rpc('fn_it_provider_rotation_retire_due', { p_provider: 'twilio' })) ?? []) as { id: number; old_ref: string }[];
   const retired: string[] = [];
+  const inUse = await d.sec('twilio_api_key_sid');
   for (const r of due) {
+    if (r.old_ref === inUse) {
+      out.ok = false;
+      out.error = 'rotation row ' + r.id + ' offers the key in use (' + r.old_ref + ') for deletion; it was not deleted';
+      continue;
+    }
     if (await deleteKey(d, ac, token, r.old_ref)) {
       await d.rpc('fn_it_provider_rotation_retired', { p_id: r.id, p_note: 'old Twilio API key ' + r.old_ref + ' deleted at Twilio after the overlap' });
       retired.push(r.old_ref);
@@ -54,7 +62,21 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   out.retired = retired;
 
   // 2. Rotate, when the database says it is due (and claims the run, so two ticks cannot both rotate).
-  const claim = (await d.rpc('fn_it_provider_rotation_claim', { p_provider: 'twilio' })) as { due?: boolean; reason?: string } | null;
+  const claim = (await d.rpc('fn_it_provider_rotation_claim', { p_provider: 'twilio' })) as
+    { due?: boolean; reason?: string; baseline_needed?: boolean } | null;
+  if (claim?.baseline_needed) {
+    // No row yet: the schedule counts from when the CURRENT key was created at Twilio, never from "never
+    // rotated". Read that date and record it; nothing is rotated on this run.
+    if (!inUse) return { ...out, ok: false, rotated: false, error: 'twilio_api_key_sid is not in app_secrets, so no baseline can be read' };
+    const kr = await d.fetch(`${API}${ac}/Keys/${inUse}.json`, { method: 'GET', headers: { Authorization: basic(ac, token) } });
+    const kj = (await kr.json().catch(() => ({}))) as { date_created?: string };
+    const created = kj.date_created ? new Date(kj.date_created) : null;
+    if (!kr.ok || !created || isNaN(created.getTime())) {
+      return { ...out, ok: false, rotated: false, error: 'could not read the current key creation date from Twilio (HTTP ' + kr.status + '); no baseline, no rotation' };
+    }
+    await d.rpc('fn_it_provider_rotation_baseline', { p_provider: 'twilio', p_ref: inUse, p_created_at: created.toISOString() });
+    return { ...out, rotated: false, baseline: { ref: inUse, created_at: created.toISOString() } };
+  }
   if (!claim?.due) return { ...out, rotated: false, reason: claim?.reason ?? 'not due' };
   const oldSid = await d.sec('twilio_api_key_sid');
   const cr = await d.fetch(`${API}${ac}/Keys.json`, {
