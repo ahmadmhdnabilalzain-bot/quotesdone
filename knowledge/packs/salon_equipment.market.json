@@ -1,0 +1,99 @@
+{
+  "trade": "salon_equipment",
+  "layer": "uae-market",
+  "label_en": "Beauty & salon equipment",
+  "label_ar": "معدات صالونات وتجميل",
+  "entries": [
+    {
+      "id": "salon_equipment:uae-market-products",
+      "topic": "Beauty & salon equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Salon and spa equipment sold in the UAE includes styling chairs (hydraulic), barber chairs, shampoo backwash units, styling stations and mirrors, hair dryers and hood dryers, climazones, trolleys, manicure and pedicure stations (with pipeless whirlpool spas), massage and facial beds (electric and hydraulic), facial steamers and multifunction machines, hot towel cabinets, UV sterilisers and autoclaves, wax heaters, hair clippers and trimmers, flat irons and curling tongs, laser and IPL hair removal devices, and consumables (towels, capes, disposables). Buyers specify upholstery (PU leather), pump type and weight capacity, electrical voltage (220-240 V) with UK plugs, and for devices certification. Laser, IPL and energy-based aesthetic devices are medical devices requiring Emirates Drug Establishment registration and use in licensed facilities; salons in Dubai are licensed by Dubai Municipality (health and safety) and DET, and must meet DM sterilisation and hygiene rules.",
+      "body_ar": "تشمل معدات الصالونات والمنتجعات الصحية المباعة في الإمارات كراسي التصفيف (الهيدروليكية)، وكراسي الحلاقة، ووحدات غسل الشعر الخلفية، ومحطات التصفيف والمرايا، ومجففات الشعر والمجففات ذات الغطاء، وأجهزة التسخين بالأشعة (كلايمازون)، والعربات، ومحطات المانيكير والباديكير (مع أحواض دوامة بدون أنابيب)، وأسرّة التدليك والعناية بالبشرة (كهربائية وهيدروليكية)، وأجهزة بخار الوجه والأجهزة متعددة الوظائف، وخزائن المناشف الساخنة، وأجهزة التعقيم بالأشعة فوق البنفسجية والأوتوكلاف، وسخانات الشمع، وماكينات قص الشعر وتشذيبه، ومكاوي الشعر ومجعدات الشعر، وأجهزة إزالة الشعر بالليزر والضوء النبضي المكثف، والمستهلكات (مناشف، وأغطية، ومواد أحادية الاستخدام). يحدد المشترون التنجيد (جلد بولي يوريثان)، ونوع المضخة والحمولة القصوى، والجهد الكهربائي (220-240 فولت) مع القوابس البريطانية، والشهادات للأجهزة. وأجهزة الليزر والضوء النبضي والأجهزة التجميلية المعتمدة على الطاقة تُعد أجهزة طبية تتطلب تسجيلاً لدى مؤسسة الإمارات للدواء واستخدامها في منشآت مرخصة؛ وتُرخَّص الصالونات في دبي من بلدية دبي (الصحة والسلامة) ودائرة الاقتصاد والسياحة، ويجب أن تستوفي قواعد التعقيم والنظافة لدى البلدية.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2021/01/DM-HSD-GU75-IS2_Ideal-Salon-Technical-Guideline_V2.1.pdf",
+        "https://www.ede.gov.ae/en/home",
+        "https://nazih.com/professional/salon-furniture",
+        "https://www.dm.gov.ae",
+        "https://www.ede.gov.ae",
+        "https://www.takarabelmont.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises -> confirmed | Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment -> confirmed | Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture -> confirmed. Not checked: The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified."
+    },
+    {
+      "id": "salon_equipment:uae-market-brands",
+      "topic": "Beauty & salon equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE salon suppliers and brands: Nazih Cosmetics, Cosmetica Beauty Trading, Takara Belmont, Maletti, Wahl, BaByliss PRO, Dyson, GHD. Apart from the furniture brands carried by the named suppliers, UAE distributors were not checked. Salon suppliers cluster in Deira, Karama, Al Quoz, Sharjah and Abu Dhabi.",
+      "body_ar": "موردو الصالونات المؤكدون في الإمارات والعلامات: Nazih Cosmetics، Cosmetica Beauty Trading، Takara Belmont، Maletti، Wahl، BaByliss PRO، Dyson، GHD. وباستثناء علامات الأثاث التي يحملها الموردون المذكورون، لم يُتحقق من الموزعين في الإمارات. ويتجمع موردو الصالونات في ديرة والكرامة والقوز والشارقة وأبوظبي.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2021/01/DM-HSD-GU75-IS2_Ideal-Salon-Technical-Guideline_V2.1.pdf",
+        "https://www.ede.gov.ae/en/home",
+        "https://nazih.com/professional/salon-furniture",
+        "https://www.dm.gov.ae",
+        "https://www.ede.gov.ae",
+        "https://www.takarabelmont.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises -> confirmed | Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment -> confirmed | Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture -> confirmed. Not checked: The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified."
+    },
+    {
+      "id": "salon_equipment:uae-market-sizes",
+      "topic": "Beauty & salon equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per unit; full salon packages quoted as a lump sum by number of stations (e.g. 4 styling chairs, 2 backwash, 2 pedicure). Clippers and tools per piece, with salon bulk discounts. Consumables per box or carton (e.g. disposable towels per pack of 50-100). Laser devices are priced per unit with training and service contracts per year.",
+      "body_ar": "تُسعّر لكل وحدة؛ وتُسعّر باقات الصالونات الكاملة كمبلغ مقطوع حسب عدد المحطات (مثل 4 كراسي تصفيف، ووحدتي غسل، ومحطتي باديكير). وتُسعّر ماكينات القص والأدوات لكل قطعة، مع خصومات الكميات للصالونات. وتُسعّر المستهلكات لكل علبة أو كرتونة (مثل المناشف أحادية الاستخدام لكل عبوة من 50-100). وتُسعّر أجهزة الليزر لكل وحدة مع عقود تدريب وخدمة سنوية.",
+      "sources": [
+        "https://www.dm.gov.ae/wp-content/uploads/2021/01/DM-HSD-GU75-IS2_Ideal-Salon-Technical-Guideline_V2.1.pdf",
+        "https://www.ede.gov.ae/en/home",
+        "https://nazih.com/professional/salon-furniture",
+        "https://www.dm.gov.ae",
+        "https://www.ede.gov.ae",
+        "https://www.takarabelmont.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises -> confirmed | Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment -> confirmed | Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture -> confirmed. Not checked: The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Can a beauty salon buy and use an IPL hair removal machine without a medical licence?",
+      "q_ar": "هل يمكن لصالون تجميل شراء جهاز إزالة الشعر بالضوء النبضي واستخدامه دون ترخيص طبي؟",
+      "expected_entry_ids": [
+        "salon_equipment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai salons need a DET licence plus Dubai Municipality approval covering hygiene, sterilisation (autoclave or approved sterilant) and premises",
+        "url": "https://www.dm.gov.ae/wp-content/uploads/2021/01/DM-HSD-GU75-IS2_Ideal-Salon-Technical-Guideline_V2.1.pdf",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Energy-based aesthetic devices are medical devices regulated by the Emirates Drug Establishment",
+        "url": "https://www.ede.gov.ae/en/home",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Nazih Cosmetics and Moda Salon Interiors supply Takara Belmont and Maletti salon furniture",
+        "url": "https://nazih.com/professional/salon-furniture",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The Emirates Drug Establishment URL and the exact device classes it registers, and UAE distributors for named brands, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

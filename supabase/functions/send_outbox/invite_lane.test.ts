@@ -4,7 +4,7 @@
 // lane's invitations (never sent from the main sender) with one it_engineer finding, while other mail still sends.
 // Every Resend answer is replayed offline.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { HOLD_UNVERIFIED_MS, INVITE_LANE_TYPES, LANE_OFF, LANE_UNVERIFIED_ISSUE, heldUntil, holdFor, isLaneType, laneDomain, resolveLane, senderFor, type Fetch, type Lane } from './invite_lane.ts';
+import { HOLD_UNVERIFIED_MS, INVITE_LANE_TYPES, LANE_CAPPED_TYPES, LANE_OFF, LANE_UNVERIFIED_ISSUE, heldUntil, holdFor, isLaneType, laneDomain, resolveLane, senderFor, type Fetch, type Lane } from './invite_lane.ts';
 import { resendPayload } from './payload.ts';
 
 const FROM_SUP = 'QuotesDone <info@quotesdone.com>';   // app_secrets.email_from_supplier, measured 24 Sep 2026
@@ -35,9 +35,10 @@ Deno.test('flag OFF: every row, every side, the payload is byte-identical to the
   }
 });
 
-Deno.test('flag ON: supplier_invite and supplier_invite_seed to a supplier take the lane; nothing else does', () => {
+Deno.test('flag ON: supplier_invite, supplier_invite_seed and supplier_invite_nudge to a supplier take the lane; nothing else does', () => {
   for (const type of INVITE_LANE_TYPES) assertEquals(senderFor({ type, supplierSide: true, fromSup: FROM_SUP, fromInfo: FROM_INFO, lane: ON }), LANE_FROM);
-  assertEquals([...INVITE_LANE_TYPES].sort(), ['supplier_invite', 'supplier_invite_seed']);
+  assertEquals([...INVITE_LANE_TYPES].sort(), ['supplier_invite', 'supplier_invite_nudge', 'supplier_invite_seed']);
+  assertEquals([...LANE_CAPPED_TYPES].sort(), ['supplier_invite', 'supplier_invite_nudge']);
   for (const type of NEVER) for (const side of [true, false]) {
     assertEquals(senderFor({ type, supplierSide: side, fromSup: FROM_SUP, fromInfo: FROM_INFO, lane: ON }), before(side), `${type} took the lane`);
   }
@@ -113,7 +114,7 @@ function decide(lane: Lane, rows: Array<{ type: string; to_role: string }>, lane
     const hold = holdFor({ lane, type: r.type, supplierSide, laneSentToday, laneCap });
     if (hold) return { type: r.type, held: hold };
     const from = senderFor({ type: r.type, supplierSide, fromSup: FROM_SUP, fromInfo: FROM_INFO, lane });
-    if (lane.active && r.type === 'supplier_invite' && from === lane.from) laneSentToday++;
+    if (lane.active && LANE_CAPPED_TYPES.includes(r.type) && from === lane.from) laneSentToday++;
     return { type: r.type, from };
   });
 }
@@ -139,6 +140,18 @@ Deno.test('a held backlog cannot blow the day\'s cap: at most invite_daily_cap l
   const now = new Date('2026-09-24T09:15:00Z');
   assertEquals(heldUntil('cap', now).toISOString(), '2026-09-25T06:00:00.000Z');
   assertEquals(heldUntil('unverified', now).getTime() - now.getTime(), HOLD_UNVERIFIED_MS);
+});
+
+Deno.test('a nudge takes the lane, is held with the invitations when the lane is refused, and shares their one daily cap', () => {
+  const refused: Lane = { active: false, refused: true, from: '', domain: 'hello.quotesdone.com', why: 'refused: x' };
+  assertEquals(holdFor({ lane: refused, type: 'supplier_invite_nudge', supplierSide: true, laneSentToday: 0, laneCap: 30 }), 'unverified');
+  assertEquals(senderFor({ type: 'supplier_invite_nudge', supplierSide: true, fromSup: FROM_SUP, fromInfo: FROM_INFO, lane: ON }), LANE_FROM);
+  const rows = Array.from({ length: 20 }, (_, i) => ({ type: i % 2 ? 'supplier_invite_nudge' : 'supplier_invite', to_role: 'supplier' }));
+  const out = decide(ON, rows, 12);
+  assertEquals(out.filter((o) => 'from' in o).length, 12, 'invitations and nudges together exceeded invite_daily_cap');
+  assertEquals(out.filter((o) => 'held' in o && o.held === 'cap').length, 8);
+  // the seed is a test send: on the lane, never counted or capped
+  assertEquals(holdFor({ lane: ON, type: 'supplier_invite_seed', supplierSide: true, laneSentToday: 99, laneCap: 1 }), null);
 });
 
 Deno.test('Resend unreachable or the finding path broken: still refused, still OFF, never a throw', async () => {

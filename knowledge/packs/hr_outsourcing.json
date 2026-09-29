@@ -1,0 +1,75 @@
+{
+  "trade": "hr_outsourcing",
+  "entries": [
+    {
+      "id": "hr_outsourcing:spec-checklist",
+      "topic": "HR outsourcing and manpower supply - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For hr outsourcing and manpower supply (trade code hr_outsourcing only), every quoted line must state: Job titles and headcount; Qualifications and experience per role; Working hours and shift pattern; Salary, allowances and benefits included; Visa, medical insurance and accommodation responsibility; Replacement terms; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة (رمز النشاط hr_outsourcing فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: المسميات الوظيفية وعدد الأفراد؛ المؤهلات والخبرة لكل وظيفة؛ ساعات العمل ونظام المناوبات؛ الراتب والبدلات والمزايا المشمولة؛ مسؤولية التأشيرة والتأمين الطبي والسكن؛ شروط الاستبدال؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Job titles and headcount",
+        "Qualifications and experience per role",
+        "Working hours and shift pattern",
+        "Salary, allowances and benefits included",
+        "Visa, medical insurance and accommodation responsibility",
+        "Replacement terms",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.mohre.gov.ae/en/home.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "hr_outsourcing:uae-standards-and-approvals",
+      "topic": "HR outsourcing and manpower supply - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to hr outsourcing and manpower supply in the UAE: MOHRE (Ministry of Human Resources and Emiratisation) issues and renews licences for recruitment, temporary employment and mediation agencies. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hr outsourcing and manpower supply. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة في الإمارات: تصدر وزارة الموارد البشرية والتوطين تراخيص وكالات التوظيف والعمل المؤقت والوساطة وتجددها. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hr outsourcing and manpower supply. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.mohre.gov.ae/en/home.aspx"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on hr outsourcing and manpower supply?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة؟",
+      "expected_entry_ids": [
+        "hr_outsourcing:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a hr outsourcing and manpower supply supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد الاستعانة بمصادر خارجية للموارد البشرية وتوريد العمالة؟",
+      "expected_entry_ids": [
+        "hr_outsourcing:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "hr_outsourcing:spec-checklist"
+    ],
+    "added": [
+      "hr_outsourcing:spec-checklist",
+      "hr_outsourcing:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

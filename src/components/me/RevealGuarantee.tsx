@@ -8,7 +8,8 @@
 // guarantee_terms comes from pricing_config (5 / 3 / 7-14 on 14 Sep) and the clock from the
 // customer's own transactions row, counted by workingDays.ts. A term the server did not send hides
 // its step rather than inventing one. Refunds are decided by the chief executive seat.
-import { motion, useReducedMotion } from 'motion/react';
+import * as M from 'motion/react-m';
+import { useReducedMotion } from 'motion/react';
 import { ShieldCheck, Mail, Gavel, Landmark, CreditCard } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
@@ -58,7 +59,7 @@ export function RevealGuarantee({ lang, fee, terms, facts = null, compact = fals
             <span className="text-small text-muted-foreground">{phaseText}</span>
           </div>
           <div className="qd-meter mt-2" role="progressbar" aria-valuemin={0} aria-valuemax={clock.of} aria-valuenow={clock.day} aria-label={t(lang, 'g_title')}>
-            <motion.span className={cn(clock.phase === 'final_call' || clock.phase === 'refund' ? '!bg-none !bg-warn' : '')}
+            <M.span className={cn(clock.phase === 'final_call' || clock.phase === 'refund' ? '!bg-none !bg-warn' : '')}
               initial={reduce ? false : { width: 0 }} animate={{ width: Math.max(pct, 4) + '%' }} transition={{ duration: reduce ? 0 : 0.9, ease: [0.2, 0.8, 0.2, 1] }} />
           </div>
         </div>

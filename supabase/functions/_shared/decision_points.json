@@ -461,11 +461,18 @@
      "file": "supabase/functions/site_assistant/index.ts",
      "must_contain": [
       "surface: 'site_assistant.person'",
-      "if (person.value !== true) return;"
+      "return (await needsAPerson(defaultDeps(admin, 'site_assistant'), {"
      ],
      "must_not_contain": [
       "(speak|talk|chat)\\s+(to|with)",
       "شخص حقيقي"
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/widget_reply_effects.ts",
+     "must_contain": [
+      "if ((await o.askedForAPerson()) !== true) return false;",
+      "rpc('fn_support_report_to_ceo', {"
      ]
     },
     {
