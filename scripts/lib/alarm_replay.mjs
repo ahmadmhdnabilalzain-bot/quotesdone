@@ -54,9 +54,11 @@ export async function replay(sql, name, entry, at, stage = '', pending = null) {
   const def = pending?.def ?? live;
   assert.ok(def, `${name} is not in production`);
   let message = '';
-  // Retried on 429/5xx like any read: a replay is seconds long, writes only temp objects and rows the
-  // raise rolls back, so a second copy cannot deadlock the first (the hazard db.mjs names is DDL replays).
-  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? '')); message = 'the replay returned without raising, so it did not roll back'; }
+  // A LIVE routine's replay is retried on 429/5xx like any read: it is seconds long, writes only temp objects and
+  // rows the raise rolls back, so a second copy cannot deadlock the first. A PENDING routine's replay is NOT retried:
+  // its prelude is the whole pending file - ALTER TABLE, DROP/CREATE TRIGGER, routine replacements and any at-apply
+  // step - all rolled back by the same raise, but DDL taking table locks, which is the replay hazard db.mjs names.
+  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? ''), { retry: !pending }); message = 'the replay returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, `${name} at ${at}: ${message.slice(0, 1500)}`);
