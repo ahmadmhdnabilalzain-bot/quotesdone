@@ -1,0 +1,81 @@
+{
+  "trade": "office_furniture",
+  "entries": [
+    {
+      "id": "office_furniture:spec-checklist",
+      "topic": "Office furniture - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For office furniture (trade code office_furniture only), every quoted line must state: Item and model; Dimensions; Materials and finish; Chair mechanism and adjustments; Upholstery fabric; Cable management and power; Assembly and installation; Quantity and unit of measure; Applicable standard and test report; UAE conformity or authority approval; Delivery terms and location; Installation or commissioning scope; Warranty or defects liability period; Lead time; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط الأثاث المكتبي (رمز النشاط office_furniture فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: الصنف والطراز؛ الأبعاد؛ المواد والتشطيب؛ آلية الكرسي والتعديلات؛ قماش التنجيد؛ تنظيم الكابلات والكهرباء؛ التجميع والتركيب؛ الكمية ووحدة القياس؛ المواصفة المطبقة وتقرير الاختبار؛ شهادة المطابقة الإماراتية أو موافقة الجهة المختصة؛ شروط التسليم وموقعه؛ نطاق التركيب أو التشغيل؛ مدة الضمان أو مسؤولية العيوب؛ مدة التوريد أو التنفيذ؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Item and model",
+        "Dimensions",
+        "Materials and finish",
+        "Chair mechanism and adjustments",
+        "Upholstery fabric",
+        "Cable management and power",
+        "Assembly and installation",
+        "Quantity and unit of measure",
+        "Applicable standard and test report",
+        "UAE conformity or authority approval",
+        "Delivery terms and location",
+        "Installation or commissioning scope",
+        "Warranty or defects liability period",
+        "Lead time",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dcd.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "office_furniture:uae-standards-and-approvals",
+      "topic": "Office furniture - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to office furniture in the UAE: MoIAT (Ministry of Industry and Advanced Technology, which took over the former ESMA functions) lists products conformity certificates, national conformity marks, efficiency labels, UAE RoHS and Halal certification among its services, and separates regulated from non-regulated products. Dubai Civil Defence applies the UAE Fire and Life Safety Code of Practice and issues approvals for engineering drawings, companies and hazardous material handling; outside Dubai the civil defence authority of the emirate applies. A buyer may also name, as the test or product standard for a line, EN 1335 (office work chairs) and EN 527 (work tables); it applies only when written into the request. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for office furniture. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط الأثاث المكتبي في الإمارات: تدرج وزارة الصناعة والتكنولوجيا المتقدمة (التي تولت مهام هيئة الإمارات للمواصفات والمقاييس سابقاً) ضمن خدماتها شهادات مطابقة المنتجات، وعلامات المطابقة الوطنية، وملصقات الكفاءة، ونظام تقييد المواد الخطرة (UAE RoHS)، وشهادات الحلال، وتفرّق بين المنتجات الخاضعة للتنظيم وغير الخاضعة له. يطبّق الدفاع المدني في دبي قانون الإمارات للحماية من الحريق وسلامة الأرواح، ويصدر موافقات المخططات الهندسية واعتماد الشركات ومناولة المواد الخطرة؛ وخارج دبي تختص سلطة الدفاع المدني في الإمارة المعنية. ويجوز للمشتري أيضاً أن يحدد مواصفةً للاختبار أو المنتج في البند، مثل EN 1335 (كراسي العمل المكتبي) و EN 527 (طاولات العمل)؛ ولا تنطبق إلا إذا كُتبت في الطلب. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط الأثاث المكتبي. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for office furniture. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.dcd.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on office furniture?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالأثاث المكتبي؟",
+      "expected_entry_ids": [
+        "office_furniture:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a office furniture supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد الأثاث المكتبي؟",
+      "expected_entry_ids": [
+        "office_furniture:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "office_furniture:spec-checklist",
+      "office_furniture:uae-standards-and-approvals"
+    ],
+    "added": [
+      "office_furniture:spec-checklist",
+      "office_furniture:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

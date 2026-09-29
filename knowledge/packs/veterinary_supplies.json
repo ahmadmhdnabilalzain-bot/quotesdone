@@ -1,0 +1,76 @@
+{
+  "trade": "veterinary_supplies",
+  "entries": [
+    {
+      "id": "veterinary_supplies:spec-checklist",
+      "topic": "Veterinary supplies - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For veterinary supplies quotes to be compared like-for-like, every quoted line (goods) must state: (1) product name, strength and form; (2) species and indication; (3) UAE veterinary product registration; (4) pack size and quantity; (5) shelf life and storage conditions; (6) cold chain for vaccines; (7) licensed importer or distributor; (8) batch and certificate of analysis; (9) delivery terms and location; (10) lead time; (11) warranty period and terms; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the veterinary_supplies trade.",
+      "body_ar": "لكي تُقارن عروض المستلزمات البيطرية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) اسم المنتج وتركيزه وشكله؛ (2) الحيوان المستهدف ودواعي الاستعمال؛ (3) تسجيل المنتج البيطري في الإمارات؛ (4) حجم العبوة والكمية؛ (5) مدة الصلاحية وظروف التخزين؛ (6) سلسلة التبريد للقاحات؛ (7) المستورد أو الموزع المرخص؛ (8) الدفعة وشهادة التحليل؛ (9) شروط التسليم وموقعه؛ (10) مدة التوريد؛ (11) مدة الضمان وشروطه؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة veterinary_supplies فقط.",
+      "required_specs": [
+        "product name, strength and form",
+        "species and indication",
+        "UAE veterinary product registration",
+        "pack size and quantity",
+        "shelf life and storage conditions",
+        "cold chain for vaccines",
+        "licensed importer or distributor",
+        "batch and certificate of analysis",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "veterinary_supplies:uae-standards-and-approvals",
+      "topic": "Veterinary supplies - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Veterinary medicines and products are registered at federal level by the Ministry of Climate Change and Environment; emirate authorities (for example the Abu Dhabi Agriculture and Food Safety Authority) regulate veterinary facilities. What the cited sources do not establish: The Ministry page could not be read in this session (the request was rejected); the registration requirement is not verified here.",
+      "body_ar": "تُسجَّل الأدوية والمنتجات البيطرية على المستوى الاتحادي لدى وزارة التغير المناخي والبيئة؛ وتنظم جهات الإمارات (مثل هيئة أبوظبي للزراعة والسلامة الغذائية) المنشآت البيطرية. ما لا تثبته المصادر المذكورة: تعذرت قراءة صفحة الوزارة في هذه الجلسة (رُفض الطلب)؛ فمتطلب التسجيل غير متحقق منه هنا.",
+      "source_note": "The Ministry page could not be read in this session (the request was rejected); the registration requirement is not verified here.",
+      "sources": [
+        "https://www.moccae.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for veterinary supplies?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالمستلزمات البيطرية؟",
+      "expected_entry_ids": [
+        "veterinary_supplies:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to veterinary supplies?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على المستلزمات البيطرية؟",
+      "expected_entry_ids": [
+        "veterinary_supplies:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "veterinary_supplies:spec-checklist",
+      "veterinary_supplies:uae-standards-and-approvals"
+    ],
+    "added": [
+      "veterinary_supplies:spec-checklist",
+      "veterinary_supplies:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

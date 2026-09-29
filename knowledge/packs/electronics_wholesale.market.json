@@ -1,0 +1,107 @@
+{
+  "trade": "electronics_wholesale",
+  "layer": "uae-market",
+  "label_en": "Consumer electronics wholesale",
+  "label_ar": "جملة إلكترونيات",
+  "entries": [
+    {
+      "id": "electronics_wholesale:uae-market-products",
+      "topic": "Consumer electronics wholesale: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Electronics wholesale in the UAE covers consumer electronics (TVs, audio, soundbars, headphones, cameras), IT hardware (laptops, desktops, monitors, printers, storage, networking), components and accessories (cables, chargers, power banks, memory cards, USB drives), gaming consoles and accessories, smart home devices, wearables, small appliances, and electronic components (semiconductors, passive components, PCBs) for industry. Much of the trade is re-export to Africa, CIS, South Asia and the Middle East. Buyers specify brand, model/part number, region (Middle East/GCC spec vs international/grey import), warranty (local distributor vs international), voltage/plug (UK-type 3-pin for UAE), and certifications: TDRA type approval for wireless/telecom devices (Wi-Fi, Bluetooth, mobile), ECAS/EQM conformity for regulated electrical products, energy labels for applicable appliances, and RoHS-equivalent UAE restrictions on hazardous substances. Counterfeit goods are seized by customs under IP law.",
+      "body_ar": "تشمل تجارة الإلكترونيات بالجملة في الإمارات الإلكترونيات الاستهلاكية (التلفزيونات، والصوتيات، ومكبرات الصوت الشريطية، والسماعات، والكاميرات)، وأجهزة تقنية المعلومات (الحواسيب المحمولة والمكتبية، والشاشات، والطابعات، ووحدات التخزين، والشبكات)، والمكونات والإكسسوارات (الكابلات، والشواحن، وبنوك الطاقة، وبطاقات الذاكرة، وذواكر USB)، وأجهزة الألعاب وإكسسواراتها، وأجهزة المنزل الذكي، والأجهزة القابلة للارتداء، والأجهزة الصغيرة، والمكونات الإلكترونية (أشباه الموصلات، والمكونات السلبية، ولوحات الدوائر المطبوعة) للصناعة. ويتجه جزء كبير من التجارة لإعادة التصدير إلى أفريقيا ودول الكومنولث المستقلة وجنوب آسيا والشرق الأوسط. يحدد المشترون العلامة التجارية، ورقم الطراز/القطعة، والمنطقة (مواصفات الشرق الأوسط/الخليج مقابل الاستيراد الدولي/الموازي)، والضمان (الموزع المحلي مقابل الدولي)، والجهد/القابس (البريطاني ثلاثي الأطراف للإمارات)، والشهادات: اعتماد النوع من هيئة تنظيم الاتصالات للأجهزة اللاسلكية/الاتصالات (واي فاي، وبلوتوث، والهاتف المحمول)، ومطابقة نظام المطابقة الإماراتي/علامة الجودة الإماراتية للمنتجات الكهربائية المنظمة، وبطاقات الطاقة للأجهزة المعنية، والقيود الإماراتية المماثلة لـ RoHS على المواد الخطرة. وتصادر الجمارك البضائع المقلدة بموجب قانون الملكية الفكرية.",
+      "sources": [
+        "https://tdra.gov.ae/-/media/About/Type-approval-PDF/ITem-72-Type-approval-policy-21-clear-version-EN1-1.ashx",
+        "https://redingtongroup.com/mea/",
+        "https://mindware.net/",
+        "https://www.emitac.ae",
+        "https://tdra.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.dubaicustoms.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Wireless and telecom equipment must be TDRA type-approved and registered before sale -> confirmed | Redington operates as a Middle East and Africa distributor -> confirmed | Mindware is a value-added distributor active in the UAE -> confirmed | Ingram Micro, TD SYNNEX, Aptec, Emitac, Jumbo as distributors -> removed: not confirmed (Emitac site certificate error). Not checked: Current distributor names (after mergers) and whether a formal UAE RoHS regulation is in force were not verified."
+    },
+    {
+      "id": "electronics_wholesale:uae-market-brands",
+      "topic": "Consumer electronics wholesale: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed distributors and major brands traded: Redington, Mindware, Samsung, LG, Sony, Apple, HP, Dell, Lenovo, Xiaomi. Which distributor holds each brand was not checked. Wholesale markets include Deira (Al Murar, Naif), Dragon Mart, Jebel Ali and Dubai Airport Free Zone.",
+      "body_ar": "الموزعون المؤكدون وكبرى العلامات المتداولة: Redington، Mindware، Samsung، LG، Sony، Apple، HP، Dell، Lenovo، Xiaomi. ولم يُتحقق من الموزع الذي يحمل كل علامة. وتشمل أسواق الجملة ديرة (المرر، ونايف) ودراغون مارت وجبل علي والمنطقة الحرة لمطار دبي.",
+      "sources": [
+        "https://tdra.gov.ae/-/media/About/Type-approval-PDF/ITem-72-Type-approval-policy-21-clear-version-EN1-1.ashx",
+        "https://redingtongroup.com/mea/",
+        "https://mindware.net/",
+        "https://www.emitac.ae",
+        "https://tdra.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.dubaicustoms.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Wireless and telecom equipment must be TDRA type-approved and registered before sale -> confirmed | Redington operates as a Middle East and Africa distributor -> confirmed | Mindware is a value-added distributor active in the UAE -> confirmed | Ingram Micro, TD SYNNEX, Aptec, Emitac, Jumbo as distributors -> removed: not confirmed (Emitac site certificate error). Not checked: Current distributor names (after mergers) and whether a formal UAE RoHS regulation is in force were not verified."
+    },
+    {
+      "id": "electronics_wholesale:uae-market-sizes",
+      "topic": "Consumer electronics wholesale: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per unit in USD or AED, usually FOB/ex-warehouse Jebel Ali or Dubai, with MOQs per SKU (often a carton or pallet; distributors may set order-value minimums). Prices move with FX and allocation. Payment terms: cash/TT in advance for traders, credit lines for authorised resellers. Accessories are priced per piece with carton quantities (e.g. 50-200 pcs).",
+      "body_ar": "تُسعّر لكل وحدة بالدولار الأمريكي أو الدرهم، عادةً تسليم ظهر السفينة/من المستودع في جبل علي أو دبي، مع حد أدنى للطلب لكل صنف (غالباً كرتونة أو منصة؛ وقد يحدد الموزعون حداً أدنى لقيمة الطلب). وتتغير الأسعار مع أسعار الصرف والتخصيص. شروط الدفع: نقداً/تحويلاً مسبقاً للتجار، وحدود ائتمانية للموزعين المعتمدين. وتُسعّر الإكسسوارات لكل قطعة بكميات كرتونية (مثل 50-200 قطعة).",
+      "sources": [
+        "https://tdra.gov.ae/-/media/About/Type-approval-PDF/ITem-72-Type-approval-policy-21-clear-version-EN1-1.ashx",
+        "https://redingtongroup.com/mea/",
+        "https://mindware.net/",
+        "https://www.emitac.ae",
+        "https://tdra.gov.ae",
+        "https://moiat.gov.ae",
+        "https://www.dubaicustoms.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Wireless and telecom equipment must be TDRA type-approved and registered before sale -> confirmed | Redington operates as a Middle East and Africa distributor -> confirmed | Mindware is a value-added distributor active in the UAE -> confirmed | Ingram Micro, TD SYNNEX, Aptec, Emitac, Jumbo as distributors -> removed: not confirmed (Emitac site certificate error). Not checked: Current distributor names (after mergers) and whether a formal UAE RoHS regulation is in force were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does a Bluetooth speaker need TDRA approval before it can be sold in the UAE?",
+      "q_ar": "هل يحتاج مكبر الصوت بتقنية بلوتوث إلى اعتماد من هيئة تنظيم الاتصالات قبل بيعه في الإمارات؟",
+      "expected_entry_ids": [
+        "electronics_wholesale:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Wireless and telecom equipment must be TDRA type-approved and registered before sale",
+        "url": "https://tdra.gov.ae/-/media/About/Type-approval-PDF/ITem-72-Type-approval-policy-21-clear-version-EN1-1.ashx",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Redington operates as a Middle East and Africa distributor",
+        "url": "https://redingtongroup.com/mea/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Mindware is a value-added distributor active in the UAE",
+        "url": "https://mindware.net/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Ingram Micro, TD SYNNEX, Aptec, Emitac, Jumbo as distributors",
+        "url": "https://www.emitac.ae",
+        "result": "removed: not confirmed (Emitac site certificate error)"
+      }
+    ],
+    "unverified": "Current distributor names (after mergers) and whether a formal UAE RoHS regulation is in force were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

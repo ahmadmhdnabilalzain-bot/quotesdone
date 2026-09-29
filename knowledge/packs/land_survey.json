@@ -1,0 +1,75 @@
+{
+  "trade": "land_survey",
+  "entries": [
+    {
+      "id": "land_survey:spec-checklist",
+      "topic": "Land survey - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For land survey (trade code land_survey only), every quoted line must state: Survey type; Site area and location; Coordinate system and datum; Accuracy required; Surveyor licence; Deliverable formats; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط المساحة الأرضية (رمز النشاط land_survey فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع المسح؛ مساحة الموقع ومكانه؛ نظام الإحداثيات والمرجع؛ الدقة المطلوبة؛ ترخيص المساح؛ صيغ المخرجات؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Survey type",
+        "Site area and location",
+        "Coordinate system and datum",
+        "Accuracy required",
+        "Surveyor licence",
+        "Deliverable formats",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "land_survey:uae-standards-and-approvals",
+      "topic": "Land survey - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to land survey in the UAE: Dubai Municipality oversees building and construction, food and consumer goods, and waste management in Dubai; each other emirate has its own municipality. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for land survey. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط المساحة الأرضية في الإمارات: تشرف بلدية دبي على البناء والتشييد والأغذية والسلع الاستهلاكية وإدارة النفايات في دبي؛ ولكل إمارة أخرى بلديتها الخاصة. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط المساحة الأرضية. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for land survey. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on land survey?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـالمساحة الأرضية؟",
+      "expected_entry_ids": [
+        "land_survey:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a land survey supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد المساحة الأرضية؟",
+      "expected_entry_ids": [
+        "land_survey:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "land_survey:spec-checklist"
+    ],
+    "added": [
+      "land_survey:spec-checklist",
+      "land_survey:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}

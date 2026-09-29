@@ -1,0 +1,102 @@
+{
+  "trade": "medical_equipment",
+  "layer": "uae-market",
+  "label_en": "Medical equipment",
+  "label_ar": "أجهزة ومعدات طبية",
+  "entries": [
+    {
+      "id": "medical_equipment:uae-market-products",
+      "topic": "Medical equipment: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Medical equipment sold in the UAE includes diagnostic imaging (MRI 1.5T/3T, CT, digital X-ray, mammography, ultrasound, C-arms), patient monitors, ventilators, anaesthesia machines, defibrillators and AEDs, infusion and syringe pumps, ECG machines, hospital beds (electric ICU and ward beds), operating tables and surgical lights, sterilisation (CSSD washers and autoclaves), endoscopy systems, dialysis machines, physiotherapy and rehabilitation equipment, home care devices (oxygen concentrators, CPAP, wheelchairs), and hospital furniture. Buyers specify CE marking or other reference approvals, ISO 13485 manufacturer, IEC 60601 electrical safety, service and uptime guarantees, training, spare parts availability, and integration (HL7/DICOM). Devices must be registered with the Emirates Drug Establishment (formerly MOHAP), importers need a medical warehouse licence, radiation-emitting equipment needs FANR licensing, and facilities are licensed by DHA, DOH or MOHAP.",
+      "body_ar": "تشمل المعدات الطبية المباعة في الإمارات التصوير التشخيصي (الرنين المغناطيسي 1.5 تسلا/3 تسلا، والتصوير المقطعي، والأشعة السينية الرقمية، وتصوير الثدي، والموجات فوق الصوتية، وأجهزة C-arm)، وأجهزة مراقبة المرضى، وأجهزة التنفس الاصطناعي، وأجهزة التخدير، وأجهزة إزالة الرجفان وأجهزة إزالة الرجفان الآلية الخارجية، ومضخات التسريب والمحاقن، وأجهزة تخطيط القلب، وأسرّة المستشفيات (أسرّة العناية المركزة والأجنحة الكهربائية)، وطاولات العمليات وأضواء الجراحة، والتعقيم (غسالات وأجهزة تعقيم قسم التعقيم المركزي)، وأنظمة التنظير، وأجهزة غسيل الكلى، ومعدات العلاج الطبيعي والتأهيل، وأجهزة الرعاية المنزلية (مكثفات الأكسجين، وأجهزة CPAP، والكراسي المتحركة)، وأثاث المستشفيات. يحدد المشترون علامة CE أو اعتمادات مرجعية أخرى، والمصنع الحاصل على ISO 13485، والسلامة الكهربائية IEC 60601، وضمانات الخدمة وزمن التشغيل، والتدريب، وتوفر قطع الغيار، والتكامل (HL7/DICOM). ويجب تسجيل الأجهزة لدى مؤسسة الإمارات للدواء (وزارة الصحة ووقاية المجتمع سابقاً)، ويحتاج المستوردون إلى ترخيص مستودع طبي، وتحتاج الأجهزة المصدرة للإشعاع إلى ترخيص من الهيئة الاتحادية للرقابة النووية، وتُرخَّص المنشآت من هيئة الصحة بدبي أو دائرة الصحة أو وزارة الصحة ووقاية المجتمع.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://alshirawi.com/company/al-shirawi-healthcare/",
+        "https://www.ede.gov.ae",
+        "https://www.fanr.gov.ae",
+        "https://www.iec.ch",
+        "https://www.arabhealthonline.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing -> confirmed | Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai -> confirmed | Al Shirawi Healthcare Solutions supplies medical equipment -> confirmed. Not checked: Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic."
+    },
+    {
+      "id": "medical_equipment:uae-market-brands",
+      "topic": "Medical equipment: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE distributors and global manufacturers: Al Zahrawi Medical, Gulf Drug, AMICO, Al Maqam, Al Shirawi Healthcare, Siemens Healthineers, GE HealthCare, Philips, Canon Medical, Mindray, Dräger, Medtronic, Stryker, Getinge, Olympus. Which distributor holds each manufacturer's agency was not checked; several manufacturers also sell direct from Dubai regional offices. Arab Health in Dubai is the main exhibition.",
+      "body_ar": "الموزعون المؤكدون في الإمارات والشركات المصنعة العالمية: Al Zahrawi Medical، Gulf Drug، AMICO، Al Maqam، Al Shirawi Healthcare، Siemens Healthineers، GE HealthCare، Philips، Canon Medical، Mindray، Dräger، Medtronic، Stryker، Getinge، Olympus. ولم يُتحقق من الموزع الذي يحمل وكالة كل شركة مصنعة؛ ويبيع عدد من الشركات المصنعة أيضاً مباشرة من مكاتبها الإقليمية في دبي. ويُعد معرض الصحة العربي في دبي المعرض الرئيسي.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://alshirawi.com/company/al-shirawi-healthcare/",
+        "https://www.ede.gov.ae",
+        "https://www.fanr.gov.ae",
+        "https://www.iec.ch",
+        "https://www.arabhealthonline.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing -> confirmed | Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai -> confirmed | Al Shirawi Healthcare Solutions supplies medical equipment -> confirmed. Not checked: Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic."
+    },
+    {
+      "id": "medical_equipment:uae-market-sizes",
+      "topic": "Medical equipment: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Equipment is priced per unit with installation, commissioning, training and warranty (1-3 years); CMC/AMC service contracts are priced per unit per year (often a percentage of equipment value). Large imaging projects are turnkey lump sums including site preparation and shielding. Leasing, managed equipment services and pay-per-use models exist for hospitals. Tender evaluation usually requires 10-year spare parts availability.",
+      "body_ar": "تُسعّر المعدات لكل وحدة مع التركيب والتشغيل والتدريب والضمان (1-3 سنوات)؛ وتُسعّر عقود الصيانة الشاملة أو السنوية لكل وحدة سنوياً (غالباً كنسبة من قيمة المعدات). وتُسعّر مشاريع التصوير الكبيرة كمبالغ مقطوعة جاهزة تشمل تجهيز الموقع والتدريع. وتوجد نماذج التأجير وخدمات المعدات المُدارة والدفع حسب الاستخدام للمستشفيات. وعادةً ما يتطلب تقييم المناقصات توفر قطع الغيار لمدة 10 سنوات.",
+      "sources": [
+        "https://www.ede.gov.ae/en/home",
+        "https://www.bionixus.com/medical-device-companies-uae",
+        "https://alshirawi.com/company/al-shirawi-healthcare/",
+        "https://www.ede.gov.ae",
+        "https://www.fanr.gov.ae",
+        "https://www.iec.ch",
+        "https://www.arabhealthonline.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing -> confirmed | Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai -> confirmed | Al Shirawi Healthcare Solutions supplies medical equipment -> confirmed. Not checked: Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What registrations does an imported ultrasound machine need before a clinic in Dubai can use it?",
+      "q_ar": "ما التسجيلات التي يحتاجها جهاز الموجات فوق الصوتية المستورد قبل أن تستخدمه عيادة في دبي؟",
+      "expected_entry_ids": [
+        "medical_equipment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EDE is the federal regulator for medical devices (since 29 Sep 2023); radiation equipment needs FANR licensing",
+        "url": "https://www.ede.gov.ae/en/home",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al Zahrawi Medical, Gulf Drug, AMICO and Al Maqam are main UAE medical equipment distributors; global makers run Middle East headquarters in Dubai",
+        "url": "https://www.bionixus.com/medical-device-companies-uae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al Shirawi Healthcare Solutions supplies medical equipment",
+        "url": "https://alshirawi.com/company/al-shirawi-healthcare/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Which distributor currently holds each brand's agency in the UAE and the 10-year spare parts tender norm were not verified; distributor examples are generic.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

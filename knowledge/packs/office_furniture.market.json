@@ -1,0 +1,99 @@
+{
+  "trade": "office_furniture",
+  "layer": "uae-market",
+  "label_en": "Office furniture",
+  "label_ar": "أثاث مكاتب",
+  "entries": [
+    {
+      "id": "office_furniture:uae-market-products",
+      "topic": "Office furniture: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Office furniture sold in the UAE includes workstations and benching systems (with cable management and screens), executive desks, height-adjustable sit-stand desks (single/dual motor), meeting and boardroom tables, task chairs (ergonomic with synchro-tilt, lumbar support, adjustable arms), executive and visitor chairs, soft seating and pods, acoustic booths, storage (pedestals, lockers, filing cabinets, compactus mobile shelving), reception counters and partitions. Buyers specify board material and finish (melamine-faced chipboard or MDF to E1/E0 emissions, veneer, laminate thickness), edge banding (PVC/ABS 2 mm), frame type, chair standards (EN 1335, BIFMA X5.1), warranty (often 5-10 years on chairs), fabric or mesh, and load ratings. Sustainability certifications (GREENGUARD, FSC, Level) are asked for Estidama/LEED fit-outs.",
+      "body_ar": "يشمل الأثاث المكتبي المباع في الإمارات محطات العمل وأنظمة المكاتب المتصلة (مع إدارة الكابلات والحواجز)، والمكاتب التنفيذية، والمكاتب القابلة لتعديل الارتفاع للجلوس والوقوف (بمحرك واحد أو مزدوج)، وطاولات الاجتماعات ومجالس الإدارة، وكراسي العمل (المريحة مع إمالة متزامنة ودعم أسفل الظهر ومساند أذرع قابلة للتعديل)، والكراسي التنفيذية وكراسي الزوار، والجلسات المريحة والكبائن، وأكشاك العزل الصوتي، ووحدات التخزين (الأدراج، والخزائن، وخزائن الملفات، ورفوف الأرشيف المتحركة)، وكاونترات الاستقبال والقواطع. يحدد المشترون مادة الألواح وتشطيبها (ألواح حبيبية مكسوة بالميلامين أو MDF وفق انبعاثات E1/E0، قشرة خشبية، سماكة اللامينيت)، وأشرطة الحواف (PVC/ABS بسماكة 2 مم)، ونوع الهيكل، ومعايير الكراسي (EN 1335، BIFMA X5.1)، والضمان (غالباً 5-10 سنوات للكراسي)، والقماش أو الشبك، وتصنيفات التحمل. ويُطلب الحصول على شهادات الاستدامة (GREENGUARD، FSC، Level) لتجهيزات استدامة ولييد.",
+      "sources": [
+        "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
+        "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
+        "https://www.mordorintelligence.com/industry-reports/uae-office-furniture-market/companies",
+        "https://www.bifma.org",
+        "https://www.steelcase.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified."
+    },
+    {
+      "id": "office_furniture:uae-market-brands",
+      "topic": "Office furniture: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands and confirmed UAE players: Herman Miller (MillerKnoll), Steelcase, Haworth, Kinnarps, Highmoon Office Furniture, Vitra, Humanscale, Koleksiyon. Herman Miller has its own Dubai showroom and Highmoon is a local maker; the other brands' UAE dealers were not checked. Many factories operate in Dubai Investments Park, Jebel Ali, Sharjah and Ajman.",
+      "body_ar": "العلامات واللاعبون المؤكدون في الإمارات: Herman Miller (MillerKnoll)، Steelcase، Haworth، Kinnarps، Highmoon Office Furniture، Vitra، Humanscale، Koleksiyon. ولدى هيرمان ميلر صالة عرض خاصة في دبي، وهاي مون مصنع محلي؛ ولم يُتحقق من وكلاء العلامات الأخرى في الإمارات. وتعمل مصانع كثيرة في مجمع دبي للاستثمار وجبل علي والشارقة وعجمان.",
+      "sources": [
+        "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
+        "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
+        "https://www.mordorintelligence.com/industry-reports/uae-office-furniture-market/companies",
+        "https://www.bifma.org",
+        "https://www.steelcase.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified."
+    },
+    {
+      "id": "office_furniture:uae-market-sizes",
+      "topic": "Office furniture: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Furniture is priced per piece or per workstation cluster (e.g. 4-pod 1200 x 600 mm or 1400 x 700 mm desks). Common desk depths are 600-800 mm, heights 720-750 mm; sit-stand ranges about 620-1270 mm. Projects are quoted as a lump sum against a furniture schedule with delivery and installation; lead times 2-4 weeks for local stock, 6-12 weeks for imported brands.",
+      "body_ar": "يُسعّر الأثاث لكل قطعة أو لكل مجموعة محطات عمل (مثل كتلة من 4 مكاتب بمقاس 1200 × 600 مم أو 1400 × 700 مم). وأعماق المكاتب الشائعة 600-800 مم، والارتفاعات 720-750 مم؛ ونطاق مكاتب الجلوس والوقوف نحو 620-1270 مم. وتُسعّر المشاريع كمبلغ مقطوع وفق جدول الأثاث مع التوصيل والتركيب؛ ومدة التوريد 2-4 أسابيع للمخزون المحلي و6-12 أسبوعاً للعلامات المستوردة.",
+      "sources": [
+        "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
+        "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
+        "https://www.mordorintelligence.com/industry-reports/uae-office-furniture-market/companies",
+        "https://www.bifma.org",
+        "https://www.steelcase.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards -> confirmed | Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE -> confirmed | Aurora, Harris, Paragon named as dealers -> removed: not confirmed. Not checked: Named UAE dealers are market examples; their current brand representation was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What standard should an ergonomic office chair meet?",
+      "q_ar": "ما المعيار الذي يجب أن يستوفيه الكرسي المكتبي المريح؟",
+      "expected_entry_ids": [
+        "office_furniture:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EN 1335 (European office chair dimensions and safety) and ANSI/BIFMA X5.1 (performance) are the chair standards",
+        "url": "https://paradox24.com/chair-certifications-en-1335-bifma-explained/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Herman Miller has a Dubai showroom (Marina Plaza); Highmoon is a Dubai office furniture maker; Steelcase, Haworth and Kinnarps are active in the UAE",
+        "url": "https://www.hermanmiller.com/en_afr/contact/dubai-showroom/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Aurora, Harris, Paragon named as dealers",
+        "url": "https://www.mordorintelligence.com/industry-reports/uae-office-furniture-market/companies",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Named UAE dealers are market examples; their current brand representation was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
