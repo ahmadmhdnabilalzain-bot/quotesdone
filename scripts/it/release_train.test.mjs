@@ -59,6 +59,24 @@ test('a note that names another file of the PR runs after it', () => {
   assert.deepEqual(order, ['scripts/sql/b.sql', 'scripts/sql/a.sql', 'scripts/sql/c.sql']);
 });
 
+test('a note that says it runs BEFORE another file goes first (#1070)', () => {
+  const order = applyOrder([
+    { sql: 'scripts/sql/marketing_plans.sql', note: 'It must be\napplied BEFORE the_invitation_queue.sql (sales_engineer), which reads its table' },
+    { sql: 'scripts/sql/the_invitation_queue.sql', note: 'sales engineer file' },
+  ]).map((x) => x.sql);
+  assert.deepEqual(order, ['scripts/sql/marketing_plans.sql', 'scripts/sql/the_invitation_queue.sql']);
+});
+
+test('an explicit apply-order line wins over file references and names', () => {
+  const order = applyOrder([
+    { sql: 'scripts/sql/a.sql', note: 'apply-order: 2\nafter b.sql' },
+    { sql: 'scripts/sql/b.sql', note: 'apply-order: 3' },
+    { sql: 'scripts/sql/c.sql', note: 'no order line' },
+    { sql: 'scripts/sql/z.sql', note: 'Apply-Order: 1' },
+  ]).map((x) => x.sql);
+  assert.deepEqual(order, ['scripts/sql/z.sql', 'scripts/sql/a.sql', 'scripts/sql/b.sql', 'scripts/sql/c.sql']);
+});
+
 test('drift files are read from the repository-to-production section only', () => {
   const report = 'MANIFEST GAPS (1)\n  [scripts/sql/gap.sql]\nREPOSITORY -> PRODUCTION drift (canonical body not deployed) (2)\n'
     + '  fn_a  NOT PRESENT on production  [scripts/sql/a.sql]\n  fn_b  body differs  [scripts/sql/a.sql]\n'

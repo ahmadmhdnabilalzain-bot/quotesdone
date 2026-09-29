@@ -192,10 +192,11 @@ jobs:
     # against production. Sixty PRs ran it at once and slowed each other (and the management API)
     # until nothing finished. It now runs on main, the schedule, a manual dispatch, and on a pull
     # request only once it carries `review-approved` (the label the release train merges on), and
-    # only one copy runs at a time. The cheap checks above still run on every push.
+    # one copy runs per PR (a single shared group kept ONE pending job and cancelled the rest, 29 Sep).
+    # The cheap checks above still run on every push.
     if: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'review-approved') }}
     concurrency:
-      group: kernel-gate
+      group: kernel-gate-${{ github.event.pull_request.number || github.ref }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
