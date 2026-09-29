@@ -160,7 +160,7 @@ const warmDashboard = (tk, lang) => {
 // so /ar/me opened English and dir=ltr (e2e journey a, 14 Sep 2026). After sign-in the registered
 // language decides (onServedLocale). src/lib/documentLocale.ts.
 function initLang(){ try{ if(typeof window==='undefined') return 'en'; return urlLocale(window.location.pathname); }catch(_e){} return 'en'; }
-import { t, tf, errText, emirateName, transportFailed } from './portalText';
+import { t, tf, errText, emirateName, transportFailed, qualityReason } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
 // The account rule itself, not a copy: the same function customer_api create_inquiry gates on.
 import { accountMissing } from '../../../supabase/functions/_shared/account_rule';
@@ -1432,6 +1432,13 @@ function Comparison({ inqId, token, lang }) {
       {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
       {q.getting ? <div className={S.sub}>{q.getting}</div> : null}{arr(q.missing_from_request).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_missing') + arr(q.missing_from_request).join('; ')}</div> : null}{arr(q.spec_deviation).length ? <div className={cn(S.sub, 'text-warn-fg')}>{t(lang, 'cmp_dev') + arr(q.spec_deviation).join('; ')}</div> : null}{arr(q.flags).length ? <div className={cn(S.sub, 'text-danger')}>{arr(q.flags).join('; ')}</div> : null}</div>))}
     {arr(a.watch_outs).length ? <div className={cn(S.sub, 'text-danger mt-2')}>{t(lang, 'cmp_watch') + arr(a.watch_outs).join(' · ')}</div> : null}
+    {/* THE QUALITY CHECK (ledger 1018, 29 Sep 2026): quotes held while the supplier corrects them, and the points a
+        quote released after its wait did not correct, beside its label. Codes from quote_compare, words in portalText. */}
+    {a.quality_check && (Number(a.quality_check.held) > 0 || arr(a.quality_check.notes).length) ? (<div className="mt-2 border-t border-border/60 pt-2">
+      <div className={cn(S.sub, 'font-semibold text-foreground')}>{t(lang, 'qq_title')}</div>
+      {Number(a.quality_check.held) > 0 ? <div className={S.sub}>{tf(lang, 'qq_held', { n: Number(a.quality_check.held), h: Number(a.quality_check.hours) || 24 })}</div> : null}
+      {arr(a.quality_check.notes).map((n, i) => (<div key={i} className={cn(S.sub, 'text-warn-fg')}>{supLabel(n.label, lang)}: {arr(n.flags).map((f) => qualityReason(f, lang)).filter(Boolean).join('; ')} ({tf(lang, 'qq_uncorrected', { h: Number(a.quality_check.hours) || 24 })})</div>))}
+    </div>) : null}
     {a.advice ? <div className={cn(S.sub, 'mt-2 text-foreground')}>{a.advice}</div> : null}
     {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />

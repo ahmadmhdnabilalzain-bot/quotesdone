@@ -98,8 +98,24 @@ Deno.serve(observe('quote_compare', async (req) => {
     const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => q.status !== 'draft');
+    // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
+    // before_the_customer_sees_it.sql). A quote it holds is a draft, so it is not in `live`: it is COUNTED as on hold. A
+    // quote released after its wait carries the check's flags (codes and numbers, no sentences), shown beside it in the
+    // comparison until the supplier corrects them. Before the SQL is applied the table is absent and nothing is added.
+    let qualityHeld = 0; let qualityHours = 24;
+    // deno-lint-ignore no-explicit-any
+    const qualityFlags: Record<string, any[]> = {};
+    try {
+      const { data: hs, error } = await admin.from('quote_quality_hold').select('quote_id,flags,held_at,release_due,released_at,release_reason,corrected_at').eq('inquiry_id', inquiry_id);
+      if (!error) for (const h of (hs || [])) {
+        const hrs = Math.round((new Date(h.release_due).getTime() - new Date(h.held_at).getTime()) / 3600000);
+        if (Number.isFinite(hrs) && hrs > 0) qualityHours = hrs;
+        if (!h.released_at) qualityHeld++;
+        else if (h.release_reason === 'waited_24h' && !h.corrected_at && Array.isArray(h.flags) && h.flags.length) qualityFlags[String(h.quote_id)] = h.flags;
+      }
+    } catch (_e) { /* no quality block */ }
     let qs = live.slice(0, MAX_COMPARE);
-    if (!qs || qs.length < 2) { await logRun(qsErr ? 'error' : 'ok', { compared: 0, quotes_seen: qs.length, quotes_total_rows: (qsAll || []).length, need_two: 1, insufficient_genuine: qsErr ? 0 : 1, quotes_query_ok: qsErr ? 0 : 1 }, qsErr ? 'Customer asked to compare quotes and got \'need_two\' because the quotes query FAILED, not because too few suppliers quoted — real quotes may exist and are being hidden from the customer by a database error.' : ('Customer asked to compare quotes but only ' + qs.length + ' non-draft quote(s) exist for this RFQ, so no comparison was produced. This is genuine: suppliers have not returned enough quotes yet.')); return J({ ok: false, error: 'need_two', code: 'need_two', note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409); }
+    if (!qs || qs.length < 2) { await logRun(qsErr ? 'error' : 'ok', { compared: 0, quotes_seen: qs.length, quotes_total_rows: (qsAll || []).length, need_two: 1, insufficient_genuine: qsErr ? 0 : 1, quotes_query_ok: qsErr ? 0 : 1 }, qsErr ? 'Customer asked to compare quotes and got \'need_two\' because the quotes query FAILED, not because too few suppliers quoted — real quotes may exist and are being hidden from the customer by a database error.' : ('Customer asked to compare quotes but only ' + qs.length + ' non-draft quote(s) exist for this RFQ, so no comparison was produced. This is genuine: suppliers have not returned enough quotes yet.')); return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: qualityHeld, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409); }
 
     let itemsByQuote: Record<string, any[]> = {}; let itemsTotal = 0;
     const specOf: Record<string, Record<number, any>> = {};
@@ -130,7 +146,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     }
     if (qs.length < 2) {
       await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
-      return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: heldAtRanking, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409);
+      return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: heldAtRanking + qualityHeld, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409);
     }
 
     const trackBySupplier: Record<string, any> = {};
@@ -169,7 +185,7 @@ Deno.serve(observe('quote_compare', async (req) => {
     // THE TECHNICAL COMPARISON — line by line, attribute by attribute, against what the customer
     // asked for; held quotes are counted, never shown. Rebuilt on every answer, cached or not.
     let onHold = 0;
-    try { const { count } = await admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).in('state', ['open', 'awaiting_approval']); onHold = (count || 0) + heldAtRanking; } catch (_e) { onHold = heldAtRanking; }
+    try { const { count } = await admin.from('quote_spec_hold').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).in('state', ['open', 'awaiting_approval']); onHold = (count || 0) + heldAtRanking + qualityHeld; } catch (_e) { onHold = heldAtRanking + qualityHeld; }
     // deno-lint-ignore no-explicit-any
     const inqSpec: any = inq.spec;
     // deno-lint-ignore no-explicit-any
@@ -240,7 +256,10 @@ Deno.serve(observe('quote_compare', async (req) => {
     // Not applied yet -> the rpc errors and the comparison simply carries no benchmark block.
     let priceBenchmarks: any[] | null = null;
     try { const { data, error } = await admin.rpc('fn_price_benchmark_flags_for_inquiry', { p_inquiry_id: inquiry_id }); if (!error && Array.isArray(data)) priceBenchmarks = data; } catch (_e) { priceBenchmarks = null; }
-    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
+    // the check's flags beside each quote released after its wait, under the label the customer sees (ledger 1018)
+    const qualityCheck = { held: qualityHeld, hours: qualityHours,
+      notes: qs.filter((q: any) => qualityFlags[String(q.id)]).map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null, flags: qualityFlags[String(q.id)] })) };
+    const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? rendererView(technical, lang as 'en' | 'ar') : null; a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : []); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; } return a; };
     const qhash = await sha256hex(JSON.stringify(labelled));
     // THE SPEC SWEEP NEEDS NO MODEL (22 Sep 2026). sales_engineer's spec_offer_sweep reads only
     // technical_detail, which is computed above by code. It used to run the full model comparison
