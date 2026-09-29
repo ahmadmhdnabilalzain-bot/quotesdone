@@ -1,0 +1,99 @@
+{
+  "trade": "outdoor_furniture",
+  "layer": "uae-market",
+  "label_en": "Outdoor furniture",
+  "label_ar": "أثاث خارجي",
+  "entries": [
+    {
+      "id": "outdoor_furniture:uae-market-products",
+      "topic": "Outdoor furniture: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Outdoor furniture sold in the UAE includes sun loungers and daybeds for pools and beaches, dining sets, lounge sofas, bar stools, umbrellas and cantilever parasols, cabanas and gazebos, pergolas, planters, and hospitality terrace furniture. Materials include powder-coated aluminium (marine-grade finishes), 304/316 stainless steel, teak (Grade A plantation teak), synthetic rattan/PE wicker, HDPE and polypropylene resin, textilene sling fabric, rope weave, and outdoor fabrics (solution-dyed acrylic, e.g. Sunbrella) with quick-dry foam. Buyers specify UV resistance for the UAE's high UV index, salt-spray resistance for coastal sites, heat reflection (lighter colours), stackability, wind resistance for umbrellas (wind rating), and fire-retardant fabrics for hotels where Civil Defence requires. Commercial warranties (frame 2-5 years) are important.",
+      "body_ar": "يشمل أثاث الحدائق المباع في الإمارات كراسي التشمس والأسرّة النهارية للمسابح والشواطئ، وأطقم الطعام، وأرائك الاستراحة، ومقاعد البار، والمظلات والمظلات المعلقة الجانبية، والكبائن والأكشاك، والبرجولات، وأحواض النباتات، وأثاث تراسات الضيافة. وتشمل المواد الألمنيوم المطلي بالمسحوق (تشطيبات بحرية)، والفولاذ المقاوم للصدأ 304/316، وخشب الساج (ساج المزارع من الدرجة A)، والروطان الصناعي/الخوص البلاستيكي، وراتنج HDPE والبولي بروبيلين، وقماش التكستلين المشدود، والنسيج بالحبال، والأقمشة الخارجية (أكريليك مصبوغ بالمحلول، مثل سنبريلا) مع إسفنج سريع الجفاف. يحدد المشترون مقاومة الأشعة فوق البنفسجية بسبب مؤشرها المرتفع في الإمارات، ومقاومة رذاذ الملح للمواقع الساحلية، وعكس الحرارة (الألوان الفاتحة)، وقابلية التكديس، ومقاومة الرياح للمظلات (تصنيف الرياح)، والأقمشة المقاومة للحريق للفنادق حيث يشترط الدفاع المدني ذلك. والضمانات التجارية (الهيكل 2-5 سنوات) مهمة.",
+      "sources": [
+        "https://www.fabricguru.com/sunbrella-bty/sunbrella-canvas-solution-dyed-acrylic-outdoor-fabric.html",
+        "https://www.nextspace.me/",
+        "https://www.homecentre.com/ae/en/c/furniture-outdoor",
+        "https://www.sunbrella.com",
+        "https://www.dedon.de",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified."
+    },
+    {
+      "id": "outdoor_furniture:uae-market-brands",
+      "topic": "Outdoor furniture: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed dealer and retailers, with the brands they carry: NextSpace, Dedon, Gloster, Kettal, Home Centre, Pan Home, Sunbrella. Volume furniture comes from Chinese, Vietnamese, Indonesian, Malaysian and Turkish makers; FF&E suppliers serve hotels.",
+      "body_ar": "الوكيل وتجار التجزئة المؤكدون، مع العلامات التي يحملونها: NextSpace، Dedon، Gloster، Kettal، Home Centre، Pan Home، Sunbrella. ويأتي الأثاث بالكميات من مصنعين صينيين وفيتناميين وإندونيسيين وماليزيين وأتراك؛ ويخدم موردو الأثاث والتجهيزات الفنادق.",
+      "sources": [
+        "https://www.fabricguru.com/sunbrella-bty/sunbrella-canvas-solution-dyed-acrylic-outdoor-fabric.html",
+        "https://www.nextspace.me/",
+        "https://www.homecentre.com/ae/en/c/furniture-outdoor",
+        "https://www.sunbrella.com",
+        "https://www.dedon.de",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified."
+    },
+    {
+      "id": "outdoor_furniture:uae-market-sizes",
+      "topic": "Outdoor furniture: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per piece or per set (e.g. 4-seater or 6-seater dining set); umbrellas by canopy size (2.5-4 m square or round, larger cantilevers). Hotel pool projects are quoted per piece with volume pricing and cushions priced separately per cushion. Lead times for imported contract furniture are often 8-14 weeks. Replacement cushions and fabric slings are priced per piece.",
+      "body_ar": "يُسعّر لكل قطعة أو لكل طقم (مثل طقم طعام لـ4 أو 6 أشخاص)؛ والمظلات حسب حجم المظلة (2.5-4 م مربعة أو مستديرة، ومظلات جانبية أكبر). وتُسعّر مشاريع مسابح الفنادق لكل قطعة مع أسعار الكميات، وتُسعّر الوسائد بشكل منفصل لكل وسادة. وغالباً ما تتراوح مدة توريد أثاث المشاريع المستورد بين 8 و14 أسبوعاً. وتُسعّر الوسائد والأقمشة البديلة لكل قطعة.",
+      "sources": [
+        "https://www.fabricguru.com/sunbrella-bty/sunbrella-canvas-solution-dyed-acrylic-outdoor-fabric.html",
+        "https://www.nextspace.me/",
+        "https://www.homecentre.com/ae/en/c/furniture-outdoor",
+        "https://www.sunbrella.com",
+        "https://www.dedon.de",
+        "https://www.dcd.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Sunbrella is solution-dyed acrylic with UV-stabilised pigments -> confirmed | NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture -> confirmed | ACE, IKEA, Danube Home as outdoor retailers -> removed: not checked. Not checked: Current UAE representation of the named premium brands was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which frame material lasts best for beachfront hotel loungers?",
+      "q_ar": "ما مادة الهيكل الأكثر تحملاً لكراسي التشمس في الفنادق الشاطئية؟",
+      "expected_entry_ids": [
+        "outdoor_furniture:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Sunbrella is solution-dyed acrylic with UV-stabilised pigments",
+        "url": "https://www.fabricguru.com/sunbrella-bty/sunbrella-canvas-solution-dyed-acrylic-outdoor-fabric.html",
+        "result": "confirmed"
+      },
+      {
+        "claim": "NextSpace represents Dedon, Gloster and Kettal in the UAE; Home Centre and Pan Home sell outdoor furniture",
+        "url": "https://www.nextspace.me/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ACE, IKEA, Danube Home as outdoor retailers",
+        "url": "https://www.homecentre.com/ae/en/c/furniture-outdoor",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Current UAE representation of the named premium brands was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

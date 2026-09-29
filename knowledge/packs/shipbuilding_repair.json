@@ -1,0 +1,76 @@
+{
+  "trade": "shipbuilding_repair",
+  "entries": [
+    {
+      "id": "shipbuilding_repair:spec-checklist",
+      "topic": "Shipbuilding and ship repair - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For shipbuilding and ship repair quotes to be compared like-for-like, every quoted line (services) must state: (1) vessel type, name, IMO number and dimensions; (2) class society and class notation; (3) work scope and specification; (4) dry-docking days and yard; (5) steel renewal in tonnes; (6) coating system and area in m2; (7) materials supplied by owner or yard; (8) class survey and certificates; (9) delivery date and delay terms; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the shipbuilding_repair trade.",
+      "body_ar": "لكي تُقارن عروض بناء السفن وإصلاحها على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع السفينة واسمها ورقم المنظمة البحرية الدولية وأبعادها؛ (2) هيئة التصنيف ورمز التصنيف؛ (3) نطاق العمل والمواصفات؛ (4) أيام الحوض الجاف والحوض؛ (5) استبدال الفولاذ بالأطنان؛ (6) نظام الطلاء والمساحة بالمتر المربع؛ (7) المواد المقدمة من المالك أو الحوض؛ (8) فحص التصنيف والشهادات؛ (9) تاريخ التسليم وشروط التأخير؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة shipbuilding_repair فقط.",
+      "required_specs": [
+        "vessel type, name, IMO number and dimensions",
+        "class society and class notation",
+        "work scope and specification",
+        "dry-docking days and yard",
+        "steel renewal in tonnes",
+        "coating system and area in m2",
+        "materials supplied by owner or yard",
+        "class survey and certificates",
+        "delivery date and delay terms",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "shipbuilding_repair:uae-standards-and-approvals",
+      "topic": "Shipbuilding and ship repair - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Ships are built and repaired to the rules of a classification society and IMO conventions (SOLAS, MARPOL) as applied by the flag state; in the UAE maritime affairs are regulated federally by the Ministry of Energy and Infrastructure and, in Dubai, by the Dubai Maritime Authority. What the cited sources do not establish: No source was fetched for this pack; the class rules and flag requirements must come from the vessel owner.",
+      "body_ar": "تُبنى السفن وتُصلح وفق قواعد هيئة التصنيف واتفاقيات المنظمة البحرية الدولية (SOLAS و MARPOL) كما تطبقها دولة العلم؛ وفي الإمارات تنظم وزارة الطاقة والبنية التحتية الشؤون البحرية اتحادياً، وسلطة دبي البحرية في دبي. ما لا تثبته المصادر المذكورة: لم يُقرأ أي مصدر لهذه الحزمة؛ يجب أن تأتي قواعد التصنيف ومتطلبات العلم من مالك السفينة.",
+      "source_note": "No source was fetched for this pack; the class rules and flag requirements must come from the vessel owner.",
+      "sources": [
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for shipbuilding and ship repair?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـبناء السفن وإصلاحها؟",
+      "expected_entry_ids": [
+        "shipbuilding_repair:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to shipbuilding and ship repair?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على بناء السفن وإصلاحها؟",
+      "expected_entry_ids": [
+        "shipbuilding_repair:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "shipbuilding_repair:spec-checklist",
+      "shipbuilding_repair:uae-standards-and-approvals"
+    ],
+    "added": [
+      "shipbuilding_repair:spec-checklist",
+      "shipbuilding_repair:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

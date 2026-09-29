@@ -114,9 +114,10 @@ test('production, aborted: the database derives the post outcome from its channe
 const PROBE = String.raw`
 do $$ declare o jsonb := '{}'; v bigint;
 begin
-  insert into marketing_post (ingest_key, ingested_by, title, text_en, channels, status, is_demo)
+  -- an Instagram post carries media (CHECK marketing_post_instagram_needs_media, #834); the path is never uploaded
+  insert into marketing_post (ingest_key, ingested_by, title, text_en, channels, media_paths, status, is_demo)
     values ('zz-demo-channel-results-' || substr(md5(random()::text), 1, 8), 'claude', 'ZZ DEMO channel results', 'ZZ DEMO channel results probe',
-            array['youtube', 'instagram'], 'draft', true)
+            array['youtube', 'instagram'], array['zz-demo/channel-results-probe.mp4'], 'draft', true)
     returning id into v;
   o := o || jsonb_build_object('all_ok', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"published","release_url":"https://www.youtube.com/watch?v=ZZdemo"},{"channel":"instagram","state":"published"}]')->>'outcome');
   o := o || jsonb_build_object('thumbnail', fn_marketing_post_channel_record(v, '[{"channel":"youtube","state":"partial","cause":"thumbnail_not_set","postiz_state":"ERROR","platform_message":"An error occurred while posting on youtube: thumbnail not set"},{"channel":"instagram","state":"published"}]')->>'outcome');

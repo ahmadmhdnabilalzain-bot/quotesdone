@@ -1,0 +1,80 @@
+{
+  "trade": "solar",
+  "entries": [
+    {
+      "id": "solar:spec-checklist",
+      "topic": "Solar PV - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For solar pv quotes to be compared like-for-like, every quoted line (goods) must state: (1) system size in kWp; (2) module make, model, wattage and technology; (3) inverter make, model and rating; (4) listing on the utility eligible equipment list; (5) mounting structure and roof type; (6) estimated annual yield in kWh; (7) utility connection application scope; (8) enrolled solar PV contractor; (9) module and inverter warranties; (10) monitoring system; (11) delivery terms and location; (12) lead time; (13) warranty period and terms; (14) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the solar trade.",
+      "body_ar": "لكي تُقارن عروض الطاقة الشمسية الكهروضوئية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) حجم النظام بالكيلوواط ذروة؛ (2) ماركة الألواح وطرازها وقدرتها وتقنيتها؛ (3) ماركة العاكس وطرازه وقدرته؛ (4) الإدراج في قائمة المعدات المؤهلة لدى جهة المرافق؛ (5) هيكل التثبيت ونوع السقف؛ (6) الإنتاج السنوي التقديري بالكيلوواط ساعة؛ (7) نطاق طلب الربط بشبكة المرافق؛ (8) مقاول الطاقة الشمسية المسجل؛ (9) ضمانات الألواح والعاكس؛ (10) نظام المراقبة؛ (11) شروط التسليم وموقعه؛ (12) مدة التوريد؛ (13) مدة الضمان وشروطه؛ (14) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة solar فقط.",
+      "required_specs": [
+        "system size in kWp",
+        "module make, model, wattage and technology",
+        "inverter make, model and rating",
+        "listing on the utility eligible equipment list",
+        "mounting structure and roof type",
+        "estimated annual yield in kWh",
+        "utility connection application scope",
+        "enrolled solar PV contractor",
+        "module and inverter warranties",
+        "monitoring system",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "solar:uae-standards-and-approvals",
+      "topic": "Solar PV - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "In Dubai, grid-connected rooftop PV falls under DEWA's Shams Dubai initiative: DEWA accepts connection applications only through enrolled solar PV consultants and contractors, and PV modules, inverters and interface protection must be on DEWA's List of Eligible Equipment. Other emirates follow their own utility (for example ADDC/AADC in Abu Dhabi, SEWA in Sharjah). What the cited sources do not establish: The DEWA facts come from DEWA's own listing pages seen through search; the pages returned 403 on direct fetch. The sources do not set a module efficiency or brand; state them explicitly.",
+      "body_ar": "في دبي تخضع أنظمة الطاقة الشمسية على الأسطح المربوطة بالشبكة لمبادرة شمس دبي من هيئة كهرباء ومياه دبي: لا تقبل الهيئة طلبات الربط إلا عبر استشاريين ومقاولين مسجلين للطاقة الشمسية، ويجب أن تكون الألواح والعواكس وأجهزة الحماية مدرجة في قائمة المعدات المؤهلة لدى الهيئة. وتتبع الإمارات الأخرى جهة المرافق الخاصة بها (مثل شركتي أبوظبي والعين للتوزيع في أبوظبي، وهيئة كهرباء ومياه الشارقة). ما لا تثبته المصادر المذكورة: وقائع هيئة كهرباء ومياه دبي مأخوذة من صفحات الهيئة نفسها عبر البحث، إذ رفضت الصفحات الجلب المباشر. ولا تحدد المصادر كفاءة ألواح أو علامة تجارية؛ حددهما صراحةً.",
+      "source_note": "The DEWA facts come from DEWA's own listing pages seen through search; the pages returned 403 on direct fetch. The sources do not set a module efficiency or brand; state them explicitly.",
+      "sources": [
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+        "https://www.dewa.gov.ae/en/consumer/solar-community/shams-dubai/contractors-and-consultants/list-of-eligible-equipment"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for solar pv?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالطاقة الشمسية الكهروضوئية؟",
+      "expected_entry_ids": [
+        "solar:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to solar pv?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الطاقة الشمسية الكهروضوئية؟",
+      "expected_entry_ids": [
+        "solar:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "solar:spec-checklist",
+      "solar:uae-standards-and-approvals"
+    ],
+    "added": [
+      "solar:spec-checklist",
+      "solar:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
