@@ -139,6 +139,21 @@ begin
     bad := bad || to_jsonb('the author proof of a think() decision raised: ' || left(sqlerrm, 200));
   end;
 
+  -- ... and only a RECENT one: an internal_judgement call older than 24 hours is no proof. The gate infers the author
+  -- from the seat's last call in 24 hours; with only a 2-day-old row it must find none (author 'deterministic').
+  delete from public.ai_cost_log where seat = 'accountant' and task_class = 'internal_judgement';
+  insert into public.ai_cost_log (occurred_at, fn, agent_key, seat, task_class, model_used, ok)
+  values (now() - interval '2 days', 'zz_probe_author_stale', 'accountant', 'accountant', 'internal_judgement', c_gem, true);
+  begin
+    v := public.fn_high_stakes_gate('zz_probe_stale', 'accountant', 'zz_probe', 'stale', 'ZZ DEMO stale author probe',
+           '{}'::jsonb, '{}'::jsonb, null, null, true);
+    if coalesce(v->>'author_model', '') = c_gem then
+      bad := bad || to_jsonb('a 2-day-old internal_judgement call was accepted as the author'::text);
+    end if;
+  exception when others then
+    bad := bad || to_jsonb('the stale-author gate raised: ' || left(sqlerrm, 200));
+  end;
+
   -- A seat's own route never allows fewer tokens than the class it splits.
   for r in select s.task_class, split_part(s.task_class, '__', 1) seat, split_part(s.task_class, '__', 2) base, b.max_tokens base_max
              from public.model_policy s join public.model_policy b on b.task_class = split_part(s.task_class, '__', 2)
