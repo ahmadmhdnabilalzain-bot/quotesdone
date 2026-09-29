@@ -1,3 +1,0 @@
-Applied at merge (memory: apply at merge, never before). It unschedules the inactive cron job wa_flush, which
-resilience_ping's send_whatsapp step replaced on 9 Sep, and removes its phase_d_committed_scenario_cron row.
-On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: customer_support.

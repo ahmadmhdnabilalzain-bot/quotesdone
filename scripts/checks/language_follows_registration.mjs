@@ -99,11 +99,12 @@ begin
   exception when others then errs := errs || to_jsonb('sales engineer / customer_support path: ' || sqlerrm);
   end;
   -- the invoice-ready notice (trg_sales_engineer_tells_customer_invoice_ready on the accountant's handoff)
+  -- (30 Sep 2026) a handoff names its case since #1072 (every_handoff_carries_a_note...); the real one names its transaction
   begin
-    insert into public.agent_actions (agent, kind, status, title, detail)
-    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_ar));
-    insert into public.agent_actions (agent, kind, status, title, detail)
-    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_en));
+    insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id)
+    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_ar), 'transactions', gen_random_uuid()::text);
+    insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id)
+    values ('sales_engineer', 'handoff', 'pending', 'lang walk', jsonb_build_object('subject', 'reveal_invoice', 'customer_id', c_en), 'transactions', gen_random_uuid()::text);
   exception when others then errs := errs || to_jsonb('invoice-ready path: ' || sqlerrm);
   end;
 

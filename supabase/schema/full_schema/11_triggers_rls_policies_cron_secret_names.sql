@@ -1011,6 +1011,7 @@ ALTER TABLE public.workflow ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_step ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workflow_step_run ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.writer_seat ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.yello_staging ENABLE ROW LEVEL SECURITY;
 
 -- ===== POLICIES =====
@@ -1278,15 +1279,9 @@ CREATE POLICY trade_spec_checklist_service_role_only ON public.trade_spec_checkl
 CREATE POLICY os_owner_admin_read ON public.transactions AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.vision_horizon AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
 CREATE POLICY os_owner_admin_read ON public.workflow AS PERMISSIVE FOR SELECT TO authenticated USING ((fn_role_of((auth.jwt() ->> 'email'::text)) = ANY (ARRAY['owner'::text, 'admin'::text])));
+CREATE POLICY writer_seat_service_role_only ON public.writer_seat AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 
 -- ===== CRON JOBS =====
-select cron.schedule('wa_flush','*/2 * * * *',$CRON$
-  select net.http_post(
-    url := 'https://' || (select value from public.app_secrets where key = 'project_ref') || '.supabase.co/functions/v1/send_whatsapp',
-    headers := jsonb_build_object('Content-Type','application/json','Authorization','Bearer '||(select value from app_secrets where key='anon_key')),
-    body := jsonb_build_object('__secret',(select value from app_secrets where key='cred_cron_notifications'))
-  );
-$CRON$);
 select cron.schedule('ceo-strategy-memo-monthly','0 2 2 * *',$CRON$select public.fn_ceo_strategy_memo()$CRON$);
 
 -- ===== APP_SECRETS KEY NAMES (values intentionally excluded) =====
