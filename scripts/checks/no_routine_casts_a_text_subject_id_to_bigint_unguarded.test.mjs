@@ -4,10 +4,10 @@
 // Reads the live mirror, which every PR keeps equal to production.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 test('the CEO delivery decider guards its subject_id cast', () => {
-  const schema = readFileSync(new URL('../../supabase/schema/full_schema.sql', import.meta.url), 'utf8');
+  const schema = readSchemaMirror();
   const m = schema.match(/FUNCTION public\.fn_ceo_delivery_undelivered_decide\([\s\S]*?\nend \$function\$/);
   assert.ok(m, 'fn_ceo_delivery_undelivered_decide is in the mirror');
   assert.doesNotMatch(m[0], /nullif\(v_req\.detail ->> 'subject_id', ''\)::bigint/, 'unguarded bigint cast of subject_id');
