@@ -48,7 +48,7 @@
 --      and emirate of an open, real rescue ranks -1, ahead of the supply-gap 'recruit' tier (0) and the marketing-plan tier
 --      (1); inside every tier the order is marketing's gap ranking (plan_rank), as before.
 --   6. inquiry_rescue joins the daily table export (fn_table_export_list, redefined from its canonical body in
---      marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, MANIFEST 1834, with only that row added).
+--      the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql, MANIFEST 1879, with only that row added).
 --      It has no *_path column, so it has no place in the backup registry.
 --
 -- Prevented by: scripts/checks/a_stalled_request_is_rescued_through_the_invitation_queue.test.mjs (static: the tier is
@@ -308,8 +308,8 @@ insert into public.seat_duty (duty, what, every, enabled, routine, owner_file, o
 on conflict (duty) do nothing;
 
 -- ── 6. the daily export ────────────────────────────────────────────────────────────────────────────────────────
--- Redefined from its canonical body (marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, the last
--- definer in MANIFEST.txt on 29 Sep 2026) with only ('inquiry_rescue','inquiry') added. If another definition is
+-- Redefined from its canonical body (the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql,
+-- MANIFEST 1879, the last definer on 29 Sep 2026) with only ('inquiry_rescue','inquiry') added. If another definition is
 -- applied first, rebase this one onto it.
 create or replace function public.fn_table_export_list()
 returns table(table_name text, subject text, change_log text)
@@ -361,7 +361,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
-    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
