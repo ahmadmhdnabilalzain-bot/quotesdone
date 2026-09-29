@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T09:11:48.359Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T09:15:09.613Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (677) =====
+-- ===== TABLES (678) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -8517,6 +8517,16 @@ CREATE TABLE IF NOT EXISTS public.supplier_score (
   computed_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.supplier_scorecard (
+  lead_id bigint NOT NULL,
+  month date NOT NULL,
+  card jsonb NOT NULL,
+  to_email text,
+  outcome text NOT NULL,
+  handoff_id bigint,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS public.supplier_screening_hit (
   id bigint DEFAULT nextval('supplier_screening_hit_id_seq'::regclass) NOT NULL,
   run_id bigint,
@@ -9990,6 +10000,7 @@ ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_vari
 ALTER TABLE public.supplier_recruitment_funnel ADD CONSTRAINT supplier_recruitment_funnel_pkey PRIMARY KEY (trade, emirate, day);
 ALTER TABLE public.supplier_response_watch ADD CONSTRAINT supplier_response_watch_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_score ADD CONSTRAINT supplier_score_pkey PRIMARY KEY (lead_id);
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_pkey PRIMARY KEY (lead_id, month);
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_pkey PRIMARY KEY (id);
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_pkey PRIMARY KEY (id);
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_pkey PRIMARY KEY (trade, emirate);
@@ -10967,6 +10978,7 @@ ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_re
 ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_reading_status_check CHECK ((status = ANY (ARRAY['reasoned'::text, 'needs_reasoning'::text])));
 ALTER TABLE public.supplier_own_word_reading ADD CONSTRAINT supplier_own_word_reading_word_check CHECK (((btrim(word) <> ''::text) AND (length(word) <= 200)));
 ALTER TABLE public.supplier_performance ADD CONSTRAINT supplier_performance_score_check CHECK (((score IS NULL) OR ((score >= (0)::numeric) AND (score <= (1)::numeric))));
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_month_check CHECK ((month = (date_trunc('month'::text, (month)::timestamp with time zone))::date));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_match_kind_check CHECK ((match_kind = ANY (ARRAY['exact'::text, 'token_overlap'::text])));
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_status_check CHECK ((status = ANY (ARRAY['open'::text, 'confirmed'::text, 'false_positive'::text])));
 ALTER TABLE public.supplier_voice_note ADD CONSTRAINT supplier_voice_note_bytes_check CHECK ((bytes >= 0));
@@ -11365,6 +11377,7 @@ ALTER TABLE public.supplier_performance ADD CONSTRAINT supplier_performance_lead
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_catalog_id_fkey FOREIGN KEY (catalog_id) REFERENCES supplier_catalog(id);
 ALTER TABLE public.supplier_product ADD CONSTRAINT supplier_product_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES leads(id);
 ALTER TABLE public.supplier_product_variant ADD CONSTRAINT supplier_product_variant_product_id_fkey FOREIGN KEY (product_id) REFERENCES supplier_product(id) ON DELETE CASCADE;
+ALTER TABLE public.supplier_scorecard ADD CONSTRAINT supplier_scorecard_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.supplier_screening_hit ADD CONSTRAINT supplier_screening_hit_run_id_fkey FOREIGN KEY (run_id) REFERENCES screening_run(id) ON DELETE SET NULL;
 ALTER TABLE public.supply_gap ADD CONSTRAINT supply_gap_brief_id_fkey FOREIGN KEY (brief_id) REFERENCES supply_recruitment_brief(id);
@@ -22534,6 +22547,16 @@ end;
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
+ RETURNS numeric
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public'
+AS $function$
+  select public.fn_ad_spend_daily_ceiling(false);
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling(p_demo boolean)
  RETURNS numeric
  LANGUAGE sql
@@ -22559,16 +22582,6 @@ AS $function$
         / greatest(1, (date_trunc('month', now()) + interval '1 month')::date - current_date))
   end
   from cap;
-$function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_ad_spend_daily_ceiling()
- RETURNS numeric
- LANGUAGE sql
- STABLE
- SET search_path TO 'public'
-AS $function$
-  select public.fn_ad_spend_daily_ceiling(false);
 $function$
 
 
@@ -23283,6 +23296,135 @@ AS $function$
 $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
+ RETURNS text
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
+begin
+  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
+  out := public.fn_agent_context(p_agent_key, p_max_chars);
+  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
+  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
+  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
+  v_cat := public.fn_category_key_from_text(p_query);
+
+  for r in
+    with hits as (
+      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
+      union all
+      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
+    ), uniq as (
+      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
+    )
+    select title, content from uniq order by ord, rank desc
+  loop
+    exit when length(lib) > 2600;
+    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
+  end loop;
+  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
+  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
+  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
+  if lib <> '' then
+    out := out || E'\n' ||
+      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
+      E'\n\n' || lib;
+  else
+    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
+  end if;
+
+  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
+  declare v3 jsonb; sec text := ''; itm jsonb; begin
+    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
+
+    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
+    if v_cat is not null and v3 ? 'category_knowledge' then
+      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
+        exit when length(catx) > 1800;
+        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
+      end loop;
+      if catx <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
+          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
+          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
+          E'\n\n' || catx;
+      end if;
+    end if;
+
+    for r2 in
+      select title, content, record_type, authority_tier, implementation_status, rank
+        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
+       order by rank desc
+    loop
+      exit when length(ops) > 2400;
+      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
+             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
+             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
+    end loop;
+    if ops <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
+        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
+        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
+        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
+        E'\n\n' || ops;
+    end if;
+
+    if v3 ? 'role_knowledge' then
+      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
+        exit when length(sec) > 2400;
+        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
+            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
+      end loop;
+      if sec <> '' then
+        out := out || E'\n' ||
+          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
+          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
+          || E'\n\n' || sec;
+      end if;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
+      exit when length(sec) > 2000;
+      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
+             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
+        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
+        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
+    end if;
+
+    sec := '';
+    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
+      exit when length(sec) > 900;
+      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
+    end loop;
+    if sec <> '' then
+      out := out || E'\n' ||
+        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
+        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
+        'confident it reads.' || E'\n\n' || sec;
+    end if;
+    -- The trace has to be able to name what was read. Recorded here because this is where
+    -- the assembled context and its record ids are both in scope. A STABLE function may not
+    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
+    perform public.fn_record_context_retrieval(
+      p_agent_key, null, null,
+      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
+      p_max_chars, length(out));
+  end;
+  return out;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text DEFAULT NULL::text, p_max_chars integer DEFAULT 9000)
  RETURNS text
  LANGUAGE plpgsql
@@ -23798,135 +23940,6 @@ begin
 
   return out;
 end $function$
-
-
-CREATE OR REPLACE FUNCTION public.fn_agent_context(p_agent_key text, p_max_chars integer, p_query text)
- RETURNS text
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare out text; v_dept text; lib text := ''; ops text := ''; r record; r2 record; v_cat text; catx text := '';
-begin
-  p_agent_key := coalesce(public.fn_org_agent_resolve(p_agent_key), p_agent_key);
-  out := public.fn_agent_context(p_agent_key, p_max_chars);
-  if p_agent_key is null or coalesce(p_query,'') = '' then return out; end if;
-  select a.department into v_dept from org_agents a where a.agent_key = p_agent_key;
-  -- THE CATEGORY, derived from the task itself (inquiry / run reference, a key, or a catalogue name).
-  v_cat := public.fn_category_key_from_text(p_query);
-
-  for r in
-    with hits as (
-      select 1 as ord, s.* from public.fn_dept_library_search(v_dept, p_query, 4) s
-      union all
-      select 2 as ord, s.* from public.fn_dept_library_search('company', p_query, 2) s
-    ), uniq as (
-      select distinct on (id) id, title, content, ord, rank from hits order by id, ord
-    )
-    select title, content from uniq order by ord, rank desc
-  loop
-    exit when length(lib) > 2600;
-    lib := lib || '## ' || coalesce(r.title,'') || E'\n' || left(coalesce(r.content,''), 700) || E'\n\n';
-  end loop;
-  -- THE MARKER IS ALWAYS EMITTED. fn_agent_context_capped splits the standing head from the retrieved
-  -- tail on '# LAYER 2b'; when the library had no match there was no marker, and the whole retrieved
-  -- tail fell past a positional cut instead of being kept inside the 4,500-character reserve.
-  if lib <> '' then
-    out := out || E'\n' ||
-      '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY (retrieved from dept_library for this task; cite the title in [brackets] when you use it)' ||
-      E'\n\n' || lib;
-  else
-    out := out || E'\n' || '# LAYER 2b - YOUR DEPARTMENT REFERENCE LIBRARY: no dept_library row matched this task.' || E'\n\n';
-  end if;
-
-  -- LAYER 2d/2e/2f/2g: the V3 delivery, now WITH the category key when the task names one.
-  declare v3 jsonb; sec text := ''; itm jsonb; begin
-    v3 := public.fn_agent_context_v3(p_agent_key, null, p_query, v_cat, 9000);
-
-    -- LAYER 2e first: the category pack has to sit inside the reserve the capped path keeps.
-    if v_cat is not null and v3 ? 'category_knowledge' then
-      for itm in select * from jsonb_array_elements(coalesce(v3->'category_knowledge','[]'::jsonb)) loop
-        exit when length(catx) > 1800;
-        catx := catx || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-              || left(regexp_replace(coalesce(itm->>'content',''), '\s+', ' ', 'g'), 600) || E'\n\n';
-      end loop;
-      if catx <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2e - THE CATEGORY PACK FOR THIS TASK (' || v_cat || '): the route''s qualification playbook, ' ||
-          'field and question bank, quality gate and comparison contract. This task is category-scoped; these records ' ||
-          'decide what to ask, what may never be inferred and how quotes in this route are compared. Cite the [record_id].' ||
-          E'\n\n' || catx;
-      end if;
-    end if;
-
-    for r2 in
-      select title, content, record_type, authority_tier, implementation_status, rank
-        from public.fn_ops_knowledge_search(v_dept, p_query, 5)
-       order by rank desc
-    loop
-      exit when length(ops) > 2400;
-      ops := ops || '## [' || coalesce(r2.record_type,'record') || ' · authority: ' ||
-             coalesce(r2.authority_tier,'?') || ' · ' || coalesce(r2.implementation_status,'?') || '] ' ||
-             coalesce(r2.title,'') || E'\n' || left(coalesce(r2.content,''), 700) || E'\n\n';
-    end loop;
-    if ops <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2c - HOW THIS COMPANY OPERATES (your department''s own SOPs, decision rules, exception playbooks and KPI definitions). ' ||
-        'These OVERRIDE generic practice. Respect the authority tier on each: gated means it needs approval, ' ||
-        'supervised means a human reviews it, autonomous means you may act. A record marked target_state describes ' ||
-        'a capability the company has NOT built yet — plan around it, do not assume it exists.' ||
-        E'\n\n' || ops;
-    end if;
-
-    if v3 ? 'role_knowledge' then
-      for itm in select * from jsonb_array_elements(v3->'role_knowledge') loop
-        exit when length(sec) > 2400;
-        sec := sec || '## ' || coalesce(itm->>'title','') || ' [' || coalesce(itm->>'record_id','') || ']' || E'\n'
-            || left(coalesce(itm->>'content',''), 700) || E'\n\n';
-      end loop;
-      if sec <> '' then
-        out := out || E'\n' ||
-          '# LAYER 2d - YOUR PROFESSIONAL ROLE KNOWLEDGE (the packaged role identity you hold: purpose, ' ||
-          'competencies, expert decision checklist and evidence contract). Cite the [record_id] you use.'
-          || E'\n\n' || sec;
-      end if;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'deterministic_rules','[]'::jsonb)) loop
-      exit when length(sec) > 2000;
-      sec := sec || '- [' || coalesce(itm->>'record_id','') || ' · ' || coalesce(itm->>'layer','') ||
-             ' · authority ' || coalesce(itm->>'authority_tier','?') || '] ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2f - DETERMINISTIC RULES THAT BIND YOU (authority, policy, decision playbooks, KPI ' ||
-        'definitions). These are looked up as structured records, never inferred from similarity. If a ' ||
-        'rule here contradicts anything above, the rule wins.' || E'\n\n' || sec;
-    end if;
-
-    sec := '';
-    for itm in select * from jsonb_array_elements(coalesce(v3->'live_data_required','[]'::jsonb)) loop
-      exit when length(sec) > 900;
-      sec := sec || '- ' || coalesce(itm->>'title','') || E'\n';
-    end loop;
-    if sec <> '' then
-      out := out || E'\n' ||
-        '# LAYER 2g - FACTS YOU MUST FETCH, NOT REMEMBER. For each of these the current value comes from ' ||
-        'a live authorised tool. Answering one of them from the text above is a wrong answer, however ' ||
-        'confident it reads.' || E'\n\n' || sec;
-    end if;
-    -- The trace has to be able to name what was read. Recorded here because this is where
-    -- the assembled context and its record ids are both in scope. A STABLE function may not
-    -- execute an INSERT, which is why this one and its caller are now VOLATILE.
-    perform public.fn_record_context_retrieval(
-      p_agent_key, null, null,
-      (select array_agg(x) from jsonb_array_elements_text(coalesce(v3->'knowledge_ids','[]'::jsonb)) x),
-      p_max_chars, length(out));
-  end;
-  return out;
-end
-$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_agent_context_v3(p_agent_key text, p_task_class text DEFAULT NULL::text, p_task_text text DEFAULT NULL::text, p_category_key text DEFAULT NULL::text, p_budget_chars integer DEFAULT 24000)
@@ -68399,6 +68412,44 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_scorecard_tick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
+  v_month date := (date_trunc('month', (now() at time zone 'Asia/Dubai')) - interval '1 month')::date;
+  r record; v_card jsonb; m jsonb; v_ok jsonb; v jsonb; v_sent int := 0; v_held int := 0;
+begin
+  for r in select l.id, l.company_name, lower(btrim(l.claimed_by)) as mail from public.leads l
+            where l.approval_status = 'approved' and nullif(btrim(l.claimed_by), '') is not null
+              and not coalesce(l.banned, false) and not coalesce(l.permanently_closed, false)
+              and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by)) = v_fx
+              and not exists (select 1 from public.supplier_scorecard s where s.lead_id = l.id and s.month = v_month)
+            order by l.id limit 500 loop
+    v_card := public.fn_supplier_scorecard(r.id, v_month);
+    m := public.fn_supplier_scorecard_text(v_card, r.company_name);
+    v_ok := public.fn_email_sendable(r.mail);
+    if not coalesce((v_ok->>'ok')::boolean, false) then
+      insert into public.supplier_scorecard (lead_id, month, card, to_email, outcome)
+      values (r.id, v_month, v_card, r.mail, 'not_sendable: ' || (v_ok->>'reason'));
+      v_held := v_held + 1;
+      continue;
+    end if;
+    v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+      'type', 'supplier_scorecard', 'requested_by', 'sales_engineer', 'channel', 'email',
+      'to_email', r.mail, 'to_role', 'supplier', 'lead_id', r.id, 'lang', 'en',
+      'dedupe_key', 'supplier_scorecard:' || r.id || ':' || to_char(v_month, 'YYYY-MM'),
+      'subject', m->>'subject', 'body', m->>'body')));
+    insert into public.supplier_scorecard (lead_id, month, card, to_email, outcome, handoff_id)
+    values (r.id, v_month, v_card, r.mail, 'queued', (v->0->>'handoff_id')::bigint);
+    v_sent := v_sent + 1;
+  end loop;
+  return jsonb_build_object('month', to_char(v_month, 'YYYY-MM'), 'sent', v_sent, 'not_sendable', v_held);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supply_gap(p_reason_limit integer DEFAULT 10)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -74586,6 +74637,149 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard(p_lead bigint, p_month date DEFAULT NULL::date)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_month date := coalesce(date_trunc('month', p_month)::date,
+                                 (date_trunc('month', (now() at time zone 'Asia/Dubai')) - interval '1 month')::date);
+  v_trade text := public.fn_supplier_trade(p_lead); me record; a record; v_any boolean;
+begin
+  select * into me from public.fn_supplier_scorecard_month(v_month) s where s.lead_id = p_lead;
+  -- the trade's average of each metric, only over suppliers who HAVE it, and only when there are at least three
+  select case when count(s.response_hours) >= 3 then round(avg(s.response_hours), 1) end as resp,
+         count(s.response_hours)::int as resp_n,
+         case when count(s.win_rate) >= 3 then round(avg(s.win_rate), 3) end as win,
+         count(s.win_rate)::int as win_n,
+         case when count(s.rating) >= 3 then round(avg(s.rating), 2) end as rating,
+         count(s.rating)::int as rating_n
+    into a from public.fn_supplier_scorecard_month(v_month) s where v_trade is not null and s.trade = v_trade;
+  v_any := me.response_hours is not null or me.win_rate is not null or me.rating is not null;
+  return jsonb_build_object(
+    'lead_id', p_lead, 'month', to_char(v_month, 'YYYY-MM'), 'month_label', to_char(v_month, 'FMMonth YYYY'),
+    'trade', v_trade, 'trade_label', (select t.label from public.taxonomy_trade t where t.code = v_trade),
+    'enough_data', v_any,
+    'message', case when v_any then null else 'not enough data yet' end,
+    'activity', jsonb_build_object('requests_sent', coalesce(me.invited, 0), 'quoted', coalesce(me.quoted, 0), 'won', coalesce(me.won, 0),
+                                   'ratings', coalesce(me.ratings, 0)),
+    'metrics', jsonb_build_object(
+      'response_hours', jsonb_build_object('you', me.response_hours, 'trade_average', a.resp, 'trade_suppliers', coalesce(a.resp_n, 0), 'better', 'lower'),
+      'win_rate',       jsonb_build_object('you', me.win_rate, 'trade_average', a.win, 'trade_suppliers', coalesce(a.win_n, 0), 'better', 'higher'),
+      'rating',         jsonb_build_object('you', me.rating, 'trade_average', a.rating, 'trade_suppliers', coalesce(a.rating_n, 0), 'better', 'higher')),
+    'min_suppliers_for_average', 3,
+    'tip', public.fn_supplier_scorecard_tip(me.invited, me.quoted, me.response_hours, a.resp, me.win_rate, a.win, me.rating, a.rating));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_month(p_month date)
+ RETURNS TABLE(lead_id bigint, trade text, invited integer, quoted integer, won integer, response_hours numeric, win_rate numeric, rating numeric, ratings integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with b as (   -- the month in Dubai, as timestamps
+    select (date_trunc('month', p_month)::timestamp at time zone 'Asia/Dubai') as t0,
+           ((date_trunc('month', p_month) + interval '1 month')::timestamp at time zone 'Asia/Dubai') as t1
+  ), inv as (   -- sent a request in the month, and how long his first quote on it took
+    select m.supplier_id, m.inquiry_id, min(m.sent_at) as sent_at,
+           (select min(q.created_at) from public.quotes q where q.inquiry_id = m.inquiry_id and q.supplier_id = m.supplier_id) as quoted_at
+      from public.inquiry_matches m, b
+     where m.sent_at >= b.t0 and m.sent_at < b.t1 and m.supplier_id is not null
+     group by m.supplier_id, m.inquiry_id
+  ), quo as (   -- quoted in the month, and whether the customer chose him
+    select q.supplier_id, q.inquiry_id,
+           bool_or(exists (select 1 from public.transactions t where t.inquiry_id = q.inquiry_id and t.supplier_id = q.supplier_id and t.revealed_at is not null)
+                   or exists (select 1 from public.inquiries i where i.id = q.inquiry_id and i.hired_supplier_id = q.supplier_id)) as won
+      from public.quotes q, b
+     where q.created_at >= b.t0 and q.created_at < b.t1 and q.supplier_id is not null
+     group by q.supplier_id, q.inquiry_id
+  ), rat as (
+    select r.supplier_id, avg(r.rating)::numeric as rating, count(*)::int as n
+      from public.reviews r, b where r.created_at >= b.t0 and r.created_at < b.t1 and r.supplier_id is not null
+     group by r.supplier_id
+  ), ids as (select supplier_id from inv union select supplier_id from quo union select supplier_id from rat)
+  select s.supplier_id, public.fn_supplier_trade(s.supplier_id),
+         (select count(*)::int from inv where inv.supplier_id = s.supplier_id),
+         (select count(*)::int from quo where quo.supplier_id = s.supplier_id),
+         (select count(*)::int from quo where quo.supplier_id = s.supplier_id and quo.won),
+         (select round((percentile_cont(0.5) within group (order by extract(epoch from (inv.quoted_at - inv.sent_at)) / 3600.0))::numeric, 1)
+            from inv where inv.supplier_id = s.supplier_id and inv.quoted_at >= inv.sent_at),
+         (select round(avg(case when quo.won then 1.0 else 0.0 end), 3) from quo where quo.supplier_id = s.supplier_id),
+         (select round(rat.rating, 2) from rat where rat.supplier_id = s.supplier_id),
+         coalesce((select rat.n from rat where rat.supplier_id = s.supplier_id), 0)
+    from ids s
+    join public.leads l on l.id = s.supplier_id
+   where not coalesce(l.banned, false)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_text(p_card jsonb, p_company text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare m jsonb := p_card->'metrics'; v_lines text := ''; k text; v jsonb; v_name text;
+begin
+  if coalesce((p_card->>'enough_data')::boolean, false) then
+    foreach k in array array['response_hours', 'win_rate', 'rating'] loop
+      v := m->k;
+      v_name := case k when 'response_hours' then 'Response speed (median hours to your first quote)'
+                       when 'win_rate' then 'Win rate (quotes the customer chose you on)' else 'Customer rating (out of 5)' end;
+      v_lines := v_lines || '- ' || v_name || ': '
+        || case when v->>'you' is null then 'not enough data yet'
+                when k = 'win_rate' then round((v->>'you')::numeric * 100) || '%' else v->>'you' end
+        || case when v->>'trade_average' is null then ' (trade average shown once 3 suppliers of your trade have this measure)'
+                when k = 'win_rate' then ' (your trade: ' || round((v->>'trade_average')::numeric * 100) || '%)'
+                else ' (your trade: ' || (v->>'trade_average') || ')' end || chr(10);
+    end loop;
+  else
+    v_lines := 'There is not enough data yet for a scorecard: no request, quote or rating of yours in ' || (p_card->>'month_label') || '.' || chr(10);
+  end if;
+  return jsonb_build_object('lang', 'en',
+    'subject', 'Your QuotesDone scorecard for ' || (p_card->>'month_label'),
+    'body', 'Dear ' || coalesce(nullif(btrim(p_company), ''), 'partner') || ',' || chr(10) || chr(10)
+      || 'Here is how you did in ' || (p_card->>'month_label')
+      || coalesce(' against other ' || coalesce(p_card->>'trade_label', p_card->>'trade') || ' suppliers', '') || ':' || chr(10) || chr(10)
+      || v_lines || chr(10)
+      || 'One thing to improve: ' || (p_card->'tip'->>'text') || chr(10) || chr(10)
+      || 'Your scorecard is always in your portal under Insights: https://quotesdone.com/supplier' || chr(10) || chr(10)
+      || 'QuotesDone Sales Engineering');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_scorecard_tip(p_invited integer, p_quoted integer, p_resp numeric, p_resp_avg numeric, p_win numeric, p_win_avg numeric, p_rating numeric, p_rating_avg numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select case
+    when coalesce(p_invited, 0) = 0 and coalesce(p_quoted, 0) = 0 and p_rating is null then jsonb_build_object('code', 'complete_profile',
+      'text', 'Keep your services, the emirates you cover and your documents complete, so you are matched to more requests.')
+    when coalesce(p_invited, 0) > 0 and coalesce(p_quoted, 0) = 0 then jsonb_build_object('code', 'answer_invitations',
+      'text', 'You were sent ' || p_invited || ' request' || case when p_invited = 1 then '' else 's' end
+        || ' and quoted none. Quoting even a few of them is the fastest way to win work.')
+    when p_resp is not null and ((p_resp_avg is not null and p_resp > p_resp_avg) or (p_resp_avg is null and p_resp > 48)) then
+      jsonb_build_object('code', 'respond_faster',
+      'text', 'Your first quote took ' || p_resp || ' hours' || coalesce(' against your trade''s ' || p_resp_avg, '')
+        || '. Customers compare the quotes that arrive first; aim to quote within 24 hours of a request.')
+    when p_win is not null and ((p_win_avg is not null and p_win < p_win_avg) or (p_win_avg is null and p_win = 0 and p_quoted >= 3)) then
+      jsonb_build_object('code', 'sharpen_quotes',
+      'text', 'Customers chose ' || round(p_win * 100) || '% of your quotes' || coalesce(' against your trade''s ' || round(p_win_avg * 100) || '%', '')
+        || '. Price every line, and state lead time, validity and warranty: the comparison reads them line by line.')
+    when p_rating is not null and ((p_rating_avg is not null and p_rating < p_rating_avg) or (p_rating_avg is null and p_rating < 4)) then
+      jsonb_build_object('code', 'lift_rating',
+      'text', 'Your customers rated you ' || p_rating || '/5' || coalesce(' against your trade''s ' || p_rating_avg || '/5', '')
+        || '. Call the customer within a day of a reveal and confirm the scope and dates in writing.')
+    else jsonb_build_object('code', 'keep_going',
+      'text', 'You are at or above your trade on every measure we have. Keep your services and documents current so you keep being matched.')
+  end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_supplier_screening_decide(p_hit_id bigint, p_decision text, p_actor text DEFAULT 'ceo'::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -74861,6 +75055,19 @@ AS $function$
       || 'ولا في إبرازكم مورّدًا مفضّلًا؛ فكل مورّد يُطابَق وفق مدى الملاءمة وحدها. '
       || 'إنه سجلّ لأدائكم، لا ترتيب في طابور.'
   );
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_trade(p_lead bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(
+    (select nullif(lower(btrim(c.trade_code)), '') from public.lead_trade_class c where c.lead_id = p_lead),
+    (select nullif(lower(btrim(sc.trades[1])), '') from public.supplier_capabilities sc where sc.supplier_id = p_lead and sc.confirmed_at is not null),
+    (select nullif(lower(btrim(l.sector)), '') from public.leads l where l.id = p_lead))
 $function$
 
 
@@ -87204,6 +87411,7 @@ ALTER TABLE public.supplier_product_variant ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_recruitment_funnel ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_response_watch ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_score ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.supplier_scorecard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_screening_hit ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supplier_voice_note ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.supply_gap ENABLE ROW LEVEL SECURITY;
@@ -87486,6 +87694,7 @@ CREATE POLICY supplier_own_word_reading_service_role_only ON public.supplier_own
 CREATE POLICY supplier_performance_service_role_only ON public.supplier_performance AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_recruitment_funnel_service_role_only ON public.supplier_recruitment_funnel AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_response_watch_service_role_only ON public.supplier_response_watch AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY supplier_scorecard_service_role_only ON public.supplier_scorecard AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supplier_voice_note_service_role_only ON public.supplier_voice_note AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_gap_service_role_only ON public.supply_gap AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY supply_recruitment_brief_service_role_only ON public.supply_recruitment_brief AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
