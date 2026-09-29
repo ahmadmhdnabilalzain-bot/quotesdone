@@ -1,0 +1,10 @@
+A PROBE, so it is never applied at all. scripts/checks/the_ceo_reviews_the_months_video_plan_before_the_founder.test.mjs
+replays the_ceo_reviews_the_months_video_plan_before_the_founder_sees_it.sql and then this file in ONE aborted
+transaction; it ends in a raise, so nothing survives, and the founder mail it queues is rolled back before any worker
+can read it. It refuses to run if a real November or December 2026 plan exists.
+
+Measured 29 Sep 2026 against production: with the file replayed first, PROBE OK (rejected:1, revised, approved:2,
+one founder mail only after approval, the watch fired on both paths). Against production as it was: fails,
+fn_reason_apply_ceo__marketing_month_plan does not exist.
+
+This note therefore stays for the life of the file. Seat: it_engineer.
