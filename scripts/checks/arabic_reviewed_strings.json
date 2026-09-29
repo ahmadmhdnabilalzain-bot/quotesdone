@@ -840,9 +840,22 @@
   "e78dcea14391",
   "ee4a1456561a"
  ],
+ "scripts/sql/every_support_conversation_is_one_case_measured_rated_and_recovered.sql": [
+  "13b1399ef1f4",
+  "a47b0b66fc61",
+  "c37adae994f4",
+  "c6fef363af26"
+ ],
  "scripts/sql/governance_reads_keys_and_reasons_rather_than_spotting_words.sql": [
   "82d439166a51",
   "a1899880347c"
+ ],
+ "scripts/sql/marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql": [
+  "727278a3b830",
+  "80b387cc3fb7",
+  "a8b5c77efcca",
+  "ddc6ba756ff4",
+  "ee7ceba8694f"
  ],
  "scripts/sql/marketing_recruits_where_supply_is_short_and_keeps_the_companys_reputation.sql": [
   "0e3944a15f96",
@@ -900,9 +913,6 @@
  "scripts/sql/one_approve_schedules_and_publishes_the_month_on_working_days.sql": [
   "1721f87d2f73"
  ],
- "scripts/sql/one_job_number_on_every_portal_document_and_notice.sql": [
-  "2e6cf0d056d2"
- ],
  "scripts/sql/prices_supplier_profiles_and_quote_quality_are_read_by_reasoning.sql": [
   "033fce7adb9c",
   "042af7f8749c",
@@ -919,6 +929,78 @@
   "19ac20230278",
   "6722f6506ada",
   "ccde2d166647"
+ ],
+ "scripts/sql/suppliers_are_always_written_in_english_and_customers_in_their_inquirys_language.sql": [
+  "014c460148eb",
+  "062526994b5f",
+  "06c2c091e00b",
+  "0868003d11cc",
+  "0e9641d49d63",
+  "1390254fa3fe",
+  "20e80376d91c",
+  "2d551f20cff9",
+  "2db74939ec90",
+  "2e6cf0d056d2",
+  "33a7d9e48eed",
+  "33d90d71f407",
+  "386f0926ef4e",
+  "397f42ed1af8",
+  "3c9f12e8915e",
+  "40c727c4b206",
+  "4d5c33c90293",
+  "4db3d154084e",
+  "53cf3c90e310",
+  "5d8adcdb143f",
+  "65d33b5f9f32",
+  "6f5d58da4658",
+  "70b5a40fe07a",
+  "71f08c42ef7f",
+  "72634def957c",
+  "728bd3a53339",
+  "73ea698a6606",
+  "74596984b433",
+  "75e7824fc97c",
+  "859798d5f8bb",
+  "87267a674885",
+  "8d6c6a64823e",
+  "8d830e69af35",
+  "8eb45a668edd",
+  "929733ebfd93",
+  "9457f7e6a78c",
+  "949d99a44662",
+  "9543dfce19ad",
+  "9a13507c3538",
+  "9a3c54125c6f",
+  "9aa2b9ceac8a",
+  "a0f7bc0e68c1",
+  "a5b89465e490",
+  "a7b12e29109b",
+  "a9f8e5a00c44",
+  "aa1597b6e501",
+  "acddf28db563",
+  "b12430be42f0",
+  "b5a1ab5a4562",
+  "b722b602db04",
+  "c404dcbfc009",
+  "ca7c28b7da70",
+  "cb8f763fa1a4",
+  "cc3d6ea42eb6",
+  "ce481b265d88",
+  "d0996d7dcb5a",
+  "d0df56bb7b9b",
+  "d230862d2dc2",
+  "d2f51ce60d95",
+  "d84aaba829c6",
+  "db438b360a65",
+  "e2412e49f925",
+  "e78ca62a0878",
+  "eb68fdfd93fd",
+  "ecfd9d7efd73",
+  "ee40921b3649",
+  "f78dbd524570",
+  "fb978336c061",
+  "fc89cb827cc1",
+  "fea22eb87ec7"
  ],
  "scripts/sql/the_agent_remembers_and_it_can_take_your_trade_licence.sql": [
   "7478879f664f",
@@ -1066,6 +1148,9 @@
   "0e3944a15f96",
   "3fbfc9c44cae",
   "50d6d400e862"
+ ],
+ "scripts/sql/the_invitation_queue_reads_marketings_gap_ranking_and_is_always_english.sql": [
+  "d4da55db16ad"
  ],
  "scripts/sql/the_last_traces_of_bank_details_negotiations_and_the_network_map_leave.sql": [
   "e3377772a818"
@@ -2228,7 +2313,6 @@
   "ac6c63ab5f9f"
  ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
-  "1390254fa3fe",
   "34d5d7e54ec8",
   "9d231fc92d97"
  ],
