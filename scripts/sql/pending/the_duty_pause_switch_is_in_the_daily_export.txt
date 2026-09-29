@@ -1,0 +1,3 @@
+Applied at merge (memory: apply at merge, never before). One table_export_registry row for duty_pause, which main
+created without one. On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt.
+Seat: it_engineer.

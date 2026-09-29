@@ -1,6 +1,13 @@
 // certificate.ts - the signed-terms certificate's words, in the signer's language (pure; tested by
 // certificate.test.ts). index.ts renders what this returns through pdf_native.
 //
+// noAcceptanceRunStatus (30 Sep 2026, senior-hire audit): 118 of 118 refusals in a week were
+// @example.invalid demo fixtures that never accept the Terms. The refusal is correct; counting it as
+// a failure is not. A fixture's refusal is 'skipped'; a real party's stays 'error' so it is still seen.
+export function noAcceptanceRunStatus(email: unknown): 'skipped' | 'error' {
+  return /@example\.invalid$/i.test(String(email ?? '').trim()) ? 'skipped' : 'error';
+}
+//
 // Two defects found by the campaign registration walk of 21 Sep 2026 live here now:
 //
 // THE CERTIFICATE NAMED THE WRONG SIGNATORY. "Authorised signatory" printed fields.full_name, which for

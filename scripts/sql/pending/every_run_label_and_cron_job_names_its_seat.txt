@@ -1,0 +1,5 @@
+Applied at merge (memory: apply at merge, never before), AFTER wa_flush_is_unscheduled_because_resilience_ping_drains_whatsapp.sql
+(until wa_flush is gone, fn_writers_without_a_seat lists it). It adds public.writer_seat with the owners of the five
+unowned agent_runs labels and of the cron job ceo-strategy-memo-monthly, and fn_writers_without_a_seat().
+scripts/checks/every_run_label_and_cron_job_names_its_seat.test.mjs replays it while this note exists.
+On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: it_engineer.

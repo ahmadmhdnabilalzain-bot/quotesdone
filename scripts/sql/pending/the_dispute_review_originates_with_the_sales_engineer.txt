@@ -1,0 +1,4 @@
+Applied at merge (memory: apply at merge, never before). It rewords seat_handoff_kind ('deliberation.review',
+customer_support -> ceo) to the root-cause review it still serves, and names the dispute finding on the
+sales_engineer -> ceo row. On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt.
+Seat: sales_engineer.
