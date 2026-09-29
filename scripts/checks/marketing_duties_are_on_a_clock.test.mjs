@@ -42,6 +42,15 @@ test('only the founder approves an article, and releases happen on a working day
   assert.match(sql, /if not public\.fn_is_working_day\(v_now::date\) then/);
 });
 
+test('the launch plan is re-sent only when it changed, carries his changes, and an empty reply changes nothing', () => {
+  const sql = read(OWNER);
+  // review of #1039: change_requested alone re-mailed the same plan every day with a new token
+  assert.match(sql, /and \(d\.status = 'draft' or \(d\.status = 'change_requested' and v_hash is distinct from d\.sent_hash\)\)/);
+  assert.match(sql, /founder_changes = founder_changes \|\| to_jsonb\(/);
+  assert.match(sql, /'founder_changes', v_changes,/);
+  assert.match(sql, /elsif btrim\(coalesce\(p->>'text', ''\)\) = '' then\s+-- an empty reply is not a change/);
+});
+
 test('his reply to approve+<token> reaches fn_marketing_approval_reply', () => {
   const inbound = read('supabase/functions/resend_inbound/index.ts');
   assert.match(inbound, /approvalTokenOf\(\{ to, subject \}\)/);

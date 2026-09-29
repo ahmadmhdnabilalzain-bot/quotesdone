@@ -57,6 +57,10 @@ create table if not exists public.marketing_plan_doc (
   updated_at       timestamptz not null default now(),
   unique (kind, period)
 );
+-- sent_hash: the fingerprint of the plan he was last sent (a redraw with the same content is never mailed again);
+-- founder_changes: every change he asked for, in order, carried into each redraw of the plan.
+alter table public.marketing_plan_doc add column if not exists sent_hash text;
+alter table public.marketing_plan_doc add column if not exists founder_changes jsonb not null default '[]'::jsonb;
 alter table public.marketing_plan_doc enable row level security;
 drop policy if exists marketing_plan_doc_service_role_only on public.marketing_plan_doc;
 create policy marketing_plan_doc_service_role_only on public.marketing_plan_doc as permissive for all to public using (false) with check (false);
@@ -184,20 +188,26 @@ revoke execute on function public.fn_marketing_article_release_duty() from publi
 
 -- ── 5. marketing.launch_plan ─────────────────────────────────────────────────────────────────────
 -- Code only: the plan is the readiness of every category, the channels the rule allows, and the January 2027
--- working days to post on. Redrawn every day while it is a draft; from 1 December 2026 it goes to him once.
-create or replace function public.fn_marketing_launch_plan_duty()
+-- working days to post on. Redrawn every day while it is a draft or has his change on it. From 1 December 2026 it is
+-- mailed to him ONCE when new, and again only when a redraw carrying his change differs from what he was last sent
+-- (sent_hash over the plan itself, never the draw date or the live counters that move every day).
+-- His change is used: every change he asked for is in the plan's 'founder_changes', which the seat runs the launch by,
+-- and the re-sent email lists them so he approves the plan WITH them.
+create or replace function public.fn_marketing_launch_plan_run(p_today date)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
-  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_today date := p_today;
   v_launch date := date '2027-01-01';
   v_body jsonb; d public.marketing_plan_doc; v_token text; v_nid bigint; v_paid boolean := public.fn_marketing_paid_allowed();
-  v_open int; v_total int; v_short jsonb;
+  v_open int; v_total int; v_short jsonb; v_hash text; v_changes jsonb;
 begin
   select count(*) filter (where is_open), count(*) into v_open, v_total from public.v_category_open;
   select coalesce(jsonb_agg(jsonb_build_object('category', name, 'verified', verified_registered_suppliers, 'needed', min_required)
            order by min_required - verified_registered_suppliers desc, num), '[]'::jsonb)
     into v_short from public.v_category_open where not is_open;
+  v_changes := coalesce((select founder_changes from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch), '[]'::jsonb);
   v_body := jsonb_build_object(
+    'founder_changes', v_changes,
     'launch_month', v_launch, 'drawn_on', v_today,
     'categories', jsonb_build_object('open', v_open, 'total', v_total, 'short', v_short),
     'paid_allowed', v_paid,
@@ -213,11 +223,19 @@ begin
     where marketing_plan_doc.status in ('draft', 'change_requested')
   returning * into d;
   if d.id is null then select * into d from public.marketing_plan_doc where kind = 'launch_plan' and period = v_launch; end if;
+  -- the plan he approves: channels, the rule, the posting days, the open count and his changes (not the draw date,
+  -- the per-category supplier counts or the recruitment counters, which move daily without changing the plan)
+  v_hash := md5((v_body - 'drawn_on' - 'supplier_recruitment' - 'articles_ready'
+                 || jsonb_build_object('categories', jsonb_build_object('open', v_open, 'total', v_total)))::text);
 
-  if v_today >= date '2026-12-01' and v_today < v_launch and d.status in ('draft', 'change_requested') then
+  if v_today >= date '2026-12-01' and v_today < v_launch
+     and (d.status = 'draft' or (d.status = 'change_requested' and v_hash is distinct from d.sent_hash)) then
     v_token := encode(extensions.gen_random_bytes(16), 'hex');
     v_nid := public.fn_marketing_mail_founder('marketing_launch_plan', 'Launch plan for January 2027 [approve ' || v_token || ']',
       'The launch plan for January 2027.' || E'\n\n'
+      || case when jsonb_array_length(v_changes) > 0 then 'Your changes, in this version:' || E'\n'
+           || (select string_agg('- ' || x, E'\n' order by n) from jsonb_array_elements_text(v_changes) with ordinality t(x, n)) || E'\n\n'
+         else '' end
       || 'Categories open: ' || v_open || ' of ' || v_total || ' (a category opens at its verified supplier minimum).' || E'\n'
       || 'Channels: ' || (select string_agg(x, ', ') from jsonb_array_elements_text(v_body->'channels') x)
       || case when v_paid then '' else ' - organic only, because not every category is open yet.' end || E'\n'
@@ -225,13 +243,21 @@ begin
       || 'Articles approved and ready: ' || (v_body->>'articles_ready') || E'\n\n'
       || 'Reply "approve" and the marketing seat runs it. Any other reply is passed to the seat as a change.',
       null, 'approve+' || v_token || '@mail.quotesdone.com');
-    update public.marketing_plan_doc set status = 'sent_to_founder', approval_token = v_token, sent_at = now(), notification_id = v_nid, updated_at = now()
+    update public.marketing_plan_doc set status = 'sent_to_founder', approval_token = v_token, sent_at = now(), notification_id = v_nid,
+           sent_hash = v_hash, updated_at = now()
      where id = d.id;
     d.status := 'sent_to_founder';
   end if;
-  return jsonb_build_object('status', d.status, 'open', v_open, 'total', v_total, 'paid_allowed', v_paid,
-    'posting_days', jsonb_array_length(v_body->'posting_days'));
+  return jsonb_build_object('status', d.status, 'open', v_open, 'total', v_total, 'paid_allowed', v_paid, 'mailed', v_nid is not null,
+    'founder_changes', jsonb_array_length(v_changes), 'posting_days', jsonb_array_length(v_body->'posting_days'));
 end $fn$;
+revoke execute on function public.fn_marketing_launch_plan_run(date) from public, anon, authenticated;
+
+-- The duty is the run on today's Dubai date (the date is an argument only so a probe can stand on 1 December).
+create or replace function public.fn_marketing_launch_plan_duty()
+returns jsonb language sql security definer set search_path to 'public', 'pg_temp' as $fn$
+  select public.fn_marketing_launch_plan_run((now() at time zone 'Asia/Dubai')::date)
+$fn$;
 revoke execute on function public.fn_marketing_launch_plan_duty() from public, anon, authenticated;
 
 -- ── 6. marketing.competitor_refresh ──────────────────────────────────────────────────────────────
@@ -287,11 +313,18 @@ begin
     v_out := 'approved';
     v_msg := 'Approved: the ' || v_what || '. ' || case when a.id is not null
       then 'It is released on the next UAE working day on the weekly cadence.' else 'The marketing seat runs it from 1 January 2027.' end;
+  elsif btrim(coalesce(p->>'text', '')) = '' then
+    -- an empty reply is not a change: nothing is filed, the token stays valid, and the item is still his to approve
+    v_out := 'empty_reply';
+    v_msg := 'Your reply about the ' || v_what || ' was empty, so nothing was changed and it is still waiting for you. '
+          || 'Reply "approve" to the same email, or write the change you want.';
   else
     if a.id is not null then
-      update public.marketing_article set founder_change_request = left(btrim(coalesce(p->>'text', '')), 4000), approval_token = null, updated_at = now() where id = a.id;
+      update public.marketing_article set founder_change_request = left(btrim(p->>'text'), 4000), approval_token = null, updated_at = now() where id = a.id;
     else
-      update public.marketing_plan_doc set status = 'change_requested', founder_note = left(btrim(coalesce(p->>'text', '')), 4000),
+      -- his change joins the plan (founder_changes) and the next daily redraw is re-sent to him with it
+      update public.marketing_plan_doc set status = 'change_requested', founder_note = left(btrim(p->>'text'), 4000),
+             founder_changes = founder_changes || to_jsonb(left(btrim(p->>'text'), 4000)),
              approval_token = null, decided_at = now(), updated_at = now() where id = d.id;
     end if;
     v_out := 'change_requested';
