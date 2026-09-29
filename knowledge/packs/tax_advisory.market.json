@@ -1,0 +1,99 @@
+{
+  "trade": "tax_advisory",
+  "layer": "uae-market",
+  "label_en": "VAT & corporate tax advisory",
+  "label_ar": "استشارات ضريبة القيمة المضافة وضريبة الشركات",
+  "entries": [
+    {
+      "id": "tax_advisory:uae-market-products",
+      "topic": "VAT & corporate tax advisory: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Tax advisory in the UAE covers corporate tax (Federal Decree-Law 47 of 2022: 9% on taxable income above AED 375,000, 0% for qualifying free zone persons on qualifying income, small business relief, tax groups, transfer pricing documentation with master/local files and disclosure forms, Pillar Two domestic minimum top-up tax of 15% for large multinational groups from 2025), VAT (5% standard rate, zero-rating and exemptions, registration thresholds AED 375,000 mandatory and AED 187,500 voluntary, VAT groups, reverse charge, designated zones, e-invoicing under Ministerial Decisions 243 and 244 of 2025: voluntary pilot from 1 July 2026, mandatory from 1 January 2027 for revenue of AED 50 million or more, 1 July 2027 for other businesses and 1 October 2027 for in-scope government entities), excise tax (tobacco, energy drinks, carbonated and sweetened drinks), customs duty and GCC rules, economic substance (repealed for periods after 2022), tax residency certificates, double tax treaty advice, FTA audits, voluntary disclosures, reconsideration and Tax Disputes Resolution Committee appeals, and tax health checks. Buyers ask whether the adviser is an FTA-registered tax agent (needed to represent taxpayers before the FTA) and about sector experience (real estate, free zones, financial services).",
+      "body_ar": "تشمل الاستشارات الضريبية في الإمارات ضريبة الشركات (المرسوم بقانون اتحادي رقم 47 لسنة 2022: 9% على الدخل الخاضع للضريبة فوق 375,000 درهم، و0% للأشخاص المؤهلين في المناطق الحرة على الدخل المؤهل، وإعفاء الأعمال الصغيرة، والمجموعات الضريبية، ووثائق التسعير التحويلي بالملف الرئيسي والملف المحلي ونماذج الإفصاح، والضريبة الإضافية المحلية الدنيا بنسبة 15% ضمن الركيزة الثانية للمجموعات متعددة الجنسيات الكبيرة اعتباراً من 2025)، وضريبة القيمة المضافة (النسبة القياسية 5%، والنسبة الصفرية والإعفاءات، وحدود التسجيل 375,000 درهم إلزامياً و187,500 درهم اختيارياً، ومجموعات ضريبة القيمة المضافة، والاحتساب العكسي، والمناطق المحددة، والفوترة الإلكترونية بموجب القرارين الوزاريين 243 و244 لسنة 2025: مرحلة تجريبية طوعية من 1 يوليو 2026، وإلزامية من 1 يناير 2027 للإيرادات البالغة 50 مليون درهم فأكثر، ومن 1 يوليو 2027 للأعمال الأخرى، ومن 1 أكتوبر 2027 للجهات الحكومية المشمولة)، والضريبة الانتقائية (التبغ، ومشروبات الطاقة، والمشروبات الغازية والمحلاة)، والرسوم الجمركية وقواعد دول الخليج، والمادة الاقتصادية (أُلغيت للفترات بعد 2022)، وشهادات الإقامة الضريبية، واستشارات اتفاقيات الازدواج الضريبي، وتدقيقات الهيئة الاتحادية للضرائب، والإفصاحات الطوعية، وطلبات إعادة النظر والطعون أمام لجان فض المنازعات الضريبية، والفحوصات الضريبية الشاملة. يسأل المشترون عما إذا كان المستشار وكيلاً ضريبياً مسجلاً لدى الهيئة الاتحادية للضرائب (وهو ما يلزم لتمثيل دافعي الضرائب أمام الهيئة) وعن الخبرة القطاعية (العقارات، والمناطق الحرة، والخدمات المالية).",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+        "https://tax.gov.ae/en/default.aspx",
+        "https://tax.gov.ae",
+        "https://mof.gov.ae",
+        "https://www.oecd.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing: pilot 1 Jul 2026; mandatory 1 Jan 2027 (>= AED 50m), 1 Jul 2027 others, 1 Oct 2027 government -> corrected | Corporate tax 9% above AED 375,000 (Federal Decree-Law 47 of 2022) -> confirmed | FTA tax agent programme -> confirmed. Not checked: E-invoicing dates were checked against a published summary of the ministerial decisions, not the decision text; whether excise now covers sugar-tiered drinks under a volumetric model, and the DMTT details should be confirmed against the latest FTA/MoF publications."
+    },
+    {
+      "id": "tax_advisory:uae-market-brands",
+      "topic": "VAT & corporate tax advisory: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Networks offering UAE tax advice: Deloitte, PwC, EY, KPMG, Grant Thornton, BDO, RSM, Crowe. Check that the adviser acting before the FTA is on the FTA tax agent register.",
+      "body_ar": "الشبكات التي تقدم استشارات ضريبية في الإمارات: Deloitte، PwC، EY، KPMG، Grant Thornton، BDO، RSM، Crowe. ويجب التحقق من أن المستشار الذي يمثلك أمام الهيئة مدرج في سجل الوكلاء الضريبيين.",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+        "https://tax.gov.ae/en/default.aspx",
+        "https://tax.gov.ae",
+        "https://mof.gov.ae",
+        "https://www.oecd.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing: pilot 1 Jul 2026; mandatory 1 Jan 2027 (>= AED 50m), 1 Jul 2027 others, 1 Oct 2027 government -> corrected | Corporate tax 9% above AED 375,000 (Federal Decree-Law 47 of 2022) -> confirmed | FTA tax agent programme -> confirmed. Not checked: E-invoicing dates were checked against a published summary of the ministerial decisions, not the decision text; whether excise now covers sugar-tiered drinks under a volumetric model, and the DMTT details should be confirmed against the latest FTA/MoF publications."
+    },
+    {
+      "id": "tax_advisory:uae-market-sizes",
+      "topic": "VAT & corporate tax advisory: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced as fixed fees per deliverable (CT registration, CT return, VAT return, transfer pricing local file, tax health check), hourly rates by seniority for advisory and disputes, or monthly/annual compliance retainers. Voluntary disclosure and audit support are priced per engagement. Penalty exposure is a separate risk to the client and is not a fee.",
+      "body_ar": "تُسعّر كأتعاب ثابتة لكل مخرج (التسجيل في ضريبة الشركات، وإقرار ضريبة الشركات، وإقرار ضريبة القيمة المضافة، والملف المحلي للتسعير التحويلي، والفحص الضريبي الشامل)، أو بأسعار الساعة حسب الأقدمية للاستشارات والنزاعات، أو كأتعاب امتثال شهرية/سنوية. ويُسعّر دعم الإفصاح الطوعي والتدقيق لكل مهمة. وتُعد الغرامات المحتملة خطراً منفصلاً على العميل وليست من الأتعاب.",
+      "sources": [
+        "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+        "https://tax.gov.ae/en/default.aspx",
+        "https://tax.gov.ae",
+        "https://mof.gov.ae",
+        "https://www.oecd.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: E-invoicing: pilot 1 Jul 2026; mandatory 1 Jan 2027 (>= AED 50m), 1 Jul 2027 others, 1 Oct 2027 government -> corrected | Corporate tax 9% above AED 375,000 (Federal Decree-Law 47 of 2022) -> confirmed | FTA tax agent programme -> confirmed. Not checked: E-invoicing dates were checked against a published summary of the ministerial decisions, not the decision text; whether excise now covers sugar-tiered drinks under a volumetric model, and the DMTT details should be confirmed against the latest FTA/MoF publications."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Do we need an FTA-registered tax agent to handle our corporate tax audit?",
+      "q_ar": "هل نحتاج إلى وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب للتعامل مع تدقيق ضريبة الشركات؟",
+      "expected_entry_ids": [
+        "tax_advisory:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "E-invoicing: pilot 1 Jul 2026; mandatory 1 Jan 2027 (>= AED 50m), 1 Jul 2027 others, 1 Oct 2027 government",
+        "url": "https://kpmg.com/us/en/taxnewsflash/news/2025/10/uae-framework-scope-implementation-e-invoicing-system.html",
+        "result": "corrected"
+      },
+      {
+        "claim": "Corporate tax 9% above AED 375,000 (Federal Decree-Law 47 of 2022)",
+        "url": "https://u.ae/en/information-and-services/finance-and-investment/taxation/corporate-tax",
+        "result": "confirmed"
+      },
+      {
+        "claim": "FTA tax agent programme",
+        "url": "https://tax.gov.ae/en/default.aspx",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "E-invoicing dates were checked against a published summary of the ministerial decisions, not the decision text; whether excise now covers sugar-tiered drinks under a volumetric model, and the DMTT details should be confirmed against the latest FTA/MoF publications.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "trade": "polymers_resins",
+  "entries": [
+    {
+      "id": "polymers_resins:spec-checklist",
+      "topic": "Polymers and resins - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For polymers and resins quotes to be compared like-for-like, every quoted line (goods) must state: (1) polymer type (PE, PP, PVC, PET, epoxy, polyester); (2) grade and producer grade code; (3) melt flow index or viscosity; (4) density; (5) form (granules, powder, liquid); (6) application (film, injection, pipe, food contact); (7) quantity in tonnes and packaging; (8) technical and safety data sheets; (9) certificate of analysis; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the polymers_resins trade.",
+      "body_ar": "لكي تُقارن عروض البوليمرات والراتنجات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع البوليمر (PE، أو PP، أو PVC، أو PET، أو إيبوكسي، أو بوليستر)؛ (2) الدرجة ورمز درجة المنتِج؛ (3) مؤشر انسياب المصهور أو اللزوجة؛ (4) الكثافة؛ (5) الشكل (حبيبات، أو مسحوق، أو سائل)؛ (6) الاستخدام (أغشية، أو حقن، أو أنابيب، أو ملامسة الغذاء)؛ (7) الكمية بالأطنان والتغليف؛ (8) صحائف البيانات الفنية وبيانات السلامة؛ (9) شهادة التحليل؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة polymers_resins فقط.",
+      "required_specs": [
+        "polymer type (PE, PP, PVC, PET, epoxy, polyester)",
+        "grade and producer grade code",
+        "melt flow index or viscosity",
+        "density",
+        "form (granules, powder, liquid)",
+        "application (film, injection, pipe, food contact)",
+        "quantity in tonnes and packaging",
+        "technical and safety data sheets",
+        "certificate of analysis",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.moccae.gov.ae/en/services.aspx",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "polymers_resins:uae-standards-and-approvals",
+      "topic": "Polymers and resins - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Chemicals and hazardous materials in the UAE are controlled at federal level by the Ministry of Climate Change and Environment; food-contact plastics must meet the applicable UAE/GSO food-contact standards, available through MoIAT. Test methods are usually ISO (for example ISO 1133 for melt flow rate). What the cited sources do not establish: The sources read do not set a grade for any application; the grade and test method must be stated per line.",
+      "body_ar": "تخضع الكيماويات والمواد الخطرة في الإمارات لرقابة وزارة التغير المناخي والبيئة على المستوى الاتحادي؛ ويجب أن تطابق البلاستيكات الملامسة للغذاء المواصفات الإماراتية والخليجية المعنية المتاحة عبر وزارة الصناعة والتكنولوجيا المتقدمة. وطرق الاختبار عادةً من ISO (مثل ISO 1133 لمعدل انسياب المصهور). ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد درجة لأي استخدام؛ يجب تحديد الدرجة وطريقة الاختبار في كل بند.",
+      "source_note": "The sources read do not set a grade for any application; the grade and test method must be stated per line.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/",
+        "https://www.moccae.gov.ae/en/services.aspx",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for polymers and resins?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالبوليمرات والراتنجات؟",
+      "expected_entry_ids": [
+        "polymers_resins:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to polymers and resins?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على البوليمرات والراتنجات؟",
+      "expected_entry_ids": [
+        "polymers_resins:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "polymers_resins:spec-checklist",
+      "polymers_resins:uae-standards-and-approvals"
+    ],
+    "added": [
+      "polymers_resins:spec-checklist",
+      "polymers_resins:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

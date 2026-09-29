@@ -1,0 +1,77 @@
+{
+  "trade": "hazardous_waste",
+  "entries": [
+    {
+      "id": "hazardous_waste:spec-checklist",
+      "topic": "Hazardous waste management - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For hazardous waste management (trade code hazardous_waste only), every quoted line must state: Waste stream and classification; Estimated quantity per collection; Packaging and labelling responsibility; Transport vehicle and permit; Treatment or disposal route; Waste manifest and disposal certificate; Deliverables and scope of work; Licence and qualifications of the provider; Service level and response time; Duration and schedule; Pricing basis; Exclusions. With these on every line, quotes from different suppliers are like-for-like. A line that does not state every required item is held until the missing item is supplied; it is not guessed, and no other trade's checklist is used in its place.",
+      "body_ar": "في نشاط إدارة النفايات الخطرة (رمز النشاط hazardous_waste فقط)، يجب أن يذكر كل بند مُسعَّر ما يلي: نوع النفايات وتصنيفها؛ الكمية التقديرية لكل عملية جمع؛ مسؤولية التعبئة ووضع البطاقات؛ مركبة النقل وتصريحها؛ مسار المعالجة أو التخلص؛ بيان النفايات وشهادة التخلص؛ المخرجات ونطاق العمل؛ ترخيص مقدم الخدمة ومؤهلاته؛ مستوى الخدمة ووقت الاستجابة؛ المدة والجدول الزمني؛ أساس التسعير؛ الاستثناءات. وبذكر هذه العناصر في كل بند تصبح عروض الموردين المختلفين قابلة للمقارنة المباشرة. والبند الذي لا يذكر كل عنصر مطلوب يُعلَّق حتى يُستكمل العنصر الناقص؛ ولا يُفترض أو يُخمَّن، ولا تُستخدم قائمة نشاط آخر بدلاً منه.",
+      "required_specs": [
+        "Waste stream and classification",
+        "Estimated quantity per collection",
+        "Packaging and labelling responsibility",
+        "Transport vehicle and permit",
+        "Treatment or disposal route",
+        "Waste manifest and disposal certificate",
+        "Deliverables and scope of work",
+        "Licence and qualifications of the provider",
+        "Service level and response time",
+        "Duration and schedule",
+        "Pricing basis",
+        "Exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dcd.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "hazardous_waste:uae-standards-and-approvals",
+      "topic": "Hazardous waste management - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Authorities and approvals relevant to hazardous waste management in the UAE: Dubai Municipality oversees building and construction, food and consumer goods, and waste management in Dubai; each other emirate has its own municipality. Dubai Civil Defence applies the UAE Fire and Life Safety Code of Practice and issues approvals for engineering drawings, companies and hazardous material handling; outside Dubai the civil defence authority of the emirate applies. What the cited sources do not establish: The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hazardous waste management. State the grade and the standard explicitly on each line.",
+      "body_ar": "الجهات والموافقات ذات الصلة بنشاط إدارة النفايات الخطرة في الإمارات: تشرف بلدية دبي على البناء والتشييد والأغذية والسلع الاستهلاكية وإدارة النفايات في دبي؛ ولكل إمارة أخرى بلديتها الخاصة. يطبّق الدفاع المدني في دبي قانون الإمارات للحماية من الحريق وسلامة الأرواح، ويصدر موافقات المخططات الهندسية واعتماد الشركات ومناولة المواد الخطرة؛ وخارج دبي تختص سلطة الدفاع المدني في الإمارة المعنية. ما لا تُثبته المصادر المذكورة: تُثبت الصفحات المذكورة فقط الجهات التي تنظّم أو تسجّل أو تعتمد؛ ولا تحدد درجة أو فئة أو مستوى اختبار أو مواصفة إلزامية خاصة بالإمارات لنشاط إدارة النفايات الخطرة. يجب ذكر الدرجة والمواصفة صراحةً في كل بند.",
+      "source_note": "The cited pages establish only which bodies regulate, register, approve or accredit; they do not set a UAE-specific grade, class, test level or mandatory product standard for hazardous waste management. State the grade and the standard explicitly on each line.",
+      "sources": [
+        "https://www.dm.gov.ae/",
+        "https://www.dcd.gov.ae/"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What do I need to specify when I ask for quotes on hazardous waste management?",
+      "q_ar": "ما الذي يجب أن أحدده عند طلب عروض أسعار لـإدارة النفايات الخطرة؟",
+      "expected_entry_ids": [
+        "hazardous_waste:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates should a hazardous waste management supplier have?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي يجب أن يملكها مورد إدارة النفايات الخطرة؟",
+      "expected_entry_ids": [
+        "hazardous_waste:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "hazardous_waste:spec-checklist"
+    ],
+    "added": [
+      "hazardous_waste:spec-checklist",
+      "hazardous_waste:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims checked by fetching each authority's own page on 2026-09-28 (a claim counts only where the page loaded and supported it). Pages that refused reading are cited but kept at medium. Spec checklists are senior sales-engineering practice for like-for-like comparison, not a legal requirement, so they stay medium. Named international standards are offered as options for the buyer to specify, not verified against the standards bodies, so any entry naming one stays medium."
+  }
+}
