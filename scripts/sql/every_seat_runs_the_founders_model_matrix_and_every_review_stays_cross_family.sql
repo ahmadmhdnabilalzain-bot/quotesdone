@@ -250,7 +250,8 @@ begin
   --      model_policy_by_identity replaces the class's, unless the class has no fallback on purpose (only Gemini
   --      hears) or is a review (its pair is chosen against its author's family).
   -- A '<seat>__<class>' row - reached through the seat, or named by fn_task_class for the seat's own function -
-  -- never allows fewer tokens than <class> and keeps <class>'s cache rule.
+  -- never allows fewer tokens than <class>. A seat's own row is never served from the semantic cache: that cache is keyed
+  -- by class, not model, so a CEO judgement on Opus could otherwise be answered by another seat's Gemini answer.
   if p_agent_key is not null then
     v_seat := coalesce(v_canon, public.fn_org_agent_resolve(p_agent_key), p_agent_key);
     select mp.task_class into v_split from model_policy mp
@@ -273,14 +274,15 @@ begin
     select * into v_base_pol from model_policy where task_class = v_route_base and active;
     if found then
       v_pol.max_tokens    := greatest(coalesce(v_pol.max_tokens, 0), coalesce(v_base_pol.max_tokens, 0));
-      v_pol.cache_ttl_min := v_base_pol.cache_ttl_min;
+      v_pol.cache_ttl_min := 0;
     end if;
   end if;
 
   if v_split is null and not v_generic and v_seat is not null and v_pol.model_fallback is not null
      and cardinality(coalesce(v_pol.reviews_class, '{}')) = 0 then
     select i.fallback_model into v_seat_fb from model_policy_by_identity i
-     where i.scope = 'current_agent' and i.identity_key = v_seat;
+     where i.scope = 'current_agent' and i.identity_key = v_seat
+       and exists (select 1 from org_role o where o.role_id = v_seat and o.status = 'active');  -- a live seat's row only
     if v_seat_fb is not null and v_seat_fb not in (v_pol.model_primary, v_pol.model_fallback) then
       v_src := v_src || ' | seat "' || v_seat || '" falls back to its own plan B ' || v_seat_fb
                      || ' instead of ' || v_pol.model_fallback;
