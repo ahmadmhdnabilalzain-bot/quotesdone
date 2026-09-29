@@ -84,13 +84,13 @@ const removeObjects = (key: string, paths: string[]) => fetch(`${BASE}/storage/v
  * Upload redacted JPEGs under redacted/<uuid>/ and record ONE run naming them, exactly as drawing_redact records
  * one, so create_inquiry resolves it and the supplier inbox signs it. Any failure removes what was uploaded.
  */
-async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: Record<string, unknown>, as: { ext: string; mime: string } = { ext: "jpg", mime: "image/jpeg" }): Promise<Record<string, unknown>> {
+async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: Record<string, unknown>, as: { ext: string; mime: string } = { ext: "jpg", mime: "image/jpeg" }, carry: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
   const prefix = `redacted/${crypto.randomUUID()}/page`;
   const paths: string[] = [];
   for (let i = 0; i < jpgs.length; i++) {
     const path = as.ext === "jpg" ? `${prefix}_p${i}.jpg` : `${prefix}_drawing.${as.ext}`;
     const up = await fetch(`${BASE}/storage/v1/object/drawing-files/${path}`, { method: 'POST', headers: { Authorization: 'Bearer ' + key, apikey: key, 'Content-Type': as.mime, 'x-upsert': 'false' }, body: new Blob([jpgs[i] as Uint8Array<ArrayBuffer>], { type: as.mime }), signal: AbortSignal.timeout(60_000) });
-    if (!up.ok) { await removeObjects(key, paths); return { redaction_complete: false, held_reason: `upload_failed_http_${up.status}` }; }
+    if (!up.ok) { await removeObjects(key, paths); return { ...carry, redaction_complete: false, held_reason: `upload_failed_http_${up.status}` }; }
     paths.push(path);
   }
   const runId = crypto.randomUUID();
@@ -100,9 +100,9 @@ async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: R
               array[${paths.map(lit).join(',')}]::text[], ${paths.length}, ${paths.length}, 0, 'complete', ${paths.length}, 0, ${lit(JSON.stringify({ ...detail, worker: true }))}::jsonb)`);
   } catch (e) {
     await removeObjects(key, paths);
-    return { redaction_complete: false, held_reason: 'run_not_recorded: ' + String((e as Error)?.message || e).slice(0, 120) };
+    return { ...carry, redaction_complete: false, held_reason: 'run_not_recorded: ' + String((e as Error)?.message || e).slice(0, 120) };
   }
-  return { redaction_complete: true, redaction_job_id: runId, drawing_redacted_paths: paths };
+  return { ...carry, redaction_complete: true, redaction_job_id: runId, drawing_redacted_paths: paths };
 }
 
 async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promise<Record<string, unknown>> {
@@ -158,14 +158,14 @@ export async function scanDrawing(job: Job, key: string, pages: string[]): Promi
     for (let i = 0; i < imgs.length; i++) {
       const img = imgs[i];
       const out = await redactScan(img, engine.ocr, seeds);
-      if (!out.ok) return { boq, redaction_complete: false, held_reason: 'scan_' + out.held, pages: [...detail, { page: i, held: out.held, ...out.detail }] };
+      if (!out.ok) return { redaction_complete: false, held_reason: 'scan_' + out.held, pages: [...detail, { page: i, held: out.held, ...out.detail }], boq };
       const painted = new Image(out.image.w, out.image.h);
       painted.bitmap.set(out.image.rgba);
       jpgs.push(await painted.encodeJPEG(85));   // from pixels: no text layer, no EXIF, no metadata
       detail.push({ page: i, ...out.detail });
     }
   } finally { await engine.done(); }
-  return { boq, ...(await publishPages(job, key, jpgs, { method: 'scan_ocr', pages: detail })) };
+  return publishPages(job, key, jpgs, { method: 'scan_ocr', pages: detail }, undefined, { boq });
 }
 
 // A JOB THAT FAILS FOR GOOD IS RAISED, NOT ONLY LOGGED (24 Sep 2026, drawings audit finding 4): a customer's

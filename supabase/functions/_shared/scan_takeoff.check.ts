@@ -9,7 +9,6 @@
 // A .check.ts for the same reason as scan_redact.check.ts: the OCR engine needs --allow-env and imagescript's codec
 // fetches its .wasm, which the `npm test` Deno suite does not grant. Nothing real, nothing sent anywhere.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { scanPdfImages, scanTakeoff } from './scan_takeoff.ts';
 import { PDF_COUNTS, zzScanRgba, zzScanText } from './doc_read/zz_demo_drawings.fixtures.ts';
@@ -30,15 +29,33 @@ function sheet(view: string, fd: [number, number][], wc: [number, number][], fcu
   zzScanText(img, 600, 820, 34, view);
   return img;
 }
+/** A scanner's PDF, written by hand the way scanners write one: each page one JPEG (DCTDecode) painted over the
+ *  whole sheet, no text layer. Hand-written, not a PDF library, so no test path makes a document (the template rule). */
+/** A scanner's PDF, written by hand the way scanners write one: each page one JPEG (DCTDecode) painted over the
+ *  whole sheet, no text layer. Hand-written, not a PDF library, so no test path makes a document (the template rule). */
 async function scannedPdf(imgs: { w: number; h: number; rgba: Uint8ClampedArray }[]): Promise<Uint8Array> {
-  const doc = await PDFDocument.create();
-  for (const r of imgs) {
+  const enc = (t: string) => new TextEncoder().encode(t);
+  const parts: Uint8Array[] = [enc('%PDF-1.4\n')];
+  const offs: number[] = []; let len = parts[0].length;
+  const add = (...chunks: Uint8Array[]) => { offs.push(len); for (const c of chunks) { parts.push(c); len += c.length; } };
+  const n = imgs.length, kids = imgs.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
+  add(enc('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n'));
+  add(enc(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${n} >>\nendobj\n`));
+  for (const [i, r] of imgs.entries()) {
     const im = new Image(r.w, r.h); im.bitmap.set(r.rgba);
-    const jpg = await doc.embedJpg(await im.encodeJPEG(88));
-    const p = doc.addPage([r.w * 0.72, r.h * 0.72]);
-    p.drawImage(jpg, { x: 0, y: 0, width: r.w * 0.72, height: r.h * 0.72 });
+    const jpg = await im.encodeJPEG(88);
+    const W = (r.w * 0.72).toFixed(2), H = (r.h * 0.72).toFixed(2), page = 3 + i * 3;
+    const content = `q ${W} 0 0 ${H} 0 0 cm /Im1 Do Q`;
+    add(enc(`${page} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /XObject << /Im1 ${page + 1} 0 R >> >> /Contents ${page + 2} 0 R >>\nendobj\n`));
+    add(enc(`${page + 1} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${r.w} /Height ${r.h} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`), jpg, enc('\nendstream\nendobj\n'));
+    add(enc(`${page + 2} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`));
   }
-  return await doc.save();
+  const xref = len;
+  const rows = offs.map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join('');
+  parts.push(enc(`xref\n0 ${offs.length + 1}\n0000000000 65535 f \n${rows}trailer\n<< /Size ${offs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`));
+  const out = new Uint8Array(parts.reduce((t, p) => t + p.length, 0));
+  let k = 0; for (const p of parts) { out.set(p, k); k += p.length; }
+  return out;
 }
 const qty = (boq: any, re: RegExp) => boq?.boq?.find((l: any) => re.test(l.description))?.qty;
 

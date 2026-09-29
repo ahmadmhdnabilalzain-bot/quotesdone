@@ -13,56 +13,40 @@
 // shape (scan_redact.pageOf), and runs the SAME take-off as a vector set, then the #902 identity gate.
 // It runs on the CAD worker (OCR is minutes of CPU, never the edge).
 // deno-lint-ignore-file no-explicit-any
-import { PDFDocument, PDFName, PDFRawStream, PDFDict, PDFRef, PDFNumber, decodePDFRawStream } from 'https://esm.sh/pdf-lib@1.17.1';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { pageOf, rgbaToBmp, type Ocr, type OcrLine, type OcrWord, type Rgba } from './scan_redact.ts';
 import type { PdfPage } from './pdf_text_positions.ts';
-import { linesFromRuns } from './pdf_text_positions.ts';
+import { linesFromRuns, pdfPageImages } from './pdf_text_positions.ts';
 import { boqFromDrawingSet } from '../drawing_boq/drawing_set.ts';
 import { drawingIdentityTerms, gateDrawingBoq } from './drawing_identity_gate.ts';
 
 export type ScanImages = { ok: true; pages: Rgba[] } | { ok: false; held: string; detail?: string };
 
-const num = (v: unknown) => (v instanceof PDFNumber ? v.asNumber() : 0);
-
-/** Each page's scanned image (the largest one it paints), decoded to RGBA. */
+/** Each page's scanned image (the largest one it paints), decoded to RGBA. Read with the estate's own PDF reader
+ *  (pdf_text_positions.pdfPageImages): this file only READS a PDF, so it carries no PDF-writing library. */
 export async function scanPdfImages(bytes: Uint8Array): Promise<ScanImages> {
-  let doc: PDFDocument;
-  try { doc = await PDFDocument.load(bytes, { updateMetadata: false }); } catch (e) { return { ok: false, held: 'pdf_unreadable', detail: String((e as Error)?.message || e).slice(0, 120) }; }
+  const imgs = await pdfPageImages(bytes);
+  if (!imgs.length) return { ok: false, held: 'pdf_unreadable' };
   const pages: Rgba[] = [];
-  for (const [i, p] of doc.getPages().entries()) {
-    const res = p.node.Resources();
-    const x0 = res?.get(PDFName.of('XObject'));
-    const xo = x0 instanceof PDFRef ? doc.context.lookup(x0) : x0;
-    let best: PDFRawStream | null = null, area = 0;
-    if (xo instanceof PDFDict) for (const [, ref] of xo.entries()) {
-      const s = ref instanceof PDFRef ? doc.context.lookup(ref) : ref;
-      if (!(s instanceof PDFRawStream) || s.dict.get(PDFName.of('Subtype')) !== PDFName.of('Image')) continue;
-      const a = num(s.dict.get(PDFName.of('Width'))) * num(s.dict.get(PDFName.of('Height')));
-      if (a > area) { area = a; best = s; }
-    }
-    if (!best) return { ok: false, held: 'scan_page_has_no_image', detail: `page ${i + 1}` };
-    const f0 = best.dict.get(PDFName.of('Filter'));
-    const filter = f0 instanceof PDFName ? f0.asString() : String(f0 ?? '');
-    const w = num(best.dict.get(PDFName.of('Width'))), h = num(best.dict.get(PDFName.of('Height')));
-    if (filter === '/DCTDecode') {
-      const img = await Image.decode(best.contents) as Image;
+  for (const [i, im] of imgs.entries()) {
+    if (!im) return { ok: false, held: 'scan_page_has_no_image', detail: `page ${i + 1}` };
+    if (/\/DCTDecode\b/.test(im.dict)) {
+      const img = await Image.decode(im.raw) as Image;
       pages.push({ w: img.width, h: img.height, rgba: new Uint8ClampedArray(img.bitmap) });
       continue;
     }
-    if (filter === '/FlateDecode' && num(best.dict.get(PDFName.of('BitsPerComponent'))) === 8 && !best.dict.get(PDFName.of('DecodeParms'))) {
-      const cs = String(best.dict.get(PDFName.of('ColorSpace')) ?? '');
-      const n = cs === '/DeviceGray' ? 1 : cs === '/DeviceRGB' ? 3 : 0;
-      const raw = decodePDFRawStream(best).decode();
-      if (!n || raw.length < w * h * n) return { ok: false, held: 'scan_image_colour_space', detail: `page ${i + 1}: ${cs}` };
+    if (im.inflated && /\/BitsPerComponent\s+8\b/.test(im.dict) && !/\/DecodeParms\b/.test(im.dict)) {
+      const n = /\/ColorSpace\s*\/DeviceGray\b/.test(im.dict) ? 1 : /\/ColorSpace\s*\/DeviceRGB\b/.test(im.dict) ? 3 : 0;
+      const raw = im.inflated, w = im.w, h = im.h;
+      if (!n || raw.length < w * h * n) return { ok: false, held: 'scan_image_colour_space', detail: `page ${i + 1}` };
       const rgba = new Uint8ClampedArray(w * h * 4);
-      for (let k = 0; k < w * h; k++) { const r = raw[k * n], g = raw[k * n + (n === 3 ? 1 : 0)], b = raw[k * n + (n === 3 ? 2 : 0)]; rgba.set([r, g, b, 255], k * 4); }
+      for (let k = 0; k < w * h; k++) { const r = raw[k * n], g = raw[k * n + (n === 3 ? 1 : 0)], bb = raw[k * n + (n === 3 ? 2 : 0)]; rgba.set([r, g, bb, 255], k * 4); }
       pages.push({ w, h, rgba });
       continue;
     }
-    return { ok: false, held: 'scan_image_codec', detail: `page ${i + 1}: ${filter || 'none'}` };
+    return { ok: false, held: 'scan_image_codec', detail: `page ${i + 1}: ${(im.dict.match(/\/Filter\s*(\/\w+)/) || [])[1] || 'none'}` };
   }
-  return pages.length ? { ok: true, pages } : { ok: false, held: 'pdf_has_no_pages' };
+  return { ok: true, pages };
 }
 
 /**

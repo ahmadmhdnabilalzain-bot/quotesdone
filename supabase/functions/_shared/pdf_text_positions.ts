@@ -473,6 +473,25 @@ export async function pdfRedactionView(bytes: Uint8Array): Promise<{ pages: { nu
   return { pages, forms };
 }
 
+/** Each page's LARGEST image XObject as its dictionary and its still-encoded stream bytes (null when the page
+ *  paints none): what a scanned sheet is. scan_takeoff.ts decodes it (DCT as JPEG, Flate 8-bit Gray/RGB). */
+export async function pdfPageImages(bytes: Uint8Array): Promise<({ dict: string; raw: Uint8Array; inflated: Uint8Array | null; w: number; h: number } | null)[]> {
+  if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return [];
+  const objs = await readObjects(bytes);
+  const out: ({ dict: string; raw: Uint8Array; inflated: Uint8Array | null; w: number; h: number } | null)[] = [];
+  for (const p of pageTree(objs)) {
+    let best: { dict: string; raw: Uint8Array; w: number; h: number } | null = null;
+    for (const num of namedRefs(objs, p.res, 'XObject').values()) {
+      const o = objs.get(num);
+      if (!o?.stream || !/\/Subtype\s*\/Image\b/.test(o.dict)) continue;
+      const w = Number((o.dict.match(/\/Width\s+(\d+)/) || [])[1] || 0), h = Number((o.dict.match(/\/Height\s+(\d+)/) || [])[1] || 0);
+      if (!best || w * h > best.w * best.h) best = { dict: o.dict, raw: o.stream, w, h };
+    }
+    out.push(best ? { ...best, inflated: /\/DCTDecode\b/.test(best.dict) ? null : await decodeStream(best.dict, best.raw) } : null);
+  }
+  return out;
+}
+
 /** Pages in order, each with its text runs in normalised top-left display coordinates. [] when unreadable. */
 /** `opts.layers: false` skips the CAD layer geometry (the cheap read drawing_boq's first call makes). */
 export async function pdfPages(bytes: Uint8Array, only?: [number, number], opts: { layers?: boolean } = {}): Promise<PdfPage[]> {
