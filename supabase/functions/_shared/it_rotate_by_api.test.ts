@@ -189,3 +189,11 @@ Deno.test('a thrown step is settled too, never lost', async () => {
   assertEquals(r.ok, false);
   assertEquals((rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items as unknown[]).length, 1);
 });
+
+Deno.test("the '' in-use key refuses to rotate: no new key is minted, the run fails UNVERIFIED", async () => {
+  const { d, calls } = deps({ inUseUnreadable: true, due: true });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.ok, false); assertEquals(r.rotated, false);
+  assert(String(r.error).startsWith('UNVERIFIED'), String(r.error));
+  assert(!calls.some((c) => c.startsWith('POST') && c.includes('/Keys.json')), 'a new key was minted with no key in use read');
+});
