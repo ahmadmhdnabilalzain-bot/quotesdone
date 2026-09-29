@@ -98,7 +98,18 @@ export function staleCandidate(prs, { depState = () => 'MERGED', isBehind = () =
   // every other gate must already pass: judged as if its checks were green
   return prs.find((pr) => !checksGreen(pr.statusCheckRollup) && !checksRunning(pr.statusCheckRollup)
     && refusal({ ...pr, statusCheckRollup: REQUIRED_CHECKS.map((name) => ({ name, conclusion: 'SUCCESS' })) }, { depState }) === null
-    && (isBehind(pr) || missingChecks(pr.statusCheckRollup).length > 0)) || null;
+    && (missingChecks(pr.statusCheckRollup).length > 0
+      || (onlyStaleFailures(pr.statusCheckRollup) && isBehind(pr)))) || null;
+}
+
+// The checks that read the LIVE database compare it with the branch, so a merge to main turns them red on
+// every other PR: only these are refreshed by an update. A PR failing anything else (a unit check, a
+// typecheck, the lint) is failing on its own code; updating it changes nothing, and picking it every tick
+// starved the rest of the queue (29 Sep 2026: #1056, red on its own tests, was updated tick after tick).
+export const STALE_PRONE = new Set(['the database is running what this repository says', 'the kernel and handler gate, against production']);
+export function onlyStaleFailures(rollup = []) {
+  const bad = latestChecks(rollup).filter((c) => !GREEN.has(String(c.conclusion || c.state || 'PENDING').toUpperCase()));
+  return bad.length > 0 && bad.every((c) => STALE_PRONE.has(c.name || c.context));
 }
 
 // The required checks that never started on this head (a GITHUB_TOKEN push starts no workflow).
