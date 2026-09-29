@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T02:38:39.238Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T02:40:11.980Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (669) =====
+-- ===== TABLES (670) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -1759,6 +1759,12 @@ CREATE TABLE IF NOT EXISTS public.ceo_year_plan (
   fee_cum_aed numeric NOT NULL,
   enterprise integer NOT NULL,
   cost_ceiling_aed numeric NOT NULL,
+  basis text NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.ceo_year_plan_milestone (
+  due date NOT NULL,
+  verified integer NOT NULL,
   basis text NOT NULL
 );
 
@@ -9373,6 +9379,7 @@ ALTER TABLE public.ceo_task ADD CONSTRAINT ceo_task_pkey PRIMARY KEY (task_id);
 ALTER TABLE public.ceo_task_state ADD CONSTRAINT ceo_task_state_pkey PRIMARY KEY (state);
 ALTER TABLE public.ceo_weekly_report ADD CONSTRAINT ceo_weekly_report_pkey PRIMARY KEY (id);
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_pkey PRIMARY KEY (month);
+ALTER TABLE public.ceo_year_plan_milestone ADD CONSTRAINT ceo_year_plan_milestone_pkey PRIMARY KEY (due);
 ALTER TABLE public.challenge_heuristic ADD CONSTRAINT challenge_heuristic_pkey PRIMARY KEY (id);
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_pkey PRIMARY KEY (id);
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_pkey PRIMARY KEY (id);
@@ -10205,6 +10212,7 @@ ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_reveals_check CHEC
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_subscription_aed_check CHECK ((subscription_aed >= (0)::numeric));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_verified_added_check CHECK ((verified_added >= 0));
 ALTER TABLE public.ceo_year_plan ADD CONSTRAINT ceo_year_plan_verified_check CHECK ((verified >= 0));
+ALTER TABLE public.ceo_year_plan_milestone ADD CONSTRAINT ceo_year_plan_milestone_verified_check CHECK ((verified >= 0));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_founder_response_check CHECK ((founder_response = ANY (ARRAY['accepted'::text, 'overruled'::text, 'modified'::text, NULL::text])));
 ALTER TABLE public.challenge_record ADD CONSTRAINT challenge_record_stance_check CHECK ((stance = ANY (ARRAY['support'::text, 'concern'::text, 'recommend_against'::text])));
 ALTER TABLE public.channel_directive ADD CONSTRAINT channel_directive_actor_type_check CHECK ((actor_type = ANY (ARRAY['supplier'::text, 'customer'::text])));
@@ -10888,7 +10896,7 @@ ALTER TABLE public.table_export_run ADD CONSTRAINT table_export_run_status_check
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_baseline_state_check CHECK ((baseline_state = ANY (ARRAY['measured'::text, 'unknown'::text, 'not_instrumented'::text])));
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_desired_basis_check CHECK ((desired_basis = ANY (ARRAY['cumulative'::text, 'incremental'::text, 'gross'::text, 'net'::text, 'active'::text])));
 ALTER TABLE public.target_contract ADD CONSTRAINT target_contract_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'active'::text, 'superseded'::text, 'achieved'::text, 'failed'::text, 'abandoned'::text])));
-ALTER TABLE public.target_daily_verdict ADD CONSTRAINT target_daily_verdict_status_check CHECK ((status = ANY (ARRAY['on_track'::text, 'within_tolerance'::text, 'miss'::text, 'not_measurable'::text, 'no_target'::text, 'too_early'::text])));
+ALTER TABLE public.target_daily_verdict ADD CONSTRAINT target_daily_verdict_status_check CHECK ((status = ANY (ARRAY['on_track'::text, 'within_tolerance'::text, 'miss'::text, 'not_measurable'::text, 'no_target'::text, 'too_early'::text, 'not_yet_due'::text])));
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_rate_check CHECK (((rate >= (0)::numeric) AND (rate <= (1)::numeric)));
 ALTER TABLE public.target_driver ADD CONSTRAINT target_driver_rate_source_check CHECK ((rate_source = ANY (ARRAY['measured'::text, 'assumed'::text, 'industry_prior'::text, 'not_instrumented'::text])));
 ALTER TABLE public.target_path ADD CONSTRAINT target_path_direction_check CHECK ((direction = ANY (ARRAY['min'::text, 'max'::text])));
@@ -31717,21 +31725,48 @@ declare v_local timestamp := p_at at time zone 'Asia/Dubai'; v_day date := v_loc
   v_frac numeric := extract(day from v_local) / extract(day from (date_trunc('month', v_local) + interval '1 month - 1 day'));
   p record; v_exp numeric; v_act numeric; v_gap numeric; v_status text; v_task bigint; v_hid bigint; v_prev_cum numeric;
   n_miss int := 0; n_new int := 0; n_closed int := 0; v_out jsonb := '[]'::jsonb; c_id bigint;
+  v_pm date; v_launch date; m_next record; m_prev record;
+  -- the customer side of the plan: zero until customers launch (founder, 24 Sep 2026: customers from January 2027)
+  c_customer constant text[] := array['inquiries_posted', 'quotes_received', 'quote_coverage_pct', 'reveals_paid',
+    'b2b_active_accounts', 'fee_aed', 'fee_aed_cumulative', 'checkout_success_pct', 'reveal_conversion_pct'];
 begin
   select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
-  if c_id is null then return jsonb_build_object('day', v_day, 'contract', null); end if;
+  if c_id is null then raise exception 'ceo.target_verdict: the year-one plan contract is not active'; end if;
 
-  for p in select * from public.target_path where contract_id = c_id and month = v_m0 order by metric_key loop
-    v_act := public.fn_ambition_measure(p.metric_key, v_from, p_at);
-    if p.kind = 'cumulative' then
-      -- the day's line starts from last month's TARGET; a real shortfall is carried by the month directive (still_needed)
-      select coalesce(max(value), 0) into v_prev_cum from public.target_path where contract_id = c_id and metric_key = p.metric_key and month < v_m0;
-      v_exp := round(v_prev_cum + (p.value - v_prev_cum) * v_frac, 1);
-    elsif p.kind = 'month' and p.direction = 'min' then v_exp := round(p.value * v_frac, 1);
-    else v_exp := p.value; end if;   -- a ceiling (direction max) is the whole month's: costs are lumpy, never pro-rated
+  -- the plan month graded: this month, or before the path starts, its first month (graded 'not_yet_due')
+  v_pm := coalesce((select max(month) from public.target_path where contract_id = c_id and month = v_m0),
+                   (select min(month) from public.target_path where contract_id = c_id and month > v_m0));
+  v_launch := (select min(month) from public.ceo_year_plan where requests > 0);
+  select * into m_next from public.ceo_year_plan_milestone where due > v_day order by due limit 1;
+  if m_next is null then select * into m_next from public.ceo_year_plan_milestone order by due desc limit 1; end if;
+  select * into m_prev from public.ceo_year_plan_milestone where due < m_next.due order by due desc limit 1;
+
+  for p in
+    select t.metric_key, t.owner_seat, t.kind, t.direction, t.value, t.tolerance_pct from public.target_path t
+     where t.contract_id = c_id and t.month = v_pm
+    union all
+    select 'verified_suppliers_milestone', 'sales_engineer', 'milestone', 'min', m_next.verified, 20 where m_next.due is not null
+    order by 1
+  loop
+    if p.kind = 'milestone' then
+      v_act := public.fn_ambition_measure('registrations_verified_cumulative', v_from, p_at);
+      v_exp := case when m_prev.due is null or v_day >= m_next.due then m_next.verified
+                    else round(m_prev.verified + (m_next.verified - m_prev.verified)
+                               * (v_day - m_prev.due)::numeric / (m_next.due - m_prev.due), 1) end;
+    else
+      v_act := public.fn_ambition_measure(p.metric_key, v_from, p_at);
+      if p.kind = 'cumulative' then
+        -- the day's line starts from last month's TARGET; a real shortfall is carried by the month directive (still_needed)
+        select coalesce(max(value), 0) into v_prev_cum from public.target_path where contract_id = c_id and metric_key = p.metric_key and month < v_pm;
+        v_exp := round(v_prev_cum + (p.value - v_prev_cum) * v_frac, 1);
+      elsif p.kind = 'month' and p.direction = 'min' then v_exp := round(p.value * v_frac, 1);
+      else v_exp := p.value; end if;   -- a ceiling (direction max) is the whole month's: costs are lumpy, never pro-rated
+    end if;
 
     v_gap := case when v_exp > 0 and v_act is not null then round(100.0 * (v_act - v_exp) / v_exp, 1) end;
-    v_status := case when p.direction = 'max' then
+    v_status := case when p.kind <> 'milestone' and v_pm <> v_m0 then 'not_yet_due'
+                     when p.metric_key = any (c_customer) and (v_launch is null or v_m0 < v_launch) then 'not_yet_due'
+                     when p.direction = 'max' then
                        case when v_act is null then 'not_measurable'
                             when v_act <= v_exp then 'on_track'
                             when v_gap <= p.tolerance_pct then 'within_tolerance'
@@ -31771,7 +31806,6 @@ begin
        where task_id = v_task;
       n_closed := n_closed + 1; v_task := null;
     elsif v_task is not null and v_status = 'not_measurable' then
-      -- the miss can no longer be confirmed or cleared: say so on the task instead of leaving it silently open
       update public.ceo_task set state = 'blocked',
              blocked_reason = format('On %s %s became not measurable (under 20 in its denominator); the miss is neither confirmed nor cleared.', v_day, p.metric_key)
        where task_id = v_task and state <> 'blocked';
@@ -31784,7 +31818,12 @@ begin
       handoff_id = coalesce(target_daily_verdict.handoff_id, excluded.handoff_id);
     v_out := v_out || jsonb_build_object('metric', p.metric_key, 'status', v_status, 'expected', v_exp, 'actual', v_act);
   end loop;
-  return jsonb_build_object('day', v_day, 'contract_id', c_id, 'metrics', v_out, 'misses', n_miss, 'tasks_opened', n_new, 'tasks_closed', n_closed);
+
+  -- an empty verdict reads as "0 misses"; it must fail loudly instead
+  if jsonb_array_length(v_out) = 0 then raise exception 'ceo.target_verdict: no plan metric graded on %', v_day; end if;
+  return jsonb_build_object('day', v_day, 'contract_id', c_id, 'plan_month', v_pm, 'customers_launch', v_launch,
+                            'milestone', jsonb_build_object('due', m_next.due, 'verified', m_next.verified),
+                            'metrics', v_out, 'misses', n_miss, 'tasks_opened', n_new, 'tasks_closed', n_closed);
 end $function$
 
 
@@ -31794,35 +31833,42 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_target_forecast()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare c record; v jsonb; v_all jsonb := '[]'::jsonb; v_rev jsonb; v_week date := public.fn_ceo_review_week(); v_held bigint;
+declare v jsonb; v_all jsonb := '[]'::jsonb; v_ms jsonb; v_week date := public.fn_ceo_review_week(); v_held bigint; c_id bigint;
+  v_today date := (now() at time zone 'Asia/Dubai')::date; v_now numeric;
 begin
-  for c in select id, contract_key from public.target_contract where status = 'active' and measure_sql is not null order by priority, id loop
-    v := public.fn_target_feasibility(c.id, true);
-    v_all := v_all || jsonb_build_object('contract', c.contract_key, 'verdict', v->>'verdict', 'verdict_reason', v->>'verdict_reason',
-                                         'remaining', v->'remaining_outcome', 'days_remaining', v->'days_remaining',
-                                         'required_run_rate_per_day', v->'required_run_rate_per_day', 'binding_stage', v->>'binding_stage',
-                                         'what_must_change', v->'what_must_change');
-    if c.contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' then v_rev := v; end if;   -- the founder's year-one targets (24 Sep 2026)
-  end loop;
+  select id into c_id from public.target_contract where contract_key = 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30' and status = 'active';
+  if c_id is null then raise exception 'ceo.target_forecast: the year-one plan contract is not active'; end if;
+  v := public.fn_target_feasibility(c_id, true);
+  v_all := jsonb_build_array(jsonb_build_object('contract', 'FOUNDER_TARGETS_YEAR_ONE_TO_2027_09_30', 'verdict', v->>'verdict',
+             'verdict_reason', v->>'verdict_reason', 'remaining', v->'remaining_outcome', 'days_remaining', v->'days_remaining',
+             'required_run_rate_per_day', v->'required_run_rate_per_day', 'binding_stage', v->>'binding_stage',
+             'what_must_change', v->'what_must_change'));
 
-  insert into public.ceo_review (kind, period, facts) values ('target_forecast', v_week, jsonb_build_object('verdicts', v_all))
+  v_now := public.fn_ambition_measure('registrations_verified_cumulative', now(), now());
+  select coalesce(jsonb_agg(jsonb_build_object('due', m.due, 'verified_target', m.verified, 'verified_now', v_now,
+           'gap', greatest(m.verified - v_now, 0),
+           'needed_per_day', case when m.due > v_today then round(greatest(m.verified - v_now, 0) / (m.due - v_today), 2) end)
+           order by m.due), '[]'::jsonb)
+    into v_ms from public.ceo_year_plan_milestone m where m.due >= v_today and m.verified > 0;
+
+  insert into public.ceo_review (kind, period, facts) values ('target_forecast', v_week, jsonb_build_object('verdicts', v_all, 'milestones', v_ms))
   on conflict (kind, period) do update set facts = excluded.facts;
 
-  if v_rev is not null and coalesce(v_rev->>'verdict', '') <> 'ON_TRACK'
+  if coalesce(v->>'verdict', '') <> 'ON_TRACK'
      and (select held_id from public.ceo_review where kind = 'target_forecast' and period = v_week) is null then
     v_held := public.fn_seat_duty_reason('ceo', 'ceo.target_forecast',
-      'This week''s forecast says the founder''s year-one target (about 500 verified suppliers by 31 August 2027, on the monthly path per seat) is not on track. '
-        || 'As the chief executive, decide the company''s response, and say what must change and who owns it.',
+      'This week''s forecast says the founder''s year-one plan (50 verified suppliers by 12 Oct, 200 by 30 Nov, 300 by 31 Dec 2026, '
+        || 'customers from January 2027) is not on track. As the chief executive, decide the company''s response, and say what must change and who owns it.',
       ('[{"id":"hold_course","meaning":"the plan in force is right; the gap is expected at this stage and closes as it runs"},'
       || '{"id":"change_plan","meaning":"the plan must change: a different binding constraint, channel or sequence"},'
       || '{"id":"tell_founder","meaning":"the gap needs a decision only the founder holds (money, a commercial rule, his intent)"}]')::jsonb,
-      jsonb_build_object('forecast', v_rev - 'chain', 'all_contracts', v_all, 'year_plan', public.fn_ceo_year_plan_status(now())),
+      jsonb_build_object('forecast', v - 'chain', 'milestones', v_ms, 'year_plan', public.fn_ceo_year_plan_status(now())),
       jsonb_build_object('kind', 'target_forecast', 'period', v_week), 'ceo_forecast:' || v_week);
     -- ONE CALL PER REPORT (24 Sep 2026, it_engineer): normal stakes, so think() runs no second-family verify on it.
     update public.reasoning_held_question set request = request || '{"stakes":"normal"}'::jsonb where id = v_held;
     update public.ceo_review set held_id = v_held where kind = 'target_forecast' and period = v_week;
   end if;
-  return jsonb_build_object('week', v_week, 'verdicts', v_all, 'reasoning_filed', v_held is not null);
+  return jsonb_build_object('week', v_week, 'verdicts', v_all, 'milestones', v_ms, 'reasoning_filed', v_held is not null);
 end $function$
 
 
@@ -85078,6 +85124,7 @@ ALTER TABLE public.ceo_task ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_task_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_weekly_report ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ceo_year_plan ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ceo_year_plan_milestone ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_heuristic ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.challenge_record ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.channel_directive ENABLE ROW LEVEL SECURITY;
@@ -85671,6 +85718,7 @@ CREATE POLICY ceo_seat_audit_service_role_only ON public.ceo_seat_audit AS PERMI
 CREATE POLICY ceo_seat_directive_service_role_only ON public.ceo_seat_directive AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_weekly_report_service_role_only ON public.ceo_weekly_report AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY ceo_year_plan_service_role_only ON public.ceo_year_plan AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY ceo_year_plan_milestone_service ON public.ceo_year_plan_milestone AS PERMISSIVE FOR ALL TO service_role USING (true) WITH CHECK (true);
 CREATE POLICY charge_audit_service_role_only ON public.charge_audit AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_reputation_snapshot_service_role_only ON public.company_reputation_snapshot AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY company_review_ask_service_role_only ON public.company_review_ask AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
