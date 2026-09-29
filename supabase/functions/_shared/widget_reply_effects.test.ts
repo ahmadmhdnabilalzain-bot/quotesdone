@@ -45,18 +45,29 @@ Deno.test('the person decision failing never fails the reply', async () => {
   assertEquals(await e.person, false);
 });
 
-// THE WIRING. site_assistant has two exits that answer a visitor: the composed reply (781) and the canned road.
-// Each must pass through widgetReplyEffects before it returns, or the two side effects above are skipped again.
-Deno.test('site_assistant: the composed reply and the canned road both file the side effects before returning', async () => {
+// THE WIRING. Every exit of site_assistant that answers a visitor's question — the capability answer, the FAQ
+// answer, the missing-credential exit, the composed reply (781) and the canned road — must file the two side
+// effects above (fileEffects -> widgetReplyEffects) and write its assistant_logs row before it returns. The one
+// reply exempt is the rate limit's, which answers before the question is read at all.
+Deno.test('site_assistant: every exit that answers a question files the side effects and its log before returning', async () => {
   const src = await Deno.readTextFile(new URL('../site_assistant/index.ts', import.meta.url));
-  const call = /await widgetReplyEffects\(/g;
-  const start = src.indexOf("sr.path === 'reasoned'");
-  assert(start > 0, 'the composed-reply branch was not found');
-  const reasonedExit = src.indexOf('return J(', start);
-  assert(call.test(src.slice(start, reasonedExit)), 'the composed reply returns without filing the gap or the person report');
-  const lastExit = src.lastIndexOf('return J({ reply');
-  call.lastIndex = 0;
-  assert(call.test(src.slice(reasonedExit, lastExit)), 'the canned road returns without filing the gap or the person report');
+  assert(/const fileEffects = async [^\n]*\n\s+const fx = await widgetReplyEffects\(rpc, /.test(src), 'fileEffects no longer calls widgetReplyEffects');
+  const exits = [...src.matchAll(/return J\(\{ reply\b/g)].map((m) => m.index!);
+  const answering = exits.filter((i) => !/RL_REPLY/.test(src.slice(i, src.indexOf('\n', i))));
+  assertEquals(answering.length, 5, 'capability, FAQ, missing credential, composed reply, canned road');
+  const defined = src.indexOf('const fileEffects = async');
+  let prev = defined;
+  for (const i of answering) {
+    assert(i > defined, 'an answering exit returns before fileEffects exists: ' + src.slice(i, i + 80));
+    const seg = src.slice(prev, i);
+    const line = src.slice(i, src.indexOf('\n', i));
+    assert(/await fileEffects\(\{ grounded: /.test(seg), 'this exit returns without filing the gap or the person report: ' + line);
+    assert(/from\('assistant_logs'\)\.insert\(/.test(seg), 'this exit returns without writing its log: ' + line);
+    prev = i;
+  }
+  // the stored answers are grounded; the missing-credential exit is not, so a visitor's question there is filed as a gap
+  const credential = src.slice(src.indexOf("if (!key) {"), src.indexOf('return J({ reply })'));
+  assert(/fileEffects\(\{ grounded: false, answered: false/.test(credential), 'the missing-credential exit must file its question as not grounded');
 });
 
 // Review of #1043: a signed-in widget reply is logged as its party so it attaches to the support case (#1036).
