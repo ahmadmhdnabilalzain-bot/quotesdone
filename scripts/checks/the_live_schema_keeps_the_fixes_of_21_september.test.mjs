@@ -2,15 +2,15 @@
 //
 // Founder, 21 Sep 2026 (instruction 573): "i dont want things to pop up again for the same reasons".
 // Each fix below was proved once, by a probe, at apply time. A probe runs once; this runs on every
-// `node scripts/checks/run.mjs`. It reads supabase/schema/full_schema.sql — the mirror of production
+// `node scripts/checks/run.mjs`. It reads supabase/schema/full_schema/ — the mirror of production
 // that export_from_either_source_is_identical.mjs keeps equal to the live database on every pull
 // request — so re-applying an old body cannot pass CI without this test seeing it.
 // Index: docs/it/RECURRENCE_GUARDS_21_SEP_2026.md.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
-const SCHEMA = readFileSync(new URL('../../supabase/schema/full_schema.sql', import.meta.url), 'utf8');
+const SCHEMA = readSchemaMirror();
 const noComments = (s) => s.replace(/--[^\n]*/g, '');
 const body = (name) => {
   const at = SCHEMA.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
