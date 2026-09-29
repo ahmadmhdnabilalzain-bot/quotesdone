@@ -36,6 +36,7 @@ async function logRun(status: 'ok' | 'error', counts: Record<string, unknown>, n
   } catch (_e) { /* the log never breaks the duty */ }
 }
 
+async function articleDuty() {
   const { data: release, error } = await admin.rpc('fn_marketing_article_release_due');
   if (error) return { ok: false, error: error.message };
   const { data: waiting } = await admin.from('marketing_article').select('slug').eq('status', 'released').limit(5);
