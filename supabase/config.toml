@@ -66,6 +66,9 @@ verify_jwt = true
 [functions.customer_documents]
 verify_jwt = false
 
+[functions.customer_followup]
+verify_jwt = false
+
 [functions.customer_intelligence]
 verify_jwt = true
 

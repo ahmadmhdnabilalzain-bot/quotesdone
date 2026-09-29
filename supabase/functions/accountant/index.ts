@@ -642,7 +642,7 @@ Deno.serve(observe('accountant', async (req) => {
 
       if (paused !== true) {
         let aq = admin.from('refunds')
-          .select('id,transaction_id,customer_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
+          .select('id,transaction_id,customer_id,supplier_lead_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
           .not('refund_decision_id', 'is', null).in('status', ['requested', 'approved']).is('stripe_refund_id', null);
         if (onlyRefund != null) aq = aq.eq('id', onlyRefund);
         const { data: approved } = await aq.limit(20);
@@ -653,6 +653,13 @@ Deno.serve(observe('accountant', async (req) => {
           if (tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
             results.push({ refund_id: r.id, error: 'refund_window_not_yet_open', decision_after: tr.refund_deadline }); continue;
           }
+          // THE SCREEN BEFORE MONEY MOVES (29 Sep 2026, founder ledger 1018). A high-severity fraud flag on the
+          // customer or the supplier holds the refund for review: nothing is sent, nobody is banned, and
+          // customer_support tells the customer. Fail closed: a screen that cannot answer sends nothing either.
+          const { data: scr, error: scrErr } = await admin.rpc('fn_accountant_money_screen', {
+            p_move: 'refund', p_ref: String(r.id), p_customer: r.customer_id ?? null, p_supplier: r.supplier_lead_id ?? null });
+          if (scrErr) { results.push({ refund_id: r.id, error: 'money_screen_failed: ' + String(scrErr.message || scrErr).slice(0, 300) }); continue; }
+          if (scr?.hold === true) { results.push({ refund_id: r.id, held: 'fraud_review', hold_id: scr.hold_id }); continue; }
           const demo = await payerIsDemo(r.customer_id, r.stripe_payment_intent);
           if (demo === null) { results.push({ refund_id: r.id, error: 'payer_unknown: the Stripe mode of this payment cannot be known, nothing sent' }); continue; }
           const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: refundIdempotencyKey(String(r.transaction_id)),

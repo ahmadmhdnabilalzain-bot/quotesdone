@@ -1172,6 +1172,261 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_quote_quality_compose(p_kind text, p_lang text, p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_ar boolean := p_kind = 'customer' and coalesce(p_lang, '') like 'ar%';
+  v_lang text := case when p_kind = 'customer' and coalesce(p_lang, '') like 'ar%' then 'ar' else 'en' end;
+  v_name text := nullif(btrim(coalesce(p->>'name', '')), '');
+  v_site text; v_link text; v_trade text; v_trade_ar text; v_em text; v_em_ar text; v_where text; v_where_ar text;
+  v_ref text := coalesce('QD-' || nullif(p->>'job_no', ''), 'your request');
+  v_hours int := coalesce((p->>'hours')::numeric, 24)::int;
+  v_subj text; v_body text;
+begin
+  select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
+  v_link := coalesce(v_site, 'https://quotesdone.com') || '/' || v_lang || '/portal';
+  select t.label, coalesce(t.label_ar, t.label) into v_trade, v_trade_ar
+    from public.taxonomy_trade t
+   where t.code = (public.fn_taxonomy_trades_for(array[coalesce(p->>'category', '')]))[1];
+  v_trade := coalesce(v_trade, nullif(p->>'category', ''), 'your trade');
+  v_trade_ar := coalesce(v_trade_ar, nullif(p->>'category', ''), 'تخصصكم');
+  v_em := nullif(btrim(coalesce(p->>'emirate', '')), '');
+  v_em_ar := case lower(coalesce(v_em, '')) when 'dubai' then 'دبي' when 'abu dhabi' then 'أبوظبي' when 'sharjah' then 'الشارقة'
+               when 'ajman' then 'عجمان' when 'umm al quwain' then 'أم القيوين' when 'ras al khaimah' then 'رأس الخيمة'
+               when 'fujairah' then 'الفجيرة' else v_em end;
+  v_where := v_trade || coalesce(' in ' || v_em, '');
+  v_where_ar := v_trade_ar || coalesce(' في ' || v_em_ar, '');
+
+  if p_kind = 'supplier' then
+    -- an Arabic-script company name is not written into an English letter (#1070's guard)
+    if v_name ~ '[؀-ۿ]' then v_name := null; end if;
+    v_subj := 'Action needed: your quotation for ' || v_ref || ' is on hold — ' || v_where;
+    v_body := coalesce('Dear ' || v_name || ',', 'Dear Sir or Madam,') || E'\n\n'
+      || 'Your quotation for request ' || v_ref || ' (' || v_where || ') has not been shown to the customer yet. '
+      || 'Our quality check found the points below. Please correct them in your supplier portal:'
+      || E'\n\n' || coalesce(p->>'fixes', '') || E'\n\n'
+      || 'If the quotation is not corrected by ' || coalesce(p->>'due', 'the end of the hold') || ' (Dubai time), '
+      || 'it will be shown to the customer as it stands, with these points noted beside it.'
+      || E'\n\n' || v_link;
+  elsif v_ar then
+    v_subj := 'عرض سعر جديد لطلبكم — ' || v_where_ar;
+    v_body := coalesce('السادة/ ' || v_name || ' المحترمين،', 'عميلنا العزيز،') || E'\n\nتحية طيبة وبعد،\n\n'
+      || 'نفيدكم بأن أحد الموردين قدّم عرض سعر لطلبكم في مجال ' || v_where_ar || '. '
+      || case when coalesce((p->>'waited')::boolean, false)
+           then 'وقد وجد فحص الجودة لدينا ملاحظات لم يصحّحها المورّد خلال ' || v_hours || ' ساعة، وهي معروضة بجانب هذا العرض في المقارنة. '
+           else '' end
+      || 'ويمكنكم الاطلاع عليه ومقارنته بالعروض الأخرى عبر بوابتكم:'
+      || E'\n\n' || v_link
+      || E'\n\nوتفضلوا بقبول فائق الاحترام والتقدير،';
+  else
+    v_subj := 'A new quotation for your request — ' || v_where;
+    v_body := coalesce('Dear ' || v_name || ',', 'Dear Customer,') || E'\n\n'
+      || 'A supplier has submitted a quotation for your request for ' || v_where || '. '
+      || case when coalesce((p->>'waited')::boolean, false)
+           then 'Our quality check found points the supplier did not correct within ' || v_hours || ' hours; they are shown beside this quotation in your comparison. '
+           else '' end
+      || 'You can view it and compare it with the others in your portal:'
+      || E'\n\n' || v_link;
+  end if;
+  return jsonb_build_object('lang', v_lang, 'subject', v_subj, 'body', v_body, 'link', v_link);
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_quote_quality_content_md5(p_quote quotes)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select md5(jsonb_build_array(p_quote.quote_amount, p_quote.price_ex_vat, p_quote.vat_treatment, p_quote.vat_amount,
+               p_quote.validity, p_quote.lead_time, p_quote.warranty, p_quote.payment_terms, p_quote.scope, p_quote.conditions,
+               p_quote.exclusions, p_quote.notes, p_quote.terms_spec, p_quote.option_no, p_quote.original_file_path)::text
+             || coalesce((select jsonb_agg(to_jsonb(qi) - 'id' - 'created_at' - 'updated_at' order by qi.line_no, qi.description)::text
+                            from public.quote_items qi where qi.quote_id = p_quote.id::text), '[]'))
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_quote_quality_fixes_en(p_flags jsonb)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select string_agg(n || '. ' || line, E'\n' order by n)
+    from (select row_number() over (order by o) as n,
+                 case f->>'code'
+                   when 'missing_spec' then
+                     'State these specifications on the lines you quote'
+                     || coalesce(' (' || nullif(regexp_replace(f->>'topic', '^[Ss]pec checklist:\s*', ''), '') || ')', '') || ': '
+                     || (select string_agg(s->>'label', '; ' order by k) from jsonb_array_elements(f->'specs') with ordinality e(s, k))
+                     || '. If one does not apply to what you quote, write "not applicable" and why.'
+                   when 'price_above' then
+                     'Line ' || (f->>'line_no') || ' "' || left(coalesce(f->>'description', ''), 80) || '": AED '
+                     || to_char((f->>'price')::numeric, 'FM999,999,990.00') || ' per ' || (f->>'unit') || ' is '
+                     || (f->>'pct_vs_median') || '% above the usual UAE price for this item (AED '
+                     || to_char((f->>'p25')::numeric, 'FM999,999,990.00') || ' to ' || to_char((f->>'p75')::numeric, 'FM999,999,990.00')
+                     || ' per ' || (f->>'unit') || ', from ' || (f->>'quotes') || ' quotations by ' || (f->>'suppliers')
+                     || ' suppliers). Correct the price, or state on the line what justifies it (brand, grade, scope or delivery).'
+                   when 'price_below' then
+                     'Line ' || (f->>'line_no') || ' "' || left(coalesce(f->>'description', ''), 80) || '": AED '
+                     || to_char((f->>'price')::numeric, 'FM999,999,990.00') || ' per ' || (f->>'unit') || ' is '
+                     || abs((f->>'pct_vs_median')::numeric) || '% below the usual UAE price for this item (AED '
+                     || to_char((f->>'p25')::numeric, 'FM999,999,990.00') || ' to ' || to_char((f->>'p75')::numeric, 'FM999,999,990.00')
+                     || ' per ' || (f->>'unit') || ', from ' || (f->>'quotes') || ' quotations by ' || (f->>'suppliers')
+                     || ' suppliers). Check the quantity, the specification and what is excluded, then correct the line or state what it covers.'
+                   when 'no_validity' then 'State how long the quotation is valid (for example, 30 days).'
+                   when 'no_delivery_time' then 'State the delivery or lead time (a date, or a number of days from the order).'
+                   when 'no_vat_treatment' then 'State whether your price includes or excludes VAT, or that you are not registered for VAT.'
+                 end as line
+            from jsonb_array_elements(coalesce(p_flags, '[]'::jsonb)) with ordinality a(f, o)) x
+   where line is not null
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_quote_quality_flags(p_quote quotes)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_cat text; v_demo boolean; v_reader boolean; v_spec jsonb; v_price jsonb; v_terms jsonb := '[]'::jsonb;
+begin
+  select i.category into v_cat from public.inquiries i where i.id = p_quote.inquiry_id;
+  v_demo := public.fn_inquiry_is_demo(p_quote.inquiry_id);
+
+  -- (1) the pack checklist, unless a line reader already read these lines
+  select exists (select 1 from public.quote_items qi, jsonb_object_keys(coalesce(qi.spec, '{}'::jsonb)) k
+                  where qi.quote_id = p_quote.id::text and k !~ '^spec_') into v_reader;
+  if not v_reader then
+    with lists as (
+      select c.topic_id, c.topic, c.specs from public.trade_spec_checklist c
+       where c.trade_code = v_cat or c.trade_code = any(coalesce(public.fn_taxonomy_trades_for(array[v_cat]), '{}'::text[]))
+    ), specs as (
+      select l.topic_id, l.topic, s.x->>'code' as code, s.x->>'label_en' as label, s.ord
+        from lists l, jsonb_array_elements(l.specs) with ordinality s(x, ord)
+    ), judged as (
+      select sp.*, exists (select 1 from public.quote_items qi
+                            where qi.quote_id = p_quote.id::text and nullif(btrim(qi.spec->>sp.code), '') is not null) as stated
+        from specs sp
+    ), per_list as (
+      select j.topic_id, j.topic, count(*) filter (where j.stated) as n_stated, count(*) filter (where not j.stated) as n_missing,
+             jsonb_agg(jsonb_build_object('code', j.code, 'label', j.label) order by j.ord) filter (where not j.stated) as missing
+        from judged j group by j.topic_id, j.topic
+    ), chosen as (
+      select * from per_list order by (n_missing = 0) desc, n_stated desc, n_missing, topic_id limit 1
+    )
+    select case
+             when not exists (select 1 from per_list) then null                        -- no checklist for this trade
+             when (select n_missing from chosen) = 0 then null                         -- one list fully stated
+             when (select n_stated from chosen) > 0 or (select count(*) from per_list) = 1
+               then jsonb_build_object('code', 'missing_spec', 'topic', (select topic from chosen), 'specs', (select missing from chosen))
+             else jsonb_build_object('code', 'missing_spec', 'topic', null, 'specs',
+                    (select jsonb_agg(jsonb_build_object('code', u.code, 'label', u.label) order by u.first_topic, u.ord)
+                       from (select distinct on (j.code) j.code, j.label, j.topic_id as first_topic, j.ord
+                               from judged j order by j.code, j.topic_id, j.ord) u))
+           end
+      into v_spec;
+  end if;
+
+  -- (2) each priced line against the UAE range for the same item; no benchmark, no flag
+  with b as (select * from public.fn_price_benchmarks(v_demo, p_quote.inquiry_id)),
+  lines as (
+    select qi.line_no, qi.description,
+           public.fn_price_benchmark_key(qi.description, qi.specification) as item_key,
+           public.fn_price_benchmark_unit(qi.unit) as unit,
+           round(coalesce(qi.unit_price, qi.amount / nullif(qi.qty, 0)), 2) as price
+      from public.quote_items qi where qi.quote_id = p_quote.id::text
+  ), judged as (
+    select l.*, b.median, b.p25, b.p75, b.quote_count, b.supplier_count,
+           public.fn_price_benchmark_judge(l.price, b.median, b.p25, b.p75, b.quote_count, b.supplier_count, l.unit) as j
+      from lines l join b on b.trade = lower(v_cat) and b.item_key = l.item_key and b.unit = l.unit
+     where l.price > 0
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'code', case when j->>'status' = 'well_above' then 'price_above' else 'price_below' end,
+           'line_no', line_no, 'description', description, 'unit', unit, 'price', price,
+           'pct_vs_median', (j->>'pct_vs_median')::numeric, 'median', median, 'p25', p25, 'p75', p75,
+           'quotes', quote_count, 'suppliers', supplier_count) order by line_no), '[]'::jsonb)
+    into v_price
+    from judged where j->>'status' in ('well_above', 'well_below');
+
+  -- (3) the terms a customer cannot compare without
+  if nullif(btrim(coalesce(p_quote.validity, '')), '') is null then
+    v_terms := v_terms || jsonb_build_array(jsonb_build_object('code', 'no_validity')); end if;
+  if nullif(btrim(coalesce(p_quote.lead_time, '')), '') is null
+     and nullif(btrim(coalesce(p_quote.terms_spec #>> '{delivery,value}', '')), '') is null then
+    v_terms := v_terms || jsonb_build_array(jsonb_build_object('code', 'no_delivery_time')); end if;
+  if coalesce(p_quote.vat_treatment, 'not_stated') = 'not_stated' then
+    v_terms := v_terms || jsonb_build_array(jsonb_build_object('code', 'no_vat_treatment')); end if;
+
+  return (case when v_spec is null then '[]'::jsonb else jsonb_build_array(v_spec) end) || coalesce(v_price, '[]'::jsonb) || v_terms;
+end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_quote_quality_gate()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_flags jsonb; h public.quote_quality_hold; v_live boolean; v_open boolean;
+  v_hours numeric := public.fn_seat_clock_policy('quote_quality_hold_hours', 24);
+begin
+  -- a quote that is not (or not yet) in front of the customer is not checked here
+  if coalesce(new.status, 'submitted') in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled', 'held') then return new; end if;
+  -- going out now: a new row, or one leaving a state no customer surface shows
+  v_live := tg_op = 'INSERT' or coalesce(old.status, 'draft') in ('draft', 'withdrawn', 'rejected', 'expired', 'cancelled', 'held');
+  v_flags := public.fn_quote_quality_flags(new);
+  select * into h from public.quote_quality_hold where quote_id = new.id;
+  v_open := found and h.released_at is null and h.superseded_at is null;
+
+  if not v_live or h.released_at is not null then
+    -- already out, or already waited its hours once: never pulled back; the flags beside it are kept current
+    if found and h.flags is distinct from v_flags then
+      update public.quote_quality_hold
+         set flags = v_flags, fixes_en = public.fn_quote_quality_fixes_en(v_flags),
+             corrected_at = case when jsonb_array_length(v_flags) = 0 then coalesce(corrected_at, now()) else null end,
+             updated_at = now()
+       where quote_id = new.id;
+    end if;
+    return new;
+  end if;
+
+  if jsonb_array_length(v_flags) = 0 then
+    if v_open then
+      update public.quote_quality_hold
+         set flags = v_flags, released_at = now(), release_reason = 'corrected', corrected_at = now(), updated_at = now()
+       where quote_id = new.id;
+    end if;
+    return new;
+  end if;
+
+  -- flagged: it stays a draft, which every customer surface already hides, and the hold opens. An open hold keeps its
+  -- clock (a resubmission never resets it) and takes the newly accepted version; a superseded one starts over.
+  new.status := 'draft';
+  insert into public.quote_quality_hold (quote_id, inquiry_id, supplier_id, fixture, flags, fixes_en, accepted_md5, held_at, release_due)
+  values (new.id, new.inquiry_id, new.supplier_id, public.fn_inquiry_is_demo(new.inquiry_id), v_flags,
+          public.fn_quote_quality_fixes_en(v_flags), public.fn_quote_quality_content_md5(new),
+          now(), now() + make_interval(secs => (v_hours * 3600)::double precision))
+  on conflict (quote_id) do update
+    set flags = excluded.flags, fixes_en = excluded.fixes_en, accepted_md5 = excluded.accepted_md5, updated_at = now(),
+        held_at = case when quote_quality_hold.superseded_at is null then quote_quality_hold.held_at else excluded.held_at end,
+        release_due = case when quote_quality_hold.superseded_at is null then quote_quality_hold.release_due else excluded.release_due end,
+        fixes_sent_md5 = case when quote_quality_hold.superseded_at is null then quote_quality_hold.fixes_sent_md5 end,
+        superseded_at = null;
+  return new;
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_quote_reviews_follow_owner()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -1297,6 +1552,14 @@ begin
   end if;
   return public.fn_accountant_bank_line_reasoned(v_line, v_kind, 'reasoning:held#' || p_id);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_accountant__circumvention(p_id bigint, p_result jsonb)
@@ -1429,6 +1692,48 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__decision_owed(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.reasoning_held_question; v_choice text; v_hid bigint; v_review jsonb; v jsonb; x record;
+begin
+  v_choice := public.fn_ambition_choice(p_id, p_result);
+  select * into r from public.reasoning_held_question where id = p_id;
+  v_hid := (r.subject->>'handoff_id')::bigint;
+  -- A REFUND IS RE-MEASURED FIRST: one whose checks now pass is approved, which settles what was owed, so a
+  -- payable refund is never declined on a stale reading.
+  if split_part(r.subject->>'item_key', ':', 1) = 'refunds' then
+    -- a remediation whose checks now pass is closed first (as fn_ceo_refund_loop_sweep would on its next run);
+    -- closing the last one re-runs the review through fn_ceo_refund_loop_advance
+    for x in select a.id, a.detail from public.agent_actions a
+              where a.kind = 'handoff' and a.status = 'pending' and a.detail->>'type' = 'refund.remediate'
+                and a.detail->>'refund_id' = split_part(r.subject->>'item_key', ':', 2) order by a.id loop
+      v := public.fn_ceo_refund_checklist((x.detail->>'transaction_id')::uuid, 'approve', false);
+      if not exists (select 1 from jsonb_array_elements(v->'items') i
+                      where (x.detail->'checks') ? (i->>'item') and not coalesce((i->>'passed')::boolean, false)) then
+        perform public.fn_seat_handoff_complete(x.id, jsonb_build_object('resolved_by', 're-measured before the CEO''s owed decision', 'checks', x.detail->'checks'));
+      end if;
+    end loop;
+    v_review := public.fn_ceo_refund_review(split_part(r.subject->>'item_key', ':', 2)::bigint, 'ceo_decision_owed');
+  end if;
+  -- a stale answer changes nothing: the item moved on (a new round, an approval) and settled what was owed
+  if not exists (select 1 from public.agent_actions a where a.id = v_hid and a.status = 'pending') then
+    return jsonb_build_object('applied', true, 'already', 'the owed decision was settled by the item''s next round', 'review', v_review);
+  end if;
+  v := public.fn_ceo_decision_close(r.subject->>'item_key', case v_choice when 'replace' then 'replaced' else 'withdrawn' end,
+    coalesce(p_result->>'answer', ''), jsonb_build_object('held_id', p_id, 'model', p_result->>'model', 'fields', public.fn_ambition_fields(p_result)));
+  -- nothing is left to decide (the item closed or the refund left 'requested' another way): the owed conversation
+  -- ends with that fact instead of waiting for ever. An item under review stays owed; its review turn settles it.
+  if not coalesce((v->>'ok')::boolean, false) and coalesce(v->>'reason', '') !~ 'under review' then
+    perform public.fn_seat_handoff_complete(v_hid, jsonb_build_object('decided_by', 'ceo', 'nothing_to_close', v->>'reason', 'held_id', p_id));
+  end if;
+  return v || jsonb_build_object('review', v_review);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__escalation_meaning(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -1451,7 +1756,7 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__experiment_approval(p_id 
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare r public.reasoning_held_question; e public.ceo_experiment; v_choice text; v_f jsonb; v_review jsonb; v_owner text; v_days int;
-  v_today date := (now() at time zone 'Asia/Dubai')::date;
+  v_today date := (now() at time zone 'Asia/Dubai')::date; v_by_seat boolean; v_reasons text; v_cyc jsonb; v_problem text;
 begin
   v_choice := public.fn_ambition_choice(p_id, p_result);
   select * into r from public.reasoning_held_question where id = p_id;
@@ -1464,6 +1769,23 @@ begin
                   then v_f->>'owner_seat' else e.proposed_by end;
   v_days := case when coalesce(v_f->>'days', '') ~ '^\d{1,3}$' and (v_f->>'days')::int between 7 and 365 then (v_f->>'days')::int else e.days end;
 
+  -- THE DECISION SAYS WHY (founder_instruction 1059), and a seat's proposal goes round the cycle.
+  v_reasons := btrim(coalesce(p_result->>'answer', '') || case when coalesce(btrim(v_f->>'conditions'), '') <> ''
+                                                              then E'\nConditions: ' || (v_f->>'conditions') else '' end);
+  v_by_seat := e.proposed_by <> 'ceo';
+  if v_by_seat then
+    v_cyc := public.fn_ceo_decide('ceo_experiment', 'ceo_experiment:' || e.id, e.proposed_by,
+               case when v_choice = 'approve' then 'approved' else 'rejected' end, v_reasons,
+               jsonb_build_object('experiment_id', e.id, 'key', e.key, 'iteration', e.iteration, 'choice', v_choice,
+                                  'experiment', to_jsonb(e) - 'approval', 'fields', v_f),
+               'reasoning_held_question', p_id::text);
+  else
+    v_problem := public.fn_ceo_reasons_problem(v_reasons);
+    if v_problem is not null then
+      raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: the CEO''s call on experiment ' || e.key || ' says why: ' || v_problem;
+    end if;
+  end if;
+
   -- THE CHALLENGE: the accountant reviews every approval call on a model of another family.
   v_review := public.fn_seat_duty_cross_review('ceo.experiment_approval', 'ceo', 'accountant',
     'Challenge the chief executive''s call on this experiment before it runs.',
@@ -1473,17 +1795,17 @@ begin
 
   update public.ceo_experiment
      set approval = jsonb_build_object('decision', v_choice, 'fields', v_f, 'reasoning', left(coalesce(p_result->>'answer', ''), 6000),
-                                       'model', p_result->>'model', 'review', v_review, 'decided_at', now()),
+                                       'model', p_result->>'model', 'review', v_review, 'decided_at', now(), 'cycle', v_cyc),
          status = case v_choice when 'approve' then case when e.starts_on <= v_today then 'running' else 'approved' end
-                                when 'reject' then 'rejected' else 'proposed' end,
+                                when 'reject' then case when v_by_seat then 'proposed' else 'rejected' end else 'proposed' end,
          owner_seat = case when v_choice = 'approve' then v_owner else owner_seat end,
          days = v_days,
          starts_on = case when v_choice = 'approve' then greatest(e.starts_on, v_today) else starts_on end,
          ends_on = case when v_choice = 'approve' then greatest(e.starts_on, v_today) + v_days end,
-         closed_at = case when v_choice = 'reject' then now() end,
+         closed_at = case when v_choice = 'reject' and not v_by_seat then now() end,
          updated_at = now()
    where id = e.id;
-  return jsonb_build_object('applied', true, 'experiment', e.key, 'choice', v_choice, 'owner', v_owner, 'review', v_review);
+  return jsonb_build_object('applied', true, 'experiment', e.key, 'choice', v_choice, 'owner', v_owner, 'review', v_review, 'cycle', v_cyc);
 end $function$
 
 
@@ -1619,11 +1941,15 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_ceo__sales_escalation(p_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_hid bigint;
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_hid bigint; v_problem text;
 begin
   select * into r from public.reasoning_held_question where id = p_id;
   if v_choice is null or not exists (select 1 from jsonb_array_elements(r.request->'decision'->'options') o where o->>'id' = v_choice) then
     raise exception 'CHOICE_NOT_AN_OPTION: % is not an option of % (held question %)', coalesce(v_choice, 'no choice'), r.surface, p_id;
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(p_result->>'answer');
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: the CEO''s answer to a sales escalation says why: ' || v_problem;
   end if;
   v_hid := (r.subject->>'handoff_id')::bigint;
   perform set_config('qd.handoff_closer', 'ceo', true);
@@ -1721,6 +2047,14 @@ begin
   v := public.fn_what_if(r.subject->>'question', coalesce(r.subject->'change', '{}'::jsonb), v_choice);
   return jsonb_build_object('simulation_id', v->'id', 'scenario', v_choice);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_customer_support__dispute_intake(p_id bigint, p_result jsonb)
@@ -1867,6 +2201,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_it_engineer__knowledge_exam(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE sql
@@ -2003,6 +2345,14 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__competitor_change(p_id bigint, p_result jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2057,6 +2407,14 @@ CREATE OR REPLACE FUNCTION public.fn_reason_apply_marketing__root_cause(p_id big
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$ select public.fn_ceo_root_cause_applies(p_id, p_result) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__ceo_revision(p_id bigint, p_result jsonb)
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_revision_applies(p_id, p_result) $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_reason_apply_sales_engineer__dispute_fault(p_id bigint, p_result jsonb)
