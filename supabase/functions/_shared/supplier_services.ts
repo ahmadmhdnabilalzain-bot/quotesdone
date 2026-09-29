@@ -28,9 +28,8 @@
 // the sales engineer — never dropped, never guessed.
 
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
-import { impliedServices, rewriteServices, tidy, type Implication, type ServiceTerm } from './service_rewrite.ts';
+import { impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
 import { serviceVocab } from './service_vocabulary.ts';
-import type { TradeTerm } from './trade_words.ts';
 import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
 import { meaningCandidates, parseVec, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
 import { embedLine } from './gte_embed.ts';
@@ -279,10 +278,14 @@ export const RAW_TEXT_MAX = 2000;
  *  for the tab's vocabulary. */
 export { serviceVocab };
 
-/** The trade aliases, for a phrase that names a trade but no service of it. */
-export async function tradeVocab(admin: Admin): Promise<TradeTerm[]> {
-  const { data, error } = await admin.from('taxonomy_trade').select('code,aliases').eq('active', true);
-  return error ? [] : (data || []);
+/** The own-words phrases that ARE a trade code or intake slug, resolved by public.fn_norm_trades itself
+ *  (fn_norm_trades_many, one call). A phrase's words never name a trade (ruling 890; the trade-alias vocabulary
+ *  this replaced, tradeVocab, fed trade_words.ts). Null when the database could not be asked: then no own-words
+ *  item becomes a trade, and the save still resolves each word exactly or by reasoning (resolveText). */
+export async function exactTradesOf(admin: Admin, phrases: string[]): Promise<Record<string, string[]> | null> {
+  if (!phrases.length) return {};
+  const { data, error } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, 400) });
+  return error || !data || typeof data !== 'object' ? null : data as Record<string, string[]>;
 }
 
 /** public.service_implication, the curated map. THE TABLE IS THE SOURCE, not the JSON seed beside it:
@@ -348,14 +351,16 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
   if (fromCatalogue && !cat) return [404, { error: 'no_catalogue', code: 'services_no_catalogue' }];
   const raw = fromCatalogue ? '' : String(body.text ?? '').slice(0, RAW_TEXT_MAX);
   if (!fromCatalogue && raw.trim().length < 2) return [400, { error: 'empty_text', code: 'services_empty_text' }];
-  const [services, trades, map] = await Promise.all([serviceVocab(admin), tradeVocab(admin), implicationMap(admin)]);
+  const [services, map] = await Promise.all([serviceVocab(admin), implicationMap(admin)]);
   // SUPPLY ONLY is proposed by the words, and the supplier's own answer overrides it (supply_only true /
   // false in the request, from "we also install" on the tab).
   const override = typeof body.supply_only === 'boolean' ? body.supply_only as boolean : undefined;
-  const read = cat ? readCatalogue(cat.text, services, trades, override) : null;
+  const read = cat ? readCatalogue(cat.text, services, override) : null;
   const supply = read ? read.supply : supplyOnlyOf(raw);
   const supplyOnly = override ?? supply.supply_only;
-  const rw = read ? read.rewrite : rewriteServices(raw, services, trades, { supplyOnly });
+  const rw0 = read ? read.rewrite : rewriteServices(raw, services, { supplyOnly });
+  // A phrase of his own words that IS a trade code or slug is shown as that trade (rule 4, exactly).
+  const rw = withExactTrades(rw0, await exactTradesOf(admin, ownWordsOf(rw0)));
 
   // WHAT THE STATED SERVICES ALSO COVER. The sources are the stated service keys, the trades those
   // services belong to (stating "decoration" states interior_fitout too), and any trade a phrase named
@@ -385,8 +390,12 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
   });
   // WHAT THE WORDS LEFT UNNAMED, read for meaning: whole lines the rules named nothing in, and — from a
   // catalogue — its sentences about the company. Never its spec rows (catalogue_read.ts drops those).
+  // Typed text also gives meaning the phrases the rewrite set aside as prose: "We are an interior fit out
+  // company" named a trade by its words until 29 Sep 2026 (trade_words.ts); now only meaning may read it.
   const unnamed = rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
-  const meaning = await meaningFor(admin, [...unnamed, ...(read ? read.lines.statements : [])], rw.service_keys, supplyOnly);
+  const namedFrom = new Set(rw.items.filter((i) => i.kind !== 'unmatched').map((i) => i.from));
+  const prose = read ? read.lines.statements : splitPhrases(raw).filter((p) => !namedFrom.has(p));
+  const meaning = await meaningFor(admin, [...unnamed, ...prose], rw.service_keys, supplyOnly);
   // CODE READ NOTHING: the model path, which answers honestly that it is switched off.
   const model = (!rw.service_keys.length && !meaning.proposals.length)
     ? await readWithModel(admin, 'text', { text: cat ? cat.text : raw }, new Set(byKey.keys()))

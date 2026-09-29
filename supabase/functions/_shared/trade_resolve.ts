@@ -1,0 +1,140 @@
+// THE TRADES A SUPPLIER'S TEXT NAMES — by exact code, or by meaning over stored vectors. Never by its words.
+// Seat: sales_engineer. 29 Sep 2026, founder ledger 1054 (round 3 of 1018), against ruling 890 ("no word
+// matching anywhere").
+//
+// WHAT THIS REPLACES. trade_words.ts found a trade wherever one of its aliases occurred in a document, word-start
+// anchored: "Activities: Plumbing works and drainage maintenance" -> plumbing, because 'plumbing' and 'drainage'
+// are aliases. #893 made the SQL side exact on 23 Sep 2026 (fn_norm_trades accepts a live code or an intake slug
+// and returns NULL for free text); the TypeScript side kept reading words for suppliers' documents until this
+// file. trade_words.ts is gone; its Arabic folding and alias pattern live on in alias_pattern.ts for the SERVICE
+// alias index (decision point 93, still pending), which is not a trade decision.
+//
+// TWO PATHS, the ones the rest of the system uses:
+//   1. EXACT CODE. A line or list item that IS a live taxonomy code or an intake slug, as public.fn_norm_trades
+//      resolves it ("HVAC", "Electrical", "Carpentry"). The database routine decides, through
+//      fn_norm_trades_many (one call per text), so there is one definition of "exact". A sentence resolves to
+//      nothing, as it does in SQL.
+//   2. MEANING. The lines are embedded with gte-small (free, in-region, not OpenRouter: gte_embed.ts) and compared
+//      with the stored vector of every active service (taxonomy_trade_service.embedding_gte) by
+//      service_meaning.proposeByMeaning - the rule the Services tab reads a catalogue with: similarity above
+//      MEANING_FLOOR AND the line holds the head word of that service's name (a nearest neighbour alone is never
+//      accepted). An accepted service names its trade; the evidence is the line, the service and the similarity.
+// Nothing else proposes a trade. A line that neither IS a code nor MEANS a service proposes nothing, and a text
+// whose meaning could not be read says so (meaning: embedding_unavailable / budget_spent), never "no trades".
+//
+// CEILING (stated, not hidden): meaning reads at most MEANING_MAX_LINES lines per call, and a caller reading
+// several documents shares one budget of that size (an edge function has a CPU cap no deadline bounds; each line
+// is one gte-small inference). The lines holding a service head word go first (meaningCandidates). gte-small is
+// an English model, so an Arabic-only document is served by the exact path alone (service_meaning.ts, ARABIC).
+import { MEANING_MAX_LINES, meaningCandidates, parseVec, proposeByMeaning, type MeaningService } from './service_meaning.ts';
+import { splitPhrases } from './service_rewrite.ts';
+
+export type TradeHit = {
+  code: string;
+  via: 'exact_code' | 'meaning';
+  /** what named it: the exact phrase, or the service the line means (its English label, lower case) */
+  phrases: string[];
+  /** the supplier's own line it was found on */
+  snippet: string;
+  /** meaning only: the cosine similarity of the line to the service's stored vector */
+  similarity?: number;
+};
+export type ExactState = 'on' | 'unavailable' | 'nothing_to_read';
+export type MeaningState = 'on' | 'service_vectors_missing' | 'embedding_unavailable' | 'budget_spent' | 'nothing_to_read';
+export type TradeRead = { trades: TradeHit[]; exact: ExactState; meaning: MeaningState };
+
+export type TradeResolveDeps = {
+  /** public.fn_norm_trades over many phrases (public.fn_norm_trades_many): only the phrases that resolve,
+   *  phrase -> codes; null when the database could not be asked. */
+  normTrades: (phrases: string[]) => Promise<Record<string, string[]> | null>;
+  /** The active services with their stored vectors; read once per request. */
+  services: MeaningService[];
+  /** gte-small (gte_embed.embedLine); null outside the edge runtime or when it failed. */
+  embed: (text: string) => Promise<number[] | null>;
+  /** Lines meaning may still read in this request, shared by every text read with these deps. */
+  budget: { left: number };
+};
+
+// A code or slug is a few words at most ("engineering and architectural consultancies" is the longest slug).
+export const EXACT_MAX_WORDS = 5;
+export const EXACT_MAX_PHRASES = 400;
+export const TEXT_MAX = 80_000;
+
+/** The lines of a text worth reading (two characters or more), one space each, in order, once. */
+export function textLines(text: string): string[] {
+  return [...new Set(String(text ?? '').slice(0, TEXT_MAX).split(/\r?\n/)
+    .map((l) => l.replace(/\s+/g, ' ').trim()).filter((l) => l.length >= 2))];
+}
+
+/** The phrases that could BE a code or a slug: whole lines and list items of a few words. */
+export function exactCandidates(lines: string[]): string[] {
+  const out = new Set<string>();
+  for (const p of splitPhrases(lines.join('\n'), TEXT_MAX, EXACT_MAX_PHRASES * 4)) {
+    if (p.split(' ').length <= EXACT_MAX_WORDS && p.length <= 60) out.add(p);
+    if (out.size >= EXACT_MAX_PHRASES) break;
+  }
+  return [...out];
+}
+
+const lineHolding = (lines: string[], phrase: string) => (lines.find((l) => l.includes(phrase)) ?? phrase).slice(0, 180);
+
+/** Both paths over one text. Never throws: a path that could not run says so in its state. */
+export async function tradesOfText(text: string, deps: TradeResolveDeps, opts: { supplyOnly?: boolean } = {}): Promise<TradeRead> {
+  const lines = textLines(text);
+  const hits = new Map<string, TradeHit>();
+  const add = (h: TradeHit) => {
+    const cur = hits.get(h.code);
+    if (!cur) { hits.set(h.code, h); return; }
+    for (const p of h.phrases) if (cur.phrases.length < 5 && !cur.phrases.includes(p)) cur.phrases.push(p);
+  };
+
+  // 1. exact codes, decided by the database's own routine
+  let exact: ExactState = 'nothing_to_read';
+  const cands = exactCandidates(lines);
+  if (cands.length) {
+    let map: Record<string, string[]> | null = null;
+    try { map = await deps.normTrades(cands); } catch { map = null; }
+    exact = map ? 'on' : 'unavailable';
+    for (const [phrase, codes] of Object.entries(map ?? {})) {
+      for (const code of Array.isArray(codes) ? codes : []) {
+        add({ code, via: 'exact_code', phrases: [phrase.toLowerCase()], snippet: lineHolding(lines, phrase) });
+      }
+    }
+  }
+
+  // 2. meaning, over the stored service vectors
+  let meaning: MeaningState = 'nothing_to_read';
+  if (lines.some((l) => l.length >= 3)) {
+    if (!deps.services.some((s) => s.vec)) meaning = 'service_vectors_missing';
+    else if (deps.budget.left <= 0) meaning = 'budget_spent';
+    else {
+      const todo = meaningCandidates(lines, deps.services, Math.min(MEANING_MAX_LINES, deps.budget.left));
+      deps.budget.left -= todo.length;
+      const vecs = await Promise.all(todo.map((t) => deps.embed(t).catch(() => null)));
+      if (!vecs.some(Boolean)) meaning = 'embedding_unavailable';
+      else {
+        meaning = 'on';
+        const props = proposeByMeaning(todo.map((t, i) => ({ text: t, vec: vecs[i] })), deps.services, { supplyOnly: opts.supplyOnly });
+        for (const p of props) {
+          add({ code: p.trade, via: 'meaning', phrases: [p.label_en.toLowerCase()], snippet: (p.lines[0] ?? '').slice(0, 180), similarity: p.similarity });
+        }
+      }
+    }
+  }
+  return { trades: [...hits.values()].sort((a, b) => a.code.localeCompare(b.code)), exact, meaning };
+}
+
+/** The deps as an edge function builds them: the database routine, the stored vectors, the in-region model. */
+// deno-lint-ignore no-explicit-any
+export async function liveTradeDeps(admin: any, embed: (t: string) => Promise<number[] | null>): Promise<TradeResolveDeps> {
+  const { data, error } = await admin.from('taxonomy_trade_service')
+    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true);
+  const services = error ? [] : (data || []).map((s: Record<string, unknown>) => ({ ...s, vec: parseVec(s.embedding_gte) })) as MeaningService[];
+  return {
+    services, embed, budget: { left: MEANING_MAX_LINES },
+    normTrades: async (phrases) => {
+      const { data: m, error: e } = await admin.rpc('fn_norm_trades_many', { p_texts: phrases.slice(0, EXACT_MAX_PHRASES) });
+      return e || !m || typeof m !== 'object' ? null : m as Record<string, string[]>;
+    },
+  };
+}
