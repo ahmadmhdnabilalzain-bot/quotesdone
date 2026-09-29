@@ -296,6 +296,12 @@ export async function main(argv = process.argv.slice(2)) {
     }
     log('bookkeeping pushed to main');
   }
+  // A merge made with GITHUB_TOKEN starts no push workflow, so main's own CI never ran on a train merge
+  // (29 Sep 2026: #961, #993, #1060, #998, #992). The train dispatches it; workflow_dispatch works with the token.
+  for (const wf of ['checks.yml', 'project-parity.yml']) {
+    const r = run('gh', ['workflow', 'run', wf, '--ref', 'main']);
+    log(`dispatched ${wf} on main -> exit ${r.code}`);
+  }
   return failed ? 1 : 0;
 }
 
