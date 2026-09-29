@@ -29,3 +29,18 @@ export function pendingNotes(repo = REPO) {
   }
   return out;
 }
+
+// THE FILES THE STATIC CHECKS MUST READ (it_engineer, 29 Sep 2026). A pending file is appended to the
+// END of MANIFEST.txt the moment it is applied, so a check that reads only MANIFEST passes a PR whose
+// file waits in pending/ and turns red on main one bookkeeping commit later (#1036 and #1070 did exactly
+// that). This returns MANIFEST's .sql lines followed by every pending file that is not a probe, in name
+// order - the order they will be appended - so a PR fails its own CI instead of breaking main.
+export function manifestWithPending(repo = REPO) {
+  const listed = readFileSync(join(repo, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).map((l) => l.trim())
+    .filter((l) => l.endsWith('.sql') && !l.startsWith('#') && !l.startsWith('--'));
+  const seen = new Set(listed);
+  const pending = [...pendingNotes(repo)]
+    .filter(([f, note]) => !seen.has(f) && !/^\s*A PROBE\b/.test(note) && existsSync(join(repo, f)))
+    .map(([f]) => f);
+  return [...listed, ...pending];
+}

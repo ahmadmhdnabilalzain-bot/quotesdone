@@ -692,6 +692,126 @@
       "expected_facts": [
         "retrieve the most similar resolved cases"
       ]
+    },
+    {
+      "id": "customer_support-exam-58",
+      "checklist": "CS-PRO",
+      "q_en": "Does a low complaint count mean customers are satisfied?",
+      "q_ar": "هل يعني انخفاض عدد الشكاوى أن العملاء راضون؟",
+      "expected_entry_ids": [
+        "customer_support:iso-10004-satisfaction-monitoring"
+      ],
+      "expected_facts": [
+        "Silence is not satisfaction"
+      ]
+    },
+    {
+      "id": "customer_support-exam-59",
+      "checklist": "CS-PRO",
+      "q_en": "A buyer and supplier disagree on work quality after the reveal. Does Support decide who is right?",
+      "q_ar": "اختلف مشترٍ ومورد على جودة العمل بعد الكشف. هل يقرر الدعم من المحق؟",
+      "expected_entry_ids": [
+        "customer_support:iso-10003-external-dispute-resolution"
+      ],
+      "expected_facts": [
+        "never acts as arbitrator"
+      ]
+    },
+    {
+      "id": "customer_support-exam-60",
+      "checklist": "CS-PRO",
+      "q_en": "What must a support channel have before it is opened to customers?",
+      "q_ar": "ما الذي يجب أن يتوفر لقناة دعم قبل فتحها للعملاء؟",
+      "expected_entry_ids": [
+        "customer_support:iso-18295-customer-contact-centres"
+      ],
+      "expected_facts": [
+        "published contact route"
+      ]
+    },
+    {
+      "id": "customer_support-exam-61",
+      "checklist": "CS-PRO",
+      "q_en": "What does a service blueprint add to a customer journey map?",
+      "q_ar": "ماذا يضيف مخطط الخدمة إلى خريطة رحلة العميل؟",
+      "expected_entry_ids": [
+        "customer_support:journey-mapping-service-blueprint"
+      ],
+      "expected_facts": [
+        "line of visibility"
+      ]
+    },
+    {
+      "id": "customer_support-exam-62",
+      "checklist": "CS-PRO",
+      "q_en": "What is a voice-of-the-customer programme?",
+      "q_ar": "ما برنامج صوت العميل؟",
+      "expected_entry_ids": [
+        "customer_support:voice-of-customer-programme"
+      ],
+      "expected_facts": [
+        "programme is the system that turns"
+      ]
+    },
+    {
+      "id": "customer_support-exam-63",
+      "checklist": "CS-PRO",
+      "q_en": "When should a buyer be asked the satisfaction survey?",
+      "q_ar": "متى يُطرح استبيان الرضا على المشتري؟",
+      "expected_entry_ids": [
+        "customer_support:survey-design-and-bias"
+      ],
+      "expected_facts": [
+        "after the outcome"
+      ]
+    },
+    {
+      "id": "customer_support-exam-64",
+      "checklist": "CS-PRO",
+      "q_en": "Why normalise weekly complaint counts?",
+      "q_ar": "لماذا تُطبّع أعداد الشكاوى الأسبوعية؟",
+      "expected_entry_ids": [
+        "customer_support:complaint-trend-pareto"
+      ],
+      "expected_facts": [
+        "more users mean more complaints"
+      ]
+    },
+    {
+      "id": "customer_support-exam-65",
+      "checklist": "CS-PRO",
+      "q_en": "What is the first technique of active listening in a written reply?",
+      "q_ar": "ما أول تقنيات الإصغاء الفعّال في الرد المكتوب؟",
+      "expected_entry_ids": [
+        "customer_support:active-listening-written-empathy"
+      ],
+      "expected_facts": [
+        "Reflect"
+      ]
+    },
+    {
+      "id": "customer_support-exam-66",
+      "checklist": "CS-PRO",
+      "q_en": "What may the service charter commit to?",
+      "q_ar": "بماذا يجوز أن يلتزم ميثاق الخدمة؟",
+      "expected_entry_ids": [
+        "customer_support:customer-service-charter"
+      ],
+      "expected_facts": [
+        "commits only to measured standards"
+      ]
+    },
+    {
+      "id": "customer_support-exam-67",
+      "checklist": "CS-PRO",
+      "q_en": "What is a customer satisfaction code of conduct under ISO 10001?",
+      "q_ar": "ما مدونة سلوك رضا العملاء وفق ISO 10001؟",
+      "expected_entry_ids": [
+        "customer_support:iso-10001-codes-of-conduct"
+      ],
+      "expected_facts": [
+        "set of promises"
+      ]
     }
   ]
 }

@@ -1,0 +1,75 @@
+{
+  "trade": "stationery_office_supplies",
+  "entries": [
+    {
+      "id": "stationery_office_supplies:spec-checklist",
+      "topic": "Stationery and office supplies - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For stationery and office supplies quotes to be compared like-for-like, every quoted line (goods) must state: (1) item description and brand; (2) size and specification (paper GSM, A4 or A3); (3) colour; (4) pack size; (5) quantity in packs; (6) original or compatible (toner, ink); (7) delivery schedule (one-off or call-off); (8) delivery terms and location; (9) lead time; (10) warranty period and terms; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the stationery_office_supplies trade.",
+      "body_ar": "لكي تُقارن عروض القرطاسية واللوازم المكتبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) وصف الصنف والعلامة التجارية؛ (2) المقاس والمواصفة (وزن الورق بالغرام، و A4 أو A3)؛ (3) اللون؛ (4) حجم العبوة؛ (5) الكمية بالعبوات؛ (6) أصلي أو متوافق (حبر أو تونر)؛ (7) جدول التسليم (دفعة واحدة أو حسب الطلب)؛ (8) شروط التسليم وموقعه؛ (9) مدة التوريد؛ (10) مدة الضمان وشروطه؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة stationery_office_supplies فقط.",
+      "required_specs": [
+        "item description and brand",
+        "size and specification (paper GSM, A4 or A3)",
+        "colour",
+        "pack size",
+        "quantity in packs",
+        "original or compatible (toner, ink)",
+        "delivery schedule (one-off or call-off)",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "stationery_office_supplies:uae-standards-and-approvals",
+      "topic": "Stationery and office supplies - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Regulated products placed on the UAE market need conformity with the applicable UAE technical regulation through the Ministry of Industry and Advanced Technology (MoIAT) conformity certification (the scheme formerly run by ESMA as ECAS; the voluntary Emirates Quality Mark, EQM, is separate); UAE.S and GSO standards can be purchased through MoIAT. Most stationery is not a regulated product in the sources read. What the cited sources do not establish: The sources read do not state which stationery items are regulated; ask for conformity only where an item is electrical or a children's product.",
+      "body_ar": "تحتاج المنتجات الخاضعة للتنظيم في السوق الإماراتية إلى المطابقة مع اللائحة الفنية الإماراتية المعنية عبر شهادات المطابقة لدى وزارة الصناعة والتكنولوجيا المتقدمة (النظام الذي كانت تديره هيئة الإمارات للمواصفات والمقاييس سابقاً باسم ECAS، أما علامة الجودة الإماراتية EQM فهي طوعية ومنفصلة)، ويمكن شراء المواصفات الإماراتية والخليجية عبر الوزارة. ومعظم القرطاسية ليست من المنتجات الخاضعة للتنظيم في المصادر المقروءة. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد أصناف القرطاسية الخاضعة للتنظيم؛ اطلب المطابقة فقط حين يكون الصنف كهربائياً أو من منتجات الأطفال.",
+      "source_note": "The sources read do not state which stationery items are regulated; ask for conformity only where an item is electrical or a children's product.",
+      "sources": [
+        "https://moiat.gov.ae/en/services/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for stationery and office supplies?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالقرطاسية واللوازم المكتبية؟",
+      "expected_entry_ids": [
+        "stationery_office_supplies:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to stationery and office supplies?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على القرطاسية واللوازم المكتبية؟",
+      "expected_entry_ids": [
+        "stationery_office_supplies:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "stationery_office_supplies:spec-checklist",
+      "stationery_office_supplies:uae-standards-and-approvals"
+    ],
+    "added": [
+      "stationery_office_supplies:spec-checklist",
+      "stationery_office_supplies:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

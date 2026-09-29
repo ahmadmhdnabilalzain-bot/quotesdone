@@ -1,0 +1,107 @@
+{
+  "trade": "facilities_management",
+  "layer": "uae-market",
+  "label_en": "Facilities management (hard & soft FM)",
+  "label_ar": "إدارة المرافق",
+  "entries": [
+    {
+      "id": "facilities_management:uae-market-products",
+      "topic": "Facilities management (hard & soft FM): products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Facilities management in the UAE is sold as hard services (MEP planned preventive maintenance, HVAC and chiller maintenance, electrical, plumbing, fire life safety systems maintenance, BMS, lifts via OEM), soft services (cleaning, pest control, landscaping, waste management, security, reception, helpdesk), and integrated FM (IFM) combining both under one contract with a CAFM system, KPIs and SLAs. Buyers specify asset registers, PPM frequency based on SFG20 or OEM schedules, reactive response times (e.g. emergency within 1-2 hours), manning (resident technicians versus mobile teams), energy management, and compliance items: Dubai Civil Defence annual fire system maintenance by approved contractors, DEWA/ADDC requirements, Dubai Municipality water tank and pest control rules, RERA/Dubai Land Department service charge standards for jointly owned property, and ISO 41001, ISO 9001, ISO 14001 and ISO 45001 certification. Contract forms include input-based (manpower) and output-based (performance) models.",
+      "body_ar": "تُباع إدارة المرافق في الإمارات كخدمات فنية (الصيانة الوقائية المخططة للأعمال الكهروميكانيكية، وصيانة التكييف والمبردات، والكهرباء، والسباكة، وصيانة أنظمة الحماية من الحرائق وسلامة الأرواح، ونظام إدارة المباني، والمصاعد عبر الشركة المصنعة)، وخدمات غير فنية (التنظيف، ومكافحة الآفات، وتنسيق الحدائق، وإدارة النفايات، والأمن، والاستقبال، ومكتب المساعدة)، وإدارة مرافق متكاملة تجمع الاثنين في عقد واحد مع نظام إدارة مرافق محوسب ومؤشرات أداء واتفاقيات مستوى خدمة. يحدد المشترون سجلات الأصول، وتكرار الصيانة الوقائية وفق SFG20 أو جداول الشركة المصنعة، وأوقات الاستجابة للأعطال (مثل الطوارئ خلال 1-2 ساعة)، والتوظيف (فنيون مقيمون أو فرق متنقلة)، وإدارة الطاقة، وبنود الامتثال: الصيانة السنوية لأنظمة الحريق من مقاولين معتمدين لدى الدفاع المدني في دبي، ومتطلبات ديوا أو أدك، وقواعد بلدية دبي لخزانات المياه ومكافحة الآفات، ومعايير رسوم الخدمات لمؤسسة التنظيم العقاري ودائرة الأراضي والأملاك للعقارات المشتركة، وشهادات ISO 41001 وISO 9001 وISO 14001 وISO 45001. وتشمل صيغ العقود النموذج القائم على المدخلات (القوى العاملة) والنموذج القائم على المخرجات (الأداء).",
+      "sources": [
+        "https://geem.com/blog/fire-safety-maintenance-dubai",
+        "https://www.prnewswire.com/news-releases/research-and-markets---uae-facility-management-market-forecast--opportunities-2021---leading-operators-are-emrill-services-imdaad-farnek-service-efs-facility-management-services-and-khidmah-300374442.html",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.iso.org",
+        "https://dubailand.gov.ae",
+        "https://www.sfg20.co.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited) -> confirmed | Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company -> confirmed | Khidmah is Abu Dhabi-based and wholly owned by Aldar -> confirmed | Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures -> removed: not checked. Not checked: Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified."
+    },
+    {
+      "id": "facilities_management:uae-market-brands",
+      "topic": "Facilities management (hard & soft FM): makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE FM operators, and the lift makers that maintain their own equipment: Emrill, Imdaad, Farnek, EFS Facilities Services, Khidmah, Enova, Transguard, Otis, Schindler, KONE, TK Elevator, Mitsubishi Electric. Master developers often have in-house or affiliated FM arms. Common CAFM systems include Maximo, Archibus, Infor EAM and Planon; their local resellers were not checked.",
+      "body_ar": "مشغلو إدارة المرافق المؤكدون في الإمارات، وشركات المصاعد التي تصون معداتها: Emrill، Imdaad، Farnek، EFS Facilities Services، Khidmah، Enova، Transguard، Otis، Schindler، KONE، TK Elevator، Mitsubishi Electric. وغالباً ما يكون لدى المطورين الرئيسيين أذرع داخلية أو تابعة لإدارة المرافق. وتشمل أنظمة إدارة المرافق المحوسبة الشائعة ماكسيمو وأرشيبس وإنفور وبلانون، ولم يُتحقق من موزعيها المحليين.",
+      "sources": [
+        "https://geem.com/blog/fire-safety-maintenance-dubai",
+        "https://www.prnewswire.com/news-releases/research-and-markets---uae-facility-management-market-forecast--opportunities-2021---leading-operators-are-emrill-services-imdaad-farnek-service-efs-facility-management-services-and-khidmah-300374442.html",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.iso.org",
+        "https://dubailand.gov.ae",
+        "https://www.sfg20.co.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited) -> confirmed | Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company -> confirmed | Khidmah is Abu Dhabi-based and wholly owned by Aldar -> confirmed | Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures -> removed: not checked. Not checked: Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified."
+    },
+    {
+      "id": "facilities_management:uae-market-sizes",
+      "topic": "Facilities management (hard & soft FM): typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "FM is quoted as an annual lump sum paid monthly, per m2 of built-up area per year, or as a manpower schedule of rates (per technician per month, per hour for call-outs). Contracts typically run 1-3 years (government up to 5). Spare parts are usually excluded above a threshold per item, or covered by a comprehensive contract at a higher rate. Ad-hoc works are priced against a schedule of rates plus a percentage mark-up. Performance deductions apply for missed KPIs.",
+      "body_ar": "تُسعّر إدارة المرافق كمبلغ مقطوع سنوي يُدفع شهرياً، أو لكل متر مربع من المساحة المبنية سنوياً، أو كجدول أسعار للقوى العاملة (لكل فني شهرياً، أو بالساعة لطلبات الاستدعاء). تمتد العقود عادةً من سنة إلى 3 سنوات (وحتى 5 سنوات للجهات الحكومية). وعادةً تُستثنى قطع الغيار التي تتجاوز حداً معيناً للبند، أو تُغطى بعقد شامل بسعر أعلى. وتُسعّر الأعمال الطارئة وفق جدول أسعار مع نسبة إضافة. وتُطبّق خصومات الأداء عند عدم تحقيق مؤشرات الأداء.",
+      "sources": [
+        "https://geem.com/blog/fire-safety-maintenance-dubai",
+        "https://www.prnewswire.com/news-releases/research-and-markets---uae-facility-management-market-forecast--opportunities-2021---leading-operators-are-emrill-services-imdaad-farnek-service-efs-facility-management-services-and-khidmah-300374442.html",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.iso.org",
+        "https://dubailand.gov.ae",
+        "https://www.sfg20.co.uk"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited) -> confirmed | Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company -> confirmed | Khidmah is Abu Dhabi-based and wholly owned by Aldar -> confirmed | Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures -> removed: not checked. Not checked: Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What is the difference between a comprehensive and a non-comprehensive FM contract?",
+      "q_ar": "ما الفرق بين عقد إدارة المرافق الشامل وغير الشامل؟",
+      "expected_entry_ids": [
+        "facilities_management:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Building owners must hold an annual maintenance contract with a Dubai Civil Defence approved contractor for fire systems (Ministerial Resolution 505 of 2012 cited)",
+        "url": "https://geem.com/blog/fire-safety-maintenance-dubai",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Emrill, Imdaad, Farnek, EFS and Khidmah are leading UAE FM operators; Enova is a top FM company",
+        "url": "https://www.prnewswire.com/news-releases/research-and-markets---uae-facility-management-market-forecast--opportunities-2021---leading-operators-are-emrill-services-imdaad-farnek-service-efs-facility-management-services-and-khidmah-300374442.html",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Khidmah is Abu Dhabi-based and wholly owned by Aldar",
+        "url": "https://www.khidmah.com/en/who-we-are/about-us",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Musanada, Deyaar Facilities, Provis-linked FM, Serco, ISS, Emcor joint ventures",
+        "url": "https://www.khidmah.com/en/who-we-are/about-us",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Current ownership and joint-venture structures of the named FM firms, and which hold active Civil Defence approvals, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

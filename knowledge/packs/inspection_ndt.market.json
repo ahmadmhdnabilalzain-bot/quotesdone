@@ -1,0 +1,107 @@
+{
+  "trade": "inspection_ndt",
+  "layer": "uae-market",
+  "label_en": "Third-party inspection & NDT",
+  "label_ar": "فحص الطرف الثالث والفحص غير الإتلافي (NDT)",
+  "entries": [
+    {
+      "id": "inspection_ndt:uae-market-products",
+      "topic": "Third-party inspection & NDT: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Inspection and non-destructive testing (NDT) services in the UAE include conventional NDT (ultrasonic testing UT, radiographic testing RT with X-ray or gamma sources, magnetic particle MT, dye penetrant PT, visual VT, eddy current ET), advanced NDT (phased array PAUT, TOFD, digital radiography, guided wave, long-range UT, acoustic emission), welding inspection (CSWIP, AWS CWI-certified inspectors), third-party inspection (TPI) and vendor/shop inspection, lifting equipment inspection and certification (cranes, forklifts, slings, shackles to local authority requirements), pressure vessel and boiler inspection, tank inspection (API 653), pipeline inspection, rope access NDT, concrete testing (rebound hammer, UPV, core testing, cover meter), and coating inspection (NACE/AMPP). Personnel should be certified to ISO 9712 Level II/III; labs accredited to ISO/IEC 17020 (inspection) or 17025 (testing) by EIAC. Radiography requires a FANR licence for radiation sources and trained radiation protection officers. Lifting equipment inspectors in some zones need third-party approval (Trakhees, ADNOC, DM).",
+      "body_ar": "تشمل خدمات الفحص والاختبارات غير الإتلافية في الإمارات الاختبارات التقليدية (الاختبار بالموجات فوق الصوتية، والاختبار الإشعاعي بالأشعة السينية أو مصادر غاما، والجسيمات المغناطيسية، والسوائل النافذة، والفحص البصري، والتيارات الدوامية)، والاختبارات المتقدمة (المصفوفة الطورية، وزمن طيران الحيود، والتصوير الإشعاعي الرقمي، والموجات الموجهة، والموجات فوق الصوتية بعيدة المدى، والانبعاث الصوتي)، وفحص اللحام (مفتشون معتمدون من CSWIP أو AWS)، وفحص الطرف الثالث وفحص الموردين والمصانع، وفحص معدات الرفع واعتمادها (الرافعات، والرافعات الشوكية، والحمالات، والأغلال وفق المتطلبات المحلية)، وفحص أوعية الضغط والغلايات، وفحص الخزانات (API 653)، وفحص خطوط الأنابيب، والاختبارات غير الإتلافية بالوصول بالحبال، واختبار الخرسانة (مطرقة الارتداد، والنبضات فوق الصوتية، واختبار العينات اللبية، ومقياس الغطاء)، وفحص الطلاءات (NACE/AMPP). وينبغي أن يكون الموظفون معتمدين وفق ISO 9712 المستوى II/III؛ والمختبرات معتمدة وفق ISO/IEC 17020 (الفحص) أو 17025 (الاختبار) من مركز الإمارات الدولي للاعتماد. ويتطلب التصوير الإشعاعي ترخيصاً من الهيئة الاتحادية للرقابة النووية لمصادر الإشعاع ومسؤولي حماية إشعاعية مدربين. ويحتاج مفتشو معدات الرفع في بعض المناطق إلى اعتماد طرف ثالث (تراخيص، أدنوك، بلدية دبي).",
+      "sources": [
+        "https://www.fanr.gov.ae/en",
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://www.mistrasgroup.com",
+        "https://www.fanr.gov.ae",
+        "https://www.iso.org",
+        "https://www.twi-global.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: FANR licenses regulated activities using regulated materials (radiography sources) -> confirmed: general licensing page | EIAC accredits inspection bodies (ISO/IEC 17020) -> confirmed | SGS operates inspection in the UAE -> confirmed | Applus+, Mistras, Bureau Veritas UAE NDT -> removed: UAE presence not confirmed on opened pages. Not checked: Which lifting-equipment third-party approvals apply in each zone, and each firm's current ADNOC vendor status, were not verified."
+    },
+    {
+      "id": "inspection_ndt:uae-market-brands",
+      "topic": "Third-party inspection & NDT: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE inspection provider, the welding inspector certification body and common NDT equipment brands: SGS, TWI (CSWIP), Olympus/Evident, Eddyfi, Sonatest. Other NDT companies and equipment dealers were not checked; ask for ISO 9712 personnel certificates and EIAC accreditation.",
+      "body_ar": "مقدم الفحص المؤكد في الإمارات، وجهة اعتماد مفتشي اللحام، وعلامات معدات الاختبارات غير الإتلافية الشائعة: SGS، TWI (CSWIP)، Olympus/Evident، Eddyfi، Sonatest. ولم يُتحقق من شركات الاختبارات الأخرى ولا من وكلاء المعدات؛ ويجب طلب شهادات الموظفين وفق ISO 9712 واعتماد مركز الإمارات الدولي للاعتماد.",
+      "sources": [
+        "https://www.fanr.gov.ae/en",
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://www.mistrasgroup.com",
+        "https://www.fanr.gov.ae",
+        "https://www.iso.org",
+        "https://www.twi-global.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: FANR licenses regulated activities using regulated materials (radiography sources) -> confirmed: general licensing page | EIAC accredits inspection bodies (ISO/IEC 17020) -> confirmed | SGS operates inspection in the UAE -> confirmed | Applus+, Mistras, Bureau Veritas UAE NDT -> removed: UAE presence not confirmed on opened pages. Not checked: Which lifting-equipment third-party approvals apply in each zone, and each firm's current ADNOC vendor status, were not verified."
+    },
+    {
+      "id": "inspection_ndt:uae-market-sizes",
+      "topic": "Third-party inspection & NDT: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per inspector/technician per day (8-10 hours, with overtime rates), per weld joint or radiograph film/exposure, per metre of weld for UT, per item for lifting equipment certification, or per project for TPI. Mobilisation fees apply for remote sites; offshore rates are higher. Annual rate contracts with contractors are common.",
+      "body_ar": "تُسعّر لكل مفتش/فني يومياً (8-10 ساعات، مع أسعار للعمل الإضافي)، أو لكل وصلة لحام أو فيلم/تعريض إشعاعي، أو لكل متر من اللحام للاختبار بالموجات فوق الصوتية، أو لكل قطعة لاعتماد معدات الرفع، أو لكل مشروع لفحص الطرف الثالث. وتُطبق رسوم تعبئة للمواقع البعيدة؛ وأسعار المواقع البحرية أعلى. والعقود السنوية بأسعار ثابتة مع المقاولين شائعة.",
+      "sources": [
+        "https://www.fanr.gov.ae/en",
+        "https://eiac.gov.ae",
+        "https://www.sgs.com/en-ae",
+        "https://www.mistrasgroup.com",
+        "https://www.fanr.gov.ae",
+        "https://www.iso.org",
+        "https://www.twi-global.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: FANR licenses regulated activities using regulated materials (radiography sources) -> confirmed: general licensing page | EIAC accredits inspection bodies (ISO/IEC 17020) -> confirmed | SGS operates inspection in the UAE -> confirmed | Applus+, Mistras, Bureau Veritas UAE NDT -> removed: UAE presence not confirmed on opened pages. Not checked: Which lifting-equipment third-party approvals apply in each zone, and each firm's current ADNOC vendor status, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What certification should an NDT technician hold for UT on pipeline welds?",
+      "q_ar": "ما الشهادة التي يجب أن يحملها فني الاختبارات غير الإتلافية للفحص بالموجات فوق الصوتية على لحامات خطوط الأنابيب؟",
+      "expected_entry_ids": [
+        "inspection_ndt:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "FANR licenses regulated activities using regulated materials (radiography sources)",
+        "url": "https://www.fanr.gov.ae/en",
+        "result": "confirmed: general licensing page"
+      },
+      {
+        "claim": "EIAC accredits inspection bodies (ISO/IEC 17020)",
+        "url": "https://eiac.gov.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "SGS operates inspection in the UAE",
+        "url": "https://www.sgs.com/en-ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Applus+, Mistras, Bureau Veritas UAE NDT",
+        "url": "https://www.mistrasgroup.com",
+        "result": "removed: UAE presence not confirmed on opened pages"
+      }
+    ],
+    "unverified": "Which lifting-equipment third-party approvals apply in each zone, and each firm's current ADNOC vendor status, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "trade": "industrial_filters",
+  "layer": "uae-market",
+  "label_en": "Industrial filters",
+  "label_ar": "المرشحات الصناعية",
+  "entries": [
+    {
+      "id": "industrial_filters:uae-market-products",
+      "topic": "Industrial filters: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Industrial filters in the UAE: HVAC air filters (pre-filters G4/ISO Coarse, bag filters F7-F9/ISO ePM1 50-80%, HEPA H13/H14 to EN 1822 for hospitals and cleanrooms, rated to ISO 16890), gas turbine inlet filters (a large UAE market because of dust and humidity), dust collector cartridges and bags (polyester, PTFE membrane, Nomex), liquid filters (cartridge, bag, self-cleaning screen, 1-100 micron), fuel and lube oil filters for engines, hydraulic filters (beta ratio), water and RO pre-filters, and oil and gas filtration (coalescers, separators). Buyers specify efficiency class, dimensions (e.g. 592 x 592 x 292 mm), initial and final pressure drop (Pa), media, frame type, temperature and flow rate.",
+      "body_ar": "الفلاتر الصناعية في الإمارات: فلاتر هواء التكييف (الفلاتر الأولية G4/ISO Coarse، والكيسية F7-F9/ISO ePM1 50-80%، وفلاتر HEPA H13/H14 وفق EN 1822 للمستشفيات والغرف النظيفة، مصنفة وفق ISO 16890)، وفلاتر مداخل التوربينات الغازية (سوق كبير في الإمارات بسبب الغبار والرطوبة)، وخراطيش وأكياس مجمعات الغبار (بوليستر، وغشاء PTFE، ونومكس)، وفلاتر السوائل (الخرطوشية، والكيسية، والشبكية ذاتية التنظيف، 1-100 ميكرون)، وفلاتر الوقود والزيت للمحركات، والفلاتر الهيدروليكية (نسبة بيتا)، وفلاتر المياه والتناضح العكسي الأولية، وترشيح النفط والغاز (الملاحم والفواصل). يحدد المشتري فئة الكفاءة والأبعاد (مثل 592 × 592 × 292 مم) وهبوط الضغط الأولي والنهائي (باسكال) والوسط ونوع الإطار والحرارة ومعدل التدفق.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cencenelec.eu",
+        "https://www.camfil.com"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
+    },
+    {
+      "id": "industrial_filters:uae-market-brands",
+      "topic": "Industrial filters: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands: Camfil (with a regional plant), AAF (Daikin), Freudenberg (Viledon), Donaldson, Parker, Pall, Mann+Hummel, Fleetguard (Cummins), Baldwin, Hydac, Pentair, 3M, Eaton, and local filter manufacturers in Dubai, Sharjah and Abu Dhabi producing panel and bag filters. Gas turbine filters for DEWA, EWEC and ADNOC come from Camfil, AAF, Donaldson and Parker. Origins: Sweden, USA-brand, Germany, UAE assembly, China, India.",
+      "body_ar": "العلامات: Camfil (لها مصنع إقليمي) وAAF (Daikin) وFreudenberg (Viledon) وDonaldson وParker وPall وMann+Hummel وFleetguard (Cummins) وBaldwin وHydac وPentair و3M وEaton، ومصنّعو فلاتر محليون في دبي والشارقة وأبوظبي ينتجون الفلاتر اللوحية والكيسية. وفلاتر التوربينات الغازية لهيئات الكهرباء وأدنوك من Camfil وAAF وDonaldson وParker. المنشأ: السويد، علامات أمريكية، ألمانيا، تجميع إماراتي، الصين، الهند.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cencenelec.eu",
+        "https://www.camfil.com"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
+    },
+    {
+      "id": "industrial_filters:uae-market-sizes",
+      "topic": "Industrial filters: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "HVAC filters are sold per piece by nominal size (592 x 592, 592 x 287, 287 x 592 mm) and depth (48, 96, 292, 600 mm for bags); cartridges per piece by length (10, 20, 30, 40 inch) and micron; dust collector cartridges and bags per piece. Many facilities buy on annual contracts with scheduled replacement. Quotes state efficiency class, test standard, and dimensions; lead time for large turbine filter sets is weeks.",
+      "body_ar": "تُباع فلاتر التكييف بالقطعة حسب المقاس الاسمي (592 × 592 و592 × 287 و287 × 592 مم) والعمق (48 و96 و292 و600 مم للكيسية)؛ والخراطيش بالقطعة حسب الطول (10 و20 و30 و40 إنش) والميكرون؛ وخراطيش وأكياس مجمعات الغبار بالقطعة. وتشتري منشآت كثيرة بعقود سنوية مع استبدال مجدول. وتذكر العروض فئة الكفاءة ومعيار الاختبار والأبعاد؛ ومدة توريد أطقم فلاتر التوربينات الكبيرة أسابيع.",
+      "sources": [
+        "https://www.iso.org",
+        "https://www.cencenelec.eu",
+        "https://www.camfil.com"
+      ],
+      "confidence": "low",
+      "as_of": "2026-09-28",
+      "source_note": "NOT VERIFIED: written from named sources that were not opened. Location of Camfil's regional plant and local filter makers' names were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What filter class should a hospital AHU use?",
+      "q_ar": "ما فئة الفلتر المناسبة لوحدة مناولة هواء في مستشفى؟",
+      "expected_entry_ids": [
+        "industrial_filters:uae-market-products"
+      ]
+    }
+  ],
+  "not_verified": {
+    "on": "2026-09-28",
+    "reason": "no lookup record yet; never loaded (draft)",
+    "unverified": "Location of Camfil's regional plant and local filter makers' names were not verified."
+  }
+}
