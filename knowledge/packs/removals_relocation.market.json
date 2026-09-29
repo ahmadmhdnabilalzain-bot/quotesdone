@@ -1,0 +1,96 @@
+{
+  "trade": "removals_relocation",
+  "layer": "uae-market",
+  "label_en": "Home & office removals",
+  "label_ar": "نقل الأثاث المنزلي والمكتبي",
+  "entries": [
+    {
+      "id": "removals_relocation:uae-market-products",
+      "topic": "Home & office removals: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Removals and relocation services in the UAE include local home moves (apartment and villa moves within and between emirates), office relocations (IT disconnection/reconnection, crate hire, weekend moves), international moving (door-to-door sea freight in FCL/LCL groupage, air freight for urgent items, road to GCC), packing and unpacking with export-grade materials, furniture dismantling and reassembly, handyman services (curtain and TV mounting), storage (short and long term, climate-controlled units), pet relocation (with MOCCAE import/export permits), car shipping, destination services for expatriates (home search, school search, visa and Emirates ID support), and insurance. Buyers ask about survey (in-person or video) to estimate volume, packing materials, crew size, move day timing (building move permits and NOCs from building management, service lift bookings, Ejari cancellation), customs requirements for household goods (personal effects exemptions with passport/visa copies), and FIDI-FAIM or ISO accreditation for international movers.",
+      "body_ar": "تشمل خدمات النقل والانتقال في الإمارات نقل المنازل المحلي (نقل الشقق والفلل داخل الإمارات وبينها)، ونقل المكاتب (فصل وإعادة توصيل أجهزة تقنية المعلومات، وتأجير الصناديق، والنقل في عطلة نهاية الأسبوع)، والنقل الدولي (الشحن البحري من الباب إلى الباب بحاويات كاملة/مجمعة، والشحن الجوي للمواد العاجلة، والنقل البري إلى دول الخليج)، والتعبئة والتفريغ بمواد مخصصة للتصدير، وفك الأثاث وإعادة تركيبه، وخدمات الصيانة المنزلية (تركيب الستائر والتلفزيونات)، والتخزين (قصير وطويل الأجل، ووحدات متحكم بمناخها)، ونقل الحيوانات الأليفة (مع تصاريح الاستيراد/التصدير من وزارة التغير المناخي والبيئة)، وشحن السيارات، وخدمات الوجهة للوافدين (البحث عن منزل، والبحث عن مدرسة، ودعم التأشيرة والهوية الإماراتية)، والتأمين. يسأل المشترون عن المعاينة (حضورية أو بالفيديو) لتقدير الحجم، ومواد التعبئة، وحجم الطاقم، وتوقيت يوم النقل (تصاريح النقل في المبنى وشهادات عدم الممانعة من إدارة المبنى، وحجز مصعد الخدمة، وإلغاء إيجاري)، والمتطلبات الجمركية للأمتعة المنزلية (إعفاءات الأمتعة الشخصية مع نسخ جواز السفر/التأشيرة)، واعتماد FIDI-FAIM أو ISO لشركات النقل الدولي.",
+      "sources": [
+        "https://www.alliedpickfords.ae",
+        "https://www.crownworldmobility.com",
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.fidi.org",
+        "https://www.moccae.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Allied Pickfords UAE site -> removed: site did not answer | Crown World Mobility Dubai -> removed: UAE not named on opened page | Household goods imports clear through Dubai Customs -> confirmed. Not checked: Current operation and accreditation status of each named mover was not verified."
+    },
+    {
+      "id": "removals_relocation:uae-market-brands",
+      "topic": "Home & office removals: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Accreditation body for international movers: FIDI Global Alliance. No mover was confirmed on an opened page; ask for FIDI-FAIM accreditation and a survey-based quote.",
+      "body_ar": "جهة اعتماد شركات النقل الدولي: FIDI Global Alliance. ولم تُؤكد أي شركة نقل عبر صفحة مفتوحة؛ ويجب طلب اعتماد FIDI-FAIM وعرض سعر مبني على المعاينة.",
+      "sources": [
+        "https://www.alliedpickfords.ae",
+        "https://www.crownworldmobility.com",
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.fidi.org",
+        "https://www.moccae.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Allied Pickfords UAE site -> removed: site did not answer | Crown World Mobility Dubai -> removed: UAE not named on opened page | Household goods imports clear through Dubai Customs -> confirmed. Not checked: Current operation and accreditation status of each named mover was not verified."
+    },
+    {
+      "id": "removals_relocation:uae-market-sizes",
+      "topic": "Home & office removals: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Local moves are priced per job by home size (studio, 1-5 bedrooms, villa) or per truck plus crew per hour/trip; office moves per workstation or per job; international moves by volume (CBM or cubic feet) and destination, with 20 ft/40 ft container or LCL pricing; storage per CBM/sq ft per month or per unit; pet relocation per animal by destination. Surveys are usually free; insurance is a percentage of declared value.",
+      "body_ar": "يُسعّر النقل المحلي لكل عملية حسب حجم المنزل (استوديو، ومن غرفة إلى 5 غرف، وفيلا) أو لكل شاحنة مع طاقم بالساعة/الرحلة؛ ونقل المكاتب لكل محطة عمل أو لكل عملية؛ والنقل الدولي حسب الحجم (متر مكعب أو قدم مكعب) والوجهة، مع تسعير حاويات 20/40 قدماً أو الشحن المجمع؛ والتخزين لكل متر مكعب/قدم مربع شهرياً أو لكل وحدة؛ ونقل الحيوانات الأليفة لكل حيوان حسب الوجهة. وعادةً ما تكون المعاينات مجانية؛ والتأمين نسبة من القيمة المعلنة.",
+      "sources": [
+        "https://www.alliedpickfords.ae",
+        "https://www.crownworldmobility.com",
+        "https://www.dubaicustoms.gov.ae",
+        "https://www.fidi.org",
+        "https://www.moccae.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Allied Pickfords UAE site -> removed: site did not answer | Crown World Mobility Dubai -> removed: UAE not named on opened page | Household goods imports clear through Dubai Customs -> confirmed. Not checked: Current operation and accreditation status of each named mover was not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How do movers estimate the price of an international move from Dubai?",
+      "q_ar": "كيف تقدر شركات النقل سعر الانتقال الدولي من دبي؟",
+      "expected_entry_ids": [
+        "removals_relocation:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Allied Pickfords UAE site",
+        "url": "https://www.alliedpickfords.ae",
+        "result": "removed: site did not answer"
+      },
+      {
+        "claim": "Crown World Mobility Dubai",
+        "url": "https://www.crownworldmobility.com",
+        "result": "removed: UAE not named on opened page"
+      },
+      {
+        "claim": "Household goods imports clear through Dubai Customs",
+        "url": "https://www.dubaicustoms.gov.ae",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Current operation and accreditation status of each named mover was not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

@@ -146,6 +146,9 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       || (type === 'ceo.root_cause' && allSql.includes("fn_seat_handoff('ceo', p.owner_seat, 'ceo.root_cause'"))
       || (type === 'ceo.month_directive' && allSql.includes("fn_seat_handoff('ceo', s, 'ceo.month_directive'"))
       || (type === 'ceo.improvement' && allSql.includes("fn_seat_handoff('ceo', p_seat, 'ceo.improvement'"))
+      // a recurring support cause goes to the seat support_category names as its owner (instruction 1009)
+      || (type === 'support.root_cause' && from === 'customer_support'
+          && allSql.includes("fn_seat_handoff('customer_support', r.owner_seat, 'support.root_cause'"))
       // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
       // proves nothing about which pairs anything opens
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)

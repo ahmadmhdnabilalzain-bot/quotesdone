@@ -1,0 +1,76 @@
+{
+  "trade": "aircraft_parts_mro",
+  "entries": [
+    {
+      "id": "aircraft_parts_mro:spec-checklist",
+      "topic": "Aircraft parts and MRO - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted service line for aircraft parts and mro must state: aircraft or component part number; aircraft type and registration; part condition; release certificate required; maintenance scope and task cards; CAR-145 approval rating; traceability documents; turnaround time; licences held; service levels; contract duration; pricing basis; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة قطع الطائرات والصيانة والإصلاح: رقم القطعة أو المكوّن؛ طراز الطائرة وتسجيلها؛ حالة القطعة؛ شهادة الإفراج المطلوبة؛ نطاق الصيانة وبطاقات المهام؛ تصنيف اعتماد CAR-145؛ وثائق التتبع؛ مدة الإنجاز؛ التراخيص القائمة؛ مستويات الخدمة؛ مدة العقد؛ أساس التسعير؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "aircraft or component part number",
+        "aircraft type and registration",
+        "part condition",
+        "release certificate required",
+        "maintenance scope and task cards",
+        "CAR-145 approval rating",
+        "traceability documents",
+        "turnaround time",
+        "licences held",
+        "service levels",
+        "contract duration",
+        "pricing basis",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/CAR%20V%20-%20AIRWORTHINESS%20REGULATIONS/CAR-145%20-%20APPROVED%20MAINTENANCE%20ORGANISATION%20-%20ISSUE%2009.pdf"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "aircraft_parts_mro:uae-standards-and-approvals",
+      "topic": "Aircraft parts and MRO - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "The General Civil Aviation Authority (GCAA) regulates aviation in the UAE. Maintenance of aircraft registered or validated in the UAE, and of components intended for fitment to them, must be performed by an organisation approved under GCAA CAR-145 (aircraft below 5,700 kg maximum take-off mass in non-commercial operation are excepted). The cited sources do not set a UAE-specific service standard, qualification level or rate for aircraft parts and mro; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
+      "body_ar": "تنظم الهيئة العامة للطيران المدني قطاع الطيران في الإمارات. ويجب أن تتم صيانة الطائرات المسجلة أو المعتمدة في الإمارات والمكونات المعدّة لتركيبها بواسطة جهة معتمدة وفق لائحة CAR-145 الصادرة عن الهيئة (باستثناء الطائرات التي يقل وزن إقلاعها الأقصى عن 5,700 كغ في التشغيل غير التجاري). لا تحدد المصادر المذكورة معياراً أو مستوى تأهيل أو سعراً إماراتياً خاصاً بخدمة قطع الطائرات والصيانة والإصلاح؛ يجب على المشتري ذكر المخرجات ومستويات الخدمة والمؤهلات صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific service standard, qualification level or rate for aircraft parts and mro; the buyer must state deliverables, service levels and qualifications explicitly, and a line without them is held.",
+      "sources": [
+        "https://www.gcaa.gov.ae/en/epublication/EPublications/Civil%20Aviation%20Regulations%20(CARs)/CAR%20V%20-%20AIRWORTHINESS%20REGULATIONS/CAR-145%20-%20APPROVED%20MAINTENANCE%20ORGANISATION%20-%20ISSUE%2009.pdf"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for aircraft parts and mro. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة قطع الطائرات والصيانة والإصلاح. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "aircraft_parts_mro:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to aircraft parts and mro?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة قطع الطائرات والصيانة والإصلاح؟",
+      "expected_entry_ids": [
+        "aircraft_parts_mro:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "aircraft_parts_mro:spec-checklist"
+    ],
+    "added": [
+      "aircraft_parts_mro:spec-checklist",
+      "aircraft_parts_mro:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}
