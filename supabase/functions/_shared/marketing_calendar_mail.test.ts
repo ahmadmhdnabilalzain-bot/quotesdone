@@ -1,9 +1,18 @@
 // The founder's reply to the monthly calendar, read without a network (marketing, 23 Sep 2026).
 //   deno test supabase/functions/_shared/marketing_calendar_mail.test.ts
 import { assertEquals } from 'jsr:@std/assert@1';
-import { calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from './marketing_calendar_mail.ts';
+import { approvalTokenOf, calendarTokenOf, isCalendarReply, ownWords, planTokenOf, replyIntent } from './marketing_calendar_mail.ts';
 
 const TOK = '0123456789abcdef0123456789abcdef';
+
+Deno.test('an article or launch-plan approval reply is read by its own token, never as a calendar or plan reply', () => {
+  assertEquals(approvalTokenOf({ to: `approve+${TOK}@mail.quotesdone.com` }), TOK);
+  assertEquals(approvalTokenOf({ to: 'info@quotesdone.com', subject: `Re: Article for this week: X [approve ${TOK}]` }), TOK);
+  assertEquals(approvalTokenOf({ to: `plan+${TOK}@mail.quotesdone.com` }), null);
+  assertEquals(calendarTokenOf({ to: `approve+${TOK}@mail.quotesdone.com` }), null);
+  assertEquals(isCalendarReply({ to: `approve+${TOK}@mail.quotesdone.com` }), false);
+  assertEquals(planTokenOf({ to: `approve+${TOK}@mail.quotesdone.com` }), null);
+});
 
 Deno.test('the token is read from the Reply-To tag or from the subject, and nothing else', () => {
   assertEquals(calendarTokenOf({ to: `calendar+${TOK}@mail.quotesdone.com` }), TOK);
