@@ -1,1 +1,0 @@
-Not applied (customer_support, 29 Sep 2026): applied at merge by the release train. One function_owner row for the customer_followup edge function #1074 deployed. Moves when the release batch applies it; then delete this note and append the .sql to the END of MANIFEST.txt.
