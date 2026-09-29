@@ -124,6 +124,21 @@ begin
     bad := bad || to_jsonb('CEO strategy at confidence 0.99 got ' || coalesce(v->>'model', 'none'));
   end if;
 
+  -- A think() decision's author is found: a marketing decision billed where think() bills it (internal_judgement,
+  -- on Gemini) proves its author, and the CEO's cross-family review opens. Everything here is rolled back by the
+  -- final raise; the handoff it opens goes to the CEO seat, never to a person.
+  insert into public.ai_cost_log (fn, agent_key, seat, task_class, model_used, ok)
+  values ('zz_probe_author', 'marketing', 'marketing', 'internal_judgement', c_gem, true);
+  begin
+    v := public.fn_seat_duty_cross_review('marketing.zz_probe_author', 'marketing', 'ceo', 'Probe: is this plan sound?',
+           '{"probe": true}'::jsonb, '{"plan": "probe"}'::jsonb, jsonb_build_object('model', c_gem), null, null);
+    if not exists (select 1 from public.seat_deliberation where question = 'Probe: is this plan sound?' and author_model = c_gem) then
+      bad := bad || to_jsonb('a think() decision''s author was not proven: ' || left(coalesce(v::text, 'null'), 200));
+    end if;
+  exception when others then
+    bad := bad || to_jsonb('the author proof of a think() decision raised: ' || left(sqlerrm, 200));
+  end;
+
   -- A seat's own route never allows fewer tokens than the class it splits.
   for r in select s.task_class, split_part(s.task_class, '__', 1) seat, split_part(s.task_class, '__', 2) base, b.max_tokens base_max
              from public.model_policy s join public.model_policy b on b.task_class = split_part(s.task_class, '__', 2)

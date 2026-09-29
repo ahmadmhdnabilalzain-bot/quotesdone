@@ -873,6 +873,69 @@ update public.paid_route_exception
        updated_at = now()
  where route = 'drawing_boq_confirm' and model_id is distinct from 'openai/gpt-6-luna';
 
+
+-- ── 9. A think() DECISION'S AUTHOR IS FOUND WHERE think() BILLS IT ──────────────────────────────────
+-- fn_high_stakes_gate and fn_seat_duty_cross_review proved the author's model on ai_cost_log rows of class
+-- agent_reasoning, which think() has never billed (routine_employee_reasoning until this file, internal_judgement
+-- from it), so the second-seat review of a think() decision could not prove its author and a cross-family review
+-- could not open. Bodies from their canonical files (a_high_stakes_decision_waits_for_a_second_seat_on_another_
+-- family.sql, every_seat_duty_has_an_owner_a_clock_and_a_check.sql); one class name changes in each. CREATE OR
+-- REPLACE keeps each ACL, so no revoke here.
+create or replace function public.fn_high_stakes_gate(p_kind text, p_author_seat text, p_subject_table text, p_subject_id text,
+  p_question text, p_evidence jsonb, p_proposal jsonb, p_author_model text default null, p_author_task_class text default null,
+  p_demo boolean default false)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_model text := p_author_model; v_class text := p_author_task_class; v_id bigint; v_err text; v_held boolean; c jsonb; v_go boolean;
+begin
+  -- THE AUTHOR'S MODEL: the one given, else the seat's latest reasoning call in 24 hours (what open() proves), else code.
+  if v_model is null then
+    select l.model_used, l.task_class into v_model, v_class from public.ai_cost_log l
+     where l.ok and l.task_class = 'internal_judgement'  -- 1056: think() bills a seat's decision here and l.occurred_at > now() - interval '24 hours'
+       and (l.agent_key = p_author_seat or l.seat = p_author_seat)
+     order by l.occurred_at desc, l.id desc limit 1;
+    v_model := coalesce(v_model, 'deterministic');
+    if v_model = 'deterministic' then v_class := null; end if;
+  end if;
+  begin
+    v_id := public.fn_high_stakes_challenge(p_kind, p_author_seat, p_subject_table, p_subject_id, p_question, p_evidence, p_proposal,
+                                           v_model, v_class, p_demo);
+  exception when others then
+    v_err := sqlerrm;
+    -- Recorded for the deciding seat, never raised: the decision path decides what a failed gate means.
+    perform public.fn_it_engineer_finding_upsert('high_stakes_open:' || p_kind || ':' || p_subject_table || ':' || p_subject_id,
+      'The second-seat review of a ' || p_kind || ' decision could not be opened', p_author_seat || ' ' || p_kind || ' on ' || p_subject_table,
+      'agent_facing', 1, jsonb_build_object('owner_seat', p_author_seat, 'error', left(v_err, 500), 'subject_id', p_subject_id), '{}', '{}', 'it_engineer');
+  end;
+  v_held := public.fn_high_stakes_model_held();
+  c := public.fn_high_stakes_clearance(p_kind, p_subject_table, p_subject_id);
+  v_go := coalesce((c->>'cleared')::boolean, false) or (v_held and coalesce(c->>'state', '') <> 'disagreed');
+  if v_go and not coalesce((c->>'cleared')::boolean, false) and v_id is not null then
+    update public.seat_deliberation set proceeded_at = coalesce(proceeded_at, now()) where id = v_id;
+  end if;
+  return c || jsonb_build_object('proceed', v_go, 'owed', v_go and not coalesce((c->>'cleared')::boolean, false),
+                                 'model_held', v_held, 'author_model', v_model, 'open_error', v_err);
+end $fn$;
+
+create or replace function public.fn_seat_duty_cross_review(p_kind text, p_author text, p_reviewer text, p_question text,
+  p_evidence jsonb, p_proposal jsonb, p_result jsonb, p_subject_table text, p_subject_id text)
+returns jsonb
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_id bigint; v_demo boolean := coalesce(p_question like 'ZZ DEMO%', false);
+begin
+  v_id := public.fn_seat_deliberation_open(p_kind, p_author, p_reviewer, p_question, p_evidence, p_proposal,
+            coalesce(nullif(p_result->>'model', ''), 'unknown'), 'internal_judgement' /* 1056: think()'s decision class */, p_subject_table, p_subject_id, v_demo);
+  return jsonb_build_object('deliberation_id', v_id, 'reviewer', p_reviewer);
+exception when others then
+  -- Recorded for the CEO to see, never raised: the decision it reviews has already been applied or held.
+  perform public.fn_it_engineer_finding_upsert('cross_review:' || p_kind || ':' || coalesce(p_subject_id, '?'),
+    'A cross-family review could not be opened for ' || p_kind, 'public.fn_seat_duty_cross_review', 'agent_facing', 1,
+    jsonb_build_object('error', left(sqlerrm, 500), 'author', p_author, 'reviewer', p_reviewer, 'owner_seat', 'ceo'),
+    '{}'::text[], array['whether the author model was proven and the pair registered'], p_author);
+  return jsonb_build_object('deliberation_id', null, 'error', left(sqlerrm, 300));
+end $fn$;
+
 -- ── VERDICT ROW (DDL in this file, so no raise; apply_sql.mjs exits 3 on PROBE FAILED) ──────────────
 select case
   when (select count(*) from public.model_policy where active and tier <> 'none'
