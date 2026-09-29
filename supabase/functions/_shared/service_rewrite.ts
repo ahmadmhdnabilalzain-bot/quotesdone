@@ -12,20 +12,22 @@
 //   1. The text is split into phrases at line breaks, bullets, numbered items, commas (, ،), semicolons
 //      (; ؛), '|' and full stops.
 //   2. Inside a phrase every service alias (service_aliases.json, stored in taxonomy_trade_service.aliases)
-//      is matched with the trade matcher's own rule (trade_words.ts termPattern): Arabic folded the way
+//      is matched with one rule (alias_pattern.ts termPattern): Arabic folded the way
 //      fn_ar_norm folds it, word-START anchored, Arabic proclitics and ال allowed. Where two hits overlap
 //      the LONGER alias wins ("solar panel cleaning" is maintenance, not installation); two hits on the
 //      very same words are both kept (Wooden doors is a joinery and a doors service).
 //   3. What is left of a phrase once its hits are removed is split at 'and' / '&' / '+' / 'و' and read
 //      again. Words that only describe a service in general (supply, installation, works, توريد, تركيب,
 //      أعمال, ...) are not a service of their own and are dropped; anything else is kept.
-//   4. A phrase, or a leftover, that names no service but names a TRADE (fn_norm_trades' aliases through
-//      trade_words.ts) is kept in the supplier's words with that trade. One that names neither is kept in
-//      the supplier's words, tidied, and FLAGGED for the sales engineer — never dropped, never guessed.
+//   4. A phrase, or a leftover, that names no service is kept in the supplier's words, tidied, and FLAGGED
+//      for the sales engineer — never dropped, never guessed. It names a TRADE only when it IS one: the
+//      caller asks public.fn_norm_trades (exact code or intake slug) and withExactTrades() turns the item into
+//      a trade item. Since 29 Sep 2026 (ledger 1054, ruling 890) a trade is never read from a phrase's words:
+//      trade_words.ts, which did that, is gone (trade_resolve.ts says what replaced it).
 // EXACT OR NONE (founder, 14 Sep 2026: "either exact match or no match"): no similarity, no stemmer, no
 // nearest service. A phrase the aliases do not name stays the supplier's own words until the sales
 // engineer maps it.
-import { arNorm, foldForMatch, termPattern, tradesFromText, type TradeTerm } from './trade_words.ts';
+import { arNorm, foldForMatch, termPattern } from './alias_pattern.ts';
 
 export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null };
 export type RewriteItem =
@@ -255,47 +257,54 @@ function leftovers(phrase: string, norm: string, at: number[], hits: Hit[]): str
   return pieces;
 }
 
-/** Rule 4: a phrase with no service in it — a trade, or the supplier's own words for review. */
-function wordsItem(text: string, from: string, trades: TradeTerm[]): RewriteItem | null {
+/** Rule 4: a phrase with no service in it — the supplier's own words for review, unless it is prose.
+ *  A phrase that IS a trade code or slug becomes a trade item afterwards (withExactTrades), never here:
+ *  what a phrase's words resemble decides nothing (ruling 890). */
+function wordsItem(text: string, from: string): RewriteItem | null {
   const t = tidy(text);
   if (t.length < 2) return null;
-  // THE TRADE IS LOOKED FOR FIRST. A phrase that names a trade is never prose, however it is wrapped
-  // ("We are an interior fit out company" is seven words carrying one content word, and it is still
-  // the clearest thing the supplier said). Only when no trade is named does the prose test apply.
-  const codes = tradesFromText(text, trades).map((h) => h.code);
-  if (codes.length) return { kind: 'trade', trades: codes, text: t, from };
   return looksLikeAService(t) ? { kind: 'unmatched', text: t, from } : null;
 }
 
-/** The whole rewrite. `services` are the active taxonomy_trade_service rows with their aliases;
- *  `trades` the active taxonomy_trade codes with theirs. */
+/** The whole rewrite. `services` are the active taxonomy_trade_service rows with their aliases. */
 export type RewriteOptions = { supplyOnly?: boolean; maxText?: number; maxPhrases?: number };
-export function rewriteServices(text: string, services: ServiceTerm[], trades: TradeTerm[], opts: RewriteOptions = {}): Rewrite {
+export function rewriteServices(text: string, services: ServiceTerm[], opts: RewriteOptions = {}): Rewrite {
   // A supply-only company is not proposed installation work: those aliases are left out of its index,
   // so the words stay the supplier's own and reach the sales engineer rather than naming a service.
   const index = compileServices(opts.supplyOnly ? services.filter((s) => !isInstallWork(s)) : services);
   const items: RewriteItem[] = [];
-  const seenKey = new Set<string>(); const seenWords = new Set<string>(); const seenTrades = new Set<string>();
+  const seenKey = new Set<string>(); const seenWords = new Set<string>();
   const push = (it: RewriteItem | null) => {
     if (!it) return;
     if (it.kind === 'service') { if (seenKey.has(it.key)) return; seenKey.add(it.key); items.push(it); return; }
     const k = arNorm(it.text).toLowerCase();
     if (seenWords.has(k)) return;
-    if (it.kind === 'trade') { const tk = [...it.trades].sort().join('+'); if (seenTrades.has(tk)) return; seenTrades.add(tk); }
     seenWords.add(k); items.push(it);
   };
   for (const phrase of splitPhrases(text, opts.maxText, opts.maxPhrases)) {
     const { norm, at } = foldForMatch(phrase);
     const hits = hitsIn(norm, index);
-    if (!hits.length) { push(wordsItem(phrase, phrase, trades)); continue; }
+    if (!hits.length) { push(wordsItem(phrase, phrase)); continue; }
     for (const h of hits) {
       push({ kind: 'service', key: h.c.key, trade: h.c.term.trade_code, label_en: h.c.term.label_en, label_ar: h.c.term.label_ar, from: phrase });
     }
-    for (const rest of leftovers(phrase, norm, at, hits)) push(wordsItem(rest, phrase, trades));
+    for (const rest of leftovers(phrase, norm, at, hits)) push(wordsItem(rest, phrase));
   }
-  // A trade the supplier named in general is already carried by a service of that trade.
+  return finishRewrite(items);
+}
+
+/** The rewrite's summary fields, over its items. A trade the supplier named is dropped when a service of
+ *  that trade already carries it, and a trade named twice is kept once. */
+export function finishRewrite(items: RewriteItem[]): Rewrite {
   const serviceTrades = new Set(items.flatMap((i) => (i.kind === 'service' ? [i.trade] : [])));
-  const final = items.filter((i) => !(i.kind === 'trade' && i.trades.every((c) => serviceTrades.has(c))));
+  const seenTrades = new Set<string>();
+  const final = items.filter((i) => {
+    if (i.kind !== 'trade') return true;
+    if (i.trades.every((c) => serviceTrades.has(c))) return false;
+    const tk = [...i.trades].sort().join('+');
+    if (seenTrades.has(tk)) return false;
+    seenTrades.add(tk); return true;
+  });
   const label = (i: RewriteItem, ar: boolean) => (i.kind === 'service' ? (ar ? i.label_ar : i.label_en) : i.text);
   return {
     items: final,
@@ -304,6 +313,21 @@ export function rewriteServices(text: string, services: ServiceTerm[], trades: T
     summary_en: final.map((i) => label(i, false)).join(' · '),
     summary_ar: final.map((i) => label(i, true)).join(' · '),
   };
+}
+
+/** The own-words items whose text could be a code or a slug: what the caller asks fn_norm_trades about. */
+export const ownWordsOf = (rw: Rewrite): string[] =>
+  [...new Set(rw.items.flatMap((i) => (i.kind === 'unmatched' ? [i.text] : [])))];
+
+/** Rule 4, exactly: an own-words item that public.fn_norm_trades resolved (`exact`: text -> codes, from
+ *  fn_norm_trades_many) becomes a trade item with those codes. Nothing else changes. */
+export function withExactTrades(rw: Rewrite, exact: Record<string, string[]> | null | undefined): Rewrite {
+  if (!exact || !Object.keys(exact).length) return rw;
+  return finishRewrite(rw.items.map((i): RewriteItem => {
+    if (i.kind !== 'unmatched') return i;
+    const codes = exact[i.text];
+    return Array.isArray(codes) && codes.length ? { kind: 'trade', trades: [...codes], text: i.text, from: i.from } : i;
+  }));
 }
 
 /** The service keys an inquiry asks for: the same hits, over its brief and BOQ text, nothing else. */

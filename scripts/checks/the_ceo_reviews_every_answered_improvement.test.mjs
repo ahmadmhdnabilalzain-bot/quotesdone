@@ -9,6 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { readSchemaMirror } from '../lib/schema_mirror.mjs';
 
 const rd = (p) => readFileSync(fileURLToPath(new URL('../../' + p, import.meta.url)), 'utf8');
 const FILE = 'scripts/sql/the_ceo_reviews_every_answered_improvement_within_its_window.sql';
@@ -26,5 +27,5 @@ test('it runs hourly as a CEO seat duty, inside the 1-day window', () => {
 });
 
 test('the live mirror carries the routine', () => {
-  assert.match(rd('supabase/schema/full_schema.sql'), /FUNCTION public\.fn_ceo_reviews_answered_improvements\(\)/i);
+  assert.match(readSchemaMirror(), /FUNCTION public\.fn_ceo_reviews_answered_improvements\(\)/i);
 });
