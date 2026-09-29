@@ -272,7 +272,7 @@ end $p$;`;
 
 test('production, in one aborted transaction: escalation, commands, exact spec, the queue, retrieval, grants', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const [r] = await sql(`select to_regprocedure('public.fn_reason_retrieve(text,vector,integer)') is not null applied`, { readOnly: true });
+  const [r] = await sql(`select (to_regprocedure('public.fn_reason_retrieve(text,vector,integer)') is not null or to_regprocedure('public.fn_reason_retrieve(text,vector,integer,text,text,text)') is not null) applied`, { readOnly: true });
   // Measured BEFORE the files replay: which live inquiries the current check calls ready (review finding 5).
   const before = 'create temporary table zz_rfq_before on commit drop as select i.id, coalesce((public.fn_rfq_required_check(i)->>\'required_ok\')::boolean, true) ok from public.inquiries i;\n';
   // Every pending file replays, whether or not the engine is already applied (a later file may still be pending).

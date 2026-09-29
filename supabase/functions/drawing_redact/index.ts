@@ -30,6 +30,7 @@ import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
 import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
+import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
 // Every model route is held, so detection below fails and no drawing page has reached a supplier
@@ -310,6 +311,31 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // in inquiries.drawing_redacted_paths, which remains the only source of truth for reading,
     // signing and deleting these objects. Nothing anywhere reconstructs or prefix-lists this path.
     const prefix = supplierPagePrefix(body.prefix);
+
+    // ── FILE PATH (28 Sep 2026): the drawing FILE itself, anonymised, for suppliers to open ──────────────
+    // Founder ledger 30/31/32/580/703: suppliers receive the anonymised drawing plus the BOQ. The pictures
+    // above and below are previews; this is the drawing a supplier opens and measures. A vector PDF comes back as
+    // a PDF with every identifying run cut out of its content streams (_shared/pdf_vector_redact.ts); a DWG,
+    // binary or ASCII DXF comes back as an ASCII DXF with its title-block text, attributes, paper space, party
+    // names and layer / block names neutralised (_shared/cad_file_redact.ts). Each is then RE-READ by its
+    // verifier — geometry unchanged, take-off counts unchanged, no identifier anywhere in the file, the file
+    // opens — and anything short of that is HELD: nothing is uploaded and the run says why.
+    if (body.mode === 'file') {
+      if (typeof body.original_b64 !== 'string' || !body.original_b64) return J({ ok: false, error: 'original_b64_required' }, 400);
+      const seeds = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
+      const f = await anonymisedDrawingFile(b64ToBytes(body.original_b64), seeds);
+      const hold = async (why: string, detail: unknown) => {
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'file', held: why, detail } });
+        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'file', held_reason: why, redaction_complete: false });
+      };
+      if (!f.ok) return await hold(f.held, f.detail ?? null);
+      const path = `${prefix}_drawing.${f.ext}`;
+      const up = await admin.storage.from('drawing-files').upload(path, f.bytes, { contentType: f.mime, upsert: true });
+      if (up.error) return await hold('upload_failed', up.error.message);
+      const detail = { method: 'file', kind: f.kind, ...f.proof };
+      const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
+      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, status: recorded ? 'complete' : 'unrecorded', method: 'file', verify_detail: detail, redaction_complete: recorded });
+    }
 
     // ── CAD PATH (24 Sep 2026): the drawing is drawn from its own entities with its identity left out ──
     // No picture of a CAD file can be verified here (no text layer), and the model is held, so no DXF or DWG

@@ -7,7 +7,8 @@
 // The lane is a separate sender on its own subdomain (app_secrets.invite_lane_from, seeded
 // 'QuotesDone <invite@hello.quotesdone.com>'), behind app_secrets.invite_lane_enabled, seeded 'false'.
 //   OFF   the From is exactly what send_outbox used before this file existed (fromSup / fromInfo).
-//   ON    supplier_invite and supplier_invite_seed to a supplier leave from the lane. Nothing else ever does:
+//   ON    supplier_invite, supplier_invite_seed and supplier_invite_nudge (the day-3/7/14 reminder of an unopened
+//         invitation, 29 Sep 2026) to a supplier leave from the lane. Nothing else ever does:
 //         not a sign-up code, not a notice, not a reminder of another type. The Reply-To is not touched.
 //   ON but the lane's domain is not verified + sending-enabled in Resend (GET /domains, read-only), or Resend
 //         does not answer: the lane's invitations are HELD (holdFor -> 'unverified'), NEVER sent from info@, and
@@ -16,13 +17,16 @@
 //         the cold campaign back on the sign-up codes' identity, and warm the new lane's ramp with info@ sends.)
 //   A held row stays 'queued' with not_before moved out (HOLD_UNVERIFIED_MS), so it never takes a claim slot
 //   from other mail (the 15 Sep starvation, channels.ts). On the lane at most invite_daily_cap invitations
-//   leave per UTC day ('cap'), so a backlog released by verification cannot exceed the ramp's number.
+//   and nudges leave per UTC day between them ('cap'), so a backlog released by verification cannot exceed the ramp's number.
 // Warm-up is the existing fn_invite_ramp, scoped to the lane's own sends from its activation stamp
 // (scripts/sql/the_invitations_leave_on_their_own_subdomain_so_a_campaign_cannot_cost_the_sign_up_codes.sql).
 // Pure apart from the injected fetch and finding writer, so invite_lane.test.ts replays every branch offline.
 
 /** The only notification types the lane carries. Exact match: a prefix would let a new type in unreviewed. */
-export const INVITE_LANE_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_seed'];
+export const INVITE_LANE_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_seed', 'supplier_invite_nudge'];
+/** The lane types that count against, and are held by, the lane's one daily cap (invite_daily_cap): the invitation
+ *  and its day-3/7/14 nudge share one number, as fn_sales_engineer_nudges_invited_suppliers does when it queues. */
+export const LANE_CAPPED_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_nudge'];
 export const LANE_UNVERIFIED_ISSUE = 'invite_lane_domain_unverified';
 
 export function isLaneType(type: unknown): boolean {
@@ -50,7 +54,7 @@ export const HOLD_UNVERIFIED_MS = 30 * 60_000;
 export function holdFor(o: { lane: Lane; type: unknown; supplierSide: boolean; laneSentToday: number; laneCap: number }): 'unverified' | 'cap' | null {
   if (!o.supplierSide || !isLaneType(o.type)) return null;
   if (o.lane.refused) return 'unverified';
-  if (o.lane.active && o.type === 'supplier_invite' && o.laneSentToday >= o.laneCap) return 'cap';
+  if (o.lane.active && LANE_CAPPED_TYPES.includes(o.type as string) && o.laneSentToday >= o.laneCap) return 'cap';
   return null;
 }
 
@@ -104,7 +108,7 @@ export async function resolveLane(o: {
         p_issue_key: LANE_UNVERIFIED_ISSUE,
         p_title: 'The invitation lane is switched on but its sending domain is not verified in Resend; supplier invitations are held until it is',
         p_where: 'edge function send_outbox (send_outbox/invite_lane.ts)', p_blast: 'internal', p_affected: 1,
-        p_evidence: { invite_lane_from: from, domain, resend: status, effect: 'supplier_invite and supplier_invite_seed held (queued, not_before moved on); all other mail unaffected' },
+        p_evidence: { invite_lane_from: from, domain, resend: status, effect: 'supplier_invite, supplier_invite_seed and supplier_invite_nudge held (queued, not_before moved on); all other mail unaffected' },
         p_ruled_out: [], p_undetermined: [], p_raised_by: 'it_engineer',
       });
     } catch (_e) { /* the fallback send goes on; the refusal is also in the returned why */ }
