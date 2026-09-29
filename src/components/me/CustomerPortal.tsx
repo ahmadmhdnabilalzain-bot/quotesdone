@@ -96,7 +96,10 @@ import { expiryOf } from './quoteExpiry';
 import { parseQuoteLink, resolveQuoteLink } from '@/lib/portalLink';
 // Website audit 14 Sep 2026: the intake composer, the pre-reveal Q&A, the Reveal Guarantee and the
 // in-page confirm each live in their own file under src/components/me; this file wires them in.
-import { NewRequest } from './NewRequest';
+import { MotionRoot } from './lazyMotion';
+// The request composer (754 lines, speech, BOQ, markup) opens only when the customer clicks "new
+// request" (showNew starts false), so it is not part of the /me first load (28 Sep 2026).
+const NewRequest = dynamic(() => import('./NewRequest').then((mod) => mod.NewRequest), { ssr: false, loading: ModuleLoading });
 import { Clarifications } from './Clarifications';
 import { SpecOffer } from './SpecOffer';
 import { RevealGuarantee } from './RevealGuarantee';
@@ -104,7 +107,8 @@ import { QuoteBadges } from '@/components/QuoteBadges';
 import { WhatsAppChoice } from '@/components/portal/WhatsAppChoice';
 import { waSignupSettled, waNeedsPrompt, waText } from '@/components/portal/whatsappChoiceText';
 import { useConfirm } from './ConfirmDialog';
-import { motion, useReducedMotion } from 'motion/react';
+import * as M from 'motion/react-m';
+import { useReducedMotion } from 'motion/react';
 
 // The customer portal is the page a paying customer uses. Its Supabase target was an inline
 // fallback to the production ref, so an unconfigured preview signed real customers in against the
@@ -233,7 +237,7 @@ const S = {
   fileInput: 'text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80',
 };
 
-export function CustomerPortal() {
+function CustomerPortalView() {
   const [lang, setLangState] = useState('en');
   const [token, setToken] = useState('');
   const [phase, setPhase] = useState('login');
@@ -1402,7 +1406,7 @@ function Comparison({ inqId, token, lang }) {
   const arr = (x) => Array.isArray(x) ? x : [];
   if (busy) return (<div className="qd-panel p-3.5" aria-busy="true"><div className={cn(S.sub, 'text-primary')}>{t(lang, 'cmp_preparing')}</div><div className="mt-2 flex flex-col gap-1.5" aria-hidden><span className="redact redact-bar" style={{ width: '72%' }} /><span className="redact redact-bar" style={{ width: '48%' }} /><span className="redact redact-bar" style={{ width: '60%' }} /></div></div>);
   if (!a) return note ? (<div className="rounded-lg border border-border bg-secondary/20 p-3" title={code || undefined}><div className={S.sub}>{note}</div></div>) : null;
-  return (<motion.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
+  return (<M.div initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: reduce ? 0 : 0.3 }} className="qd-panel p-3.5">
     <div className="mb-1 flex flex-wrap items-center gap-2">
       <div className={cn(S.sub, 'font-bold text-primary')}>{t(lang, degraded ? 'cmp_title_rules' : 'cmp_title') + (a.trade ? ' · ' + a.trade : '')}</div>
       {degraded ? <span className="rounded-full border border-warn/40 bg-warn/10 px-2 py-0.5 text-[10.5px] font-semibold text-warn-fg">{t(lang, 'cmp_badge_rules')}</span> : null}
@@ -1432,7 +1436,7 @@ function Comparison({ inqId, token, lang }) {
     {/* §10 EXPORT: customer_api compare_pdf, ownership-checked; the document goes to the meeting. */}
     <ExportComparison inqId={inqId} token={token} lang={lang} />
     <div className={cn(S.sub, 'mt-2 text-muted-foreground/70 text-[11px]')}>{t(lang, 'cmp_guidance')}</div>
-  </motion.div>);
+  </M.div>);
 }
 // The download owns a failure the report must survive: a PDF that cannot be built must not blank
 // the analysis the customer is reading.
@@ -1599,8 +1603,8 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
 function RevealMoment({ play, children }) {
   if (!play) return children;
   return (<div className="relative">
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</motion.div>
-    <motion.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
+    <M.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}>{children}</M.div>
+    <M.span aria-hidden className="redact pointer-events-none absolute inset-x-3 top-5 !block h-5" style={{ transformOrigin: 'right center' }}
       initial={{ scaleX: 1, opacity: 1 }} animate={{ scaleX: 0, opacity: 0 }} transition={{ duration: 0.75, delay: 0.1, ease: [0.7, 0, 0.3, 1] }} />
   </div>);
 }
@@ -1707,19 +1711,19 @@ function ReceiptNote({ receipt, inqs, lang, onClose }) {
   const all = inqs.flatMap((i) => [i, ...(i.children || [])]);
   const q = receipt.quoteId ? all.flatMap((i) => i.quotes || []).find((x) => x.id === receipt.quoteId) : null;
   const paid = receipt.kind === 'paid';
-  return (<motion.div role="status" initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduce ? 0 : 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+  return (<M.div role="status" initial={reduce ? false : { opacity: 0, y: -8, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: reduce ? 0 : 0.35, ease: [0.2, 0.8, 0.2, 1] }}
     className="qd-panel mb-5 flex items-start gap-3 p-4">
-    <motion.span initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18, delay: reduce ? 0 : 0.12 }}
+    <M.span initial={reduce ? false : { scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 380, damping: 18, delay: reduce ? 0 : 0.12 }}
       className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-full', paid ? 'bg-primary/20 text-primary' : 'bg-secondary text-muted-foreground')}>
       {paid ? <Check className="h-4 w-4" aria-hidden /> : <X className="h-4 w-4" aria-hidden />}
-    </motion.span>
+    </M.span>
     <div className="min-w-0 flex-1">
       {paid
         ? <><div className="font-head text-[15px] font-bold text-foreground">{t(lang, 'rcpt_title')}</div><p className="mt-0.5 text-[13px] text-muted-foreground">{q ? tf(lang, 'rcpt_body', { fee: aed(q.total_charged ?? q.reveal_fee) }) : t(lang, 'payment_confirmed')}</p></>
         : <p className="text-[13px] text-foreground">{t(lang, 'rcpt_cancelled')}</p>}
     </div>
     <button type="button" onClick={onClose} aria-label={t(lang, 'close')} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" aria-hidden /></button>
-  </motion.div>);
+  </M.div>);
 }
 // The §22 module list, in the order a customer meets them. The Messages/Thread pair that used to
 // live in this file is gone: CommunicationCenter serves the same four messages_api actions and adds
@@ -2039,3 +2043,5 @@ function QuoteSpread({ quotes, lang }) {
     </div>
   );
 }
+
+export function CustomerPortal() { return <MotionRoot><CustomerPortalView /></MotionRoot>; }

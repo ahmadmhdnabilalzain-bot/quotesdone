@@ -21,6 +21,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { manifestHas } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -63,7 +64,7 @@ test('static: pinned, revoked, policed, owned, and pending XOR MANIFEST', () => 
       assert.match(src, new RegExp(`revoke all on public\\.${t} from anon, authenticated`), `${t} is not revoked`);
     }
     for (const [, prefix, owner] of src.matchAll(/\('(\w+)\.\w+', '(\w+)', interval/g)) assert.equal(prefix, owner, `duty ${prefix} registered to ${owner}`);
-    assert.ok(pending(f) !== manifest.includes(f), `${f}: exactly one of a pending note and a MANIFEST line`);
+    assert.ok(pending(f) !== manifestHas(f), `${f}: exactly one of a pending note and a MANIFEST line`);
   }
   // the report door never returns with a report still 'sent'
   const door = bodyOf(code(FILES[0]), 'fn_ceo_decide_report');
