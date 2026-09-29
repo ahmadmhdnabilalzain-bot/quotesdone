@@ -56,10 +56,13 @@ alter table public.ceo_improvement
   add column if not exists escalations       int not null default 0,
   add column if not exists last_escalated_at timestamptz;
 
+-- The list is the LIVE definition read from production on 29 Sep 2026 (pg_get_constraintdef: eight values, the last
+-- 'funnel_stage_drop', added by #1012) plus this file's two, 'weekly_review' and 'self_review'. Dropping any live value
+-- would make the add fail on existing rows, or refuse the next insert of that kind.
 alter table public.ceo_improvement drop constraint if exists ceo_improvement_source_kind_check;
 alter table public.ceo_improvement add constraint ceo_improvement_source_kind_check check (source_kind = any (array[
   'recurring_miss', 'month_miss', 'lesson', 'recurring_finding', 'binding_constraint', 'marketing_plan_late',
-  'seat_audit', 'weekly_review', 'self_review']));
+  'seat_audit', 'funnel_stage_drop', 'weekly_review', 'self_review']));
 
 -- ── 2. the founder-mail kind ─────────────────────────────────────────────────────────────────────────────
 insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role) values

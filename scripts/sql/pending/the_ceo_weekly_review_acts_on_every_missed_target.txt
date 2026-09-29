@@ -1,4 +1,7 @@
 Committed, not applied: the founder's instruction 1009 says do not apply before merge (seat: ceo). It is proved by
 the_ceo_weekly_review_acts_on_every_missed_target_probe.sql run in ONE rolled-back transaction together with this file
-(PROBE OK, 29 Sep 2026). After merge: apply with --apply --ddl --seat ceo, append it to the END of MANIFEST.txt, delete this
-note, and deploy resilience_ping (step ceoWeeklyReview). Apply BEFORE every_seat_reviews_itself_every_month.sql.
+(PROBE OK, 29 Sep 2026). After merge, in this order: FIRST deploy resilience_ping (step ceoWeeklyReview), because the
+apply registers that step in resilience_step, and a live function without it reports "the schedule names a step this
+function does not have" as a failure every time the plan names it; THEN
+apply with --apply --ddl --seat ceo, append it to the END of MANIFEST.txt and delete this note. Apply BEFORE
+every_seat_reviews_itself_every_month.sql.
