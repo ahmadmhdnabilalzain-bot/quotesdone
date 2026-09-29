@@ -127,7 +127,8 @@ begin
              case when v_choice = 'approve' then 'approved' else 'rejected' end, v_reasons,
              jsonb_build_object('month', v_month, 'ideas', p.plan->'ideas', 'revisions', coalesce(p.plan->'revisions', '[]'::jsonb)),
              'reasoning_held_question', p_id::text);
-  if v_choice = 'approve' and coalesce((v_cyc->>'recorded')::boolean, false) then
+  -- 'approved' whether recorded now or already on the ledger (a replayed answer); a closed item keeps its own state
+  if v_choice = 'approve' and coalesce(v_cyc->>'decision', '') = 'approved' then
     update public.marketing_month_plan
        set status = 'ceo_approved', updated_at = now(),
            verdict = coalesce(verdict, '{}'::jsonb) || jsonb_build_object('ceo', jsonb_build_object('decision', 'approved',
@@ -196,6 +197,9 @@ begin
                     'choice', v_choice, 'model', v_model))),
            updated_at = now()
      where month = (a.detail->'version'->>'month')::date and status = 'ceo_reviewing';
+    if not found then   -- the plan left the CEO (withdrawn, replaced by a new draft, sent): nothing to resubmit
+      return jsonb_build_object('applied', true, 'already', 'the plan is no longer with the CEO');
+    end if;
     v := public.fn_marketing_month_plan_to_ceo((a.detail->'version'->>'month')::date, true);
   else
     raise exception 'no revision route for a % item (%)', coalesce(a.detail->>'path', '?'), a.detail->>'item_key';
@@ -240,6 +244,8 @@ begin
       v_built := public.fn_marketing_month_plan_ideas(v_today, v_month, p_include_demo);
       update public.marketing_month_plan set plan = v_built, content_brief = jsonb_build_object('videos', jsonb_build_object('count', jsonb_array_length(v_built->'ideas')), 'ideas', v_built->'ideas'),
              updated_at = now() where month = v_month;
+      update public.marketing_video_idea set last_planned_month = v_month
+       where idea_key in (select e->>'idea_key' from jsonb_array_elements(v_built->'ideas') e);
     end if;
     return jsonb_build_object('sent', false, 'month', v_month, 'with_ceo', true, 'filed', public.fn_marketing_month_plan_to_ceo(v_month));
   end if;
