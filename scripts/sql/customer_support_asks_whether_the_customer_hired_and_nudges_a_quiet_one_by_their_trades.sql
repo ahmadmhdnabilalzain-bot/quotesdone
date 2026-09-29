@@ -134,7 +134,7 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; r record; v jsonb; m jsonb;
   v_stage text; v_lang text; v_tok uuid; v_seen int := 0; v_sent int := 0;
 begin
-  for r in select t.id as tx, t.inquiry_id, t.revealed_at, c.id as cid, c.full_name, c.email, c.locale,
+  for r in select t.id as tx, t.inquiry_id, t.revealed_at, c.id as cid, c.full_name, c.email, c.locale as customer_locale,
                   l.company_name, i.rfq_no, coalesce(i.category, i.trades[1]) as trade,
                   case when t.revealed_at <= now() - interval '14 days' then 'day_fourteen' else 'day_three' end as stage
              from public.transactions t
@@ -158,7 +158,9 @@ begin
             order by t.revealed_at limit 200 loop
     v_seen := v_seen + 1;
     v_stage := r.stage;
-    v_lang := public.fn_customer_message_lang(r.inquiry_id, r.locale);
+    -- the CUSTOMER's language (their request's, else their registered one); the lead joined above only names the
+    -- supplier in the copy, and nothing here is ever sent to a supplier
+    v_lang := public.fn_customer_message_lang(r.inquiry_id, r.customer_locale);
     v_tok := gen_random_uuid();
     m := public.fn_customer_followup_copy(v_stage, v_lang, r.full_name, r.company_name, r.rfq_no,
            public.fn_trade_label(r.trade, v_lang), 'https://quotesdone.ae/u/followup?t=' || v_tok);
@@ -251,7 +253,7 @@ begin
   -- 29 Sep 2026 (founder_instruction 1013): "inactive" is no request and no reveal for 60 days, and the message is
   -- about the trades the customer actually asked for, in the language of their last request. Until this date it
   -- was 60-90 days after a reveal only, generic copy, customers.locale.
-  for r in select c.id, c.full_name, c.email, c.locale, x.last_at, x.last_inquiry, x.trades
+  for r in select c.id, c.full_name, c.email, c.locale as customer_locale, x.last_at, x.last_inquiry, x.trades
              from public.customers c
              cross join lateral (
                select greatest((select max(i.created_at) from public.inquiries i where i.customer_id = c.id),
@@ -268,7 +270,7 @@ begin
               and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
             order by x.last_at limit 200 loop
     v_seen := v_seen + 1;
-    v_lang := public.fn_customer_message_lang(r.last_inquiry, r.locale);
+    v_lang := public.fn_customer_message_lang(r.last_inquiry, r.customer_locale);
     v_ar := v_lang = 'ar';
     v_name := coalesce(nullif(btrim(r.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
     select string_agg(public.fn_trade_label(k, v_lang), case when v_ar then '، ' else ', ' end order by o)
