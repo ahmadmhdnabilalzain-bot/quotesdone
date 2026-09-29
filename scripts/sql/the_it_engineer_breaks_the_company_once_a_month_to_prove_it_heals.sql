@@ -1,4 +1,5 @@
 -- THE IT ENGINEER BREAKS THE COMPANY ONCE A MONTH, ON PURPOSE, TO PROVE IT NOTICES AND HEALS.
+-- apply-window: off-hours (release coordinator, 29 Sep 2026: applied outside a campaign hour; a lock wait is retried)
 -- Seat: it_engineer. 28 Sep 2026, founder_instruction 1009 (upgrade 9): monthly game days. The IT engineer
 -- deliberately injects a fault, sandbox-safe, and proves the system detects it and recovers:
 --   email provider down  -> sends are kept for retry and an alert fires;
