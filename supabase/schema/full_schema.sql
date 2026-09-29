@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T01:56:40.043Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T02:03:41.419Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -68175,16 +68175,21 @@ CREATE OR REPLACE FUNCTION public.fn_seat_duties_tick(p_limit integer DEFAULT 8)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare d public.seat_duty; v_res jsonb; v_out jsonb := '[]'::jsonb; v_health jsonb; p jsonb;
+        v_t0 timestamptz := clock_timestamp(); v_n int := 0;
 begin
   for d in
     select * from public.seat_duty
      where enabled
        -- two minutes of tolerance, the same reasoning as fn_resilience_tick_plan: a tick is never exactly on the beat
        and (last_started_at is null or now() - last_started_at >= every - interval '2 minutes')
-     order by last_started_at nulls first, duty
-     limit greatest(1, least(coalesce(p_limit, 8), 30))
+     order by last_started_at + every nulls first, duty   -- the most overdue first
+     limit greatest(30, least(coalesce(p_limit, 8), 60))
      for update skip locked
   loop
+    -- the time budget: past 4 s no further duty starts (8 s PostgREST statement_timeout), except the
+    -- first p_limit, which always run as before
+    exit when v_n >= greatest(1, coalesce(p_limit, 8)) and clock_timestamp() - v_t0 > interval '4 seconds';
+    v_n := v_n + 1;
     update public.seat_duty set last_started_at = now() where duty = d.duty;
     begin
       if not public.fn_seat_duty_routine_exists(d.routine) then
