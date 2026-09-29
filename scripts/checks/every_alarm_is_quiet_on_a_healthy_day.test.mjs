@@ -198,6 +198,15 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_recruitment_funnel()',
     asOf: { supply_gap: 'opened_at', leads: 'created_at' },
   },
+  // 29 Sep 2026 (marketing, #1070). recruitment:no_source:<trade> when a trade planned for recruitment has no checked
+  // source. It plans from the gaps that existed at the instant (the copy's own delete drops plans for gaps not yet
+  // opened, rolled back); a healthy day has no planned trade without a checked source. Sources are not filtered:
+  // checked_at is when a source was last checked, not when it was recorded, and a source seen at the instant can only
+  // make it quieter (the ceiling in the header).
+  fn_marketing_gap_recruitment_plans: {
+    replay: 'pg_temp.qd_replay_fn_marketing_gap_recruitment_plans()',
+    asOf: { supply_gap: 'opened_at' },
+  },
   // 24 Sep 2026 (marketing, #905). reputation:no_public_review_link when a satisfied customer waits for an ask and no
   // review link is configured. Reviews that existed at the instant; the asks it writes are rolled back.
   fn_marketing_reputation: {
