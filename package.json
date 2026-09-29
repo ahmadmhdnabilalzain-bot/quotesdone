@@ -35,7 +35,7 @@
     "cmdk": "1.1.1",
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
-    "lucide-react": "0.417.0",
+    "lucide-react": "1.48.0",
     "motion": "^13.4.4",
     "next": "16.3.6",
     "next-intl": "4.14.7",
