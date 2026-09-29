@@ -191,6 +191,7 @@ Deno.test('a judgement is recorded WITH its recall record, then closed with the 
   assertEquals(rec[1].p_subject, { command_id: 7 });
   const dec = m.rpcs.find(([f]) => f === 'fn_judgement_decided')!;
   assertEquals([dec[1].p_status, dec[1].p_decision], ['answered', 'stop']);
+  assertEquals(dec[1].p_followed, [], 'an answer that cited no recalled case must say so ([]), not leave it unsaid');
 });
 
 Deno.test('under the model hold nothing is judged, so no judgement row is opened', async () => {

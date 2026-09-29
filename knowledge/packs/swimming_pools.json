@@ -1,0 +1,77 @@
+{
+  "trade": "swimming_pools",
+  "entries": [
+    {
+      "id": "swimming_pools:spec-checklist",
+      "topic": "Swimming pools - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For swimming pools quotes to be compared like-for-like, every quoted line (services) must state: (1) pool type and dimensions (length, width, depth); (2) structure (concrete, prefabricated); (3) waterproofing and finish (tiles, mosaic, plaster); (4) filtration system and turnover rate; (5) disinfection method; (6) pumps and equipment make; (7) heating or cooling; (8) lighting and electrical safety; (9) municipality pool approval; (10) maintenance contract; (11) contract duration and pricing basis; (12) service levels and response times; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the swimming_pools trade.",
+      "body_ar": "لكي تُقارن عروض حمامات السباحة على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المسبح وأبعاده (الطول، والعرض، والعمق)؛ (2) الهيكل (خرساني أو جاهز)؛ (3) العزل المائي والتشطيب (بلاط، أو فسيفساء، أو لياسة)؛ (4) نظام الترشيح ومعدل دوران المياه؛ (5) طريقة التعقيم؛ (6) ماركة المضخات والمعدات؛ (7) التسخين أو التبريد؛ (8) الإضاءة والسلامة الكهربائية؛ (9) موافقة البلدية على المسبح؛ (10) عقد الصيانة؛ (11) مدة العقد وأساس التسعير؛ (12) مستويات الخدمة وأزمنة الاستجابة؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة swimming_pools فقط.",
+      "required_specs": [
+        "pool type and dimensions (length, width, depth)",
+        "structure (concrete, prefabricated)",
+        "waterproofing and finish (tiles, mosaic, plaster)",
+        "filtration system and turnover rate",
+        "disinfection method",
+        "pumps and equipment make",
+        "heating or cooling",
+        "lighting and electrical safety",
+        "municipality pool approval",
+        "maintenance contract",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "swimming_pools:uae-standards-and-approvals",
+      "topic": "Swimming pools - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Public and shared swimming pools in Dubai must meet Dubai Municipality public-health requirements for pool design and water quality; construction needs a building permit from the municipality. What the cited sources do not establish: The Dubai Municipality page read does not mention pools; the pool rules are not verified here and the buyer must confirm the approval route.",
+      "body_ar": "يجب أن تطابق المسابح العامة والمشتركة في دبي متطلبات الصحة العامة لبلدية دبي لتصميم المسابح وجودة المياه؛ ويحتاج الإنشاء إلى رخصة بناء من البلدية. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة لا تذكر المسابح؛ قواعد المسابح غير متحقق منها هنا، وعلى المشتري أن يتأكد من مسار الموافقة.",
+      "source_note": "The Dubai Municipality page read does not mention pools; the pool rules are not verified here and the buyer must confirm the approval route.",
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for swimming pools?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـحمامات السباحة؟",
+      "expected_entry_ids": [
+        "swimming_pools:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to swimming pools?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على حمامات السباحة؟",
+      "expected_entry_ids": [
+        "swimming_pools:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "swimming_pools:spec-checklist",
+      "swimming_pools:uae-standards-and-approvals"
+    ],
+    "added": [
+      "swimming_pools:spec-checklist",
+      "swimming_pools:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
