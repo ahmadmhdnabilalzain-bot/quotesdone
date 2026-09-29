@@ -1,0 +1,78 @@
+{
+  "trade": "dental_supplies",
+  "entries": [
+    {
+      "id": "dental_supplies:spec-checklist",
+      "topic": "Dental supplies - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "Each quoted product line for dental supplies must state: product and model; brand and manufacturer; size or shade and quantity; EDE marketing authorization; device classification; sterility; expiry date; storage conditions; UAE approvals and certificates; delivery and installation scope; lead time; warranty; exclusions. Quantities carry their unit of measure, and each standard or certificate is named with its number. A line that does not state every required spec is held and the supplier is asked for it; nothing is guessed, and quotes are compared only like-for-like. This checklist applies to this exact trade only.",
+      "body_ar": "يجب أن يذكر كل بند مسعَّر في فئة مستلزمات طب الأسنان: المنتج والطراز؛ العلامة والمصنّع؛ المقاس أو اللون والكمية؛ إذن التسويق من مؤسسة الإمارات للدواء؛ تصنيف الجهاز؛ التعقيم؛ تاريخ الانتهاء؛ ظروف التخزين؛ الموافقات والشهادات الإماراتية؛ نطاق التوريد والتركيب؛ مدة التوريد؛ الضمان؛ الاستثناءات. تُذكر الكميات مع وحدة القياس، ويُسمّى كل معيار أو شهادة برقمه. البند الذي لا يذكر كل المواصفات المطلوبة يُعلَّق ويُطلب من المورد استكمالها؛ لا يُفترض أي شيء، ولا تُقارن العروض إلا عند تطابقها. تنطبق هذه القائمة على هذه الفئة التجارية بعينها فقط.",
+      "required_specs": [
+        "product and model",
+        "brand and manufacturer",
+        "size or shade and quantity",
+        "EDE marketing authorization",
+        "device classification",
+        "sterility",
+        "expiry date",
+        "storage conditions",
+        "UAE approvals and certificates",
+        "delivery and installation scope",
+        "lead time",
+        "warranty",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device",
+        "https://mohap.gov.ae/en/w/registered-medical-devices"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "dental_supplies:uae-standards-and-approvals",
+      "topic": "Dental supplies - UAE standards and approvals",
+      "kind": "standard",
+      "body_en": "Medical devices imported and traded in the UAE need a marketing authorization from the Emirates Drug Establishment (EDE), the federal regulator of medical products since 2023. The manufacturer and the marketing authorization holder must be registered with EDE first, and the applicant must be an EDE-licensed medical warehouse or marketing office. The cited sources do not set a UAE-specific grade, class or test method for dental supplies; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "body_ar": "تحتاج الأجهزة الطبية المستوردة والمتداولة في الإمارات إلى إذن تسويق من مؤسسة الإمارات للدواء، الجهة الاتحادية المنظمة للمنتجات الطبية منذ 2023. ويجب تسجيل المصنّع وحامل إذن التسويق لدى المؤسسة أولاً، وأن يكون مقدم الطلب مستودعاً طبياً أو مكتب تسويق مرخصاً من المؤسسة. لا تحدد المصادر المذكورة درجة أو فئة أو طريقة اختبار إماراتية خاصة بفئة مستلزمات طب الأسنان؛ يجب على المشتري ذكر الدرجة والمعيار وطريقة الاختبار صراحة، والبند الذي يخلو منها يُعلَّق.",
+      "source_note": "The cited sources do not set a UAE-specific grade, class or test method for dental supplies; the buyer must state the grade, standard and test method explicitly, and a line without them is held.",
+      "sources": [
+        "https://www.ede.gov.ae/en/w/issuance-of-marketing-authorization-for-a-medical-device",
+        "https://mohap.gov.ae/en/w/registered-medical-devices"
+      ],
+      "confidence": "high",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "I need quotes for dental supplies. What do I have to specify so suppliers quote the same thing?",
+      "q_ar": "أحتاج عروض أسعار في فئة مستلزمات طب الأسنان. ما الذي يجب أن أحدده حتى يسعّر الموردون الشيء نفسه؟",
+      "expected_entry_ids": [
+        "dental_supplies:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or certificates apply to dental supplies?",
+      "q_ar": "ما الموافقات أو الشهادات الإماراتية التي تنطبق على فئة مستلزمات طب الأسنان؟",
+      "expected_entry_ids": [
+        "dental_supplies:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "dental_supplies:spec-checklist"
+    ],
+    "added": [
+      "dental_supplies:spec-checklist",
+      "dental_supplies:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority claims read on the authority's own site (page fetch or its own search excerpt) on 28 Sep 2026; per-line spec lists are sales-engineering practice not established by a single primary source, so they stay medium."
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "trade": "railway_equipment",
+  "layer": "uae-market",
+  "label_en": "Railway Equipment & Services",
+  "label_ar": "معدات وخدمات السكك الحديدية",
+  "entries": [
+    {
+      "id": "railway_equipment:uae-market-products",
+      "topic": "Railway Equipment & Services: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Railway equipment and services in the UAE relate mainly to Etihad Rail (national freight and passenger network), Dubai Metro and Dubai Tram (RTA), Abu Dhabi and Dubai future transit projects, and industrial/port sidings. Products include rolling stock (freight wagons, locomotives, passenger trains, metro cars), track materials (rails UIC 60/60E1, sleepers, fastening systems, turnouts/switches, ballast), signalling and train control (ETCS Level 2, CBTC for metro, interlocking), power supply and overhead catenary, telecom systems (GSM-R/FRMCS, SCADA), platform screen doors, fare collection, depot equipment (wheel lathes, lifting jacks, bogie test rigs), maintenance-of-way machinery (tampers, ballast regulators, rail grinders), and spare parts. Specifications follow EN/UIC standards and RAMS (EN 50126/50128/50129) safety frameworks; the Ministry of Energy and Infrastructure is the Federal Railway Regulator under Federal Law No. 8 of 2020 (safety permits and licences for infrastructure managers and operators), and the RTA regulates rail in Dubai. Suppliers must usually be pre-qualified by Etihad Rail or RTA.",
+      "body_ar": "ترتبط معدات وخدمات السكك الحديدية في الإمارات أساساً بقطار الاتحاد (الشبكة الوطنية للشحن والركاب)، ومترو دبي وترام دبي (هيئة الطرق والمواصلات)، ومشاريع النقل المستقبلية في أبوظبي ودبي، والخطوط الفرعية الصناعية/في الموانئ. وتشمل المنتجات العربات المتحركة (عربات الشحن، والقاطرات، وقطارات الركاب، وعربات المترو)، ومواد السكك (القضبان UIC 60/60E1، والعوارض، وأنظمة التثبيت، والمحولات، والحصى)، والإشارات والتحكم في القطارات (ETCS المستوى 2، وCBTC للمترو، والتشابك)، وإمدادات الطاقة وخطوط التغذية العلوية، وأنظمة الاتصالات (GSM-R/FRMCS، وSCADA)، والأبواب الزجاجية للأرصفة، وتحصيل الأجرة، ومعدات المستودعات (مخارط العجلات، ورافعات الرفع، ومنصات اختبار العربات)، وآلات صيانة المسار (آلات الدك، ومنظمات الحصى، وآلات جلخ القضبان)، وقطع الغيار. وتتبع المواصفات معايير EN/UIC وأطر السلامة RAMS (EN 50126/50128/50129)؛ وتُعد وزارة الطاقة والبنية التحتية الجهة الاتحادية المنظمة للسكك الحديدية بموجب القانون الاتحادي رقم 8 لسنة 2020 (تصاريح السلامة وتراخيص مديري البنية التحتية والمشغلين)، وتنظم هيئة الطرق والمواصلات السكك الحديدية في دبي. وعادةً ما يجب أن يكون الموردون مؤهلين مسبقاً لدى قطار الاتحاد أو هيئة الطرق والمواصلات.",
+      "sources": [
+        "https://dwfgroup.com/en/news-and-insights/insights/2021/4/railway-regulation-and-projects-in-the-united-arab-emirates",
+        "https://www.etihadrail.ae/",
+        "https://www.etihadrail.ae",
+        "https://www.rta.ae",
+        "https://uic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified."
+    },
+    {
+      "id": "railway_equipment:uae-market-brands",
+      "topic": "Railway Equipment & Services: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed national rail operator and major rolling stock and systems makers: Etihad Rail, Alstom, Siemens Mobility, Hitachi Rail, CRRC, Progress Rail. The makers' current UAE contracts were not checked.",
+      "body_ar": "مشغل السكك الحديدية الوطني المؤكد وكبار مصنعي العربات والأنظمة: Etihad Rail، Alstom، Siemens Mobility، Hitachi Rail، CRRC، Progress Rail. ولم يُتحقق من عقود المصنعين الحالية في الإمارات.",
+      "sources": [
+        "https://dwfgroup.com/en/news-and-insights/insights/2021/4/railway-regulation-and-projects-in-the-united-arab-emirates",
+        "https://www.etihadrail.ae/",
+        "https://www.etihadrail.ae",
+        "https://www.rta.ae",
+        "https://uic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified."
+    },
+    {
+      "id": "railway_equipment:uae-market-sizes",
+      "topic": "Railway Equipment & Services: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Rolling stock is priced per unit/trainset in major contracts; rails per tonne or per metre; sleepers per piece; turnouts per unit; signalling and systems as lump-sum packages; maintenance under multi-year O&M contracts; spares per piece with long lead times (often 3-12 months). Tenders are usually in AED or USD with performance bonds and local content (ICV) scoring.",
+      "body_ar": "تُسعّر العربات المتحركة لكل وحدة/قطار في العقود الكبرى؛ والقضبان لكل طن أو لكل متر؛ والعوارض لكل قطعة؛ والمحولات لكل وحدة؛ والإشارات والأنظمة كباقات بمبالغ مقطوعة؛ والصيانة بعقود تشغيل وصيانة متعددة السنوات؛ وقطع الغيار لكل قطعة بمدد توريد طويلة (غالباً 3-12 شهراً). وعادةً ما تكون المناقصات بالدرهم أو الدولار مع ضمانات أداء وتقييم للقيمة المحلية المضافة (ICV).",
+      "sources": [
+        "https://dwfgroup.com/en/news-and-insights/insights/2021/4/railway-regulation-and-projects-in-the-united-arab-emirates",
+        "https://www.etihadrail.ae/",
+        "https://www.etihadrail.ae",
+        "https://www.rta.ae",
+        "https://uic.org",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail -> corrected | Etihad Rail runs freight and passenger services -> confirmed. Not checked: The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which rail profile is used on the Etihad Rail network?",
+      "q_ar": "ما مقطع القضبان المستخدم في شبكة قطار الاتحاد؟",
+      "expected_entry_ids": [
+        "railway_equipment:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "MEI is the Federal Railway Regulator under Federal Law 8 of 2020; RTA regulates Dubai rail",
+        "url": "https://dwfgroup.com/en/news-and-insights/insights/2021/4/railway-regulation-and-projects-in-the-united-arab-emirates",
+        "result": "corrected"
+      },
+      {
+        "claim": "Etihad Rail runs freight and passenger services",
+        "url": "https://www.etihadrail.ae/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The exact federal rail regulator name, current Dubai Metro operator contract, and supplier roles on current Etihad Rail phases were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

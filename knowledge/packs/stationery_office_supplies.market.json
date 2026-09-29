@@ -1,0 +1,99 @@
+{
+  "trade": "stationery_office_supplies",
+  "layer": "uae-market",
+  "label_en": "Stationery & office supplies",
+  "label_ar": "قرطاسية ومستلزمات مكاتب",
+  "entries": [
+    {
+      "id": "stationery_office_supplies:uae-market-products",
+      "topic": "Stationery & office supplies: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Stationery and office supplies sold in the UAE include copy paper (A4 and A3, 70-80 gsm, brightness ratings), notebooks and registers, pens (ballpoint, gel, rollerball), markers and highlighters, files and folders (box files, lever arch, ring binders, document wallets), envelopes (DL, C4, C5; with or without window, company-printed), sticky notes, staplers and punches, calculators, whiteboards and flipcharts, labels, toner and ink cartridges (original OEM, compatible and remanufactured), pantry supplies, shredders, laminators, school supplies, and printed business stationery (letterheads, business cards, company stamps). Buyers specify brand or equivalent, paper weight and whiteness, OEM versus compatible cartridges, recycled/FSC content, and packing. Company stamps and seals are made by licensed stamp makers following emirate rules.",
+      "body_ar": "تشمل القرطاسية واللوازم المكتبية المباعة في الإمارات ورق التصوير (A4 وA3، 70-80 غرام/م2، بدرجات سطوع مختلفة)، والدفاتر والسجلات، والأقلام (جاف، وجل، وحبر سائل)، وأقلام التحديد والتظليل، والملفات والمجلدات (ملفات صندوقية، وملفات بذراع ضاغط، وملفات بحلقات، وحافظات مستندات)، والمظاريف (DL وC4 وC5؛ بنافذة أو بدونها، ومطبوعة باسم الشركة)، والأوراق اللاصقة، والدباسات والخرامات، والآلات الحاسبة، والسبورات البيضاء ولوحات العرض الورقية، والملصقات، وخراطيش الحبر والحبر المسحوق (الأصلية من الشركة المصنعة، والمتوافقة، والمعاد تصنيعها)، ولوازم المطبخ المكتبي، وآلات تمزيق الورق، وآلات التغليف الحراري، واللوازم المدرسية، والقرطاسية المطبوعة للأعمال (أوراق مروسة، وبطاقات عمل، وأختام الشركة). يحدد المشترون العلامة التجارية أو ما يعادلها، ووزن الورق وبياضه، والخراطيش الأصلية مقابل المتوافقة، ومحتوى المواد المعاد تدويرها أو شهادة FSC، والتعبئة. وتُصنع أختام الشركات لدى صانعي أختام مرخصين وفق قواعد كل إمارة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Units_of_paper_quantity",
+        "https://www.officeoneuae.com/",
+        "https://www.fetchoffice.com/",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.hp.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified."
+    },
+    {
+      "id": "stationery_office_supplies:uae-market-brands",
+      "topic": "Stationery & office supplies: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE B2B suppliers and brands sold: Office One, FetchOffice, OfficeStationery.ae, Double A, PaperOne, Pilot, Uni-ball, BIC, Faber-Castell, Staedtler, HP, Canon, Epson, 3M Post-it. The brands' UAE distributors were not checked. Wholesalers also operate in Deira and Sharjah.",
+      "body_ar": "موردو الشركات المؤكدون في الإمارات والعلامات المباعة: Office One، FetchOffice، OfficeStationery.ae، Double A، PaperOne، Pilot، Uni-ball، BIC، Faber-Castell، Staedtler، HP، Canon، Epson، 3M Post-it. ولم يُتحقق من موزعي العلامات في الإمارات. ويعمل تجار الجملة أيضاً في ديرة والشارقة.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Units_of_paper_quantity",
+        "https://www.officeoneuae.com/",
+        "https://www.fetchoffice.com/",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.hp.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified."
+    },
+    {
+      "id": "stationery_office_supplies:uae-market-sizes",
+      "topic": "Stationery & office supplies: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Copy paper is priced per ream (500 sheets) or per box (5 reams), pallets for large buyers; pens per box of 12 or 50; files per piece or pack of 10; envelopes per box of 500. Corporate contracts are commonly priced per item on an annual rate list with free next-day delivery above a minimum order value. Toner is priced per cartridge by yield (pages).",
+      "body_ar": "يُسعّر ورق التصوير لكل رزمة (500 ورقة) أو لكل صندوق (5 رزم)، وبالمنصات للمشترين الكبار؛ والأقلام لكل علبة من 12 أو 50؛ والملفات لكل قطعة أو عبوة من 10؛ والمظاريف لكل علبة من 500. وتُسعّر عقود الشركات عادةً لكل بند وفق قائمة أسعار سنوية مع توصيل مجاني في اليوم التالي فوق حد أدنى لقيمة الطلب. ويُسعّر الحبر المسحوق لكل خرطوشة حسب إنتاجيتها (عدد الصفحات).",
+      "sources": [
+        "https://en.wikipedia.org/wiki/Units_of_paper_quantity",
+        "https://www.officeoneuae.com/",
+        "https://www.fetchoffice.com/",
+        "https://fsc.org",
+        "https://www.iso.org",
+        "https://www.hp.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A ream is 500 sheets; standard office paper is A4 80 gsm -> confirmed | B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae -> confirmed | WHSmith, Jarir, Emirates Stationery as B2B suppliers -> removed: not confirmed. Not checked: Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is A4 copy paper priced for a corporate account?",
+      "q_ar": "كيف يُسعّر ورق التصوير A4 لحساب شركة؟",
+      "expected_entry_ids": [
+        "stationery_office_supplies:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "A ream is 500 sheets; standard office paper is A4 80 gsm",
+        "url": "https://en.wikipedia.org/wiki/Units_of_paper_quantity",
+        "result": "confirmed"
+      },
+      {
+        "claim": "B2B office supply companies in the UAE include Office One, FetchOffice and OfficeStationery.ae",
+        "url": "https://www.officeoneuae.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "WHSmith, Jarir, Emirates Stationery as B2B suppliers",
+        "url": "https://www.fetchoffice.com/",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Named wholesalers are market examples; current distributor appointments and company stamp licensing rules per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

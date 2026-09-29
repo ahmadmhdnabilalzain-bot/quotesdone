@@ -30,8 +30,13 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
   // what support says to ANOTHER seat is only ever the answer to a send it was asked for
   // — and one named exception (#904): a post-reveal dispute's fault finding goes to the CEO, who decides disputes,
   // on the cross-family review machine. It asks for a decision; it delivers nothing.
+  // — and a second named exception (founder instruction 1009, #1066): a support cause recurring past the weekly
+  // threshold goes to the seat that owns it as support.root_cause; support measures the weekly volume afterwards and
+  // closes it when it falls. It asks the owner to change what produces the cause; it delivers nothing.
+  const ROOT_CAUSE_OWNERS = ['sales_engineer', 'accountant', 'it_engineer', 'marketing', 'ceo'];
   for (const h of HANDOFF_TYPES.filter((x) => x.from === 'customer_support' && x.to !== 'customer_support')) {
     if (h.type === 'deliberation.review' && h.to === 'ceo') continue;
+    if (h.type === 'support.root_cause' && ROOT_CAUSE_OWNERS.includes(h.to)) continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {

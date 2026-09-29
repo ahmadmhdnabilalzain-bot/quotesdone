@@ -1,0 +1,76 @@
+{
+  "trade": "tool_equipment_rental",
+  "entries": [
+    {
+      "id": "tool_equipment_rental:spec-checklist",
+      "topic": "Tool and equipment rental - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For tool and equipment rental quotes to be compared like-for-like, every quoted line (services) must state: (1) equipment type, model and capacity; (2) rental period and start date; (3) rate basis (daily, weekly, monthly); (4) with or without operator; (5) delivery and collection; (6) fuel and consumables; (7) third-party inspection certificate for lifting equipment; (8) insurance and damage liability; (9) breakdown replacement; (10) contract duration and pricing basis; (11) service levels and response times; (12) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tool_equipment_rental trade.",
+      "body_ar": "لكي تُقارن عروض تأجير الأدوات والمعدات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع المعدات وطرازها وقدرتها؛ (2) مدة الإيجار وتاريخ البدء؛ (3) أساس السعر (يومي، أو أسبوعي، أو شهري)؛ (4) مع مشغل أو بدونه؛ (5) التسليم والاستلام؛ (6) الوقود والمستهلكات؛ (7) شهادة فحص من طرف ثالث لمعدات الرفع؛ (8) التأمين والمسؤولية عن الأضرار؛ (9) الاستبدال عند العطل؛ (10) مدة العقد وأساس التسعير؛ (11) مستويات الخدمة وأزمنة الاستجابة؛ (12) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tool_equipment_rental فقط.",
+      "required_specs": [
+        "equipment type, model and capacity",
+        "rental period and start date",
+        "rate basis (daily, weekly, monthly)",
+        "with or without operator",
+        "delivery and collection",
+        "fuel and consumables",
+        "third-party inspection certificate for lifting equipment",
+        "insurance and damage liability",
+        "breakdown replacement",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "tool_equipment_rental:uae-standards-and-approvals",
+      "topic": "Tool and equipment rental - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Lifting equipment on UAE sites is normally required to carry a valid third-party inspection certificate from an accredited inspection body; site safety follows the emirate authority rules (for example Dubai Municipality and Abu Dhabi OSHAD). What the cited sources do not establish: The sources read do not state the inspection interval; the buyer must ask for the current certificate.",
+      "body_ar": "يُشترط عادةً أن تحمل معدات الرفع في مواقع الإمارات شهادة فحص سارية من جهة فحص معتمدة؛ وتتبع سلامة المواقع قواعد جهة الإمارة (مثل بلدية دبي ونظام أبوظبي للسلامة والصحة المهنية). ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد فترة الفحص؛ على المشتري أن يطلب الشهادة السارية.",
+      "source_note": "The sources read do not state the inspection interval; the buyer must ask for the current certificate.",
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for tool and equipment rental?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـتأجير الأدوات والمعدات؟",
+      "expected_entry_ids": [
+        "tool_equipment_rental:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to tool and equipment rental?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على تأجير الأدوات والمعدات؟",
+      "expected_entry_ids": [
+        "tool_equipment_rental:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "tool_equipment_rental:spec-checklist",
+      "tool_equipment_rental:uae-standards-and-approvals"
+    ],
+    "added": [
+      "tool_equipment_rental:spec-checklist",
+      "tool_equipment_rental:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

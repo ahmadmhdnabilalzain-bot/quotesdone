@@ -1,7 +1,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, safeFilename, SAFE_UPLOAD, SAFE_DOCS } from '../_shared/attachment.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
-import { asLocale } from '../_shared/registered_locale.ts';
+import { asLocale, SUPPLIER_LOCALE } from '../_shared/registered_locale.ts';
 import { arDays } from '../_shared/ar_days.ts';
 // MALWARE WATCH, 9 Sep 2026. Every file a supplier sends is hashed and looked up before it reaches
 // storage; a hash VirusTotal already knows to be malicious is refused here rather than stored,
@@ -246,7 +246,7 @@ async function kickDelivery() {
 }
 /** The supplier as the hold desk addresses them: every channel on file, in their language. */
 // deno-lint-ignore no-explicit-any
-const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: sup.locale || null });
+const supplierOf = (sup: any, email: string) => ({ id: Number(sup.id), email: email || null, phone: sup.whatsapp || sup.phone || null, locale: SUPPLIER_LOCALE });
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
@@ -361,7 +361,7 @@ function regenRender(q: any, sup: any, inqRow: any): Render {
     ]);
     const order = [...new Set((matches || []).map((m: { supplier_id: number }) => Number(m.supplier_id)))];
     const letter = jobAlias(order, Number(sup.id)).replace(/^Supplier /, '');
-    const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+    const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
     const d = await nativeArabic(defaultDeps(admin, 'supplier_api'), (arTexts) => pdfDoc(rec, { inquiry: { id: String(q.inquiry_id), rfq_no: inqRow?.rfq_no ?? null, category: inqRow?.category ?? null, emirate: safeInq?.emirate ?? null }, letter, lang, arTexts }), { subject: { quote_id: rec.quote_id, kind: 'regenerated_quotation' } });
     if (!d.doc) {
       // The quote waits by its own id, whoever filed the lines first; the replay renders it when they are all in.
@@ -443,7 +443,7 @@ const handle = async (req: Request): Promise<Response> => {
         if (!sc.ok) return { ok: false as const, status: sc.status, code: String(sc.body.error || 'file_refused'), message: String(sc.body.message || 'That file cannot be accepted.') };
         return { ok: true as const, bytes: sc.result.bytes, mime: sc.result.mime, name: safeFilename(filename, sc.result.mime) };
       };
-      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: sup.locale ?? null }, email, self, body, repo: supabaseReviewRepo(admin), scan,
+      const out = await reviewAction({ sup: { id: Number(sup.id), company_name: sup.company_name ?? null, locale: SUPPLIER_LOCALE }, email, self, body, repo: supabaseReviewRepo(admin), scan,
         readTerms: async (text: string) => (await quoteTerms(defaultDeps(admin, 'supplier_api'), { text })).value,
         // The review reads the quotation the way the hold gate will (reasoned_matching.ts readQuote); held: nothing is read, every detail is asked.
         readWorking: (inq, w) => readWorking(defaultDeps(admin, 'supplier_api'), inq, w, 'review:' + inq.id + ':' + sup.id) });
@@ -487,6 +487,25 @@ const handle = async (req: Request): Promise<Response> => {
     // read and CONFIRM another company's scope by changing one number - the same enumeration defect
     // claim_lookup was hardened against on 19 Jul, one layer up. Here the id is resolved from the
     // caller's own JWT via claimed_by and the client's id is never consulted.
+    // A closed support case asks the supplier for its rating inside the portal (CSAT 1-5, CES 1-7; customer_support
+    // #1036). The portal is the sales engineer's, so it asks here and never calls Support's widget. The party is the
+    // company this session claimed, never an id from the client, and fn_support_portal_rate refuses a case that is
+    // not that company's. A sanctioned session never reaches this line (refused above).
+    if (action === 'support_rating_due' || action === 'support_rating') {
+      const { data: mine } = await admin.from('leads').select('id').eq('claimed_by', email).maybeSingle();
+      if (action === 'support_rating_due') {
+        if (!mine) return J({ ok: true, due: [] });
+        const { data, error } = await admin.rpc('fn_support_rating_due', { p_party_kind: 'supplier', p_party_id: String(mine.id) });
+        return error ? J({ error: 'rating_due_failed' }, 400) : J({ ok: true, due: data || [] });
+      }
+      if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company' }, 400);
+      const { data, error } = await admin.rpc('fn_support_portal_rate', {
+        p_party_kind: 'supplier', p_party_id: String(mine.id), p_case_ref: String(body.case_ref || ''),
+        p_csat: body.csat == null ? null : Number(body.csat), p_ces: body.ces == null ? null : Number(body.ces),
+        p_comment: body.comment ? String(body.comment).slice(0, 2000) : null });
+      return error ? J({ error: 'rating_failed' }, 400) : J(data);
+    }
+
     if (action === 'capability_state' || action === 'capability_confirm') {
       const { data: mine } = await admin.from('leads').select('id,service_emirates').eq('claimed_by', email).maybeSingle();
       if (!mine) return J({ error: 'claim_your_company_first', code: 'no_company', message: 'Claim your company before confirming what it can quote for.' }, 400);
@@ -927,7 +946,7 @@ const handle = async (req: Request): Promise<Response> => {
       const { data: full } = await admin.from('leads').select('*').eq('id', sup.id).maybeSingle();
       if (firstSubmit) {
         const name = full?.company_name || sup.company_name;
-        const ar = (full?.locale || sup.locale) === 'ar';
+        const ar = (SUPPLIER_LOCALE as string) === 'ar';   // always false: suppliers are written in English (founder, 28 Sep 2026)
         const mgmt = (await secretVal('admin_emails') || 'management@quotesdone.com').split(',')[0].trim();
         const licInfo = full?.trade_license_no ? ` Licence ${full.trade_license_no}${full.license_city ? ', ' + full.license_city : ''}${full.license_expiry ? ', expires ' + full.license_expiry : ''}.` : '';
         const needEn = sixInWords(stillNeeded.filter((c) => c !== 'licence_expired'), 'en') + (stillNeeded.includes('licence_expired') ? (stillNeeded.length > 1 ? ', ' : '') + 'a trade licence that is in date' : '');
@@ -1201,7 +1220,7 @@ const handle = async (req: Request): Promise<Response> => {
     if (action === 'quote_pdf' || action === 'inquiry_pdf' || action === 'receipts' || action === 'receipt_pdf') {
       const { data: sup } = await admin.from('leads').select('id,company_name').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
-      const lang: 'en' | 'ar' = body.lang === 'ar' ? 'ar' : 'en';
+      const lang: 'en' | 'ar' = SUPPLIER_LOCALE;   // a supplier's document is English whatever was asked (founder, 28 Sep 2026)
       const print = async (doc: Record<string, unknown>) => {
         const secret = await secretVal('cred_fn_supplier_api');
         if (!secret) return null;
@@ -1603,7 +1622,7 @@ const handle = async (req: Request): Promise<Response> => {
       const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
         workingFromSubmit(body, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
         resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id));
-      const lang: 'en' | 'ar' = String(sup.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en';
+      const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
       const reviewMessage = reviewIssues ? rv.issues.slice(0, 3).map((i) => (lang === 'ar' ? i.ar : i.en)).join(' ') : null;

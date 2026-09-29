@@ -1,0 +1,96 @@
+{
+  "trade": "device_repair",
+  "layer": "uae-market",
+  "label_en": "Computer & Phone Repair",
+  "label_ar": "إصلاح الحواسيب والهواتف",
+  "entries": [
+    {
+      "id": "device_repair:uae-market-products",
+      "topic": "Computer & Phone Repair: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Device repair services in the UAE include smartphone repair (screen and display replacement with original/OEM or aftermarket OLED/LCD panels, battery replacement, charging port, cameras, back glass, water damage recovery, motherboard micro-soldering), tablet and laptop repair (screens, keyboards, hinges, SSD upgrades, thermal paste, motherboard repair), desktop and printer repair, game console repair, smartwatch repair, data recovery (from HDD, SSD, phones), corporate device maintenance contracts and fleet refurbishment, and certified pre-owned/refurbished device grading. Buyers ask whether parts are genuine (e.g. Apple Genuine Parts via authorised service providers, Samsung original service packs) or compatible, warranty on repair (commonly 30-180 days), turnaround (same day for screens), data privacy, and whether repair voids the manufacturer's warranty. Authorised service centres are appointed by brands; independent shops must hold a DET/emirate trade licence for electronics repair; e-waste disposal follows municipality rules.",
+      "body_ar": "تشمل خدمات إصلاح الأجهزة في الإمارات إصلاح الهواتف الذكية (استبدال الشاشات بلوحات أصلية أو OLED/LCD بديلة، واستبدال البطارية، ومنفذ الشحن، والكاميرات، والزجاج الخلفي، والإصلاح بعد التلف بالماء، واللحام الدقيق للوحة الأم)، وإصلاح الأجهزة اللوحية والحواسيب المحمولة (الشاشات، ولوحات المفاتيح، والمفصلات، وترقية أقراص SSD، والمعجون الحراري، وإصلاح اللوحة الأم)، وإصلاح الحواسيب المكتبية والطابعات، وإصلاح أجهزة الألعاب، وإصلاح الساعات الذكية، واستعادة البيانات (من الأقراص الصلبة وأقراص SSD والهواتف)، وعقود صيانة أجهزة الشركات وتجديد الأساطيل، وتصنيف الأجهزة المستعملة المعتمدة/المجددة. يسأل المشترون عما إذا كانت القطع أصلية (مثل قطع أبل الأصلية عبر مقدمي الخدمة المعتمدين، وحزم الخدمة الأصلية من سامسونج) أو متوافقة، والضمان على الإصلاح (عادةً 30-180 يوماً)، ومدة التنفيذ (في اليوم نفسه للشاشات)، وخصوصية البيانات، وما إذا كان الإصلاح يُبطل ضمان الشركة المصنعة. وتُعين العلامات التجارية مراكز الخدمة المعتمدة؛ ويجب أن تحمل المحلات المستقلة رخصة تجارية من دائرة الاقتصاد والسياحة أو دائرة الإمارة لإصلاح الإلكترونيات؛ ويتبع التخلص من النفايات الإلكترونية قواعد البلدية.",
+      "sources": [
+        "https://support.apple.com/en-ae/repair",
+        "https://www.samsung.com/ae/support/",
+        "https://support.apple.com",
+        "https://www.dubaidet.gov.ae",
+        "https://www.samsung.com/ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page) -> confirmed | Samsung runs support and service for the UAE -> confirmed | Named independent repair malls and retailer service desks -> removed: not checked. Not checked: Current authorised service provider lists and specific mall names for independent repair clusters were not verified."
+    },
+    {
+      "id": "device_repair:uae-market-brands",
+      "topic": "Computer & Phone Repair: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Brands with official service in the UAE: Apple, Samsung, Huawei, Xiaomi, HP, Dell, Lenovo. Apple and Samsung UAE service pages were confirmed; the others' authorised centres were not checked. Independent repair clusters in Deira, Bur Dubai, Karama, Sharjah and Abu Dhabi.",
+      "body_ar": "العلامات التي لديها خدمة رسمية في الإمارات: Apple، Samsung، Huawei، Xiaomi، HP، Dell، Lenovo. وتم تأكيد صفحات خدمة أبل وسامسونج في الإمارات؛ ولم يُتحقق من المراكز المعتمدة للعلامات الأخرى. ويتجمع الإصلاح المستقل في ديرة وبر دبي والكرامة والشارقة وأبوظبي.",
+      "sources": [
+        "https://support.apple.com/en-ae/repair",
+        "https://www.samsung.com/ae/support/",
+        "https://support.apple.com",
+        "https://www.dubaidet.gov.ae",
+        "https://www.samsung.com/ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page) -> confirmed | Samsung runs support and service for the UAE -> confirmed | Named independent repair malls and retailer service desks -> removed: not checked. Not checked: Current authorised service provider lists and specific mall names for independent repair clusters were not verified."
+    },
+    {
+      "id": "device_repair:uae-market-sizes",
+      "topic": "Computer & Phone Repair: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per repair job by device model and part (e.g. screen replacement priced per model and part grade), with diagnosis fees sometimes waived if repaired; laptops per job plus parts; data recovery by media type and complexity; corporate contracts per device per year or per ticket. Warranty periods vary by part type. Bulk refurbishment per unit by grade.",
+      "body_ar": "تُسعّر لكل عملية إصلاح حسب طراز الجهاز والقطعة (مثل استبدال الشاشة حسب الطراز ودرجة القطعة)، مع إلغاء رسوم التشخيص أحياناً عند الإصلاح؛ والحواسيب المحمولة لكل عملية إضافة إلى القطع؛ واستعادة البيانات حسب نوع الوسيط والتعقيد؛ وعقود الشركات لكل جهاز سنوياً أو لكل طلب. وتختلف فترات الضمان حسب نوع القطعة. والتجديد بالجملة لكل وحدة حسب الدرجة.",
+      "sources": [
+        "https://support.apple.com/en-ae/repair",
+        "https://www.samsung.com/ae/support/",
+        "https://support.apple.com",
+        "https://www.dubaidet.gov.ae",
+        "https://www.samsung.com/ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page) -> confirmed | Samsung runs support and service for the UAE -> confirmed | Named independent repair malls and retailer service desks -> removed: not checked. Not checked: Current authorised service provider lists and specific mall names for independent repair clusters were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Will an iPhone screen repaired with a non-genuine part lose Apple warranty?",
+      "q_ar": "هل يفقد هاتف آيفون ضمان أبل إذا أُصلحت شاشته بقطعة غير أصلية؟",
+      "expected_entry_ids": [
+        "device_repair:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Apple-certified repairs use genuine parts through Apple Stores and Apple Authorized Service Providers (UAE support page)",
+        "url": "https://support.apple.com/en-ae/repair",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Samsung runs support and service for the UAE",
+        "url": "https://www.samsung.com/ae/support/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Named independent repair malls and retailer service desks",
+        "url": "https://support.apple.com/en-ae/repair",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Current authorised service provider lists and specific mall names for independent repair clusters were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
