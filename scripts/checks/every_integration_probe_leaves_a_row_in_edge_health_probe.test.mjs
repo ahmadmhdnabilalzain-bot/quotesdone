@@ -33,14 +33,22 @@ test('offline: the settle writes one edge_health_probe row per measured item, ne
   assert.match(stmt, /'FAILING'/);
 });
 
-test('offline: this file is the canonical definition (no later MANIFEST file redefines the routine)', () => {
+// A later file may redefine the routine (#1132 did, 29 Sep 2026); what must hold is that the CANONICAL definer - the
+// last MANIFEST file defining it - still carries the edge_health_probe write. Forbidding any later definer turned main
+// red the moment a correct redefinition was applied.
+test('offline: the canonical definition (last MANIFEST definer) still writes the edge_health_probe row', () => {
   const manifest = readFileSync(join(REPO, 'scripts/sql/MANIFEST.txt'), 'utf8').split(/\r?\n/).filter((l) => l.endsWith('.sql'));
-  const mine = manifest.indexOf(FILE);
-  const later = manifest.slice(mine < 0 ? 0 : mine + 1)
-    .filter((f) => existsSync(join(REPO, f)) && /function\s+public\.fn_it_integration_settle\s*\(/i.test(readFileSync(join(REPO, f), 'utf8')));
-  // Until applied the file is pending (no MANIFEST line); then every MANIFEST definer is older, i.e. none may follow it.
-  if (mine < 0) assert.ok(existsSync(join(REPO, 'scripts/sql/pending/every_integration_probe_leaves_a_row_in_edge_health_probe.txt')));
-  else assert.deepEqual(later, [], 'a later file redefines fn_it_integration_settle: carry the edge_health_probe insert into it');
+  if (manifest.indexOf(FILE) < 0) {
+    assert.ok(existsSync(join(REPO, 'scripts/sql/pending/every_integration_probe_leaves_a_row_in_edge_health_probe.txt')));
+    return;
+  }
+  const definers = manifest.filter((f) => existsSync(join(REPO, f)) &&
+    /function\s+public\.fn_it_integration_settle\s*\(/i.test(readFileSync(join(REPO, f), 'utf8')));
+  const canonical = definers.at(-1);
+  const src = readFileSync(join(REPO, canonical), 'utf8');
+  const body = src.slice(src.search(/function\s+public\.fn_it_integration_settle\s*\(/i));
+  assert.match(body.slice(0, body.indexOf('$fn$;') + 5), /insert into public\.edge_health_probe\s*\(/i,
+    `${canonical} redefines fn_it_integration_settle without the edge_health_probe insert: carry it over`);
 });
 
 const PROBE = `
