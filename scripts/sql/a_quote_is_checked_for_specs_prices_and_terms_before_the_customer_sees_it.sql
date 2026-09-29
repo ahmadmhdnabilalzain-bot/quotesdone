@@ -53,7 +53,7 @@
 --      duty sends fixes and releases ONLY while the current content is that version; changed content waits for the door.
 --      A later submission the door refuses supersedes the hold in supplier_api (superseded_at): never released, and the
 --      next accepted version opens a fresh hold with a fresh 24 h.
---   6. quote_quality_hold joins the daily table export: fn_table_export_list is #1106's body (MANIFEST 1834's plus
+--   6. quote_quality_hold joins the daily table export: fn_table_export_list is #1106's body (MANIFEST 1879's plus
 --      inquiry_rescue) with only this row added. DEPENDS-ON #1106. No *_path column: no backup registry row.
 --
 -- WITH THIS FILE, IN THE SAME PR: supplier_api (acceptLive reads the status back: a quote the gate held is answered as
@@ -493,7 +493,7 @@ on conflict (duty) do nothing;
 
 -- ── 8. the daily export ────────────────────────────────────────────────────────────────────────────────────────
 -- DEPENDS-ON #1106 (review of #1108, 29 Sep 2026): rebased onto #1106's fn_table_export_list (its canonical base is
--- marketing_plans_recruitment_for_every_trade_below_ten_suppliers.sql, MANIFEST 1834, plus ('inquiry_rescue','inquiry')), with
+-- the_marketing_seat_puts_its_plan_geo_articles_launch_and_competitor_work_on_a_clock.sql, MANIFEST 1879, plus ('inquiry_rescue','inquiry')), with
 -- only ('quote_quality_hold','quote') added here. So #1106's a_stalled_request_puts_its_trade_and_area_first_in_recruitment_
 -- and_tells_the_customer.sql must be applied FIRST: it creates inquiry_rescue, which this list then names. If another
 -- definition is applied between them, rebase onto it and keep both rows.
@@ -547,7 +547,7 @@ language sql stable set search_path to 'public', 'pg_temp' as $fn$
     ('marketing_insight_note','marketing'), ('marketing_month_plan','marketing'), ('marketing_plan_review_turn','marketing'),
     ('marketing_model_run','marketing'), ('marketing_trend_source','marketing'), ('marketing_trend','marketing'),
     ('marketing_geo_question','marketing'), ('marketing_geo_check','marketing'), ('marketing_review','marketing'), ('market_intel','marketing'), ('competitor','marketing'), ('marketing_knowledge','knowledge'),
-    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'),
+    ('marketing_recruitment_source','marketing'), ('marketing_gap_recruitment_plan','marketing'), ('marketing_plan_doc','marketing'),
     ('table_export_change','backup')
   ) v(t, s)
   -- The sibling PRs' tables may not exist yet when this applies; backup/index.ts fails the whole day on a
