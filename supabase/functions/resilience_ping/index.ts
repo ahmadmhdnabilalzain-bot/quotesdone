@@ -289,6 +289,21 @@ async function ceoWeeklyTick(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE CEO WEEKLY REVIEW THAT ACTS (29 Sep 2026, ceo, founder instruction 1009). fn_ceo_weekly_review_tick measures the
+// five targets by code, closes, escalates and opens the seats' tracked improvements, and hands back one page; this
+// renders it and fn_ceo_weekly_review_attach_pdf sends it through fn_notify_founder (kind ceo_weekly_review) with the
+// PDF attached. scripts/sql/the_ceo_weekly_review_acts_on_every_missed_target.sql
+async function ceoWeeklyReviewTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_weekly_review_tick');
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.pdf_pending || !t?.pdf_blocks || !t?.id) return t;
+    return await renderPdfAndAttach(t, 'ceo/weekly_review', 'ceo_weekly_review', false, 'fn_ceo_weekly_review_attach_pdf');
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 // THE FOUNDER'S 18:00 SUPPLIER LIST (24 Sep 2026, customer_support). fn_customer_support_campaign_list_tick
 // builds, by code, the list of suppliers the campaign invites on the next sending day from the sender's own
 // fn_supplier_invite_candidates, with the day's counts; this renders it on the company template and
@@ -725,6 +740,9 @@ async function orphanTick(): Promise<unknown> {
     // prevented by scripts/checks/resilience_orphan_jobs_present_a_scoped_credential.test.mjs.
     const notificationsSecret = await sec('cred_cron_notifications');
     const documentsSecret = await sec('cred_cron_documents');
+    // The accountant's own credential for its expense_sweep (reasoned_books.ts presents the same one):
+    // this function's credential is not scoped to the accountant, and widening it is what audit 9.5 forbids.
+    const accountantSecret = await sec('cred_fn_accountant');
     // A 200 CARRYING A FAILED BODY IS A FAILURE, AND failureOf CANNOT SEE INSIDE `body` (third finding
     // from independent review). Returning {status, body} meant only a fetch exception or a 4xx/5xx was
     // ever counted: a callee answering HTTP 200 {ok:false, error:'…'} — which is how every one of these
@@ -776,6 +794,9 @@ async function orphanTick(): Promise<unknown> {
           : { calls: runs.length, ms: Date.now() - d0, runs };
       }],
       ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000, {}, notificationsSecret)],
+      // 28 Sep 2026: held expense mail is swept daily, so a receipt from a sender the books know is booked
+      // without a model (scripts/sql/the_books_catch_up_under_the_model_hold_from_known_senders.sql).
+      ['expense_sweep', 'accountant.expense_sweep', 55000, () => call('accountant', 55000, { action: 'expense_sweep' }, accountantSecret)],
       ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000, {}, complianceSecret)],
     ];
     const out: Record<string, unknown> = {};
@@ -1401,7 +1422,7 @@ async function itDetectTick(): Promise<unknown> {
 // Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
-async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean; region?: string | null }[]> {
   // The SUPPLIER journey's four joined 28 Sep 2026 (it_engineer): measured on the 24 Sep walk, each first
   // call to supplier_api, supplier_portal, supplier_pay and claim_lookup paid a 2.5-4.5 s isolate boot —
   // the landing-to-claim step and the Billing tab were almost entirely boot. Each answers x-qd-warm with
@@ -1411,11 +1432,16 @@ async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> 
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {
-      const r = await fetch(FN + '/' + fn, { method: 'GET',
+      // PINNED TO THE PORTAL'S REGION (28 Sep 2026, it_engineer). Unpinned, Supabase runs a function in
+      // the region nearest the CALLER, and this caller is wherever the external cron entered, while
+      // both portals pin ?forceFunctionRegion=ap-southeast-1 (src/lib/supaEnv.ts FN_REGION). Measured
+      // from Dubai: the same x-qd-warm GET unpinned answered from ap-south-1, pinned from
+      // ap-southeast-1 - separate isolates. So this ping kept isolates warm that no customer uses.
+      const r = await fetch(FN + '/' + fn + '?forceFunctionRegion=ap-southeast-1', { method: 'GET',
         headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
         signal: AbortSignal.timeout(8000) });
       await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
-      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
+      return { fn, ms: Date.now() - t0, ok: r.status === 204, region: r.headers.get('x-sb-edge-region') };
     } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
   }));
 }
@@ -1442,6 +1468,7 @@ const STEP_RUN: Record<string, Omit<Step, 'name'>> = {
   weekly: { run: accountantWeeklyTick },
   vat: { run: vatThresholdTick },
   ceoWeekly: { run: ceoWeeklyTick },
+  ceoWeeklyReview: { run: ceoWeeklyReviewTick },
   ceoDecisions: { run: ceoDecisionsTick },
   ceoPlan: { run: ceoPlanTick },
   openrouter: { run: openrouterMeterTick },

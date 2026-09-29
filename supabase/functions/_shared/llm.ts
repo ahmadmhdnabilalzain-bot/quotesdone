@@ -106,6 +106,10 @@ export interface LlmCallOpts {
   // THE MODEL THAT WROTE WHAT THIS CALL REVIEWS (founder_instruction 873). When set, ai_gateway routes
   // through fn_ai_route_review and the answer comes from a model of ANOTHER family, or not at all.
   counterpartModel?: string;
+  // WHAT THE CALL IS ABOUT (704, 28 Sep 2026). ai_gateway asks public.fn_ai_subject_is_fixture about it and answers our
+  // own E2E traffic with the no-cost stub. Until now only the direct-fetch callers (quote_compare, inquiry_intake) sent
+  // one, so every think() call and every caller of this module paid for a test once the hold lifted.
+  subject?: Record<string, unknown> | null;
 }
 const EMPTY = (e: string | null, status = 0, used = true): LlmResult =>
   ({ content: null, message: null, tool_calls: [], finish_reason: null, truncated: false, used_llm: used, http_status: status, error: e });
@@ -267,6 +271,7 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           // The caller's ladder is recorded for audit but does not override policy.
           caller_ladder: models,
           ...(def.json ? { response_format: { type: 'json_object' } } : {}),
+          ...(opts.subject ? { subject: opts.subject } : {}),
           // TOOLS. The gateway has always accepted these three; nothing that reached it through
           // this module ever sent them. `tools` makes fn_ai_route require a tools-capable model
           // (inferCaps), and want_message asks for the assistant message back intact so a loop can

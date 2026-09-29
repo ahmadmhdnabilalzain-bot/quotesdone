@@ -14,6 +14,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { lastWasmHeapBytes, lowerMemoryFloor, readDwg, WASM_MIN_PAGES } from './dwg.ts';
 import { readDxf } from './cad.ts';
+import { redactCadFile, verifyCadRedaction } from '../cad_file_redact.ts';
 import { readStored } from '../../../../scripts/cad_read_worker.ts';
 import type { Extracted, ReadResult } from './types.ts';
 
@@ -62,6 +63,20 @@ for (const [name, [dwgSha, dxfSha, entities]] of Object.entries(SAMPLES)) {
       assertEquals(+(want - a.get(k)!).toFixed(2), short, `${name} ${k}: DWG ${a.get(k)} vs DXF ${want}`);
     }
     assert(dwg.quantities.length > 0 && dwg.text.length > 0);
+  });
+}
+
+// REAL DWG BYTES -> the anonymised DXF a supplier receives (28 Sep 2026, cad_file_redact.ts): every sample, every
+// release, redacted and proved - geometry pair-for-pair and every take-off quantity unchanged, the file re-opens.
+for (const [name, [dwgSha]] of Object.entries(SAMPLES)) {
+  Deno.test(`${name}.dwg is redacted to a DXF whose geometry and counts are the original's`, async () => {
+    const r = await redactCadFile(await get(name + '.dwg', dwgSha), ['zz demo nobody']);
+    assert(r.ok, JSON.stringify(r));
+    if (!r.ok) return;
+    assertEquals(r.source, 'dwg');
+    const v = await verifyCadRedaction(r.before_dxf, r.dxf, ['zz demo nobody'], r);
+    assert(v.ok, v.problems.join('\n'));
+    assert(v.geometry_pairs[0] > 0 && v.entities[0] === v.entities[1]);
   });
 }
 
