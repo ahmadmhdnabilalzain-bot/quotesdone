@@ -3,7 +3,9 @@
 // Since 29 Sep 2026 (founder 1058) a blog is a MARKET topic, never about QuotesDone: see the section at the end.
 // The gate below is unchanged and is what every market article passes too.
 // An article about QuotesDone (how it works, a buyer guide, a trade explainer) was written by the founder and
-// Claude, grounded ONLY in company knowledge, and ingested through marketing_outreach action ingest_article.
+// Claude, grounded ONLY in company knowledge, and ingested through marketing_outreach action ingest_article (that
+// action and the approve_article action were removed on 29 Sep 2026; those four drafts are withdrawn). Today
+// checkArticle runs inside acceptArticle, on every market draft and revision (the section at the end).
 // checkArticle is what that ingest runs: every field in both languages through lintDraft, every number in the
 // article against the text of the sources it cites (ungroundedNumbers), and the same structure in English
 // and Arabic (headings, paragraphs, list items), which scripts/checks/blog_index_matches_data.mjs also

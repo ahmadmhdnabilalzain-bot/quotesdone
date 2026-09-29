@@ -83,6 +83,17 @@ test('publishing a blog mails nobody but the founder\'s FYI, and article approva
   assert.match(sql, /set status = 'withdrawn', withdrawn_at = now\(\), updated_at = now\(\), approval_token = null,/);
 });
 
+test('no side door approves or hand-ingests a blog article: the old action and command are gone', () => {
+  // the coordinator's review of #1114: a door the database refuses is still a door; it is removed, not relied on
+  // comments are stripped first: the headers say, in words, that these doors were removed
+  const code = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  const outreach = code('supabase/functions/marketing_outreach/index.ts');
+  assert.doesNotMatch(outreach, /['"`](approve_article|ingest_article)['"`]/);
+  assert.doesNotMatch(outreach, /fn_marketing_article_(approve|ingest)/);
+  const cli = code('scripts/marketing/business_development.mjs');
+  assert.doesNotMatch(cli, /['"`](approve|ingest-article|approve_article|ingest_article)['"`]/);
+});
+
 test('the three blog model steps are one duty (one call a beat) and record a refusal before raising it', () => {
   const duty = read('supabase/functions/marketing/duties.ts');
   assert.match(duty, /reviews, blogArticle,/);
