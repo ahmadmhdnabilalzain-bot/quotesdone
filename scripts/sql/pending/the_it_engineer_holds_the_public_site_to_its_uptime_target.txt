@@ -1,4 +1,0 @@
-Not applied. Written 28 Sep 2026 by it_engineer on a read-only brief (no production apply or deploy).
-To move it: apply the .sql with apply_sql.mjs --apply --ddl (must print PROBE OK), set SUPABASE_SERVICE_ROLE_KEY in the
-Vercel server env so /api/resilience-ping can write its uptime:<url> rows, deploy, then delete this note and append the
-file to the END of scripts/sql/MANIFEST.txt in the same commit.
