@@ -20,6 +20,7 @@ import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { manifestWithPending } from '../lib/pending_sql.mjs';
 import { definitions } from '../lib/canonical_sql.mjs';
+import { exportedTables } from '../lib/table_export_registry.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/a_rejection_never_ends_the_cycle_the_ceo_gives_reasons_and_the_seat_revises.sql';
@@ -68,7 +69,7 @@ test('the ledger keeps its loop guard and its reasons rule, and is exported ever
   assert.match(rules, /ROUND_LIMIT/);
   assert.match(rules, /fn_ceo_reasons_problem\(new\.reasons\)/, 'the ledger accepts a reasonless decision');
   assert.match(c.get('trg_ceo_approval_carries_its_reasons'), /fn_ceo_reasons_problem\(new\.rationale\)/);
-  assert.match(c.get('fn_table_export_list'), /'ceo_decision_round'/, 'ceo_decision_round dropped out of the daily export');
+  assert.equal(exportedTables(REPO).has('ceo_decision_round'), true, 'ceo_decision_round dropped out of the daily export (public.table_export_registry)');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
