@@ -81,6 +81,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_phase1_rollback_log_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   raise exception 'phase1_rollback_log is append-only; % is not permitted', TG_OP
@@ -3974,6 +3975,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_refund_ceo_approval_only()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.status <> 'approved' then return new; end if;
@@ -4921,6 +4923,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_refunds_settled_at()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   if new.status = 'succeeded' and new.settled_at is null then new.settled_at := now(); end if;

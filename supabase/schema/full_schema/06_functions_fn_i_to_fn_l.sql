@@ -394,6 +394,7 @@ end $function$
 CREATE OR REPLACE FUNCTION public.fn_internal_credential_audit_immutable()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   raise exception 'internal_credential_audit is append-only; % is not permitted', TG_OP using errcode = '42501';
@@ -8842,6 +8843,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_knowledge_provenance_stamp()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 begin
   -- OWNER. Only when the writer did not name one.
@@ -8912,6 +8914,7 @@ CREATE OR REPLACE FUNCTION public.fn_knowledge_staleness_tag(p_review_due date, 
  RETURNS text
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select case
     when coalesce(p_validation_status,'') = 'unsourced'

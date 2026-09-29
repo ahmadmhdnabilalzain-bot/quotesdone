@@ -3191,6 +3191,7 @@ CREATE OR REPLACE FUNCTION public.fn_expense_document(p_entry_id bigint)
  RETURNS jsonb
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select coalesce(
     (select jsonb_build_object(
@@ -3223,6 +3224,7 @@ CREATE OR REPLACE FUNCTION public.fn_expense_document_coverage()
  RETURNS jsonb
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select jsonb_build_object(
     'entries',          count(*),
@@ -4224,6 +4226,7 @@ CREATE OR REPLACE FUNCTION public.fn_gate_state_satisfies(s gate_state)
  RETURNS boolean
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select s in ('passed','not_applicable');
 $function$

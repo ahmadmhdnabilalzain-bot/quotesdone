@@ -4620,8 +4620,15 @@ begin
   if p_src in ('support_knowledge', 'ceo_knowledge') and p_embedding_gte is null then
     raise exception 'fn_ml_embed_write: % rows carry their gte-small vector too', p_src;
   end if;
-  select md5(coalesce(s.title, '') || E'\n' || coalesce(s.body, '')) into v_now_hash
-    from public.v_knowledge_ml_source s where s.src = p_src and s.row_id = p_row_id;
+  if p_src = 'kb_chunks' then
+    if p_row_id ~ '^[0-9]{1,18}$' then
+      select md5(coalesce(k.title, '') || E'\n' || coalesce(k.content, '')) into v_now_hash
+        from public.kb_chunks k where k.id = p_row_id::bigint;
+    end if;
+  else
+    select md5(coalesce(s.title, '') || E'\n' || coalesce(s.body, '')) into v_now_hash
+      from public.v_knowledge_ml_source s where s.src = p_src and s.row_id = p_row_id;
+  end if;
   delete from public.knowledge_ml_claim where src = p_src and row_id = p_row_id;
   if v_now_hash is distinct from p_hash then return false; end if;
   insert into public.knowledge_vector_ml (src, row_id, text_hash, embedding) values (p_src, p_row_id, p_hash, p_embedding)
@@ -5305,6 +5312,7 @@ CREATE OR REPLACE FUNCTION public.fn_ops_authority_check(p_dept_key text, p_acti
  RETURNS jsonb
  LANGUAGE plpgsql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare v_prod text; v_thresh numeric; v_map record; v_gate record; v_tier text; v_reason text;
 begin
@@ -5737,6 +5745,7 @@ CREATE OR REPLACE FUNCTION public.fn_org_role_resolve(p_any text)
  RETURNS text
  LANGUAGE sql
  STABLE
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
   select coalesce(
     (select r.role_id from public.org_role r where r.role_id = p_any and r.status = 'active'),
@@ -6072,6 +6081,7 @@ $function$
 CREATE OR REPLACE FUNCTION public.fn_org_task_close_needs_an_act()
  RETURNS trigger
  LANGUAGE plpgsql
+ SET search_path TO 'public', 'extensions', 'pg_temp'
 AS $function$
 declare
   v_has_act boolean;
