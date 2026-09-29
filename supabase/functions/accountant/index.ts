@@ -653,6 +653,13 @@ Deno.serve(observe('accountant', async (req) => {
           if (tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
             results.push({ refund_id: r.id, error: 'refund_window_not_yet_open', decision_after: tr.refund_deadline }); continue;
           }
+          // THE ONE DECISION (29 Sep 2026): a CEO-decided refund still 'requested' is approved here through
+          // fn_refund_decide, which runs the second-seat check. The database refuses paying it from 'requested'
+          // (z04_refund_approval_is_the_one_decision), so this is asked before Stripe, never after.
+          if (r.status === 'requested') {
+            const { data: dec, error: decErr } = await admin.rpc('fn_refund_decide', { p_refund_id: r.id, p_approve: true, p_decided_by: 'ceo' });
+            if (decErr || dec?.ok !== true) { results.push({ refund_id: r.id, error: 'not_approved', decide: decErr?.message ?? dec }); continue; }
+          }
           // THE SCREEN BEFORE MONEY MOVES (29 Sep 2026, founder ledger 1018). A high-severity fraud flag on the
           // customer or the supplier holds the refund for review: nothing is sent, nobody is banned, and
           // customer_support tells the customer. Fail closed: a screen that cannot answer sends nothing either.
