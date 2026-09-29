@@ -1,1 +1,0 @@
-NOT APPLIED. Seat: it_engineer. Applied at merge; then this note is deleted and the file appended to the END of MANIFEST.txt. Proved before merge in ONE rolled-back request (file + probe): PROBE OK; against the current body the same probe reports PROBE FAILED (mailed_in_overlap=true). No deploy.
