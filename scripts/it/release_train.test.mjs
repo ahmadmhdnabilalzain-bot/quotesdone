@@ -146,3 +146,56 @@ test('a failed apply is never followed by a deploy (#1050, 29 Sep)', () => {
   assert.ok(i > 0);
   assert.match(src.slice(Math.max(0, i - 400), i), /if \(failed\)[\s\S]*else \{/, 'the deploy must sit in the else of if (failed)');
 });
+
+test('a lock error is retried only when safe; any other error stops at once', async () => {
+  const { applyWithRetry, isOneTransaction } = await import('./release_train.mjs');
+  const deadlock = { code: 1, out: 'ERROR:  40P01: deadlock detected' };
+  const ok = { code: 0, out: 'APPLIED' };
+  const run = async (results, opts = {}) => {
+    const seq = [...results]; const slept = [];
+    const r = await applyWithRetry({ apply: () => seq.shift(), sqlText: opts.sql ?? 'create or replace function public.f() returns int language sql as $$select 1$$;',
+      snapshot: opts.snapshot ?? (() => 'same'), windowOpen: opts.windowOpen, sleep: async (ms) => { slept.push(ms); }, jitter: () => 1 });
+    return { ...r, slept };
+  };
+  // 40P01 then success: applied, so the release goes on to deploy
+  let r = await run([deadlock, ok]);
+  assert.equal(r.ok, true); assert.equal(r.attempts, 2); assert.deepEqual(r.slept, [5000]);
+  // 40P01 three times: failed after 3 attempts (release-failed, no deploy)
+  r = await run([deadlock, deadlock, deadlock]);
+  assert.equal(r.ok, false); assert.equal(r.attempts, 3); assert.deepEqual(r.slept, [5000, 15000]);
+  // 42P01 (undefined table): never retried
+  r = await run([{ code: 1, out: 'ERROR:  42P01: relation "x" does not exist' }, ok]);
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  // a lock error in a file with its own COMMIT is not provably rolled back: no retry
+  r = await run([deadlock, ok], { sql: 'begin;\ncreate table x();\ncommit;' });
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  // the routines moved (a partial apply): no retry
+  let n = 0; r = await run([deadlock, ok], { snapshot: () => (n++ ? 'changed' : 'before') });
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  // the off-hours window closed: stop, the next tick retries
+  r = await run([deadlock, ok], { windowOpen: () => false });
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  // 55P03 is a lock error too
+  r = await run([{ code: 1, out: 'ERROR:  55P03: lock not available' }, ok]);
+  assert.equal(r.ok, true);
+  assert.equal(isOneTransaction('-- commit; in a comment\ncreate table y();'), true);
+});
+
+test('no retry for a file with a statement that cannot run inside a transaction', async () => {
+  const { isOneTransaction } = await import('./release_train.mjs');
+  assert.equal(isOneTransaction('create index concurrently i on t(a);'), false);
+  assert.equal(isOneTransaction('vacuum analyze t;'), false);
+  assert.equal(isOneTransaction("alter system set work_mem = '64MB';"), false);
+  assert.equal(isOneTransaction("alter type public.k add value 'x';"), false);
+  assert.equal(isOneTransaction('create or replace function public.f() returns int language sql as $$select 1$$;\ncreate index i on t(a);'), true);
+  assert.equal(isOneTransaction('-- create index concurrently in a comment\ncreate table y();'), true);
+});
+
+test('no retry once the database accepted the file, and routinesIn reads unprefixed names', async () => {
+  const { applyWithRetry, routinesIn } = await import('./release_train.mjs');
+  const accepted = { code: 1, out: 'applied scripts/sql/x.sql to htdblwldjkcgjvmqkbeh\nDIFFERS ... 40P01 in a later read' };
+  const seq = [accepted, { code: 0, out: '' }];
+  const r = await applyWithRetry({ apply: () => seq.shift(), sqlText: 'create table t();', snapshot: () => 's', sleep: async () => {}, jitter: () => 1 });
+  assert.equal(r.ok, false); assert.equal(r.attempts, 1);
+  assert.deepEqual(routinesIn('create or replace function fn_x() returns int language sql as $$select 1$$;\ncreate or replace function public.fn_y() returns int language sql as $$select 1$$;'), ['fn_x', 'fn_y']);
+});

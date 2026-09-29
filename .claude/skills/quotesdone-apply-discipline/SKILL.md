@@ -199,7 +199,8 @@ Every fix ships with ONE of these, and it must FAIL on the original input (break
 
 - **a unit test replaying the failing input** — `customer_api/rating_input.test.ts` sends a stars-only
   rating, the exact 17 Sep request that got HTTP 500;
-- **a `scripts/checks` test over the live mirror** (`supabase/schema/full_schema.sql`, kept equal to
+- **a `scripts/checks` test over the live mirror** (`supabase/schema/full_schema/`, eleven parts read as
+  one through `readSchemaMirror()` in `scripts/lib/schema_mirror.mjs` since #1123, kept equal to
   production on every PR) — `no_routine_names_a_table_alias_after_its_own_record.test.mjs` found
   `fn_it_backup_recheck` raising 42702 on every call, hours after its own probe printed PROBE OK
   (the probe read the source text; it never ran the routine — **a probe runs the routine**);

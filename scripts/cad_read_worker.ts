@@ -154,7 +154,9 @@ export async function scanDrawing(job: Job, key: string, pages: string[]): Promi
     // THE COUNT FIRST (28 Sep 2026, _shared/scan_takeoff.ts): the scanned set is taken off by the vector set's rules
     // from the same OCR engine, whether or not its pictures can then be shared; a held picture never loses the BOQ.
     const { scanTakeoff } = await import('../supabase/functions/_shared/scan_takeoff.ts');
-    boq = (await scanTakeoff(imgs, engine.ocr)).boq;
+    // A take-off that throws costs the BOQ only (review of #1056): the pages are still redacted and published.
+    try { boq = (await scanTakeoff(imgs, engine.ocr)).boq; }
+    catch (e) { boq = null; console.log(`job ${job.id}: the scanned take-off failed, BOQ omitted: ${String((e as Error)?.message || e).slice(0, 160)}`); }
     for (let i = 0; i < imgs.length; i++) {
       const img = imgs[i];
       const out = await redactScan(img, engine.ocr, seeds);

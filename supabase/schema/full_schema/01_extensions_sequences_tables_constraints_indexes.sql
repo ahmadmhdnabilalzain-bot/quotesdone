@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T11:28:46.650Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T13:25:58.116Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -4112,14 +4112,17 @@ CREATE TABLE IF NOT EXISTS public.it_cost_watch_week (
 CREATE TABLE IF NOT EXISTS public.it_credential_rotation (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   context text NOT NULL,
-  old_id bigint NOT NULL,
-  new_id bigint NOT NULL,
+  old_id bigint,
+  new_id bigint,
   secret_key text NOT NULL,
   rotated_at timestamp with time zone DEFAULT now() NOT NULL,
   overlap_until timestamp with time zone NOT NULL,
   status text DEFAULT 'overlap'::text NOT NULL,
   closed_at timestamp with time zone,
-  note text
+  note text,
+  provider text,
+  old_ref text,
+  new_ref text
 );
 
 CREATE TABLE IF NOT EXISTS public.it_duty_schedule (
@@ -10545,7 +10548,8 @@ ALTER TABLE public.it_change_source ADD CONSTRAINT it_change_source_pattern_chec
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_basis_check CHECK ((basis = ANY (ARRAY['usage_api'::text, 'ai_cost_log'::text, 'journals'::text, 'unavailable'::text])));
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_period_days_check CHECK ((period_days > 0));
 ALTER TABLE public.it_cost_watch_week ADD CONSTRAINT it_cost_watch_week_provider_check CHECK ((provider = ANY (ARRAY['supabase'::text, 'vercel'::text, 'resend'::text, 'twilio'::text, 'openrouter'::text])));
-ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_status_check CHECK ((status = ANY (ARRAY['overlap'::text, 'retired'::text, 'held'::text])));
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_kind_ck CHECK ((((provider IS NULL) AND (old_id IS NOT NULL) AND (new_id IS NOT NULL)) OR ((provider IS NOT NULL) AND (new_ref IS NOT NULL))));
+ALTER TABLE public.it_credential_rotation ADD CONSTRAINT it_credential_rotation_status_check CHECK ((status = ANY (ARRAY['overlap'::text, 'retired'::text, 'held'::text, 'baseline'::text])));
 ALTER TABLE public.it_duty_schedule ADD CONSTRAINT it_duty_schedule_every_check CHECK ((every > '00:00:00'::interval));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_affected_ck CHECK ((affected >= 0));
 ALTER TABLE public.it_engineer_finding ADD CONSTRAINT it_engineer_finding_blast_ck CHECK ((blast = ANY (ARRAY['customer_facing'::text, 'security'::text, 'agent_facing'::text, 'internal'::text, 'monitor'::text])));
