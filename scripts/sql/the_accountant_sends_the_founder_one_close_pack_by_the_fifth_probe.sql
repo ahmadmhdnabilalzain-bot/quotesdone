@@ -14,14 +14,15 @@
 --   2. after the close row exists, a posting dated in the month is refused by the period lock (#1013);
 --   3. the pack reconciles GL 1000 to the statement through the unbooked line, and says 'reconciled';
 --   4. P&L against budget: 6000 actual 1500 against budget 300;
---   5. unusual items: 5 by rule (3 budget variances, 1 large line, 1 unbooked statement line), exactly 1
+--   5. unusual items: 6 by rule (3 budget variances, 1 large line, 1 VOID reversal - fn_gl_reverse's shape -,
+--      1 unbooked statement line), exactly 1
 --      unexplained (the 6200 journal with no memo), and the PDF text says UNEXPLAINED;
 --   6. attaching the PDF sends ONE founder email of kind accountant_close_pack through fn_notify_founder with the
 --      PDF attached; a second send sends nothing;
 --   7. no real accountant_founder_close_pack row, budget or month close was touched.
 do $probe$
 declare
-  v_m date := date '2020-01-01'; v_b bigint; j1 bigint; j2 bigint; j3 bigint; j4 bigint; v_r jsonb; v_f jsonb; v_doc jsonb;
+  v_m date := date '2020-01-01'; v_b bigint; j1 bigint; j2 bigint; j3 bigint; j4 bigint; j5 bigint; v_r jsonb; v_f jsonb; v_doc jsonb;
   v_n int; v_real_before bigint; v_real_after bigint; v_fail text := ''; v_lock text; v_nid bigint; v_att jsonb;
 begin
   select count(*) into v_real_before from public.accountant_founder_close_pack where month <> v_m;
@@ -51,6 +52,12 @@ begin
   insert into public.gl_journal (entry_date, memo, source, source_ref, created_by) values ('2020-01-15', 'ZZ DEMO stationery', 'manual', 'zz_demo', 'accountant') returning id into j4;
   insert into public.gl_journal_lines (journal_id, line_no, account_code, debit, credit, memo) values (j4, 1, '6300', 50, 0, 'ZZ DEMO stationery'), (j4, 2, '1000', 0, 50, null);
   perform public.fn_gl_post(j4);
+  -- the reversal shape fn_gl_reverse leaves: source 'reversal', source_ref = the original, VOID (it voids both sides).
+  -- Written directly, because fn_gl_reverse dates its reversal today and this month is January 2020; the original
+  -- stays posted so the figures above are unchanged. The rule must still name it.
+  insert into public.gl_journal (entry_date, memo, source, source_ref, created_by) values ('2020-01-25', 'REVERSAL of journal ' || j4 || ' (ZZ DEMO stationery) - ZZ DEMO probe', 'reversal', j4::text, 'fn_gl_reverse') returning id into j5;
+  insert into public.gl_journal_lines (journal_id, line_no, account_code, debit, credit, memo) values (j5, 1, '1000', 50, 0, null), (j5, 2, '6300', 0, 50, null);
+  update public.gl_journal set status = 'void', reverses = j4 where id = j5;
 
   -- the statement carries only a bank charge of -199 that the books have not booked; the four journals above are
   -- in the books (GL 1000 = -1350) but on no statement line yet. Statement = books + unbooked - book-only
@@ -83,8 +90,12 @@ begin
                   where e->>'code' = '6000' and (e->>'actual_aed')::numeric = 1500 and (e->>'budget_aed')::numeric = 300) then
     v_fail := v_fail || ' pnl 6000: ' || (v_f->'pnl_vs_budget')::text || ';'; end if;
   -- 5. unusual items
-  if (v_f->>'unusual_items')::int <> 5 or (v_f->>'unexplained_items')::int <> 1 then
+  if (v_f->>'unusual_items')::int <> 6 or (v_f->>'unexplained_items')::int <> 1 then
     v_fail := v_fail || ' unusual ' || (v_f->>'unusual_items') || '/' || (v_f->>'unexplained_items') || ': ' || (v_f->'unusual')::text || ';'; end if;
+  if not exists (select 1 from jsonb_array_elements(v_f->'unusual') u
+                  where u->>'rule' = 'reversal' and u->>'status' = 'void' and (u->>'explained')::boolean
+                    and u->>'reverses' = 'JE-' || lpad(j4::text, 6, '0') and (u->>'amount_aed')::numeric = 50) then
+    v_fail := v_fail || ' the void reversal is not an explained unusual item;'; end if;
   if not exists (select 1 from jsonb_array_elements(v_f->'unusual') u where u->>'account' = '6200' and not (u->>'explained')::boolean) then
     v_fail := v_fail || ' the memo-less 6200 journal is not the unexplained item;'; end if;
   v_doc := public.fn_accountant_founder_close_pack_document(v_m);

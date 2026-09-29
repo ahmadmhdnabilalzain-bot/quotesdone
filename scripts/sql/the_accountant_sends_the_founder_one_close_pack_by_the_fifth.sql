@@ -26,7 +26,8 @@
 --        runway    fn_accountant_runway_figures(month): at actual spend and at budget.
 --        unusual   by rule, never by reading words: a budget variance past gl_settings close_pack_variance_pct
 --                  (default 25) AND close_pack_variance_min_aed (default 200); a single P&L line of at least
---                  close_pack_large_line_aed (default 1000); a reversal posted in the month; an unbooked statement
+--                  close_pack_large_line_aed (default 1000); a reversal dated in the month (source 'reversal', any
+--                  status: fn_gl_reverse voids both sides); an unbooked statement
 --                  line; a prior-period adjustment booked in the month (a late item for a closed month,
 --                  gl_prior_period_adjustment) with its original date and statement line. Each carries its journals
 --                  and their memos as the explanation; a journal with no memo prints UNEXPLAINED and counts in
@@ -189,9 +190,15 @@ begin
     v_unusual := v_unusual || jsonb_build_object('rule', 'large_line', 'account', r.account_code, 'amount_aed', greatest(r.debit, r.credit),
       'journals', jsonb_build_array(jsonb_build_object('journal', r.entry_no, 'amount_aed', r.debit - r.credit, 'memo', r.memo)));
   end loop;
-  for r in select j.entry_no, j.memo, o.entry_no as original from public.gl_journal j left join public.gl_journal o on o.id = j.reverses
-            where j.status = 'posted' and j.reverses is not null and j.entry_date between v_m and v_end order by j.entry_date, j.id loop
-    v_unusual := v_unusual || jsonb_build_object('rule', 'reversal', 'reverses', r.original,
+  -- A reversal is the journal fn_gl_reverse writes (source 'reversal', source_ref = the original's id), dated in the
+  -- month, in ANY status: fn_gl_reverse voids both sides, so a posted-only rule never fired (re-review of #1063).
+  for r in select coalesce(j.entry_no, 'journal ' || j.id) as entry_no, j.memo, j.status,
+                  coalesce(o.entry_no, 'journal ' || o.id) as original,
+                  (select sum(l.debit) from public.gl_journal_lines l where l.journal_id = j.id) as amount
+             from public.gl_journal j
+             left join public.gl_journal o on o.id = coalesce(j.reverses, case when j.source_ref ~ '^[0-9]+$' then j.source_ref::bigint end)
+            where j.source = 'reversal' and j.entry_date between v_m and v_end order by j.entry_date, j.id loop
+    v_unusual := v_unusual || jsonb_build_object('rule', 'reversal', 'reverses', r.original, 'status', r.status, 'amount_aed', r.amount,
       'journals', jsonb_build_array(jsonb_build_object('journal', r.entry_no, 'memo', nullif(btrim(r.memo), ''))));
   end loop;
   -- a late item for a month already closed, booked in this month (fn_gl_post, gl_prior_period_adjustment)

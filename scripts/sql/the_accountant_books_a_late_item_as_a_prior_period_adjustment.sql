@@ -14,8 +14,9 @@
 --
 -- WHAT THIS BUILDS
 --   1. THE CLOSE WAITS FOR THE STATEMENT. fn_accountant_statement_booked(month): a parsed Mashreq statement for the
---      month is in bank_statement_intake and every one of its charge, interest and owner-transfer lines has a live
---      journal (a line the founder ruled a loan is his finding, not the close's). fn_accountant_month_close_status(
+--      month is in bank_statement_intake and every line of it that a booking routine would book - under that
+--      routine's own sign and kind rules - has a live journal (a fee refund left as bank_charge, an unrecognised
+--      credit or a line the founder ruled a loan is that routine's finding, never the close's). fn_accountant_month_close_status(
 --      month, today) is the one place that decides not_due / waiting_for_statement / due / closed, and the date the
 --      close is due by: the 5th, or two days after the statement arrived when it arrived later. The close tick closes
 --      only a month that is 'due'; the day-5 check and the founder's close pack report a month waiting for its
@@ -143,17 +144,28 @@ begin
     return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'booked', false,
       'reason', 'no readable Mashreq statement for ' || to_char(v_m, 'YYYY-MM') || ' has been received (the founder forwards it monthly)');
   end if;
-  select coalesce(jsonb_agg(jsonb_build_object('line_id', b.id, 'value_date', b.value_date, 'amount_aed', b.amount_aed, 'kind', b.kind)
-                            order by b.value_date, b.id), '[]'::jsonb)
+  -- A line counts only when a booking routine WOULD book it, under the same sign and kind rules:
+  -- fn_accountant_book_bank_charges takes a debit of kind bank_charge; fn_accountant_book_bank_credits takes a
+  -- credit that is no Stripe payout and not ruled a loan, as owner capital (ruled capital, or kind owner_transfer)
+  -- or bank interest. Anything else (a fee refund left as bank_charge, an unrecognised credit) is that routine's
+  -- finding, and never holds the close at waiting_for_statement (re-review of #1063).
+  select coalesce(jsonb_agg(jsonb_build_object('line_id', b.id, 'value_date', b.value_date, 'amount_aed', b.amount_aed, 'kind', b.kind,
+                                               'books_as', x.src) order by b.value_date, b.id), '[]'::jsonb)
     into v_unbooked
     from public.bank_statement_line b
+    left join public.bank_line_owner_ruling r on r.line_id = b.id
+    cross join lateral (select case
+             when b.amount_aed < 0 and b.kind = 'bank_charge' then 'bank_charge'
+             when b.amount_aed > 0 and coalesce(r.ruling, '') <> 'loan'
+                  and not exists (select 1 from public.stripe_payout p where p.bank_line_id = b.id) then
+               case when r.ruling = 'capital' or b.kind = 'owner_transfer' then 'owner_capital'
+                    when b.kind = 'bank_interest' then 'bank_interest' end
+           end as src) x
    where b.account = 'mashreq'
-     and b.source_ref in (select x.source_ref from public.bank_statement_intake x where x.account = 'mashreq' and x.statement_month = v_m)
-     and b.kind in ('bank_charge', 'bank_interest', 'owner_transfer')
-     and not exists (select 1 from public.bank_line_owner_ruling r where r.line_id = b.id and r.ruling = 'loan')
+     and b.source_ref in (select i2.source_ref from public.bank_statement_intake i2 where i2.account = 'mashreq' and i2.statement_month = v_m)
+     and x.src is not null
      and not exists (select 1 from public.gl_journal g
-                      where g.source_ref = b.id::text and g.status in ('draft', 'posted')
-                        and g.source = case b.kind when 'owner_transfer' then 'owner_capital' else b.kind end);
+                      where g.source_ref = b.id::text and g.status in ('draft', 'posted') and g.source = x.src);
   return jsonb_build_object('month', to_char(v_m, 'YYYY-MM'), 'booked', jsonb_array_length(v_unbooked) = 0,
     'statement', i.source_ref, 'received_at', i.received_at, 'unbooked_lines', v_unbooked,
     'reason', case when jsonb_array_length(v_unbooked) > 0
