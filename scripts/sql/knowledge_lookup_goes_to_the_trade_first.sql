@@ -40,6 +40,11 @@
 -- Prevented by: scripts/checks/knowledge_lookup_goes_to_the_trade_first.test.mjs (one aborted transaction: another
 -- trade's or another area's row is never returned when one resolves, and is when none does, in both routines).
 
+-- Load pgvector's library in this session first: until it is loaded, hnsw.iterative_scan is only a placeholder
+-- setting, and a function SET of a placeholder needs superuser (29 Sep 2026: the train's apply of this file
+-- failed with 42501 'permission denied to set parameter'). Any vector operator loads it.
+select '[1]'::vector <-> '[1]'::vector as loads_pgvector;
+
 drop function if exists public.fn_reason_retrieve(text, vector, integer);
 drop function if exists public.fn_reason_retrieve_ml(text, vector, vector, integer, integer);
 
