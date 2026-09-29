@@ -1,0 +1,75 @@
+{
+  "trade": "tax_advisory",
+  "entries": [
+    {
+      "id": "tax_advisory:spec-checklist",
+      "topic": "Tax advisory - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For tax advisory quotes to be compared like-for-like, every quoted line (services) must state: (1) tax type (VAT, corporate tax, excise); (2) scope (registration, returns, advisory, audit support, disputes); (3) entity details and number of entities; (4) FTA-registered tax agent; (5) period covered; (6) deliverables; (7) fee basis; (8) professional indemnity and confidentiality; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tax_advisory trade.",
+      "body_ar": "لكي تُقارن عروض الاستشارات الضريبية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) نوع الضريبة (القيمة المضافة، أو ضريبة الشركات، أو الانتقائية)؛ (2) النطاق (تسجيل، أو إقرارات، أو استشارة، أو دعم تدقيق، أو منازعات)؛ (3) بيانات المنشأة وعددها؛ (4) وكيل ضريبي مسجل لدى الهيئة الاتحادية للضرائب؛ (5) الفترة المشمولة؛ (6) المخرجات؛ (7) أساس الأتعاب؛ (8) تأمين المسؤولية المهنية والسرية؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tax_advisory فقط.",
+      "required_specs": [
+        "tax type (VAT, corporate tax, excise)",
+        "scope (registration, returns, advisory, audit support, disputes)",
+        "entity details and number of entities",
+        "FTA-registered tax agent",
+        "period covered",
+        "deliverables",
+        "fee basis",
+        "professional indemnity and confidentiality",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://tax.gov.ae/en/services/tax.agents.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "tax_advisory:uae-standards-and-approvals",
+      "topic": "Tax advisory - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "UAE tax is administered by the Federal Tax Authority (FTA) under UAE federal law only (VAT under Federal Decree-Law No. 8 of 2017; corporate tax under Federal Decree-Law No. 47 of 2022). The FTA keeps a register of tax agents; a person representing a taxpayer before the FTA as a tax agent must be registered with it. What the cited sources do not establish: The FTA page read confirms the tax agent register but not the eligibility criteria or the law numbers; those are not verified here.",
+      "body_ar": "تدير الهيئة الاتحادية للضرائب الضرائب في الإمارات وفق القانون الاتحادي الإماراتي فقط (ضريبة القيمة المضافة وفق المرسوم بقانون اتحادي رقم 8 لسنة 2017، وضريبة الشركات وفق المرسوم بقانون اتحادي رقم 47 لسنة 2022). وتحتفظ الهيئة بسجل للوكلاء الضريبيين، ويجب أن يكون من يمثل الخاضع للضريبة أمام الهيئة بصفة وكيل ضريبي مسجلاً لديها. ما لا تثبته المصادر المذكورة: صفحة الهيئة المقروءة تؤكد سجل الوكلاء الضريبيين لكنها لا تذكر شروط الأهلية ولا أرقام القوانين؛ فهذه غير متحقق منها هنا.",
+      "source_note": "The FTA page read confirms the tax agent register but not the eligibility criteria or the law numbers; those are not verified here.",
+      "sources": [
+        "https://tax.gov.ae/en/services/tax.agents.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for tax advisory?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالاستشارات الضريبية؟",
+      "expected_entry_ids": [
+        "tax_advisory:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to tax advisory?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الاستشارات الضريبية؟",
+      "expected_entry_ids": [
+        "tax_advisory:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "tax_advisory:spec-checklist",
+      "tax_advisory:uae-standards-and-approvals"
+    ],
+    "added": [
+      "tax_advisory:spec-checklist",
+      "tax_advisory:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
