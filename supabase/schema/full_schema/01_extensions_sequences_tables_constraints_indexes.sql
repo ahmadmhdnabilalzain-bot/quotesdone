@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T22:45:14.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T23:43:17.504Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -5443,7 +5443,8 @@ CREATE TABLE IF NOT EXISTS public.marketing_month_plan (
   updated_at timestamp with time zone DEFAULT now() NOT NULL,
   plan_token text,
   plan_notification_id bigint,
-  plan_sent_at timestamp with time zone
+  plan_sent_at timestamp with time zone,
+  ceo_held_id bigint
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_outreach_message (
@@ -10567,7 +10568,7 @@ ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_decided_
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_decision_check CHECK ((decision = ANY (ARRAY['approved'::text, 'rejected'::text, 'replaced'::text, 'withdrawn'::text])));
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_generation_check CHECK ((generation >= 1));
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_item_key_check CHECK ((btrim(item_key) <> ''::text));
-ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_path_check CHECK ((path = ANY (ARRAY['seat_deliberation'::text, 'refund'::text, 'ceo_experiment'::text, 'ceo_improvement'::text])));
+ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_path_check CHECK ((path = ANY (ARRAY['seat_deliberation'::text, 'refund'::text, 'ceo_experiment'::text, 'ceo_improvement'::text, 'marketing_month_plan'::text])));
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_round_check CHECK ((round >= 1));
 ALTER TABLE public.ceo_decision_round ADD CONSTRAINT ceo_decision_round_version_check CHECK (((jsonb_typeof(version) = 'object'::text) AND (length((version)::text) <= 30000)));
 ALTER TABLE public.ceo_directive ADD CONSTRAINT ceo_directive_done_sql_check CHECK ((btrim(done_sql) <> ''::text));
@@ -10923,7 +10924,7 @@ ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_outcom
 ALTER TABLE public.marketing_model_run ADD CONSTRAINT marketing_model_run_seat_check CHECK ((seat = ANY (ARRAY['marketing'::text, 'ceo'::text])));
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_month_check CHECK ((EXTRACT(day FROM month) = (1)::numeric));
 ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_plan_token_check CHECK ((plan_token ~ '^[0-9a-f]{32}$'::text));
-ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'with_ceo'::text, 'agreed'::text, 'brief_requested'::text, 'sent_to_founder'::text, 'accepted'::text, 'rejected'::text])));
+ALTER TABLE public.marketing_month_plan ADD CONSTRAINT marketing_month_plan_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'with_ceo'::text, 'agreed'::text, 'brief_requested'::text, 'sent_to_founder'::text, 'accepted'::text, 'rejected'::text, 'ceo_reviewing'::text, 'ceo_approved'::text])));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_body_check CHECK (((btrim(body) <> ''::text) AND (length(body) <= 1900)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_first_has_a_note CHECK (((kind <> 'first'::text) OR (note IS NOT NULL)));
 ALTER TABLE public.marketing_outreach_message ADD CONSTRAINT marketing_outreach_message_kind_check CHECK ((kind = ANY (ARRAY['first'::text, 'follow_up'::text])));

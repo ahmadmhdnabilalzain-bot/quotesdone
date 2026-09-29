@@ -1,7 +1,0 @@
-Applied at merge, never before (founder ruling: apply at merge only). It gives ceo_decision_round the path
-marketing_month_plan, makes fn_marketing_month_plan_tick file the coded video plan to the CEO (ceo.marketing_month_plan)
-instead of mailing the founder, adds the CEO's apply and marketing's revision route, and makes
-fn_ceo_marketing_plan_watch measure when the plan reached the CEO on both paths. The probe
-(..._probe.sql) printed PROBE OK against production with this file replayed first in one aborted transaction on
-29 Sep 2026. Moves when its PR merges: apply with node scripts/apply_sql.mjs <file> --apply --ddl --seat it_engineer,
-delete this note, append the file to the END of MANIFEST.txt, regenerate the schema mirror. Seat: it_engineer.
