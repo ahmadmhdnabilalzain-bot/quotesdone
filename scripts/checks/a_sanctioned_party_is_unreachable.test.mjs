@@ -125,7 +125,9 @@ const SURFACES = [
    'if (await sanctionedEmail(admin, user.email.toLowerCase())) return J(SANCTIONED_REFUSAL, 403);',
    'catalogue upload must refuse a sanctioned party'],
   ['supabase/functions/site_assistant/index.ts',
-   "if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier' };",
+   // #1036 (customer_support): identify() also returns the verified party id, so a signed-in widget chat is
+   // logged as 'supplier:<lead id>' and lands on that supplier's support case. The refusal is unchanged.
+   "if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: String(sup.id) };",
    'the site assistant must not recognise a sanctioned party as a supplier'],
 
   // FAIL CLOSED. A PostgREST error resolves as { data: null, error } rather than throwing, so a

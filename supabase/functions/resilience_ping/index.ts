@@ -12,6 +12,7 @@ import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type 
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
+import { runPostmasterStep, takePostmasterReading } from '../_shared/it_postmaster_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateTwilioKey } from '../_shared/it_rotate_by_api.ts';
@@ -1104,7 +1105,13 @@ async function itScheduledTick(): Promise<unknown> {
     const readings = await takeScheduledReadings(admin as never, sec, list, Number(n) || 5);
     const { data, error } = await admin.rpc('fn_it_duties_scheduled', { p_r: readings });
     if (error) return { ok: false, error: error.message };
-    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>) };
+    // Duty 10 settles findings; this keeps the day's numbers (scripts/sql/sender_health_is_recorded_once_a_day_and_a_breach_is_named.sql).
+    let senderRow: unknown = null;
+    if (readings.sender) {
+      const { data: row, error: rerr } = await admin.rpc('fn_it_sender_health_record', { p_sender: readings.sender });
+      senderRow = rerr ? { ok: false, error: rerr.message } : { breaches: (row as { breaches?: string[] })?.breaches ?? [] };
+    }
+    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>), sender_health: senderRow };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1196,6 +1203,12 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
     return { due: true, failing: r?.failing ?? null };
   });
+  // Gmail Postmaster Tools, once a day (it_engineer, 24 Sep 2026): spam rate, reputation and SPF/DKIM/DMARC for
+  // quotesdone.com, read by _shared/it_postmaster_readings.ts and stored and acted on by fn_it_postmaster_record
+  // (a finding at 0.1%; the #943 invitation pause at 0.3% or reputation LOW/BAD). Next to the sender duty's DNS and
+  // blocklist reading, on this heartbeat, never pg_cron. This function deploys on merge while its SQL may still be
+  // pending, so runPostmasterStep records a missing routine or table as "skipped: schema not applied".
+  await step('postmaster', () => runPostmasterStep((fn, args) => admin.rpc(fn, args), () => takePostmasterReading(fetch, sec)));
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;

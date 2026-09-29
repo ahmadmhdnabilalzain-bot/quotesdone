@@ -1,0 +1,107 @@
+{
+  "trade": "facade_access_maintenance",
+  "layer": "uae-market",
+  "label_en": "Façade access, BMU & rope access",
+  "label_ar": "الوصول إلى الواجهات ووحدات صيانة المباني (BMU) والعمل بالحبال",
+  "entries": [
+    {
+      "id": "facade_access_maintenance:uae-market-products",
+      "topic": "Façade access, BMU & rope access: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Facade access and maintenance covers building maintenance units (BMUs/gondolas) supply, installation, annual maintenance and load testing, temporary suspended platforms (cradles), rope access services (IRATA or SPRAT certified technicians), mast climbing work platforms, facade cleaning, glass replacement, sealant/silicone replacement, cladding repair (ACP, stone, curtain wall), facade inspections and condition surveys, anchor point and fall-arrest system installation and certification, and davit arms and monorails. Buyers specify building height, facade type, BMU type (roof trolley, monorail, davit, telescopic jib), cradle capacity, and certification needs: EN 1808 for suspended access equipment, EN 795 for anchor devices, third-party thorough examination and load test certificates, and Dubai Civil Defence requirements for cladding fire performance after the updated UAE Fire and Life Safety Code. Rope access works in Dubai typically need a permit from the building management and work-at-height risk assessment.",
+      "body_ar": "تشمل أعمال الوصول إلى الواجهات وصيانتها توريد وحدات صيانة المباني (BMU / الجندولات) وتركيبها وصيانتها السنوية واختبارات التحميل، والمنصات المعلقة المؤقتة (المهود)، وخدمات الوصول بالحبال (فنيون معتمدون من IRATA أو SPRAT)، ومنصات العمل المتسلقة على الصواري، وتنظيف الواجهات، واستبدال الزجاج، واستبدال مواد الإحكام والسيليكون، وإصلاح الكسوة (ألواح الألمنيوم المركبة، الحجر، الجدران الستارية)، وفحص الواجهات ومسوح الحالة، وتركيب نقاط التثبيت وأنظمة منع السقوط واعتمادها، وأذرع الرفع والقضبان الأحادية. يحدد المشترون ارتفاع المبنى، ونوع الواجهة، ونوع وحدة الصيانة (عربة على السطح، قضيب أحادي، ذراع رفع، ذراع تلسكوبي)، وسعة المهد، ومتطلبات الاعتماد: EN 1808 لمعدات الوصول المعلقة، وEN 795 لأجهزة التثبيت، وشهادات الفحص الشامل واختبار التحميل من طرف ثالث، ومتطلبات الدفاع المدني في دبي بشأن الأداء الناري للكسوة بعد تحديث قانون الإمارات للحماية من الحرائق وسلامة الأرواح. وعادةً تتطلب أعمال الحبال في دبي تصريحاً من إدارة المبنى وتقييماً لمخاطر العمل على المرتفعات.",
+      "sources": [
+        "https://www.manntech.com/spotlight-on-the-middle-east/",
+        "https://www.emrill.com/emrill-launches-rope-access-cleaning-service/",
+        "https://www.coxgomyl.com/",
+        "https://irata.org",
+        "https://www.dcd.gov.ae",
+        "https://www.tractel.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808 -> confirmed | Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate) -> confirmed | Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE -> confirmed | Fixator, Sky Pro, XS Platforms, Power Climber named -> removed: not checked for the UAE. Not checked: Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified."
+    },
+    {
+      "id": "facade_access_maintenance:uae-market-brands",
+      "topic": "Façade access, BMU & rope access: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed BMU makers and rope access providers in the UAE, plus fall-arrest brands: CoxGomyl, Manntech, Tractel, Emrill, Rope Access Middle East, Spider Access, Petzl, MSA (Latchways). The fall-arrest brands' local distributors were not checked. Third-party inspection bodies issue load test and thorough examination certificates for access equipment.",
+      "body_ar": "مصنعو وحدات صيانة المباني ومقدمو خدمات الوصول بالحبال المؤكدون في الإمارات، إضافة إلى علامات منع السقوط: CoxGomyl، Manntech، Tractel، Emrill، Rope Access Middle East، Spider Access، Petzl، MSA (Latchways). ولم يُتحقق من الموزعين المحليين لعلامات منع السقوط. وتصدر جهات الفحص المستقلة شهادات اختبار التحميل والفحص الشامل لمعدات الوصول.",
+      "sources": [
+        "https://www.manntech.com/spotlight-on-the-middle-east/",
+        "https://www.emrill.com/emrill-launches-rope-access-cleaning-service/",
+        "https://www.coxgomyl.com/",
+        "https://irata.org",
+        "https://www.dcd.gov.ae",
+        "https://www.tractel.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808 -> confirmed | Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate) -> confirmed | Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE -> confirmed | Fixator, Sky Pro, XS Platforms, Power Climber named -> removed: not checked for the UAE. Not checked: Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified."
+    },
+    {
+      "id": "facade_access_maintenance:uae-market-sizes",
+      "topic": "Façade access, BMU & rope access: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "BMU supply is quoted per unit as a lump sum; annual maintenance contracts per unit per year, often with 4 or 12 visits; load tests and third-party certification per unit per inspection. Facade cleaning is priced per building per cycle, per m2 of glass, or per drop for rope access; rope access labour may be priced per team per day (typically 2-4 technicians plus supervisor). Temporary cradle rental is per unit per month, usually 2 m to 7.5 m platform lengths. Anchor points are priced per point including certification.",
+      "body_ar": "يُسعّر توريد وحدة صيانة المبنى لكل وحدة كمبلغ مقطوع؛ وعقود الصيانة السنوية لكل وحدة سنوياً، وغالباً بأربع أو اثنتي عشرة زيارة؛ واختبارات التحميل واعتماد الطرف الثالث لكل وحدة في كل فحص. ويُسعّر تنظيف الواجهات لكل مبنى في كل دورة، أو لكل متر مربع من الزجاج، أو لكل مقطع في أعمال الحبال؛ وقد تُسعّر عمالة الحبال لكل فريق يومياً (عادةً 2-4 فنيين مع مشرف). ويكون تأجير المهود المؤقتة لكل وحدة شهرياً، بأطوال منصات تتراوح عادةً بين 2 و7.5 متر. وتُسعّر نقاط التثبيت لكل نقطة شاملة الاعتماد.",
+      "sources": [
+        "https://www.manntech.com/spotlight-on-the-middle-east/",
+        "https://www.emrill.com/emrill-launches-rope-access-cleaning-service/",
+        "https://www.coxgomyl.com/",
+        "https://irata.org",
+        "https://www.dcd.gov.ae",
+        "https://www.tractel.com",
+        "https://www.cencenelec.eu"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808 -> confirmed | Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate) -> confirmed | Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE -> confirmed | Fixator, Sky Pro, XS Platforms, Power Climber named -> removed: not checked for the UAE. Not checked: Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which standard should a temporary suspended cradle comply with, and what certificate do we need before use?",
+      "q_ar": "ما المعيار الذي يجب أن يلتزم به المهد المعلق المؤقت، وما الشهادة المطلوبة قبل الاستخدام؟",
+      "expected_entry_ids": [
+        "facade_access_maintenance:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "BMUs in the UAE follow Dubai Municipality requirements and EN 1808; Manntech designs to EN 1808",
+        "url": "https://www.manntech.com/spotlight-on-the-middle-east/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Manntech and CoxGomyl supply BMUs on Dubai towers (Jumeirah Gate)",
+        "url": "https://www.manntech.com/spotlight-on-the-middle-east/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Emrill runs an IRATA-certified rope access cleaning service; Rope Access Middle East and Spider Access provide IRATA rope access in the UAE",
+        "url": "https://www.emrill.com/emrill-launches-rope-access-cleaning-service/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Fixator, Sky Pro, XS Platforms, Power Climber named",
+        "url": "https://www.coxgomyl.com/",
+        "result": "removed: not checked for the UAE"
+      }
+    ],
+    "unverified": "Current regional representation of each BMU manufacturer and which contractors hold specific Civil Defence approvals were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

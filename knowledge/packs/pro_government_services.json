@@ -1,0 +1,75 @@
+{
+  "trade": "pro_government_services",
+  "entries": [
+    {
+      "id": "pro_government_services:spec-checklist",
+      "topic": "PRO and government services - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For pro and government services quotes to be compared like-for-like, every quoted line (services) must state: (1) list of transactions (visa, labour card, trade licence, attestation); (2) number of employees or files covered; (3) emirate and free zone or mainland; (4) government fees included or excluded; (5) service fee per transaction or retainer; (6) turnaround time per transaction; (7) document handling and confidentiality; (8) provider trade licence activity; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the pro_government_services trade.",
+      "body_ar": "لكي تُقارن عروض خدمات المندوب والمعاملات الحكومية على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) قائمة المعاملات (تأشيرة، أو بطاقة عمل، أو رخصة تجارية، أو تصديق)؛ (2) عدد الموظفين أو الملفات المشمولة؛ (3) الإمارة، والمنطقة الحرة أو البر الرئيسي؛ (4) الرسوم الحكومية مشمولة أو مستثناة؛ (5) رسوم الخدمة لكل معاملة أو اشتراك شهري؛ (6) مدة إنجاز كل معاملة؛ (7) التعامل مع المستندات وسريتها؛ (8) نشاط الرخصة التجارية لمقدم الخدمة؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة pro_government_services فقط.",
+      "required_specs": [
+        "list of transactions (visa, labour card, trade licence, attestation)",
+        "number of employees or files covered",
+        "emirate and free zone or mainland",
+        "government fees included or excluded",
+        "service fee per transaction or retainer",
+        "turnaround time per transaction",
+        "document handling and confidentiality",
+        "provider trade licence activity",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.mohre.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "pro_government_services:uae-standards-and-approvals",
+      "topic": "PRO and government services - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Work permits and labour matters are handled by the Ministry of Human Resources and Emiratisation (MOHRE); residency and visas by the Federal Authority for Identity, Citizenship, Customs and Port Security (ICP) or, in Dubai, GDRFA; trade licences by the emirate economic department or free-zone authority. What the cited sources do not establish: The sources read do not set service fees or turnaround times; government fees change and must be quoted separately from the service fee.",
+      "body_ar": "تتولى وزارة الموارد البشرية والتوطين تصاريح العمل وشؤون العمل؛ وتتولى الهيئة الاتحادية للهوية والجنسية والجمارك وأمن المنافذ الإقامات والتأشيرات، أو الإدارة العامة للإقامة وشؤون الأجانب في دبي؛ وتصدر الرخص التجارية دائرة الاقتصاد في الإمارة أو سلطة المنطقة الحرة. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد رسوم الخدمة ولا مدد الإنجاز؛ تتغير الرسوم الحكومية ويجب تسعيرها منفصلة عن رسوم الخدمة.",
+      "source_note": "The sources read do not set service fees or turnaround times; government fees change and must be quoted separately from the service fee.",
+      "sources": [
+        "https://www.mohre.gov.ae/en/services.aspx"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for pro and government services?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـخدمات المندوب والمعاملات الحكومية؟",
+      "expected_entry_ids": [
+        "pro_government_services:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to pro and government services?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على خدمات المندوب والمعاملات الحكومية؟",
+      "expected_entry_ids": [
+        "pro_government_services:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 0,
+    "claims_checked": 0,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "pro_government_services:spec-checklist",
+      "pro_government_services:uae-standards-and-approvals"
+    ],
+    "added": [
+      "pro_government_services:spec-checklist",
+      "pro_government_services:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
