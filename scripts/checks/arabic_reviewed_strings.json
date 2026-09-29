@@ -552,6 +552,14 @@
   "f07872a12ef2",
   "fc50ccfee153"
  ],
+ "scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14_probe.sql": [
+  "21da37f93422",
+  "9e8f210aa485"
+ ],
+ "scripts/sql/an_invited_supplier_who_never_opened_the_invitation_is_nudged_on_day_3_7_and_14.sql": [
+  "e02efac514b0",
+  "ee0c3fff62e1"
+ ],
  "scripts/sql/an_unmatched_question_gets_a_proper_answer.sql": [
   "5962f01deb2f",
   "693c2ec882a6",
