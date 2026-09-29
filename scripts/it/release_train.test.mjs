@@ -95,7 +95,7 @@ test('a probe note is recognised', () => {
 
 test('the one stale PR: oldest reviewed PR whose only blocker is finished, failing checks on a branch behind main', async () => {
   const { staleCandidate, checksRunning } = await import('./release_train.mjs');
-  const red = [...green.filter((c) => c.name !== 'typecheck the app'), { name: 'typecheck the app', conclusion: 'FAILURE' }];
+  const red = [...green.filter((c) => c.name !== 'the database is running what this repository says'), { name: 'the database is running what this repository says', conclusion: 'FAILURE' }];
   const running = [{ name: 'a', conclusion: '', status: 'IN_PROGRESS' }];
   assert.equal(checksRunning(running), true);
   assert.equal(checksRunning(red), false);
@@ -126,4 +126,15 @@ test('a check that ran twice counts once, by its latest run (#1095: CANCELLED th
   assert.equal(checksGreen(rerunRed), false);
   const running = [...rollup, { name: db, conclusion: '', status: 'IN_PROGRESS', startedAt: '2026-09-29T05:00:00Z', completedAt: '0001-01-01T00:00:00Z' }];
   assert.equal(checksGreen(running), false);
+});
+
+test('only a PR failing the live-database checks is refreshed; one failing its own code is left alone', async () => {
+  const { staleCandidate, onlyStaleFailures } = await import('./release_train.mjs');
+  const withFail = (name) => [...green.filter((c) => c.name !== name), { name, conclusion: 'FAILURE' }];
+  const dbRed = withFail('the database is running what this repository says');
+  const unitRed = withFail('classification, pricing and refund checks');
+  assert.equal(onlyStaleFailures(dbRed), true);
+  assert.equal(onlyStaleFailures(unitRed), false);
+  const prs = [pr({ number: 1, statusCheckRollup: unitRed }), pr({ number: 2, statusCheckRollup: dbRed })];
+  assert.equal(staleCandidate(prs, { isBehind: () => true })?.number, 2);
 });
