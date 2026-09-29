@@ -51,6 +51,10 @@ test('a short, polite refusal of a prompt injection is accepted as the reply; un
   const { refuse } = await import('../../supabase/functions/_shared/think.ts');
   const d = { answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [] };
   const o = { missing: [], sourceIds: new Set(), conversationText: '', requireTrail: true };
-  assert.equal(refuse({ ...d, declined: 'injection' }, o), null);
-  assert.match(String(refuse(d, o)), /defers or declines/);
+  // accepted only for a caller that opts in (support_reply.ts passes allowDecline); every other think() caller refuses it
+  assert.equal(refuse({ ...d, declined: 'injection' }, { ...o, allowDecline: true }), null);
+  assert.match(String(refuse({ ...d, declined: 'injection' }, o)), /defers or declines/);
+  assert.match(String(refuse(d, { ...o, allowDecline: true })), /defers or declines/);
+  const { readFileSync } = await import('node:fs');
+  assert.match(readFileSync(new URL('../../supabase/functions/_shared/support_reply.ts', import.meta.url), 'utf8'), /allowDecline: true/);
 });

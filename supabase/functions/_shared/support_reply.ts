@@ -85,6 +85,8 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
       context: { audience: req.audience === 'visitor' ? 'visitor' : req.audience, language: req.lang, conversation: req.conversation, profile: req.profile,
         case: { channel: req.channel, topic_knowledge: passages.slice(0, 6).map((p) => (p.citation ? p.citation + '\n' : '') + p.content.slice(0, 1500)), facts: req.facts ? req.facts.slice(0, 6000) : null } },
       research: false, queueWhenHeld: false, dedupeKey: req.dedupeKey, subject: req.subject,
+      // a short refusal of a manipulation or an out-of-scope ask may be the reply here, and nowhere else (think.ts)
+      allowDecline: true,
     });
     if (r.status !== 'answered' || !r.answer.trim()) return await fall(r.reason || 'not_answered');
     const g = guardSupportReply(r.answer.trim(), req.lang);
