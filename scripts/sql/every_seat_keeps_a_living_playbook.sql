@@ -1,4 +1,5 @@
 -- EVERY SEAT KEEPS A LIVING PLAYBOOK: THE STEPS, DECISION RULES AND ESCALATION FOR EACH CASE KIND IT HANDLES.
+-- apply-window: off-hours (release coordinator, 29 Sep 2026: applied outside a campaign hour; a lock wait is retried)
 -- Seat: it_engineer (shared plumbing). Founder instruction 1013, item 9, 29 Sep 2026.
 --
 -- The founder: each seat keeps a living playbook covering each case kind it handles - the steps, decision
