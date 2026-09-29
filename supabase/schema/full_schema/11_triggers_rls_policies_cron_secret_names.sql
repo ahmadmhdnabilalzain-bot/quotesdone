@@ -977,6 +977,7 @@ ALTER TABLE public.support_root_cause_fix ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.support_signal_category ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_change ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_change_tracked ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.table_export_registry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.table_export_run ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_contract ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.target_daily_verdict ENABLE ROW LEVEL SECURITY;
@@ -1265,6 +1266,7 @@ CREATE POLICY support_root_cause_fix_service_role_only ON public.support_root_ca
 CREATE POLICY support_signal_category_service_role_only ON public.support_signal_category AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_service_role_only ON public.table_export_change AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_change_tracked_service_role_only ON public.table_export_change_tracked AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
+CREATE POLICY table_export_registry_service_role_only ON public.table_export_registry AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY table_export_run_service_role_only ON public.table_export_run AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY target_daily_verdict_service_role_only ON public.target_daily_verdict AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);
 CREATE POLICY target_path_service_role_only ON public.target_path AS PERMISSIVE FOR ALL TO public USING (false) WITH CHECK (false);

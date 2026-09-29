@@ -1,6 +1,0 @@
-Applied at merge, never before (founder ruling: apply at merge only). It creates public.table_export_registry,
-seeds it with the 174 tables fn_table_export_list() returned live on 29 Sep 2026 plus the 137 backlog tables decided
-as business records (312 exported with the registry itself), moves the 381 exclusions in with their reasons, and redefines
-fn_table_export_list() to read the registry. The file ends in a verdict row (PROBE OK exported=312 excluded=381).
-Moves when its PR merges: apply with node scripts/apply_sql.mjs <file> --apply --ddl, delete this note, append the
-file to the END of MANIFEST.txt, regenerate the schema mirror. Seat: it_engineer.
