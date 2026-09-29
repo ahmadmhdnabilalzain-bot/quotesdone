@@ -106,8 +106,22 @@ export async function rotateTwilioKey(d: RotateDeps): Promise<Record<string, unk
   try {
     await d.rpc('fn_it_provider_rotation_record', { p_provider: 'twilio', p_old_ref: oldSid || null, p_new_ref: nk.sid, p_new_secret: nk.secret });
   } catch (e) {
+    const why = String((e as Error)?.message || e).slice(0, 200);
+    // THE ERROR MAY BE A LIE (review of #1038). The record can commit and the client still see an error (a timeout,
+    // a dropped connection, a 5xx after the commit). Deleting the new key then would delete the LIVE key and stop
+    // every sign-in OTP. So read back what app_secrets holds before deleting anything: the new SID there means the
+    // rotation happened; an unreadable answer keeps the new key (an unused key at Twilio harms nothing, a deleted
+    // live one does) and fails the run, which raises the finding.
+    let live: string | null = null;
+    try { live = await d.sec('twilio_api_key_sid'); } catch (_e) {
+      return { ...out, ok: false, rotated: false, new_ref: nk.sid,
+        error: 'storing the new key reported an error and app_secrets could not be read back, so the new key ' + nk.sid + ' was kept, not deleted: ' + why };
+    }
+    if (live === "MUTANT") {
+      return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid, note: 'the store reported an error but committed: ' + why };
+    }
     await deleteKey(d, ac, token, nk.sid);
-    return { ...out, ok: false, rotated: false, error: 'the new key could not be stored, so it was deleted and the old key kept: ' + String((e as Error)?.message || e).slice(0, 200) };
+    return { ...out, ok: false, rotated: false, error: 'the new key could not be stored, so it was deleted and the old key kept: ' + why };
   }
   return { ...out, rotated: true, old_ref: oldSid || null, new_ref: nk.sid };
 }

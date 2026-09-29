@@ -7,17 +7,30 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { rotateAndSettle, rotateTwilioKey, type RotateDeps } from './it_rotate_by_api.ts';
 
 const SECRET = 'new-secret-value-never-returned';
-function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
+function deps(o: { verifyOk?: boolean; storeFails?: boolean; storeCommitsThenErrors?: boolean; readBackFails?: boolean;
+                   due?: boolean; baselineNeeded?: boolean; keyCreated?: string | null;
                    retireDue?: { id: number; old_ref: string }[] } = {}) {
   const calls: string[] = []; const rpcs: [string, Record<string, unknown> | undefined][] = [];
+  const balanceAuth: string[] = [];
+  // app_secrets as the rotation sees it: the record writes the new pair here, exactly as the SQL does.
+  const secrets: Record<string, string> = { twilio_account_sid: 'AC1', twilio_auth_token: 'tok', twilio_api_key_sid: 'SKold' };
+  let recorded = false;
   const d: RotateDeps = {
     sleep: async () => {},
-    sec: async (k) => ({ twilio_account_sid: 'AC1', twilio_auth_token: 'tok', twilio_api_key_sid: 'SKold' } as Record<string, string>)[k] ?? '',
+    sec: async (k) => {
+      if (o.readBackFails && recorded) throw new Error('app_secrets unreachable');
+      return secrets[k] ?? '';
+    },
     rpc: async (fn, args) => {
       rpcs.push([fn, args]);
       if (fn === 'fn_it_provider_rotation_retire_due') return o.retireDue ?? [];
       if (fn === 'fn_it_provider_rotation_claim') return o.baselineNeeded ? { due: false, baseline_needed: true } : { due: o.due ?? true };
-      if (fn === 'fn_it_provider_rotation_record' && o.storeFails) throw new Error('store failed');
+      if (fn === 'fn_it_provider_rotation_record') {
+        if (o.storeFails) throw new Error('store failed');
+        secrets.twilio_api_key_sid = String(args?.p_new_ref); secrets.twilio_api_key_secret = String(args?.p_new_secret);
+        recorded = true;
+        if (o.storeCommitsThenErrors || o.readBackFails) throw new Error('upstream request timeout');
+      }
       return null;
     },
     fetch: async (url, init) => {
@@ -33,12 +46,16 @@ function deps(o: { verifyOk?: boolean; storeFails?: boolean; due?: boolean; base
       const denied = new Response(JSON.stringify({ code: 20003, message: 'Authenticate', status: 401 }), { status: 401 });
       if (user.startsWith('SK') && /\/Accounts\/AC1\.json$/.test(url)) return denied;
       if (/\/Accounts\/AC1\/Balance\.json$/.test(url)) {
+        // The proof must be made WITH THE NEW KEY: anything else (the old key, the auth token) proves nothing about it.
+        const auth = String((init.headers as Record<string, string>)?.Authorization ?? '');
+        balanceAuth.push(auth);
+        if (auth !== 'Basic ' + btoa('SKnew:' + SECRET)) return denied;
         return o.verifyOk === false ? denied : new Response(JSON.stringify({ balance: '12.34', currency: 'USD' }), { status: 200 });
       }
       return new Response('{}', { status: 404 });
     },
   };
-  return { d, calls, rpcs };
+  return { d, calls, rpcs, balanceAuth };
 }
 
 Deno.test('a due rotation creates, proves, stores and records the new key, and returns no secret', async () => {
@@ -101,10 +118,11 @@ Deno.test('a retire row that names the key in use never deletes it', async () =>
 });
 
 Deno.test('the new key is proved on Balance.json, the call a Standard key may make', async () => {
-  const { d, calls } = deps();
+  const { d, calls, balanceAuth } = deps();
   const r = await rotateTwilioKey(d);
   assertEquals(r.rotated, true);
   assert(calls.includes('GET https://api.twilio.com/2010-04-01/Accounts/AC1/Balance.json'));
+  assertEquals(balanceAuth, ['Basic ' + btoa('SKnew:' + SECRET)], 'the balance is read with the NEW key sid and secret');
   assert(!calls.includes('GET https://api.twilio.com/2010-04-01/Accounts/AC1.json'), 'a Standard key is refused 20003 there');
 });
 
@@ -121,6 +139,21 @@ Deno.test('a failed rotation is settled as an open finding, and a clean run sett
   const good = deps();
   await rotateAndSettle(good.d);
   assertEquals(good.rpcs.find(([f]) => f === 'fn_it_duty_settle')![1]?.p_items, []);
+});
+
+Deno.test('a store that committed but reported an error never deletes the now-live key', async () => {
+  const { d, calls } = deps({ storeCommitsThenErrors: true });
+  const r = await rotateTwilioKey(d);
+  assertEquals(r.rotated, true); assertEquals(r.new_ref, 'SKnew');
+  assert(!calls.some((c) => c.startsWith('DELETE')), 'SKnew is what sign-in OTP now uses; deleting it would stop every code');
+  assert(!JSON.stringify(r).includes(SECRET));
+});
+
+Deno.test('a store error whose outcome cannot be read back keeps the new key and fails the run', async () => {
+  const { d, calls } = deps({ readBackFails: true });
+  const r = await rotateAndSettle(d);
+  assertEquals(r.ok, false);
+  assert(!calls.some((c) => c.startsWith('DELETE')), 'an unknown outcome never deletes a key that may be live');
 });
 
 Deno.test('a thrown step is settled too, never lost', async () => {
