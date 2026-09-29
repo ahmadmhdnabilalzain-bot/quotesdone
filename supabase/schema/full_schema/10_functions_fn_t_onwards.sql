@@ -4773,6 +4773,28 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_writers_without_a_seat(p_days integer DEFAULT 7)
+ RETURNS TABLE(kind text, name text, runs bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select 'agent_runs_label', l.agent, count(*)
+    from public.agent_runs l
+   where l.started_at > now() - make_interval(days => greatest(coalesce(p_days, 7), 1))
+     and not exists (select 1 from public.function_owner f where f.function_slug = regexp_replace(l.agent, '^fn:', ''))
+     and not exists (select 1 from public.seat_duty d where l.agent in (d.duty, d.routine))
+     and not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
+                      where o.kind = 'agent_runs_label' and o.name = l.agent)
+   group by l.agent
+  union all
+  select 'cron_job', j.jobname, null::bigint
+    from cron.job j
+   where not exists (select 1 from public.writer_seat o join public.org_role r on r.role_id = o.owner_seat and r.status = 'active'
+                      where o.kind = 'cron_job' and o.name = j.jobname)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ws_agent_ops(p_agent text)
  RETURNS jsonb
  LANGUAGE plpgsql

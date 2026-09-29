@@ -1,5 +1,0 @@
-Applied at merge (memory: apply at merge, never before). The file adds wa_messages.replied_at, the one
-customer-contact test for inbound email, and replaces fn_customer_support_case_review_tick. It must be live
-before the wa_inbound deploy that writes replied_at, so the order at merge is: apply this file, then deploy
-wa_inbound. scripts/checks/customer_support_reviews_its_week.test.mjs replays it while this note exists.
-On apply: delete this note and append the file to the END of scripts/sql/MANIFEST.txt. Seat: customer_support.

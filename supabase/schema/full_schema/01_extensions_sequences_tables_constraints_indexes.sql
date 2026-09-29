@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T22:43:21.541Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T22:45:14.098Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -212,7 +212,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (694) =====
+-- ===== TABLES (695) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -9488,7 +9488,8 @@ CREATE TABLE IF NOT EXISTS public.wa_messages (
   escalated boolean DEFAULT false,
   sent boolean DEFAULT false,
   meta jsonb,
-  created_at timestamp with time zone DEFAULT now()
+  created_at timestamp with time zone DEFAULT now(),
+  replied_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.wa_reply_intent (
@@ -9588,6 +9589,15 @@ CREATE TABLE IF NOT EXISTS public.workflow_step_run (
   started_at timestamp with time zone,
   finished_at timestamp with time zone,
   error jsonb
+);
+
+CREATE TABLE IF NOT EXISTS public.writer_seat (
+  kind text NOT NULL,
+  name text NOT NULL,
+  owner_seat text NOT NULL,
+  note text NOT NULL,
+  owner_file text NOT NULL,
+  recorded_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.yello_staging (
@@ -10308,6 +10318,7 @@ ALTER TABLE public.workflow ADD CONSTRAINT workflow_pkey PRIMARY KEY (workflow_k
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_pkey PRIMARY KEY (id);
 ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_pkey PRIMARY KEY (workflow_key, step_no);
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_pkey PRIMARY KEY (id);
+ALTER TABLE public.writer_seat ADD CONSTRAINT writer_seat_pkey PRIMARY KEY (kind, name);
 ALTER TABLE public.yello_staging ADD CONSTRAINT yello_staging_pkey PRIMARY KEY (company_id);
 ALTER TABLE public.accountant_weekly_report ADD CONSTRAINT accountant_weekly_report_key_uniq UNIQUE (report_key);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_idempotency_key_key UNIQUE (idempotency_key);
@@ -11400,6 +11411,7 @@ ALTER TABLE public.wa_template_registry ADD CONSTRAINT wa_template_registry_stat
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_answered_by_check CHECK ((answered_by = ANY (ARRAY['deterministic'::text, 'model'::text, 'human'::text, 'template'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_direction_check CHECK ((direction = ANY (ARRAY['in'::text, 'out'::text])));
 ALTER TABLE public.wa_turn ADD CONSTRAINT wa_turn_transcript_source_check CHECK ((transcript_source = ANY (ARRAY['twilio'::text, 'model'::text, 'none'::text])));
+ALTER TABLE public.writer_seat ADD CONSTRAINT writer_seat_kind_check CHECK ((kind = ANY (ARRAY['agent_runs_label'::text, 'cron_job'::text])));
 ALTER TABLE public.accountant_subscription_paid_from_change ADD CONSTRAINT accountant_subscription_paid_from_change_vendor_fkey FOREIGN KEY (vendor) REFERENCES accountant_owner_ruled_subscription(vendor);
 ALTER TABLE public.action_execution ADD CONSTRAINT action_execution_workflow_step_run_id_fkey FOREIGN KEY (workflow_step_run_id) REFERENCES workflow_step_run(id);
 ALTER TABLE public.ad_decision ADD CONSTRAINT ad_decision_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES ad_campaign_state(campaign_id) ON DELETE CASCADE;
@@ -11751,6 +11763,7 @@ ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_trigger_event_id_fke
 ALTER TABLE public.workflow_run ADD CONSTRAINT workflow_run_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key);
 ALTER TABLE public.workflow_step ADD CONSTRAINT workflow_step_workflow_key_fkey FOREIGN KEY (workflow_key) REFERENCES workflow(workflow_key) ON DELETE CASCADE;
 ALTER TABLE public.workflow_step_run ADD CONSTRAINT workflow_step_run_workflow_run_id_fkey FOREIGN KEY (workflow_run_id) REFERENCES workflow_run(id) ON DELETE CASCADE;
+ALTER TABLE public.writer_seat ADD CONSTRAINT writer_seat_owner_seat_fkey FOREIGN KEY (owner_seat) REFERENCES org_role(role_id);
 
 -- ===== INDEXES =====
 CREATE INDEX accountant_knowledge_emb_hnsw ON public.accountant_knowledge USING hnsw (embedding_gte vector_cosine_ops);

@@ -9999,6 +9999,22 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_support_email_is_a_customer_contact(p_from text, p_to text, p_owner_role text, p_subject text, p_fixtures boolean)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(p_from, '') !~* '^[^@]*(mailer-daemon|postmaster|no-?reply|do-?not-?reply|bounces?)[^@]*@'
+     and coalesce(p_to, '') !~* '^(expenses@|calendar\+|approve\+)'
+     and coalesce(p_owner_role, '') <> 'accountant'
+     and lower(btrim(coalesce(p_from, ''))) <> all (
+           select lower(btrim(e)) from public.app_secrets s, unnest(string_to_array(s.value, ',')) e
+            where s.key in ('admin_emails', 'founder_email') and btrim(e) <> '')
+     and (public.fn_is_demo_email(p_from) or coalesce(p_subject, '') like 'ZZ DEMO%') = p_fixtures
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_support_faq_records_its_root_cause()
  RETURNS trigger
  LANGUAGE plpgsql
