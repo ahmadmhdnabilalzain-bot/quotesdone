@@ -1,0 +1,107 @@
+{
+  "trade": "debt_collection",
+  "layer": "uae-market",
+  "label_en": "Debt collection & credit reports",
+  "label_ar": "تحصيل الديون والتقارير الائتمانية",
+  "entries": [
+    {
+      "id": "debt_collection:uae-market-products",
+      "topic": "Debt collection & credit reports: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Debt collection services in the UAE include pre-legal/amicable collection (calls, letters, field visits, skip tracing), B2B commercial debt recovery, consumer debt collection for banks, telecoms and utilities (outsourced collection agencies), cross-border recovery in GCC and internationally, bounced cheque follow-up (note that since 2022 issuing a bounced cheque is no longer a crime for insufficient funds under Federal Decree-Law 50 of 2022, Art. 630, and the returned cheque is an executory instrument filed directly with the execution court; criminal liability remains for cases such as closed accounts or fraud), payment order applications, legal collection via licensed law firms (civil claims, execution of judgments, travel bans, asset attachments), credit reports and debtor tracing, and receivables management. Buyers ask about success-fee rates, whether the agency is licensed and works through licensed lawyers for court action, reporting, and compliance. UAE rules: consumer collection for banks must follow Central Bank of the UAE consumer protection standards (no harassment, permitted contact times), personal data handling follows the PDPL, and only licensed advocates may represent clients in UAE courts; DIFC and ADGM courts have their own procedures. Al Etihad Credit Bureau (AECB) provides credit reports.",
+      "body_ar": "تشمل خدمات تحصيل الديون في الإمارات التحصيل الودي قبل الإجراءات القانونية (المكالمات، والرسائل، والزيارات الميدانية، وتتبع المدينين)، واسترداد الديون التجارية بين الشركات، وتحصيل ديون المستهلكين للبنوك وشركات الاتصالات والمرافق (وكالات تحصيل خارجية)، والاسترداد عبر الحدود في دول الخليج ودولياً، ومتابعة الشيكات المرتجعة (مع ملاحظة أنه منذ 2022 لم يعد إصدار الشيك المرتجع لعدم كفاية الرصيد جريمة بموجب المرسوم بقانون اتحادي رقم 50 لسنة 2022، المادة 630، ويُعد الشيك المرتجع سنداً تنفيذياً يُقدم مباشرة إلى محكمة التنفيذ؛ وتبقى المسؤولية الجنائية في حالات مثل الحسابات المغلقة أو الاحتيال)، وطلبات أوامر الأداء، والتحصيل القانوني عبر مكاتب محاماة مرخصة (الدعاوى المدنية، وتنفيذ الأحكام، ومنع السفر، والحجز على الأصول)، وتقارير الائتمان وتتبع المدينين، وإدارة الذمم المدينة. يسأل المشترون عن نسب أتعاب النجاح، وما إذا كانت الوكالة مرخصة وتعمل عبر محامين مرخصين للإجراءات القضائية، والتقارير، والامتثال. القواعد الإماراتية: يجب أن يتبع تحصيل ديون المستهلكين للبنوك معايير حماية المستهلك لدى مصرف الإمارات العربية المتحدة المركزي (عدم المضايقة، وأوقات الاتصال المسموح بها)، ويتبع التعامل مع البيانات الشخصية قانون حماية البيانات الشخصية، ولا يجوز تمثيل العملاء أمام محاكم الدولة إلا للمحامين المرخصين؛ ولمحاكم مركز دبي المالي العالمي وسوق أبوظبي العالمي إجراءاتها الخاصة. وتوفر شركة الاتحاد للمعلومات الائتمانية تقارير الائتمان.",
+      "sources": [
+        "https://www.kayrouzandassociates.com/insights/what-happens-if-company-cheque-bounces-uae",
+        "https://rulebook.centralbank.ae/en/rulebook/consumer-protection-regulation",
+        "https://etihadbureau.ae/",
+        "https://lylawyers.com/debt-collection-regulations-in-the-uae/",
+        "https://www.centralbank.ae",
+        "https://etihadbureau.ae",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Insufficient-funds bounced cheques are civil since 2 Jan 2022 (Federal Decree-Law 50 of 2022, Art. 630); returned cheque is an executory instrument -> confirmed | CBUAE Consumer Protection Regulation (Circular 8/2020) governs collection by banks and their agents; no harassment; records kept 5 years; Sanadak ombudsman -> confirmed | Al Etihad Credit Bureau provides credit reports (etihadbureau.ae) -> confirmed | Atradius, Coface, Allianz Trade, Intrum partners in the UAE -> removed: not checked. Not checked: The exact current legal status of bounced cheques and payment order procedures should be confirmed with a licensed lawyer; agency licensing requirements per emirate were not verified."
+    },
+    {
+      "id": "debt_collection:uae-market-brands",
+      "topic": "Debt collection & credit reports: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed credit information provider: Al Etihad Credit Bureau. Collection agencies and credit insurers operating in the UAE were not checked; court action must go through UAE-licensed advocates.",
+      "body_ar": "مزود المعلومات الائتمانية المؤكد: Al Etihad Credit Bureau. ولم يُتحقق من وكالات التحصيل وشركات تأمين الائتمان العاملة في الإمارات؛ ويجب أن تتم الإجراءات القضائية عبر محامين مرخصين في الدولة.",
+      "sources": [
+        "https://www.kayrouzandassociates.com/insights/what-happens-if-company-cheque-bounces-uae",
+        "https://rulebook.centralbank.ae/en/rulebook/consumer-protection-regulation",
+        "https://etihadbureau.ae/",
+        "https://lylawyers.com/debt-collection-regulations-in-the-uae/",
+        "https://www.centralbank.ae",
+        "https://etihadbureau.ae",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Insufficient-funds bounced cheques are civil since 2 Jan 2022 (Federal Decree-Law 50 of 2022, Art. 630); returned cheque is an executory instrument -> confirmed | CBUAE Consumer Protection Regulation (Circular 8/2020) governs collection by banks and their agents; no harassment; records kept 5 years; Sanadak ombudsman -> confirmed | Al Etihad Credit Bureau provides credit reports (etihadbureau.ae) -> confirmed | Atradius, Coface, Allianz Trade, Intrum partners in the UAE -> removed: not checked. Not checked: The exact current legal status of bounced cheques and payment order procedures should be confirmed with a licensed lawyer; agency licensing requirements per emirate were not verified."
+    },
+    {
+      "id": "debt_collection:uae-market-sizes",
+      "topic": "Debt collection & credit reports: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Amicable collection is typically on a no-cure-no-pay success fee (a percentage of amount recovered, higher for small or old debts), sometimes with a registration fee per file. Legal collection involves lawyer fees (fixed per stage or percentage) plus court fees set by the courts as a percentage of claim value with caps. Bank outsourcing contracts are priced as a commission on collected amounts per portfolio bucket. Credit reports are priced per report.",
+      "body_ar": "يكون التحصيل الودي عادةً بنظام أتعاب النجاح دون تحصيل دون دفع (نسبة من المبلغ المسترد، وتكون أعلى للديون الصغيرة أو القديمة)، وأحياناً مع رسم تسجيل لكل ملف. ويتضمن التحصيل القانوني أتعاب المحامي (ثابتة لكل مرحلة أو نسبة) إضافة إلى الرسوم القضائية التي تحددها المحاكم كنسبة من قيمة المطالبة مع حدود قصوى. وتُسعّر عقود الاستعانة الخارجية للبنوك كعمولة على المبالغ المحصلة لكل شريحة من المحفظة. وتُسعّر تقارير الائتمان لكل تقرير.",
+      "sources": [
+        "https://www.kayrouzandassociates.com/insights/what-happens-if-company-cheque-bounces-uae",
+        "https://rulebook.centralbank.ae/en/rulebook/consumer-protection-regulation",
+        "https://etihadbureau.ae/",
+        "https://lylawyers.com/debt-collection-regulations-in-the-uae/",
+        "https://www.centralbank.ae",
+        "https://etihadbureau.ae",
+        "https://www.moj.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Insufficient-funds bounced cheques are civil since 2 Jan 2022 (Federal Decree-Law 50 of 2022, Art. 630); returned cheque is an executory instrument -> confirmed | CBUAE Consumer Protection Regulation (Circular 8/2020) governs collection by banks and their agents; no harassment; records kept 5 years; Sanadak ombudsman -> confirmed | Al Etihad Credit Bureau provides credit reports (etihadbureau.ae) -> confirmed | Atradius, Coface, Allianz Trade, Intrum partners in the UAE -> removed: not checked. Not checked: The exact current legal status of bounced cheques and payment order procedures should be confirmed with a licensed lawyer; agency licensing requirements per emirate were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How do collection agencies charge for recovering a commercial debt?",
+      "q_ar": "كيف تتقاضى وكالات التحصيل أتعابها لاسترداد دين تجاري؟",
+      "expected_entry_ids": [
+        "debt_collection:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Insufficient-funds bounced cheques are civil since 2 Jan 2022 (Federal Decree-Law 50 of 2022, Art. 630); returned cheque is an executory instrument",
+        "url": "https://www.kayrouzandassociates.com/insights/what-happens-if-company-cheque-bounces-uae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "CBUAE Consumer Protection Regulation (Circular 8/2020) governs collection by banks and their agents; no harassment; records kept 5 years; Sanadak ombudsman",
+        "url": "https://rulebook.centralbank.ae/en/rulebook/consumer-protection-regulation",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Al Etihad Credit Bureau provides credit reports (etihadbureau.ae)",
+        "url": "https://etihadbureau.ae/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Atradius, Coface, Allianz Trade, Intrum partners in the UAE",
+        "url": "https://lylawyers.com/debt-collection-regulations-in-the-uae/",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "The exact current legal status of bounced cheques and payment order procedures should be confirmed with a licensed lawyer; agency licensing requirements per emirate were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

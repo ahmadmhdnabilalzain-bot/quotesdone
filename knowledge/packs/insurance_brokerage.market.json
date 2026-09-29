@@ -1,0 +1,104 @@
+{
+  "trade": "insurance_brokerage",
+  "layer": "uae-market",
+  "label_en": "Insurance brokerage",
+  "label_ar": "وساطة التأمين",
+  "entries": [
+    {
+      "id": "insurance_brokerage:uae-market-products",
+      "topic": "Insurance brokerage: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Insurance brokerage in the UAE covers employee health insurance (mandatory in Dubai and Abu Dhabi, with Dubai's Essential Benefits Plan for lower-salary employees and Abu Dhabi's Thiqa/Basic plans), group life and personal accident, workmen's compensation, motor fleet insurance, property all risks, contractors' all risks (CAR) and erection all risks (EAR), marine cargo and hull, professional indemnity, directors and officers (D&O), cyber, public and product liability, trade credit insurance, medical malpractice (mandatory for healthcare professionals), engineering and machinery breakdown, and individual lines (home, travel, motor, life). Buyers ask about insurer panel, coverage limits and deductibles, network (hospital/clinic lists for health), claims support, and compliance. Brokers must be licensed by the Central Bank of the UAE (CBUAE took over insurance regulation from the Insurance Authority in 2020); DIFC and ADGM brokers are licensed by DFSA and FSRA. Health insurance products must be approved by DHA (Dubai) or DOH (Abu Dhabi).",
+      "body_ar": "تشمل وساطة التأمين في الإمارات التأمين الصحي للموظفين (إلزامي في دبي وأبوظبي، مع خطة المنافع الأساسية في دبي للموظفين ذوي الرواتب المنخفضة، وخطتي ثقة والأساسية في أبوظبي)، والتأمين الجماعي على الحياة والحوادث الشخصية، وتعويض العمال، وتأمين أساطيل المركبات، وتأمين جميع أخطار الممتلكات، وتأمين جميع أخطار المقاولين وجميع أخطار التركيب، والتأمين البحري على البضائع والسفن، والمسؤولية المهنية، ومسؤولية أعضاء مجلس الإدارة والمديرين، والتأمين السيبراني، والمسؤولية العامة ومسؤولية المنتجات، وتأمين الائتمان التجاري، وتأمين الأخطاء الطبية (إلزامي للمهنيين الصحيين)، والتأمين الهندسي وتعطل الآلات، والخطوط الفردية (المنزل، والسفر، والمركبات، والحياة). يسأل المشترون عن قائمة شركات التأمين، وحدود التغطية والمبالغ المقتطعة، والشبكة (قوائم المستشفيات والعيادات للتأمين الصحي)، ودعم المطالبات، والامتثال. ويجب أن يكون الوسطاء مرخصين من مصرف الإمارات العربية المتحدة المركزي (الذي تولى تنظيم التأمين من هيئة التأمين في 2020)؛ ويُرخَّص الوسطاء في مركز دبي المالي العالمي وسوق أبوظبي العالمي من سلطة دبي للخدمات المالية وسلطة تنظيم الخدمات المالية. ويجب اعتماد منتجات التأمين الصحي من هيئة الصحة بدبي أو دائرة الصحة في أبوظبي.",
+      "sources": [
+        "https://www.nascoemirates.com",
+        "https://www.adnic.ae",
+        "https://www.centralbank.ae",
+        "https://www.marsh.com/ae/home.html",
+        "https://www.dha.gov.ae",
+        "https://www.doh.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: NASCO Emirates is a UAE insurance broker (Abu Dhabi, broker registration no. 15) -> confirmed | ADNIC and Sukoon are UAE insurers -> confirmed | CBUAE licenses insurance brokers -> unconfirmed: page blocked the fetch; kept as stated | Marsh, Aon UAE pages -> removed: UAE page did not load. Not checked: Recent insurer rebrands/mergers (e.g. RSA UAE, AXA Gulf) and the current commission disclosure rules were not verified."
+    },
+    {
+      "id": "insurance_brokerage:uae-market-brands",
+      "topic": "Insurance brokerage: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE broker and insurers: NASCO Emirates, ADNIC, Sukoon, Daman, Orient Insurance. Other brokers were not checked; confirm a broker's Central Bank licence before appointment.",
+      "body_ar": "الوسيط وشركات التأمين المؤكدون في الإمارات: NASCO Emirates، ADNIC، Sukoon، Daman، Orient Insurance. ولم يُتحقق من الوسطاء الآخرين؛ ويجب التحقق من ترخيص الوسيط لدى المصرف المركزي قبل تعيينه.",
+      "sources": [
+        "https://www.nascoemirates.com",
+        "https://www.adnic.ae",
+        "https://www.centralbank.ae",
+        "https://www.marsh.com/ae/home.html",
+        "https://www.dha.gov.ae",
+        "https://www.doh.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: NASCO Emirates is a UAE insurance broker (Abu Dhabi, broker registration no. 15) -> confirmed | ADNIC and Sukoon are UAE insurers -> confirmed | CBUAE licenses insurance brokers -> unconfirmed: page blocked the fetch; kept as stated | Marsh, Aon UAE pages -> removed: UAE page did not load. Not checked: Recent insurer rebrands/mergers (e.g. RSA UAE, AXA Gulf) and the current commission disclosure rules were not verified."
+    },
+    {
+      "id": "insurance_brokerage:uae-market-sizes",
+      "topic": "Insurance brokerage: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Brokers are usually remunerated by commission from the insurer included in the premium (so the client pays the premium only), or by a fee for advisory/placement on large accounts. Premiums: health per member per year by age band and plan; motor as a percentage of vehicle value or fixed for third-party; property and CAR as a rate per mille of sum insured; PI and D&O by limit. Policies are annual; group health commonly renews on a fixed date with mid-term additions pro rata.",
+      "body_ar": "يتقاضى الوسطاء عادةً عمولة من شركة التأمين ضمن القسط (فيدفع العميل القسط فقط)، أو أتعاباً للاستشارة/الإسناد في الحسابات الكبيرة. الأقساط: الصحي لكل عضو سنوياً حسب الفئة العمرية والخطة؛ والمركبات كنسبة من قيمة المركبة أو مبلغ ثابت لتأمين الطرف الثالث؛ والممتلكات وجميع أخطار المقاولين بسعر في الألف من مبلغ التأمين؛ والمسؤولية المهنية ومسؤولية المديرين حسب الحد. والوثائق سنوية؛ وعادةً ما يتجدد التأمين الصحي الجماعي في تاريخ ثابت مع إضافات منتصف المدة بالتناسب.",
+      "sources": [
+        "https://www.nascoemirates.com",
+        "https://www.adnic.ae",
+        "https://www.centralbank.ae",
+        "https://www.marsh.com/ae/home.html",
+        "https://www.dha.gov.ae",
+        "https://www.doh.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: NASCO Emirates is a UAE insurance broker (Abu Dhabi, broker registration no. 15) -> confirmed | ADNIC and Sukoon are UAE insurers -> confirmed | CBUAE licenses insurance brokers -> unconfirmed: page blocked the fetch; kept as stated | Marsh, Aon UAE pages -> removed: UAE page did not load. Not checked: Recent insurer rebrands/mergers (e.g. RSA UAE, AXA Gulf) and the current commission disclosure rules were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is health insurance mandatory for employees in Dubai, and who must pay for it?",
+      "q_ar": "هل التأمين الصحي إلزامي للموظفين في دبي، ومن يجب أن يدفعه؟",
+      "expected_entry_ids": [
+        "insurance_brokerage:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "NASCO Emirates is a UAE insurance broker (Abu Dhabi, broker registration no. 15)",
+        "url": "https://www.nascoemirates.com",
+        "result": "confirmed"
+      },
+      {
+        "claim": "ADNIC and Sukoon are UAE insurers",
+        "url": "https://www.adnic.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "CBUAE licenses insurance brokers",
+        "url": "https://www.centralbank.ae",
+        "result": "unconfirmed: page blocked the fetch; kept as stated"
+      },
+      {
+        "claim": "Marsh, Aon UAE pages",
+        "url": "https://www.marsh.com/ae/home.html",
+        "result": "removed: UAE page did not load"
+      }
+    ],
+    "unverified": "Recent insurer rebrands/mergers (e.g. RSA UAE, AXA Gulf) and the current commission disclosure rules were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

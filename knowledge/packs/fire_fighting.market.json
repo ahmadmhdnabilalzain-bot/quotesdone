@@ -1,0 +1,102 @@
+{
+  "trade": "fire_fighting",
+  "layer": "uae-market",
+  "label_en": "Fire fighting & life safety",
+  "label_ar": "مكافحة الحريق وأنظمة السلامة",
+  "entries": [
+    {
+      "id": "fire_fighting:uae-market-products",
+      "topic": "Fire fighting & life safety: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Fire fighting and life safety in the UAE, governed by the UAE Fire and Life Safety Code of Practice (Civil Defence): automatic sprinklers (wet, dry, pre-action, deluge; K-factors 5.6-25; standard and quick response, ESFR for warehouses), fire pumps (electric main, diesel standby and jockey, UL/FM listed, NFPA 20 based design), hose reels and landing valves, fire hydrants, clean-agent suppression (FM-200/HFC-227ea, Novec 1230/FK-5-1-12, inert gases IG-541/IG-55), CO2 systems, kitchen hood wet-chemical systems, foam systems, fire alarm (addressable and conventional panels, smoke/heat/multi-sensor detectors, beam and aspirating detection, EN 54 or UL listed), voice evacuation, emergency and exit lighting, fire extinguishers (ABC powder, CO2, foam, wet chemical), fire blankets, fire-rated doors and dampers, and smoke control. All products need Civil Defence product approval and contractors need Civil Defence licensing; alarm panels must be connected to Hassantuk, the Ministry of Interior's 24/7 monitoring system (Cabinet Resolution 61 of 2020). It has been mandatory for villas and townhouses since 1 January 2024, and for buildings above set sizes.",
+      "body_ar": "مكافحة الحريق وسلامة الأرواح في الإمارات، وفق كود الإمارات للحماية من الحرائق وسلامة الأرواح (الدفاع المدني): الرشاشات التلقائية (الرطبة والجافة وسابقة الفعل والطوفانية؛ معاملات K من 5.6 إلى 25؛ استجابة قياسية وسريعة، وESFR للمستودعات)، ومضخات الحريق (رئيسية كهربائية واحتياطية ديزل وجوكي، مدرجة UL/FM، بتصميم قائم على NFPA 20)، وبكرات الخراطيم وصمامات الهبوط، وحنفيات الحريق، وأنظمة الإطفاء بالعوامل النظيفة (FM-200 وNovec 1230 والغازات الخاملة IG-541/IG-55)، وأنظمة ثاني أكسيد الكربون، وأنظمة المواد الكيميائية الرطبة لشفاطات المطابخ، وأنظمة الرغوة، وإنذار الحريق (لوحات معنونة وتقليدية، وكواشف دخان وحرارة ومتعددة، وكواشف الحزمة والشفط، مدرجة EN 54 أو UL)، والإخلاء الصوتي، وإنارة الطوارئ والمخارج، والطفايات (بودرة ABC وثاني أكسيد الكربون والرغوة والكيميائية الرطبة)، وبطانيات الحريق، والأبواب والمخمدات المقاومة للحريق، والتحكم في الدخان. وتحتاج جميع المنتجات اعتماد الدفاع المدني ويحتاج المقاولون ترخيصه؛ ويجب ربط لوحات الإنذار بنظام حصنتك التابع لوزارة الداخلية للمراقبة على مدار الساعة (قرار مجلس الوزراء 61 لسنة 2020)، وهو إلزامي للفلل والتاون هاوس منذ 1 يناير 2024 وللمباني فوق أحجام محددة.",
+      "sources": [
+        "https://hassantuk.moi.gov.ae/index-en.html",
+        "https://sffeco.com/about-us/",
+        "https://www.naffco.com/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.moi.gov.ae",
+        "https://www.cencenelec.eu",
+        "https://www.naffco.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: alarm monitoring requirement -> corrected: Hassantuk (MOI, Cabinet Resolution 61 of 2020) is mandatory for villas and townhouses from 1 January 2024 and for buildings above set sizes | SFFECO is a Sharjah maker -> corrected: SFFECO manufactures in Riyadh and Dubai | NAFFCO is a UAE fire-equipment maker -> confirmed (Dubai). Not checked: Current Civil Defence approved product lists, the monitoring arrangement for each emirate, and the current availability of Novec 1230 alternatives were not verified."
+    },
+    {
+      "id": "fire_fighting:uae-market-brands",
+      "topic": "Fire fighting & life safety: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Makers and brands: NAFFCO, SFFECO, Tyco, Viking, Reliable, Victaulic, Globe, Aurora, Patterson, Grundfos, Armstrong, Notifier, Gent, Morley, Siemens, Bosch, Edwards, Hochiki, Apollo, Esser, Kidde, Fike, Chemours, Ceasefire. NAFFCO (Dubai) and SFFECO (plants in Dubai and Riyadh) manufacture locally; the others are imported, and their distributors were not checked. Every product needs Civil Defence approval and every contractor a Civil Defence licence. Distributors cluster in Al Quoz, Jebel Ali and Sharjah.",
+      "body_ar": "المصنّعون والعلامات: NAFFCO، SFFECO، Tyco، Viking، Reliable، Victaulic، Globe، Aurora، Patterson، Grundfos، Armstrong، Notifier، Gent، Morley، Siemens، Bosch، Edwards، Hochiki، Apollo، Esser، Kidde، Fike، Chemours، Ceasefire. وتصنع NAFFCO (دبي) وSFFECO (مصانع في دبي والرياض) محلياً، والبقية مستوردة ولم يُتحقق من موزعيها. ويحتاج كل منتج اعتماد الدفاع المدني وكل مقاول ترخيصه. ويتجمع الموزعون في القوز وجبل علي والشارقة.",
+      "sources": [
+        "https://hassantuk.moi.gov.ae/index-en.html",
+        "https://sffeco.com/about-us/",
+        "https://www.naffco.com/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.moi.gov.ae",
+        "https://www.cencenelec.eu",
+        "https://www.naffco.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: alarm monitoring requirement -> corrected: Hassantuk (MOI, Cabinet Resolution 61 of 2020) is mandatory for villas and townhouses from 1 January 2024 and for buildings above set sizes | SFFECO is a Sharjah maker -> corrected: SFFECO manufactures in Riyadh and Dubai | NAFFCO is a UAE fire-equipment maker -> confirmed (Dubai). Not checked: Current Civil Defence approved product lists, the monitoring arrangement for each emirate, and the current availability of Novec 1230 alternatives were not verified."
+    },
+    {
+      "id": "fire_fighting:uae-market-sizes",
+      "topic": "Fire fighting & life safety: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Systems are quoted per BOQ: sprinklers per head (installed with pipework per metre by diameter, black steel schedule 40 grooved or threaded), pumps per set (flow in gpm or l/s at pressure), alarm per device and panel, clean-agent per protected room by volume (kg of agent), extinguishers per unit by size (2, 6, 9, 12 kg powder; 2, 5 kg CO2). Annual maintenance contracts (AMC) are per site per year with quarterly inspections, required to keep the Civil Defence completion and annual certificates. Monitoring subscription is billed annually.",
+      "body_ar": "تُسعّر الأنظمة وفق جدول كميات: الرشاشات بالرأس (مركّبة مع الأنابيب بالمتر حسب القطر، حديد أسود Schedule 40 بالتحزيز أو القلاووظ)، والمضخات بالطقم (التدفق بالجالون/الدقيقة أو لتر/ث عند ضغط محدد)، والإنذار بالجهاز واللوحة، والإطفاء بالغاز لكل غرفة محمية حسب الحجم (كغ من المادة)، والطفايات بالوحدة حسب الحجم (بودرة 2 و6 و9 و12 كغ؛ ثاني أكسيد الكربون 2 و5 كغ). وعقود الصيانة السنوية لكل موقع سنوياً مع فحوصات ربع سنوية، وهي مطلوبة للحفاظ على شهادات الإنجاز والشهادات السنوية من الدفاع المدني. ويُفوتر اشتراك المراقبة سنوياً.",
+      "sources": [
+        "https://hassantuk.moi.gov.ae/index-en.html",
+        "https://sffeco.com/about-us/",
+        "https://www.naffco.com/about-us",
+        "https://www.dcd.gov.ae",
+        "https://www.moi.gov.ae",
+        "https://www.cencenelec.eu",
+        "https://www.naffco.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: alarm monitoring requirement -> corrected: Hassantuk (MOI, Cabinet Resolution 61 of 2020) is mandatory for villas and townhouses from 1 January 2024 and for buildings above set sizes | SFFECO is a Sharjah maker -> corrected: SFFECO manufactures in Riyadh and Dubai | NAFFCO is a UAE fire-equipment maker -> confirmed (Dubai). Not checked: Current Civil Defence approved product lists, the monitoring arrangement for each emirate, and the current availability of Novec 1230 alternatives were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which fire suppression gas is used for a server room in the UAE?",
+      "q_ar": "ما غاز الإطفاء المستخدم لغرفة الخوادم في الإمارات؟",
+      "expected_entry_ids": [
+        "fire_fighting:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "alarm monitoring requirement",
+        "url": "https://hassantuk.moi.gov.ae/index-en.html",
+        "result": "corrected: Hassantuk (MOI, Cabinet Resolution 61 of 2020) is mandatory for villas and townhouses from 1 January 2024 and for buildings above set sizes"
+      },
+      {
+        "claim": "SFFECO is a Sharjah maker",
+        "url": "https://sffeco.com/about-us/",
+        "result": "corrected: SFFECO manufactures in Riyadh and Dubai"
+      },
+      {
+        "claim": "NAFFCO is a UAE fire-equipment maker",
+        "url": "https://www.naffco.com/about-us",
+        "result": "confirmed (Dubai)"
+      }
+    ],
+    "unverified": "Current Civil Defence approved product lists, the monitoring arrangement for each emirate, and the current availability of Novec 1230 alternatives were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

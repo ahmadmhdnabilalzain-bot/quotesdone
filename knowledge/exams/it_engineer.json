@@ -849,6 +849,132 @@
       "expected_facts": [
         "Federal Decree-Law No. 45 of 2021"
       ]
+    },
+    {
+      "id": "it_engineer-exam-71",
+      "checklist": "IT-PRO",
+      "q_en": "We are adding a new payment integration. What security design step is required first?",
+      "q_ar": "سنضيف تكامل دفع جديداً، ما خطوة التصميم الأمني المطلوبة أولاً؟",
+      "expected_entry_ids": [
+        "it_engineer:threat-modelling-stride"
+      ],
+      "expected_facts": [
+        "STRIDE table"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-72",
+      "checklist": "IT-PRO",
+      "q_en": "What must every alert link to?",
+      "q_ar": "بماذا يجب أن يرتبط كل تنبيه؟",
+      "expected_entry_ids": [
+        "it_engineer:oncall-and-runbook-standard"
+      ],
+      "expected_facts": [
+        "runbook",
+        "not paged"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-73",
+      "checklist": "IT-PRO",
+      "q_en": "How do we prove recovery works before a real outage?",
+      "q_ar": "كيف نثبت أن التعافي يعمل قبل انقطاع حقيقي؟",
+      "expected_entry_ids": [
+        "it_engineer:game-days-chaos-testing"
+      ],
+      "expected_facts": [
+        "one game day per quarter"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-74",
+      "checklist": "IT-PRO",
+      "q_en": "Is SMS good enough as MFA for the Stripe and GitHub admin accounts?",
+      "q_ar": "هل الرسائل النصية كافية كمصادقة متعددة لحسابات سترايب وGitHub الإدارية؟",
+      "expected_entry_ids": [
+        "it_engineer:mfa-and-least-privilege-admin"
+      ],
+      "expected_facts": [
+        "phishing-resistant MFA",
+        "SIM swap"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-75",
+      "checklist": "IT-PRO",
+      "q_en": "What baseline security controls should a small company implement first?",
+      "q_ar": "ما الضوابط الأمنية الأساسية التي تطبقها شركة صغيرة أولاً؟",
+      "expected_entry_ids": [
+        "it_engineer:cis-controls-v8-ig1"
+      ],
+      "expected_facts": [
+        "56 safeguards"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-76",
+      "checklist": "IT-PRO",
+      "q_en": "A buyer asks whether QuotesDone is SOC 2 certified. What do we answer?",
+      "q_ar": "يسأل مشترٍ هل كوتس دن حاصلة على SOC 2، بماذا نجيب؟",
+      "expected_entry_ids": [
+        "it_engineer:iso27001-and-soc2-overview"
+      ],
+      "expected_facts": [
+        "does not hold either",
+        "never claim a certification"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-77",
+      "checklist": "IT-PRO",
+      "q_en": "Which load test finds the maximum capacity?",
+      "q_ar": "أي اختبار حمل يكشف السعة القصوى؟",
+      "expected_entry_ids": [
+        "it_engineer:load-testing-method"
+      ],
+      "expected_facts": [
+        "breakpoint test"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-78",
+      "checklist": "IT-PRO",
+      "q_en": "How do we follow one inquiry through every service in the logs?",
+      "q_ar": "كيف نتتبع استفساراً واحداً عبر كل الخدمات في السجلات؟",
+      "expected_entry_ids": [
+        "it_engineer:opentelemetry-signals"
+      ],
+      "expected_facts": [
+        "trace",
+        "traceparent"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-79",
+      "checklist": "IT-PRO",
+      "q_en": "What does the HSTS preload list require?",
+      "q_ar": "ماذا تشترط قائمة التحميل المسبق لـHSTS؟",
+      "expected_entry_ids": [
+        "it_engineer:tls-dns-domain-hardening"
+      ],
+      "expected_facts": [
+        "31536000",
+        "includeSubDomains"
+      ]
+    },
+    {
+      "id": "it_engineer-exam-80",
+      "checklist": "IT-PRO",
+      "q_en": "How should a kill switch for bulk campaign sends behave?",
+      "q_ar": "كيف يجب أن يعمل مفتاح إيقاف إرسال الحملات الجماعية؟",
+      "expected_entry_ids": [
+        "it_engineer:feature-flags-kill-switches"
+      ],
+      "expected_facts": [
+        "without a deploy",
+        "fail safe"
+      ]
     }
   ]
 }

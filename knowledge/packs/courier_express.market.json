@@ -1,0 +1,91 @@
+{
+  "trade": "courier_express",
+  "layer": "uae-market",
+  "label_en": "Courier & express delivery",
+  "label_ar": "البريد السريع والتوصيل",
+  "entries": [
+    {
+      "id": "courier_express:uae-market-products",
+      "topic": "Courier & express delivery: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Courier and express services in the UAE include same-day and next-day domestic delivery, express international door-to-door (documents and parcels), e-commerce last-mile delivery with cash on delivery (COD) and returns, scheduled and on-demand bike/van couriers, document delivery and legal/government document runs, pharmacy and healthcare deliveries (temperature-controlled where needed), B2B pallet/freight courier, customs clearance for inbound shipments (de minimis thresholds and duty/VAT collection), shipping of dangerous goods (lithium batteries per IATA DGR), and fulfilment services. Buyers ask about coverage (all emirates, remote areas), delivery attempts, COD remittance cycle, tracking/API integration with e-commerce platforms (Shopify, WooCommerce), weight/volumetric calculation (L x W x H / 5000 for international), insurance, and restricted items. Courier licences for documents, letters and parcels are issued by Emirates Post Group under Resolution 5 of 2017 and Federal Decree-Law 21 of 2019, with the Postal Sector Regulatory Committee overseeing the courier, express and parcels sector.",
+      "body_ar": "تشمل خدمات البريد السريع في الإمارات التوصيل المحلي في اليوم نفسه واليوم التالي، والتوصيل الدولي السريع من الباب إلى الباب (مستندات وطرود)، وتوصيل التجارة الإلكترونية للميل الأخير مع الدفع عند الاستلام والمرتجعات، والمندوبين بالدراجات النارية/الشاحنات المجدولة وعند الطلب، وتوصيل المستندات ومهام المستندات القانونية/الحكومية، وتوصيلات الصيدليات والرعاية الصحية (مع التحكم بالحرارة عند الحاجة)، والبريد السريع للمنصات/الشحن بين الشركات، والتخليص الجمركي للشحنات الواردة (حدود الإعفاء وتحصيل الرسوم/ضريبة القيمة المضافة)، وشحن البضائع الخطرة (بطاريات الليثيوم وفق لوائح الاتحاد الدولي للنقل الجوي)، وخدمات التجهيز. يسأل المشترون عن التغطية (جميع الإمارات، والمناطق النائية)، ومحاولات التوصيل، ودورة تحويل مبالغ الدفع عند الاستلام، والتتبع/التكامل البرمجي مع منصات التجارة الإلكترونية (شوبيفاي، وWooCommerce)، وحساب الوزن/الحجم (الطول × العرض × الارتفاع / 5000 للشحن الدولي)، والتأمين، والمواد المحظورة. وتصدر مجموعة بريد الإمارات تراخيص نقل المستندات والرسائل والطرود بموجب القرار رقم 5 لسنة 2017 والمرسوم بقانون اتحادي رقم 21 لسنة 2019، وتشرف لجنة تنظيم قطاع البريد على قطاع البريد السريع والطرود.",
+      "sources": [
+        "https://www.epgl.ae/issue-license",
+        "https://www.aramex.com/ae/en",
+        "https://tdra.gov.ae",
+        "https://www.emiratespost.ae",
+        "https://www.iata.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified."
+    },
+    {
+      "id": "courier_express:uae-market-brands",
+      "topic": "Courier & express delivery: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed postal operator and courier, plus international express brands: Emirates Post, Aramex, DHL Express, FedEx, UPS. The international brands' UAE operations and last-mile firms were not checked; check any courier's Emirates Post Group licence.",
+      "body_ar": "المشغل البريدي وشركة البريد السريع المؤكدان، إضافة إلى علامات البريد السريع الدولية: Emirates Post، Aramex، DHL Express، FedEx، UPS. ولم يُتحقق من عمليات العلامات الدولية في الإمارات ولا من شركات الميل الأخير؛ ويجب التحقق من ترخيص شركة البريد السريع لدى مجموعة بريد الإمارات.",
+      "sources": [
+        "https://www.epgl.ae/issue-license",
+        "https://www.aramex.com/ae/en",
+        "https://tdra.gov.ae",
+        "https://www.emiratespost.ae",
+        "https://www.iata.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified."
+    },
+    {
+      "id": "courier_express:uae-market-sizes",
+      "topic": "Courier & express delivery: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per shipment by weight bracket (e.g. first 0.5 kg/1 kg plus per additional kg) and zone (within emirate, inter-emirate, remote, international zones), using the greater of actual or volumetric weight; COD fees per shipment or as a percentage of COD value; fuel surcharges set monthly by international couriers; e-commerce contracts per parcel with monthly volume tiers; bike couriers per trip or per hour. Duties and taxes on imports are billed separately.",
+      "body_ar": "يُسعّر لكل شحنة حسب شريحة الوزن (مثل أول 0.5 كغ/1 كغ إضافة إلى كل كيلوغرام إضافي) والمنطقة (داخل الإمارة، وبين الإمارات، والنائية، والمناطق الدولية)، باستخدام الأكبر بين الوزن الفعلي والحجمي؛ ورسوم الدفع عند الاستلام لكل شحنة أو كنسبة من قيمة التحصيل؛ ورسوم الوقود الإضافية التي يحددها ناقلو البريد الدولي شهرياً؛ وعقود التجارة الإلكترونية لكل طرد بشرائح حجم شهرية؛ والمندوبون بالدراجات لكل رحلة أو بالساعة. وتُفوتر الرسوم والضرائب على الواردات بشكل منفصل.",
+      "sources": [
+        "https://www.epgl.ae/issue-license",
+        "https://www.aramex.com/ae/en",
+        "https://tdra.gov.ae",
+        "https://www.emiratespost.ae",
+        "https://www.iata.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019) -> corrected | Aramex offers express and e-commerce shipping in the UAE -> confirmed. Not checked: The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is volumetric weight calculated for an international courier parcel?",
+      "q_ar": "كيف يُحسب الوزن الحجمي لطرد بريد سريع دولي؟",
+      "expected_entry_ids": [
+        "courier_express:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Courier licences are issued by Emirates Post Group (Resolution 5 of 2017, Federal Decree-Law 21 of 2019)",
+        "url": "https://www.epgl.ae/issue-license",
+        "result": "corrected"
+      },
+      {
+        "claim": "Aramex offers express and e-commerce shipping in the UAE",
+        "url": "https://www.aramex.com/ae/en",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The current regulator for courier licensing (TDRA vs other), current status of some last-mile start-ups, and de minimis customs thresholds were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
