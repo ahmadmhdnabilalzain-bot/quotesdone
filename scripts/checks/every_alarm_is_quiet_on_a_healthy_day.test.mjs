@@ -47,7 +47,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replay } from '../lib/alarm_replay.mjs';
-import { manifestWithPending } from '../lib/pending_sql.mjs';
+import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 import { lit } from '../lib/db.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -320,9 +320,17 @@ test('production: every replayed alarm is quiet at every healthy instant', { ski
   assert.ok(INSTANTS.length > 0, 'HEALTHY names no instant');
   const loud = [];
   const owed = new Set(KNOWN_LOUD.map((k) => `${k.alarm}@${k.at}@${k.key}`));
+  // A registered alarm still in scripts/sql/pending/ is replayed from its pending file, applied inside the rolled-back
+  // replay (scripts/lib/alarm_replay.mjs); one already in production is replayed from production's definition.
+  const pendingDefiner = (name) => {
+    const re = new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i');
+    const f = [...pendingNotes().keys()].filter((p) => existsSync(join(REPO, p)) && re.test(readFileSync(join(REPO, p), 'utf8'))).pop();
+    return f ? readFileSync(join(REPO, f), 'utf8') : null;
+  };
   for (const [name, entry] of Object.entries(REGISTER).filter(([, e]) => e.replay)) {
+    const pendingSrc = pendingDefiner(name);
     for (const { at } of INSTANTS) {
-      const out = await replay(sql, name, entry, at);
+      const out = await replay(sql, name, entry, at, '', pendingSrc);
       for (const f of out.fired) {
         const id = `${name}@${at}@${f.split(' -- ')[0]}`;
         if (owed.delete(id)) continue;

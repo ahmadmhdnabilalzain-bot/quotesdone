@@ -43,14 +43,25 @@ end $q$;`;
 }
 
 // -> { at, fired: ['<key> -- <title>', ...] }
-export async function replay(sql, name, entry, at, stage = '') {
-  const def = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                           where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
+// `pendingSrc` (29 Sep 2026, sales_engineer, #1106): the text of the scripts/sql/pending file that defines a routine not
+// yet in production. The replay then runs that whole file FIRST, inside the same transaction the raise rolls back, and
+// replays the definition it creates - so a new alarm is proved quiet on its own PR instead of failing "not in
+// production" until the apply. A routine that IS in production is always replayed from production's definition.
+export async function replay(sql, name, entry, at, stage = '', pendingSrc = null) {
+  let def = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                         where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
+  let prefix = '';
+  if (!def && pendingSrc) {
+    const i = pendingSrc.search(new RegExp(`create\\s+or\\s+replace\\s+function\\s+public\\.${name}\\s*\\(`, 'i'));
+    const tag = i < 0 ? null : pendingSrc.slice(i).match(/\sas\s+(\$[A-Za-z_]*\$)/i)?.[1];
+    const end = tag ? pendingSrc.indexOf(tag, pendingSrc.indexOf(tag, i) + tag.length) : -1;
+    if (end > 0) { def = pendingSrc.slice(i, end + tag.length); prefix = pendingSrc + '\n'; }
+  }
   assert.ok(def, `${name} is not in production`);
   let message = '';
   // Retried on 429/5xx like any read: a replay is seconds long, writes only temp objects and rows the
   // raise rolls back, so a second copy cannot deadlock the first (the hazard db.mjs names is DDL replays).
-  try { await sql(replaySql(name, def, entry, at, stage)); message = 'the replay returned without raising, so it did not roll back'; }
+  try { await sql(prefix ? 'begin;\n' + prefix + replaySql(name, def, entry, at, stage).replace(/^begin;/, '') : replaySql(name, def, entry, at, stage)); message = 'the replay returned without raising, so it did not roll back'; }
   catch (e) { message = String(e.message); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, `${name} at ${at}: ${message.slice(0, 1500)}`);
