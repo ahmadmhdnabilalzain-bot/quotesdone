@@ -462,6 +462,12 @@ export async function journeyComparison(ctx) {
   // still passed on "%PDF-". The demo row's locale is set per pass AND lang is sent, which holds
   // whichever of the two decides. The update cannot reach a real person: demo row, example.invalid.
   const setLocale = (lang) => write(`update public.customers set locale = ${q(lang)} where id = ${q(fx.customer.customerId)} and is_demo = true and email like '%@example.invalid'`, 'e2e comparison language');
+  // AN ARABIC DOCUMENT HELD FOR TRANSLATION UNDER THE MODEL HOLD IS HELD BY DESIGN (it_engineer, 28 Sep 2026,
+  // ledger 760). customer_api answers HTTP 202 code=arabic_held when a line still needs reasoning to translate
+  // (nativeArabic); with every model route held that is the product's held answer, and these three steps filed
+  // FAIL on every smoke while the interview and routing steps beside them reported SKIP. Same rule as above:
+  // SKIP only for exactly that answer AND only while modelHold() says held; any other failure stays FAIL.
+  const heldArabic = async (lang, r) => (lang === 'ar' && r.status === 202 && r.json?.code === 'arabic_held') ? await modelHold() : null;
   for (const lang of ['en', 'ar']) {
     await setLocale(lang);
     const r = await call('customer_api', fx.customer.jwt, { action: 'compare_pdf', inquiry_id: inquiryId, lang }, 180000);
@@ -469,7 +475,8 @@ export async function journeyComparison(ctx) {
     const b = await pdfBytes(url);
     const saved = b ? `${dir}/c_comparison_${lang}.pdf` : null;
     if (b) writeFileSync(saved, b);
-    rep.step(J, `comparison report opens as a PDF (${lang})`, b ? 'PASS' : 'FAIL', `HTTP ${r.status} ${b ? 'valid %PDF, saved ' + saved : 'no PDF: ' + r.text.slice(0, 140)}`);
+    const hp = b ? null : await heldArabic(lang, r);
+    rep.step(J, `comparison report opens as a PDF (${lang})`, b ? 'PASS' : hp ? 'SKIP' : 'FAIL', `HTTP ${r.status} ${b ? 'valid %PDF, saved ' + saved : 'no PDF: ' + r.text.slice(0, 140)}${hp ? UNDER_HOLD(hp) : ''}`);
   }
   // compare_csv goes through the same quote_compare call as compare_pdf (customer_api
   // fetchCompareAnalysis), so it is asserted here rather than assumed to follow.
@@ -481,7 +488,8 @@ export async function journeyComparison(ctx) {
     const arabic = lang !== 'ar' || /[؀-ۿ]/.test(rows[0] || '');
     const ok = r.json?.ok === true && rows.length >= 2 && arabic;
     if (csv) writeFileSync(`${dir}/c_comparison_${lang}.csv`, csv);
-    rep.step(J, `comparison exports as CSV (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} rows=${rows.length} header_arabic=${lang === 'ar' ? arabic : 'n/a'}${ok ? '' : ' ' + r.text.slice(0, 140)}`);
+    const hc = ok ? null : await heldArabic(lang, r);
+    rep.step(J, `comparison exports as CSV (${lang})`, ok ? 'PASS' : hc ? 'SKIP' : 'FAIL', `HTTP ${r.status} rows=${rows.length} header_arabic=${lang === 'ar' ? arabic : 'n/a'}${ok ? '' : ' ' + r.text.slice(0, 140)}${hc ? UNDER_HOLD(hc) : ''}`);
   }
   // THE TWO PATHS MUST SEE ONE ANALYSIS. 14 Sep 2026: quote_compare answered the customer's JWT with
   // a deterministic analysis while compare_pdf/compare_csv (server-to-server, __secret) got
@@ -515,7 +523,8 @@ export async function journeyComparison(ctx) {
       const r = await call('customer_api', fx.customer.jwt, { action: 'quote_pdf', quote_id: live[0].id, lang }, 120000);
       const url = r.json?.url || r.json?.pdf_url || r.json?.file_url;
       const ok = !!(await pdfBytes(url));
-      rep.step(J, `quotation PDF opens (${lang})`, ok ? 'PASS' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}`);
+      const hq = ok ? null : await heldArabic(lang, r);
+      rep.step(J, `quotation PDF opens (${lang})`, ok ? 'PASS' : hq ? 'SKIP' : 'FAIL', `HTTP ${r.status} ${ok ? 'valid %PDF' : 'no PDF: ' + r.text.slice(0, 140)}${hq ? UNDER_HOLD(hq) : ''}`);
     }
   } else rep.step(J, 'quotation PDF opens', 'FAIL', 'no live quote to open');
   // The deep link the PDFs print: /me?request=<id>&quote=<id>

@@ -22,16 +22,18 @@ const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, 
 // LATENCY (28 Sep 2026, it_engineer): the hourly SLO measured kyc p95 9,767 ms against 2,500. The database is in
 // ap-southeast-1 and the platform runs a call in the region nearest the CALLER, so every SEQUENTIAL round trip
 // costs ~0.2-0.3 s from the US and ~0.1 s from India; 'state' made five in a row and send_sms up to nine. The
-// fix is fewer serial trips: secrets are cached per isolate for a minute, the reads every action needs go out
-// together, and the audit rows are written after the response. A minute is well inside a rotation's overlap
-// (a_rotated_credential_stays_valid_until_the_run_that_retires_it.sql), so a cached key is never a dead one.
+// fix is fewer serial trips: provider keys are cached per isolate for a minute (secCached), the reads every action
+// needs go out together, and the audit rows are written after the response. A minute is well inside a rotation's
+// overlap (a_rotated_credential_stays_valid_until_the_run_that_retires_it.sql); should a provider still answer 401
+// (a key rotated and retired under a warm isolate), the cache is dropped and the call retried once on a fresh read.
+// sec() itself stays byte-identical to every other function's (scripts/checks/shared_helpers_agree.test.mjs).
+async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 const SEC_TTL_MS = 60_000;
-const _sec = new Map<string, { v: string | null; at: number }>();
-async function sec(k: string): Promise<string | null> {
-  const hit = _sec.get(k); if (hit && Date.now() - hit.at < SEC_TTL_MS) return hit.v;
-  const { data, error } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
-  const v = (data?.value as string) || null;
-  if (!error) _sec.set(k, { v, at: Date.now() }); // a failed read is never cached as "absent"
+const _sec = new Map<string, { v: string; at: number }>();
+async function secCached(k: string, fresh = false): Promise<string | null> {
+  const hit = _sec.get(k); if (!fresh && hit && Date.now() - hit.at < SEC_TTL_MS) return hit.v;
+  const v = await sec(k);
+  if (v) _sec.set(k, { v, at: Date.now() }); else _sec.delete(k); // an absent or failed read is never cached
   return v;
 }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
@@ -55,7 +57,7 @@ async function rl(key: string, limit: number, seconds: number): Promise<boolean>
   try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
   catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of account completion
 }
-async function twilioAuth() { const [sid, secret, va] = await Promise.all([sec('twilio_api_key_sid'), sec('twilio_api_key_secret'), sec('twilio_verify_service_sid')]); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
+async function twilioAuth(fresh = false) { const [sid, secret, va] = await Promise.all([secCached('twilio_api_key_sid', fresh), secCached('twilio_api_key_secret', fresh), secCached('twilio_verify_service_sid', fresh)]); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 type TwAuth = { hdr: string; va: string };
 // ONE Verify send, ONE check, ONE per-number limit for every channel (14 Sep 2026). send_sms owned
 // these inline; the WhatsApp question needs the identical machinery on Channel=whatsapp, and two
@@ -76,20 +78,30 @@ async function phoneRateLimited(phone: string, email: string): Promise<boolean> 
   const mine = await admin.from('phone_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
   return (mine.count || 0) >= KYC_PHONE_SENDS_PER_ACCOUNT_HOUR;
 }
+// A 401 from Twilio with a CACHED key: read the key again and retry once (see secCached above).
+async function twilioPost(tw: TwAuth, path: string, form: Record<string, string>): Promise<Response> {
+  const go = (t: TwAuth) => timedFetch(`https://verify.twilio.com/v2/Services/${t.va}/${path}`, { method: 'POST', headers: { 'Authorization': t.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form) });
+  const r = await go(tw);
+  if (r.status !== 401) return r;
+  const t2 = await twilioAuth(true);
+  if (!t2 || t2.hdr === tw.hdr) return r;
+  await r.body?.cancel().catch(() => {});
+  return go(t2);
+}
 async function verifySend(tw: TwAuth, phone: string, channel: string, locale: string) {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/Verifications`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Channel: channel, Locale: locale }) });
+  const r = await twilioPost(tw, 'Verifications', { To: phone, Channel: channel, Locale: locale });
   const jd: any = await r.json().catch(() => ({}));
   return { r, jd };
 }
 async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boolean> {
-  const r = await timedFetch(`https://verify.twilio.com/v2/Services/${tw.va}/VerificationCheck`, { method: 'POST', headers: { 'Authorization': tw.hdr, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ To: phone, Code: code }) });
+  const r = await twilioPost(tw, 'VerificationCheck', { To: phone, Code: code });
   const jd: any = await r.json().catch(() => ({}));
   return jd?.status === 'approved';
 }
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
 // The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
-async function sendEmail(to: string, subject: string, html: string) { const [key, fromS, replyS] = await Promise.all([sec('resend_api_key'), sec('email_from_info'), sec('email_reply_info')]); if (!key) return false; const from = fromS || 'QuotesDone <info@quotesdone.com>'; const reply_to = replyS || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
+async function sendEmail(to: string, subject: string, html: string) { const [key, fromS, replyS] = await Promise.all([secCached('resend_api_key'), secCached('email_from_info'), secCached('email_reply_info')]); if (!key) return false; const from = fromS || 'QuotesDone <info@quotesdone.com>'; const reply_to = replyS || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
 // SUPPRESSION BYPASS 28 Jul 2026 ----------------------------------------------------------------
 // login_otp and contact_submit both consult email_suppressions before handing anything to Resend,
 // and send_outbox queries the same table. kyc did not: sendEmail() above builds its own Resend call,

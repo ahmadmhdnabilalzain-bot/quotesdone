@@ -38,9 +38,9 @@
 // ponytail: full-buffer object regex, no xref parsing; fine for a drawing set of tens of MB.
 import { inflate, unescapePdfString, hexToString } from './pdf_text.ts';
 
-export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean }; // display frame, normalised 0..1, top-left origin
+export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string }; // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
 /** An image painted on the page (a logo, a stamp, a scanned schedule): its placement box and pixel size. */
-export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number };
+export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number; at?: string; name?: string };
 /** A straight stroked or filled edge, display frame, normalised. Only axis-aligned ones are kept. */
 export type PdfLine = { x1: number; y1: number; x2: number; y2: number };
 /** CAD layer geometry (22 Sep 2026): every STROKED segment drawn inside an optional-content group,
@@ -51,7 +51,10 @@ export type PdfLine = { x1: number; y1: number; x2: number; y2: number };
 export type LayerSegs = Record<string, number[]>;
 /** A small closed outline (a keyed-note hexagon, a tag circle): its box, its vertex count and its layer. */
 export type PdfMark = { x: number; y: number; w: number; h: number; n: number; layer: string };
-export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean };
+/** A painted path (pdf_vector_redact.ts): where it was drawn, its operator indexes, its exact source text, and its
+ *  display-frame box. Collected only by pdfRedactionView; `clip` paths are never removed. */
+export type PdfPath = { at: string; ops: number[]; text: string; x: number; y: number; w: number; h: number; clip: boolean };
+export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean; paths?: PdfPath[] };
 
 const DEC = new TextDecoder('latin1');
 type Obj = { dict: string; stream: Uint8Array | null };
@@ -160,7 +163,8 @@ function pageTree(objs: Map<number, Obj>): PageRef[] {
 }
 
 // Tokeniser for a content stream: numbers, names, strings, arrays (as raw source), operators.
-function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'name'; v: string }> {
+// `p` / `e`: the token's start and end offsets in `src` (pdf_vector_redact.ts cuts operators out by them).
+function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'name'; v: string; p: number; e: number }> {
   let i = 0; const n = src.length;
   while (i < n) {
     const c = src[i];
@@ -169,21 +173,21 @@ function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'na
     if (c === '(') {
       let depth = 1, j = i + 1, s = '';
       while (j < n && depth) { const d = src[j]; if (d === '\\') { s += d + (src[j + 1] ?? ''); j += 2; continue; } if (d === '(') depth++; else if (d === ')') { depth--; if (!depth) break; } s += d; j++; }
-      yield { t: 'str', v: unescapePdfString(s) }; i = j + 1; continue;
+      yield { t: 'str', v: unescapePdfString(s), p: i, e: j + 1 }; i = j + 1; continue;
     }
-    if (c === '<' && src[i + 1] !== '<') { const j = src.indexOf('>', i); yield { t: 'str', v: hexToString(src.slice(i + 1, j < 0 ? n : j)) }; i = j < 0 ? n : j + 1; continue; }
+    if (c === '<' && src[i + 1] !== '<') { const j = src.indexOf('>', i); yield { t: 'str', v: hexToString(src.slice(i + 1, j < 0 ? n : j)), p: i, e: j < 0 ? n : j + 1 }; i = j < 0 ? n : j + 1; continue; }
     if (c === '<' || c === '>') { i += 2; continue; }                       // dictionary delimiters (inline images' BI dicts are rare in drawings)
     if (c === '[') {
       let depth = 1, j = i + 1;
       while (j < n && depth) { const d = src[j]; if (d === '(') { let pd = 1; j++; while (j < n && pd) { if (src[j] === '\\') j++; else if (src[j] === '(') pd++; else if (src[j] === ')') pd--; j++; } continue; } if (d === '[') depth++; else if (d === ']') depth--; j++; }
-      yield { t: 'arr', v: src.slice(i + 1, j - 1) }; i = j; continue;
+      yield { t: 'arr', v: src.slice(i + 1, j - 1), p: i, e: j }; i = j; continue;
     }
-    if (c === '/') { let j = i + 1; while (j < n && !/[\s\/\[\]()<>{}%]/.test(src[j])) j++; yield { t: 'name', v: src.slice(i + 1, j) }; i = j; continue; }
+    if (c === '/') { let j = i + 1; while (j < n && !/[\s\/\[\]()<>{}%]/.test(src[j])) j++; yield { t: 'name', v: src.slice(i + 1, j), p: i, e: j }; i = j; continue; }
     let j = i; while (j < n && !/[\s\/\[\]()<>{}%]/.test(src[j])) j++;
     if (j === i) { i++; continue; }
-    const w = src.slice(i, j); i = j;
+    const w = src.slice(i, j); const p0 = i; i = j;
     const c0 = w.charCodeAt(0);
-    yield { t: (c0 >= 48 && c0 <= 57) || c0 === 45 || c0 === 43 || c0 === 46 ? (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w) ? 'num' : 'op') : 'op', v: w };
+    yield { p: p0, e: j, t: (c0 >= 48 && c0 <= 57) || c0 === 45 || c0 === 43 || c0 === 46 ? (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w) ? 'num' : 'op') : 'op', v: w };
   }
 }
 
@@ -206,7 +210,7 @@ function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
   return { two, map };
 }
 
-type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean };
+type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean; paths?: boolean };
 async function fontOf(ctx: Ctx, num: number): Promise<Font> {
   const hit = ctx.fonts.get(num); if (hit) return hit;
   const o = ctx.objs.get(num); let f: Font = { two: false, map: null };
@@ -242,10 +246,11 @@ async function formContent(ctx: Ctx, num: number): Promise<string | null> {
 
 /** Interpret one content stream (a page's, or a form's) into runs, images and axis-aligned lines. */
 async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
-  run: (text: string, m: M, size: number, n: number) => void; image: (m: M, px: number, py: number) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
+  run: (text: string, m: M, size: number, n: number, at: string) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
   layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
-}, active: Set<number>, layer0 = '', lw0 = 1): Promise<void> {
-  let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0;
+  paint?: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => void;
+}, active: Set<number>, layer0 = '', lw0 = 1, sid = 'p'): Promise<void> {
+  let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0; let opn = 0;
   let tm: M = ID, tlm: M = ID; let size = 12, lead = 0; let font: Font | null = null;
   let nums: number[] = []; let pStr: string | undefined; let pArr: string | undefined; let pName: string | undefined;
   const xobjs = namedRefs(ctx.objs, res, 'XObject');
@@ -273,7 +278,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
   const show = (decoded: string) => {
     const text = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
     const n = text.length;
-    if (text.trim()) emit.run(text, mul(tm, ctm), size, n);
+    if (text.trim()) emit.run(text, mul(tm, ctm), size, n, `${sid}:${opn}`);
     tm = mul([1, 0, 0, 1, n * 0.6 * size, 0], tm);
   };
   const newline = (tx: number, ty: number) => { tlm = mul([1, 0, 0, 1, tx, ty], tlm); tm = tlm; };
@@ -290,12 +295,25 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     if (!curPath) return; const p0 = curPath[curPath.length - 1];
     for (let i = 1; i <= 8; i++) { const t = i / 8, u = 1 - t; const k0 = u * u * u, k1 = 3 * u * u * t, k2 = 3 * u * t * t, k3 = t * t * t; curPath.push([k0 * p0[0] + k1 * p1[0] + k2 * p2[0] + k3 * p3[0], k0 * p0[1] + k1 * p1[1] + k2 * p2[1] + k3 * p3[1]]); }
   };
+  // The path being built, for emit.paint: its first operand's offset, its operator indexes, whether it clips.
+  let argStart = -1, pathStart = -1, pathOps: number[] = [], pathClip = false;
+  const painted = (tk: { e: number }) => {
+    if (emit.paint && pathOps.length && pathStart >= 0) emit.paint(sid, [...pathOps, opn], src.slice(pathStart, tk.e), path.flat(), pathClip);
+    pathOps = []; pathStart = -1; pathClip = false;
+  };
   for (const tk of tokens(src)) {
+    if (tk.t !== 'op' && argStart < 0) argStart = tk.p;
     if (tk.t === 'num') { nums.push(Number(tk.v)); continue; }
     if (tk.t === 'str') { pStr = tk.v; continue; }
     if (tk.t === 'arr') { pArr = tk.v; continue; }
     if (tk.t === 'name') { pName = tk.v; continue; }
     if (++ctx.ops > MAX_OPS) { ctx.truncated = true; return; }
+    opn++;
+    const opStart = argStart >= 0 ? argStart : tk.p; argStart = -1;
+    if (/^(?:m|l|c|v|y|re|h)$/.test(tk.v)) { if (!pathOps.length) pathStart = opStart; pathOps.push(opn); }
+    else if (tk.v === 'W' || tk.v === 'W*') { pathClip = true; pathOps.push(opn); }
+    else if (/^(?:S|s|B|B\*|b|b\*|f|F|f\*)$/.test(tk.v)) painted(tk);
+    else if (tk.v === 'n') { pathOps = []; pathStart = -1; pathClip = false; }
     const a = nums; const str = pStr; const arr = pArr; const name = pName;
     nums = []; pStr = undefined; pArr = undefined; pName = undefined;
     switch (tk.v) {
@@ -341,14 +359,14 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
         const o = ctx.objs.get(num); if (!o) break;
         if (/\/Subtype\s*\/Image\b/.test(o.dict)) {
           const px = Number((o.dict.match(/\/Width\s+(\d+)/) || [])[1] || 0), py = Number((o.dict.match(/\/Height\s+(\d+)/) || [])[1] || 0);
-          emit.image(ctm, px, py); break;
+          emit.image(ctm, px, py, `${sid}:${opn}`, name); break;
         }
         if (depth >= MAX_FORM_DEPTH || active.has(num)) break;
         const fsrc = await formContent(ctx, num); if (fsrc === null) break;
         const mtx = numArr((o.dict.match(/\/Matrix\s*\[([^\]]*)\]/) || [])[1]);
         const fres = dictValue(ctx.objs, o.dict, 'Resources') ?? res;
         active.add(num);
-        await interpret(ctx, fsrc, fres, mul(mtx.length === 6 ? mtx as M : ID, ctm), depth + 1, emit, active, layer, lw);
+        await interpret(ctx, fsrc, fres, mul(mtx.length === 6 ? mtx as M : ID, ctm), depth + 1, emit, active, layer, lw, 'f' + num);
         active.delete(num);
         if (ctx.truncated) return;
       } break;
@@ -381,7 +399,7 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
     const dec = await decodeStream(o.dict, o.stream); if (dec) src += DEC.decode(dec) + '\n';
   }
   const runs: TextRun[] = []; const images: PdfImage[] = []; const lines: PdfLine[] = [];
-  const layerSegs: LayerSegs = {}; const layerWidths: LayerSegs = {}; const marks: PdfMark[] = []; ctx.segs = 0;
+  const layerSegs: LayerSegs = {}; const layerWidths: LayerSegs = {}; const marks: PdfMark[] = []; ctx.segs = 0; let paths: PdfPath[] | undefined;
   const D = (x: number, y: number) => toDisplay(x, y, p.mb, p.rotate);
   const box = (pts: [number, number][]) => {
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
@@ -389,16 +407,16 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
   };
   ctx.ops = 0; ctx.truncated = false;
   await interpret(ctx, src, p.res, ID, 0, {
-    run: (text, m, size, n) => {
+    run: (text, m, size, n, where) => {
       const W = n * 0.6 * size;
       const at = (tx: number, ty: number) => D(m[0] * tx + m[2] * ty + m[4], m[1] * tx + m[3] * ty + m[5]);
       const q = [at(0, -0.2 * size), at(W, -0.2 * size), at(W, size), at(0, size)];
       const b = box(q);
       const base = [at(0, 0), at(W || 1, 0)];
       const vertical = (p.rotate % 180 === 0) ? Math.abs(m[1]) > Math.abs(m[0]) : Math.abs(m[0]) > Math.abs(m[1]);
-      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}) });
+      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where });
     },
-    image: (m, px, py) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py }); },
+    image: (m, px, py, at, name) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py, at, name }); },
     seg: (ax, ay, bx, by) => {
       const [x1, y1] = D(ax, ay), [x2, y2] = D(bx, by);
       const dx = Math.abs(x2 - x1), dy = Math.abs(y2 - y1);
@@ -410,13 +428,14 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       if (x1 === x2 && y1 === y2) return;
       (layerSegs[l] ||= []).push(x1, y1, x2, y2); (layerWidths[l] ||= []).push(Math.round(wd * 100) / 100);
     },
+    ...(ctx.paths ? { paint: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => { if (pts.length) (paths ||= []).push({ at, ops, text, clip, ...box(pts.map(([x, y]) => D(x, y))) }); } } : {}),
     mark: (l, pts) => {
       const b = box(pts.map(([x, y]) => D(x, y)));
       if (b.w < 0.02 && b.h < 0.02 && b.w > 0 && b.h > 0) marks.push({ ...b, n: pts.length - 1, layer: l });
     },
   }, new Set());
   const hasLayers = Object.keys(layerSegs).length > 0;
-  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}) }, content: src };
+  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}), ...(paths ? { paths } : {}) }, content: src };
 }
 
 /** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
@@ -438,6 +457,39 @@ export async function pdfPageContents(bytes: Uint8Array, only?: [number, number]
     pages.push(await readPage(ctx, p));
   }
   return pages;
+}
+
+/** What pdf_vector_redact.ts needs to cut a run out of the file: every page with its object number and
+ *  decoded content, and the decoded source of every Form XObject the pages drew (by object number).
+ *  A run's / an image's `at` is "p:<op>" (the page's content, all its streams joined) or "f<num>:<op>". */
+export async function pdfRedactionView(bytes: Uint8Array): Promise<{ pages: { num: number; page: PdfPage; content: string }[]; forms: Map<number, string> } | null> {
+  if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return null;
+  const objs = await readObjects(bytes);
+  const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ocg: new Map(), ops: 0, truncated: false, segs: 0, layers: true, paths: true };
+  const pages: { num: number; page: PdfPage; content: string }[] = [];
+  for (const p of pageTree(objs)) pages.push({ num: p.num, ...(await readPage(ctx, p)) });
+  const forms = new Map<number, string>();
+  for (const [k, v] of ctx.forms) if (v !== null) forms.set(k, v);
+  return { pages, forms };
+}
+
+/** Each page's LARGEST image XObject as its dictionary and its still-encoded stream bytes (null when the page
+ *  paints none): what a scanned sheet is. scan_takeoff.ts decodes it (DCT as JPEG, Flate 8-bit Gray/RGB). */
+export async function pdfPageImages(bytes: Uint8Array): Promise<({ dict: string; raw: Uint8Array; inflated: Uint8Array | null; w: number; h: number } | null)[]> {
+  if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return [];
+  const objs = await readObjects(bytes);
+  const out: ({ dict: string; raw: Uint8Array; inflated: Uint8Array | null; w: number; h: number } | null)[] = [];
+  for (const p of pageTree(objs)) {
+    let best: { dict: string; raw: Uint8Array; w: number; h: number } | null = null;
+    for (const num of namedRefs(objs, p.res, 'XObject').values()) {
+      const o = objs.get(num);
+      if (!o?.stream || !/\/Subtype\s*\/Image\b/.test(o.dict)) continue;
+      const w = Number((o.dict.match(/\/Width\s+(\d+)/) || [])[1] || 0), h = Number((o.dict.match(/\/Height\s+(\d+)/) || [])[1] || 0);
+      if (!best || w * h > best.w * best.h) best = { dict: o.dict, raw: o.stream, w, h };
+    }
+    out.push(best ? { ...best, inflated: /\/DCTDecode\b/.test(best.dict) ? null : await decodeStream(best.dict, best.raw) } : null);
+  }
+  return out;
 }
 
 /** Pages in order, each with its text runs in normalised top-left display coordinates. [] when unreadable. */

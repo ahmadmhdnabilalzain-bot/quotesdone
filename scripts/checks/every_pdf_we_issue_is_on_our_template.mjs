@@ -59,12 +59,18 @@ const RECEIPT_EMAIL_SET = /['"`][^'"`\n]*receipt_email[^'"`\n]*['"`]\s*[,:]|\bre
 const INVOICE_SEND = /\bsend_invoice\b|invoices\/[^;\n]*\/send\b/;
 const FILED_STRIPE_PDF = /invoices\/stripe\//;
 
+// THE ONE FILE THAT EDITS A CUSTOMER'S OWN PDF (28 Sep 2026, #1056). pdf_vector_redact.ts rewrites the customer's
+// drawing with its identity cut out; that file is the customer's document, never one we issue, so it cannot be on
+// our template. It may IMPORT the library to load and save that drawing. It may still never CREATE a PDF or answer
+// with one: those two rules apply to it like to every other file (the .test.mjs proves both still fire there).
+const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts']);
+
 /** Findings for one file. `rel` uses forward slashes. */
 export function findingsFor(rel, src) {
   const c = code(src), out = [];
   const inRenderer = rel.startsWith('supabase/functions/pdf_native/');
   if (rel.startsWith('supabase/functions/')) {
-    if (!inRenderer && PDF_LIB.test(c)) out.push(`${rel}: imports a PDF-writing library outside pdf_native (A)`);
+    if (!inRenderer && !EDITS_CUSTOMER_PDF.has(rel) && PDF_LIB.test(c)) out.push(`${rel}: imports a PDF-writing library outside pdf_native (A)`);
     if (!inRenderer && PDF_MAKE.test(c)) out.push(`${rel}: creates a PDF document outside pdf_native (A)`);
     if (!inRenderer && PDF_RESPONSE.test(c)) out.push(`${rel}: answers with a PDF body outside pdf_native (B)`);
     if (!rel.startsWith('supabase/functions/stripe_webhook/') && STRIPE_DOC.test(c)) out.push(`${rel}: reads a Stripe-rendered document link (C)`);

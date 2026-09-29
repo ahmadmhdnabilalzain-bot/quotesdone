@@ -16,8 +16,9 @@ import { fileURLToPath } from 'node:url';
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SRC = path.join(REPO, 'src');
 const OWNER = path.join('src', 'lib', 'supaClient.ts');
-const CTOR = 'create(?:Browser|Server)?Client';
-const PKG = `['"]@supabase/(?:supabase-js|ssr)['"]`;
+// GoTrueClient: since 28 Sep 2026 supaClient.ts builds the auth-js client directly (portal bundle cut).
+const CTOR = '(?:create(?:Browser|Server)?Client|GoTrueClient)';
+const PKG = `['"]@supabase/(?:supabase-js|ssr|auth-js)['"]`;
 
 // Every reason one file's text could construct a Supabase client. Empty = clean.
 export function offences(text) {
@@ -40,6 +41,7 @@ test('the detector catches named, aliased and namespace forms, and passes type-o
   assert.notDeepEqual(offences(`import * as S from '@supabase/supabase-js';\nconst SB = S.createClient(u, k);`), []);
   assert.notDeepEqual(offences(`import * as S from '@supabase/ssr';\nconst SB = S.createServerClient(u, k, o);`), []);
   assert.deepEqual(offences(`import type { SupabaseClient } from '@supabase/supabase-js';`), []);
+  assert.notDeepEqual(offences(`import { GoTrueClient } from '@supabase/auth-js';\nconst a = new GoTrueClient({ url });`), []);
   assert.deepEqual(offences(`import { supaClient } from '@/lib/supaClient';\nconst SB = () => supaClient('k');`), []);
 });
 

@@ -510,6 +510,19 @@ export async function makeSupplier(run, opts = {}) {
 
   if (opts.capability === 'agent') await confirmCapability(leadId, profile);
   else if (opts.capability !== false) await mgmtFixture(REF, capabilityInsert(leadId, profile), 'demo capability');
+  // THE SERVICES TAB (28 Sep 2026). A supplier that declares a trade and ticks none of the services an inquiry names
+  // in it is NOT reached (founder instruction 857). The default fixture ticks nothing, which is the shape the 857
+  // check needs; opts.services: 'all' ticks every active service of the supplier's own trades, the way a real
+  // supplier who does the whole trade fills the tab. (Measured on #1056's rehearsal: an MEP inquiry naming
+  // mep_general.mep_install reached the plumbing and HVAC demo suppliers, never asked, and not the MEP one, which
+  // declared the trade and had ticked nothing: the matcher was right and the fixture was the gap.)
+  if (opts.services === 'all' && opts.capability !== false) {
+    await mgmtFixture(REF,
+      `update public.supplier_capabilities sc
+          set services = (select coalesce(array_agg(t.trade_code || '.' || t.code order by t.trade_code, t.sort), '{}')
+                            from public.taxonomy_trade_service t where t.active and t.trade_code = any(sc.trades))
+        where sc.supplier_id = ${num(leadId)}`, 'demo supplier ticks its trade services');
+  }
   // The API path stamps the tag in its verification UPDATE; the SQL path stamps it in the INSERT.
   // Belt and braces for the api path where create_company may have raced the update.
   await mgmtFixture(REF,
@@ -566,10 +579,13 @@ async function completeMandatorySix(run, sups) {
     `update public.leads l
         set license_doc_path = v.lic, license_doc_name = 'trade_licence.pdf', trade_license_no = v.no,
             license_authority = 'Dubai DET (fixture)', license_expiry = current_date + 365,
-            license_city = 'Dubai', company_profile_doc_path = v.prof
-       from (values ${docs.map((d) => `(${num(d.leadId)}::bigint, ${q(d.lic)}, ${q(d.no)}, ${q(d.prof)})`).join(', ')})
-            as v(id, lic, no, prof)
+            license_city = 'Dubai', company_profile_doc_path = v.prof, licence_legal_name = v.legal
+       from (values ${docs.map((d) => `(${num(d.leadId)}::bigint, ${q(d.lic)}, ${q(d.no)}, ${q(d.prof)}, ${q(d.companyName)})`).join(', ')})
+            as v(id, lic, no, prof, legal)
       where l.id = v.id`, 'demo supplier documents');
+  // licence_legal_name is the name the licence reader takes off the document (a model surface, held): written here
+  // as the fixture fact it would read, because since the licence-name rule an UNREAD name holds every registration
+  // (fn_sales_engineer_verifies_supplier: licence_name_unread) and no demo supplier could be approved (28 Sep 2026).
   await eachLimit(docs, 8, async (d) => {
     await uploadObject('supplier-docs', d.lic,
       demoTradeLicence({ company: d.companyName, licenceNo: d.no }), 'application/pdf');

@@ -12,11 +12,13 @@ import { carriedFailures, type Failure, failureOf, httpHopError, runSteps, type 
 import { takeDutyReadings } from '../_shared/it_duty_readings.ts';
 import { takeScheduledReadings } from '../_shared/it_scheduled_readings.ts';
 import { takeProviderReadings } from '../_shared/it_provider_readings.ts';
+import { runPostmasterStep, takePostmasterReading } from '../_shared/it_postmaster_readings.ts';
 import { takeUsageReadings, verifyRevisions } from '../_shared/it_duty_readings.ts';
 import { runRestoreTable } from '../_shared/it_restore_drill.ts';
 import { rotateTwilioKey } from '../_shared/it_rotate_by_api.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { integrationItems } from '../_shared/integration_watch.ts';
+import { placementTick } from '../_shared/inbox_placement.ts';
 import { launchPathAction, launchPathItem, probeLaunchPath } from '../_shared/launch_path.ts';
 import { advanceOpenDeliberations } from '../_shared/seat_deliberation.ts';
 import { defaultDeps, replayHeld } from '../_shared/think.ts';
@@ -725,6 +727,9 @@ async function orphanTick(): Promise<unknown> {
     // prevented by scripts/checks/resilience_orphan_jobs_present_a_scoped_credential.test.mjs.
     const notificationsSecret = await sec('cred_cron_notifications');
     const documentsSecret = await sec('cred_cron_documents');
+    // The accountant's own credential for its expense_sweep (reasoned_books.ts presents the same one):
+    // this function's credential is not scoped to the accountant, and widening it is what audit 9.5 forbids.
+    const accountantSecret = await sec('cred_fn_accountant');
     // A 200 CARRYING A FAILED BODY IS A FAILURE, AND failureOf CANNOT SEE INSIDE `body` (third finding
     // from independent review). Returning {status, body} meant only a fetch exception or a 4xx/5xx was
     // ever counted: a callee answering HTTP 200 {ok:false, error:'…'} — which is how every one of these
@@ -776,6 +781,9 @@ async function orphanTick(): Promise<unknown> {
           : { calls: runs.length, ms: Date.now() - d0, runs };
       }],
       ['email_triage', 'email_triage', 40000, () => call('email_triage', 40000, {}, notificationsSecret)],
+      // 28 Sep 2026: held expense mail is swept daily, so a receipt from a sender the books know is booked
+      // without a model (scripts/sql/the_books_catch_up_under_the_model_hold_from_known_senders.sql).
+      ['expense_sweep', 'accountant.expense_sweep', 55000, () => call('accountant', 55000, { action: 'expense_sweep' }, accountantSecret)],
       ['sanctions', 'sanctions_screen', 55000, () => call('sanctions_screen', 55000, {}, complianceSecret)],
     ];
     const out: Record<string, unknown> = {};
@@ -1057,14 +1065,39 @@ async function itDutiesTick(): Promise<unknown> {
 // the fixes it can (a Stripe webhook Stripe disabled is re-enabled), and fn_it_integration_settle files one
 // finding per integration, closes it by its exact key on recovery, mails the founder only what the company could
 // not fix, and counts what it did fix for the IT daily line. Only counts come back: this endpoint is public.
-async function itIntegrationsTick(): Promise<unknown> {
+// THE MORNING INBOX PLACEMENT CHECK (24 Sep 2026, it_engineer). Rides on this step because it is the IT
+// engineer's 15-minute step (resilience_step every 15 min) and needs no new schedule row
+// (every_tick_step_is_scheduled.mjs), as PR #961's Postmaster reading rides on itlater. On a sending day the
+// database queues one seed from 04:30 UTC; the next beats read its folder in the Gmail and Microsoft 365 seed
+// inboxes (until 08:00 UTC) and fn_invite_placement_record decides. The batch waits for a verdict and goes only on
+// Inbox + Inbox (the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.sql). Outside that
+// window it is one indexed read. The answer is counts and verdicts only: this endpoint is public.
+async function inboxPlacement(): Promise<Record<string, unknown>> {
   try {
-    const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
-    const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
-    if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
-    return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
-             settled: (data as Record<string, unknown> | null)?.failing ?? null };
+    // The rotated Graph refresh token is stored here; the result's {error} goes back to the reader, which records the
+    // message (never the token) in the reading's evidence.
+    return await placementTick((fn, args) => admin.rpc(fn, args) as never, fetch, sec,
+      async (k, v) => await admin.from('app_secrets').update({ value: v }).eq('key', k));
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+async function itIntegrationsTick(): Promise<unknown> {
+  // TWO INDEPENDENT PATHS, run side by side (review of #966): an integration settle that errors must not skip the
+  // morning's placement reading, and a placement error must not hide the integration result.
+  const integrations = (async (): Promise<Record<string, unknown>> => {
+    try {
+      const { items, fixed, outcomes } = await integrationItems(fetch, sec, (k) => Deno.env.get(k));
+      const { data, error } = await admin.rpc('fn_it_integration_settle', { p_duty: 'integration', p_items: items, p_fixed: fixed });
+      if (error) return { ok: false, error: 'fn_it_integration_settle: ' + error.message };
+      return { ok: true, probed: outcomes.length, failing: items.filter((i) => !i.carried && !i.recovered).length, fixed: fixed.length,
+               settled: (data as Record<string, unknown> | null)?.failing ?? null };
+    } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+  })();
+  const [integ, placement] = await Promise.all([integrations, inboxPlacement()]);
+  // Either path failing is this step's failure (duty:heartbeat:itintegrations), so it reaches the IT engineer's loop
+  // the same beat. The batch is held by the gate regardless. placement carries counts and verdicts only (public).
+  const errors = [integ.ok === false ? String(integ.error) : null, placement.ok === false ? 'inbox placement: ' + String(placement.error) : null].filter(Boolean);
+  return { ...integ, ok: errors.length === 0, ...(errors.length ? { error: errors.join('; ') } : {}), inbox_placement: placement };
 }
 
 // DUTIES 9-15 ON THEIR OWN CADENCES (founder, 14 Sep 2026: "fine build those tasks for IT agent").
@@ -1078,7 +1111,13 @@ async function itScheduledTick(): Promise<unknown> {
     const readings = await takeScheduledReadings(admin as never, sec, list, Number(n) || 5);
     const { data, error } = await admin.rpc('fn_it_duties_scheduled', { p_r: readings });
     if (error) return { ok: false, error: error.message };
-    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>) };
+    // Duty 10 settles findings; this keeps the day's numbers (scripts/sql/sender_health_is_recorded_once_a_day_and_a_breach_is_named.sql).
+    let senderRow: unknown = null;
+    if (readings.sender) {
+      const { data: row, error: rerr } = await admin.rpc('fn_it_sender_health_record', { p_sender: readings.sender });
+      senderRow = rerr ? { ok: false, error: rerr.message } : { breaches: (row as { breaches?: string[] })?.breaches ?? [] };
+    }
+    return { due: list, settled: Object.keys((data ?? {}) as Record<string, unknown>), sender_health: senderRow };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
@@ -1170,6 +1209,12 @@ async function itLaterDutiesTick(): Promise<Record<string, unknown>> {
     const r = (await rpc('fn_it_provider_watch', { p_r: await takeProviderReadings(sec) })) as Record<string, unknown>;
     return { due: true, failing: r?.failing ?? null };
   });
+  // Gmail Postmaster Tools, once a day (it_engineer, 24 Sep 2026): spam rate, reputation and SPF/DKIM/DMARC for
+  // quotesdone.com, read by _shared/it_postmaster_readings.ts and stored and acted on by fn_it_postmaster_record
+  // (a finding at 0.1%; the #943 invitation pause at 0.3% or reputation LOW/BAD). Next to the sender duty's DNS and
+  // blocklist reading, on this heartbeat, never pg_cron. This function deploys on merge while its SQL may still be
+  // pending, so runPostmasterStep records a missing routine or table as "skipped: schema not applied".
+  await step('postmaster', () => runPostmasterStep((fn, args) => admin.rpc(fn, args), () => takePostmasterReading(fetch, sec)));
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
@@ -1367,7 +1412,7 @@ async function itDetectTick(): Promise<unknown> {
 // Piggybacks on this file's existing ~15min external trigger (.github/workflows/resilience-ping.yml)
 // so no new schedule or SQL is needed. Every call is best-effort and swallowed; a warm-ping failure
 // must never affect the watchdog's own health verdict.
-async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> {
+async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean; region?: string | null }[]> {
   // The SUPPLIER journey's four joined 28 Sep 2026 (it_engineer): measured on the 24 Sep walk, each first
   // call to supplier_api, supplier_portal, supplier_pay and claim_lookup paid a 2.5-4.5 s isolate boot —
   // the landing-to-claim step and the Billing tab were almost entirely boot. Each answers x-qd-warm with
@@ -1377,11 +1422,16 @@ async function warmPortal(): Promise<{ fn: string; ms: number; ok: boolean }[]> 
   return Promise.all(targets.map(async (fn) => {
     const t0 = Date.now();
     try {
+      // PINNED TO THE PORTAL'S REGION (28 Sep 2026, it_engineer). Unpinned, Supabase runs a function in
+      // the region nearest the CALLER, and this caller is wherever the external cron entered, while
+      // both portals pin ?forceFunctionRegion=ap-southeast-1 (src/lib/supaEnv.ts FN_REGION). Measured
+      // from Dubai: the same x-qd-warm GET unpinned answered from ap-south-1, pinned from
+      // ap-southeast-1 - separate isolates. So this ping kept isolates warm that no customer uses.
       const r = await fetch(FN + '/' + fn + '?forceFunctionRegion=ap-southeast-1', { method: 'GET',
         headers: { 'x-qd-warm': '1', Authorization: 'Bearer ' + Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')! },
         signal: AbortSignal.timeout(8000) });
       await r.body?.cancel().catch(() => {}); // release the connection; a 204 has nothing to read
-      return { fn, ms: Date.now() - t0, ok: r.status === 204 };
+      return { fn, ms: Date.now() - t0, ok: r.status === 204, region: r.headers.get('x-sb-edge-region') };
     } catch (e) { return { fn, ms: Date.now() - t0, ok: false }; }
   }));
 }

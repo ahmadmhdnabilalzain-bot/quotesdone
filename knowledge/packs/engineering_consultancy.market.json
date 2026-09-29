@@ -1,0 +1,96 @@
+{
+  "trade": "engineering_consultancy",
+  "layer": "uae-market",
+  "label_en": "Engineering Consultancy & Architecture",
+  "label_ar": "الاستشارات الهندسية والعمارة",
+  "entries": [
+    {
+      "id": "engineering_consultancy:uae-market-products",
+      "topic": "Engineering Consultancy & Architecture: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Engineering consultancy services in the UAE include structural engineering (design, peer review, third-party checks), MEP engineering design (HVAC, electrical, plumbing, fire protection), civil and infrastructure design (roads, utilities, drainage, bridges), geotechnical engineering, project management consultancy (PMC), construction supervision (resident engineer), cost consultancy and quantity surveying, authority approvals (building permits, DEWA/ADDC NOCs, Civil Defence), fire and life safety consultancy (fire strategy, CFD smoke modelling), façade engineering, sustainability and LEED/Estidama consultancy, BIM services, commissioning management, and building condition surveys. Buyers require licensing: consultancies in Dubai must be registered with Dubai Municipality's engineering consultants register with a classification category (A to F) and approved engineers (SOE registration), and in Abu Dhabi with the Department of Municipalities and Transport/ADM; special zones (Trakhees, DDA, JAFZA, DSO) require separate registration. Engineers need UAE Society of Engineers/Ministry registration. Contracts commonly follow FIDIC Client/Consultant Model Services Agreement (White Book).",
+      "body_ar": "تشمل خدمات الاستشارات الهندسية في الإمارات الهندسة الإنشائية (التصميم، والمراجعة الفنية، والتدقيق من طرف ثالث)، وتصميم الهندسة الكهروميكانيكية (التكييف، والكهرباء، والسباكة، والحماية من الحريق)، وتصميم الأعمال المدنية والبنية التحتية (الطرق، والمرافق، والتصريف، والجسور)، والهندسة الجيوتقنية، واستشارات إدارة المشاريع، والإشراف على البناء (المهندس المقيم)، واستشارات التكاليف وحساب الكميات، والموافقات الرسمية (تصاريح البناء، وشهادات عدم الممانعة من ديوا/أدك، والدفاع المدني)، واستشارات الحماية من الحرائق وسلامة الأرواح (استراتيجية الحريق، ونمذجة الدخان بالديناميكا الحسابية للموائع)، وهندسة الواجهات، واستشارات الاستدامة وليد/استدامة، وخدمات نمذجة معلومات البناء، وإدارة التشغيل التجريبي، ومسوح حالة المباني. يشترط المشترون الترخيص: يجب أن تكون المكاتب الاستشارية في دبي مسجلة في سجل الاستشاريين الهندسيين لدى بلدية دبي بفئة تصنيف (من A إلى F) ومهندسين معتمدين، وفي أبوظبي لدى دائرة البلديات والنقل؛ وتتطلب المناطق الخاصة (تراخيص، وسلطة دبي للتطوير، وجافزا، وواحة دبي للسيليكون) تسجيلاً منفصلاً. ويحتاج المهندسون إلى تسجيل لدى جمعية المهندسين الإماراتية/الوزارة. وعادةً ما تتبع العقود نموذج اتفاقية الخدمات بين العميل والاستشاري لفيديك (الكتاب الأبيض).",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/consultants-contractors-and-suppliers-data/",
+        "https://www.dar.com/",
+        "https://www.soe.ae",
+        "https://www.dm.gov.ae",
+        "https://fidic.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality classifies engineering consultancy offices into categories A to F and publishes a consultants register -> corrected: categories A-F, not A-C | AtkinsRéalis, Dar Al-Handasah, Khatib & Alami and Dewan Architects + Engineers work in Dubai -> confirmed | UAE Society of Engineers registration (soe.ae) -> removed: site did not resolve. Not checked: The current consultant grading scheme and the Society of Engineers URL were not verified."
+    },
+    {
+      "id": "engineering_consultancy:uae-market-brands",
+      "topic": "Engineering Consultancy & Architecture: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed engineering consultancies working in the UAE, and the contract body: AtkinsRéalis, AECOM, Dar Al-Handasah, Khatib & Alami, Dewan Architects + Engineers, FIDIC. Check each consultant's current category in the Dubai Municipality consultants register (or DMT in Abu Dhabi).",
+      "body_ar": "الاستشاريون الهندسيون المؤكد عملهم في الإمارات، وجهة نماذج العقود: AtkinsRéalis، AECOM، Dar Al-Handasah، Khatib & Alami، Dewan Architects + Engineers، FIDIC. ويجب التحقق من الفئة الحالية لكل استشاري في سجل الاستشاريين لدى بلدية دبي (أو دائرة البلديات والنقل في أبوظبي).",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/consultants-contractors-and-suppliers-data/",
+        "https://www.dar.com/",
+        "https://www.soe.ae",
+        "https://www.dm.gov.ae",
+        "https://fidic.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality classifies engineering consultancy offices into categories A to F and publishes a consultants register -> corrected: categories A-F, not A-C | AtkinsRéalis, Dar Al-Handasah, Khatib & Alami and Dewan Architects + Engineers work in Dubai -> confirmed | UAE Society of Engineers registration (soe.ae) -> removed: site did not resolve. Not checked: The current consultant grading scheme and the Society of Engineers URL were not verified."
+    },
+    {
+      "id": "engineering_consultancy:uae-market-sizes",
+      "topic": "Engineering Consultancy & Architecture: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Fees are a percentage of construction cost (varies with scope and building type), a lump sum per design stage, a monthly rate for supervision (per resident engineer/inspector), or man-hour rates by grade for PMC. Authority approval services are often fixed fees per permit. Payment is milestone-based per stage; supervision monthly. Professional indemnity insurance is commonly required.",
+      "body_ar": "تكون الأتعاب نسبة من تكلفة البناء (تختلف حسب النطاق ونوع المبنى)، أو مبلغاً مقطوعاً لكل مرحلة تصميم، أو سعراً شهرياً للإشراف (لكل مهندس مقيم/مفتش)، أو أسعار ساعات عمل حسب الدرجة لاستشارات إدارة المشاريع. وغالباً ما تكون خدمات الموافقات الرسمية بأتعاب ثابتة لكل تصريح. ويكون الدفع وفق المراحل؛ والإشراف شهرياً. وعادةً ما يُشترط تأمين المسؤولية المهنية.",
+      "sources": [
+        "https://www.dm.gov.ae/municipality-business/consultants-contractors-and-suppliers-data/",
+        "https://www.dar.com/",
+        "https://www.soe.ae",
+        "https://www.dm.gov.ae",
+        "https://fidic.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai Municipality classifies engineering consultancy offices into categories A to F and publishes a consultants register -> corrected: categories A-F, not A-C | AtkinsRéalis, Dar Al-Handasah, Khatib & Alami and Dewan Architects + Engineers work in Dubai -> confirmed | UAE Society of Engineers registration (soe.ae) -> removed: site did not resolve. Not checked: The current consultant grading scheme and the Society of Engineers URL were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How do we check that an engineering consultant is registered with Dubai Municipality?",
+      "q_ar": "كيف نتحقق من أن الاستشاري الهندسي مسجل لدى بلدية دبي؟",
+      "expected_entry_ids": [
+        "engineering_consultancy:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai Municipality classifies engineering consultancy offices into categories A to F and publishes a consultants register",
+        "url": "https://www.dm.gov.ae/municipality-business/consultants-contractors-and-suppliers-data/",
+        "result": "corrected: categories A-F, not A-C"
+      },
+      {
+        "claim": "AtkinsRéalis, Dar Al-Handasah, Khatib & Alami and Dewan Architects + Engineers work in Dubai",
+        "url": "https://www.dar.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "UAE Society of Engineers registration (soe.ae)",
+        "url": "https://www.soe.ae",
+        "result": "removed: site did not resolve"
+      }
+    ],
+    "unverified": "The current consultant grading scheme and the Society of Engineers URL were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
