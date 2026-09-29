@@ -1112,6 +1112,113 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_licence_expiry_watch()
 AS $function$ select public.fn_it_engineer_licence_expiry_watch() $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_quote_quality_tick(p_include_fixtures boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_hours numeric := public.fn_seat_clock_policy('quote_quality_hold_hours', 24);
+  h record; q public.quotes; v_flags jsonb; m jsonb; v jsonb; v_to text; v_why text; v_key text; v_md5 text; v_notice jsonb;
+  v_sent int := 0; v_corrected int := 0; v_waited int := 0; v_left_to_spec int := 0; v_told int := 0;
+  v_not_sent jsonb := '[]'::jsonb; v_not_the_accepted int := 0;
+begin
+  for h in
+    select x.*, i.category, i.emirate, i.lang as inq_lang, i.status as inq_status, public.fn_job_no(x.inquiry_id) as job_no,
+           c.email as cemail, c.full_name as cname, l.company_name, lower(btrim(coalesce(nullif(btrim(l.claimed_by), ''), l.email))) as semail
+      from public.quote_quality_hold x
+      join public.inquiries i on i.id = x.inquiry_id
+      left join public.customers c on c.id = i.customer_id
+      left join public.leads l on l.id = x.supplier_id
+     where x.released_at is null and x.superseded_at is null and (p_include_fixtures or not x.fixture)
+     order by x.held_at
+  loop
+    select * into q from public.quotes where id = h.quote_id;
+    -- ONLY THE VERSION THE DOOR ACCEPTED (review of #1108, 29 Sep 2026). The gate runs only when acceptLive sets
+    -- 'submitted', so accepted_md5 is content that passed the exact-specs gate, the review's rules 1-7 and the accept rule.
+    -- Content that has changed since was written by a submission the door has not (yet) accepted: nothing is sent and
+    -- nothing is released - a wait never publishes it. supplier_api supersedes the hold when it rejects a submission.
+    if public.fn_quote_quality_content_md5(q) is distinct from h.accepted_md5 then
+      v_not_the_accepted := v_not_the_accepted + 1;
+      continue;
+    end if;
+    v_flags := public.fn_quote_quality_flags(q);
+
+    -- (a) the fixes, once per distinct set, while the quote is still flagged
+    if jsonb_array_length(v_flags) > 0 then
+      if v_flags is distinct from h.flags then
+        update public.quote_quality_hold set flags = v_flags, fixes_en = public.fn_quote_quality_fixes_en(v_flags), updated_at = now()
+         where quote_id = h.quote_id;
+      end if;
+      v_md5 := md5(public.fn_quote_quality_fixes_en(v_flags));
+      if v_md5 is distinct from h.fixes_sent_md5 and now() < h.release_due then
+        m := public.fn_quote_quality_compose('supplier', 'en', jsonb_build_object('name', h.company_name, 'category', h.category,
+               'emirate', h.emirate, 'job_no', h.job_no, 'fixes', public.fn_quote_quality_fixes_en(v_flags),
+               'due', to_char(h.release_due at time zone 'Asia/Dubai', 'DD Mon YYYY, HH24:MI')));
+        v_key := 'quote_quality_fixes:' || h.quote_id || ':' || left(v_md5, 12);
+        v_why := public.fn_seat_clock_refusal(h.fixture, h.semail, 'quote_quality_fixes');
+        if v_why is null and public.fn_seat_clock_asked(v_key) then v_why := 'already sent'; end if;
+        if v_why is null then
+          v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+            'type', 'quote_quality_fixes', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', h.semail,
+            'to_role', 'supplier', 'lead_id', h.supplier_id, 'inquiry_id', h.inquiry_id, 'quote_id', h.quote_id,
+            'lang', 'en', 'subject', m->>'subject', 'body', m->>'body', 'dedupe_key', v_key)));
+          update public.quote_quality_hold set fixes_sent_md5 = v_md5, fixes_sent_at = now(), fixes_delivery = v->0, updated_at = now()
+           where quote_id = h.quote_id;
+          v_sent := v_sent + 1;
+        else
+          update public.quote_quality_hold set fixes_delivery = jsonb_build_object('sent', false, 'reason', v_why), updated_at = now()
+           where quote_id = h.quote_id;
+          v_not_sent := v_not_sent || jsonb_build_array(jsonb_build_object('quote_id', h.quote_id, 'reason', v_why));
+        end if;
+      end if;
+    end if;
+
+    -- (b) corrected, or waited its hours: released (the hold is marked first, so the gate lets it through)
+    if jsonb_array_length(v_flags) = 0 or now() >= h.release_due then
+      update public.quote_quality_hold
+         set flags = v_flags, released_at = now(),
+             release_reason = case when jsonb_array_length(v_flags) = 0 then 'corrected' else 'waited_24h' end,
+             corrected_at = case when jsonb_array_length(v_flags) = 0 then now() end, updated_at = now()
+       where quote_id = h.quote_id;
+      if jsonb_array_length(v_flags) = 0 then v_corrected := v_corrected + 1; else v_waited := v_waited + 1; end if;
+      -- a quote the exact-specs desk holds (quote_spec_hold) is that desk's to release
+      if coalesce(q.status, '') = 'draft' and not exists (select 1 from public.quote_spec_hold s
+                                                          where s.quote_id = h.quote_id and s.state in ('open', 'awaiting_approval')) then
+        update public.quotes set status = 'submitted' where id = h.quote_id and status = 'draft';
+        update public.inquiries set status = 'quoted' where id = h.inquiry_id and status in ('sent', 'quoted');
+        m := public.fn_quote_quality_compose('customer', h.inq_lang, jsonb_build_object('name', h.cname, 'category', h.category,
+               'emirate', h.emirate, 'hours', v_hours, 'waited', jsonb_array_length(v_flags) > 0));
+        v_key := 'quote_quality_release:' || h.quote_id;
+        v_to := lower(btrim(coalesce(h.cemail, '')));
+        v_why := public.fn_seat_clock_refusal(h.fixture, v_to, 'new_quote');
+        if v_why is null and public.fn_seat_clock_asked(v_key) then v_why := 'already told'; end if;
+        if v_why is null then
+          v := public.fn_customer_support_takes_delivery(jsonb_build_array(jsonb_build_object(
+            'type', 'new_quote', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', v_to, 'to_role', 'customer',
+            'inquiry_id', h.inquiry_id, 'quote_id', h.quote_id, 'lang', m->>'lang', 'subject', m->>'subject', 'body', m->>'body',
+            'dedupe_key', v_key)));
+          v_notice := jsonb_build_object('sent', coalesce(v->0->>'status', '') <> 'failed', 'lang', m->>'lang', 'delivery', v->0);
+          if (v_notice->>'sent')::boolean then v_told := v_told + 1; end if;
+        else
+          v_notice := jsonb_build_object('sent', false, 'lang', m->>'lang', 'reason', v_why);
+        end if;
+        update public.quote_quality_hold set customer_notice = v_notice where quote_id = h.quote_id;
+      else
+        v_left_to_spec := v_left_to_spec + 1;
+      end if;
+    end if;
+  end loop;
+
+  return jsonb_build_object('ok', true, 'hold_hours', v_hours, 'fixes_sent', v_sent, 'fixes_not_sent', v_not_sent,
+    'released_corrected', v_corrected, 'released_after_wait', v_waited, 'left_to_the_spec_desk', v_left_to_spec,
+    'customers_told', v_told, 'content_not_the_accepted_version', v_not_the_accepted,
+    'open', (select count(*) from public.quote_quality_hold where released_at is null and superseded_at is null and (p_include_fixtures or not fixture)));
+end
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_raises_undecided_submissions(p_include_fixtures boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
