@@ -38,6 +38,8 @@ const OWNING_SQLS = [
   'scripts/sql/glm_5_3_flash_costs_what_the_catalogue_now_charges.sql',
   // ...and by 28 Sep 2026 it served 0.15/0.50 again; this later file puts it back and wins.
   'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
+  // deepseek/deepseek-v4.1-flash, every other seat's fallback (founder_instruction 1056, 29 Sep 2026).
+  'scripts/sql/every_seat_runs_the_founders_model_matrix_and_every_review_stays_cross_family.sql',
 ];
 const OWNING_SQL = OWNING_SQLS.join(' + ');
 const CATALOGUE = 'https://openrouter.ai/api/v1/models';
@@ -66,7 +68,7 @@ const claimed = () => {
 
     // values ('<id>', '<provider>', '<tier>', <in>, <out>,\n <cr>, <cw>, <bool>, <bool>, <ctx>, ...
     for (const m of sql.matchAll(
-      /\('([a-z0-9~./-]+)', '(?:anthropic|google|openai|qwen|z-ai)', '(?:small|medium|large|xlarge)', ([\d.]+), ([\d.]+),\s*\n\s*(?:[\d.]+|null), (?:[\d.]+|null), (?:true|false), true, (\d+),/g,
+      /\('([a-z0-9~./-]+)', '(?:anthropic|google|openai|qwen|z-ai|deepseek)', '(?:small|medium|large|xlarge)', ([\d.]+), ([\d.]+),\s*\n\s*(?:[\d.]+|null), (?:[\d.]+|null), (?:true|false), true, (\d+),/g,
     )) {
       found.push({ at: m.index, id: m[1], v: { ctx: Number(m[4]), in: Number(m[2]), out: Number(m[3]), from: f } });
     }
@@ -81,7 +83,9 @@ const claimed = () => {
     'openai/gpt-5.6-sol was not parsed out of its registering file, so its price is not being checked');
   // The same for the re-price: if its statement stops parsing, the 23 Sep insert silently becomes the
   // claim again and the check compares a price the registry no longer holds.
-  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, OWNING_SQLS.at(-1),
+  assert.ok(out.has('deepseek/deepseek-v4.1-flash'),
+    'deepseek/deepseek-v4.1-flash was not parsed out of its registering file, so its price is not being checked');
+  assert.equal(out.get('z-ai/glm-5.3-flash')?.from, 'scripts/sql/glm_5_3_flash_is_back_at_the_price_it_was_ruled_at.sql',
     'z-ai/glm-5.3-flash was not taken from its re-pricing file, so the check is comparing a superseded price');
   assert.ok(out.size >= 10,
     `only ${out.size} models parsed out of ${OWNING_SQL} — the statements were reshaped and this `
@@ -161,6 +165,9 @@ test('the capabilities the registry file claims are the ones the catalogue adver
     // hears, so if this goes audio:false every voice note stops being transcribed.
     'google/gemini-3.8-flash': { image: true, audio: true },
     'openai/gpt-6-luna': { image: true, audio: false },
+    // Every other seat's fallback (founder_instruction 1056). image:true is what lets a vision call fall back to it;
+    // audio:false is why speech_transcription and marketing_watch have no fallback at all.
+    'deepseek/deepseek-v4.1-flash': { image: true, audio: false },
   };
   const wrong = [];
   for (const [id, want] of Object.entries(expect)) {
