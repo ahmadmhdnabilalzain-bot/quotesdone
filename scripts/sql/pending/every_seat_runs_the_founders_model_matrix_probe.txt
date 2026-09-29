@@ -12,3 +12,8 @@ PROBE OK routes=74 review_pairs=150 hold_until=2126-08-15. Against production as
 FAILED count=137, first finding "SE quote_compare got openai/gpt-5.6-sol".
 
 This note therefore stays for the life of the file. Seat: sales_engineer.
+
+29 Sep 2026 (marketing): section 4 added - every active model class is named with its seat and route, and a class with
+no line there is a finding. Run on every PR by scripts/checks/every_model_class_is_on_the_founders_matrix.test.mjs
+(pending model_policy files replayed first). With the_blog_classes_run_on_the_founders_model_matrix.sql replayed:
+PROBE OK routes=74 review_pairs=156 classes=77 hold_until=2126-08-15. Production as it was: PROBE FAILED count=8.

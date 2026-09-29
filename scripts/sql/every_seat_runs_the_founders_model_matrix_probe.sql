@@ -29,7 +29,7 @@ declare
   c_luna constant text := 'openai/gpt-6-luna';
   c_deep constant text := 'deepseek/deepseek-v4.1-flash';
   bad jsonb := '[]'::jsonb;
-  r record; a record; m text; v jsonb; fam text; n_route int := 0; n_pair int := 0;
+  r record; a record; m text; v jsonb; fam text; n_route int := 0; n_pair int := 0; n_class int := 0;
   v_hold timestamptz;
   fam_of constant text := 'select lower(btrim(provider)) from public.model_registry where model_id = $1';
   f_model text; f_fb text;
@@ -271,6 +271,64 @@ begin
                    or coalesce(model_fallback, 'x') not in (c_luna, c_deep, c_opus, 'x')) loop
     bad := bad || to_jsonb(r.task_class || ' is off the matrix: ' || r.model_primary || '>' || coalesce(r.model_fallback, 'none'));
   end loop;
+  -- ── 4. EVERY CLASS HAS A SEAT AND A ROUTE IN THE MATRIX (marketing, 29 Sep 2026) ─────────────────────
+  -- #1114 merged after #1126 and added three classes on Sol; nothing asked which seat they belonged to. Every active
+  -- class that calls a model is named here with its seat and its route, and runs exactly that route's pair. A NEW
+  -- class with no line here is a finding: whoever adds it decides its seat here, in the same PR.
+  -- ('measure' = the GEO measurement engines, whose models are the measurement itself; their pair is not asserted.)
+  for r in
+    with route(route, p, f) as (values
+      ('se', c_gem, c_luna), ('se_compare', c_opus, c_luna), ('se_review', c_luna, c_opus),
+      ('ceo_hard', c_opus, c_luna), ('ceo_review', c_luna, c_deep), ('other', c_gem, c_deep),
+      ('other_review', c_deep, c_luna), ('hears', c_gem, null), ('measure', null, null)),
+    matrix(cls, seat, route) as (values
+      ('quote_comparison', 'sales_engineer', 'se_compare'), ('sales_engineer_reasoning', 'sales_engineer', 'se'),
+      ('customer_portal_assistant', 'sales_engineer', 'se'), ('inquiry_qualification_conversation', 'sales_engineer', 'se'),
+      ('rfq_routing', 'sales_engineer', 'se'), ('redaction_detection', 'sales_engineer', 'se'),
+      ('drawing_and_boq_analysis', 'sales_engineer', 'se'), ('identity_redaction_verify', 'sales_engineer', 'se_review'),
+      ('drawing_boq_confirm', 'sales_engineer', 'se_review'), ('speech_transcription', 'sales_engineer', 'hears'),
+      ('sales_engineer__document_extraction', 'sales_engineer', 'se'), ('sales_engineer__json_extraction', 'sales_engineer', 'se'),
+      ('sales_engineer__procurement_reasoning', 'sales_engineer', 'se'), ('sales_engineer__knowledge_validation', 'sales_engineer', 'se_review'),
+      ('ceo_judgement', 'ceo', 'ceo_hard'), ('ceo_approval_decision', 'ceo', 'ceo_hard'), ('ceo_strategic_planning', 'ceo', 'ceo_hard'),
+      ('chief_of_staff_decision', 'ceo', 'ceo_hard'), ('executive_report', 'ceo', 'ceo_hard'), ('department_planning', 'ceo', 'ceo_hard'),
+      ('seat_deliberation_blind', 'ceo', 'ceo_hard'), ('seat_deliberation_compare', 'ceo', 'ceo_hard'),
+      ('ceo_article_review', 'ceo', 'ceo_hard'), ('ceo__internal_judgement', 'ceo', 'ceo_hard'), ('ceo__knowledge_validation', 'ceo', 'ceo_review'),
+      ('accountant_expense_classification', 'accountant', 'other'), ('accountant_receipt_extraction', 'accountant', 'other'),
+      ('accountant_weekly_report', 'accountant', 'other'), ('finance_analysis', 'accountant', 'other'),
+      ('support_ai', 'customer_support', 'other'), ('visitor_chat', 'customer_support', 'other'), ('wa_inbound', 'customer_support', 'other'),
+      ('email_triage', 'customer_support', 'other'), ('inbound_email', 'customer_support', 'other'),
+      ('resend_inbound', 'customer_support', 'other'), ('intent_detection', 'customer_support', 'other'),
+      ('engineering_reasoning', 'it_engineer', 'other'), ('reflection_and_learning', 'it_engineer', 'other'),
+      ('security_incident_analysis', 'it_engineer', 'other'), ('edge_case_escalation', 'it_engineer', 'other'), ('health_ping', 'it_engineer', 'other'),
+      ('marketing_copy', 'marketing', 'other'), ('marketing_evaluate', 'marketing', 'other'), ('marketing_plan', 'marketing', 'other'),
+      ('marketing_plan_defend', 'marketing', 'other'), ('marketing_quality_review', 'marketing', 'other'),
+      ('marketing_research', 'marketing', 'other'), ('marketing_watch', 'marketing', 'hears'),
+      ('marketing_article_draft', 'marketing', 'other'), ('marketing_article_revise', 'marketing', 'other'),
+      ('marketing_geo_search', 'marketing', 'measure'), ('marketing_geo_online', 'marketing', 'measure'),
+      ('customer_communication', 'shared', 'other'), ('supplier_communication', 'shared', 'other'),
+      ('agent_reasoning', 'shared', 'other'), ('routine_employee_reasoning', 'shared', 'other'), ('internal_judgement', 'shared', 'other'),
+      ('general_drafting', 'shared', 'other'), ('category_classification', 'shared', 'other'), ('content_drafting', 'shared', 'other'),
+      ('contract_analysis', 'shared', 'other'), ('legal_analysis', 'shared', 'other'), ('document_extraction', 'shared', 'other'),
+      ('document_extraction_multimodal', 'shared', 'other'), ('json_extraction', 'shared', 'other'), ('json_extraction_text', 'shared', 'other'),
+      ('ocr', 'shared', 'other'), ('ocr_cleanup', 'shared', 'other'), ('vision', 'shared', 'other'),
+      ('procurement_reasoning', 'shared', 'other'), ('knowledge_ingestion', 'shared', 'other'), ('knowledge_research', 'shared', 'other'),
+      ('memory_retrieval', 'shared', 'other'), ('summarization', 'shared', 'other'), ('translation', 'shared', 'other'),
+      ('translation_general', 'shared', 'other'), ('knowledge_validation', 'shared', 'other_review'))
+    select p.task_class, p.model_primary, p.model_fallback, m.seat, m.route, rt.p want_p, rt.f want_f
+      from public.model_policy p
+      left join matrix m on m.cls = p.task_class
+      left join route rt on rt.route = m.route
+     where p.active and p.tier <> 'none' and p.model_primary not in ('none', 'none/deterministic')
+  loop
+    n_class := n_class + 1;
+    if r.seat is null then
+      bad := bad || to_jsonb(r.task_class || ' has no seat in the matrix (add it to section 4 of this probe)');
+    elsif r.route <> 'measure' and (r.model_primary is distinct from r.want_p or r.model_fallback is distinct from r.want_f) then
+      bad := bad || to_jsonb(r.task_class || ' (' || r.seat || ', ' || r.route || ') runs ' || r.model_primary || '>'
+                             || coalesce(r.model_fallback, 'none') || ', the matrix says ' || r.want_p || '>' || coalesce(r.want_f, 'none'));
+    end if;
+  end loop;
+
   if exists (select 1 from public.model_policy where active and model_fallback = model_primary and model_primary not in ('none', 'none/deterministic')) then
     bad := bad || to_jsonb('a class falls back to its own primary'::text);
   end if;
@@ -292,7 +350,7 @@ begin
   end if;
 
   if jsonb_array_length(bad) = 0 then
-    raise exception 'CHK<<PROBE OK routes=% review_pairs=% hold_until=%>>', n_route, n_pair, v_hold::date;
+    raise exception 'CHK<<PROBE OK routes=% review_pairs=% classes=% hold_until=%>>', n_route, n_pair, n_class, v_hold::date;
   end if;
   -- the management API returns only the first ~2,000 characters of an error: six findings and the count travel
   raise exception 'CHK<<PROBE FAILED count=% routes=% pairs=% %>>', jsonb_array_length(bad), n_route, n_pair,
