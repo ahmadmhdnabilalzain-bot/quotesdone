@@ -1,7 +1,0 @@
-apply-order: 1
-Pending, not applied before merge (founder_instruction 1009). Adds seat_judgement.outcome_kind/outcome_reason,
-fn_outcome_record and trg_outcome_learning (z92) on reviews, complaint_tickets, email_suppressions,
-marketing_first_touch and marketing_post_metric. Depends on #1004's a_decision_names_the_recalled_case_it_followed.sql
-only through the proof, not the DDL. Applied by the release operator (C:/Users/Opera/qd-release.lock) after merge.
-Measured 16/16 PASS, 29 Sep 2026, 0 rows left. Proved in an aborted transaction on production by scripts/eval/outcomes_and_cross_seat_challenge_proof.mjs.
-When applied: delete this note and append the .sql to the END of MANIFEST.txt. Seat: it_engineer.
