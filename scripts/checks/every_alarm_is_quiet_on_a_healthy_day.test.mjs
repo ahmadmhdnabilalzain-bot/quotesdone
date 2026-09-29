@@ -214,6 +214,14 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_marketing_reputation()',
     asOf: { reviews: 'created_at' },
   },
+  // 29 Sep 2026 (accountant, founder ledger 1018: fraud and risk screening). Raises money_hold_unreviewed:<id> when a
+  // reveal or refund the accountant's money screen held has waited 48 hours for review. Holds that existed at the
+  // instant; a healthy day has none waiting that long. The party flags it writes and the holds it re-screens are
+  // rolled back with the replay.
+  fn_accountant_risk_screen_tick: {
+    replay: 'pg_temp.qd_replay_fn_accountant_risk_screen_tick()',
+    asOf: { money_move_hold: 'opened_at' },
+  },
   // ── RELAYS: they pass on what another routine decided ─────────────────────────────────────────
   fn_spec_offer_failed: { relay: 'records a spec comparison the sales_engineer sweep reported failed; raises only after its fifth backed-off failure, never on a healthy day' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },

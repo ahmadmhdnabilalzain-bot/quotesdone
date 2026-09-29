@@ -1010,6 +1010,25 @@
   "fc89cb827cc1",
   "fea22eb87ec7"
  ],
+ "scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql": [
+  "17a8a593a26c",
+  "1f542404cb9e",
+  "379529a3c4a6",
+  "573a5258329a",
+  "5bbcc59e8f90",
+  "859798d5f8bb",
+  "95be65272de8",
+  "aaf435c8694c",
+  "ad9f969de122",
+  "be151fa5c693",
+  "cb76a6eb29d7",
+  "cda102aca9e4",
+  "d78a9691a963",
+  "dad21057fe3e",
+  "e0318b56633d",
+  "e4877b2ed729",
+  "e60695029202"
+ ],
  "scripts/sql/the_agent_remembers_and_it_can_take_your_trade_licence.sql": [
   "7478879f664f",
   "8b5f02c04a5e",
@@ -4796,6 +4815,7 @@
   "6d600e059646"
  ],
  "supabase/functions/_shared/reveal_guard.ts": [
+  "41fffe0e12af",
   "605a93533c3b",
   "81313df707ef",
   "90032d0e95ed",
