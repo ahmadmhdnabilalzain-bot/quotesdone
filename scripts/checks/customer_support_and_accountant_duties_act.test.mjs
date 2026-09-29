@@ -37,6 +37,8 @@ const FILES = ['scripts/sql/customer_support_activates_wins_back_and_settles_dis
                'scripts/sql/the_accountant_watches_for_fee_circumvention_and_rescreens_sanctions.sql'];
 // the dispute finding moved to the sales_engineer; replayed while it is pending
 const REVEAL = 'scripts/sql/reveal_follow_up_and_dispute_findings_belong_to_the_sales_engineer.sql';
+// 30 Sep 2026: activation and win-back moved to the sales_engineer (owner only, ledger 1063); replayed while pending
+const OWNERS = 'scripts/sql/customer_lifecycle_duties_belong_to_the_sales_engineer_support_still_delivers.sql';
 const MANIFEST = read('scripts/sql/MANIFEST.txt').split(/\r?\n/);
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
@@ -77,7 +79,7 @@ const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(
 
 test('production, aborted: every duty acts on ZZ DEMO fixtures, once', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const replay = [FRAME, ...FILES, REVEAL].filter(pending).map(read).join('\n');
+  const replay = [FRAME, ...FILES, REVEAL, OWNERS].filter(pending).map(read).join('\n');
   let o;
   try { await sql(replay + '\n' + PROBE, { retry: false }); }
   catch (e) {
@@ -87,8 +89,8 @@ test('production, aborted: every duty acts on ZZ DEMO fixtures, once', { skip: h
   }
   assert.ok(o, 'the probe committed instead of rolling back');
   // 24 Sep 2026: the dispute clock moved to the sales_engineer (reveal_follow_up_and_dispute_findings_belong_to_the_sales_engineer.sql)
-  for (const duty of ['accountant.fraud_watch', 'accountant.sanctions_rescreen', 'customer_support.activation',
-    'sales_engineer.disputes', 'customer_support.winback']) assert.ok(o.duties.includes(duty), `${duty} is not registered on its clock`);
+  for (const duty of ['accountant.fraud_watch', 'accountant.sanctions_rescreen', 'sales_engineer.activation',
+    'sales_engineer.disputes', 'sales_engineer.winback']) assert.ok(o.duties.includes(duty), `${duty} is not registered on its clock`);
   assert.ok(!o.duties.includes('customer_support.disputes'), 'customer_support still holds the dispute clock');
   assert.deepEqual(o.act1, { first_request: 1, no_quote: 1, stalled_filed: 1 }, 'activation did not act');
   assert.deepEqual(o.act2, { first_request: 0, no_quote: 0, stalled_filed: 0 }, 'activation acted twice');
@@ -178,7 +180,7 @@ begin
                                        -- only this probe's subjects: a ZZ DEMO customer left in production by another run is selected too
                                        where customer_id in (ca, cb, cc) or lead_id in (l1, l2)));
   o := o || jsonb_build_object('notes', (select jsonb_agg(type || '/' || coalesce(lang, '?') order by type, lang) from notifications where to_email like 'zz.duty.%'));
-  o := o || jsonb_build_object('duties', (select jsonb_agg(duty order by duty) from seat_duty where duty in ('accountant.fraud_watch', 'accountant.sanctions_rescreen', 'customer_support.activation', 'customer_support.disputes', 'sales_engineer.disputes', 'customer_support.winback')));
+  o := o || jsonb_build_object('duties', (select jsonb_agg(duty order by duty) from seat_duty where duty in ('accountant.fraud_watch', 'accountant.sanctions_rescreen', 'sales_engineer.activation', 'customer_support.disputes', 'sales_engineer.disputes', 'sales_engineer.winback')));
   raise exception 'CHK<<%>>', o::text;
 end $$;
 `;
