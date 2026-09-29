@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T07:40:47.438Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T07:46:41.684Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -28853,6 +28853,13 @@ begin
 
     when 'structure' then
       v_state := 'founder_specified'; v_detail := 'the founder specifies the seats; the CEO decides nothing here';
+
+    when 'company_stage' then
+      -- 28 Sep 2026 (ceo; it_engineer sweep, ledger 760): the stage move is its own seat duty
+      -- (seat_duty 'ceo.company_stage' -> fn_ceo_company_stage_advance, daily), which writes
+      -- ceo_company_stage_log with the exit readings. Unnamed here, the rule counted as no_evaluator and
+      -- heartbeat step ceoDecisions has failed every hour since 24 Sep 02:46 UTC.
+      v_state := 'decided_by_the_plan'; v_detail := 'fn_ceo_company_stage_advance (seat_duty ceo.company_stage)';
 
     when 'seat_directive', 'constraint_stalled', 'plan_review' then
       -- 22 Sep 2026 (ceo): decided by the daily plan on its own heartbeat step (fn_ceo_plan_tick, step
