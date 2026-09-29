@@ -89,3 +89,23 @@ test('a probe note is recognised', () => {
   assert.equal(isProbeNote('A PROBE, so it is never applied'), true);
   assert.equal(isProbeNote('Waits for the campaign to end'), false);
 });
+
+test('the one stale PR: oldest reviewed PR whose only blocker is finished, failing checks on a branch behind main', async () => {
+  const { staleCandidate, checksRunning } = await import('./release_train.mjs');
+  const red = [{ name: 'a', conclusion: 'FAILURE' }];
+  const running = [{ name: 'a', conclusion: '', status: 'IN_PROGRESS' }];
+  assert.equal(checksRunning(running), true);
+  assert.equal(checksRunning(red), false);
+  assert.equal(checksRunning([{ context: 'Vercel', state: 'PENDING' }]), true);
+  const prs = [
+    pr({ number: 1, labels: [] , statusCheckRollup: red }),            // not reviewed
+    pr({ number: 2, statusCheckRollup: running }),                     // still running
+    pr({ number: 3, statusCheckRollup: red }),                         // up to date with main
+    pr({ number: 4, statusCheckRollup: red }),                         // the one
+    pr({ number: 5, statusCheckRollup: red }),
+  ];
+  const isBehind = (p) => p.number !== 3;
+  assert.equal(staleCandidate(prs, { isBehind })?.number, 4);
+  assert.equal(staleCandidate(prs.slice(0, 3), { isBehind }), null);
+  assert.equal(staleCandidate([pr({ number: 6, statusCheckRollup: red, body: 'Depends-on: #9' })], { isBehind, depState: () => 'OPEN' }), null);
+});
