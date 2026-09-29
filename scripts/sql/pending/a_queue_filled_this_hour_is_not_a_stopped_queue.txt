@@ -1,1 +1,0 @@
-Committed, not applied: fn_it_detect redefinition (incidents 495, 554). Applied at merge with --apply --ddl, then this note is deleted and the file appended to MANIFEST.txt.
