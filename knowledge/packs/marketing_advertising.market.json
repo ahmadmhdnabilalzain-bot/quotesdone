@@ -1,0 +1,99 @@
+{
+  "trade": "marketing_advertising",
+  "layer": "uae-market",
+  "label_en": "Marketing & advertising agency",
+  "label_ar": "وكالات التسويق والإعلان",
+  "entries": [
+    {
+      "id": "marketing_advertising:uae-market-products",
+      "topic": "Marketing & advertising agency: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Marketing and advertising services in the UAE include brand strategy and positioning, creative campaigns (TV, radio, print, outdoor, digital), media planning and buying, out-of-home advertising (billboards, unipoles, mall media, airport, metro and bus, digital OOH screens on Sheikh Zayed Road), radio and TV airtime, cinema advertising, print ads in newspapers and magazines, below-the-line activations, sampling and in-store promotions, sponsorships, direct mail, copywriting and Arabic transcreation, and brand identity design. Buyers specify target audience, media mix, reach and frequency, flight dates, and production requirements. UAE rules: advertising content must comply with the UAE Media Council's advertising standards (including respect for religion and national values, no misleading claims, Arabic language requirements), outdoor ads in Dubai need an RTA advertising NOC plus a Dubai Municipality (or DDA) permit, and no ad may be displayed without a permit under Decree 6 of 2020, health-related ads need DHA/DOH/MOHAP approval, and promotions and raffles need DET (Dubai) or DED approvals.",
+      "body_ar": "تشمل خدمات التسويق والإعلان في الإمارات استراتيجية العلامة التجارية وتموضعها، والحملات الإبداعية (التلفزيون، والإذاعة، والمطبوعات، والإعلانات الخارجية، والرقمية)، وتخطيط وشراء الوسائط الإعلامية، والإعلانات الخارجية (اللوحات الإعلانية، والأعمدة الأحادية، وإعلانات المراكز التجارية، والمطار، والمترو والحافلات، والشاشات الرقمية الخارجية على شارع الشيخ زايد)، وأوقات البث الإذاعي والتلفزيوني، والإعلانات السينمائية، والإعلانات المطبوعة في الصحف والمجلات، والتفعيلات التسويقية المباشرة، وتوزيع العينات والعروض الترويجية داخل المتاجر، والرعايات، والبريد المباشر، وكتابة النصوص والتكييف الإبداعي للغة العربية، وتصميم الهوية التجارية. يحدد المشترون الجمهور المستهدف، ومزيج الوسائط، والوصول والتكرار، وتواريخ الحملة، ومتطلبات الإنتاج. القواعد الإماراتية: يجب أن يمتثل المحتوى الإعلاني لمعايير الإعلان لدى مجلس الإمارات للإعلام (بما في ذلك احترام الدين والقيم الوطنية، وعدم الادعاءات المضللة، ومتطلبات اللغة العربية)، وتحتاج الإعلانات الخارجية في دبي إلى شهادة عدم ممانعة إعلانية من هيئة الطرق والمواصلات إضافة إلى تصريح من بلدية دبي (أو سلطة دبي للتطوير)، ولا يجوز عرض أي إعلان دون تصريح بموجب المرسوم رقم 6 لسنة 2020، وتحتاج الإعلانات المتعلقة بالصحة إلى موافقة هيئة الصحة بدبي أو دائرة الصحة أو وزارة الصحة، وتحتاج العروض الترويجية والسحوبات إلى موافقات دائرة الاقتصاد والسياحة (دبي) أو دائرة التنمية الاقتصادية.",
+      "sources": [
+        "https://www.dubaiadvertising.ae/academy/guides/ooh-advertising-permits-in-dubai",
+        "https://www.phable.io/top-creative-agencies/top-10-creative-agencies-operating-in-the-uae",
+        "https://madamedia.com/services/temporary-outdoor-advertising-permit",
+        "https://uaemc.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai billboards need an RTA advertising NOC plus a Dubai Municipality or DDA permit; Decree 6 of 2020 bans unpermitted ads; 2024 OOH Advertising Manual -> confirmed | Impact BBDO, FP7 McCann, TBWA\\RAAD and Memac Ogilvy are Dubai-based agencies -> confirmed | OOH concession holders (JCDecaux, Hypermedia, BackLite, Elevision) -> removed: not checked. Not checked: Current agency network names (several rebranded), OOH concession holders and the exact permit authority for each OOH format were not verified."
+    },
+    {
+      "id": "marketing_advertising:uae-market-brands",
+      "topic": "Marketing & advertising agency: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed Dubai agencies and an OOH permit processor: Impact BBDO, FP7 McCann, TBWA\\RAAD, Memac Ogilvy, Mada Media. Media owners and OOH concession holders were not checked.",
+      "body_ar": "الوكالات المؤكدة في دبي وجهة معالجة تصاريح الإعلانات الخارجية: Impact BBDO، FP7 McCann، TBWA\\RAAD، Memac Ogilvy، Mada Media. ولم يُتحقق من مالكي الوسائط وأصحاب امتيازات الإعلانات الخارجية.",
+      "sources": [
+        "https://www.dubaiadvertising.ae/academy/guides/ooh-advertising-permits-in-dubai",
+        "https://www.phable.io/top-creative-agencies/top-10-creative-agencies-operating-in-the-uae",
+        "https://madamedia.com/services/temporary-outdoor-advertising-permit",
+        "https://uaemc.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai billboards need an RTA advertising NOC plus a Dubai Municipality or DDA permit; Decree 6 of 2020 bans unpermitted ads; 2024 OOH Advertising Manual -> confirmed | Impact BBDO, FP7 McCann, TBWA\\RAAD and Memac Ogilvy are Dubai-based agencies -> confirmed | OOH concession holders (JCDecaux, Hypermedia, BackLite, Elevision) -> removed: not checked. Not checked: Current agency network names (several rebranded), OOH concession holders and the exact permit authority for each OOH format were not verified."
+    },
+    {
+      "id": "marketing_advertising:uae-market-sizes",
+      "topic": "Marketing & advertising agency: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Agency fees are charged as monthly retainers, project fees, or commission on media (historically around 15%, now often a negotiated fee). Media is priced per spot (TV/radio by duration 15/30/60 s and daypart), per insertion (print by page size and colour), per board per period for OOH (usually 2-4 week cycles; digital OOH per slot/loop), and per week for cinema screens. Production is quoted separately per asset.",
+      "body_ar": "تُحتسب أتعاب الوكالات كأتعاب شهرية ثابتة، أو رسوم لكل مشروع، أو عمولة على الوسائط الإعلامية (تاريخياً نحو 15%، وغالباً الآن رسوم متفاوض عليها). وتُسعّر الوسائط لكل إعلان (التلفزيون/الإذاعة حسب المدة 15/30/60 ثانية وفترة البث)، أو لكل إدراج (المطبوعات حسب حجم الصفحة والألوان)، أو لكل لوحة لكل فترة للإعلانات الخارجية (عادةً دورات 2-4 أسابيع؛ والإعلانات الخارجية الرقمية لكل فترة/حلقة عرض)، أو أسبوعياً لشاشات السينما. ويُسعّر الإنتاج بشكل منفصل لكل مادة.",
+      "sources": [
+        "https://www.dubaiadvertising.ae/academy/guides/ooh-advertising-permits-in-dubai",
+        "https://www.phable.io/top-creative-agencies/top-10-creative-agencies-operating-in-the-uae",
+        "https://madamedia.com/services/temporary-outdoor-advertising-permit",
+        "https://uaemc.gov.ae",
+        "https://www.dm.gov.ae",
+        "https://www.rta.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Dubai billboards need an RTA advertising NOC plus a Dubai Municipality or DDA permit; Decree 6 of 2020 bans unpermitted ads; 2024 OOH Advertising Manual -> confirmed | Impact BBDO, FP7 McCann, TBWA\\RAAD and Memac Ogilvy are Dubai-based agencies -> confirmed | OOH concession holders (JCDecaux, Hypermedia, BackLite, Elevision) -> removed: not checked. Not checked: Current agency network names (several rebranded), OOH concession holders and the exact permit authority for each OOH format were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Who issues permits for a billboard campaign in Dubai?",
+      "q_ar": "من يصدر تصاريح حملة لوحات إعلانية في دبي؟",
+      "expected_entry_ids": [
+        "marketing_advertising:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Dubai billboards need an RTA advertising NOC plus a Dubai Municipality or DDA permit; Decree 6 of 2020 bans unpermitted ads; 2024 OOH Advertising Manual",
+        "url": "https://www.dubaiadvertising.ae/academy/guides/ooh-advertising-permits-in-dubai",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Impact BBDO, FP7 McCann, TBWA\\RAAD and Memac Ogilvy are Dubai-based agencies",
+        "url": "https://www.phable.io/top-creative-agencies/top-10-creative-agencies-operating-in-the-uae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "OOH concession holders (JCDecaux, Hypermedia, BackLite, Elevision)",
+        "url": "https://madamedia.com/services/temporary-outdoor-advertising-permit",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Current agency network names (several rebranded), OOH concession holders and the exact permit authority for each OOH format were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

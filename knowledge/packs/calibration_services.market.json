@@ -1,0 +1,99 @@
+{
+  "trade": "calibration_services",
+  "layer": "uae-market",
+  "label_en": "Calibration services",
+  "label_ar": "خدمات المعايرة",
+  "entries": [
+    {
+      "id": "calibration_services:uae-market-products",
+      "topic": "Calibration services: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Calibration services in the UAE cover dimensional (vernier calipers, micrometers, gauge blocks, CMMs), pressure (gauges, transmitters, deadweight testers), temperature (thermometers, RTDs, thermocouples, ovens, freezers, cold rooms mapping), electrical (multimeters, clamp meters, insulation testers, power analysers), mass and balances (weights OIML classes E2-M1, weighbridges, platform scales), torque (wrenches, screwdrivers), flow (flowmeters), volume (pipettes, burettes, tanks), humidity, sound level meters, gas detectors, medical devices (biomedical calibration), and on-site calibration. Buyers require ISO/IEC 17025 accreditation for the specific scope (by the Emirates International Accreditation Centre, EIAC, or ILAC-MRA signatories), traceability to SI units via national metrology institutes, uncertainty statements, calibration intervals, and certificates. Legal metrology (trade weighing instruments, fuel dispensers) is verified under MoIAT/UAE metrology regulations and emirate authorities such as Dubai Central Laboratory.",
+      "body_ar": "تشمل خدمات المعايرة في الإمارات الأبعاد (الورنيات، والميكرومترات، وقوالب القياس، وآلات القياس الإحداثية)، والضغط (العدادات، والمحولات، وأجهزة اختبار الوزن الميت)، والحرارة (موازين الحرارة، ومجسات RTD، والمزدوجات الحرارية، والأفران، والمجمدات، ورسم خرائط غرف التبريد)، والكهرباء (أجهزة القياس المتعددة، وعدادات الكلابة، وأجهزة اختبار العزل، ومحللات الطاقة)، والكتلة والموازين (أوزان فئات OIML من E2 إلى M1، وموازين الشاحنات، وموازين المنصات)، وعزم الدوران (المفاتيح، والمفكات)، والتدفق (عدادات التدفق)، والحجم (الماصات، والسحاحات، والخزانات)، والرطوبة، وعدادات مستوى الصوت، وكاشفات الغاز، والأجهزة الطبية (المعايرة الطبية الحيوية)، والمعايرة في الموقع. يشترط المشترون اعتماد ISO/IEC 17025 للنطاق المحدد (من مركز الإمارات الدولي للاعتماد أو الجهات الموقعة على اتفاقية الاعتراف المتبادل ILAC)، والتتبع إلى وحدات النظام الدولي عبر معاهد القياس الوطنية، وبيانات عدم اليقين، وفترات المعايرة، والشهادات. ويتم التحقق من المقاييس القانونية (أدوات الوزن التجارية، ومضخات الوقود) وفق لوائح القياس لدى وزارة الصناعة والتكنولوجيا المتقدمة والجهات المحلية مثل مختبر دبي المركزي.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.generaltech.ae/calibration",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://ilac.org",
+        "https://www.oiml.org",
+        "https://moiat.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing and calibration laboratories in the UAE -> confirmed | General Tech Services is an EIAC and ENAS accredited ISO 17025 calibration lab (EIAC LB-CAL-004) -> confirmed | URS Testing Laboratory (Jebel Ali) and Quality Technical Services are accredited labs -> confirmed. Not checked: The current name of the UAE national metrology institute and the EIAC URL were not verified."
+    },
+    {
+      "id": "calibration_services:uae-market-brands",
+      "topic": "Calibration services: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed accredited UAE labs and international service and instrument brands: General Tech Services, URS Testing Laboratory, Quality Technical Services, SGS, Fluke, Mettler Toledo. Check the accredited scope for your instrument in the EIAC directory; the instrument brands' UAE service partners were not checked.",
+      "body_ar": "المختبرات المعتمدة المؤكدة في الإمارات وعلامات الخدمات والأجهزة الدولية: General Tech Services، URS Testing Laboratory، Quality Technical Services، SGS، Fluke، Mettler Toledo. ويجب التحقق من نطاق الاعتماد الخاص بجهازك في دليل مركز الإمارات الدولي للاعتماد؛ ولم يُتحقق من شركاء الخدمة المحليين لعلامات الأجهزة.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.generaltech.ae/calibration",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://ilac.org",
+        "https://www.oiml.org",
+        "https://moiat.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing and calibration laboratories in the UAE -> confirmed | General Tech Services is an EIAC and ENAS accredited ISO 17025 calibration lab (EIAC LB-CAL-004) -> confirmed | URS Testing Laboratory (Jebel Ali) and Quality Technical Services are accredited labs -> confirmed. Not checked: The current name of the UAE national metrology institute and the EIAC URL were not verified."
+    },
+    {
+      "id": "calibration_services:uae-market-sizes",
+      "topic": "Calibration services: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per instrument per calibration point set (e.g. per pressure gauge, per multimeter, per weight), with on-site calibration adding a mobilisation/visit fee per day. Annual contracts price a full asset list with scheduled recall. Temperature mapping is priced per chamber/room by number of sensors and duration. Turnaround: typically 3-7 working days in-lab, express at a surcharge.",
+      "body_ar": "تُسعّر لكل جهاز لكل مجموعة نقاط معايرة (مثل لكل عداد ضغط، ولكل جهاز قياس متعدد، ولكل وزن)، مع إضافة رسوم تعبئة/زيارة يومية للمعايرة في الموقع. وتُسعّر العقود السنوية قائمة الأصول الكاملة مع استدعاء مجدول. ويُسعّر رسم الخرائط الحرارية لكل غرفة حسب عدد الحساسات والمدة. ومدة التنفيذ عادةً 3-7 أيام عمل داخل المختبر، والخدمة العاجلة برسوم إضافية.",
+      "sources": [
+        "https://eiac.gov.ae",
+        "https://www.generaltech.ae/calibration",
+        "https://urslabs.com/approvals-accreditations/",
+        "https://ilac.org",
+        "https://www.oiml.org",
+        "https://moiat.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: EIAC accredits testing and calibration laboratories in the UAE -> confirmed | General Tech Services is an EIAC and ENAS accredited ISO 17025 calibration lab (EIAC LB-CAL-004) -> confirmed | URS Testing Laboratory (Jebel Ali) and Quality Technical Services are accredited labs -> confirmed. Not checked: The current name of the UAE national metrology institute and the EIAC URL were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Must our calibration lab be ISO 17025 accredited for the specific instrument?",
+      "q_ar": "هل يجب أن يكون مختبر المعايرة معتمداً وفق ISO 17025 للجهاز المحدد؟",
+      "expected_entry_ids": [
+        "calibration_services:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "EIAC accredits testing and calibration laboratories in the UAE",
+        "url": "https://eiac.gov.ae",
+        "result": "confirmed"
+      },
+      {
+        "claim": "General Tech Services is an EIAC and ENAS accredited ISO 17025 calibration lab (EIAC LB-CAL-004)",
+        "url": "https://www.generaltech.ae/calibration",
+        "result": "confirmed"
+      },
+      {
+        "claim": "URS Testing Laboratory (Jebel Ali) and Quality Technical Services are accredited labs",
+        "url": "https://urslabs.com/approvals-accreditations/",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "The current name of the UAE national metrology institute and the EIAC URL were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

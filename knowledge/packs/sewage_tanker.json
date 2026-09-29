@@ -1,0 +1,75 @@
+{
+  "trade": "sewage_tanker",
+  "entries": [
+    {
+      "id": "sewage_tanker:spec-checklist",
+      "topic": "Sewage tanker services - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For sewage tanker services quotes to be compared like-for-like, every quoted line (services) must state: (1) tanker capacity in gallons or m3; (2) number of trips and frequency; (3) pickup location and access; (4) waste type (sewage, grey water, grease); (5) disposal at approved treatment plant; (6) disposal receipts; (7) company permit from the municipality; (8) emergency call-out time; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the sewage_tanker trade.",
+      "body_ar": "لكي تُقارن عروض خدمات صهاريج الصرف الصحي على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) سعة الصهريج بالغالون أو المتر المكعب؛ (2) عدد الرحلات وتكرارها؛ (3) موقع السحب والوصول؛ (4) نوع المخلفات (صرف صحي، أو مياه رمادية، أو شحوم)؛ (5) التخلص في محطة معالجة معتمدة؛ (6) إيصالات التخلص؛ (7) تصريح الشركة من البلدية؛ (8) زمن الاستجابة للطوارئ؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة sewage_tanker فقط.",
+      "required_specs": [
+        "tanker capacity in gallons or m3",
+        "number of trips and frequency",
+        "pickup location and access",
+        "waste type (sewage, grey water, grease)",
+        "disposal at approved treatment plant",
+        "disposal receipts",
+        "company permit from the municipality",
+        "emergency call-out time",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "sewage_tanker:uae-standards-and-approvals",
+      "topic": "Sewage tanker services - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Sewage and waste-water tanker disposal in Dubai is regulated by Dubai Municipality, which covers waste management and water treatment; tankers must discharge only at approved stations. What the cited sources do not establish: The Dubai Municipality page read does not list the tanker permit or discharge fee; the buyer must ask for the permit and disposal receipts.",
+      "body_ar": "تنظم بلدية دبي التخلص من الصرف الصحي ومياه الصرف بالصهاريج في دبي، إذ تشمل مهامها إدارة النفايات ومعالجة المياه؛ ويجب أن تفرغ الصهاريج في المحطات المعتمدة فقط. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة لا تذكر تصريح الصهاريج ولا رسوم التفريغ؛ على المشتري أن يطلب التصريح وإيصالات التخلص.",
+      "source_note": "The Dubai Municipality page read does not list the tanker permit or discharge fee; the buyer must ask for the permit and disposal receipts.",
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for sewage tanker services?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـخدمات صهاريج الصرف الصحي؟",
+      "expected_entry_ids": [
+        "sewage_tanker:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to sewage tanker services?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على خدمات صهاريج الصرف الصحي؟",
+      "expected_entry_ids": [
+        "sewage_tanker:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "sewage_tanker:spec-checklist",
+      "sewage_tanker:uae-standards-and-approvals"
+    ],
+    "added": [
+      "sewage_tanker:spec-checklist",
+      "sewage_tanker:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

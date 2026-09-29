@@ -1,0 +1,75 @@
+{
+  "trade": "waste_management",
+  "entries": [
+    {
+      "id": "waste_management:spec-checklist",
+      "topic": "Waste management - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For waste management quotes to be compared like-for-like, every quoted line (services) must state: (1) waste streams (general, recyclable, construction, hazardous, medical); (2) estimated volume per week; (3) bin or skip sizes and number; (4) collection frequency; (5) disposal site and tipping fees; (6) licensed waste transporter; (7) manifests and disposal certificates; (8) recycling reporting; (9) contract duration and pricing basis; (10) service levels and response times; (11) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the waste_management trade.",
+      "body_ar": "لكي تُقارن عروض إدارة النفايات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (الخدمات): (1) أنواع النفايات (عامة، أو قابلة للتدوير، أو إنشائية، أو خطرة، أو طبية)؛ (2) الحجم التقديري أسبوعياً؛ (3) أحجام الحاويات وعددها؛ (4) تكرار الجمع؛ (5) موقع التخلص ورسوم الإلقاء؛ (6) ناقل نفايات مرخص؛ (7) بيانات الشحن وشهادات التخلص؛ (8) تقارير إعادة التدوير؛ (9) مدة العقد وأساس التسعير؛ (10) مستويات الخدمة وأزمنة الاستجابة؛ (11) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة waste_management فقط.",
+      "required_specs": [
+        "waste streams (general, recyclable, construction, hazardous, medical)",
+        "estimated volume per week",
+        "bin or skip sizes and number",
+        "collection frequency",
+        "disposal site and tipping fees",
+        "licensed waste transporter",
+        "manifests and disposal certificates",
+        "recycling reporting",
+        "contract duration and pricing basis",
+        "service levels and response times",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "waste_management:uae-standards-and-approvals",
+      "topic": "Waste management - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Waste management is licensed by the emirate authority (Dubai Municipality in Dubai, Tadweer in Abu Dhabi) under Federal Law No. 12 of 2018 on integrated waste management; Dubai Municipality states waste management among its functions. What the cited sources do not establish: The Dubai Municipality page read does not list tipping fees or licence classes; these must be stated in the quote.",
+      "body_ar": "ترخص جهة الإمارة إدارة النفايات (بلدية دبي في دبي، وتدوير في أبوظبي) وفق القانون الاتحادي رقم 12 لسنة 2018 بشأن الإدارة المتكاملة للنفايات؛ وتذكر بلدية دبي إدارة النفايات ضمن مهامها. ما لا تثبته المصادر المذكورة: صفحة بلدية دبي المقروءة لا تذكر رسوم الإلقاء ولا فئات الترخيص؛ يجب ذكرها في العرض.",
+      "source_note": "The Dubai Municipality page read does not list tipping fees or licence classes; these must be stated in the quote.",
+      "sources": [
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for waste management?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـإدارة النفايات؟",
+      "expected_entry_ids": [
+        "waste_management:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to waste management?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على إدارة النفايات؟",
+      "expected_entry_ids": [
+        "waste_management:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "waste_management:spec-checklist",
+      "waste_management:uae-standards-and-approvals"
+    ],
+    "added": [
+      "waste_management:spec-checklist",
+      "waste_management:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}
