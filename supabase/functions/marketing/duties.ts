@@ -25,7 +25,7 @@ import { adminStore, metaPageToken } from '../_shared/marketing_social_store.ts'
 import { postizIntegrations, type PostizIntegration } from '../_shared/marketing_channels.ts';
 import { defaultDeps, think } from '../_shared/think.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
-import { duckSearch, modelCitation, parseRss, webCitation } from '../_shared/marketing_trends.ts';
+import { competitorsNamed, modelCitation, parseRss } from '../_shared/marketing_trends.ts';
 
 // deno-lint-ignore no-explicit-any
 export type Admin = any;
@@ -439,33 +439,35 @@ export const trendWatch: Duty = {
 export const geoAudit: Duty = {
   name: 'geo_audit',
   owner_seat: 'marketing',
+  // GEO = visibility INSIDE AI answer engines (28 Sep 2026). The DuckDuckGo scrape was refused by a bot-check from
+  // every datacenter call and never recorded a row, so the engines are asked directly through ai_gateway:
+  //   answer_search  task class marketing_geo_search  -> perplexity/sonar (a web-search answer engine)
+  //   answer_online  task class marketing_geo_online  -> a routed model's :online (web-grounded) variant
+  // A fixed monthly set of trade x city questions (marketing_geo_question), 2 calls a beat, about 24 calls a month
+  // (well under USD 1 a month). Whether QuotesDone and which competitors are named is a fact read by code
+  // (modelCitation / competitorsNamed), never a model's opinion. Under the founder's hold nothing is called.
   async run(ctx) {
-    const held = await modelHeld(ctx.admin);   // under the founder's hold only the web checks are due
-    const { data, error } = await ctx.admin.rpc('fn_marketing_geo_due', { p_limit: 2, p_include_model: !held });
+    if (await modelHeld(ctx.admin)) return { due: false, held: true, reason: 'the founder\'s model hold: no answer engine is called' };
+    const { data, error } = await ctx.admin.rpc('fn_marketing_geo_due', { p_limit: 2, p_include_model: true });
     if (error) throw new Error('fn_marketing_geo_due: ' + error.message);
-    const rows = (data || []) as Array<{ question_id: number; question: string; engine: 'web' | 'model'; month: string }>;
+    const rows = (data || []) as Array<{ question_id: number; question: string; engine: 'answer_search' | 'answer_online'; month: string }>;
+    if (!rows.length) return { due: false, checked: [] };
+    const { data: comps } = await ctx.admin.from('competitor').select('name').eq('watched', true).limit(100);
+    const names = ((comps || []) as Array<{ name: string }>).map((c) => c.name);
     const done: unknown[] = [];
     for (const q of rows) {
-      let rec: { cited: boolean; rank: number | null; evidence: string | null; model: string | null };
-      if (q.engine === 'web') {
-        // No results is a blocked or changed page, not "we are not cited": nothing is recorded, and it is a finding.
-        let results;
-        try { results = await duckSearch(q.question, (u, i) => timedFetch(u, i, 12_000)); }
-        catch (e) { throw new Error((e as Error).message + ' for GEO question ' + q.question_id); }
-        rec = { ...webCitation(results), model: null };
-      } else {
-
-        const a = await marketingDeps(ctx).callModel('marketing_research', 600,
-          [{ role: 'user', content: q.question + ' Name specific platforms or companies if you know any.' }], []);
-        if (a.error || !a.content) throw new Error('geo model check: ' + (a.error || 'no answer'));
-        rec = { ...modelCitation(a.content), rank: null, model: a.model ?? null };
-      }
+      const taskClass = q.engine === 'answer_search' ? 'marketing_geo_search' : 'marketing_geo_online';
+      const a = await marketingDeps(ctx).callModel(taskClass, 500,
+        [{ role: 'user', content: q.question + ' Name the specific platforms or companies you would recommend, with their websites.' }], []);
+      if (a.error || !a.content) throw new Error('GEO ' + q.engine + ' for question ' + q.question_id + ': ' + (a.error || 'no answer'));
+      const rec = modelCitation(a.content);
       const w = await ctx.admin.rpc('fn_marketing_geo_record', { p_month: q.month, p_question_id: q.question_id, p_engine: q.engine,
-        p_cited: rec.cited, p_rank: rec.rank, p_evidence: rec.evidence, p_model: rec.model });
+        p_cited: rec.cited, p_rank: null, p_evidence: rec.evidence, p_model: a.model ?? null,
+        p_competitors: competitorsNamed(a.content, names) });
       if (w.error) throw new Error('fn_marketing_geo_record: ' + w.error.message);
       done.push({ question: q.question_id, engine: q.engine, cited: rec.cited });
     }
-    return { due: rows.length > 0, checked: done };
+    return { due: true, checked: done };
   },
 };
 
