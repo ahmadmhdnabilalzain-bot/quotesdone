@@ -1,0 +1,79 @@
+{
+  "trade": "tents_shades",
+  "entries": [
+    {
+      "id": "tents_shades:spec-checklist",
+      "topic": "Tents and shade structures - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For tents and shade structures quotes to be compared like-for-like, every quoted line (goods) must state: (1) structure type (tent, car park shade, sail, pergola); (2) covered area and dimensions; (3) fabric type (PVC, PVDF, HDPE) and weight in g/m2; (4) fire rating of fabric; (5) steel structure and coating; (6) design wind speed; (7) foundations; (8) permit for temporary or permanent structure; (9) colour and UV resistance; (10) delivery terms and location; (11) lead time; (12) warranty period and terms; (13) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the tents_shades trade.",
+      "body_ar": "لكي تُقارن عروض الخيام والمظلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الهيكل (خيمة، أو مظلة مواقف، أو شراع، أو برجولة)؛ (2) المساحة المغطاة والأبعاد؛ (3) نوع القماش (PVC أو PVDF أو HDPE) ووزنه بالغرام للمتر المربع؛ (4) تصنيف القماش في الحريق؛ (5) الهيكل الفولاذي وطلاؤه؛ (6) سرعة الرياح التصميمية؛ (7) الأساسات؛ (8) تصريح الهيكل المؤقت أو الدائم؛ (9) اللون ومقاومة الأشعة فوق البنفسجية؛ (10) شروط التسليم وموقعه؛ (11) مدة التوريد؛ (12) مدة الضمان وشروطه؛ (13) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة tents_shades فقط.",
+      "required_specs": [
+        "structure type (tent, car park shade, sail, pergola)",
+        "covered area and dimensions",
+        "fabric type (PVC, PVDF, HDPE) and weight in g/m2",
+        "fire rating of fabric",
+        "steel structure and coating",
+        "design wind speed",
+        "foundations",
+        "permit for temporary or permanent structure",
+        "colour and UV resistance",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "tents_shades:uae-standards-and-approvals",
+      "topic": "Tents and shade structures - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Tents and membrane structures must meet the UAE Fire and Life Safety Code of Practice (Civil Defence) for fabric flame performance; permanent shades need a municipality permit. What the cited sources do not establish: The sources read do not state a fabric weight or wind speed; state them explicitly.",
+      "body_ar": "يجب أن تطابق الخيام والهياكل الغشائية كود الإمارات للحماية من الحريق وسلامة الأرواح (الدفاع المدني) من حيث أداء القماش أمام اللهب؛ وتحتاج المظلات الدائمة إلى تصريح من البلدية. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تحدد وزن القماش ولا سرعة الرياح؛ حددهما صراحةً.",
+      "source_note": "The sources read do not state a fabric weight or wind speed; state them explicitly.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.dm.gov.ae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for tents and shade structures?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالخيام والمظلات؟",
+      "expected_entry_ids": [
+        "tents_shades:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to tents and shade structures?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الخيام والمظلات؟",
+      "expected_entry_ids": [
+        "tents_shades:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 2,
+    "claims_checked": 2,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "tents_shades:spec-checklist",
+      "tents_shades:uae-standards-and-approvals"
+    ],
+    "added": [
+      "tents_shades:spec-checklist",
+      "tents_shades:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

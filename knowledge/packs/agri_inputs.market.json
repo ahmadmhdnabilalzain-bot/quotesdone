@@ -1,0 +1,91 @@
+{
+  "trade": "agri_inputs",
+  "layer": "uae-market",
+  "label_en": "Agricultural inputs",
+  "label_ar": "مستلزمات زراعية",
+  "entries": [
+    {
+      "id": "agri_inputs:uae-market-products",
+      "topic": "Agricultural inputs: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Agricultural inputs sold in the UAE: fertilisers (NPK water-soluble grades such as 20-20-20, 12-61-0 MAP, 13-0-46 potassium nitrate, urea 46% N, ammonium sulphate, calcium nitrate, chelated micronutrients EDTA/EDDHA iron), organic fertilisers and compost, soil conditioners and peat moss/coco peat growing media, seeds (vegetable hybrids, fodder such as Rhodes grass and alfalfa, turf seed), pesticides (insecticides, fungicides, herbicides, red palm weevil treatments), irrigation consumables (drip lines, emitters, filters), greenhouse and hydroponic supplies (nutrient solutions, substrates, shade nets), and animal feed additives. Registration: pesticides and fertilisers must be registered with the Ministry of Climate Change and Environment (MOCCAE); import permits apply; Abu Dhabi agriculture is regulated with ADAFSA. Buyers specify analysis (N-P-K %), form (granular, soluble, liquid), active ingredient and concentration.",
+      "body_ar": "المدخلات الزراعية المباعة في الإمارات: الأسمدة (درجات NPK الذائبة مثل 20-20-20، و12-61-0 أحادي فوسفات الأمونيوم، و13-0-46 نترات البوتاسيوم، واليوريا 46% نيتروجين، وكبريتات الأمونيوم، ونترات الكالسيوم، والعناصر الصغرى المخلبية EDTA/EDDHA للحديد)، والأسمدة العضوية والكمبوست، ومحسنات التربة ووسائط الزراعة (البيتموس وألياف جوز الهند)، والبذور (الهجن الخضرية، والأعلاف مثل الرودس والبرسيم، وبذور العشب)، والمبيدات (الحشرية والفطرية والعشبية، ومعالجات سوسة النخيل الحمراء)، ومستلزمات الري (خطوط التنقيط والنقاطات والفلاتر)، ومستلزمات البيوت المحمية والزراعة المائية (المحاليل المغذية والركائز وشباك التظليل)، وإضافات الأعلاف. التسجيل: يجب تسجيل المبيدات والأسمدة لدى وزارة التغير المناخي والبيئة؛ وتنطبق تصاريح الاستيراد؛ وتنظم هيئة أبوظبي للزراعة والسلامة الغذائية الزراعة في أبوظبي. يحدد المشتري التحليل (نسب N-P-K)، والشكل (حبيبي، ذائب، سائل)، والمادة الفعالة وتركيزها.",
+      "sources": [
+        "https://www.moccae.gov.ae/en/services/registration-accreditation/registration-of-a-pesticide.aspx",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.fertiglobe.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: pesticides and fertilisers must be registered with MOCCAE -> confirmed | Fertiglobe (ADNOC-OCI) urea at Ruwais -> corrected: ADNOC took majority control of Fertiglobe in 2024; plant in Al Ruwais Industrial City. Not checked: Current pesticide registration status of named brands and local agent appointments were not verified."
+    },
+    {
+      "id": "agri_inputs:uae-market-brands",
+      "topic": "Agricultural inputs: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Producers and brands: Fertiglobe (ADNOC), Yara, ICL, SQM, Haifa, Compo Expert, Valagro, Arab Potash, SABIC, Bayer, Syngenta, BASF, Corteva, FMC, UPL, Adama, Rijk Zwaan, Enza Zaden, Sakata, Klasmann-Deilmann, Jiffy. Fertiglobe, majority-owned by ADNOC, makes urea and ammonia at Ruwais. The others reach the market through local agents, who must register each product with MOCCAE; those agents were not checked. Blenders and distributors are in Al Ain, Dubai (Al Aweer) and Ras Al Khaimah. Origins: UAE (urea), Europe, Jordan, Saudi Arabia, India, China.",
+      "body_ar": "المنتجون والعلامات: Fertiglobe (ADNOC)، Yara، ICL، SQM، Haifa، Compo Expert، Valagro، Arab Potash، SABIC، Bayer، Syngenta، BASF، Corteva، FMC، UPL، Adama، Rijk Zwaan، Enza Zaden، Sakata، Klasmann-Deilmann، Jiffy. وتنتج Fertiglobe، المملوكة بالأغلبية لـADNOC، اليوريا والأمونيا في الرويس. والبقية عبر وكلاء محليين يجب أن يسجلوا كل منتج لدى وزارة التغير المناخي والبيئة، ولم يُتحقق من هؤلاء الوكلاء. ويوجد الخلاطون والموزعون في العين ودبي (العوير) ورأس الخيمة. المنشأ: الإمارات (اليوريا)، أوروبا، الأردن، السعودية، الهند، الصين.",
+      "sources": [
+        "https://www.moccae.gov.ae/en/services/registration-accreditation/registration-of-a-pesticide.aspx",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.fertiglobe.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: pesticides and fertilisers must be registered with MOCCAE -> confirmed | Fertiglobe (ADNOC-OCI) urea at Ruwais -> corrected: ADNOC took majority control of Fertiglobe in 2024; plant in Al Ruwais Industrial City. Not checked: Current pesticide registration status of named brands and local agent appointments were not verified."
+    },
+    {
+      "id": "agri_inputs:uae-market-sizes",
+      "topic": "Agricultural inputs: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Fertilisers are sold in 25 kg or 50 kg bags, 1 tonne jumbo bags, and bulk for large farms; soluble specialties in 1-25 kg packs; liquids in 1, 5, 20 L cans. Pesticides in 100 ml to 20 L packs by formulation. Seeds per packet by seed count or kg. Growing media in 70-300 L bales. Pricing is per bag, per tonne or per litre, often with seasonal volume discounts; delivery to farm is extra in remote areas.",
+      "body_ar": "تُباع الأسمدة في أكياس 25 أو 50 كغ، وأكياس جامبو طن واحد، وسائبة للمزارع الكبيرة؛ والأسمدة الذائبة المتخصصة في عبوات 1-25 كغ؛ والسائلة في عبوات 1 و5 و20 لتراً. والمبيدات في عبوات من 100 مل إلى 20 لتراً حسب التركيبة. والبذور بالظرف حسب عدد البذور أو بالكيلوغرام. ووسائط الزراعة في بالات 70-300 لتر. والتسعير بالكيس أو بالطن أو باللتر، غالباً مع خصومات موسمية على الكمية؛ والتوصيل للمزرعة إضافي في المناطق النائية.",
+      "sources": [
+        "https://www.moccae.gov.ae/en/services/registration-accreditation/registration-of-a-pesticide.aspx",
+        "https://fertiglobe.com/about-us/our-business/",
+        "https://www.moccae.gov.ae",
+        "https://www.adafsa.gov.ae",
+        "https://www.fertiglobe.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: pesticides and fertilisers must be registered with MOCCAE -> confirmed | Fertiglobe (ADNOC-OCI) urea at Ruwais -> corrected: ADNOC took majority control of Fertiglobe in 2024; plant in Al Ruwais Industrial City. Not checked: Current pesticide registration status of named brands and local agent appointments were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which fertiliser grade is used for date palms in fertigation?",
+      "q_ar": "ما درجة السماد المستخدمة للنخيل في التسميد بالري؟",
+      "expected_entry_ids": [
+        "agri_inputs:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "pesticides and fertilisers must be registered with MOCCAE",
+        "url": "https://www.moccae.gov.ae/en/services/registration-accreditation/registration-of-a-pesticide.aspx",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Fertiglobe (ADNOC-OCI) urea at Ruwais",
+        "url": "https://fertiglobe.com/about-us/our-business/",
+        "result": "corrected: ADNOC took majority control of Fertiglobe in 2024; plant in Al Ruwais Industrial City"
+      }
+    ],
+    "unverified": "Current pesticide registration status of named brands and local agent appointments were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

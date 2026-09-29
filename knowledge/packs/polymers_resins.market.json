@@ -1,0 +1,80 @@
+{
+  "trade": "polymers_resins",
+  "layer": "uae-market",
+  "label_en": "Plastics & polymer raw materials",
+  "label_ar": "المواد الخام البلاستيكية والبوليمرات",
+  "entries": [
+    {
+      "id": "polymers_resins:uae-market-products",
+      "topic": "Plastics & polymer raw materials: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Plastics and polymer raw materials in the UAE: polyolefins (LDPE, LLDPE, HDPE film, blow-moulding, injection and pipe grades PE100; PP homopolymer, random and impact copolymer; by MFI), PVC resin (suspension K-57 to K-70) and compounds, PET bottle-grade chips (IV 0.80-0.84), polystyrene (GPPS, HIPS), EPS beads, ABS, polycarbonate, nylon (PA6, PA66), engineering plastics, masterbatches (colour, white, black, additives such as UV, slip, antistatic), recycled resins (rPET, rHDPE), unsaturated polyester and epoxy resins, and plasticisers. Buyers specify polymer, grade name, MFI (g/10 min), density, application, additive package, packaging and origin. UAE-produced polyolefins come from Borouge in Ruwais, one of the world's largest integrated polyolefin complexes.",
+      "body_ar": "مواد البلاستيك والبوليمرات الخام في الإمارات: البولي أوليفينات (LDPE وLLDPE ودرجات HDPE للأفلام والنفخ والحقن والأنابيب PE100؛ والبولي بروبيلين المتجانس والعشوائي ومقاوم الصدمات؛ حسب مؤشر السيولة)، وراتنج PVC (المعلق K-57 إلى K-70) ومركباته، وحبيبات PET لدرجة الزجاجات (لزوجة 0.80-0.84)، والبوليسترين (GPPS وHIPS)، وحبيبات EPS، وABS، والبولي كربونات، والنايلون (PA6 وPA66)، والبلاستيك الهندسي، والماستر باتش (ألوان، أبيض، أسود، وإضافات مثل الحماية من الأشعة والانزلاق ومضاد الكهرباء الساكنة)، والراتنجات المعاد تدويرها (rPET وrHDPE)، وراتنجات البوليستر غير المشبع والإيبوكسي، والملدنات. يحدد المشتري البوليمر واسم الدرجة ومؤشر السيولة والكثافة والتطبيق وحزمة الإضافات والتعبئة والمنشأ. وتأتي البولي أوليفينات المنتجة في الإمارات من بروج في الرويس، من أكبر مجمعات البولي أوليفين المتكاملة في العالم.",
+      "sources": [
+        "https://www.borouge.com",
+        "https://www.sabic.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
+    },
+    {
+      "id": "polymers_resins:uae-market-brands",
+      "topic": "Plastics & polymer raw materials: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Producers and masterbatch brands: Borouge, SABIC, Sipchem, Tasnee, Petro Rabigh, OQ, QAPCO, Q-Chem, EQUATE, Ampacet, Avient, Clariant. Borouge produces polyolefins at Ruwais, and the other producers are GCC petrochemical companies. Distributors and traders are in Jebel Ali, Sharjah (Hamriyah) and DMCC. Local compounders were not checked by name.",
+      "body_ar": "المنتجون وعلامات الماستر باتش: Borouge، SABIC، Sipchem، Tasnee، Petro Rabigh، OQ، QAPCO، Q-Chem، EQUATE، Ampacet، Avient، Clariant. وتنتج Borouge البولي أوليفينات في الرويس، والبقية منتجون بتروكيماويون خليجيون. والموزعون والتجار في جبل علي والشارقة (الحمرية) ومركز دبي للسلع المتعددة، ولم يُتحقق من المركّبين المحليين بالاسم.",
+      "sources": [
+        "https://www.borouge.com",
+        "https://www.sabic.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
+    },
+    {
+      "id": "polymers_resins:uae-market-sizes",
+      "topic": "Plastics & polymer raw materials: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Resins sold in 25 kg bags on pallets (1.375 t per pallet typical), 1 t octabins/big bags, or bulk; priced per tonne, often indexed to regional (Middle East/Asia) polymer price assessments (e.g. ICIS, Platts) with CFR or delivered terms; payment by LC or credit. Masterbatch per kg in 25 kg bags. Quotes state grade datasheet, CoA and validity.",
+      "body_ar": "تُباع الراتنجات في أكياس 25 كغ على منصات (1.375 طن للمنصة عادة)، أو أكياس كبيرة/أوكتابين طن، أو سائبة؛ وتُسعّر بالطن، وغالباً مربوطة بتقييمات أسعار البوليمرات الإقليمية (الشرق الأوسط/آسيا) مثل ICIS وPlatts بشروط CFR أو التسليم؛ والدفع باعتماد مستندي أو ائتمان. والماستر باتش بالكيلوغرام في أكياس 25 كغ. وتذكر العروض ورقة بيانات الدرجة وشهادة التحليل والصلاحية.",
+      "sources": [
+        "https://www.borouge.com",
+        "https://www.sabic.com",
+        "https://www.iso.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Borouge polyolefins, Ruwais -> confirmed. Not checked: Current Borouge grades and local masterbatch plants were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Which PE grade is used for making water pipes?",
+      "q_ar": "ما درجة البولي إيثيلين المستخدمة لصناعة أنابيب المياه؟",
+      "expected_entry_ids": [
+        "polymers_resins:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Borouge polyolefins, Ruwais",
+        "url": "https://www.borouge.com",
+        "result": "confirmed"
+      }
+    ],
+    "unverified": "Current Borouge grades and local masterbatch plants were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

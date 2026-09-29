@@ -23,11 +23,18 @@
 //     the entire point; a function should not get to pick Opus for a classification task.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const _admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+// The client is made on first use, not at import (29 Sep 2026). Made at import, it threw "supabaseUrl is
+// required" out of every module that merely IMPORTS this one wherever SUPABASE_URL is unset (the CI Deno
+// suite), before the never-throws contract below could apply: marketing/duties.ts imports it statically,
+// and think.ts's defaultDeps imports it lazily for the same reason. Made here, a missing env var fails
+// inside the call's own try and the caller gets its documented null.
+const mk = (u: string, k: string) => createClient(u, k);
+let _client: ReturnType<typeof mk> | null = null;
+const _admin = () => (_client ??= mk(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!));
 const GATEWAY = Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway';
 
 export async function sec(k: string) {
-  const { data } = await _admin.from('app_secrets').select('value').eq('key', k).maybeSingle();
+  const { data } = await _admin().from('app_secrets').select('value').eq('key', k).maybeSingle();
   return (data?.value as string) || '';
 }
 
@@ -147,10 +154,10 @@ const AUTH_SIGNAL_MIN = 30;   // one agent_runs row per signal per caller per 30
 async function logAuth(signal: string, fnName: string, status: string, note: string) {
   try {
     const since = new Date(Date.now() - AUTH_SIGNAL_MIN * 60000).toISOString();
-    const { data } = await _admin.from('agent_runs').select('id').eq('agent', 'llm_gateway_auth')
+    const { data } = await _admin().from('agent_runs').select('id').eq('agent', 'llm_gateway_auth')
       .gte('started_at', since).eq('counts->>signal', signal).eq('counts->>fn', fnName).limit(1);
     if (data && data.length) return;
-    await _admin.from('agent_runs').insert({
+    await _admin().from('agent_runs').insert({
       agent: 'llm_gateway_auth', status, counts: { signal, fn: fnName },
       note: note.slice(0, 500), started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
     });
