@@ -1,9 +1,0 @@
-Pending, not applied before merge (founder_instruction 1013 item 2: "Do NOT apply before merge").
-Adds fn_supplier_trade, fn_supplier_scorecard_month, fn_supplier_scorecard_tip, fn_supplier_scorecard,
-fn_supplier_scorecard_text, the table supplier_scorecard and fn_sales_engineer_supplier_scorecard_tick
-(duty sales_engineer.supplier_scorecard, daily; one English e-mail per approved supplier per month).
-No dependency on another open PR. After applying, deploy supplier_portal (action 'scorecard'); Vercel serves the
-portal card (src/components/portal/supplier/SupplierScorecard.tsx).
-Proved in an aborted transaction on production by scripts/eval/supplier_scorecard_proof.mjs.
-Applied by the release operator (C:/Users/Opera/qd-release.lock) after merge.
-When applied: delete this note and append the .sql to the END of MANIFEST.txt. Seat: sales_engineer.
