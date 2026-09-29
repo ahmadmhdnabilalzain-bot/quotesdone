@@ -5,7 +5,8 @@ import { sanitizeUpload, safeFilename, SAFE_UPLOAD } from '../_shared/attachment
 // exactly as a refused SHAPE already was, so a supplier is never told a document is on file when
 // the scanner refused it.
 import { sanitizeAndScan } from '../_shared/malware.ts';
-import { observe } from '../_shared/observe.ts';
+import { annotate, observe } from '../_shared/observe.ts';
+import { probeCaller } from '../_shared/probe_caller.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { readSupplierProfile } from '../_shared/reasoned_suppliers.ts';
 import { runtimeWaitUntil } from '../_shared/async_webhook.ts';
@@ -160,7 +161,8 @@ Deno.serve(observe('supplier_portal', async (req) => {
   try {
     // Local refusal first, a bounded auth call, and 503 (not 401) when auth is down — _shared/signed_in_user.ts.
     const who = await signedInUser(admin, req.headers.get('Authorization'));
-    if (!who.ok) return J(refusalBody(who), who.status);
+    // Our own hourly launch-path probe is marked fixture by its credential, never by its say-so (_shared/probe_caller.ts).
+    if (!who.ok) return annotate(J(refusalBody(who), who.status), await probeCaller(admin, req, 'supplier_portal'));
     const { email } = who;
     const { data: sup } = await admin.from('leads').select('id,company_name,approval_status,registration_status,license_expiry,name_corrected_from').eq('claimed_by', email).maybeSingle();
     if (!sup) return J({ error: 'no_company', hint: 'claim your company first' }, 400);

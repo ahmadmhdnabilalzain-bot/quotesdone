@@ -20,6 +20,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
 import { signedInUser } from '../_shared/signed_in_user.ts';
 import { DUTIES } from './duties.ts';
+import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { recallCases } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -76,7 +77,11 @@ async function embed(text: string): Promise<string | null> {
 export async function runDuties(): Promise<Record<string, unknown>> {
   const results: Record<string, unknown> = {};
   const failing: Record<string, unknown>[] = [];
+  // A duty public.duty_pause names ('marketing.<name>') is skipped and reported, never run (_shared/duty_pause.ts).
+  const pause = await pausedDuties(admin);
+  if (pause.error) results.duty_pause = { ok: false, error: pause.error };
   for (const d of DUTIES) {
+    if (pause.has('marketing.' + d.name)) { results[d.name] = PAUSED; continue; }
     try {
       results[d.name] = await d.run({ admin, sec, now: new Date() });
     } catch (e) {

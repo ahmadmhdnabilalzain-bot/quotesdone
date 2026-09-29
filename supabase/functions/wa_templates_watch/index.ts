@@ -175,17 +175,20 @@ Deno.serve(observe('wa_templates_watch', async (req)=>{
       const { error: readyErr } = await sb.from('app_secrets').upsert({ key:'wa_templates_ready', value:'true' }, { onConflict:'key' });
       // Founder email: prefer founder_email secret, else first admin_emails entry (OPEN_ISSUES #5).
       const founder = (await sec('founder_email')) || (((await sec('admin_emails'))||'').split(',')[0]||'').trim() || 'management@quotesdone.com';
-      const { error: notifErr } = await requestDelivery(sb, { type:'wa_templates_ready', to_role:'admin', to_email:founder, channel:'email', status:'queued', subject:'✅ WhatsApp templates approved — notifications are now LIVE', body:'All 6 WhatsApp templates have been approved by Meta. QuotesDone will now send WhatsApp alerts (new job, new quote, supplier unlocked) to opted-in suppliers and customers automatically. No action needed.' });
+      const { data: notifData, error: rawNotifErr } = await requestDelivery(sb, { type:'wa_templates_ready', to_role:'admin', to_email:founder, channel:'email', status:'queued', subject:'✅ WhatsApp templates approved — notifications are now LIVE', body:'All 6 WhatsApp templates have been approved by Meta. QuotesDone will now send WhatsApp alerts (new job, new quote, supplier unlocked) to opted-in suppliers and customers automatically. No action needed.' });
+      // "NOTHING QUEUED" IS THE FOUNDER MAIL POLICY, NOT A FAILURE (it_engineer, 29 Sep 2026). Measured on handoffs
+      // #104126..#112078: customer_support took every request (status done, no error) and the notifications insert
+      // returned no id because a10_notifications_founder_mail_policy routes a kind that is not allowed_to_email
+      // (fn_founder_mail_route) and returns NULL. Only a refusal or a per-row error is a failed notification.
+      const notifErr = rawNotifErr && !(notifData?.length && notifData.every((d) => !d.error)) ? rawNotifErr : null;
       // No unschedule step: pg_cron has no wa_watch job (measured 28 Sep: cron.job holds one inactive
-      // row) and cron_unschedule_wa_watch does not exist. The scheduler gate in
-      // fn_resilience_orphan_steps_due stops calling once nothing in the register is undecided.
-      const cronErr='';
+      // row) and there is no routine to unschedule it. The scheduler gate in fn_resilience_orphan_steps_due
+      // stops calling once nothing in the register is undecided.
       const anotes:string[]=[];
       if(readyErr) anotes.push('all '+sids.length+' WhatsApp templates are approved but writing wa_templates_ready=true FAILED ('+String(readyErr.message)+'); WhatsApp alerts stay switched off for suppliers and customers and this watcher will re-run and re-notify every 15 minutes');
-      if(notifErr) anotes.push('founder notification insert failed ('+String(notifErr.message)+'); nobody was told that WhatsApp notifications are now live');
-      if(cronErr) anotes.push('cron_unschedule_wa_watch failed ('+cronErr+'); this watcher keeps polling Twilio every 15 minutes forever');
-      if(!anotes.length) anotes.push('all '+sids.length+' WhatsApp templates approved: wa_templates_ready flipped to true, founder notified and polling unscheduled. WhatsApp job/quote/unlock alerts are now live');
-      await logRun((readyErr||notifErr||cronErr) ? 'error' : 'ok', { total:sids.length, approved, rejected, all_approved:true, ready_write_failed: readyErr?1:0, notify_failed: notifErr?1:0, cron_unschedule_failed: cronErr?1:0 }, anotes.join(' | '));
+      if(notifErr) anotes.push('founder notification request failed ('+String(notifErr.message)+'); nobody was told that WhatsApp notifications are now live');
+      if(!anotes.length) anotes.push('all '+sids.length+' WhatsApp templates approved: wa_templates_ready flipped to true and the founder notice handed to customer_support. WhatsApp job/quote/unlock alerts are now live');
+      await logRun((readyErr||notifErr) ? 'error' : 'ok', { total:sids.length, approved, rejected, all_approved:true, ready_write_failed: readyErr?1:0, notify_failed: notifErr?1:0 }, anotes.join(' | '));
     } else {
       const bad = statuses.filter((x:any)=> x.status==='unknown' || String(x.status).startsWith('error:'));
       if(rejected){ await logThrottled('templates_rejected', 60, 'error', { total:sids.length, approved, rejected, unknown: bad.length }, rejected+' of '+sids.length+' WhatsApp templates were REJECTED by Meta ('+statuses.filter((x:any)=>x.status==='rejected').map((x:any)=>x.name).join(',')+'); approval can never reach 100%, so wa_templates_ready is never flipped and suppliers and customers will never receive WhatsApp job, quote or unlock alerts until the templates are resubmitted'); }
