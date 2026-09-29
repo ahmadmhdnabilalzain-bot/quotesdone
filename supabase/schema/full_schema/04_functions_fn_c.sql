@@ -1844,7 +1844,7 @@ CREATE OR REPLACE FUNCTION public.fn_ceo_decide_refund(p_refund_id bigint, p_app
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record;
+declare r record; v_fin jsonb;
 begin
   if coalesce(btrim(p_rationale), '') = '' then
     -- Applies to BOTH directions. The constitution asks for an evidence-based explanation on a
@@ -1861,6 +1861,22 @@ begin
       format('this refund is already %L. Deciding it again would be a second remedy on the same money.', r.state));
   end if;
 
+  -- THE SECOND SEAT (29 Sep 2026, instruction 1009). refund_case numbers its cases from its own sequence
+  -- (refund_case_refund_id_seq); they are NOT ids in public.refunds, so this rail cannot hand its case to
+  -- fn_refund_decide (that would decide whichever refund shares the number). It asks the same gate on its own
+  -- subject, and marks the case so a00 lets only this routine authorise it.
+  if p_approve then
+    v_fin := public.fn_high_stakes_gate('refund', 'ceo', 'refund_case', p_refund_id::text,
+      'Should this refund be approved as the CEO decided?',
+      jsonb_build_object('refund_case', jsonb_build_object('amount_aed', r.amount_aed, 'currency', r.currency,
+        'requested_reason', left(r.requested_reason, 1000), 'transaction_id', r.transaction_id)),
+      jsonb_build_object('decision', 'approve', 'ceo_rationale', left(p_rationale, 3000), 'amount_aed', r.amount_aed));
+    if not coalesce((v_fin->>'proceed')::boolean, false) then
+      return jsonb_build_object('ok', false, 'reason', 'awaiting_second_seat', 'clearance', v_fin);
+    end if;
+    perform set_config('qd.refund_case_decide', p_refund_id::text, true);
+  end if;
+
   update public.refund_case
      set state = case when p_approve then 'ceo_authorized' else 'ceo_declined' end,
          decided_by = 'ceo', decided_at = now(),
@@ -1869,7 +1885,7 @@ begin
    where refund_id = p_refund_id;
 
   return jsonb_build_object('ok', true, 'refund_id', p_refund_id,
-    'state', case when p_approve then 'ceo_authorized' else 'ceo_declined' end,
+    'state', case when p_approve then 'ceo_authorized' else 'ceo_declined' end, 'decide', v_fin,
     'note', case when p_approve
                  then 'Authorised. Execution is the payment service''s, and the states stay separate: authorised is not submitted, and submitted is not settled.'
                  else 'Declined with a rationale. Support owes the customer that explanation and an appropriate alternative remedy -- a decline is not the end of the case.' end);
@@ -4579,12 +4595,18 @@ declare
   r public.refunds; v jsonb; v_cycle int; v_nonrem jsonb; v_rev bigint; v_dec bigint; x record; v_task bigint;
   v_tasks jsonb := '[]'::jsonb; v_rat text; v_deadline timestamptz; v_chase int; v_adv jsonb;
   v_wait boolean := false;   -- a check still being reasoned (23 Sep 2026)
-  v_item text := 'refunds:' || p_refund_id; v_ids bigint[] := '{}'; v_cyc jsonb;
+  v_item text := 'refunds:' || p_refund_id; v_ids bigint[] := '{}'; v_cyc jsonb; v_fin jsonb;
 begin
   select * into r from public.refunds where id = p_refund_id for update;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no such refund'); end if;
   if r.status <> 'requested' then return jsonb_build_object('ok', false, 'reason', 'refund is ' || r.status || '; the CEO reviews only an open request'); end if;
-  if r.refund_decision_id is not null then return jsonb_build_object('ok', true, 'outcome', 'already_approved', 'decision_id', r.refund_decision_id); end if;
+  -- Already decided by the CEO but not yet approved: the one decision is asked again (it may have been waiting on
+  -- the second seat), never skipped.
+  if r.refund_decision_id is not null then
+    v_fin := public.fn_refund_decide(r.id, true, 'ceo', null);
+    return jsonb_build_object('ok', coalesce((v_fin->>'ok')::boolean, false), 'outcome', 'already_approved',
+                              'decision_id', r.refund_decision_id, 'decide', v_fin);
+  end if;
   if exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'refund.remediate'
                and a.detail->>'refund_id' = r.id::text and a.status = 'pending') then
     return jsonb_build_object('ok', false, 'outcome', 'waiting_on_remediation');
@@ -4602,7 +4624,10 @@ begin
     values (r.id, r.transaction_id, v_cycle, 'approved', v_dec, p_trigger, true) returning id into v_rev;
     v_cyc := public.fn_ceo_decide('refund', v_item, 'accountant', 'approved', v_rat,
                jsonb_build_object('refund_id', r.id, 'cycle', v_cycle, 'decision_id', v_dec), 'refund_ceo_review', v_rev::text);
-    return jsonb_build_object('ok', true, 'outcome', 'approved', 'cycle', v_cycle, 'decision_id', v_dec, 'round', v_cyc);
+    -- THE ONE DECISION (29 Sep 2026): the approval above is the CEO's; the refund becomes approved only through
+    -- fn_refund_decide, which runs the second-seat check. Waiting on it leaves the refund requested and decided.
+    v_fin := public.fn_refund_decide(r.id, true, 'ceo', v_rat);
+    return jsonb_build_object('ok', true, 'outcome', 'approved', 'cycle', v_cycle, 'decision_id', v_dec, 'round', v_cyc, 'decide', v_fin);
   end if;
 
   select coalesce(jsonb_agg(i), '[]'::jsonb) into v_nonrem from jsonb_array_elements(v->'failed') i where not coalesce((i->>'remediable')::boolean, false);

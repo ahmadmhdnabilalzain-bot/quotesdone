@@ -7714,6 +7714,74 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.trg_ceo_experiment_carries_its_reasons()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_problem text;
+begin
+  if (old.status = 'proposed' and new.status <> 'proposed')
+     or (new.approval is distinct from old.approval and new.approval ? 'decision'
+         and new.approval->'decision' is distinct from old.approval->'decision') then
+    v_problem := public.fn_ceo_reasons_problem(coalesce(new.approval->>'reasons', new.approval->>'reasoning'));
+  elsif new.status in ('kept', 'killed') and old.status is distinct from new.status then
+    v_problem := public.fn_ceo_reasons_problem((select v.reasoning from public.ceo_experiment_verdict v
+                                                 where v.experiment_id = new.id and v.decided_at is not null
+                                                 order by v.decided_at desc limit 1));
+  end if;
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation',
+      message = 'REASONLESS_DECISION: the CEO''s decision on experiment ' || new.id || ' (' || old.status || ' -> ' || new.status || ') says why: ' || v_problem;
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_ceo_improvement_carries_its_reasons()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_problem text;
+begin
+  if new.status = 'dropped' and (tg_op = 'INSERT' or old.status is distinct from 'dropped') then
+    v_problem := public.fn_ceo_reasons_problem(new.done_evidence);
+    if v_problem is not null then
+      raise exception using errcode = 'check_violation',
+        message = 'REASONLESS_DECISION: the CEO drops improvement ' || coalesce(new.id::text, '(new)') || ' only with reasons: ' || v_problem;
+    end if;
+  end if;
+  return new;
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.trg_ceo_turn_carries_its_reasons()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare d public.seat_deliberation; v_reasons text; v_problem text;
+begin
+  if new.phase <> 'compare' or new.status <> 'recorded' then return new; end if;
+  select * into d from public.seat_deliberation where id = new.deliberation_id;
+  if d.reviewer_seat is distinct from 'ceo' or d.kind = 'marketing.monthly_plan' then return new; end if;
+  v_reasons := btrim(coalesce(case when lower(new.verdict) = 'approve' then new.agreements else new.disagreements end, ''));
+  if public.fn_ceo_reasons_problem(v_reasons) is not null and coalesce(btrim(new.output->>'reasoning'), '') <> '' then
+    v_reasons := btrim(v_reasons || E'\n' || (new.output->>'reasoning'));
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(v_reasons);
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation',
+      message = 'REASONLESS_DECISION: the CEO''s ' || coalesce(new.verdict, '(no verdict)') || ' on deliberation ' || new.deliberation_id || ' says why: ' || v_problem;
+  end if;
+  return new;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.trg_ceo_weekly_report_learning()
  RETURNS trigger
  LANGUAGE plpgsql
