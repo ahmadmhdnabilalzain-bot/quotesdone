@@ -9,7 +9,8 @@
 //      are injected inside a rolled-back transaction and the routine must still finish under 6,000 ms
 //      — the same bar it_engineer_loop_is_closed.test.mjs holds, on a worse table;
 //   3. the CEO answers the two report families that had no decider — a synthetic report of each is
-//      decided inside a rolled-back transaction — and an unknown family answers "no decider";
+//      decided inside a rolled-back transaction — and an unknown family answers "no decider" and is still
+//      answered by the CEO's default decision (#933), never left 'sent';
 //   4. send_whatsapp records Twilio's SID as provider_message_id, so no WhatsApp send is
 //      'sent_unconfirmed' again (source anchor, not prose);
 //   5. resilience_ping calls send_whatsapp on every tick, so the subject has a pulse for the
@@ -104,11 +105,13 @@ test('the CEO decides the delivery_undelivered and dropbox_backup_escalation fam
       select status into s1 from public.support_ceo_report where id = v_r1;
       select status into s2 from public.support_ceo_report where id = v_r2;
       select status into s3 from public.support_ceo_report where id = v_r3;
-      raise exception 'CHK<<%>>', json_build_object('d1', d1->>'ok', 's1', s1, 'd2', d2->>'ok', 's2', s2, 'd3', d3->>'reason', 's3', s3);
+      raise exception 'CHK<<%>>', json_build_object('d1', d1->>'ok', 's1', s1, 'd2', d2->>'ok', 's2', s2, 'd3', coalesce(d3->'family_answer'->>'reason', d3->>'reason'), 's3', s3);
     end`);
   assert.equal(r.d1, 'true'); assert.equal(r.s1, 'accepted', 'a sent_unconfirmed WhatsApp with a confirmed email twin was not accepted');
   assert.equal(r.d2, 'true'); assert.equal(r.s2, 'accepted', 'the daily coverage report was not answered');
-  assert.equal(r.d3, 'no decider for this family'); assert.equal(r.s3, 'sent');
+  // Since #933 (24 Sep 2026, ledger 983) the CEO answers every report the day it arrives: a family with no decider
+  // says so in family_answer and is then accepted by fn_ceo_report_default_decide, never left 'sent'.
+  assert.equal(r.d3, 'no decider for this family'); assert.equal(r.s3, 'accepted');
 });
 
 test('the silence watch lets the CEO answer first and pages a family once a day', { skip: SKIP }, async () => {

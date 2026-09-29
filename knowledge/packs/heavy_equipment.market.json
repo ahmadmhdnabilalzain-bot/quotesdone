@@ -1,0 +1,115 @@
+{
+  "trade": "heavy_equipment",
+  "layer": "uae-market",
+  "label_en": "Heavy Equipment & Plant",
+  "label_ar": "المعدات الثقيلة والآليات",
+  "entries": [
+    {
+      "id": "heavy_equipment:uae-market-products",
+      "topic": "Heavy Equipment & Plant: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Heavy equipment and plant traded and hired in the UAE: excavators (mini 1-6 t, 20-50 t crawler), wheel loaders, backhoe loaders (the most common hire item), motor graders, bulldozers, rollers (single drum, tandem, pneumatic), skid steers, telehandlers, mobile cranes (all-terrain, rough-terrain, truck-mounted 25-500 t), crawler cranes, tower cranes (flat-top and luffing), boom and scissor lifts (MEWPs), dump trucks, water tankers, concrete pumps and transit mixers, generators and compressors. Buyers specify operating weight, bucket capacity, engine emission tier, attachments, year of manufacture and hours, and for cranes the load chart. Lifting equipment needs third-party inspection (TPI) certificates and operators with valid licences recognised by the emirate (e.g. Dubai RTA, Abu Dhabi ITC or third-party operator cards).",
+      "body_ar": "المعدات الثقيلة المتداولة والمؤجرة في الإمارات: الحفارات (الصغيرة 1-6 طن، والمجنزرة 20-50 طن)، واللوادر ذات العجلات، واللوادر الحفارة (البوكلين الأكثر تأجيراً)، والممهدات (الجريدر)، والجرافات (البلدوزر)، والمداحل (أسطوانة مفردة، مزدوجة، إطارات مطاطية)، واللوادر الانزلاقية، والرافعات التلسكوبية، والرافعات المتحركة (لجميع التضاريس، والتضاريس الوعرة، والمحمولة على شاحنات 25-500 طن)، والرافعات المجنزرة، والرافعات البرجية (المسطحة والمتغيرة الذراع)، ومنصات الرفع (الذراعية والمقصية)، والقلابات، وصهاريج المياه، ومضخات الخرسانة والخلاطات، والمولدات والضواغط. يحدد المشتري وزن التشغيل وسعة الدلو وفئة انبعاثات المحرك والملحقات وسنة الصنع وساعات التشغيل، وجدول الأحمال للرافعات. وتحتاج معدات الرفع شهادات فحص طرف ثالث وسائقين بتراخيص معترف بها في الإمارة.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://www.volvoce.com/middle-east/en-sa/contact-us/dealer-locator/ae/famco-uae/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.galadariequip.com/",
+        "https://www.liebherr.com/en-ae/group/about-liebherr/liebherr-worldwide/united-arab-emirates/liebherr-in-the-united-arab-emirates-4787968",
+        "https://www.cat.com",
+        "https://www.liebherr.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar dealer is Al-Bahar (Sharjah head office) -> confirmed | Volvo CE dealer via Kanoo/Al Masaood -> corrected: FAMCO (Al-Futtaim) is the UAE Volvo CE distributor | Komatsu distributor -> confirmed: Galadari (Komatsu); Komatsu Gulf FZE in JAFZA | JCB dealer -> confirmed: GB Equipment Solutions (Galadari) | Liebherr presence -> confirmed: Liebherr Equipment Services Middle East, Dubai Investments Park. Not checked: Current dealer appointments for Komatsu, JCB, Hyundai and Chinese brands in each emirate, and operator licensing bodies per emirate, were not verified."
+    },
+    {
+      "id": "heavy_equipment:uae-market-brands",
+      "topic": "Heavy Equipment & Plant: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Dealers and brands: Al-Bahar (Caterpillar), FAMCO (Volvo CE), Galadari (Komatsu), GB Equipment Solutions (JCB), Liebherr Equipment Services Middle East, Hyundai CE, Tadano, Grove, XCMG, Sany, Zoomlion, Genie, JLG, Potain, Jaso. The dealers for the brands without a dealer named here were not checked. Rental companies are concentrated in Sharjah, Dubai (Al Quoz, Jebel Ali, Dubai Investments Park) and Musaffah, and used equipment is re-exported widely to Africa and the region. Origins: Japan, Germany, Korea, China, the UK, and plants of US brands worldwide.",
+      "body_ar": "الوكلاء والعلامات: Al-Bahar (Caterpillar)، FAMCO (Volvo CE)، Galadari (Komatsu)، GB Equipment Solutions (JCB)، Liebherr Equipment Services Middle East، Hyundai CE، Tadano، Grove، XCMG، Sany، Zoomlion، Genie، JLG، Potain، Jaso. ولم يُتحقق من وكلاء العلامات التي لم يُذكر لها وكيل هنا. وتتركز شركات التأجير في الشارقة ودبي (القوز وجبل علي ومجمع دبي للاستثمار) ومصفح، ويُعاد تصدير المعدات المستعملة على نطاق واسع إلى أفريقيا والمنطقة. المنشأ: اليابان، ألمانيا، كوريا، الصين، المملكة المتحدة، ومصانع العلامات الأمريكية حول العالم.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://www.volvoce.com/middle-east/en-sa/contact-us/dealer-locator/ae/famco-uae/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.galadariequip.com/",
+        "https://www.liebherr.com/en-ae/group/about-liebherr/liebherr-worldwide/united-arab-emirates/liebherr-in-the-united-arab-emirates-4787968",
+        "https://www.cat.com",
+        "https://www.liebherr.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar dealer is Al-Bahar (Sharjah head office) -> confirmed | Volvo CE dealer via Kanoo/Al Masaood -> corrected: FAMCO (Al-Futtaim) is the UAE Volvo CE distributor | Komatsu distributor -> confirmed: Galadari (Komatsu); Komatsu Gulf FZE in JAFZA | JCB dealer -> confirmed: GB Equipment Solutions (Galadari) | Liebherr presence -> confirmed: Liebherr Equipment Services Middle East, Dubai Investments Park. Not checked: Current dealer appointments for Komatsu, JCB, Hyundai and Chinese brands in each emirate, and operator licensing bodies per emirate, were not verified."
+    },
+    {
+      "id": "heavy_equipment:uae-market-sizes",
+      "topic": "Heavy Equipment & Plant: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Hire is quoted per hour (minimum 4 or 8 hours), per day (8-10 hour shift), per week or per month (usually 26 working days, 208-260 hours) with operator or bare; overtime per hour, fuel either included or by the hirer, and mobilisation/demobilisation per trip on a low-bed trailer. Cranes are quoted by capacity and duration with rigger and lift plan. Purchase quotes state unit price, warranty (often 12 months or 2000 hours), delivery term (CIF Jebel Ali or delivered site), spare parts support and after-sales service.",
+      "body_ar": "يُسعّر التأجير بالساعة (بحد أدنى 4 أو 8 ساعات)، أو باليوم (وردية 8-10 ساعات)، أو بالأسبوع، أو بالشهر (عادة 26 يوم عمل، 208-260 ساعة) مع السائق أو بدونه؛ والعمل الإضافي بالساعة، والوقود مشمول أو على المستأجر، والتجهيز والإرجاع بالرحلة على مقطورة منخفضة. وتُسعّر الرافعات حسب السعة والمدة مع عامل الربط وخطة الرفع. وتذكر عروض الشراء سعر الوحدة والضمان (غالباً 12 شهراً أو 2000 ساعة) وشرط التسليم (CIF جبل علي أو التسليم في الموقع) ودعم قطع الغيار وخدمة ما بعد البيع.",
+      "sources": [
+        "https://www.albahar.com/",
+        "https://www.volvoce.com/middle-east/en-sa/contact-us/dealer-locator/ae/famco-uae/",
+        "https://galadaribrothers.com/heavy-equipment/",
+        "https://www.galadariequip.com/",
+        "https://www.liebherr.com/en-ae/group/about-liebherr/liebherr-worldwide/united-arab-emirates/liebherr-in-the-united-arab-emirates-4787968",
+        "https://www.cat.com",
+        "https://www.liebherr.com",
+        "https://www.dm.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Caterpillar dealer is Al-Bahar (Sharjah head office) -> confirmed | Volvo CE dealer via Kanoo/Al Masaood -> corrected: FAMCO (Al-Futtaim) is the UAE Volvo CE distributor | Komatsu distributor -> confirmed: Galadari (Komatsu); Komatsu Gulf FZE in JAFZA | JCB dealer -> confirmed: GB Equipment Solutions (Galadari) | Liebherr presence -> confirmed: Liebherr Equipment Services Middle East, Dubai Investments Park. Not checked: Current dealer appointments for Komatsu, JCB, Hyundai and Chinese brands in each emirate, and operator licensing bodies per emirate, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is a monthly backhoe hire usually priced in the UAE?",
+      "q_ar": "كيف يُسعّر تأجير لودر حفار شهرياً في الإمارات عادة؟",
+      "expected_entry_ids": [
+        "heavy_equipment:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Caterpillar dealer is Al-Bahar (Sharjah head office)",
+        "url": "https://www.albahar.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Volvo CE dealer via Kanoo/Al Masaood",
+        "url": "https://www.volvoce.com/middle-east/en-sa/contact-us/dealer-locator/ae/famco-uae/",
+        "result": "corrected: FAMCO (Al-Futtaim) is the UAE Volvo CE distributor"
+      },
+      {
+        "claim": "Komatsu distributor",
+        "url": "https://galadaribrothers.com/heavy-equipment/",
+        "result": "confirmed: Galadari (Komatsu); Komatsu Gulf FZE in JAFZA"
+      },
+      {
+        "claim": "JCB dealer",
+        "url": "https://www.galadariequip.com/",
+        "result": "confirmed: GB Equipment Solutions (Galadari)"
+      },
+      {
+        "claim": "Liebherr presence",
+        "url": "https://www.liebherr.com/en-ae/group/about-liebherr/liebherr-worldwide/united-arab-emirates/liebherr-in-the-united-arab-emirates-4787968",
+        "result": "confirmed: Liebherr Equipment Services Middle East, Dubai Investments Park"
+      }
+    ],
+    "unverified": "Current dealer appointments for Komatsu, JCB, Hyundai and Chinese brands in each emirate, and operator licensing bodies per emirate, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

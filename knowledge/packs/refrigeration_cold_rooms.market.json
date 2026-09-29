@@ -1,0 +1,99 @@
+{
+  "trade": "refrigeration_cold_rooms",
+  "layer": "uae-market",
+  "label_en": "Commercial refrigeration & cold rooms",
+  "label_ar": "تبريد تجاري وغرف تبريد",
+  "entries": [
+    {
+      "id": "refrigeration_cold_rooms:uae-market-products",
+      "topic": "Commercial refrigeration & cold rooms: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Refrigeration and cold rooms sold in the UAE include modular walk-in cold rooms and freezer rooms built from PU or PIR sandwich panels (polyurethane foam, 75-200 mm thick, density about 40-42 kg/m3, with cam-lock joints), hinged and sliding cold room doors, strip curtains, condensing units and evaporators, blast freezers and chillers, display chillers and freezers for supermarkets (multideck, island, serve-over counters), reach-in commercial refrigerators, ice machines, refrigerated containers (reefers) for rental, and refrigerated truck bodies. Specifications cover temperature range (chiller +2 to +8 °C, freezer -18 to -25 °C, blast -35 °C), ambient design temperature (often 46-52 °C for UAE), refrigerant type (HFCs such as R404A are phased down under the Kigali Amendment, which the UAE ratified, and HFC imports and trade need a MOCCAE permit under Decree 138 of 2023; R448A, R449A, R290 and transcritical CO2 are increasingly used), panel fire rating (PIR preferred, Civil Defence may require fire-rated panels), floor insulation, and temperature monitoring/data logging for food safety (Dubai Municipality and ADAFSA requirements).",
+      "body_ar": "تشمل معدات التبريد وغرف التبريد المباعة في الإمارات غرف التبريد والتجميد المعيارية المصنوعة من ألواح ساندويتش PU أو PIR (إسفنج بولي يوريثان بسماكة 75-200 مم وكثافة نحو 40-42 كغ/م3، مع وصلات قفل كامي)، وأبواب غرف التبريد المفصلية والمنزلقة، والستائر الشريطية، ووحدات التكثيف والمبخرات، ومجمدات ومبردات الصدمة، وثلاجات ومجمدات العرض للسوبرماركت (متعددة الطوابق، وجزرية، وكاونترات الخدمة)، والثلاجات التجارية القائمة، وآلات الثلج، والحاويات المبردة للإيجار، وصناديق الشاحنات المبردة. وتشمل المواصفات نطاق الحرارة (التبريد +2 إلى +8 °م، والتجميد -18 إلى -25 °م، والصدمة -35 °م)، ودرجة الحرارة المحيطة التصميمية (غالباً 46-52 °م في الإمارات)، ونوع غاز التبريد (تخضع مركبات الهيدروفلوروكربون مثل R404A للتخفيض التدريجي بموجب تعديل كيغالي الذي صادقت عليه الإمارات، ويحتاج استيرادها وتداولها إلى تصريح من وزارة التغير المناخي والبيئة بموجب القرار رقم 138 لسنة 2023؛ ويتزايد استخدام R448A وR449A وR290 وثاني أكسيد الكربون العابر للحرج)، وتصنيف الحريق للألواح (يُفضل PIR، وقد يشترط الدفاع المدني ألواحاً مقاومة للحريق)، وعزل الأرضية، ومراقبة الحرارة وتسجيل البيانات لسلامة الغذاء (متطلبات بلدية دبي وهيئة أبوظبي للزراعة والسلامة الغذائية).",
+      "sources": [
+        "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
+        "https://www.atninfo.com/co/kingspan-insulated-panels-manufacturing-llc-dubai-1277",
+        "https://ozone.unep.org",
+        "https://www.dm.gov.ae",
+        "https://www.danfoss.com",
+        "https://www.bitzer.de"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs -> confirmed | Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels -> confirmed | R404A is restricted in the UAE -> removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled. Not checked: The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified."
+    },
+    {
+      "id": "refrigeration_cold_rooms:uae-market-brands",
+      "topic": "Commercial refrigeration & cold rooms: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed local panel maker and common component brands: Kingspan (Dubai Investments Park), Bitzer, Copeland, Danfoss, Tecumseh, Embraco, Güntner, Carrier Transicold, Thermo King. The component brands' UAE distributors were not checked. Cold room contractors cluster in Al Quoz, Ras Al Khor, the Sharjah Industrial Areas, Ajman and Musaffah.",
+      "body_ar": "مصنع الألواح المحلي المؤكد وعلامات المكونات الشائعة: Kingspan (Dubai Investments Park)، Bitzer، Copeland، Danfoss، Tecumseh، Embraco، Güntner، Carrier Transicold، Thermo King. ولم يُتحقق من موزعي علامات المكونات في الإمارات. ويتجمع مقاولو غرف التبريد في القوز ورأس الخور والمناطق الصناعية بالشارقة وعجمان ومصفح.",
+      "sources": [
+        "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
+        "https://www.atninfo.com/co/kingspan-insulated-panels-manufacturing-llc-dubai-1277",
+        "https://ozone.unep.org",
+        "https://www.dm.gov.ae",
+        "https://www.danfoss.com",
+        "https://www.bitzer.de"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs -> confirmed | Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels -> confirmed | R404A is restricted in the UAE -> removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled. Not checked: The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified."
+    },
+    {
+      "id": "refrigeration_cold_rooms:uae-market-sizes",
+      "topic": "Commercial refrigeration & cold rooms: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Cold rooms are quoted as a lump sum per room by internal dimensions (L x W x H, e.g. 3 x 3 x 2.6 m) and temperature, including panels, door, refrigeration unit, installation and commissioning; panels alone are priced per m2 by thickness. Display cabinets are priced per unit or per linear metre. Reefer containers rent per unit per day or month (20 ft or 40 ft). AMCs are priced per system per year.",
+      "body_ar": "تُسعّر غرف التبريد كمبلغ مقطوع لكل غرفة حسب الأبعاد الداخلية (الطول × العرض × الارتفاع، مثل 3 × 3 × 2.6 م) ودرجة الحرارة، شاملة الألواح والباب ووحدة التبريد والتركيب والتشغيل؛ وتُسعّر الألواح وحدها لكل متر مربع حسب السماكة. وتُسعّر خزائن العرض لكل وحدة أو لكل متر طولي. وتُؤجر الحاويات المبردة لكل وحدة يومياً أو شهرياً (20 أو 40 قدماً). وتُسعّر عقود الصيانة السنوية لكل نظام سنوياً.",
+      "sources": [
+        "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
+        "https://www.atninfo.com/co/kingspan-insulated-panels-manufacturing-llc-dubai-1277",
+        "https://ozone.unep.org",
+        "https://www.dm.gov.ae",
+        "https://www.danfoss.com",
+        "https://www.bitzer.de"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs -> confirmed | Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels -> confirmed | R404A is restricted in the UAE -> removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled. Not checked: The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What panel thickness is used for a -20 °C freezer room?",
+      "q_ar": "ما سماكة الألواح المستخدمة لغرفة تجميد بدرجة -20 °م؟",
+      "expected_entry_ids": [
+        "refrigeration_cold_rooms:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "UAE ratified the Kigali Amendment (Group 2: HFC freeze 2028); MOCCAE Decree 138 of 2023 requires permits to import or trade HFCs",
+        "url": "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Kingspan Insulated Panels Manufacturing operates in Dubai Investments Park and makes coldstore panels",
+        "url": "https://www.atninfo.com/co/kingspan-insulated-panels-manufacturing-llc-dubai-1277",
+        "result": "confirmed"
+      },
+      {
+        "claim": "R404A is restricted in the UAE",
+        "url": "https://naturalrefrigerants.com/the-uae-ratifies-the-kigali-amendment/",
+        "result": "removed: no R404A-specific rule found; text now says HFCs are phased down and permit-controlled"
+      }
+    ],
+    "unverified": "The UAE's exact HFC phase-down timetable and any current national restrictions on R404A, and Civil Defence panel fire requirements, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

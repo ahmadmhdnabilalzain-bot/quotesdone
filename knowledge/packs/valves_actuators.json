@@ -1,0 +1,80 @@
+{
+  "trade": "valves_actuators",
+  "entries": [
+    {
+      "id": "valves_actuators:spec-checklist",
+      "topic": "Valves and actuators - what the buyer must state",
+      "kind": "spec_checklist",
+      "body_en": "For valves and actuators quotes to be compared like-for-like, every quoted line (goods) must state: (1) valve type (gate, globe, ball, butterfly, check); (2) size (DN) and pressure class (PN or ANSI class); (3) body, trim and seat materials; (4) end connection (flanged, threaded, welded); (5) design standard (API 6D, EN 593, API 600); (6) actuator type, power supply and control signal; (7) fluid and operating temperature; (8) testing and certificates (EN 12266, EN 10204 3.1); (9) approval for fire or potable water where applicable; (10) quantity per tag; (11) delivery terms and location; (12) lead time; (13) warranty period and terms; (14) exclusions. Quantities are always given with their unit of measure, and any applicable standard, test report, certificate or UAE approval is named per line. A line that is missing any of these is held, not guessed: the buyer is asked for the missing value before the request goes to suppliers, and a supplier line that omits one is held until it is supplied. This checklist speaks only for the valves_actuators trade.",
+      "body_ar": "لكي تُقارن عروض الصمامات والمشغلات على أساس متكافئ، يجب أن يذكر كل بند مسعّر (السلع): (1) نوع الصمام (بوابي، أو كروي مخروطي، أو كروي، أو فراشة، أو عدم رجوع)؛ (2) المقاس (DN) وفئة الضغط (PN أو فئة ANSI)؛ (3) مواد الجسم والأجزاء الداخلية والمقعد؛ (4) نوع الوصلة (شفة، أو لولبية، أو ملحومة)؛ (5) معيار التصميم (API 6D أو EN 593 أو API 600)؛ (6) نوع المشغل ومصدر الطاقة وإشارة التحكم؛ (7) الموائع ودرجة حرارة التشغيل؛ (8) الاختبار والشهادات (EN 12266 أو EN 10204 3.1)؛ (9) اعتماد لأنظمة الحريق أو مياه الشرب عند الانطباق؛ (10) الكمية لكل رمز؛ (11) شروط التسليم وموقعه؛ (12) مدة التوريد؛ (13) مدة الضمان وشروطه؛ (14) الاستثناءات. تُذكر الكميات دائماً مع وحدة القياس، ويُسمّى في كل بند أي معيار أو تقرير اختبار أو شهادة أو موافقة إماراتية منطبقة. والبند الذي ينقصه أيٌّ من ذلك يُعلَّق ولا يُخمَّن: يُطلب من المشتري القيمة الناقصة قبل إرسال الطلب إلى الموردين، وبند المورد الذي يُغفل أحدها يبقى معلقاً حتى تُستكمل. هذه القائمة تخص فئة valves_actuators فقط.",
+      "required_specs": [
+        "valve type (gate, globe, ball, butterfly, check)",
+        "size (DN) and pressure class (PN or ANSI class)",
+        "body, trim and seat materials",
+        "end connection (flanged, threaded, welded)",
+        "design standard (API 6D, EN 593, API 600)",
+        "actuator type, power supply and control signal",
+        "fluid and operating temperature",
+        "testing and certificates (EN 12266, EN 10204 3.1)",
+        "approval for fire or potable water where applicable",
+        "quantity per tag",
+        "delivery terms and location",
+        "lead time",
+        "warranty period and terms",
+        "exclusions"
+      ],
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    },
+    {
+      "id": "valves_actuators:uae-standards-and-approvals",
+      "topic": "Valves and actuators - UAE standards, authorities and approvals",
+      "kind": "standard",
+      "body_en": "Valves in fire systems must be Civil Defence approved under the UAE Fire and Life Safety Code; valves on utility networks need the utility approval (for example DEWA); industrial valves are specified to API, EN or ISO design standards. What the cited sources do not establish: The sources read do not name a UAE-specific valve standard; state the design standard and pressure class explicitly.",
+      "body_ar": "يجب أن تكون صمامات أنظمة الحريق معتمدة من الدفاع المدني وفق كود الإمارات للحماية من الحريق؛ وتحتاج صمامات شبكات المرافق إلى اعتماد جهة المرافق (مثل هيئة كهرباء ومياه دبي)؛ وتُحدَّد الصمامات الصناعية وفق معايير التصميم API أو EN أو ISO. ما لا تثبته المصادر المذكورة: المصادر المقروءة لا تذكر معياراً إماراتياً خاصاً بالصمامات؛ حدد معيار التصميم وفئة الضغط صراحةً.",
+      "source_note": "The sources read do not name a UAE-specific valve standard; state the design standard and pressure class explicitly.",
+      "sources": [
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://www.iso.org/standards.html"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28"
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What details do I need to give when I ask for a quote for valves and actuators?",
+      "q_ar": "ما التفاصيل التي يجب أن أقدمها عند طلب عرض سعر لـالصمامات والمشغلات؟",
+      "expected_entry_ids": [
+        "valves_actuators:spec-checklist"
+      ]
+    },
+    {
+      "q_en": "Which UAE approvals or standards apply to valves and actuators?",
+      "q_ar": "ما الموافقات أو المعايير الإماراتية التي تنطبق على الصمامات والمشغلات؟",
+      "expected_entry_ids": [
+        "valves_actuators:uae-standards-and-approvals"
+      ]
+    }
+  ],
+  "verified": {
+    "fetched_urls": 1,
+    "claims_checked": 1,
+    "corrected": [],
+    "removed": [],
+    "still_unverified": [
+      "valves_actuators:spec-checklist",
+      "valves_actuators:uae-standards-and-approvals"
+    ],
+    "added": [
+      "valves_actuators:spec-checklist",
+      "valves_actuators:uae-standards-and-approvals"
+    ],
+    "as_of": "2026-09-28",
+    "method": "Authority pages fetched and read on 2026-09-28 (MoIAT services, Dubai Civil Defence fire code page, Dubai Municipality, FTA tax agents, TDRA, MOHAP services, RTA, DLD, SIRA, MOJ services; DEWA Shams Dubai via its own listing pages in search, direct fetch 403). fetched_urls counts this pack's cited sources that were read; claims_checked counts one authority claim per read source. Entries not fully supported by a read source are medium and listed as still_unverified. Spec checklists are senior sales-engineering practice, medium."
+  }
+}

@@ -115,6 +115,11 @@ do $$ declare o jsonb := '{}'; v jsonb; hb bigint; unk bigint; dl bigint; hid bi
     'daily', (select status from public.support_ceo_report where id = dl));
 
   -- GAP 2: the binding constraint becomes one improvement, once
+  -- A live improvement for today's constraint makes the first call answer "proposed already" (29 Sep 2026:
+  -- #4411, invitations:2026-09-22:L1), which proves only the second half. Its key is moved aside inside this
+  -- rolled-back transaction so the first call must open one again and the second must refuse it.
+  update public.ceo_improvement set source_ref = source_ref || ':zz-demo-aside'
+   where source_kind = 'binding_constraint' and status in ('open', 'assigned');
   v := public.fn_ceo_constraint_lever();
   o := o || jsonb_build_object('lever', jsonb_build_object('proposed', v->'proposed', 'stage', v->'stage'), 'lever_again', public.fn_ceo_constraint_lever()->'proposed',
     'lever_row', (select jsonb_build_object('seat', seat, 'status', status, 'handoff', (select status from public.agent_actions where id = i.handoff_id), 'has_due', proposal like '%Due:%')

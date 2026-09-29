@@ -1,0 +1,99 @@
+{
+  "trade": "corporate_training",
+  "layer": "uae-market",
+  "label_en": "Corporate training & certification",
+  "label_ar": "التدريب المؤسسي والشهادات",
+  "entries": [
+    {
+      "id": "corporate_training:uae-market-products",
+      "topic": "Corporate training & certification: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Corporate training in the UAE covers leadership and management development, soft skills (communication, negotiation, customer service, time management), sales training, project management certification prep (PMP, PRINCE2, Agile/Scrum), finance and accounting certifications (ACCA, CMA, CIA, IFRS), HR certifications (CIPD, SHRM), IT certifications (Microsoft, Cisco, AWS, CompTIA, cybersecurity), HSE and technical training (NEBOSH, IOSH, first aid, fire warden, working at height, forklift and crane operator), quality and ISO lead auditor courses (IRCA/Exemplar Global), language courses (Arabic, English, business writing), Emiratisation and graduate programmes, e-learning content development, LMS provision, and coaching. Buyers specify delivery (classroom, in-house, virtual, blended), group size, duration, accreditation (KHDA-approved training institutes in Dubai, ADEK in Abu Dhabi), certification body, CPD hours, and Arabic delivery. Training institutes need a KHDA or equivalent permit; many are also accredited by awarding bodies.",
+      "body_ar": "يشمل التدريب المؤسسي في الإمارات تطوير القيادة والإدارة، والمهارات الشخصية (التواصل، والتفاوض، وخدمة العملاء، وإدارة الوقت)، والتدريب على المبيعات، والتحضير لشهادات إدارة المشاريع (PMP، PRINCE2، Agile/Scrum)، وشهادات المالية والمحاسبة (ACCA، CMA، CIA، IFRS)، وشهادات الموارد البشرية (CIPD، SHRM)، وشهادات تقنية المعلومات (مايكروسوفت، سيسكو، AWS، CompTIA، الأمن السيبراني)، والتدريب على الصحة والسلامة والبيئة والتدريب الفني (NEBOSH، IOSH، الإسعافات الأولية، مسؤول الحريق، العمل على المرتفعات، تشغيل الرافعات الشوكية والرافعات)، ودورات الجودة وكبير المدققين ISO (IRCA/Exemplar Global)، ودورات اللغة (العربية، والإنجليزية، وكتابة الأعمال)، وبرامج التوطين والخريجين، وتطوير محتوى التعلم الإلكتروني، وتوفير أنظمة إدارة التعلم، والتوجيه. يحدد المشترون طريقة التقديم (قاعة دراسية، داخل الشركة، افتراضي، مدمج)، وحجم المجموعة، والمدة، والاعتماد (معاهد تدريب معتمدة من هيئة المعرفة والتنمية البشرية في دبي، ودائرة التعليم والمعرفة في أبوظبي)، وجهة منح الشهادة، وساعات التطوير المهني المستمر، والتقديم باللغة العربية. وتحتاج معاهد التدريب إلى تصريح من هيئة المعرفة أو ما يعادلها؛ ويعتمد كثير منها أيضاً من جهات منح الشهادات.",
+      "sources": [
+        "https://web.khda.gov.ae/en/Services/Training-Institute-Permit-Services/Issuing-an-Educational-Services-Permit-for-a-Train",
+        "https://www.meirc.com/",
+        "https://www.edstellar.com/blog/corporate-training-companies-dubai",
+        "https://www.khda.gov.ae",
+        "https://www.nebosh.org.uk",
+        "https://www.pmi.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A KHDA education services permit is required for training institutes in Dubai before operating -> confirmed | MEIRC (since 1958, Dubai and Abu Dhabi) and Dale Carnegie UAE deliver corporate training; NIST Global is a NEBOSH learning partner in Dubai -> confirmed | PwC Academy, EY/KPMG academies, Informa/IIR, Franklin Covey -> removed: not checked. Not checked: Which named firms currently hold KHDA permits and the list of approved learning partners were not verified."
+    },
+    {
+      "id": "corporate_training:uae-market-brands",
+      "topic": "Corporate training & certification: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE training providers and the awarding bodies behind common certifications: MEIRC Training & Consulting, Dale Carnegie UAE, NIST Global, British Council, NEBOSH, PMI, CIPD, ACCA. Check that the provider holds a KHDA (Dubai) or ADEK (Abu Dhabi) permit and is an approved partner of the awarding body.",
+      "body_ar": "مقدمو التدريب المؤكدون في الإمارات وجهات منح الشهادات الشائعة: MEIRC Training & Consulting، Dale Carnegie UAE، NIST Global، British Council، NEBOSH، PMI، CIPD، ACCA. ويجب التحقق من حصول المقدم على تصريح من هيئة المعرفة (دبي) أو دائرة التعليم والمعرفة (أبوظبي) وأنه شريك معتمد لدى جهة منح الشهادة.",
+      "sources": [
+        "https://web.khda.gov.ae/en/Services/Training-Institute-Permit-Services/Issuing-an-Educational-Services-Permit-for-a-Train",
+        "https://www.meirc.com/",
+        "https://www.edstellar.com/blog/corporate-training-companies-dubai",
+        "https://www.khda.gov.ae",
+        "https://www.nebosh.org.uk",
+        "https://www.pmi.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A KHDA education services permit is required for training institutes in Dubai before operating -> confirmed | MEIRC (since 1958, Dubai and Abu Dhabi) and Dale Carnegie UAE deliver corporate training; NIST Global is a NEBOSH learning partner in Dubai -> confirmed | PwC Academy, EY/KPMG academies, Informa/IIR, Franklin Covey -> removed: not checked. Not checked: Which named firms currently hold KHDA permits and the list of approved learning partners were not verified."
+    },
+    {
+      "id": "corporate_training:uae-market-sizes",
+      "topic": "Corporate training & certification: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Priced per participant per course (public courses), per day for in-house delivery (for a group, commonly up to 15-20 participants), or per programme; exam and certification fees are often separate and paid to the awarding body. E-learning content is priced per module or per learning hour produced; LMS per user per year. Corporate training budgets are commonly framed per employee per year.",
+      "body_ar": "تُسعّر لكل مشارك لكل دورة (الدورات العامة)، أو لكل يوم للتدريب داخل الشركة (للمجموعة، عادةً حتى 15-20 مشاركاً)، أو لكل برنامج؛ وغالباً ما تكون رسوم الامتحانات والشهادات منفصلة وتُدفع لجهة منح الشهادة. ويُسعّر محتوى التعلم الإلكتروني لكل وحدة أو لكل ساعة تعلم منتجة؛ ونظام إدارة التعلم لكل مستخدم سنوياً. وعادةً ما تُحدد ميزانيات التدريب المؤسسي لكل موظف سنوياً.",
+      "sources": [
+        "https://web.khda.gov.ae/en/Services/Training-Institute-Permit-Services/Issuing-an-Educational-Services-Permit-for-a-Train",
+        "https://www.meirc.com/",
+        "https://www.edstellar.com/blog/corporate-training-companies-dubai",
+        "https://www.khda.gov.ae",
+        "https://www.nebosh.org.uk",
+        "https://www.pmi.org"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: A KHDA education services permit is required for training institutes in Dubai before operating -> confirmed | MEIRC (since 1958, Dubai and Abu Dhabi) and Dale Carnegie UAE deliver corporate training; NIST Global is a NEBOSH learning partner in Dubai -> confirmed | PwC Academy, EY/KPMG academies, Informa/IIR, Franklin Covey -> removed: not checked. Not checked: Which named firms currently hold KHDA permits and the list of approved learning partners were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Does a training provider in Dubai need a KHDA permit?",
+      "q_ar": "هل يحتاج مقدم التدريب في دبي إلى تصريح من هيئة المعرفة والتنمية البشرية؟",
+      "expected_entry_ids": [
+        "corporate_training:uae-market-brands"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "A KHDA education services permit is required for training institutes in Dubai before operating",
+        "url": "https://web.khda.gov.ae/en/Services/Training-Institute-Permit-Services/Issuing-an-Educational-Services-Permit-for-a-Train",
+        "result": "confirmed"
+      },
+      {
+        "claim": "MEIRC (since 1958, Dubai and Abu Dhabi) and Dale Carnegie UAE deliver corporate training; NIST Global is a NEBOSH learning partner in Dubai",
+        "url": "https://www.meirc.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "PwC Academy, EY/KPMG academies, Informa/IIR, Franklin Covey",
+        "url": "https://www.edstellar.com/blog/corporate-training-companies-dubai",
+        "result": "removed: not checked"
+      }
+    ],
+    "unverified": "Which named firms currently hold KHDA permits and the list of approved learning partners were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

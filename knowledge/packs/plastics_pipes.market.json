@@ -1,0 +1,96 @@
+{
+  "trade": "plastics_pipes",
+  "layer": "uae-market",
+  "label_en": "Plastics, Pipes & Fittings",
+  "label_ar": "البلاستيك والأنابيب والتجهيزات",
+  "entries": [
+    {
+      "id": "plastics_pipes:uae-market-products",
+      "topic": "Plastics, Pipes & Fittings: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Plastics, pipes and fittings in the UAE: uPVC pressure pipes (EN 1452/BS 3505, classes/PN 6-16) and drainage pipes (BS EN 1329/1401, 110-400 mm), CPVC hot/cold, PPR (PN10/16/20, DIN 8077/8078), PE100 and PE80 HDPE pressure pipes (ISO 4427/EN 12201, SDR 11/17) for water, irrigation and gas, PEX/PE-RT, HDPE corrugated double-wall pipes (SN4/SN8) for storm and sewer, GRP pipes, conduits (PVC and HDPE ducts for cable), fittings (injection-moulded, electrofusion, butt-fusion, compression, solvent-cement), manhole chambers, tanks, and plastic sheets/rods (PVC, PP, HDPE, acrylic, polycarbonate). Utility projects need authority-approved makes (DEWA, ADDC, SEWA, Etihad WE, ADSSC/sewage). Buyers specify material, standard, diameter, pressure class/SDR, stiffness, colour, and approval.",
+      "body_ar": "البلاستيك والأنابيب والتجهيزات في الإمارات: أنابيب uPVC للضغط (EN 1452/BS 3505، فئات PN 6-16) وللصرف (BS EN 1329/1401، 110-400 مم)، وCPVC للساخن والبارد، وPPR (PN10/16/20، DIN 8077/8078)، وأنابيب HDPE من PE100 وPE80 للضغط (ISO 4427/EN 12201، SDR 11/17) للمياه والري والغاز، وPEX/PE-RT، وأنابيب HDPE المموجة مزدوجة الجدار (SN4/SN8) لمياه الأمطار والصرف، وأنابيب GRP، ومواسير الكابلات (قنوات PVC وHDPE)، والتجهيزات (المحقونة، والصهر الكهربائي، والصهر التناكبي، والضغط، واللاصق)، وغرف التفتيش، والخزانات، والألواح والقضبان البلاستيكية (PVC وPP وHDPE والأكريليك والبولي كربونات). وتحتاج مشاريع المرافق علامات معتمدة من الجهات. يحدد المشتري المادة والمعيار والقطر وفئة الضغط/SDR والصلابة واللون والاعتماد.",
+      "sources": [
+        "https://harwal.net/our-companies/cosmoplast/",
+        "https://futurepipe.com/",
+        "https://harwal.net/our-companies/",
+        "https://www.iso.org",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmoplast is the largest regional thermoplastic pipe maker (Harwal) -> confirmed | Future Pipe Industries GRP -> confirmed | Union Pipes, APICO, Dubai Pipes Factory -> not checked; removed. Not checked: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+    },
+    {
+      "id": "plastics_pipes:uae-market-brands",
+      "topic": "Plastics, Pipes & Fittings: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Makers and brands: Cosmoplast, Future Pipe Industries, Borouge, Amiantit, Georg Fischer, Aliaxis, Wavin, Aquatherm, Rehau, Uponor, Polypipe. Cosmoplast (PE, PVC and PPR, with Borouge resin) and Future Pipe Industries (GRP) are UAE producers. The rest are imported, and their UAE distributors were not checked. Trading is concentrated in Deira (Al Ras), Sharjah Industrial Area and Musaffah. Utility projects need makes approved by the authority.",
+      "body_ar": "المصنّعون والعلامات: Cosmoplast، Future Pipe Industries، Borouge، Amiantit، Georg Fischer، Aliaxis، Wavin، Aquatherm، Rehau، Uponor، Polypipe. وCosmoplast (أنابيب PE وPVC وPPR بخامة Borouge) وFuture Pipe Industries (GRP) منتجون إماراتيون، والبقية مستوردة ولم يُتحقق من موزعيها. وتتركز التجارة في ديرة (الراس) والمنطقة الصناعية بالشارقة ومصفح، وتحتاج مشاريع المرافق علامات معتمدة من الجهات.",
+      "sources": [
+        "https://harwal.net/our-companies/cosmoplast/",
+        "https://futurepipe.com/",
+        "https://harwal.net/our-companies/",
+        "https://www.iso.org",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmoplast is the largest regional thermoplastic pipe maker (Harwal) -> confirmed | Future Pipe Industries GRP -> confirmed | Union Pipes, APICO, Dubai Pipes Factory -> not checked; removed. Not checked: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+    },
+    {
+      "id": "plastics_pipes:uae-market-sizes",
+      "topic": "Plastics, Pipes & Fittings: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Pipes per length (uPVC 6 m; PPR 4 m; HDPE 6/12 m or coils up to 100 m for small diameters) or per metre; fittings per piece; price lists with trade discounts; project quotes against a BOQ with approved-makes compliance. Diameters: uPVC/PPR 20-160 mm common, HDPE 20-1,200 mm. Quotes state standard, class and authority approval.",
+      "body_ar": "الأنابيب بالطول (uPVC بطول 6 م؛ وPPR بطول 4 م؛ وHDPE بطول 6/12 م أو لفائف حتى 100 م للأقطار الصغيرة) أو بالمتر؛ والتجهيزات بالقطعة؛ وقوائم أسعار بخصومات تجارية؛ وعروض المشاريع مقابل جدول كميات مع الالتزام بالعلامات المعتمدة. الأقطار: uPVC/PPR من 20 إلى 160 مم شائعة، وHDPE من 20 إلى 1,200 مم. وتذكر العروض المعيار والفئة واعتماد الجهة.",
+      "sources": [
+        "https://harwal.net/our-companies/cosmoplast/",
+        "https://futurepipe.com/",
+        "https://harwal.net/our-companies/",
+        "https://www.iso.org",
+        "https://www.dewa.gov.ae"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Cosmoplast is the largest regional thermoplastic pipe maker (Harwal) -> confirmed | Future Pipe Industries GRP -> confirmed | Union Pipes, APICO, Dubai Pipes Factory -> not checked; removed. Not checked: Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "What does SDR 11 PE100 mean on an HDPE pipe?",
+      "q_ar": "ماذا يعني SDR 11 PE100 على أنبوب HDPE؟",
+      "expected_entry_ids": [
+        "plastics_pipes:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Cosmoplast is the largest regional thermoplastic pipe maker (Harwal)",
+        "url": "https://harwal.net/our-companies/cosmoplast/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Future Pipe Industries GRP",
+        "url": "https://futurepipe.com/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Union Pipes, APICO, Dubai Pipes Factory",
+        "url": "https://harwal.net/our-companies/",
+        "result": "not checked; removed"
+      }
+    ],
+    "unverified": "Utility approved-make lists per emirate and some local producers' current names were not verified. A company website named for this trade did not answer on 28 Sep 2026 and was removed from the sources.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
