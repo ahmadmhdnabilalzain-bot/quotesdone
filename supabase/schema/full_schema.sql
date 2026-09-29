@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T03:46:44.639Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T05:48:30.276Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -11409,6 +11409,7 @@ CREATE INDEX drawing_redaction_runs_outputs_idx ON public.drawing_redaction_runs
 CREATE INDEX dropbox_files_path ON public.dropbox_files USING btree (path);
 CREATE INDEX ea_events_start ON public.ea_events USING btree (starts_at);
 CREATE INDEX ea_reminders_at ON public.ea_reminders USING btree (remind_at) WHERE (NOT done);
+CREATE INDEX edge_health_probe_checked_at_idx ON public.edge_health_probe USING btree (checked_at);
 CREATE INDEX edge_health_probe_fn_idx ON public.edge_health_probe USING btree (fn_key, checked_at DESC);
 CREATE INDEX email_domain_mx_undeliverable_idx ON public.email_domain_mx USING btree (domain) WHERE (has_mx = false);
 CREATE INDEX email_verifications_lookup_idx ON public.email_verifications USING btree (email, purpose, used_at, created_at DESC);
@@ -22465,21 +22466,24 @@ CREATE OR REPLACE FUNCTION public.fn_ads_autospend_state()
  RETURNS jsonb
  LANGUAGE sql
  STABLE
- SET search_path TO 'public'
+ SET search_path TO 'public', 'pg_temp'
 AS $function$
   with s as (
     select
       coalesce((select lower(trim(value)) from public.app_secrets where key = 'meta_autospend_golive'), 'false') = 'true' as golive,
       coalesce((select length(trim(value)) >= 24 from public.app_secrets where key = 'meta_access_token'), false)        as token_present,
       (select case when trim(value) ~ '^[0-9]+(\.[0-9]+)?$' and trim(value)::numeric > 0 then trim(value)::numeric end
-         from public.app_secrets where key = 'meta_daily_budget_cap_aed')                                               as cap_aed
+         from public.app_secrets where key = 'meta_daily_budget_cap_aed')                                               as cap_aed,
+      public.fn_every_category_has_ten_suppliers()                                                                      as ten
   )
   select jsonb_build_object(
     'golive', golive,
     'token_present', token_present,
     'cap_aed', cap_aed,
-    'live_allowed', golive and token_present and cap_aed is not null,
+    'every_category_has_ten', (ten->>'gate')::boolean,
+    'live_allowed', (ten->>'gate')::boolean and golive and token_present and cap_aed is not null,
     'reason', case
+      when not (ten->>'gate')::boolean then format('organic only (ledger 1004): %s of %s categories have fewer than 10 verified suppliers', ten->>'below_ten', ten->>'categories')
       when not golive then 'meta_autospend_golive is not ''true'''
       when not token_present then 'meta_access_token is absent'
       when cap_aed is null then 'meta_daily_budget_cap_aed is not a positive number'
@@ -31723,6 +31727,75 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_ceo_supplier_target(p_at timestamp with time zone DEFAULT now(), p_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare s jsonb := public.fn_ceo_supplier_target_status(p_at, p_demo); g jsonb := public.fn_every_category_has_ten_suppliers(p_demo);
+  v_title text; v_task bigint;
+begin
+  if (s->>'behind')::boolean then
+    v_title := format('Supplier target behind on %s%s', s->>'day', case when p_demo then ' (demo)' else '' end);
+    if not exists (select 1 from public.ceo_task where title = v_title) then
+      v_task := public.fn_ceo_task_open(v_title, format(
+        E'%s verified suppliers against %s expected on the path to %s by %s. Shortfall %s in %s days: %s a day needed.\n'
+        || E'Registered (capabilities confirmed): %s. Categories below 10 verified: %s of %s, so paid marketing stays closed (ledger 1004).\n'
+        || 'Trades with 10+ verified, by emirate: %s. Direct the sales engineer and marketing to the widest trades.',
+        s->>'verified', s->>'expected_today', s->>'target', s->>'milestone', s->>'shortfall', s->>'days_left', s->>'pace_per_day',
+        s->>'registered', g->>'below_ten', g->>'categories', s->'trades_at_ten_by_emirate'));
+    end if;
+  end if;
+  return s || jsonb_build_object('task_id', v_task, 'gate', g->'gate', 'below_ten', g->'below_ten');
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_supplier_target_now()
+ RETURNS jsonb
+ LANGUAGE sql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$ select public.fn_ceo_supplier_target(now(), false) $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_ceo_supplier_target_status(p_at timestamp with time zone DEFAULT now(), p_demo boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_day date := (p_at at time zone 'Asia/Dubai')::date; v_verified int; v_registered int;
+  m record; v_expected numeric; v_short int; v_days int; v_emirates jsonb;
+begin
+  select coalesce(sum(verified), 0), coalesce(sum(registered), 0) into v_verified, v_registered
+    from (select count(*) filter (where public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)) as verified,
+                 count(*) as registered
+            from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+           where sc.confirmed_at is not null and coalesce(l.is_demo, false) = p_demo) x;
+  -- The founder's year-one milestones (24 Sep 2026, restated 28 Sep). The path starts at 0 on 28 Sep 2026.
+  select * into m from (values
+      (date '2026-10-12',  50, date '2026-09-28',   0),
+      (date '2026-11-30', 200, date '2026-10-12',  50),
+      (date '2026-12-31', 300, date '2026-11-30', 200)) v(due, target, prev_due, prev_target)
+   where v.due >= v_day order by v.due limit 1;
+  if m.due is null then
+    return jsonb_build_object('day', v_day, 'verified', v_verified, 'registered', v_registered, 'milestone', null, 'behind', false);
+  end if;
+  v_expected := m.prev_target + (m.target - m.prev_target) * greatest(0, least(1, (v_day - m.prev_due)::numeric / (m.due - m.prev_due)));
+  v_short := greatest(0, m.target - v_verified);
+  v_days := greatest(1, m.due - v_day);
+  select jsonb_object_agg(emirate, verified) into v_emirates
+    from (select emirate, count(distinct trade) filter (where verified >= 10) as verified
+            from public.fn_supplier_target_by_trade_emirate(p_demo) group by emirate) e;
+  return jsonb_build_object('day', v_day, 'verified', v_verified, 'registered', v_registered,
+    'milestone', m.due, 'target', m.target, 'expected_today', floor(v_expected)::int,
+    'behind_path', greatest(0, floor(v_expected)::int - v_verified), 'shortfall', v_short,
+    'days_left', m.due - v_day, 'pace_per_day', round(v_short::numeric / v_days, 1),
+    'behind', v_verified < floor(v_expected), 'trades_at_ten_by_emirate', v_emirates);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_ceo_takes_sales_escalation(p_id bigint)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -39856,6 +39929,26 @@ begin
 end; $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_every_category_has_ten_suppliers(p_demo boolean DEFAULT false, p_trades text[] DEFAULT NULL::text[])
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with c as (
+    select * from public.fn_supplier_target_by_trade_emirate(p_demo)
+     where emirate = 'UAE' and (p_trades is null or trade = any(p_trades))
+  )
+  select jsonb_build_object(
+    'gate', count(*) > 0 and count(*) filter (where verified < 10) = 0,
+    'categories', count(*),
+    'below_ten', count(*) filter (where verified < 10),
+    'short', coalesce(jsonb_agg(jsonb_build_object('trade', trade, 'label', label, 'verified', verified)
+                                order by verified, trade) filter (where verified < 10), '[]'::jsonb))
+  from c
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_exam_revert(p_agent_key text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -45482,16 +45575,18 @@ begin
       select count(*) filter (where reason like 'hard_bounce%'), count(*) filter (where reason = 'spam_complaint')
         into v_n, v_rate from public.email_suppressions
        where source = 'resend_webhook' and created_at > now() - interval '7 days';
-      if v_n / v_d > public.fn_it_threshold('sender_bounce_rate_max') then
-        v_items := v_items || jsonb_build_object('item', 'bounce_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
-          'title', round(100 * v_n / v_d, 2) || '% of last week''s emails hard-bounced', 'blast', 'customer_facing', 'affected', 1,
-          'evidence', jsonb_build_object('hard_bounces', v_n, 'sent', v_d, 'max', public.fn_it_threshold('sender_bounce_rate_max')));
-      end if;
-      if v_rate / v_d > public.fn_it_threshold('sender_complaint_rate_max') then
-        v_items := v_items || jsonb_build_object('item', 'complaint_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
-          'title', round(100 * v_rate / v_d, 3) || '% of last week''s emails were reported as spam', 'blast', 'customer_facing', 'affected', 1,
-          'evidence', jsonb_build_object('complaints', v_rate, 'sent', v_d, 'max', public.fn_it_threshold('sender_complaint_rate_max')));
-      end if;
+      v_items := v_items || public.fn_it_sender_rate_items(v_d, v_n, v_rate);
+    end if;
+    -- DMARC aggregate reports (rua) read by _shared/it_scheduled_readings.ts dmarcReports(). An
+    -- 'unavailable' reading (no report arrived) raises nothing: an absence is not a clean bill.
+    if coalesce(p_r->'sender'->'dmarc_reports'->>'basis', '') = 'measured'
+       and coalesce((p_r->'sender'->'dmarc_reports'->>'messages')::numeric, 0) > 0
+       and (p_r->'sender'->'dmarc_reports'->>'failed')::numeric / (p_r->'sender'->'dmarc_reports'->>'messages')::numeric
+           > public.fn_it_threshold('sender_dmarc_fail_rate_max') then
+      v_items := v_items || jsonb_build_object('item', 'dmarc_fail_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+        'title', round(100 * (p_r->'sender'->'dmarc_reports'->>'failed')::numeric / (p_r->'sender'->'dmarc_reports'->>'messages')::numeric, 2)
+                 || '% of the mail receivers saw from our domain failed DMARC',
+        'blast', 'customer_facing', 'affected', 1, 'evidence', p_r->'sender'->'dmarc_reports');
     end if;
     v_out := v_out || jsonb_build_object('sender', public.fn_it_duty_settle('sender', v_items));
     perform public.fn_it_duty_ran('sender', v_out->'sender');
@@ -46408,6 +46503,47 @@ CREATE OR REPLACE FUNCTION public.fn_it_engineer_duty_knowledge_exam()
 AS $function$ select jsonb_build_object('asked', 0, 'retired', 'the model exam files no question (24 Sep 2026)') $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_chase()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare f public.it_engineer_finding; o public.agent_actions; n_chased int := 0; n_opened int := 0; v_day int; v_id bigint;
+        v_seats jsonb := '{}'::jsonb;
+begin
+  for f in
+    select * from public.it_engineer_finding
+     where closed_at is null and started_at < now() - interval '24 hours'
+       and issue_key not like 'duty:handoff_sla:%'
+       and title not ilike '%ZZ DEMO%' and not coalesce((evidence->>'demo')::boolean, false)
+     order by started_at limit 40
+  loop
+    select * into o from public.agent_actions
+     where kind = 'handoff' and detail->>'type' = 'it.finding' and detail->>'from' = 'it_engineer'
+       and detail->>'issue_key' = f.issue_key and not coalesce((detail->>'chase')::boolean, false)
+     order by id desc limit 1;
+    if not found then
+      perform public.fn_it_loop_open(f.issue_key);   -- no loop yet: open the ordinary one, owner resolved there
+      n_opened := n_opened + 1;
+      continue;
+    end if;
+    v_day := floor(extract(epoch from now() - f.started_at) / 86400)::int;
+    v_id := public.fn_seat_handoff('it_engineer', o.agent, 'it.finding', 'it_engineer_finding',
+      f.issue_key || '@' || floor(extract(epoch from f.started_at))::bigint || '@chase' || v_day,
+      jsonb_build_object(
+        'issue_key', f.issue_key, 'occurrence_started_at', f.started_at, 'duty', coalesce(o.detail->>'duty', 'fault'),
+        'subject', o.detail->>'subject', 'title', 'Open ' || v_day || ' day(s): ' || f.title, 'where_it_is', f.where_it_is,
+        'chase', true, 'age_hours', round(extract(epoch from now() - f.started_at) / 3600),
+        'original_handoff_id', o.id, 'finding_severity', public.fn_it_engineer_severity(f.blast, f.affected, f.started_at),
+        'escalated_report_id', o.detail->'escalated_report_id'));
+    n_chased := n_chased + 1;
+    v_seats := jsonb_set(v_seats, array[o.agent], to_jsonb(coalesce((v_seats->>o.agent)::int, 0) + 1));
+  end loop;
+  return jsonb_build_object('chased', n_chased, 'loops_opened', n_opened, 'by_seat', v_seats);
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_it_engineer_finding_close(p_issue_key text, p_note text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -47134,6 +47270,39 @@ AS $function$
     else case when coalesce(p_affected,0) > 0 and now() - p_started_at >= interval '6 hours' then 'high' else 'warn' end
   end;
 $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_engineer_uptime_slo()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare x record; v_items jsonb := '[]'::jsonb; v_out jsonb := '[]'::jsonb; v_pruned int;
+begin
+  for x in
+    select substring(fn_key from 8) url, count(*) n, count(*) filter (where verdict = 'up') up
+      from public.edge_health_probe
+     where fn_key like 'uptime:%' and checked_at > now() - interval '30 days'
+     group by 1
+  loop
+    v_out := v_out || jsonb_build_object('url', x.url, 'samples', x.n, 'up', x.up,
+                                         'uptime_pct', round(100.0 * x.up / x.n, 3));
+    if x.n >= 96 and x.up::numeric / x.n < 0.999 then
+      v_items := v_items || jsonb_build_object('item', x.url, 'subject', 'website', 'blast', 'customer_facing',
+        'owner_seat', 'it_engineer', 'affected', x.n - x.up,
+        'title', x.url || ' was up ' || round(100.0 * x.up / x.n, 3) || '% of ' || x.n
+                 || ' external checks over 30 days; the target is 99.9%',
+        'evidence', jsonb_build_object('samples', x.n, 'up', x.up, 'down', x.n - x.up, 'target', 0.999, 'window', '30 days'));
+    end if;
+  end loop;
+
+  delete from public.edge_health_probe
+   where id in (select id from public.edge_health_probe where checked_at < now() - interval '90 days' limit 5000);
+  get diagnostics v_pruned = row_count;
+
+  return jsonb_build_object('urls', v_out, 'pruned', v_pruned, 'settled', public.fn_it_duty_settle('uptime_slo', v_items));
+end $function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_it_expiry_measured(p_expiries jsonb)
@@ -48812,6 +48981,25 @@ AS $function$
          then 'whatsapp_quality' end,
     case when coalesce(p_blocklisted, 0) > 0 then 'blocklisted' end
   ], null)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_it_sender_rate_items(p_sent numeric, p_hard_bounces numeric, p_complaints numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select coalesce(jsonb_agg(i), '[]'::jsonb) from (
+    select jsonb_build_object('item', 'bounce_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+             'title', round(100 * p_hard_bounces / p_sent, 2) || '% of last week''s emails hard-bounced', 'blast', 'customer_facing', 'affected', 1,
+             'evidence', jsonb_build_object('hard_bounces', p_hard_bounces, 'sent', p_sent, 'max', public.fn_it_threshold('sender_bounce_rate_max'))) i
+     where p_sent > 0 and p_hard_bounces / p_sent > public.fn_it_threshold('sender_bounce_rate_max')
+    union all
+    select jsonb_build_object('item', 'complaint_rate', 'owner_seat', 'customer_support', 'subject', 'send_outbox',
+             'title', round(100 * p_complaints / p_sent, 3) || '% of last week''s emails were reported as spam', 'blast', 'customer_facing', 'affected', 1,
+             'evidence', jsonb_build_object('complaints', p_complaints, 'sent', p_sent, 'max', public.fn_it_threshold('sender_complaint_rate_max')))
+     where p_sent > 0 and p_complaints / p_sent > public.fn_it_threshold('sender_complaint_rate_max')) z
 $function$
 
 
@@ -60218,16 +60406,6 @@ AS $function$
 $function$
 
 
-CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
- RETURNS jsonb
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
-$function$
-
-
 CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric, p_quantity numeric, p_unit text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -60398,6 +60576,16 @@ begin
     'sources', v_srcs,
     'reference_bands', v_ref, 'item_bands', v_items);
 end
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_price_confidence(p_category text, p_amount numeric)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select public.fn_price_confidence(p_category, p_amount, null::numeric, null::text);
 $function$
 
 
@@ -66675,6 +66863,50 @@ begin
   end if;
   return jsonb_build_object('attached', true, 'ladder_evidence_id', v_ev, 'result', d->>'result', 'delivered', v_delivered, 'ceo_review', v_rev);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_comparison_kpi(p_days integer DEFAULT 7)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+with rep as (
+  select c.inquiry_id, min(c.created_at) as reported_at
+    from public.qd_compare_cache c
+   where not (c.analysis ? '__failed')
+     and c.created_at >= now() - make_interval(days => greatest(1, p_days))
+   group by c.inquiry_id
+),
+q as (
+  select r.inquiry_id,
+         count(*) filter (where coalesce(qt.price_ex_vat, qt.quote_amount) is not null
+                            and nullif(btrim(qt.lead_time), '') is not null
+                            and nullif(btrim(qt.validity), '') is not null
+                            and nullif(btrim(qt.warranty), '') is not null
+                            and nullif(btrim(qt.payment_terms), '') is not null) as complete_n,
+         count(*) filter (where nullif(btrim(qt.exclusions), '') is not null) as excl_n
+    from rep r
+    left join public.quotes qt on qt.inquiry_id::text = r.inquiry_id
+   group by r.inquiry_id
+),
+t as (
+  select r.inquiry_id, extract(epoch from (r.reported_at - i.created_at)) / 3600.0 as hours,
+         q.complete_n, q.excl_n
+    from rep r
+    join q on q.inquiry_id = r.inquiry_id
+    left join public.inquiries i on i.id::text = r.inquiry_id
+)
+select jsonb_build_object(
+  'window_days', greatest(1, p_days),
+  'reports', count(*),
+  'hours_median', round((percentile_cont(0.5) within group (order by hours))::numeric, 1),
+  'hours_p90', round((percentile_cont(0.9) within group (order by hours))::numeric, 1),
+  'share_3plus_complete', case when count(*) > 0 then round(count(*) filter (where complete_n >= 3)::numeric / count(*), 3) end,
+  'reports_with_exclusions', count(*) filter (where excl_n > 0),
+  'quotes_with_exclusions', coalesce(sum(excl_n), 0))
+from t;
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_sales_engineer_disputes_tick()
@@ -73586,6 +73818,33 @@ AS $function$
          else 'no date: charging starts with the registration after the free count (founder, 6 Sep 2026)' end as start_source,
     case when (select supplier_free_count from pc) is not null then 'pricing_config'
          when (select free_limit from s) is not null then 'app_secrets' else 'default' end         as free_source;
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_supplier_target_by_trade_emirate(p_demo boolean DEFAULT false)
+ RETURNS TABLE(trade text, label text, emirate text, registered integer, verified integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with sup as materialized (
+    select sc.trades,
+           public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes) as ok,
+           array(select distinct lower(btrim(e)) from unnest(coalesce(sc.coverage_emirates, '{}'::text[]) || coalesce(l.service_emirates, '{}'::text[])) e
+                  where nullif(btrim(e), '') is not null) as stated
+      from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
+     where sc.confirmed_at is not null and coalesce(l.is_demo, false) = p_demo
+  ), em(emirate) as (
+    values ('UAE'), ('Abu Dhabi'), ('Dubai'), ('Sharjah'), ('Ajman'), ('Umm Al Quwain'), ('Ras Al Khaimah'), ('Fujairah')
+  )
+  select t.code, t.label, em.emirate,
+         count(s.trades)::int,
+         (count(s.trades) filter (where s.ok))::int
+    from public.taxonomy_trade t cross join em
+    left join sup s on t.code = any(s.trades)
+                   and (em.emirate = 'UAE' or cardinality(s.stated) = 0 or lower(em.emirate) = any(s.stated))
+   where t.active
+   group by t.code, t.label, em.emirate
 $function$
 
 
