@@ -53,45 +53,47 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_approval_reply(p jsonb)
 AS $function$
 declare
   v_token text := lower(coalesce(p->>'token', '')); v_from text := lower(btrim(coalesce(p->>'from_email', '')));
-  a public.marketing_article; d public.marketing_plan_doc; v_out text; v_what text; v_msg text;
+  d public.marketing_plan_doc; v_out text; v_what text; v_msg text;
 begin
   if v_from is distinct from public.fn_marketing_founder_email() then return jsonb_build_object('outcome', 'not_the_founder'); end if;
-  select * into a from public.marketing_article where approval_token = v_token and v_token <> '' for update;
-  if a.id is null then select * into d from public.marketing_plan_doc where approval_token = v_token and v_token <> '' for update; end if;
-  v_what := coalesce('article "' || a.title_en || '"', case when d.id is not null then 'launch plan for ' || to_char(d.period, 'FMMonth YYYY') end);
+  -- ARTICLE APPROVAL IS RETIRED (founder 1058): a reply to any article approval email ever sent changes nothing.
+  if v_token <> '' and (exists (select 1 from public.marketing_article where approval_token = v_token)
+       or exists (select 1 from public.notifications where kind = 'marketing_article_approval'
+                   and reply_to = 'approve+' || v_token || '@mail.quotesdone.com')) then
+    perform public.fn_marketing_mail_founder('marketing_approval_reply', 'Not changed: article approval is retired',
+      'Blog articles are no longer approved by you: the CEO seat reviews each one, and you are told only when one goes live. '
+      || 'Your reply changed nothing and published nothing.');
+    return jsonb_build_object('outcome', 'article_approval_retired');
+  end if;
+  select * into d from public.marketing_plan_doc where approval_token = v_token and v_token <> '' for update;
+  v_what := case when d.id is not null then 'launch plan for ' || to_char(d.period, 'FMMonth YYYY') end;
   if v_what is null then
     v_out := 'unknown'; v_msg := 'Your reply did not match an approval email, so nothing was changed. Please reply to the latest one.';
   elsif not coalesce((p->>'authenticated')::boolean, false) then
     v_out := 'not_authenticated';
     v_msg := 'A reply about the ' || v_what || ' arrived with your address but could not be verified as coming from your mailbox, so nothing was changed.';
-  elsif (a.id is not null and a.status <> 'draft') or (d.id is not null and d.status <> 'sent_to_founder') then
+  elsif d.status <> 'sent_to_founder' then
     v_out := 'already_decided'; v_msg := 'The ' || v_what || ' was already decided; nothing was changed.';
   elsif p->>'intent' = 'approve' then
-    if a.id is not null then perform public.fn_marketing_article_approve(a.slug, 'founder');
-    else update public.marketing_plan_doc set status = 'approved', decided_at = now(), updated_at = now() where id = d.id; end if;
-    v_out := 'approved';
-    v_msg := 'Approved: the ' || v_what || '. ' || case when a.id is not null
-      then 'It is released on the next UAE working day on the weekly cadence.' else 'The marketing seat runs it from 1 January 2027.' end;
+    update public.marketing_plan_doc set status = 'approved', decided_at = now(), updated_at = now() where id = d.id;
+    v_out := 'approved'; v_msg := 'Approved: the ' || v_what || '. The marketing seat runs it from 1 January 2027.';
   elsif btrim(coalesce(p->>'text', '')) = '' then
     -- an empty reply is not a change: nothing is filed, the token stays valid, and the item is still his to approve
     v_out := 'empty_reply';
     v_msg := 'Your reply about the ' || v_what || ' was empty, so nothing was changed and it is still waiting for you. '
           || 'Reply "approve" to the same email, or write the change you want.';
   else
-    if a.id is not null then
-      update public.marketing_article set founder_change_request = left(btrim(p->>'text'), 4000), approval_token = null, updated_at = now() where id = a.id;
-    else
-      -- his change joins the plan (founder_changes) and the next daily redraw is re-sent to him with it
-      update public.marketing_plan_doc set status = 'change_requested', founder_note = left(btrim(p->>'text'), 4000),
-             founder_changes = founder_changes || to_jsonb(left(btrim(p->>'text'), 4000)),
-             approval_token = null, decided_at = now(), updated_at = now() where id = d.id;
-    end if;
+    -- his change joins the plan (founder_changes) and the next daily redraw is re-sent to him with it
+    update public.marketing_plan_doc set status = 'change_requested', founder_note = left(btrim(p->>'text'), 4000),
+           founder_changes = founder_changes || to_jsonb(left(btrim(p->>'text'), 4000)),
+           approval_token = null, decided_at = now(), updated_at = now() where id = d.id;
     v_out := 'change_requested';
-    v_msg := 'Your change to the ' || v_what || ' was passed to the marketing seat; nothing is published until you approve the new version.';
+    v_msg := 'Your change to the ' || v_what || ' is written into the plan, which is sent back to you with it. '
+          || 'Nothing is run until you approve the new version.';
   end if;
   perform public.fn_marketing_mail_founder('marketing_approval_reply',
     case when v_out = 'approved' then 'Approved: ' when v_out = 'change_requested' then 'Change noted: ' else 'Not changed: ' end || coalesce(v_what, 'approval'), v_msg);
-  return jsonb_build_object('outcome', v_out, 'article', a.slug, 'plan_doc', d.id);
+  return jsonb_build_object('outcome', v_out, 'plan_doc', d.id);
 end $function$
 
 
@@ -103,11 +105,25 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_article_approve(p_slug text, p_by
 AS $function$
 declare v_id bigint;
 begin
-  if p_by is distinct from 'founder' then return jsonb_build_object('ok', false, 'error', 'only_the_founder_approves_an_article'); end if;
-  update public.marketing_article set status = 'approved', approved_by = 'founder', approved_at = now(), updated_at = now()
-   where slug = p_slug and status = 'draft' returning id into v_id;
-  return jsonb_build_object('ok', v_id is not null, 'slug', p_slug, 'error', case when v_id is null then 'not_a_draft' end);
+  if p_by is distinct from 'ceo' then return jsonb_build_object('ok', false, 'error', 'only_the_ceo_seat_approves_an_article'); end if;
+  update public.marketing_article a set status = 'approved', approved_by = 'ceo', approved_at = now(), updated_at = now()
+   where a.slug = p_slug and a.status = 'draft' and a.kind = 'market_topic'
+     and (select r.decision from public.marketing_article_round r where r.article_id = a.id order by r.round desc limit 1) = 'approve'
+  returning a.id into v_id;
+  return jsonb_build_object('ok', v_id is not null, 'slug', p_slug, 'error', case when v_id is null then 'no_approved_review_round' end);
 end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_fingerprint(p_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select md5(concat_ws(E'\x1f', title_en, excerpt_en, meta_desc_en, category_en, body_html_en,
+                                 title_ar, excerpt_ar, meta_desc_ar, category_ar, body_html_ar))
+    from public.marketing_article where id = p_id
+$function$
 
 
 CREATE OR REPLACE FUNCTION public.fn_marketing_article_ingest(p jsonb)
@@ -163,7 +179,7 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_article_mark_live(p_slug text)
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare v_a public.marketing_article; v_posts int;
+declare v_a public.marketing_article; v_posts int; v_fyi bigint; v_rounds int;
 begin
   update public.marketing_article set status = 'live', live_at = now(), updated_at = now()
    where slug = p_slug and status = 'released' returning * into v_a;
@@ -171,7 +187,20 @@ begin
   update public.marketing_post set status = 'scheduled', scheduled_at = now() + interval '5 minutes', updated_at = now()
    where ingest_key = v_a.linkedin_post_key and status = 'draft';
   get diagnostics v_posts = row_count;
-  return jsonb_build_object('ok', true, 'slug', p_slug, 'linkedin_post_scheduled', v_posts = 1);
+  if v_a.topic_id is not null then
+    update public.marketing_blog_topic set status = 'published', closed_at = now() where id = v_a.topic_id and status = 'picked';
+  end if;
+  if not v_a.is_demo then
+    select count(*) into v_rounds from public.marketing_article_round where article_id = v_a.id;
+    v_fyi := public.fn_marketing_mail_founder('marketing_article_live',
+      'FYI - published on the blog: ' || left(v_a.title_en, 140),
+      'For your information: this week''s blog article is live, in English and Arabic.' || E'\n\n'
+      || v_a.title_en || E'\n' || 'https://quotesdone.ae/blog/' || v_a.slug || E'\n\n'
+      || v_a.title_ar || E'\n' || 'https://quotesdone.ae/ar/blog/' || v_a.slug || E'\n\n'
+      || 'The CEO seat approved it after ' || v_rounds || ' review round(s). Nothing is needed from you.');
+  end if;
+  return jsonb_build_object('ok', true, 'slug', p_slug, 'linkedin_post_scheduled', v_posts = 1, 'founder_fyi', v_fyi,
+                            'next_topic', public.fn_marketing_blog_topic_pick());
 end $function$
 
 
@@ -185,18 +214,22 @@ declare
   v_now timestamp := now() at time zone 'Asia/Dubai';
   v_week int; v_today int; v_next public.marketing_article;
 begin
+  -- ONE CALLER AT A TIME (release review, 29 Sep 2026): two overlapping ticks each counted 0 releases this week and
+  -- each skip-locked a DIFFERENT approved row, so the week got two blogs. The lock serialises the count and the release.
+  perform pg_advisory_xact_lock(hashtext('fn_marketing_article_release_due'));
   if not public.fn_is_working_day(v_now::date) then
     return jsonb_build_object('released', null, 'reason', 'not a UAE working day');
   end if;
   select count(*) filter (where released_at at time zone 'Asia/Dubai' >= date_trunc('week', v_now)),
          count(*) filter (where (released_at at time zone 'Asia/Dubai')::date = v_now::date)
     into v_week, v_today from public.marketing_article where released_at is not null and not is_demo;
-  if v_week >= greatest(0, public.fn_marketing_policy_int('marketing_articles_per_week', 2)) or v_today > 0 then
-    return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'cadence');
+  if v_week >= 1 or v_today > 0 then
+    return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'one blog a week');
   end if;
   select * into v_next from public.marketing_article
-   where status = 'approved' and approved_by = 'founder' and not is_demo order by approved_at, id limit 1 for update skip locked;
-  if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved_by_the_founder'); end if;
+   where status = 'approved' and approved_by = 'ceo' and kind = 'market_topic' and not is_demo
+   order by approved_at, id limit 1 for update skip locked;
+  if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved_by_the_ceo'); end if;
   if not public.fn_marketing_publishing_live() then
     return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'marketing_golive is not true');
   end if;
@@ -211,39 +244,64 @@ CREATE OR REPLACE FUNCTION public.fn_marketing_article_release_duty()
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare
-  v_now timestamp := now() at time zone 'Asia/Dubai';
-  a public.marketing_article; v_token text; v_nid bigint; v_stuck text; v_sent text;
+declare v_stuck text; v_pick jsonb;
 begin
   select slug into v_stuck from public.marketing_article
-   where status = 'approved' and approved_by = 'founder' and not is_demo and approved_at < now() - interval '8 days' limit 1;
+   where status = 'approved' and approved_by = 'ceo' and not is_demo and approved_at < now() - interval '8 days' limit 1;
   if v_stuck is not null and public.fn_marketing_publishing_live() then
-    raise exception 'article % was approved by the founder more than 8 days ago and is not released', v_stuck;
+    raise exception 'article % was approved by the CEO seat more than 8 days ago and is not released', v_stuck;
   end if;
-  if public.fn_is_working_day(v_now::date)
-     and not exists (select 1 from public.marketing_article where status = 'draft' and approval_sent_at is not null and not is_demo
-                       and approval_sent_at at time zone 'Asia/Dubai' >= date_trunc('week', v_now)) then
-    select * into a from public.marketing_article
-     where status = 'draft' and not is_demo and approval_sent_at is null and founder_change_request is null
-     order by created_at, id limit 1 for update skip locked;
-    if found then
-      v_token := encode(extensions.gen_random_bytes(16), 'hex');
-      v_nid := public.fn_marketing_mail_founder('marketing_article_approval',
-        'Article for this week: ' || left(a.title_en, 120) || ' [approve ' || v_token || ']',
-        'This week''s article, ready to publish on quotesdone.ae/blog/' || a.slug || E' in English and Arabic:\n\n'
-        || a.title_en || E'\n' || a.excerpt_en || E'\n\n' || a.title_ar || E'\n' || a.excerpt_ar || E'\n\n'
-        || 'Reply "approve" and it is released on the next UAE working day (never a weekend or a public holiday) with its LinkedIn post. '
-        || 'Any other reply is passed to the marketing seat as a change and nothing is published.',
-        null, 'approve+' || v_token || '@mail.quotesdone.com');
-      update public.marketing_article set approval_token = v_token, approval_sent_at = now(), updated_at = now() where id = a.id;
-      v_sent := a.slug;
-    end if;
-  end if;
-  return jsonb_build_object('requested', v_sent,
-    'drafts', (select count(*) from public.marketing_article where status = 'draft' and not is_demo),
-    'awaiting_founder', (select count(*) from public.marketing_article where status = 'draft' and approval_sent_at is not null and not is_demo),
+  v_pick := public.fn_marketing_blog_topic_pick();
+  return jsonb_build_object('topic', v_pick,
+    'open_topic', (select jsonb_build_object('id', id, 'title', title, 'kind', kind) from public.marketing_blog_topic where status = 'picked'),
+    'in_review', (select count(*) from public.marketing_article_round r join public.marketing_article a on a.id = r.article_id
+                   where r.decision is null and a.status = 'draft'),
     'approved', (select count(*) from public.marketing_article where status = 'approved' and not is_demo),
     'live', (select count(*) from public.marketing_article where status = 'live' and not is_demo));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_round_guard()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_prev public.marketing_article_round; v_missing text;
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'round % of article % is history: a review round is never deleted', old.round, old.article_id;
+  end if;
+  if tg_op = 'UPDATE' then
+    if old.decision is not null then
+      raise exception 'round % of article % is decided (%): its history is never overwritten', old.round, old.article_id, old.decision;
+    end if;
+    if (new.article_id, new.topic_id, new.round, new.version, new.fingerprint, new.drafted_by_model, new.changes, new.created_at)
+       is distinct from (old.article_id, old.topic_id, old.round, old.version, old.fingerprint, old.drafted_by_model, old.changes, old.created_at) then
+      raise exception 'only the CEO''s decision is written to a submitted round';
+    end if;
+    if new.decision = 'revise' and (select count(*) from public.marketing_article_round r
+                                     where r.topic_id = new.topic_id and r.decision = 'revise') >= 4 then
+      raise exception 'after 4 revise rounds on topic % the CEO approves or replaces the topic', new.topic_id;
+    end if;
+    return new;
+  end if;
+  if new.decision is not null then raise exception 'a round is submitted undecided'; end if;
+  if new.round > 1 then
+    select * into v_prev from public.marketing_article_round where article_id = new.article_id and round = new.round - 1;
+    if v_prev.decision is distinct from 'revise' then
+      raise exception 'round % of article % follows only a revise decision', new.round, new.article_id;
+    end if;
+    select string_agg(k.key, ', ' order by k.key) into v_missing
+      from jsonb_each(v_prev.reasons) k
+     where k.value->>'verdict' = 'fail'
+       and not exists (select 1 from jsonb_array_elements(coalesce(new.changes, '[]'::jsonb)) c
+                        where c->>'criterion' = k.key and length(btrim(coalesce(c->>'change', ''))) >= 10);
+    if v_missing is not null then
+      raise exception 'the revision does not say what changed for the CEO''s reason(s): %', v_missing;
+    end if;
+  end if;
+  return new;
 end $function$
 
 
@@ -412,6 +470,18 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_draft_due()
+ RETURNS TABLE(topic_id bigint, kind text, title text, trade text, evidence jsonb, sources jsonb, lessons jsonb)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select t.id, t.kind, t.title, t.trade, t.evidence, t.sources, t.lessons
+    from public.marketing_blog_topic t
+   where t.status = 'picked' and not exists (select 1 from public.marketing_article a where a.topic_id = t.id)
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_marketing_blog_publish(p_id uuid, p_published boolean, p_by text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -429,6 +499,230 @@ begin
     values (coalesce(nullif(btrim(p_by),''),'operator'), case when p_published then 'blog_publish' else 'blog_unpublish' end, 'blog_posts', p_id::text, jsonb_build_object('title', r.title));
   exception when others then null; end;
   return jsonb_build_object('ok', true, 'published', r.published);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_review(p_round_id bigint, p_decision text, p_reasons jsonb, p_model text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.marketing_article_round; v_slug text; v_out jsonb;
+begin
+  select * into r from public.marketing_article_round where id = p_round_id for update;
+  if r.id is null or r.decision is not null then return jsonb_build_object('ok', false, 'error', 'not_awaiting_review'); end if;
+  update public.marketing_article_round
+     set decision = p_decision, reasons = p_reasons, reviewed_by_model = nullif(p_model, ''), reviewed_at = now()
+   where id = r.id;
+  if p_decision = 'approve' then
+    select slug into v_slug from public.marketing_article where id = r.article_id;
+    v_out := public.fn_marketing_article_approve(v_slug, 'ceo');
+    if not coalesce((v_out->>'ok')::boolean, false) then raise exception 'the CEO''s approval was refused: %', v_out; end if;
+  elsif p_decision = 'replace_topic' then
+    v_out := public.fn_marketing_blog_topic_replace(r.topic_id, 'the CEO replaced the topic at round ' || r.round || ': '
+      || (select string_agg(k.key || ' - ' || (k.value->>'reason'), '; ' order by k.key) from jsonb_each(p_reasons) k where k.value->>'verdict' = 'fail'));
+  end if;
+  return jsonb_build_object('ok', true, 'round', r.round, 'article_id', r.article_id, 'decision', p_decision, 'then', v_out);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_review_due()
+ RETURNS TABLE(round_id bigint, article_id bigint, slug text, round integer, version jsonb, drafted_by_model text, changes jsonb, topic jsonb, history jsonb, revise_rounds integer)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select r.id, r.article_id, a.slug, r.round, r.version, r.drafted_by_model, r.changes,
+         jsonb_build_object('title', t.title, 'kind', t.kind, 'evidence', t.evidence, 'sources', t.sources),
+         (select coalesce(jsonb_agg(jsonb_build_object('round', p.round, 'decision', p.decision, 'reasons', p.reasons,
+                                                       'changes', p.changes) order by p.round), '[]'::jsonb)
+            from public.marketing_article_round p where p.article_id = r.article_id and p.round < r.round),
+         (select count(*) from public.marketing_article_round p where p.topic_id = r.topic_id and p.decision = 'revise')::int
+    from public.marketing_article_round r
+    join public.marketing_article a on a.id = r.article_id
+    join public.marketing_blog_topic t on t.id = r.topic_id
+   where r.decision is null and a.status = 'draft' and t.status = 'picked'
+   order by r.created_at, r.id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_revise_due()
+ RETURNS TABLE(article_id bigint, topic_id bigint, slug text, round integer, version jsonb, reasons jsonb, sources jsonb, history jsonb)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select r.article_id, r.topic_id, a.slug, r.round, r.version, r.reasons, t.sources,
+         (select coalesce(jsonb_agg(jsonb_build_object('round', p.round, 'reasons', p.reasons, 'changes', p.changes) order by p.round), '[]'::jsonb)
+            from public.marketing_article_round p where p.article_id = r.article_id and p.round < r.round)
+    from public.marketing_article_round r
+    join public.marketing_article a on a.id = r.article_id
+    join public.marketing_blog_topic t on t.id = r.topic_id
+   where r.decision = 'revise' and a.status = 'draft' and t.status = 'picked'
+     and r.round = (select max(q.round) from public.marketing_article_round q where q.article_id = r.article_id)
+   order by r.reviewed_at, r.id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_submit(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  t public.marketing_blog_topic; a public.marketing_article; v_prev public.marketing_article_round;
+  v_all text; v_head text; v_name text; v_slug text; v_round int; v_ing jsonb;
+begin
+  select * into t from public.marketing_blog_topic where id = (p->>'topic_id')::bigint for update;
+  if t.id is null or t.status <> 'picked' then return jsonb_build_object('ok', false, 'error', 'topic_not_open'); end if;
+  v_head := lower(concat_ws(' ', p#>>'{en,title}', p#>>'{en,excerpt}', p#>>'{en,meta_desc}',
+                                 p#>>'{ar,title}', p#>>'{ar,excerpt}', p#>>'{ar,meta_desc}'));
+  -- the brand is written QuotesDone in Latin letters in both languages (docs/marketing/writing_style.md)
+  if v_head ~ 'quotes ?done' then
+    return jsonb_build_object('ok', false, 'error', 'about_quotesdone', 'detail', 'a blog is a market topic: its title, excerpt and description do not name QuotesDone');
+  end if;
+  v_all := lower(concat_ws(' ', p#>>'{en,title}', p#>>'{en,excerpt}', p#>>'{en,meta_desc}', p#>>'{en,body_html}',
+                                p#>>'{ar,title}', p#>>'{ar,excerpt}', p#>>'{ar,meta_desc}', p#>>'{ar,body_html}'));
+  -- a supplier is any company in the invited pool: a full name of two or more words (a single word is too common to be a name)
+  select btrim(l.company_name) into v_name from public.leads l
+   where length(btrim(l.company_name)) >= 8 and btrim(l.company_name) ~ '\s'
+     and strpos(v_all, lower(btrim(l.company_name))) > 0
+   limit 1;
+  if v_name is not null then
+    return jsonb_build_object('ok', false, 'error', 'names_a_supplier', 'detail', 'the article names "' || v_name || '"; a blog never names a supplier');
+  end if;
+  select * into a from public.marketing_article where topic_id = t.id and status = 'draft' for update;
+  if a.id is null then
+    if exists (select 1 from public.marketing_article where topic_id = t.id) then
+      return jsonb_build_object('ok', false, 'error', 'topic_article_closed');
+    end if;
+    v_round := 1; v_slug := lower(btrim(coalesce(p->>'slug', '')));
+    -- fn_marketing_article_ingest overwrites a DRAFT with the same slug: a new topic never takes another article over
+    if exists (select 1 from public.marketing_article where slug = v_slug) then
+      return jsonb_build_object('ok', false, 'error', 'slug_taken', 'detail', 'the slug ' || v_slug || ' belongs to another article; choose another title');
+    end if;
+  else
+    select * into v_prev from public.marketing_article_round where article_id = a.id order by round desc limit 1;
+    if v_prev.decision is distinct from 'revise' then
+      return jsonb_build_object('ok', false, 'error', 'not_awaiting_a_revision', 'round', v_prev.round, 'decision', v_prev.decision);
+    end if;
+    v_round := v_prev.round + 1; v_slug := a.slug;
+  end if;
+  v_ing := public.fn_marketing_article_ingest(jsonb_build_object('slug', v_slug, 'kind', 'market_topic', 'ingested_by', 'claude',
+             'is_demo', coalesce((p->>'is_demo')::boolean, false), 'en', p->'en', 'ar', p->'ar', 'sources', t.sources,
+             'checks', jsonb_build_object('lint', '[]'::jsonb, 'ungrounded', '[]'::jsonb), 'post', p->'post'));
+  if not coalesce((v_ing->>'ok')::boolean, false) or coalesce((v_ing->>'unchanged')::boolean, false) then
+    return v_ing || jsonb_build_object('ok', false);
+  end if;
+  update public.marketing_article set topic_id = t.id where id = (v_ing->>'id')::bigint returning * into a;
+  insert into public.marketing_article_round (article_id, topic_id, round, version, fingerprint, drafted_by_model, changes)
+  values (a.id, t.id, v_round, jsonb_build_object('en', p->'en', 'ar', p->'ar'), public.fn_marketing_article_fingerprint(a.id),
+          nullif(p->>'model', ''), case when v_round > 1 then coalesce(p->'changes', '[]'::jsonb) end);
+  return jsonb_build_object('ok', true, 'article_id', a.id, 'slug', a.slug, 'round', v_round);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_topic_candidates()
+ RETURNS TABLE(topic_key text, kind text, title text, trade text, score numeric, evidence jsonb, sources jsonb)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with used as (
+    select t.topic_key from public.marketing_blog_topic t where t.status = 'published' or t.picked_at > now() - interval '90 days'
+  ), c as (
+    -- what the seat judged relevant among the searches and news of the last 21 days (a search interest first)
+    select 'trend:' || m.id as topic_key, s.kind, m.title, null::text as trade,
+           (case s.kind when 'search' then 10 when 'regulation' then 8 else 6 end)
+             + round((greatest(0, 21 - extract(epoch from now() - coalesce(m.published_at, m.seen_at)) / 86400) / 7)::numeric, 2) as score,
+           jsonb_build_array(jsonb_build_object('kind', s.kind, 'source', s.name, 'title', m.title, 'url', m.url,
+             'published_at', m.published_at, 'why_it_matters', m.why_it_matters)) as evidence,
+           jsonb_build_array(jsonb_build_object('ref', 'trend:' || m.id, 'url', m.url, 'title', m.title,
+             'text', m.title || '. ' || coalesce(m.why_it_matters, ''))) as sources
+      from public.marketing_trend m join public.marketing_trend_source s on s.id = m.source_id
+     where m.relevant and coalesce(m.published_at, m.seen_at) > now() - interval '21 days'
+    union all
+    -- the trades buyers asked for in 90 days (never a demo customer), grounded in the trade's verified knowledge
+    select 'demand:' || d.trade, 'demand', coalesce(tt.label, d.trade), d.trade, (4 + 2 * d.asked)::numeric,
+           jsonb_build_array(jsonb_build_object('kind', 'demand', 'trade', d.trade, 'inquiries_90d', d.asked)),
+           k.sources
+      from (select x.trade, count(*) as asked
+              from public.inquiries i
+              left join public.customers cu on cu.id = i.customer_id
+              cross join lateral unnest(i.trades) x(trade)
+             where i.created_at > now() - interval '90 days'
+               and not coalesce(cu.is_demo, false) and coalesce(cu.email, '') !~* '@example\.invalid$'
+             group by x.trade) d
+      left join public.taxonomy_trade tt on tt.code = d.trade
+      cross join lateral (
+        select jsonb_agg(jsonb_build_object('ref', sk.record_id, 'url', sk.source_ids[1], 'title', sk.title,
+                                            'text', left(sk.content, 3000))) as sources, count(*) as n
+          from (select * from public.sales_knowledge k2
+                 where ('trade:' || d.trade) = any(k2.tags) and 'verified_pack' = any(k2.tags) and 'lang:en' = any(k2.tags)
+                   and coalesce(array_length(k2.source_ids, 1), 0) > 0
+                 order by k2.record_id limit 6) sk) k
+     where k.n >= 3
+  )
+  select c.* from c where c.topic_key not in (select u.topic_key from used u)
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_topic_pick()
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare c record; v_considered jsonb; v_lessons jsonb; v_id bigint;
+begin
+  if exists (select 1 from public.marketing_blog_topic where status = 'picked') then
+    return jsonb_build_object('picked', null, 'reason', 'a topic is open');
+  end if;
+  if exists (select 1 from public.marketing_article where kind = 'market_topic' and status in ('approved', 'released') and not is_demo) then
+    return jsonb_build_object('picked', null, 'reason', 'an approved article waits for its release');
+  end if;
+  select * into c from public.fn_marketing_blog_topic_candidates() order by score desc, topic_key limit 1;
+  if c.topic_key is null then
+    return jsonb_build_object('picked', null, 'reason', 'no candidate: no relevant search or news in 21 days and no trade asked for in 90 days');
+  end if;
+  select coalesce(jsonb_agg(jsonb_build_object('topic_key', x.topic_key, 'title', x.title, 'score', x.score) order by x.score desc), '[]'::jsonb)
+    into v_considered
+    from (select * from public.fn_marketing_blog_topic_candidates() where topic_key <> c.topic_key order by score desc, topic_key limit 5) x;
+  select coalesce(jsonb_agg(l.v order by l.at desc), '[]'::jsonb) into v_lessons
+    from (select e.v, t.closed_at as at from public.marketing_blog_topic t, jsonb_array_elements(t.learned) e(v)
+           where t.status = 'replaced' order by t.closed_at desc limit 20) l;
+  insert into public.marketing_blog_topic (topic_key, kind, title, trade, score, evidence, sources, considered, lessons)
+  values (c.topic_key, c.kind, c.title, c.trade, c.score, c.evidence, c.sources, v_considered, v_lessons)
+  returning id into v_id;
+  return jsonb_build_object('picked', v_id, 'topic_key', c.topic_key, 'title', c.title, 'score', c.score);
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_blog_topic_replace(p_topic_id bigint, p_reason text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_learned jsonb;
+begin
+  if btrim(coalesce(p_reason, '')) = '' then raise exception 'a topic is replaced with its reason'; end if;
+  select coalesce(jsonb_agg(jsonb_build_object('round', r.round, 'criterion', k.key, 'reason', k.value->>'reason')
+                            order by r.round, k.key), '[]'::jsonb)
+    into v_learned
+    from public.marketing_article_round r cross join lateral jsonb_each(r.reasons) k
+   where r.topic_id = p_topic_id and k.value->>'verdict' = 'fail';
+  update public.marketing_blog_topic
+     set status = 'replaced', replaced_reason = left(p_reason, 2000), closed_at = now(),
+         learned = v_learned || jsonb_build_array(jsonb_build_object('criterion', 'topic', 'reason', left(p_reason, 1000)))
+   where id = p_topic_id and status = 'picked';
+  if not found then return jsonb_build_object('replaced', false, 'reason', 'not an open topic'); end if;
+  update public.marketing_article set status = 'withdrawn', withdrawn_reason = left('topic replaced: ' || p_reason, 2000),
+         withdrawn_at = now(), updated_at = now()
+   where topic_id = p_topic_id and status = 'draft';
+  return jsonb_build_object('replaced', true, 'next', public.fn_marketing_blog_topic_pick());
 end $function$
 
 
@@ -2932,6 +3226,28 @@ AS $function$
      and not exists (select 1 from public.email_suppressions s where lower(btrim(s.email)) = lower(btrim(c.email)))
      and not exists (select 1 from public.company_review_ask a where a.transaction_id = t.id)
    order by t.revealed_at, t.id
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_marketing_review_reasons_ok(p_decision text, p_reasons jsonb)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select jsonb_typeof(p_reasons) = 'object'
+     and (select count(*) from jsonb_object_keys(p_reasons)) = 6
+     and coalesce((select bool_and(coalesce(r.value->>'verdict', '') in ('pass', 'fail')
+                                   and length(btrim(coalesce(r.value->>'reason', ''))) >= 15)
+                     from jsonb_each(p_reasons) r
+                    where r.key in ('useful', 'market_topic_not_quotesdone', 'accurate_grounded', 'no_supplier_named',
+                                    'language_quality', 'seo_geo')
+                   having count(*) = 6), false)
+     and case p_decision
+           when 'approve' then not exists (select 1 from jsonb_each(p_reasons) r where r.value->>'verdict' <> 'pass')
+           when 'revise' then exists (select 1 from jsonb_each(p_reasons) r where r.value->>'verdict' = 'fail')
+           when 'replace_topic' then exists (select 1 from jsonb_each(p_reasons) r where r.value->>'verdict' = 'fail')
+           else false end
 $function$
 
 

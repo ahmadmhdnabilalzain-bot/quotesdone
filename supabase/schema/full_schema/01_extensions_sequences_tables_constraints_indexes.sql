@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-09-29T15:05:53.058Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-09-29T15:12:49.211Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -211,7 +211,7 @@ CREATE SEQUENCE IF NOT EXISTS public.wa_messages_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.wa_turn_id_seq;
 CREATE SEQUENCE IF NOT EXISTS public.workflow_step_run_id_seq;
 
--- ===== TABLES (686) =====
+-- ===== TABLES (688) =====
 CREATE TABLE IF NOT EXISTS public.accountant_ad_spend_month (
   month date NOT NULL,
   reported_spend_aed numeric(14,2),
@@ -5088,7 +5088,26 @@ CREATE TABLE IF NOT EXISTS public.marketing_article (
   updated_at timestamp with time zone DEFAULT now() NOT NULL,
   approval_token text,
   approval_sent_at timestamp with time zone,
-  founder_change_request text
+  founder_change_request text,
+  topic_id bigint,
+  withdrawn_reason text,
+  withdrawn_at timestamp with time zone
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_article_round (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  article_id bigint NOT NULL,
+  topic_id bigint NOT NULL,
+  round integer NOT NULL,
+  version jsonb NOT NULL,
+  fingerprint text NOT NULL,
+  drafted_by_model text,
+  changes jsonb,
+  decision text,
+  reasons jsonb,
+  reviewed_by_model text,
+  reviewed_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_asset_feature (
@@ -5138,6 +5157,24 @@ CREATE TABLE IF NOT EXISTS public.marketing_asset_review (
   inputs jsonb NOT NULL,
   model text,
   created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.marketing_blog_topic (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  topic_key text NOT NULL,
+  kind text NOT NULL,
+  title text NOT NULL,
+  trade text,
+  score numeric NOT NULL,
+  evidence jsonb NOT NULL,
+  sources jsonb NOT NULL,
+  considered jsonb DEFAULT '[]'::jsonb NOT NULL,
+  lessons jsonb DEFAULT '[]'::jsonb NOT NULL,
+  learned jsonb DEFAULT '[]'::jsonb NOT NULL,
+  status text DEFAULT 'picked'::text NOT NULL,
+  replaced_reason text,
+  picked_at timestamp with time zone DEFAULT now() NOT NULL,
+  closed_at timestamp with time zone
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_calendar_resend_decision (
@@ -5615,7 +5652,8 @@ CREATE TABLE IF NOT EXISTS public.marketing_trend_source (
   feed_url text NOT NULL,
   active boolean DEFAULT true NOT NULL,
   last_read_at timestamp with time zone,
-  last_error text
+  last_error text,
+  kind text DEFAULT 'news'::text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.marketing_video_idea (
@@ -9878,9 +9916,11 @@ ALTER TABLE public.llm_seat_binding ADD CONSTRAINT llm_seat_binding_pkey PRIMARY
 ALTER TABLE public.market_intel ADD CONSTRAINT market_intel_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_pkey PRIMARY KEY (account_id, campaign_id, day);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_asset_feature ADD CONSTRAINT marketing_asset_feature_pkey PRIMARY KEY (file_sha256, extractor_version);
 ALTER TABLE public.marketing_asset_perception ADD CONSTRAINT marketing_asset_perception_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_asset_review ADD CONSTRAINT marketing_asset_review_pkey PRIMARY KEY (id);
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_calendar_resend_decision ADD CONSTRAINT marketing_calendar_resend_decision_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_pkey PRIMARY KEY (id);
 ALTER TABLE public.marketing_connection_check ADD CONSTRAINT marketing_connection_check_pkey PRIMARY KEY (check_key);
@@ -10252,6 +10292,7 @@ ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_i
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_one_row_per_attempt UNIQUE (request_id, attempt_no);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approval_token_key UNIQUE (approval_token);
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_slug_key UNIQUE (slug);
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_article_id_round_key UNIQUE (article_id, round);
 ALTER TABLE public.marketing_asset_perception ADD CONSTRAINT marketing_asset_perception_file_sha256_model_prompt_version_key UNIQUE (file_sha256, model, prompt_version);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_calendar_token_key UNIQUE (calendar_token);
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_campaign_key_key UNIQUE (campaign_key);
@@ -10681,7 +10722,7 @@ ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_currency_check CHECK ((currency ~ '^[A-Z]{3}$'::text));
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_demo_is_marked CHECK (((NOT is_demo) OR (campaign_name ~~ 'ZZ DEMO%'::text)));
 ALTER TABLE public.marketing_ad_spend_day ADD CONSTRAINT marketing_ad_spend_day_spend_check CHECK ((spend >= (0)::numeric));
-ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approved_by_check CHECK ((approved_by = ANY (ARRAY['founder'::text, 'claude'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approved_by_check CHECK ((approved_by = ANY (ARRAY['founder'::text, 'claude'::text, 'ceo'::text])));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_approved_says_who CHECK (((status = ANY (ARRAY['draft'::text, 'withdrawn'::text])) OR ((approved_by IS NOT NULL) AND (approved_at IS NOT NULL))));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_body_html_ar_check CHECK ((body_html_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_body_html_en_check CHECK ((btrim(body_html_en) <> ''::text));
@@ -10692,7 +10733,7 @@ ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_demo_is_ma
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_excerpt_ar_check CHECK ((excerpt_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_excerpt_en_check CHECK ((btrim(excerpt_en) <> ''::text));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_ingested_by_check CHECK ((ingested_by = ANY (ARRAY['founder'::text, 'claude'::text])));
-ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_kind_check CHECK ((kind = ANY (ARRAY['how_it_works'::text, 'buyer_guide'::text, 'trade_explainer'::text])));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_kind_check CHECK ((kind = ANY (ARRAY['how_it_works'::text, 'buyer_guide'::text, 'trade_explainer'::text, 'market_topic'::text])));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_live_says_when CHECK (((status <> 'live'::text) OR (live_at IS NOT NULL)));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_meta_desc_ar_check CHECK ((meta_desc_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_meta_desc_en_check CHECK ((btrim(meta_desc_en) <> ''::text));
@@ -10702,12 +10743,27 @@ ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_sources_ch
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'released'::text, 'live'::text, 'withdrawn'::text])));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_title_ar_check CHECK ((title_ar ~ '[؀-ۿ]'::text));
 ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_title_en_check CHECK ((btrim(title_en) <> ''::text));
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_withdrawn_says_why CHECK (((status <> 'withdrawn'::text) OR (withdrawn_reason IS NOT NULL)));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_changes_check CHECK (((changes IS NULL) OR (jsonb_typeof(changes) = 'array'::text)));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_check CHECK (((round = 1) = (changes IS NULL)));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_check1 CHECK (((decision IS NULL) = (reviewed_at IS NULL)));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_decision_check CHECK ((decision = ANY (ARRAY['approve'::text, 'revise'::text, 'replace_topic'::text])));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_decision_has_its_reasons CHECK (((decision IS NULL) OR fn_marketing_review_reasons_ok(decision, reasons)));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_round_check CHECK ((round >= 1));
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_version_check CHECK (((jsonb_typeof((version -> 'en'::text)) = 'object'::text) AND (jsonb_typeof((version -> 'ar'::text)) = 'object'::text)));
 ALTER TABLE public.marketing_asset_feature ADD CONSTRAINT marketing_asset_feature_bytes_check CHECK ((bytes > 0));
 ALTER TABLE public.marketing_asset_feature ADD CONSTRAINT marketing_asset_feature_file_sha256_check CHECK ((file_sha256 ~ '^[0-9a-f]{64}$'::text));
 ALTER TABLE public.marketing_asset_feature ADD CONSTRAINT marketing_asset_feature_keyframes_check CHECK ((jsonb_typeof(keyframes) = 'array'::text));
 ALTER TABLE public.marketing_asset_perception ADD CONSTRAINT marketing_asset_perception_perception_check CHECK ((jsonb_typeof(perception) = 'object'::text));
 ALTER TABLE public.marketing_asset_review ADD CONSTRAINT marketing_asset_review_evidence_check CHECK (((jsonb_typeof(evidence) = 'array'::text) AND (jsonb_array_length(evidence) > 0)));
 ALTER TABLE public.marketing_asset_review ADD CONSTRAINT marketing_asset_review_review_check CHECK ((jsonb_typeof(review) = 'object'::text));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_check CHECK (((status = 'replaced'::text) = (replaced_reason IS NOT NULL)));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_check1 CHECK (((status = 'picked'::text) = (closed_at IS NULL)));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_evidence_check CHECK (((jsonb_typeof(evidence) = 'array'::text) AND (jsonb_array_length(evidence) > 0)));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_kind_check CHECK ((kind = ANY (ARRAY['search'::text, 'regulation'::text, 'news'::text, 'demand'::text])));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_sources_check CHECK (((jsonb_typeof(sources) = 'array'::text) AND (jsonb_array_length(sources) > 0)));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_status_check CHECK ((status = ANY (ARRAY['picked'::text, 'replaced'::text, 'published'::text])));
+ALTER TABLE public.marketing_blog_topic ADD CONSTRAINT marketing_blog_topic_title_check CHECK ((btrim(title) <> ''::text));
 ALTER TABLE public.marketing_calendar_resend_decision ADD CONSTRAINT marketing_calendar_resend_decision_decision_check CHECK ((decision = ANY (ARRAY['due'::text, 'quiet_period'::text, 'already_sent'::text, 'already_approved'::text, 'finished'::text])));
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_approval_is_whole CHECK ((((approved_by IS NULL) = (approved_at IS NULL)) AND ((approved_at IS NULL) = (approved_hash IS NULL)) AND ((approved_at IS NULL) = (approved_message_id IS NULL))));
 ALTER TABLE public.marketing_campaign ADD CONSTRAINT marketing_campaign_approved_by_check CHECK ((approved_by = 'founder'::text));
@@ -10847,6 +10903,7 @@ ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard
 ALTER TABLE public.marketing_scorecard_report ADD CONSTRAINT marketing_scorecard_report_period_key_check CHECK ((period_key ~ '^\d{4}-(W\d{2}|\d{2}-end)$'::text));
 ALTER TABLE public.marketing_trend ADD CONSTRAINT marketing_trend_check CHECK (((relevant IS DISTINCT FROM true) OR (COALESCE(btrim(why_it_matters), ''::text) <> ''::text)));
 ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_feed_url_check CHECK ((feed_url ~ '^https://'::text));
+ALTER TABLE public.marketing_trend_source ADD CONSTRAINT marketing_trend_source_kind_check CHECK ((kind = ANY (ARRAY['news'::text, 'search'::text, 'regulation'::text])));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_audience_check CHECK ((audience = ANY (ARRAY['supplier'::text, 'customer'::text, 'both'::text])));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_cta_check CHECK ((btrim(cta) <> ''::text));
 ALTER TABLE public.marketing_video_idea ADD CONSTRAINT marketing_video_idea_film_plan_check CHECK ((btrim(film_plan) <> ''::text));
@@ -11406,6 +11463,9 @@ ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_answer
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id);
 ALTER TABLE public.llm_attempt ADD CONSTRAINT llm_attempt_class_key_fkey FOREIGN KEY (class_key) REFERENCES llm_failure_class(class_key);
 ALTER TABLE public.llm_route_health ADD CONSTRAINT llm_route_health_opened_class_fkey FOREIGN KEY (opened_class) REFERENCES llm_failure_class(class_key);
+ALTER TABLE public.marketing_article ADD CONSTRAINT marketing_article_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES marketing_blog_topic(id);
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_article_id_fkey FOREIGN KEY (article_id) REFERENCES marketing_article(id);
+ALTER TABLE public.marketing_article_round ADD CONSTRAINT marketing_article_round_topic_id_fkey FOREIGN KEY (topic_id) REFERENCES marketing_blog_topic(id);
 ALTER TABLE public.marketing_calendar_resend_decision ADD CONSTRAINT marketing_calendar_resend_decision_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES marketing_campaign(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_lead_id_fkey FOREIGN KEY (lead_id) REFERENCES leads(id) ON DELETE CASCADE;
 ALTER TABLE public.marketing_first_touch ADD CONSTRAINT marketing_first_touch_post_id_fkey FOREIGN KEY (post_id) REFERENCES marketing_post(id) ON DELETE SET NULL;
@@ -11912,8 +11972,11 @@ CREATE INDEX llm_cache_expiry_idx ON public.llm_cache USING btree (expires_at);
 CREATE INDEX llm_calls_created_idx ON public.llm_calls USING btree (created_at DESC);
 CREATE INDEX llm_calls_fn_idx ON public.llm_calls USING btree (fn, created_at DESC);
 CREATE UNIQUE INDEX market_intel_one_row_per_post ON public.market_intel USING btree (platform, external_id) WHERE (external_id IS NOT NULL);
+CREATE UNIQUE INDEX marketing_article_round_one_waiting ON public.marketing_article_round USING btree (article_id) WHERE (decision IS NULL);
 CREATE INDEX marketing_asset_feature_path ON public.marketing_asset_feature USING btree (asset_bucket, asset_path);
 CREATE INDEX marketing_asset_review_sha ON public.marketing_asset_review USING btree (file_sha256, created_at DESC);
+CREATE INDEX marketing_blog_topic_key ON public.marketing_blog_topic USING btree (topic_key, picked_at DESC);
+CREATE UNIQUE INDEX marketing_blog_topic_one_open ON public.marketing_blog_topic USING btree ((true)) WHERE (status = 'picked'::text);
 CREATE INDEX marketing_calendar_resend_decision_campaign ON public.marketing_calendar_resend_decision USING btree (campaign_id, id DESC);
 CREATE INDEX marketing_first_touch_post ON public.marketing_first_touch USING btree (post_id) WHERE (post_id IS NOT NULL);
 CREATE UNIQUE INDEX marketing_founder_request_one_per_message ON public.marketing_founder_request USING btree (message_id) WHERE ((message_id IS NOT NULL) AND (message_id <> ''::text));
