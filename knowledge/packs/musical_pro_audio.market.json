@@ -1,0 +1,99 @@
+{
+  "trade": "musical_pro_audio",
+  "layer": "uae-market",
+  "label_en": "Musical Instruments & Pro Audio",
+  "label_ar": "الآلات الموسيقية والصوتيات الاحترافية",
+  "entries": [
+    {
+      "id": "musical_pro_audio:uae-market-products",
+      "topic": "Musical Instruments & Pro Audio: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Musical instruments and pro audio sold in the UAE include acoustic and digital pianos, keyboards and synthesisers, guitars and basses, amplifiers, drums and electronic kits, oud, qanun, darbuka and other Arabic instruments, wind and string orchestral instruments, and professional audio: PA loudspeakers (passive and active, line arrays), subwoofers, power amplifiers, analogue and digital mixing consoles, wireless microphone systems (operating in UAE TDRA-permitted UHF bands), in-ear monitors, DSP and networked audio (Dante, AES67), background music and public address/voice alarm systems (EN 54-16/-24 for life-safety), studio monitors, audio interfaces and recording gear, and stage lighting. Buyers specify power (W RMS), SPL, coverage, IP rating for outdoor use, frequency band of wireless kit, and TDRA type approval for radio equipment. Voice evacuation systems in buildings must be Civil Defence approved.",
+      "body_ar": "تشمل الآلات الموسيقية ومعدات الصوت الاحترافية المباعة في الإمارات البيانو الصوتي والرقمي، ولوحات المفاتيح والمُركِّبات الصوتية، والغيتارات وآلات الباص، ومضخمات الصوت، والطبول والأطقم الإلكترونية، والعود والقانون والدربكة وغيرها من الآلات العربية، وآلات النفخ والوتريات الأوركسترالية، والصوتيات الاحترافية: مكبرات الصوت (السلبية والنشطة، والمصفوفات الخطية)، ومضخمات الترددات المنخفضة، ومضخمات القدرة، وطاولات المزج التناظرية والرقمية، وأنظمة الميكروفونات اللاسلكية (العاملة في نطاقات UHF المسموح بها من هيئة تنظيم الاتصالات والحكومة الرقمية)، وأجهزة المراقبة داخل الأذن، ومعالجات الإشارة الرقمية والصوت الشبكي (Dante، AES67)، وأنظمة موسيقى الخلفية والنداء العام والإنذار الصوتي (EN 54-16/-24 لسلامة الأرواح)، وسماعات الاستوديو، وواجهات الصوت ومعدات التسجيل، وإضاءة المسرح. يحدد المشترون القدرة (واط RMS)، ومستوى ضغط الصوت، ومنطقة التغطية، ودرجة الحماية IP للاستخدام الخارجي، ونطاق تردد المعدات اللاسلكية، واعتماد النوع من هيئة تنظيم الاتصالات للأجهزة الراديوية. ويجب أن تكون أنظمة الإخلاء الصوتي في المباني معتمدة من الدفاع المدني.",
+      "sources": [
+        "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
+        "https://www.thomsunmusic.com/about-us",
+        "https://www.thomsunmusic.com/",
+        "https://tdra.gov.ae",
+        "https://www.yamaha.com",
+        "https://www.shure.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table -> confirmed | Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball -> confirmed | Melody House and other dealers for Shure and other brands -> removed: not confirmed. Not checked: Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified."
+    },
+    {
+      "id": "musical_pro_audio:uae-market-brands",
+      "topic": "Musical Instruments & Pro Audio: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed distributor and brands: Thomsun Music, Yamaha, Fender, Rode, Neumann, Roland, Korg, Shure, Sennheiser, JBL, L-Acoustics, d&b audiotechnik, Allen & Heath. Thomsun distributes Yamaha, Fender, Rode and Neumann; the other brands' UAE distributors were not checked. Systems integrators handle installed sound.",
+      "body_ar": "الموزع المؤكد والعلامات: Thomsun Music، Yamaha، Fender، Rode، Neumann، Roland، Korg، Shure، Sennheiser، JBL، L-Acoustics، d&b audiotechnik، Allen & Heath. وتوزع ثومسون ياماها وفندر وروود ونويمان؛ ولم يُتحقق من موزعي العلامات الأخرى في الإمارات. ويتولى مكاملو الأنظمة أنظمة الصوت المركبة.",
+      "sources": [
+        "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
+        "https://www.thomsunmusic.com/about-us",
+        "https://www.thomsunmusic.com/",
+        "https://tdra.gov.ae",
+        "https://www.yamaha.com",
+        "https://www.shure.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table -> confirmed | Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball -> confirmed | Melody House and other dealers for Shure and other brands -> removed: not confirmed. Not checked: Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified."
+    },
+    {
+      "id": "musical_pro_audio:uae-market-sizes",
+      "topic": "Musical Instruments & Pro Audio: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Instruments and audio equipment are priced per unit; loudspeakers per box or per pair; cables per metre or per reel (100 m). Installed sound systems are quoted as a lump sum with BOQ including design, installation, commissioning and training. Rental (see event equipment) is per day. Education bulk orders (school music rooms) are quoted per set.",
+      "body_ar": "تُسعّر الآلات ومعدات الصوت لكل وحدة؛ ومكبرات الصوت لكل صندوق أو لكل زوج؛ والكابلات لكل متر أو لكل بكرة (100 م). وتُسعّر أنظمة الصوت المركبة كمبلغ مقطوع مع جدول كميات يشمل التصميم والتركيب والتشغيل والتدريب. ويكون الإيجار (انظر معدات الفعاليات) باليوم. وتُسعّر الطلبات التعليمية الكبيرة (غرف الموسيقى المدرسية) لكل طقم.",
+      "sources": [
+        "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
+        "https://www.thomsunmusic.com/about-us",
+        "https://www.thomsunmusic.com/",
+        "https://tdra.gov.ae",
+        "https://www.yamaha.com",
+        "https://www.shure.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table -> confirmed | Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball -> confirmed | Melody House and other dealers for Shure and other brands -> removed: not confirmed. Not checked: Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Do wireless microphones need TDRA approval in the UAE?",
+      "q_ar": "هل تحتاج الميكروفونات اللاسلكية إلى اعتماد من هيئة تنظيم الاتصالات في الإمارات؟",
+      "expected_entry_ids": [
+        "musical_pro_audio:uae-market-products"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Radio microphones and in-ear monitors must be TDRA type-approved and use bands in the UAE National Frequency Allocation Table",
+        "url": "https://tdra.gov.ae/en/about/tdra-sectors/telecommunication/the-technology-development-affairs/type-approval",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Thomsun is the UAE distributor of Yamaha (since 1990), Fender, Steinberg, Rode, Meinl, Neumann and Ernie Ball",
+        "url": "https://www.thomsunmusic.com/about-us",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Melody House and other dealers for Shure and other brands",
+        "url": "https://www.thomsunmusic.com/",
+        "result": "removed: not confirmed"
+      }
+    ],
+    "unverified": "Current UAE distributors per brand and exact TDRA-permitted UHF frequency ranges for wireless microphones were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}

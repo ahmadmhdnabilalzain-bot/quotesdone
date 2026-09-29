@@ -1,0 +1,96 @@
+{
+  "trade": "records_management",
+  "layer": "uae-market",
+  "label_en": "Records storage & document management",
+  "label_ar": "حفظ السجلات وإدارة المستندات",
+  "entries": [
+    {
+      "id": "records_management:uae-market-products",
+      "topic": "Records storage & document management: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Records management services in the UAE include offsite physical document storage in secure archive warehouses (boxes, files, tapes), barcode indexing and retrieval (standard and urgent), document scanning and digitisation (bulk scanning, OCR in Arabic and English, indexing), electronic document and records management systems (EDRMS), secure shredding and certified destruction (on-site mobile shredding and off-site), media vaulting for backup tapes, records retention schedules and consultancy, archive digitisation for government entities, and chain-of-custody services. Buyers ask about facility security (CCTV, access control, fire suppression with FM-200/Novec or pre-action sprinklers, Civil Defence approval), climate control, ISO 15489 (records management), ISO 27001 information security, ISO 9001, retrieval SLAs, and data residency. Retention periods: the UAE Commercial Transactions Law and tax laws generally require keeping commercial records for at least 5 years (longer for certain tax/corporate tax records); Dubai government entities follow Dubai government records management standards and the National Archives (now National Library and Archives) regulations federally.",
+      "body_ar": "تشمل خدمات إدارة السجلات في الإمارات التخزين المادي للوثائق خارج الموقع في مستودعات أرشيف آمنة (صناديق، وملفات، وأشرطة)، والفهرسة بالباركود والاسترجاع (عادي وعاجل)، ومسح المستندات ضوئياً ورقمنتها (المسح الضوئي بالجملة، والتعرف الضوئي على الحروف بالعربية والإنجليزية، والفهرسة)، وأنظمة إدارة المستندات والسجلات الإلكترونية، والإتلاف الآمن والتدمير المعتمد (بالتمزيق المتنقل في الموقع وخارج الموقع)، وحفظ وسائط النسخ الاحتياطي، وجداول الاحتفاظ بالسجلات والاستشارات، ورقمنة الأرشيف للجهات الحكومية، وخدمات سلسلة الحيازة. يسأل المشترون عن أمن المنشأة (كاميرات المراقبة، والتحكم في الدخول، وإطفاء الحريق بـ FM-200/نوفك أو الرشاشات سابقة الفعل، وموافقة الدفاع المدني)، والتحكم في المناخ، وISO 15489 (إدارة السجلات)، وISO 27001 لأمن المعلومات، وISO 9001، واتفاقيات مستوى الخدمة للاسترجاع، وموقع حفظ البيانات. مدد الاحتفاظ: يشترط قانون المعاملات التجارية الإماراتي وقوانين الضرائب عموماً الاحتفاظ بالسجلات التجارية 5 سنوات على الأقل (وأطول لبعض سجلات الضرائب/ضريبة الشركات)؛ وتتبع الجهات الحكومية في دبي معايير إدارة السجلات في دبي، واتحادياً لوائح الأرشيف الوطني (المكتبة والأرشيف الوطني حالياً).",
+      "sources": [
+        "https://www.crownrms.com/ae/",
+        "https://www.ironmountain.com/ae",
+        "https://www.iso.org",
+        "https://www.na.ae",
+        "https://www.ironmountain.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Crown Information Management operates in the UAE (records storage, digitisation) -> confirmed | Iron Mountain UAE page -> removed: page blocked the fetch | ISO 15489 records management standard -> confirmed_domain_only. Not checked: Several regional operator names are generalised; the National Library and Archives URL and exact statutory retention periods per record type were not verified."
+    },
+    {
+      "id": "records_management:uae-market-brands",
+      "topic": "Records storage & document management: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Confirmed UAE provider and other records and software brands: Crown Information Management, Iron Mountain, OpenText, Laserfiche, M-Files. Iron Mountain's UAE operation and the software resellers were not checked.",
+      "body_ar": "المزود المؤكد في الإمارات وعلامات أخرى للسجلات والبرمجيات: Crown Information Management، Iron Mountain، OpenText، Laserfiche، M-Files. ولم يُتحقق من عمليات آيرون ماونتن في الإمارات ولا من موزعي البرمجيات.",
+      "sources": [
+        "https://www.crownrms.com/ae/",
+        "https://www.ironmountain.com/ae",
+        "https://www.iso.org",
+        "https://www.na.ae",
+        "https://www.ironmountain.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Crown Information Management operates in the UAE (records storage, digitisation) -> confirmed | Iron Mountain UAE page -> removed: page blocked the fetch | ISO 15489 records management standard -> confirmed_domain_only. Not checked: Several regional operator names are generalised; the National Library and Archives URL and exact statutory retention periods per record type were not verified."
+    },
+    {
+      "id": "records_management:uae-market-sizes",
+      "topic": "Records storage & document management: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Storage is priced per standard archive box per month (typically about 30-40 x 25-30 x 40 cm boxes), plus one-time intake/indexing fees per box, retrieval per request (standard next-day vs same-day urgent), transport per trip, and permanent withdrawal fees. Scanning is priced per page/image (by size A4/A3/large format and OCR level). Shredding is priced per kg, per bin/console collection, or per box. Minimum monthly charges are common.",
+      "body_ar": "يُسعّر التخزين لكل صندوق أرشيف قياسي شهرياً (صناديق عادةً نحو 30-40 × 25-30 × 40 سم)، إضافة إلى رسوم استلام/فهرسة لمرة واحدة لكل صندوق، والاسترجاع لكل طلب (عادي في اليوم التالي أو عاجل في اليوم نفسه)، والنقل لكل رحلة، ورسوم السحب النهائي. ويُسعّر المسح الضوئي لكل صفحة/صورة (حسب المقاس A4/A3/كبير ومستوى التعرف الضوئي). ويُسعّر الإتلاف لكل كيلوغرام، أو لكل حاوية/جمع، أو لكل صندوق. والحد الأدنى للرسوم الشهرية شائع.",
+      "sources": [
+        "https://www.crownrms.com/ae/",
+        "https://www.ironmountain.com/ae",
+        "https://www.iso.org",
+        "https://www.na.ae",
+        "https://www.ironmountain.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Crown Information Management operates in the UAE (records storage, digitisation) -> confirmed | Iron Mountain UAE page -> removed: page blocked the fetch | ISO 15489 records management standard -> confirmed_domain_only. Not checked: Several regional operator names are generalised; the National Library and Archives URL and exact statutory retention periods per record type were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "How is offsite archive storage priced and how quickly can we retrieve a file?",
+      "q_ar": "كيف يُسعّر تخزين الأرشيف خارج الموقع وما مدى سرعة استرجاع الملف؟",
+      "expected_entry_ids": [
+        "records_management:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Crown Information Management operates in the UAE (records storage, digitisation)",
+        "url": "https://www.crownrms.com/ae/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Iron Mountain UAE page",
+        "url": "https://www.ironmountain.com/ae",
+        "result": "removed: page blocked the fetch"
+      },
+      {
+        "claim": "ISO 15489 records management standard",
+        "url": "https://www.iso.org",
+        "result": "confirmed_domain_only"
+      }
+    ],
+    "unverified": "Several regional operator names are generalised; the National Library and Archives URL and exact statutory retention periods per record type were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
