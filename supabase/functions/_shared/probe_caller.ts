@@ -1,7 +1,7 @@
 // OUR OWN PROBE, PROVEN BY A CREDENTIAL (it_engineer, 29 Sep 2026, incident 508).
 //
 // Measured in the edge logs: the hourly unauthenticated POST to supplier_portal (401) came from
-// user-agent "Deno/2.1.4 (SupabaseEdgeRuntime; ref=htdblwldjkcgjvmqkbeh)", body length 22
+// user-agent "Deno/2.1.4 (SupabaseEdgeRuntime; ref=<our project>)", body length 22
 // (`{"action":"dashboard"}`), ?forceFunctionRegion=ap-southeast-1 - resilience_ping's hourly launch-path
 // probe (_shared/launch_path.ts), which asks for that refusal on purpose to prove the door answers.
 // Its 401 rows carried nothing that told them from a stranger's, so fn_it_detect's refusal_rate counted
