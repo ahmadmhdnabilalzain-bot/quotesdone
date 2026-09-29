@@ -1,0 +1,104 @@
+{
+  "trade": "cleaning",
+  "layer": "uae-market",
+  "label_en": "Cleaning & facility services",
+  "label_ar": "التنظيف وخدمات المرافق",
+  "entries": [
+    {
+      "id": "cleaning:uae-market-products",
+      "topic": "Cleaning & facility services: products, variants and grades sold in the UAE",
+      "kind": "uae_market_products",
+      "body_en": "Commercial cleaning services sold in the UAE include daily office cleaning, residential and villa cleaning by the hour, deep cleaning (move-in/move-out, post-construction/builders clean), kitchen and grease-duct cleaning, facade and window cleaning (rope access, BMU, cherry picker), carpet and upholstery shampooing and hot-water extraction, marble polishing, crystallisation and grinding, hard-floor stripping and sealing, water-tank cleaning and disinfection, AC duct cleaning, sanitisation and disinfection fogging, and washroom hygiene services (sanitary bins, air fresheners, soap dispensers). Contracts specify number of cleaners and supervisors, shift hours, frequency, consumables included or excluded, and equipment (scrubber-dryers, vacuum, pressure washers). Water tank cleaning in Dubai requires a company with a Dubai Municipality operator permit, and tanks must be cleaned and disinfected every 6 months; kitchen exhaust cleaning is also done by approved contractors; food-premises cleaning must meet DM/ADAFSA food safety rules. Chemicals should be DM-registered where required.",
+      "body_ar": "تشمل خدمات التنظيف التجاري المباعة في الإمارات التنظيف اليومي للمكاتب، وتنظيف المنازل والفلل بالساعة، والتنظيف العميق (عند الانتقال أو المغادرة، وبعد الإنشاء)، وتنظيف المطابخ ومجاري الشحوم، وتنظيف الواجهات والنوافذ (بالحبال، أو وحدات صيانة المباني BMU، أو الرافعات السلّية)، وغسل السجاد والمفروشات بالشامبو والاستخلاص بالماء الساخن، وتلميع الرخام وبلورته وجليه، وتقشير الأرضيات الصلبة وإغلاقها، وتنظيف خزانات المياه وتعقيمها، وتنظيف مجاري التكييف، والتعقيم والتطهير بالرذاذ، وخدمات نظافة دورات المياه (حاويات صحية، ومعطرات الجو، وموزعات الصابون). تحدد العقود عدد عمال النظافة والمشرفين، وساعات المناوبة، والتكرار، وما إذا كانت المستهلكات مشمولة أم لا، والمعدات (آلات الغسيل والتجفيف، والمكانس الكهربائية، وغسالات الضغط). ويتطلب تنظيف خزانات المياه في دبي شركة تحمل تصريح مشغل من بلدية دبي، ويجب تنظيف الخزانات وتعقيمها كل 6 أشهر؛ ويتولى تنظيف شفاطات المطابخ أيضاً مقاولون معتمدون؛ ويجب أن يلتزم تنظيف منشآت الأغذية بقواعد سلامة الغذاء لدى بلدية دبي أو هيئة أبوظبي للزراعة والسلامة الغذائية. وينبغي أن تكون المواد الكيميائية مسجلة لدى البلدية حيثما يلزم.",
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dm.gov.ae",
+        "https://www.kaercher.com",
+        "https://diversey.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months -> confirmed | Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai -> confirmed | Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned) -> confirmed | Justlife and Urban Company home cleaning apps -> removed: apps not checked. Not checked: Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified."
+    },
+    {
+      "id": "cleaning:uae-market-brands",
+      "topic": "Cleaning & facility services: makes, brands, distributors and origins in the UAE",
+      "kind": "uae_market_brands",
+      "body_en": "Large providers and common equipment brands: Emrill, Farnek, Imdaad, Transguard, EFS Facilities Services, Khidmah, Kärcher, Nilfisk, Numatic, Taski (Diversey), Tennant. The FM companies are confirmed operators in the UAE; the equipment brands are sold through local dealers whose appointments were not checked. Many smaller cleaning firms operate from Al Quoz, Al Qusais, Deira, Sharjah and Musaffah, and water tank cleaning in Dubai must be done by a company holding a Dubai Municipality operator permit.",
+      "body_ar": "كبار مقدمي الخدمة وعلامات المعدات الشائعة: Emrill، Farnek، Imdaad، Transguard، EFS Facilities Services، Khidmah، Kärcher، Nilfisk، Numatic، Taski (Diversey)، Tennant. وشركات إدارة المرافق مؤكد عملها في الإمارات؛ أما علامات المعدات فتُباع عبر وكلاء محليين لم يُتحقق من تعييناتهم. وتعمل شركات تنظيف أصغر كثيرة من القوز والقصيص وديرة والشارقة ومصفح، ويجب أن يتولى تنظيف خزانات المياه في دبي شركة تحمل تصريح مشغل من بلدية دبي.",
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dm.gov.ae",
+        "https://www.kaercher.com",
+        "https://diversey.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months -> confirmed | Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai -> confirmed | Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned) -> confirmed | Justlife and Urban Company home cleaning apps -> removed: apps not checked. Not checked: Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified."
+    },
+    {
+      "id": "cleaning:uae-market-sizes",
+      "topic": "Cleaning & facility services: typical sizes, units and how it is quoted in the UAE",
+      "kind": "uae_market_sizes",
+      "body_en": "Cleaning is quoted per cleaner per hour (with or without materials), per cleaner per month for full-time deployment (typically 8-9 hours, 26 days), per m2 or per sq ft for deep cleaning and floor care, per window/drop or per m2 for facade work, per tank for water tank cleaning, and per visit or per metre of duct for kitchen exhaust. Home cleaning apps often have 2-4 hour minimum bookings. Annual contracts are common for commercial sites, with monthly invoicing, and may include a consumables allowance.",
+      "body_ar": "يُسعّر التنظيف لكل عامل في الساعة (مع المواد أو بدونها)، أو لكل عامل شهرياً في حال التفرغ الكامل (عادةً 8-9 ساعات، 26 يوماً)، أو لكل متر مربع أو قدم مربع للتنظيف العميق والعناية بالأرضيات، أو لكل نافذة أو مقطع أو متر مربع لأعمال الواجهات، أو لكل خزان لتنظيف خزانات المياه، أو لكل زيارة أو متر من المجاري لشفاطات المطابخ. وغالباً ما تشترط تطبيقات التنظيف المنزلي حجزاً لا يقل عن 2-4 ساعات. العقود السنوية شائعة للمواقع التجارية، مع فوترة شهرية، وقد تشمل مخصصاً للمستهلكات.",
+      "sources": [
+        "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
+        "https://www.khidmah.com/en/who-we-are/about-us",
+        "https://www.dm.gov.ae",
+        "https://www.kaercher.com",
+        "https://diversey.com"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-09-28",
+      "source_note": "Checked on 2026-09-28 against pages opened then: Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months -> confirmed | Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai -> confirmed | Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned) -> confirmed | Justlife and Urban Company home cleaning apps -> removed: apps not checked. Not checked: Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified."
+    }
+  ],
+  "eval": [
+    {
+      "q_en": "Is a post-construction deep clean priced per hour or per square metre?",
+      "q_ar": "هل يُسعّر التنظيف العميق بعد الإنشاء بالساعة أم بالمتر المربع؟",
+      "expected_entry_ids": [
+        "cleaning:uae-market-sizes"
+      ]
+    }
+  ],
+  "verified": {
+    "by": "sales_engineer",
+    "on": "2026-09-28",
+    "method": "each check names the page opened on this date; company names in the brands entry were checked where local, international brand names were not individually checked for UAE distribution",
+    "checks": [
+      {
+        "claim": "Water tank cleaning in Dubai needs a Dubai Municipality operator permit and tanks must be cleaned and disinfected every 6 months",
+        "url": "https://greenhorizondubai.com/dubai-municipality-water-tank-cleaning-complete-procedure-approved-companies/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Emrill, Farnek, Imdaad, Transguard and EFS are large FM and cleaning operators in Dubai",
+        "url": "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Khidmah provides cleaning among integrated FM services (Abu Dhabi, Aldar-owned)",
+        "url": "https://www.khidmah.com/en/who-we-are/about-us",
+        "result": "confirmed"
+      },
+      {
+        "claim": "Justlife and Urban Company home cleaning apps",
+        "url": "https://www.bayut.com/mybayut/best-facility-management-companies-dubai/",
+        "result": "removed: apps not checked"
+      }
+    ],
+    "unverified": "Which specific companies currently hold DM approval for water tank or kitchen exhaust cleaning, and current market hourly rates, were not verified.",
+    "ledger": [
+      899,
+      900,
+      903
+    ]
+  }
+}
