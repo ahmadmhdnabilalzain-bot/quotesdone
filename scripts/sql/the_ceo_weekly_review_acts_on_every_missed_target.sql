@@ -342,10 +342,10 @@ begin
     v_event := 'CEO weekly review, week of ' || to_char(w.week, 'DD Mon YYYY');
     v_file := 'QuotesDone_CEO_Weekly_Review_' || to_char(w.week, 'IYYY-"W"IW') || '.pdf';
     begin
-      v_res := public.fn_notify_founder(v_event,
-        format(E'%s of %s targets missed this week. Actions: %s opened, %s escalated, %s closed.\nThe one-page review is attached as %s.',
+      v_res := public.fn_notify_founder(p_event => v_event,
+        p_detail => format(E'%s of %s targets missed this week. Actions: %s opened, %s escalated, %s closed.\nThe one-page review is attached as %s.',
                v_missed, (select count(*) from jsonb_array_elements(w.targets) x where not coalesce((x->>'info_only')::boolean, false)), cardinality(w.opened), cardinality(w.escalated), cardinality(w.closed), v_file),
-        'info', 'ceo_weekly_review', 'ceo_weekly_review:' || w.week, 'ceo');
+        p_level => 'info', p_kind => 'ceo_weekly_review', p_dedupe_key => 'ceo_weekly_review:' || w.week, p_owner_agent => 'ceo');
       if coalesce((v_res->>'emailed')::boolean, false) then
         -- fn_notify_founder answers jsonb, not the row id: the email it queued is the one of this kind in THIS transaction.
         update public.notifications n

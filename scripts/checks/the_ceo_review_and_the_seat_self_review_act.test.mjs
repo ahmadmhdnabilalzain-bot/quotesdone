@@ -24,7 +24,7 @@ const PING = R('supabase/functions/resilience_ping/index.ts');
 const applied = (f) => R('scripts/sql/MANIFEST.txt').split('\n').some((l) => l.trim() === `scripts/sql/${f}.sql`);
 
 test('the weekly review is delivered through fn_notify_founder with kind ceo_weekly_review, at level info, by code', () => {
-  assert.match(WEEKLY, /public\.fn_notify_founder\(v_event,[\s\S]{0,400}'info', 'ceo_weekly_review'/, 'delivery does not call fn_notify_founder(…, info, ceo_weekly_review)');
+  assert.match(WEEKLY, /public\.fn_notify_founder\(p_event => v_event,[\s\S]{0,400}p_level => 'info', p_kind => 'ceo_weekly_review'/, 'delivery does not call fn_notify_founder(…, p_level => info, p_kind => ceo_weekly_review)');
   assert.match(WEEKLY, /insert into public\.founder_mail_policy[\s\S]{0,120}'ceo_weekly_review', true/, 'the kind is not allowed in founder_mail_policy');
   assert.doesNotMatch(WEEKLY + MONTHLY, /fn_seat_duty_reason\(|ai_gateway|think\(/, 'a review now calls a model');
 });
