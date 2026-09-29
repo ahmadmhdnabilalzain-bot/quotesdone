@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all - it is READ through node scripts/qsql.mjs after
+every_handoff_carries_a_note_of_what_is_known_tried_and_needed.sql and every_seat_keeps_a_living_playbook.sql
+have been applied, and it must print PROBE OK inside its CHK<<...>> message.
+
+It writes a ZZ DEMO case, handoff and lesson inside a block that always raises, so nothing survives it,
+and it asserts no notification was queued while it ran. This note stays for the life of the file.
+Seat: it_engineer.

@@ -32,7 +32,6 @@
 import { readDocument, type DocumentRead } from './doc_read/index.ts';
 import type { Extracted } from './doc_read/types.ts';
 import { catalogueLines, supplyOnlyOf } from './catalogue_read.ts';
-import { embedLine } from './gte_embed.ts';
 import { liveTradeDeps, tradesOfText, type ExactState, type MeaningState, type TradeHit, type TradeResolveDeps } from './trade_resolve.ts';
 
 export type { TradeHit, TradeResolveDeps };
@@ -119,7 +118,7 @@ export async function proposeTradesFromDocs(admin: Admin, supplierId: number, do
   try {
     if (!docs.length) return { ok: true, proposed_trades: [], docs: [] };
     // One set of deps for every document of this call: the vectors are read once, and meaning's line budget is shared.
-    const d0 = deps ?? await liveTradeDeps(admin, embedLine);
+    const d0 = deps ?? await liveTradeDeps(admin);
     const fresh: DocEvidence[] = [];
     for (const d of docs) {
       let bytes = d.bytes;

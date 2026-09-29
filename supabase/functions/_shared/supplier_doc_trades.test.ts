@@ -15,7 +15,7 @@ const SERVICES: MeaningService[] = [
   { trade_code: 'hvac', code: 'chiller_maintenance', label_en: 'Chiller maintenance', label_ar: 'صيانة المبردات', aliases: [], vec: [1, 0] },
   { trade_code: 'plumbing', code: 'drainage', label_en: 'Drainage works', label_ar: 'أعمال الصرف', aliases: [], vec: [0, 1] },
 ];
-const VEC: Record<string, number[]> = { 'Chiller maintenance for villas and towers': [0.98, 0.05] };
+const VEC: Record<string, number[]> = { 'Chiller maintenance': [0.98, 0.05] };   // the clause read from 'Chiller maintenance for villas and towers'
 const deps = (o: Partial<TradeResolveDeps> = {}): TradeResolveDeps =>
   ({ normTrades: exact, services: SERVICES, embed: async (t) => VEC[t] ?? [0.5, 0.5], budget: { left: 16 }, ...o });
 const codes = (h: { code: string }[]) => h.map((x) => x.code).sort();

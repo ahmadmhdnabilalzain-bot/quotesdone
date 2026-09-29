@@ -28,11 +28,11 @@
 // the sales engineer — never dropped, never guessed.
 
 import { capabilityConfirm, capabilityState, capabilityVocabulary, tradeCode } from './supplier_capability.ts';
-import { impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
-import { serviceVocab } from './service_vocabulary.ts';
+import { finishRewrite, impliedServices, ownWordsOf, rewriteServices, splitPhrases, tidy, withExactTrades, type Implication, type ServiceTerm } from './service_rewrite.ts';
+import { activeServiceRows, serviceVocab } from './service_vocabulary.ts';
 import { readCatalogue, supplyOnlyOf } from './catalogue_read.ts';
-import { meaningCandidates, parseVec, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
-import { embedLine } from './gte_embed.ts';
+import { meaningCandidates, meaningClauses, proposeByMeaning, type MeaningProposal, type MeaningService } from './service_meaning.ts';
+import { embedLines, remoteEmbedder } from './meaning_embed.ts';
 import { readWithModel } from './catalogue_model.ts';
 import { allText, type DocEvidence } from './supplier_doc_trades.ts';
 import { readDocument } from './doc_read/index.ts';
@@ -115,9 +115,8 @@ export function preparedTrades(cap: Record<string, unknown> | null, confirmed: b
 }
 
 async function serviceRows(admin: Admin): Promise<ServiceRow[]> {
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,sort').eq('active', true).order('trade_code').order('sort');
-  return error ? [] : (data || []);
+  const { data, error } = await activeServiceRows<ServiceRow>(admin, 'trade_code,code,label_en,label_ar,sort');
+  return error ? [] : data;
 }
 
 export async function voiceEnabled(admin: Admin): Promise<boolean> {
@@ -259,8 +258,10 @@ export async function transcribeServiceNote(supplierId: number, body: Record<str
 // professionally since he will cross match based on that."
 //
 // So ADDING a service is ONE free text box (plus the mic, behind the same flag as before). The
-// rewrite is DETERMINISTIC -- _shared/service_rewrite.ts, the platform's own aliases, no model. The
-// supplier is shown the rewrite, removes what is wrong, and confirms; only then is anything saved.
+// rewrite needs no model: a part that IS a service is that service (_shared/service_rewrite.ts), and what the
+// rest MEANS is read over the stored service vectors (service_meaning.ts) and offered, off until he adds it —
+// no alias word decides anything since 29 Sep 2026 (ruling 890, decision point 93). The supplier is shown
+// the rewrite, removes what is wrong, and confirms; only then is anything saved.
 //
 //   services_rewrite      -> preview: the supplier's words -> standard services + what they imply
 //   services_save_rewrite -> the confirmed preview, into supplier_capabilities (+ the ledger)
@@ -272,7 +273,7 @@ export async function transcribeServiceNote(supplierId: number, body: Record<str
 
 export const RAW_TEXT_MAX = 2000;
 
-/** The alias vocabulary the rewriter matches with: every active service and the phrases that name it.
+/** The service vocabulary (names and stored vectors) the rewrite and meaning read.
  *  ONE OWNER (22 Sep 2026): _shared/service_vocabulary.ts, so the inquiry side of matching and this
  *  supplier side read the same rows. Re-exported here because this module's callers already ask it
  *  for the tab's vocabulary. */
@@ -327,20 +328,31 @@ async function latestCatalogueText(admin: Admin, supplierId: number): Promise<{ 
   return r.ok ? { name: doc.name, text: allText(r), source: 'document_text' } : null;
 }
 
-/** The meaning layer over the lines the word rules left unnamed (service_meaning.ts). Never throws;
+/** The meaning layer over the lines no service was found exactly for (service_meaning.ts). Never throws;
  *  says which state it is in, so the supplier and the sales engineer can tell "understood nothing"
  *  from "could not run". */
-async function meaningFor(admin: Admin, lines: string[], stated: string[], supplyOnly: boolean) {
-  if (!lines.some((l) => l.trim().length >= 3)) return { state: 'nothing_to_read', proposals: [] as MeaningProposal[] };
-  const { data, error } = await admin.from('taxonomy_trade_service')
-    .select('trade_code,code,label_en,label_ar,aliases,embedding_gte').eq('active', true);
-  const services = error ? [] : (data || []).map((s: Record<string, unknown>) => ({ ...s, vec: parseVec(s.embedding_gte) })) as MeaningService[];
-  if (!services.some((s) => s.vec)) return { state: 'service_vectors_missing', proposals: [] as MeaningProposal[] };
-  const todo = meaningCandidates(lines, services);
-  const vecs = await Promise.all(todo.map((t) => embedLine(t)));
-  if (!vecs.some(Boolean)) return { state: 'embedding_unavailable', proposals: [] as MeaningProposal[] };
-  const proposals = proposeByMeaning(todo.map((text, i) => ({ text, vec: vecs[i] })), services, { stated, supplyOnly });
-  return { state: 'on', proposals };
+// Since 29 Sep 2026 (decision point 93) this is the ONLY way a supplier's words name a service that is not
+// written exactly: the alias rules are gone. `lines` says how many candidate lines there were and how many were
+// read (MEANING_MAX_LINES per request, the edge CPU cap); a line not read stays the supplier's own words.
+// Each line is read CLAUSE BY CLAUSE (meaningClauses: "supply and install ducting for the new majlis" is read as
+// "install ducting" and "the new majlis"), each clause in its own space (English gte-small, Arabic e5), embedded by
+// embed_ml (meaning_embed.ts), at most MEANING_MAX_LINES clauses. A proposal carries the supplier's whole LINE as
+// its evidence, and a line any clause of which was understood leaves his own words.
+async function meaningFor(admin: Admin, services: MeaningService[], lines: string[], stated: string[], supplyOnly: boolean) {
+  const origin = new Map<string, string>();
+  for (const l of [...new Set(lines.map((x) => x.trim()).filter((x) => x.length >= 3))]) {
+    for (const c of meaningClauses(l)) if (!origin.has(c)) origin.set(c, l);
+  }
+  const cand = [...origin.keys()];
+  const out = (state: string, proposals: MeaningProposal[] = [], read = 0) => ({ state, proposals, lines: { candidates: cand.length, read } });
+  if (!cand.length) return out('nothing_to_read');
+  if (!services.some((s) => s.vec || s.vec_ml)) return out('service_vectors_missing');
+  const todo = meaningCandidates(cand, services);
+  const read = await embedLines(todo, remoteEmbedder(admin, 'supplier_services'));
+  if (!read.some((l) => l.vec)) return out('embedding_unavailable');
+  const proposals = proposeByMeaning(read, services, { stated, supplyOnly })
+    .map((p) => ({ ...p, lines: [...new Set(p.lines.map((c) => origin.get(c) ?? c))] }));
+  return out('on', proposals, todo.length);
 }
 
 export async function servicesRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>): Promise<[number, Record<string, unknown>]> {
@@ -360,7 +372,19 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
   const supplyOnly = override ?? supply.supply_only;
   const rw0 = read ? read.rewrite : rewriteServices(raw, services, { supplyOnly });
   // A phrase of his own words that IS a trade code or slug is shown as that trade (rule 4, exactly).
-  const rw = withExactTrades(rw0, await exactTradesOf(admin, ownWordsOf(rw0)));
+  const rw1 = withExactTrades(rw0, await exactTradesOf(admin, ownWordsOf(rw0)));
+
+  // WHAT MEANING READS: the parts no service was written exactly for, and — from a catalogue — its sentences
+  // about the company (never its spec rows: catalogue_read.ts drops those); from typed text, the phrases the
+  // rewrite set aside as prose ("We are an interior fit out company"). A part meaning proposes a service for is
+  // shown as that proposal (off until the supplier adds it: ServicesTab, finding SP-F-06) and leaves his own
+  // words; a part it proposes nothing for, or does not reach, stays his own words — never dropped.
+  const unnamed = rw1.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
+  const namedFrom = new Set(rw1.items.filter((i) => i.kind !== 'unmatched').map((i) => i.from));
+  const prose = read ? read.lines.statements : splitPhrases(raw).filter((p) => !namedFrom.has(p));
+  const meaning = await meaningFor(admin, services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);
+  const understood = new Set(meaning.proposals.flatMap((p) => p.lines));
+  const rw = finishRewrite(rw1.items.filter((i) => !(i.kind === 'unmatched' && understood.has(i.text))));
 
   // WHAT THE STATED SERVICES ALSO COVER. The sources are the stated service keys, the trades those
   // services belong to (stating "decoration" states interior_fitout too), and any trade a phrase named
@@ -388,14 +412,6 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
       because: i.because.map((b) => ({ from: b.from, from_label_en: label(b.from).en, from_label_ar: label(b.from).ar, en: b.en, ar: b.ar })),
     };
   });
-  // WHAT THE WORDS LEFT UNNAMED, read for meaning: whole lines the rules named nothing in, and — from a
-  // catalogue — its sentences about the company. Never its spec rows (catalogue_read.ts drops those).
-  // Typed text also gives meaning the phrases the rewrite set aside as prose: "We are an interior fit out
-  // company" named a trade by its words until 29 Sep 2026 (trade_words.ts); now only meaning may read it.
-  const unnamed = rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text);
-  const namedFrom = new Set(rw.items.filter((i) => i.kind !== 'unmatched').map((i) => i.from));
-  const prose = read ? read.lines.statements : splitPhrases(raw).filter((p) => !namedFrom.has(p));
-  const meaning = await meaningFor(admin, [...unnamed, ...prose], rw.service_keys, supplyOnly);
   // CODE READ NOTHING: the model path, which answers honestly that it is switched off.
   const model = (!rw.service_keys.length && !meaning.proposals.length)
     ? await readWithModel(admin, 'text', { text: cat ? cat.text : raw }, new Set(byKey.keys()))
@@ -405,14 +421,14 @@ export async function servicesRewrite(admin: Admin, supplierId: number, body: Re
     summary_en: rw.summary_en, summary_ar: rw.summary_ar, implied,
     pending_taxonomy: rw.items.filter((i) => i.kind === 'unmatched').map((i) => i.text),
     supply_only: { proposed: supply.supply_only, applied: supplyOnly, supply_words: supply.supply_words, install_words: supply.install_words },
-    meaning: { state: meaning.state, proposals: meaning.proposals },
+    meaning: { state: meaning.state, proposals: meaning.proposals, lines: meaning.lines },
     source: cat ? { kind: 'catalogue', name: cat.name, read_from: cat.source } : { kind: 'typed' },
     ...(model ? { model } : {}),
   }];
 }
 
-/** Save the confirmed rewrite. The supplier's OWN WORDS are kept for anything the aliases did not
- *  name -- never dropped, never guessed -- and each becomes a taxonomy_trade_proposal the sales
+/** Save the confirmed rewrite. The supplier's OWN WORDS are kept for anything no service was found for
+ *  -- never dropped, never guessed -- and each becomes a taxonomy_trade_proposal the sales
  *  engineer decides. The raw text, the kept implications and the removed ones are stored separately. */
 export async function servicesSaveRewrite(admin: Admin, supplierId: number, body: Record<string, unknown>, declaredEmirates: string[] = []): Promise<[number, Record<string, unknown>]> {
   const rows = await serviceRows(admin);
@@ -442,7 +458,8 @@ export async function servicesSaveRewrite(admin: Admin, supplierId: number, body
   const held = Array.isArray(prevCap?.trades) ? prevCap!.trades as string[] : [];
   const trades = new Set(keepTickedRefine(arr(body.trades).map((t) => t.trim()).filter(Boolean).slice(0, 25), held, umbrellaOf, stated));
   for (const k of stated) trades.add(k.split('.')[0]);
-  // The supplier's own words still resolve to a TRADE where an alias names one; where none does, the
+  // The supplier's own words still resolve to a TRADE where one is found exactly or by reasoning (resolveText);
+  // where none is, the
   // words stay as the supplier wrote them and the sales engineer gets a proposal to map or add.
   //
   // Words ALREADY STORED are not resolved again: they were resolved when first saved, their trade is on
